@@ -2,11 +2,12 @@ from typing import Protocol
 from abc import abstractmethod
 
 from .bot_conversation_reference import BotConversationReference
+from .conversation_id_factory_options import ConversationIdFactoryOptions
 
 
 class ConversationIdFactoryProtocol(Protocol):
     @abstractmethod
-    def create_conversation_id(self, options: "ConversationIdFactoryOptions") -> str:
+    def create_conversation_id(self, options: ConversationIdFactoryOptions) -> str:
         """
         Creates a conversation ID for a bot conversation.
         :param options: A ConversationIdFactoryOptions instance.
