@@ -1,11 +1,11 @@
-from ._agents_model import AgentsModel
+from .agents_model import AgentsModel
 
 from typing import Generic, TypeVar
 
-T = TypeVar("T")
+AgentModelT = TypeVar("T", bound=AgentsModel)
 
 
-class InvokeResponse(AgentsModel, Generic[T]):
+class InvokeResponse(AgentsModel, Generic[AgentModelT]):
     """
     Tuple class containing an HTTP Status Code and a JSON serializable
     object. The HTTP Status code is, in the invoke activity scenario, what will
@@ -17,7 +17,7 @@ class InvokeResponse(AgentsModel, Generic[T]):
     """
 
     status: int = None
-    body: T = None
+    body: AgentModelT = None
 
     def is_successful_status_code(self) -> bool:
         """

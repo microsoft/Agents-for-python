@@ -1,4 +1,4 @@
-from ._agents_model import AgentsModel
+from .agents_model import AgentsModel
 from .thumbnail_url import ThumbnailUrl
 from .media_url import MediaUrl
 from .card_action import CardAction

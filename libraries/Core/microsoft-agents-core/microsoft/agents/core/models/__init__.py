@@ -1,3 +1,4 @@
+from .agents_model import AgentsModel
 from .activity import Activity
 from .activity_event_names import ActivityEventNames
 from .activity_types import ActivityTypes
@@ -78,6 +79,7 @@ from .delivery_modes import DeliveryModes
 from .caller_id_constants import CallerIdConstants
 
 __all__ = [
+    "AgentsModel",
     "Activity",
     "ActivityEventNames",
     "AdaptiveCardInvokeAction",

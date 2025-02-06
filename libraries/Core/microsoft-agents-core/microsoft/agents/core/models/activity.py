@@ -14,7 +14,7 @@ from .entity import Entity
 from .conversation_reference import ConversationReference
 from .text_highlight import TextHighlight
 from .semantic_action import SemanticAction
-from ._agents_model import AgentsModel
+from .agents_model import AgentsModel
 from ._type_aliases import NonEmptyString
 
 

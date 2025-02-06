@@ -1,6 +1,6 @@
 from .channel_account import ChannelAccount
 from ._type_aliases import NonEmptyString
-from ._agents_model import AgentsModel
+from .agents_model import AgentsModel
 
 
 class PagedMembersResult(AgentsModel):

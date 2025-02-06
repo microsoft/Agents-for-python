@@ -1,4 +1,4 @@
-from ._agents_model import AgentsModel
+from .agents_model import AgentsModel
 
 
 class InnerHttpError(AgentsModel):

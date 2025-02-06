@@ -1,6 +1,6 @@
 from .card_image import CardImage
 from .card_action import CardAction
-from ._agents_model import AgentsModel
+from .agents_model import AgentsModel
 from ._type_aliases import NonEmptyString
 
 

@@ -1,6 +1,6 @@
 from .adaptive_card_invoke_action import AdaptiveCardInvokeAction
 from .token_exchange_invoke_request import TokenExchangeInvokeRequest
-from ._agents_model import AgentsModel
+from .agents_model import AgentsModel
 from ._type_aliases import NonEmptyString
 
 

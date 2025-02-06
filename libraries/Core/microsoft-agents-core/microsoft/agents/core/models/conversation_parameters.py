@@ -1,6 +1,6 @@
 from .channel_account import ChannelAccount
 from .activity import Activity
-from ._agents_model import AgentsModel
+from .agents_model import AgentsModel
 from ._type_aliases import NonEmptyString
 
 

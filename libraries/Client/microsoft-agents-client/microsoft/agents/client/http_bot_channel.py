@@ -1,8 +1,18 @@
-from aiohttp import ClientSession
+from copy import deepcopy, copy
+
+from aiohttp import ClientSession, ClientResponseError
 from microsoft.agents.authentication import AccessTokenProviderBase
-from microsoft.agents.core.models import Activity
+from microsoft.agents.core.models import (
+    AgentsModel,
+    Activity,
+    ConversationReference,
+    ChannelAccount,
+    InvokeResponse,
+    RoleTypes,
+)
 
 from .channel_protocol import ChannelProtocol
+from .conversation_constants import ConversationConstants
 
 
 class HttpBotChannel(ChannelProtocol):
@@ -17,7 +27,10 @@ class HttpBotChannel(ChannelProtocol):
         service_url: str,
         conversation_id: str,
         activity: Activity,
-    ) -> dict:
+        *,
+        response_body_type: type[AgentsModel] = None,
+        **kwargs,
+    ) -> InvokeResponse[AgentsModel]:
         if not endpoint:
             raise ValueError("HttpBotChannel.post_activity: Endpoint is required")
         if not service_url:
@@ -26,3 +39,49 @@ class HttpBotChannel(ChannelProtocol):
             raise ValueError(
                 "HttpBotChannel.post_activity: Conversation ID is required"
             )
+        if not activity:
+            raise ValueError("HttpBotChannel.post_activity: Activity is required")
+
+        activity_copy = deepcopy(activity)
+
+        # TODO: should conversation should be a deep copy instead of shallow?
+        activity_copy.relates_to = ConversationReference(
+            service_url=service_url,
+            activity_id=activity_copy.id,
+            channel_id=activity_copy.channel_id,
+            locale=activity_copy.locale,
+            conversation=copy(activity_copy.conversation),
+        )
+
+        activity_copy.conversation.id = conversation_id
+        activity_copy.service_url = service_url
+        activity_copy.recipient = activity_copy.recipient or ChannelAccount()
+        activity_copy.recipient.role = RoleTypes.skill
+
+        token_result = await self._token_access.get_access_token(
+            to_bot_resource, f"{to_bot_id}/.default"
+        )
+        headers = {
+            "Authorization": f"Bearer {token_result}",
+            "Content-Type": "application/json",
+            ConversationConstants.CONVERSATION_ID_HTTP_HEADER_NAME: conversation_id,
+        }
+        async with ClientSession() as session:
+            async with session.post(
+                endpoint,
+                headers=headers,
+                json=activity_copy.model_dump(by_alias=True, exclude_unset=True),
+            ) as response:
+
+                if response.ok:
+                    content = await response.json()
+                    if response_body_type:
+                        content = response_body_type.model_validate(content)
+
+                    return InvokeResponse(status=response.status, body=content)
+
+                else:
+                    # TODO: Log error
+                    content = await response.text()
+
+                    return InvokeResponse(status=response.status, body=content)

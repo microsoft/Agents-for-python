@@ -1,5 +1,5 @@
 from .activity import Activity
-from ._agents_model import AgentsModel
+from .agents_model import AgentsModel
 
 
 class ExpectedReplies(AgentsModel):

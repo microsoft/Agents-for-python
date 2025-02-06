@@ -1,7 +1,7 @@
 from .fact import Fact
 from .receipt_item import ReceiptItem
 from .card_action import CardAction
-from ._agents_model import AgentsModel
+from .agents_model import AgentsModel
 from ._type_aliases import NonEmptyString
 
 
