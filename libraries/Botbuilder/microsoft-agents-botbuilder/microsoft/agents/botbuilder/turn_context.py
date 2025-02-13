@@ -7,6 +7,7 @@ import re
 from copy import copy, deepcopy
 from collections.abc import Callable
 from datetime import datetime, timezone
+from microsoft.agents.core import TurnContextProtocol
 from microsoft.agents.core.models import (
     Activity,
     ActivityTypes,
@@ -18,7 +19,7 @@ from microsoft.agents.core.models import (
 )
 
 
-class TurnContext:
+class TurnContext(TurnContextProtocol):
     # Same constant as in the BF Adapter, duplicating here to avoid circular dependency
     _INVOKE_RESPONSE_KEY = "BotFrameworkAdapter.InvokeResponse"
 

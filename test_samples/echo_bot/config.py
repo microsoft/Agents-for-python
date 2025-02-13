@@ -1,7 +1,9 @@
 from microsoft.agents.authorization.msal import AuthTypes, MsalAuthConfiguration
 
+
 class DefaultConfig(MsalAuthConfiguration):
-    """ Bot Configuration """
+    """Bot Configuration"""
+
     AUTH_TYPE = AuthTypes.client_secret
     TENANT_ID = ""
     CLIENT_ID = ""

@@ -5,18 +5,26 @@ from aiohttp.web import Application, Request, Response, run_app
 
 from microsoft.agents.botbuilder import RestChannelServiceClientFactory
 from microsoft.agents.hosting.aiohttp import CloudAdapter, jwt_authorization_middleware
-from microsoft.agents.authentication import Connections, AccessTokenProviderBase, ClaimsIdentity
+from microsoft.agents.authentication import (
+    Connections,
+    AccessTokenProviderBase,
+    ClaimsIdentity,
+)
 from microsoft.agents.authorization.msal import MsalAuth
 
 from echo_bot import EchoBot
 from config import DefaultConfig
 
 AUTH_PROVIDER = MsalAuth(DefaultConfig())
+
+
 class DefaultConnection(Connections):
     def get_default_connection(self) -> AccessTokenProviderBase:
         pass
 
-    def get_token_provider(self, claims_identity: ClaimsIdentity, service_url: str) -> AccessTokenProviderBase:
+    def get_token_provider(
+        self, claims_identity: ClaimsIdentity, service_url: str
+    ) -> AccessTokenProviderBase:
         return AUTH_PROVIDER
 
     def get_connection(self, connection_name: str) -> AccessTokenProviderBase:

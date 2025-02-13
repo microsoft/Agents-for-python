@@ -39,7 +39,11 @@ class MemoryStorage(Storage):
         with self._lock:
             for key in changes:
                 old_e_tag = self._memory.get(key, {}).get("e_tag")
-                if not hasattr(changes[key], "e_tag") or changes[key].e_tag == "*":
+                if (
+                    not old_e_tag
+                    or not hasattr(changes[key], "e_tag")
+                    or changes[key].e_tag == "*"
+                ):
                     self._e_tag += 1
                     changes[key].e_tag = self._e_tag
                 elif old_e_tag != changes[key].e_tag:
