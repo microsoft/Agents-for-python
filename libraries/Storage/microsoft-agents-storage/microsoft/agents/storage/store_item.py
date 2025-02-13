@@ -1,9 +1,9 @@
-from typing import Any, MutableMapping, Protocol
-from typing_extensions import Self
+from typing import Protocol, runtime_checkable
 
-JSON = MutableMapping[str, Any]
+from ._type_aliases import JSON
 
 
+@runtime_checkable
 class StoreItem(Protocol):
     e_tag: str
 
@@ -11,5 +11,5 @@ class StoreItem(Protocol):
         pass
 
     @staticmethod
-    def from_json_to_store_item(json_data: JSON) -> Self:
+    def from_json_to_store_item(json_data: JSON) -> "StoreItem":
         pass

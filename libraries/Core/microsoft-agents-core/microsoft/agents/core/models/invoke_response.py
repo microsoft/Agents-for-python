@@ -2,7 +2,7 @@ from .agents_model import AgentsModel
 
 from typing import Generic, TypeVar
 
-AgentModelT = TypeVar("T", AgentsModel)
+AgentModelT = TypeVar("T", bound=AgentsModel)
 
 
 class InvokeResponse(AgentsModel, Generic[AgentModelT]):

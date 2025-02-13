@@ -64,6 +64,7 @@ class Channels(str, Enum):
     webchat = "webchat"
     """WebChat channel."""
 
+    # TODO: validate the need of Self annotations in the following methods
     @staticmethod
     def supports_suggested_actions(channel_id: Self, button_cnt: int = 100) -> bool:
         """Determine if a number of Suggested Actions are supported by a Channel.
