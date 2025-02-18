@@ -3,7 +3,9 @@
 
 from abc import ABC, abstractmethod
 from collections.abc import Callable
-from typing import List, Awaitable, Protocol
+from typing import List, Awaitable
+from microsoft.agents.authentication import ClaimsIdentity
+from microsoft.agents.core import ChannelAdapterProtocol
 from microsoft.agents.core.models import (
     Activity,
     ConversationReference,
@@ -15,7 +17,7 @@ from .turn_context import TurnContext
 from .middleware_set import MiddlewareSet
 
 
-class ChannelAdapter(ABC):
+class ChannelAdapter(ABC, ChannelAdapterProtocol):
     BOT_IDENTITY_KEY = "BotIdentity"
     OAUTH_SCOPE_KEY = "Microsoft.Agents.BotBuilder.ChannelAdapter.OAuthScope"
     INVOKE_RESPONSE_KEY = "ChannelAdapter.InvokeResponse"
@@ -103,6 +105,29 @@ class ChannelAdapter(ABC):
         """
         context = TurnContext(self, reference.get_continuation_activity())
         return await self.run_pipeline(context, callback)
+
+    async def continue_conversation_with_claims(
+        self,
+        claims_identity: ClaimsIdentity,
+        continuation_activity: Activity,
+        callback: Callable[[TurnContext], Awaitable],
+        audience: str = None,
+    ):
+        """
+        Sends a proactive message to a conversation. Call this method to proactively send a message to a conversation.
+        Most channels require a user to initiate a conversation with a bot before the bot can send activities
+        to the user.
+
+        :param claims_identity: A :class:`botframework.connector.auth.ClaimsIdentity` for the conversation.
+        :type claims_identity: :class:`botframework.connector.auth.ClaimsIdentity`
+        :param continuation_activity: The activity to send.
+        :type continuation_activity: :class:`botbuilder
+        :param callback: The method to call for the resulting bot turn.
+        :type callback: :class:`typing.Callable`
+        :param audience: A value signifying the recipient of the proactive message.
+        :type audience: str
+        """
+        raise NotImplementedError()
 
     async def create_conversation(
         self,

@@ -44,6 +44,17 @@ class ChannelAdapterProtocol(Protocol):
     ) -> None:
         pass
 
+    # TODO: potentially move ClaimsIdentity to core
+    @abstractmethod
+    async def continue_conversation_with_claims(
+        self,
+        claims_identity: dict,
+        continuation_activity: Activity,
+        callback: Callable[[TurnContextProtocol], Awaitable],
+        audience: str = None,
+    ):
+        pass
+
     @abstractmethod
     async def create_conversation(
         self,

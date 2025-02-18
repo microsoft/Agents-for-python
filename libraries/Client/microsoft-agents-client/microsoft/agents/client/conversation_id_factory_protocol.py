@@ -7,7 +7,9 @@ from .conversation_id_factory_options import ConversationIdFactoryOptions
 
 class ConversationIdFactoryProtocol(Protocol):
     @abstractmethod
-    def create_conversation_id(self, options: ConversationIdFactoryOptions) -> str:
+    async def create_conversation_id(
+        self, options: ConversationIdFactoryOptions
+    ) -> str:
         """
         Creates a conversation ID for a bot conversation.
         :param options: A ConversationIdFactoryOptions instance.
@@ -15,7 +17,7 @@ class ConversationIdFactoryProtocol(Protocol):
         """
 
     @abstractmethod
-    def get_bot_conversation_reference(
+    async def get_bot_conversation_reference(
         self, bot_conversation_id: str
     ) -> BotConversationReference:
         """
@@ -25,7 +27,7 @@ class ConversationIdFactoryProtocol(Protocol):
         """
 
     @abstractmethod
-    def delete_conversation_reference(self, bot_conversation_id: str) -> None:
+    async def delete_conversation_reference(self, bot_conversation_id: str) -> None:
         """
         Deletes a bot conversation reference.
         :param bot_conversation_id: A conversation ID created with create_conversation_id.

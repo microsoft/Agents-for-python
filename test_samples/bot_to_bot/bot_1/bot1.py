@@ -1,4 +1,4 @@
-from typing import Any
+from uuid import uuid4
 
 from aiohttp.web import HTTPException
 
@@ -10,7 +10,7 @@ from microsoft.agents.core.models import (
     ChannelAccount,
     ResourceResponse,
 )
-from microsoft.agents.authentication import BotClaims, ClaimsIdentity
+from microsoft.agents.authentication import ClaimsIdentity
 from microsoft.agents.client import (
     ChannelHostProtocol,
     ChannelInfoProtocol,
@@ -158,7 +158,7 @@ class Bot1(ActivityHandler, ChannelApiHandlerProtocol):
         activity: Activity,
     ):
         bot_conversation_reference = (
-            await self._conversation_id_factory.get_conversation_reference(
+            await self._conversation_id_factory.get_bot_conversation_reference(
                 conversation_id
             )
         )
@@ -180,9 +180,18 @@ class Bot1(ActivityHandler, ChannelApiHandlerProtocol):
                 Bot1._apply_activity_to_turn_context(turn_context, activity)
                 await self.on_turn(turn_context)
             else:
+                nonlocal resource_response
                 resource_response = await turn_context.send_activity(activity)
 
         # TODO: fix overload
-        await self._adapter.continue_conversation(
-            activity, claims_identity, bot_callback_handler
+        continuation_activity = (
+            bot_conversation_reference.conversation_reference.get_continuation_activity()
         )
+        await self._adapter.continue_conversation_with_claims(
+            claims_identity=claims_identity,
+            continuation_activity=continuation_activity,
+            callback=bot_callback_handler,
+            audience=bot_conversation_reference.oauth_scope,
+        )
+
+        return resource_response or ResourceResponse(id=str(uuid4()))
