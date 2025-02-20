@@ -4,6 +4,7 @@ from __future__ import annotations
 from http import HTTPStatus
 from pydantic import BaseModel
 
+from microsoft.agents.core import TurnContextProtocol
 from microsoft.agents.core.models import (
     Activity,
     ActivityTypes,
@@ -16,7 +17,6 @@ from microsoft.agents.core.models import (
 )
 
 from .bot import Bot
-from .turn_context import TurnContext
 
 
 class ActivityHandler(Bot):
@@ -30,7 +30,7 @@ class ActivityHandler(Bot):
     """
 
     async def on_turn(
-        self, turn_context: TurnContext
+        self, turn_context: TurnContextProtocol
     ):  # pylint: disable=arguments-differ
         """
         Called by the adapter (for example, :class:`BotFrameworkAdapter`) at runtime
@@ -97,7 +97,7 @@ class ActivityHandler(Bot):
             await self.on_unrecognized_activity_type(turn_context)
 
     async def on_message_activity(  # pylint: disable=unused-argument
-        self, turn_context: TurnContext
+        self, turn_context: TurnContextProtocol
     ):
         """
         Override this method in a derived class to provide logic specific to activities,
@@ -111,7 +111,7 @@ class ActivityHandler(Bot):
         return
 
     async def on_message_update_activity(  # pylint: disable=unused-argument
-        self, turn_context: TurnContext
+        self, turn_context: TurnContextProtocol
     ):
         """
         Override this method in a derived class to provide logic specific to activities,
@@ -125,7 +125,7 @@ class ActivityHandler(Bot):
         return
 
     async def on_message_delete_activity(  # pylint: disable=unused-argument
-        self, turn_context: TurnContext
+        self, turn_context: TurnContextProtocol
     ):
         """
         Override this method in a derived class to provide logic specific to activities,
@@ -138,7 +138,7 @@ class ActivityHandler(Bot):
         """
         return
 
-    async def on_conversation_update_activity(self, turn_context: TurnContext):
+    async def on_conversation_update_activity(self, turn_context: TurnContextProtocol):
         """
         Invoked when a conversation update activity is received from the channel when the base behavior of
         :meth:`on_turn()` is used.
@@ -176,7 +176,7 @@ class ActivityHandler(Bot):
         return
 
     async def on_members_added_activity(
-        self, members_added: list[ChannelAccount], turn_context: TurnContext
+        self, members_added: list[ChannelAccount], turn_context: TurnContextProtocol
     ):  # pylint: disable=unused-argument
         """
         Override this method in a derived class to provide logic for when members other than the bot join
@@ -198,7 +198,7 @@ class ActivityHandler(Bot):
         return
 
     async def on_members_removed_activity(
-        self, members_removed: list[ChannelAccount], turn_context: TurnContext
+        self, members_removed: list[ChannelAccount], turn_context: TurnContextProtocol
     ):  # pylint: disable=unused-argument
         """
         Override this method in a derived class to provide logic for when members other than the bot leave
@@ -220,7 +220,7 @@ class ActivityHandler(Bot):
 
         return
 
-    async def on_message_reaction_activity(self, turn_context: TurnContext):
+    async def on_message_reaction_activity(self, turn_context: TurnContextProtocol):
         """
         Invoked when an event activity is received from the connector when the base behavior of
         :meth:`on_turn()` is used.
@@ -261,7 +261,9 @@ class ActivityHandler(Bot):
             )
 
     async def on_reactions_added(  # pylint: disable=unused-argument
-        self, message_reactions: list[MessageReaction], turn_context: TurnContext
+        self,
+        message_reactions: list[MessageReaction],
+        turn_context: TurnContextProtocol,
     ):
         """
         Override this method in a derived class to provide logic for when reactions to a previous activity
@@ -285,7 +287,9 @@ class ActivityHandler(Bot):
         return
 
     async def on_reactions_removed(  # pylint: disable=unused-argument
-        self, message_reactions: list[MessageReaction], turn_context: TurnContext
+        self,
+        message_reactions: list[MessageReaction],
+        turn_context: TurnContextProtocol,
     ):
         """
         Override this method in a derived class to provide logic for when reactions to a previous activity
@@ -307,7 +311,7 @@ class ActivityHandler(Bot):
         """
         return
 
-    async def on_event_activity(self, turn_context: TurnContext):
+    async def on_event_activity(self, turn_context: TurnContextProtocol):
         """
         Invoked when an event activity is received from the connector when the base behavior of
         :meth:`on_turn()` is used.
@@ -336,7 +340,7 @@ class ActivityHandler(Bot):
         return await self.on_event(turn_context)
 
     async def on_token_response_event(  # pylint: disable=unused-argument
-        self, turn_context: TurnContext
+        self, turn_context: TurnContextProtocol
     ):
         """
         Invoked when a `tokens/response` event is received when the base behavior of
@@ -356,7 +360,7 @@ class ActivityHandler(Bot):
         return
 
     async def on_event(  # pylint: disable=unused-argument
-        self, turn_context: TurnContext
+        self, turn_context: TurnContextProtocol
     ):
         """
         Invoked when an event other than `tokens/response` is received when the base behavior of
@@ -376,7 +380,7 @@ class ActivityHandler(Bot):
         return
 
     async def on_end_of_conversation_activity(  # pylint: disable=unused-argument
-        self, turn_context: TurnContext
+        self, turn_context: TurnContextProtocol
     ):
         """
         Invoked when a conversation end activity is received from the channel.
@@ -388,7 +392,7 @@ class ActivityHandler(Bot):
         return
 
     async def on_typing_activity(  # pylint: disable=unused-argument
-        self, turn_context: TurnContext
+        self, turn_context: TurnContextProtocol
     ):
         """
         Override this in a derived class to provide logic specific to
@@ -401,7 +405,7 @@ class ActivityHandler(Bot):
         return
 
     async def on_installation_update(  # pylint: disable=unused-argument
-        self, turn_context: TurnContext
+        self, turn_context: TurnContextProtocol
     ):
         """
         Override this in a derived class to provide logic specific to
@@ -418,7 +422,7 @@ class ActivityHandler(Bot):
         return
 
     async def on_installation_update_add(  # pylint: disable=unused-argument
-        self, turn_context: TurnContext
+        self, turn_context: TurnContextProtocol
     ):
         """
         Override this in a derived class to provide logic specific to
@@ -431,7 +435,7 @@ class ActivityHandler(Bot):
         return
 
     async def on_installation_update_remove(  # pylint: disable=unused-argument
-        self, turn_context: TurnContext
+        self, turn_context: TurnContextProtocol
     ):
         """
         Override this in a derived class to provide logic specific to
@@ -444,7 +448,7 @@ class ActivityHandler(Bot):
         return
 
     async def on_unrecognized_activity_type(  # pylint: disable=unused-argument
-        self, turn_context: TurnContext
+        self, turn_context: TurnContextProtocol
     ):
         """
         Invoked when an activity other than a message, conversation update, or event is received when the base
@@ -463,7 +467,7 @@ class ActivityHandler(Bot):
         return
 
     async def on_invoke_activity(  # pylint: disable=unused-argument
-        self, turn_context: TurnContext
+        self, turn_context: TurnContextProtocol
     ) -> InvokeResponse | None:
         """
         Registers an activity event handler for the _invoke_ event, emitted for every incoming event activity.
@@ -496,7 +500,7 @@ class ActivityHandler(Bot):
             return invoke_exception.create_invoke_response()
 
     async def on_sign_in_invoke(  # pylint: disable=unused-argument
-        self, turn_context: TurnContext
+        self, turn_context: TurnContextProtocol
     ):
         """
         Invoked when a signin/verifyState or signin/tokenExchange event is received when the base behavior of
@@ -512,7 +516,7 @@ class ActivityHandler(Bot):
         raise _InvokeResponseException(HTTPStatus.NOT_IMPLEMENTED)
 
     async def on_adaptive_card_invoke(
-        self, turn_context: TurnContext, invoke_value: AdaptiveCardInvokeValue
+        self, turn_context: TurnContextProtocol, invoke_value: AdaptiveCardInvokeValue
     ) -> AdaptiveCardInvokeResponse:
         """
         Invoked when the bot is sent an Adaptive Card Action Execute.

@@ -1,3 +1,4 @@
+from typing import Optional
 from uuid import uuid4
 
 from aiohttp.web import HTTPException
@@ -9,6 +10,12 @@ from microsoft.agents.core.models import (
     CallerIdConstants,
     ChannelAccount,
     ResourceResponse,
+    AttachmentData,
+    PagedMembersResult,
+    Transcript,
+    ConversationParameters,
+    ConversationResourceResponse,
+    ConversationsResult,
 )
 from microsoft.agents.authentication import ClaimsIdentity
 from microsoft.agents.client import (
@@ -97,6 +104,100 @@ class Bot1(ActivityHandler, ChannelApiHandlerProtocol):
                     'Hello and welcome! Say "agent" and I\'ll patch you through'
                 )
 
+    """
+    ChannelApiHandler protocol
+    """
+
+    async def on_get_conversations(
+        self,
+        claims_identity: ClaimsIdentity,
+        conversation_id: str,
+        continuation_token: Optional[str] = None,
+    ) -> ConversationsResult:
+        pass
+
+    async def on_create_conversation(
+        self, claims_identity: ClaimsIdentity, parameters: ConversationParameters
+    ) -> ConversationResourceResponse:
+        pass
+
+    async def on_send_to_conversation(
+        self, claims_identity: ClaimsIdentity, conversation_id: str, activity: Activity
+    ) -> ResourceResponse:
+        return await self._process_activity(
+            claims_identity, conversation_id, None, activity
+        )
+
+    async def on_send_conversation_history(
+        self,
+        claims_identity: ClaimsIdentity,
+        conversation_id: str,
+        transcript: Transcript,
+    ) -> ResourceResponse:
+        pass
+
+    async def on_update_activity(
+        self,
+        claims_identity: ClaimsIdentity,
+        conversation_id: str,
+        activity_id: str,
+        activity: Activity,
+    ) -> ResourceResponse:
+        pass
+
+    async def on_reply_to_activity(
+        self,
+        claims_identity: ClaimsIdentity,
+        conversation_id: str,
+        activity_id: str,
+        activity: Activity,
+    ) -> ResourceResponse:
+        return await self._process_activity(
+            claims_identity, conversation_id, activity_id, activity
+        )
+
+    async def on_delete_activity(
+        self, claims_identity: ClaimsIdentity, conversation_id: str, activity_id: str
+    ):
+        pass
+
+    async def on_get_conversation_members(
+        self, claims_identity: ClaimsIdentity, conversation_id: str
+    ) -> list[ChannelAccount]:
+        pass
+
+    async def on_get_conversation_member(
+        self, claims_identity: ClaimsIdentity, user_id: str, conversation_id: str
+    ) -> ChannelAccount:
+        pass
+
+    async def on_get_conversation_paged_members(
+        self,
+        claims_identity: ClaimsIdentity,
+        conversation_id: str,
+        page_size: Optional[int] = None,
+        continuation_token: Optional[str] = None,
+    ) -> PagedMembersResult:
+        pass
+
+    async def on_delete_conversation_member(
+        self, claims_identity: ClaimsIdentity, conversation_id: str, member_id: str
+    ):
+        pass
+
+    async def on_get_activity_members(
+        self, claims_identity: ClaimsIdentity, conversation_id: str, activity_id: str
+    ) -> list[ChannelAccount]:
+        pass
+
+    async def on_upload_attachment(
+        self,
+        claims_identity: ClaimsIdentity,
+        conversation_id: str,
+        attachment_upload: AttachmentData,
+    ) -> ResourceResponse:
+        pass
+
     async def _send_to_bot(
         self, turn_context: TurnContextProtocol, target_channel: ChannelInfoProtocol
     ):
@@ -129,7 +230,7 @@ class Bot1(ActivityHandler, ChannelApiHandlerProtocol):
 
         if response.status < 200 or response.status >= 300:
             raise HTTPException(
-                f'Error invoking the id: "{target_channel.id}" at "{target_channel.endpoint}" (status is {response.status}). \r\n {response.body}'
+                text=f'Error invoking the id: "{target_channel.id}" at "{target_channel.endpoint}" (status is {response.status}). \r\n {response.body}'
             )
 
     @staticmethod
@@ -154,7 +255,7 @@ class Bot1(ActivityHandler, ChannelApiHandlerProtocol):
         self,
         claims_identity: ClaimsIdentity,
         conversation_id: str,
-        reply_to_activity_id: str,
+        reply_to_activity_id: Optional[str],
         activity: Activity,
     ):
         bot_conversation_reference = (
