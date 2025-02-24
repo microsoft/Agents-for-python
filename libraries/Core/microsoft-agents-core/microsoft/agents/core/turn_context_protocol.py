@@ -9,13 +9,14 @@ from microsoft.agents.core.models import (
     ConversationReference,
 )
 
-from .channel_adapter_protocol import ChannelAdapterProtocol
+# TODO: refactor circular dependency
+# from .channel_adapter_protocol import ChannelAdapterProtocol
 
 T = TypeVar("T", bound=Activity)
 
 
 class TurnContextProtocol(Protocol, Generic[T]):
-    adapter: ChannelAdapterProtocol
+    adapter: "ChannelAdapterProtocol"
     activity: Activity | T
     responded: bool
     turn_state: dict
