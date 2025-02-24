@@ -24,7 +24,9 @@ class ChannelInfo(ChannelInfoProtocol):
 
 
 class ChannelHostConfiguration:
-    def __init__(self, CHANNELS: list[ChannelInfoProtocol], HOST_ENDPOINT: str, HOST_APP_ID: str):
+    def __init__(
+        self, CHANNELS: list[ChannelInfoProtocol], HOST_ENDPOINT: str, HOST_APP_ID: str
+    ):
         self.CHANNELS = CHANNELS
         self.HOST_ENDPOINT = HOST_ENDPOINT
         self.HOST_APP_ID = HOST_APP_ID

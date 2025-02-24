@@ -3,7 +3,11 @@ from .channel_factory_protocol import ChannelFactoryProtocol
 from .channel_host_protocol import ChannelHostProtocol
 from .channel_info_protocol import ChannelInfoProtocol
 from .channel_protocol import ChannelProtocol
-from .channels_configuration import ChannelsConfiguration, ChannelHostConfiguration, ChannelInfo
+from .channels_configuration import (
+    ChannelsConfiguration,
+    ChannelHostConfiguration,
+    ChannelInfo,
+)
 from .configuration_channel_host import ConfigurationChannelHost
 from .conversation_constants import ConversationConstants
 from .conversation_id_factory_options import ConversationIdFactoryOptions
