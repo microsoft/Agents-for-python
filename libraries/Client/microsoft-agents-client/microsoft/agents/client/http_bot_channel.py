@@ -70,7 +70,9 @@ class HttpBotChannel(ChannelProtocol):
             async with session.post(
                 endpoint,
                 headers=headers,
-                json=activity_copy.model_dump(mode="json", by_alias=True, exclude_unset=True),
+                json=activity_copy.model_dump(
+                    mode="json", by_alias=True, exclude_unset=True
+                ),
             ) as response:
 
                 if response.ok:

@@ -50,9 +50,7 @@ class ConfigurationChannelHost(ChannelHostProtocol):
                 f"ConfigurationChannelHost.get_channel_from_channel_info(): channel_info cannot be None"
             )
 
-        token_provider = self.connections.get_connection(
-            channel_info.token_provider
-        )
+        token_provider = self.connections.get_connection(channel_info.token_provider)
         if not token_provider:
             raise ValueError(
                 f"ConfigurationChannelHost.get_channel_from_channel_info(): token_provider not found for '{channel_info.token_provider}'"

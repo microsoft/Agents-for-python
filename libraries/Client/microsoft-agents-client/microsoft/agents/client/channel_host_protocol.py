@@ -15,7 +15,9 @@ class ChannelHostProtocol(Protocol):
         self.host_app_id = host_app_id
         self.channels = channels
 
-    def get_channel_from_channel_info(self, channel_info: ChannelInfoProtocol) -> ChannelProtocol:
+    def get_channel_from_channel_info(
+        self, channel_info: ChannelInfoProtocol
+    ) -> ChannelProtocol:
         raise NotImplementedError()
 
     def get_channel_from_name(self, name: str) -> ChannelProtocol:
