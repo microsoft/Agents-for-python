@@ -10,8 +10,7 @@ from .conversation_id_factory_protocol import ConversationIdFactoryProtocol
 
 
 def _implement_store_item_for_agents_model_cls(model_instance: AgentsModel):
-    if not hasattr(model_instance, "e_tag"):
-        setattr(model_instance, "e_tag", 0)
+    instance_cls = type(model_instance)
     if not isinstance(model_instance, StoreItem):
         instance_cls = type(model_instance)
         setattr(

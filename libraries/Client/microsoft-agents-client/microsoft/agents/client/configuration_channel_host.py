@@ -21,7 +21,7 @@ class ConfigurationChannelHost(ChannelHostProtocol):
         self.connections = connections
         self.configuration = configuration
         self.channels: dict[str, ChannelInfoProtocol] = {}
-        self.endpoint: str = None
+        self.host_endpoint: str = None
         self.host_app_id: str = None
 
         channel_host_configuration = configuration.CHANNEL_HOST_CONFIGURATION()
@@ -34,7 +34,7 @@ class ConfigurationChannelHost(ChannelHostProtocol):
                         bot.channel_factory = default_channel_name
                     self.channels[bot.id] = bot
 
-            self.endpoint = channel_host_configuration.HOST_ENDPOINT
+            self.host_endpoint = channel_host_configuration.HOST_ENDPOINT
             self.host_app_id = channel_host_configuration.HOST_APP_ID
 
     def get_channel_from_name(self, name: str) -> ChannelProtocol:
@@ -50,7 +50,7 @@ class ConfigurationChannelHost(ChannelHostProtocol):
                 f"ConfigurationChannelHost.get_channel_from_channel_info(): channel_info cannot be None"
             )
 
-        token_provider = self.connections.get_token_provider(
+        token_provider = self.connections.get_connection(
             channel_info.token_provider
         )
         if not token_provider:

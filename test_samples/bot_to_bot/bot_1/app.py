@@ -38,7 +38,8 @@ class DefaultConnection(Connections):
         return AUTH_PROVIDER
 
     def get_connection(self, connection_name: str) -> AccessTokenProviderBase:
-        pass
+        # In this case we are using the same settings for both ABS and C
+        return AUTH_PROVIDER
 
 
 DEFAULT_CONNECTION = DefaultConnection()

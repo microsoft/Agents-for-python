@@ -36,7 +36,7 @@ class ConversationReference(AgentsModel):
     # optionals here are due to webchat
     activity_id: Optional[NonEmptyString] = None
     user: ChannelAccount = None
-    bot: ChannelAccount
+    bot: ChannelAccount = None
     conversation: ConversationAccount
     channel_id: NonEmptyString
     locale: Optional[NonEmptyString] = None

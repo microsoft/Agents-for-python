@@ -59,7 +59,7 @@ class HttpBotChannel(ChannelProtocol):
         activity_copy.recipient.role = RoleTypes.skill
 
         token_result = await self._token_access.get_access_token(
-            to_bot_resource, f"{to_bot_id}/.default"
+            to_bot_resource, [f"{to_bot_id}/.default"]
         )
         headers = {
             "Authorization": f"Bearer {token_result}",
@@ -70,7 +70,7 @@ class HttpBotChannel(ChannelProtocol):
             async with session.post(
                 endpoint,
                 headers=headers,
-                json=activity_copy.model_dump(by_alias=True, exclude_unset=True),
+                json=activity_copy.model_dump(mode="json", by_alias=True, exclude_unset=True),
             ) as response:
 
                 if response.ok:
@@ -82,6 +82,7 @@ class HttpBotChannel(ChannelProtocol):
 
                 else:
                     # TODO: Log error
-                    content = await response.text()
+                    # TODO: Fix generic AgentsModel serialization
+                    content = await response.json()
 
                     return InvokeResponse(status=response.status, body=content)

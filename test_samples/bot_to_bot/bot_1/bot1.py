@@ -57,10 +57,10 @@ class Bot1(ActivityHandler, ChannelApiHandlerProtocol):
 
     async def on_turn(self, turn_context: TurnContextProtocol):
         # Forward all activities except EndOfConversation to the skill
-        if turn_context.activity.type == ActivityTypes.end_of_conversation:
+        if turn_context.activity.type != ActivityTypes.end_of_conversation:
             # Try to get the active skill
             if Bot1._active_bot_client:
-                # await Bot1._active_bot_client.on_turn(turn_context)
+                await self._send_to_bot(turn_context, self._target_skill)
                 return
 
         await super().on_turn(turn_context)
@@ -74,6 +74,7 @@ class Bot1(ActivityHandler, ChannelApiHandlerProtocol):
             Bot1._active_bot_client = True
 
             # send to bot
+            await self._send_to_bot(turn_context, self._target_skill)
             return
 
         await turn_context.send_activity('Say "agent" and I\'ll patch you through')
@@ -216,7 +217,7 @@ class Bot1(ActivityHandler, ChannelApiHandlerProtocol):
         )
 
         # TODO: might need to close connection, tbd
-        channel = self._channel_host.get_channel(target_channel)
+        channel = self._channel_host.get_channel_from_channel_info(target_channel)
 
         # Route activity to the skill
         response = await channel.post_activity(

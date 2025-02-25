@@ -1,9 +1,5 @@
 from microsoft.agents.authorization.msal import AuthTypes, MsalAuthConfiguration
-from microsoft.agents.client import (
-    ChannelHostConfiguration,
-    ChannelsConfiguration,
-    ChannelInfo,
-)
+from microsoft.agents.client import ChannelHostConfiguration, ChannelsConfiguration, ChannelInfo
 
 
 class DefaultConfig(MsalAuthConfiguration, ChannelsConfiguration):

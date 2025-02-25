@@ -1,6 +1,6 @@
 # Copyright (c) Microsoft Corporation. All rights reserved.
 # Licensed under the MIT License.
-
+from traceback import format_exc
 from typing import Optional
 
 from aiohttp.web import (
@@ -42,6 +42,7 @@ class CloudAdapter(ChannelServiceAdapter, BotHttpAdapter):
 
         async def on_turn_error(context: TurnContext, error: Exception):
             error_message = f"Exception caught : {error}"
+            print(format_exc())
 
             await context.send_activity(MessageFactory.text(error_message))
 

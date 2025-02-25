@@ -122,3 +122,6 @@ cython_debug/
 # JetBrains Rider
 *.sln.iml
 .idea/
+
+# vscode
+.vscode/
