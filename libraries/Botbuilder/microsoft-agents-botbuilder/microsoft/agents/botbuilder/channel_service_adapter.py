@@ -100,7 +100,9 @@ class ChannelServiceAdapter(ChannelAdapter, ABC):
                             activity.model_dump(by_alias=True, exclude_unset=True),
                         )
                     )
-
+            # TODO: The connector client is not casting the response but returning the JSON, need to fix it appropiatly
+            if not isinstance(response, ResourceResponse):
+                response = ResourceResponse.model_validate(response)
             response = response or ResourceResponse(id=activity.id or "")
 
             responses.append(response)
@@ -183,11 +185,11 @@ class ChannelServiceAdapter(ChannelAdapter, ABC):
         self,
         claims_identity: ClaimsIdentity,
         continuation_activity: Activity,
-        logic: Callable[[TurnContext], Awaitable],
+        callback: Callable[[TurnContext], Awaitable],
         audience: str = None,
     ):
         return await self.process_proactive(
-            claims_identity, continuation_activity, audience, logic
+            claims_identity, continuation_activity, audience, callback
         )
 
     async def create_conversation(  # pylint: disable=arguments-differ
@@ -215,7 +217,7 @@ class ChannelServiceAdapter(ChannelAdapter, ABC):
         claims_identity.claims[AuthenticationConstants.SERVICE_URL_CLAIM] = service_url
 
         # Create the connector client to use for outbound requests.
-        connector_client = (
+        connector_client: ConnectorClient = (
             await self._channel_service_client_factory.create_connector_client(
                 claims_identity, service_url, audience
             )
@@ -234,7 +236,7 @@ class ChannelServiceAdapter(ChannelAdapter, ABC):
         )
 
         # Create a UserTokenClient instance for the application to use. (For example, in the OAuthPrompt.)
-        user_token_client = (
+        user_token_client: UserTokenClient = (
             await self._channel_service_client_factory.create_user_token_client(
                 claims_identity
             )
@@ -253,6 +255,9 @@ class ChannelServiceAdapter(ChannelAdapter, ABC):
         # Run the pipeline
         await self.run_pipeline(context, callback)
 
+        await connector_client.close()
+        await user_token_client.close()
+
     async def process_proactive(
         self,
         claims_identity: ClaimsIdentity,
@@ -261,14 +266,14 @@ class ChannelServiceAdapter(ChannelAdapter, ABC):
         callback: Callable[[TurnContext], Awaitable],
     ):
         # Create the connector client to use for outbound requests.
-        connector_client = (
+        connector_client: ConnectorClient = (
             await self._channel_service_client_factory.create_connector_client(
                 claims_identity, continuation_activity.service_url, audience
             )
         )
 
         # Create a UserTokenClient instance for the application to use. (For example, in the OAuthPrompt.)
-        user_token_client = (
+        user_token_client: UserTokenClient = (
             await self._channel_service_client_factory.create_user_token_client(
                 claims_identity
             )
@@ -287,6 +292,9 @@ class ChannelServiceAdapter(ChannelAdapter, ABC):
         # Run the pipeline
         await self.run_pipeline(context, callback)
 
+        await connector_client.close()
+        await user_token_client.close()
+
     async def process_activity(
         self,
         claims_identity: ClaimsIdentity,
@@ -300,8 +308,8 @@ class ChannelServiceAdapter(ChannelAdapter, ABC):
         :type auth_header: :class:`typing.Union[typing.str, AuthenticateRequestResult]`
         :param activity: The incoming activity
         :type activity: :class:`Activity`
-        :param logic: The logic to execute at the end of the adapter's middleware pipeline.
-        :type logic: :class:`typing.Callable`
+        :param callback: The callback to execute at the end of the adapter's middleware pipeline.
+        :type callback: :class:`typing.Callable`
 
         :return: A task that represents the work queued to execute.
 
@@ -420,14 +428,14 @@ class ChannelServiceAdapter(ChannelAdapter, ABC):
         oauth_scope: str,
         connector_client: ConnectorClientBase,
         user_token_client: UserTokenClientBase,
-        logic: Callable[[TurnContext], Awaitable],
+        callback: Callable[[TurnContext], Awaitable],
     ) -> TurnContext:
         context = TurnContext(self, activity)
 
         context.turn_state[self.BOT_IDENTITY_KEY] = claims_identity
         context.turn_state[self._BOT_CONNECTOR_CLIENT_KEY] = connector_client
         context.turn_state[self.USER_TOKEN_CLIENT_KEY] = user_token_client
-        context.turn_state[self.BOT_CALLBACK_HANDLER_KEY] = logic
+        context.turn_state[self.BOT_CALLBACK_HANDLER_KEY] = callback
         context.turn_state[self.CHANNEL_SERVICE_FACTORY_KEY] = (
             self._channel_service_client_factory
         )

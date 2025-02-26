@@ -1,6 +1,6 @@
 from copy import deepcopy, copy
 
-from aiohttp import ClientSession, ClientResponseError
+from aiohttp import ClientSession
 from microsoft.agents.authentication import AccessTokenProviderBase
 from microsoft.agents.core.models import (
     AgentsModel,
@@ -66,6 +66,7 @@ class HttpBotChannel(ChannelProtocol):
             "Content-Type": "application/json",
             ConversationConstants.CONVERSATION_ID_HTTP_HEADER_NAME: conversation_id,
         }
+
         async with ClientSession() as session:
             async with session.post(
                 endpoint,
@@ -74,9 +75,12 @@ class HttpBotChannel(ChannelProtocol):
                     mode="json", by_alias=True, exclude_unset=True
                 ),
             ) as response:
-
+                content = None
                 if response.ok:
-                    content = await response.json()
+                    try:
+                        content = await response.json()
+                    except:
+                        pass
                     if response_body_type:
                         content = response_body_type.model_validate(content)
 
@@ -85,6 +89,9 @@ class HttpBotChannel(ChannelProtocol):
                 else:
                     # TODO: Log error
                     # TODO: Fix generic AgentsModel serialization
-                    content = await response.json()
+                    if response.content_type == "application/json":
+                        content = await response.json()
+                    elif response.content_type == "text/plain":
+                        content = await response.text()
 
                     return InvokeResponse(status=response.status, body=content)

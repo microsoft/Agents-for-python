@@ -23,7 +23,7 @@ async def deserialize_from_body(
     else:
         return Response(status=415)
 
-    return target_model().model_validate(body)
+    return target_model.model_validate(body)
 
 
 def get_serialized_response(

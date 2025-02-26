@@ -8,4 +8,4 @@ class DefaultConfig(MsalAuthConfiguration):
     TENANT_ID = ""
     CLIENT_ID = ""
     CLIENT_SECRET = ""
-    PORT = 3999
+    PORT = 3978

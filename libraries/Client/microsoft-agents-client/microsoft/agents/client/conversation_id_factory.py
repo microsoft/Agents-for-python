@@ -56,11 +56,11 @@ class ConversationIdFactory(ConversationIdFactoryProtocol):
                 "ConversationIdFactory.get_bot_conversation_reference(): bot_conversation_id cannot be None"
             )
 
-        bot_conversation_info = await self._storage.read(
+        storage_record = await self._storage.read(
             [bot_conversation_id], target_cls=BotConversationReference
         )
 
-        return bot_conversation_info
+        return storage_record[bot_conversation_id]
 
     async def delete_conversation_reference(self, bot_conversation_id):
         await self._storage.delete([bot_conversation_id])

@@ -1,6 +1,6 @@
 from .agents_model import AgentsModel
 
-from typing import Generic, TypeVar
+from typing import Generic, TypeVar, Optional
 
 AgentModelT = TypeVar("T", bound=AgentsModel)
 
@@ -17,7 +17,7 @@ class InvokeResponse(AgentsModel, Generic[AgentModelT]):
     """
 
     status: int = None
-    body: AgentModelT = None
+    body: Optional[AgentModelT] = None
 
     def is_successful_status_code(self) -> bool:
         """
