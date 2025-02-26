@@ -14,6 +14,7 @@ class DefaultConfig(MsalAuthConfiguration, ChannelsConfiguration):
     CLIENT_ID = ""
     CLIENT_SECRET = ""
     PORT = 3978
+    SCOPES = ["https://api.botframework.com/.default"]
 
     # ChannelHost configuration
     @staticmethod
@@ -21,14 +22,14 @@ class DefaultConfig(MsalAuthConfiguration, ChannelsConfiguration):
         return ChannelHostConfiguration(
             CHANNELS=[
                 ChannelInfo(
-                    id="EchoSkillBot",
-                    app_id="",
-                    resource_url="http://localhost:3978/api/messages",
+                    id="EchoBot",
+                    app_id="",  # Target bot's app_id
+                    resource_url="http://localhost:3999/api/messages",
                     token_provider="ChannelConnection",
                     channel_factory="HttpBotClient",
-                    endpoint="http://localhost:3978/api/botresponse/",
+                    endpoint="http://localhost:3999/api/messages",
                 )
             ],
             HOST_ENDPOINT="http://localhost:3978/api/botresponse/",
-            HOST_APP_ID="",
+            HOST_APP_ID="",  # usually the same as CLIENT_ID
         )

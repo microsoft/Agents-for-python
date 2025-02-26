@@ -35,10 +35,12 @@ class DefaultConnection(Connections):
     def get_token_provider(
         self, claims_identity: ClaimsIdentity, service_url: str
     ) -> AccessTokenProviderBase:
+        # This is the provider used for ABS
         return AUTH_PROVIDER
 
     def get_connection(self, connection_name: str) -> AccessTokenProviderBase:
-        # In this case we are using the same settings for both ABS and C
+        # In this case we are using the same settings for both ABS and Channel
+        # This is the provider used for Channel
         return AUTH_PROVIDER
 
 

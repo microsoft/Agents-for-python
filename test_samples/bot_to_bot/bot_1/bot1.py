@@ -32,7 +32,6 @@ from microsoft.agents.botbuilder import (
 
 
 class Bot1(ActivityHandler, ChannelApiHandlerProtocol):
-    ACTIVE_SKILL_PROPERTY_NAME = "Bot1.ActiveSkillProperty"
     _active_bot_client = False
 
     def __init__(
@@ -52,15 +51,15 @@ class Bot1(ActivityHandler, ChannelApiHandlerProtocol):
         self._channel_host = channel_host
         self._conversation_id_factory = conversation_id_factory
 
-        target_skill_id = "EchoSkillBot"
-        self._target_skill = self._channel_host.channels.get(target_skill_id)
+        target_b2b_id = "EchoBot"
+        self._target_b2b = self._channel_host.channels.get(target_b2b_id)
 
     async def on_turn(self, turn_context: TurnContextProtocol):
-        # Forward all activities except EndOfConversation to the skill
+        # Forward all activities except EndOfConversation to the B2B connection
         if turn_context.activity.type != ActivityTypes.end_of_conversation:
-            # Try to get the active skill
+            # Try to get the active B2B connection
             if Bot1._active_bot_client:
-                await self._send_to_bot(turn_context, self._target_skill)
+                await self._send_to_bot(turn_context, self._target_b2b)
                 return
 
         await super().on_turn(turn_context)
@@ -74,16 +73,16 @@ class Bot1(ActivityHandler, ChannelApiHandlerProtocol):
             Bot1._active_bot_client = True
 
             # send to bot
-            await self._send_to_bot(turn_context, self._target_skill)
+            await self._send_to_bot(turn_context, self._target_b2b)
             return
 
         await turn_context.send_activity('Say "agent" and I\'ll patch you through')
 
     async def on_end_of_conversation_activity(self, turn_context: TurnContextProtocol):
-        # Clear the active skill
+        # Clear the active B2B connection
         Bot1._active_bot_client = False
 
-        # Show status message, text and value returned by the skill
+        # Show status message, text and value returned by the B2B connection
         eoc_activity_message = f"Received {turn_context.activity.type}. Code: {turn_context.activity.code}."
         if turn_context.activity.text:
             eoc_activity_message += f" Text: {turn_context.activity.text}"
@@ -202,7 +201,7 @@ class Bot1(ActivityHandler, ChannelApiHandlerProtocol):
     async def _send_to_bot(
         self, turn_context: TurnContextProtocol, target_channel: ChannelInfoProtocol
     ):
-        # Create a conversation ID to communicate with the skill
+        # Create a conversation ID to communicate with the B2B connection
         options = ConversationIdFactoryOptions(
             from_oauth_scope=turn_context.turn_state.get(
                 ChannelAdapter.OAUTH_SCOPE_KEY
@@ -219,7 +218,7 @@ class Bot1(ActivityHandler, ChannelApiHandlerProtocol):
         # TODO: might need to close connection, tbd
         channel = self._channel_host.get_channel_from_channel_info(target_channel)
 
-        # Route activity to the skill
+        # Route activity to the B2B connection
         response = await channel.post_activity(
             target_channel.app_id,
             target_channel.resource_url,

@@ -19,7 +19,7 @@ class ConversationAccount(AgentsModel):
     :param aad_object_id: This account's object ID within Azure Active
      Directory (AAD)
     :type aad_object_id: str
-    :param role: Role of the entity behind the account (Example: User, Bot, Skill
+    :param role: Role of the entity behind the account (Example: User, Bot,
      etc.). Possible values include: 'user', 'bot', 'skill'
     :type role: str or ~microsoft.agents.protocols.models.RoleTypes
     :param tenant_id: This conversation's tenant ID
