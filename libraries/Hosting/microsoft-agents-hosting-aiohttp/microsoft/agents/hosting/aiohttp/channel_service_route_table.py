@@ -27,7 +27,7 @@ async def deserialize_from_body(
 
 
 def get_serialized_response(
-    model_or_list: Union[AgentsModel, List[AgentsModel]]
+    model_or_list: Union[AgentsModel, List[AgentsModel]],
 ) -> Response:
     if isinstance(model_or_list, AgentsModel):
         json_obj = model_or_list.model_dump(
