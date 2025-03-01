@@ -10,16 +10,16 @@ class DirectToEngineConnectionSettingsProtocol(Protocol):
     """
 
     # Schema name for the Copilot Studio Hosted Copilot.
-    BOT_IDENTIFIER: Optional[str]
+    bot_identifier: Optional[str]
 
     # if PowerPlatformCloud is set to Other, this is the url for the power platform API endpoint.
-    CUSTOM_POWER_PLATFORM_CLOUD: Optional[str]
+    custom_power_platform_cloud: Optional[str]
 
     # Environment ID for the environment that hosts the bot
-    ENVIRONMENT_ID: Optional[str]
+    environment_id: Optional[str]
 
     # Power Platform Cloud where the environment is hosted
-    CLOUD: Optional[PowerPlatformCloud]
+    cloud: Optional[PowerPlatformCloud]
 
     # Type of Bot hosted in Copilot Studio
-    COPILOT_BOT_TYPE: Optional[BotType]
+    copilot_bot_type: Optional[BotType]

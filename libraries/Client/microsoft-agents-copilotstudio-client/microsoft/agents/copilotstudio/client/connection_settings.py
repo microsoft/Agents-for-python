@@ -1,3 +1,4 @@
+from typing import Optional
 from .direct_to_engine_connection_settings_protocol import (
     DirectToEngineConnectionSettingsProtocol,
 )
@@ -5,16 +6,27 @@ from .power_platform_cloud import PowerPlatformCloud
 from .bot_type import BotType
 
 
-# TODO: Should rename to MCSConnectionSettings?
 class ConnectionSettings(DirectToEngineConnectionSettingsProtocol):
     """
     Connection settings for the DirectToEngineConnectionConfiguration.
     """
 
-    def __init__(self, config: dict):
-        if config:
-            self.ENVIRONMENT_ID = config["ENVIRONMENT_ID"]
-            self.BOT_IDENTIFIER = config["BOT_IDENTIFIER"]
-            self.CLOUD = config.get("CLOUD", PowerPlatformCloud.UNKNOWN)
-            self.COPILOT_BOT_TYPE = config.get("COPILOT_BOT_TYPE", BotType.PUBLISHED)
-            self.CUSTOM_POWER_PLATFORM_CLOUD = config.get("CUSTOM_POWER_PLATFORM_CLOUD")
+    def __init__(
+        self,
+        environment_id: str,
+        bot_identifier: str,
+        cloud: Optional[PowerPlatformCloud],
+        copilot_bot_type: Optional[BotType],
+        custom_power_platform_cloud: Optional[str],
+    ) -> None:
+        self.environment_id = environment_id
+        self.bot_identifier = bot_identifier
+
+        if not self.environment_id:
+            raise ValueError("Environment ID must be provided")
+        if not self.bot_identifier:
+            raise ValueError("Bot Identifier must be provided")
+
+        self.cloud = cloud or PowerPlatformCloud.UNKNOWN
+        self.copilot_bot_type = copilot_bot_type or BotType.PUBLISHED
+        self.custom_power_platform_cloud = custom_power_platform_cloud
