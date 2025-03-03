@@ -1,4 +1,4 @@
-from .agents_model import AgentsModel
+from .agents_model import AgentsModel, ConfigDict
 from ._type_aliases import NonEmptyString
 
 
@@ -9,7 +9,6 @@ class Entity(AgentsModel):
     :type type: str
     """
 
-    class Config:
-        extra = "allow"
+    model_config = ConfigDict(extra="allow")
 
     type: NonEmptyString

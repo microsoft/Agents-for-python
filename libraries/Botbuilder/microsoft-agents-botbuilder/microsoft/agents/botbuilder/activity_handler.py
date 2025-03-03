@@ -159,21 +159,15 @@ class ActivityHandler(Bot):
             - In a derived class, override this method to add logic that applies to all conversation update activities.
             Add logic to apply before the member added or removed logic before the call to this base class method.
         """
-        if (
-            turn_context.activity.members_added is not None
-            and turn_context.activity.members_added
-        ):
-            return await self.on_members_added_activity(
+        # TODO: confirm behavior of added and removed at the same time as C# doesn't support it
+        if turn_context.activity.members_added:
+            await self.on_members_added_activity(
                 turn_context.activity.members_added, turn_context
             )
-        if (
-            turn_context.activity.members_removed is not None
-            and turn_context.activity.members_removed
-        ):
-            return await self.on_members_removed_activity(
+        if turn_context.activity.members_removed:
+            await self.on_members_removed_activity(
                 turn_context.activity.members_removed, turn_context
             )
-        return
 
     async def on_members_added_activity(
         self, members_added: list[ChannelAccount], turn_context: TurnContextProtocol
@@ -534,9 +528,15 @@ class ActivityHandler(Bot):
 
     @staticmethod
     def _create_invoke_response(body: BaseModel = None) -> InvokeResponse:
+        serialized_body = (
+            body.model_dump(mode="json", by_alias=True, exclude_none=True)
+            if body
+            else None
+        )
+
         return InvokeResponse(
             status=int(HTTPStatus.OK),
-            body=body.model_dump(mode="json", by_alias=True, exclude_none=True),
+            body=serialized_body,
         )
 
     def _get_adaptive_card_invoke_value(self, activity: Activity):
@@ -563,11 +563,11 @@ class ActivityHandler(Bot):
             )
             raise _InvokeResponseException(HTTPStatus.BAD_REQUEST, response)
 
-        if invoke_value.action.get("type") != "Action.Execute":
+        if invoke_value.action.type != "Action.Execute":
             response = self._create_adaptive_card_invoke_error_response(
                 HTTPStatus.BAD_REQUEST,
                 "NotSupported",
-                f"The action '{invoke_value.action.get('type')}' is not supported.",
+                f"The action '{invoke_value.action.type}' is not supported.",
             )
             raise _InvokeResponseException(HTTPStatus.BAD_REQUEST, response)
 
