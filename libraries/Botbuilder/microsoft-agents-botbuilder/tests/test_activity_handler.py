@@ -2,13 +2,11 @@ import pytest
 from unittest.mock import AsyncMock
 from microsoft.agents.botbuilder import ActivityHandler, TurnContext
 from microsoft.agents.core.models import (
-    Activity,
     ActivityTypes,
     ChannelAccount,
     MessageReaction,
     SignInConstants,
     InvokeResponse,
-    AdaptiveCardInvokeValue,
 )
 
 

@@ -22,7 +22,7 @@ steps:
 
 - script: |
     python -m pip install --upgrade pip
-    python -m pip install flake8 pytest black
+    python -m pip install flake8 pytest black pytest-asyncio build
     if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
   displayName: 'Install dependencies'
 
@@ -33,6 +33,31 @@ steps:
 - script: |
     flake8 . --count --exit-zero --show-source --statistics
   displayName: 'Lint with flake8'
+
+- script: |
+    mkdir -p dist
+    for dir in libraries/*; do
+      if [ -d "$dir" ]; then
+        for subdir in "$dir"/*; do
+          if [ -f "$subdir/pyproject.toml" ]; then
+            (cd "$subdir" && python -m build --outdir ../../../dist)
+          fi
+        done
+      fi
+    done
+  displayName: 'Build packages'
+
+- script: |
+    python -m pip install ./dist/microsoft_agents_core*.whl
+    python -m pip install ./dist/microsoft_agents_authentication*.whl
+    python -m pip install ./dist/microsoft_agents_connector*.whl
+    python -m pip install ./dist/microsoft_agents_client*.whl
+    python -m pip install ./dist/microsoft_agents_botbuilder*.whl
+    python -m pip install ./dist/microsoft_agents_authorization_msal*.whl
+    python -m pip install ./dist/microsoft_agents_copilotstudio_client*.whl
+    python -m pip install ./dist/microsoft_agents_hosting_aiohttp*.whl
+    python -m pip install ./dist/microsoft_agents_storage*.whl
+  displayName: 'Install wheels'
 
 - script: |
     pytest
