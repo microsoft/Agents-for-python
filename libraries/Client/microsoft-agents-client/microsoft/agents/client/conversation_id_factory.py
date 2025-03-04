@@ -1,6 +1,5 @@
 from uuid import uuid4
 from functools import partial
-from typing import Type
 
 from microsoft.agents.core.models import AgentsModel
 from microsoft.agents.storage import Storage, StoreItem

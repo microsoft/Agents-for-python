@@ -14,8 +14,8 @@ classifiers = [
     "Operating System :: OS Independent",
 ]
 dependencies = [
-    "microsoft-agents-core",
-    "microsoft-agents-authentication"
+    "microsoft-agents-authentication",
+    "microsoft-agents-storage",
 ]
 
 [project.urls]

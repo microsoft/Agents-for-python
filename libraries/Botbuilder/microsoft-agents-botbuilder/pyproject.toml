@@ -15,7 +15,6 @@ classifiers = [
 ]
 dependencies = [
     "microsoft-agents-connector",
-    "microsoft-agents-core",
 ]
 
 [project.urls]

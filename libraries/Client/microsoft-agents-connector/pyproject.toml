@@ -16,7 +16,6 @@ classifiers = [
 dependencies = [
     "isodate>=0.6.1",
     "azure-core>=1.30.0",
-    "microsoft-agents-core",
     "microsoft-agents-authentication",
 ]
 
