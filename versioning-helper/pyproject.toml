@@ -1,0 +1,21 @@
+[build-system]
+requires = ["setuptools>=41", "wheel", "setuptools-git-versioning>=2.0,<3", ]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools-git-versioning]
+enabled = true
+version_file = "TARGET-VERSION"
+count_commits_from_version_file = true
+dev_template = "{tag}{env:MYVAR:.0.dev value}{ccount}"
+dirty_template = "{tag}{env:MYVAR:.0.dev value}{ccount}"
+
+[project]
+name = "helper"
+dynamic = ["version"]
+description = "Helper project to calculate verison"
+authors = [{name = "Microsoft Corporation"}]
+requires-python = ">=3.9"
+classifiers = [
+]
+dependencies = [
+]
