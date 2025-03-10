@@ -1,10 +1,14 @@
 [build-system]
-requires = ["setuptools"]
+requires = ["setuptools>=41", "wheel", "setuptools-git-versioning>=2.0,<3", ]
 build-backend = "setuptools.build_meta"
+
+[tool.setuptools-git-versioning]
+enabled = true
+version_file = "./../../../VERSION"
 
 [project]
 name = "microsoft-agents-core"
-version = "0.0.0a1"
+dynamic = ["version"]
 description = "A protocol library for Microsoft Agents"
 authors = [{name = "Microsoft Corporation"}]
 requires-python = ">=3.9"
