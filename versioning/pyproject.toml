@@ -6,8 +6,8 @@ build-backend = "setuptools.build_meta"
 enabled = true
 version_file = "TARGET-VERSION"
 count_commits_from_version_file = true
-dev_template = "{tag}{env:MYVAR:.0.dev value}{ccount}"
-dirty_template = "{tag}{env:MYVAR:.0.dev value}{ccount}"
+dev_template = "{tag}{ccount}"
+dirty_template = "{tag}{ccount}"
 
 [project]
 name = "helper"
