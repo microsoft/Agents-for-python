@@ -1,10 +1,22 @@
 [build-system]
-requires = ["setuptools"]
-build-backend = "setuptools.build_meta"
+requires = ["setuptools", "setuptools_dynamic_dependencies", "wheel", "setuptools-git-versioning>=2.0,<3"]
+build-backend = "setuptools.build_meta:__legacy__"
+
+[tool.setuptools-git-versioning]
+enabled = true
+version_callback = "helper:get_version"
+
+[tool.setuptools_dynamic_requires]
+dependencies = [
+    "dynamic-package == {version}",
+    "msal>=1.31.1",
+    "requests>=2.32.3",
+    "cryptography>=44.0.0",
+]
 
 [project]
 name = "microsoft-agents-authorization-msal"
-version = "0.0.0a1"
+dynamic = ["version", "dependencies"]
 description = "A msal-based authentication library for Microsoft Agents"
 authors = [{name = "Microsoft Corporation"}]
 requires-python = ">=3.9"
@@ -12,12 +24,6 @@ classifiers = [
     "Programming Language :: Python :: 3",
     "License :: OSI Approved :: MIT License",
     "Operating System :: OS Independent",
-]
-dependencies = [
-    "microsoft-agents-authentication",
-    "msal>=1.31.1",
-    "requests>=2.32.3",
-    "cryptography>=44.0.0",
 ]
 
 [project.urls]
