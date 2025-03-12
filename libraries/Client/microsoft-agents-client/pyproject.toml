@@ -1,10 +1,10 @@
 [build-system]
-requires = ["setuptools"]
+requires = ["setuptools>=64"]
 build-backend = "setuptools.build_meta"
 
 [project]
 name = "microsoft-agents-client"
-version = "0.0.0a1"
+dynamic = ["version", "dependencies"]
 description = "A client library for Microsoft Agents"
 authors = [{name = "Microsoft Corporation"}]
 requires-python = ">=3.9"
@@ -12,10 +12,6 @@ classifiers = [
     "Programming Language :: Python :: 3",
     "License :: OSI Approved :: MIT License",
     "Operating System :: OS Independent",
-]
-dependencies = [
-    "microsoft-agents-core",
-    "microsoft-agents-authentication"
 ]
 
 [project.urls]

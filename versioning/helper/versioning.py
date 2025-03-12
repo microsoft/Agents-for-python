@@ -1,2 +1,3 @@
-def get_version():
-    return "0.0.0a1"
+from os import environ
+
+version = environ.get("PackageVersion", "0.0.1")

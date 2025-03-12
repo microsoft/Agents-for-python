@@ -1,10 +1,6 @@
 [build-system]
-requires = ["setuptools>=41", "wheel", "setuptools-git-versioning>=2.0,<3", ]
-build-backend = "setuptools.build_meta:__legacy__"
-
-[tool.setuptools-git-versioning]
-enabled = true
-version_callback = "helper:get_version"
+requires = ["setuptools>=64"]
+build-backend = "setuptools.build_meta"
 
 [project]
 name = "microsoft-agents-core"

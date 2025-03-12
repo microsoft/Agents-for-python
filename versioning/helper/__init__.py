@@ -1,3 +1,3 @@
-from .versioning import get_version
+import versioning
 
-__all__ = ["get_version"]
+__all__ = ["versioning"]
