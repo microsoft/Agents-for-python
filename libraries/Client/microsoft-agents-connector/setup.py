@@ -10,5 +10,5 @@ setup(
         "azure-core>=1.30.0",
         f"microsoft-agents-authentication=={package_version}",
         f"microsoft-agents-core=={package_version}",
-    ]
+    ],
 )

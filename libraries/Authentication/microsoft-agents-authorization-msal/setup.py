@@ -10,5 +10,5 @@ setup(
         "msal>=1.31.1",
         "requests>=2.32.3",
         "cryptography>=44.0.0",
-    ]
+    ],
 )

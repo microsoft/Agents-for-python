@@ -7,5 +7,5 @@ setup(
     version=package_version,
     install_requires=[
         f"microsoft-agents-core=={package_version}",
-    ]
+    ],
 )

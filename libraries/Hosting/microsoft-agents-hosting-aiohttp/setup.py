@@ -9,5 +9,5 @@ setup(
         f"microsoft-agents-connector=={package_version}",
         f"microsoft-agents-botbuilder=={package_version}",
         "aiohttp>=3.11.11",
-    ]
+    ],
 )

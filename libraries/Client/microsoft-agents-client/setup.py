@@ -8,5 +8,5 @@ setup(
     install_requires=[
         f"microsoft-agents-authentication=={package_version}",
         f"microsoft-agents-core=={package_version}",
-    ]
+    ],
 )
