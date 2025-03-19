@@ -53,7 +53,7 @@ class MsalAuth(AccessTokenProviderBase):
     ) -> ManagedIdentityClient | ConfidentialClientApplication:
         msal_auth_client = None
 
-        if self._msal_configuration.AUTH_TYPE == AuthTypes.system_managed_identity:
+        if self._msal_configuration.AUTH_TYPE == AuthTypes.user_managed_identity:
             msal_auth_client = ManagedIdentityClient(
                 UserAssignedManagedIdentity(
                     client_id=self._msal_configuration.CLIENT_ID
@@ -61,7 +61,7 @@ class MsalAuth(AccessTokenProviderBase):
                 http_client=Session(),
             )
 
-        elif self._msal_configuration.AUTH_TYPE == AuthTypes.user_managed_identity:
+        elif self._msal_configuration.AUTH_TYPE == AuthTypes.system_managed_identity:
             msal_auth_client = ManagedIdentityClient(
                 SystemAssignedManagedIdentity(),
                 http_client=Session(),
