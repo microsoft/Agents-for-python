@@ -57,11 +57,11 @@ class CloudAdapter(ChannelServiceAdapter, AgentHttpAdapter):
         self.on_turn_error = on_turn_error
         self._channel_service_client_factory = channel_service_client_factory
 
-    async def process(self, request: Request, bot: Agent) -> Optional[Response]:
+    async def process(self, request: Request, agent: Agent) -> Optional[Response]:
         if not request:
             raise TypeError("CloudAdapter.process: request can't be None")
-        if not bot:
-            raise TypeError("CloudAdapter.process: bot can't be None")
+        if not agent:
+            raise TypeError("CloudAdapter.process: agent can't be None")
 
         if request.method == "POST":
             # Deserialize the incoming Activity
@@ -84,7 +84,7 @@ class CloudAdapter(ChannelServiceAdapter, AgentHttpAdapter):
             try:
                 # Process the inbound activity with the agent
                 invoke_response = await self.process_activity(
-                    claims_identity, activity, bot.on_turn
+                    claims_identity, activity, agent.on_turn
                 )
 
                 if (

@@ -188,12 +188,12 @@ class Activity(AgentsModel):
 
         if is_incoming:
             self.from_property = reference.user
-            self.recipient = reference.bot
+            self.recipient = reference.agent
 
             if reference.activity_id is not None:
                 self.id = reference.activity_id
         else:
-            self.from_property = reference.bot
+            self.from_property = reference.agent
             self.recipient = reference.user
 
             if reference.activity_id is not None:
@@ -515,7 +515,7 @@ class Activity(AgentsModel):
                 else None
             ),
             user=copy(self.from_property),
-            bot=copy(self.recipient),
+            agent=copy(self.recipient),
             conversation=copy(self.conversation),
             channel_id=self.channel_id,
             locale=self.locale,

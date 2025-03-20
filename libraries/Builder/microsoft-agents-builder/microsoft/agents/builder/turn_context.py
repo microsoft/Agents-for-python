@@ -340,11 +340,11 @@ class TurnContext(TurnContextProtocol):
         activity.conversation = reference.conversation
         if is_incoming:
             activity.from_property = reference.user
-            activity.recipient = reference.bot
+            activity.recipient = reference.agent
             if reference.activity_id:
                 activity.id = reference.activity_id
         else:
-            activity.from_property = reference.bot
+            activity.from_property = reference.agent
             activity.recipient = reference.user
             if reference.activity_id:
                 activity.reply_to_id = reference.activity_id

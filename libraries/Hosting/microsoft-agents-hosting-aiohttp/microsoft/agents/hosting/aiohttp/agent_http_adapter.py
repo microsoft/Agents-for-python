@@ -14,5 +14,5 @@ from microsoft.agents.builder import Agent
 
 class AgentHttpAdapter(Protocol):
     @abstractmethod
-    async def process(self, request: Request, bot: Agent) -> Optional[Response]:
+    async def process(self, request: Request, agent: Agent) -> Optional[Response]:
         raise NotImplementedError()

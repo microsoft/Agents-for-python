@@ -14,7 +14,7 @@ class McsConnectionSettings(ConnectionSettings):
         app_client_id: Optional[str] = None,
         tenant_id: Optional[str] = None,
         environment_id: Optional[str] = None,
-        bot_identifier: Optional[str] = None,
+        agent_identifier: Optional[str] = None,
         cloud: Optional[PowerPlatformCloud] = None,
         copilot_agent_type: Optional[AgentType] = None,
         custom_power_platform_cloud: Optional[str] = None,
@@ -28,7 +28,7 @@ class McsConnectionSettings(ConnectionSettings):
             raise ValueError("Tenant ID must be provided")
 
         environment_id = environment_id or environ.get("ENVIRONMENT_ID")
-        bot_identifier = bot_identifier or environ.get("BOT_IDENTIFIER")
+        agent_identifier = agent_identifier or environ.get("BOT_IDENTIFIER")
         cloud = cloud or PowerPlatformCloud[environ.get("CLOUD", "UNKNOWN")]
         copilot_agent_type = (
                 copilot_agent_type or AgentType[environ.get("COPILOT_agent_type", "PUBLISHED")]
@@ -39,7 +39,7 @@ class McsConnectionSettings(ConnectionSettings):
 
         super().__init__(
             environment_id,
-            bot_identifier,
+            agent_identifier,
             cloud,
             copilot_agent_type,
             custom_power_platform_cloud,

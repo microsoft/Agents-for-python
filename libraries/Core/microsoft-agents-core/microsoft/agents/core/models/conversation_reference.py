@@ -1,6 +1,8 @@
 from uuid import uuid4 as uuid
 from typing import Optional
 
+from pydantic import Field
+
 from .channel_account import ChannelAccount
 from .conversation_account import ConversationAccount
 from .agents_model import AgentsModel
@@ -16,8 +18,8 @@ class ConversationReference(AgentsModel):
     :type activity_id: str
     :param user: (Optional) User participating in this conversation
     :type user: ~microsoft.agents.protocols.models.ChannelAccount
-    :param bot: Bot participating in this conversation
-    :type bot: ~microsoft.agents.protocols.models.ChannelAccount
+    :param agent: Bot participating in this conversation
+    :type agent: ~microsoft.agents.protocols.models.ChannelAccount
     :param conversation: Conversation reference
     :type conversation: ~microsoft.agents.protocols.models.ConversationAccount
     :param channel_id: Channel ID
@@ -36,7 +38,7 @@ class ConversationReference(AgentsModel):
     # optionals here are due to webchat
     activity_id: Optional[NonEmptyString] = None
     user: ChannelAccount = None
-    bot: ChannelAccount = None
+    agent: ChannelAccount = Field(None, alias="bot")
     conversation: ConversationAccount
     channel_id: NonEmptyString
     locale: Optional[NonEmptyString] = None
@@ -52,7 +54,7 @@ class ConversationReference(AgentsModel):
             channel_id=self.channel_id,
             service_url=self.service_url,
             conversation=self.conversation,
-            recipient=self.bot,
+            recipient=self.agent,
             from_property=self.user,
             relates_to=self,
         )

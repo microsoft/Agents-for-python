@@ -27,8 +27,8 @@ class PowerPlatformEnvironment:
             )
         if not settings.environment_id:
             raise ValueError("EnvironmentId must be provided")
-        if not settings.bot_identifier:
-            raise ValueError("BotIdentifier must be provided")
+        if not settings.agent_identifier:
+            raise ValueError("AgentIdentifier must be provided")
         if settings.cloud and settings.cloud != PowerPlatformCloud.UNKNOWN:
             cloud = settings.cloud
         if cloud == PowerPlatformCloud.OTHER:
@@ -50,7 +50,7 @@ class PowerPlatformEnvironment:
             cloud, settings.environment_id, cloud_base_address
         )
         return PowerPlatformEnvironment.create_uri(
-            settings.bot_identifier, host, agent_type, conversation_id
+            settings.agent_identifier, host, agent_type, conversation_id
         )
 
     @staticmethod
@@ -87,15 +87,15 @@ class PowerPlatformEnvironment:
 
     @staticmethod
     def create_uri(
-        bot_identifier: str,
+        agent_identifier: str,
         host: str,
         agent_type: AgentType,
         conversation_id: Optional[str],
     ) -> str:
-        bot_path_name = (
+        agent_path_name = (
             "dataverse-backed" if agent_type == AgentType.PUBLISHED else "prebuilt"
         )
-        path = f"/copilotstudio/{bot_path_name}/authenticated/bots/{bot_identifier}/conversations"
+        path = f"/copilotstudio/{agent_path_name}/authenticated/bots/{agent_identifier}/conversations"
         if conversation_id:
             path += f"/{conversation_id}"
         return urlunparse(

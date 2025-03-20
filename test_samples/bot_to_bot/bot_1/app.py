@@ -76,7 +76,7 @@ async def messages(req: Request) -> Response:
 APP = Application(middlewares=[jwt_authorization_middleware])
 APP.router.add_post("/api/messages", messages)
 APP.router.add_routes(channel_service_route_table(BOT, "/api/botresponse"))
-APP["bot_configuration"] = CONFIG
+APP["agent_configuration"] = CONFIG
 APP["adapter"] = ADAPTER
 
 if __name__ == "__main__":
