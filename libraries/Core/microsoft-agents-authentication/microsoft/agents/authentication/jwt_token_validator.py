@@ -2,12 +2,12 @@ import jwt
 
 from jwt import PyJWKClient, PyJWK, decode, get_unverified_header
 
-from .bot_auth_configuration import BotAuthConfiguration
+from .agent_auth_configuration import AgentAuthConfiguration
 from .claims_identity import ClaimsIdentity
 
 
 class JwtTokenValidator:
-    def __init__(self, configuration: BotAuthConfiguration):
+    def __init__(self, configuration: AgentAuthConfiguration):
         self.configuration = configuration
 
     def validate_token(self, token: str) -> ClaimsIdentity:

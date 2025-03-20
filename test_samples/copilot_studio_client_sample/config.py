@@ -4,7 +4,7 @@ from typing import Optional
 from microsoft.agents.copilotstudio.client import (
     ConnectionSettings,
     PowerPlatformCloud,
-    BotType,
+    AgentType,
 )
 
 
@@ -16,7 +16,7 @@ class McsConnectionSettings(ConnectionSettings):
         environment_id: Optional[str] = None,
         bot_identifier: Optional[str] = None,
         cloud: Optional[PowerPlatformCloud] = None,
-        copilot_bot_type: Optional[BotType] = None,
+        copilot_agent_type: Optional[AgentType] = None,
         custom_power_platform_cloud: Optional[str] = None,
     ) -> None:
         self.app_client_id = app_client_id or environ.get("APP_CLIENT_ID")
@@ -30,8 +30,8 @@ class McsConnectionSettings(ConnectionSettings):
         environment_id = environment_id or environ.get("ENVIRONMENT_ID")
         bot_identifier = bot_identifier or environ.get("BOT_IDENTIFIER")
         cloud = cloud or PowerPlatformCloud[environ.get("CLOUD", "UNKNOWN")]
-        copilot_bot_type = (
-            copilot_bot_type or BotType[environ.get("COPILOT_BOT_TYPE", "PUBLISHED")]
+        copilot_agent_type = (
+                copilot_agent_type or AgentType[environ.get("COPILOT_agent_type", "PUBLISHED")]
         )
         custom_power_platform_cloud = custom_power_platform_cloud or environ.get(
             "CUSTOM_POWER_PLATFORM_CLOUD", None
@@ -41,6 +41,6 @@ class McsConnectionSettings(ConnectionSettings):
             environment_id,
             bot_identifier,
             cloud,
-            copilot_bot_type,
+            copilot_agent_type,
             custom_power_platform_cloud,
         )

@@ -16,10 +16,10 @@ from microsoft.agents.core.models import (
     SignInConstants,
 )
 
-from .bot import Bot
+from .agent import Agent
 
 
-class ActivityHandler(Bot):
+class ActivityHandler(Agent):
     """
     Handles activities and should be subclassed.
 
@@ -33,11 +33,11 @@ class ActivityHandler(Bot):
         self, turn_context: TurnContextProtocol
     ):  # pylint: disable=arguments-differ
         """
-        Called by the adapter (for example, :class:`BotFrameworkAdapter`) at runtime
-        in order to process an inbound :class:`botbuilder.schema.Activity`.
+        Called by the adapter (for example, :class:`ChannelAdapter`) at runtime
+        in order to process an inbound :class:`builder.schema.Activity`.
 
         :param turn_context: The context object for this turn
-        :type turn_context: :class:`botbuilder.core.TurnContext`
+        :type turn_context: :class:`microsoft.agents.builder.TurnContext`
 
         :returns: A task that represents the work queued to execute
 
@@ -104,7 +104,7 @@ class ActivityHandler(Bot):
         such as the conversational logic.
 
         :param turn_context: The context object for this turn
-        :type turn_context: :class:`botbuilder.core.TurnContext`
+        :type turn_context: :class:`microsoft.agents.builder.TurnContext`
 
         :returns: A task that represents the work queued to execute
         """
@@ -118,7 +118,7 @@ class ActivityHandler(Bot):
         such as the conversational logic.
 
         :param turn_context: The context object for this turn
-        :type turn_context: :class:`botbuilder.core.TurnContext`
+        :type turn_context: :class:`microsoft.agents.builder.TurnContext`
 
         :returns: A task that represents the work queued to execute
         """
@@ -132,7 +132,7 @@ class ActivityHandler(Bot):
         such as the conversational logic.
 
         :param turn_context: The context object for this turn
-        :type turn_context: :class:`botbuilder.core.TurnContext`
+        :type turn_context: :class:`microsoft.agents.builder.TurnContext`
 
         :returns: A task that represents the work queued to execute
         """
@@ -144,7 +144,7 @@ class ActivityHandler(Bot):
         :meth:`on_turn()` is used.
 
         :param turn_context: The context object for this turn
-        :type turn_context: :class:`botbuilder.core.TurnContext`
+        :type turn_context: :class:`microsoft.agents.builder.TurnContext`
 
         :returns: A task that represents the work queued to execute
 
@@ -152,9 +152,9 @@ class ActivityHandler(Bot):
             When the :meth:`on_turn()` method receives a conversation update activity, it calls this
             method.
             Also
-            - If the conversation update activity indicates that members other than the bot joined the conversation,
+            - If the conversation update activity indicates that members other than the agent joined the conversation,
             it calls the  :meth:`on_members_added_activity()` method.
-            - If the conversation update activity indicates that members other than the bot left the conversation,
+            - If the conversation update activity indicates that members other than the agent left the conversation,
             it calls the  :meth:`on_members_removed_activity()`  method.
             - In a derived class, override this method to add logic that applies to all conversation update activities.
             Add logic to apply before the member added or removed logic before the call to this base class method.
@@ -173,21 +173,21 @@ class ActivityHandler(Bot):
         self, members_added: list[ChannelAccount], turn_context: TurnContextProtocol
     ):  # pylint: disable=unused-argument
         """
-        Override this method in a derived class to provide logic for when members other than the bot join
-        the conversation. You can add your bot's welcome logic.
+        Override this method in a derived class to provide logic for when members other than the agent join
+        the conversation. You can add your agent's welcome logic.
 
         :param members_added: A list of all the members added to the conversation, as described by the
         conversation update activity
         :type members_added: :class:`typing.List`
         :param turn_context: The context object for this turn
-        :type turn_context: :class:`botbuilder.core.TurnContext`
+        :type turn_context: :class:`microsoft.agents.builder.TurnContext`
 
         :returns: A task that represents the work queued to execute
 
         .. remarks::
             When the :meth:`on_conversation_update_activity()` method receives a conversation
             update activity that indicates
-            one or more users other than the bot are joining the conversation, it calls this method.
+            one or more users other than the agent are joining the conversation, it calls this method.
         """
         return
 
@@ -195,20 +195,20 @@ class ActivityHandler(Bot):
         self, members_removed: list[ChannelAccount], turn_context: TurnContextProtocol
     ):  # pylint: disable=unused-argument
         """
-        Override this method in a derived class to provide logic for when members other than the bot leave
-        the conversation.  You can add your bot's good-bye logic.
+        Override this method in a derived class to provide logic for when members other than the agent leave
+        the conversation.  You can add your agent's good-bye logic.
 
         :param members_added: A list of all the members removed from the conversation, as described by the
         conversation update activity
         :type members_added: :class:`typing.List`
         :param turn_context: The context object for this turn
-        :type turn_context: :class:`botbuilder.core.TurnContext`
+        :type turn_context: :class:`microsoft.agents.builder.TurnContext`
 
         :returns: A task that represents the work queued to execute
 
         .. remarks::
             When the :meth:`on_conversation_update_activity()` method receives a conversation
-            update activity that indicates one or more users other than the bot are leaving the conversation,
+            update activity that indicates one or more users other than the agent are leaving the conversation,
             it calls this method.
         """
 
@@ -220,7 +220,7 @@ class ActivityHandler(Bot):
         :meth:`on_turn()` is used.
 
         :param turn_context: The context object for this turn
-        :type turn_context: :class:`botbuilder.core.TurnContext`
+        :type turn_context: :class:`microsoft.agents.builder.TurnContext`
 
         :returns: A task that represents the work queued to execute
 
@@ -230,7 +230,7 @@ class ActivityHandler(Bot):
 
             Message reactions are only supported by a few channels. The activity that the message reaction corresponds
             to is indicated in the reply to Id property. The value of this property is the activity id of a previously
-            sent activity given back to the bot as the response from a send call.
+            sent activity given back to the agent as the response from a send call.
             When the :meth:`on_turn()` method receives a message reaction activity, it calls this
             method.
 
@@ -266,7 +266,7 @@ class ActivityHandler(Bot):
         :param message_reactions: The list of reactions added
         :type message_reactions: :class:`typing.List`
         :param turn_context: The context object for this turn
-        :type turn_context: :class:`botbuilder.core.TurnContext`
+        :type turn_context: :class:`microsoft.agents.builder.TurnContext`
 
         :returns: A task that represents the work queued to execute
 
@@ -275,7 +275,7 @@ class ActivityHandler(Bot):
             to a previously sent message on the conversation.
             Message reactions are supported by only a few channels.
             The activity that the message is in reaction to is identified by the activity's reply to ID property.
-            The value of this property is the activity ID of a previously sent activity. When the bot sends an activity,
+            The value of this property is the activity ID of a previously sent activity. When the agent sends an activity,
             the channel assigns an ID to it, which is available in the resource response Id of the result.
         """
         return
@@ -292,7 +292,7 @@ class ActivityHandler(Bot):
         :param message_reactions: The list of reactions removed
         :type message_reactions: :class:`typing.List`
         :param turn_context: The context object for this turn
-        :type turn_context: :class:`botbuilder.core.TurnContext`
+        :type turn_context: :class:`microsoft.agents.builder.TurnContext`
 
         :returns: A task that represents the work queued to execute
 
@@ -300,7 +300,7 @@ class ActivityHandler(Bot):
             Message reactions correspond to the user adding a 'like' or 'sad' etc. (often an emoji)
             to a previously sent message on the conversation. Message reactions are supported by only a few channels.
             The activity that the message is in reaction to is identified by the activity's reply to Id property.
-            The value of this property is the activity ID of a previously sent activity. When the bot sends an activity,
+            The value of this property is the activity ID of a previously sent activity. When the agent sends an activity,
             the channel assigns an ID to it, which is available in the resource response Id of the result.
         """
         return
@@ -311,7 +311,7 @@ class ActivityHandler(Bot):
         :meth:`on_turn()` is used.
 
         :param turn_context: The context object for this turn
-        :type turn_context: :class:`botbuilder.core.TurnContext`
+        :type turn_context: :class:`microsoft.agents.builder.TurnContext`
 
         :returns: A task that represents the work queued to execute
 
@@ -324,7 +324,7 @@ class ActivityHandler(Bot):
             Add logic to apply before the specific event-handling logic before the call to this base class method.
             Add logic to apply after the specific event-handling logic after the call to this base class method.
 
-            Event activities communicate programmatic information from a client or channel to a bot.
+            Event activities communicate programmatic information from a client or channel to an agent.
             The meaning of an event activity is defined by the event activity name property, which is meaningful within
             the scope of a channel.
         """
@@ -342,13 +342,13 @@ class ActivityHandler(Bot):
         If using an `oauth_prompt`, override this method to forward this activity to the current dialog.
 
         :param turn_context: The context object for this turn
-        :type turn_context: :class:`botbuilder.core.TurnContext`
+        :type turn_context: :class:`microsoft.agents.builder.TurnContext`
 
         :returns: A task that represents the work queued to execute
 
         .. remarks::
             When the :meth:`on_event()` method receives an event with an activity name of
-            `tokens/response`, it calls this method. If your bot uses an `oauth_prompt`, forward the incoming
+            `tokens/response`, it calls this method. If your agent uses an `oauth_prompt`, forward the incoming
             activity to the current dialog.
         """
         return
@@ -362,14 +362,14 @@ class ActivityHandler(Bot):
 
 
         :param turn_context: The context object for this turn
-        :type turn_context: :class:`botbuilder.core.TurnContext`
+        :type turn_context: :class:`microsoft.agents.builder.TurnContext`
 
         :returns: A task that represents the work queued to execute
 
         .. remarks::
             When the :meth:`on_event_activity()` is used method receives an event with an
             activity name other than `tokens/response`, it calls this method.
-            This method could optionally be overridden if the bot is meant to handle miscellaneous events.
+            This method could optionally be overridden if the agent is meant to handle miscellaneous events.
         """
         return
 
@@ -380,7 +380,7 @@ class ActivityHandler(Bot):
         Invoked when a conversation end activity is received from the channel.
 
         :param turn_context: The context object for this turn
-        :type turn_context: :class:`botbuilder.core.TurnContext`
+        :type turn_context: :class:`microsoft.agents.builder.TurnContext`
         :returns: A task that represents the work queued to execute
         """
         return
@@ -393,7 +393,7 @@ class ActivityHandler(Bot):
         ActivityTypes.typing activities, such as the conversational logic.
 
         :param turn_context: The context object for this turn
-        :type turn_context: :class:`botbuilder.core.TurnContext`
+        :type turn_context: :class:`microsoft.agents.builder.TurnContext`
         :returns: A task that represents the work queued to execute
         """
         return
@@ -406,7 +406,7 @@ class ActivityHandler(Bot):
         ActivityTypes.InstallationUpdate activities.
 
         :param turn_context: The context object for this turn
-        :type turn_context: :class:`botbuilder.core.TurnContext`
+        :type turn_context: :class:`microsoft.agents.builder.TurnContext`
         :returns: A task that represents the work queued to execute
         """
         if turn_context.activity.action in ("add", "add-upgrade"):
@@ -423,7 +423,7 @@ class ActivityHandler(Bot):
         ActivityTypes.InstallationUpdate activities with 'action' set to 'add'.
 
         :param turn_context: The context object for this turn
-        :type turn_context: :class:`botbuilder.core.TurnContext`
+        :type turn_context: :class:`microsoft.agents.builder.TurnContext`
         :returns: A task that represents the work queued to execute
         """
         return
@@ -436,7 +436,7 @@ class ActivityHandler(Bot):
         ActivityTypes.InstallationUpdate activities with 'action' set to 'remove'.
 
         :param turn_context: The context object for this turn
-        :type turn_context: :class:`botbuilder.core.TurnContext`
+        :type turn_context: :class:`microsoft.agents.builder.TurnContext`
         :returns: A task that represents the work queued to execute
         """
         return
@@ -450,7 +450,7 @@ class ActivityHandler(Bot):
         If overridden, this method could potentially respond to any of the other activity types.
 
         :param turn_context: The context object for this turn
-        :type turn_context: :class:`botbuilder.core.TurnContext`
+        :type turn_context: :class:`microsoft.agents.builder.TurnContext`
 
         :returns: A task that represents the work queued to execute
 
@@ -467,7 +467,7 @@ class ActivityHandler(Bot):
         Registers an activity event handler for the _invoke_ event, emitted for every incoming event activity.
 
         :param turn_context: The context object for this turn
-        :type turn_context: :class:`botbuilder.core.TurnContext`
+        :type turn_context: :class:`microsoft.agents.builder.TurnContext`
 
         :returns: A task that represents the work queued to execute
         """
@@ -503,7 +503,7 @@ class ActivityHandler(Bot):
         By default, this method does nothing.
 
         :param turn_context: The context object for this turn
-        :type turn_context: :class:`botbuilder.core.TurnContext`
+        :type turn_context: :class:`microsoft.agents.builder.TurnContext`
 
         :returns: A task that represents the work queued to execute
         """
@@ -513,15 +513,15 @@ class ActivityHandler(Bot):
         self, turn_context: TurnContextProtocol, invoke_value: AdaptiveCardInvokeValue
     ) -> AdaptiveCardInvokeResponse:
         """
-        Invoked when the bot is sent an Adaptive Card Action Execute.
+        Invoked when the agent is sent an Adaptive Card Action Execute.
 
         When the on_invoke_activity method receives an Invoke with a Activity.name of `adaptiveCard/action`, it
         calls this method.
 
         :param turn_context: A context object for this turn.
-        :type turn_context: :class:`botbuilder.core.TurnContext`
+        :type turn_context: :class:`microsoft.agents.builder.TurnContext`
         :param invoke_value: A string-typed object from the incoming activity's value.
-        :type invoke_value: :class:`botframework.schema.models.AdaptiveCardInvokeValue`
+        :type invoke_value: :class:`microsoft.agents.core.models.AdaptiveCardInvokeValue`
         :return: The HealthCheckResponse object
         """
         raise _InvokeResponseException(HTTPStatus.NOT_IMPLEMENTED)

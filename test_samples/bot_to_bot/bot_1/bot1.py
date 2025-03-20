@@ -24,7 +24,7 @@ from microsoft.agents.client import (
     ConversationIdFactoryProtocol,
     ConversationIdFactoryOptions,
 )
-from microsoft.agents.botbuilder import (
+from microsoft.agents.builder import (
     ActivityHandler,
     ChannelApiHandlerProtocol,
     ChannelAdapter,
@@ -206,9 +206,9 @@ class Bot1(ActivityHandler, ChannelApiHandlerProtocol):
             from_oauth_scope=turn_context.turn_state.get(
                 ChannelAdapter.OAUTH_SCOPE_KEY
             ),
-            from_bot_id=self._channel_host.host_app_id,
+            from_agent_id=self._channel_host.host_app_id,
             activity=turn_context.activity,
-            bot=target_channel,
+            agent=target_channel,
         )
 
         conversation_id = await self._conversation_id_factory.create_conversation_id(
@@ -259,7 +259,7 @@ class Bot1(ActivityHandler, ChannelApiHandlerProtocol):
         activity: Activity,
     ):
         bot_conversation_reference = (
-            await self._conversation_id_factory.get_bot_conversation_reference(
+            await self._conversation_id_factory.get_agent_conversation_reference(
                 conversation_id
             )
         )
@@ -271,7 +271,7 @@ class Bot1(ActivityHandler, ChannelApiHandlerProtocol):
                 bot_conversation_reference.conversation_reference
             )
             turn_context.activity.id = reply_to_activity_id
-            turn_context.activity.caller_id = f"{CallerIdConstants.bot_to_bot_prefix}{claims_identity.get_outgoing_app_id()}"
+            turn_context.activity.caller_id = f"{CallerIdConstants.agent_to_agent_prefix}{claims_identity.get_outgoing_app_id()}"
 
             if activity.type == ActivityTypes.end_of_conversation:
                 await self._conversation_id_factory.delete_conversation_reference(

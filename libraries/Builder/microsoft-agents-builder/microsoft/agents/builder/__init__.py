@@ -1,6 +1,6 @@
 # Import necessary modules
 from .activity_handler import ActivityHandler
-from .bot import Bot
+from .agent import Agent
 from .channel_adapter import ChannelAdapter
 from .channel_api_handler_protocol import ChannelApiHandlerProtocol
 from .channel_service_adapter import ChannelServiceAdapter
@@ -13,7 +13,7 @@ from .turn_context import TurnContext
 # Define the package's public interface
 __all__ = [
     "ActivityHandler",
-    "Bot",
+    "Agent",
     "ChannelAdapter",
     "ChannelApiHandlerProtocol",
     "ChannelServiceAdapter",

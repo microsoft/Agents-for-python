@@ -15,7 +15,7 @@ classifiers = [
 ]
 dependencies = [
     "microsoft-agents-connector",
-    "microsoft-agents-botbuilder",
+    "microsoft-agents-builder",
     "aiohttp>=3.11.11",
 ]
 

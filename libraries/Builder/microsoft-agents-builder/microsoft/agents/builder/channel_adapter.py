@@ -18,8 +18,8 @@ from .middleware_set import MiddlewareSet
 
 
 class ChannelAdapter(ABC, ChannelAdapterProtocol):
-    BOT_IDENTITY_KEY = "BotIdentity"
-    OAUTH_SCOPE_KEY = "Microsoft.Agents.BotBuilder.ChannelAdapter.OAuthScope"
+    AGENT_IDENTITY_KEY = "AgentIdentity"
+    OAUTH_SCOPE_KEY = "Microsoft.Agents.Builder.ChannelAdapter.OAuthScope"
     INVOKE_RESPONSE_KEY = "ChannelAdapter.InvokeResponse"
 
     on_turn_error: Callable[[TurnContext, Exception], Awaitable] = None
@@ -50,7 +50,7 @@ class ChannelAdapter(ABC, ChannelAdapterProtocol):
         :param context: The context object for the turn.
         :type context: :class:`TurnContext`
         :param activity: New replacement activity.
-        :type activity: :class:`botbuilder.schema.Activity`
+        :type activity: :class:`builder.schema.Activity`
         :return:
         """
         raise NotImplementedError()
@@ -65,7 +65,7 @@ class ChannelAdapter(ABC, ChannelAdapterProtocol):
         :param context: The context object for the turn.
         :type context: :class:`TurnContext`
         :param reference: Conversation reference for the activity to delete.
-        :type reference: :class:`botbuilder.schema.ConversationReference`
+        :type reference: :class:`builder.schema.ConversationReference`
         :return:
         """
         raise NotImplementedError()
@@ -82,24 +82,24 @@ class ChannelAdapter(ABC, ChannelAdapterProtocol):
 
     async def continue_conversation(
         self,
-        bot_id: str,  # pylint: disable=unused-argument
+        agent_id: str,  # pylint: disable=unused-argument
         reference: ConversationReference,
         callback: Callable[[TurnContext], Awaitable],
     ):
         """
         Sends a proactive message to a conversation. Call this method to proactively send a message to a conversation.
-        Most channels require a user to initiate a conversation with a bot before the bot can send activities
+        Most channels require a user to initiate a conversation with an agent before the agent can send activities
         to the user.
 
-        :param bot_id: The application ID of the bot. This parameter is ignored in
-        single tenant the Adapters (Console, Test, etc) but is critical to the BotFrameworkAdapter
+        :param agent_id: The application ID of the agent. This parameter is ignored in
+        single tenant the Adapters (Console, Test, etc) but is critical to the ChannelAdapter
         which is multi-tenant aware.
         :param reference: A reference to the conversation to continue.
-        :type reference: :class:`botbuilder.schema.ConversationReference`
-        :param callback: The method to call for the resulting bot turn.
+        :type reference: :class:`builder.schema.ConversationReference`
+        :param callback: The method to call for the resulting agent turn.
         :type callback: :class:`typing.Callable`
-        :param claims_identity: A :class:`botframework.connector.auth.ClaimsIdentity` for the conversation.
-        :type claims_identity: :class:`botframework.connector.auth.ClaimsIdentity`
+        :param claims_identity: A :class:`microsoft.agents.authentication.ClaimsIdentity` for the conversation.
+        :type claims_identity: :class:`microsoft.agents.authentication.ClaimsIdentity`
         :param audience:A value signifying the recipient of the proactive message.
         :type audience: str
         """
@@ -115,14 +115,14 @@ class ChannelAdapter(ABC, ChannelAdapterProtocol):
     ):
         """
         Sends a proactive message to a conversation. Call this method to proactively send a message to a conversation.
-        Most channels require a user to initiate a conversation with a bot before the bot can send activities
+        Most channels require a user to initiate a conversation with an agent before the agent can send activities
         to the user.
 
-        :param claims_identity: A :class:`botframework.connector.auth.ClaimsIdentity` for the conversation.
-        :type claims_identity: :class:`botframework.connector.auth.ClaimsIdentity`
+        :param claims_identity: A :class:`microsoft.agents.authentication.ClaimsIdentity` for the conversation.
+        :type claims_identity: :class:`microsoft.agents.authentication.ClaimsIdentity`
         :param continuation_activity: The activity to send.
-        :type continuation_activity: :class:`botbuilder
-        :param callback: The method to call for the resulting bot turn.
+        :type continuation_activity: :class:`builder
+        :param callback: The method to call for the resulting agent turn.
         :type callback: :class:`typing.Callable`
         :param audience: A value signifying the recipient of the proactive message.
         :type audience: str
@@ -131,7 +131,7 @@ class ChannelAdapter(ABC, ChannelAdapterProtocol):
 
     async def create_conversation(
         self,
-        bot_app_id: str,
+        agent_app_id: str,
         channel_id: str,
         service_url: str,
         audience: str,
@@ -142,7 +142,7 @@ class ChannelAdapter(ABC, ChannelAdapterProtocol):
         Starts a new conversation with a user. Used to direct message to a member of a group.
 
         :param reference: The conversation reference that contains the tenant
-        :type reference: :class:`botbuilder.schema.ConversationReference`
+        :type reference: :class:`builder.schema.ConversationReference`
         :param logic: The logic to use for the creation of the conversation
         :type logic: :class:`typing.Callable`
         :param conversation_parameters: The information to use to create the conversation
@@ -151,15 +151,15 @@ class ChannelAdapter(ABC, ChannelAdapterProtocol):
         :type channel_id: :class:`typing.str`
         :param service_url: The channel's service URL endpoint.
         :type service_url: :class:`typing.str`
-        :param credentials: The application credentials for the bot.
-        :type credentials: :class:`botframework.connector.auth.AppCredentials`
+        :param credentials: The application credentials for the agent.
+        :type credentials: :class:`microsoft.agents.authentication.AppCredentials`
 
         :raises: It raises a generic exception error.
 
         :return: A task representing the work queued to execute.
 
         .. remarks::
-            To start a conversation, your bot must know its account information and the user's
+            To start a conversation, your agent must know its account information and the user's
             account information on that channel.
             Most channels only support initiating a direct message (non-group) conversation.
             The adapter attempts to create a new conversation on the channel, and

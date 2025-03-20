@@ -6,13 +6,13 @@ from abc import ABC
 
 class AuthenticationConstants(ABC):
     # Bot Framework OAuth scope to request.
-    BOT_FRAMEWORK_SCOPE = "https://api.botframework.com"
+    AGENTS_SDK_SCOPE = "https://api.botframework.com"
 
     # Token issuer for ABS tokens.
-    BOT_FRAMEWORK_TOKEN_ISSUER = "https://api.botframework.com"
+    AGENTS_SDK_TOKEN_ISSUER = "https://api.botframework.com"
 
     # Default OAuth Url used to get a token from IUserTokenClient.
-    BOT_FRAMEWORK_OAUTH_URL = "https://api.botframework.com"
+    AGENTS_SDK_OAUTH_URL = "https://api.botframework.com"
 
     # Public Azure Bot Service OpenId Metadata URL.
     PUBLIC_AZURE_BOT_SERVICE_OPENID_METADATA_URL = (

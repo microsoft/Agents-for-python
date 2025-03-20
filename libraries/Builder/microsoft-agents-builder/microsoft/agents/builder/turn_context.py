@@ -373,7 +373,7 @@ class TurnContext(TurnContextProtocol):
 
         Previously: This was a copy of the re.escape function in Python 3.8.  This was done
         because the 3.6.x version didn't escape in the same way and handling
-        bot names with regex characters in it would fail in TurnContext.remove_mention_text
+        agent names with regex characters in it would fail in TurnContext.remove_mention_text
         without escaping the text.
         """
         mentions = TurnContext.get_mentions(activity)

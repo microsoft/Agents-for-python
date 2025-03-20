@@ -19,8 +19,8 @@ class RestChannelServiceClientFactory(ChannelServiceClientFactoryBase):
         self,
         configuration: Any,
         connections: Connections,
-        token_service_endpoint=AuthenticationConstants.BOT_FRAMEWORK_OAUTH_URL,
-        token_service_audience=AuthenticationConstants.BOT_FRAMEWORK_SCOPE,
+        token_service_endpoint=AuthenticationConstants.AGENTS_SDK_OAUTH_URL,
+        token_service_audience=AuthenticationConstants.AGENTS_SDK_SCOPE,
     ) -> None:
         self._connections = connections
         self._token_service_endpoint = token_service_endpoint

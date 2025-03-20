@@ -38,7 +38,7 @@ class ChannelAdapterProtocol(Protocol):
     @abstractmethod
     async def continue_conversation(
         self,
-        bot_id: str,
+        agent_id: str,
         reference: ConversationReference,
         callback: Callable[[TurnContextProtocol], Awaitable],
     ) -> None:
@@ -58,7 +58,7 @@ class ChannelAdapterProtocol(Protocol):
     @abstractmethod
     async def create_conversation(
         self,
-        bot_app_id: str,
+        agent_app_id: str,
         channel_id: str,
         service_url: str,
         audience: str,

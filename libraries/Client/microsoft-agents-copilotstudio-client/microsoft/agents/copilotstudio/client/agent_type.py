@@ -1,6 +1,6 @@
 from enum import Enum
 
 
-class BotType(str, Enum):
+class AgentType(str, Enum):
     PUBLISHED = "published"
     PREBUILT = "prebuilt"

@@ -7,7 +7,7 @@ from typing import Protocol
 from .turn_context import TurnContext
 
 
-class Bot(Protocol):
+class Agent(Protocol):
     """
     Represents a bot that can operate on incoming activities.
     """

@@ -36,8 +36,8 @@ def attachment_activity(
 
 class MessageFactory:
     """
-    A set of utility functions designed to assist with the formatting of the various message types a
-    bot can return.
+    A set of utility functions designed to assist with the formatting of the various message types
+    an agent can return.
     """
 
     @staticmethod

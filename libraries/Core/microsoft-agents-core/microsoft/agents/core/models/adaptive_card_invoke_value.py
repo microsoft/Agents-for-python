@@ -10,9 +10,9 @@ class AdaptiveCardInvokeValue(AgentsModel):
     Defines the structure that arrives in the Activity.Value for Invoke activity with Name of 'adaptiveCard/action'.
 
     :param action: The action of this adaptive card invoke action value.
-    :type action: :class:`botframework.schema.models.AdaptiveCardInvokeAction`
+    :type action: :class:`microsoft.agents.core.models.AdaptiveCardInvokeAction`
     :param authentication: The TokenExchangeInvokeRequest for this adaptive card invoke action value.
-    :type authentication: :class:`botframework.schema.models.TokenExchangeInvokeRequest`
+    :type authentication: :class:`microsoft.agents.core.models.TokenExchangeInvokeRequest`
     :param state: The 'state' or magic code for an OAuth flow.
     :type state: str
     """

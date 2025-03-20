@@ -17,18 +17,18 @@ from microsoft.agents.core.models import (
     Activity,
     DeliveryModes,
 )
-from microsoft.agents.botbuilder import (
-    Bot,
+from microsoft.agents.builder import (
+    Agent,
     ChannelServiceAdapter,
     ChannelServiceClientFactoryBase,
     MessageFactory,
     TurnContext,
 )
 
-from .bot_http_adapter import BotHttpAdapter
+from .agent_http_adapter import AgentHttpAdapter
 
 
-class CloudAdapter(ChannelServiceAdapter, BotHttpAdapter):
+class CloudAdapter(ChannelServiceAdapter, AgentHttpAdapter):
     def __init__(
         self,
         channel_service_client_factory: ChannelServiceClientFactoryBase,
@@ -36,7 +36,7 @@ class CloudAdapter(ChannelServiceAdapter, BotHttpAdapter):
         """
         Initializes a new instance of the CloudAdapter class.
 
-        :param bot_framework_authentication: Optional BotFrameworkAuthentication instance
+        :param channel_service_client_factory: The factory to use to create the channel service client.
         """
         super().__init__(channel_service_client_factory)
 
@@ -57,7 +57,7 @@ class CloudAdapter(ChannelServiceAdapter, BotHttpAdapter):
         self.on_turn_error = on_turn_error
         self._channel_service_client_factory = channel_service_client_factory
 
-    async def process(self, request: Request, bot: Bot) -> Optional[Response]:
+    async def process(self, request: Request, bot: Agent) -> Optional[Response]:
         if not request:
             raise TypeError("CloudAdapter.process: request can't be None")
         if not bot:
@@ -82,7 +82,7 @@ class CloudAdapter(ChannelServiceAdapter, BotHttpAdapter):
                 raise HTTPBadRequest
 
             try:
-                # Process the inbound activity with the bot
+                # Process the inbound activity with the agent
                 invoke_response = await self.process_activity(
                     claims_identity, activity, bot.on_turn
                 )

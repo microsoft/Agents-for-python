@@ -7,12 +7,12 @@ class ConversationIdFactoryOptions:
     def __init__(
         self,
         from_oauth_scope: str,
-        from_bot_id: str,
+        from_agent_id: str,
         activity: Activity,
-        bot: ChannelInfoProtocol,
+        agent: ChannelInfoProtocol,
     ) -> None:
         self.from_oauth_scope = from_oauth_scope
-        self.from_bot_id = from_bot_id
+        self.from_agent_id = from_agent_id
         # TODO: implement Activity and types as protocols and replace here
         self.activity = activity
-        self.bot = bot
+        self.agent = agent

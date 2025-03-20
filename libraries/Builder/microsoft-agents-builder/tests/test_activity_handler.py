@@ -1,6 +1,6 @@
 import pytest
 from unittest.mock import AsyncMock
-from microsoft.agents.botbuilder import ActivityHandler, TurnContext
+from microsoft.agents.builder import ActivityHandler, TurnContext
 from microsoft.agents.core.models import (
     ActivityTypes,
     ChannelAccount,

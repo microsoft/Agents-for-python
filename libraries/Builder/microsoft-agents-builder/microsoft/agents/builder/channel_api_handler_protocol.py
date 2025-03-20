@@ -25,7 +25,7 @@ class ChannelApiHandlerProtocol(Protocol):
         continuation_token: Optional[str] = None,
     ) -> ConversationsResult:
         """
-        List the Conversations in which this bot has participated.
+        List the Conversations in which this agent has participated.
         """
         raise NotImplementedError()
 

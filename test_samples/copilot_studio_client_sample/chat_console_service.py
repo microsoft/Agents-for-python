@@ -23,7 +23,7 @@ class ChatConsoleService:
             question = input("user> ")
 
             # Send the user input to the Copilot Studio bot and await the response.
-            # In this case we are not sending a conversation ID, as the bot is already connected by "StartConversationAsync", a conversation ID is persisted by the underlying client.
+            # In this case we are not sending a conversation ID, as the agent is already connected by "StartConversationAsync", a conversation ID is persisted by the underlying client.
             async for bot_activity in self._copilot_client.ask_question(question):
                 self._print_activity(bot_activity)
 

@@ -12,7 +12,7 @@ class TokenExchangeState(AgentsModel):
     :type conversation: ~microsoft.agents.protocols.models.ConversationReference
     :param relates_to: Gets or sets a reference to a related parent conversation for this token exchange.
     :type relates_to: ~microsoft.agents.protocols.models.ConversationReference
-    :param bot_ur: The URL of the bot messaging endpoint.
+    :param bot_ur: The URL of the agent messaging endpoint.
     :type bot_ur: str
     :param ms_app_id: The bot's registered application ID.
     :type ms_app_id: str

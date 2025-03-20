@@ -1,11 +1,11 @@
 from aiohttp.web import Request, middleware, json_response
 
-from microsoft.agents.authentication import BotAuthConfiguration, JwtTokenValidator
+from microsoft.agents.authentication import AgentAuthConfiguration, JwtTokenValidator
 
 
 @middleware
 async def jwt_authorization_middleware(request: Request, handler):
-    auth_config: BotAuthConfiguration = request.app["bot_configuration"]
+    auth_config: AgentAuthConfiguration = request.app["bot_configuration"]
     token_validator = JwtTokenValidator(auth_config)
     auth_header = request.headers.get("Authorization")
     if auth_header:

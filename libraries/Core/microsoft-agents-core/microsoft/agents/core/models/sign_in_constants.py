@@ -9,5 +9,5 @@ class SignInConstants(str, Enum):
     verify_state_operation_name = "signin/verifyState"
     # Name for signin invoke to perform a token exchange.
     token_exchange_operation_name = "signin/tokenExchange"
-    # The EventActivity name when a token is sent to the bot.
+    # The EventActivity name when a token is sent to the agent.
     token_response_event_name = "tokens/response"

@@ -1,7 +1,7 @@
 from typing import Protocol
 from abc import abstractmethod
 
-from .bot_conversation_reference import BotConversationReference
+from .agent_conversation_reference import AgentConversationReference
 from .conversation_id_factory_options import ConversationIdFactoryOptions
 
 
@@ -11,24 +11,24 @@ class ConversationIdFactoryProtocol(Protocol):
         self, options: ConversationIdFactoryOptions
     ) -> str:
         """
-        Creates a conversation ID for a bot conversation.
+        Creates a conversation ID for an agent conversation.
         :param options: A ConversationIdFactoryOptions instance.
         :return: A unique conversation ID.
         """
 
     @abstractmethod
-    async def get_bot_conversation_reference(
-        self, bot_conversation_id: str
-    ) -> BotConversationReference:
+    async def get_agent_conversation_reference(
+        self, agent_conversation_id: str
+    ) -> AgentConversationReference:
         """
-        Gets the BotConversationReference for a conversation ID.
-        :param bot_conversation_id: An ID created with create_conversation_id.
-        :return: BotConversationReference or None if not found.
+        Gets the AgentConversationReference for a conversation ID.
+        :param agent_conversation_id: An ID created with create_conversation_id.
+        :return: AgentConversationReference or None if not found.
         """
 
     @abstractmethod
-    async def delete_conversation_reference(self, bot_conversation_id: str) -> None:
+    async def delete_conversation_reference(self, agent_conversation_id: str) -> None:
         """
-        Deletes a bot conversation reference.
-        :param bot_conversation_id: A conversation ID created with create_conversation_id.
+        Deletes an agent conversation reference.
+        :param agent_conversation_id: A conversation ID created with create_conversation_id.
         """

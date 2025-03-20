@@ -1,9 +1,9 @@
 from typing import Protocol, Optional
 
 
-class BotAuthConfiguration(Protocol):
+class AgentAuthConfiguration(Protocol):
     """
-    Configuration for Bot authentication.
+    Configuration for Agent authentication.
     """
 
     TENANT_ID: Optional[str]

@@ -115,7 +115,7 @@ class Activity(AgentsModel):
     :type text_highlights: list[~microsoft.agents.protocols.models.TextHighlight]
     :param semantic_action: An optional programmatic action accompanying this request
     :type semantic_action: ~microsoft.agents.protocols.models.SemanticAction
-    :param caller_id: A string containing an IRI identifying the caller of a bot. This field is not intended to be transmitted over the wire,
+    :param caller_id: A string containing an IRI identifying the caller of an agent. This field is not intended to be transmitted over the wire,
         but is instead populated by bots and clients based on cryptographically verifiable data that asserts the identity of the callers (e.g. tokens).
     :type caller_id: str
     """
@@ -170,8 +170,8 @@ class Activity(AgentsModel):
         Updates this activity with the delivery information from an existing ConversationReference.
 
         :param reference: The existing conversation reference.
-        :param is_incoming: Optional, True to treat the activity as an incoming activity, where the bot is the recipient; otherwise, False.
-            Default is False, and the activity will show the bot as the sender.
+        :param is_incoming: Optional, True to treat the activity as an incoming activity, where the agent is the recipient; otherwise, False.
+            Default is False, and the activity will show the agent as the sender.
 
         :returns: This activity, updated with the delivery information.
 

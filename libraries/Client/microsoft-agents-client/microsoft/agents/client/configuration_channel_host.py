@@ -28,11 +28,11 @@ class ConfigurationChannelHost(ChannelHostProtocol):
 
         if channel_host_configuration:
             if channel_host_configuration.CHANNELS:
-                for bot_from_config in channel_host_configuration.CHANNELS:
-                    bot = copy(bot_from_config)
-                    if not bot.channel_factory:
-                        bot.channel_factory = default_channel_name
-                    self.channels[bot.id] = bot
+                for agent_from_config in channel_host_configuration.CHANNELS:
+                    agent = copy(agent_from_config)
+                    if not agent.channel_factory:
+                        agent.channel_factory = default_channel_name
+                    self.channels[agent.id] = agent
 
             self.host_endpoint = channel_host_configuration.HOST_ENDPOINT
             self.host_app_id = channel_host_configuration.HOST_APP_ID

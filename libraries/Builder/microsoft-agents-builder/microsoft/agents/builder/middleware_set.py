@@ -18,7 +18,7 @@ class Middleware(Protocol):
 class MiddlewareSet(Middleware):
     """
     A set of `Middleware` plugins. The set itself is middleware so you can easily package up a set
-    of middleware that can be composed into a bot with a single `bot.use(mySet)` call or even into
+    of middleware that can be composed into an agent with a single `agent.use(mySet)` call or even into
     another middleware set using `set.use(mySet)`.
     """
 
@@ -28,7 +28,7 @@ class MiddlewareSet(Middleware):
 
     def use(self, *middleware: Middleware):
         """
-        Registers middleware plugin(s) with the bot or set.
+        Registers middleware plugin(s) with the agent or set.
         :param middleware :
         :return:
         """

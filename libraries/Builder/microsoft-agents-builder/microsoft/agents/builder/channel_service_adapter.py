@@ -40,10 +40,10 @@ from .turn_context import TurnContext
 class ChannelServiceAdapter(ChannelAdapter, ABC):
     CONNECTOR_FACTORY_KEY = "ConnectorFactory"
     USER_TOKEN_CLIENT_KEY = "UserTokenClient"
-    BOT_CALLBACK_HANDLER_KEY = "BotCallbackHandler"
+    AGENT_CALLBACK_HANDLER_KEY = "AgentCallbackHandler"
     CHANNEL_SERVICE_FACTORY_KEY = "ChannelServiceClientFactory"
-    _BOT_CONNECTOR_CLIENT_KEY = "ConnectorClient"
-    _INVOKE_RESPONSE_KEY = "BotFrameworkAdapter.InvokeResponse"
+    _AGENT_CONNECTOR_CLIENT_KEY = "ConnectorClient"
+    _INVOKE_RESPONSE_KEY = "ChannelServiceAdapter.InvokeResponse"
 
     def __init__(self, channel_service_client_factory: ChannelServiceClientFactoryBase):
         super().__init__()
@@ -82,7 +82,7 @@ class ChannelServiceAdapter(ChannelAdapter, ABC):
             else:
                 connector_client = cast(
                     ConnectorClientBase,
-                    context.turn_state.get(self._BOT_CONNECTOR_CLIENT_KEY),
+                    context.turn_state.get(self._AGENT_CONNECTOR_CLIENT_KEY),
                 )
                 if not connector_client:
                     raise Error("Unable to extract ConnectorClient from turn context.")
@@ -117,7 +117,8 @@ class ChannelServiceAdapter(ChannelAdapter, ABC):
             raise TypeError("Expected Activity but got None instead")
 
         connector_client = cast(
-            ConnectorClientBase, context.turn_state.get(self._BOT_CONNECTOR_CLIENT_KEY)
+            ConnectorClientBase,
+            context.turn_state.get(self._AGENT_CONNECTOR_CLIENT_KEY),
         )
         if not connector_client:
             raise Error("Unable to extract ConnectorClient from turn context.")
@@ -136,7 +137,8 @@ class ChannelServiceAdapter(ChannelAdapter, ABC):
             raise TypeError("Expected ConversationReference but got None instead")
 
         connector_client = cast(
-            ConnectorClientBase, context.turn_state.get(self._BOT_CONNECTOR_CLIENT_KEY)
+            ConnectorClientBase,
+            context.turn_state.get(self._AGENT_CONNECTOR_CLIENT_KEY),
         )
         if not connector_client:
             raise Error("Unable to extract ConnectorClient from turn context.")
@@ -147,23 +149,23 @@ class ChannelServiceAdapter(ChannelAdapter, ABC):
 
     async def continue_conversation(  # pylint: disable=arguments-differ
         self,
-        bot_app_id: str,
+        agent_app_id: str,
         continuation_activity: Activity,
         callback: Callable[[TurnContext], Awaitable],
     ):
         """
         Sends a proactive message to a conversation.
         Call this method to proactively send a message to a conversation.
-        Most channels require a user to initiate a conversation with a bot before the bot can send activities
+        Most channels require a user to initiate a conversation with an agent before the agent can send activities
         to the user.
 
         :param reference: A reference to the conversation to continue.
-        :type reference: :class:`botbuilder.schema.ConversationReference`
-        :param callback: The method to call for the resulting bot turn.
+        :type reference: :class:`builder.schema.ConversationReference`
+        :param callback: The method to call for the resulting agent turn.
         :type callback: :class:`typing.Callable`
-        :param bot_app_id: The application Id of the bot. This is the appId returned by the Azure portal registration,
+        :param agent_app_id: The application Id of the agent. This is the appId returned by the Azure portal registration,
         and is generally found in the `MicrosoftAppId` parameter in `config.py`.
-        :type bot_app_id: :class:`typing.str`
+        :type agent_app_id: :class:`typing.str`
         """
         if not callable:
             raise TypeError(
@@ -172,7 +174,7 @@ class ChannelServiceAdapter(ChannelAdapter, ABC):
 
         self._validate_continuation_activity(continuation_activity)
 
-        claims_identity = self.create_claims_identity(bot_app_id)
+        claims_identity = self.create_claims_identity(agent_app_id)
 
         return await self.process_proactive(
             claims_identity,
@@ -194,7 +196,7 @@ class ChannelServiceAdapter(ChannelAdapter, ABC):
 
     async def create_conversation(  # pylint: disable=arguments-differ
         self,
-        bot_app_id: str,
+        agent_app_id: str,
         channel_id: str,
         service_url: str,
         audience: str,
@@ -213,7 +215,7 @@ class ChannelServiceAdapter(ChannelAdapter, ABC):
             raise TypeError("CloudAdapter.create_conversation(): callback is required.")
 
         # Create a ClaimsIdentity, to create the connector and for adding to the turn context.
-        claims_identity = self.create_claims_identity(bot_app_id)
+        claims_identity = self.create_claims_identity(agent_app_id)
         claims_identity.claims[AuthenticationConstants.SERVICE_URL_CLAIM] = service_url
 
         # Create the connector client to use for outbound requests.
@@ -314,9 +316,9 @@ class ChannelServiceAdapter(ChannelAdapter, ABC):
         :return: A task that represents the work queued to execute.
 
         .. remarks::
-            This class processes an activity received by the bots web server. This includes any messages
+            This class processes an activity received by the agents web server. This includes any messages
             sent from a user and is the method that drives what's often referred to as the
-            bots *reactive messaging* flow.
+            agent *reactive messaging* flow.
             Call this method to reactively send a message to a conversation.
             If the task completes successfully, then an :class:`InvokeResponse` is returned;
             otherwise. `null` is returned.
@@ -324,13 +326,13 @@ class ChannelServiceAdapter(ChannelAdapter, ABC):
         scopes: list[str] = None
         outgoing_audience: str = None
 
-        if claims_identity.is_bot_claim():
+        if claims_identity.is_agent_claim():
             outgoing_audience = claims_identity.get_token_audience()
             scopes = [f"{claims_identity.get_outgoing_app_id()}/.default"]
-            activity.caller_id = f"{CallerIdConstants.bot_to_bot_prefix}{claims_identity.get_outgoing_app_id()}"
+            activity.caller_id = f"{CallerIdConstants.agent_to_agent_prefix}{claims_identity.get_outgoing_app_id()}"
         else:
-            outgoing_audience = AuthenticationConstants.BOT_FRAMEWORK_SCOPE
-            scopes = [f"{AuthenticationConstants.BOT_FRAMEWORK_SCOPE}/.default"]
+            outgoing_audience = AuthenticationConstants.AGENTS_SDK_SCOPE
+            scopes = [f"{AuthenticationConstants.AGENTS_SDK_SCOPE}/.default"]
 
         use_anonymous_auth_callback = False
         if (
@@ -375,11 +377,11 @@ class ChannelServiceAdapter(ChannelAdapter, ABC):
         # If there are any results they will have been left on the TurnContext.
         return self._process_turn_results(context)
 
-    def create_claims_identity(self, bot_app_id: str = "") -> ClaimsIdentity:
+    def create_claims_identity(self, agent_app_id: str = "") -> ClaimsIdentity:
         return ClaimsIdentity(
             {
-                AuthenticationConstants.AUDIENCE_CLAIM: bot_app_id,
-                AuthenticationConstants.APP_ID_CLAIM: bot_app_id,
+                AuthenticationConstants.AUDIENCE_CLAIM: agent_app_id,
+                AuthenticationConstants.APP_ID_CLAIM: agent_app_id,
             },
             False,
         )
@@ -432,10 +434,10 @@ class ChannelServiceAdapter(ChannelAdapter, ABC):
     ) -> TurnContext:
         context = TurnContext(self, activity)
 
-        context.turn_state[self.BOT_IDENTITY_KEY] = claims_identity
-        context.turn_state[self._BOT_CONNECTOR_CLIENT_KEY] = connector_client
+        context.turn_state[self.AGENT_IDENTITY_KEY] = claims_identity
+        context.turn_state[self._AGENT_CONNECTOR_CLIENT_KEY] = connector_client
         context.turn_state[self.USER_TOKEN_CLIENT_KEY] = user_token_client
-        context.turn_state[self.BOT_CALLBACK_HANDLER_KEY] = callback
+        context.turn_state[self.AGENT_CALLBACK_HANDLER_KEY] = callback
         context.turn_state[self.CHANNEL_SERVICE_FACTORY_KEY] = (
             self._channel_service_client_factory
         )
@@ -454,7 +456,7 @@ class ChannelServiceAdapter(ChannelAdapter, ABC):
                 ).model_dump(mode="json", by_alias=True, exclude_unset=True),
             )
 
-        # Handle Invoke scenarios where the bot will return a specific body and return code.
+        # Handle Invoke scenarios where the agent will return a specific body and return code.
         if context.activity.type == ActivityTypes.invoke:
             activity_invoke_response: Activity = context.turn_state.get(
                 self._INVOKE_RESPONSE_KEY

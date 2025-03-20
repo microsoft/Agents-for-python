@@ -10,14 +10,14 @@ class Connections(Protocol):
     @abstractmethod
     def get_connection(self, connection_name: str) -> AccessTokenProviderBase:
         """
-        Get the OAuth connection for the bot.
+        Get the OAuth connection for the agent.
         """
         raise NotImplementedError()
 
     @abstractmethod
     def get_default_connection(self) -> AccessTokenProviderBase:
         """
-        Get the default OAuth connection for the bot.
+        Get the default OAuth connection for the agent.
         """
         raise NotImplementedError()
 
@@ -26,6 +26,6 @@ class Connections(Protocol):
         self, claims_identity: ClaimsIdentity, service_url: str
     ) -> AccessTokenProviderBase:
         """
-        Get the OAuth token provider for the bot.
+        Get the OAuth token provider for the agent.
         """
         raise NotImplementedError()

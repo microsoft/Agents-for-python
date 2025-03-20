@@ -47,11 +47,11 @@ class ClaimsIdentity:
 
         return app_id
 
-    def is_bot_claim(self) -> bool:
+    def is_agent_claim(self) -> bool:
         """
-        Checks if the current claims represents a bot claim (not coming from ABS/SMBA).
+        Checks if the current claims represents an agent claim (not coming from ABS/SMBA).
 
-        :return: True if the list of claims is a bot claim, otherwise False.
+        :return: True if the list of claims is an agent claim, otherwise False.
         """
 
         version = self.claims.get(AuthenticationConstants.VERSION_CLAIM, None)
@@ -62,7 +62,7 @@ class ClaimsIdentity:
         if (
             not audience
             or audience.lower()
-            == AuthenticationConstants.BOT_FRAMEWORK_TOKEN_ISSUER.lower()
+            == AuthenticationConstants.AGENTS_SDK_TOKEN_ISSUER.lower()
         ):
             return False
 

@@ -15,14 +15,14 @@ from .channel_protocol import ChannelProtocol
 from .conversation_constants import ConversationConstants
 
 
-class HttpBotChannel(ChannelProtocol):
+class HttpAgentChannel(ChannelProtocol):
     def __init__(self, token_access: AccessTokenProviderBase) -> None:
         self._token_access = token_access
 
     async def post_activity(
         self,
-        to_bot_id: str,
-        to_bot_resource: str,
+        to_agent_id: str,
+        to_agent_resource: str,
         endpoint: str,
         service_url: str,
         conversation_id: str,
@@ -32,15 +32,15 @@ class HttpBotChannel(ChannelProtocol):
         **kwargs,
     ) -> InvokeResponse[AgentsModel]:
         if not endpoint:
-            raise ValueError("HttpBotChannel.post_activity: Endpoint is required")
+            raise ValueError("HttpAgentChannel.post_activity: Endpoint is required")
         if not service_url:
-            raise ValueError("HttpBotChannel.post_activity: Service URL is required")
+            raise ValueError("HttpAgentChannel.post_activity: Service URL is required")
         if not conversation_id:
             raise ValueError(
-                "HttpBotChannel.post_activity: Conversation ID is required"
+                "HttpAgentChannel.post_activity: Conversation ID is required"
             )
         if not activity:
-            raise ValueError("HttpBotChannel.post_activity: Activity is required")
+            raise ValueError("HttpAgentChannel.post_activity: Activity is required")
 
         activity_copy = deepcopy(activity)
 
@@ -59,7 +59,7 @@ class HttpBotChannel(ChannelProtocol):
         activity_copy.recipient.role = RoleTypes.skill
 
         token_result = await self._token_access.get_access_token(
-            to_bot_resource, [f"{to_bot_id}/.default"]
+            to_agent_resource, [f"{to_agent_id}/.default"]
         )
         headers = {
             "Authorization": f"Bearer {token_result}",

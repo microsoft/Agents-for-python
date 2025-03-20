@@ -3,7 +3,7 @@
 
 from aiohttp.web import Application, Request, Response, run_app
 
-from microsoft.agents.botbuilder import RestChannelServiceClientFactory
+from microsoft.agents.builder import RestChannelServiceClientFactory
 from microsoft.agents.hosting.aiohttp import CloudAdapter, jwt_authorization_middleware
 from microsoft.agents.authentication import (
     Connections,

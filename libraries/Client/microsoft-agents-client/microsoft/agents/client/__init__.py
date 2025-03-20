@@ -1,4 +1,4 @@
-from .bot_conversation_reference import BotConversationReference
+from .agent_conversation_reference import AgentConversationReference
 from .channel_factory_protocol import ChannelFactoryProtocol
 from .channel_host_protocol import ChannelHostProtocol
 from .channel_info_protocol import ChannelInfoProtocol
@@ -13,11 +13,11 @@ from .conversation_constants import ConversationConstants
 from .conversation_id_factory_options import ConversationIdFactoryOptions
 from .conversation_id_factory_protocol import ConversationIdFactoryProtocol
 from .conversation_id_factory import ConversationIdFactory
-from .http_bot_channel_factory import HttpBotChannelFactory
-from .http_bot_channel import HttpBotChannel
+from .http_agent_channel_factory import HttpAgentChannelFactory
+from .http_agent_channel import HttpAgentChannel
 
 __all__ = [
-    "BotConversationReference",
+    "AgentConversationReference",
     "ChannelFactoryProtocol",
     "ChannelHostProtocol",
     "ChannelInfoProtocol",
@@ -30,6 +30,6 @@ __all__ = [
     "ConversationIdFactoryOptions",
     "ConversationIdFactoryProtocol",
     "ConversationIdFactory",
-    "HttpBotChannelFactory",
-    "HttpBotChannel",
+    "HttpAgentChannelFactory",
+    "HttpAgentChannel",
 ]

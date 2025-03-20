@@ -55,7 +55,7 @@ jobs:
         python -m pip install ./dist/microsoft_agents_authentication*.whl
         python -m pip install ./dist/microsoft_agents_connector*.whl
         python -m pip install ./dist/microsoft_agents_client*.whl
-        python -m pip install ./dist/microsoft_agents_botbuilder*.whl
+        python -m pip install ./dist/microsoft_agents_builder*.whl
         python -m pip install ./dist/microsoft_agents_authorization_msal*.whl
         python -m pip install ./dist/microsoft_agents_copilotstudio_client*.whl
         python -m pip install ./dist/microsoft_agents_hosting_aiohttp*.whl

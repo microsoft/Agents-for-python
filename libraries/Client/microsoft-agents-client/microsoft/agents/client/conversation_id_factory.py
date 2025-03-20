@@ -5,7 +5,7 @@ from typing import Type
 from microsoft.agents.core.models import AgentsModel
 from microsoft.agents.storage import Storage, StoreItem
 
-from .bot_conversation_reference import BotConversationReference
+from .agent_conversation_reference import AgentConversationReference
 from .conversation_id_factory_protocol import ConversationIdFactoryProtocol
 
 
@@ -34,33 +34,33 @@ class ConversationIdFactory(ConversationIdFactoryProtocol):
             )
 
         conversation_reference = options.activity.get_conversation_reference()
-        bot_conversation_id = str(uuid4())
+        agent_conversation_id = str(uuid4())
 
-        bot_conversation_reference = BotConversationReference(
+        agent_conversation_reference = AgentConversationReference(
             conversation_reference=conversation_reference,
             oauth_scope=options.from_oauth_scope,
         )
 
-        _implement_store_item_for_agents_model_cls(bot_conversation_reference)
+        _implement_store_item_for_agents_model_cls(agent_conversation_reference)
 
-        conversation_info = {bot_conversation_id: bot_conversation_reference}
+        conversation_info = {agent_conversation_id: agent_conversation_reference}
         await self._storage.write(conversation_info)
 
-        return bot_conversation_id
+        return agent_conversation_id
 
-    async def get_bot_conversation_reference(
-        self, bot_conversation_id
-    ) -> BotConversationReference:
-        if not bot_conversation_id:
+    async def get_agent_conversation_reference(
+        self, agent_conversation_id
+    ) -> AgentConversationReference:
+        if not agent_conversation_id:
             raise ValueError(
-                "ConversationIdFactory.get_bot_conversation_reference(): bot_conversation_id cannot be None"
+                "ConversationIdFactory.get_agent_conversation_reference(): agent_conversation_id cannot be None"
             )
 
         storage_record = await self._storage.read(
-            [bot_conversation_id], target_cls=BotConversationReference
+            [agent_conversation_id], target_cls=AgentConversationReference
         )
 
-        return storage_record[bot_conversation_id]
+        return storage_record[agent_conversation_id]
 
-    async def delete_conversation_reference(self, bot_conversation_id):
-        await self._storage.delete([bot_conversation_id])
+    async def delete_conversation_reference(self, agent_conversation_id):
+        await self._storage.delete([agent_conversation_id])

@@ -3,7 +3,7 @@
 
 from aiohttp.web import Application, Request, Response, run_app
 
-from microsoft.agents.botbuilder import RestChannelServiceClientFactory
+from microsoft.agents.builder import RestChannelServiceClientFactory
 from microsoft.agents.hosting.aiohttp import (
     CloudAdapter,
     jwt_authorization_middleware,
@@ -18,7 +18,7 @@ from microsoft.agents.authorization.msal import MsalAuth
 from microsoft.agents.client import (
     ConfigurationChannelHost,
     ConversationIdFactory,
-    HttpBotChannelFactory,
+    HttpAgentChannelFactory,
 )
 from microsoft.agents.storage import MemoryStorage
 
@@ -48,7 +48,7 @@ DEFAULT_CONNECTION = DefaultConnection()
 CONFIG = DefaultConfig()
 CHANNEL_CLIENT_FACTORY = RestChannelServiceClientFactory(CONFIG, DEFAULT_CONNECTION)
 
-BOT_CHANNEL_FACTORY = HttpBotChannelFactory()
+BOT_CHANNEL_FACTORY = HttpAgentChannelFactory()
 CHANNEL_HOST = ConfigurationChannelHost(
     BOT_CHANNEL_FACTORY, DEFAULT_CONNECTION, CONFIG, "HttpBotClient"
 )

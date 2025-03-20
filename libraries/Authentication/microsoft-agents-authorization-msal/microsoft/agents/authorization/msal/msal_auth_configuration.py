@@ -1,11 +1,11 @@
 from typing import Protocol, Optional
 
-from microsoft.agents.authentication import BotAuthConfiguration
+from microsoft.agents.authentication import AgentAuthConfiguration
 
 from .auth_types import AuthTypes
 
 
-class MsalAuthConfiguration(BotAuthConfiguration, Protocol):
+class MsalAuthConfiguration(AgentAuthConfiguration, Protocol):
     """
     Configuration for MSAL authentication.
     """

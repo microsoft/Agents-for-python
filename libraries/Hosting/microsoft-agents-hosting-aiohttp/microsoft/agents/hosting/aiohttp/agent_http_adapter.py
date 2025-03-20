@@ -9,10 +9,10 @@ from aiohttp.web import (
     Response,
 )
 
-from microsoft.agents.botbuilder import Bot
+from microsoft.agents.builder import Agent
 
 
-class BotHttpAdapter(Protocol):
+class AgentHttpAdapter(Protocol):
     @abstractmethod
-    async def process(self, request: Request, bot: Bot) -> Optional[Response]:
+    async def process(self, request: Request, bot: Agent) -> Optional[Response]:
         raise NotImplementedError()
