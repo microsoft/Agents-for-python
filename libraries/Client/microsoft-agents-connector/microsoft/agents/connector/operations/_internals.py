@@ -1324,7 +1324,7 @@ class ConversationsOperations:
     ) -> JSON:
         """GetConversations.
 
-        List the Conversations in which this bot has participated.
+        List the Conversations in which this agent has participated.
 
         GET from this method with a skip token
 
@@ -1423,7 +1423,7 @@ class ConversationsOperations:
         POST to this method with a
 
 
-        * Bot being the bot creating the conversation
+        * Agent being the agent creating the conversation
         * IsGroup set to true if this is not a direct message (default is false)
         * Array containing the members to include in the conversation
 
@@ -1431,13 +1431,13 @@ class ConversationsOperations:
         use
         in the message payload and REST API uris.
 
-        Most channels only support the semantics of bots initiating a direct message conversation.  An
+        Most channels only support the semantics of agents initiating a direct message conversation.  An
         example of how to do that would be:
 
         .. code-block::
 
            var resource = await connector.conversations.CreateConversation(new
-        ConversationParameters(){ Bot = bot, members = new ChannelAccount[] { new
+        ConversationParameters(){ Bot = agent, members = new ChannelAccount[] { new
         ChannelAccount("user1") } );
            await connect.Conversations.SendToConversationAsync(resource.Id, new Activity() ... ) ;.
 
@@ -1651,7 +1651,7 @@ class ConversationsOperations:
         POST to this method with a
 
 
-        * Bot being the bot creating the conversation
+        * Bot being the agent creating the conversation
         * IsGroup set to true if this is not a direct message (default is false)
         * Array containing the members to include in the conversation
 
@@ -1659,13 +1659,13 @@ class ConversationsOperations:
         use
         in the message payload and REST API uris.
 
-        Most channels only support the semantics of bots initiating a direct message conversation.  An
+        Most channels only support the semantics of agents initiating a direct message conversation.  An
         example of how to do that would be:
 
         .. code-block::
 
            var resource = await connector.conversations.CreateConversation(new
-        ConversationParameters(){ Bot = bot, members = new ChannelAccount[] { new
+        ConversationParameters(){ Bot = agent, members = new ChannelAccount[] { new
         ChannelAccount("user1") } );
            await connect.Conversations.SendToConversationAsync(resource.Id, new Activity() ... ) ;.
 
@@ -1700,7 +1700,7 @@ class ConversationsOperations:
         POST to this method with a
 
 
-        * Bot being the bot creating the conversation
+        * Bot being the agent creating the conversation
         * IsGroup set to true if this is not a direct message (default is false)
         * Array containing the members to include in the conversation
 
@@ -1708,13 +1708,13 @@ class ConversationsOperations:
         use
         in the message payload and REST API uris.
 
-        Most channels only support the semantics of bots initiating a direct message conversation.  An
+        Most channels only support the semantics of agents initiating a direct message conversation.  An
         example of how to do that would be:
 
         .. code-block::
 
            var resource = await connector.conversations.CreateConversation(new
-        ConversationParameters(){ Bot = bot, members = new ChannelAccount[] { new
+        ConversationParameters(){ Bot = agent, members = new ChannelAccount[] { new
         ChannelAccount("user1") } );
            await connect.Conversations.SendToConversationAsync(resource.Id, new Activity() ... ) ;.
 
@@ -2976,7 +2976,7 @@ class ConversationsOperations:
 
         Edit an existing activity.
 
-        Some channels allow you to edit an existing activity to reflect the new state of a bot
+        Some channels allow you to edit an existing activity to reflect the new state of an agent
         conversation.
 
         For example, you can remove buttons after someone has clicked "Approve" button.
@@ -3172,7 +3172,7 @@ class ConversationsOperations:
 
         Edit an existing activity.
 
-        Some channels allow you to edit an existing activity to reflect the new state of a bot
+        Some channels allow you to edit an existing activity to reflect the new state of an agent
         conversation.
 
         For example, you can remove buttons after someone has clicked "Approve" button.
@@ -3211,7 +3211,7 @@ class ConversationsOperations:
 
         Edit an existing activity.
 
-        Some channels allow you to edit an existing activity to reflect the new state of a bot
+        Some channels allow you to edit an existing activity to reflect the new state of an agent
         conversation.
 
         For example, you can remove buttons after someone has clicked "Approve" button.

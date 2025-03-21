@@ -30,7 +30,7 @@ from ._agents_token_credential_adapter import AgentsTokenCredentialAdapter
 class ConnectorClient(
     ConnectorClientBase
 ):  # pylint: disable=client-accepts-api-version-keyword
-    """The Azure Bot Service Connector APIs allow bots to send and receive
+    """The ABS Connector APIs allow agents to send and receive
     messages, button clicks, and other programmatic events when connecting with
     end users. This API also includes facilities to get conversation metadata
     and perform other operations (deletions and content editing). This REST API

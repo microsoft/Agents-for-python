@@ -33,8 +33,8 @@ from azure.core.tracing.decorator_async import distributed_trace_async
 from azure.core.utils import case_insensitive_dict
 
 from ._internals import (
-    build_bot_sign_in_get_sign_in_resource_request,
-    build_bot_sign_in_get_sign_in_url_request,
+    build_agent_sign_in_get_sign_in_resource_request,
+    build_agent_sign_in_get_sign_in_url_request,
     build_token_internals_post_error_response_request,
     build_token_internals_post_sign_in_url_response_request,
     build_token_internals_post_token_exchange_resource_request,
@@ -58,14 +58,14 @@ ClsType = Optional[
 ]
 
 
-class BotSignInOperations:
+class AgentSignInOperations:
     """
     .. warning::
         **DO NOT** instantiate this class directly.
 
         Instead, you should access the following operations through
         :class:`~microsoft.agents.connector.Token`'s
-        :attr:`bot_sign_in` attribute.
+        :attr:`agent_sign_in` attribute.
     """
 
     def __init__(self, *args, **kwargs) -> None:
@@ -114,7 +114,7 @@ class BotSignInOperations:
 
         cls: ClsType[str] = kwargs.pop("cls", None)
 
-        _request = build_bot_sign_in_get_sign_in_url_request(
+        _request = build_agent_sign_in_get_sign_in_url_request(
             state=state,
             code_challenge=code_challenge,
             emulator_url=emulator_url,
@@ -199,7 +199,7 @@ class BotSignInOperations:
 
         cls: ClsType[JSON] = kwargs.pop("cls", None)
 
-        _request = build_bot_sign_in_get_sign_in_resource_request(
+        _request = build_agent_sign_in_get_sign_in_resource_request(
             state=state,
             code_challenge=code_challenge,
             emulator_url=emulator_url,

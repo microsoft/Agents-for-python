@@ -5,6 +5,6 @@ class EndOfConversationCodes(str, Enum):
     unknown = "unknown"
     completed_successfully = "completedSuccessfully"
     user_cancelled = "userCancelled"
-    bot_timed_out = "botTimedOut"
-    bot_issued_invalid_message = "botIssuedInvalidMessage"
+    timed_out = "botTimedOut"
+    issued_invalid_message = "botIssuedInvalidMessage"
     channel_failed = "channelFailed"

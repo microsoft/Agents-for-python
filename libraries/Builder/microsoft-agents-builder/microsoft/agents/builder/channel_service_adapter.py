@@ -419,7 +419,7 @@ class ChannelServiceAdapter(ChannelAdapter, ABC):
             tenant_id=conversation_parameters.tenant_id,
         )
         activity.channel_data = conversation_parameters.channel_data
-        activity.recipient = conversation_parameters.bot
+        activity.recipient = conversation_parameters.agent
 
         return activity
 

@@ -4,7 +4,7 @@ from typing import Protocol
 from microsoft.agents.core.models import SignInResource
 
 
-class BotSignInBase(Protocol):
+class AgentSignInBase(Protocol):
     @abstractmethod
     async def get_sign_in_url(
         self,

@@ -21,7 +21,7 @@ from microsoft.agents.core.models import (
 
 class TurnContext(TurnContextProtocol):
     # Same constant as in the BF Adapter, duplicating here to avoid circular dependency
-    _INVOKE_RESPONSE_KEY = "BotFrameworkAdapter.InvokeResponse"
+    _INVOKE_RESPONSE_KEY = "TurnContext.InvokeResponse"
 
     def __init__(self, adapter_or_context, request: Activity = None):
         """

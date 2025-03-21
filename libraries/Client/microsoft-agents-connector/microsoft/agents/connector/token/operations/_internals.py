@@ -48,7 +48,7 @@ _SERIALIZER = Serializer()
 _SERIALIZER.client_side_validation = False
 
 
-def build_bot_sign_in_get_sign_in_url_request(  # pylint: disable=name-too-long
+def build_agent_sign_in_get_sign_in_url_request(  # pylint: disable=name-too-long
     *,
     state: str,
     code_challenge: Optional[str] = None,
@@ -85,7 +85,7 @@ def build_bot_sign_in_get_sign_in_url_request(  # pylint: disable=name-too-long
     )
 
 
-def build_bot_sign_in_get_sign_in_resource_request(  # pylint: disable=name-too-long
+def build_agent_sign_in_get_sign_in_resource_request(  # pylint: disable=name-too-long
     *,
     state: str,
     code_challenge: Optional[str] = None,
@@ -404,14 +404,14 @@ def build_token_internals_post_error_response_request(
     return HttpRequest(method="POST", url=_url, headers=_headers, **kwargs)
 
 
-class BotSignInOperations:
+class AgentSignInOperations:
     """
     .. warning::
         **DO NOT** instantiate this class directly.
 
         Instead, you should access the following operations through
         :class:`~microsoft.agents.protocols.connector.Token`'s
-        :attr:`bot_sign_in` attribute.
+        :attr:`agent_sign_in` attribute.
     """
 
     def __init__(self, *args, **kwargs):
@@ -460,7 +460,7 @@ class BotSignInOperations:
 
         cls: ClsType[str] = kwargs.pop("cls", None)
 
-        _request = build_bot_sign_in_get_sign_in_url_request(
+        _request = build_agent_sign_in_get_sign_in_url_request(
             state=state,
             code_challenge=code_challenge,
             emulator_url=emulator_url,
@@ -545,7 +545,7 @@ class BotSignInOperations:
 
         cls: ClsType[JSON] = kwargs.pop("cls", None)
 
-        _request = build_bot_sign_in_get_sign_in_resource_request(
+        _request = build_agent_sign_in_get_sign_in_resource_request(
             state=state,
             code_challenge=code_challenge,
             emulator_url=emulator_url,

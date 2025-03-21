@@ -5,7 +5,7 @@ from abc import ABC
 
 
 class AuthenticationConstants(ABC):
-    # Bot Framework OAuth scope to request.
+    # Agents SDK OAuth scope to request.
     AGENTS_SDK_SCOPE = "https://api.botframework.com"
 
     # Token issuer for ABS tokens.
@@ -14,8 +14,8 @@ class AuthenticationConstants(ABC):
     # Default OAuth Url used to get a token from IUserTokenClient.
     AGENTS_SDK_OAUTH_URL = "https://api.botframework.com"
 
-    # Public Azure Bot Service OpenId Metadata URL.
-    PUBLIC_AZURE_BOT_SERVICE_OPENID_METADATA_URL = (
+    # Public ABS OpenId Metadata URL.
+    PUBLIC_ABS_OPENID_METADATA_URL = (
         "https://login.botframework.com/v1/.well-known/openidconfiguration"
     )
 
@@ -27,8 +27,8 @@ class AuthenticationConstants(ABC):
     # Enterprise Channel OpenId Metadata URL format.
     ENTERPRISE_CHANNEL_OPENID_METADATA_URL_FORMAT = "https://{0}.enterprisechannel.botframework.com/v1/.well-known/openidconfiguration"
 
-    # Gov Azure Bot Service OpenId Metadata URL.
-    GOV_AZURE_BOT_SERVICE_OPENID_METADATA_URL = (
+    # Gov ABS OpenId Metadata URL.
+    GOV_ABS_OPENID_METADATA_URL = (
         "https://login.botframework.azure.us/v1/.well-known/openidconfiguration"
     )
 
@@ -95,7 +95,7 @@ class AuthenticationConstants(ABC):
     # App ID claim name. As used in Microsoft AAD 1.0 tokens.
     APP_ID_CLAIM = "appid"
 
-    # Service URL claim name. As used in Microsoft Bot Framework v3.1 auth.
+    # Service URL claim name.
     SERVICE_URL_CLAIM = "serviceurl"
 
     # Tenant Id claim name. As used in Microsoft AAD tokens.

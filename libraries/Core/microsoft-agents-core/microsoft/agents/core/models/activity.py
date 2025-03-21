@@ -18,9 +18,9 @@ from .agents_model import AgentsModel
 from ._type_aliases import NonEmptyString
 
 
-# TODO: B2B Bot 2 is responding with None as id, had to mark it as optional (investigate)
+# TODO: A2A Agent 2 is responding with None as id, had to mark it as optional (investigate)
 class Activity(AgentsModel):
-    """An Activity is the basic communication type for the Bot Framework 3.0 protocol.
+    """An Activity is the basic communication type for the protocol.
 
     :param type: Contains the activity type. Possible values include:
         'message', 'contactRelationUpdate', 'conversationUpdate', 'typing',
@@ -72,7 +72,7 @@ class Activity(AgentsModel):
     :type text: str
     :param speak: The text to speak.
     :type speak: str
-    :param input_hint: Indicates whether your bot is accepting, expecting, or ignoring user input after the message is delivered to the client.
+    :param input_hint: Indicates whether your agent is accepting, expecting, or ignoring user input after the message is delivered to the client.
         Possible values include: 'acceptingInput', 'ignoringInput', 'expectingInput'
     :type input_hint: str or ~microsoft.agents.protocols.models.InputHints
     :param summary: The text to display if the channel cannot render cards.
@@ -116,7 +116,7 @@ class Activity(AgentsModel):
     :param semantic_action: An optional programmatic action accompanying this request
     :type semantic_action: ~microsoft.agents.protocols.models.SemanticAction
     :param caller_id: A string containing an IRI identifying the caller of an agent. This field is not intended to be transmitted over the wire,
-        but is instead populated by bots and clients based on cryptographically verifiable data that asserts the identity of the callers (e.g. tokens).
+        but is instead populated by agents and clients based on cryptographically verifiable data that asserts the identity of the callers (e.g. tokens).
     :type caller_id: str
     """
 

@@ -5,12 +5,12 @@
 # --------------------------------------------------------------------------
 # pylint: disable=wrong-import-position
 
-from ._user_token_operations import BotSignInOperations  # type: ignore
+from ._user_token_operations import AgentSignInOperations  # type: ignore
 from ._user_token_operations import UserTokenOperations  # type: ignore
 from ._user_token_operations import TokenInternalsOperations  # type: ignore
 
 __all__ = [
-    "BotSignInOperations",
+    "AgentSignInOperations",
     "UserTokenOperations",
     "TokenInternalsOperations",
 ]

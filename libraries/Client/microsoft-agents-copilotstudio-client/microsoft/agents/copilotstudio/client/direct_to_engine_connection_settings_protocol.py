@@ -21,5 +21,5 @@ class DirectToEngineConnectionSettingsProtocol(Protocol):
     # Power Platform Cloud where the environment is hosted
     cloud: Optional[PowerPlatformCloud]
 
-    # Type of Bot hosted in Copilot Studio
+    # Type of Agent hosted in Copilot Studio
     copilot_agent_type: Optional[AgentType]

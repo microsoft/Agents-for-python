@@ -7,7 +7,7 @@ from microsoft.agents.client import (
 
 
 class DefaultConfig(MsalAuthConfiguration, ChannelsConfiguration):
-    """Bot Configuration"""
+    """Agent Configuration"""
 
     AUTH_TYPE = AuthTypes.client_secret
     TENANT_ID = ""
@@ -22,8 +22,8 @@ class DefaultConfig(MsalAuthConfiguration, ChannelsConfiguration):
         return ChannelHostConfiguration(
             CHANNELS=[
                 ChannelInfo(
-                    id="EchoBot",
-                    app_id="",  # Target bot's app_id
+                    id="EchoAgent",
+                    app_id="",  # Target agent's app_id
                     resource_url="http://localhost:3999/api/messages",
                     token_provider="ChannelConnection",
                     channel_factory="HttpBotClient",

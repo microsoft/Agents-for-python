@@ -5,7 +5,7 @@ from ._type_aliases import NonEmptyString
 class ChannelAccount(AgentsModel):
     """Channel account information needed to route a message.
 
-    :param id: Channel id for the user or bot on this channel (Example:
+    :param id: Channel id for the user or agent on this channel (Example:
      joe@smith.com, or @joesmith or 123456)
     :type id: str
     :param name: Display friendly name
@@ -13,8 +13,7 @@ class ChannelAccount(AgentsModel):
     :param aad_object_id: This account's object ID within Azure Active
      Directory (AAD)
     :type aad_object_id: str
-    :param role: Role of the entity behind the account (Example: User, Bot,
-     etc.). Possible values include: 'user', 'bot'
+    :param role: Role of the entity behind the account
     :type role: str or ~microsoft.agents.protocols.models.RoleTypes
     """
 

@@ -15,12 +15,12 @@ from azure.core.rest import AsyncHttpResponse, HttpRequest
 
 from ._user_token_client_configuration import TokenConfiguration
 from .operations import (
-    BotSignInOperations,
+    AgentSignInOperations,
     TokenInternalsOperations,
     UserTokenOperations,
 )
 from .._serialization import Deserializer, Serializer
-from ..bot_sign_in_base import BotSignInBase
+from ..agent_sign_in_base import AgentSignInBase
 from ..user_token_base import UserTokenBase
 from ..user_token_client_base import UserTokenClientBase
 
@@ -30,8 +30,8 @@ class UserTokenClient(
 ):  # pylint: disable=client-accepts-api-version-keyword
     """Token.
 
-    :ivar bot_sign_in: BotSignInOperations operations
-    :vartype bot_sign_in: microsoft.agents.connector.operations.BotSignInOperations
+    :ivar agent_sign_in: AgentSignInOperations operations
+    :vartype agent_sign_in: microsoft.agents.connector.operations.AgentSignInOperations
     :ivar user_token: UserTokenOperations operations
     :vartype user_token: microsoft.agents.connector.operations.UserTokenOperations
     :ivar token_internals: TokenInternalsOperations operations
@@ -75,7 +75,7 @@ class UserTokenClient(
         self._serialize = Serializer()
         self._deserialize = Deserializer()
         self._serialize.client_side_validation = False
-        self._bot_sign_in = BotSignInOperations(
+        self._agent_sign_in = AgentSignInOperations(
             self._client, self._config, self._serialize, self._deserialize
         )
         self._user_token = UserTokenOperations(
@@ -86,8 +86,8 @@ class UserTokenClient(
         )
 
     @property
-    def bot_sign_in(self) -> BotSignInBase:
-        return self._bot_sign_in
+    def agent_sign_in(self) -> AgentSignInBase:
+        return self._agent_sign_in
 
     @property
     def user_token(self) -> UserTokenBase:

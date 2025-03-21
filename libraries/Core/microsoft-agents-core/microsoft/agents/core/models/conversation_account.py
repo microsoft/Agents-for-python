@@ -11,7 +11,7 @@ class ConversationAccount(AgentsModel):
     :param conversation_type: Indicates the type of the conversation in
      channels that distinguish between conversation types
     :type conversation_type: str
-    :param id: Channel id for the user or bot on this channel (Example:
+    :param id: Channel id for the user or agent on this channel (Example:
      joe@smith.com, or @joesmith or 123456)
     :type id: str
     :param name: Display friendly name
@@ -19,8 +19,7 @@ class ConversationAccount(AgentsModel):
     :param aad_object_id: This account's object ID within Azure Active
      Directory (AAD)
     :type aad_object_id: str
-    :param role: Role of the entity behind the account (Example: User, Bot,
-     etc.). Possible values include: 'user', 'bot', 'skill'
+    :param role: Role of the entity behind the account
     :type role: str or ~microsoft.agents.protocols.models.RoleTypes
     :param tenant_id: This conversation's tenant ID
     :type tenant_id: str

@@ -1,3 +1,5 @@
+from pydantic import Field
+
 from .channel_account import ChannelAccount
 from .activity import Activity
 from .agents_model import AgentsModel
@@ -9,8 +11,8 @@ class ConversationParameters(AgentsModel):
 
     :param is_group: IsGroup
     :type is_group: bool
-    :param bot: The bot address for this conversation
-    :type bot: ~microsoft.agents.protocols.models.ChannelAccount
+    :param agent: The bot address for this conversation
+    :type agent: ~microsoft.agents.protocols.models.ChannelAccount
     :param members: Members to add to the conversation
     :type members: list[~microsoft.agents.protocols.models.ChannelAccount]
     :param topic_name: (Optional) Topic of the conversation (if supported by
@@ -27,7 +29,7 @@ class ConversationParameters(AgentsModel):
     """
 
     is_group: bool = None
-    bot: ChannelAccount = None
+    agent: ChannelAccount = Field(None, alias="bot")
     members: list[ChannelAccount] = None
     topic_name: NonEmptyString = None
     activity: Activity = None

@@ -18,7 +18,7 @@ class ConversationReference(AgentsModel):
     :type activity_id: str
     :param user: (Optional) User participating in this conversation
     :type user: ~microsoft.agents.protocols.models.ChannelAccount
-    :param agent: Bot participating in this conversation
+    :param agent: Agent participating in this conversation
     :type agent: ~microsoft.agents.protocols.models.ChannelAccount
     :param conversation: Conversation reference
     :type conversation: ~microsoft.agents.protocols.models.ConversationAccount
