@@ -31,8 +31,8 @@ from microsoft.agents.builder import (
 )
 
 
-class Bot1(ActivityHandler, ChannelApiHandlerProtocol):
-    _active_bot_client = False
+class Agent1(ActivityHandler, ChannelApiHandlerProtocol):
+    _active_agent_client = False
 
     def __init__(
         self,
@@ -41,25 +41,25 @@ class Bot1(ActivityHandler, ChannelApiHandlerProtocol):
         conversation_id_factory: ConversationIdFactoryProtocol,
     ):
         if not adapter:
-            raise ValueError("Bot1.__init__(): adapter cannot be None")
+            raise ValueError("Agent1.__init__(): adapter cannot be None")
         if not channel_host:
-            raise ValueError("Bot1.__init__(): channel_host cannot be None")
+            raise ValueError("Agent1.__init__(): channel_host cannot be None")
         if not conversation_id_factory:
-            raise ValueError("Bot1.__init__(): conversation_id_factory cannot be None")
+            raise ValueError("Agent1.__init__(): conversation_id_factory cannot be None")
 
         self._adapter = adapter
         self._channel_host = channel_host
         self._conversation_id_factory = conversation_id_factory
 
-        target_b2b_id = "EchoBot"
-        self._target_b2b = self._channel_host.channels.get(target_b2b_id)
+        target_a2a_id = "EchoAgent"
+        self._target_a2a = self._channel_host.channels.get(target_a2a_id)
 
     async def on_turn(self, turn_context: TurnContextProtocol):
-        # Forward all activities except EndOfConversation to the B2B connection
+        # Forward all activities except EndOfConversation to the A2A connection
         if turn_context.activity.type != ActivityTypes.end_of_conversation:
-            # Try to get the active B2B connection
-            if Bot1._active_bot_client:
-                await self._send_to_bot(turn_context, self._target_b2b)
+            # Try to get the active A2A connection
+            if Agent1._active_agent_client:
+                await self._send_to_agent(turn_context, self._target_a2a)
                 return
 
         await super().on_turn(turn_context)
@@ -70,19 +70,19 @@ class Bot1(ActivityHandler, ChannelApiHandlerProtocol):
             # TODO: review activity | str interface for send_activity
             await turn_context.send_activity("Got it, connecting you to the agent...")
 
-            Bot1._active_bot_client = True
+            Agent1._active_agent_client = True
 
-            # send to bot
-            await self._send_to_bot(turn_context, self._target_b2b)
+            # send to agent
+            await self._send_to_agent(turn_context, self._target_a2a)
             return
 
         await turn_context.send_activity('Say "agent" and I\'ll patch you through')
 
     async def on_end_of_conversation_activity(self, turn_context: TurnContextProtocol):
-        # Clear the active B2B connection
-        Bot1._active_bot_client = False
+        # Clear the active A2A connection
+        Agent1._active_agent_client = False
 
-        # Show status message, text and value returned by the B2B connection
+        # Show status message, text and value returned by the A2A connection
         eoc_activity_message = f"Received {turn_context.activity.type}. Code: {turn_context.activity.code}."
         if turn_context.activity.text:
             eoc_activity_message += f" Text: {turn_context.activity.text}"
@@ -92,7 +92,7 @@ class Bot1(ActivityHandler, ChannelApiHandlerProtocol):
 
         await turn_context.send_activity(eoc_activity_message)
         await turn_context.send_activity(
-            'Back in the root bot. Say "agent" and I\'ll patch you through'
+            'Back in the root agent. Say "agent" and I\'ll patch you through'
         )
 
     async def on_members_added_activity(
@@ -198,10 +198,10 @@ class Bot1(ActivityHandler, ChannelApiHandlerProtocol):
     ) -> ResourceResponse:
         pass
 
-    async def _send_to_bot(
+    async def _send_to_agent(
         self, turn_context: TurnContextProtocol, target_channel: ChannelInfoProtocol
     ):
-        # Create a conversation ID to communicate with the B2B connection
+        # Create a conversation ID to communicate with the A2A connection
         options = ConversationIdFactoryOptions(
             from_oauth_scope=turn_context.turn_state.get(
                 ChannelAdapter.OAUTH_SCOPE_KEY
@@ -218,7 +218,7 @@ class Bot1(ActivityHandler, ChannelApiHandlerProtocol):
         # TODO: might need to close connection, tbd
         channel = self._channel_host.get_channel_from_channel_info(target_channel)
 
-        # Route activity to the B2B connection
+        # Route activity to the A2A connection
         response = await channel.post_activity(
             target_channel.app_id,
             target_channel.resource_url,
@@ -258,7 +258,7 @@ class Bot1(ActivityHandler, ChannelApiHandlerProtocol):
         reply_to_activity_id: Optional[str],
         activity: Activity,
     ):
-        bot_conversation_reference = (
+        agent_conversation_reference = (
             await self._conversation_id_factory.get_agent_conversation_reference(
                 conversation_id
             )
@@ -266,9 +266,9 @@ class Bot1(ActivityHandler, ChannelApiHandlerProtocol):
 
         resource_response: ResourceResponse = None
 
-        async def bot_callback_handler(turn_context: TurnContextProtocol):
+        async def agent_callback_handler(turn_context: TurnContextProtocol):
             activity.apply_conversation_reference(
-                bot_conversation_reference.conversation_reference
+                agent_conversation_reference.conversation_reference
             )
             turn_context.activity.id = reply_to_activity_id
             turn_context.activity.caller_id = f"{CallerIdConstants.agent_to_agent_prefix}{claims_identity.get_outgoing_app_id()}"
@@ -278,7 +278,7 @@ class Bot1(ActivityHandler, ChannelApiHandlerProtocol):
                     conversation_id
                 )
 
-                Bot1._apply_activity_to_turn_context(turn_context, activity)
+                Agent1._apply_activity_to_turn_context(turn_context, activity)
                 await self.on_turn(turn_context)
             else:
                 nonlocal resource_response
@@ -286,13 +286,13 @@ class Bot1(ActivityHandler, ChannelApiHandlerProtocol):
 
         # TODO: fix overload
         continuation_activity = (
-            bot_conversation_reference.conversation_reference.get_continuation_activity()
+            agent_conversation_reference.conversation_reference.get_continuation_activity()
         )
         await self._adapter.continue_conversation_with_claims(
             claims_identity=claims_identity,
             continuation_activity=continuation_activity,
-            callback=bot_callback_handler,
-            audience=bot_conversation_reference.oauth_scope,
+            callback=agent_callback_handler,
+            audience=agent_conversation_reference.oauth_scope,
         )
 
         return resource_response or ResourceResponse(id=str(uuid4()))

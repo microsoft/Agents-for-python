@@ -8,10 +8,10 @@ class ChatConsoleService:
         self._copilot_client = copilot_client
 
     async def start_service(self):
-        print("bot> ")
+        print("agent> ")
 
-        # Attempt to connect to the copilot studio hosted bot here
-        # if successful, this will loop though all events that the Copilot Studio bot sends to the client setup the conversation.
+        # Attempt to connect to the copilot studio hosted agent here
+        # if successful, this will loop though all events that the Copilot Studio agent sends to the client setup the conversation.
         async for activity in self._copilot_client.start_conversation():
             if not activity:
                 raise Exception("ChatConsoleService.start_service: Activity is None")
@@ -22,10 +22,10 @@ class ChatConsoleService:
         while True:
             question = input("user> ")
 
-            # Send the user input to the Copilot Studio bot and await the response.
+            # Send the user input to the Copilot Studio agent and await the response.
             # In this case we are not sending a conversation ID, as the agent is already connected by "StartConversationAsync", a conversation ID is persisted by the underlying client.
-            async for bot_activity in self._copilot_client.ask_question(question):
-                self._print_activity(bot_activity)
+            async for activity in self._copilot_client.ask_question(question):
+                self._print_activity(activity)
 
     @staticmethod
     def _print_activity(activity: Activity):

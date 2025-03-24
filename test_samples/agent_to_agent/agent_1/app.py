@@ -22,7 +22,7 @@ from microsoft.agents.client import (
 )
 from microsoft.agents.storage import MemoryStorage
 
-from bot1 import Bot1
+from agent1 import Agent1
 from config import DefaultConfig
 
 AUTH_PROVIDER = MsalAuth(DefaultConfig())
@@ -48,19 +48,18 @@ DEFAULT_CONNECTION = DefaultConnection()
 CONFIG = DefaultConfig()
 CHANNEL_CLIENT_FACTORY = RestChannelServiceClientFactory(CONFIG, DEFAULT_CONNECTION)
 
-BOT_CHANNEL_FACTORY = HttpAgentChannelFactory()
+AGENT_CHANNEL_FACTORY = HttpAgentChannelFactory()
 CHANNEL_HOST = ConfigurationChannelHost(
-    BOT_CHANNEL_FACTORY, DEFAULT_CONNECTION, CONFIG, "HttpBotClient"
+    AGENT_CHANNEL_FACTORY, DEFAULT_CONNECTION, CONFIG, "HttpAgentClient"
 )
 STORAGE = MemoryStorage()
 CONVERSATION_ID_FACTORY = ConversationIdFactory(STORAGE)
 
 # Create adapter.
-# See https://aka.ms/about-bot-adapter to learn more about how bots work.
 ADAPTER = CloudAdapter(CHANNEL_CLIENT_FACTORY)
 
-# Create the Bot
-BOT = Bot1(
+# Create the Agent
+AGENT = Agent1(
     adapter=ADAPTER,
     channel_host=CHANNEL_HOST,
     conversation_id_factory=CONVERSATION_ID_FACTORY,
@@ -70,12 +69,12 @@ BOT = Bot1(
 # Listen for incoming requests on /api/messages
 async def messages(req: Request) -> Response:
     adapter: CloudAdapter = req.app["adapter"]
-    return await adapter.process(req, BOT)
+    return await adapter.process(req, AGENT)
 
 
 APP = Application(middlewares=[jwt_authorization_middleware])
 APP.router.add_post("/api/messages", messages)
-APP.router.add_routes(channel_service_route_table(BOT, "/api/botresponse"))
+APP.router.add_routes(channel_service_route_table(AGENT, "/api/botresponse"))
 APP["agent_configuration"] = CONFIG
 APP["adapter"] = ADAPTER
 

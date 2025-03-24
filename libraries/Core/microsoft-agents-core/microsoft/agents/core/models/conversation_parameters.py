@@ -11,7 +11,7 @@ class ConversationParameters(AgentsModel):
 
     :param is_group: IsGroup
     :type is_group: bool
-    :param agent: The bot address for this conversation
+    :param agent: The agent address for this conversation
     :type agent: ~microsoft.agents.protocols.models.ChannelAccount
     :param members: Members to add to the conversation
     :type members: list[~microsoft.agents.protocols.models.ChannelAccount]

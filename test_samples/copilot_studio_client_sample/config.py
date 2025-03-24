@@ -28,7 +28,7 @@ class McsConnectionSettings(ConnectionSettings):
             raise ValueError("Tenant ID must be provided")
 
         environment_id = environment_id or environ.get("ENVIRONMENT_ID")
-        agent_identifier = agent_identifier or environ.get("BOT_IDENTIFIER")
+        agent_identifier = agent_identifier or environ.get("AGENT_IDENTIFIER")
         cloud = cloud or PowerPlatformCloud[environ.get("CLOUD", "UNKNOWN")]
         copilot_agent_type = (
                 copilot_agent_type or AgentType[environ.get("COPILOT_agent_type", "PUBLISHED")]

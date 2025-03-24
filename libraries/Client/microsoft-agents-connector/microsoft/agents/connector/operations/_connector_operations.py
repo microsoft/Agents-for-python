@@ -386,15 +386,7 @@ class ConversationsOperations(ConversationsBase):
         use
         in the message payload and REST API uris.
 
-        Most channels only support the semantics of agents initiating a direct message conversation.  An
-        example of how to do that would be:
-
-        .. code-block::
-
-           var resource = await connector.conversations.CreateConversation(new
-        ConversationParameters(){ Bot = agent, members = new ChannelAccount[] { new
-        ChannelAccount("user1") } );
-           await connect.Conversations.SendToConversationAsync(resource.Id, new Activity() ... ) ;.
+        Most channels only support the semantics of agents initiating a direct message conversation.
 
         :param body: Parameters to create the conversation from. Default value is None.
         :type body: JSON
@@ -614,15 +606,7 @@ class ConversationsOperations(ConversationsBase):
         use
         in the message payload and REST API uris.
 
-        Most channels only support the semantics of agents initiating a direct message conversation.  An
-        example of how to do that would be:
-
-        .. code-block::
-
-           var resource = await connector.conversations.CreateConversation(new
-        ConversationParameters(){ Bot = agent, members = new ChannelAccount[] { new
-        ChannelAccount("user1") } );
-           await connect.Conversations.SendToConversationAsync(resource.Id, new Activity() ... ) ;.
+        Most channels only support the semantics of agents initiating a direct message conversation.
 
         :param body: Parameters to create the conversation from. Default value is None.
         :type body: IO[bytes]
@@ -663,15 +647,7 @@ class ConversationsOperations(ConversationsBase):
         use
         in the message payload and REST API uris.
 
-        Most channels only support the semantics of agents initiating a direct message conversation.  An
-        example of how to do that would be:
-
-        .. code-block::
-
-           var resource = await connector.conversations.CreateConversation(new
-        ConversationParameters(){ Bot = agent, members = new ChannelAccount[] { new
-        ChannelAccount("user1") } );
-           await connect.Conversations.SendToConversationAsync(resource.Id, new Activity() ... ) ;.
+        Most channels only support the semantics of agents initiating a direct message conversation.
 
         :param body: Parameters to create the conversation from. Is either a JSON type or a IO[bytes]
          type. Default value is None.

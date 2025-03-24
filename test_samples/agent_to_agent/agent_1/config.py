@@ -26,7 +26,7 @@ class DefaultConfig(MsalAuthConfiguration, ChannelsConfiguration):
                     app_id="",  # Target agent's app_id
                     resource_url="http://localhost:3999/api/messages",
                     token_provider="ChannelConnection",
-                    channel_factory="HttpBotClient",
+                    channel_factory="HttpAgentClient",
                     endpoint="http://localhost:3999/api/messages",
                 )
             ],

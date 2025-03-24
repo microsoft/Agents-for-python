@@ -12,7 +12,7 @@ from microsoft.agents.authentication import (
 )
 from microsoft.agents.authorization.msal import MsalAuth
 
-from echo_bot import EchoBot
+from echo_agent import EchoAgent
 from config import DefaultConfig
 
 AUTH_PROVIDER = MsalAuth(DefaultConfig())
@@ -35,17 +35,16 @@ CONFIG = DefaultConfig()
 CHANNEL_CLIENT_FACTORY = RestChannelServiceClientFactory(CONFIG, DefaultConnection())
 
 # Create adapter.
-# See https://aka.ms/about-bot-adapter to learn more about how bots work.
 ADAPTER = CloudAdapter(CHANNEL_CLIENT_FACTORY)
 
-# Create the Bot
-BOT = EchoBot()
+# Create the Agent
+AGENT = EchoAgent()
 
 
 # Listen for incoming requests on /api/messages
 async def messages(req: Request) -> Response:
     adapter: CloudAdapter = req.app["adapter"]
-    return await adapter.process(req, BOT)
+    return await adapter.process(req, AGENT)
 
 
 APP = Application(middlewares=[jwt_authorization_middleware])
