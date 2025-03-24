@@ -15,7 +15,7 @@ classifiers = [
 ]
 dependencies = [
     "microsoft-agents-core",
-    "microsoft-agents-authentication"
+    "microsoft-agents-authorization",
 ]
 
 [project.urls]
