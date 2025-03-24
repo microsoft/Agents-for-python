@@ -45,7 +45,9 @@ class Agent1(ActivityHandler, ChannelApiHandlerProtocol):
         if not channel_host:
             raise ValueError("Agent1.__init__(): channel_host cannot be None")
         if not conversation_id_factory:
-            raise ValueError("Agent1.__init__(): conversation_id_factory cannot be None")
+            raise ValueError(
+                "Agent1.__init__(): conversation_id_factory cannot be None"
+            )
 
         self._adapter = adapter
         self._channel_host = channel_host

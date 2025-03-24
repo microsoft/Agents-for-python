@@ -31,7 +31,8 @@ class McsConnectionSettings(ConnectionSettings):
         agent_identifier = agent_identifier or environ.get("AGENT_IDENTIFIER")
         cloud = cloud or PowerPlatformCloud[environ.get("CLOUD", "UNKNOWN")]
         copilot_agent_type = (
-                copilot_agent_type or AgentType[environ.get("COPILOT_agent_type", "PUBLISHED")]
+            copilot_agent_type
+            or AgentType[environ.get("COPILOT_agent_type", "PUBLISHED")]
         )
         custom_power_platform_cloud = custom_power_platform_cloud or environ.get(
             "CUSTOM_POWER_PLATFORM_CLOUD", None
