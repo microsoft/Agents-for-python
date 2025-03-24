@@ -17,7 +17,7 @@ from microsoft.agents.core.models import (
     ConversationResourceResponse,
     ConversationsResult,
 )
-from microsoft.agents.authentication import ClaimsIdentity
+from microsoft.agents.authorization import ClaimsIdentity
 from microsoft.agents.client import (
     ChannelHostProtocol,
     ChannelInfoProtocol,

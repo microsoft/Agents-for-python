@@ -31,7 +31,7 @@ from microsoft.agents.connector import (
     ConnectorClient,
     UserTokenClient,
 )
-from microsoft.agents.authentication import AuthenticationConstants, ClaimsIdentity
+from microsoft.agents.authorization import AuthenticationConstants, ClaimsIdentity
 from .channel_service_client_factory_base import ChannelServiceClientFactoryBase
 from .channel_adapter import ChannelAdapter
 from .turn_context import TurnContext

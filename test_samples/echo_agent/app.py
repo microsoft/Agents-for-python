@@ -5,12 +5,12 @@ from aiohttp.web import Application, Request, Response, run_app
 
 from microsoft.agents.builder import RestChannelServiceClientFactory
 from microsoft.agents.hosting.aiohttp import CloudAdapter, jwt_authorization_middleware
-from microsoft.agents.authentication import (
+from microsoft.agents.authorization import (
     Connections,
     AccessTokenProviderBase,
     ClaimsIdentity,
 )
-from microsoft.agents.authorization.msal import MsalAuth
+from microsoft.agents.authentication.msal import MsalAuth
 
 from echo_agent import EchoAgent
 from config import DefaultConfig

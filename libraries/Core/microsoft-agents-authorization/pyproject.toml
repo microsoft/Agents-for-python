@@ -3,9 +3,9 @@ requires = ["setuptools"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "microsoft-agents-authorization-msal"
+name = "microsoft-agents-authorization"
 version = "0.0.0a1"
-description = "A msal-based authentication library for Microsoft Agents"
+description = "An authorization library for Microsoft Agents"
 authors = [{name = "Microsoft Corporation"}]
 requires-python = ">=3.9"
 classifiers = [
@@ -14,10 +14,7 @@ classifiers = [
     "Operating System :: OS Independent",
 ]
 dependencies = [
-    "microsoft-agents-authentication",
-    "msal>=1.31.1",
-    "requests>=2.32.3",
-    "cryptography>=44.0.0",
+    "pyjwt>=2.10.1"
 ]
 
 [project.urls]

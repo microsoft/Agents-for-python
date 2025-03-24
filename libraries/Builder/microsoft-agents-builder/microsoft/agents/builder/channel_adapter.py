@@ -4,7 +4,7 @@
 from abc import ABC, abstractmethod
 from collections.abc import Callable
 from typing import List, Awaitable
-from microsoft.agents.authentication import ClaimsIdentity
+from microsoft.agents.authorization import ClaimsIdentity
 from microsoft.agents.core import ChannelAdapterProtocol
 from microsoft.agents.core.models import (
     Activity,

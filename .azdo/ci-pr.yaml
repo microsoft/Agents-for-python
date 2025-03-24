@@ -49,11 +49,11 @@ steps:
 
 - script: |
     python -m pip install ./dist/microsoft_agents_core*.whl
-    python -m pip install ./dist/microsoft_agents_authentication*.whl
+    python -m pip install ./dist/microsoft_agents_authorization*.whl
     python -m pip install ./dist/microsoft_agents_connector*.whl
     python -m pip install ./dist/microsoft_agents_client*.whl
     python -m pip install ./dist/microsoft_agents_builder*.whl
-    python -m pip install ./dist/microsoft_agents_authorization_msal*.whl
+    python -m pip install ./dist/microsoft_agents_authentication_msal*.whl
     python -m pip install ./dist/microsoft_agents_copilotstudio_client*.whl
     python -m pip install ./dist/microsoft_agents_hosting_aiohttp*.whl
     python -m pip install ./dist/microsoft_agents_storage*.whl

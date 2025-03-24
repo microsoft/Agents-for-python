@@ -9,12 +9,12 @@ from microsoft.agents.hosting.aiohttp import (
     jwt_authorization_middleware,
     channel_service_route_table,
 )
-from microsoft.agents.authentication import (
+from microsoft.agents.authorization import (
     Connections,
     AccessTokenProviderBase,
     ClaimsIdentity,
 )
-from microsoft.agents.authorization.msal import MsalAuth
+from microsoft.agents.authentication.msal import MsalAuth
 from microsoft.agents.client import (
     ConfigurationChannelHost,
     ConversationIdFactory,

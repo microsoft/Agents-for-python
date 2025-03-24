@@ -12,7 +12,7 @@ from azure.core import AsyncPipelineClient
 from azure.core.credentials_async import AsyncTokenCredential
 from azure.core.pipeline import policies
 from azure.core.rest import AsyncHttpResponse, HttpRequest
-from microsoft.agents.authentication import AccessTokenProviderBase
+from microsoft.agents.authorization import AccessTokenProviderBase
 
 from ._serialization import Deserializer, Serializer
 from ._connector_client_configuration import ConnectorConfiguration

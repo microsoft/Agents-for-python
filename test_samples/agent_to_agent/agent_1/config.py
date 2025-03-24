@@ -1,4 +1,4 @@
-from microsoft.agents.authorization.msal import AuthTypes, MsalAuthConfiguration
+from microsoft.agents.authentication.msal import AuthTypes, MsalAuthConfiguration
 from microsoft.agents.client import (
     ChannelHostConfiguration,
     ChannelsConfiguration,

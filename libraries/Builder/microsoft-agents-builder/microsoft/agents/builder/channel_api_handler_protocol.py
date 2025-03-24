@@ -13,7 +13,7 @@ from microsoft.agents.core.models import (
     Transcript,
 )
 
-from microsoft.agents.authentication import ClaimsIdentity
+from microsoft.agents.authorization import ClaimsIdentity
 
 
 class ChannelApiHandlerProtocol(Protocol):

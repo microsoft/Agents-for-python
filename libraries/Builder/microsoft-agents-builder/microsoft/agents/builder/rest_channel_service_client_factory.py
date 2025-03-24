@@ -1,6 +1,6 @@
 from typing import Any, Optional
 
-from microsoft.agents.authentication import (
+from microsoft.agents.authorization import (
     AuthenticationConstants,
     ClaimsIdentity,
     Connections,

@@ -12,7 +12,7 @@ from aiohttp.web import (
     HTTPUnauthorized,
     HTTPUnsupportedMediaType,
 )
-from microsoft.agents.authentication import ClaimsIdentity
+from microsoft.agents.authorization import ClaimsIdentity
 from microsoft.agents.core.models import (
     Activity,
     DeliveryModes,

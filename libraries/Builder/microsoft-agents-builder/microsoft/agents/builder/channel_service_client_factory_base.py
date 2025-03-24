@@ -1,7 +1,7 @@
 from typing import Protocol, Optional
 from abc import abstractmethod
 
-from microsoft.agents.authentication import ClaimsIdentity
+from microsoft.agents.authorization import ClaimsIdentity
 from microsoft.agents.connector import ConnectorClientBase, UserTokenClientBase
 
 

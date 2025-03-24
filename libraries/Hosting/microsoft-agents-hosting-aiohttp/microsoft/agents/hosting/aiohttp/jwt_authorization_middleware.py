@@ -1,6 +1,6 @@
 from aiohttp.web import Request, middleware, json_response
 
-from microsoft.agents.authentication import AgentAuthConfiguration, JwtTokenValidator
+from microsoft.agents.authorization import AgentAuthConfiguration, JwtTokenValidator
 
 
 @middleware

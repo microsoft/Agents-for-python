@@ -1,6 +1,6 @@
 from typing import Protocol
 
-from microsoft.agents.authentication import AccessTokenProviderBase
+from microsoft.agents.authorization import AccessTokenProviderBase
 
 from .channel_protocol import ChannelProtocol
 

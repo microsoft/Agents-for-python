@@ -13,7 +13,7 @@ from cryptography.x509 import load_pem_x509_certificate
 from cryptography.hazmat.backends import default_backend
 from cryptography.hazmat.primitives import hashes
 
-from microsoft.agents.authentication import AccessTokenProviderBase
+from microsoft.agents.authorization import AccessTokenProviderBase
 
 from .auth_types import AuthTypes
 from .msal_auth_configuration import MsalAuthConfiguration

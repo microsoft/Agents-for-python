@@ -1,7 +1,7 @@
 from copy import deepcopy, copy
 
 from aiohttp import ClientSession
-from microsoft.agents.authentication import AccessTokenProviderBase
+from microsoft.agents.authorization import AccessTokenProviderBase
 from microsoft.agents.core.models import (
     AgentsModel,
     Activity,

@@ -1,6 +1,6 @@
 from typing import Protocol, Optional
 
-from microsoft.agents.authentication import AgentAuthConfiguration
+from microsoft.agents.authorization import AgentAuthConfiguration
 
 from .auth_types import AuthTypes
 

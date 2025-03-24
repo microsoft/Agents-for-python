@@ -2,7 +2,7 @@ from typing import Any
 
 from azure.core.credentials import AccessToken
 from azure.core.credentials_async import AsyncTokenCredential
-from microsoft.agents.authentication import AccessTokenProviderBase
+from microsoft.agents.authorization import AccessTokenProviderBase
 
 
 class AgentsTokenCredentialAdapter(AsyncTokenCredential):
