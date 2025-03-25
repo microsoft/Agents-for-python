@@ -25,12 +25,13 @@ def attachment_activity(
         type=ActivityTypes.message,
         attachment_layout=attachment_layout,
         attachments=attachments,
-        input_hint=input_hint,
     )
     if text:
         message.text = text
     if speak:
         message.speak = speak
+    if input_hint:
+        message.input_hint = input_hint
     return message
 
 
