@@ -1,3 +1,6 @@
+from __future__ import annotations
+
+from typing import Union
 from microsoft.agents.builder import ActivityHandler, MessageFactory, TurnContext
 from microsoft.agents.core.models import ChannelAccount, Attachment
 
@@ -8,17 +11,17 @@ from agents import (
     OpenAIChatCompletionsModel,
     RunConfig,
     Runner,
-    trace,
 )
 from openai import AsyncAzureOpenAI
 from pydantic import BaseModel, Field
 
 from tools.get_weather_tool import get_weather
+from tools.date_time_tool import get_date
 
 
 class WeatherForecastAgentResponse(BaseModel):
     contentType: str = Field(pattern=r"^(Text|AdaptiveCard)$")
-    content: dict
+    content: Union[dict, str]
 
 
 class WeatherAgent(ActivityHandler):
@@ -26,18 +29,16 @@ class WeatherAgent(ActivityHandler):
         self.agent = OpenAIAgent(
             name="WeatherAgent",
             instructions=""""
-            You are a friendly assistant that helps people find a weather forecast for a given place.
-            You may ask follow up questions until you have enough information to answer the customers question,
-            but once you have a forecast forecast, make sure to format it nicely using an adaptive card.
-
-            Always respond in JSON format with the following JSON schema, and do not use markdown in the response:
-
+            You are a friendly assistant that helps people find a weather forecast for a given time and place.
+            Do not reply with MD format nor plain text. You can ONLY respond in JSON format with the following JSON schema
             {
                 "contentType": "'Text' if you don't have a forecast or 'AdaptiveCard' if you do",
                 "content": "{The content of the response, may be plain text, or JSON based adaptive card}"
             }
+            You may ask follow up questions until you have enough information to answer the customers question,
+            but once you have a forecast forecast, make sure to format it nicely using an adaptive card.
             """,
-            tools=[get_weather],
+            tools=[get_weather, get_date],
         )
 
         class CustomModelProvider(ModelProvider):
@@ -56,15 +57,14 @@ class WeatherAgent(ActivityHandler):
                 await turn_context.send_activity("Hello and welcome!")
 
     async def on_message_activity(self, turn_context: TurnContext):
-        with trace("Get Weather", group_id=turn_context.activity.conversation.id):
-            response = await Runner.run(
-                self.agent,
-                turn_context.activity.text,
-                run_config=RunConfig(
-                    model_provider=self.custom_model_provider,
-                    group_id=turn_context.activity.conversation.id,
-                ),
-            )
+        response = await Runner.run(
+            self.agent,
+            turn_context.activity.text,
+            run_config=RunConfig(
+                model_provider=self.custom_model_provider,
+                tracing_disabled=True,
+            ),
+        )
 
         llm_response = WeatherForecastAgentResponse.model_validate_json(
             response.final_output
