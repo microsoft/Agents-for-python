@@ -21,6 +21,10 @@ class ChannelAdapter(ABC, ChannelAdapterProtocol):
     AGENT_IDENTITY_KEY = "AgentIdentity"
     OAUTH_SCOPE_KEY = "Microsoft.Agents.Builder.ChannelAdapter.OAuthScope"
     INVOKE_RESPONSE_KEY = "ChannelAdapter.InvokeResponse"
+    CONNECTOR_FACTORY_KEY = "ConnectorFactory"
+    USER_TOKEN_CLIENT_KEY = "UserTokenClient"
+    AGENT_CALLBACK_HANDLER_KEY = "AgentCallbackHandler"
+    CHANNEL_SERVICE_FACTORY_KEY = "ChannelServiceClientFactory"
 
     on_turn_error: Callable[[TurnContext, Exception], Awaitable] = None
 

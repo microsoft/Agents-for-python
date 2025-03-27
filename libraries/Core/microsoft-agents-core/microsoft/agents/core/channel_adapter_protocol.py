@@ -11,6 +11,7 @@ from microsoft.agents.core.models import (
 
 
 class ChannelAdapterProtocol(Protocol):
+    USER_TOKEN_CLIENT_KEY = "UserTokenClient"
     on_turn_error: Optional[Callable[[TurnContextProtocol, Exception], Awaitable]]
 
     @abstractmethod

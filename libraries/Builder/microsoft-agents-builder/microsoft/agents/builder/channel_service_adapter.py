@@ -38,10 +38,6 @@ from .turn_context import TurnContext
 
 
 class ChannelServiceAdapter(ChannelAdapter, ABC):
-    CONNECTOR_FACTORY_KEY = "ConnectorFactory"
-    USER_TOKEN_CLIENT_KEY = "UserTokenClient"
-    AGENT_CALLBACK_HANDLER_KEY = "AgentCallbackHandler"
-    CHANNEL_SERVICE_FACTORY_KEY = "ChannelServiceClientFactory"
     _AGENT_CONNECTOR_CLIENT_KEY = "ConnectorClient"
     _INVOKE_RESPONSE_KEY = "ChannelServiceAdapter.InvokeResponse"
 

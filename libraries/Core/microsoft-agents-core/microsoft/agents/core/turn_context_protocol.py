@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Protocol, List, Callable, Awaitable, Optional, Generic, TypeVar
+from typing import Protocol, List, Callable, Optional, Generic, TypeVar
 from abc import abstractmethod
 
 from microsoft.agents.core.models import (
