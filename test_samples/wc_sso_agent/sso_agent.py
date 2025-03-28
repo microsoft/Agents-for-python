@@ -12,13 +12,13 @@ from graph_client import GraphClient
 
 class SsoAgent(ActivityHandler):
 
-    def __init__(self, user_state: UserState, connection_name: str):
+    def __init__(self, user_state: UserState, connection_name: str, app_id: str):
         """
         Initializes a new instance of the SsoAgent class.
         :param user_state: The user state.
         """
         self.user_state = user_state
-        self.oauth_flow = BasicOAuthFlow(user_state, connection_name)
+        self.oauth_flow = BasicOAuthFlow(user_state, connection_name, app_id)
 
     async def on_members_added_activity(
         self, members_added: list[ChannelAccount], turn_context: TurnContext

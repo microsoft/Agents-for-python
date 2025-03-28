@@ -49,7 +49,7 @@ STORAGE = MemoryStorage()
 USER_STATE = UserState(STORAGE)
 
 # Create the Agent
-AGENT = SsoAgent(USER_STATE, CONFIG.CONNECTION_NAME)
+AGENT = SsoAgent(USER_STATE, CONFIG.CONNECTION_NAME, CONFIG.CLIENT_ID)
 
 
 # Listen for incoming requests on /api/messages

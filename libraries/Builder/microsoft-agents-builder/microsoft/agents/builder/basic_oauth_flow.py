@@ -4,7 +4,14 @@
 from datetime import datetime
 
 from microsoft.agents.connector import UserTokenClient
-from microsoft.agents.core.models import ActionTypes, CardAction, Attachment, OAuthCard
+from microsoft.agents.core.models import (
+    ActionTypes,
+    CardAction,
+    ConversationReference,
+    Attachment,
+    OAuthCard,
+    TokenExchangeState,
+)
 from microsoft.agents.core import (
     TurnContextProtocol as TurnContext,
 )
@@ -27,7 +34,7 @@ class BasicOAuthFlow:
     Manages the OAuth flow for Web Chat.
     """
 
-    def __init__(self, user_state: UserState, connection_name: str):
+    def __init__(self, user_state: UserState, connection_name: str, app_id: str):
         """
         Creates a new instance of BasicOAuthFlow.
         :param user_state: The user state.
@@ -36,8 +43,13 @@ class BasicOAuthFlow:
             raise ValueError(
                 "BasicOAuthFlow.__init__: connectionName expected but not found"
             )
+        if not app_id:
+            raise ValueError(
+                "BasicOAuthFlow.__init__: appId expected but not found. Ensure the appId is set in your environment variables."
+            )
 
         self.connection_name = connection_name
+        self.app_id = app_id
         self.user_token_client: UserTokenClient = None
         self.state: FlowState | None = None
         self.flow_state_accessor: StatePropertyAccessor = user_state.create_property(
@@ -103,11 +115,15 @@ class BasicOAuthFlow:
                     await context.send_activity(MessageFactory.text("Sign in failed"))
             ret_val = self.state.user_token
         else:
+            te_state = TokenExchangeState(
+                connection_name=self.connection_name,
+                conversation=context.activity.get_conversation_reference(),
+                relates_to=context.activity.relates_to,
+                ms_app_id=self.app_id,
+            )
             signing_resource = (
                 await self.user_token_client.agent_sign_in.get_sign_in_resource(
-                    context.activity.from_property.id,
-                    self.connection_name,
-                    context.activity,
+                    state=te_state.model_dump_json(by_alias=True, exclude_unset=True)
                 )
             )
             # TODO: move this to CardFactory

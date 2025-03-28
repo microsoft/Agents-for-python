@@ -1,3 +1,4 @@
+from typing import Optional
 from pydantic import Field
 
 from .conversation_reference import ConversationReference
@@ -22,6 +23,6 @@ class TokenExchangeState(AgentsModel):
 
     connection_name: NonEmptyString = None
     conversation: ConversationReference = None
-    relates_to: ConversationReference = None
+    relates_to: Optional[ConversationReference] = None
     agent_url: NonEmptyString = Field(None, alias="bot_url")
     ms_app_id: NonEmptyString = None
