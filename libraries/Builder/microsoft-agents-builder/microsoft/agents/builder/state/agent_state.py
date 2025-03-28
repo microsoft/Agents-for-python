@@ -25,7 +25,9 @@ class CachedAgentState:
         return self.hash != self.compute_hash(self.state)
 
     def compute_hash(self, item: StoreItem) -> str:
-        return hash(item.store_item_to_json())
+        if item:
+            return hash(item.store_item_to_json())
+        return ""
 
 
 class AgentState:

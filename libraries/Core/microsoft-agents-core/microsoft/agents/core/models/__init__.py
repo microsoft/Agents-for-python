@@ -1,4 +1,5 @@
 from .agents_model import AgentsModel
+from .action_types import ActionTypes
 from .activity import Activity
 from .activity_event_names import ActivityEventNames
 from .activity_types import ActivityTypes
@@ -57,7 +58,6 @@ from .token_response import TokenResponse
 from .transcript import Transcript
 from .video_card import VideoCard
 
-from .activity_types import ActivityTypes
 from .activity_importance import ActivityImportance
 from .attachment_layout_types import AttachmentLayoutTypes
 from .contact_relation_update_action_types import ContactRelationUpdateActionTypes
@@ -81,6 +81,7 @@ from .caller_id_constants import CallerIdConstants
 __all__ = [
     "AgentsModel",
     "Activity",
+    "ActionTypes",
     "ActivityEventNames",
     "AdaptiveCardInvokeAction",
     "AdaptiveCardInvokeResponse",
