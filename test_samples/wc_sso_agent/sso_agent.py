@@ -36,8 +36,6 @@ class SsoAgent(ActivityHandler):
                 MessageFactory.text("You have been signed out.")
             )
         else:
-            code = int(turn_context.activity.text)
-
             if len(turn_context.activity.text.strip()) != 6:
                 await turn_context.send_activity(
                     MessageFactory.text(
@@ -45,7 +43,7 @@ class SsoAgent(ActivityHandler):
                     )
                 )
             else:
-                pass
+                await self.get_token(turn_context)
 
     async def on_turn(self, turn_context):
         await super().on_turn(turn_context)
@@ -58,8 +56,8 @@ class SsoAgent(ActivityHandler):
         :return: The user token.
         """
         user_token = await self.oauth_flow.get_oauth_token(turn_context)
-        if not user_token:
-            pass
+        if user_token:
+            await self.send_logged_user_info(turn_context, user_token)
 
     async def send_logged_user_info(self, turn_context: TurnContext, token: str):
         """

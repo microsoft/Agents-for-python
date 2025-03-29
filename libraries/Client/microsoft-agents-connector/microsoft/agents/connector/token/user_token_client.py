@@ -12,6 +12,7 @@ from azure.core import AsyncPipelineClient
 from azure.core.credentials_async import AsyncTokenCredential
 from azure.core.pipeline import policies
 from azure.core.rest import AsyncHttpResponse, HttpRequest
+from microsoft.agents.authorization import AccessTokenProviderBase
 
 from ._user_token_client_configuration import TokenConfiguration
 from .operations import (
@@ -21,6 +22,7 @@ from .operations import (
 )
 from .._serialization import Deserializer, Serializer
 from ..agent_sign_in_base import AgentSignInBase
+from .._agents_token_credential_adapter import AgentsTokenCredentialAdapter
 from ..user_token_base import UserTokenBase
 from ..user_token_client_base import UserTokenClientBase
 
@@ -44,9 +46,23 @@ class UserTokenClient(
     """
 
     def __init__(
-        self, credential: AsyncTokenCredential, endpoint: str = "", **kwargs: Any
+        self,
+        credential_token_provider: AccessTokenProviderBase,
+        credential_resource_url: str,
+        credential_scopes: list[str] = None,
+        endpoint: str = "",
+        **kwargs: Any
     ) -> None:
-        self._config = TokenConfiguration(credential=credential, **kwargs)
+
+        agents_token_credential = AgentsTokenCredentialAdapter(
+            credential_token_provider, credential_resource_url
+        )
+        self._config = TokenConfiguration(
+            credential=agents_token_credential,
+            credential_scopes=credential_scopes,
+            **kwargs
+        )
+
         _policies = kwargs.pop("policies", None)
         if _policies is None:
             _policies = [

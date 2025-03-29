@@ -30,9 +30,9 @@ class CardAction(AgentsModel):
 
     type: NonEmptyString
     title: NonEmptyString
-    image: NonEmptyString = None
-    text: NonEmptyString = None
-    display_text: NonEmptyString = None
+    image: str = None
+    text: str = None
+    display_text: str = None
     value: object = None
     channel_data: object = None
-    image_alt_text: NonEmptyString = None
+    image_alt_text: str = None

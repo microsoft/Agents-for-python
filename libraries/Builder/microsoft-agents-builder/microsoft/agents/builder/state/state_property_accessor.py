@@ -2,7 +2,9 @@
 # Licensed under the MIT License.
 
 from abc import abstractmethod
-from typing import Protocol
+from typing import Protocol, Type, TypeVar
+
+from microsoft.agents.storage import StoreItem
 
 from ..turn_context import TurnContext
 

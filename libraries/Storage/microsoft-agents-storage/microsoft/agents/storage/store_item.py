@@ -1,10 +1,10 @@
+from abc import ABC
 from typing import Protocol, runtime_checkable
 
 from ._type_aliases import JSON
 
 
-@runtime_checkable
-class StoreItem(Protocol):
+class StoreItem(ABC):
     def store_item_to_json(self) -> JSON:
         pass
 

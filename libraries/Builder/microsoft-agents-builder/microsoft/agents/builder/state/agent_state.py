@@ -3,7 +3,7 @@
 
 from abc import abstractmethod
 from copy import deepcopy
-from typing import Callable, Dict, Union
+from typing import Callable, Dict, Union, Type
 
 from microsoft.agents.storage import Storage, StoreItem
 
@@ -11,23 +11,34 @@ from .state_property_accessor import StatePropertyAccessor
 from ..turn_context import TurnContext
 
 
-class CachedAgentState:
+class CachedAgentState(StoreItem):
     """
     Internal cached bot state.
     """
 
     def __init__(self, state: Dict[str, StoreItem] = None):
         self.state = state if state is not None else {}
-        self.hash = self.compute_hash(state)
+        self.hash = self.compute_hash()
+
+    @property
+    def has_state(self) -> bool:
+        return bool(self.state)
 
     @property
     def is_changed(self) -> bool:
-        return self.hash != self.compute_hash(self.state)
+        return self.hash != self.compute_hash()
 
-    def compute_hash(self, item: StoreItem) -> str:
-        if item:
-            return hash(item.store_item_to_json())
-        return ""
+    def compute_hash(self) -> str:
+        return hash(str(self.store_item_to_json()))
+
+    def store_item_to_json(self) -> dict:
+        if not self.state:
+            return {}
+        return {key: value.store_item_to_json() for key, value in self.state.items()}
+
+    @staticmethod
+    def from_json_to_store_item(json_data: dict) -> StoreItem:
+        return CachedAgentState(json_data)
 
 
 class AgentState:
@@ -62,7 +73,7 @@ class AgentState:
         self._storage = storage
         self._context_service_key = context_service_key
 
-    def get_cached_state(self, turn_context: TurnContext):
+    def get_cached_state(self, turn_context: TurnContext) -> CachedAgentState:
         """
         Gets the cached bot state instance that wraps the raw cached data for this "BotState"
         from the turn context.
@@ -107,7 +118,7 @@ class AgentState:
         cached_state = self.get_cached_state(turn_context)
         storage_key = self.get_storage_key(turn_context)
 
-        if force or not cached_state or not cached_state.state:
+        if force or not cached_state:
             items = await self._storage.read([storage_key])
             val = items.get(storage_key)
             turn_context.turn_state[self._context_service_key] = CachedAgentState(val)
@@ -130,9 +141,9 @@ class AgentState:
 
         if force or (cached_state is not None and cached_state.is_changed):
             storage_key = self.get_storage_key(turn_context)
-            changes: Dict[str, StoreItem] = {storage_key: cached_state.state}
+            changes: Dict[str, StoreItem] = {storage_key: cached_state}
             await self._storage.write(changes)
-            cached_state.hash = cached_state.compute_hash(cached_state.state)
+            cached_state.hash = cached_state.compute_hash()
 
     async def clear_state(self, turn_context: TurnContext):
         """
@@ -173,7 +184,9 @@ class AgentState:
     def get_storage_key(self, turn_context: TurnContext) -> str:
         raise NotImplementedError()
 
-    async def get_property_value(self, turn_context: TurnContext, property_name: str):
+    async def get_property_value(
+        self, turn_context: TurnContext, property_name: str
+    ) -> StoreItem:
         """
         Gets the value of the specified property in the turn context.
 

@@ -21,14 +21,17 @@ class MemoryStorage(Storage):
         with self._lock:
             for key in keys:
                 if key in self._memory:
-                    try:
-                        result[key] = target_cls.from_json_to_store_item(
-                            self._memory[key]
-                        )
-                    except TypeError as error:
-                        raise TypeError(
-                            f"MemoryStorage.read(): could not deserialize in-memory item into {target_cls} class. Error: {error}"
-                        )
+                    if not target_cls:
+                        result[key] = self._memory[key]
+                    else:
+                        try:
+                            result[key] = target_cls.from_json_to_store_item(
+                                self._memory[key]
+                            )
+                        except AttributeError as error:
+                            raise TypeError(
+                                f"MemoryStorage.read(): could not deserialize in-memory item into {target_cls} class. Error: {error}"
+                            )
             return result
 
     async def write(self, changes: dict[str, StoreItem]):

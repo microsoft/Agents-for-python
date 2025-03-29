@@ -1,20 +1,24 @@
 # Copyright (c) Microsoft Corporation. All rights reserved.
 # Licensed under the MIT License.
 
+import base64
 from datetime import datetime
+import json
 
 from microsoft.agents.connector import UserTokenClient
 from microsoft.agents.core.models import (
     ActionTypes,
     CardAction,
-    ConversationReference,
     Attachment,
     OAuthCard,
+    SignInResource,
     TokenExchangeState,
 )
 from microsoft.agents.core import (
     TurnContextProtocol as TurnContext,
 )
+from microsoft.agents.storage import StoreItem
+from pydantic import BaseModel, ConfigDict
 
 from .message_factory import MessageFactory
 from .card_factory import CardFactory
@@ -22,11 +26,17 @@ from .state.state_property_accessor import StatePropertyAccessor
 from .state.user_state import UserState
 
 
-class FlowState:
-    def __init__(self):
-        self.flow_started = False
-        self.user_token = ""
-        self.flow_expires = 0
+class FlowState(StoreItem, BaseModel):
+    flow_started: bool = False
+    user_token: str = ""
+    flow_expires: float = 0
+
+    def store_item_to_json(self) -> dict:
+        return self.model_dump()
+
+    @staticmethod
+    def from_json_to_store_item(json_data: dict) -> "StoreItem":
+        return FlowState.model_validate(json_data)
 
 
 class BasicOAuthFlow:
@@ -115,17 +125,23 @@ class BasicOAuthFlow:
                     await context.send_activity(MessageFactory.text("Sign in failed"))
             ret_val = self.state.user_token
         else:
-            te_state = TokenExchangeState(
+            token_exchange_state = TokenExchangeState(
                 connection_name=self.connection_name,
                 conversation=context.activity.get_conversation_reference(),
                 relates_to=context.activity.relates_to,
                 ms_app_id=self.app_id,
             )
-            signing_resource = (
+            serialized_state = base64.b64encode(
+                json.dumps(token_exchange_state.model_dump(by_alias=True)).encode(
+                    encoding="UTF-8", errors="strict"
+                )
+            ).decode()
+            token_client_response = (
                 await self.user_token_client.agent_sign_in.get_sign_in_resource(
-                    state=te_state.model_dump_json(by_alias=True, exclude_unset=True)
+                    state=serialized_state,
                 )
             )
+            signing_resource = SignInResource.model_validate(token_client_response)
             # TODO: move this to CardFactory
             o_card: Attachment = CardFactory.oauth_card(
                 OAuthCard(
@@ -140,11 +156,7 @@ class BasicOAuthFlow:
                         )
                     ],
                     token_exchange_resource=signing_resource.token_exchange_resource,
-                ),
-                self.connection_name,
-                "Sign in",
-                "",
-                signing_resource,
+                )
             )
             await context.send_activity(MessageFactory.attachment(o_card))
             self.state.flow_started = True
@@ -176,9 +188,7 @@ class BasicOAuthFlow:
         :param context: The turn context.
         :return: The user state.
         """
-        user_profile: FlowState | None = await self.flow_state_accessor.get(
-            context, None
-        )
+        user_profile: FlowState | None = await self.flow_state_accessor.get(context)
         if user_profile is None:
             user_profile = FlowState()
         return user_profile

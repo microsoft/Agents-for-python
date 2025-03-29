@@ -56,8 +56,10 @@ class RestChannelServiceClientFactory(ChannelServiceClientFactoryBase):
         self, claims_identity: ClaimsIdentity, use_anonymous: bool = False
     ) -> UserTokenClient:
         return UserTokenClient(
-            credential=self._connections.get_token_provider(
+            credential_token_provider=self._connections.get_token_provider(
                 claims_identity, self._token_service_endpoint
             ),
+            credential_resource_url=self._token_service_audience,
+            credential_scopes=[f"{self._token_service_audience}/.default"],
             endpoint=self._token_service_endpoint,
         )
