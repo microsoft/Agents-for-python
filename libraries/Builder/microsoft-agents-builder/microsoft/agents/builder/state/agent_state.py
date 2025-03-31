@@ -1,6 +1,8 @@
 # Copyright (c) Microsoft Corporation. All rights reserved.
 # Licensed under the MIT License.
 
+from __future__ import annotations
+
 from abc import abstractmethod
 from copy import deepcopy
 from typing import Callable, Dict, Union, Type
@@ -16,9 +18,14 @@ class CachedAgentState(StoreItem):
     Internal cached bot state.
     """
 
-    def __init__(self, state: Dict[str, StoreItem] = None):
-        self.state = state if state is not None else {}
-        self.hash = self.compute_hash()
+    def __init__(self, state: Dict[str, StoreItem | dict] = None):
+        if state:
+            self.state = state
+            internal_hash = state.pop("CachedAgentState._hash", None)
+            self.hash = internal_hash or self.compute_hash()
+        else:
+            self.state = {}
+            self.hash = hash(str({}))
 
     @property
     def has_state(self) -> bool:
@@ -34,7 +41,13 @@ class CachedAgentState(StoreItem):
     def store_item_to_json(self) -> dict:
         if not self.state:
             return {}
-        return {key: value.store_item_to_json() for key, value in self.state.items()}
+        # TODO: Might need to change this check to include Types that implement but not inherit.
+        serialized = {
+            key: value.store_item_to_json() if isinstance(value, StoreItem) else value
+            for key, value in self.state.items()
+        }
+        serialized["CachedAgentState._hash"] = self.hash
+        return serialized
 
     @staticmethod
     def from_json_to_store_item(json_data: dict) -> StoreItem:
@@ -119,9 +132,9 @@ class AgentState:
         storage_key = self.get_storage_key(turn_context)
 
         if force or not cached_state:
-            items = await self._storage.read([storage_key])
-            val = items.get(storage_key)
-            turn_context.turn_state[self._context_service_key] = CachedAgentState(val)
+            items = await self._storage.read([storage_key], target_cls=CachedAgentState)
+            val = items.get(storage_key, CachedAgentState())
+            turn_context.turn_state[self._context_service_key] = val
 
     async def save_changes(
         self, turn_context: TurnContext, force: bool = False
@@ -181,11 +194,17 @@ class AgentState:
         await self._storage.delete({storage_key})
 
     @abstractmethod
-    def get_storage_key(self, turn_context: TurnContext) -> str:
+    def get_storage_key(
+        self, turn_context: TurnContext, *, target_cls: Type[StoreItem] = None
+    ) -> str:
         raise NotImplementedError()
 
     async def get_property_value(
-        self, turn_context: TurnContext, property_name: str
+        self,
+        turn_context: TurnContext,
+        property_name: str,
+        *,
+        target_cls: Type[StoreItem] = None,
     ) -> StoreItem:
         """
         Gets the value of the specified property in the turn context.
@@ -207,7 +226,17 @@ class AgentState:
 
         # if there is no value, this will throw, to signal to IPropertyAccesor that a default value should be computed
         # This allows this to work with value types
-        return cached_state.state[property_name]
+        value = cached_state.state[property_name]
+
+        if target_cls:
+            # Attempt to deserialize the value if it is not None
+            try:
+                return target_cls.from_json_to_store_item(value)
+            except AttributeError:
+                # If the value is not a StoreItem, just return it as is
+                pass
+
+        return value
 
     async def delete_property_value(
         self, turn_context: TurnContext, property_name: str
@@ -290,6 +319,8 @@ class BotStatePropertyAccessor(StatePropertyAccessor):
         self,
         turn_context: TurnContext,
         default_value_or_factory: Union[Callable, StoreItem] = None,
+        *,
+        target_cls: Type[StoreItem] = None,
     ) -> StoreItem:
         """
         Gets the property value.
@@ -300,7 +331,9 @@ class BotStatePropertyAccessor(StatePropertyAccessor):
         """
         await self._bot_state.load(turn_context, False)
         try:
-            result = await self._bot_state.get_property_value(turn_context, self._name)
+            result = await self._bot_state.get_property_value(
+                turn_context, self._name, target_cls=target_cls
+            )
             return result
         except:
             # ask for default value from factory

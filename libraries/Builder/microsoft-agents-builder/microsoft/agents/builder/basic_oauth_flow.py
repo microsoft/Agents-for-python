@@ -60,7 +60,6 @@ class BasicOAuthFlow:
 
         self.connection_name = connection_name
         self.app_id = app_id
-        self.user_token_client: UserTokenClient = None
         self.state: FlowState | None = None
         self.flow_state_accessor: StatePropertyAccessor = user_state.create_property(
             "flowState"
@@ -94,15 +93,15 @@ class BasicOAuthFlow:
             )
 
         # TODO: Fix property discovery
-        self.user_token_client = context.turn_state.get(
+        token_client: UserTokenClient = context.turn_state.get(
             context.adapter.USER_TOKEN_CLIENT_KEY
         )
 
         if self.state.flow_started:
-            user_token = await self.user_token_client.user_token.get_token(
-                context.activity.from_property.id,
-                self.connection_name,
-                context.activity.channel_id,
+            user_token = await token_client.user_token.get_token(
+                user_id=context.activity.from_property.id,
+                connection_name=self.connection_name,
+                channel_id=context.activity.channel_id,
             )
             if user_token:
                 # logger.info("Token obtained")
@@ -110,11 +109,11 @@ class BasicOAuthFlow:
                 self.state.flow_started = False
             else:
                 code = context.activity.text
-                user_token = await self.user_token_client.user_token.get_token(
-                    context.activity.from_property.id,
-                    self.connection_name,
-                    context.activity.channel_id,
-                    code,
+                user_token = await token_client.user_token.get_token(
+                    user_id=context.activity.from_property.id,
+                    connection_name=self.connection_name,
+                    channel_id=context.activity.channel_id,
+                    code=code,
                 )
                 if user_token:
                     # logger.info("Token obtained with code")
@@ -137,7 +136,7 @@ class BasicOAuthFlow:
                 )
             ).decode()
             token_client_response = (
-                await self.user_token_client.agent_sign_in.get_sign_in_resource(
+                await token_client.agent_sign_in.get_sign_in_resource(
                     state=serialized_state,
                 )
             )
@@ -171,10 +170,14 @@ class BasicOAuthFlow:
         Signs the user out.
         :param context: The turn context.
         """
-        await self.user_token_client.user_token.sign_out(
-            context.activity.from_property.id,
-            self.connection_name,
-            context.activity.channel_id,
+        token_client: UserTokenClient = context.turn_state.get(
+            context.adapter.USER_TOKEN_CLIENT_KEY
+        )
+
+        await token_client.user_token.sign_out(
+            user_id=context.activity.from_property.id,
+            connection_name=self.connection_name,
+            channel_id=context.activity.channel_id,
         )
         self.state.flow_started = False
         self.state.user_token = ""
@@ -188,7 +191,9 @@ class BasicOAuthFlow:
         :param context: The turn context.
         :return: The user state.
         """
-        user_profile: FlowState | None = await self.flow_state_accessor.get(context)
+        user_profile: FlowState | None = await self.flow_state_accessor.get(
+            context, target_cls=FlowState
+        )
         if user_profile is None:
             user_profile = FlowState()
         return user_profile
