@@ -45,10 +45,12 @@ class RestChannelServiceClientFactory(ChannelServiceClientFactoryBase):
             raise TypeError(
                 "RestChannelServiceClientFactory.create_connector_client: audience can't be None or Empty"
             )
-        
-        token_provider = self._connections.get_token_provider(
-            claims_identity, service_url
-        ) if not use_anonymous else self._ANONYMOUS_TOKEN_PROVIDER
+
+        token_provider = (
+            self._connections.get_token_provider(claims_identity, service_url)
+            if not use_anonymous
+            else self._ANONYMOUS_TOKEN_PROVIDER
+        )
 
         return ConnectorClient(
             endpoint=service_url,

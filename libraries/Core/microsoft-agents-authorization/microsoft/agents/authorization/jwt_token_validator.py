@@ -24,7 +24,7 @@ class JwtTokenValidator:
 
         # This probably should return a ClaimsIdentity
         return ClaimsIdentity(decoded_token, True)
-    
+
     def get_anonymous_claims(self) -> ClaimsIdentity:
         return ClaimsIdentity({}, False, authentication_type="Anonymous")
 

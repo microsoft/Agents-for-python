@@ -1,5 +1,6 @@
 from .access_token_provider_base import AccessTokenProviderBase
 
+
 class AnonymousTokenProvider(AccessTokenProviderBase):
     """
     A class that provides an anonymous token for authentication.
