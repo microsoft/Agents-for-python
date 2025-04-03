@@ -2,6 +2,7 @@
 # Licensed under the MIT License.
 
 from aiohttp.web import Application, Request, Response, run_app
+from dotenv import load_dotenv
 
 from microsoft.agents.builder import RestChannelServiceClientFactory
 from microsoft.agents.hosting.aiohttp import CloudAdapter, jwt_authorization_middleware
@@ -14,6 +15,8 @@ from microsoft.agents.authentication.msal import MsalAuth
 
 from echo_agent import EchoAgent
 from config import DefaultConfig
+
+load_dotenv()
 
 AUTH_PROVIDER = MsalAuth(DefaultConfig())
 

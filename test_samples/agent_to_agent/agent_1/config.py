@@ -1,3 +1,4 @@
+from os import environ
 from microsoft.agents.authentication.msal import AuthTypes, MsalAuthConfiguration
 from microsoft.agents.client import (
     ChannelHostConfiguration,
@@ -9,12 +10,13 @@ from microsoft.agents.client import (
 class DefaultConfig(MsalAuthConfiguration, ChannelsConfiguration):
     """Agent Configuration"""
 
-    AUTH_TYPE = AuthTypes.client_secret
-    TENANT_ID = ""
-    CLIENT_ID = ""
-    CLIENT_SECRET = ""
-    PORT = 3978
-    SCOPES = ["https://api.botframework.com/.default"]
+    def __init__(self) -> None:
+        self.AUTH_TYPE = AuthTypes.client_secret
+        self.TENANT_ID = "" or environ.get("TENANT_ID")
+        self.CLIENT_ID = "" or environ.get("CLIENT_ID")
+        self.CLIENT_SECRET = "" or environ.get("CLIENT_SECRET")
+        self.PORT = 3978
+        self.SCOPES = ["https://api.botframework.com/.default"]
 
     # ChannelHost configuration
     @staticmethod
@@ -23,7 +25,7 @@ class DefaultConfig(MsalAuthConfiguration, ChannelsConfiguration):
             CHANNELS=[
                 ChannelInfo(
                     id="EchoAgent",
-                    app_id="",  # Target agent's app_id
+                    app_id="" or environ.get("TARGET_APP_ID"),  # Target agent's app_id
                     resource_url="http://localhost:3999/api/messages",
                     token_provider="ChannelConnection",
                     channel_factory="HttpAgentClient",
@@ -31,5 +33,5 @@ class DefaultConfig(MsalAuthConfiguration, ChannelsConfiguration):
                 )
             ],
             HOST_ENDPOINT="http://localhost:3978/api/botresponse/",
-            HOST_APP_ID="",  # usually the same as CLIENT_ID
+            HOST_APP_ID="" or environ.get("CLIENT_ID"),  # usually the same as CLIENT_ID
         )

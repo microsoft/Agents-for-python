@@ -24,6 +24,9 @@ class JwtTokenValidator:
 
         # This probably should return a ClaimsIdentity
         return ClaimsIdentity(decoded_token, True)
+    
+    def get_anonymous_claims(self) -> ClaimsIdentity:
+        return ClaimsIdentity({}, False, authentication_type="Anonymous")
 
     def _get_public_key_or_secret(self, token: str) -> PyJWK:
         header = get_unverified_header(token)

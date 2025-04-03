@@ -333,7 +333,7 @@ class ChannelServiceAdapter(ChannelAdapter, ABC):
         use_anonymous_auth_callback = False
         if (
             not claims_identity.is_authenticated
-            and activity.channel_id == Channels.emulator
+            and claims_identity.authentication_type == "Anonymous"
         ):
             use_anonymous_auth_callback = True
 

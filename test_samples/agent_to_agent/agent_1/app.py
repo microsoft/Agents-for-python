@@ -2,6 +2,7 @@
 # Licensed under the MIT License.
 
 from aiohttp.web import Application, Request, Response, run_app
+from dotenv import load_dotenv
 
 from microsoft.agents.builder import RestChannelServiceClientFactory
 from microsoft.agents.hosting.aiohttp import (
@@ -24,6 +25,8 @@ from microsoft.agents.storage import MemoryStorage
 
 from agent1 import Agent1
 from config import DefaultConfig
+
+load_dotenv()
 
 AUTH_PROVIDER = MsalAuth(DefaultConfig())
 

@@ -2,6 +2,7 @@ from typing import Any, Optional
 
 from microsoft.agents.authorization import (
     AuthenticationConstants,
+    AnonymousTokenProvider,
     ClaimsIdentity,
     Connections,
 )
@@ -15,6 +16,8 @@ from .channel_service_client_factory_base import ChannelServiceClientFactoryBase
 
 
 class RestChannelServiceClientFactory(ChannelServiceClientFactoryBase):
+    _ANONYMOUS_TOKEN_PROVIDER = AnonymousTokenProvider()
+
     def __init__(
         self,
         configuration: Any,
@@ -42,12 +45,14 @@ class RestChannelServiceClientFactory(ChannelServiceClientFactoryBase):
             raise TypeError(
                 "RestChannelServiceClientFactory.create_connector_client: audience can't be None or Empty"
             )
+        
+        token_provider = self._connections.get_token_provider(
+            claims_identity, service_url
+        ) if not use_anonymous else self._ANONYMOUS_TOKEN_PROVIDER
 
         return ConnectorClient(
             endpoint=service_url,
-            credential_token_provider=self._connections.get_token_provider(
-                claims_identity, service_url
-            ),
+            credential_token_provider=token_provider,
             credential_resource_url=audience,
             credential_scopes=scopes,
         )
@@ -55,10 +60,15 @@ class RestChannelServiceClientFactory(ChannelServiceClientFactoryBase):
     async def create_user_token_client(
         self, claims_identity: ClaimsIdentity, use_anonymous: bool = False
     ) -> UserTokenClient:
-        return UserTokenClient(
-            credential_token_provider=self._connections.get_token_provider(
+        token_provider = (
+            self._connections.get_token_provider(
                 claims_identity, self._token_service_endpoint
-            ),
+            )
+            if not use_anonymous
+            else self._ANONYMOUS_TOKEN_PROVIDER
+        )
+        return UserTokenClient(
+            credential_token_provider=token_provider,
             credential_resource_url=self._token_service_audience,
             credential_scopes=[f"{self._token_service_audience}/.default"],
             endpoint=self._token_service_endpoint,
