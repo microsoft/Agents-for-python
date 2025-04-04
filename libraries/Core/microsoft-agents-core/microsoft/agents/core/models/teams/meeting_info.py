@@ -1,6 +1,8 @@
 from pydantic import BaseModel
 from typing import Optional
 
+from .meeting_details import MeetingDetails
+
 
 class MeetingInfo(BaseModel):
     """General information about a Teams meeting.
@@ -13,6 +15,6 @@ class MeetingInfo(BaseModel):
     :type organizer: Optional[object]
     """
 
-    details: Optional["MeetingDetails"]
+    details: Optional[MeetingDetails]
     conversation: Optional[object]
     organizer: Optional[object]
