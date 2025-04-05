@@ -1,4 +1,7 @@
-from pydantic import BaseModel
+# Copyright (c) Microsoft Corporation. All rights reserved.
+# Licensed under the MIT License.
+
+from pydantic import BaseModel, Field
 
 
 class O365ConnectorCardDateInput(BaseModel):
@@ -18,9 +21,9 @@ class O365ConnectorCardDateInput(BaseModel):
     :type include_time: bool
     """
 
-    type: str
-    id: str
-    is_required: bool
-    title: str
-    value: str
-    include_time: bool
+    type: str = Field(None, alias="@type")
+    id: str = None
+    is_required: bool = None
+    title: str = None
+    value: str = None
+    include_time: bool = None

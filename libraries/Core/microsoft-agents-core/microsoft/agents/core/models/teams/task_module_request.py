@@ -1,5 +1,11 @@
-from pydantic import BaseModel
+# Copyright (c) Microsoft Corporation. All rights reserved.
+# Licensed under the MIT License.
+
+from pydantic import BaseModel, Field
 from typing import Any, Optional
+
+from .task_module_request_context import TaskModuleRequestContext
+from .tab_entity_context import TabEntityContext
 
 
 class TaskModuleRequest(BaseModel):
@@ -14,5 +20,5 @@ class TaskModuleRequest(BaseModel):
     """
 
     data: Optional[Any]
-    context: Optional[Any]
-    tab_entity_context: Optional["TabEntityContext"]
+    context: Optional[TaskModuleRequestContext]
+    tab_entity_context: Optional[TabEntityContext] = Field(None, alias="tabContext")

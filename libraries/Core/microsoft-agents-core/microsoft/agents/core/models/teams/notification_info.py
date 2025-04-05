@@ -1,3 +1,6 @@
+# Copyright (c) Microsoft Corporation. All rights reserved.
+# Licensed under the MIT License.
+
 from pydantic import BaseModel
 from typing import Optional
 
@@ -13,6 +16,6 @@ class NotificationInfo(BaseModel):
     :type external_resource_url: Optional[str]
     """
 
-    alert: bool
-    alert_in_meeting: Optional[bool]
-    external_resource_url: Optional[str]
+    alert: bool = None
+    alert_in_meeting: Optional[bool] = None
+    external_resource_url: Optional[str] = None

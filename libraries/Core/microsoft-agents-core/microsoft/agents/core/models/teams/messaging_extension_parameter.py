@@ -1,5 +1,7 @@
+# Copyright (c) Microsoft Corporation. All rights reserved.
+# Licensed under the MIT License.
+
 from pydantic import BaseModel
-from typing import Any
 
 
 class MessagingExtensionParameter(BaseModel):
@@ -11,5 +13,5 @@ class MessagingExtensionParameter(BaseModel):
     :type value: Any
     """
 
-    name: str
-    value: Any
+    name: str = None
+    value: object = None

@@ -1,3 +1,6 @@
+# Copyright (c) Microsoft Corporation. All rights reserved.
+# Licensed under the MIT License.
+
 from pydantic import BaseModel
 
 
@@ -10,5 +13,5 @@ class O365ConnectorCardFact(BaseModel):
     :type value: str
     """
 
-    name: str
-    value: str
+    name: str = None
+    value: str = None

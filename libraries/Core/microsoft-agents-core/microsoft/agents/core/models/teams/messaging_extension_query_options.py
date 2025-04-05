@@ -1,3 +1,6 @@
+# Copyright (c) Microsoft Corporation. All rights reserved.
+# Licensed under the MIT License.
+
 from pydantic import BaseModel
 
 
@@ -10,5 +13,5 @@ class MessagingExtensionQueryOptions(BaseModel):
     :type count: int
     """
 
-    skip: int
-    count: int
+    skip: int = None
+    count: int = None

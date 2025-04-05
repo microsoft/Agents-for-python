@@ -1,5 +1,12 @@
+# Copyright (c) Microsoft Corporation. All rights reserved.
+# Licensed under the MIT License.
+
 from pydantic import BaseModel
 from typing import Optional
+
+from .message_actions_payload_user import MessageActionsPayloadUser
+from .message_actions_payload_app import MessageActionsPayloadApp
+from .message_actions_payload_conversation import MessageActionsPayloadConversation
 
 
 class MessageActionsPayloadFrom(BaseModel):
@@ -13,6 +20,6 @@ class MessageActionsPayloadFrom(BaseModel):
     :type conversation: Optional["MessageActionsPayloadConversation"]
     """
 
-    user: Optional["MessageActionsPayloadUser"]
-    application: Optional["MessageActionsPayloadApp"]
-    conversation: Optional["MessageActionsPayloadConversation"]
+    user: Optional[MessageActionsPayloadUser]
+    application: Optional[MessageActionsPayloadApp]
+    conversation: Optional[MessageActionsPayloadConversation]

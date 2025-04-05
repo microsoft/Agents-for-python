@@ -1,5 +1,12 @@
+# Copyright (c) Microsoft Corporation. All rights reserved.
+# Licensed under the MIT License.
+
 from pydantic import BaseModel
 from typing import List, Optional
+
+from .messaging_extension_attachment import MessagingExtensionAttachment
+from .messaging_extension_suggested_action import MessagingExtensionSuggestedAction
+from ..activity import Activity
 
 
 class MessagingExtensionResult(BaseModel):
@@ -19,9 +26,9 @@ class MessagingExtensionResult(BaseModel):
     :type activity_preview: Optional["Activity"]
     """
 
-    attachment_layout: str
-    type: str
-    attachments: List["MessagingExtensionAttachment"]
-    suggested_actions: Optional["MessagingExtensionSuggestedAction"]
-    text: Optional[str]
-    activity_preview: Optional["Activity"]
+    attachment_layout: str = None
+    type: str = None
+    attachments: List[MessagingExtensionAttachment] = None
+    suggested_actions: Optional[MessagingExtensionSuggestedAction] = None
+    text: Optional[str] = None
+    activity_preview: Optional["Activity"] = None

@@ -1,5 +1,11 @@
+# Copyright (c) Microsoft Corporation. All rights reserved.
+# Licensed under the MIT License.
+
 from pydantic import BaseModel
 from typing import List, Optional
+
+from .messaging_extension_parameter import MessagingExtensionParameter
+from .messaging_extension_query_options import MessagingExtensionQueryOptions
 
 
 class MessagingExtensionQuery(BaseModel):
@@ -15,7 +21,7 @@ class MessagingExtensionQuery(BaseModel):
     :type state: str
     """
 
-    command_id: str
-    parameters: List["MessagingExtensionParameter"]
-    query_options: Optional["MessagingExtensionQueryOptions"]
-    state: str
+    command_id: str = None
+    parameters: List[MessagingExtensionParameter] = None
+    query_options: Optional[MessagingExtensionQueryOptions] = None
+    state: str = None

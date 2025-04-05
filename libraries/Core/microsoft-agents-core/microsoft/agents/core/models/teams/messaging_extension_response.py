@@ -1,5 +1,11 @@
+# Copyright (c) Microsoft Corporation. All rights reserved.
+# Licensed under the MIT License.
+
 from pydantic import BaseModel
 from typing import Optional
+
+from .messaging_extension_result import MessagingExtensionResult
+from .cache_info import CacheInfo
 
 
 class MessagingExtensionResponse(BaseModel):
@@ -11,5 +17,5 @@ class MessagingExtensionResponse(BaseModel):
     :type cache_info: Optional["CacheInfo"]
     """
 
-    compose_extension: Optional["MessagingExtensionResult"]
-    cache_info: Optional["CacheInfo"]
+    compose_extension: Optional[MessagingExtensionResult] = None
+    cache_info: Optional[CacheInfo] = None

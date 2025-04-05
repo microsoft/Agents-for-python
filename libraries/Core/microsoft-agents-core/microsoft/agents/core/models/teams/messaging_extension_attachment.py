@@ -1,5 +1,10 @@
+# Copyright (c) Microsoft Corporation. All rights reserved.
+# Licensed under the MIT License.
+
 from pydantic import BaseModel
 from typing import Optional
+
+from ..attachment import Attachment
 
 
 class MessagingExtensionAttachment(BaseModel):
@@ -10,18 +15,18 @@ class MessagingExtensionAttachment(BaseModel):
     :param content_url: Content Url
     :type content_url: str
     :param content: Embedded content
-    :type content: Optional[object]
+    :type content: object
     :param name: (OPTIONAL) The name of the attachment
-    :type name: Optional[str]
+    :type name: str
     :param thumbnail_url: (OPTIONAL) Thumbnail associated with attachment
-    :type thumbnail_url: Optional[str]
+    :type thumbnail_url: str
     :param preview: Preview attachment
-    :type preview: Optional["Attachment"]
+    :type preview: "Attachment"
     """
 
     content_type: str
     content_url: str
-    content: Optional[object]
-    name: Optional[str]
-    thumbnail_url: Optional[str]
-    preview: Optional["Attachment"]
+    content: object = None
+    name: Optional[str] = None
+    thumbnail_url: Optional[str] = None
+    preview: Attachment = None

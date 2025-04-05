@@ -1,5 +1,8 @@
+# Copyright (c) Microsoft Corporation. All rights reserved.
+# Licensed under the MIT License.
+
 from pydantic import BaseModel
-from typing import Any
+from typing import Any, Optional
 
 
 class FileConsentCard(BaseModel):
@@ -8,7 +11,7 @@ class FileConsentCard(BaseModel):
     :param description: File description.
     :type description: str
     :param size_in_bytes: Size of the file to be uploaded in Bytes.
-    :type size_in_bytes: int
+    :type size_in_bytes: Optional[int]
     :param accept_context: Context sent back to the Bot if user consented to upload.
     :type accept_context: Any
     :param decline_context: Context sent back to the Bot if user declined.
@@ -16,6 +19,6 @@ class FileConsentCard(BaseModel):
     """
 
     description: str
-    size_in_bytes: int
+    size_in_bytes: Optional[int]
     accept_context: Any
     decline_context: Any

@@ -1,5 +1,10 @@
+# Copyright (c) Microsoft Corporation. All rights reserved.
+# Licensed under the MIT License.
+
 from pydantic import BaseModel
 from typing import List, Optional
+from .o365_connector_card_section import O365ConnectorCardSection
+from .o365_connector_card_action_base import O365ConnectorCardActionBase
 
 
 class O365ConnectorCard(BaseModel):
@@ -19,9 +24,9 @@ class O365ConnectorCard(BaseModel):
     :type potential_action: Optional[List["O365ConnectorCardActionBase"]]
     """
 
-    title: str
-    text: Optional[str]
-    summary: Optional[str]
-    theme_color: Optional[str]
-    sections: Optional[List["O365ConnectorCardSection"]]
-    potential_action: Optional[List["O365ConnectorCardActionBase"]]
+    title: str = None
+    text: Optional[str] = None
+    summary: Optional[str] = None
+    theme_color: Optional[str] = None
+    sections: Optional[List[O365ConnectorCardSection]] = None
+    potential_action: Optional[List[O365ConnectorCardActionBase]] = None

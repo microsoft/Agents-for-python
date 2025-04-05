@@ -1,17 +1,21 @@
+# Copyright (c) Microsoft Corporation. All rights reserved.
+# Licensed under the MIT License.
+
 from pydantic import BaseModel
+from typing import Optional
 
 
 class ChannelInfo(BaseModel):
     """A channel info object which describes the channel.
 
     :param id: Unique identifier representing a channel
-    :type id: str
+    :type id: Optional[str]
     :param name: Name of the channel
-    :type name: str
+    :type name: Optional[str]
     :param type: The channel type
-    :type type: str
+    :type type: Optional[str]
     """
 
-    id: str
-    name: str
-    type: str
+    id: Optional[str]
+    name: Optional[str]
+    type: Optional[str]

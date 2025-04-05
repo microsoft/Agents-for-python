@@ -1,11 +1,10 @@
+# Copyright (c) Microsoft Corporation. All rights reserved.
+# Licensed under the MIT License.
+
 from pydantic import BaseModel
 from typing import List
 
-
-class ChannelInfo(BaseModel):
-    id: str
-    name: str
-    type: str
+from .channel_info import ChannelInfo
 
 
 class ConversationList(BaseModel):

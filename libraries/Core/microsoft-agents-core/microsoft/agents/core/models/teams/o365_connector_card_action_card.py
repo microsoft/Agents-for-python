@@ -1,5 +1,10 @@
-from pydantic import BaseModel
+# Copyright (c) Microsoft Corporation. All rights reserved.
+# Licensed under the MIT License.
+
+from pydantic import BaseModel, Field
 from typing import List
+from .o365_connector_card_input_base import O365ConnectorCardInputBase
+from .o365_connector_card_action_base import O365ConnectorCardActionBase
 
 
 class O365ConnectorCardActionCard(BaseModel):
@@ -17,8 +22,8 @@ class O365ConnectorCardActionCard(BaseModel):
     :type actions: List["O365ConnectorCardActionBase"]
     """
 
-    type: str
-    name: str
-    id: str
-    inputs: List["O365ConnectorCardInputBase"]
-    actions: List["O365ConnectorCardActionBase"]
+    type: str = Field(None, alias="@type")
+    name: str = None
+    id: str = Field(None, alias="@id")
+    inputs: List[O365ConnectorCardInputBase] = None
+    actions: List[O365ConnectorCardActionBase] = None

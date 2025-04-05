@@ -1,4 +1,7 @@
-from pydantic import BaseModel
+# Copyright (c) Microsoft Corporation. All rights reserved.
+# Licensed under the MIT License.
+
+from pydantic import BaseModel, Field
 from typing import Optional
 
 
@@ -17,8 +20,8 @@ class O365ConnectorCardInputBase(BaseModel):
     :type value: Optional[str]
     """
 
-    type: str
-    id: str
-    is_required: Optional[bool]
-    title: Optional[str]
-    value: Optional[str]
+    type: str = Field(None, alias="@type")
+    id: str = None
+    is_required: Optional[bool] = None
+    title: Optional[str] = None
+    value: Optional[str] = None

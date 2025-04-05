@@ -1,4 +1,7 @@
-from pydantic import BaseModel
+# Copyright (c) Microsoft Corporation. All rights reserved.
+# Licensed under the MIT License.
+
+from pydantic import BaseModel, Field
 
 
 class O365ConnectorCardActionBase(BaseModel):
@@ -12,6 +15,6 @@ class O365ConnectorCardActionBase(BaseModel):
     :type id: str
     """
 
-    type: str
-    name: str
-    id: str
+    type: str = Field(None, alias="@type")
+    name: str = None
+    id: str = Field(None, alias="@id")
