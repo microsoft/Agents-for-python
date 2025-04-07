@@ -1,12 +1,12 @@
 # Copyright (c) Microsoft Corporation. All rights reserved.
 # Licensed under the MIT License.
 
-from pydantic import BaseModel
+from ..agents_model import AgentsModel
 from .teams_channel_account import TeamsChannelAccount
 from .user_meeting_details import UserMeetingDetails
 
 
-class TeamsMeetingMember(BaseModel):
+class TeamsMeetingMember(AgentsModel):
     """Data about the meeting participants.
 
     :param user: The channel user data.

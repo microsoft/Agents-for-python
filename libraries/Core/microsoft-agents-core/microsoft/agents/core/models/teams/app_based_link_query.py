@@ -1,11 +1,11 @@
 # Copyright (c) Microsoft Corporation. All rights reserved.
 # Licensed under the MIT License.
 
-from pydantic import BaseModel
+from ..agents_model import AgentsModel
 from typing import Optional
 
 
-class AppBasedLinkQuery(BaseModel):
+class AppBasedLinkQuery(AgentsModel):
     """Invoke request body type for app-based link query.
 
     :param url: Url queried by user

@@ -1,13 +1,13 @@
 # Copyright (c) Microsoft Corporation. All rights reserved.
 # Licensed under the MIT License.
 
-from pydantic import BaseModel
+from ..agents_model import AgentsModel
 from typing import List
 
 from ..card_action import CardAction
 
 
-class TabSuggestedActions(BaseModel):
+class TabSuggestedActions(AgentsModel):
     """Tab SuggestedActions (Only when type is 'auth' or 'silentAuth').
 
     :param actions: Gets or sets adaptive card for this card tab response.

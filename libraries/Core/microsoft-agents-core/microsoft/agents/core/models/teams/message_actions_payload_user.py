@@ -1,11 +1,12 @@
 # Copyright (c) Microsoft Corporation. All rights reserved.
 # Licensed under the MIT License.
 
-from pydantic import BaseModel, Field
+from pydantic import Field
+from ..agents_model import AgentsModel
 from typing import Annotated, Optional
 
 
-class MessageActionsPayloadUser(BaseModel):
+class MessageActionsPayloadUser(AgentsModel):
     """Represents a user entity.
 
     :param user_identity_type: The identity type of the user. Possible values include: 'aadUser', 'onPremiseAadUser', 'anonymousGuest', 'federatedUser'

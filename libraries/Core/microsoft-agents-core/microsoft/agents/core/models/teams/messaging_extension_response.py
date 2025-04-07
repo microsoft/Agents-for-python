@@ -1,14 +1,14 @@
 # Copyright (c) Microsoft Corporation. All rights reserved.
 # Licensed under the MIT License.
 
-from pydantic import BaseModel
+from ..agents_model import AgentsModel
 from typing import Optional
 
 from .messaging_extension_result import MessagingExtensionResult
 from .cache_info import CacheInfo
 
 
-class MessagingExtensionResponse(BaseModel):
+class MessagingExtensionResponse(AgentsModel):
     """Messaging extension response.
 
     :param compose_extension: The compose extension result.

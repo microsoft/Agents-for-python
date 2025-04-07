@@ -1,10 +1,10 @@
 # Copyright (c) Microsoft Corporation. All rights reserved.
 # Licensed under the MIT License.
 
-from pydantic import BaseModel
+from ..agents_model import AgentsModel
 
 
-class UserMeetingDetails(BaseModel):
+class UserMeetingDetails(AgentsModel):
     """Specific details of a user in a Teams meeting.
 
     :param role: Role of the participant in the current meeting.

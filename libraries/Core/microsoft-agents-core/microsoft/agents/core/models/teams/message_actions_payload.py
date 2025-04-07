@@ -1,7 +1,8 @@
 # Copyright (c) Microsoft Corporation. All rights reserved.
 # Licensed under the MIT License.
 
-from pydantic import BaseModel, Field
+from pydantic import Field
+from ..agents_model import AgentsModel
 from typing import Annotated, List
 
 from .message_actions_payload_from import MessageActionsPayloadFrom
@@ -11,7 +12,7 @@ from .message_actions_payload_mention import MessageActionsPayloadMention
 from .message_actions_payload_reaction import MessageActionsPayloadReaction
 
 
-class MessageActionsPayload(BaseModel):
+class MessageActionsPayload(AgentsModel):
     """Represents the individual message within a chat or channel where a message action is taken.
 
     :param id: Unique id of the message.

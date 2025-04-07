@@ -1,10 +1,10 @@
 # Copyright (c) Microsoft Corporation. All rights reserved.
 # Licensed under the MIT License.
 
-from pydantic import BaseModel
+from ..agents_model import AgentsModel
 
 
-class SigninStateVerificationQuery(BaseModel):
+class SigninStateVerificationQuery(AgentsModel):
     """Represents the state verification query for sign-in.
 
     :param state: The state value used for verification.

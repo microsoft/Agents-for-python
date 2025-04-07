@@ -1,14 +1,15 @@
 # Copyright (c) Microsoft Corporation. All rights reserved.
 # Licensed under the MIT License.
 
-from pydantic import BaseModel, Field
+from pydantic import Field
+from ..agents_model import AgentsModel
 from typing import Any, Optional
 
 from .task_module_request_context import TaskModuleRequestContext
 from .tab_entity_context import TabEntityContext
 
 
-class TaskModuleRequest(BaseModel):
+class TaskModuleRequest(AgentsModel):
     """Task module invoke request value payload.
 
     :param data: User input data. Free payload with key-value pairs.

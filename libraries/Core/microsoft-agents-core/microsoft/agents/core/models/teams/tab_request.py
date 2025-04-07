@@ -1,12 +1,12 @@
 # Copyright (c) Microsoft Corporation. All rights reserved.
 # Licensed under the MIT License.
 
-from pydantic import BaseModel
+from ..agents_model import AgentsModel
 from .tab_entity_context import TabEntityContext
 from .tab_context import TabContext
 
 
-class TabRequest(BaseModel):
+class TabRequest(AgentsModel):
     """Invoke ('tab/fetch') request value payload.
 
     :param tab_entity_context: Gets or sets current tab entity request context.

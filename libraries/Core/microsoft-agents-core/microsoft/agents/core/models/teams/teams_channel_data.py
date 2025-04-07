@@ -1,7 +1,7 @@
 # Copyright (c) Microsoft Corporation. All rights reserved.
 # Licensed under the MIT License.
 
-from pydantic import BaseModel
+from ..agents_model import AgentsModel
 from typing import List
 from .channel_info import ChannelInfo
 from .team_info import TeamInfo
@@ -12,7 +12,7 @@ from .teams_channel_data_settings import TeamsChannelDataSettings
 from .on_behalf_of import OnBehalfOf
 
 
-class TeamsChannelData(BaseModel):
+class TeamsChannelData(AgentsModel):
     """Channel data specific to messages received in Microsoft Teams.
 
     :param channel: Information about the channel in which the message was sent

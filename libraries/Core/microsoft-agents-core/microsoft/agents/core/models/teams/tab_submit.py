@@ -1,13 +1,13 @@
 # Copyright (c) Microsoft Corporation. All rights reserved.
 # Licensed under the MIT License.
 
-from pydantic import BaseModel
+from ..agents_model import AgentsModel
 from .tab_entity_context import TabEntityContext
 from .tab_context import TabContext
 from .tab_submit_data import TabSubmitData
 
 
-class TabSubmit(BaseModel):
+class TabSubmit(AgentsModel):
     """Initializes a new instance of the TabSubmit class.
 
     :param tab_entity_context: Gets or sets current tab entity request context.

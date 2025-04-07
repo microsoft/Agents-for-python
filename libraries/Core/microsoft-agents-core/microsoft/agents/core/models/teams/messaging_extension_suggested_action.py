@@ -1,13 +1,13 @@
 # Copyright (c) Microsoft Corporation. All rights reserved.
 # Licensed under the MIT License.
 
-from pydantic import BaseModel
+from ..agents_model import AgentsModel
 from typing import List
 
 from ..card_action import CardAction
 
 
-class MessagingExtensionSuggestedAction(BaseModel):
+class MessagingExtensionSuggestedAction(AgentsModel):
     """Messaging extension suggested actions.
 
     :param actions: List of suggested actions.

@@ -1,11 +1,11 @@
 # Copyright (c) Microsoft Corporation. All rights reserved.
 # Licensed under the MIT License.
 
-from pydantic import BaseModel
+from ..agents_model import AgentsModel
 from typing import Optional
 
 
-class NotificationInfo(BaseModel):
+class NotificationInfo(AgentsModel):
     """Specifies if a notification is to be sent for the mentions.
 
     :param alert: True if notification is to be sent to the user, false otherwise.

@@ -1,11 +1,11 @@
 # Copyright (c) Microsoft Corporation. All rights reserved.
 # Licensed under the MIT License.
 
-from pydantic import BaseModel
+from ..agents_model import AgentsModel
 from typing import Any, Optional
 
 
-class FileConsentCard(BaseModel):
+class FileConsentCard(AgentsModel):
     """File consent card attachment.
 
     :param description: File description.

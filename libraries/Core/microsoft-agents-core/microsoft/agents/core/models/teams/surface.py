@@ -1,4 +1,4 @@
-from pydantic import BaseModel
+from ..agents_model import AgentsModel
 from enum import Enum
 
 
@@ -8,7 +8,7 @@ class SurfaceType(int, Enum):
     MEETING_TAB_ICON = 2
 
 
-class Surface(BaseModel):
+class Surface(AgentsModel):
     """Specifies where the notification will be rendered in the meeting UX.
 
     :param type: The value indicating where the notification will be rendered in the meeting UX.

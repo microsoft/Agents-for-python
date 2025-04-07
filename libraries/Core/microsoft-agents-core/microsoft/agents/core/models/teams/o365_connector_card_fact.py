@@ -1,10 +1,10 @@
 # Copyright (c) Microsoft Corporation. All rights reserved.
 # Licensed under the MIT License.
 
-from pydantic import BaseModel
+from ..agents_model import AgentsModel
 
 
-class O365ConnectorCardFact(BaseModel):
+class O365ConnectorCardFact(AgentsModel):
     """O365 connector card fact.
 
     :param name: Display name of the fact

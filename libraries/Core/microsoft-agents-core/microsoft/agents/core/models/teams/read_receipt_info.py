@@ -1,10 +1,10 @@
 # Copyright (c) Microsoft Corporation. All rights reserved.
 # Licensed under the MIT License.
 
-from pydantic import BaseModel
+from ..agents_model import AgentsModel
 
 
-class ReadReceiptInfo(BaseModel):
+class ReadReceiptInfo(AgentsModel):
     """General information about a read receipt.
 
     :param last_read_message_id: The id of the last read message.

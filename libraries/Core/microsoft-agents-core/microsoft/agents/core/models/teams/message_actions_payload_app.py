@@ -1,11 +1,12 @@
 # Copyright (c) Microsoft Corporation. All rights reserved.
 # Licensed under the MIT License.
 
-from pydantic import BaseModel, Field
+from pydantic import Field
+from ..agents_model import AgentsModel
 from typing import Annotated, Optional
 
 
-class MessageActionsPayloadApp(BaseModel):
+class MessageActionsPayloadApp(AgentsModel):
     """Represents an application entity.
 
     :param application_identity_type: The type of application. Possible values include: 'aadApplication', 'bot', 'tenantBot', 'office365Connector', 'webhook'

@@ -1,11 +1,12 @@
 # Copyright (c) Microsoft Corporation. All rights reserved.
 # Licensed under the MIT License.
 
-from pydantic import BaseModel, Field
+from pydantic import Field
+from ..agents_model import AgentsModel
 from typing import Optional
 
 
-class O365ConnectorCardInputBase(BaseModel):
+class O365ConnectorCardInputBase(AgentsModel):
     """Base class for O365 connector card inputs.
 
     :param type: Input type name. Possible values include: 'textInput', 'dateInput', 'multichoiceInput'

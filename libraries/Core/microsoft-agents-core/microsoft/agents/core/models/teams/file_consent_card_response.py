@@ -1,11 +1,11 @@
 # Copyright (c) Microsoft Corporation. All rights reserved.
 # Licensed under the MIT License.
 
-from pydantic import BaseModel
+from ..agents_model import AgentsModel
 from typing import Any, Optional
 
 
-class FileConsentCardResponse(BaseModel):
+class FileConsentCardResponse(AgentsModel):
     """Represents the value of the invoke activity sent when the user acts on a file consent card.
 
     :param action: The action the user took. Possible values include: 'accept', 'decline'

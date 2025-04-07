@@ -1,7 +1,7 @@
 # Copyright (c) Microsoft Corporation. All rights reserved.
 # Licensed under the MIT License.
 
-from pydantic import BaseModel
+from ..agents_model import AgentsModel
 from typing import List, Optional
 
 from .messaging_extension_attachment import MessagingExtensionAttachment
@@ -9,7 +9,7 @@ from .messaging_extension_suggested_action import MessagingExtensionSuggestedAct
 from ..activity import Activity
 
 
-class MessagingExtensionResult(BaseModel):
+class MessagingExtensionResult(AgentsModel):
     """Messaging extension result.
 
     :param attachment_layout: Hint for how to deal with multiple attachments.

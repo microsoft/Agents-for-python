@@ -1,11 +1,11 @@
 # Copyright (c) Microsoft Corporation. All rights reserved.
 # Licensed under the MIT License.
 
-from pydantic import BaseModel
+from ..agents_model import AgentsModel
 from ..suggested_actions import SuggestedActions
 
 
-class BotConfigAuth(BaseModel):
+class BotConfigAuth(AgentsModel):
     """Specifies bot config auth, including type and suggestedActions.
 
     :param type: The type of bot config auth.

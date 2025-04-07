@@ -1,10 +1,10 @@
 # Copyright (c) Microsoft Corporation. All rights reserved.
 # Licensed under the MIT License.
 
-from pydantic import BaseModel
+from ..agents_model import AgentsModel
 
 
-class TabResponseCard(BaseModel):
+class TabResponseCard(AgentsModel):
     """Envelope for cards for a Tab request.
 
     :param card: Gets or sets adaptive card for this card tab response.

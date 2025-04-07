@@ -1,12 +1,12 @@
 # Copyright (c) Microsoft Corporation. All rights reserved.
 # Licensed under the MIT License.
 
-from pydantic import BaseModel
+from ..agents_model import AgentsModel
 from typing import List
 from .on_behalf_of import OnBehalfOf
 
 
-class MeetingNotificationChannelData(BaseModel):
+class MeetingNotificationChannelData(AgentsModel):
     """Specify Teams Bot meeting notification channel data.
 
     :param on_behalf_of_list: The Teams Bot meeting notification's OnBehalfOf list.

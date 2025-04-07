@@ -1,11 +1,11 @@
 # Copyright (c) Microsoft Corporation. All rights reserved.
 # Licensed under the MIT License.
 
-from pydantic import BaseModel
+from ..agents_model import AgentsModel
 from typing import Optional
 
 
-class CacheInfo(BaseModel):
+class CacheInfo(AgentsModel):
     """A cache info object which notifies Teams how long an object should be cached for.
 
     :param cache_type: Type of Cache Info

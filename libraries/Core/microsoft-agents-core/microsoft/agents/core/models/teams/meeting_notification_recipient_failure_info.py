@@ -1,10 +1,10 @@
 # Copyright (c) Microsoft Corporation. All rights reserved.
 # Licensed under the MIT License.
 
-from pydantic import BaseModel
+from ..agents_model import AgentsModel
 
 
-class MeetingNotificationRecipientFailureInfo(BaseModel):
+class MeetingNotificationRecipientFailureInfo(AgentsModel):
     """Information regarding failure to notify a recipient of a meeting notification.
 
     :param recipient_mri: The MRI for a recipient meeting notification failure.

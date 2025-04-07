@@ -1,14 +1,15 @@
 # Copyright (c) Microsoft Corporation. All rights reserved.
 # Licensed under the MIT License.
 
-from pydantic import BaseModel, Field
+from pydantic import Field
+from ..agents_model import AgentsModel
 from typing import List, Optional
 from .o365_connector_card_multichoice_input_choice import (
     O365ConnectorCardMultichoiceInputChoice,
 )
 
 
-class O365ConnectorCardMultichoiceInput(BaseModel):
+class O365ConnectorCardMultichoiceInput(AgentsModel):
     """O365 connector card multichoice input.
 
     :param type: Input type name. Default is 'multichoiceInput'.

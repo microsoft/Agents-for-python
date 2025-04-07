@@ -2,12 +2,12 @@
 # Licensed under the MIT License.
 
 from dataclasses import Field
-from pydantic import BaseModel
+from ..agents_model import AgentsModel
 from typing import List
 from .o365_connector_card_open_uri_target import O365ConnectorCardOpenUriTarget
 
 
-class O365ConnectorCardOpenUri(BaseModel):
+class O365ConnectorCardOpenUri(AgentsModel):
     """O365 connector card OpenUri action.
 
     :param type: Type of the action. Default is 'OpenUri'.

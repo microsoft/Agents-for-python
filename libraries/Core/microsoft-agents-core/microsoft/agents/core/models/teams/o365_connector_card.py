@@ -1,13 +1,13 @@
 # Copyright (c) Microsoft Corporation. All rights reserved.
 # Licensed under the MIT License.
 
-from pydantic import BaseModel
+from ..agents_model import AgentsModel
 from typing import List, Optional
 from .o365_connector_card_section import O365ConnectorCardSection
 from .o365_connector_card_action_base import O365ConnectorCardActionBase
 
 
-class O365ConnectorCard(BaseModel):
+class O365ConnectorCard(AgentsModel):
     """O365 connector card.
 
     :param title: Title of the item

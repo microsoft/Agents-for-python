@@ -1,10 +1,10 @@
 # Copyright (c) Microsoft Corporation. All rights reserved.
 # Licensed under the MIT License.
 
-from pydantic import BaseModel
+from ..agents_model import AgentsModel
 
 
-class MeetingDetails(BaseModel):
+class MeetingDetails(AgentsModel):
     """Specific details of a Teams meeting.
 
     :param ms_graph_resource_id: The MsGraphResourceId, used specifically for MS Graph API calls.

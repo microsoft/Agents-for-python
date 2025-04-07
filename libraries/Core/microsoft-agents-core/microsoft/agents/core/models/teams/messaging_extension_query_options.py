@@ -1,10 +1,10 @@
 # Copyright (c) Microsoft Corporation. All rights reserved.
 # Licensed under the MIT License.
 
-from pydantic import BaseModel
+from ..agents_model import AgentsModel
 
 
-class MessagingExtensionQueryOptions(BaseModel):
+class MessagingExtensionQueryOptions(AgentsModel):
     """Messaging extension query options.
 
     :param skip: Number of entities to skip

@@ -1,7 +1,7 @@
 # Copyright (c) Microsoft Corporation. All rights reserved.
 # Licensed under the MIT License.
 
-from pydantic import BaseModel
+from ..agents_model import AgentsModel
 from typing import Any, List
 
 from .task_module_request_context import TaskModuleRequestContext
@@ -9,7 +9,7 @@ from .message_actions_payload import MessageActionsPayload
 from ..activity import Activity
 
 
-class MessagingExtensionAction(BaseModel):
+class MessagingExtensionAction(AgentsModel):
     """Messaging extension action.
 
     :param data: User input data. Free payload with key-value pairs.

@@ -1,11 +1,11 @@
 # Copyright (c) Microsoft Corporation. All rights reserved.
 # Licensed under the MIT License.
 
-from pydantic import BaseModel
+from ..agents_model import AgentsModel
 from .tab_response import TabResponse
 
 
-class TaskModuleCardResponse(BaseModel):
+class TaskModuleCardResponse(AgentsModel):
     """Tab Response to 'task/submit' from a tab.
 
     :param value: The JSON for the Adaptive cards to appear in the tab.

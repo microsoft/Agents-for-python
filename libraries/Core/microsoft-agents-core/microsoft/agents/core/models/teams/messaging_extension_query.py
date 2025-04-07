@@ -1,14 +1,14 @@
 # Copyright (c) Microsoft Corporation. All rights reserved.
 # Licensed under the MIT License.
 
-from pydantic import BaseModel
+from ..agents_model import AgentsModel
 from typing import List, Optional
 
 from .messaging_extension_parameter import MessagingExtensionParameter
 from .messaging_extension_query_options import MessagingExtensionQueryOptions
 
 
-class MessagingExtensionQuery(BaseModel):
+class MessagingExtensionQuery(AgentsModel):
     """Messaging extension query.
 
     :param command_id: Id of the command assigned by Bot

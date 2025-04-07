@@ -1,14 +1,14 @@
 # Copyright (c) Microsoft Corporation. All rights reserved.
 # Licensed under the MIT License.
 
-from pydantic import BaseModel
+from ..agents_model import AgentsModel
 
 from .meeting_details import MeetingDetails
 from .teams_channel_account import TeamsChannelAccount
 from ..conversation_account import ConversationAccount
 
 
-class MeetingInfo(BaseModel):
+class MeetingInfo(AgentsModel):
     """General information about a Teams meeting.
 
     :param details: The specific details of a Teams meeting.

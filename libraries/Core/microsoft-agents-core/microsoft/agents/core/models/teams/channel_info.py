@@ -1,11 +1,11 @@
 # Copyright (c) Microsoft Corporation. All rights reserved.
 # Licensed under the MIT License.
 
-from pydantic import BaseModel
+from ..agents_model import AgentsModel
 from typing import Optional
 
 
-class ChannelInfo(BaseModel):
+class ChannelInfo(AgentsModel):
     """A channel info object which describes the channel.
 
     :param id: Unique identifier representing a channel

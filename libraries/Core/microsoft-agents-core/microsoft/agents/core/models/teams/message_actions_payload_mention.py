@@ -1,13 +1,13 @@
 # Copyright (c) Microsoft Corporation. All rights reserved.
 # Licensed under the MIT License.
 
-from pydantic import BaseModel
+from ..agents_model import AgentsModel
 from typing import Optional
 
 from .message_actions_payload_from import MessageActionsPayloadFrom
 
 
-class MessageActionsPayloadMention(BaseModel):
+class MessageActionsPayloadMention(AgentsModel):
     """Represents the entity that was mentioned in the message.
 
     :param id: The id of the mentioned entity.

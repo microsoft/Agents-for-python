@@ -1,10 +1,11 @@
 # Copyright (c) Microsoft Corporation. All rights reserved.
 # Licensed under the MIT License.
 
-from pydantic import BaseModel, Field
+from pydantic import Field
+from ..agents_model import AgentsModel
 
 
-class MeetingDetailsBase(BaseModel):
+class MeetingDetailsBase(AgentsModel):
     """Specific details of a Teams meeting.
 
     :param id: The meeting's Id, encoded as a BASE64 string.

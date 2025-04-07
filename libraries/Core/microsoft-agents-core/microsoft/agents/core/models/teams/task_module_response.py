@@ -1,13 +1,13 @@
 # Copyright (c) Microsoft Corporation. All rights reserved.
 # Licensed under the MIT License.
 
-from pydantic import BaseModel
+from ..agents_model import AgentsModel
 
 from .task_module_response_base import TaskModuleResponseBase
 from .cache_info import CacheInfo
 
 
-class TaskModuleResponse(BaseModel):
+class TaskModuleResponse(AgentsModel):
     """Envelope for Task Module Response.
 
     :param task: The JSON for the Adaptive card to appear in the task module.

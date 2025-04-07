@@ -1,10 +1,10 @@
 # Copyright (c) Microsoft Corporation. All rights reserved.
 # Licensed under the MIT License.
 
-from pydantic import BaseModel
+from ..agents_model import AgentsModel
 
 
-class O365ConnectorCardOpenUriTarget(BaseModel):
+class O365ConnectorCardOpenUriTarget(AgentsModel):
     """O365 connector card OpenUri target.
 
     :param os: Target operating system. Possible values include: 'default', 'iOS', 'android', 'windows'

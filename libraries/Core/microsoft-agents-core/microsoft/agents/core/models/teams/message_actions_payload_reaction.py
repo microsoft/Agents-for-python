@@ -1,13 +1,13 @@
 # Copyright (c) Microsoft Corporation. All rights reserved.
 # Licensed under the MIT License.
 
-from pydantic import BaseModel
+from ..agents_model import AgentsModel
 from typing import Optional
 
 from .message_actions_payload_from import MessageActionsPayloadFrom
 
 
-class MessageActionsPayloadReaction(BaseModel):
+class MessageActionsPayloadReaction(AgentsModel):
     """Represents the reaction of a user to a message.
 
     :param reaction_type: The type of reaction given to the message. Possible values include: 'like', 'heart', 'laugh', 'surprised', 'sad', 'angry'

@@ -1,10 +1,10 @@
 # Copyright (c) Microsoft Corporation. All rights reserved.
 # Licensed under the MIT License.
 
-from pydantic import BaseModel
+from ..agents_model import AgentsModel
 
 
-class MessageActionsPayloadConversation(BaseModel):
+class MessageActionsPayloadConversation(AgentsModel):
     """Represents a team or channel entity.
 
     :param conversation_identity_type: The type of conversation, whether a team or channel.

@@ -1,10 +1,10 @@
 # Copyright (c) Microsoft Corporation. All rights reserved.
 # Licensed under the MIT License.
 
-from pydantic import BaseModel
+from ..agents_model import AgentsModel
 
 
-class ConfigResponseBase(BaseModel):
+class ConfigResponseBase(AgentsModel):
     """Specifies Invoke response base, including response type.
 
     :param response_type: Response type for invoke request

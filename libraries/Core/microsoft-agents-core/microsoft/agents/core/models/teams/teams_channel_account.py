@@ -1,10 +1,10 @@
 # Copyright (c) Microsoft Corporation. All rights reserved.
 # Licensed under the MIT License.
 
-from pydantic import BaseModel
+from ..agents_model import AgentsModel
 
 
-class TeamsChannelAccount(BaseModel):
+class TeamsChannelAccount(AgentsModel):
     """Teams channel account detailing user Azure Active Directory details.
 
     :param id: Channel id for the user or bot on this channel (Example: joe@smith.com, or @joesmith or 123456)

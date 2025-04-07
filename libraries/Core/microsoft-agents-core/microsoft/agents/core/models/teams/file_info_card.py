@@ -1,11 +1,11 @@
 # Copyright (c) Microsoft Corporation. All rights reserved.
 # Licensed under the MIT License.
 
-from pydantic import BaseModel
+from ..agents_model import AgentsModel
 from typing import Optional
 
 
-class FileInfoCard(BaseModel):
+class FileInfoCard(AgentsModel):
     """File info card.
 
     :param unique_id: Unique Id for the file.

@@ -1,12 +1,12 @@
 # Copyright (c) Microsoft Corporation. All rights reserved.
 # Licensed under the MIT License.
 
-from pydantic import BaseModel
+from ..agents_model import AgentsModel
 
 from ..attachment import Attachment
 
 
-class TaskModuleTaskInfo(BaseModel):
+class TaskModuleTaskInfo(AgentsModel):
     """Information about a task module task.
 
     :param title: The title of the task module.

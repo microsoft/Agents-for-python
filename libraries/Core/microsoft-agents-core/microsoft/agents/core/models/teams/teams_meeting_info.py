@@ -1,10 +1,10 @@
 # Copyright (c) Microsoft Corporation. All rights reserved.
 # Licensed under the MIT License.
 
-from pydantic import BaseModel
+from ..agents_model import AgentsModel
 
 
-class TeamsMeetingInfo(BaseModel):
+class TeamsMeetingInfo(AgentsModel):
     """Describes a Teams Meeting.
 
     :param id: Unique identifier representing a meeting

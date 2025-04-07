@@ -1,13 +1,13 @@
 # Copyright (c) Microsoft Corporation. All rights reserved.
 # Licensed under the MIT License.
 
-from pydantic import BaseModel
+from ..agents_model import AgentsModel
 from typing import Optional
 
 from ..attachment import Attachment
 
 
-class MessagingExtensionAttachment(BaseModel):
+class MessagingExtensionAttachment(AgentsModel):
     """Messaging extension attachment.
 
     :param content_type: mimetype/Contenttype for the file

@@ -1,12 +1,12 @@
 # Copyright (c) Microsoft Corporation. All rights reserved.
 # Licensed under the MIT License.
 
-from pydantic import BaseModel
+from ..agents_model import AgentsModel
 from typing import List
 from .surface import Surface
 
 
-class TargetedMeetingNotificationValue(BaseModel):
+class TargetedMeetingNotificationValue(AgentsModel):
     """Specifies the value for targeted meeting notifications.
 
     :param recipients: List of recipient MRIs for the notification.

@@ -1,10 +1,10 @@
 # Copyright (c) Microsoft Corporation. All rights reserved.
 # Licensed under the MIT License.
 
-from pydantic import BaseModel
+from ..agents_model import AgentsModel
 
 
-class OnBehalfOf(BaseModel):
+class OnBehalfOf(AgentsModel):
     """Specifies the OnBehalfOf entity for meeting notifications.
 
     :param item_id: The item id of the OnBehalfOf entity.
