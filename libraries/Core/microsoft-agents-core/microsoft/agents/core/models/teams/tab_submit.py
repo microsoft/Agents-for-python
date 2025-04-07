@@ -1,5 +1,10 @@
+# Copyright (c) Microsoft Corporation. All rights reserved.
+# Licensed under the MIT License.
+
 from pydantic import BaseModel
-from typing import Optional
+from .tab_entity_context import TabEntityContext
+from .tab_context import TabContext
+from .tab_submit_data import TabSubmitData
 
 
 class TabSubmit(BaseModel):
@@ -13,6 +18,6 @@ class TabSubmit(BaseModel):
     :type data: TabSubmitData
     """
 
-    tab_entity_context: Optional["TabEntityContext"]
-    context: Optional["TabContext"]
-    data: Optional["TabSubmitData"]
+    tab_entity_context: TabEntityContext = None
+    context: TabContext = None
+    data: TabSubmitData = None

@@ -1,3 +1,6 @@
+# Copyright (c) Microsoft Corporation. All rights reserved.
+# Licensed under the MIT License.
+
 from pydantic import BaseModel
 
 
@@ -10,5 +13,5 @@ class O365ConnectorCardOpenUriTarget(BaseModel):
     :type uri: str
     """
 
-    os: str
-    uri: str
+    os: str = None
+    uri: str = None

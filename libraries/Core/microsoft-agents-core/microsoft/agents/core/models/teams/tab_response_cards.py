@@ -1,9 +1,10 @@
+# Copyright (c) Microsoft Corporation. All rights reserved.
+# Licensed under the MIT License.from pydantic import BaseModel
+
 from pydantic import BaseModel
 from typing import List
 
-
-class TabResponseCard(BaseModel):
-    card: object
+from .tab_response_card import TabResponseCard
 
 
 class TabResponseCards(BaseModel):
@@ -13,4 +14,4 @@ class TabResponseCards(BaseModel):
     :type cards: list[TabResponseCard]
     """
 
-    cards: List[TabResponseCard]
+    cards: List[TabResponseCard] = None

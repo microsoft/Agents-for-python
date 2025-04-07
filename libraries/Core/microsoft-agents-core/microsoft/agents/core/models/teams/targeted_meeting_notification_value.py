@@ -1,5 +1,9 @@
+# Copyright (c) Microsoft Corporation. All rights reserved.
+# Licensed under the MIT License.
+
 from pydantic import BaseModel
 from typing import List
+from .surface import Surface
 
 
 class TargetedMeetingNotificationValue(BaseModel):
@@ -11,5 +15,5 @@ class TargetedMeetingNotificationValue(BaseModel):
     :type message: str
     """
 
-    recipients: List[str]
-    message: str
+    recipients: List[str] = None
+    surfaces: List[Surface] = None

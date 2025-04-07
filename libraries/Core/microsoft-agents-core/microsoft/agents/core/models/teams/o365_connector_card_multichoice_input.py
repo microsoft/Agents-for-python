@@ -1,5 +1,11 @@
-from pydantic import BaseModel
+# Copyright (c) Microsoft Corporation. All rights reserved.
+# Licensed under the MIT License.
+
+from pydantic import BaseModel, Field
 from typing import List, Optional
+from .o365_connector_card_multichoice_input_choice import (
+    O365ConnectorCardMultichoiceInputChoice,
+)
 
 
 class O365ConnectorCardMultichoiceInput(BaseModel):
@@ -23,11 +29,11 @@ class O365ConnectorCardMultichoiceInput(BaseModel):
     :type is_multi_select: Optional[bool]
     """
 
-    type: str = "multichoiceInput"
-    id: str
-    is_required: Optional[bool]
-    title: Optional[str]
-    value: Optional[str]
-    choices: List["O365ConnectorCardMultichoiceInputChoice"]
-    style: Optional[str]
-    is_multi_select: Optional[bool]
+    type: str = Field(None, alias="@type")
+    id: str = None
+    is_required: Optional[bool] = None
+    title: Optional[str] = None
+    value: Optional[str] = None
+    choices: List[O365ConnectorCardMultichoiceInputChoice] = None
+    style: Optional[str] = None
+    is_multi_select: Optional[bool] = None

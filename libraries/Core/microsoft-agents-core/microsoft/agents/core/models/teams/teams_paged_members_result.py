@@ -1,5 +1,9 @@
+# Copyright (c) Microsoft Corporation. All rights reserved.
+# Licensed under the MIT License.
+
 from pydantic import BaseModel
 from typing import List
+from .teams_channel_account import TeamsChannelAccount
 
 
 class TeamsPagedMembersResult(BaseModel):
@@ -11,5 +15,5 @@ class TeamsPagedMembersResult(BaseModel):
     :type members: list[TeamsChannelAccount]
     """
 
-    continuation_token: str
-    members: List["TeamsChannelAccount"]
+    continuation_token: str = None
+    members: List[TeamsChannelAccount] = None

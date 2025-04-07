@@ -1,5 +1,8 @@
+# Copyright (c) Microsoft Corporation. All rights reserved.
+# Licensed under the MIT License.
+
 from pydantic import BaseModel
-from typing import Optional
+from .tab_response import TabResponse
 
 
 class TaskModuleCardResponse(BaseModel):
@@ -9,4 +12,4 @@ class TaskModuleCardResponse(BaseModel):
     :type value: TabResponse
     """
 
-    value: Optional["TabResponse"]
+    value: TabResponse = None

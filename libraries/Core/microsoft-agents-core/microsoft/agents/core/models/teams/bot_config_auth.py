@@ -1,5 +1,8 @@
+# Copyright (c) Microsoft Corporation. All rights reserved.
+# Licensed under the MIT License.
+
 from pydantic import BaseModel
-from typing import Optional
+from ..suggested_actions import SuggestedActions
 
 
 class BotConfigAuth(BaseModel):
@@ -8,8 +11,8 @@ class BotConfigAuth(BaseModel):
     :param type: The type of bot config auth.
     :type type: str
     :param suggested_actions: The suggested actions of bot config auth.
-    :type suggested_actions: object
+    :type suggested_actions: SuggestedActions
     """
 
     type: str = "auth"
-    suggested_actions: Optional[object]
+    suggested_actions: SuggestedActions = None

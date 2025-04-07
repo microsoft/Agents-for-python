@@ -1,3 +1,6 @@
+# Copyright (c) Microsoft Corporation. All rights reserved.
+# Licensed under the MIT License.
+
 from pydantic import BaseModel
 from typing import Optional
 
@@ -11,5 +14,5 @@ class TaskModuleMessageResponse(BaseModel):
     :type value: Optional[str]
     """
 
-    type: str = "message"
-    value: Optional[str]
+    type: str = None
+    value: Optional[str] = None

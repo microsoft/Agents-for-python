@@ -1,15 +1,20 @@
+# Copyright (c) Microsoft Corporation. All rights reserved.
+# Licensed under the MIT License.
+
 from pydantic import BaseModel
-from typing import Optional
+
+from .task_module_response_base import TaskModuleResponseBase
+from .cache_info import CacheInfo
 
 
 class TaskModuleResponse(BaseModel):
-    """Response to a task module request.
+    """Envelope for Task Module Response.
 
-    :param type: The type of response. Possible values include: 'continue', 'message'.
-    :type type: str
-    :param value: The task module response value.
-    :type value: Optional[object]
+    :param task: The JSON for the Adaptive card to appear in the task module.
+    :type task: ~botframework.connector.teams.models.TaskModuleResponseBase
+    :param cache_info: CacheInfo for this TaskModuleResponse.
+    :type cache_info: ~botframework.connector.teams.models.CacheInfo
     """
 
-    type: str
-    value: Optional[object]
+    type: TaskModuleResponseBase = None
+    cache_info: CacheInfo = None

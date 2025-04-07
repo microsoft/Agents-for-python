@@ -1,5 +1,10 @@
+# Copyright (c) Microsoft Corporation. All rights reserved.
+# Licensed under the MIT License.
+
+from dataclasses import Field
 from pydantic import BaseModel
 from typing import List
+from .o365_connector_card_open_uri_target import O365ConnectorCardOpenUriTarget
 
 
 class O365ConnectorCardOpenUri(BaseModel):
@@ -15,7 +20,7 @@ class O365ConnectorCardOpenUri(BaseModel):
     :type targets: List["O365ConnectorCardOpenUriTarget"]
     """
 
-    type: str = "OpenUri"
-    name: str
-    id: str
-    targets: List["O365ConnectorCardOpenUriTarget"]
+    type: str = Field(None, alias="@type")
+    name: str = None
+    id: str = Field(None, alias="@id")
+    targets: List[O365ConnectorCardOpenUriTarget] = None

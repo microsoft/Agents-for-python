@@ -1,5 +1,10 @@
+# Copyright (c) Microsoft Corporation. All rights reserved.
+# Licensed under the MIT License.
+
 from pydantic import BaseModel
 from typing import List
+
+from ..card_action import CardAction
 
 
 class TabSuggestedActions(BaseModel):
@@ -9,4 +14,4 @@ class TabSuggestedActions(BaseModel):
     :type actions: list[CardAction]
     """
 
-    actions: List["CardAction"]
+    actions: List[CardAction] = None

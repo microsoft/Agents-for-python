@@ -1,3 +1,6 @@
+# Copyright (c) Microsoft Corporation. All rights reserved.
+# Licensed under the MIT License.
+
 from pydantic import BaseModel
 from typing import Optional
 
@@ -9,4 +12,4 @@ class TaskModuleRequestContext(BaseModel):
     :type theme: Optional[str]
     """
 
-    theme: Optional[str]
+    theme: Optional[str] = None

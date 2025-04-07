@@ -1,5 +1,9 @@
+# Copyright (c) Microsoft Corporation. All rights reserved.
+# Licensed under the MIT License.
+
 from pydantic import BaseModel
 from typing import List
+from .teams_meeting_member import TeamsMeetingMember
 
 
 class MeetingParticipantsEventDetails(BaseModel):
@@ -9,4 +13,4 @@ class MeetingParticipantsEventDetails(BaseModel):
     :type members: list[TeamsMeetingMember]
     """
 
-    members: List["TeamsMeetingMember"]
+    members: List[TeamsMeetingMember] = None

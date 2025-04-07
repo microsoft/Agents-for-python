@@ -1,5 +1,7 @@
-from pydantic import BaseModel
-from typing import Optional
+# Copyright (c) Microsoft Corporation. All rights reserved.
+# Licensed under the MIT License.
+
+from pydantic import BaseModel, Field
 
 
 class MeetingDetailsBase(BaseModel):
@@ -13,6 +15,6 @@ class MeetingDetailsBase(BaseModel):
     :type title: str
     """
 
-    id: str
-    join_url: Optional[str]
-    title: Optional[str]
+    id: str = Field(None, alias="uniqueId")
+    join_url: str = None
+    title: str = None

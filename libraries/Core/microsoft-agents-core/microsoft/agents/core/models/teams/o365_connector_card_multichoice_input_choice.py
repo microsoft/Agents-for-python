@@ -1,3 +1,6 @@
+# Copyright (c) Microsoft Corporation. All rights reserved.
+# Licensed under the MIT License.
+
 from pydantic import BaseModel
 
 
@@ -10,5 +13,5 @@ class O365ConnectorCardMultichoiceInputChoice(BaseModel):
     :type value: str
     """
 
-    display: str
-    value: str
+    display: str = None
+    value: str = None

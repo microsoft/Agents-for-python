@@ -1,3 +1,6 @@
+# Copyright (c) Microsoft Corporation. All rights reserved.
+# Licensed under the MIT License.
+
 from pydantic import BaseModel
 
 
@@ -8,7 +11,7 @@ class ReadReceiptInfo(BaseModel):
     :type last_read_message_id: str
     """
 
-    last_read_message_id: str
+    last_read_message_id: str = None
 
     @staticmethod
     def is_message_read(compare_message_id: str, last_read_message_id: str) -> bool:

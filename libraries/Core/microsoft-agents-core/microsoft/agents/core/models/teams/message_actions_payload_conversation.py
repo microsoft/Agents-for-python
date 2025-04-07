@@ -1,3 +1,6 @@
+# Copyright (c) Microsoft Corporation. All rights reserved.
+# Licensed under the MIT License.
+
 from pydantic import BaseModel
 
 
@@ -12,6 +15,6 @@ class MessageActionsPayloadConversation(BaseModel):
     :type display_name: str
     """
 
-    conversation_identity_type: str
-    id: str
-    display_name: str
+    conversation_identity_type: str = None
+    id: str = None
+    display_name: str = None

@@ -1,5 +1,7 @@
+# Copyright (c) Microsoft Corporation. All rights reserved.
+# Licensed under the MIT License.
+
 from pydantic import BaseModel
-from typing import Optional
 
 
 class TabSubmitData(BaseModel):
@@ -12,5 +14,5 @@ class TabSubmitData(BaseModel):
     :type properties: object
     """
 
-    type: str
-    properties: Optional[object]
+    type: str = None
+    properties: object = None

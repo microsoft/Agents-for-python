@@ -1,3 +1,6 @@
+# Copyright (c) Microsoft Corporation. All rights reserved.
+# Licensed under the MIT License.
+
 from pydantic import BaseModel
 
 
@@ -10,5 +13,5 @@ class MessageActionsPayloadBody(BaseModel):
     :type content: str
     """
 
-    content_type: str
-    content: str
+    content_type: str = None
+    content: str = None

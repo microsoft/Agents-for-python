@@ -1,3 +1,6 @@
+# Copyright (c) Microsoft Corporation. All rights reserved.
+# Licensed under the MIT License.
+
 from pydantic import BaseModel
 from typing import Optional
 
@@ -11,5 +14,5 @@ class O365ConnectorCardImage(BaseModel):
     :type title: Optional[str]
     """
 
-    image: str
-    title: Optional[str]
+    image: str = None
+    title: Optional[str] = None

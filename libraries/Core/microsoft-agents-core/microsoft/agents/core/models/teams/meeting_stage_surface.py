@@ -1,14 +1,17 @@
-from pydantic import BaseModel
+# Copyright (c) Microsoft Corporation. All rights reserved.
+# Licensed under the MIT License.
+
 from enum import Enum
-from typing import Any
+
+from .surface import Surface, SurfaceType
 
 
-class ContentType(str, Enum):
-    UNKNOWN = "Unknown"
-    TASK = "Task"
+class ContentType(int, Enum):
+    UNKNOWN = 0
+    TASK = 1
 
 
-class MeetingStageSurface(BaseModel):
+class MeetingStageSurface(Surface):
     """Specifies meeting stage surface.
 
     :param content_type: The content type of this MeetingStageSurface.
@@ -17,5 +20,6 @@ class MeetingStageSurface(BaseModel):
     :type content: Any
     """
 
+    type: SurfaceType = SurfaceType.MEETING_STAGE
     content_type: ContentType = ContentType.TASK
-    content: Any
+    content: object = None

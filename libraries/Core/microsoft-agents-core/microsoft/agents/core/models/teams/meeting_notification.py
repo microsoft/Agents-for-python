@@ -1,5 +1,8 @@
-from pydantic import BaseModel
+# Copyright (c) Microsoft Corporation. All rights reserved.
+# Licensed under the MIT License.
+
 from .meeting_notification_base import MeetingNotificationBase
+from .targeted_meeting_notification_value import TargetedMeetingNotificationValue
 
 
 class MeetingNotification(MeetingNotificationBase):
@@ -9,4 +12,4 @@ class MeetingNotification(MeetingNotificationBase):
     :type value: TargetedMeetingNotificationValue
     """
 
-    value: "TargetedMeetingNotificationValue"
+    value: TargetedMeetingNotificationValue = None

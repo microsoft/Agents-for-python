@@ -1,11 +1,11 @@
+# Copyright (c) Microsoft Corporation. All rights reserved.
+# Licensed under the MIT License.
+
 from pydantic import BaseModel
 from typing import List
-
-
-class MeetingNotificationRecipientFailureInfo(BaseModel):
-    recipient_mri: str
-    error_code: str
-    failure_reason: str
+from .meeting_notification_recipient_failure_info import (
+    MeetingNotificationRecipientFailureInfo,
+)
 
 
 class MeetingNotificationResponse(BaseModel):
@@ -17,4 +17,4 @@ class MeetingNotificationResponse(BaseModel):
     :type recipients_failure_info: list[MeetingNotificationRecipientFailureInfo]
     """
 
-    recipients_failure_info: List[MeetingNotificationRecipientFailureInfo]
+    recipients_failure_info: List[MeetingNotificationRecipientFailureInfo] = None

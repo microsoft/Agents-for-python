@@ -1,5 +1,7 @@
+# Copyright (c) Microsoft Corporation. All rights reserved.
+# Licensed under the MIT License.
+
 from pydantic import BaseModel
-from typing import Optional
 
 
 class TeamsChannelAccount(BaseModel):
@@ -10,24 +12,24 @@ class TeamsChannelAccount(BaseModel):
     :param name: Display friendly name
     :type name: str
     :param given_name: Given name part of the user name.
-    :type given_name: Optional[str]
+    :type given_name: str
     :param surname: Surname part of the user name.
-    :type surname: Optional[str]
+    :type surname: str
     :param email: Email Id of the user.
-    :type email: Optional[str]
+    :type email: str
     :param user_principal_name: Unique user principal name.
-    :type user_principal_name: Optional[str]
+    :type user_principal_name: str
     :param tenant_id: Tenant Id of the user.
-    :type tenant_id: Optional[str]
+    :type tenant_id: str
     :param user_role: User Role of the user.
-    :type user_role: Optional[str]
+    :type user_role: str
     """
 
-    id: str
-    name: str
-    given_name: Optional[str]
-    surname: Optional[str]
-    email: Optional[str]
-    user_principal_name: Optional[str]
-    tenant_id: Optional[str]
-    user_role: Optional[str]
+    id: str = None
+    name: str = None
+    given_name: str = None
+    surname: str = None
+    email: str = None
+    user_principal_name: str = None
+    tenant_id: str = None
+    user_role: str = None

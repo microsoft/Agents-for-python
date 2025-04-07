@@ -1,15 +1,16 @@
+# Copyright (c) Microsoft Corporation. All rights reserved.
+# Licensed under the MIT License.
+
 from pydantic import BaseModel
-from typing import Optional
+
+from .tab_response_payload import TabResponsePayload
 
 
 class TabResponse(BaseModel):
-    """Response to a tab request.
+    """Envelope for Card Tab Response Payload.
 
-    :param type: The type of response. Possible values include: 'continue', 'auth', 'silentAuth'.
-    :type type: str
-    :param value: The value of the tab response.
-    :type value: Optional[object]
+    :param tab: Possible values include: 'continue', 'auth' or 'silentAuth'
+    :type type: TabResponsePayload
     """
 
-    type: str
-    value: Optional[object]
+    tab: TabResponsePayload = None

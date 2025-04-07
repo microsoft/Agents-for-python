@@ -1,3 +1,6 @@
+# Copyright (c) Microsoft Corporation. All rights reserved.
+# Licensed under the MIT License.
+
 from pydantic import BaseModel
 
 
@@ -8,4 +11,4 @@ class ConfigResponseBase(BaseModel):
     :type response_type: str
     """
 
-    response_type: str
+    response_type: str = None

@@ -1,4 +1,7 @@
-from pydantic import BaseModel
+# Copyright (c) Microsoft Corporation. All rights reserved.
+# Licensed under the MIT License.
+
+from pydantic import BaseModel, Field
 from typing import Optional
 
 
@@ -15,7 +18,7 @@ class O365ConnectorCardViewAction(BaseModel):
     :type target: Optional[str]
     """
 
-    type: str = "ViewAction"
-    name: str
-    id: str
-    target: Optional[str]
+    type: str = Field(None, alias="@type")
+    name: str = None
+    id: str = Field(None, alias="@id")
+    target: Optional[str] = None

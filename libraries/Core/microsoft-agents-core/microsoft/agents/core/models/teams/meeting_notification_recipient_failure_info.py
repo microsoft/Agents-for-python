@@ -1,3 +1,6 @@
+# Copyright (c) Microsoft Corporation. All rights reserved.
+# Licensed under the MIT License.
+
 from pydantic import BaseModel
 
 
@@ -12,6 +15,6 @@ class MeetingNotificationRecipientFailureInfo(BaseModel):
     :type failure_reason: str
     """
 
-    recipient_mri: str
-    error_code: str
-    failure_reason: str
+    recipient_mri: str = None
+    error_code: str = None
+    failure_reason: str = None

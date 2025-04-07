@@ -1,3 +1,6 @@
+# Copyright (c) Microsoft Corporation. All rights reserved.
+# Licensed under the MIT License.
+
 from pydantic import BaseModel
 
 
@@ -12,6 +15,6 @@ class TeamInfo(BaseModel):
     :type aad_group_id: str
     """
 
-    id: str
-    name: str
-    aad_group_id: str
+    id: str = None
+    name: str = None
+    aad_group_id: str = None

@@ -1,3 +1,6 @@
+# Copyright (c) Microsoft Corporation. All rights reserved.
+# Licensed under the MIT License.
+
 from pydantic import BaseModel
 
 
@@ -10,5 +13,5 @@ class UserMeetingDetails(BaseModel):
     :type in_meeting: bool
     """
 
-    role: str
-    in_meeting: bool
+    role: str = None
+    in_meeting: bool = None
