@@ -63,6 +63,7 @@ from .team_info import TeamInfo
 from .teams_channel_account import TeamsChannelAccount
 from .teams_channel_data_settings import TeamsChannelDataSettings
 from .teams_channel_data import TeamsChannelData
+from .teams_member import TeamsMember
 from .teams_paged_members_result import TeamsPagedMembersResult
 from .tenant_info import TenantInfo
 from .teams_meeting_info import TeamsMeetingInfo
@@ -89,6 +90,7 @@ from .config_auth_response import ConfigAuthResponse
 from .config_response import ConfigResponse
 from .config_task_response import ConfigTaskResponse
 from .meeting_notification_base import MeetingNotificationBase
+from .meeting_notification import MeetingNotification
 from .meeting_notification_response import MeetingNotificationResponse
 from .on_behalf_of import OnBehalfOf
 
@@ -155,6 +157,7 @@ __all__ = [
     "TeamsChannelData",
     "TeamsPagedMembersResult",
     "TenantInfo",
+    "TeamsMember",
     "TeamsMeetingInfo",
     "TeamsMeetingParticipant",
     "MeetingParticipantInfo",
@@ -179,6 +182,7 @@ __all__ = [
     "ConfigResponse",
     "ConfigTaskResponse",
     "MeetingNotificationBase",
+    "MeetingNotification",
     "MeetingNotificationResponse",
     "OnBehalfOf",
 ]
