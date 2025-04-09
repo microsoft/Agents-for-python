@@ -9,8 +9,7 @@ import aiohttp
 from microsoft.agents.core.models import Activity
 from microsoft.agents.authorization import (
     AccessTokenProviderBase,
-    AuthConfiguration,
-    AuthProvider,
+    AgentAuthConfiguration,
 )
 from microsoft.agents.connector import ConnectorClientBase
 
@@ -46,8 +45,8 @@ class TeamsConnectorClient(ConnectorClientBase):
     async def create_client_with_auth_async(
         cls,
         base_url: str,
-        auth_config: AuthConfiguration,
-        auth_provider: AuthProvider,
+        auth_config: AgentAuthConfiguration,
+        auth_provider: AccessTokenProviderBase,
         scope: str,
     ) -> "TeamsConnectorClient":
         """

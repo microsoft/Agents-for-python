@@ -2,6 +2,10 @@
 # Licensed under the MIT License.
 
 from .app_based_link_query import AppBasedLinkQuery
+from .batch_operation_response import BatchOperationResponse
+from .batch_operation_state_response import BatchOperationStateResponse
+from .batch_failed_entries_response import BatchFailedEntriesResponse
+from .cancel_operation_response import CancelOperationResponse
 from .channel_info import ChannelInfo
 from .conversation_list import ConversationList
 from .file_consent_card import FileConsentCard
@@ -93,9 +97,14 @@ from .meeting_notification_base import MeetingNotificationBase
 from .meeting_notification import MeetingNotification
 from .meeting_notification_response import MeetingNotificationResponse
 from .on_behalf_of import OnBehalfOf
+from .teams_batch_operation_response import TeamsBatchOperationResponse
 
 __all__ = [
     "AppBasedLinkQuery",
+    "BatchOperationResponse",
+    "BatchOperationStateResponse",
+    "BatchFailedEntriesResponse",
+    "CancelOperationResponse",
     "ChannelInfo",
     "ConversationList",
     "FileConsentCard",
@@ -185,4 +194,5 @@ __all__ = [
     "MeetingNotification",
     "MeetingNotificationResponse",
     "OnBehalfOf",
+    "TeamsBatchOperationResponse",
 ]
