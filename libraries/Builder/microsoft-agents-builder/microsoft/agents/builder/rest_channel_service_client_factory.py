@@ -6,11 +6,12 @@ from microsoft.agents.authorization import (
     ClaimsIdentity,
     Connections,
 )
+from microsoft.agents.authorization import AccessTokenProviderBase
 from microsoft.agents.connector import (
     ConnectorClientBase,
-    ConnectorClient,
     UserTokenClient,
 )
+from microsoft.agents.connector.client import ConnectorClient
 
 from .channel_service_client_factory_base import ChannelServiceClientFactoryBase
 
@@ -46,17 +47,19 @@ class RestChannelServiceClientFactory(ChannelServiceClientFactoryBase):
                 "RestChannelServiceClientFactory.create_connector_client: audience can't be None or Empty"
             )
 
-        token_provider = (
+        token_provider: AccessTokenProviderBase = (
             self._connections.get_token_provider(claims_identity, service_url)
             if not use_anonymous
             else self._ANONYMOUS_TOKEN_PROVIDER
         )
 
+        token = await token_provider.get_access_token(
+            audience, scopes or [f"{audience}/.default"]
+        )
+
         return ConnectorClient(
             endpoint=service_url,
-            credential_token_provider=token_provider,
-            credential_resource_url=audience,
-            credential_scopes=scopes,
+            token=token,
         )
 
     async def create_user_token_client(
