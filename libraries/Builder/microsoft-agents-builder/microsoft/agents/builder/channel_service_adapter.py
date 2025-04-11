@@ -87,18 +87,15 @@ class ChannelServiceAdapter(ChannelAdapter, ABC):
                     response = await connector_client.conversations.reply_to_activity(
                         activity.conversation.id,
                         activity.reply_to_id,
-                        activity.model_dump(by_alias=True, exclude_unset=True),
+                        activity,
                     )
                 else:
                     response = (
                         await connector_client.conversations.send_to_conversation(
                             activity.conversation.id,
-                            activity.model_dump(by_alias=True, exclude_unset=True),
+                            activity,
                         )
                     )
-            # TODO: The connector client is not casting the response but returning the JSON, need to fix it appropiatly
-            if not isinstance(response, ResourceResponse):
-                response = ResourceResponse.model_validate(response)
             response = response or ResourceResponse(id=activity.id or "")
 
             responses.append(response)
