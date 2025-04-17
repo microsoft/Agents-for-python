@@ -3,15 +3,15 @@
 
 """Teams Connector Client for Microsoft Agents."""
 
-from typing import Any, Optional
-import aiohttp
+from typing import Any, Dict
+from aiohttp import ClientSession
 
-from microsoft.agents.core.models import Activity
+from microsoft.agents.core.models import Activity, ResourceResponse
 from microsoft.agents.authorization import (
     AccessTokenProviderBase,
     AgentAuthConfiguration,
 )
-from microsoft.agents.connector import ConnectorClientBase
+from microsoft.agents.connector.client import ConnectorClient
 
 from microsoft.agents.core.models.teams import (
     TeamsChannelAccount,
@@ -26,20 +26,11 @@ from microsoft.agents.core.models.teams import (
     BatchFailedEntriesResponse,
     CancelOperationResponse,
     ChannelInfo,
-    TeamsChannelData,
 )
 
 
-class TeamsConnectorClient(ConnectorClientBase):
+class TeamsConnectorClient(ConnectorClient):
     """Teams Connector Client for interacting with Teams-specific APIs."""
-
-    def __init__(self, session: aiohttp.ClientSession):
-        """
-        Initialize a new instance of TeamsConnectorClient.
-
-        :param session: The aiohttp ClientSession to use for HTTP requests.
-        """
-        self.client = session
 
     @classmethod
     async def create_client_with_auth_async(
@@ -58,7 +49,7 @@ class TeamsConnectorClient(ConnectorClientBase):
         :param scope: The scope for the authentication token.
         :return: A new instance of TeamsConnectorClient.
         """
-        session = aiohttp.ClientSession(
+        session = ClientSession(
             base_url=base_url, headers={"Accept": "application/json"}
         )
 
@@ -67,75 +58,6 @@ class TeamsConnectorClient(ConnectorClientBase):
             session.headers.update({"Authorization": f"Bearer {token}"})
 
         return cls(session)
-
-    @classmethod
-    async def get_member(cls, activity: Activity, user_id: str) -> TeamsChannelAccount:
-        """
-        Get a member from a Teams activity.
-
-        :param activity: The activity from which to get the member.
-        :param user_id: The ID of the user to get.
-        :return: The Teams channel account for the user.
-        """
-        teams_channel_data = activity.channel_data
-        team_id = (
-            getattr(teams_channel_data.team, "id", None)
-            if hasattr(teams_channel_data, "team")
-            else None
-        )
-
-        if team_id:
-            return await cls.get_team_member(activity, team_id, user_id)
-        else:
-            conversation_id = (
-                getattr(activity.conversation, "id", None)
-                if hasattr(activity, "conversation")
-                else None
-            )
-            return await cls._get_member_internal(activity, conversation_id, user_id)
-
-    @classmethod
-    def _get_team_id(cls, activity: Any) -> str:
-        """
-        Get the team ID from an activity.
-
-        :param activity: The activity from which to get the team ID.
-        :return: The team ID.
-        """
-        if not activity:
-            raise ValueError("Missing activity parameter")
-
-        channel_data = getattr(activity, "channel_data", None)
-        team = getattr(channel_data, "team", None) if channel_data else None
-        team_id = getattr(team, "id", None) if team else None
-
-        if not team_id or not isinstance(team_id, str):
-            raise ValueError("Team ID not found or invalid")
-
-        return team_id
-
-    @classmethod
-    async def get_team_member(
-        cls, activity: Any, team_id: Optional[str] = None, user_id: Optional[str] = None
-    ) -> TeamsChannelAccount:
-        """
-        Get a member from a team.
-
-        :param activity: The activity from which to get the member.
-        :param team_id: The ID of the team to get the member from.
-        :param user_id: The ID of the user to get.
-        :return: The Teams channel account for the user.
-        """
-        t = team_id or cls._get_team_id(activity)
-        if not t:
-            raise ValueError(
-                "This method is only valid within the scope of a MS Teams Team."
-            )
-
-        if not user_id:
-            raise ValueError("userId is required")
-
-        return await cls._get_member_internal(activity, t, user_id)
 
     async def get_conversation_member(
         self, conversation_id: str, user_id: str
@@ -147,34 +69,17 @@ class TeamsConnectorClient(ConnectorClientBase):
         :param user_id: The ID of the user to get.
         :return: The Teams channel account for the user.
         """
+        if not conversation_id:
+            raise ValueError("conversation_id is required")
+        if not user_id:
+            raise ValueError("user_id is required")
+
         async with self.client.get(
             f"/v3/conversations/{conversation_id}/members/{user_id}",
             headers={"Content-Type": "application/json"},
         ) as response:
             response.raise_for_status()
             return TeamsChannelAccount.model_validate(await response.json())
-
-    @classmethod
-    async def _get_member_internal(
-        cls, activity: Any, conversation_id: str, user_id: str
-    ) -> TeamsChannelAccount:
-        """
-        Internal method to get a member from a conversation.
-
-        :param activity: The activity from which to get the member.
-        :param conversation_id: The ID of the conversation to get the member from.
-        :param user_id: The ID of the user to get.
-        :return: The Teams channel account for the user.
-        """
-        if not conversation_id:
-            raise ValueError("conversationId is required")
-
-        client = activity.turn_state.get(activity.adapter.ConnectorClientKey)
-        if not client:
-            raise ValueError("Client is not available in the context.")
-
-        team_member = await client.get_conversation_member(conversation_id, user_id)
-        return team_member
 
     async def get_conversation_paged_member(
         self, conversation_id: str, page_size: int, continuation_token: str
@@ -203,9 +108,8 @@ class TeamsConnectorClient(ConnectorClientBase):
         """
         async with self.client.get(f"v3/teams/{team_id}/conversations") as response:
             response.raise_for_status()
-            return [
-                ChannelInfo.model_validate(channel) for channel in await response.json()
-            ]
+            channels_data = await response.json()
+            return [ChannelInfo.model_validate(channel) for channel in channels_data]
 
     async def fetch_team_details(self, team_id: str) -> TeamDetails:
         """
@@ -220,7 +124,7 @@ class TeamsConnectorClient(ConnectorClientBase):
 
     async def fetch_meeting_participant(
         self, meeting_id: str, participant_id: str, tenant_id: str
-    ) -> str:
+    ) -> Any:
         """
         Fetch a participant from a meeting.
 
@@ -234,7 +138,7 @@ class TeamsConnectorClient(ConnectorClientBase):
             params={"tenantId": tenant_id},
         ) as response:
             response.raise_for_status()
-            return await response.text()
+            return await response.json()
 
     async def fetch_meeting_info(self, meeting_id: str) -> MeetingInfo:
         """
@@ -246,6 +150,23 @@ class TeamsConnectorClient(ConnectorClientBase):
         async with self.client.get(f"v1/meetings/{meeting_id}") as response:
             response.raise_for_status()
             return MeetingInfo.model_validate(await response.json())
+
+    async def create_conversation_async(
+        self, conversation_parameters: Dict[str, Any]
+    ) -> ResourceResponse:
+        """
+        Creates a new conversation.
+
+        :param conversation_parameters: Parameters to create the conversation.
+        :return: A resource response with the conversation ID.
+        """
+        async with self.client.post(
+            "v3/conversations",
+            json=conversation_parameters,
+            headers={"Content-Type": "application/json"},
+        ) as response:
+            response.raise_for_status()
+            return ResourceResponse.model_validate(await response.json())
 
     async def send_meeting_notification(
         self, meeting_id: str, notification: MeetingNotification

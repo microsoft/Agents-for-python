@@ -1,29 +1,35 @@
 import json
-import os
+
 from microsoft.agents.builder import MessageFactory, TurnContext
 from microsoft.agents.core.models import ChannelAccount, Attachment
+from microsoft.agents.core.models.teams import TaskModuleResponse, TaskModuleTaskInfo
 from microsoft.agents.hosting.teams import (
-    TeamsActivityHandler, 
+    TeamsActivityHandler,
     TeamsInfo,
-    TaskModuleResponse,
-    TaskModuleResponseFactory
 )
+
+from helpers.task_module_response_factory import TaskModuleResponseFactory
+from helpers.task_module_ids import TaskModuleIds
+from helpers.ui_settings import UISettings
+from helpers.task_module_ui_constants import TaskModuleUIConstants
 
 
 class TeamsMultiFeature(TeamsActivityHandler):
     """Teams handler implementing multiple advanced Teams features"""
-    
+
     async def on_members_added_activity(
         self, members_added: list[ChannelAccount], turn_context: TurnContext
     ):
         for member in members_added:
             if member.id != turn_context.activity.recipient.id:
-                await turn_context.send_activity("Welcome to the Teams Multi-Feature demo!")
+                await turn_context.send_activity(
+                    "Welcome to the Teams Multi-Feature demo!"
+                )
                 await self._send_help_card(turn_context)
 
     async def on_message_activity(self, turn_context: TurnContext):
         text = turn_context.activity.text.strip() if turn_context.activity.text else ""
-        
+
         if "help" in text.lower():
             await self._send_help_card(turn_context)
         elif "card" in text.lower():
@@ -43,33 +49,37 @@ class TeamsMultiFeature(TeamsActivityHandler):
                     "'user profile', 'restaurant', 'task', or 'youtube'"
                 )
             )
-    
-    async def on_teams_task_module_fetch(self, turn_context: TurnContext, task_module_request):
+
+    async def on_teams_task_module_fetch(
+        self, turn_context: TurnContext, task_module_request
+    ) -> TaskModuleResponse:
         # Handle task module requests
         task_module_type = task_module_request.data.get("taskModule")
-        
-        if task_module_type == "youtube":
-            return TaskModuleResponseFactory.create_response_with_url(
-                "YouTube Video", "Watch YouTube", "https://localhost:3978/Youtube"
-            )
-        elif task_module_type == "customForm":
-            return TaskModuleResponseFactory.create_response_with_url(
-                "Custom Form", "Fill this form", "https://localhost:3978/CustomForm"
-            )
-        else:
-            return TaskModuleResponseFactory.create_response_with_card(
-                "Adaptive Card",
-                "Submit this card",
-                self._get_adaptive_card_content()
-            )
-    
-    async def on_teams_task_module_submit(self, turn_context: TurnContext, task_module_request):
+        task_info: TaskModuleTaskInfo = None
+
+        if task_module_type == TaskModuleIds.YouTube:
+            task_info = self._set_task_info(TaskModuleUIConstants.YouTube)
+            task_info.url = task_info.fallback_url = "https://localhost:3978/Youtube"
+        elif task_module_type == TaskModuleIds.AdaptiveCard:
+            task_info = self._set_task_info(TaskModuleUIConstants.AdaptiveCard)
+            task_info.card = self._get_adaptive_card_content()
+        elif task_module_type == TaskModuleIds.CustomForm:
+            task_info = self._set_task_info(TaskModuleUIConstants.CustomForm)
+            task_info.url = task_info.fallback_url = "https://localhost:3978/CustomForm"
+
+        return TaskModuleResponseFactory.to_task_module_response(task_info)
+
+    async def on_teams_task_module_submit(
+        self, turn_context: TurnContext, task_module_request
+    ):
         # Handle task module submissions
         data = task_module_request.data
         message = f"Received task module submission: {json.dumps(data)}"
         await turn_context.send_activity(MessageFactory.text(message))
-        return None  # Return a TaskModuleResponse here if you want to chain task modules
-    
+        return (
+            None  # Return a TaskModuleResponse here if you want to chain task modules
+        )
+
     async def _send_help_card(self, turn_context: TurnContext):
         """Send a help card with available commands"""
         card_data = {
@@ -81,7 +91,7 @@ class TeamsMultiFeature(TeamsActivityHandler):
                     "type": "TextBlock",
                     "size": "Medium",
                     "weight": "Bolder",
-                    "text": "Teams Multi-Feature Demo - Available Commands"
+                    "text": "Teams Multi-Feature Demo - Available Commands",
                 },
                 {
                     "type": "FactSet",
@@ -90,36 +100,36 @@ class TeamsMultiFeature(TeamsActivityHandler):
                         {"title": "user profile", "value": "Show user profile card"},
                         {"title": "restaurant", "value": "Show restaurant card"},
                         {"title": "task", "value": "Show task module card"},
-                        {"title": "youtube", "value": "Show YouTube card"}
-                    ]
-                }
-            ]
+                        {"title": "youtube", "value": "Show YouTube card"},
+                    ],
+                },
+            ],
         }
-        
+
         attachment = Attachment(
-            content_type="application/vnd.microsoft.card.adaptive",
-            content=card_data
+            content_type="application/vnd.microsoft.card.adaptive", content=card_data
         )
-        
+
         await turn_context.send_activity(MessageFactory.attachment(attachment))
-    
+
     async def _send_adaptive_card(self, turn_context: TurnContext):
         """Send a basic adaptive card"""
         card_content = self._get_adaptive_card_content()
-        
+
         attachment = Attachment(
-            content_type="application/vnd.microsoft.card.adaptive",
-            content=card_content
+            content_type="application/vnd.microsoft.card.adaptive", content=card_content
         )
-        
+
         await turn_context.send_activity(MessageFactory.attachment(attachment))
-    
+
     async def _send_user_profile_card(self, turn_context: TurnContext):
         """Send a user profile card"""
         try:
             # Get the current user info
-            member = await TeamsInfo.get_member(turn_context, turn_context.activity.from_property.id)
-            
+            member = await TeamsInfo.get_member(
+                turn_context, turn_context.activity.from_property.id
+            )
+
             card_data = {
                 "type": "AdaptiveCard",
                 "$schema": "http://adaptivecards.io/schemas/adaptive-card.json",
@@ -129,7 +139,7 @@ class TeamsMultiFeature(TeamsActivityHandler):
                         "type": "TextBlock",
                         "size": "Medium",
                         "weight": "Bolder",
-                        "text": "User Profile"
+                        "text": "User Profile",
                     },
                     {
                         "type": "ColumnSet",
@@ -142,9 +152,12 @@ class TeamsMultiFeature(TeamsActivityHandler):
                                         "type": "Image",
                                         "style": "Person",
                                         "size": "Small",
-                                        "url": member.properties.get("aadObjectId", "https://adaptivecards.io/images/PersonalPhoto.png")
+                                        "url": member.properties.get(
+                                            "aadObjectId",
+                                            "https://adaptivecards.io/images/PersonalPhoto.png",
+                                        ),
                                     }
-                                ]
+                                ],
                             },
                             {
                                 "type": "Column",
@@ -154,31 +167,31 @@ class TeamsMultiFeature(TeamsActivityHandler):
                                         "type": "TextBlock",
                                         "weight": "Bolder",
                                         "text": member.name,
-                                        "wrap": True
+                                        "wrap": True,
                                     },
                                     {
                                         "type": "TextBlock",
                                         "spacing": "None",
                                         "text": f"Email: {member.email or 'Not available'}",
-                                        "wrap": True
-                                    }
-                                ]
-                            }
-                        ]
-                    }
-                ]
+                                        "wrap": True,
+                                    },
+                                ],
+                            },
+                        ],
+                    },
+                ],
             }
-            
+
             attachment = Attachment(
                 content_type="application/vnd.microsoft.card.adaptive",
-                content=card_data
+                content=card_data,
             )
-            
+
             await turn_context.send_activity(MessageFactory.attachment(attachment))
-            
+
         except Exception as e:
             await turn_context.send_activity(f"Error retrieving user profile: {str(e)}")
-    
+
     async def _send_restaurant_card(self, turn_context: TurnContext):
         """Send a restaurant card example"""
         card_data = {
@@ -190,7 +203,7 @@ class TeamsMultiFeature(TeamsActivityHandler):
                     "type": "TextBlock",
                     "size": "Medium",
                     "weight": "Bolder",
-                    "text": "Restaurant Recommendation"
+                    "text": "Restaurant Recommendation",
                 },
                 {
                     "type": "ColumnSet",
@@ -202,9 +215,9 @@ class TeamsMultiFeature(TeamsActivityHandler):
                                 {
                                     "type": "Image",
                                     "size": "Small",
-                                    "url": "https://adaptivecards.io/images/Contoso.png"
+                                    "url": "https://adaptivecards.io/images/Contoso.png",
                                 }
-                            ]
+                            ],
                         },
                         {
                             "type": "Column",
@@ -214,45 +227,44 @@ class TeamsMultiFeature(TeamsActivityHandler):
                                     "type": "TextBlock",
                                     "weight": "Bolder",
                                     "text": "Contoso Cafe",
-                                    "wrap": True
+                                    "wrap": True,
                                 },
                                 {
                                     "type": "TextBlock",
                                     "spacing": "None",
                                     "text": "⭐⭐⭐⭐★ (4.2) · $$",
-                                    "wrap": True
-                                }
-                            ]
-                        }
-                    ]
+                                    "wrap": True,
+                                },
+                            ],
+                        },
+                    ],
                 },
                 {
                     "type": "TextBlock",
                     "text": "Italian cuisine in a casual atmosphere",
-                    "wrap": True
-                }
+                    "wrap": True,
+                },
             ],
             "actions": [
                 {
                     "type": "Action.OpenUrl",
                     "title": "View Menu",
-                    "url": "https://example.com/menu"
+                    "url": "https://example.com/menu",
                 },
                 {
                     "type": "Action.OpenUrl",
                     "title": "Order Online",
-                    "url": "https://example.com/order"
-                }
-            ]
+                    "url": "https://example.com/order",
+                },
+            ],
         }
-        
+
         attachment = Attachment(
-            content_type="application/vnd.microsoft.card.adaptive",
-            content=card_data
+            content_type="application/vnd.microsoft.card.adaptive", content=card_data
         )
-        
+
         await turn_context.send_activity(MessageFactory.attachment(attachment))
-    
+
     async def _send_task_module_card(self, turn_context: TurnContext):
         """Send a card that opens a task module"""
         card_data = {
@@ -264,13 +276,13 @@ class TeamsMultiFeature(TeamsActivityHandler):
                     "type": "TextBlock",
                     "size": "Medium",
                     "weight": "Bolder",
-                    "text": "Task Module Demos"
+                    "text": "Task Module Demos",
                 },
                 {
                     "type": "TextBlock",
                     "text": "Click the buttons below to open different types of task modules",
-                    "wrap": True
-                }
+                    "wrap": True,
+                },
             ],
             "actions": [
                 {
@@ -278,35 +290,34 @@ class TeamsMultiFeature(TeamsActivityHandler):
                     "title": "Adaptive Card Form",
                     "data": {
                         "msteams": {"type": "task/fetch"},
-                        "taskModule": "adaptiveCard"
-                    }
+                        "taskModule": "adaptiveCard",
+                    },
                 },
                 {
                     "type": "Action.Submit",
                     "title": "YouTube Video",
                     "data": {
                         "msteams": {"type": "task/fetch"},
-                        "taskModule": "youtube"
-                    }
+                        "taskModule": "youtube",
+                    },
                 },
                 {
                     "type": "Action.Submit",
                     "title": "Custom Form",
                     "data": {
                         "msteams": {"type": "task/fetch"},
-                        "taskModule": "customForm"
-                    }
-                }
-            ]
+                        "taskModule": "customForm",
+                    },
+                },
+            ],
         }
-        
+
         attachment = Attachment(
-            content_type="application/vnd.microsoft.card.adaptive",
-            content=card_data
+            content_type="application/vnd.microsoft.card.adaptive", content=card_data
         )
-        
+
         await turn_context.send_activity(MessageFactory.attachment(attachment))
-    
+
     async def _send_youtube_card(self, turn_context: TurnContext):
         """Send a card with a YouTube video"""
         card_data = {
@@ -318,12 +329,12 @@ class TeamsMultiFeature(TeamsActivityHandler):
                     "type": "TextBlock",
                     "size": "Medium",
                     "weight": "Bolder",
-                    "text": "Microsoft Teams"
+                    "text": "Microsoft Teams",
                 },
                 {
                     "type": "TextBlock",
                     "text": "Watch this video to learn more about Microsoft Teams",
-                    "wrap": True
+                    "wrap": True,
                 },
                 {
                     "type": "Image",
@@ -334,20 +345,19 @@ class TeamsMultiFeature(TeamsActivityHandler):
                         "title": "Watch Video",
                         "data": {
                             "msteams": {"type": "task/fetch"},
-                            "taskModule": "youtube"
-                        }
-                    }
-                }
-            ]
+                            "taskModule": "youtube",
+                        },
+                    },
+                },
+            ],
         }
-        
+
         attachment = Attachment(
-            content_type="application/vnd.microsoft.card.adaptive",
-            content=card_data
+            content_type="application/vnd.microsoft.card.adaptive", content=card_data
         )
-        
+
         await turn_context.send_activity(MessageFactory.attachment(attachment))
-    
+
     def _get_adaptive_card_content(self):
         """Get a basic adaptive card content"""
         return {
@@ -359,53 +369,49 @@ class TeamsMultiFeature(TeamsActivityHandler):
                     "type": "TextBlock",
                     "size": "Medium",
                     "weight": "Bolder",
-                    "text": "Adaptive Card Sample"
+                    "text": "Adaptive Card Sample",
                 },
                 {
                     "type": "TextBlock",
                     "text": "Enter your information below",
-                    "wrap": True
+                    "wrap": True,
                 },
                 {
                     "type": "Input.Text",
                     "id": "name",
                     "placeholder": "Your name",
-                    "label": "Name"
+                    "label": "Name",
                 },
                 {
                     "type": "Input.Text",
                     "id": "email",
                     "placeholder": "Your email",
-                    "label": "Email"
+                    "label": "Email",
                 },
                 {
                     "type": "Input.ChoiceSet",
                     "id": "role",
                     "label": "Role",
                     "choices": [
-                        {
-                            "title": "Developer",
-                            "value": "developer"
-                        },
-                        {
-                            "title": "Designer",
-                            "value": "designer"
-                        },
-                        {
-                            "title": "Product Manager",
-                            "value": "pm"
-                        }
-                    ]
-                }
+                        {"title": "Developer", "value": "developer"},
+                        {"title": "Designer", "value": "designer"},
+                        {"title": "Product Manager", "value": "pm"},
+                    ],
+                },
             ],
             "actions": [
                 {
                     "type": "Action.Submit",
                     "title": "Submit",
-                    "data": {
-                        "action": "submit",
-                        "source": "adaptiveCard"
-                    }
+                    "data": {"action": "submit", "source": "adaptiveCard"},
                 }
-            ]
+            ],
         }
+
+    def _set_task_info(self, ui_constans: UISettings) -> TaskModuleTaskInfo:
+        """Set task info for the task module"""
+        task_info = TaskModuleTaskInfo(
+            title=ui_constans.title, height=ui_constans.height, width=ui_constans.width
+        )
+
+        return task_info

@@ -9,7 +9,6 @@ from aiohttp.web import Application, Request, Response, run_app, static
 from microsoft.agents.builder import RestChannelServiceClientFactory
 from microsoft.agents.builder.state import UserState
 from microsoft.agents.hosting.aiohttp import CloudAdapter, jwt_authorization_middleware
-from microsoft.agents.hosting.teams import TeamsCloudAdapter
 from microsoft.agents.authorization import (
     Connections,
     AccessTokenProviderBase,
@@ -45,11 +44,12 @@ class DefaultConnection(Connections):
 CHANNEL_CLIENT_FACTORY = RestChannelServiceClientFactory(CONFIG, DefaultConnection())
 
 # Create adapter.
-ADAPTER = TeamsCloudAdapter(CHANNEL_CLIENT_FACTORY)
+ADAPTER = CloudAdapter(CHANNEL_CLIENT_FACTORY)
 
 # Create the storage and user state (for SSO agent)
 STORAGE = MemoryStorage()
 USER_STATE = UserState(STORAGE)
+
 
 def create_agent(agent_type: str):
     """
@@ -61,6 +61,7 @@ def create_agent(agent_type: str):
         return TeamsMultiFeature()
     else:  # Default to TeamsHandler
         return TeamsHandler()
+
 
 # Create the agent based on configuration
 AGENT = create_agent(CONFIG.AGENT_TYPE)
@@ -92,9 +93,9 @@ async def render_page(req: Request, page_name: str) -> Response:
     pages_path = pathlib.Path(__file__).parent / "pages"
     if not pages_path.exists():
         pages_path.mkdir()
-    
+
     page_file = pages_path / page_name
-    
+
     if page_file.exists():
         with open(page_file, "r") as file:
             content = file.read()
@@ -112,7 +113,7 @@ APP.router.add_post("/CustomForm", handle_form)
 # Add static file handling for CSS, JS, etc.
 static_path = pathlib.Path(__file__).parent / "public"
 if static_path.exists():
-    APP.router.add_static('/public', static_path)
+    APP.router.add_static("/public", static_path)
 
 APP["agent_configuration"] = CONFIG
 APP["adapter"] = ADAPTER

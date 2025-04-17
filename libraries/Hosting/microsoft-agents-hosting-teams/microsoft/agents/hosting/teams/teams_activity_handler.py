@@ -40,9 +40,10 @@ from microsoft.agents.core.models.teams import (
     TaskModuleRequest,
     TaskModuleResponse,
     TeamsChannelAccount,
+    TeamsChannelData,
 )
 
-from microsoft.agents.connector.teams.teams_connector_client import TeamsConnectorClient
+from .teams_info import TeamsInfo
 
 
 class TeamsActivityHandler(ActivityHandler):
@@ -64,96 +65,92 @@ class TeamsActivityHandler(ActivityHandler):
                 not turn_context.activity.name
                 and turn_context.activity.channel_id == "msteams"
             ):
-                return await self.handle_teams_card_action_invoke(turn_context)
+                return await self.on_teams_card_action_invoke(turn_context)
             else:
                 name = turn_context.activity.name
                 value = turn_context.activity.value
 
                 if name == "config/fetch":
                     return self._create_invoke_response(
-                        await self.handle_teams_config_fetch(turn_context, value)
+                        await self.on_teams_config_fetch(turn_context, value)
                     )
                 elif name == "config/submit":
                     return self._create_invoke_response(
-                        await self.handle_teams_config_submit(turn_context, value)
+                        await self.on_teams_config_submit(turn_context, value)
                     )
                 elif name == "fileConsent/invoke":
                     return self._create_invoke_response(
-                        await self.handle_teams_file_consent(turn_context, value)
+                        await self.on_teams_file_consent(turn_context, value)
                     )
                 elif name == "actionableMessage/executeAction":
-                    await self.handle_teams_o365_connector_card_action(
-                        turn_context, value
-                    )
+                    await self.on_teams_o365_connector_card_action(turn_context, value)
                     return self._create_invoke_response()
                 elif name == "composeExtension/queryLink":
                     return self._create_invoke_response(
-                        await self.handle_teams_app_based_link_query(
-                            turn_context, value
-                        )
+                        await self.on_teams_app_based_link_query(turn_context, value)
                     )
                 elif name == "composeExtension/anonymousQueryLink":
                     return self._create_invoke_response(
-                        await self.handle_teams_anonymous_app_based_link_query(
+                        await self.on_teams_anonymous_app_based_link_query(
                             turn_context, value
                         )
                     )
                 elif name == "composeExtension/query":
-                    query = self._parse_messaging_extension_query(value)
+                    query = MessagingExtensionQuery.model_validate(value)
                     return self._create_invoke_response(
-                        await self.handle_teams_messaging_extension_query(
+                        await self.on_teams_messaging_extension_query(
                             turn_context, query
                         )
                     )
                 elif name == "composeExtension/selectItem":
                     return self._create_invoke_response(
-                        await self.handle_teams_messaging_extension_select_item(
+                        await self.on_teams_messaging_extension_select_item(
                             turn_context, value
                         )
                     )
                 elif name == "composeExtension/submitAction":
                     return self._create_invoke_response(
-                        await self.handle_teams_messaging_extension_submit_action_dispatch(
+                        await self.on_teams_messaging_extension_submit_action_dispatch(
                             turn_context, value
                         )
                     )
                 elif name == "composeExtension/fetchTask":
                     return self._create_invoke_response(
-                        await self.handle_teams_messaging_extension_fetch_task(
+                        await self.on_teams_messaging_extension_fetch_task(
                             turn_context, value
                         )
                     )
                 elif name == "composeExtension/querySettingUrl":
                     return self._create_invoke_response(
-                        await self.handle_teams_messaging_extension_configuration_query_setting_url(
+                        await self.on_teams_messaging_extension_configuration_query_setting_url(
                             turn_context, value
                         )
                     )
                 elif name == "composeExtension/setting":
-                    await self.handle_teams_messaging_extension_configuration_setting(
+                    await self.on_teams_messaging_extension_configuration_setting(
                         turn_context, value
                     )
                     return self._create_invoke_response()
                 elif name == "composeExtension/onCardButtonClicked":
-                    await self.handle_teams_messaging_extension_card_button_clicked(
+                    await self.on_teams_messaging_extension_card_button_clicked(
                         turn_context, value
                     )
                     return self._create_invoke_response()
                 elif name == "task/fetch":
                     return self._create_invoke_response(
-                        await self.handle_teams_task_module_fetch(turn_context, value)
+                        await self.on_teams_task_module_fetch(turn_context, value)
                     )
                 elif name == "task/submit":
                     return self._create_invoke_response(
-                        await self.handle_teams_task_module_submit(turn_context, value)
+                        await self.on_teams_task_module_submit(turn_context, value)
                     )
                 elif name == "tab/fetch":
                     return self._create_invoke_response(
-                        await self.handle_teams_tab_fetch(turn_context, value)
+                        await self.on_teams_tab_fetch(turn_context, value)
                     )
                 elif name == "tab/submit":
                     return self._create_invoke_response(
-                        await self.handle_teams_tab_submit(turn_context, value)
+                        await self.on_teams_tab_submit(turn_context, value)
                     )
                 else:
                     run_events = False
@@ -164,11 +161,8 @@ class TeamsActivityHandler(ActivityHandler):
             elif str(err) == "BadRequest":
                 return InvokeResponse(status=int(HTTPStatus.BAD_REQUEST))
             raise
-        finally:
-            if run_events:
-                self._default_next_event(turn_context)()
 
-    async def handle_teams_card_action_invoke(
+    async def on_teams_card_action_invoke(
         self, turn_context: TurnContext
     ) -> InvokeResponse:
         """
@@ -179,7 +173,7 @@ class TeamsActivityHandler(ActivityHandler):
         """
         raise NotImplementedError("NotImplemented")
 
-    async def handle_teams_config_fetch(
+    async def on_teams_config_fetch(
         self, turn_context: TurnContext, config_data: Any
     ) -> ConfigResponse:
         """
@@ -191,7 +185,7 @@ class TeamsActivityHandler(ActivityHandler):
         """
         raise NotImplementedError("NotImplemented")
 
-    async def handle_teams_config_submit(
+    async def on_teams_config_submit(
         self, turn_context: TurnContext, config_data: Any
     ) -> ConfigResponse:
         """
@@ -203,7 +197,7 @@ class TeamsActivityHandler(ActivityHandler):
         """
         raise NotImplementedError("NotImplemented")
 
-    async def handle_teams_file_consent(
+    async def on_teams_file_consent(
         self,
         turn_context: TurnContext,
         file_consent_card_response: FileConsentCardResponse,
@@ -216,17 +210,17 @@ class TeamsActivityHandler(ActivityHandler):
         :return: None
         """
         if file_consent_card_response.action == "accept":
-            return await self.handle_teams_file_consent_accept(
+            return await self.on_teams_file_consent_accept(
                 turn_context, file_consent_card_response
             )
         elif file_consent_card_response.action == "decline":
-            return await self.handle_teams_file_consent_decline(
+            return await self.on_teams_file_consent_decline(
                 turn_context, file_consent_card_response
             )
         else:
             raise ValueError("BadRequest")
 
-    async def handle_teams_file_consent_accept(
+    async def on_teams_file_consent_accept(
         self,
         turn_context: TurnContext,
         file_consent_card_response: FileConsentCardResponse,
@@ -240,7 +234,7 @@ class TeamsActivityHandler(ActivityHandler):
         """
         raise NotImplementedError("NotImplemented")
 
-    async def handle_teams_file_consent_decline(
+    async def on_teams_file_consent_decline(
         self,
         turn_context: TurnContext,
         file_consent_card_response: FileConsentCardResponse,
@@ -254,7 +248,7 @@ class TeamsActivityHandler(ActivityHandler):
         """
         raise NotImplementedError("NotImplemented")
 
-    async def handle_teams_o365_connector_card_action(
+    async def on_teams_o365_connector_card_action(
         self, turn_context: TurnContext, query: O365ConnectorCardActionQuery
     ) -> None:
         """
@@ -266,7 +260,7 @@ class TeamsActivityHandler(ActivityHandler):
         """
         raise NotImplementedError("NotImplemented")
 
-    async def handle_teams_signin_verify_state(
+    async def on_teams_signin_verify_state(
         self, turn_context: TurnContext, query: SigninStateVerificationQuery
     ) -> None:
         """
@@ -278,7 +272,7 @@ class TeamsActivityHandler(ActivityHandler):
         """
         raise NotImplementedError("NotImplemented")
 
-    async def handle_teams_signin_token_exchange(
+    async def on_teams_signin_token_exchange(
         self, turn_context: TurnContext, query: SigninStateVerificationQuery
     ) -> None:
         """
@@ -290,7 +284,7 @@ class TeamsActivityHandler(ActivityHandler):
         """
         raise NotImplementedError("NotImplemented")
 
-    async def handle_teams_app_based_link_query(
+    async def on_teams_app_based_link_query(
         self, turn_context: TurnContext, query: AppBasedLinkQuery
     ) -> MessagingExtensionResponse:
         """
@@ -302,7 +296,7 @@ class TeamsActivityHandler(ActivityHandler):
         """
         raise NotImplementedError("NotImplemented")
 
-    async def handle_teams_anonymous_app_based_link_query(
+    async def on_teams_anonymous_app_based_link_query(
         self, turn_context: TurnContext, query: AppBasedLinkQuery
     ) -> MessagingExtensionResponse:
         """
@@ -314,7 +308,7 @@ class TeamsActivityHandler(ActivityHandler):
         """
         raise NotImplementedError("NotImplemented")
 
-    async def handle_teams_messaging_extension_query(
+    async def on_teams_messaging_extension_query(
         self, turn_context: TurnContext, query: MessagingExtensionQuery
     ) -> MessagingExtensionResponse:
         """
@@ -326,7 +320,7 @@ class TeamsActivityHandler(ActivityHandler):
         """
         raise NotImplementedError("NotImplemented")
 
-    async def handle_teams_messaging_extension_select_item(
+    async def on_teams_messaging_extension_select_item(
         self, turn_context: TurnContext, query: Any
     ) -> MessagingExtensionResponse:
         """
@@ -338,7 +332,7 @@ class TeamsActivityHandler(ActivityHandler):
         """
         raise NotImplementedError("NotImplemented")
 
-    async def handle_teams_messaging_extension_submit_action_dispatch(
+    async def on_teams_messaging_extension_submit_action_dispatch(
         self, turn_context: TurnContext, action: MessagingExtensionAction
     ) -> MessagingExtensionActionResponse:
         """
@@ -348,23 +342,23 @@ class TeamsActivityHandler(ActivityHandler):
         :param action: The messaging extension action.
         :return: A MessagingExtensionActionResponse.
         """
-        if action.message_preview_action:
-            if action.message_preview_action == "edit":
-                return await self.handle_teams_messaging_extension_message_preview_edit(
+        if action.bot_message_preview_action:
+            if action.bot_message_preview_action == "edit":
+                return await self.on_teams_messaging_extension_message_preview_edit(
                     turn_context, action
                 )
-            elif action.message_preview_action == "send":
-                return await self.handle_teams_messaging_extension_message_preview_send(
+            elif action.bot_message_preview_action == "send":
+                return await self.on_teams_messaging_extension_message_preview_send(
                     turn_context, action
                 )
             else:
                 raise ValueError("BadRequest")
         else:
-            return await self.handle_teams_messaging_extension_submit_action(
+            return await self.on_teams_messaging_extension_submit_action(
                 turn_context, action
             )
 
-    async def handle_teams_messaging_extension_submit_action(
+    async def on_teams_messaging_extension_submit_action(
         self, turn_context: TurnContext, action: MessagingExtensionAction
     ) -> MessagingExtensionActionResponse:
         """
@@ -376,7 +370,7 @@ class TeamsActivityHandler(ActivityHandler):
         """
         raise NotImplementedError("NotImplemented")
 
-    async def handle_teams_messaging_extension_message_preview_edit(
+    async def on_teams_messaging_extension_message_preview_edit(
         self, turn_context: TurnContext, action: MessagingExtensionAction
     ) -> MessagingExtensionActionResponse:
         """
@@ -388,7 +382,7 @@ class TeamsActivityHandler(ActivityHandler):
         """
         raise NotImplementedError("NotImplemented")
 
-    async def handle_teams_messaging_extension_message_preview_send(
+    async def on_teams_messaging_extension_message_preview_send(
         self, turn_context: TurnContext, action: MessagingExtensionAction
     ) -> MessagingExtensionActionResponse:
         """
@@ -400,7 +394,7 @@ class TeamsActivityHandler(ActivityHandler):
         """
         raise NotImplementedError("NotImplemented")
 
-    async def handle_teams_messaging_extension_fetch_task(
+    async def on_teams_messaging_extension_fetch_task(
         self, turn_context: TurnContext, action: MessagingExtensionAction
     ) -> MessagingExtensionActionResponse:
         """
@@ -412,7 +406,7 @@ class TeamsActivityHandler(ActivityHandler):
         """
         raise NotImplementedError("NotImplemented")
 
-    async def handle_teams_messaging_extension_configuration_query_setting_url(
+    async def on_teams_messaging_extension_configuration_query_setting_url(
         self, turn_context: TurnContext, query: MessagingExtensionQuery
     ) -> MessagingExtensionResponse:
         """
@@ -424,7 +418,7 @@ class TeamsActivityHandler(ActivityHandler):
         """
         raise NotImplementedError("NotImplemented")
 
-    async def handle_teams_messaging_extension_configuration_setting(
+    async def on_teams_messaging_extension_configuration_setting(
         self, turn_context: TurnContext, settings: Any
     ) -> None:
         """
@@ -436,7 +430,7 @@ class TeamsActivityHandler(ActivityHandler):
         """
         raise NotImplementedError("NotImplemented")
 
-    async def handle_teams_messaging_extension_card_button_clicked(
+    async def on_teams_messaging_extension_card_button_clicked(
         self, turn_context: TurnContext, card_data: Any
     ) -> None:
         """
@@ -448,7 +442,7 @@ class TeamsActivityHandler(ActivityHandler):
         """
         raise NotImplementedError("NotImplemented")
 
-    async def handle_teams_task_module_fetch(
+    async def on_teams_task_module_fetch(
         self, turn_context: TurnContext, task_module_request: TaskModuleRequest
     ) -> TaskModuleResponse:
         """
@@ -460,7 +454,7 @@ class TeamsActivityHandler(ActivityHandler):
         """
         raise NotImplementedError("NotImplemented")
 
-    async def handle_teams_task_module_submit(
+    async def on_teams_task_module_submit(
         self, turn_context: TurnContext, task_module_request: TaskModuleRequest
     ) -> TaskModuleResponse:
         """
@@ -472,7 +466,7 @@ class TeamsActivityHandler(ActivityHandler):
         """
         raise NotImplementedError("NotImplemented")
 
-    async def handle_teams_tab_fetch(
+    async def on_teams_tab_fetch(
         self, turn_context: TurnContext, tab_request: TabRequest
     ) -> TabResponse:
         """
@@ -484,7 +478,7 @@ class TeamsActivityHandler(ActivityHandler):
         """
         raise NotImplementedError("NotImplemented")
 
-    async def handle_teams_tab_submit(
+    async def on_teams_tab_submit(
         self, turn_context: TurnContext, tab_submit: TabSubmit
     ) -> TabResponse:
         """
@@ -496,9 +490,7 @@ class TeamsActivityHandler(ActivityHandler):
         """
         raise NotImplementedError("NotImplemented")
 
-    async def dispatch_conversation_update_activity(
-        self, turn_context: TurnContext
-    ) -> None:
+    async def on_conversation_update_activity(self, turn_context: TurnContext):
         """
         Dispatches conversation update activity.
 
@@ -506,15 +498,21 @@ class TeamsActivityHandler(ActivityHandler):
         :return: None
         """
         if turn_context.activity.channel_id == "msteams":
-            channel_data = self._parse_teams_channel_data(
-                turn_context.activity.channel_data
+            channel_data = (
+                TeamsChannelData.model_validate(turn_context.activity.channel_data)
+                if turn_context.activity.channel_data
+                else None
             )
 
             if (
                 turn_context.activity.members_added
                 and len(turn_context.activity.members_added) > 0
             ):
-                return await self.on_teams_members_added(turn_context)
+                return await self.on_teams_members_added_dispatch(
+                    turn_context.activity.members_added,
+                    channel_data.team if channel_data else None,
+                    turn_context,
+                )
 
             if (
                 turn_context.activity.members_removed
@@ -522,10 +520,10 @@ class TeamsActivityHandler(ActivityHandler):
             ):
                 return await self.on_teams_members_removed(turn_context)
 
-            if not channel_data or "eventType" not in channel_data:
-                return await super().dispatch_conversation_update_activity(turn_context)
+            if not channel_data or not channel_data.event_type:
+                return await super().on_conversation_update_activity(turn_context)
 
-            event_type = channel_data.get("eventType")
+            event_type = channel_data.event_type
 
             if event_type == "channelCreated":
                 return await self.on_teams_channel_created(turn_context)
@@ -547,12 +545,10 @@ class TeamsActivityHandler(ActivityHandler):
                 return await self.on_teams_team_restored(turn_context)
             elif event_type == "teamUnarchived":
                 return await self.on_teams_team_unarchived(turn_context)
-            else:
-                return await super().dispatch_conversation_update_activity(turn_context)
-        else:
-            return await super().dispatch_conversation_update_activity(turn_context)
 
-    async def dispatch_message_update_activity(self, turn_context: TurnContext) -> None:
+            return await super().on_conversation_update_activity(turn_context)
+
+    async def on_message_update_activity(self, turn_context: TurnContext):
         """
         Dispatches message update activity.
 
@@ -560,21 +556,22 @@ class TeamsActivityHandler(ActivityHandler):
         :return: None
         """
         if turn_context.activity.channel_id == "msteams":
-            channel_data = self._parse_teams_channel_data(
-                turn_context.activity.channel_data
+            channel_data = channel_data = (
+                TeamsChannelData.model_validate(turn_context.activity.channel_data)
+                if turn_context.activity.channel_data
+                else None
             )
-            event_type = channel_data.get("eventType") if channel_data else None
+
+            event_type = channel_data.event_type if channel_data else None
 
             if event_type == "undeleteMessage":
                 return await self.on_teams_message_undelete(turn_context)
             elif event_type == "editMessage":
                 return await self.on_teams_message_edit(turn_context)
-            else:
-                return await super().dispatch_message_update_activity(turn_context)
-        else:
-            return await super().dispatch_message_update_activity(turn_context)
 
-    async def dispatch_message_delete_activity(self, turn_context: TurnContext) -> None:
+        return await super().on_message_update_activity(turn_context)
+
+    async def on_message_delete_activity(self, turn_context: TurnContext) -> None:
         """
         Dispatches message delete activity.
 
@@ -582,17 +579,18 @@ class TeamsActivityHandler(ActivityHandler):
         :return: None
         """
         if turn_context.activity.channel_id == "msteams":
-            channel_data = self._parse_teams_channel_data(
-                turn_context.activity.channel_data
+            channel_data = channel_data = (
+                TeamsChannelData.model_validate(turn_context.activity.channel_data)
+                if turn_context.activity.channel_data
+                else None
             )
-            event_type = channel_data.get("eventType") if channel_data else None
+
+            event_type = channel_data.event_type if channel_data else None
 
             if event_type == "softDeleteMessage":
                 return await self.on_teams_message_soft_delete(turn_context)
-            else:
-                return await super().dispatch_message_delete_activity(turn_context)
-        else:
-            return await super().dispatch_message_delete_activity(turn_context)
+
+        return await super().on_message_delete_activity(turn_context)
 
     async def on_teams_message_undelete(self, turn_context: TurnContext) -> None:
         """
@@ -601,9 +599,7 @@ class TeamsActivityHandler(ActivityHandler):
         :param turn_context: The context object for the turn.
         :return: None
         """
-        await self._handle_event(
-            turn_context, "TeamsMessageUndelete", self._default_next_event(turn_context)
-        )
+        return
 
     async def on_teams_message_edit(self, turn_context: TurnContext) -> None:
         """
@@ -612,9 +608,7 @@ class TeamsActivityHandler(ActivityHandler):
         :param turn_context: The context object for the turn.
         :return: None
         """
-        await self._handle_event(
-            turn_context, "TeamsMessageEdit", self._default_next_event(turn_context)
-        )
+        return
 
     async def on_teams_message_soft_delete(self, turn_context: TurnContext) -> None:
         """
@@ -623,208 +617,220 @@ class TeamsActivityHandler(ActivityHandler):
         :param turn_context: The context object for the turn.
         :return: None
         """
-        await self._handle_event(
-            turn_context,
-            "TeamsMessageSoftDelete",
-            self._default_next_event(turn_context),
-        )
+        return
 
-    async def on_teams_members_added(self, turn_context: TurnContext) -> None:
+    async def on_teams_members_added_dispatch(
+        self,
+        members_added: List[ChannelAccount],
+        team_info: TeamInfo,
+        turn_context: TurnContext,
+    ) -> None:
+        """
+        Dispatches processing of Teams members added to the conversation.
+        Processes the members_added collection to get full member information when possible.
+
+        :param members_added: The list of members being added to the conversation.
+        :param team_info: The team info object.
+        :param turn_context: The context object for the turn.
+        :return: None
+        """
+        teams_members_added = []
+
+        for member in members_added:
+            # If the member has properties or is the agent/bot being added to the conversation
+            if len(member.properties) or (
+                turn_context.activity.recipient
+                and turn_context.activity.recipient.id == member.id
+            ):
+
+                # Convert the ChannelAccount to TeamsChannelAccount
+                # TODO: Converter between these two classes
+                teams_member = TeamsChannelAccount.model_validate(
+                    member.model_dump(by_alias=True, exclude_unset=True)
+                )
+                teams_members_added.append(teams_member)
+            else:
+                # Try to get the full member details from Teams
+                try:
+                    teams_member = await TeamsInfo.get_member(
+                        turn_context.activity, member.id
+                    )
+                    teams_members_added.append(teams_member)
+                except Exception as err:
+                    # Handle case where conversation is not found
+                    if "ConversationNotFound" in str(err):
+                        teams_channel_account = TeamsChannelAccount(
+                            id=member.id,
+                            name=member.name,
+                            aad_object_id=getattr(member, "aad_object_id", None),
+                            role=getattr(member, "role", None),
+                        )
+                        teams_members_added.append(teams_channel_account)
+                    else:
+                        # Propagate any other errors
+                        raise
+
+        await self.on_teams_members_added(teams_members_added, team_info, turn_context)
+
+    async def on_teams_members_added(
+        self,
+        teams_members_added: List[TeamsChannelAccount],
+        team_info: TeamInfo,
+        turn_context: TurnContext,
+    ) -> None:
         """
         Handles Teams members added.
 
         :param turn_context: The context object for the turn.
         :return: None
         """
-        if (
-            hasattr(self, "handlers")
-            and "TeamsMembersAdded" in self.handlers
-            and self.handlers["TeamsMembersAdded"]
-        ):
-            if not turn_context.activity or not turn_context.activity.members_added:
-                raise ValueError("OnTeamsMemberAdded: context.activity is undefined")
+        self.on_members_added_activity(teams_members_added, turn_context)
 
-            for i, channel_account in enumerate(turn_context.activity.members_added):
-                if (
-                    hasattr(channel_account, "given_name")
-                    or hasattr(channel_account, "surname")
-                    or hasattr(channel_account, "email")
-                    or hasattr(channel_account, "user_principal_name")
-                    or (
-                        turn_context.activity.recipient
-                        and turn_context.activity.recipient.id == channel_account.id
-                    )
-                ):
-                    continue
-
-                try:
-                    turn_context.activity.members_added[i] = (
-                        await TeamsConnectorClient.get_member(
-                            turn_context.activity, channel_account.id
-                        )
-                    )
-                except Exception as err:
-                    err_body = getattr(err, "body", None)
-                    err_code = (
-                        (err_body and err_body.get("error", {}).get("code", ""))
-                        if err_body
-                        else ""
-                    )
-
-                    if err_code == "ConversationNotFound":
-                        teams_channel_account = TeamsChannelAccount(
-                            id=channel_account.id,
-                            name=channel_account.name,
-                            aad_object_id=channel_account.aad_object_id,
-                            role=channel_account.role,
-                        )
-                        turn_context.activity.members_added[i] = teams_channel_account
-                    else:
-                        raise
-
-            await self._handle_event(
-                turn_context,
-                "TeamsMembersAdded",
-                self._default_next_event(turn_context),
+    async def on_teams_members_removed_dispatch(
+        self,
+        members_removed: List[ChannelAccount],
+        team_info: TeamInfo,
+        turn_context: TurnContext,
+    ) -> None:
+        """
+        Dispatches processing of Teams members removed from the conversation.
+        """
+        teams_members_removed = []
+        for member in members_removed:
+            teams_members_removed.append(
+                TeamsChannelAccount.model_validate(
+                    member.model_dump(by_alias=True, exclude_unset=True)
+                )
             )
-        else:
-            await self._handle_event(
-                turn_context, "MembersAdded", self._default_next_event(turn_context)
-            )
+        return await self.on_teams_members_removed(
+            teams_members_removed, team_info, turn_context
+        )
 
-    async def on_teams_members_removed(self, turn_context: TurnContext) -> None:
+    async def on_teams_members_removed(
+        self,
+        teams_members_removed: List[TeamsChannelAccount],
+        team_info: TeamInfo,
+        turn_context: TurnContext,
+    ) -> None:
         """
         Handles Teams members removed.
 
         :param turn_context: The context object for the turn.
         :return: None
         """
-        if (
-            hasattr(self, "handlers")
-            and "TeamsMembersRemoved" in self.handlers
-            and self.handlers["TeamsMembersRemoved"]
-        ):
-            await self._handle_event(
-                turn_context,
-                "TeamsMembersRemoved",
-                self._default_next_event(turn_context),
-            )
-        else:
-            await self._handle_event(
-                turn_context, "MembersRemoved", self._default_next_event(turn_context)
-            )
+        self.on_members_removed_activity(teams_members_removed, turn_context)
 
-    async def on_teams_channel_created(self, turn_context: TurnContext) -> None:
+    async def on_teams_channel_created(
+        self, channel_info: ChannelInfo, team_info: TeamInfo, turn_context: TurnContext
+    ) -> None:
         """
         Handles Teams channel created.
 
         :param turn_context: The context object for the turn.
         :return: None
         """
-        await self._handle_event(
-            turn_context, "TeamsChannelCreated", self._default_next_event(turn_context)
-        )
+        return
 
-    async def on_teams_channel_deleted(self, turn_context: TurnContext) -> None:
+    async def on_teams_channel_deleted(
+        self, channel_info: ChannelInfo, team_info: TeamInfo, turn_context: TurnContext
+    ) -> None:
         """
         Handles Teams channel deleted.
 
         :param turn_context: The context object for the turn.
         :return: None
         """
-        await self._handle_event(
-            turn_context, "TeamsChannelDeleted", self._default_next_event(turn_context)
-        )
+        return
 
-    async def on_teams_channel_renamed(self, turn_context: TurnContext) -> None:
+    async def on_teams_channel_renamed(
+        self, channel_info: ChannelInfo, team_info: TeamInfo, turn_context: TurnContext
+    ) -> None:
         """
         Handles Teams channel renamed.
 
         :param turn_context: The context object for the turn.
         :return: None
         """
-        await self._handle_event(
-            turn_context, "TeamsChannelRenamed", self._default_next_event(turn_context)
-        )
+        return
 
-    async def on_teams_team_archived(self, turn_context: TurnContext) -> None:
+    async def on_teams_team_archived(
+        self, team_info: TeamInfo, turn_context: TurnContext
+    ) -> None:
         """
         Handles Teams team archived.
 
         :param turn_context: The context object for the turn.
         :return: None
         """
-        await self._handle_event(
-            turn_context, "TeamsTeamArchived", self._default_next_event(turn_context)
-        )
+        return
 
-    async def on_teams_team_deleted(self, turn_context: TurnContext) -> None:
+    async def on_teams_team_deleted(
+        self, team_info: TeamInfo, turn_context: TurnContext
+    ) -> None:
         """
         Handles Teams team deleted.
 
         :param turn_context: The context object for the turn.
         :return: None
         """
-        await self._handle_event(
-            turn_context, "TeamsTeamDeleted", self._default_next_event(turn_context)
-        )
+        return
 
-    async def on_teams_team_hard_deleted(self, turn_context: TurnContext) -> None:
+    async def on_teams_team_hard_deleted(
+        self, team_info: TeamInfo, turn_context: TurnContext
+    ) -> None:
         """
         Handles Teams team hard deleted.
 
         :param turn_context: The context object for the turn.
         :return: None
         """
-        await self._handle_event(
-            turn_context, "TeamsTeamHardDeleted", self._default_next_event(turn_context)
-        )
+        return
 
-    async def on_teams_channel_restored(self, turn_context: TurnContext) -> None:
+    async def on_teams_channel_restored(
+        self, channel_info: ChannelInfo, team_info: TeamInfo, turn_context: TurnContext
+    ) -> None:
         """
         Handles Teams channel restored.
 
         :param turn_context: The context object for the turn.
         :return: None
         """
-        await self._handle_event(
-            turn_context, "TeamsChannelRestored", self._default_next_event(turn_context)
-        )
+        return
 
-    async def on_teams_team_renamed(self, turn_context: TurnContext) -> None:
+    async def on_teams_team_renamed(
+        self, team_info: TeamInfo, turn_context: TurnContext
+    ) -> None:
         """
         Handles Teams team renamed.
 
         :param turn_context: The context object for the turn.
         :return: None
         """
-        await self._handle_event(
-            turn_context, "TeamsTeamRenamed", self._default_next_event(turn_context)
-        )
+        return
 
-    async def on_teams_team_restored(self, turn_context: TurnContext) -> None:
+    async def on_teams_team_restored(
+        self, team_info: TeamInfo, turn_context: TurnContext
+    ) -> None:
         """
         Handles Teams team restored.
 
         :param turn_context: The context object for the turn.
         :return: None
         """
-        await self._handle_event(
-            turn_context, "TeamsTeamRestored", self._default_next_event(turn_context)
-        )
+        return
 
-    async def on_teams_team_unarchived(self, turn_context: TurnContext) -> None:
+    async def on_teams_team_unarchived(
+        self, team_info: TeamInfo, turn_context: TurnContext
+    ) -> None:
         """
         Handles Teams team unarchived.
 
         :param turn_context: The context object for the turn.
         :return: None
         """
-        await self._handle_event(
-            turn_context, "TeamsTeamUnarchived", self._default_next_event(turn_context)
-        )
+        return
 
-    async def dispatch_event_activity(self, turn_context: TurnContext) -> None:
+    async def on_event_activity(self, turn_context: TurnContext) -> None:
         """
         Dispatches event activity.
 
@@ -849,43 +855,43 @@ class TeamsActivityHandler(ActivityHandler):
             ):
                 return await self.on_teams_meeting_participants_leave(turn_context)
 
-        return await super().dispatch_event_activity(turn_context)
+        return await super().on_event_activity(turn_context)
 
-    async def on_teams_meeting_start(self, turn_context: TurnContext) -> None:
+    async def on_teams_meeting_start(
+        self, meeting: MeetingStartEventDetails, turn_context: TurnContext
+    ) -> None:
         """
         Handles Teams meeting start.
 
         :param turn_context: The context object for the turn.
         :return: None
         """
-        await self._handle_event(
-            turn_context, "TeamsMeetingStart", self._default_next_event(turn_context)
-        )
+        return
 
-    async def on_teams_meeting_end(self, turn_context: TurnContext) -> None:
+    async def on_teams_meeting_end(
+        self, meeting: MeetingEndEventDetails, turn_context: TurnContext
+    ) -> None:
         """
         Handles Teams meeting end.
 
         :param turn_context: The context object for the turn.
         :return: None
         """
-        await self._handle_event(
-            turn_context, "TeamsMeetingEnd", self._default_next_event(turn_context)
-        )
+        return
 
-    async def on_teams_read_receipt(self, turn_context: TurnContext) -> None:
+    async def on_teams_read_receipt(
+        self, read_receipt: ReadReceiptInfo, turn_context: TurnContext
+    ) -> None:
         """
         Handles Teams read receipt.
 
         :param turn_context: The context object for the turn.
         :return: None
         """
-        await self._handle_event(
-            turn_context, "TeamsReadReceipt", self._default_next_event(turn_context)
-        )
+        return
 
     async def on_teams_meeting_participants_join(
-        self, turn_context: TurnContext
+        self, meeting: MeetingParticipantsEventDetails, turn_context: TurnContext
     ) -> None:
         """
         Handles Teams meeting participants join.
@@ -893,14 +899,10 @@ class TeamsActivityHandler(ActivityHandler):
         :param turn_context: The context object for the turn.
         :return: None
         """
-        await self._handle_event(
-            turn_context,
-            "TeamsMeetingParticipantsJoin",
-            self._default_next_event(turn_context),
-        )
+        return
 
     async def on_teams_meeting_participants_leave(
-        self, turn_context: TurnContext
+        self, meeting: MeetingParticipantsEventDetails, turn_context: TurnContext
     ) -> None:
         """
         Handles Teams meeting participants leave.
@@ -908,587 +910,4 @@ class TeamsActivityHandler(ActivityHandler):
         :param turn_context: The context object for the turn.
         :return: None
         """
-        await self._handle_event(
-            turn_context,
-            "TeamsMeetingParticipantsLeave",
-            self._default_next_event(turn_context),
-        )
-
-    def on_teams_message_undelete_event(
-        self,
-        handler: Callable[
-            [TurnContext, Callable[[], Awaitable[None]]], Awaitable[None]
-        ],
-    ) -> "TeamsActivityHandler":
-        """
-        Registers a handler for Teams message undelete event.
-
-        :param handler: The handler function.
-        :return: The TeamsActivityHandler instance.
-        """
-        return self.on(
-            "TeamsMessageUndelete", lambda context, next_: handler(context, next_)
-        )
-
-    def on_teams_message_edit_event(
-        self,
-        handler: Callable[
-            [TurnContext, Callable[[], Awaitable[None]]], Awaitable[None]
-        ],
-    ) -> "TeamsActivityHandler":
-        """
-        Registers a handler for Teams message edit event.
-
-        :param handler: The handler function.
-        :return: The TeamsActivityHandler instance.
-        """
-        return self.on(
-            "TeamsMessageEdit", lambda context, next_: handler(context, next_)
-        )
-
-    def on_teams_message_soft_delete_event(
-        self,
-        handler: Callable[
-            [TurnContext, Callable[[], Awaitable[None]]], Awaitable[None]
-        ],
-    ) -> "TeamsActivityHandler":
-        """
-        Registers a handler for Teams message soft delete event.
-
-        :param handler: The handler function.
-        :return: The TeamsActivityHandler instance.
-        """
-        return self.on(
-            "TeamsMessageSoftDelete", lambda context, next_: handler(context, next_)
-        )
-
-    def on_teams_members_added_event(
-        self,
-        handler: Callable[
-            [
-                List[TeamsChannelAccount],
-                TeamInfo,
-                TurnContext,
-                Callable[[], Awaitable[None]],
-            ],
-            Awaitable[None],
-        ],
-    ) -> "TeamsActivityHandler":
-        """
-        Registers a handler for Teams members added event.
-
-        :param handler: The handler function.
-        :return: The TeamsActivityHandler instance.
-        """
-        return self.on(
-            "TeamsMembersAdded",
-            lambda context, next_: handler(
-                context.activity.members_added or [],
-                self._get_teams_info(context.activity.channel_data),
-                context,
-                next_,
-            ),
-        )
-
-    def on_teams_members_removed_event(
-        self,
-        handler: Callable[
-            [
-                List[TeamsChannelAccount],
-                TeamInfo,
-                TurnContext,
-                Callable[[], Awaitable[None]],
-            ],
-            Awaitable[None],
-        ],
-    ) -> "TeamsActivityHandler":
-        """
-        Registers a handler for Teams members removed event.
-
-        :param handler: The handler function.
-        :return: The TeamsActivityHandler instance.
-        """
-        return self.on(
-            "TeamsMembersRemoved",
-            lambda context, next_: handler(
-                context.activity.members_removed or [],
-                self._get_teams_info(context.activity.channel_data),
-                context,
-                next_,
-            ),
-        )
-
-    def on_teams_channel_created_event(
-        self,
-        handler: Callable[
-            [ChannelInfo, TeamInfo, TurnContext, Callable[[], Awaitable[None]]],
-            Awaitable[None],
-        ],
-    ) -> "TeamsActivityHandler":
-        """
-        Registers a handler for Teams channel created event.
-
-        :param handler: The handler function.
-        :return: The TeamsActivityHandler instance.
-        """
-        return self.on(
-            "TeamsChannelCreated",
-            lambda context, next_: handler(
-                self._get_channel_info(context.activity.channel_data),
-                self._get_teams_info(context.activity.channel_data),
-                context,
-                next_,
-            ),
-        )
-
-    def on_teams_channel_deleted_event(
-        self,
-        handler: Callable[
-            [ChannelInfo, TeamInfo, TurnContext, Callable[[], Awaitable[None]]],
-            Awaitable[None],
-        ],
-    ) -> "TeamsActivityHandler":
-        """
-        Registers a handler for Teams channel deleted event.
-
-        :param handler: The handler function.
-        :return: The TeamsActivityHandler instance.
-        """
-        return self.on(
-            "TeamsChannelDeleted",
-            lambda context, next_: handler(
-                self._get_channel_info(context.activity.channel_data),
-                self._get_teams_info(context.activity.channel_data),
-                context,
-                next_,
-            ),
-        )
-
-    def on_teams_channel_renamed_event(
-        self,
-        handler: Callable[
-            [ChannelInfo, TeamInfo, TurnContext, Callable[[], Awaitable[None]]],
-            Awaitable[None],
-        ],
-    ) -> "TeamsActivityHandler":
-        """
-        Registers a handler for Teams channel renamed event.
-
-        :param handler: The handler function.
-        :return: The TeamsActivityHandler instance.
-        """
-        return self.on(
-            "TeamsChannelRenamed",
-            lambda context, next_: handler(
-                self._get_channel_info(context.activity.channel_data),
-                self._get_teams_info(context.activity.channel_data),
-                context,
-                next_,
-            ),
-        )
-
-    def on_teams_team_archived_event(
-        self,
-        handler: Callable[
-            [TeamInfo, TurnContext, Callable[[], Awaitable[None]]], Awaitable[None]
-        ],
-    ) -> "TeamsActivityHandler":
-        """
-        Registers a handler for Teams team archived event.
-
-        :param handler: The handler function.
-        :return: The TeamsActivityHandler instance.
-        """
-        return self.on(
-            "TeamsTeamArchived",
-            lambda context, next_: handler(
-                self._get_teams_info(context.activity.channel_data), context, next_
-            ),
-        )
-
-    def on_teams_team_deleted_event(
-        self,
-        handler: Callable[
-            [TeamInfo, TurnContext, Callable[[], Awaitable[None]]], Awaitable[None]
-        ],
-    ) -> "TeamsActivityHandler":
-        """
-        Registers a handler for Teams team deleted event.
-
-        :param handler: The handler function.
-        :return: The TeamsActivityHandler instance.
-        """
-        return self.on(
-            "TeamsTeamDeleted",
-            lambda context, next_: handler(
-                self._get_teams_info(context.activity.channel_data), context, next_
-            ),
-        )
-
-    def on_teams_team_hard_deleted_event(
-        self,
-        handler: Callable[
-            [TeamInfo, TurnContext, Callable[[], Awaitable[None]]], Awaitable[None]
-        ],
-    ) -> "TeamsActivityHandler":
-        """
-        Registers a handler for Teams team hard deleted event.
-
-        :param handler: The handler function.
-        :return: The TeamsActivityHandler instance.
-        """
-        return self.on(
-            "TeamsTeamHardDeleted",
-            lambda context, next_: handler(
-                self._get_teams_info(context.activity.channel_data), context, next_
-            ),
-        )
-
-    def on_teams_channel_restored_event(
-        self,
-        handler: Callable[
-            [ChannelInfo, TeamInfo, TurnContext, Callable[[], Awaitable[None]]],
-            Awaitable[None],
-        ],
-    ) -> "TeamsActivityHandler":
-        """
-        Registers a handler for Teams channel restored event.
-
-        :param handler: The handler function.
-        :return: The TeamsActivityHandler instance.
-        """
-        return self.on(
-            "TeamsChannelRestored",
-            lambda context, next_: handler(
-                self._get_channel_info(context.activity.channel_data),
-                self._get_teams_info(context.activity.channel_data),
-                context,
-                next_,
-            ),
-        )
-
-    def on_teams_team_renamed_event(
-        self,
-        handler: Callable[
-            [TeamInfo, TurnContext, Callable[[], Awaitable[None]]], Awaitable[None]
-        ],
-    ) -> "TeamsActivityHandler":
-        """
-        Registers a handler for Teams team renamed event.
-
-        :param handler: The handler function.
-        :return: The TeamsActivityHandler instance.
-        """
-        return self.on(
-            "TeamsTeamRenamed",
-            lambda context, next_: handler(
-                self._get_teams_info(context.activity.channel_data), context, next_
-            ),
-        )
-
-    def on_teams_team_restored_event(
-        self,
-        handler: Callable[
-            [TeamInfo, TurnContext, Callable[[], Awaitable[None]]], Awaitable[None]
-        ],
-    ) -> "TeamsActivityHandler":
-        """
-        Registers a handler for Teams team restored event.
-
-        :param handler: The handler function.
-        :return: The TeamsActivityHandler instance.
-        """
-        return self.on(
-            "TeamsTeamRestored",
-            lambda context, next_: handler(
-                self._get_teams_info(context.activity.channel_data), context, next_
-            ),
-        )
-
-    def on_teams_team_unarchived_event(
-        self,
-        handler: Callable[
-            [TeamInfo, TurnContext, Callable[[], Awaitable[None]]], Awaitable[None]
-        ],
-    ) -> "TeamsActivityHandler":
-        """
-        Registers a handler for Teams team unarchived event.
-
-        :param handler: The handler function.
-        :return: The TeamsActivityHandler instance.
-        """
-        return self.on(
-            "TeamsTeamUnarchived",
-            lambda context, next_: handler(
-                self._get_teams_info(context.activity.channel_data), context, next_
-            ),
-        )
-
-    def on_teams_meeting_start_event(
-        self,
-        handler: Callable[
-            [MeetingStartEventDetails, TurnContext, Callable[[], Awaitable[None]]],
-            Awaitable[None],
-        ],
-    ) -> "TeamsActivityHandler":
-        """
-        Registers a handler for Teams meeting start event.
-
-        :param handler: The handler function.
-        :return: The TeamsActivityHandler instance.
-        """
-        return self.on(
-            "TeamsMeetingStart",
-            lambda context, next_: handler(
-                self._parse_teams_meeting_start(context.activity.value), context, next_
-            ),
-        )
-
-    def on_teams_meeting_end_event(
-        self,
-        handler: Callable[
-            [MeetingEndEventDetails, TurnContext, Callable[[], Awaitable[None]]],
-            Awaitable[None],
-        ],
-    ) -> "TeamsActivityHandler":
-        """
-        Registers a handler for Teams meeting end event.
-
-        :param handler: The handler function.
-        :return: The TeamsActivityHandler instance.
-        """
-        return self.on(
-            "TeamsMeetingEnd",
-            lambda context, next_: handler(
-                self._parse_teams_meeting_end(context.activity.value), context, next_
-            ),
-        )
-
-    def on_teams_read_receipt_event(
-        self,
-        handler: Callable[
-            [ReadReceiptInfo, TurnContext, Callable[[], Awaitable[None]]],
-            Awaitable[None],
-        ],
-    ) -> "TeamsActivityHandler":
-        """
-        Registers a handler for Teams read receipt event.
-
-        :param handler: The handler function.
-        :return: The TeamsActivityHandler instance.
-        """
-        return self.on(
-            "TeamsReadReceipt",
-            lambda context, next_: handler(
-                ReadReceiptInfo(context.activity.value.get("lastReadMessageId", "")),
-                context,
-                next_,
-            ),
-        )
-
-    def on_teams_meeting_participants_join_event(
-        self,
-        handler: Callable[
-            [
-                MeetingParticipantsEventDetails,
-                TurnContext,
-                Callable[[], Awaitable[None]],
-            ],
-            Awaitable[None],
-        ],
-    ) -> "TeamsActivityHandler":
-        """
-        Registers a handler for Teams meeting participants join event.
-
-        :param handler: The handler function.
-        :return: The TeamsActivityHandler instance.
-        """
-        return self.on(
-            "TeamsMeetingParticipantsJoin",
-            lambda context, next_: handler(
-                self._parse_teams_meeting_participants_event(context.activity.value),
-                context,
-                next_,
-            ),
-        )
-
-    def on_teams_meeting_participants_leave_event(
-        self,
-        handler: Callable[
-            [
-                MeetingParticipantsEventDetails,
-                TurnContext,
-                Callable[[], Awaitable[None]],
-            ],
-            Awaitable[None],
-        ],
-    ) -> "TeamsActivityHandler":
-        """
-        Registers a handler for Teams meeting participants leave event.
-
-        :param handler: The handler function.
-        :return: The TeamsActivityHandler instance.
-        """
-        return self.on(
-            "TeamsMeetingParticipantsLeave",
-            lambda context, next_: handler(
-                self._parse_teams_meeting_participants_event(context.activity.value),
-                context,
-                next_,
-            ),
-        )
-
-    def _create_invoke_response(self, body: Any = None) -> InvokeResponse:
-        """
-        Creates an invoke response.
-
-        :param body: The response body.
-        :return: An InvokeResponse.
-        """
-        return InvokeResponse(
-            status=int(HTTPStatus.OK),
-            body=body,
-        )
-
-    def _parse_messaging_extension_query(self, value: Any) -> MessagingExtensionQuery:
-        """
-        Parses a messaging extension query from the activity value.
-
-        :param value: The activity value.
-        :return: A MessagingExtensionQuery.
-        """
-        if isinstance(value, dict):
-            return MessagingExtensionQuery(**value)
-        return value
-
-    def _parse_teams_channel_data(self, channel_data: Any) -> Dict[str, Any]:
-        """
-        Parses Teams channel data.
-
-        :param channel_data: The channel data.
-        :return: A dictionary containing the parsed channel data.
-        """
-        if not channel_data:
-            return {}
-
-        if isinstance(channel_data, str):
-            try:
-                return json.loads(channel_data)
-            except:
-                return {}
-
-        return channel_data if isinstance(channel_data, dict) else {}
-
-    def _get_teams_info(self, channel_data: Any) -> TeamInfo:
-        """
-        Gets Teams info from channel data.
-
-        :param channel_data: The channel data.
-        :return: A TeamInfo object.
-        """
-        data = self._parse_teams_channel_data(channel_data)
-        return data.get("team", {})
-
-    def _get_channel_info(self, channel_data: Any) -> ChannelInfo:
-        """
-        Gets channel info from channel data.
-
-        :param channel_data: The channel data.
-        :return: A ChannelInfo object.
-        """
-        data = self._parse_teams_channel_data(channel_data)
-        return data.get("channel", {})
-
-    def _parse_teams_meeting_start(self, value: Any) -> MeetingStartEventDetails:
-        """
-        Parses Teams meeting start event details.
-
-        :param value: The event value.
-        :return: A MeetingStartEventDetails object.
-        """
-        if not value:
-            raise ValueError("Meeting start event value is missing")
-
-        return MeetingStartEventDetails(
-            id=value.get("Id", ""),
-            join_url=value.get("JoinUrl", ""),
-            meeting_type=value.get("MeetingType", ""),
-            title=value.get("Title", ""),
-            start_time=(
-                datetime.fromisoformat(value.get("StartTime"))
-                if value.get("StartTime")
-                else None
-            ),
-        )
-
-    def _parse_teams_meeting_end(self, value: Any) -> MeetingEndEventDetails:
-        """
-        Parses Teams meeting end event details.
-
-        :param value: The event value.
-        :return: A MeetingEndEventDetails object.
-        """
-        if not value:
-            raise ValueError("Meeting end event value is missing")
-
-        return MeetingEndEventDetails(
-            id=value.get("Id", ""),
-            join_url=value.get("JoinUrl", ""),
-            meeting_type=value.get("MeetingType", ""),
-            title=value.get("Title", ""),
-            end_time=(
-                datetime.fromisoformat(value.get("EndTime"))
-                if value.get("EndTime")
-                else None
-            ),
-        )
-
-    def _parse_teams_meeting_participants_event(
-        self, value: Any
-    ) -> MeetingParticipantsEventDetails:
-        """
-        Parses Teams meeting participants event details.
-
-        :param value: The event value.
-        :return: A MeetingParticipantsEventDetails object.
-        """
-        if not value:
-            raise ValueError("Meeting participants event value is missing")
-
-        return MeetingParticipantsEventDetails(members=value.get("members", []))
-
-    def _default_next_event(
-        self, context: TurnContext
-    ) -> Callable[[], Awaitable[None]]:
-        """
-        Creates a default next event handler.
-
-        :param context: The context object for the turn.
-        :return: A callable that returns an awaitable.
-        """
-
-        async def next_event():
-            # No-op default next event handler
-            pass
-
-        return next_event
-
-    async def _handle_event(
-        self,
-        context: TurnContext,
-        event_name: str,
-        next_event: Callable[[], Awaitable[None]],
-    ) -> None:
-        """
-        Helper method for handling events.
-
-        :param context: The context object for the turn.
-        :param event_name: The name of the event.
-        :param next_event: The next event handler.
-        :return: None
-        """
-        if hasattr(self, "handlers") and event_name in self.handlers:
-            for handler in self.handlers[event_name]:
-                await handler(context, next_event)
-        else:
-            await next_event()
+        return

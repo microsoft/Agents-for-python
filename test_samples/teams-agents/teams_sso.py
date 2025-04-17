@@ -12,7 +12,9 @@ from graph_client import GraphClient
 
 
 class TeamsSso(TeamsActivityHandler):
-    def __init__(self, user_state: UserState, connection_name: str = None, app_id: str = None):
+    def __init__(
+        self, user_state: UserState, connection_name: str = None, app_id: str = None
+    ):
         """
         Initializes a new instance of the TeamsSso class.
         :param user_state: The user state.
@@ -27,11 +29,13 @@ class TeamsSso(TeamsActivityHandler):
     ):
         for member in members_added:
             if member.id != turn_context.activity.recipient.id:
-                await turn_context.send_activity("Hello and welcome to Teams SSO sample!")
+                await turn_context.send_activity(
+                    "Hello and welcome to Teams SSO sample!"
+                )
 
     async def on_message_activity(self, turn_context: TurnContext):
         text = turn_context.activity.text.strip() if turn_context.activity.text else ""
-        
+
         if text == "login":
             await self.oauth_flow.get_oauth_token(turn_context)
         elif text == "logout":

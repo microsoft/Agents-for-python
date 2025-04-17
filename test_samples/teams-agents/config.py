@@ -11,5 +11,7 @@ class DefaultConfig(MsalAuthConfiguration):
         self.CLIENT_ID = "" or environ.get("CLIENT_ID")
         self.CLIENT_SECRET = "" or environ.get("CLIENT_SECRET")
         self.CONNECTION_NAME = "" or environ.get("CONNECTION_NAME")
-        self.AGENT_TYPE = environ.get("AGENT_TYPE", "TeamsHandler")  # Default to TeamsHandler
+        self.AGENT_TYPE = environ.get(
+            "AGENT_TYPE", "TeamsHandler"
+        )  # Default to TeamsHandler
         self.PORT = 3978

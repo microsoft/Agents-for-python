@@ -1,7 +1,7 @@
 # Copyright (c) Microsoft Corporation. All rights reserved.
 # Licensed under the MIT License.
 
-from dataclasses import Field
+from pydantic import Field
 from ..agents_model import AgentsModel
 from typing import List
 from .o365_connector_card_open_uri_target import O365ConnectorCardOpenUriTarget

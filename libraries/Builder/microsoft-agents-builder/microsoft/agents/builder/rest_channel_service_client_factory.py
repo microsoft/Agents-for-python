@@ -11,7 +11,7 @@ from microsoft.agents.connector import (
     ConnectorClientBase,
     UserTokenClient,
 )
-from microsoft.agents.connector.client import ConnectorClient
+from microsoft.agents.connector.teams import TeamsConnectorClient
 
 from .channel_service_client_factory_base import ChannelServiceClientFactoryBase
 
@@ -57,7 +57,7 @@ class RestChannelServiceClientFactory(ChannelServiceClientFactoryBase):
             audience, scopes or [f"{audience}/.default"]
         )
 
-        return ConnectorClient(
+        return TeamsConnectorClient(
             endpoint=service_url,
             token=token,
         )

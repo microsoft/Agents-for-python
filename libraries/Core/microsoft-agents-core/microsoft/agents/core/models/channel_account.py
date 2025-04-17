@@ -1,3 +1,6 @@
+from typing import Any
+
+from pydantic import ConfigDict
 from .agents_model import AgentsModel
 from ._type_aliases import NonEmptyString
 
@@ -17,8 +20,14 @@ class ChannelAccount(AgentsModel):
     :type role: str or ~microsoft.agents.protocols.models.RoleTypes
     """
 
+    model_config = ConfigDict(extra="allow")
+
     id: NonEmptyString
     name: str = None
     aad_object_id: NonEmptyString = None
     role: NonEmptyString = None
-    properties: object = None
+
+    @property
+    def properties(self) -> dict[str, Any]:
+        """Returns the set of properties that are not None."""
+        return self.model_extra

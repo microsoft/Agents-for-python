@@ -18,7 +18,7 @@ from microsoft.agents.core import (
     TurnContextProtocol as TurnContext,
 )
 from microsoft.agents.storage import StoreItem
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel
 
 from .message_factory import MessageFactory
 from .card_factory import CardFactory
