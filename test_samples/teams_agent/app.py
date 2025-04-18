@@ -8,7 +8,7 @@ from aiohttp.web import Application, Request, Response, run_app, static
 
 from microsoft.agents.builder import RestChannelServiceClientFactory
 from microsoft.agents.builder.state import UserState
-from microsoft.agents.hosting.aiohttp import CloudAdapter, jwt_authorization_middleware
+from microsoft.agents.hosting.aiohttp import CloudAdapter, jwt_authorization_decorator
 from microsoft.agents.authorization import (
     Connections,
     AccessTokenProviderBase,
@@ -68,6 +68,7 @@ AGENT = create_agent(CONFIG.AGENT_TYPE)
 
 
 # Listen for incoming requests on /api/messages
+@jwt_authorization_decorator
 async def messages(req: Request) -> Response:
     adapter: CloudAdapter = req.app["adapter"]
     return await adapter.process(req, AGENT)
@@ -104,7 +105,7 @@ async def render_page(req: Request, page_name: str) -> Response:
         return Response(text="Page not found", status=404)
 
 
-APP = Application(middlewares=[jwt_authorization_middleware])
+APP = Application()
 APP.router.add_post("/api/messages", messages)
 APP.router.add_get("/Youtube", youtube)
 APP.router.add_get("/CustomForm", custom_form)

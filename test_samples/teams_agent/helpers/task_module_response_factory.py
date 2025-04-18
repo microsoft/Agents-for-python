@@ -37,11 +37,10 @@ class TaskModuleResponseFactory:
         Returns:
             A TaskModuleResponse instance.
         """
-        task_module_response_base = TaskModuleResponseBase(
-            type="continue", value=task_info
-        )
+        info = task_info.model_dump(by_alias=True, exclude_none=True)
+        task_module_response_base = TaskModuleResponseBase(task="continue", value=info)
 
-        return TaskModuleResponse(type=task_module_response_base)
+        return TaskModuleResponse(task=task_module_response_base)
 
     @staticmethod
     def create_message_response(message: str) -> TaskModuleResponse:
@@ -58,4 +57,4 @@ class TaskModuleResponseFactory:
             type="message", value=message
         )
 
-        return TaskModuleResponse(type=task_module_response_base)
+        return TaskModuleResponse(task=task_module_response_base)

@@ -84,8 +84,9 @@ class ActivityHandler(Agent):
             if invoke_response and not turn_context.turn_state.get(
                 ActivityTypes.invoke_response
             ):
+                response = invoke_response.model_dump(by_alias=True, exclude_none=True)
                 await turn_context.send_activity(
-                    Activity(value=invoke_response, type=ActivityTypes.invoke_response)
+                    Activity(value=response, type=ActivityTypes.invoke_response)
                 )
         elif turn_context.activity.type == ActivityTypes.end_of_conversation:
             await self.on_end_of_conversation_activity(turn_context)

@@ -1,8 +1,13 @@
 import json
+from os import getenv
 
 from microsoft.agents.builder import MessageFactory, TurnContext
 from microsoft.agents.core.models import ChannelAccount, Attachment
-from microsoft.agents.core.models.teams import TaskModuleResponse, TaskModuleTaskInfo
+from microsoft.agents.core.models.teams import (
+    TaskModuleResponse,
+    TaskModuleTaskInfo,
+    TaskModuleRequest,
+)
 from microsoft.agents.hosting.teams import (
     TeamsActivityHandler,
     TeamsInfo,
@@ -51,23 +56,29 @@ class TeamsMultiFeature(TeamsActivityHandler):
             )
 
     async def on_teams_task_module_fetch(
-        self, turn_context: TurnContext, task_module_request
+        self, turn_context: TurnContext, task_module_request: TaskModuleRequest
     ) -> TaskModuleResponse:
+        base_url = getenv("BASE_URL")
         # Handle task module requests
         task_module_type = task_module_request.data.get("taskModule")
         task_info: TaskModuleTaskInfo = None
 
-        if task_module_type == TaskModuleIds.YouTube:
+        if task_module_type:
+            task_module_type = task_module_type.lower()
+
+        if task_module_type == TaskModuleIds.YouTube.lower():
             task_info = self._set_task_info(TaskModuleUIConstants.YouTube)
-            task_info.url = task_info.fallback_url = "https://localhost:3978/Youtube"
-        elif task_module_type == TaskModuleIds.AdaptiveCard:
+            task_info.url = task_info.fallback_url = f"{base_url}/Youtube"
+        elif task_module_type == TaskModuleIds.AdaptiveCard.lower():
             task_info = self._set_task_info(TaskModuleUIConstants.AdaptiveCard)
             task_info.card = self._get_adaptive_card_content()
-        elif task_module_type == TaskModuleIds.CustomForm:
+        elif task_module_type == TaskModuleIds.CustomForm.lower():
             task_info = self._set_task_info(TaskModuleUIConstants.CustomForm)
-            task_info.url = task_info.fallback_url = "https://localhost:3978/CustomForm"
+            task_info.url = task_info.fallback_url = f"{base_url}/CustomForm"
 
-        return TaskModuleResponseFactory.to_task_module_response(task_info)
+        response = TaskModuleResponseFactory.to_task_module_response(task_info)
+
+        return response
 
     async def on_teams_task_module_submit(
         self, turn_context: TurnContext, task_module_request
@@ -360,7 +371,7 @@ class TeamsMultiFeature(TeamsActivityHandler):
 
     def _get_adaptive_card_content(self):
         """Get a basic adaptive card content"""
-        return {
+        attachment = {
             "type": "AdaptiveCard",
             "$schema": "http://adaptivecards.io/schemas/adaptive-card.json",
             "version": "1.3",
@@ -407,6 +418,9 @@ class TeamsMultiFeature(TeamsActivityHandler):
                 }
             ],
         }
+
+        # TODO: Fix card creation
+        return Attachment.model_validate(attachment)
 
     def _set_task_info(self, ui_constans: UISettings) -> TaskModuleTaskInfo:
         """Set task info for the task module"""

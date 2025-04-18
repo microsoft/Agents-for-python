@@ -11,10 +11,10 @@ class TaskModuleResponse(AgentsModel):
     """Envelope for Task Module Response.
 
     :param task: The JSON for the Adaptive card to appear in the task module.
-    :type task: ~botframework.connector.teams.models.TaskModuleResponseBase
+    :task task: ~botframework.connector.teams.models.TaskModuleResponseBase
     :param cache_info: CacheInfo for this TaskModuleResponse.
-    :type cache_info: ~botframework.connector.teams.models.CacheInfo
+    :task cache_info: ~botframework.connector.teams.models.CacheInfo
     """
 
-    type: TaskModuleResponseBase = None
+    task: TaskModuleResponseBase = None
     cache_info: CacheInfo = None

@@ -137,6 +137,7 @@ class TeamsActivityHandler(ActivityHandler):
                     )
                     return self._create_invoke_response()
                 elif name == "task/fetch":
+                    value = TaskModuleRequest.model_validate(value)
                     return self._create_invoke_response(
                         await self.on_teams_task_module_fetch(turn_context, value)
                     )
