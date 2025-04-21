@@ -38,7 +38,7 @@ class TaskModuleResponseFactory:
             A TaskModuleResponse instance.
         """
         info = task_info.model_dump(by_alias=True, exclude_none=True)
-        task_module_response_base = TaskModuleResponseBase(task="continue", value=info)
+        task_module_response_base = TaskModuleResponseBase(type="continue", value=info)
 
         return TaskModuleResponse(task=task_module_response_base)
 

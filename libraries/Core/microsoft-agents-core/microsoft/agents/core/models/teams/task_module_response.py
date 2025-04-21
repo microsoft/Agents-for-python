@@ -7,7 +7,7 @@ from .task_module_response_base import TaskModuleResponseBase
 from .cache_info import CacheInfo
 
 
-class TaskModuleResponse(AgentsModel):
+class TaskModuleResponse(TaskModuleResponseBase):
     """Envelope for Task Module Response.
 
     :param task: The JSON for the Adaptive card to appear in the task module.

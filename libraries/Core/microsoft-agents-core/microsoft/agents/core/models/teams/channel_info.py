@@ -16,6 +16,6 @@ class ChannelInfo(AgentsModel):
     :type type: Optional[str]
     """
 
-    id: Optional[str]
-    name: Optional[str]
-    type: Optional[str]
+    id: Optional[str] = None
+    name: Optional[str] = None
+    type: Optional[str] = None

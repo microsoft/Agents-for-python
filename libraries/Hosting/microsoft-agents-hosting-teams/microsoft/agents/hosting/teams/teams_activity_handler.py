@@ -137,13 +137,18 @@ class TeamsActivityHandler(ActivityHandler):
                     )
                     return self._create_invoke_response()
                 elif name == "task/fetch":
-                    value = TaskModuleRequest.model_validate(value)
+                    task_module_request = TaskModuleRequest.model_validate(value)
                     return self._create_invoke_response(
-                        await self.on_teams_task_module_fetch(turn_context, value)
+                        await self.on_teams_task_module_fetch(
+                            turn_context, task_module_request
+                        )
                     )
                 elif name == "task/submit":
+                    task_module_request = TaskModuleRequest.model_validate(value)
                     return self._create_invoke_response(
-                        await self.on_teams_task_module_submit(turn_context, value)
+                        await self.on_teams_task_module_submit(
+                            turn_context, task_module_request
+                        )
                     )
                 elif name == "tab/fetch":
                     return self._create_invoke_response(

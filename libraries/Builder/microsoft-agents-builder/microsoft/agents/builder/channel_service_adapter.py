@@ -39,7 +39,6 @@ from .turn_context import TurnContext
 
 class ChannelServiceAdapter(ChannelAdapter, ABC):
     _AGENT_CONNECTOR_CLIENT_KEY = "ConnectorClient"
-    _INVOKE_RESPONSE_KEY = "ChannelServiceAdapter.InvokeResponse"
 
     def __init__(self, channel_service_client_factory: ChannelServiceClientFactoryBase):
         super().__init__()
@@ -452,12 +451,12 @@ class ChannelServiceAdapter(ChannelAdapter, ABC):
         # Handle Invoke scenarios where the agent will return a specific body and return code.
         if context.activity.type == ActivityTypes.invoke:
             activity_invoke_response: Activity = context.turn_state.get(
-                self._INVOKE_RESPONSE_KEY
+                self.INVOKE_RESPONSE_KEY
             )
             if not activity_invoke_response:
                 return InvokeResponse(status=HTTPStatus.NOT_IMPLEMENTED)
 
-            return activity_invoke_response.value
+            return InvokeResponse.model_validate(activity_invoke_response.value)
 
         # No body to return
         return None

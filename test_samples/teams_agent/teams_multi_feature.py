@@ -60,7 +60,7 @@ class TeamsMultiFeature(TeamsActivityHandler):
     ) -> TaskModuleResponse:
         base_url = getenv("BASE_URL")
         # Handle task module requests
-        task_module_type = task_module_request.data.get("taskModule")
+        task_module_type = task_module_request.data.get("data")
         task_info: TaskModuleTaskInfo = None
 
         if task_module_type:
@@ -87,9 +87,7 @@ class TeamsMultiFeature(TeamsActivityHandler):
         data = task_module_request.data
         message = f"Received task module submission: {json.dumps(data)}"
         await turn_context.send_activity(MessageFactory.text(message))
-        return (
-            None  # Return a TaskModuleResponse here if you want to chain task modules
-        )
+        return TaskModuleResponseFactory.create_message_response(message)
 
     async def _send_help_card(self, turn_context: TurnContext):
         """Send a help card with available commands"""
@@ -301,7 +299,7 @@ class TeamsMultiFeature(TeamsActivityHandler):
                     "title": "Adaptive Card Form",
                     "data": {
                         "msteams": {"type": "task/fetch"},
-                        "taskModule": "adaptiveCard",
+                        "data": "adaptiveCard",
                     },
                 },
                 {
@@ -309,7 +307,7 @@ class TeamsMultiFeature(TeamsActivityHandler):
                     "title": "YouTube Video",
                     "data": {
                         "msteams": {"type": "task/fetch"},
-                        "taskModule": "youtube",
+                        "data": "Youtube",
                     },
                 },
                 {
@@ -317,7 +315,7 @@ class TeamsMultiFeature(TeamsActivityHandler):
                     "title": "Custom Form",
                     "data": {
                         "msteams": {"type": "task/fetch"},
-                        "taskModule": "customForm",
+                        "data": "customForm",
                     },
                 },
             ],
@@ -356,7 +354,7 @@ class TeamsMultiFeature(TeamsActivityHandler):
                         "title": "Watch Video",
                         "data": {
                             "msteams": {"type": "task/fetch"},
-                            "taskModule": "youtube",
+                            "data": "Youtube",
                         },
                     },
                 },
@@ -371,56 +369,34 @@ class TeamsMultiFeature(TeamsActivityHandler):
 
     def _get_adaptive_card_content(self):
         """Get a basic adaptive card content"""
-        attachment = {
+        content = {
+            "version": "1.0",
             "type": "AdaptiveCard",
-            "$schema": "http://adaptivecards.io/schemas/adaptive-card.json",
-            "version": "1.3",
             "body": [
                 {
                     "type": "TextBlock",
-                    "size": "Medium",
-                    "weight": "Bolder",
-                    "text": "Adaptive Card Sample",
-                },
-                {
-                    "type": "TextBlock",
-                    "text": "Enter your information below",
-                    "wrap": True,
+                    "text": "Enter Text Here",
+                    "weight": "bolder",
+                    "isSubtle": False,
                 },
                 {
                     "type": "Input.Text",
-                    "id": "name",
-                    "placeholder": "Your name",
-                    "label": "Name",
-                },
-                {
-                    "type": "Input.Text",
-                    "id": "email",
-                    "placeholder": "Your email",
-                    "label": "Email",
-                },
-                {
-                    "type": "Input.ChoiceSet",
-                    "id": "role",
-                    "label": "Role",
-                    "choices": [
-                        {"title": "Developer", "value": "developer"},
-                        {"title": "Designer", "value": "designer"},
-                        {"title": "Product Manager", "value": "pm"},
-                    ],
+                    "id": "usertext",
+                    "spacing": "none",
+                    "isMultiLine": "true",
+                    "placeholder": "add some text and submit",
                 },
             ],
-            "actions": [
-                {
-                    "type": "Action.Submit",
-                    "title": "Submit",
-                    "data": {"action": "submit", "source": "adaptiveCard"},
-                }
-            ],
+            "actions": [{"type": "Action.Submit", "title": "Submit"}],
         }
 
         # TODO: Fix card creation
-        return Attachment.model_validate(attachment)
+        return Attachment.model_validate(
+            {
+                "content_type": "application/vnd.microsoft.card.adaptive",
+                "content": content,
+            }
+        )
 
     def _set_task_info(self, ui_constans: UISettings) -> TaskModuleTaskInfo:
         """Set task info for the task module"""
