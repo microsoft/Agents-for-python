@@ -1,6 +1,7 @@
 from microsoft.agents.builder import MessageFactory, TurnContext
 from microsoft.agents.hosting.teams import TeamsActivityHandler, TeamsInfo
 from microsoft.agents.core.models import ChannelAccount, ConversationParameters
+from microsoft.agents.core.models.teams import MeetingNotification
 
 
 class TeamsHandler(TeamsActivityHandler):
@@ -42,6 +43,131 @@ class TeamsHandler(TeamsActivityHandler):
             await turn_context.send_activity(
                 MessageFactory.text(f"Meeting Info: {meeting_info}")
             )
+        elif "getMeetingParticipant" in text:
+            meeting_participant = await TeamsInfo.get_meeting_participant(turn_context)
+            await turn_context.send_activity(
+                MessageFactory.text(f"Meeting participant: {meeting_participant}")
+            )
+        elif "getPagedTeamMembers" in text:
+            members = await TeamsInfo.get_paged_team_members(turn_context, None, 2)
+            member_emails = [m.email for m in members.members if m.email]
+            await turn_context.send_activity(
+                MessageFactory.text(f"team members: {member_emails}")
+            )
+        elif "getTeamMember" in text:
+            teams_channel_data = turn_context.activity.channel_data
+            team_id = teams_channel_data.get("team", {}).get("id")
+            if not team_id:
+                await turn_context.send_activity(
+                    MessageFactory.text("Team ID not found")
+                )
+                return
+
+            member = await TeamsInfo.get_team_member(
+                turn_context, team_id, turn_context.activity.from_property.id
+            )
+            await turn_context.send_activity(
+                MessageFactory.text(f"team member: {member}")
+            )
+        elif "sendMessageToTeamsChannel" in text:
+            teams_channel_data = turn_context.activity.channel_data
+            channel_id = teams_channel_data.get("channel", {}).get("id")
+            if not channel_id:
+                await turn_context.send_activity(
+                    MessageFactory.text("Channel ID not found")
+                )
+                return
+
+            client_id = (
+                turn_context.turn_state[turn_context.adapter.AGENT_IDENTITY_KEY].claims[
+                    "aud"
+                ],
+            )
+            sent_result = await TeamsInfo.send_message_to_teams_channel(
+                turn_context,
+                MessageFactory.text("message from agent to channel"),
+                channel_id,
+                client_id,
+            )
+            await turn_context.send_activity(
+                MessageFactory.text(f"sent: {sent_result}")
+            )
+        elif "sendMeetingNotification" in text:
+            teams_channel_data: dict = turn_context.activity.channel_data
+            meeting_id = teams_channel_data.get("meeting", {}).get("id")
+            if not meeting_id:
+                await turn_context.send_activity(
+                    MessageFactory.text("Meeting ID not found")
+                )
+                return
+
+            notification = MeetingNotification(
+                type="targetedMeetingNotification",
+                value={"recipients": ["rido"], "surfaces": []},
+            )
+            resp = await TeamsInfo.send_meeting_notification(
+                turn_context, notification, meeting_id
+            )
+            await turn_context.send_activity(
+                MessageFactory.text(f"sendMeetingNotification: {resp}")
+            )
+        elif "sendMessageToListOfUsers" in text:
+            members = await TeamsInfo.get_paged_members(turn_context, 2)
+            users = [{"id": m.id} for m in members.members if m.email]
+
+            tenant_id = turn_context.activity.conversation.tenant_id
+            await TeamsInfo.send_message_to_list_of_users(
+                turn_context,
+                MessageFactory.text("message from agent to list of users"),
+                tenant_id,
+                users,
+            )
+            await turn_context.send_activity(
+                MessageFactory.text("Messages sent to list of users")
+            )
+        elif "sendMessageToAllUsersInTenant" in text:
+            tenant_id = turn_context.activity.conversation.tenant_id
+            batch_resp = await TeamsInfo.send_message_to_all_users_in_tenant(
+                turn_context,
+                MessageFactory.text("message from agent to all users"),
+                tenant_id,
+            )
+            await turn_context.send_activity(
+                MessageFactory.text(f"Operation ID: {batch_resp.operation_id}")
+            )
+        elif "sendMessageToAllUsersInTeam" in text:
+            teams_channel_data = turn_context.activity.channel_data
+            team_id = teams_channel_data.get("team", {}).get("id")
+            if not team_id:
+                await turn_context.send_activity(
+                    MessageFactory.text("Team ID not found")
+                )
+                return
+
+            tenant_id = turn_context.activity.conversation.tenant_id
+            batch_resp = await TeamsInfo.send_message_to_all_users_in_team(
+                turn_context,
+                MessageFactory.text("message from agent to all users in team"),
+                tenant_id,
+                team_id,
+            )
+            await turn_context.send_activity(
+                MessageFactory.text(f"Operation ID: {batch_resp.operation_id}")
+            )
+        elif "sendMessageToListOfChannels" in text:
+            members = await TeamsInfo.get_paged_members(turn_context, 2)
+            users = [{"id": m.id} for m in members.members if m.email]
+
+            tenant_id = turn_context.activity.conversation.tenant_id
+            await TeamsInfo.send_message_to_list_of_channels(
+                turn_context,
+                MessageFactory.text("message from agent to list of channels"),
+                tenant_id,
+                users,
+            )
+            await turn_context.send_activity(
+                MessageFactory.text("Messages sent to list of channels")
+            )
         elif "msg all_members" in text:
             await self.message_all_members(turn_context)
         else:
@@ -49,7 +175,10 @@ class TeamsHandler(TeamsActivityHandler):
                 [
                     MessageFactory.text("Welcome to Python Teams handler!"),
                     MessageFactory.text(
-                        "Options: getMember, getPagedMembers, getTeamChannels, getTeamDetails, getMeetingInfo, msg all_members"
+                        "Options: getMember, getPagedMembers, getTeamChannels, getTeamDetails, getMeetingInfo, "
+                        "getMeetingParticipant, getPagedTeamMembers, getTeamMember, sendMessageToTeamsChannel, "
+                        "sendMeetingNotification, sendMessageToListOfUsers, sendMessageToAllUsersInTenant, "
+                        "sendMessageToAllUsersInTeam, sendMessageToListOfChannels, msg all_members"
                     ),
                 ]
             )
@@ -85,7 +214,9 @@ class TeamsHandler(TeamsActivityHandler):
                 )
 
             await turn_context.adapter.create_conversation(
-                turn_context.adapter.auth_config.client_id,
+                turn_context.turn_state[turn_context.adapter.AGENT_IDENTITY_KEY].claims[
+                    "aud"
+                ],
                 turn_context.activity.channel_id,
                 turn_context.activity.service_url,
                 "https://api.botframework.com",

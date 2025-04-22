@@ -3,7 +3,7 @@
 
 """Teams Connector Client for Microsoft Agents."""
 
-from typing import Any, Dict
+from typing import Any
 from aiohttp import ClientSession
 
 from microsoft.agents.core.models import Activity, ResourceResponse
@@ -13,6 +13,7 @@ from microsoft.agents.authorization import (
 )
 from microsoft.agents.connector.client import ConnectorClient
 
+from microsoft.agents.core.models import ConversationParameters
 from microsoft.agents.core.models.teams import (
     TeamsChannelAccount,
     TeamsPagedMembersResult,
@@ -75,7 +76,7 @@ class TeamsConnectorClient(ConnectorClient):
             raise ValueError("user_id is required")
 
         async with self.client.get(
-            f"/v3/conversations/{conversation_id}/members/{user_id}",
+            f"v3/conversations/{conversation_id}/members/{user_id}",
             headers={"Content-Type": "application/json"},
         ) as response:
             response.raise_for_status()
@@ -94,7 +95,10 @@ class TeamsConnectorClient(ConnectorClient):
         """
         async with self.client.get(
             f"v3/conversations/{conversation_id}/pagedMembers",
-            params={"pageSize": page_size, "continuationToken": continuation_token},
+            params={
+                "pageSize": page_size,
+                "continuationToken": continuation_token or "",
+            },
         ) as response:
             response.raise_for_status()
             return TeamsPagedMembersResult.model_validate(await response.json())
@@ -108,7 +112,8 @@ class TeamsConnectorClient(ConnectorClient):
         """
         async with self.client.get(f"v3/teams/{team_id}/conversations") as response:
             response.raise_for_status()
-            channels_data = await response.json()
+            json_response = await response.json()
+            channels_data = json_response.get("conversations", [])
             return [ChannelInfo.model_validate(channel) for channel in channels_data]
 
     async def fetch_team_details(self, team_id: str) -> TeamDetails:
@@ -151,8 +156,8 @@ class TeamsConnectorClient(ConnectorClient):
             response.raise_for_status()
             return MeetingInfo.model_validate(await response.json())
 
-    async def create_conversation_async(
-        self, conversation_parameters: Dict[str, Any]
+    async def create_conversation(
+        self, conversation_parameters: ConversationParameters
     ) -> ResourceResponse:
         """
         Creates a new conversation.
@@ -162,7 +167,7 @@ class TeamsConnectorClient(ConnectorClient):
         """
         async with self.client.post(
             "v3/conversations",
-            json=conversation_parameters,
+            json=conversation_parameters.model_dump(by_alias=True, exclude_unset=True),
             headers={"Content-Type": "application/json"},
         ) as response:
             response.raise_for_status()

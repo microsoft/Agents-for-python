@@ -1,3 +1,4 @@
+from typing import Optional
 from .agents_model import AgentsModel
 from ._type_aliases import NonEmptyString
 
@@ -33,5 +34,5 @@ class ConversationAccount(AgentsModel):
     name: NonEmptyString = None
     aad_object_id: NonEmptyString = None
     role: NonEmptyString = None
-    tenant_id: NonEmptyString = None
+    tenant_id: Optional[NonEmptyString] = None
     properties: object = None

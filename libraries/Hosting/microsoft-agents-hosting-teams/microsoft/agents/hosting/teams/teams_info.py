@@ -5,7 +5,7 @@
 
 from typing import Optional, Tuple, Dict, Any, List
 
-from microsoft.agents.core.models import Activity, Channels
+from microsoft.agents.core.models import Activity, Channels, ConversationParameters
 
 from microsoft.agents.core.models.teams import (
     TeamsChannelAccount,
@@ -55,12 +55,10 @@ class TeamsInfo:
             raise ValueError("context is required.")
 
         activity = context.activity
-        teams_channel_data = activity.channel_data
+        teams_channel_data: dict = activity.channel_data
 
         if meeting_id is None:
-            meeting_id = getattr(
-                getattr(teams_channel_data, "meeting", None), "id", None
-            )
+            meeting_id = teams_channel_data.get("meeting", {}).get("id", None)
 
         if not meeting_id:
             raise ValueError("meeting_id is required.")
@@ -72,7 +70,7 @@ class TeamsInfo:
             raise ValueError("participant_id is required.")
 
         if tenant_id is None:
-            tenant_id = getattr(getattr(teams_channel_data, "tenant", None), "id", None)
+            tenant_id = teams_channel_data.get("tenant", {}).get("id", None)
 
         rest_client = TeamsInfo._get_rest_client(context)
         result = await rest_client.fetch_meeting_participant(
@@ -98,10 +96,8 @@ class TeamsInfo:
             ValueError: If required parameters are missing.
         """
         if not meeting_id:
-            teams_channel_data = context.activity.channel_data
-            meeting_id = getattr(
-                getattr(teams_channel_data, "meeting", None), "id", None
-            )
+            teams_channel_data: dict = context.activity.channel_data
+            meeting_id = teams_channel_data.get("meeting", {}).get("id", None)
 
         if not meeting_id:
             raise ValueError("meeting_id is required.")
@@ -128,8 +124,8 @@ class TeamsInfo:
             ValueError: If required parameters are missing.
         """
         if not team_id:
-            teams_channel_data = context.activity.channel_data
-            team_id = getattr(getattr(teams_channel_data, "team", None), "id", None)
+            teams_channel_data: dict = context.activity.channel_data
+            team_id = teams_channel_data.get("team", {}).get("id", None)
 
         if not team_id:
             raise ValueError("team_id is required.")
@@ -169,16 +165,16 @@ class TeamsInfo:
         if not teams_channel_id:
             raise ValueError("The teams_channel_id cannot be None or empty")
 
-        convo_params = {
-            "is_group": True,
-            "channel_data": {
+        convo_params = ConversationParameters(
+            is_group=True,
+            channel_data={
                 "channel": {
                     "id": teams_channel_id,
                 },
             },
-            "activity": activity,
-            "bot": context.activity.recipient,
-        }
+            activity=activity,
+            agent=context.activity.recipient,
+        )
 
         conversation_reference = None
         new_activity_id = None
@@ -239,8 +235,8 @@ class TeamsInfo:
             ValueError: If required parameters are missing.
         """
         if not team_id:
-            teams_channel_data = context.activity.channel_data
-            team_id = getattr(getattr(teams_channel_data, "team", None), "id", None)
+            teams_channel_data: dict = context.activity.channel_data
+            team_id = teams_channel_data.get("team", {}).get("id", None)
 
         if not team_id:
             raise ValueError("team_id is required.")
@@ -268,8 +264,8 @@ class TeamsInfo:
         Raises:
             ValueError: If required parameters are missing.
         """
-        teams_channel_data = context.activity.channel_data
-        team_id = getattr(getattr(teams_channel_data, "team", None), "id", None)
+        teams_channel_data: dict = context.activity.channel_data
+        team_id = teams_channel_data.get("team", {}).get("id", None)
 
         if team_id:
             return await TeamsInfo.get_paged_team_members(
@@ -304,8 +300,8 @@ class TeamsInfo:
         Raises:
             ValueError: If required parameters are missing.
         """
-        teams_channel_data = context.activity.channel_data
-        team_id = getattr(getattr(teams_channel_data, "team", None), "id", None)
+        teams_channel_data: dict = context.activity.channel_data
+        team_id = teams_channel_data.get("team", {}).get("id", None)
 
         if team_id:
             return await TeamsInfo.get_team_member(context, team_id, user_id)
@@ -345,8 +341,8 @@ class TeamsInfo:
             ValueError: If required parameters are missing.
         """
         if not team_id:
-            teams_channel_data = context.activity.channel_data
-            team_id = getattr(getattr(teams_channel_data, "team", None), "id", None)
+            teams_channel_data: dict = context.activity.channel_data
+            team_id = teams_channel_data.get("team", {}).get("id", None)
 
         if not team_id:
             raise ValueError("team_id is required.")
@@ -410,10 +406,8 @@ class TeamsInfo:
         activity = context.activity
 
         if meeting_id is None:
-            teams_channel_data = activity.channel_data
-            meeting_id = getattr(
-                getattr(teams_channel_data, "meeting", None), "id", None
-            )
+            teams_channel_data: dict = activity.channel_data
+            meeting_id = teams_channel_data.get("meeting", {}).get("id", None)
 
         if not meeting_id:
             raise ValueError("meeting_id is required.")

@@ -127,7 +127,7 @@ class ConversationsOperations(ConversationsBase):
             {"continuationToken": continuation_token} if continuation_token else None
         )
 
-        async with self.client.get("/v3/conversations", params=params) as response:
+        async with self.client.get("v3/conversations", params=params) as response:
             if response.status >= 400:
                 logger.error(f"Error getting conversations: {response.status}")
                 response.raise_for_status()
@@ -146,7 +146,7 @@ class ConversationsOperations(ConversationsBase):
         """
 
         async with self.client.post(
-            "/v3/conversations",
+            "v3/conversations",
             json=body.model_dump(by_alias=True, exclude_unset=True),
         ) as response:
             if response.status >= 400:

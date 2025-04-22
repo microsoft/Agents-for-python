@@ -3,19 +3,13 @@ Copyright (c) Microsoft Corporation. All rights reserved.
 Licensed under the MIT License.
 """
 
-import json
-from datetime import datetime
 from http import HTTPStatus
-from typing import Any, Dict, List, Optional, Callable, Awaitable, Union
+from typing import Any, List
 
 from microsoft.agents.builder import ActivityHandler, TurnContext
-from microsoft.agents.builder.agent import Agent
 from microsoft.agents.core.models import (
-    Activity,
     InvokeResponse,
     ChannelAccount,
-    ActivityTypes,
-    ResourceResponse,
 )
 
 from microsoft.agents.core.models.teams import (
@@ -59,7 +53,7 @@ class TeamsActivityHandler(ActivityHandler):
         :param turn_context: The context object for the turn.
         :return: An InvokeResponse.
         """
-        run_events = True
+
         try:
             if (
                 not turn_context.activity.name
@@ -159,7 +153,6 @@ class TeamsActivityHandler(ActivityHandler):
                         await self.on_teams_tab_submit(turn_context, value)
                     )
                 else:
-                    run_events = False
                     return await super().on_invoke_activity(turn_context)
         except Exception as err:
             if str(err) == "NotImplemented":
@@ -690,7 +683,7 @@ class TeamsActivityHandler(ActivityHandler):
         :param turn_context: The context object for the turn.
         :return: None
         """
-        self.on_members_added_activity(teams_members_added, turn_context)
+        await self.on_members_added_activity(teams_members_added, turn_context)
 
     async def on_teams_members_removed_dispatch(
         self,
@@ -724,7 +717,7 @@ class TeamsActivityHandler(ActivityHandler):
         :param turn_context: The context object for the turn.
         :return: None
         """
-        self.on_members_removed_activity(teams_members_removed, turn_context)
+        await self.on_members_removed_activity(teams_members_removed, turn_context)
 
     async def on_teams_channel_created(
         self, channel_info: ChannelInfo, team_info: TeamInfo, turn_context: TurnContext
