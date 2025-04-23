@@ -22,11 +22,11 @@ class AgentSignIn(AgentSignInBase):
         self.client = client
 
     async def get_sign_in_url(
-        self, 
+        self,
         state: str,
         code_challenge: Optional[str] = None,
         emulator_url: Optional[str] = None,
-        final_redirect: Optional[str] = None
+        final_redirect: Optional[str] = None,
     ) -> str:
         """
         Get sign-in URL.
@@ -45,19 +45,21 @@ class AgentSignIn(AgentSignInBase):
         if final_redirect:
             params["finalRedirect"] = final_redirect
 
-        async with self.client.get("api/agentsignin/getSignInUrl", params=params) as response:
+        async with self.client.get(
+            "api/agentsignin/getSignInUrl", params=params
+        ) as response:
             if response.status >= 400:
                 logger.error(f"Error getting sign-in URL: {response.status}")
                 response.raise_for_status()
-            
+
             return await response.text()
 
     async def get_sign_in_resource(
-        self, 
+        self,
         state: str,
         code_challenge: Optional[str] = None,
         emulator_url: Optional[str] = None,
-        final_redirect: Optional[str] = None
+        final_redirect: Optional[str] = None,
     ) -> dict:
         """
         Get sign-in resource.
@@ -76,11 +78,13 @@ class AgentSignIn(AgentSignInBase):
         if final_redirect:
             params["finalRedirect"] = final_redirect
 
-        async with self.client.get("api/agentsignin/getSignInResource", params=params) as response:
+        async with self.client.get(
+            "api/agentsignin/getSignInResource", params=params
+        ) as response:
             if response.status >= 400:
                 logger.error(f"Error getting sign-in resource: {response.status}")
                 response.raise_for_status()
-            
+
             data = await response.json()
             return data
 
@@ -107,11 +111,8 @@ class UserToken(UserTokenBase):
         :param code: Optional authorization code.
         :return: A token response.
         """
-        params = {
-            "userId": user_id,
-            "connectionName": connection_name
-        }
-        
+        params = {"userId": user_id, "connectionName": connection_name}
+
         if channel_id:
             params["channelId"] = channel_id
         if code:
@@ -121,7 +122,7 @@ class UserToken(UserTokenBase):
             if response.status >= 400 and response.status != 404:
                 logger.error(f"Error getting token: {response.status}")
                 response.raise_for_status()
-            
+
             data = await response.json()
             return data
 
@@ -141,19 +142,18 @@ class UserToken(UserTokenBase):
         :param body: An optional dictionary containing resource URLs.
         :return: A dictionary of tokens.
         """
-        params = {
-            "userId": user_id,
-            "connectionName": connection_name
-        }
-        
+        params = {"userId": user_id, "connectionName": connection_name}
+
         if channel_id:
             params["channelId"] = channel_id
 
-        async with self.client.post("api/usertoken/GetAadTokens", params=params, json=body) as response:
+        async with self.client.post(
+            "api/usertoken/GetAadTokens", params=params, json=body
+        ) as response:
             if response.status >= 400:
                 logger.error(f"Error getting AAD tokens: {response.status}")
                 response.raise_for_status()
-            
+
             data = await response.json()
             return data
 
@@ -171,13 +171,15 @@ class UserToken(UserTokenBase):
         :param channel_id: ID of the channel.
         """
         params = {"userId": user_id}
-        
+
         if connection_name:
             params["connectionName"] = connection_name
         if channel_id:
             params["channelId"] = channel_id
 
-        async with self.client.delete("api/usertoken/SignOut", params=params) as response:
+        async with self.client.delete(
+            "api/usertoken/SignOut", params=params
+        ) as response:
             if response.status >= 400 and response.status != 204:
                 logger.error(f"Error signing out: {response.status}")
                 response.raise_for_status()
@@ -197,17 +199,19 @@ class UserToken(UserTokenBase):
         :return: A list of token status objects.
         """
         params = {"userId": user_id}
-        
+
         if channel_id:
             params["channelId"] = channel_id
         if include:
             params["include"] = include
 
-        async with self.client.get("api/usertoken/GetTokenStatus", params=params) as response:
+        async with self.client.get(
+            "api/usertoken/GetTokenStatus", params=params
+        ) as response:
             if response.status >= 400:
                 logger.error(f"Error getting token status: {response.status}")
                 response.raise_for_status()
-            
+
             data = await response.json()
             return data
 
@@ -230,14 +234,16 @@ class UserToken(UserTokenBase):
         params = {
             "userId": user_id,
             "connectionName": connection_name,
-            "channelId": channel_id
+            "channelId": channel_id,
         }
 
-        async with self.client.post("api/usertoken/ExchangeToken", params=params, json=body) as response:
+        async with self.client.post(
+            "api/usertoken/ExchangeToken", params=params, json=body
+        ) as response:
             if response.status >= 400 and response.status != 404:
                 logger.error(f"Error exchanging token: {response.status}")
                 response.raise_for_status()
-            
+
             data = await response.json()
             return data
 
