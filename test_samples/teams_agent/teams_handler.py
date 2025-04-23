@@ -210,7 +210,11 @@ class TeamsHandler(TeamsActivityHandler):
                     await ctx.send_activity(message)
 
                 await inner_context.adapter.continue_conversation(
-                    ref, continue_callback
+                    inner_context.turn_state[
+                        turn_context.adapter.AGENT_IDENTITY_KEY
+                    ].claims["aud"],
+                    ref,
+                    continue_callback,
                 )
 
             await turn_context.adapter.create_conversation(
