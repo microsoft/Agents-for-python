@@ -5,7 +5,7 @@ import base64
 from datetime import datetime
 import json
 
-from microsoft.agents.connector import UserTokenClient
+from microsoft.agents.connector.client import UserTokenClient
 from microsoft.agents.core.models import (
     ActionTypes,
     CardAction,
@@ -13,6 +13,7 @@ from microsoft.agents.core.models import (
     OAuthCard,
     SignInResource,
     TokenExchangeState,
+    TokenResponse,
 )
 from microsoft.agents.core import (
     TurnContextProtocol as TurnContext,
@@ -44,7 +45,9 @@ class BasicOAuthFlow:
     Manages the OAuth flow for Web Chat.
     """
 
-    def __init__(self, user_state: UserState, connection_name: str, app_id: str):
+    def __init__(
+        self, user_state: UserState, connection_name: str, app_id: str, **kwargs
+    ):
         """
         Creates a new instance of BasicOAuthFlow.
         :param user_state: The user state.
@@ -64,6 +67,100 @@ class BasicOAuthFlow:
         self.flow_state_accessor: StatePropertyAccessor = user_state.create_property(
             "flowState"
         )
+
+    async def get_user_token(self, context: TurnContext) -> str:
+        token_client: UserTokenClient = context.turn_state.get(
+            context.adapter.USER_TOKEN_CLIENT_KEY
+        )
+
+        return await token_client.user_token.get_token(
+            user_id=context.activity.from_property.id,
+            connection_name=self.connection_name,
+            channel_id=context.activity.channel_id,
+        )
+
+    async def begin_flow(self, context: TurnContext) -> TokenResponse:
+        """
+        Starts the OAuth flow.
+
+        :param context: The turn context.
+        :return: A TokenResponse object.
+        """
+        # logger.info('Starting OAuth flow')
+        self.state = await self.get_user_state(context)
+
+        if not self.connection_name:
+            raise ValueError(
+                "connectionName is not set in the auth config, review your environment variables"
+            )
+
+        # Get token client from turn state
+        token_client: UserTokenClient = context.turn_state.get(
+            context.adapter.USER_TOKEN_CLIENT_KEY
+        )
+
+        # Try to get existing token
+        user_token = await token_client.user_token.get_token(
+            user_id=context.activity.from_property.id,
+            connection_name=self.connection_name,
+            channel_id=context.activity.channel_id,
+        )
+
+        if user_token:
+            # Already have token, return it
+            self.state.flow_started = False
+            self.state.flow_expires = 0
+            await self.flow_state_accessor.set(context, self.state)
+            # logger.info('User token retrieved successfully from service')
+            return TokenResponse.model_validate(user_token)
+
+        # No token, need to start sign-in flow
+        token_exchange_state = TokenExchangeState(
+            connection_name=self.connection_name,
+            conversation=context.activity.get_conversation_reference(),
+            relates_to=context.activity.relates_to,
+            ms_app_id=self.app_id,
+        )
+        serialized_state = base64.b64encode(
+            json.dumps(token_exchange_state.model_dump(by_alias=True)).encode(
+                encoding="UTF-8", errors="strict"
+            )
+        ).decode()
+
+        token_client_response = await token_client.agent_sign_in.get_sign_in_resource(
+            state=serialized_state,
+        )
+
+        signing_resource = SignInResource.model_validate(token_client_response)
+
+        # Create the OAuth card
+        o_card: Attachment = CardFactory.oauth_card(
+            OAuthCard(
+                text="Sign in",
+                connection_name=self.connection_name,
+                buttons=[
+                    CardAction(
+                        title="Sign in",
+                        text="",
+                        type=ActionTypes.signin,
+                        value=signing_resource.sign_in_link,
+                    )
+                ],
+                token_exchange_resource=signing_resource.token_exchange_resource,
+            )
+        )
+
+        # Send the card to the user
+        await context.send_activity(MessageFactory.attachment(o_card))
+
+        # Update flow state
+        self.state.flow_started = True
+        self.state.flow_expires = datetime.now().timestamp() + 30000
+        await self.flow_state_accessor.set(context, self.state)
+        # logger.info('OAuth begin flow completed, waiting for user to sign in')
+
+        # Return in-progress response
+        return TokenResponse(token=None, status="inProgress")
 
     async def get_oauth_token(self, context: TurnContext) -> str:
         """

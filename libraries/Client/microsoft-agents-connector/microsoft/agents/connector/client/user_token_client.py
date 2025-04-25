@@ -8,6 +8,7 @@ from typing import Optional
 from aiohttp import ClientSession
 
 from microsoft.agents.connector import UserTokenClientBase
+from microsoft.agents.core.models import TokenResponse, TokenStatus
 from ..user_token_base import UserTokenBase
 from ..agent_sign_in_base import AgentSignInBase
 
@@ -101,7 +102,7 @@ class UserToken(UserTokenBase):
         connection_name: str,
         channel_id: Optional[str] = None,
         code: Optional[str] = None,
-    ) -> dict:
+    ) -> TokenResponse:
         """
         Gets a token for a user and connection.
 
@@ -124,7 +125,7 @@ class UserToken(UserTokenBase):
                 response.raise_for_status()
 
             data = await response.json()
-            return data
+            return TokenResponse.model_validate(data)
 
     async def get_aad_tokens(
         self,
@@ -132,7 +133,7 @@ class UserToken(UserTokenBase):
         connection_name: str,
         channel_id: Optional[str] = None,
         body: Optional[dict] = None,
-    ) -> dict:
+    ) -> dict[str, TokenResponse]:
         """
         Gets Azure Active Directory tokens for a user and connection.
 
@@ -155,7 +156,7 @@ class UserToken(UserTokenBase):
                 response.raise_for_status()
 
             data = await response.json()
-            return data
+            return {k: TokenResponse.model_validate(v) for k, v in data.items()}
 
     async def sign_out(
         self,
@@ -189,7 +190,7 @@ class UserToken(UserTokenBase):
         user_id: str,
         channel_id: Optional[str] = None,
         include: Optional[str] = None,
-    ) -> list:
+    ) -> list[TokenStatus]:
         """
         Gets token status for the user.
 
@@ -213,7 +214,7 @@ class UserToken(UserTokenBase):
                 response.raise_for_status()
 
             data = await response.json()
-            return data
+            return [TokenStatus.model_validate(status) for status in data]
 
     async def exchange_token(
         self,
@@ -221,7 +222,7 @@ class UserToken(UserTokenBase):
         connection_name: str,
         channel_id: str,
         body: Optional[dict] = None,
-    ) -> dict:
+    ) -> TokenResponse:
         """
         Exchanges a token.
 
@@ -245,7 +246,7 @@ class UserToken(UserTokenBase):
                 response.raise_for_status()
 
             data = await response.json()
-            return data
+            return TokenResponse.model_validate(data)
 
 
 class UserTokenClient(UserTokenClientBase):

@@ -1,6 +1,8 @@
 from abc import abstractmethod
 from typing import Protocol
 
+from microsoft.agents.core.models import TokenResponse, TokenStatus
+
 
 class UserTokenBase(Protocol):
     @abstractmethod
@@ -10,7 +12,7 @@ class UserTokenBase(Protocol):
         connection_name: str,
         channel_id: str = None,
         code: str = None,
-    ) -> dict:
+    ) -> TokenResponse:
         raise NotImplementedError()
 
     @abstractmethod
@@ -20,7 +22,7 @@ class UserTokenBase(Protocol):
         connection_name: str,
         channel_id: str = None,
         body: dict = None,
-    ) -> dict:
+    ) -> dict[str, TokenResponse]:
         raise NotImplementedError()
 
     @abstractmethod
@@ -32,11 +34,11 @@ class UserTokenBase(Protocol):
     @abstractmethod
     async def get_token_status(
         self, user_id: str, channel_id: str = None, include: str = None
-    ) -> list:
+    ) -> list[TokenStatus]:
         raise NotImplementedError()
 
     @abstractmethod
     async def exchange_token(
         self, user_id: str, connection_name: str, channel_id: str, body: dict = None
-    ) -> dict:
+    ) -> TokenResponse:
         raise NotImplementedError()
