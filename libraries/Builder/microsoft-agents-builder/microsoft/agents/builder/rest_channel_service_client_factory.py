@@ -7,10 +7,8 @@ from microsoft.agents.authorization import (
     Connections,
 )
 from microsoft.agents.authorization import AccessTokenProviderBase
-from microsoft.agents.connector import (
-    ConnectorClientBase,
-    UserTokenClient,
-)
+from microsoft.agents.connector import ConnectorClientBase
+from microsoft.agents.connector.client import UserTokenClient
 from microsoft.agents.connector.teams import TeamsConnectorClient
 
 from .channel_service_client_factory_base import ChannelServiceClientFactoryBase
@@ -72,9 +70,11 @@ class RestChannelServiceClientFactory(ChannelServiceClientFactoryBase):
             if not use_anonymous
             else self._ANONYMOUS_TOKEN_PROVIDER
         )
+
+        token = await token_provider.get_access_token(
+            self._token_service_audience, [f"{self._token_service_audience}/.default"]
+        )
         return UserTokenClient(
-            credential_token_provider=token_provider,
-            credential_resource_url=self._token_service_audience,
-            credential_scopes=[f"{self._token_service_audience}/.default"],
             endpoint=self._token_service_endpoint,
+            token=token,
         )

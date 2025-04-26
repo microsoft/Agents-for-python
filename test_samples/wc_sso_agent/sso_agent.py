@@ -1,7 +1,7 @@
 from microsoft.agents.core.models import ChannelAccount
 from microsoft.agents.builder import (
     ActivityHandler,
-    BasicOAuthFlow,
+    OAuthFlow,
     MessageFactory,
     TurnContext,
 )
@@ -18,7 +18,7 @@ class SsoAgent(ActivityHandler):
         :param user_state: The user state.
         """
         self.user_state = user_state
-        self.oauth_flow = BasicOAuthFlow(user_state, connection_name, app_id)
+        self.oauth_flow = OAuthFlow(user_state, connection_name, app_id)
 
     async def on_members_added_activity(
         self, members_added: list[ChannelAccount], turn_context: TurnContext

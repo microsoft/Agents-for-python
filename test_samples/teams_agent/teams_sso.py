@@ -1,6 +1,6 @@
 from microsoft.agents.builder import (
     ActivityHandler,
-    BasicOAuthFlow,
+    OAuthFlow,
     MessageFactory,
     TurnContext,
 )
@@ -22,7 +22,10 @@ class TeamsSso(TeamsActivityHandler):
         :param app_id: Application ID.
         """
         self.user_state = user_state
-        self.oauth_flow = BasicOAuthFlow(user_state, connection_name, app_id)
+        self.oauth_flow = OAuthFlow(user_state, connection_name, app_id)
+
+    async def on_conversation_update_activity(self, turn_context):
+        return await super().on_conversation_update_activity(turn_context)
 
     async def on_members_added_activity(
         self, members_added: list[ChannelAccount], turn_context: TurnContext
@@ -32,39 +35,28 @@ class TeamsSso(TeamsActivityHandler):
                 await turn_context.send_activity(
                     "Hello and welcome to Teams SSO sample!"
                 )
+                token_response = await self.oauth_flow.begin_flow(turn_context)
+                if token_response.token:
+                    await self.send_logged_user_info(turn_context, token_response.token)
 
     async def on_message_activity(self, turn_context: TurnContext):
         text = turn_context.activity.text.strip() if turn_context.activity.text else ""
 
         if text == "login":
-            await self.oauth_flow.get_oauth_token(turn_context)
+            await self.oauth_flow.begin_flow(turn_context)
         elif text == "logout":
             await self.oauth_flow.sign_out(turn_context)
             await turn_context.send_activity(
                 MessageFactory.text("You have been signed out.")
             )
         elif "getUserProfile" in text:
-            user_token = await self.oauth_flow.get_oauth_token(turn_context)
+            user_token = await self.oauth_flow.get_user_token(turn_context)
             if user_token:
                 await self.send_logged_user_info(turn_context, user_token)
             else:
                 await turn_context.send_activity(
                     MessageFactory.text("Please type 'login' to sign in first.")
                 )
-        elif "getPagedMembers" in text:
-            members = await TeamsInfo.get_paged_members(turn_context, 2)
-            member_emails = [m.email for m in members.members if m.email]
-            await turn_context.send_activity(
-                MessageFactory.text(f"Team members: {member_emails}")
-            )
-        else:
-            await turn_context.send_activity(
-                MessageFactory.text(
-                    "Type 'login' to sign in, 'logout' to sign out, "
-                    "'getUserProfile' to see your profile, or "
-                    "'getPagedMembers' to see team members."
-                )
-            )
 
     async def on_turn(self, turn_context: TurnContext):
         await super().on_turn(turn_context)

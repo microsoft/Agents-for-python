@@ -8,7 +8,7 @@ from typing import Optional
 from aiohttp import ClientSession
 
 from microsoft.agents.connector import UserTokenClientBase
-from microsoft.agents.core.models import TokenResponse, TokenStatus
+from microsoft.agents.core.models import TokenResponse, TokenStatus, SignInResource
 from ..user_token_base import UserTokenBase
 from ..agent_sign_in_base import AgentSignInBase
 
@@ -61,7 +61,7 @@ class AgentSignIn(AgentSignInBase):
         code_challenge: Optional[str] = None,
         emulator_url: Optional[str] = None,
         final_redirect: Optional[str] = None,
-    ) -> dict:
+    ) -> SignInResource:
         """
         Get sign-in resource.
 
@@ -87,7 +87,7 @@ class AgentSignIn(AgentSignInBase):
                 response.raise_for_status()
 
             data = await response.json()
-            return data
+            return SignInResource.model_validate(data)
 
 
 class UserToken(UserTokenBase):
@@ -120,7 +120,9 @@ class UserToken(UserTokenBase):
             params["code"] = code
 
         async with self.client.get("api/usertoken/GetToken", params=params) as response:
-            if response.status >= 400 and response.status != 404:
+            if response.status == 404:
+                return TokenResponse(model_validate={})
+            if response.status >= 400:
                 logger.error(f"Error getting token: {response.status}")
                 response.raise_for_status()
 

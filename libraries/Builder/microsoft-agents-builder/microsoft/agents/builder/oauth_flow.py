@@ -1,6 +1,8 @@
 # Copyright (c) Microsoft Corporation. All rights reserved.
 # Licensed under the MIT License.
 
+from __future__ import annotations
+
 import base64
 from datetime import datetime
 import json
@@ -8,10 +10,10 @@ import json
 from microsoft.agents.connector.client import UserTokenClient
 from microsoft.agents.core.models import (
     ActionTypes,
+    ActivityTypes,
     CardAction,
     Attachment,
     OAuthCard,
-    SignInResource,
     TokenExchangeState,
     TokenResponse,
 )
@@ -40,7 +42,7 @@ class FlowState(StoreItem, BaseModel):
         return FlowState.model_validate(json_data)
 
 
-class BasicOAuthFlow:
+class OAuthFlow:
     """
     Manages the OAuth flow for Web Chat.
     """
@@ -49,16 +51,16 @@ class BasicOAuthFlow:
         self, user_state: UserState, connection_name: str, app_id: str, **kwargs
     ):
         """
-        Creates a new instance of BasicOAuthFlow.
+        Creates a new instance of OAuthFlow.
         :param user_state: The user state.
         """
         if not connection_name:
             raise ValueError(
-                "BasicOAuthFlow.__init__: connectionName expected but not found"
+                "OAuthFlow.__init__: connectionName expected but not found"
             )
         if not app_id:
             raise ValueError(
-                "BasicOAuthFlow.__init__: appId expected but not found. Ensure the appId is set in your environment variables."
+                "OAuthFlow.__init__: appId expected but not found. Ensure the appId is set in your environment variables."
             )
 
         self.connection_name = connection_name
@@ -87,7 +89,7 @@ class BasicOAuthFlow:
         :return: A TokenResponse object.
         """
         # logger.info('Starting OAuth flow')
-        self.state = await self.get_user_state(context)
+        self.state = await self._get_user_state(context)
 
         if not self.connection_name:
             raise ValueError(
@@ -106,13 +108,13 @@ class BasicOAuthFlow:
             channel_id=context.activity.channel_id,
         )
 
-        if user_token:
+        if user_token and user_token.token:
             # Already have token, return it
             self.state.flow_started = False
             self.state.flow_expires = 0
             await self.flow_state_accessor.set(context, self.state)
             # logger.info('User token retrieved successfully from service')
-            return TokenResponse.model_validate(user_token)
+            return user_token
 
         # No token, need to start sign-in flow
         token_exchange_state = TokenExchangeState(
@@ -127,11 +129,9 @@ class BasicOAuthFlow:
             )
         ).decode()
 
-        token_client_response = await token_client.agent_sign_in.get_sign_in_resource(
+        signing_resource = await token_client.agent_sign_in.get_sign_in_resource(
             state=serialized_state,
         )
-
-        signing_resource = SignInResource.model_validate(token_client_response)
 
         # Create the OAuth card
         o_card: Attachment = CardFactory.oauth_card(
@@ -160,107 +160,132 @@ class BasicOAuthFlow:
         # logger.info('OAuth begin flow completed, waiting for user to sign in')
 
         # Return in-progress response
-        return TokenResponse(token=None, status="inProgress")
+        return TokenResponse()
 
-    async def get_oauth_token(self, context: TurnContext) -> str:
+    async def continue_flow(self, context: TurnContext) -> TokenResponse:
         """
-        Gets the OAuth token.
+        Continues the OAuth flow.
         :param context: The turn context.
-        :return: The user token.
+        :return: A TokenResponse object.
         """
-        self.state = await self.get_user_state(context)
-        if self.state.user_token:
-            return self.state.user_token
+        self.state = await self._get_user_state(context)
 
         if (
-            self.state.flow_expires
-            and self.state.flow_expires < datetime.now().timestamp()
+            self.state.flow_expires != 0
+            and datetime.now().timestamp() > self.state.flow_expires
         ):
-            # logger.warn("Sign-in flow expired")
+            # logger.warn("Flow expired")
             self.state.flow_started = False
-            self.state.user_token = ""
             await context.send_activity(
                 MessageFactory.text("Sign-in session expired. Please try again.")
             )
+            return TokenResponse()
 
-        ret_val = ""
-        if not self.connection_name:
-            raise ValueError(
-                "connectionName is not set in the auth config, review your environment variables"
+        cont_flow_activity = context.activity
+
+        # Handle message type activities (typically when the user enters a code)
+        if cont_flow_activity.type == ActivityTypes.message:
+            magic_code = cont_flow_activity.text
+
+            # Get token client from turn state
+            token_client: UserTokenClient = context.turn_state.get(
+                context.adapter.USER_TOKEN_CLIENT_KEY
             )
 
-        # TODO: Fix property discovery
-        token_client: UserTokenClient = context.turn_state.get(
-            context.adapter.USER_TOKEN_CLIENT_KEY
-        )
-
-        if self.state.flow_started:
-            user_token = await token_client.user_token.get_token(
-                user_id=context.activity.from_property.id,
+            # Try to get token with the code
+            result = await token_client.user_token.get_token(
+                user_id=cont_flow_activity.from_property.id,
                 connection_name=self.connection_name,
-                channel_id=context.activity.channel_id,
+                channel_id=cont_flow_activity.channel_id,
+                code=magic_code,
             )
-            if user_token:
-                # logger.info("Token obtained")
-                self.state.user_token = user_token["token"]
-                self.state.flow_started = False
-            else:
-                code = context.activity.text
-                user_token = await token_client.user_token.get_token(
-                    user_id=context.activity.from_property.id,
-                    connection_name=self.connection_name,
-                    channel_id=context.activity.channel_id,
-                    code=code,
-                )
-                if user_token:
-                    # logger.info("Token obtained with code")
-                    self.state.user_token = user_token["token"]
+
+            if result:
+                token_response = TokenResponse.model_validate(result)
+                if token_response.token:
                     self.state.flow_started = False
-                else:
-                    # logger.error("Sign in failed")
-                    await context.send_activity(MessageFactory.text("Sign in failed"))
-            ret_val = self.state.user_token
-        else:
-            token_exchange_state = TokenExchangeState(
-                connection_name=self.connection_name,
-                conversation=context.activity.get_conversation_reference(),
-                relates_to=context.activity.relates_to,
-                ms_app_id=self.app_id,
-            )
-            serialized_state = base64.b64encode(
-                json.dumps(token_exchange_state.model_dump(by_alias=True)).encode(
-                    encoding="UTF-8", errors="strict"
-                )
-            ).decode()
-            token_client_response = (
-                await token_client.agent_sign_in.get_sign_in_resource(
-                    state=serialized_state,
-                )
-            )
-            signing_resource = SignInResource.model_validate(token_client_response)
-            # TODO: move this to CardFactory
-            o_card: Attachment = CardFactory.oauth_card(
-                OAuthCard(
-                    text="Sign in",
-                    connection_name=self.connection_name,
-                    buttons=[
-                        CardAction(
-                            title="Sign in",
-                            text="",
-                            type=ActionTypes.signin,
-                            value=signing_resource.sign_in_link,
-                        )
-                    ],
-                    token_exchange_resource=signing_resource.token_exchange_resource,
-                )
-            )
-            await context.send_activity(MessageFactory.attachment(o_card))
-            self.state.flow_started = True
-            self.state.flow_expires = datetime.now().timestamp() + 30000
-            # logger.info("OAuth flow started")
+                    self.state.user_token = token_response.token
+                    await self.flow_state_accessor.set(context, self.state)
+                return token_response
+            return TokenResponse()
 
-        await self.flow_state_accessor.set(context, self.state)
-        return ret_val
+        # Handle verify state invoke activity
+        if (
+            cont_flow_activity.type == ActivityTypes.invoke
+            and cont_flow_activity.name == "signin/verifyState"
+        ):
+            # logger.info('Continuing OAuth flow with verifyState')
+            token_verify_state = cont_flow_activity.value
+            magic_code = token_verify_state.get("state")
+
+            # Get token client from turn state
+            token_client: UserTokenClient = context.turn_state.get(
+                context.adapter.USER_TOKEN_CLIENT_KEY
+            )
+
+            # Try to get token with the code
+            result = await token_client.user_token.get_token(
+                user_id=cont_flow_activity.from_property.id,
+                connection_name=self.connection_name,
+                channel_id=cont_flow_activity.channel_id,
+                code=magic_code,
+            )
+
+            if result:
+                token_response = TokenResponse.model_validate(result)
+                if token_response.token:
+                    self.state.flow_started = False
+                    self.state.user_token = token_response.token
+                    await self.flow_state_accessor.set(context, self.state)
+                return token_response
+            return TokenResponse()
+
+        # Handle token exchange invoke activity
+        if (
+            cont_flow_activity.type == ActivityTypes.invoke
+            and cont_flow_activity.name == "signin/tokenExchange"
+        ):
+            # logger.info('Continuing OAuth flow with tokenExchange')
+            token_exchange_request = cont_flow_activity.value
+
+            # Dedupe checks to prevent duplicate processing
+            token_exchange_id = token_exchange_request.get("id")
+            if (
+                hasattr(self, "token_exchange_id")
+                and self.token_exchange_id == token_exchange_id
+            ):
+                # Already processed this request
+                return TokenResponse()
+
+            # Store this request ID
+            self.token_exchange_id = token_exchange_id
+
+            # Get token client from turn state
+            token_client: UserTokenClient = context.turn_state.get(
+                context.adapter.USER_TOKEN_CLIENT_KEY
+            )
+
+            # Exchange the token
+            user_token_resp = await token_client.user_token.exchange_token(
+                user_id=cont_flow_activity.from_property.id,
+                connection_name=self.connection_name,
+                channel_id=cont_flow_activity.channel_id,
+                body=token_exchange_request,
+            )
+
+            if user_token_resp and user_token_resp.token:
+                # logger.info('Token exchanged')
+                self.state.flow_started = False
+                self.state.user_token = user_token_resp.token
+                await self.flow_state_accessor.set(context, self.state)
+                return user_token_resp
+            else:
+                # logger.warn('Token exchange failed')
+                self.state.flow_started = True
+                await self.flow_state_accessor.set(context, self.state)
+                return TokenResponse()
+
+        return TokenResponse()
 
     async def sign_out(self, context: TurnContext):
         """
@@ -282,7 +307,7 @@ class BasicOAuthFlow:
         await self.flow_state_accessor.set(context, self.state)
         # logger.info("User signed out successfully")
 
-    async def get_user_state(self, context: TurnContext) -> FlowState:
+    async def _get_user_state(self, context: TurnContext) -> FlowState:
         """
         Gets the user state.
         :param context: The turn context.

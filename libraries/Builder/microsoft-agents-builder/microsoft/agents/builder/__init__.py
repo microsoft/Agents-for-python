@@ -1,7 +1,7 @@
 # Import necessary modules
 from .activity_handler import ActivityHandler
 from .agent import Agent
-from .basic_oauth_flow import BasicOAuthFlow
+from .oauth_flow import OAuthFlow
 from .card_factory import CardFactory
 from .channel_adapter import ChannelAdapter
 from .channel_api_handler_protocol import ChannelApiHandlerProtocol
@@ -16,7 +16,7 @@ from .turn_context import TurnContext
 __all__ = [
     "ActivityHandler",
     "Agent",
-    "BasicOAuthFlow",
+    "OAuthFlow",
     "CardFactory",
     "ChannelAdapter",
     "ChannelApiHandlerProtocol",
