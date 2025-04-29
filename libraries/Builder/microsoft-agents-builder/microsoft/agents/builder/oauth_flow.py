@@ -70,7 +70,7 @@ class OAuthFlow:
             "flowState"
         )
 
-    async def get_user_token(self, context: TurnContext) -> str:
+    async def get_user_token(self, context: TurnContext) -> TokenResponse:
         token_client: UserTokenClient = context.turn_state.get(
             context.adapter.USER_TOKEN_CLIENT_KEY
         )
@@ -124,9 +124,11 @@ class OAuthFlow:
             ms_app_id=self.app_id,
         )
         serialized_state = base64.b64encode(
-            json.dumps(token_exchange_state.model_dump(by_alias=True)).encode(
-                encoding="UTF-8", errors="strict"
-            )
+            json.dumps(
+                token_exchange_state.model_dump(
+                    by_alias=True, exclude_none=True, exclude_unset=True
+                )
+            ).encode(encoding="UTF-8", errors="strict")
         ).decode()
 
         signing_resource = await token_client.agent_sign_in.get_sign_in_resource(
@@ -141,12 +143,12 @@ class OAuthFlow:
                 buttons=[
                     CardAction(
                         title="Sign in",
-                        text="",
                         type=ActionTypes.signin,
                         value=signing_resource.sign_in_link,
                     )
                 ],
                 token_exchange_resource=signing_resource.token_exchange_resource,
+                token_post_resource=signing_resource.token_post_resource,
             )
         )
 

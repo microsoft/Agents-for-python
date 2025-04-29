@@ -1,9 +1,9 @@
-from pydantic import BaseModel
+from .agents_model import AgentsModel
 
 from ._type_aliases import NonEmptyString
 
 
-class TokenPostResource(BaseModel):
+class TokenPostResource(AgentsModel):
     """
     A type containing information for token posting.
     """

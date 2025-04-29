@@ -80,7 +80,7 @@ class AgentSignIn(AgentSignInBase):
             params["finalRedirect"] = final_redirect
 
         async with self.client.get(
-            "api/agentsignin/getSignInResource", params=params
+            "api/botsignin/getSignInResource", params=params
         ) as response:
             if response.status >= 400:
                 logger.error(f"Error getting sign-in resource: {response.status}")

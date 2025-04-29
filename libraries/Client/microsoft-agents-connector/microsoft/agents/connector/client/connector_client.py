@@ -180,7 +180,7 @@ class ConversationsOperations(ConversationsBase):
                 logger.error(f"Error replying to activity: {response.status}")
                 response.raise_for_status()
 
-            data = await response.json()
+            data = await response.json() if response.content_length else {}
             logger.info(
                 f"Reply to conversation/activity: {data.get('id')}, {activity_id}"
             )

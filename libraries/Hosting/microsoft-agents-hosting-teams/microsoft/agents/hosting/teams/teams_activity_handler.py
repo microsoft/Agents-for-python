@@ -545,7 +545,7 @@ class TeamsActivityHandler(ActivityHandler):
             elif event_type == "teamUnarchived":
                 return await self.on_teams_team_unarchived(turn_context)
 
-            return await super().on_conversation_update_activity(turn_context)
+        return await super().on_conversation_update_activity(turn_context)
 
     async def on_message_update_activity(self, turn_context: TurnContext):
         """
