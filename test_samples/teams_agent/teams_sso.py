@@ -24,8 +24,11 @@ class TeamsSso(TeamsActivityHandler):
         self.user_state = user_state
         self.oauth_flow = OAuthFlow(user_state, connection_name, app_id)
 
-    async def on_conversation_update_activity(self, turn_context):
-        return await super().on_conversation_update_activity(turn_context)
+    async def on_sign_in_invoke(self, turn_context):
+        # Log Event trigggered
+        token_response = await self.oauth_flow.continue_flow(turn_context)
+        if token_response.token:
+            await self.send_logged_user_info(turn_context, token_response.token)
 
     async def on_members_added_activity(
         self, members_added: list[ChannelAccount], turn_context: TurnContext
