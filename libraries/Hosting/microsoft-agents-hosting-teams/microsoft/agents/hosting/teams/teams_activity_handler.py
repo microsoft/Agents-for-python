@@ -651,9 +651,7 @@ class TeamsActivityHandler(ActivityHandler):
             else:
                 # Try to get the full member details from Teams
                 try:
-                    teams_member = await TeamsInfo.get_member(
-                        turn_context.activity, member.id
-                    )
+                    teams_member = await TeamsInfo.get_member(turn_context, member.id)
                     teams_members_added.append(teams_member)
                 except Exception as err:
                     # Handle case where conversation is not found

@@ -241,7 +241,7 @@ class UserToken(UserTokenBase):
         }
 
         async with self.client.post(
-            "api/usertoken/ExchangeToken", params=params, json=body
+            "api/usertoken/exchange", params=params, json=body
         ) as response:
             if response.status >= 400 and response.status != 404:
                 logger.error(f"Error exchanging token: {response.status}")
