@@ -1,6 +1,8 @@
 # Copyright (c) Microsoft Corporation. All rights reserved.
 # Licensed under the MIT License.
 
+from typing import Any
+from pydantic import ConfigDict
 from ..agents_model import AgentsModel
 
 
@@ -25,6 +27,8 @@ class TeamsChannelAccount(AgentsModel):
     :type user_role: str
     """
 
+    model_config = ConfigDict(extra="allow")
+
     id: str = None
     name: str = None
     given_name: str = None
@@ -33,3 +37,8 @@ class TeamsChannelAccount(AgentsModel):
     user_principal_name: str = None
     tenant_id: str = None
     user_role: str = None
+
+    @property
+    def properties(self) -> dict[str, Any]:
+        """Returns the set of properties that are not None."""
+        return self.model_extra
