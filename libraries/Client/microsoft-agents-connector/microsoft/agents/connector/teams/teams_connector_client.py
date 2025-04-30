@@ -80,7 +80,9 @@ class TeamsConnectorClient(ConnectorClient):
             headers={"Content-Type": "application/json"},
         ) as response:
             response.raise_for_status()
-            return TeamsChannelAccount.model_validate(await response.json())
+
+            json_response = await response.json()
+            return TeamsChannelAccount.model_validate(json_response)
 
     async def get_conversation_paged_member(
         self, conversation_id: str, page_size: int, continuation_token: str

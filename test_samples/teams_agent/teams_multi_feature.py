@@ -37,8 +37,6 @@ class TeamsMultiFeature(TeamsActivityHandler):
 
         if "help" in text.lower():
             await self._send_help_card(turn_context)
-        elif "card" in text.lower():
-            await self._send_adaptive_card(turn_context)
         elif "user profile" in text.lower():
             await self._send_user_profile_card(turn_context)
         elif "restaurant" in text.lower():
@@ -50,7 +48,7 @@ class TeamsMultiFeature(TeamsActivityHandler):
         else:
             await turn_context.send_activity(
                 MessageFactory.text(
-                    "Type 'help' to see available commands, or try 'card', "
+                    "Type 'help' to see available commands, or "
                     "'user profile', 'restaurant', 'task', or 'youtube'"
                 )
             )
@@ -105,7 +103,6 @@ class TeamsMultiFeature(TeamsActivityHandler):
                 {
                     "type": "FactSet",
                     "facts": [
-                        {"title": "card", "value": "Show a basic adaptive card"},
                         {"title": "user profile", "value": "Show user profile card"},
                         {"title": "restaurant", "value": "Show restaurant card"},
                         {"title": "task", "value": "Show task module card"},
@@ -117,16 +114,6 @@ class TeamsMultiFeature(TeamsActivityHandler):
 
         attachment = Attachment(
             content_type="application/vnd.microsoft.card.adaptive", content=card_data
-        )
-
-        await turn_context.send_activity(MessageFactory.attachment(attachment))
-
-    async def _send_adaptive_card(self, turn_context: TurnContext):
-        """Send a basic adaptive card"""
-        card_content = self._get_adaptive_card_content()
-
-        attachment = Attachment(
-            content_type="application/vnd.microsoft.card.adaptive", content=card_content
         )
 
         await turn_context.send_activity(MessageFactory.attachment(attachment))
@@ -161,10 +148,6 @@ class TeamsMultiFeature(TeamsActivityHandler):
                                         "type": "Image",
                                         "style": "Person",
                                         "size": "Small",
-                                        "url": member.properties.get(
-                                            "aadObjectId",
-                                            "https://adaptivecards.io/images/PersonalPhoto.png",
-                                        ),
                                     }
                                 ],
                             },
@@ -370,7 +353,7 @@ class TeamsMultiFeature(TeamsActivityHandler):
     def _get_adaptive_card_content(self):
         """Get a basic adaptive card content"""
         content = {
-            "version": "1.0",
+            "version": "1.3",
             "type": "AdaptiveCard",
             "body": [
                 {
