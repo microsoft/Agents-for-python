@@ -22,7 +22,7 @@ class TeamsSso(TeamsActivityHandler):
         :param app_id: Application ID.
         """
         self.user_state = user_state
-        self.oauth_flow = OAuthFlow(user_state, connection_name, app_id)
+        self.oauth_flow = OAuthFlow(user_state, connection_name)
 
     async def on_sign_in_invoke(self, turn_context):
         # Log Event trigggered

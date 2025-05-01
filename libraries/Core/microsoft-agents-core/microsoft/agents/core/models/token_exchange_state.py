@@ -1,3 +1,5 @@
+import base64
+import json
 from typing import Optional
 from pydantic import Field
 
@@ -26,3 +28,11 @@ class TokenExchangeState(AgentsModel):
     relates_to: Optional[ConversationReference] = None
     agent_url: NonEmptyString = Field(None, alias="bot_url")
     ms_app_id: NonEmptyString = None
+
+    def get_encoded_state(self) -> str:
+        """Returns the encoded state for the token exchange."""
+        return base64.b64encode(
+            json.dumps(
+                self.model_dump(by_alias=True, exclude_none=True, exclude_unset=True)
+            ).encode(encoding="UTF-8", errors="strict")
+        ).decode()

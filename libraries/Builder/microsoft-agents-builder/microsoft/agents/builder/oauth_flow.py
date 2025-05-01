@@ -48,7 +48,11 @@ class OAuthFlow:
     """
 
     def __init__(
-        self, user_state: UserState, connection_name: str, app_id: str, **kwargs
+        self,
+        user_state: UserState,
+        connection_name: str,
+        messages_configuration: dict[str, str] = None,
+        **kwargs,
     ):
         """
         Creates a new instance of OAuthFlow.
@@ -58,13 +62,10 @@ class OAuthFlow:
             raise ValueError(
                 "OAuthFlow.__init__: connectionName expected but not found"
             )
-        if not app_id:
-            raise ValueError(
-                "OAuthFlow.__init__: appId expected but not found. Ensure the appId is set in your environment variables."
-            )
+
+        self.messages_configuration = messages_configuration or {}
 
         self.connection_name = connection_name
-        self.app_id = app_id
         self.state: FlowState | None = None
         self.flow_state_accessor: StatePropertyAccessor = user_state.create_property(
             "flowState"
@@ -74,6 +75,9 @@ class OAuthFlow:
         token_client: UserTokenClient = context.turn_state.get(
             context.adapter.USER_TOKEN_CLIENT_KEY
         )
+
+        if not context.activity.from_property:
+            raise ValueError("User ID is not set in the activity.")
 
         return await token_client.user_token.get_token(
             user_id=context.activity.from_property.id,
@@ -121,28 +125,23 @@ class OAuthFlow:
             connection_name=self.connection_name,
             conversation=context.activity.get_conversation_reference(),
             relates_to=context.activity.relates_to,
-            ms_app_id=self.app_id,
+            ms_app_id=context.turn_state.get(context.adapter.AGENT_IDENTITY_KEY).claims[
+                "aud"
+            ],
         )
-        serialized_state = base64.b64encode(
-            json.dumps(
-                token_exchange_state.model_dump(
-                    by_alias=True, exclude_none=True, exclude_unset=True
-                )
-            ).encode(encoding="UTF-8", errors="strict")
-        ).decode()
 
         signing_resource = await token_client.agent_sign_in.get_sign_in_resource(
-            state=serialized_state,
+            state=token_exchange_state.get_encoded_state(),
         )
 
         # Create the OAuth card
         o_card: Attachment = CardFactory.oauth_card(
             OAuthCard(
-                text="Sign in",
+                text=self.messages_configuration.get("card_title", "Sign in"),
                 connection_name=self.connection_name,
                 buttons=[
                     CardAction(
-                        title="Sign in",
+                        title=self.messages_configuration.get("button_text", "Sign in"),
                         type=ActionTypes.signin,
                         value=signing_resource.sign_in_link,
                     )
@@ -179,7 +178,12 @@ class OAuthFlow:
             # logger.warn("Flow expired")
             self.state.flow_started = False
             await context.send_activity(
-                MessageFactory.text("Sign-in session expired. Please try again.")
+                MessageFactory.text(
+                    self.messages_configuration.get(
+                        "session_expired_messages",
+                        "Sign-in session expired. Please try again.",
+                    )
+                )
             )
             return TokenResponse()
 
