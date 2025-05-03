@@ -22,7 +22,7 @@ from typing import (
 from .. import Agent, TurnContext
 from microsoft.agents.core.models import Activity, ActivityTypes, InvokeResponse
 
-from .activity_type import (
+from . import (
     ActivityType,
     ConversationUpdateType,
     MessageReactionType,
@@ -32,11 +32,9 @@ from .activity_type import (
 from .app_error import ApplicationError
 from .app_options import ApplicationOptions
 from .auth import AuthManager, OAuth, OAuthOptions
-from .message_extensions.message_extensions import MessageExtensions
 from .route import Route, RouteHandler
-from .state import TurnState
-from .task_modules import TaskModules
-from .teams_adapter import TeamsAdapter
+from ..state import TurnState
+from ..channel_service_adapter import ChannelServiceAdapter
 from .typing import Typing
 
 StateT = TypeVar("StateT", bound=TurnState)
@@ -59,15 +57,13 @@ class Application(Agent, Generic[StateT]):
     typing: Typing
 
     _options: ApplicationOptions
-    _adapter: Optional[TeamsAdapter] = None
+    _adapter: Optional[ChannelServiceAdapter] = None
     _auth: Optional[AuthManager[StateT]] = None
     _before_turn: List[RouteHandler[StateT]] = []
     _after_turn: List[RouteHandler[StateT]] = []
     _routes: List[Route[StateT]] = []
     _error: Optional[Callable[[TurnContext, Exception], Awaitable[None]]] = None
     _turn_state_factory: Optional[Callable[[TurnContext], Awaitable[StateT]]] = None
-    _message_extensions: MessageExtensions[StateT]
-    _task_modules: TaskModules[StateT]
 
     def __init__(self, options: ApplicationOptions = ApplicationOptions()) -> None:
         """
@@ -76,10 +72,6 @@ class Application(Agent, Generic[StateT]):
         self.typing = Typing()
         self._options = options
         self._routes = []
-        self._message_extensions = MessageExtensions[StateT](self._routes)
-        self._task_modules = TaskModules[StateT](
-            self._routes, options.task_modules.task_data_filter
-        )
 
         if options.long_running_messages and (
             not options.adapter or not options.bot_app_id
@@ -102,7 +94,7 @@ class Application(Agent, Generic[StateT]):
                     self._auth.set(name, OAuth[StateT](opts))
 
     @property
-    def adapter(self) -> TeamsAdapter:
+    def adapter(self) -> ChannelServiceAdapter:
         """
         The bot's adapter.
         """
@@ -139,22 +131,8 @@ class Application(Agent, Generic[StateT]):
         """
         return self._options
 
-    @property
-    def message_extensions(self) -> MessageExtensions[StateT]:
-        """
-        Message Extensions
-        """
-        return self._message_extensions
-
-    @property
-    def task_modules(self) -> TaskModules[StateT]:
-        """
-        Access the application's task modules functionalities.
-        """
-        return self._task_modules
-
     def activity(
-        self, type: ActivityType
+        self, type: Union[str, Pattern[str], List[Union[str, Pattern[str]]]]
     ) -> Callable[[RouteHandler[StateT]], RouteHandler[StateT]]:
         """
         Registers a new activity event listener. This method can be used as either
@@ -185,7 +163,7 @@ class Application(Agent, Generic[StateT]):
         return __call__
 
     def message(
-        self, select: Union[str, Pattern[str]]
+        self, select: Union[str, Pattern[str], List[Union[str, Pattern[str]]]]
     ) -> Callable[[RouteHandler[StateT]], RouteHandler[StateT]]:
         """
         Registers a new message activity event listener. This method can be used as either

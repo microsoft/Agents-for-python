@@ -8,8 +8,8 @@ from __future__ import annotations
 from threading import Timer
 from typing import Optional
 
-from botbuilder.core import TurnContext
-from botbuilder.schema import Activity, ActivityTypes, ErrorResponseException
+from .. import TurnContext
+from microsoft.agents.core.models import Activity, ActivityTypes, ErrorResponseException
 
 
 class Typing:
