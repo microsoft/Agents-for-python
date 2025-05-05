@@ -20,13 +20,13 @@ from typing import (
 )
 
 from .. import Agent, TurnContext
-from microsoft.agents.core.models import Activity, ActivityTypes, InvokeResponse
-
-from . import (
-    ActivityType,
-    ConversationUpdateType,
-    MessageReactionType,
-    MessageUpdateType,
+from microsoft.agents.core.models import (
+    Activity,
+    ActivityTypes,
+    ConversationUpdateTypes,
+    MessageReactionTypes,
+    MessageUpdateTypes,
+    InvokeResponse,
 )
 
 from .app_error import ApplicationError
@@ -203,7 +203,7 @@ class Application(Agent, Generic[StateT]):
         return __call__
 
     def conversation_update(
-        self, type: ConversationUpdateType
+        self, type: ConversationUpdateTypes
     ) -> Callable[[RouteHandler[StateT]], RouteHandler[StateT]]:
         """
         Registers a new message activity event listener. This method can be used as either
@@ -251,7 +251,7 @@ class Application(Agent, Generic[StateT]):
         return __call__
 
     def message_reaction(
-        self, type: MessageReactionType
+        self, type: MessageReactionTypes
     ) -> Callable[[RouteHandler[StateT]], RouteHandler[StateT]]:
         """
         Registers a new message activity event listener. This method can be used as either
@@ -295,7 +295,7 @@ class Application(Agent, Generic[StateT]):
         return __call__
 
     def message_update(
-        self, type: MessageUpdateType
+        self, type: MessageUpdateTypes
     ) -> Callable[[RouteHandler[StateT]], RouteHandler[StateT]]:
         """
         Registers a new message activity event listener. This method can be used as either
