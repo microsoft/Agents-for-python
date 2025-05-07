@@ -34,7 +34,7 @@ from .app_options import ApplicationOptions
 
 # from .auth import AuthManager, OAuth, OAuthOptions
 from .route import Route, RouteHandler
-from ..state import TurnState
+from .state import TurnState
 from ..channel_service_adapter import ChannelServiceAdapter
 from .typing import Typing
 
@@ -59,7 +59,7 @@ class Application(Agent, Generic[StateT]):
 
     _options: ApplicationOptions
     _adapter: Optional[ChannelServiceAdapter] = None
-    _auth: Optional[AuthManager[StateT]] = None
+    # _auth: Optional[AuthManager[StateT]] = None
     _before_turn: List[RouteHandler[StateT]] = []
     _after_turn: List[RouteHandler[StateT]] = []
     _routes: List[Route[StateT]] = []

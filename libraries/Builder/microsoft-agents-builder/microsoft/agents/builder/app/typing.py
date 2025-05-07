@@ -9,7 +9,7 @@ from threading import Timer
 from typing import Optional
 
 from .. import TurnContext
-from microsoft.agents.core.models import Activity, ActivityTypes, ErrorResponseException
+from microsoft.agents.core.models import Activity, ActivityTypes
 
 
 class Typing:
@@ -41,7 +41,9 @@ class Typing:
         async def __call__():
             try:
                 await context.send_activity(Activity(type=ActivityTypes.typing))
-            except ErrorResponseException:
+            except Exception as e:
+                # TODO: Improve when adding logging
+                print(f"Error sending typing activity: {e}")
                 self.stop()
 
         return __call__

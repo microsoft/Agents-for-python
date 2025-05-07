@@ -88,8 +88,6 @@ class TestCachedAgentState:
         assert json_data["key"] == "value"
         assert "number" in json_data
         assert json_data["number"] == 42
-        assert "CachedAgentState._hash" in json_data
-        assert json_data["CachedAgentState._hash"] == cached_state.hash
 
         # Test with nested StoreItem
         nested_item = MockStoreItem({"nested": "data"})
@@ -100,7 +98,10 @@ class TestCachedAgentState:
 
     def test_from_json_to_store_item(self):
         """Test creating from JSON."""
-        json_data = {"key": "value", "number": 42, "CachedAgentState._hash": 12345}
+        json_data = {
+            "key": "value",
+            "number": 42,
+        }
         cached_state = CachedAgentState.from_json_to_store_item(json_data)
         assert cached_state.state["key"] == "value"
         assert cached_state.state["number"] == 42
@@ -160,13 +161,17 @@ class TestAgentStateClass:
 
         # Create a mock turn context and cached state
         turn_context = MagicMock(spec=TurnContext)
-        cached_state = CachedAgentState({"key": "value"})
+        test_value = MockStoreItem({"key2": "value"})
+        cached_state = CachedAgentState({"key": test_value})
 
         # Make get_cached_state return our mock
         with patch.object(agent_state, "get_cached_state", return_value=cached_state):
             state_data = agent_state.get(turn_context)
 
-            assert state_data == {"key": "value"}
+            assert (
+                CachedAgentState(state_data).store_item_to_json()
+                == cached_state.store_item_to_json()
+            )
 
     @pytest.mark.asyncio
     async def test_load(self):
@@ -187,7 +192,6 @@ class TestAgentStateClass:
                 "test-agent-state:test-conversation": {
                     "prop1": "value1",
                     "prop2": "value2",
-                    "CachedAgentState._hash": 12345,
                 }
             }
             storage.read = AsyncMock(return_value=storage_data)
@@ -202,7 +206,6 @@ class TestAgentStateClass:
             assert cached_state.state == {
                 "prop1": "value1",
                 "prop2": "value2",
-                "CachedAgentState._hash": 12345,
             }
 
     @pytest.mark.asyncio
@@ -225,7 +228,6 @@ class TestAgentStateClass:
                 "test-agent-state:test-conversation": {
                     "prop1": "value1",
                     "prop2": "value2",
-                    "CachedAgentState._hash": 12345,
                 }
             }
             storage.read = AsyncMock(return_value=storage_data)
@@ -242,7 +244,6 @@ class TestAgentStateClass:
             assert cached_state.state == {
                 "prop1": "value1",
                 "prop2": "value2",
-                "CachedAgentState._hash": 12345,
             }
 
     @pytest.mark.asyncio

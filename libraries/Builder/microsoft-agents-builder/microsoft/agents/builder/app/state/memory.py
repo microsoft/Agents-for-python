@@ -9,8 +9,6 @@ from abc import ABC, abstractmethod
 from collections import UserDict
 from typing import Any, Dict, MutableMapping, Optional, Tuple
 
-from microsoft.agents.builder.app import ApplicationError
-
 
 class MemoryBase(ABC):
     """
@@ -68,6 +66,8 @@ class MemoryBase(ABC):
         parts = path.split(".")
 
         if len(parts) > 2:
+            from .. import ApplicationError
+
             raise ApplicationError(f"Invalid state path: {path}")
 
         if len(parts) == 1:

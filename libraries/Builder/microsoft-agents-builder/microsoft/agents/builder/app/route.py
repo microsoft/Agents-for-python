@@ -8,7 +8,7 @@ from __future__ import annotations
 from typing import Awaitable, Callable, Generic, TypeVar
 
 from .. import TurnContext
-from ..state import TurnState
+from .state import TurnState
 
 StateT = TypeVar("StateT", bound=TurnState)
 RouteHandler = Callable[[TurnContext, StateT], Awaitable[bool]]

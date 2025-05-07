@@ -21,8 +21,7 @@ class CachedAgentState(StoreItem):
     def __init__(self, state: Dict[str, StoreItem | dict] = None):
         if state:
             self.state = state
-            internal_hash = state.pop("CachedAgentState._hash", None)
-            self.hash = internal_hash or self.compute_hash()
+            self.hash = self.compute_hash()
         else:
             self.state = {}
             self.hash = hash(str({}))
@@ -46,7 +45,6 @@ class CachedAgentState(StoreItem):
             key: value.store_item_to_json() if isinstance(value, StoreItem) else value
             for key, value in self.state.items()
         }
-        serialized["CachedAgentState._hash"] = self.hash
         return serialized
 
     @staticmethod
