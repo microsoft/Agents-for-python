@@ -9,7 +9,7 @@ from abc import ABC, abstractmethod
 from collections import UserDict
 from typing import Any, Dict, MutableMapping, Optional, Tuple
 
-from ..app import ApplicationError
+from microsoft.agents.builder.app import ApplicationError
 
 
 class MemoryBase(ABC):

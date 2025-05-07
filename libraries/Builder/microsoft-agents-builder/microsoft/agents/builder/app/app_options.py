@@ -9,23 +9,23 @@ from dataclasses import dataclass, field
 from logging import Logger
 from typing import List, Optional
 
-from botbuilder.core import Storage
+from microsoft.agents.storage import Storage
 
-from .auth import AuthOptions
+# from .auth import AuthOptions
 from .input_file import InputFileDownloader
-from .task_modules import TaskModulesOptions
+from ..channel_service_adapter import ChannelServiceAdapter
 
 # from .teams_adapter import TeamsAdapter
 
 
 @dataclass
 class ApplicationOptions:
-    adapter: Optional[TeamsAdapter] = None
+    adapter: Optional[ChannelServiceAdapter] = None
     """
     Optional. Options used to initialize your `BotAdapter`
     """
 
-    auth: Optional[AuthOptions] = None
+    # auth: Optional[AuthOptions] = None
     """
     Optional. Auth settings.
     """
@@ -38,11 +38,6 @@ class ApplicationOptions:
     storage: Optional[Storage] = None
     """
     Optional. `Storage` provider to use for the application.
-    """
-
-    ai: Optional[AIOptions] = None
-    """
-    Optional. AI options to use. When provided, a new instance of the AI system will be created.
     """
 
     logger: Logger = Logger("teams.ai")
@@ -72,16 +67,6 @@ class ApplicationOptions:
     Care should be used for bots that operate in a shared hosting environment. 
     The incoming request is immediately completed and many shared hosting environments 
     will mark the bot's process as idle and shut it down.
-    """
-
-    adaptive_cards: AdaptiveCardsOptions = field(default_factory=AdaptiveCardsOptions)
-    """
-    Optional. Options used to customize the processing of Adaptive Card requests.
-    """
-
-    task_modules: TaskModulesOptions = field(default_factory=TaskModulesOptions)
-    """
-    Optional. Options used to customize the processing of Task Module requests.
     """
 
     file_downloaders: List[InputFileDownloader] = field(default_factory=list)

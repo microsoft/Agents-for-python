@@ -9,8 +9,8 @@ from typing import Any, Dict, Optional
 
 from microsoft.agents.storage import Storage, StoreItem
 
-from ..turn_context import TurnContext
-from .state import State, state
+from microsoft.agents.builder.turn_context import TurnContext
+from microsoft.agents.builder.app.state.state import State, state
 
 
 @state

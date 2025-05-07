@@ -9,9 +9,9 @@ from typing import Dict, List, Optional
 
 from microsoft.agents.storage import Storage
 
-from ..turn_context import TurnContext
-from ..input_file import InputFile
-from .state import State, state
+from microsoft.agents.builder.turn_context import TurnContext
+from microsoft.agents.builder.app.input_file import InputFile
+from microsoft.agents.builder.app.state.state import State, state
 
 
 @state

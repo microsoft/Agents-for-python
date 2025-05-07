@@ -10,11 +10,12 @@ from abc import ABC, abstractmethod
 from copy import deepcopy
 from typing import Any, Callable, List, Optional, Type, TypeVar, Union, overload
 
-from .state_property_accessor import StatePropertyAccessor as _StatePropertyAccessor
-from microsoft.agents.storage import Storage
+from microsoft.agents.builder.state.state_property_accessor import (
+    StatePropertyAccessor as _StatePropertyAccessor,
+)
+from microsoft.agents.storage import Storage, StoreItem
 
-from ..turn_context import TurnContext
-from .todict import todict
+from microsoft.agents.builder.turn_context import TurnContext
 
 T = TypeVar("T")
 
@@ -58,7 +59,7 @@ def state(
     return wrap(_cls)
 
 
-class State(dict, ABC):
+class State(dict[str, StoreItem], ABC):
     """
     State
     """
@@ -168,7 +169,7 @@ class State(dict, ABC):
         del self[key]
 
     def __str__(self) -> str:
-        return json.dumps(todict(self))
+        return str({key: value.store_item_to_json() for key, value in self.items()})
 
 
 class StatePropertyAccessor(_StatePropertyAccessor):

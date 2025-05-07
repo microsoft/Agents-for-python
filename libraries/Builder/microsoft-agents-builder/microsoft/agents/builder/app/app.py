@@ -31,7 +31,8 @@ from microsoft.agents.core.models import (
 
 from .app_error import ApplicationError
 from .app_options import ApplicationOptions
-from .auth import AuthManager, OAuth, OAuthOptions
+
+# from .auth import AuthManager, OAuth, OAuthOptions
 from .route import Route, RouteHandler
 from ..state import TurnState
 from ..channel_service_adapter import ChannelServiceAdapter
@@ -86,12 +87,14 @@ class Application(Agent, Generic[StateT]):
         if options.adapter:
             self._adapter = options.adapter
 
+        """
         if options.auth:
             self._auth = AuthManager[StateT](default=options.auth.default)
 
             for name, opts in options.auth.settings.items():
                 if isinstance(opts, OAuthOptions):
                     self._auth.set(name, OAuth[StateT](opts))
+        """
 
     @property
     def adapter(self) -> ChannelServiceAdapter:

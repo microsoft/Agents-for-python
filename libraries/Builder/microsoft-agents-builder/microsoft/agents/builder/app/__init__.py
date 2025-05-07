@@ -5,12 +5,6 @@ Licensed under the MIT License.
 
 from __future__ import annotations
 
-from .activity_type import (
-    ActivityType,
-    ConversationUpdateType,
-    MessageReactionType,
-    MessageUpdateType,
-)
 from .app import Application
 from .app_error import ApplicationError
 from .app_options import ApplicationOptions

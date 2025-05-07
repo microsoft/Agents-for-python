@@ -9,12 +9,12 @@ from typing import Any, Generic, Optional, TypeVar, cast
 
 from microsoft.agents.storage import Storage
 
-from ..turn_context import TurnContext
-from .conversation_state import ConversationState
-from .memory import MemoryBase
-from .state import State, state
-from .temp_state import TempState
-from .user_state import UserState
+from microsoft.agents.builder.turn_context import TurnContext
+from microsoft.agents.builder.app.state.conversation_state import ConversationState
+from microsoft.agents.builder.app.state.memory import MemoryBase
+from microsoft.agents.builder.app.state.state import State, state
+from microsoft.agents.builder.app.state.temp_state import TempState
+from microsoft.agents.builder.state.user_state import UserState
 
 ConversationStateT = TypeVar("ConversationStateT", bound=ConversationState)
 UserStateT = TypeVar("UserStateT", bound=UserState)
