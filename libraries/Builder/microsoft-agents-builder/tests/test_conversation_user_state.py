@@ -95,7 +95,6 @@ class TestStateIntegration:
             storage_key: {
                 "user_name": "Test User",
                 "preferences": {"theme": "dark"},
-                "CachedAgentState._hash": 12345,
             }
         }
         storage.read = AsyncMock(return_value=storage_data)
@@ -144,7 +143,6 @@ class TestStateIntegration:
             storage_key: {
                 "conversation_name": "Test Conversation",
                 "participants": ["user1", "user2"],
-                "CachedAgentState._hash": 12345,
             }
         }
         storage.read = AsyncMock(return_value=storage_data)
@@ -202,11 +200,9 @@ class TestStateIntegration:
         storage_data = {
             user_storage_key: {
                 "user_name": "Test User",
-                "CachedAgentState._hash": 12345,
             },
             conversation_storage_key: {
                 "conversation_name": "Test Conversation",
-                "CachedAgentState._hash": 67890,
             },
         }
 
