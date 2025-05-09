@@ -11,8 +11,8 @@ from microsoft.agents.builder.state.state_property_accessor import StateProperty
 from microsoft.agents.builder.turn_context import TurnContext
 from microsoft.agents.storage import Storage, StoreItem
 
-from .tools.test_utility import TestUtilities
-from .tools.test_adapter import TestAdapter
+from .tools.testing_utility import TestingUtility
+from .tools.testing_adapter import TestingAdapter
 
 
 class MockStoreItem(StoreItem):
@@ -522,7 +522,7 @@ class TestAgentStateClass:
         """Test that empty property name raises an exception."""
         storage = MagicMock(spec=Storage)
         user_state = UserState(storage)
-        context = TestUtilities.create_empty_context()
+        context = TestingUtility.create_empty_context()
 
         with pytest.raises(TypeError):
             user_state.create_property("")
@@ -532,7 +532,7 @@ class TestAgentStateClass:
         """Test that null property name raises an exception."""
         storage = MagicMock(spec=Storage)
         user_state = UserState(storage)
-        context = TestUtilities.create_empty_context()
+        context = TestingUtility.create_empty_context()
 
         with pytest.raises(TypeError):
             user_state.create_property(None)
@@ -549,7 +549,7 @@ class TestAgentStateClass:
         )
 
         user_state = UserState(storage)
-        context = TestUtilities.create_empty_context()
+        context = TestingUtility.create_empty_context()
 
         # Patch get_storage_key to return a predictable key
         with patch.object(user_state, "get_storage_key", return_value="test-key"):
@@ -586,7 +586,7 @@ class TestAgentStateClass:
         )
 
         user_state = UserState(storage)
-        context = TestUtilities.create_empty_context()
+        context = TestingUtility.create_empty_context()
 
         # Initial load
         await user_state.load(context, False)
@@ -630,7 +630,7 @@ class TestAgentStateClass:
         storage = MagicMock(spec=Storage)
         storage.read = AsyncMock(return_value={})
         user_state = UserState(storage)
-        context = TestUtilities.create_empty_context()
+        context = TestingUtility.create_empty_context()
 
         # Load state (empty)
         await user_state.load(context, False)
@@ -658,7 +658,7 @@ class TestAgentStateClass:
         """Test that ConversationState throws when conversation is null."""
         storage = MagicMock(spec=Storage)
         conversation_state = ConversationState(storage)
-        context = TestUtilities.create_empty_context()
+        context = TestingUtility.create_empty_context()
 
         # Set conversation to None
         context.activity.conversation = None
@@ -672,7 +672,7 @@ class TestAgentStateClass:
         """Test that UserState throws when from is null."""
         storage = MagicMock(spec=Storage)
         user_state = UserState(storage)
-        context = TestUtilities.create_empty_context()
+        context = TestingUtility.create_empty_context()
 
         # Set from to None
         context.activity.from_property = None
@@ -686,7 +686,7 @@ class TestAgentStateClass:
         """Test that PrivateConversationState throws when both from and conversation are null."""
         storage = MagicMock(spec=Storage)
         private_state = PrivateConversationState(storage)
-        context = TestUtilities.create_empty_context()
+        context = TestingUtility.create_empty_context()
 
         # Set both to None
         context.activity.conversation = None
@@ -710,7 +710,7 @@ class TestAgentStateClass:
         )
 
         # Create context
-        context = TestUtilities.create_empty_context()
+        context = TestingUtility.create_empty_context()
         context.activity.conversation.id = "1234"
 
         # Create a predictable storage key
@@ -791,7 +791,7 @@ class TestAgentStateClass:
         )
 
         # Create context
-        context = TestUtilities.create_empty_context()
+        context = TestingUtility.create_empty_context()
         context.activity.conversation.id = "1234"
 
         # Create a predictable storage key
@@ -857,7 +857,7 @@ class TestAgentStateClass:
     async def test_custom_key_state(self):
         """Test state with custom storage key."""
         # Setup the test adapter
-        adapter = TestAdapter()
+        adapter = TestingAdapter()
 
         # Create a storage instance
         storage = MagicMock(spec=Storage)

@@ -24,14 +24,16 @@ class MockStoreItem(StoreItem):
 
 
 @state
-class TestState(State):
+class StateForTesting(State):
     """Test state implementation for testing."""
 
     test_property: str = "default_value"
     store_item: MockStoreItem = MockStoreItem({"initial": "value"})
 
     @classmethod
-    async def load(cls, context: TurnContext, storage: Storage = None) -> "TestState":
+    async def load(
+        cls, context: TurnContext, storage: Storage = None
+    ) -> "StateForTesting":
         instance = cls()
 
         if storage:
@@ -59,7 +61,7 @@ class TestStateClass:
 
     def test_state_initialization(self):
         """Test that state initializes properly."""
-        test_state = TestState()
+        test_state = StateForTesting()
         assert test_state.test_property == "default_value"
         assert isinstance(test_state.store_item, MockStoreItem)
         assert test_state.store_item.data == {"initial": "value"}
@@ -68,7 +70,7 @@ class TestStateClass:
 
     def test_state_property_access(self):
         """Test that state properties can be accessed using both dict and attribute syntax."""
-        test_state = TestState()
+        test_state = StateForTesting()
 
         # Test attribute syntax
         assert test_state.test_property == "default_value"
@@ -78,7 +80,7 @@ class TestStateClass:
 
     def test_state_property_modification(self):
         """Test that state properties can be modified using both dict and attribute syntax."""
-        test_state = TestState()
+        test_state = StateForTesting()
 
         # Test attribute syntax
         test_state.test_property = "new_value"
@@ -91,7 +93,7 @@ class TestStateClass:
 
     def test_state_property_deletion(self):
         """Test that state properties can be deleted."""
-        test_state = TestState()
+        test_state = StateForTesting()
 
         # Test attribute deletion
         del test_state.test_property
@@ -104,10 +106,10 @@ class TestStateClass:
 
     def test_state_deleted_tracking(self):
         """Test that state tracks deleted properties for storage updates."""
-        test_state = TestState()
+        test_state = StateForTesting()
 
         # Create a nested state to track deletion
-        nested_state = TestState()
+        nested_state = StateForTesting()
         nested_state.__key__ = "nested-key"
         test_state.nested = nested_state
 
@@ -119,7 +121,7 @@ class TestStateClass:
 
     def test_create_property(self):
         """Test creating a state property accessor."""
-        test_state = TestState()
+        test_state = StateForTesting()
         accessor = test_state.create_property("test_property")
 
         assert isinstance(accessor, StatePropertyAccessor)
@@ -129,7 +131,7 @@ class TestStateClass:
     @pytest.mark.asyncio
     async def test_save_with_no_storage(self):
         """Test that save does nothing when no storage is provided."""
-        test_state = TestState()
+        test_state = StateForTesting()
         context = MagicMock(spec=TurnContext)
 
         # Should not raise any exceptions
@@ -138,7 +140,7 @@ class TestStateClass:
     @pytest.mark.asyncio
     async def test_save_with_empty_key(self):
         """Test that save does nothing when key is empty."""
-        test_state = TestState()
+        test_state = StateForTesting()
         context = MagicMock(spec=TurnContext)
         storage = MagicMock(spec=Storage)
 
@@ -151,7 +153,7 @@ class TestStateClass:
     @pytest.mark.asyncio
     async def test_save_with_storage(self):
         """Test saving state to storage."""
-        test_state = TestState()
+        test_state = StateForTesting()
         test_state.__key__ = "test-key"
         test_state.test_property = "new_value"
 
@@ -197,7 +199,7 @@ class TestStateClass:
         }
         storage.read = AsyncMock(return_value=mock_data)
 
-        test_state = await TestState.load(context, storage)
+        test_state = await StateForTesting.load(context, storage)
 
         # Should have the correct key
         assert test_state.__key__ == "test-state:test-conversation"
@@ -216,7 +218,7 @@ class TestStateClass:
         storage.read = AsyncMock(side_effect=Exception("Storage error"))
 
         # Should not raise an exception, use default state instead
-        test_state = await TestState.load(context, storage)
+        test_state = await StateForTesting.load(context, storage)
 
         # Should have the correct key
         assert test_state.__key__ == "test-state:test-conversation"
@@ -231,7 +233,7 @@ class TestStatePropertyAccessor:
     @pytest.mark.asyncio
     async def test_get_existing_property(self):
         """Test getting an existing property."""
-        test_state = TestState()
+        test_state = StateForTesting()
         test_state.test_property = "existing_value"
 
         accessor = StatePropertyAccessor(test_state, "test_property")
@@ -243,7 +245,7 @@ class TestStatePropertyAccessor:
     @pytest.mark.asyncio
     async def test_get_non_existent_without_default(self):
         """Test getting a non-existent property without a default value."""
-        test_state = TestState()
+        test_state = StateForTesting()
         accessor = StatePropertyAccessor(test_state, "non_existent")
         context = MagicMock(spec=TurnContext)
 
@@ -253,7 +255,7 @@ class TestStatePropertyAccessor:
     @pytest.mark.asyncio
     async def test_get_with_default_value(self):
         """Test getting a property with a default value."""
-        test_state = TestState()
+        test_state = StateForTesting()
         accessor = StatePropertyAccessor(test_state, "non_existent")
         context = MagicMock(spec=TurnContext)
 
@@ -263,7 +265,7 @@ class TestStatePropertyAccessor:
     @pytest.mark.asyncio
     async def test_get_with_default_factory(self):
         """Test getting a property with a default factory function."""
-        test_state = TestState()
+        test_state = StateForTesting()
         accessor = StatePropertyAccessor(test_state, "non_existent")
         context = MagicMock(spec=TurnContext)
 
@@ -273,7 +275,7 @@ class TestStatePropertyAccessor:
     @pytest.mark.asyncio
     async def test_set_property(self):
         """Test setting a property value."""
-        test_state = TestState()
+        test_state = StateForTesting()
         accessor = StatePropertyAccessor(test_state, "test_property")
         context = MagicMock(spec=TurnContext)
 
@@ -283,7 +285,7 @@ class TestStatePropertyAccessor:
     @pytest.mark.asyncio
     async def test_delete_property(self):
         """Test deleting a property."""
-        test_state = TestState()
+        test_state = StateForTesting()
         test_state.test_property = "value_to_delete"
         accessor = StatePropertyAccessor(test_state, "test_property")
         context = MagicMock(spec=TurnContext)
