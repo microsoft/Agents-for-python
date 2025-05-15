@@ -3,6 +3,7 @@ Copyright (c) Microsoft Corporation. All rights reserved.
 Licensed under the MIT License.
 """
 
+from typing import Any, Dict
 import pytest
 from unittest.mock import AsyncMock, MagicMock
 
@@ -34,26 +35,16 @@ class StateForTesting(State):
     async def load(
         cls, context: TurnContext, storage: Storage = None
     ) -> "StateForTesting":
-        instance = cls()
+        if not storage:
+            return cls(__key__="test")
 
-        if storage:
-            instance.__key__ = f"test-state:{context.activity.conversation.id}"
+        data: Dict[str, Any] = await storage.read(["test"])
 
-            try:
-                # Try to load from storage
-                items = await storage.read([instance.__key__])
-
-                if instance.__key__ in items:
-                    state_data = items[instance.__key__]
-
-                    for key, value in state_data.items():
-                        if key != "__key__":
-                            instance[key] = value
-            except:
-                # If storage read fails, use default state
-                pass
-
-        return instance
+        if "test" in data:
+            if isinstance(data["test"], StoreItem):
+                return cls(__key__="test", **vars(data["test"]))
+            return cls(__key__="test", **data["test"])
+        return cls(__key__="test")
 
 
 class TestStateClass:
@@ -153,8 +144,7 @@ class TestStateClass:
     @pytest.mark.asyncio
     async def test_save_with_storage(self):
         """Test saving state to storage."""
-        test_state = StateForTesting()
-        test_state.__key__ = "test-key"
+        test_state = await StateForTesting.load(MagicMock())
         test_state.test_property = "new_value"
 
         # Add item to deleted list
@@ -192,7 +182,7 @@ class TestStateClass:
 
         storage = MagicMock(spec=Storage)
         mock_data = {
-            "test-state:test-conversation": {
+            "test": {
                 "test_property": "stored_value",
                 "new_property": "new_value",
             }
@@ -202,29 +192,11 @@ class TestStateClass:
         test_state = await StateForTesting.load(context, storage)
 
         # Should have the correct key
-        assert test_state.__key__ == "test-state:test-conversation"
+        assert test_state.__key__ == "test"
 
         # Should have loaded values from storage
         assert test_state.test_property == "stored_value"
         assert test_state.new_property == "new_value"
-
-    @pytest.mark.asyncio
-    async def test_load_with_storage_error(self):
-        """Test loading state when storage read raises an error."""
-        context = MagicMock(spec=TurnContext)
-        context.activity.conversation.id = "test-conversation"
-
-        storage = MagicMock(spec=Storage)
-        storage.read = AsyncMock(side_effect=Exception("Storage error"))
-
-        # Should not raise an exception, use default state instead
-        test_state = await StateForTesting.load(context, storage)
-
-        # Should have the correct key
-        assert test_state.__key__ == "test-state:test-conversation"
-
-        # Should have default values
-        assert test_state.test_property == "default_value"
 
 
 class TestStatePropertyAccessor:

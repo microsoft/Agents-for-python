@@ -41,7 +41,7 @@ def state(
         init = cls.__init__
 
         def __init__(self, *args, **kwargs) -> None:
-            State.__init__(self, args, kwargs)
+            State.__init__(self, *args, **kwargs)
 
             if init is not None:
                 init(self, *args, **kwargs)
