@@ -13,7 +13,7 @@ from microsoft.agents.authorization import (
 )
 from microsoft.agents.authentication.msal import MsalAuth
 
-from echo_agent import EchoAgent
+from empty_agent import EmptyAgent
 from config import DefaultConfig
 
 load_dotenv()
@@ -41,7 +41,7 @@ CHANNEL_CLIENT_FACTORY = RestChannelServiceClientFactory(CONFIG, DefaultConnecti
 ADAPTER = CloudAdapter(CHANNEL_CLIENT_FACTORY)
 
 # Create the Agent
-AGENT = EchoAgent()
+AGENT = EmptyAgent()
 
 
 # Listen for incoming requests on /api/messages

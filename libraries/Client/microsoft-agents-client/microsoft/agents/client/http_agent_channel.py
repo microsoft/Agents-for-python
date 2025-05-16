@@ -30,7 +30,7 @@ class HttpAgentChannel(ChannelProtocol):
         *,
         response_body_type: type[AgentsModel] = None,
         **kwargs,
-    ) -> InvokeResponse[AgentsModel]:
+    ) -> InvokeResponse:
         if not endpoint:
             raise ValueError("HttpAgentChannel.post_activity: Endpoint is required")
         if not service_url:
