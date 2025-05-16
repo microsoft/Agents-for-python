@@ -6,7 +6,7 @@
 import logging
 from typing import Any, Optional
 import json
-from aiohttp import ClientSession, TraceConfig
+from aiohttp import ClientSession
 from io import BytesIO
 
 from microsoft.agents.core.models import (
