@@ -145,20 +145,20 @@ class ChannelAdapter(ABC, ChannelAdapterProtocol):
         """
         Starts a new conversation with a user. Used to direct message to a member of a group.
 
-        :param reference: The conversation reference that contains the tenant
-        :type reference: :class:`builder.schema.ConversationReference`
-        :param logic: The logic to use for the creation of the conversation
-        :type logic: :class:`typing.Callable`
-        :param conversation_parameters: The information to use to create the conversation
-        :type conversation_parameters:
+        :param agent_app_id: The application ID of the agent.
+        :type agent_app_id: str
         :param channel_id: The ID for the channel.
-        :type channel_id: :class:`typing.str`
+        :type channel_id: str
         :param service_url: The channel's service URL endpoint.
-        :type service_url: :class:`typing.str`
-        :param credentials: The application credentials for the agent.
-        :type credentials: :class:`microsoft.agents.authentication.AppCredentials`
+        :type service_url: str
+        :param audience: A value signifying the recipient of the proactive message.
+        :type audience: str
+        :param conversation_parameters: The information to use to create the conversation
+        :type conversation_parameters: :class:`microsoft.agents.core.models.ConversationParameters`
+        :param callback: The method to call for the resulting agent turn.
+        :type callback: :class:`typing.Callable[[TurnContext], Awaitable]`
 
-        :raises: It raises a generic exception error.
+        :raises: Exception - Not implemented or when the implementation fails.
 
         :return: A task representing the work queued to execute.
 
@@ -172,7 +172,46 @@ class ChannelAdapter(ABC, ChannelAdapterProtocol):
             If the conversation is established with the specified users, the ID of the activity
             will contain the ID of the new conversation.
         """
-        raise Exception("Not Implemented")
+        from microsoft.agents.core.models import ActivityTypes
+
+        # If credentials are not provided, we can't create a conversation
+        if not conversation_parameters:
+            raise Exception("conversation_parameters is required")
+
+        if (
+            not conversation_parameters.members
+            or len(conversation_parameters.members) == 0
+        ):
+            raise Exception("Conversation parameters must include at least one member")
+
+        # Create a new conversation account if none is provided
+        if (
+            not conversation_parameters.conversation
+            or not conversation_parameters.conversation.id
+        ):
+            from uuid import uuid4
+
+            conversation_parameters.conversation = ConversationAccount(id=str(uuid4()))
+
+        # Create a conversation update activity
+        conversation_update = Activity(
+            type=ActivityTypes.CONVERSATION_UPDATE,
+            channel_id=channel_id,
+            service_url=service_url,
+            conversation=conversation_parameters.conversation,
+            recipient=conversation_parameters.bot,
+            from_property=conversation_parameters.members[0],
+            members_added=conversation_parameters.members,
+        )
+
+        # Create a context for the activity
+        context = TurnContext(self, conversation_update)
+
+        # Set conversation parameters in context data bag
+        context.turn_state["ConversationParameters"] = conversation_parameters
+
+        # Process the activity through the middleware pipeline
+        return await self.run_pipeline(context, callback)
 
     async def run_pipeline(
         self, context: TurnContext, callback: Callable[[TurnContext], Awaitable] = None
