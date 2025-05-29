@@ -104,8 +104,8 @@ class AgentState:
         :return: If successful, the state property accessor created
         :rtype: :class:`StatePropertyAccessor`
         """
-        if not name:
-            raise TypeError(
+        if not name or not name.strip():
+            raise ValueError(
                 "AgentState.create_property(): name cannot be None or empty."
             )
         return BotStatePropertyAccessor(self, name)
@@ -280,6 +280,10 @@ class BotStatePropertyAccessor(StatePropertyAccessor):
         :type name: str
 
         """
+        if not bot_state:
+            raise TypeError("BotStatePropertyAccessor: bot_state cannot be None.")
+        if not name or not name.strip():
+            raise ValueError("BotStatePropertyAccessor: name cannot be None or empty.")
         self._bot_state = bot_state
         self._name = name
 

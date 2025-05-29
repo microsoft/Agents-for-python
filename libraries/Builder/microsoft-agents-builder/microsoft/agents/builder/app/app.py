@@ -66,13 +66,24 @@ class Application(Agent, Generic[StateT]):
     _error: Optional[Callable[[TurnContext, Exception], Awaitable[None]]] = None
     _turn_state_factory: Optional[Callable[[TurnContext], Awaitable[StateT]]] = None
 
-    def __init__(self, options: ApplicationOptions = ApplicationOptions()) -> None:
+    def __init__(self, options: ApplicationOptions = None, **kwargs) -> None:
         """
         Creates a new Application instance.
         """
         self.typing = Typing()
-        self._options = options
         self._routes = []
+
+        if not options:
+            # Take the options from the kwargs and create an ApplicationOptions instance
+            option_kwargs = dict(
+                filter(
+                    lambda x: x[0] in ApplicationOptions.__dataclass_fields__,
+                    kwargs.items(),
+                )
+            )
+            options = ApplicationOptions(**option_kwargs)
+
+        self._options = options
 
         if options.long_running_messages and (
             not options.adapter or not options.bot_app_id
