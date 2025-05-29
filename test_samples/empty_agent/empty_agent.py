@@ -2,7 +2,7 @@ from microsoft.agents.builder import ActivityHandler, MessageFactory, TurnContex
 from microsoft.agents.core.models import ChannelAccount
 
 
-class EchoAgent(ActivityHandler):
+class EmptyAgent(ActivityHandler):
     async def on_members_added_activity(
         self, members_added: list[ChannelAccount], turn_context: TurnContext
     ):

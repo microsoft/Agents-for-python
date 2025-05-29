@@ -24,6 +24,7 @@ from microsoft.agents.authorization import (
 from microsoft.agents.connector import ConnectorClientBase
 from ..attachments_base import AttachmentsBase
 from ..conversations_base import ConversationsBase
+from ..get_product_info import get_product_info
 
 
 logger = logging.getLogger("microsoft.agents.connector.client")
@@ -452,8 +453,11 @@ class ConnectorClient(ConnectorClientBase):
             endpoint += "/"
 
         # Configure headers with JSON acceptance
-        headers = {"Accept": "application/json", "Content-Type": "application/json"}
-
+        headers = {
+            "Accept": "application/json",
+            "Content-Type": "application/json",
+            "User-Agent": get_product_info(),
+        }
         # Create session with the base URL
         session = session or ClientSession(
             base_url=endpoint,

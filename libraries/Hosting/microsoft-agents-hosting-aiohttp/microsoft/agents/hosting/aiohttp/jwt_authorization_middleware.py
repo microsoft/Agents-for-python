@@ -16,6 +16,7 @@ async def jwt_authorization_middleware(request: Request, handler):
             claims = token_validator.validate_token(token)
             request["claims_identity"] = claims
         except ValueError as e:
+            print(f"JWT validation error: {e}")
             return json_response({"error": str(e)}, status=401)
     else:
         if not auth_config.CLIENT_ID:
@@ -42,6 +43,7 @@ def jwt_authorization_decorator(func):
                 claims = token_validator.validate_token(token)
                 request["claims_identity"] = claims
             except ValueError as e:
+                print(f"JWT validation error: {e}")
                 return json_response({"error": str(e)}, status=401)
         else:
             if not auth_config.CLIENT_ID:

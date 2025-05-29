@@ -9,6 +9,7 @@ from aiohttp import ClientSession
 
 from microsoft.agents.connector import UserTokenClientBase
 from microsoft.agents.core.models import TokenResponse, TokenStatus, SignInResource
+from ..get_product_info import get_product_info
 from ..user_token_base import UserTokenBase
 from ..agent_sign_in_base import AgentSignInBase
 
@@ -268,7 +269,11 @@ class UserTokenClient(UserTokenClientBase):
             endpoint += "/"
 
         # Configure headers with JSON acceptance
-        headers = {"Accept": "application/json", "Content-Type": "application/json"}
+        headers = {
+            "Accept": "application/json",
+            "Content-Type": "application/json",
+            "User-Agent": get_product_info(),
+        }
 
         # Create session with the base URL
         session = session or ClientSession(
