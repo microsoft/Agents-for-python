@@ -113,7 +113,7 @@ class Application(Agent, Generic[StateT]):
         return self._adapter
 
     @property
-    def auth(self) -> AuthManager[StateT]:
+    def auth(self):
         """
         The application's authentication manager
         """

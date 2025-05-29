@@ -91,7 +91,7 @@ class MockUserTokenClient(UserTokenClient):
 
 class TestingAdapter(ChannelAdapter):
     """
-    A mock adapter that can be used for unit testing of bot logic.
+    A mock adapter that can be used for unit testing of agent logic.
     """
 
     def __init__(
@@ -105,7 +105,7 @@ class TestingAdapter(ChannelAdapter):
         Initializes a new instance of the TestingAdapter class.
 
         Args:
-            channel_id: The target channel for the test that will be passed to the bot.
+            channel_id: The target channel for the test that will be passed to the agent.
             conversation: A reference to the conversation to begin the adapter state with.
             send_trace_activity: Indicates whether the adapter should add trace activities.
             logger: Logger for this class.
@@ -126,18 +126,18 @@ class TestingAdapter(ChannelAdapter):
                 channel_id=channel_id or Channels.test,
                 service_url="https://test.com",
                 user=ChannelAccount(id="user1", name="User1"),
-                bot=ChannelAccount(id="bot", name="Bot"),
+                agent=ChannelAccount(id="agent", name="Agent"),
                 conversation=ConversationAccount(
                     is_group=False, id="convo1", name="Conversation1"
                 ),
                 locale=self.locale,
             )
 
-        # Active queue to store bot responses
+        # Active queue to store agent responses
         self.active_queue = deque()
 
         # Identity for the adapter
-        self.claims_identity = ClaimsIdentity()
+        self.claims_identity = ClaimsIdentity({}, True)
 
     @property
     def enable_trace(self) -> bool:
@@ -163,7 +163,7 @@ class TestingAdapter(ChannelAdapter):
 
     @staticmethod
     def create_conversation(
-        name: str, user: str = "User1", bot: str = "Bot"
+        name: str, user: str = "User1", agent: str = "Agent"
     ) -> ConversationReference:
         """
         Create a ConversationReference.
@@ -171,7 +171,7 @@ class TestingAdapter(ChannelAdapter):
         Args:
             name: Name of the conversation (also ID).
             user: Name of the user (also ID) default: User1.
-            bot: Name of the bot (also ID) default: Bot.
+            agent: Name of the agent (also ID) default: Agent.
 
         Returns:
             A ConversationReference object.
@@ -181,7 +181,7 @@ class TestingAdapter(ChannelAdapter):
             service_url="https://test.com",
             conversation=ConversationAccount(is_group=False, id=name, name=name),
             user=ChannelAccount(id=user.lower(), name=user),
-            bot=ChannelAccount(id=bot.lower(), name=bot),
+            agent=ChannelAccount(id=agent.lower(), name=agent),
             locale="en-us",
         )
 
@@ -209,7 +209,7 @@ class TestingAdapter(ChannelAdapter):
 
         Args:
             activity: Activity to process.
-            callback: Bot logic to invoke.
+            callback: Agent logic to invoke.
             claims_identity: Claims identity for the activity.
 
         Returns:
@@ -230,7 +230,7 @@ class TestingAdapter(ChannelAdapter):
         Args:
             claims_identity: Claims identity for the activity.
             activity: The activity to process.
-            callback: The bot logic to invoke.
+            callback: The agent logic to invoke.
 
         Returns:
             Invoke response.
@@ -246,11 +246,11 @@ class TestingAdapter(ChannelAdapter):
             if (
                 activity.from_property is None
                 or activity.from_property.id == "unknown"
-                or activity.from_property.role == RoleTypes.bot
+                or activity.from_property.role == RoleTypes.agent
             ):
                 activity.from_property = self.conversation.user
 
-            activity.recipient = self.conversation.bot
+            activity.recipient = self.conversation.agent
             activity.conversation = self.conversation.conversation
             activity.service_url = self.conversation.service_url
 
@@ -285,7 +285,7 @@ class TestingAdapter(ChannelAdapter):
             claims_identity: A ClaimsIdentity for the conversation.
             continuation_activity: The continuation Activity used to create the TurnContext.
             audience: The audience for the call.
-            callback: The method to call for the resulting bot turn.
+            callback: The method to call for the resulting agent turn.
 
         Returns:
             A task representing the work queued to execute.
@@ -393,7 +393,7 @@ class TestingAdapter(ChannelAdapter):
 
         Args:
             channel_id: The ID of the channel.
-            callback: The bot logic to call when the conversation is created.
+            callback: The agent logic to call when the conversation is created.
 
         Returns:
             A task representing the work queued to execute.
@@ -408,7 +408,7 @@ class TestingAdapter(ChannelAdapter):
 
     def get_next_reply(self) -> Optional[Activity]:
         """
-        Dequeues and returns the next bot response from the active queue.
+        Dequeues and returns the next agent response from the active queue.
 
         Returns:
             The next activity in the queue; or None, if the queue is empty.
@@ -452,7 +452,7 @@ class TestingAdapter(ChannelAdapter):
             type=ActivityTypes.message,
             locale=self.locale,
             from_property=self.conversation.user,
-            recipient=self.conversation.bot,
+            recipient=self.conversation.agent,
             conversation=self.conversation.conversation,
             service_url=self.conversation.service_url,
             id=str(self._next_id),
@@ -462,7 +462,7 @@ class TestingAdapter(ChannelAdapter):
         self._next_id += 1
         return activity
 
-    async def send_text_to_bot_async(
+    async def send_text_to_agent_async(
         self, user_says: str, callback: AgentCallbackHandler
     ):
         """
@@ -558,27 +558,27 @@ class TestingAdapter(ChannelAdapter):
         """
         turn_context = TurnContext(self, activity)
 
-        turn_context.services.set("UserTokenClient", self._user_token_client)
+        turn_context.services["UserTokenClient"] = self._user_token_client
         turn_context.identity = identity or self.claims_identity
 
         return turn_context
 
     async def test(self, msg: str, callback: AgentCallbackHandler) -> List[Activity]:
         """
-        Run a test, sending a message to a bot and returning the responses received.
+        Run a test, sending a message to a agent and returning the responses received.
 
         Args:
             msg: The message to send.
-            callback: The bot turn logic.
+            callback: The agent turn logic.
 
         Returns:
-            A list of activities returned from the bot in response to the message.
+            A list of activities returned from the agent in response to the message.
         """
         # Clear the active queue
         self.active_queue.clear()
 
         # Send the message
-        await self.send_text_to_bot_async(msg, callback)
+        await self.send_text_to_agent_async(msg, callback)
 
         # Collect all the responses
         responses = []

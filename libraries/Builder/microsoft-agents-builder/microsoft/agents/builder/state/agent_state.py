@@ -105,7 +105,9 @@ class AgentState:
         :rtype: :class:`StatePropertyAccessor`
         """
         if not name:
-            raise TypeError("BotState.create_property(): name cannot be None or empty.")
+            raise TypeError(
+                "AgentState.create_property(): name cannot be None or empty."
+            )
         return BotStatePropertyAccessor(self, name)
 
     def get(self, turn_context: TurnContext) -> Dict[str, StoreItem]:

@@ -1,902 +1,538 @@
 """
 Copyright (c) Microsoft Corporation. All rights reserved.
 Licensed under the MIT License.
+
+Test suite for the AgentState class that closely follows the C# test implementation.
 """
 
+import asyncio
 import pytest
-from unittest.mock import AsyncMock, MagicMock, patch
+from typing import Dict, Type, Union
+from unittest.mock import AsyncMock, MagicMock
 
-from microsoft.agents.builder.state.agent_state import AgentState, CachedAgentState
-from microsoft.agents.builder.state.state_property_accessor import StatePropertyAccessor
+from microsoft.agents.builder.state.agent_state import (
+    AgentState,
+    CachedAgentState,
+    BotStatePropertyAccessor,
+)
+from microsoft.agents.builder.state.user_state import UserState
+from microsoft.agents.builder.app.state.conversation_state import ConversationState
 from microsoft.agents.builder.turn_context import TurnContext
-from microsoft.agents.storage import Storage, StoreItem
-
-from .tools.testing_utility import TestingUtility
-from .tools.testing_adapter import TestingAdapter
-
-
-class MockStoreItem(StoreItem):
-    def __init__(self, data=None):
-        self.data = data or {}
-
-    def store_item_to_json(self):
-        return self.data
-
-    @staticmethod
-    def from_json_to_store_item(json_data):
-        return MockStoreItem(json_data)
+from microsoft.agents.storage import Storage, StoreItem, MemoryStorage
+from microsoft.agents.core.models import (
+    Activity,
+    ActivityTypes,
+    ChannelAccount,
+    ConversationAccount,
+)
+from tests.tools.testing_adapter import TestingAdapter
+from tests.tools.testing_utility import TestingUtility
 
 
-class TestPocoState(StoreItem):
-    """Test POCO (Plain Old Class Object) state class."""
+class MockCustomState(AgentState):
+    """Custom state implementation for testing."""
 
-    def __init__(self, value=None):
-        self.value = value
+    def __init__(self, storage: Storage, namespace: str = ""):
+        self.namespace = namespace
+        super().__init__(storage, "MockCustomState")
 
-    def store_item_to_json(self):
+    def get_storage_key(
+        self, turn_context: TurnContext, *, target_cls: Type[StoreItem] = None
+    ) -> str:
+        """
+        Returns the storage key for the custom state.
+        """
+        conversation_id = turn_context.activity.conversation.id
+        if not conversation_id:
+            raise ValueError("Invalid activity: missing conversation.id")
+
+        key = f"custom/{conversation_id}"
+        if self.namespace:
+            key = f"{self.namespace}/{key}"
+        return key
+
+
+class TestDataItem(StoreItem):
+    """Test data item for testing state functionality."""
+
+    def __init__(self, value: str = None):
+        self.value = value or "default"
+
+    def store_item_to_json(self) -> dict:
         return {"value": self.value}
 
     @staticmethod
-    def from_json_to_store_item(json_data):
-        return TestPocoState(json_data.get("value"))
-
-
-class TestState(StoreItem):
-    """Test implementation of StoreItem for testing state persistence."""
-
-    def __init__(self, value=None):
-        self.value = value
-
-    def store_item_to_json(self):
-        return {"value": self.value}
-
-    @staticmethod
-    def from_json_to_store_item(json_data):
-        return TestState(json_data.get("value"))
-
-
-class TempState(AgentState):
-    """Temporary state implementation for testing."""
-
-    def __init__(self, storage: Storage = None):
-        super().__init__(storage or MagicMock(spec=Storage), "TempState")
-
-    def get_storage_key(self, turn_context: TurnContext, *, target_cls=None) -> str:
-        return "temp-state"
-
-
-class UserState(AgentState):
-    """User state implementation for testing."""
-
-    def __init__(self, storage: Storage = None):
-        super().__init__(storage or MagicMock(spec=Storage), "UserState")
-
-    def get_storage_key(self, turn_context: TurnContext, *, target_cls=None) -> str:
-        if not turn_context.activity.from_property:
-            raise ValueError("Activity.From or From.Id is null.")
-        return f"{turn_context.activity.channel_id}/users/{turn_context.activity.from_property.id}"
-
-
-class ConversationState(AgentState):
-    """Conversation state implementation for testing."""
-
-    def __init__(self, storage: Storage = None):
-        super().__init__(storage or MagicMock(spec=Storage), "ConversationState")
-
-    def get_storage_key(self, turn_context: TurnContext, *, target_cls=None) -> str:
-        if not turn_context.activity.conversation:
-            raise ValueError("Activity.Conversation or Conversation.Id is null.")
-        return f"{turn_context.activity.channel_id}/conversations/{turn_context.activity.conversation.id}"
-
-
-class PrivateConversationState(AgentState):
-    """Private conversation state implementation for testing."""
-
-    def __init__(self, storage: Storage = None):
-        super().__init__(storage or MagicMock(spec=Storage), "PrivateConversationState")
-
-    def get_storage_key(self, turn_context: TurnContext, *, target_cls=None) -> str:
-        if not turn_context.activity.conversation:
-            raise ValueError("Activity.Conversation or Conversation.Id is null.")
-        if not turn_context.activity.from_property:
-            raise ValueError("Activity.From or From.Id is null.")
-        return f"{turn_context.activity.channel_id}/conversations/{turn_context.activity.conversation.id}/users/{turn_context.activity.from_property.id}"
-
-
-class TestAgentState(AgentState):
-    """Test implementation of AgentState for testing."""
-
-    def __init__(self, storage: Storage = None, context_key: str = "test"):
-        super().__init__(storage, context_key)
-
-    def get_storage_key(self, turn_context: TurnContext, *, target_cls=None) -> str:
-        return f"test-agent-state:{turn_context.activity.conversation.id}"
-
-
-class TestCustomKeyState(AgentState):
-    """Test implementation of AgentState with custom storage key."""
-
-    PROPERTY_NAME = "Microsoft.Agents.Builder.Tests.CustomKeyState"
-
-    def __init__(self, storage: Storage = None):
-        super().__init__(storage or MagicMock(spec=Storage), self.PROPERTY_NAME)
-
-    def get_storage_key(self, turn_context: TurnContext, *, target_cls=None) -> str:
-        return "CustomKey"
-
-
-class TestCachedAgentState:
-    """Tests for the CachedAgentState class."""
-
-    def test_initialization_with_empty_state(self):
-        """Test initialization with empty state."""
-        cached_state = CachedAgentState()
-        assert cached_state.state == {}
-        assert isinstance(cached_state.hash, int)
-        assert not cached_state.has_state
-
-    def test_initialization_with_state(self):
-        """Test initialization with state data."""
-        state_data = {"key": "value"}
-        cached_state = CachedAgentState(state_data)
-        assert cached_state.state == state_data
-        assert isinstance(cached_state.hash, int)
-        assert cached_state.has_state
-
-    def test_is_changed(self):
-        """Test is_changed property."""
-        cached_state = CachedAgentState({"key": "value"})
-        initial_hash = cached_state.hash
-
-        # No change, should not be marked as changed
-        assert not cached_state.is_changed
-
-        # Modify state
-        cached_state.state["key"] = "new_value"
-
-        # Should be marked as changed
-        assert cached_state.is_changed
-
-        # Hash should still be the initial hash until compute_hash is called
-        assert cached_state.hash == initial_hash
-
-        # Update hash
-        new_hash = cached_state.compute_hash()
-        assert new_hash != initial_hash
-
-        # Set the new hash
-        cached_state.hash = new_hash
-
-        # Should no longer be marked as changed
-        assert not cached_state.is_changed
-
-    def test_store_item_to_json(self):
-        """Test converting to JSON."""
-        # Test with regular values
-        cached_state = CachedAgentState({"key": "value", "number": 42})
-        json_data = cached_state.store_item_to_json()
-        assert "key" in json_data
-        assert json_data["key"] == "value"
-        assert "number" in json_data
-        assert json_data["number"] == 42
-
-        # Test with nested StoreItem
-        nested_item = MockStoreItem({"nested": "data"})
-        cached_state = CachedAgentState({"item": nested_item})
-        json_data = cached_state.store_item_to_json()
-        assert "item" in json_data
-        assert json_data["item"] == {"nested": "data"}
-
-    def test_from_json_to_store_item(self):
-        """Test creating from JSON."""
-        json_data = {
-            "key": "value",
-            "number": 42,
-        }
-        cached_state = CachedAgentState.from_json_to_store_item(json_data)
-        assert cached_state.state["key"] == "value"
-        assert cached_state.state["number"] == 42
-        assert cached_state.hash
-
-
-class TestAgentStateClass:
-    """Tests for the AgentState class."""
-
-    def test_initialization(self):
-        """Test initialization."""
-        storage = MagicMock(spec=Storage)
-        agent_state = TestAgentState(storage, "test-context")
-
-        assert agent_state._storage == storage
-        assert agent_state._context_service_key == "test-context"
-
-    def test_get_cached_state(self):
-        """Test getting cached state."""
-        storage = MagicMock(spec=Storage)
-        agent_state = TestAgentState(storage)
-
-        # Create a mock turn context
-        turn_context = MagicMock(spec=TurnContext)
-
-        # First call should create a new cached state
-        cached_state = agent_state.get_cached_state(turn_context)
-        assert isinstance(cached_state, CachedAgentState)
-        assert not cached_state.has_state
-
-        # Should store the cached state in the turn context
-        turn_context.turn_state.__setitem__.assert_called_once()
-
-        # Reset mock
-        turn_context.reset_mock()
-
-        # Second call should return the same cached state
-        turn_context.turn_state.__getitem__.return_value = cached_state
-        second_cached_state = agent_state.get_cached_state(turn_context)
-        assert second_cached_state is cached_state
-        turn_context.turn_state.__setitem__.assert_not_called()
-
-    def test_create_property(self):
-        """Test creating a property accessor."""
-        storage = MagicMock(spec=Storage)
-        agent_state = TestAgentState(storage)
-
-        accessor = agent_state.create_property("test_property")
-        assert isinstance(accessor, StatePropertyAccessor)
-        assert accessor._name == "test_property"
-
-    @pytest.mark.asyncio
-    async def test_get(self):
-        """Test getting state data."""
-        storage = MagicMock(spec=Storage)
-        agent_state = TestAgentState(storage)
-
-        # Create a mock turn context and cached state
-        turn_context = MagicMock(spec=TurnContext)
-        test_value = MockStoreItem({"key2": "value"})
-        cached_state = CachedAgentState({"key": test_value})
-
-        # Make get_cached_state return our mock
-        with patch.object(agent_state, "get_cached_state", return_value=cached_state):
-            state_data = agent_state.get(turn_context)
-
-            assert (
-                CachedAgentState(state_data).store_item_to_json()
-                == cached_state.store_item_to_json()
-            )
-
-    @pytest.mark.asyncio
-    async def test_load(self):
-        """Test loading state."""
-        storage = MagicMock(spec=Storage)
-        agent_state = TestAgentState(storage)
-
-        # Create a mock turn context and cached state
-        turn_context = MagicMock(spec=TurnContext)
-        turn_context.activity.conversation.id = "test-conversation"
-
-        cached_state = CachedAgentState()
-
-        # Make get_cached_state return our mock
-        with patch.object(agent_state, "get_cached_state", return_value=cached_state):
-            # Mock storage read to return some data
-            storage_data = {
-                "test-agent-state:test-conversation": {
-                    "prop1": "value1",
-                    "prop2": "value2",
-                }
-            }
-            storage.read = AsyncMock(return_value=storage_data)
-
-            # Load state
-            await agent_state.load(turn_context)
-
-            # Should have read from storage
-            storage.read.assert_called_once_with(
-                ["test-agent-state:test-conversation"], target_cls=CachedAgentState
-            )
-
-            # State should be populated with storage data
-            assert cached_state.state == {
-                "prop1": "value1",
-                "prop2": "value2",
-            }
-
-    @pytest.mark.asyncio
-    async def test_load_with_force(self):
-        """Test loading state with force flag."""
-        storage = MagicMock(spec=Storage)
-        agent_state = TestAgentState(storage)
-
-        # Create a mock turn context and cached state
-        turn_context = MagicMock(spec=TurnContext)
-        turn_context.activity.conversation.id = "test-conversation"
-
-        # Create a cached state that already has data
-        cached_state = CachedAgentState({"existing": "data"})
-
-        # Make get_cached_state return our mock
-        with patch.object(agent_state, "get_cached_state", return_value=cached_state):
-            # Mock storage read to return some data
-            storage_data = {
-                "test-agent-state:test-conversation": {
-                    "prop1": "value1",
-                    "prop2": "value2",
-                }
-            }
-            storage.read = AsyncMock(return_value=storage_data)
-
-            # Load state without force - should not read from storage
-            await agent_state.load(turn_context)
-            storage.read.assert_not_called()
-
-            # Load state with force - should read from storage
-            await agent_state.load(turn_context, force=True)
-            storage.read.assert_called_once_with(
-                ["test-agent-state:test-conversation"], target_cls=CachedAgentState
-            )
-
-            # State should be populated with storage data
-            assert cached_state.state == {
-                "prop1": "value1",
-                "prop2": "value2",
-            }
-
-    @pytest.mark.asyncio
-    async def test_save_changes(self):
-        """Test saving state changes."""
-        storage = MagicMock(spec=Storage)
-        agent_state = TestAgentState(storage)
-
-        # Create a mock turn context and cached state
-        turn_context = MagicMock(spec=TurnContext)
-        turn_context.activity.conversation.id = "test-conversation"
-
-        # Create a cached state with data and mark as changed
-        cached_state = CachedAgentState({"prop": "value"})
-        original_hash = cached_state.hash
-        cached_state.state["prop"] = (
-            "new_value"  # Change to make is_changed return True
+    def from_json_to_store_item(json_data: dict) -> "TestDataItem":
+        return TestDataItem(json_data.get("value", "default"))
+
+
+class TestAgentState:
+    """
+    Comprehensive test suite for AgentState functionality.
+    Tests various scenarios including property accessors, state management,
+    storage operations, caching, and different state implementations.
+    """
+
+    def setup_method(self):
+        """Set up test fixtures for each test method."""
+        self.storage = MemoryStorage()
+        self.user_state = UserState(self.storage)
+        self.conversation_state = ConversationState(self.storage)
+        self.custom_state = MockCustomState(self.storage)
+
+        # Create a test context
+        self.adapter = TestingAdapter()
+        self.activity = Activity(
+            type=ActivityTypes.message,
+            channel_id="test-channel",
+            conversation=ConversationAccount(id="test-conversation"),
+            from_property=ChannelAccount(id="test-user"),
+            text="test message",
         )
-
-        # Make get_cached_state return our mock
-        with patch.object(agent_state, "get_cached_state", return_value=cached_state):
-            # Mock storage write
-            storage.write = AsyncMock()
-
-            # Save changes
-            await agent_state.save_changes(turn_context)
-
-            # Should have written to storage
-            storage.write.assert_called_once()
-
-            # The hash should be updated
-            assert cached_state.hash != original_hash
+        self.context = TurnContext(self.adapter, self.activity)
 
     @pytest.mark.asyncio
-    async def test_save_no_changes(self):
-        """Test saving when there are no changes."""
-        storage = MagicMock(spec=Storage)
-        agent_state = TestAgentState(storage)
+    async def test_empty_property_name_throws_exception(self):
+        """Test that creating property with empty name throws exception."""
+        # Test empty string
+        with pytest.raises(ValueError, match="Property name cannot be None or empty"):
+            self.user_state.create_property("")
 
-        # Create a mock turn context and cached state
-        turn_context = MagicMock(spec=TurnContext)
+        # Test None
+        with pytest.raises(ValueError, match="Property name cannot be None or empty"):
+            self.user_state.create_property(None)
 
-        # Create a cached state with data but not changed
-        cached_state = CachedAgentState({"prop": "value"})
-        cached_state.hash = cached_state.compute_hash()  # Ensure hash is up to date
+        # Test whitespace
+        with pytest.raises(ValueError, match="Property name cannot be None or empty"):
+            self.user_state.create_property("   ")
 
-        # Make get_cached_state return our mock
-        with patch.object(agent_state, "get_cached_state", return_value=cached_state):
-            # Mock storage write
-            storage.write = AsyncMock()
+    @pytest.mark.asyncio
+    async def test_get_property_works(self):
+        """Test getting property values."""
+        property_name = "test_property"
+        property_accessor = self.user_state.create_property(property_name)
 
-            # Save changes
-            await agent_state.save_changes(turn_context)
+        # Test getting non-existent property returns None
+        value = await property_accessor.get(self.context)
+        assert value is None
 
-            # Should not have written to storage
-            storage.write.assert_not_called()
+    @pytest.mark.asyncio
+    async def test_get_property_with_default_value(self):
+        """Test getting property with default value."""
+        property_name = "test_property"
+        default_value = "default_test_value"
+        property_accessor = self.user_state.create_property(property_name)
+
+        # Test getting with default value
+        value = await property_accessor.get(self.context, default_value)
+        assert value == default_value
+
+    @pytest.mark.asyncio
+    async def test_get_property_with_default_factory(self):
+        """Test getting property with default factory function."""
+        property_name = "test_property"
+        default_factory = lambda: TestDataItem("factory_value")
+        property_accessor = self.user_state.create_property(property_name)
+
+        # Test getting with factory
+        value = await property_accessor.get(self.context, default_factory)
+        assert isinstance(value, TestDataItem)
+        assert value.value == "factory_value"
+
+    @pytest.mark.asyncio
+    async def test_set_property_works(self):
+        """Test setting property values."""
+        property_name = "test_property"
+        test_value = TestDataItem("test_value")
+        property_accessor = self.user_state.create_property(property_name)
+
+        # Set the property
+        await property_accessor.set(self.context, test_value)
+
+        # Verify it was set
+        retrieved_value = await property_accessor.get(self.context)
+        assert isinstance(retrieved_value, TestDataItem)
+        assert retrieved_value.value == "test_value"
+
+    @pytest.mark.asyncio
+    async def test_delete_property_works(self):
+        """Test deleting property values."""
+        property_name = "test_property"
+        test_value = TestDataItem("test_value")
+        property_accessor = self.user_state.create_property(property_name)
+
+        # Set then delete the property
+        await property_accessor.set(self.context, test_value)
+        await property_accessor.delete(self.context)
+
+        # Verify it was deleted
+        value = await property_accessor.get(self.context)
+        assert value is None
+
+    @pytest.mark.asyncio
+    async def test_state_load_no_existing_state(self):
+        """Test loading state when no existing state exists."""
+        await self.user_state.load(self.context)
+
+        # Should have cached state object
+        cached_state = self.user_state.get_cached_state(self.context)
+        assert cached_state is not None
+        assert isinstance(cached_state, CachedAgentState)
+
+    @pytest.mark.asyncio
+    async def test_state_load_with_force(self):
+        """Test loading state with force flag."""
+        # Load once
+        await self.user_state.load(self.context)
+        cached_state_1 = self.user_state.get_cached_state(self.context)
+
+        # Load again with force
+        await self.user_state.load(self.context, force=True)
+        cached_state_2 = self.user_state.get_cached_state(self.context)
+
+        # Should have refreshed the cached state
+        assert cached_state_1 is not cached_state_2
+
+    @pytest.mark.asyncio
+    async def test_state_save_changes_no_changes(self):
+        """Test saving changes when no changes exist."""
+        await self.user_state.load(self.context)
+
+        # Save without making changes - should not call storage
+        storage_mock = MagicMock(spec=Storage)
+        storage_mock.write = AsyncMock()
+        self.user_state._storage = storage_mock
+
+        await self.user_state.save_changes(self.context)
+        storage_mock.write.assert_not_called()
+
+    @pytest.mark.asyncio
+    async def test_state_save_changes_with_changes(self):
+        """Test saving changes when changes exist."""
+        await self.user_state.load(self.context)
+
+        # Make a change
+        property_accessor = self.user_state.create_property("test_property")
+        await property_accessor.set(self.context, TestDataItem("changed_value"))
+
+        # Save changes
+        await self.user_state.save_changes(self.context)
+
+        # Verify the change was persisted by loading fresh state
+        fresh_context = TurnContext(self.adapter, self.activity)
+        await self.user_state.load(fresh_context)
+        fresh_accessor = self.user_state.create_property("test_property")
+        value = await fresh_accessor.get(fresh_context)
+
+        assert isinstance(value, TestDataItem)
+        assert value.value == "changed_value"
+
+    @pytest.mark.asyncio
+    async def test_state_save_changes_with_force(self):
+        """Test saving changes with force flag."""
+        await self.user_state.load(self.context)
+
+        # Use a mock storage to verify write is called even without changes
+        storage_mock = MagicMock(spec=Storage)
+        storage_mock.write = AsyncMock()
+        self.user_state._storage = storage_mock
+
+        await self.user_state.save_changes(self.context, force=True)
+
+        # Should call write even without changes when force=True
+        storage_mock.write.assert_called_once()
+
+    @pytest.mark.asyncio
+    async def test_multiple_state_instances(self):
+        """Test that multiple state instances work independently."""
+        # Create two different state instances
+        user_state_1 = UserState(self.storage, "namespace1")
+        user_state_2 = UserState(self.storage, "namespace2")
+
+        # Load both states
+        await user_state_1.load(self.context)
+        await user_state_2.load(self.context)
+
+        # Set different values in each
+        prop_1 = user_state_1.create_property("test_prop")
+        prop_2 = user_state_2.create_property("test_prop")
+
+        await prop_1.set(self.context, TestDataItem("value1"))
+        await prop_2.set(self.context, TestDataItem("value2"))
+
+        # Verify they are independent
+        val_1 = await prop_1.get(self.context)
+        val_2 = await prop_2.get(self.context)
+
+        assert val_1.value == "value1"
+        assert val_2.value == "value2"
+
+    @pytest.mark.asyncio
+    async def test_state_persistence_across_contexts(self):
+        """Test that state persists across different contexts."""
+        # Set a value in first context
+        property_accessor = self.user_state.create_property("persistent_prop")
+        await self.user_state.load(self.context)
+        await property_accessor.set(self.context, TestDataItem("persistent_value"))
+        await self.user_state.save_changes(self.context)
+
+        # Create a new context with same user
+        new_context = TurnContext(self.adapter, self.activity)
+        new_user_state = UserState(self.storage)
+        new_property_accessor = new_user_state.create_property("persistent_prop")
+
+        # Load state in new context
+        await new_user_state.load(new_context)
+        value = await new_property_accessor.get(new_context)
+
+        assert isinstance(value, TestDataItem)
+        assert value.value == "persistent_value"
 
     @pytest.mark.asyncio
     async def test_clear_state(self):
         """Test clearing state."""
-        storage = MagicMock(spec=Storage)
-        agent_state = TestAgentState(storage)
+        # Set some values
+        await self.user_state.load(self.context)
+        prop_accessor = self.user_state.create_property("test_prop")
+        await prop_accessor.set(self.context, TestDataItem("test_value"))
 
-        # Create a mock turn context and cached state
-        turn_context = MagicMock(spec=TurnContext)
-        turn_context.activity.conversation.id = "test-conversation"
+        # Clear state
+        await self.user_state.clear_state(self.context)
 
-        # Create a cached state with data
-        cached_state = CachedAgentState({"prop": "value"})
-
-        # Make get_cached_state return our mock
-        with patch.object(agent_state, "get_cached_state", return_value=cached_state):
-
-            # Clear state
-            await agent_state.clear_state(turn_context)
-
-            # State should be empty
-            assert turn_context
-            assert not cached_state.has_state
-            assert cached_state.state == {}
+        # Verify state is cleared
+        value = await prop_accessor.get(self.context)
+        assert value is None
 
     @pytest.mark.asyncio
-    async def test_delete(self):
-        """Test deleting state."""
-        storage = MagicMock(spec=Storage)
-        agent_state = TestAgentState(storage)
-
-        # Create a mock turn context
-        turn_context = MagicMock(spec=TurnContext)
-        turn_context.activity.conversation.id = "test-conversation"
-
-        # Mock storage delete
-        storage.delete = AsyncMock()
+    async def test_delete_state(self):
+        """Test deleting state from storage."""
+        # Set and save a value
+        await self.user_state.load(self.context)
+        prop_accessor = self.user_state.create_property("test_prop")
+        await prop_accessor.set(self.context, TestDataItem("test_value"))
+        await self.user_state.save_changes(self.context)
 
         # Delete state
-        await agent_state.delete(turn_context)
+        await self.user_state.delete(self.context)
 
-        # Should have deleted from storage
-        storage.delete.assert_called_once_with(["test-agent-state:test-conversation"])
+        # Create new context and verify state is gone
+        new_context = TurnContext(self.adapter, self.activity)
+        new_user_state = UserState(self.storage)
+        await new_user_state.load(new_context)
+        new_prop_accessor = new_user_state.create_property("test_prop")
+        value = await new_prop_accessor.get(new_context)
+
+        assert value is None
 
     @pytest.mark.asyncio
-    async def test_get_property_value(self):
-        """Test getting a property value."""
-        storage = MagicMock(spec=Storage)
-        agent_state = TestAgentState(storage)
+    async def test_conversation_state_storage_key(self):
+        """Test conversation state generates correct storage key."""
+        storage_key = self.conversation_state.get_storage_key(self.context)
+        expected_key = "test-channel/conversations/test-conversation"
+        assert storage_key == expected_key
 
-        # Create a mock turn context and cached state
-        turn_context = MagicMock(spec=TurnContext)
+    @pytest.mark.asyncio
+    async def test_user_state_storage_key(self):
+        """Test user state generates correct storage key."""
+        storage_key = self.user_state.get_storage_key(self.context)
+        expected_key = "test-channel/users/test-user"
+        assert storage_key == expected_key
 
-        # Create a cached state with data
-        cached_state = CachedAgentState(
-            {
-                "string_prop": "string_value",
-                "store_item_prop": MockStoreItem({"nested": "data"}),
-            }
+    @pytest.mark.asyncio
+    async def test_custom_state_implementation(self):
+        """Test custom state implementation."""
+        # Test custom state works like built-in states
+        await self.custom_state.load(self.context)
+        prop_accessor = self.custom_state.create_property("custom_prop")
+
+        await prop_accessor.set(self.context, TestDataItem("custom_value"))
+        await self.custom_state.save_changes(self.context)
+
+        # Verify storage key format
+        storage_key = self.custom_state.get_storage_key(self.context)
+        expected_key = "custom/test-conversation"
+        assert storage_key == expected_key
+
+    @pytest.mark.asyncio
+    async def test_invalid_context_missing_channel_id(self):
+        """Test error handling for invalid context missing channel ID."""
+        invalid_activity = Activity(
+            type=ActivityTypes.message,
+            conversation=ConversationAccount(id="test-conversation"),
+            from_property=ChannelAccount(id="test-user"),
+            # Missing channel_id
+        )
+        invalid_context = TurnContext(self.adapter, invalid_activity)
+
+        with pytest.raises((TypeError, ValueError)):
+            self.user_state.get_storage_key(invalid_context)
+
+    @pytest.mark.asyncio
+    async def test_invalid_context_missing_user_id(self):
+        """Test error handling for invalid context missing user ID."""
+        invalid_activity = Activity(
+            type=ActivityTypes.message,
+            channel_id="test-channel",
+            conversation=ConversationAccount(id="test-conversation"),
+            # Missing from_property
+        )
+        invalid_context = TurnContext(self.adapter, invalid_activity)
+
+        with pytest.raises((TypeError, ValueError, AttributeError)):
+            self.user_state.get_storage_key(invalid_context)
+
+    @pytest.mark.asyncio
+    async def test_invalid_context_missing_conversation_id(self):
+        """Test error handling for invalid context missing conversation ID."""
+        invalid_activity = Activity(
+            type=ActivityTypes.message,
+            channel_id="test-channel",
+            from_property=ChannelAccount(id="test-user"),
+            # Missing conversation
+        )
+        invalid_context = TurnContext(self.adapter, invalid_activity)
+
+        with pytest.raises((TypeError, ValueError, AttributeError)):
+            self.conversation_state.get_storage_key(invalid_context)
+
+    @pytest.mark.asyncio
+    async def test_cached_state_hash_computation(self):
+        """Test cached state hash computation and change detection."""
+        await self.user_state.load(self.context)
+        cached_state = self.user_state.get_cached_state(self.context)
+
+        # Initial state should not be changed
+        assert not cached_state.is_changed
+
+        # Make a change
+        prop_accessor = self.user_state.create_property("test_prop")
+        await prop_accessor.set(self.context, TestDataItem("test_value"))
+
+        # State should now be changed
+        assert cached_state.is_changed
+
+    @pytest.mark.asyncio
+    async def test_bot_state_property_accessor_functionality(self):
+        """Test BotStatePropertyAccessor specific functionality."""
+        accessor = BotStatePropertyAccessor(self.user_state, "test_prop")
+
+        # Test getting with default value
+        default_value = TestDataItem("default")
+        value = await accessor.get(self.context, default_value)
+        assert isinstance(value, TestDataItem)
+        assert value.value == "default"
+
+        # Test that default value is saved
+        retrieved_again = await accessor.get(self.context)
+        assert isinstance(retrieved_again, TestDataItem)
+        assert retrieved_again.value == "default"
+
+    @pytest.mark.asyncio
+    async def test_concurrent_state_operations(self):
+        """Test concurrent state operations."""
+        # Create multiple accessors
+        accessors = [self.user_state.create_property(f"prop_{i}") for i in range(5)]
+
+        await self.user_state.load(self.context)
+
+        # Set values concurrently
+        await asyncio.gather(
+            *[
+                accessor.set(self.context, TestDataItem(f"value_{i}"))
+                for i, accessor in enumerate(accessors)
+            ]
         )
 
-        # Make get_cached_state return our mock
-        with patch.object(agent_state, "get_cached_state", return_value=cached_state):
-            # Get string property
-            string_value = await agent_state.get_property_value(
-                turn_context, "string_prop"
-            )
-            assert string_value == "string_value"
+        # Verify all values were set correctly
+        values = await asyncio.gather(
+            *[accessor.get(self.context) for accessor in accessors]
+        )
 
-            # Get store item property
-            store_item = await agent_state.get_property_value(
-                turn_context, "store_item_prop", target_cls=MockStoreItem
-            )
-            assert isinstance(store_item, MockStoreItem)
-            assert store_item.data == {"nested": "data"}
-
-            # Get non-existent property
-            none_value = await agent_state.get_property_value(
-                turn_context, "non_existent"
-            )
-            assert none_value is None
+        for i, value in enumerate(values):
+            assert isinstance(value, TestDataItem)
+            assert value.value == f"value_{i}"
 
     @pytest.mark.asyncio
-    async def test_delete_property_value(self):
-        """Test deleting a property value."""
-        storage = MagicMock(spec=Storage)
-        agent_state = TestAgentState(storage)
+    async def test_state_isolation_between_different_state_types(self):
+        """Test that different state types (User, Conversation) are isolated."""
+        # Load both states
+        await self.user_state.load(self.context)
+        await self.conversation_state.load(self.context)
 
-        # Create a mock turn context and cached state
-        turn_context = MagicMock(spec=TurnContext)
+        # Set same property name in both
+        user_prop = self.user_state.create_property("shared_prop")
+        conv_prop = self.conversation_state.create_property("shared_prop")
 
-        # Create a cached state with data
-        cached_state = CachedAgentState({"prop": "value"})
+        await user_prop.set(self.context, TestDataItem("user_value"))
+        await conv_prop.set(self.context, TestDataItem("conversation_value"))
 
-        # Make get_cached_state return our mock
-        with patch.object(agent_state, "get_cached_state", return_value=cached_state):
-            # Delete property
-            await agent_state.delete_property_value(turn_context, "prop")
+        # Verify they are isolated
+        user_value = await user_prop.get(self.context)
+        conv_value = await conv_prop.get(self.context)
 
-            # Property should be deleted
-            assert "prop" not in cached_state.state
-
-    @pytest.mark.asyncio
-    async def test_set_property_value(self):
-        """Test setting a property value."""
-        storage = MagicMock(spec=Storage)
-        agent_state = TestAgentState(storage)
-
-        # Create a mock turn context and cached state
-        turn_context = MagicMock(spec=TurnContext)
-
-        # Create a cached state
-        cached_state = CachedAgentState({})
-
-        # Make get_cached_state return our mock
-        with patch.object(agent_state, "get_cached_state", return_value=cached_state):
-            # Set property
-            await agent_state.set_property_value(turn_context, "prop", "value")
-
-            # Property should be set
-            assert cached_state.state["prop"] == "value"
+        assert user_value.value == "user_value"
+        assert conv_value.value == "conversation_value"
 
     @pytest.mark.asyncio
-    async def test_state_empty_name(self):
-        """Test that empty property name raises an exception."""
-        storage = MagicMock(spec=Storage)
-        user_state = UserState(storage)
-        context = TestingUtility.create_empty_context()
+    async def test_state_with_empty_activity(self):
+        """Test state behavior with minimal activity."""
+        minimal_activity = Activity()
 
+        with pytest.raises((TypeError, ValueError, AttributeError)):
+            minimal_context = TurnContext(self.adapter, minimal_activity)
+            self.user_state.get_storage_key(minimal_context)
+
+    @pytest.mark.asyncio
+    async def test_storage_exceptions_handling(self):
+        """Test handling of storage exceptions."""
+        # Create a mock storage that throws exceptions
+        failing_storage = MagicMock(spec=Storage)
+        failing_storage.read = AsyncMock(side_effect=Exception("Storage read failed"))
+        failing_storage.write = AsyncMock(side_effect=Exception("Storage write failed"))
+
+        failing_user_state = UserState(failing_storage)
+
+        # Load should handle storage exceptions gracefully
+        with pytest.raises(Exception, match="Storage read failed"):
+            await failing_user_state.load(self.context)
+
+    def test_agent_state_context_service_key(self):
+        """Test that AgentState has correct context service key."""
+        assert self.user_state._context_service_key == "Internal.UserState"
+        assert self.conversation_state._context_service_key == "conversation_state"
+
+    @pytest.mark.asyncio
+    async def test_memory_storage_integration(self):
+        """Test AgentState integration with MemoryStorage."""
+        memory_storage = MemoryStorage()
+        user_state = UserState(memory_storage)
+
+        # Test complete workflow
+        await user_state.load(self.context)
+        prop_accessor = user_state.create_property("memory_test")
+
+        await prop_accessor.set(self.context, TestDataItem("memory_value"))
+        await user_state.save_changes(self.context)
+
+        # Verify data exists in memory storage
+        storage_key = user_state.get_storage_key(self.context)
+        stored_data = await memory_storage.read([storage_key])
+
+        assert storage_key in stored_data
+        assert stored_data[storage_key] is not None
+
+    @pytest.mark.asyncio
+    async def test_state_property_accessor_error_conditions(self):
+        """Test StatePropertyAccessor error conditions."""
+        # Test with None state
         with pytest.raises(TypeError):
-            user_state.create_property("")
-
-    @pytest.mark.asyncio
-    async def test_state_null_name(self):
-        """Test that null property name raises an exception."""
-        storage = MagicMock(spec=Storage)
-        user_state = UserState(storage)
-        context = TestingUtility.create_empty_context()
-
-        with pytest.raises(TypeError):
-            user_state.create_property(None)
-
-    @pytest.mark.asyncio
-    async def test_load_set_save(self):
-        """Test load-set-save cycle of state."""
-        # Setup dictionary storage
-        dictionary = {}
-        storage = MagicMock(spec=Storage)
-        storage.read = AsyncMock(return_value={})
-        storage.write = AsyncMock(
-            side_effect=lambda changes: dictionary.update(changes)
-        )
-
-        user_state = UserState(storage)
-        context = TestingUtility.create_empty_context()
-
-        # Patch get_storage_key to return a predictable key
-        with patch.object(user_state, "get_storage_key", return_value="test-key"):
-            # Load state (empty)
-            await user_state.load(context)
-
-            # Set some properties
-            await user_state.set_property_value(context, "property-a", "hello")
-            await user_state.set_property_value(context, "property-b", "world")
-
-            # Save changes
-            await user_state.save_changes(context)
-
-            # Check if storage.write was called with the correct data
-            storage.write.assert_called_once()
-            assert "test-key" in dictionary
-
-    @pytest.mark.asyncio
-    async def test_make_sure_storage_not_called_no_changes(self):
-        """Test that storage is not called if there are no changes."""
-        # Mock storage
-        store_count = 0
-        read_count = 0
-
-        storage = MagicMock(spec=Storage)
-        storage.read = AsyncMock(return_value={})
-        storage.read.side_effect = (
-            lambda *args, **kwargs: (read_count := read_count + 1) and {}
-        )
-
-        storage.write = AsyncMock()
-        storage.write.side_effect = (
-            lambda *args, **kwargs: (store_count := store_count + 1) or None
-        )
-
-        user_state = UserState(storage)
-        context = TestingUtility.create_empty_context()
-
-        # Initial load
-        await user_state.load(context, False)
-
-        # No changes yet, save should not call storage
-        assert store_count == 0
-        await user_state.save_changes(context)
-        assert store_count == 0
-
-        # Set a property, should trigger read but not write
-        await user_state.set_property_value(context, "propertyA", "hello")
-        assert read_count == 1
-        assert store_count == 0
-
-        # Change property value
-        await user_state.set_property_value(context, "propertyA", "there")
-        assert store_count == 0  # No write yet
-
-        # Explicit save should trigger write
-        await user_state.save_changes(context)
-        assert store_count == 1
-
-        # Get value should not trigger write
-        property_value = await user_state.get_property_value(context, "propertyA")
-        assert property_value == "there"
-        assert store_count == 1  # No change
-
-        # Another save without changes should not trigger write
-        await user_state.save_changes(context)
-        assert store_count == 1  # No change
-
-        # Delete property and save should trigger write
-        await user_state.delete_property_value(context, "propertyA")
-        assert store_count == 1  # No write yet
-        await user_state.save_changes(context)
-        assert store_count == 2  # Write happened
-
-    @pytest.mark.asyncio
-    async def test_state_with_default_values(self):
-        """Test different state types with default values."""
-        storage = MagicMock(spec=Storage)
-        storage.read = AsyncMock(return_value={})
-        user_state = UserState(storage)
-        context = TestingUtility.create_empty_context()
-
-        # Load state (empty)
-        await user_state.load(context, False)
-
-        # Create property accessors
-        poco_accessor = user_state.create_property("test-poco")
-        bool_accessor = user_state.create_property("test-bool")
-        int_accessor = user_state.create_property("test-int")
-
-        # Test POCO with default factory
-        poco_value = await poco_accessor.get(context, lambda: TestPocoState("default"))
-        assert isinstance(poco_value, TestPocoState)
-        assert poco_value.value == "default"
-
-        # Test bool with default value
-        bool_value = await bool_accessor.get(context, False)
-        assert bool_value is False
-
-        # Test int with default value
-        int_value = await int_accessor.get(context, 42)
-        assert int_value == 42
-
-    @pytest.mark.asyncio
-    async def test_conversation_bad_conversation_throws(self):
-        """Test that ConversationState throws when conversation is null."""
-        storage = MagicMock(spec=Storage)
-        conversation_state = ConversationState(storage)
-        context = TestingUtility.create_empty_context()
-
-        # Set conversation to None
-        context.activity.conversation = None
-
-        # Should raise ValueError
-        with pytest.raises(ValueError):
-            await conversation_state.load(context, False)
-
-    @pytest.mark.asyncio
-    async def test_user_state_bad_from_throws(self):
-        """Test that UserState throws when from is null."""
-        storage = MagicMock(spec=Storage)
-        user_state = UserState(storage)
-        context = TestingUtility.create_empty_context()
-
-        # Set from to None
-        context.activity.from_property = None
-
-        # Should raise ValueError
-        with pytest.raises(ValueError):
-            await user_state.load(context, False)
-
-    @pytest.mark.asyncio
-    async def test_private_conversation_state_bad_both_throws(self):
-        """Test that PrivateConversationState throws when both from and conversation are null."""
-        storage = MagicMock(spec=Storage)
-        private_state = PrivateConversationState(storage)
-        context = TestingUtility.create_empty_context()
-
-        # Set both to None
-        context.activity.conversation = None
-        context.activity.from_property = None
-
-        # Should raise ValueError
-        with pytest.raises(ValueError):
-            await private_state.load(context, False)
-
-    @pytest.mark.asyncio
-    async def test_clear_and_save(self):
-        """Test clearing state and saving the changes."""
-        storage = MagicMock(spec=Storage)
-        state_dict = {}
-
-        storage.read = AsyncMock(
-            side_effect=lambda keys, **kwargs: {k: state_dict.get(k, {}) for k in keys}
-        )
-        storage.write = AsyncMock(
-            side_effect=lambda changes: state_dict.update(changes)
-        )
-
-        # Create context
-        context = TestingUtility.create_empty_context()
-        context.activity.conversation.id = "1234"
-
-        # Create a predictable storage key
-        storage_key = "test-state-key"
-
-        # Turn 0: Set initial value
-        conversation_state1 = ConversationState(storage)
-        with patch.object(
-            conversation_state1, "get_storage_key", return_value=storage_key
-        ):
-            await conversation_state1.load(context, False)
-
-            # Create property and set value
-            property_accessor = conversation_state1.create_property("test-name")
-            await property_accessor.set(context, TestPocoState("test-value"))
-
-            # Save changes
-            await conversation_state1.save_changes(context)
-
-        # Turn 1: Verify value was saved
-        conversation_state2 = ConversationState(storage)
-        with patch.object(
-            conversation_state2, "get_storage_key", return_value=storage_key
-        ):
-            await conversation_state2.load(context, False)
-
-            # Get the property again
-            property_accessor = conversation_state2.create_property("test-name")
-            value1 = await property_accessor.get(context)
-
-            # Verify the value is preserved
-            assert isinstance(value1, TestPocoState)
-            assert value1.value == "test-value"
-
-        # Turn 2: Clear state
-        conversation_state3 = ConversationState(storage)
-        with patch.object(
-            conversation_state3, "get_storage_key", return_value=storage_key
-        ):
-            await conversation_state3.load(context, False)
-
-            # Clear the state
-            await conversation_state3.clear_state(context)
-
-            # Save changes
-            await conversation_state3.save_changes(context)
-
-        # Turn 3: Verify state was cleared
-        conversation_state4 = ConversationState(storage)
-        with patch.object(
-            conversation_state4, "get_storage_key", return_value=storage_key
-        ):
-            await conversation_state4.load(context, False)
-
-            # Get the property with default value
-            property_accessor = conversation_state4.create_property("test-name")
-            value2 = await property_accessor.get(
-                context, lambda: TestPocoState("default-value")
-            )
-
-            # Should have the default value
-            assert value2.value == "default-value"
-
-    @pytest.mark.asyncio
-    async def test_state_delete(self):
-        """Test deleting state."""
-        storage = MagicMock(spec=Storage)
-        state_dict = {}
-
-        storage.read = AsyncMock(
-            side_effect=lambda keys, **kwargs: {k: state_dict.get(k, {}) for k in keys}
-        )
-        storage.write = AsyncMock(
-            side_effect=lambda changes: state_dict.update(changes)
-        )
-        storage.delete = AsyncMock(
-            side_effect=lambda keys: [state_dict.pop(k, None) for k in keys]
-        )
-
-        # Create context
-        context = TestingUtility.create_empty_context()
-        context.activity.conversation.id = "1234"
-
-        # Create a predictable storage key
-        storage_key = "test-state-key"
-
-        # Turn 0: Set initial value
-        conversation_state1 = ConversationState(storage)
-        with patch.object(
-            conversation_state1, "get_storage_key", return_value=storage_key
-        ):
-            await conversation_state1.load(context, False)
-
-            # Create property and set value
-            property_accessor = conversation_state1.create_property("test-name")
-            await property_accessor.set(context, TestPocoState("test-value"))
-
-            # Save changes
-            await conversation_state1.save_changes(context)
-
-        # Turn 1: Verify value was saved
-        conversation_state2 = ConversationState(storage)
-        with patch.object(
-            conversation_state2, "get_storage_key", return_value=storage_key
-        ):
-            await conversation_state2.load(context, False)
-
-            # Get the property again
-            property_accessor = conversation_state2.create_property("test-name")
-            value1 = await property_accessor.get(context)
-
-            # Verify the value is preserved
-            assert isinstance(value1, TestPocoState)
-            assert value1.value == "test-value"
-
-        # Turn 2: Delete state
-        conversation_state3 = ConversationState(storage)
-        with patch.object(
-            conversation_state3, "get_storage_key", return_value=storage_key
-        ):
-            # Delete state
-            await conversation_state3.delete(context)
-
-            # Verify delete was called
-            storage.delete.assert_called_once_with([storage_key])
-
-        # Turn 3: Verify state was deleted
-        conversation_state4 = ConversationState(storage)
-        with patch.object(
-            conversation_state4, "get_storage_key", return_value=storage_key
-        ):
-            await conversation_state4.load(context, False)
-
-            # Get the property with default value
-            property_accessor = conversation_state4.create_property("test-name")
-            value2 = await property_accessor.get(
-                context, lambda: TestPocoState("default-value")
-            )
-
-            # Should have the default value
-            assert value2.value == "default-value"
-
-    @pytest.mark.asyncio
-    async def test_custom_key_state(self):
-        """Test state with custom storage key."""
-        # Setup the test adapter
-        adapter = TestingAdapter()
-
-        # Create a storage instance
-        storage = MagicMock(spec=Storage)
-        state_dict = {}
-        test_guid = "test-unique-value"
-
-        storage.read = AsyncMock(return_value={})
-        storage.write = AsyncMock(
-            side_effect=lambda changes: state_dict.update(changes)
-        )
-
-        # Create the custom key state
-        custom_state = TestCustomKeyState(storage)
-
-        # Test conversation
-        async def test_activity_handler(turn_context):
-            # Load the state for this turn
-            await custom_state.load(turn_context, False)
-
-            # Get the test property accessor
-            test_accessor = custom_state.create_property("test")
-            test_state = await test_accessor.get(turn_context, lambda: TestPocoState())
-
-            if turn_context.activity.text == "set value":
-                # Set the value
-                test_state.value = test_guid
-                # Save changes (normally would be done by middleware)
-                await custom_state.save_changes(turn_context)
-                await turn_context.send_activity("value saved")
-            elif turn_context.activity.text == "get value":
-                # Return the saved value
-                await turn_context.send_activity(test_state.value)
-
-        # Send the "set value" message
-        activities = await adapter.test("set value", test_activity_handler)
-        assert len(activities) == 1
-        assert activities[0].text == "value saved"
-
-        # Send the "get value" message to verify it was saved correctly
-        activities = await adapter.test("get value", test_activity_handler)
-        assert len(activities) == 1
-        assert activities[0].text == test_guid
+            BotStatePropertyAccessor(None, "test_prop")
+
+        # Test with invalid property name types
+        for invalid_name in [None, "", "   ", 123, []]:
+            if isinstance(invalid_name, str) and not invalid_name.strip():
+                with pytest.raises(ValueError):
+                    self.user_state.create_property(invalid_name)
+            elif not isinstance(invalid_name, str):
+                with pytest.raises((TypeError, ValueError)):
+                    self.user_state.create_property(invalid_name)

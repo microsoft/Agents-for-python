@@ -5,46 +5,39 @@ Licensed under the MIT License.
 
 from __future__ import annotations
 
-from typing import Any, Dict, Optional
+from typing import Type
 
 from microsoft.agents.storage import Storage, StoreItem
 
 from microsoft.agents.builder.turn_context import TurnContext
-from microsoft.agents.builder.app.state.state import State, state
+from microsoft.agents.builder.state import AgentState
 
 
-@state
-class ConversationState(State):
+class ConversationState(AgentState):
     """
     Default Conversation State
     """
 
-    @classmethod
-    async def load(
-        cls, context: TurnContext, storage: Optional[Storage] = None
-    ) -> "ConversationState":
-        activity = context.activity
+    CONTEXT_SERVICE_KEY = "conversation_state"
 
-        if not activity.channel_id:
-            raise ValueError("missing activity.channel_id")
-        if not activity.conversation:
-            raise ValueError("missing activity.conversation")
-        if not activity.recipient:
-            raise ValueError("missing activity.recipient")
+    def __init__(self, storage: Storage) -> None:
+        """
+        Initialize ConversationState with a key and optional properties.
 
-        channel_id = activity.channel_id
-        conversation_id = activity.conversation.id
-        bot_id = activity.recipient.id
-        key = f"{channel_id}/{bot_id}/conversations/{conversation_id}"
+        param storage: Storage instance to use for state management.
+        type storage: Storage
+        """
+        super().__init__(storage=storage, context_service_key=self.CONTEXT_SERVICE_KEY)
 
-        if not storage:
-            return cls(__key__=key)
+    def get_storage_key(
+        self, turn_context: TurnContext, *, target_cls: Type[StoreItem] = None
+    ):
+        channel_id = turn_context.activity.channel_id
+        if not channel_id:
+            raise ValueError("Invalid activity: missing channel_id.")
 
-        data: Dict[str, Any] = await storage.read([key])
+        conversation_id = turn_context.activity.conversation.id
+        if not conversation_id:
+            raise ValueError("Invalid activity: missing conversation_id.")
 
-        if key in data:
-            if isinstance(data[key], StoreItem):
-                return cls(__key__=key, **vars(data[key]))
-            return cls(__key__=key, **data[key])
-
-        return cls(__key__=key, **data)
+        return f"{channel_id}/conversations/{conversation_id}"
