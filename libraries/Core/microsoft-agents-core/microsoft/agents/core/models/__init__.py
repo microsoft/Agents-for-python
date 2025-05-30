@@ -79,6 +79,9 @@ from .token_post_resource import TokenPostResource
 from .delivery_modes import DeliveryModes
 from .caller_id_constants import CallerIdConstants
 
+from .conversation_update_types import ConversationUpdateTypes
+from .message_update_types import MessageUpdateTypes
+
 __all__ = [
     "AgentsModel",
     "Activity",
@@ -157,4 +160,6 @@ __all__ = [
     "TokenPostResource",
     "DeliveryModes",
     "CallerIdConstants",
+    "ConversationUpdateTypes",
+    "MessageUpdateTypes",
 ]

@@ -36,7 +36,7 @@ pip install -r requirements.txt
 5. Start the Python application
 
 ```sh
-python app.py
+python agent_application.py
 ```
 
 At this point you should see a message indicating the server is running on port 3978. The agent is ready to accept messages.

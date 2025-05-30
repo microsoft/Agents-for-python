@@ -19,7 +19,7 @@ class TeamsSso(TeamsActivityHandler):
         Initializes a new instance of the TeamsSso class.
         :param user_state: The user state.
         :param connection_name: Connection name for OAuth.
-        :param app_id: Application ID.
+        :param app_id: AgentApplication ID.
         """
         self.user_state = user_state
         self.oauth_flow = OAuthFlow(user_state, connection_name)
