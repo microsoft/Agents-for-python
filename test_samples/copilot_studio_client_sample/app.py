@@ -41,7 +41,7 @@ def acquire_token(mcs_settings: McsConnectionSettings, cache_path: str) -> str:
         print(result.get("error"))
         print(result.get("error_description"))
         print(result.get("correlation_id"))  # You may need this when reporting a bug
-        raise Exception("Authentication with the Public Application failed")
+        raise Exception("Authentication with the Public AgentApplication failed")
 
 
 def create_mcs_client(connection_settings: ConnectionSettings) -> CopilotClient:

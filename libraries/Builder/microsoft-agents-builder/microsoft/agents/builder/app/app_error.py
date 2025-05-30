@@ -8,7 +8,7 @@ from __future__ import annotations
 
 class ApplicationError(Exception):
     """
-    Teams Application Error
+    Teams AgentApplication Error
     """
 
     def __init__(self, message: str) -> None:

@@ -42,11 +42,11 @@ StateT = TypeVar("StateT", bound=TurnState)
 IN_SIGN_IN_KEY = "__InSignInFlow__"
 
 
-class Application(Agent, Generic[StateT]):
+class AgentApplication(Agent, Generic[StateT]):
     """
-    Application class for routing and processing incoming requests.
+    AgentApplication class for routing and processing incoming requests.
 
-    The Application object replaces the traditional ActivityHandler that
+    The AgentApplication object replaces the traditional ActivityHandler that
     a bot would use. It supports a simpler fluent style of authoring bots
     versus the inheritance based approach used by the ActivityHandler class.
 
@@ -68,7 +68,7 @@ class Application(Agent, Generic[StateT]):
 
     def __init__(self, options: ApplicationOptions = None, **kwargs) -> None:
         """
-        Creates a new Application instance.
+        Creates a new AgentApplication instance.
         """
         self.typing = Typing()
         self._routes = []
@@ -84,6 +84,13 @@ class Application(Agent, Generic[StateT]):
             options = ApplicationOptions(**option_kwargs)
 
         self._options = options
+
+        if not self._options.storage:
+            raise ApplicationError(
+                """
+                The `ApplicationOptions.storage` property is required and was not configured.
+                """
+            )
 
         if options.long_running_messages and (
             not options.adapter or not options.bot_app_id
@@ -116,8 +123,8 @@ class Application(Agent, Generic[StateT]):
         if not self._adapter:
             raise ApplicationError(
                 """
-                The Application.adapter property is unavailable because it was 
-                not configured when creating the Application.
+                The AgentApplication.adapter property is unavailable because it was 
+                not configured when creating the AgentApplication.
                 """
             )
 
@@ -131,7 +138,7 @@ class Application(Agent, Generic[StateT]):
         if not self._auth:
             raise ApplicationError(
                 """
-                The `Application.auth` property is unavailable because
+                The `AgentApplication.auth` property is unavailable because
                 no Auth options were configured.
                 """
             )
@@ -497,8 +504,10 @@ class Application(Agent, Generic[StateT]):
 
             state = await self._initialize_state(context)
 
+            """
             if not await self._authenticate_user(context, state):
                 return
+            """
 
             if not await self._run_before_turn_middleware(context, state):
                 return

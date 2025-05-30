@@ -32,7 +32,7 @@ class ApplicationOptions:
 
     bot_app_id: str = ""
     """
-    Optional. `Application` ID of the bot.
+    Optional. `AgentApplication` ID of the bot.
     """
 
     storage: Optional[Storage] = None
