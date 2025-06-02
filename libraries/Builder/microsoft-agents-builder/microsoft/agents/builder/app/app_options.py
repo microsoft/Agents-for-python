@@ -7,13 +7,15 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 from logging import Logger
-from typing import List, Optional
+from typing import Callable, List, Optional
 
 from microsoft.agents.storage import Storage
 
 # from .auth import AuthOptions
 from .input_file import InputFileDownloader
 from ..channel_service_adapter import ChannelServiceAdapter
+
+from .state.turn_state import TurnState
 
 # from .teams_adapter import TeamsAdapter
 
@@ -72,4 +74,11 @@ class ApplicationOptions:
     file_downloaders: List[InputFileDownloader] = field(default_factory=list)
     """
     Optional. Array of input file download plugins to use. 
+    """
+
+    turn_state_factory: Optional[Callable[[], TurnState]] = None
+    """
+    Optional. Factory function to create the turn state.
+    This should return an instance of `TurnState` or a subclass.
+    If not provided, the default `TurnState` will be used.
     """

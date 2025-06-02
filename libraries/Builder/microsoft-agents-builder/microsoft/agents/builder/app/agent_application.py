@@ -114,6 +114,9 @@ class AgentApplication(Agent, Generic[StateT]):
                     self._auth.set(name, OAuth[StateT](opts))
         """
 
+        # TODO: Disabling AI chain for now
+        self._ai = None
+
     @property
     def adapter(self) -> ChannelServiceAdapter:
         """
@@ -502,30 +505,30 @@ class AgentApplication(Agent, Generic[StateT]):
 
             self._remove_mentions(context)
 
-            state = await self._initialize_state(context)
+            turn_state = await self._initialize_state(context)
 
             """
             if not await self._authenticate_user(context, state):
                 return
             """
 
-            if not await self._run_before_turn_middleware(context, state):
+            if not await self._run_before_turn_middleware(context, turn_state):
                 return
 
-            await self._handle_file_downloads(context, state)
+            await self._handle_file_downloads(context, turn_state)
 
-            is_ok, matches = await self._on_activity(context, state)
+            is_ok, matches = await self._on_activity(context, turn_state)
             if not is_ok:
-                await state.save(context, self._options.storage)
+                await turn_state.save(context, self._options.storage)
                 return
             if matches == 0:
-                if not await self._run_ai_chain(context, state):
+                if not await self._run_ai_chain(context, turn_state):
                     return
 
-            if not await self._run_after_turn_middleware(context, state):
+            if not await self._run_after_turn_middleware(context, turn_state):
                 return
 
-            await state.save(context, self._options.storage)
+            await turn_state.save(context)
         except ApplicationError as err:
             await self._on_error(context, err)
         finally:
@@ -542,15 +545,18 @@ class AgentApplication(Agent, Generic[StateT]):
         ):
             context.activity.text = context.remove_recipient_mention(context.activity)
 
-    async def _initialize_state(self, context: TurnContext):
-        state = cast(StateT, await TurnState.load(context, self._options.storage))
-
+    async def _initialize_state(self, context: TurnContext) -> StateT:
         if self._turn_state_factory:
-            state = await self._turn_state_factory(context)
+            turn_state = await self._turn_state_factory()
+        else:
+            turn_state = TurnState.with_storage(self._options.storage)
+            await turn_state.load(context, self._options.storage)
 
-        await state.load(context, self._options.storage)
-        state.temp.input = context.activity.text
-        return state
+        turn_state = cast(StateT, turn_state)
+
+        await turn_state.load(context, self._options.storage)
+        turn_state.temp.input = context.activity.text
+        return turn_state
 
     async def _authenticate_user(self, context: TurnContext, state):
         if self.options.auth and self._auth:
@@ -595,7 +601,7 @@ class AgentApplication(Agent, Generic[StateT]):
                 input_files.extend(files)
             state.temp.input_files = input_files
 
-    async def _run_ai_chain(self, context: TurnContext, state):
+    async def _run_ai_chain(self, context: TurnContext, state: StateT):
         if (
             self._ai
             and self._options.ai
@@ -608,14 +614,14 @@ class AgentApplication(Agent, Generic[StateT]):
                 return False
         return True
 
-    def _contains_non_text_attachments(self, context):
+    def _contains_non_text_attachments(self, context: TurnContext):
         non_text_attachments = filter(
             lambda a: not a.content_type.startswith("text/html"),
             context.activity.attachments,
         )
         return len(list(non_text_attachments)) > 0
 
-    async def _run_after_turn_middleware(self, context: TurnContext, state):
+    async def _run_after_turn_middleware(self, context: TurnContext, state: StateT):
         for after_turn in self._after_turn:
             is_ok = await after_turn(context, state)
             if not is_ok:

@@ -221,7 +221,7 @@ class TurnState:
         self._scopes[agent_state.__class__.__name__] = agent_state
         return self
 
-    async def load_state(self, turn_context: TurnContext, force: bool = False) -> None:
+    async def load(self, turn_context: TurnContext, force: bool = False) -> None:
         """
         Loads all agent state records in parallel.
 
@@ -236,7 +236,7 @@ class TurnState:
         ]
         await asyncio.gather(*tasks)
 
-    def clear_state(self, scope: str) -> None:
+    def clear(self, scope: str) -> None:
         """
         Clears a state scope.
 
@@ -244,10 +244,10 @@ class TurnState:
             scope: The name of the scope to clear.
         """
         scope_obj = self.get_scope_by_name(scope)
-        if hasattr(scope_obj, "clear_state"):
-            scope_obj.clear_state()
+        if hasattr(scope_obj, "clear"):
+            scope_obj.clear()
 
-    async def save_state(self, turn_context: TurnContext, force: bool = False) -> None:
+    async def save(self, turn_context: TurnContext, force: bool = False) -> None:
         """
         Saves all agent state changes in parallel.
 
@@ -256,11 +256,36 @@ class TurnState:
             force: Whether data should be forced to save even if no change was detected.
         """
         tasks = [
-            bs.save_changes(turn_context, force)
+            bs.save(turn_context, force)
             for bs in self._scopes.values()
-            if hasattr(bs, "save_changes")
+            if hasattr(bs, "save")
         ]
         await asyncio.gather(*tasks)
+
+    async def load(self, context: TurnContext, storage: Storage) -> "TurnState":
+        """
+        Loads a TurnState instance with the default states.
+
+        Args:
+            context: The turn context.
+            storage: Optional storage to use for the states.
+
+        Returns:
+            A new TurnState instance with loaded states.
+        """
+        conversation, user, temp = (
+            ConversationState(storage),
+            UserState(storage),
+            TempState(),
+        )
+
+        await conversation.load(context)
+        await user.load(context)
+        await temp.load(context)
+
+        self._scopes[ConversationState.__name__] = conversation
+        self._scopes[UserState.__name__] = user
+        self._scopes[TempState.SCOPE_NAME] = temp
 
     @staticmethod
     def _get_scope_and_path(name: str) -> tuple[str, str]:
@@ -278,28 +303,3 @@ class TurnState:
             return TempState.SCOPE_NAME, name
 
         return name[:scope_end], name[scope_end + 1 :]
-
-    @classmethod
-    async def load(
-        cls, context: TurnContext, storage: Optional[Storage] = None
-    ) -> "TurnState":
-        """
-        Loads a TurnState instance with the default states.
-
-        Args:
-            context: The turn context.
-            storage: Optional storage to use for the states.
-
-        Returns:
-            A new TurnState instance with loaded states.
-        """
-        conversation = await ConversationState.load(context, storage)
-        user = await UserState.load(context, storage)
-        temp = await TempState.load(context, storage)
-
-        turn_state = cls()
-        turn_state._scopes[ConversationState.__name__] = conversation
-        turn_state._scopes[UserState.__name__] = user
-        turn_state._scopes[TempState.SCOPE_NAME] = temp
-
-        return turn_state

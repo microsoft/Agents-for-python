@@ -194,7 +194,7 @@ class TestAgentState:
         assert cached_state_1 is not cached_state_2
 
     @pytest.mark.asyncio
-    async def test_state_save_changes_no_changes(self):
+    async def test_state_save_no_changes(self):
         """Test saving changes when no changes exist."""
         await self.user_state.load(self.context)
 
@@ -203,11 +203,11 @@ class TestAgentState:
         storage_mock.write = AsyncMock()
         self.user_state._storage = storage_mock
 
-        await self.user_state.save_changes(self.context)
+        await self.user_state.save(self.context)
         storage_mock.write.assert_not_called()
 
     @pytest.mark.asyncio
-    async def test_state_save_changes_with_changes(self):
+    async def test_state_save_with_changes(self):
         """Test saving changes when changes exist."""
         await self.user_state.load(self.context)
 
@@ -216,7 +216,7 @@ class TestAgentState:
         await property_accessor.set(self.context, TestDataItem("changed_value"))
 
         # Save changes
-        await self.user_state.save_changes(self.context)
+        await self.user_state.save(self.context)
 
         # Verify the change was persisted by loading fresh state
         fresh_context = TurnContext(self.adapter, self.activity)
@@ -228,7 +228,7 @@ class TestAgentState:
         assert value.value == "changed_value"
 
     @pytest.mark.asyncio
-    async def test_state_save_changes_with_force(self):
+    async def test_state_save_with_force(self):
         """Test saving changes with force flag."""
         await self.user_state.load(self.context)
 
@@ -237,7 +237,7 @@ class TestAgentState:
         storage_mock.write = AsyncMock()
         self.user_state._storage = storage_mock
 
-        await self.user_state.save_changes(self.context, force=True)
+        await self.user_state.save(self.context, force=True)
 
         # Should call write even without changes when force=True
         storage_mock.write.assert_called_once()
@@ -274,7 +274,7 @@ class TestAgentState:
         property_accessor = self.user_state.create_property("persistent_prop")
         await self.user_state.load(self.context)
         await property_accessor.set(self.context, TestDataItem("persistent_value"))
-        await self.user_state.save_changes(self.context)
+        await self.user_state.save(self.context)
 
         # Create a new context with same user
         new_context = TurnContext(self.adapter, self.activity)
@@ -289,7 +289,7 @@ class TestAgentState:
         assert value.value == "persistent_value"
 
     @pytest.mark.asyncio
-    async def test_clear_state(self):
+    async def test_clear(self):
         """Test clearing state."""
         # Set some values
         await self.user_state.load(self.context)
@@ -297,7 +297,7 @@ class TestAgentState:
         await prop_accessor.set(self.context, TestDataItem("test_value"))
 
         # Clear state
-        await self.user_state.clear_state(self.context)
+        await self.user_state.clear(self.context)
 
         # Verify state is cleared
         value = await prop_accessor.get(self.context)
@@ -310,7 +310,7 @@ class TestAgentState:
         await self.user_state.load(self.context)
         prop_accessor = self.user_state.create_property("test_prop")
         await prop_accessor.set(self.context, TestDataItem("test_value"))
-        await self.user_state.save_changes(self.context)
+        await self.user_state.save(self.context)
 
         # Delete state
         await self.user_state.delete(self.context)
@@ -346,7 +346,7 @@ class TestAgentState:
         prop_accessor = self.custom_state.create_property("custom_prop")
 
         await prop_accessor.set(self.context, TestDataItem("custom_value"))
-        await self.custom_state.save_changes(self.context)
+        await self.custom_state.save(self.context)
 
         # Verify storage key format
         storage_key = self.custom_state.get_storage_key(self.context)
@@ -503,7 +503,7 @@ class TestAgentState:
         prop_accessor = user_state.create_property("memory_test")
 
         await prop_accessor.set(self.context, TestDataItem("memory_value"))
-        await user_state.save_changes(self.context)
+        await user_state.save(self.context)
 
         # Verify data exists in memory storage
         storage_key = user_state.get_storage_key(self.context)

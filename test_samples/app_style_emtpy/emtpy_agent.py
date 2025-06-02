@@ -66,6 +66,15 @@ AGENT_APP = AgentApplication[TurnState](
 )
 
 
+@AGENT_APP.conversation_update("membersAdded")
+async def on_members_added(context: TurnContext, _state: TurnState):
+    await context.send_activity(
+        "Welcome to the empty agent! "
+        "This agent is designed to be a starting point for your own agent development."
+    )
+    return True
+
+
 @AGENT_APP.activity("message")
 async def on_message(context: TurnContext, _state: TurnState):
     await context.send_activity(f"you said: {context.activity.text}")

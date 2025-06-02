@@ -132,9 +132,7 @@ class AgentState:
             val = items.get(storage_key, CachedAgentState())
             turn_context.turn_state[self._context_service_key] = val
 
-    async def save_changes(
-        self, turn_context: TurnContext, force: bool = False
-    ) -> None:
+    async def save(self, turn_context: TurnContext, force: bool = False) -> None:
         """
         Saves the state cached in the current context for this turn.
         If the state has changed, it saves the state cached in the current context for this turn.
@@ -152,7 +150,7 @@ class AgentState:
             await self._storage.write(changes)
             cached_state.hash = cached_state.compute_hash()
 
-    async def clear_state(self, turn_context: TurnContext):
+    async def clear(self, turn_context: TurnContext):
         """
         Clears any state currently stored in this state scope.
 

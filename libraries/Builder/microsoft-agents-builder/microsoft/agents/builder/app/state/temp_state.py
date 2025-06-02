@@ -31,6 +31,7 @@ class TempState(AgentState):
     """State scope name"""
 
     def __init__(self):
+        super().__init__(None, context_service_key=self.SCOPE_NAME)
         self._state: Dict[str, Any] = {}
 
     @property
@@ -47,7 +48,7 @@ class TempState(AgentState):
     def input_files(self, value: List[InputFile]) -> None:
         self.set_value(self.INPUT_FILES_KEY, value)
 
-    def clear_state(self) -> None:
+    def clear(self) -> None:
         """Clears all state values"""
         self._state.clear()
 
@@ -91,27 +92,12 @@ class TempState(AgentState):
         """Checks if the state is loaded"""
         return True
 
-    async def load_async(
-        self, turn_context: TurnContext, force: bool = False, **_
-    ) -> None:
+    async def load(self, turn_context: TurnContext, force: bool = False, **_) -> None:
         """Loads the state asynchronously"""
         pass
 
-    async def save_changes_async(
+    async def save_changes(
         self, turn_context: TurnContext, force: bool = False, **_
     ) -> None:
         """Saves the state changes asynchronously"""
         pass
-
-    async def save(
-        self, _context: TurnContext, storage: Optional[Storage] = None
-    ) -> None:
-        """Legacy method to save the state"""
-        return
-
-    @classmethod
-    async def load(
-        cls, context: TurnContext, storage: Optional[Storage] = None
-    ) -> "TempState":
-        """Legacy method to load the state"""
-        return cls()

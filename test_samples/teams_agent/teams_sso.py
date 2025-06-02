@@ -74,7 +74,7 @@ class TeamsSso(TeamsActivityHandler):
 
     async def on_turn(self, turn_context: TurnContext):
         await super().on_turn(turn_context)
-        await self.user_state.save_changes(turn_context)
+        await self.user_state.save(turn_context)
 
     async def send_logged_user_info(self, turn_context: TurnContext, token: str):
         """
