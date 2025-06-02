@@ -7,7 +7,7 @@ Test suite for the AgentState class that closely follows the C# test implementat
 
 import asyncio
 import pytest
-from typing import Dict, Type, Union
+from typing import Type
 from unittest.mock import AsyncMock, MagicMock
 
 from microsoft.agents.builder.state.agent_state import (
@@ -26,7 +26,6 @@ from microsoft.agents.core.models import (
     ConversationAccount,
 )
 from tests.tools.testing_adapter import TestingAdapter
-from tests.tools.testing_utility import TestingUtility
 
 
 class MockCustomState(AgentState):

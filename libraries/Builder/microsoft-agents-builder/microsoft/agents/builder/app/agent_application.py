@@ -215,10 +215,9 @@ class AgentApplication(Agent, Generic[StateT]):
             text = context.activity.text if context.activity.text else ""
             if isinstance(select, Pattern):
                 hits = re.match(select, text)
-                return hits is not None
+                return hits is not None and len(hits.regs) == 1
 
-            i = text.find(select)
-            return i > -1
+            return text == select
 
         def __call__(func: RouteHandler[StateT]) -> RouteHandler[StateT]:
             self._routes.append(Route[StateT](__selector__, func))

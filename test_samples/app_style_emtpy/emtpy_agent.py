@@ -1,6 +1,7 @@
 # Copyright (c) Microsoft Corporation. All rights reserved.
 # Licensed under the MIT License.
 
+import re
 import sys
 import traceback
 from aiohttp.web import Application, Request, Response, run_app
@@ -72,6 +73,12 @@ async def on_members_added(context: TurnContext, _state: TurnState):
         "Welcome to the empty agent! "
         "This agent is designed to be a starting point for your own agent development."
     )
+    return True
+
+
+@AGENT_APP.message(re.compile(r"^hello$"))
+async def on_hello(context: TurnContext, _state: TurnState):
+    await context.send_activity("Hello! How can I assist you today?")
     return True
 
 
