@@ -174,14 +174,14 @@ class AgentApplication(Agent, Generic[StateT]):
         - `type`: The type of the activity
         """
 
-        def __selector__(context: TurnContext):
+        def __selector(context: TurnContext):
             return type == context.activity.type
 
-        def __call__(func: RouteHandler[StateT]) -> RouteHandler[StateT]:
-            self._routes.append(Route[StateT](__selector__, func))
+        def __call(func: RouteHandler[StateT]) -> RouteHandler[StateT]:
+            self._routes.append(Route[StateT](__selector, func))
             return func
 
-        return __call__
+        return __call
 
     def message(
         self, select: Union[str, Pattern[str], List[Union[str, Pattern[str]]]]
@@ -201,7 +201,7 @@ class AgentApplication(Agent, Generic[StateT]):
         - `select`: a string or regex pattern
         """
 
-        def __selector__(context: TurnContext):
+        def __selector(context: TurnContext):
             if context.activity.type != ActivityTypes.message:
                 return False
 
@@ -212,11 +212,11 @@ class AgentApplication(Agent, Generic[StateT]):
 
             return text == select
 
-        def __call__(func: RouteHandler[StateT]) -> RouteHandler[StateT]:
-            self._routes.append(Route[StateT](__selector__, func))
+        def __call(func: RouteHandler[StateT]) -> RouteHandler[StateT]:
+            self._routes.append(Route[StateT](__selector, func))
             return func
 
-        return __call__
+        return __call
 
     def conversation_update(
         self, type: ConversationUpdateTypes
@@ -238,7 +238,7 @@ class AgentApplication(Agent, Generic[StateT]):
         - `type`: a string or regex pattern
         """
 
-        def __selector__(context: TurnContext):
+        def __selector(context: TurnContext):
             if context.activity.type != ActivityTypes.conversation_update:
                 return False
 
@@ -258,11 +258,11 @@ class AgentApplication(Agent, Generic[StateT]):
 
             return False
 
-        def __call__(func: RouteHandler[StateT]) -> RouteHandler[StateT]:
-            self._routes.append(Route[StateT](__selector__, func))
+        def __call(func: RouteHandler[StateT]) -> RouteHandler[StateT]:
+            self._routes.append(Route[StateT](__selector, func))
             return func
 
-        return __call__
+        return __call
 
     def message_reaction(
         self, type: MessageReactionTypes
@@ -283,7 +283,7 @@ class AgentApplication(Agent, Generic[StateT]):
         - `type`: a string or regex pattern
         """
 
-        def __selector__(context: TurnContext):
+        def __selector(context: TurnContext):
             if context.activity.type != ActivityTypes.message_reaction:
                 return False
 
@@ -299,11 +299,11 @@ class AgentApplication(Agent, Generic[StateT]):
 
             return False
 
-        def __call__(func: RouteHandler[StateT]) -> RouteHandler[StateT]:
-            self._routes.append(Route[StateT](__selector__, func))
+        def __call(func: RouteHandler[StateT]) -> RouteHandler[StateT]:
+            self._routes.append(Route[StateT](__selector, func))
             return func
 
-        return __call__
+        return __call
 
     def message_update(
         self, type: MessageUpdateTypes
@@ -324,7 +324,7 @@ class AgentApplication(Agent, Generic[StateT]):
         - `type`: a string or regex pattern
         """
 
-        def __selector__(context: TurnContext):
+        def __selector(context: TurnContext):
             if type == "editMessage":
                 if (
                     context.activity.type == ActivityTypes.message_update
@@ -353,11 +353,11 @@ class AgentApplication(Agent, Generic[StateT]):
                 return False
             return False
 
-        def __call__(func: RouteHandler[StateT]) -> RouteHandler[StateT]:
-            self._routes.append(Route[StateT](__selector__, func))
+        def __call(func: RouteHandler[StateT]) -> RouteHandler[StateT]:
+            self._routes.append(Route[StateT](__selector, func))
             return func
 
-        return __call__
+        return __call
 
     def handoff(
         self,
@@ -377,13 +377,13 @@ class AgentApplication(Agent, Generic[StateT]):
         ```
         """
 
-        def __selector__(context: TurnContext) -> bool:
+        def __selector(context: TurnContext) -> bool:
             return (
                 context.activity.type == ActivityTypes.invoke
                 and context.activity.name == "handoff/action"
             )
 
-        def __call__(
+        def __call(
             func: Callable[[TurnContext, StateT, str], Awaitable[None]],
         ) -> Callable[[TurnContext, StateT, str], Awaitable[None]]:
             async def __handler__(context: TurnContext, state: StateT):
@@ -398,10 +398,10 @@ class AgentApplication(Agent, Generic[StateT]):
                 )
                 return True
 
-            self._routes.append(Route[StateT](__selector__, __handler__, True))
+            self._routes.append(Route[StateT](__selector, __handler__, True))
             return func
 
-        return __call__
+        return __call
 
     def before_turn(self, func: RouteHandler[StateT]) -> RouteHandler[StateT]:
         """

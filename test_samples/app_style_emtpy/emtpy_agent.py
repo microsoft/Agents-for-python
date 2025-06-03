@@ -78,7 +78,7 @@ async def on_members_added(context: TurnContext, _state: TurnState):
 
 @AGENT_APP.message(re.compile(r"^hello$"))
 async def on_hello(context: TurnContext, _state: TurnState):
-    await context.send_activity("Hello! How can I assist you today?")
+    await context.send_activity("Hello!")
 
 
 @AGENT_APP.activity("message")
