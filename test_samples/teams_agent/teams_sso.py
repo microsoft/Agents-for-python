@@ -19,7 +19,7 @@ class TeamsSso(TeamsActivityHandler):
         Initializes a new instance of the TeamsSso class.
         :param user_state: The user state.
         :param connection_name: Connection name for OAuth.
-        :param app_id: Application ID.
+        :param app_id: AgentApplication ID.
         """
         self.user_state = user_state
         self.oauth_flow = OAuthFlow(user_state, connection_name)
@@ -74,7 +74,7 @@ class TeamsSso(TeamsActivityHandler):
 
     async def on_turn(self, turn_context: TurnContext):
         await super().on_turn(turn_context)
-        await self.user_state.save_changes(turn_context)
+        await self.user_state.save(turn_context)
 
     async def send_logged_user_info(self, turn_context: TurnContext, token: str):
         """

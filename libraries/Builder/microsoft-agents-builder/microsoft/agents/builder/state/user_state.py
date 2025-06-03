@@ -24,7 +24,7 @@ class UserState(AgentState):
         """
         self.namespace = namespace
 
-        super(UserState, self).__init__(storage, "Internal.UserState")
+        super().__init__(storage, namespace or "Internal.UserState")
 
     def get_storage_key(self, turn_context: TurnContext) -> str:
         """
@@ -42,8 +42,6 @@ class UserState(AgentState):
         storage_key = None
         if channel_id and user_id:
             storage_key = f"{channel_id}/users/{user_id}"
-        if self.namespace:
-            storage_key += f"/{storage_key}"
 
         return storage_key
 

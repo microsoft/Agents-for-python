@@ -21,8 +21,7 @@ class CachedAgentState(StoreItem):
     def __init__(self, state: Dict[str, StoreItem | dict] = None):
         if state:
             self.state = state
-            internal_hash = state.pop("CachedAgentState._hash", None)
-            self.hash = internal_hash or self.compute_hash()
+            self.hash = self.compute_hash()
         else:
             self.state = {}
             self.hash = hash(str({}))
@@ -46,7 +45,6 @@ class CachedAgentState(StoreItem):
             key: value.store_item_to_json() if isinstance(value, StoreItem) else value
             for key, value in self.state.items()
         }
-        serialized["CachedAgentState._hash"] = self.hash
         return serialized
 
     @staticmethod
@@ -95,7 +93,6 @@ class AgentState:
         :type turn_context: :class:`TurnContext`
         :return: The cached bot state instance.
         """
-        _assert_value(turn_context, self.get_cached_state.__name__)
         return turn_context.turn_state.get(self._context_service_key)
 
     def create_property(self, name: str) -> StatePropertyAccessor:
@@ -107,12 +104,13 @@ class AgentState:
         :return: If successful, the state property accessor created
         :rtype: :class:`StatePropertyAccessor`
         """
-        if not name:
-            raise TypeError("BotState.create_property(): name cannot be None or empty.")
+        if not name or not name.strip():
+            raise ValueError(
+                "AgentState.create_property(): name cannot be None or empty."
+            )
         return BotStatePropertyAccessor(self, name)
 
     def get(self, turn_context: TurnContext) -> Dict[str, StoreItem]:
-        _assert_value(turn_context, self.get.__name__)
         cached = self.get_cached_state(turn_context)
 
         return getattr(cached, "state", None)
@@ -126,8 +124,6 @@ class AgentState:
         :param force: Optional, true to bypass the cache
         :type force: bool
         """
-        _assert_value(turn_context, self.load.__name__)
-
         cached_state = self.get_cached_state(turn_context)
         storage_key = self.get_storage_key(turn_context)
 
@@ -136,9 +132,7 @@ class AgentState:
             val = items.get(storage_key, CachedAgentState())
             turn_context.turn_state[self._context_service_key] = val
 
-    async def save_changes(
-        self, turn_context: TurnContext, force: bool = False
-    ) -> None:
+    async def save(self, turn_context: TurnContext, force: bool = False) -> None:
         """
         Saves the state cached in the current context for this turn.
         If the state has changed, it saves the state cached in the current context for this turn.
@@ -148,8 +142,6 @@ class AgentState:
         :param force: Optional, true to save state to storage whether or not there are changes
         :type force: bool
         """
-        _assert_value(turn_context, self.save_changes.__name__)
-
         cached_state = self.get_cached_state(turn_context)
 
         if force or (cached_state is not None and cached_state.is_changed):
@@ -158,7 +150,7 @@ class AgentState:
             await self._storage.write(changes)
             cached_state.hash = cached_state.compute_hash()
 
-    async def clear_state(self, turn_context: TurnContext):
+    async def clear(self, turn_context: TurnContext):
         """
         Clears any state currently stored in this state scope.
 
@@ -170,8 +162,6 @@ class AgentState:
         .. remarks::
             This function must be called in order for the cleared state to be persisted to the underlying store.
         """
-        _assert_value(turn_context, self.clear_state.__name__)
-
         #  Explicitly setting the hash will mean IsChanged is always true. And that will force a Save.
         cache_value = CachedAgentState()
         cache_value.hash = ""
@@ -186,8 +176,6 @@ class AgentState:
 
         :return: None
         """
-        _assert_value(turn_context, self.delete.__name__)
-
         turn_context.turn_state.pop(self._context_service_key)
 
         storage_key = self.get_storage_key(turn_context)
@@ -216,8 +204,6 @@ class AgentState:
 
         :return: The value of the property
         """
-        _assert_value(turn_context, self.get_property_value.__name__)
-
         if not property_name:
             raise TypeError(
                 "BotState.get_property_value(): property_name cannot be None."
@@ -251,7 +237,6 @@ class AgentState:
 
         :return: None
         """
-        _assert_value(turn_context, self.delete_property_value.__name__)
         if not property_name:
             raise TypeError("BotState.delete_property(): property_name cannot be None.")
         cached_state = self.get_cached_state(turn_context)
@@ -272,8 +257,6 @@ class AgentState:
 
         :return: None
         """
-        _assert_value(turn_context, self.set_property_value.__name__)
-
         if not property_name:
             raise TypeError("BotState.delete_property(): property_name cannot be None.")
         cached_state = self.get_cached_state(turn_context)
@@ -295,6 +278,10 @@ class BotStatePropertyAccessor(StatePropertyAccessor):
         :type name: str
 
         """
+        if not bot_state:
+            raise TypeError("BotStatePropertyAccessor: bot_state cannot be None.")
+        if not name or not name.strip():
+            raise ValueError("BotStatePropertyAccessor: name cannot be None or empty.")
         self._bot_state = bot_state
         self._name = name
 
@@ -359,15 +346,3 @@ class BotStatePropertyAccessor(StatePropertyAccessor):
         """
         await self._bot_state.load(turn_context, False)
         await self._bot_state.set_property_value(turn_context, self._name, value)
-
-
-def _assert_value(value: StoreItem, func_name: str):
-    """
-    Asserts that the value is present.
-
-    :param value: The value to check
-    """
-    if value is None:
-        raise TypeError(
-            f"BotStatePropertyAccessor.{func_name}: expecting {value.__class__.__name__} but got None instead."
-        )

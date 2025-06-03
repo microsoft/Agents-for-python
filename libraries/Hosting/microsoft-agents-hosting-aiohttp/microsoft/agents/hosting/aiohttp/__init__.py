@@ -1,3 +1,4 @@
+from ._start_agent_process import start_agent_process
 from .agent_http_adapter import AgentHttpAdapter
 from .channel_service_route_table import channel_service_route_table
 from .cloud_adapter import CloudAdapter
@@ -7,6 +8,7 @@ from .jwt_authorization_middleware import (
 )
 
 __all__ = [
+    "start_agent_process",
     "AgentHttpAdapter",
     "CloudAdapter",
     "jwt_authorization_middleware",
