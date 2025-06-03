@@ -168,9 +168,6 @@ class AgentApplication(Agent, Generic[StateT]):
         async def on_event(context: TurnContext, state: TurnState):
             print("hello world!")
             return True
-
-        # Pass a function to this method
-        app.action("event")(on_event)
         ```
 
         #### Args:
@@ -199,10 +196,6 @@ class AgentApplication(Agent, Generic[StateT]):
         async def on_hi_message(context: TurnContext, state: TurnState):
             print("hello!")
             return True
-
-        # Pass a function to this method
-        app.message("hi")(on_hi_message)
-        ```
 
         #### Args:
         - `select`: a string or regex pattern
@@ -239,8 +232,6 @@ class AgentApplication(Agent, Generic[StateT]):
             print("a new channel was created!")
             return True
 
-        # Pass a function to this method
-        app.conversation_update("channelCreated")(on_channel_created)
         ```
 
         #### Args:
@@ -286,9 +277,6 @@ class AgentApplication(Agent, Generic[StateT]):
         async def on_reactions_added(context: TurnContext, state: TurnState):
             print("reactions was added!")
             return True
-
-        # Pass a function to this method
-        app.message_reaction("reactionsAdded")(on_reactions_added)
         ```
 
         #### Args:
@@ -330,9 +318,6 @@ class AgentApplication(Agent, Generic[StateT]):
         async def on_edit_message(context: TurnContext, state: TurnState):
             print("message was edited!")
             return True
-
-        # Pass a function to this method
-        app.message_update("editMessage")(on_edit_message)
         ```
 
         #### Args:
@@ -389,8 +374,6 @@ class AgentApplication(Agent, Generic[StateT]):
             context: TurnContext, state: TurnState, continuation: str
         ):
             print(query)
-        # Pass a function to this method
-        app.handoff()(on_handoff)
         ```
         """
 
@@ -432,9 +415,6 @@ class AgentApplication(Agent, Generic[StateT]):
         async def on_before_turn(context: TurnContext, state: TurnState):
             print("hello world!")
             return True
-
-        # Pass a function to this method
-        app.before_turn(on_before_turn)
         ```
         """
 
@@ -453,9 +433,6 @@ class AgentApplication(Agent, Generic[StateT]):
         async def on_after_turn(context: TurnContext, state: TurnState):
             print("hello world!")
             return True
-
-        # Pass a function to this method
-        app.after_turn(on_after_turn)
         ```
         """
 
@@ -474,9 +451,6 @@ class AgentApplication(Agent, Generic[StateT]):
         @app.error
         async def on_error(context: TurnContext, err: Exception):
             print(err.message)
-
-        # Pass a function to this method
-        app.error(on_error)
         ```
         """
 
@@ -516,15 +490,10 @@ class AgentApplication(Agent, Generic[StateT]):
 
             await self._handle_file_downloads(context, turn_state)
 
-            is_ok, matches = await self._on_activity(context, turn_state)
-            if not is_ok:
-                await turn_state.save(context, self._options.storage)
-                return
-            if matches == 0:
-                if not await self._run_ai_chain(context, turn_state):
-                    return
+            await self._on_activity(context, turn_state)
 
             if not await self._run_after_turn_middleware(context, turn_state):
+                await turn_state.save(context)
                 return
 
             await turn_state.save(context)
@@ -628,11 +597,7 @@ class AgentApplication(Agent, Generic[StateT]):
                 return False
         return True
 
-    async def _on_activity(
-        self, context: TurnContext, state: StateT
-    ) -> Tuple[bool, int]:
-        matches = 0
-
+    async def _on_activity(self, context: TurnContext, state: StateT):
         # ensure we handle invokes first
         routes = filter(lambda r: not r.is_invoke and r.selector(context), self._routes)
         invoke_routes = filter(
@@ -641,19 +606,13 @@ class AgentApplication(Agent, Generic[StateT]):
 
         for route in invoke_routes:
             if route.selector(context):
-                matches = matches + 1
-
-                if not await route.handler(context, state):
-                    return False, matches
+                await route.handler(context, state)
+                return
 
         for route in routes:
             if route.selector(context):
-                matches = matches + 1
-
-                if not await route.handler(context, state):
-                    return False, matches
-
-        return True, matches
+                await route.handler(context, state)
+                return
 
     async def _start_long_running_call(
         self, context: TurnContext, func: Callable[[TurnContext], Awaitable]

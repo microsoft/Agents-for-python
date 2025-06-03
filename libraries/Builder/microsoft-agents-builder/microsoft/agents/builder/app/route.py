@@ -11,7 +11,7 @@ from .. import TurnContext
 from .state import TurnState
 
 StateT = TypeVar("StateT", bound=TurnState)
-RouteHandler = Callable[[TurnContext, StateT], Awaitable[bool]]
+RouteHandler = Callable[[TurnContext, StateT], Awaitable[None]]
 
 
 class Route(Generic[StateT]):
