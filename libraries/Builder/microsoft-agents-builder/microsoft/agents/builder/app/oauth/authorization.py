@@ -2,6 +2,7 @@
 # Licensed under the MIT License.
 
 from __future__ import annotations
+from dataclasses import dataclass
 import os
 from typing import Dict, Optional, Callable, Awaitable, Protocol
 
@@ -14,7 +15,8 @@ from ...oauth_flow import OAuthFlow
 from ...state.user_state import UserState
 
 
-class AuthHandler(Protocol):
+@dataclass
+class AuthHandler:
     """
     Interface defining an authorization handler for OAuth flows.
     """
@@ -64,27 +66,27 @@ class Authorization:
             # Set connection name from environment if not provided
             if (
                 auth_handler.name is None
-                and os.getenv(f"{handler_key}_connectionName") is None
+                and os.getenv(f"{handler_key}_CONNECTION_NAME") is None
             ):
                 raise ValueError(
-                    f"AuthHandler name {handler_key}_connectionName not set in authorization "
+                    f"AuthHandler name {handler_key}_CONNECTION_NAME not set in authorization "
                     f"and not found in env vars."
                 )
 
             # Set properties from environment variables if not already set
             auth_handler.name = auth_handler.name or os.getenv(
-                f"{handler_key}_connectionName"
+                f"{handler_key}_CONNECTION_NAME"
             )
             auth_handler.title = auth_handler.title or os.getenv(
-                f"{handler_key}_connectionTitle"
+                f"{handler_key}_CONNECTION_TITLE"
             )
             auth_handler.text = auth_handler.text or os.getenv(
-                f"{handler_key}_connectionText"
+                f"{handler_key}_CONNECTION_TEXT"
             )
             auth_handler.auto = (
                 auth_handler.auto
                 if auth_handler.auto is not None
-                else os.getenv(f"{handler_key}_connectionAuto") == "true"
+                else os.getenv(f"{handler_key}_CONNECTION_AUTO") == "true"
             )
 
             # Create OAuth flow with configuration

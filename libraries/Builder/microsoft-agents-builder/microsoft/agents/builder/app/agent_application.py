@@ -36,6 +36,7 @@ from .app_options import ApplicationOptions
 from .route import Route, RouteHandler
 from .state import TurnState
 from ..channel_service_adapter import ChannelServiceAdapter
+from .oauth import Authorization
 from .typing import Typing
 
 StateT = TypeVar("StateT", bound=TurnState)
@@ -59,7 +60,7 @@ class AgentApplication(Agent, Generic[StateT]):
 
     _options: ApplicationOptions
     _adapter: Optional[ChannelServiceAdapter] = None
-    # _auth: Optional[AuthManager[StateT]] = None
+    _auth: Optional[Authorization] = None
     _before_turn: List[RouteHandler[StateT]] = []
     _after_turn: List[RouteHandler[StateT]] = []
     _routes: List[Route[StateT]] = []
@@ -105,17 +106,13 @@ class AgentApplication(Agent, Generic[StateT]):
         if options.adapter:
             self._adapter = options.adapter
 
-        """
-        if options.auth:
-            self._auth = AuthManager[StateT](default=options.auth.default)
+        auth_handlers = options.authorization or kwargs.get("authorization")
 
-            for name, opts in options.auth.settings.items():
-                if isinstance(opts, OAuthOptions):
-                    self._auth.set(name, OAuth[StateT](opts))
-        """
-
-        # TODO: Disabling AI chain for now
-        self._ai = None
+        if auth_handlers:
+            self._auth = Authorization(
+                storage=self._options.storage,
+                auth_handlers=auth_handlers,
+            )
 
     @property
     def adapter(self) -> ChannelServiceAdapter:
@@ -156,7 +153,7 @@ class AgentApplication(Agent, Generic[StateT]):
         return self._options
 
     def activity(
-        self, type: Union[str, Pattern[str], List[Union[str, Pattern[str]]]]
+        self, activity_type: Union[str, ActivityTypes, List[Union[str, ActivityTypes]]]
     ) -> Callable[[RouteHandler[StateT]], RouteHandler[StateT]]:
         """
         Registers a new activity event listener. This method can be used as either
@@ -175,7 +172,7 @@ class AgentApplication(Agent, Generic[StateT]):
         """
 
         def __selector(context: TurnContext):
-            return type == context.activity.type
+            return activity_type == context.activity.type
 
         def __call(func: RouteHandler[StateT]) -> RouteHandler[StateT]:
             self._routes.append(Route[StateT](__selector, func))
@@ -439,6 +436,32 @@ class AgentApplication(Agent, Generic[StateT]):
         self._after_turn.append(func)
         return func
 
+    def on_sign_in_success(
+        self, func: Callable[[TurnContext, StateT, Optional[str]], Awaitable[None]]
+    ) -> Callable[[TurnContext, StateT, Optional[str]], Awaitable[None]]:
+        """
+        Registers a new event listener that will be executed when a user successfully signs in.
+
+        ```python
+        # Use this method as a decorator
+        @app.on_sign_in_success
+        async def sign_in_success(context: TurnContext, state: TurnState):
+            print("hello world!")
+            return True
+        ```
+        """
+
+        if self._auth:
+            self._auth.on_sign_in_success(func)
+        else:
+            raise ApplicationError(
+                """
+                The `AgentApplication.on_sign_in_success` method is unavailable because
+                no Auth options were configured.
+                """
+            )
+        return func
+
     def error(
         self, func: Callable[[TurnContext, Exception], Awaitable[None]]
     ) -> Callable[[TurnContext, Exception], Awaitable[None]]:
@@ -526,6 +549,7 @@ class AgentApplication(Agent, Generic[StateT]):
         turn_state.temp.input = context.activity.text
         return turn_state
 
+    """
     async def _authenticate_user(self, context: TurnContext, state):
         if self.options.auth and self._auth:
             auth_condition = (
@@ -552,6 +576,7 @@ class AgentApplication(Agent, Generic[StateT]):
                         raise ApplicationError(f"[{res.reason}] => {res.message}")
 
         return True
+        """
 
     async def _run_before_turn_middleware(self, context: TurnContext, state):
         for before_turn in self._before_turn:
@@ -568,19 +593,6 @@ class AgentApplication(Agent, Generic[StateT]):
                 files = await file_downloader.download_files(context)
                 input_files.extend(files)
             state.temp.input_files = input_files
-
-    async def _run_ai_chain(self, context: TurnContext, state: StateT):
-        if (
-            self._ai
-            and self._options.ai
-            and context.activity.type == ActivityTypes.message
-            and (context.activity.text or self._contains_non_text_attachments(context))
-        ):
-            is_ok = await self._ai.run(context, state)
-            if not is_ok:
-                await state.save(context, self._options.storage)
-                return False
-        return True
 
     def _contains_non_text_attachments(self, context: TurnContext):
         non_text_attachments = filter(
