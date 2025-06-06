@@ -1,3 +1,4 @@
+from typing import Optional
 from .card_action import CardAction
 from .agents_model import AgentsModel
 from .token_exchange_resource import TokenExchangeResource
@@ -19,5 +20,5 @@ class OAuthCard(AgentsModel):
     text: NonEmptyString = None
     connection_name: NonEmptyString = None
     buttons: list[CardAction] = None
-    token_exchange_resource: TokenExchangeResource = None
+    token_exchange_resource: Optional[TokenExchangeResource] = None
     token_post_resource: TokenPostResource = None
