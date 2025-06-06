@@ -31,6 +31,8 @@ from microsoft.agents.builder import (
 from microsoft.agents.storage import MemoryStorage
 from microsoft.agents.core.models import ActivityTypes, TokenResponse
 
+from shared import GraphClient, GitHubClient
+
 load_dotenv()
 
 
@@ -71,8 +73,8 @@ AGENT_APP = AgentApplication[TurnState](
     storage=MemoryStorage(),
     adapter=ADAPTER,
     authorization={
-        "graph": AuthHandler(title="Graph API", text="Connect to Microsoft Graph"),
-        "github": AuthHandler(
+        "GRAPH": AuthHandler(title="Graph API", text="Connect to Microsoft Graph"),
+        "GITHUB": AuthHandler(
             title="GitHub",
             text="Connect to GitHub",
         ),
@@ -80,7 +82,7 @@ AGENT_APP = AgentApplication[TurnState](
 )
 
 
-@AGENT_APP.message(re.compile(r"^(status|auth status|check status)$", re.IGNORECASE))
+@AGENT_APP.message(re.compile(r"^(status|auth status|check status)", re.IGNORECASE))
 async def status(context: TurnContext, state: TurnState) -> bool:
     """
     Internal method to check authorization status for all configured handlers.
@@ -119,7 +121,7 @@ async def status(context: TurnContext, state: TurnState) -> bool:
         return False
 
 
-@AGENT_APP.message(re.compile(r"^(logout|signout|sign out)$", re.IGNORECASE))
+@AGENT_APP.message(re.compile(r"^(logout|signout|sign out)", re.IGNORECASE))
 async def sign_out(
     context: TurnContext, state: TurnState, handler_id: str = None
 ) -> bool:
@@ -148,7 +150,7 @@ async def sign_out(
         return False
 
 
-@AGENT_APP.message(re.compile(r"^(login|signin|sign in)$", re.IGNORECASE))
+@AGENT_APP.message(re.compile(r"^(login|signin|sign in)", re.IGNORECASE))
 async def sign_in(
     context: TurnContext, state: TurnState, handler_id: str = None
 ) -> TokenResponse:
@@ -179,9 +181,17 @@ async def sign_in(
         return None
 
 
+@AGENT_APP.message(re.compile(r"^(gh login|gh signin|user)$", re.IGNORECASE))
+async def sign_in_github(context: TurnContext, state: TurnState) -> TokenResponse:
+    """
+    Internal method to begin or continue sign-in flow for GitHub.
+    """
+    return await sign_in(context, state, handler_id="GITHUB")
+
+
 @AGENT_APP.message(re.compile(r"^(me|profile)$", re.IGNORECASE))
 async def profile_request(
-    context: TurnContext, state: TurnState, handler_id: str = "graph"
+    context: TurnContext, state: TurnState, handler_id: str = None
 ) -> dict:
     """
     Internal method to get user profile information using the specified handler.
@@ -205,11 +215,7 @@ async def profile_request(
         # TODO: Implement actual profile request using the token
         # This would require making HTTP requests to the Graph API or other services
         # For now, return a placeholder
-        profile_info = {
-            "displayName": "User Name",
-            "mail": "user@example.com",
-            "id": "user-id-12345",
-        }
+        profile_info = await GraphClient.get_me(token_response.token)
 
         profile_text = f"Profile Information:\nName: {profile_info['displayName']}\nEmail: {profile_info['mail']}\nID: {profile_info['id']}"
         await context.send_activity(MessageFactory.text(profile_text))
@@ -218,6 +224,46 @@ async def profile_request(
     except Exception as e:
         await context.send_activity(
             MessageFactory.text(f"Error getting profile: {str(e)}")
+        )
+        return None
+
+
+@AGENT_APP.message(re.compile(r"^(github profile|gh profile)$", re.IGNORECASE))
+async def profile_github(
+    context: TurnContext, state: TurnState, handler_id: str = "GITHUB"
+) -> dict:
+    """
+    Internal method to get GitHub profile information.
+    """
+    if not AGENT_APP.auth:
+        await context.send_activity(
+            MessageFactory.text("Authorization is not configured.")
+        )
+        return None
+
+    try:
+        token_response = await AGENT_APP.auth.get_token(context, handler_id)
+        if not token_response or not token_response.token:
+            await context.send_activity(
+                MessageFactory.text(
+                    f"Not authenticated with {handler_id}. Please sign in first."
+                )
+            )
+
+        profile_info = await GitHubClient.get_current_profile(token_response.token)
+        profile_text = (
+            f"GitHub Profile Information:\n"
+            f"Name: {profile_info['displayName']}\n"
+            f"Email: {profile_info['mail']}\n"
+            f"Username: {profile_info['givenName']}\n"
+        )
+
+        await context.send_activity(MessageFactory.text(profile_text))
+        return profile_info
+
+    except Exception as e:
+        await context.send_activity(
+            MessageFactory.text(f"Error during sign-in: {str(e)}")
         )
         return None
 
@@ -287,11 +333,6 @@ async def handle_sign_in_success(
             f"Successfully signed in to {handler_id or 'service'}. You can now use authorized features."
         )
     )
-
-
-@AGENT_APP.message(re.compile(r"^(prs|pull requests|pullrequests)$", re.IGNORECASE))
-async def on_pull_requests(context: TurnContext, state: TurnState):
-    await context.send_activity("PR command is not implemented yet.")
 
 
 @AGENT_APP.message(re.compile(r"^\d{6}$"))

@@ -204,8 +204,8 @@ class AgentApplication(Agent, Generic[StateT]):
 
             text = context.activity.text if context.activity.text else ""
             if isinstance(select, Pattern):
-                hits = re.match(select, text)
-                return hits is not None and len(hits.regs) == 1
+                hits = re.fullmatch(select, text)
+                return hits is not None
 
             return text == select
 
