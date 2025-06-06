@@ -139,8 +139,8 @@ class Activity(AgentsModel):
     topic_name: NonEmptyString = None
     history_disclosed: bool = None
     locale: NonEmptyString = None
-    text: NonEmptyString = None
-    speak: NonEmptyString = None
+    text: str = None
+    speak: str = None
     input_hint: NonEmptyString = None
     summary: NonEmptyString = None
     suggested_actions: SuggestedActions = None
