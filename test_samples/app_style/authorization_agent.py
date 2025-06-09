@@ -345,7 +345,7 @@ async def on_magic_code(context: TurnContext, state: TurnState):
                     context, state, handler_id
                 )
                 if token_response and token_response.token:
-                    await _handle_sign_in_success(context, state, handler_id)
+                    await handle_sign_in_success(context, state, handler_id)
                     return True
             except Exception:
                 # Continue trying other handlers
