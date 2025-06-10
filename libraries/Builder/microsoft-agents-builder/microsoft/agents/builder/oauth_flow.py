@@ -50,7 +50,7 @@ class OAuthFlow:
     def __init__(
         self,
         user_state: UserState,
-        connection_name: str,
+        abs_oauth_connection_name: str,
         messages_configuration: dict[str, str] = None,
         **kwargs,
     ):
@@ -58,14 +58,14 @@ class OAuthFlow:
         Creates a new instance of OAuthFlow.
         :param user_state: The user state.
         """
-        if not connection_name:
+        if not abs_oauth_connection_name:
             raise ValueError(
                 "OAuthFlow.__init__: connectionName expected but not found"
             )
 
         self.messages_configuration = messages_configuration or {}
 
-        self.connection_name = connection_name
+        self.connection_name = abs_oauth_connection_name
         self.state: FlowState | None = None
         self.flow_state_accessor: StatePropertyAccessor = user_state.create_property(
             "flowState"

@@ -98,7 +98,7 @@ class Authorization:
 
             auth_handler.flow = OAuthFlow(
                 user_state=user_state,
-                connection_name=auth_handler.name,
+                abs_oauth_connection_name=auth_handler.name,
                 messages_configuration=messages_config if messages_config else None,
             )
 
