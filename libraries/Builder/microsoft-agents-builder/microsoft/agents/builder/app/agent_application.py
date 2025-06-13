@@ -38,7 +38,7 @@ from .route import Route, RouteHandler
 from .state import TurnState
 from ..channel_service_adapter import ChannelServiceAdapter
 from .oauth import Authorization, SignInState
-from .typing import Typing
+from .typing_indicator import TypingIndicator
 
 StateT = TypeVar("StateT", bound=TurnState)
 IN_SIGN_IN_KEY = "__InSignInFlow__"
@@ -57,13 +57,13 @@ class AgentApplication(Agent, Generic[StateT]):
     and other AI capabilities.
     """
 
-    typing: Typing
+    typing: TypingIndicator
 
     _options: ApplicationOptions
     _adapter: Optional[ChannelServiceAdapter] = None
     _auth: Optional[Authorization] = None
-    _before_turn: List[RouteHandler[StateT]] = []
-    _after_turn: List[RouteHandler[StateT]] = []
+    _internal_before_turn: List[Callable[[TurnContext, StateT], Awaitable[bool]]] = []
+    _internal_after_turn: List[Callable[[TurnContext, StateT], Awaitable[bool]]] = []
     _routes: List[Route[StateT]] = []
     _error: Optional[Callable[[TurnContext, Exception], Awaitable[None]]] = None
     _turn_state_factory: Optional[Callable[[TurnContext], Awaitable[StateT]]] = None
@@ -72,7 +72,7 @@ class AgentApplication(Agent, Generic[StateT]):
         """
         Creates a new AgentApplication instance.
         """
-        self.typing = Typing()
+        self.typing = TypingIndicator()
         self._routes = []
 
         if not options:
@@ -185,7 +185,9 @@ class AgentApplication(Agent, Generic[StateT]):
             return activity_type == context.activity.type
 
         def __call(func: RouteHandler[StateT]) -> RouteHandler[StateT]:
-            self._routes.append(Route[StateT](__selector, func))
+            self._routes.append(
+                Route[StateT](__selector, func, auth_handlers=auth_handlers)
+            )
             return func
 
         return __call
@@ -223,7 +225,9 @@ class AgentApplication(Agent, Generic[StateT]):
             return text == select
 
         def __call(func: RouteHandler[StateT]) -> RouteHandler[StateT]:
-            self._routes.append(Route[StateT](__selector, func))
+            self._routes.append(
+                Route[StateT](__selector, func, auth_handlers=auth_handlers)
+            )
             return func
 
         return __call
@@ -272,7 +276,9 @@ class AgentApplication(Agent, Generic[StateT]):
             return False
 
         def __call(func: RouteHandler[StateT]) -> RouteHandler[StateT]:
-            self._routes.append(Route[StateT](__selector, func))
+            self._routes.append(
+                Route[StateT](__selector, func, auth_handlers=auth_handlers)
+            )
             return func
 
         return __call
@@ -313,7 +319,9 @@ class AgentApplication(Agent, Generic[StateT]):
             return False
 
         def __call(func: RouteHandler[StateT]) -> RouteHandler[StateT]:
-            self._routes.append(Route[StateT](__selector, func))
+            self._routes.append(
+                Route[StateT](__selector, func, auth_handlers=auth_handlers)
+            )
             return func
 
         return __call
@@ -367,7 +375,9 @@ class AgentApplication(Agent, Generic[StateT]):
             return False
 
         def __call(func: RouteHandler[StateT]) -> RouteHandler[StateT]:
-            self._routes.append(Route[StateT](__selector, func))
+            self._routes.append(
+                Route[StateT](__selector, func, auth_handlers=auth_handlers)
+            )
             return func
 
         return __call
@@ -397,7 +407,7 @@ class AgentApplication(Agent, Generic[StateT]):
         def __call(
             func: Callable[[TurnContext, StateT, str], Awaitable[None]],
         ) -> Callable[[TurnContext, StateT, str], Awaitable[None]]:
-            async def __handler__(context: TurnContext, state: StateT):
+            async def __handler(context: TurnContext, state: StateT):
                 if not context.activity.value:
                     return False
                 await func(context, state, context.activity.value["continuation"])
@@ -409,46 +419,13 @@ class AgentApplication(Agent, Generic[StateT]):
                 )
                 return True
 
-            self._routes.append(Route[StateT](__selector, __handler__, True))
+            self._routes.append(
+                Route[StateT](__selector, __handler, True, auth_handlers)
+            )
+            self._routes = sorted(self._routes, key=lambda route: not route.is_invoke)
             return func
 
         return __call
-
-    def before_turn(self, func: RouteHandler[StateT]) -> RouteHandler[StateT]:
-        """
-        Registers a new event listener that will be executed before turns.
-        This method can be used as either a decorator or a method and
-        is called in the order they are registered.
-
-        ```python
-        # Use this method as a decorator
-        @app.before_turn
-        async def on_before_turn(context: TurnContext, state: TurnState):
-            print("hello world!")
-            return True
-        ```
-        """
-
-        self._before_turn.append(func)
-        return func
-
-    def after_turn(self, func: RouteHandler[StateT]) -> RouteHandler[StateT]:
-        """
-        Registers a new event listener that will be executed after turns.
-        This method can be used as either a decorator or a method and
-        is called in the order they are registered.
-
-        ```python
-        # Use this method as a decorator
-        @app.after_turn
-        async def on_after_turn(context: TurnContext, state: TurnState):
-            print("hello world!")
-            return True
-        ```
-        """
-
-        self._after_turn.append(func)
-        return func
 
     def on_sign_in_success(
         self, func: Callable[[TurnContext, StateT, Optional[str]], Awaitable[None]]
@@ -521,8 +498,27 @@ class AgentApplication(Agent, Generic[StateT]):
                 SignInState, turn_state.get_value(Authorization.SIGN_IN_STATE_KEY)
             )
 
-            if self._authorization:
-                flow_state = await self._auth.get_flow_state(sign_in_state.handler_id)
+            if self._auth and sign_in_state:
+                flow_state = self._auth.get_flow_state(sign_in_state.handler_id)
+                if (
+                    flow_state.flow_started
+                    and flow_state.abs_oauth_connection_name
+                    == self._auth._auth_handlers[sign_in_state.handler_id].name
+                ):
+                    token_response = await self._auth.begin_or_continue_flow(
+                        context, turn_state, sign_in_state.handler_id
+                    )
+                    if (
+                        sign_in_state.completed
+                        and token_response
+                        and token_response.token
+                    ):
+                        saved_activity = (
+                            sign_in_state.continuation_activity.model_copy()
+                        )
+                        await self.on_turn(TurnContext(self._adapter, saved_activity))
+                        turn_state.delete_value(Authorization.SIGN_IN_STATE_KEY)
+                    return
 
             if not await self._run_before_turn_middleware(context, turn_state):
                 return
@@ -533,9 +529,8 @@ class AgentApplication(Agent, Generic[StateT]):
 
             if not await self._run_after_turn_middleware(context, turn_state):
                 await turn_state.save(context)
-                return
 
-            await turn_state.save(context)
+            return
         except ApplicationError as err:
             await self._on_error(context, err)
         finally:
@@ -594,15 +589,15 @@ class AgentApplication(Agent, Generic[StateT]):
         return True
         """
 
-    async def _run_before_turn_middleware(self, context: TurnContext, state):
-        for before_turn in self._before_turn:
+    async def _run_before_turn_middleware(self, context: TurnContext, state: StateT):
+        for before_turn in self._internal_before_turn:
             is_ok = await before_turn(context, state)
             if not is_ok:
                 await state.save(context, self._options.storage)
                 return False
         return True
 
-    async def _handle_file_downloads(self, context: TurnContext, state):
+    async def _handle_file_downloads(self, context: TurnContext, state: StateT):
         if self._options.file_downloaders and len(self._options.file_downloaders) > 0:
             input_files = state.temp.input_files if state.temp.input_files else []
             for file_downloader in self._options.file_downloaders:
@@ -618,7 +613,7 @@ class AgentApplication(Agent, Generic[StateT]):
         return len(list(non_text_attachments)) > 0
 
     async def _run_after_turn_middleware(self, context: TurnContext, state: StateT):
-        for after_turn in self._after_turn:
+        for after_turn in self._internal_after_turn:
             is_ok = await after_turn(context, state)
             if not is_ok:
                 await state.save(context, self._options.storage)
@@ -626,20 +621,21 @@ class AgentApplication(Agent, Generic[StateT]):
         return True
 
     async def _on_activity(self, context: TurnContext, state: StateT):
-        # ensure we handle invokes first
-        routes = filter(lambda r: not r.is_invoke and r.selector(context), self._routes)
-        invoke_routes = filter(
-            lambda r: r.is_invoke and r.selector(context), self._routes
-        )
-
-        for route in invoke_routes:
+        for route in self._routes:
             if route.selector(context):
-                await route.handler(context, state)
-                return
+                if not route.auth_handlers:
+                    await route.handler(context, state)
+                else:
+                    sign_in_complete = False
+                    for auth_handler_id in route.auth_handlers:
+                        token_response = await self._auth.begin_or_continue_flow(
+                            context, state, auth_handler_id
+                        )
+                        if token_response and token_response.token:
+                            sign_in_complete = True
+                        if sign_in_complete:
+                            await route.handler(context, state)
 
-        for route in routes:
-            if route.selector(context):
-                await route.handler(context, state)
                 return
 
     async def _start_long_running_call(
