@@ -16,7 +16,7 @@ class JwtTokenValidator:
             token,
             key=key,
             algorithms=["RS256"],
-            leeway=5.0,
+            leeway=300.0,
             options={"verify_aud": False},
         )
         if decoded_token["aud"] != self.configuration.CLIENT_ID:

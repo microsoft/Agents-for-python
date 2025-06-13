@@ -1,0 +1,338 @@
+# Copyright (c) Microsoft Corporation. All rights reserved.
+# Licensed under the MIT License.
+
+from __future__ import annotations
+from dataclasses import dataclass
+import os
+import jwt
+from typing import Dict, Optional, Callable, Awaitable
+
+from microsoft.agents.storage import Storage
+from microsoft.agents.core.models import TokenResponse, Activity
+from microsoft.agents.storage import StoreItem
+from pydantic import BaseModel
+
+from ...turn_context import TurnContext
+from ...app.state.turn_state import TurnState
+from ...oauth_flow import OAuthFlow, FlowState
+from ...state.user_state import UserState
+
+
+class SignInState(StoreItem, BaseModel):
+    """
+    Interface defining the sign-in state for OAuth flows.
+    """
+
+    continuation_activity: Optional[Activity] = None
+    handler_id: Optional[str] = None
+    completed: Optional[bool] = False
+
+    def store_item_to_json(self) -> dict:
+        return self.model_dump()
+
+    @staticmethod
+    def from_json_to_store_item(json_data: dict) -> "StoreItem":
+        return FlowState.model_validate(json_data)
+
+
+@dataclass
+class AuthHandler:
+    """
+    Interface defining an authorization handler for OAuth flows.
+    """
+
+    name: Optional[str] = None
+    auto: Optional[bool] = None
+    flow: Optional[OAuthFlow] = None
+    title: Optional[str] = None
+    text: Optional[str] = None
+
+
+# Type alias for authorization handlers dictionary
+AuthorizationHandlers = Dict[str, AuthHandler]
+
+
+class Authorization:
+    """
+    Class responsible for managing authorization and OAuth flows.
+    """
+
+    SIGN_IN_STATE_KEY = "user.__SIGNIN_STATE_"
+
+    def __init__(self, storage: Storage, auth_handlers: AuthorizationHandlers):
+        """
+        Creates a new instance of Authorization.
+
+        Args:
+            storage: The storage system to use for state management.
+            auth_handlers: Configuration for OAuth providers.
+
+        Raises:
+            ValueError: If storage is None or no auth handlers are provided.
+        """
+        if storage is None:
+            raise ValueError("Storage is required for Authorization")
+
+        user_state = UserState(storage)
+
+        if not auth_handlers or len(auth_handlers) == 0:
+            raise ValueError("The authorization does not have any auth handlers")
+
+        self._auth_handlers = auth_handlers
+        self._sign_in_handler: Optional[
+            Callable[[TurnContext, TurnState, Optional[str]], Awaitable[None]]
+        ] = None
+
+        # Configure each auth handler
+        for handler_key, auth_handler in self._auth_handlers.items():
+            # Set connection name from environment if not provided
+            if (
+                auth_handler.name is None
+                and os.getenv(f"{handler_key}_CONNECTION_NAME") is None
+            ):
+                raise ValueError(
+                    f"AuthHandler name {handler_key}_CONNECTION_NAME not set in authorization "
+                    f"and not found in env vars."
+                )
+
+            # Set properties from environment variables if not already set
+            auth_handler.name = auth_handler.name or os.getenv(
+                f"{handler_key}_CONNECTION_NAME"
+            )
+            auth_handler.title = auth_handler.title or os.getenv(
+                f"{handler_key}_CONNECTION_TITLE"
+            )
+            auth_handler.text = auth_handler.text or os.getenv(
+                f"{handler_key}_CONNECTION_TEXT"
+            )
+            auth_handler.auto = (
+                auth_handler.auto
+                if auth_handler.auto is not None
+                else os.getenv(f"{handler_key}_CONNECTION_AUTO") == "true"
+            )
+
+            # Create OAuth flow with configuration
+            messages_config = {}
+            if auth_handler.title:
+                messages_config["card_title"] = auth_handler.title
+            if auth_handler.text:
+                messages_config["button_text"] = auth_handler.text
+
+            auth_handler.flow = OAuthFlow(
+                user_state=user_state,
+                abs_oauth_connection_name=auth_handler.name,
+                messages_configuration=messages_config if messages_config else None,
+            )
+
+    async def get_token(
+        self, context: TurnContext, auth_handler_id: Optional[str] = None
+    ) -> TokenResponse:
+        """
+        Gets the token for a specific auth handler.
+
+        Args:
+            context: The context object for the current turn.
+            auth_handler_id: Optional ID of the auth handler to use, defaults to first handler.
+
+        Returns:
+            The token response from the OAuth provider.
+        """
+        auth_handler = self.resolver_handler(auth_handler_id)
+        if auth_handler.flow is None:
+            raise ValueError("OAuth flow is not configured for the auth handler")
+
+        return await auth_handler.flow.get_user_token(context)
+
+    async def exchange_token(
+        self,
+        context: TurnContext,
+        scopes: list[str],
+        auth_handler_id: Optional[str] = None,
+    ) -> TokenResponse:
+        """
+        Exchanges a token for another token with different scopes.
+
+        Args:
+            context: The context object for the current turn.
+            scopes: The scopes to request for the new token.
+            auth_handler_id: Optional ID of the auth handler to use, defaults to first handler.
+
+        Returns:
+            The token response from the OAuth provider.
+        """
+        auth_handler = self.resolver_handler(auth_handler_id)
+        if auth_handler.flow is None:
+            raise ValueError("OAuth flow is not configured for the auth handler")
+
+        token_response = await auth_handler.flow.get_user_token(context)
+
+        if self._is_exchangeable(token_response.token if token_response else None):
+            return await self._handle_obo(context, token_response.token, scopes)
+
+        return token_response
+
+    def _is_exchangeable(self, token: Optional[str]) -> bool:
+        """
+        Checks if a token is exchangeable (has api:// audience).
+
+        Args:
+            token: The token to check.
+
+        Returns:
+            True if the token is exchangeable, False otherwise.
+        """
+        if not token:
+            return False
+
+        try:
+            # Decode without verification to check the audience
+            payload = jwt.decode(token, options={"verify_signature": False})
+            aud = payload.get("aud")
+            return isinstance(aud, str) and aud.startswith("api://")
+        except Exception:
+            return False
+
+    async def _handle_obo(
+        self, context: TurnContext, token: str, scopes: list[str]
+    ) -> TokenResponse:
+        """
+        Handles On-Behalf-Of token exchange.
+
+        Args:
+            context: The context object for the current turn.
+            token: The original token.
+            scopes: The scopes to request.
+
+        Returns:
+            The new token response.
+        """
+        auth_handler = self.resolver_handler()
+        if auth_handler.flow is None:
+            raise ValueError("OAuth flow is not configured for the auth handler")
+
+        # Use the flow's OBO method to exchange the token
+        return await auth_handler.flow.exchange_token_on_behalf_of(
+            context, scopes, token
+        )
+
+    def get_flow_state(self, auth_handler_id: Optional[str] = None) -> FlowState:
+        """
+        Gets the current state of the OAuth flow.
+
+        Args:
+            auth_handler_id: Optional ID of the auth handler to check, defaults to first handler.
+
+        Returns:
+            The flow state object.
+        """
+        flow = self.resolver_handler(auth_handler_id).flow
+        if flow is None:
+            # Return a default FlowState if no flow is configured
+            return FlowState()
+
+        # Return flow state if available
+        return flow.state if flow.state else FlowState()
+
+    async def begin_or_continue_flow(
+        self,
+        context: TurnContext,
+        state: TurnState,
+        auth_handler_id: Optional[str] = None,
+    ) -> TokenResponse:
+        """
+        Begins or continues an OAuth flow.
+
+        Args:
+            context: The context object for the current turn.
+            state: The state object for the current turn.
+            auth_handler_id: Optional ID of the auth handler to use, defaults to first handler.
+
+        Returns:
+            The token response from the OAuth provider.
+        """
+        # Get or initialize sign-in state
+        sign_in_state = state.get_value(self.SIGN_IN_STATE_KEY)
+        if sign_in_state is None:
+            sign_in_state = SignInState(
+                continuation_activity=None, handler_id=None, completed=False
+            )
+
+        flow = self.resolver_handler(auth_handler_id).flow
+        if flow is None:
+            raise ValueError("OAuth flow is not configured for the auth handler")
+
+        # Get the current flow state
+        flow_state = await flow._get_user_state(context)
+
+        if not flow_state.flow_started:
+            token_response = await flow.begin_flow(context)
+            sign_in_state.continuation_activity = context.activity
+            sign_in_state.handler_id = auth_handler_id
+            state.set_value(self.SIGN_IN_STATE_KEY, sign_in_state)
+        else:
+            token_response = await flow.continue_flow(context)
+            # Check if sign-in was successful and call handler if configured
+            if token_response and token_response.token:
+                if self._sign_in_handler:
+                    await self._sign_in_handler(context, state, auth_handler_id)
+                sign_in_state.completed = True
+                state.set_value(self.SIGN_IN_STATE_KEY, sign_in_state)
+
+        return token_response
+
+    def resolver_handler(self, auth_handler_id: Optional[str] = None) -> AuthHandler:
+        """
+        Resolves the auth handler to use based on the provided ID.
+
+        Args:
+            auth_handler_id: Optional ID of the auth handler to resolve, defaults to first handler.
+
+        Returns:
+            The resolved auth handler.
+        """
+        if auth_handler_id:
+            if auth_handler_id not in self._auth_handlers:
+                raise ValueError(f"Auth handler '{auth_handler_id}' not found")
+            return self._auth_handlers[auth_handler_id]
+
+        # Return the first handler if no ID specified
+        first_key = next(iter(self._auth_handlers))
+        return self._auth_handlers[first_key]
+
+    async def sign_out(
+        self,
+        context: TurnContext,
+        state: TurnState,
+        auth_handler_id: Optional[str] = None,
+    ) -> None:
+        """
+        Signs out the current user.
+        This method clears the user's token and resets the OAuth state.
+
+        Args:
+            context: The context object for the current turn.
+            state: The state object for the current turn.
+            auth_handler_id: Optional ID of the auth handler to use for sign out.
+        """
+        if auth_handler_id is None:
+            # Sign out from all handlers
+            for handler_key, auth_handler in self._auth_handlers.items():
+                if auth_handler.flow:
+                    await auth_handler.flow.sign_out(context)
+        else:
+            # Sign out from specific handler
+            auth_handler = self.resolver_handler(auth_handler_id)
+            if auth_handler.flow:
+                await auth_handler.flow.sign_out(context)
+
+    def on_sign_in_success(
+        self,
+        handler: Callable[[TurnContext, TurnState, Optional[str]], Awaitable[None]],
+    ) -> None:
+        """
+        Sets a handler to be called when sign-in is successfully completed.
+
+        Args:
+            handler: The handler function to call on successful sign-in.
+        """
+        self._sign_in_handler = handler

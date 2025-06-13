@@ -16,3 +16,15 @@ class AccessTokenProviderBase(Protocol):
         :return: The access token as a string.
         """
         pass
+
+    async def aquire_token_on_behalf_of(
+        self, scopes: list[str], user_assertion: str
+    ) -> str:
+        """
+        Acquire a token on behalf of a user.
+
+        :param scopes: The scopes for which to get the token.
+        :param user_assertion: The user assertion token.
+        :return: The access token as a string.
+        """
+        raise NotImplementedError()

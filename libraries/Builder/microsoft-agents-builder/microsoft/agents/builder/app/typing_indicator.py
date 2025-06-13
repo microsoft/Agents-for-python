@@ -12,7 +12,7 @@ from .. import TurnContext
 from microsoft.agents.core.models import Activity, ActivityTypes
 
 
-class Typing:
+class TypingIndicator:
     """
     Encapsulates the logic for sending "typing" activity to the user.
     """
