@@ -4,6 +4,7 @@ Licensed under the MIT License.
 """
 
 from __future__ import annotations
+from functools import partial
 
 import re
 from typing import (
@@ -36,7 +37,7 @@ from .app_options import ApplicationOptions
 from .route import Route, RouteHandler
 from .state import TurnState
 from ..channel_service_adapter import ChannelServiceAdapter
-from .oauth import Authorization
+from .oauth import Authorization, SignInState
 from .typing import Typing
 
 StateT = TypeVar("StateT", bound=TurnState)
@@ -108,6 +109,12 @@ class AgentApplication(Agent, Generic[StateT]):
 
         auth_handlers = options.authorization or kwargs.get("authorization")
 
+        self._turn_state_factory = (
+            options.turn_state_factory
+            or kwargs.get("turn_state_factory", None)
+            or partial(TurnState.with_storage, self._options.storage)
+        )
+
         if auth_handlers:
             self._auth = Authorization(
                 storage=self._options.storage,
@@ -153,7 +160,10 @@ class AgentApplication(Agent, Generic[StateT]):
         return self._options
 
     def activity(
-        self, activity_type: Union[str, ActivityTypes, List[Union[str, ActivityTypes]]]
+        self,
+        activity_type: Union[str, ActivityTypes, List[Union[str, ActivityTypes]]],
+        *,
+        auth_handlers: Optional[List[str]] = None,
     ) -> Callable[[RouteHandler[StateT]], RouteHandler[StateT]]:
         """
         Registers a new activity event listener. This method can be used as either
@@ -181,7 +191,10 @@ class AgentApplication(Agent, Generic[StateT]):
         return __call
 
     def message(
-        self, select: Union[str, Pattern[str], List[Union[str, Pattern[str]]]]
+        self,
+        select: Union[str, Pattern[str], List[Union[str, Pattern[str]]]],
+        *,
+        auth_handlers: Optional[List[str]] = None,
     ) -> Callable[[RouteHandler[StateT]], RouteHandler[StateT]]:
         """
         Registers a new message activity event listener. This method can be used as either
@@ -216,7 +229,10 @@ class AgentApplication(Agent, Generic[StateT]):
         return __call
 
     def conversation_update(
-        self, type: ConversationUpdateTypes
+        self,
+        type: ConversationUpdateTypes,
+        *,
+        auth_handlers: Optional[List[str]] = None,
     ) -> Callable[[RouteHandler[StateT]], RouteHandler[StateT]]:
         """
         Registers a new message activity event listener. This method can be used as either
@@ -262,7 +278,7 @@ class AgentApplication(Agent, Generic[StateT]):
         return __call
 
     def message_reaction(
-        self, type: MessageReactionTypes
+        self, type: MessageReactionTypes, *, auth_handlers: Optional[List[str]] = None
     ) -> Callable[[RouteHandler[StateT]], RouteHandler[StateT]]:
         """
         Registers a new message activity event listener. This method can be used as either
@@ -303,7 +319,7 @@ class AgentApplication(Agent, Generic[StateT]):
         return __call
 
     def message_update(
-        self, type: MessageUpdateTypes
+        self, type: MessageUpdateTypes, *, auth_handlers: Optional[List[str]] = None
     ) -> Callable[[RouteHandler[StateT]], RouteHandler[StateT]]:
         """
         Registers a new message activity event listener. This method can be used as either
@@ -356,9 +372,7 @@ class AgentApplication(Agent, Generic[StateT]):
 
         return __call
 
-    def handoff(
-        self,
-    ) -> Callable[
+    def handoff(self, *, auth_handlers: Optional[List[str]] = None) -> Callable[
         [Callable[[TurnContext, StateT, str], Awaitable[None]]],
         Callable[[TurnContext, StateT, str], Awaitable[None]],
     ]:
@@ -503,10 +517,12 @@ class AgentApplication(Agent, Generic[StateT]):
 
             turn_state = await self._initialize_state(context)
 
-            """
-            if not await self._authenticate_user(context, state):
-                return
-            """
+            sign_in_state = cast(
+                SignInState, turn_state.get_value(Authorization.SIGN_IN_STATE_KEY)
+            )
+
+            if self._authorization:
+                flow_state = await self._auth.get_flow_state(sign_in_state.handler_id)
 
             if not await self._run_before_turn_middleware(context, turn_state):
                 return

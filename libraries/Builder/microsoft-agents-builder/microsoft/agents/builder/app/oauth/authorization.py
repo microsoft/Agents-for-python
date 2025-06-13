@@ -4,15 +4,35 @@
 from __future__ import annotations
 from dataclasses import dataclass
 import os
-from typing import Dict, Optional, Callable, Awaitable, Protocol
+import jwt
+from typing import Dict, Optional, Callable, Awaitable
 
 from microsoft.agents.storage import Storage
-from microsoft.agents.core.models import TokenResponse
+from microsoft.agents.core.models import TokenResponse, Activity
+from microsoft.agents.storage import StoreItem
+from pydantic import BaseModel
 
 from ...turn_context import TurnContext
 from ...app.state.turn_state import TurnState
-from ...oauth_flow import OAuthFlow
+from ...oauth_flow import OAuthFlow, FlowState
 from ...state.user_state import UserState
+
+
+class SignInState(StoreItem, BaseModel):
+    """
+    Interface defining the sign-in state for OAuth flows.
+    """
+
+    continuation_activity: Optional[Activity] = None
+    handler_id: Optional[str] = None
+    completed: Optional[bool] = False
+
+    def store_item_to_json(self) -> dict:
+        return self.model_dump()
+
+    @staticmethod
+    def from_json_to_store_item(json_data: dict) -> "StoreItem":
+        return FlowState.model_validate(json_data)
 
 
 @dataclass
@@ -36,6 +56,8 @@ class Authorization:
     """
     Class responsible for managing authorization and OAuth flows.
     """
+
+    SIGN_IN_STATE_KEY = "user.__SIGNIN_STATE_"
 
     def __init__(self, storage: Storage, auth_handlers: AuthorizationHandlers):
         """
@@ -121,7 +143,79 @@ class Authorization:
 
         return await auth_handler.flow.get_user_token(context)
 
-    def get_flow_state(self, auth_handler_id: Optional[str] = None) -> bool:
+    async def exchange_token(
+        self,
+        context: TurnContext,
+        scopes: list[str],
+        auth_handler_id: Optional[str] = None,
+    ) -> TokenResponse:
+        """
+        Exchanges a token for another token with different scopes.
+
+        Args:
+            context: The context object for the current turn.
+            scopes: The scopes to request for the new token.
+            auth_handler_id: Optional ID of the auth handler to use, defaults to first handler.
+
+        Returns:
+            The token response from the OAuth provider.
+        """
+        auth_handler = self.resolver_handler(auth_handler_id)
+        if auth_handler.flow is None:
+            raise ValueError("OAuth flow is not configured for the auth handler")
+
+        token_response = await auth_handler.flow.get_user_token(context)
+
+        if self._is_exchangeable(token_response.token if token_response else None):
+            return await self._handle_obo(context, token_response.token, scopes)
+
+        return token_response
+
+    def _is_exchangeable(self, token: Optional[str]) -> bool:
+        """
+        Checks if a token is exchangeable (has api:// audience).
+
+        Args:
+            token: The token to check.
+
+        Returns:
+            True if the token is exchangeable, False otherwise.
+        """
+        if not token:
+            return False
+
+        try:
+            # Decode without verification to check the audience
+            payload = jwt.decode(token, options={"verify_signature": False})
+            aud = payload.get("aud")
+            return isinstance(aud, str) and aud.startswith("api://")
+        except Exception:
+            return False
+
+    async def _handle_obo(
+        self, context: TurnContext, token: str, scopes: list[str]
+    ) -> TokenResponse:
+        """
+        Handles On-Behalf-Of token exchange.
+
+        Args:
+            context: The context object for the current turn.
+            token: The original token.
+            scopes: The scopes to request.
+
+        Returns:
+            The new token response.
+        """
+        auth_handler = self.resolver_handler()
+        if auth_handler.flow is None:
+            raise ValueError("OAuth flow is not configured for the auth handler")
+
+        # Use the flow's OBO method to exchange the token
+        return await auth_handler.flow.exchange_token_on_behalf_of(
+            context, scopes, token
+        )
+
+    def get_flow_state(self, auth_handler_id: Optional[str] = None) -> FlowState:
         """
         Gets the current state of the OAuth flow.
 
@@ -129,14 +223,15 @@ class Authorization:
             auth_handler_id: Optional ID of the auth handler to check, defaults to first handler.
 
         Returns:
-            Whether the flow has started.
+            The flow state object.
         """
         flow = self.resolver_handler(auth_handler_id).flow
         if flow is None:
-            return False
+            # Return a default FlowState if no flow is configured
+            return FlowState()
 
         # Return flow state if available
-        return flow.state.flow_started if flow.state else False
+        return flow.state if flow.state else FlowState()
 
     async def begin_or_continue_flow(
         self,
@@ -155,6 +250,13 @@ class Authorization:
         Returns:
             The token response from the OAuth provider.
         """
+        # Get or initialize sign-in state
+        sign_in_state = state.get_value(self.SIGN_IN_STATE_KEY)
+        if sign_in_state is None:
+            sign_in_state = SignInState(
+                continuation_activity=None, handler_id=None, completed=False
+            )
+
         flow = self.resolver_handler(auth_handler_id).flow
         if flow is None:
             raise ValueError("OAuth flow is not configured for the auth handler")
@@ -164,11 +266,17 @@ class Authorization:
 
         if not flow_state.flow_started:
             token_response = await flow.begin_flow(context)
+            sign_in_state.continuation_activity = context.activity
+            sign_in_state.handler_id = auth_handler_id
+            state.set_value(self.SIGN_IN_STATE_KEY, sign_in_state)
         else:
             token_response = await flow.continue_flow(context)
             # Check if sign-in was successful and call handler if configured
-            if token_response and token_response.token and self._sign_in_handler:
-                await self._sign_in_handler(context, state, auth_handler_id)
+            if token_response and token_response.token:
+                if self._sign_in_handler:
+                    await self._sign_in_handler(context, state, auth_handler_id)
+                sign_in_state.completed = True
+                state.set_value(self.SIGN_IN_STATE_KEY, sign_in_state)
 
         return token_response
 

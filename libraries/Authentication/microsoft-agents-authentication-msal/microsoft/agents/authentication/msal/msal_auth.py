@@ -48,6 +48,31 @@ class MsalAuth(AccessTokenProviderBase):
         # TODO: Handling token error / acquisition failed
         return auth_result_payload["access_token"]
 
+    async def aquire_token_on_behalf_of(
+        self, scopes: list[str], user_assertion: str
+    ) -> str:
+        """
+        Acquire a token on behalf of a user.
+        :param scopes: The scopes for which to get the token.
+        :param user_assertion: The user assertion token.
+        :return: The access token as a string.
+        """
+
+        msal_auth_client = self._create_client_application()
+        if isinstance(msal_auth_client, ManagedIdentityClient):
+            raise NotImplementedError(
+                "On-behalf-of flow is not supported with Managed Identity authentication."
+            )
+        elif isinstance(msal_auth_client, ConfidentialClientApplication):
+            # TODO: Handling token error / acquisition failed
+            return msal_auth_client.acquire_token_on_behalf_of(
+                user_assertion=user_assertion, scopes=scopes
+            )["access_token"]
+
+        raise NotImplementedError(
+            f"On-behalf-of flow is not supported with the current authentication type: {msal_auth_client.__class__.__name__}"
+        )
+
     def _create_client_application(
         self,
     ) -> ManagedIdentityClient | ConfidentialClientApplication:
