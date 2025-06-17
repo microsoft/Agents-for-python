@@ -140,7 +140,8 @@ class OAuthFlow:
             self.state.flow_started = False
             self.state.flow_expires = 0
             self.state.abs_oauth_connection_name = self.abs_oauth_connection_name
-            await self.flow_state_accessor.set(context, self.state)
+            self._user_state.set_value(self._get_storage_key(context), self.state)
+            await self._save_flow_state(context)
             return user_token
 
         # No token, need to start sign-in flow
@@ -183,7 +184,8 @@ class OAuthFlow:
         self.state.flow_started = True
         self.state.flow_expires = datetime.now().timestamp() + 30000
         self.state.abs_oauth_connection_name = self.abs_oauth_connection_name
-        await self.flow_state_accessor.set(context, self.state)
+        self._user_state.set_value(self._get_storage_key(context), self.state)
+        await self._save_flow_state(context)
 
         # Return in-progress response
         return TokenResponse()
@@ -236,7 +238,10 @@ class OAuthFlow:
                     self.state.abs_oauth_connection_name = (
                         self.abs_oauth_connection_name
                     )
-                    await self.flow_state_accessor.set(context, self.state)
+                    self._user_state.set_value(
+                        self._get_storage_key(context), self.state
+                    )
+                    await self._save_flow_state(context)
                     return result
                 else:
                     await context.send_activity(
@@ -244,7 +249,10 @@ class OAuthFlow:
                     )
                     self.state.flow_started = True
                     self.state.flow_expires = datetime.now().timestamp() + 30000
-                    await self.flow_state_accessor.set(context, self.state)
+                    self._user_state.set_value(
+                        self._get_storage_key(context), self.state
+                    )
+                    await self._save_flow_state(context)
                     return TokenResponse()
             else:
                 await context.send_activity(
@@ -272,7 +280,8 @@ class OAuthFlow:
             if result and result.token:
                 self.state.flow_started = False
                 self.state.abs_oauth_connection_name = self.abs_oauth_connection_name
-                await self.flow_state_accessor.set(context, self.state)
+                self._user_state.set_value(self._get_storage_key(context), self.state)
+                await self._save_flow_state(context)
                 return result
             return TokenResponse()
 
@@ -302,7 +311,8 @@ class OAuthFlow:
 
             if user_token_resp and user_token_resp.token:
                 self.state.flow_started = False
-                await self.flow_state_accessor.set(context, self.state)
+                self._user_state.set_value(self._get_storage_key(context), self.state)
+                await self._save_flow_state(context)
                 return user_token_resp
             else:
                 self.state.flow_started = True
@@ -327,7 +337,8 @@ class OAuthFlow:
 
         if self.state:
             self.state.flow_expires = 0
-            await self.flow_state_accessor.set(context, self.state)
+            self._user_state.set_value(self._get_storage_key(context), self.state)
+            await self._save_flow_state(context)
 
     async def _get_flow_state(self, context: TurnContext) -> FlowState:
         """
@@ -341,16 +352,22 @@ class OAuthFlow:
         """
         storage_key = self._get_storage_key(context)
 
-        items = await self._user_state.get(storage_key)
-        user_profile: FlowState | None = await self.flow_state_accessor.get(
-            context, target_cls=FlowState
+        await self._user_state.load(context)
+
+        user_profile: FlowState | None = self._user_state.get_value(
+            storage_key, target_cls=FlowState
         )
         if user_profile is None:
             user_profile = FlowState()
         return user_profile
 
     async def _save_flow_state(self, context: TurnContext) -> None:
-        pass
+        """
+        Saves the flow state to the user state.
+        Args:
+            context: The turn context.
+        """
+        await self._user_state.save(context)
 
     async def _initialize_token_client(self, context: TurnContext) -> None:
         """

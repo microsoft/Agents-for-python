@@ -206,13 +206,20 @@ class AgentState:
         """
         if not property_name:
             raise TypeError("BotState.get_value(): property_name cannot be None.")
-        cached_state = self.get_cached_state(turn_context)
 
         # if there is no value, this will throw, to signal to IPropertyAccesor that a default value should be computed
         # This allows this to work with value types
-        value = cached_state.state[property_name]
+        value = (
+            self._cached_state.state.get(property_name, None)
+            if self._cached_state
+            else None
+        )
 
-        if target_cls:
+        if not value and default_value_factory:
+            # If the value is None and a factory is provided, call the factory to get a default value
+            return default_value_factory()
+
+        if target_cls and value:
             # Attempt to deserialize the value if it is not None
             try:
                 return target_cls.from_json_to_store_item(value)
@@ -222,7 +229,7 @@ class AgentState:
 
         return value
 
-    def delete_value(self, turn_context: TurnContext, property_name: str) -> None:
+    def delete_value(self, property_name: str) -> None:
         """
         Deletes a property from the state cache in the turn context.
 
@@ -235,12 +242,11 @@ class AgentState:
         """
         if not property_name:
             raise TypeError("BotState.delete_property(): property_name cannot be None.")
-        cached_state = self.get_cached_state(turn_context)
-        del cached_state.state[property_name]
 
-    def set_value(
-        self, turn_context: TurnContext, property_name: str, value: StoreItem
-    ) -> None:
+        if self._cached_state[property_name]:
+            del self._cached_state.state[property_name]
+
+    def set_value(self, property_name: str, value: StoreItem) -> None:
         """
         Sets a property to the specified value in the turn context.
 
@@ -255,8 +261,7 @@ class AgentState:
         """
         if not property_name:
             raise TypeError("BotState.delete_property(): property_name cannot be None.")
-        cached_state = self.get_cached_state(turn_context)
-        cached_state.state[property_name] = value
+        self._cached_state.state[property_name] = value
 
 
 class BotStatePropertyAccessor(StatePropertyAccessor):
@@ -296,7 +301,7 @@ class BotStatePropertyAccessor(StatePropertyAccessor):
         :type turn_context: :class:`TurnContext`
         """
         await self._bot_state.load(turn_context, False)
-        await self._bot_state.delete_value(turn_context, self._name)
+        self._bot_state.delete_value(self._name)
 
     async def get(
         self,
@@ -314,9 +319,7 @@ class BotStatePropertyAccessor(StatePropertyAccessor):
         """
         await self._bot_state.load(turn_context, False)
         try:
-            result = await self._bot_state.get_value(
-                turn_context, self._name, target_cls=target_cls
-            )
+            result = self._bot_state.get_value(self._name, target_cls=target_cls)
             return result
         except:
             # ask for default value from factory
@@ -328,7 +331,7 @@ class BotStatePropertyAccessor(StatePropertyAccessor):
                 else deepcopy(default_value_or_factory)
             )
             # save default value for any further calls
-            await self.set(turn_context, result)
+            self.set(result)
             return result
 
     async def set(self, turn_context: TurnContext, value: StoreItem) -> None:
@@ -341,4 +344,4 @@ class BotStatePropertyAccessor(StatePropertyAccessor):
         :param value: The value to assign to the property
         """
         await self._bot_state.load(turn_context, False)
-        await self._bot_state.set_value(turn_context, self._name, value)
+        self._bot_state.set_value(self._name, value)
