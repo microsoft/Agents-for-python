@@ -79,8 +79,9 @@ class OAuthFlow:
         self.user_token_client = user_token_client
         self.token_exchange_id: Optional[str] = None
 
-        # Initialize state and flow state accessor
+        # Initialize state and flow state
         self._user_state = user_state
+        self.state = None
 
     async def get_user_token(self, context: TurnContext) -> TokenResponse:
         """

@@ -325,14 +325,12 @@ async def on_magic_code(context: TurnContext, state: TurnState):
     # Handle 6-digit magic codes for OAuth verification
     if AGENT_APP.auth:
         for handler_id, handler in AGENT_APP.auth._auth_handlers.items():
-            if handler.flow and handler.flow.state.flow_started:
+            if handler.flow and handler.flow.state and handler.flow.state.flow_started:
                 try:
-                    token_response = await AGENT_APP.auth.begin_or_continue_flow(
+                    await AGENT_APP.auth.begin_or_continue_flow(
                         context, state, handler_id
                     )
-                    if token_response and token_response.token:
-                        await handle_sign_in_success(context, state, handler_id)
-                        return
+                    return
                 except Exception:
                     # Continue trying other handlers
                     continue
