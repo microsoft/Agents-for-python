@@ -1,11 +1,11 @@
-from typing import Protocol, Optional
+from typing import Optional
 
 from microsoft.agents.authorization import AgentAuthConfiguration
 
 from .auth_types import AuthTypes
 
 
-class MsalAuthConfiguration(AgentAuthConfiguration, Protocol):
+class MsalAuthConfiguration(AgentAuthConfiguration):
     """
     Configuration for MSAL authentication.
     """
@@ -17,3 +17,26 @@ class MsalAuthConfiguration(AgentAuthConfiguration, Protocol):
     CONNECTION_NAME: Optional[str]
     SCOPES: Optional[list[str]]
     AUTHORITY: Optional[str]
+
+    def __init__(
+        self,
+        auth_type: AuthTypes = None,
+        client_id: str = None,
+        tenant_id: Optional[str] = None,
+        client_secret: Optional[str] = None,
+        cert_pem_file: Optional[str] = None,
+        cert_key_file: Optional[str] = None,
+        connection_name: Optional[str] = None,
+        authority: Optional[str] = None,
+        scopes: Optional[list[str]] = None,
+        **kwargs: Optional[dict[str, str]],
+    ):
+        self.AUTH_TYPE = auth_type or kwargs.get("AUTH_TYPE", AuthTypes.client_secret)
+        self.CLIENT_ID = client_id or kwargs.get("CLIENT_ID", None)
+        self.AUTHORITY = authority or kwargs.get("AUTHORITY", None)
+        self.TENANT_ID = tenant_id or kwargs.get("TENANT_ID", None)
+        self.CLIENT_SECRET = client_secret or kwargs.get("CLIENT_SECRET", None)
+        self.CERT_PEM_FILE = cert_pem_file or kwargs.get("CERT_PEM_FILE", None)
+        self.CERT_KEY_FILE = cert_key_file or kwargs.get("CERT_KEY_FILE", None)
+        self.CONNECTION_NAME = connection_name or kwargs.get("CONNECTION_NAME", None)
+        self.SCOPES = scopes or kwargs.get("SCOPES", None)

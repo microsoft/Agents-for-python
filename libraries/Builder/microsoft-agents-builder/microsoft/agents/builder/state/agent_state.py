@@ -83,6 +83,7 @@ class AgentState:
         self.state_key = "state"
         self._storage = storage
         self._context_service_key = context_service_key
+        self._cached_state: CachedAgentState = None
 
     def get_cached_state(self, turn_context: TurnContext) -> CachedAgentState:
         """
@@ -187,7 +188,7 @@ class AgentState:
     ) -> str:
         raise NotImplementedError()
 
-    async def get_property_value(
+    def get_value(
         self,
         turn_context: TurnContext,
         property_name: str,
@@ -205,9 +206,7 @@ class AgentState:
         :return: The value of the property
         """
         if not property_name:
-            raise TypeError(
-                "BotState.get_property_value(): property_name cannot be None."
-            )
+            raise TypeError("BotState.get_value(): property_name cannot be None.")
         cached_state = self.get_cached_state(turn_context)
 
         # if there is no value, this will throw, to signal to IPropertyAccesor that a default value should be computed
@@ -224,9 +223,7 @@ class AgentState:
 
         return value
 
-    async def delete_property_value(
-        self, turn_context: TurnContext, property_name: str
-    ) -> None:
+    def delete_value(self, turn_context: TurnContext, property_name: str) -> None:
         """
         Deletes a property from the state cache in the turn context.
 
@@ -242,7 +239,7 @@ class AgentState:
         cached_state = self.get_cached_state(turn_context)
         del cached_state.state[property_name]
 
-    async def set_property_value(
+    def set_value(
         self, turn_context: TurnContext, property_name: str, value: StoreItem
     ) -> None:
         """
@@ -300,7 +297,7 @@ class BotStatePropertyAccessor(StatePropertyAccessor):
         :type turn_context: :class:`TurnContext`
         """
         await self._bot_state.load(turn_context, False)
-        await self._bot_state.delete_property_value(turn_context, self._name)
+        await self._bot_state.delete_value(turn_context, self._name)
 
     async def get(
         self,
@@ -318,7 +315,7 @@ class BotStatePropertyAccessor(StatePropertyAccessor):
         """
         await self._bot_state.load(turn_context, False)
         try:
-            result = await self._bot_state.get_property_value(
+            result = await self._bot_state.get_value(
                 turn_context, self._name, target_cls=target_cls
             )
             return result
@@ -345,4 +342,4 @@ class BotStatePropertyAccessor(StatePropertyAccessor):
         :param value: The value to assign to the property
         """
         await self._bot_state.load(turn_context, False)
-        await self._bot_state.set_property_value(turn_context, self._name, value)
+        await self._bot_state.set_value(turn_context, self._name, value)

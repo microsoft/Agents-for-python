@@ -57,7 +57,7 @@ class Authorization:
     Class responsible for managing authorization and OAuth flows.
     """
 
-    SIGN_IN_STATE_KEY = "user.__SIGNIN_STATE_"
+    SIGN_IN_STATE_KEY = f"{UserState.__name__}.__SIGNIN_STATE_"
 
     def __init__(self, storage: Storage, auth_handlers: AuthorizationHandlers):
         """

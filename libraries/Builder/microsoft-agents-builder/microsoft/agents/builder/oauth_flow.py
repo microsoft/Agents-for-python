@@ -328,8 +328,9 @@ class OAuthFlow:
             channel_id=context.activity.channel_id,
         )
 
-        self.state.flow_expires = 0
-        await self.flow_state_accessor.set(context, self.state)
+        if self.state:
+            self.state.flow_expires = 0
+            await self.flow_state_accessor.set(context, self.state)
 
     async def _get_user_state(self, context: TurnContext) -> FlowState:
         """
@@ -355,10 +356,8 @@ class OAuthFlow:
         Args:
             context: The turn context.
         """
-        if self.user_token_client is None:
-            self.user_token_client = context.turn_state.get(
-                context.adapter.USER_TOKEN_CLIENT_KEY
-            )
 
-        if self.user_token_client is None:
-            raise ValueError("UserTokenClient is not available in turn state")
+        # TODO: Change this to caching when the story is implemented, for now we're getting it from TurnContext (new with every request)
+        self.user_token_client = context.turn_state.get(
+            context.adapter.USER_TOKEN_CLIENT_KEY
+        )

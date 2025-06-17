@@ -4,17 +4,15 @@
 import re
 import sys
 import traceback
-from aiohttp.web import Application, Request, Response, run_app
-from dotenv import load_dotenv
 
+from dotenv import load_dotenv
 from os import environ
-from microsoft.agents.authentication.msal import AuthTypes, MsalAuthConfiguration
+
+from microsoft.agents.authentication.msal import MsalAuthConfiguration
 from microsoft.agents.builder.app import AgentApplication, TurnState
 from microsoft.agents.builder.app.oauth import AuthHandler
 from microsoft.agents.hosting.aiohttp import (
     CloudAdapter,
-    jwt_authorization_middleware,
-    start_agent_process,
 )
 from microsoft.agents.authorization import (
     Connections,
@@ -31,25 +29,12 @@ from microsoft.agents.builder import (
 from microsoft.agents.storage import MemoryStorage
 from microsoft.agents.core.models import ActivityTypes, TokenResponse
 
-from shared import GraphClient, GitHubClient
+from shared import GraphClient, GitHubClient, start_server
 
 load_dotenv()
 
-
-class DefaultConfig(MsalAuthConfiguration):
-    """Agent Configuration"""
-
-    def __init__(self) -> None:
-        self.AUTH_TYPE = AuthTypes.client_secret
-        self.TENANT_ID = "" or environ.get("TENANT_ID")
-        self.CLIENT_ID = "" or environ.get("CLIENT_ID")
-        self.CLIENT_SECRET = "" or environ.get("CLIENT_SECRET")
-        self.PORT = 3978
-
-
-CONFIG = DefaultConfig()
-AUTH_PROVIDER = MsalAuth(CONFIG)
-
+AUTH_CONFIG = MsalAuthConfiguration(**environ)
+AUTH_PROVIDER = MsalAuth(AUTH_CONFIG)
 
 class DefaultConnection(Connections):
     def get_default_connection(self) -> AccessTokenProviderBase:
@@ -64,7 +49,7 @@ class DefaultConnection(Connections):
         pass
 
 
-CHANNEL_CLIENT_FACTORY = RestChannelServiceClientFactory(CONFIG, DefaultConnection())
+CHANNEL_CLIENT_FACTORY = RestChannelServiceClientFactory(AUTH_CONFIG, DefaultConnection())
 
 # Create adapter.
 ADAPTER = CloudAdapter(CHANNEL_CLIENT_FACTORY)
@@ -339,20 +324,21 @@ async def handle_sign_in_success(
 async def on_magic_code(context: TurnContext, state: TurnState):
     # Handle 6-digit magic codes for OAuth verification
     if AGENT_APP.auth:
-        for handler_id in AGENT_APP.auth._auth_handlers.keys():
-            try:
-                token_response = await AGENT_APP.auth.begin_or_continue_flow(
-                    context, state, handler_id
-                )
-                if token_response and token_response.token:
-                    await handle_sign_in_success(context, state, handler_id)
-                    return True
-            except Exception:
-                # Continue trying other handlers
-                continue
+        for handler_id, handler in AGENT_APP.auth._auth_handlers.items():
+            if handler.flow and handler.flow.state.flow_started:
+                try:
+                    token_response = await AGENT_APP.auth.begin_or_continue_flow(
+                        context, state, handler_id
+                    )
+                    if token_response and token_response.token:
+                        await handle_sign_in_success(context, state, handler_id)
+                        return
+                except Exception:
+                    # Continue trying other handlers
+                    continue
 
         await context.send_activity(
-            MessageFactory.text("Invalid verification code. Please try again.")
+            MessageFactory.text("Failed to verify the code: please check that the code is correct and that you started a sign-in process.")
         )
     else:
         await on_message(context, state)
@@ -385,25 +371,7 @@ async def on_error(context: TurnContext, error: Exception):
     await context.send_activity("The bot encountered an error or bug.")
 
 
-# Listen for incoming requests on /api/messages
-async def entry_point(req: Request) -> Response:
-    agent: AgentApplication = req.app["agent_app"]
-    adapter: CloudAdapter = req.app["adapter"]
-    return await start_agent_process(
-        req,
-        agent,
-        adapter,
-    )
-
-
-APP = Application(middlewares=[jwt_authorization_middleware])
-APP.router.add_post("/api/messages", entry_point)
-APP["agent_configuration"] = CONFIG
-APP["agent_app"] = AGENT_APP
-APP["adapter"] = ADAPTER
-
-if __name__ == "__main__":
-    try:
-        run_app(APP, host="localhost", port=CONFIG.PORT)
-    except Exception as error:
-        raise error
+start_server(
+    agent_application=AGENT_APP,
+    auth_configuration=AUTH_CONFIG,
+)

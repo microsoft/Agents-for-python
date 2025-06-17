@@ -66,7 +66,7 @@ class AgentApplication(Agent, Generic[StateT]):
     _internal_after_turn: List[Callable[[TurnContext, StateT], Awaitable[bool]]] = []
     _routes: List[Route[StateT]] = []
     _error: Optional[Callable[[TurnContext, Exception], Awaitable[None]]] = None
-    _turn_state_factory: Optional[Callable[[TurnContext], Awaitable[StateT]]] = None
+    _turn_state_factory: Optional[Callable[[TurnContext], StateT]] = None
 
     def __init__(self, options: ApplicationOptions = None, **kwargs) -> None:
         """
@@ -549,7 +549,7 @@ class AgentApplication(Agent, Generic[StateT]):
 
     async def _initialize_state(self, context: TurnContext) -> StateT:
         if self._turn_state_factory:
-            turn_state = await self._turn_state_factory()
+            turn_state = self._turn_state_factory()
         else:
             turn_state = TurnState.with_storage(self._options.storage)
             await turn_state.load(context, self._options.storage)
