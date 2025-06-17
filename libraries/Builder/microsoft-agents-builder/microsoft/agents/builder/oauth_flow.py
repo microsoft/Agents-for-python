@@ -80,10 +80,7 @@ class OAuthFlow:
         self.token_exchange_id: Optional[str] = None
 
         # Initialize state and flow state accessor
-        self.state: FlowState | None = None
-        self.flow_state_accessor: StatePropertyAccessor = user_state.create_property(
-            "flowState"
-        )
+        self._user_state = user_state
 
     async def get_user_token(self, context: TurnContext) -> TokenResponse:
         """
@@ -332,7 +329,7 @@ class OAuthFlow:
             self.state.flow_expires = 0
             await self.flow_state_accessor.set(context, self.state)
 
-    async def _get_user_state(self, context: TurnContext) -> FlowState:
+    async def _get_flow_state(self, context: TurnContext) -> FlowState:
         """
         Gets the user state.
 
@@ -342,12 +339,18 @@ class OAuthFlow:
         Returns:
             The user state.
         """
+        storage_key = self._get_storage_key(context)
+
+        items = await self._user_state.get(storage_key)
         user_profile: FlowState | None = await self.flow_state_accessor.get(
             context, target_cls=FlowState
         )
         if user_profile is None:
             user_profile = FlowState()
         return user_profile
+
+    async def _save_flow_state(self, context: TurnContext) -> None:
+        pass
 
     async def _initialize_token_client(self, context: TurnContext) -> None:
         """
@@ -361,3 +364,24 @@ class OAuthFlow:
         self.user_token_client = context.turn_state.get(
             context.adapter.USER_TOKEN_CLIENT_KEY
         )
+
+    def _get_storage_key(self, context: TurnContext) -> str:
+        """
+        Gets the storage key for the flow state.
+
+        Args:
+            context: The turn context.
+
+        Returns:
+            The storage key.
+        """
+        channel_id = context.activity.channel_id
+        if not channel_id:
+            raise ValueError("Channel ID is not set in the activity.")
+        conversation_id = (
+            context.activity.conversation.id if context.activity.conversation else None
+        )
+        if not conversation_id:
+            raise ValueError("Conversation ID is not set in the activity.")
+
+        return f"oauth/{self.abs_oauth_connection_name}/{channel_id}/{conversation_id}/flowState"

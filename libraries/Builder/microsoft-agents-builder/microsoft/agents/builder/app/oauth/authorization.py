@@ -262,7 +262,7 @@ class Authorization:
             raise ValueError("OAuth flow is not configured for the auth handler")
 
         # Get the current flow state
-        flow_state = await flow._get_user_state(context)
+        flow_state = await flow._get_flow_state(context)
 
         if not flow_state.flow_started:
             token_response = await flow.begin_flow(context)

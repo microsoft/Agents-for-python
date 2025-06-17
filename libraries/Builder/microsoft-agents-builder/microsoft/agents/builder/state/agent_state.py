@@ -125,12 +125,12 @@ class AgentState:
         :param force: Optional, true to bypass the cache
         :type force: bool
         """
-        cached_state = self.get_cached_state(turn_context)
         storage_key = self.get_storage_key(turn_context)
 
-        if force or not cached_state:
+        if force or not self._cached_state:
             items = await self._storage.read([storage_key], target_cls=CachedAgentState)
             val = items.get(storage_key, CachedAgentState())
+            self._cached_state = val
             turn_context.turn_state[self._context_service_key] = val
 
     async def save(self, turn_context: TurnContext, force: bool = False) -> None:
@@ -143,13 +143,12 @@ class AgentState:
         :param force: Optional, true to save state to storage whether or not there are changes
         :type force: bool
         """
-        cached_state = self.get_cached_state(turn_context)
 
-        if force or (cached_state is not None and cached_state.is_changed):
+        if force or (self._cached_state is not None and self._cached_state.is_changed):
             storage_key = self.get_storage_key(turn_context)
-            changes: Dict[str, StoreItem] = {storage_key: cached_state}
+            changes: Dict[str, StoreItem] = {storage_key: self._cached_state}
             await self._storage.write(changes)
-            cached_state.hash = cached_state.compute_hash()
+            self._cached_state.hash = self._cached_state.compute_hash()
 
     async def clear(self, turn_context: TurnContext):
         """
@@ -190,8 +189,8 @@ class AgentState:
 
     def get_value(
         self,
-        turn_context: TurnContext,
         property_name: str,
+        default_value_factory: Callable[[], StoreItem] = None,
         *,
         target_cls: Type[StoreItem] = None,
     ) -> StoreItem:
