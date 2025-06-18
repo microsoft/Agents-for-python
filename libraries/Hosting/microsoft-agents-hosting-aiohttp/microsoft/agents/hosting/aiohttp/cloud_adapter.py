@@ -12,7 +12,8 @@ from aiohttp.web import (
     HTTPUnauthorized,
     HTTPUnsupportedMediaType,
 )
-from microsoft.agents.authorization import ClaimsIdentity
+from microsoft.agents.authorization import AgentAuthConfiguration, ClaimsIdentity, Connections
+from microsoft.agents.builder.app.oauth import Authorization
 from microsoft.agents.core.models import (
     Activity,
     DeliveryModes,
@@ -31,13 +32,17 @@ from .agent_http_adapter import AgentHttpAdapter
 class CloudAdapter(ChannelServiceAdapter, AgentHttpAdapter):
     def __init__(
         self,
-        channel_service_client_factory: ChannelServiceClientFactoryBase,
+        *,
+        service_auth_configuration: AgentAuthConfiguration = None,
+        authorization: Authorization = None,
+        channel_service_client_factory: ChannelServiceClientFactoryBase = None,
     ):
         """
         Initializes a new instance of the CloudAdapter class.
 
         :param channel_service_client_factory: The factory to use to create the channel service client.
         """
+        
         super().__init__(channel_service_client_factory)
 
         async def on_turn_error(context: TurnContext, error: Exception):
