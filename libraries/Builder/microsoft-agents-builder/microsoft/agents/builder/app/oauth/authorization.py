@@ -209,11 +209,10 @@ class Authorization:
         auth_handler = self.resolver_handler()
         if auth_handler.flow is None:
             raise ValueError("OAuth flow is not configured for the auth handler")
+        
 
         # Use the flow's OBO method to exchange the token
-        return await auth_handler.flow.exchange_token_on_behalf_of(
-            context, scopes, token
-        )
+        return await token_client.user_token.exchange_token()
 
     def get_flow_state(self, auth_handler_id: Optional[str] = None) -> FlowState:
         """

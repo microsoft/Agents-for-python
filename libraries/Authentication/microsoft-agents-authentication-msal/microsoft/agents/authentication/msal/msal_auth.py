@@ -13,17 +13,16 @@ from cryptography.x509 import load_pem_x509_certificate
 from cryptography.hazmat.backends import default_backend
 from cryptography.hazmat.primitives import hashes
 
-from microsoft.agents.authorization import AccessTokenProviderBase
+from microsoft.agents.authorization import AccessTokenProviderBase, AgentAuthConfiguration
 
-from .auth_types import AuthTypes
-from .msal_auth_configuration import MsalAuthConfiguration
+from microsoft.agents.authorization.auth_types import AuthTypes
 
 
 class MsalAuth(AccessTokenProviderBase):
 
     _client_credential_cache = None
 
-    def __init__(self, msal_configuration: MsalAuthConfiguration):
+    def __init__(self, msal_configuration: AgentAuthConfiguration):
         self._msal_configuration = msal_configuration
 
     async def get_access_token(

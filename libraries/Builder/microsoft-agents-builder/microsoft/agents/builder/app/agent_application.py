@@ -93,6 +93,10 @@ class AgentApplication(Agent, Generic[StateT]):
                 The `ApplicationOptions.storage` property is required and was not configured.
                 """
             )
+        
+        if not self._options.adapter:
+            # TODO: Load configuration, create adapter.
+            pass
 
         if options.long_running_messages and (
             not options.adapter or not options.bot_app_id

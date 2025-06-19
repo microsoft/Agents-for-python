@@ -8,7 +8,6 @@ import traceback
 from dotenv import load_dotenv
 from os import environ
 
-from microsoft.agents.authentication.msal import MsalAuthConfiguration
 from microsoft.agents.builder.app import AgentApplication, TurnState
 from microsoft.agents.builder.app.oauth import AuthHandler
 from microsoft.agents.hosting.aiohttp import (
@@ -18,11 +17,11 @@ from microsoft.agents.authorization import (
     Connections,
     AccessTokenProviderBase,
     ClaimsIdentity,
+    AgentAuthConfiguration
 )
 from microsoft.agents.authentication.msal import MsalAuth
 
 from microsoft.agents.builder import (
-    RestChannelServiceClientFactory,
     TurnContext,
     MessageFactory,
 )
@@ -33,7 +32,7 @@ from shared import GraphClient, GitHubClient, start_server
 
 load_dotenv()
 
-AUTH_CONFIG = MsalAuthConfiguration(**environ)
+AUTH_CONFIG = AgentAuthConfiguration(**environ)
 AUTH_PROVIDER = MsalAuth(AUTH_CONFIG)
 
 class DefaultConnection(Connections):
@@ -49,10 +48,8 @@ class DefaultConnection(Connections):
         pass
 
 
-CHANNEL_CLIENT_FACTORY = RestChannelServiceClientFactory(AUTH_CONFIG, DefaultConnection())
-
 # Create adapter.
-ADAPTER = CloudAdapter(CHANNEL_CLIENT_FACTORY)
+ADAPTER = CloudAdapter(DefaultConnection())
 
 AGENT_APP = AgentApplication[TurnState](
     storage=MemoryStorage(),
