@@ -5,51 +5,27 @@ import re
 import sys
 import traceback
 
-from dotenv import load_dotenv
-from os import environ
-
 from microsoft.agents.builder.app import AgentApplication, TurnState
 from microsoft.agents.builder.app.oauth import AuthHandler
 from microsoft.agents.hosting.aiohttp import (
     CloudAdapter,
 )
-from microsoft.agents.authorization import (
-    Connections,
-    AccessTokenProviderBase,
-    ClaimsIdentity,
-    AgentAuthConfiguration
-)
-from microsoft.agents.authentication.msal import MsalAuth
+from microsoft.agents.authentication.msal import MsalConnectionManager
 
 from microsoft.agents.builder import (
     TurnContext,
     MessageFactory,
 )
 from microsoft.agents.storage import MemoryStorage
+from microsoft.agents.core import load_configuration_from_env
 from microsoft.agents.core.models import ActivityTypes, TokenResponse
 
 from shared import GraphClient, GitHubClient, start_server
 
-load_dotenv()
+agents_sdk_config = load_configuration_from_env()
 
-AUTH_CONFIG = AgentAuthConfiguration(**environ)
-AUTH_PROVIDER = MsalAuth(AUTH_CONFIG)
-
-class DefaultConnection(Connections):
-    def get_default_connection(self) -> AccessTokenProviderBase:
-        pass
-
-    def get_token_provider(
-        self, claims_identity: ClaimsIdentity, service_url: str
-    ) -> AccessTokenProviderBase:
-        return AUTH_PROVIDER
-
-    def get_connection(self, connection_name: str) -> AccessTokenProviderBase:
-        pass
-
-
-# Create adapter.
-ADAPTER = CloudAdapter(DefaultConnection())
+CONNECTION_MANAGER = MsalConnectionManager(agents_sdk_config)
+ADAPTER = CloudAdapter(CONNECTION_MANAGER)
 
 AGENT_APP = AgentApplication[TurnState](
     storage=MemoryStorage(),
@@ -333,7 +309,9 @@ async def on_magic_code(context: TurnContext, state: TurnState):
                     continue
 
         await context.send_activity(
-            MessageFactory.text("Failed to verify the code: please check that the code is correct and that you started a sign-in process.")
+            MessageFactory.text(
+                "Failed to verify the code: please check that the code is correct and that you started a sign-in process."
+            )
         )
     else:
         await on_message(context, state)

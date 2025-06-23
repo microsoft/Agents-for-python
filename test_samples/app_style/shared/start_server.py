@@ -1,8 +1,13 @@
 from os import environ
 from microsoft.agents.builder.app.agent_application import AgentApplication
-from microsoft.agents.hosting.aiohttp import jwt_authorization_middleware, start_agent_process, CloudAdapter
+from microsoft.agents.hosting.aiohttp import (
+    jwt_authorization_middleware,
+    start_agent_process,
+    CloudAdapter,
+)
 from aiohttp.web import Request, Response, Application, run_app
 from microsoft.agents.hosting.aiohttp._start_agent_process import start_agent_process
+
 
 def start_server(agent_application: AgentApplication, auth_configuration):
     async def entry_point(req: Request) -> Response:
@@ -13,7 +18,6 @@ def start_server(agent_application: AgentApplication, auth_configuration):
             agent,
             adapter,
         )
-
 
     APP = Application(middlewares=[jwt_authorization_middleware])
     APP.router.add_post("/api/messages", entry_point)

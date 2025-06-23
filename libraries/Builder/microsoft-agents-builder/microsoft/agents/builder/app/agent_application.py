@@ -6,19 +6,24 @@ Licensed under the MIT License.
 from __future__ import annotations
 from functools import partial
 
+from os import environ
 import re
 from typing import (
+    Any,
     Awaitable,
     Callable,
+    Dict,
     Generic,
     List,
     Optional,
     Pattern,
-    Tuple,
     TypeVar,
     Union,
     cast,
 )
+
+from dotenv import load_dotenv
+from microsoft.agents.authorization import AgentAuthConfiguration
 
 from .. import Agent, TurnContext
 from microsoft.agents.core.models import (
@@ -72,10 +77,13 @@ class AgentApplication(Agent, Generic[StateT]):
         """
         Creates a new AgentApplication instance.
         """
+        load_dotenv()
         self.typing = TypingIndicator()
+        self.configuration: dict = self.parse_env_vars_configuration(environ)
         self._routes = []
 
         if not options:
+            # TODO: consolidate configuration story
             # Take the options from the kwargs and create an ApplicationOptions instance
             option_kwargs = dict(
                 filter(
@@ -93,9 +101,11 @@ class AgentApplication(Agent, Generic[StateT]):
                 The `ApplicationOptions.storage` property is required and was not configured.
                 """
             )
-        
+
         if not self._options.adapter:
-            # TODO: Load configuration, create adapter.
+
+            auth_configuration = AgentAuthConfiguration(self.configuration)
+            self._options.adapter = CloudAdapter()
             pass
 
         if options.long_running_messages and (
@@ -550,6 +560,30 @@ class AgentApplication(Agent, Generic[StateT]):
             and context.activity.type == ActivityTypes.message
         ):
             context.activity.text = context.remove_recipient_mention(context.activity)
+
+    @staticmethod
+    def parse_env_vars_configuration(vars: Dict[str, Any]) -> dict:
+        """
+        Parses environment variables and returns a dictionary with the relevant configuration.
+        """
+        result = {}
+        for key, value in vars.items():
+            levels = key.split("__")
+            current_level = result
+            last_level = None
+            for next_level in levels:
+                if next_level not in current_level:
+                    current_level[next_level] = {}
+                last_level = current_level
+                current_level = current_level[next_level]
+            last_level[levels[-1]] = value
+
+        return {
+            "AGENT_APPLICATION": result["AGENT_APPLICATION"],
+            "COPILOT_STUDIO_AGENT": result["COPILOT_STUDIO_AGENT"],
+            "CONNECTIONS": result["CONNECTIONS"],
+            "CONNECTIONS_MAP": result["CONNECTIONS_MAP"],
+        }
 
     async def _initialize_state(self, context: TurnContext) -> StateT:
         if self._turn_state_factory:
