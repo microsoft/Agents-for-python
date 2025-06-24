@@ -23,9 +23,10 @@ from typing import (
 )
 
 from dotenv import load_dotenv
-from microsoft.agents.authorization import AgentAuthConfiguration
+from microsoft.agents.authorization import AgentAuthConfiguration, Connections
 
 from .. import Agent, TurnContext
+from microsoft.agents.core import load_configuration_from_env
 from microsoft.agents.core.models import (
     Activity,
     ActivityTypes,
@@ -73,7 +74,14 @@ class AgentApplication(Agent, Generic[StateT]):
     _error: Optional[Callable[[TurnContext, Exception], Awaitable[None]]] = None
     _turn_state_factory: Optional[Callable[[TurnContext], StateT]] = None
 
-    def __init__(self, options: ApplicationOptions = None, **kwargs) -> None:
+    def __init__(
+        self,
+        options: ApplicationOptions = None,
+        *,
+        connection_manager: Connections = None,
+        configuration: Dict = None,
+        **kwargs,
+    ) -> None:
         """
         Creates a new AgentApplication instance.
         """
@@ -81,6 +89,8 @@ class AgentApplication(Agent, Generic[StateT]):
         self.typing = TypingIndicator()
         self.configuration: dict = self.parse_env_vars_configuration(environ)
         self._routes = []
+
+        configuration = configuration or load_configuration_from_env()
 
         if not options:
             # TODO: consolidate configuration story
@@ -101,12 +111,6 @@ class AgentApplication(Agent, Generic[StateT]):
                 The `ApplicationOptions.storage` property is required and was not configured.
                 """
             )
-
-        if not self._options.adapter:
-
-            auth_configuration = AgentAuthConfiguration(self.configuration)
-            self._options.adapter = CloudAdapter()
-            pass
 
         if options.long_running_messages and (
             not options.adapter or not options.bot_app_id
@@ -129,9 +133,18 @@ class AgentApplication(Agent, Generic[StateT]):
             or partial(TurnState.with_storage, self._options.storage)
         )
 
+        # TODO: decide how to initialize the Authorization (params vs options vs kwargs)
+        if not connection_manager:
+            raise ApplicationError(
+                """
+                The `AgentApplication` requires a `Connections` instance to be passed as the
+                `connection_manager` parameter.
+                """
+            )
         if auth_handlers:
             self._auth = Authorization(
                 storage=self._options.storage,
+                connection_manager=connection_manager,
                 auth_handlers=auth_handlers,
             )
 

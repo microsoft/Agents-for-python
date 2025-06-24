@@ -20,8 +20,8 @@ class MsalConnectionManager(Connections):
         self._connections = connections
         self._connections_map = connections_map or kwargs.get("CONNECTIONS_MAP", None)
         if not self._connections:
-            connections_configs = kwargs.get("CONNECTIONS", {})
-            for connection_name, connection_settings in connections_configs:
+            connections_configs: Dict[str, Dict] = kwargs.get("CONNECTIONS", {})
+            for connection_name, connection_settings in connections_configs.items():
                 self._connections[connection_name] = MsalAuth(
                     AgentAuthConfiguration(**connection_settings.get("SETTINGS", None))
                 )

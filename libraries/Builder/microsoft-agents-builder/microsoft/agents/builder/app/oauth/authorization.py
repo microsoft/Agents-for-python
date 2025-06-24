@@ -7,12 +7,14 @@ import os
 import jwt
 from typing import Dict, Optional, Callable, Awaitable
 
+from microsoft.agents.authorization import Connections, AccessTokenProviderBase
 from microsoft.agents.storage import Storage
 from microsoft.agents.core.models import TokenResponse, Activity
 from microsoft.agents.storage import StoreItem
 from pydantic import BaseModel
 
 from ...turn_context import TurnContext
+from ...channel_service_adapter import ChannelServiceAdapter
 from ...app.state.turn_state import TurnState
 from ...oauth_flow import OAuthFlow, FlowState
 from ...state.user_state import UserState
@@ -35,17 +37,39 @@ class SignInState(StoreItem, BaseModel):
         return FlowState.model_validate(json_data)
 
 
-@dataclass
 class AuthHandler:
     """
     Interface defining an authorization handler for OAuth flows.
     """
 
-    name: Optional[str] = None
-    auto: Optional[bool] = None
-    flow: Optional[OAuthFlow] = None
-    title: Optional[str] = None
-    text: Optional[str] = None
+    def __init__(
+        self,
+        name: str = None,
+        title: str = None,
+        text: str = None,
+        abs_oauth_connection_name: str = None,
+        obo_connection_name: str = None,
+        **kwargs,
+    ):
+        """
+        Initializes a new instance of AuthHandler.
+
+        Args:
+            name: The name of the OAuth connection.
+            auto: Whether to automatically start the OAuth flow.
+            title: Title for the OAuth card.
+            text: Text for the OAuth button.
+        """
+        self.name = name or kwargs.get("NAME")
+        self.title = title or kwargs.get("TITLE")
+        self.text = text or kwargs.get("TEXT")
+        self.abs_oauth_connection_name = abs_oauth_connection_name or kwargs.get(
+            "AZURE_BOT_OAUTH_CONNECTION_NAME"
+        )
+        self.obo_connection_name = obo_connection_name or kwargs.get(
+            "OBO_CONNECTION_NAME"
+        )
+        self.flow = None
 
 
 # Type alias for authorization handlers dictionary
@@ -59,7 +83,14 @@ class Authorization:
 
     SIGN_IN_STATE_KEY = f"{UserState.__name__}.__SIGNIN_STATE_"
 
-    def __init__(self, storage: Storage, auth_handlers: AuthorizationHandlers):
+    def __init__(
+        self,
+        storage: Storage,
+        connection_manager: Connections,
+        auth_handlers: AuthorizationHandlers = None,
+        auto_signin: bool = None,
+        **kwargs,
+    ):
         """
         Creates a new instance of Authorization.
 
@@ -74,9 +105,19 @@ class Authorization:
             raise ValueError("Storage is required for Authorization")
 
         user_state = UserState(storage)
+        self._connection_manager = connection_manager
 
-        if not auth_handlers or len(auth_handlers) == 0:
-            raise ValueError("The authorization does not have any auth handlers")
+        self._auto_signin = (
+            auto_signin if auto_signin is not None else kwargs.get("AUTOSIGNIN", False)
+        )
+
+        if not auth_handlers:
+            handlers_congif: Dict = kwargs.get("HANDLERS")
+            if handlers_congif:
+                raise ValueError("The authorization does not have any auth handlers")
+            auth_handlers = {
+                name: AuthHandler(**config) for name, config in handlers_congif.items()
+            }
 
         self._auth_handlers = auth_handlers
         self._sign_in_handler: Optional[
@@ -84,33 +125,7 @@ class Authorization:
         ] = None
 
         # Configure each auth handler
-        for handler_key, auth_handler in self._auth_handlers.items():
-            # Set connection name from environment if not provided
-            if (
-                auth_handler.name is None
-                and os.getenv(f"{handler_key}_CONNECTION_NAME") is None
-            ):
-                raise ValueError(
-                    f"AuthHandler name {handler_key}_CONNECTION_NAME not set in authorization "
-                    f"and not found in env vars."
-                )
-
-            # Set properties from environment variables if not already set
-            auth_handler.name = auth_handler.name or os.getenv(
-                f"{handler_key}_CONNECTION_NAME"
-            )
-            auth_handler.title = auth_handler.title or os.getenv(
-                f"{handler_key}_CONNECTION_TITLE"
-            )
-            auth_handler.text = auth_handler.text or os.getenv(
-                f"{handler_key}_CONNECTION_TEXT"
-            )
-            auth_handler.auto = (
-                auth_handler.auto
-                if auth_handler.auto is not None
-                else os.getenv(f"{handler_key}_CONNECTION_AUTO") == "true"
-            )
-
+        for auth_handler in self._auth_handlers.values():
             # Create OAuth flow with configuration
             messages_config = {}
             if auth_handler.title:
@@ -167,7 +182,7 @@ class Authorization:
         token_response = await auth_handler.flow.get_user_token(context)
 
         if self._is_exchangeable(token_response.token if token_response else None):
-            return await self._handle_obo(context, token_response.token, scopes)
+            return await self._handle_obo(token_response.token, scopes, auth_handler_id)
 
         return token_response
 
@@ -193,7 +208,7 @@ class Authorization:
             return False
 
     async def _handle_obo(
-        self, context: TurnContext, token: str, scopes: list[str]
+        self, token: str, scopes: list[str], handler_id: str = None
     ) -> TokenResponse:
         """
         Handles On-Behalf-Of token exchange.
@@ -206,12 +221,20 @@ class Authorization:
         Returns:
             The new token response.
         """
-        auth_handler = self.resolver_handler()
+        auth_handler = self.resolver_handler(handler_id)
         if auth_handler.flow is None:
             raise ValueError("OAuth flow is not configured for the auth handler")
 
         # Use the flow's OBO method to exchange the token
-        return await token_client.user_token.exchange_token()
+        token_provider: AccessTokenProviderBase = (
+            self._connection_manager.get_token_provider(
+                auth_handler.obo_connection_name
+            )
+        )
+        return await token_provider.aquire_token_on_behalf_of(
+            scopes=scopes,
+            user_assertion=token,
+        )
 
     def get_flow_state(self, auth_handler_id: Optional[str] = None) -> FlowState:
         """
