@@ -1,10 +1,11 @@
 from typing import Any, Dict
 
 
-def load_configuration_from_env(vars: Dict[str, Any]) -> dict:
+def load_configuration_from_env(env_vars: Dict[str, Any]) -> dict:
     """
     Parses environment variables and returns a dictionary with the relevant configuration.
     """
+    vars = env_vars.copy()
     result = {}
     for key, value in vars.items():
         levels = key.split("__")
@@ -18,8 +19,8 @@ def load_configuration_from_env(vars: Dict[str, Any]) -> dict:
         last_level[levels[-1]] = value
 
     return {
-        "AGENT_APPLICATION": result["AGENT_APPLICATION"],
-        "COPILOT_STUDIO_AGENT": result["COPILOT_STUDIO_AGENT"],
-        "CONNECTIONS": result["CONNECTIONS"],
-        "CONNECTIONS_MAP": result["CONNECTIONS_MAP"],
+        "AGENTAPPLICATION": result.get("AGENTAPPLICATION", {}),
+        "COPILOTSTUDIOAGENT": result.get("COPILOTSTUDIOAGENT", {}),
+        "CONNECTIONS": result.get("CONNECTIONS", {}),
+        "CONNECTIONSMAP": result.get("CONNECTIONSMAP", {}),
     }

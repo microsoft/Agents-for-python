@@ -2,8 +2,6 @@
 # Licensed under the MIT License.
 
 from __future__ import annotations
-from dataclasses import dataclass
-import os
 import jwt
 from typing import Dict, Optional, Callable, Awaitable
 
@@ -14,7 +12,6 @@ from microsoft.agents.storage import StoreItem
 from pydantic import BaseModel
 
 from ...turn_context import TurnContext
-from ...channel_service_adapter import ChannelServiceAdapter
 from ...app.state.turn_state import TurnState
 from ...oauth_flow import OAuthFlow, FlowState
 from ...state.user_state import UserState
@@ -64,12 +61,12 @@ class AuthHandler:
         self.title = title or kwargs.get("TITLE")
         self.text = text or kwargs.get("TEXT")
         self.abs_oauth_connection_name = abs_oauth_connection_name or kwargs.get(
-            "AZURE_BOT_OAUTH_CONNECTION_NAME"
+            "AZUREBOTOAUTHCONNECTIONNAME"
         )
         self.obo_connection_name = obo_connection_name or kwargs.get(
-            "OBO_CONNECTION_NAME"
+            "OBOCONNECTIONNAME"
         )
-        self.flow = None
+        self.flow: OAuthFlow = None
 
 
 # Type alias for authorization handlers dictionary
@@ -107,16 +104,25 @@ class Authorization:
         user_state = UserState(storage)
         self._connection_manager = connection_manager
 
+        auth_configuration: Dict = kwargs.get("AGENTAPPLICATION", {}).get(
+            "USERAUTHORIZATION", {}
+        )
+
         self._auto_signin = (
-            auto_signin if auto_signin is not None else kwargs.get("AUTOSIGNIN", False)
+            auto_signin
+            if auto_signin is not None
+            else auth_configuration.get("AUTOSIGNIN", False)
         )
 
         if not auth_handlers:
-            handlers_congif: Dict = kwargs.get("HANDLERS")
-            if handlers_congif:
+            handlers_congif: Dict[str, Dict] = auth_configuration.get("HANDLERS")
+            if not handlers_congif:
                 raise ValueError("The authorization does not have any auth handlers")
             auth_handlers = {
-                name: AuthHandler(**config) for name, config in handlers_congif.items()
+                handler_name: AuthHandler(
+                    name=handler_name, **config.get("SETTINGS", {})
+                )
+                for handler_name, config in handlers_congif.items()
             }
 
         self._auth_handlers = auth_handlers
@@ -135,7 +141,7 @@ class Authorization:
 
             auth_handler.flow = OAuthFlow(
                 user_state=user_state,
-                abs_oauth_connection_name=auth_handler.name,
+                abs_oauth_connection_name=auth_handler.abs_oauth_connection_name,
                 messages_configuration=messages_config if messages_config else None,
             )
 
@@ -176,7 +182,7 @@ class Authorization:
             The token response from the OAuth provider.
         """
         auth_handler = self.resolver_handler(auth_handler_id)
-        if auth_handler.flow is None:
+        if not auth_handler.flow:
             raise ValueError("OAuth flow is not configured for the auth handler")
 
         token_response = await auth_handler.flow.get_user_token(context)

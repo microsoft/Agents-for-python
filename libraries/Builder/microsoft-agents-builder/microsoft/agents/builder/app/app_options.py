@@ -84,7 +84,7 @@ class ApplicationOptions:
     If not provided, the default `TurnState` will be used.
     """
 
-    authorization: Optional[AuthorizationHandlers] = None
+    authorization_handlers: Optional[AuthorizationHandlers] = None
     """
     Optional. Authorization handler for OAuth flows.
     If not provided, no OAuth flows will be supported.

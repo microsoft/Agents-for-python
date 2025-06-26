@@ -1,12 +1,14 @@
 # Copyright (c) Microsoft Corporation. All rights reserved.
 # Licensed under the MIT License.
 
+from os import environ
 import re
 import sys
 import traceback
 
+from dotenv import load_dotenv
 from microsoft.agents.builder.app import AgentApplication, TurnState
-from microsoft.agents.builder.app.oauth import AuthHandler
+from microsoft.agents.builder.app.oauth import Authorization
 from microsoft.agents.hosting.aiohttp import (
     CloudAdapter,
 )
@@ -22,21 +24,17 @@ from microsoft.agents.core.models import ActivityTypes, TokenResponse
 
 from shared import GraphClient, GitHubClient, start_server
 
-agents_sdk_config = load_configuration_from_env()
+load_dotenv()
 
-CONNECTION_MANAGER = MsalConnectionManager(agents_sdk_config)
-ADAPTER = CloudAdapter(CONNECTION_MANAGER)
+agents_sdk_config = load_configuration_from_env(environ)
+
+STORAGE = MemoryStorage()
+CONNECTION_MANAGER = MsalConnectionManager(**agents_sdk_config)
+ADAPTER = CloudAdapter(connection_manager=CONNECTION_MANAGER)
+AUTHORIZATION = Authorization(STORAGE, CONNECTION_MANAGER, **agents_sdk_config)
 
 AGENT_APP = AgentApplication[TurnState](
-    storage=MemoryStorage(),
-    adapter=ADAPTER,
-    authorization={
-        "GRAPH": AuthHandler(title="Graph API", text="Connect to Microsoft Graph"),
-        "GITHUB": AuthHandler(
-            title="GitHub",
-            text="Connect to GitHub",
-        ),
-    },
+    storage=STORAGE, adapter=ADAPTER, authorization=AUTHORIZATION, **agents_sdk_config
 )
 
 
@@ -346,5 +344,5 @@ async def on_error(context: TurnContext, error: Exception):
 
 start_server(
     agent_application=AGENT_APP,
-    auth_configuration=AUTH_CONFIG,
+    auth_configuration=CONNECTION_MANAGER.get_default_connection_configuration(),
 )

@@ -13,20 +13,34 @@ class MsalConnectionManager(Connections):
 
     def __init__(
         self,
-        connections: Dict[str, AgentAuthConfiguration] = None,
-        connections_map=List[Dict[str, str]],
+        connections_configurations: Dict[str, AgentAuthConfiguration] = None,
+        connections_map: List[Dict[str, str]] = None,
         **kwargs
     ):
-        self._connections = connections
-        self._connections_map = connections_map or kwargs.get("CONNECTIONS_MAP", None)
-        if not self._connections:
-            connections_configs: Dict[str, Dict] = kwargs.get("CONNECTIONS", {})
-            for connection_name, connection_settings in connections_configs.items():
+        self._connections: Dict[str, MsalAuth] = {}
+        self._connections_map = connections_map or kwargs.get("CONNECTIONS_MAP", {})
+        self._service_connection_configuration: AgentAuthConfiguration = None
+
+        if connections_configurations:
+            for (
+                connection_name,
+                connection_settings,
+            ) in connections_configurations.items():
                 self._connections[connection_name] = MsalAuth(
-                    AgentAuthConfiguration(**connection_settings.get("SETTINGS", None))
+                    AgentAuthConfiguration(**connection_settings)
                 )
-            if not self._connections.get("SERVICE_CONNECTION", None):
-                raise ValueError("No service connection configuration provided.")
+        else:
+            raw_configurations: Dict[str, Dict] = kwargs.get("CONNECTIONS", {})
+            for connection_name, connection_settings in raw_configurations.items():
+                parsed_configuration = AgentAuthConfiguration(
+                    **connection_settings.get("SETTINGS", {})
+                )
+                self._connections[connection_name] = MsalAuth(parsed_configuration)
+                if connection_name == "SERVICE_CONNECTION":
+                    self._service_connection_configuration = parsed_configuration
+
+        if not self._connections.get("SERVICE_CONNECTION", None):
+            raise ValueError("No service connection configuration provided.")
 
     def get_connection(self, connection_name: Optional[str]) -> AccessTokenProviderBase:
         """
@@ -50,3 +64,9 @@ class MsalConnectionManager(Connections):
             return self.get_default_connection()
 
         # TODO: Implement logic to select the appropriate connection based on the connection map
+
+    def get_default_connection_configuration(self) -> AgentAuthConfiguration:
+        """
+        Get the default connection configuration for the agent.
+        """
+        return self._service_connection_configuration

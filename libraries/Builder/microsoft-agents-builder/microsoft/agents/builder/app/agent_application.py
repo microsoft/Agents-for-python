@@ -79,18 +79,16 @@ class AgentApplication(Agent, Generic[StateT]):
         options: ApplicationOptions = None,
         *,
         connection_manager: Connections = None,
-        configuration: Dict = None,
+        authorization: Authorization = None,
         **kwargs,
     ) -> None:
         """
         Creates a new AgentApplication instance.
         """
-        load_dotenv()
         self.typing = TypingIndicator()
-        self.configuration: dict = self.parse_env_vars_configuration(environ)
         self._routes = []
 
-        configuration = configuration or load_configuration_from_env()
+        configuration = kwargs
 
         if not options:
             # TODO: consolidate configuration story
@@ -125,8 +123,6 @@ class AgentApplication(Agent, Generic[StateT]):
         if options.adapter:
             self._adapter = options.adapter
 
-        auth_handlers = options.authorization or kwargs.get("authorization")
-
         self._turn_state_factory = (
             options.turn_state_factory
             or kwargs.get("turn_state_factory", None)
@@ -134,19 +130,23 @@ class AgentApplication(Agent, Generic[StateT]):
         )
 
         # TODO: decide how to initialize the Authorization (params vs options vs kwargs)
-        if not connection_manager:
-            raise ApplicationError(
-                """
-                The `AgentApplication` requires a `Connections` instance to be passed as the
-                `connection_manager` parameter.
-                """
-            )
-        if auth_handlers:
-            self._auth = Authorization(
-                storage=self._options.storage,
-                connection_manager=connection_manager,
-                auth_handlers=auth_handlers,
-            )
+        if authorization:
+            self._auth = authorization
+        else:
+            if not connection_manager:
+                raise ApplicationError(
+                    """
+                    The `AgentApplication` requires a `Connections` instance to be passed as the
+                    `connection_manager` parameter.
+                    """
+                )
+            else:
+                self._auth = Authorization(
+                    storage=self._options.storage,
+                    connection_manager=connection_manager,
+                    handlers=options.authorization_handlers,
+                    **configuration,
+                )
 
     @property
     def adapter(self) -> ChannelServiceAdapter:

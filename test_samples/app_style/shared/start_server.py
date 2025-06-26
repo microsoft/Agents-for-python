@@ -1,5 +1,6 @@
 from os import environ
-from microsoft.agents.builder.app.agent_application import AgentApplication
+from microsoft.agents.authorization import AgentAuthConfiguration
+from microsoft.agents.builder.app import AgentApplication
 from microsoft.agents.hosting.aiohttp import (
     jwt_authorization_middleware,
     start_agent_process,
@@ -9,7 +10,9 @@ from aiohttp.web import Request, Response, Application, run_app
 from microsoft.agents.hosting.aiohttp._start_agent_process import start_agent_process
 
 
-def start_server(agent_application: AgentApplication, auth_configuration):
+def start_server(
+    agent_application: AgentApplication, auth_configuration: AgentAuthConfiguration
+):
     async def entry_point(req: Request) -> Response:
         agent: AgentApplication = req.app["agent_app"]
         adapter: CloudAdapter = req.app["adapter"]

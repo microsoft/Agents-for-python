@@ -17,7 +17,6 @@ from microsoft.agents.authorization import (
     ClaimsIdentity,
     Connections,
 )
-from microsoft.agents.builder.app.oauth import Authorization
 from microsoft.agents.core.models import (
     Activity,
     DeliveryModes,
@@ -63,8 +62,7 @@ class CloudAdapter(ChannelServiceAdapter, AgentHttpAdapter):
 
         self.on_turn_error = on_turn_error
 
-        # TODO: Implement creating a connection manager out of environment variables
-        self._channel_service_client_factory = (
+        channel_service_client_factory = (
             channel_service_client_factory
             or RestChannelServiceClientFactory(connection_manager)
         )
