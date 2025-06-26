@@ -2,9 +2,8 @@
 # https://github.com/microsoft/botbuilder-python/blob/main/libraries/botbuilder-azure/botbuilder/azure/blob_storage.py
 
 from typing import TypeVar
+from io import BytesIO
 import json
-
-from microsoft.agents.storage._type_aliases import JSON
 
 from azure.core import MatchConditions
 from azure.core.exceptions import (
@@ -12,8 +11,13 @@ from azure.core.exceptions import (
     ResourceExistsError,
     ResourceNotFoundError,
 )
-from azure.storage.blob.aio import BlobServiceClient
+from azure.storage.blob.aio import (
+    ContainerClient,
+    BlobServiceClient,
+    BlobClient,
+)
 
+from microsoft.agents.storage._type_aliases import JSON
 from microsoft.agents.storage import Storage, StoreItem
 
 StoreItemT = TypeVar("StoreItemT", bound=StoreItem)
@@ -27,17 +31,15 @@ class BlobStorageSettings:
         account_key: str = "",
         connection_string: str = ""
     ):
-
         self.container_name = container_name
         self.account_name = account_name
         self.account_key = account_key
         self.connection_string = connection_string
 
-# New Azure Blob SDK only allows connection strings, but our SDK allows key+name.
-# This is here for backwards compatibility.
+
 def convert_account_name_and_key_to_connection_string(settings: BlobStorageSettings):
     if not settings.account_name or not settings.account_key:
-        raise Exception(
+        raise ValueError(
             "account_name and account_key are both required for BlobStorageSettings if not using a connections string."
         )
     return (
@@ -48,36 +50,34 @@ def convert_account_name_and_key_to_connection_string(settings: BlobStorageSetti
 class BlobStorage(Storage):
 
     def __init__(self, settings: BlobStorageSettings):
-
         if not settings.container_name:
-            raise Exception("Container name is required.")
+            raise ValueError("BlobStorage: Container name is required.")
+        
+        connection_string: str = settings.connection_string
+        if not connection_string:
+            # New Azure Blob SDK only allows connection strings, but our SDK allows key+name.
+            # This is here for backwards compatibility.
+            connection_string = convert_account_name_and_key_to_connection_string(settings)
 
-        if settings.connection_string:
-            blob_service_client = BlobServiceClient.from_connection_string(
-                settings.connection_string
-            )
-        else:
-            blob_service_client = BlobServiceClient.from_connection_string(
-                convert_account_name_and_key_to_connection_string(settings)
-            )
+        blob_service_client: BlobServiceClient = BlobServiceClient.from_connection_string(connection_string)
 
-        self.__container_client = blob_service_client.get_container_client(
+        self._container_client: ContainerClient = blob_service_client.get_container_client(
             settings.container_name
         )
+        self._initialized: bool = False
 
-        self.__initialized = False
-
-    async def _initialize(self):
-
-        if self.__initialized is False:
+    async def _initialize_container(self):
+        """Initializes the storage container"""
+        if self._initialized is False:
             # This should only happen once - assuming this is a singleton.
             # ContainerClient.exists() method is available in an unreleased version of the SDK. Until then, we use:
             try:
-                await self.__container_client.create_container()
+                await self._container_client.create_container()
             except ResourceExistsError:
                 pass
-            self.__initialized = True
-        return self.__initialized
+            self._initialized = True
+
+        return self._initialized
 
     async def read(
             self,
@@ -90,38 +90,37 @@ class BlobStorage(Storage):
 
         :param keys: An array of entity keys.
         :type keys: dict[str, StoreItem]
+        :param target_cls: The StoreItem class to deserialize retrieved values into.
+        :type target_cls: StoreItem
         :return dict:
         """
         if not keys:
-            raise Exception("Keys are required when reading")
+            raise ValueError("BlobStorage.read(): Keys are required when reading.")
+        if not target_cls:
+            raise ValueError("BlobStorage.read(): target_cls cannot be None.")
 
-        await self._initialize()
+        await self._initialize_container()
 
         result: dict[str, StoreItem] = {}
-
         for key in keys:
 
-            blob_client = self.__container_client.get_blob_client(key)
-
             try:
-                blob = await blob_client.download_blob()
+                item_rep: str = await (await self._container_client.download_blob(blob=key)).readall()
+                item_JSON: JSON = json.loads(item_rep)
             except HttpResponseError as error:
                 if error.status_code == 404:
                     continue
-
-            item_json = json.loads(await blob.content_as_text())
-            
-            item_json["e_tag"] = blob.properties.etag.replace('""', "")
-
-            if not target_cls:
-                result[key] = item_json
-            else:
-                try:
-                    result[key] = target_cls.from_json_to_store_item(item_json)
-                except AttributeError as error:
-                    raise TypeError(
-                        f"BlobStorage.read(): could not deserialize blob item into {target_cls} class. Error: {error}"
+                else:
+                    raise HttpResponseError(
+                        f"BlobStorage.read(): Error reading blob '{key}': {error}"
                     )
+
+            try:
+                result[key] = target_cls.from_json_to_store_item(item_JSON)
+            except AttributeError as error:
+                raise TypeError(
+                    f"BlobStorage.read(): could not deserialize blob item into {target_cls} class. Error: {error}"
+                )
         
         return result
 
@@ -132,32 +131,20 @@ class BlobStorage(Storage):
         :type changes: dict[str, StoreItem]
         :return:
         """
-
-        if changes is None:
-            raise ValueError("BlobStorage.write(): changes cannot be None")
+        if not changes:
+            raise ValueError("BlobStorage.write(): changes cannot be None nor empty")
+        
+        await self._initialize_container()
         
         for key, item in changes.items():
 
-            item_json = item.store_item_to_json()
-            if item_json is None:
+            item_JSON: JSON = item.store_item_to_json()
+            if item_JSON is None:
                 raise ValueError("BlobStorage.write(): StoreItem serialization cannot return None")
-
-            item_str = json.dumps(item_json)
+            item_rep_bytes = json.dumps(item_JSON).encode("utf-8")
             
-            blob_reference = self.__container_client.get_blob_client(key)
-
-            e_tag = None if item_json is None else item_json.get("e_tag", None)
-            e_tag = None if e_tag == "*" else e_tag
-
-            if e_tag == "":
-                raise Exception("blob_storage.write(): etag missing")
-
-            if e_tag:
-                await blob_reference.upload_blob(
-                    item_str, match_condition=MatchConditions.IfNotModified, etag=e_tag
-                )
-            else:
-                await blob_reference.upload_blob(item_str, overwrite=True)
+            # providing the length parameter may improve performance
+            await self._container_client.upload_blob(name=key, data=BytesIO(item_rep_bytes), overwrite=True, length=len(item_rep_bytes))
 
     async def delete(self, keys: list[str]):
         """Deletes entity blobs from the configured container.
@@ -165,16 +152,14 @@ class BlobStorage(Storage):
         :param keys: An array of entity keys.
         :type keys: list[str]
         """
-
         if keys is None:
-            raise Exception("BlobStorage.delete: keys parameter can't be null")
+            raise ValueError("BlobStorage.delete(): keys parameter can't be null")
 
-        await self._initialize()
+        await self._initialize_container()
 
         for key in keys:
-            blob_client = self.__container_client.get_blob_client(key)
             try:
-                await blob_client.delete_blob()
+                await self._container_client.delete_blob(blob=key)
             # We can't delete what's already gone.
             except ResourceNotFoundError:
                 pass

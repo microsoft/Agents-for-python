@@ -2,18 +2,13 @@
 # Licensed under the MIT License.
 
 """
+Adapted from https://github.com/microsoft/botbuilder-python/blob/main/libraries/botbuilder-testing/botbuilder/testing/storage_base_tests.py
+
 Base tests that all storage providers should implement in their own tests.
 They handle the storage-based assertions, internally.
 
 All tests return true if assertions pass to indicate that the code ran to completion, passing internal assertions.
 Therefore, all tests using theses static tests should strictly check that the method returns true.
-
-Note: Python cannot have dicts with properties with a None value like other SDKs can have properties with null values.
-      Because of this, StoreItem tests have "e_tag: *" where the tests in the other SDKs do not.
-      This has also caused us to comment out some parts of these tests where we assert that "e_tag"
-      is None for the same reason. A null e_tag should work just like a * e_tag when writing,
-      as far as the storage adapters are concerened, so this shouldn't cause issues.
-
 
 :Example:
     async def test_handle_null_keys_when_reading(self):
@@ -23,32 +18,32 @@ Note: Python cannot have dicts with properties with a None value like other SDKs
 
         assert test_ran
 """
-from copy import deepcopy
 
 import pytest
 
 from microsoft.agents.storage import MemoryStorage, StoreItem
 from microsoft.agents.storage._type_aliases import JSON
 
-class DictStoreItem(StoreItem):
-    def __init__(self, data):
-        super().__init__()
 
-        self.data = deepcopy(data)
+class MockStoreItem(StoreItem):
+
+    def __init__(self, data: JSON = None):
+        self.data = data or {}
 
     def store_item_to_json(self) -> JSON:
-        return deepcopy(self.data)
+        return self.data
 
     @staticmethod
-    def from_json_to_store_item(json_data: JSON) -> "StoreItem":
-        return DictStoreItem(json_data)
+    def from_json_to_store_item(json_data: JSON) -> "MockStoreItem":
+        return MockStoreItem(json_data)
 
 
 class StorageBaseTests:
+
     # pylint: disable=pointless-string-statement
     @staticmethod
     async def return_empty_object_when_reading_unknown_key(storage) -> bool:
-        result = await storage.read(["unknown"])
+        result = await storage.read(["unknown"], target_cls=MockStoreItem)
 
         assert result is not None
         assert len(result) == 0
@@ -58,13 +53,12 @@ class StorageBaseTests:
     @staticmethod
     async def handle_null_keys_when_reading(storage) -> bool:
         if isinstance(storage, (MemoryStorage)):
-            result = await storage.read(None)
+            result = await storage.read(None, target_cls=MockStoreItem)
             assert len(result.keys()) == 0
         # Catch-all
         else:
             with pytest.raises(Exception) as err:
-                await storage.read(None)
-            assert err.value.args[0] == "Keys are required when reading"
+                await storage.read(None, target_cls=MockStoreItem)
 
         return True
 
@@ -77,159 +71,95 @@ class StorageBaseTests:
         return True
 
     @staticmethod
-    async def does_not_raise_when_writing_no_items(storage) -> bool:
+    async def does_raise_when_writing_no_items(storage) -> bool:
         # noinspection PyBroadException
-        try:
+        with pytest.raises(Exception) as err:
             await storage.write(dict())
-        except:
-            pytest.fail("Should not raise")
-
         return True
 
     @staticmethod
     async def create_object(storage) -> bool:
         store_items = {
-            "createPoco": DictStoreItem({"id": 1}),
-            "createPocoStoreItem": DictStoreItem({"id": 2, "e_tag": "*"}),
+            "createPoco": MockStoreItem({"id": 1}),
+            "createPocoStoreItem": MockStoreItem({"id": 2, "value": "*"}),
         }
 
         await storage.write(store_items)
 
-        read_store_items = await storage.read(store_items.keys())
+        read_store_items = await storage.read(store_items.keys(), target_cls=MockStoreItem)
 
-        assert store_items["createPoco"].data["id"] == read_store_items["createPoco"]["id"]
+        assert store_items["createPoco"].data["id"] == read_store_items["createPoco"].data["id"]
         assert (
-            store_items["createPocoStoreItem"].data["id"]
-            == read_store_items["createPocoStoreItem"]["id"]
+            store_items["createPocoStoreItem"].data["id"] == read_store_items["createPocoStoreItem"].data["id"]
         )
-
-        # If decided to validate e_tag integrity again, uncomment this code
-        # assert read_store_items["createPoco"]["e_tag"] is not None
-        assert read_store_items["createPocoStoreItem"]["e_tag"] is not None
+        assert read_store_items["createPocoStoreItem"].data["value"] == "*"
 
         return True
 
     @staticmethod
     async def handle_crazy_keys(storage) -> bool:
         key = '!@#$%^&*()_+??><":QASD~`'
-        store_item = DictStoreItem({"id": 1})
+        store_item = MockStoreItem({"id": 1})
         store_items = {key: store_item}
 
         await storage.write(store_items)
 
-        read_store_items = await storage.read(store_items.keys())
+        read_store_items = await storage.read(store_items.keys(), target_cls=MockStoreItem)
 
         assert read_store_items[key] is not None
-        assert read_store_items[key]["id"] == 1
+        assert read_store_items[key].data["id"] == 1
 
         return True
 
     @staticmethod
     async def update_object(storage) -> bool:
         original_store_items = {
-            "pocoItem": DictStoreItem({"id": 1, "count": 1}),
-            "pocoStoreItem": DictStoreItem({"id": 1, "count": 1, "e_tag": "*"}),
+            "pocoItem": MockStoreItem({"id": 1, "count": 1}),
+            "pocoStoreItem": MockStoreItem({"id": 1, "count": 1, "value": "*"}),
         }
 
         # 1st write should work
         await storage.write(original_store_items)
 
-        loaded_store_items = await storage.read(["pocoItem", "pocoStoreItem"])
+        loaded_store_items = await storage.read(["pocoItem", "pocoStoreItem"], target_cls=MockStoreItem)
 
         update_poco_item = loaded_store_items["pocoItem"]
-        update_poco_item["e_tag"] = None
+        update_poco_item.data["value"] = None
         update_poco_store_item = loaded_store_items["pocoStoreItem"]
-        assert update_poco_store_item["e_tag"] is not None
+        assert update_poco_store_item.data["value"] == "*"
 
         # 2nd write should work
-        update_poco_item["count"] += 1
-        update_poco_store_item["count"] += 1
+        update_poco_item.data["count"] += 1
+        update_poco_store_item.data["count"] += 1
 
-        await storage.write({ key: DictStoreItem(value) for key, value in loaded_store_items.items() })
+        await storage.write({ key: MockStoreItem(value.data) for key, value in loaded_store_items.items() })
 
-        reloaded_store_items = await storage.read(loaded_store_items.keys())
+        reloaded_store_items = await storage.read(loaded_store_items.keys(), target_cls=MockStoreItem)
 
         reloaded_update_poco_item = reloaded_store_items["pocoItem"]
         reloaded_update_poco_store_item = reloaded_store_items["pocoStoreItem"]
 
-        assert reloaded_update_poco_item["count"] == 2
-        assert reloaded_update_poco_store_item["count"] == 2
-
-        # Write with old e_tag should succeed for non-storeItem
-        update_poco_item["count"] = 123
-        await storage.write({"pocoItem": DictStoreItem(update_poco_item)})
-
-        # Write with old eTag should FAIL for storeItem
-        update_poco_store_item["count"] = 123
-
-        """
-        This assert exists in the other SDKs but can't in python, currently
-        due to using "e_tag: *" above (see comment near the top of this file for details).
-
-        with pytest.raises(Exception) as err:
-            await storage.write({"pocoStoreItem": update_poco_store_item})
-        assert err.value is not None
-        """
-
-        reloaded_store_items2 = await storage.read(["pocoItem", "pocoStoreItem"])
-
-        reloaded_poco_item2 = reloaded_store_items2["pocoItem"]
-        reloaded_poco_item2["e_tag"] = None
-        reloaded_poco_store_item2 = reloaded_store_items2["pocoStoreItem"]
-
-        assert reloaded_poco_item2["count"] == 123
-        assert reloaded_poco_store_item2["count"] == 2
-
-        # write with wildcard etag should work
-        reloaded_poco_item2["count"] = 100
-        reloaded_poco_store_item2["count"] = 100
-        reloaded_poco_store_item2["e_tag"] = "*"
-
-        wildcard_etag_dict = {
-            "pocoItem": reloaded_poco_item2,
-            "pocoStoreItem": reloaded_poco_store_item2,
-        }
-
-        await storage.write({ key: DictStoreItem(value) for key, value in wildcard_etag_dict.items() })
-
-        reloaded_store_items3 = await storage.read(["pocoItem", "pocoStoreItem"])
-
-        assert reloaded_store_items3["pocoItem"]["count"] == 100
-        assert reloaded_store_items3["pocoStoreItem"]["count"] == 100
-
-        # Write with empty etag should not work
-        reloaded_store_items4 = await storage.read(["pocoStoreItem"])
-        reloaded_store_item4 = reloaded_store_items4["pocoStoreItem"]
-
-        assert reloaded_store_item4 is not None
-
-        reloaded_store_item4["e_tag"] = ""
-        dict2 = {"pocoStoreItem": DictStoreItem(reloaded_store_item4)}
-
-        with pytest.raises(Exception) as err:
-            await storage.write(dict2)
-        assert err.value is not None
-
-        final_store_items = await storage.read(["pocoItem", "pocoStoreItem"])
-        assert final_store_items["pocoItem"]["count"] == 100
-        assert final_store_items["pocoStoreItem"]["count"] == 100
+        assert reloaded_update_poco_item.data["count"] == 2
+        assert reloaded_update_poco_store_item.data["count"] == 2
+        assert reloaded_update_poco_item.data["value"] is None
+        assert reloaded_update_poco_store_item.data["value"] == "*"
 
         return True
 
     @staticmethod
     async def delete_object(storage) -> bool:
-        store_items = {"delete1": DictStoreItem({"id": 1, "count": 1, "e_tag": "*"})}
+        store_items = {"delete1": MockStoreItem({"id": 1, "count": 1, "value": "*"})}
 
         await storage.write(store_items)
 
-        read_store_items = await storage.read(["delete1"])
+        read_store_items = await storage.read(["delete1"], target_cls=MockStoreItem)
 
-        assert read_store_items["delete1"]["e_tag"]
-        assert read_store_items["delete1"]["count"] == 1
+        assert read_store_items["delete1"].data["value"]
+        assert read_store_items["delete1"].data["count"] == 1
 
         await storage.delete(["delete1"])
 
-        reloaded_store_items = await storage.read(["delete1"])
+        reloaded_store_items = await storage.read(["delete1"], target_cls=MockStoreItem)
 
         assert reloaded_store_items.get("delete1", None) is None
 
@@ -249,30 +179,24 @@ class StorageBaseTests:
     async def perform_batch_operations(storage) -> bool:
         await storage.write(
             {
-                "batch1": DictStoreItem({"count": 10}),
-                "batch2": DictStoreItem({"count": 20}),
-                "batch3": DictStoreItem({"count": 30}),
+                "batch1": MockStoreItem({"count": 10}),
+                "batch2": MockStoreItem({"count": 20}),
+                "batch3": MockStoreItem({"count": 30}),
             }
         )
 
-        result = await storage.read(["batch1", "batch2", "batch3"])
+        result = await storage.read(["batch1", "batch2", "batch3"], target_cls=MockStoreItem)
 
         assert result.get("batch1", None) is not None
         assert result.get("batch2", None) is not None
         assert result.get("batch3", None) is not None
-        assert result["batch1"]["count"] == 10
-        assert result["batch2"]["count"] == 20
-        assert result["batch3"]["count"] == 30
-        """
-        If decided to validate e_tag integrity aagain, uncomment this code
-        assert result["batch1"].get("e_tag", None) is not None
-        assert result["batch2"].get("e_tag", None) is not None
-        assert result["batch3"].get("e_tag", None) is not None
-        """
+        assert result["batch1"].data["count"] == 10
+        assert result["batch2"].data["count"] == 20
+        assert result["batch3"].data["count"] == 30
 
         await storage.delete(["batch1", "batch2", "batch3"])
 
-        result = await storage.read(["batch1", "batch2", "batch3"])
+        result = await storage.read(["batch1", "batch2", "batch3"], target_cls=MockStoreItem)
 
         assert result.get("batch1", None) is None
         assert result.get("batch2", None) is None

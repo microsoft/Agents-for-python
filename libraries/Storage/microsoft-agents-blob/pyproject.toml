@@ -14,6 +14,9 @@ classifiers = [
     "Operating System :: OS Independent",
 ]
 dependencies = [
+    "microsoft.agents.storage",
+    "azure-core",
+    "azure-storage-blob",
 ]
 
 [project.urls]
