@@ -233,13 +233,15 @@ class Authorization:
 
         # Use the flow's OBO method to exchange the token
         token_provider: AccessTokenProviderBase = (
-            self._connection_manager.get_token_provider(
-                auth_handler.obo_connection_name
-            )
+            self._connection_manager.get_connection(auth_handler.obo_connection_name)
         )
-        return await token_provider.aquire_token_on_behalf_of(
+        token = await token_provider.aquire_token_on_behalf_of(
             scopes=scopes,
             user_assertion=token,
+        )
+        return TokenResponse(
+            token=token,
+            scopes=scopes,  # Expiration can be set based on the token provider's response
         )
 
     def get_flow_state(self, auth_handler_id: Optional[str] = None) -> FlowState:
