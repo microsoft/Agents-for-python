@@ -86,11 +86,17 @@ class StorageBaseTests:
 
         await storage.write(store_items)
 
-        read_store_items = await storage.read(store_items.keys(), target_cls=MockStoreItem)
+        read_store_items = await storage.read(
+            store_items.keys(), target_cls=MockStoreItem
+        )
 
-        assert store_items["createPoco"].data["id"] == read_store_items["createPoco"].data["id"]
         assert (
-            store_items["createPocoStoreItem"].data["id"] == read_store_items["createPocoStoreItem"].data["id"]
+            store_items["createPoco"].data["id"]
+            == read_store_items["createPoco"].data["id"]
+        )
+        assert (
+            store_items["createPocoStoreItem"].data["id"]
+            == read_store_items["createPocoStoreItem"].data["id"]
         )
         assert read_store_items["createPocoStoreItem"].data["value"] == "*"
 
@@ -104,7 +110,9 @@ class StorageBaseTests:
 
         await storage.write(store_items)
 
-        read_store_items = await storage.read(store_items.keys(), target_cls=MockStoreItem)
+        read_store_items = await storage.read(
+            store_items.keys(), target_cls=MockStoreItem
+        )
 
         assert read_store_items[key] is not None
         assert read_store_items[key].data["id"] == 1
@@ -121,7 +129,9 @@ class StorageBaseTests:
         # 1st write should work
         await storage.write(original_store_items)
 
-        loaded_store_items = await storage.read(["pocoItem", "pocoStoreItem"], target_cls=MockStoreItem)
+        loaded_store_items = await storage.read(
+            ["pocoItem", "pocoStoreItem"], target_cls=MockStoreItem
+        )
 
         update_poco_item = loaded_store_items["pocoItem"]
         update_poco_item.data["value"] = None
@@ -132,9 +142,16 @@ class StorageBaseTests:
         update_poco_item.data["count"] += 1
         update_poco_store_item.data["count"] += 1
 
-        await storage.write({ key: MockStoreItem(value.data) for key, value in loaded_store_items.items() })
+        await storage.write(
+            {
+                key: MockStoreItem(value.data)
+                for key, value in loaded_store_items.items()
+            }
+        )
 
-        reloaded_store_items = await storage.read(loaded_store_items.keys(), target_cls=MockStoreItem)
+        reloaded_store_items = await storage.read(
+            loaded_store_items.keys(), target_cls=MockStoreItem
+        )
 
         reloaded_update_poco_item = reloaded_store_items["pocoItem"]
         reloaded_update_poco_store_item = reloaded_store_items["pocoStoreItem"]
@@ -185,7 +202,9 @@ class StorageBaseTests:
             }
         )
 
-        result = await storage.read(["batch1", "batch2", "batch3"], target_cls=MockStoreItem)
+        result = await storage.read(
+            ["batch1", "batch2", "batch3"], target_cls=MockStoreItem
+        )
 
         assert result.get("batch1", None) is not None
         assert result.get("batch2", None) is not None
@@ -196,7 +215,9 @@ class StorageBaseTests:
 
         await storage.delete(["batch1", "batch2", "batch3"])
 
-        result = await storage.read(["batch1", "batch2", "batch3"], target_cls=MockStoreItem)
+        result = await storage.read(
+            ["batch1", "batch2", "batch3"], target_cls=MockStoreItem
+        )
 
         assert result.get("batch1", None) is None
         assert result.get("batch2", None) is None

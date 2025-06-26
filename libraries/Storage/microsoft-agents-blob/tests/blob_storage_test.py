@@ -17,17 +17,20 @@ from .storage_base_test import StorageBaseTests
 
 EMULATOR_RUNNING = False
 
+
 # constructs an emulated blob storage instance
 @pytest_asyncio.fixture
 async def blob_storage():
-    
+
     # setup
-    
+
     # Default Azure Storage Emulator connection string
-    connection_string = ("AccountName=devstoreaccount1;AccountKey=Eby8vdM02xNOcqFlqUwJPLlmEtlCDXJ1OUzFT50uSRZ6IFsuFq"
-    + "2UVErCz4I6tq/K1SZFPTOtr/KBHBeksoGMGw==;DefaultEndpointsProtocol=http;BlobEndpoint="
-    + "http://127.0.0.1:10000/devstoreaccount1;QueueEndpoint=http://127.0.0.1:10001/devstoreaccount1;"
-    + "TableEndpoint=http://127.0.0.1:10002/devstoreaccount1;")
+    connection_string = (
+        "AccountName=devstoreaccount1;AccountKey=Eby8vdM02xNOcqFlqUwJPLlmEtlCDXJ1OUzFT50uSRZ6IFsuFq"
+        + "2UVErCz4I6tq/K1SZFPTOtr/KBHBeksoGMGw==;DefaultEndpointsProtocol=http;BlobEndpoint="
+        + "http://127.0.0.1:10000/devstoreaccount1;QueueEndpoint=http://127.0.0.1:10001/devstoreaccount1;"
+        + "TableEndpoint=http://127.0.0.1:10002/devstoreaccount1;"
+    )
 
     blob_service_client = BlobServiceClient.from_connection_string(connection_string)
 
@@ -42,9 +45,10 @@ async def blob_storage():
     await container_client.create_container()
 
     blob_storage_settings = BlobStorageSettings(
-        account_name="", account_key="",
+        account_name="",
+        account_key="",
         container_name=container_name,
-        connection_string=connection_string
+        connection_string=connection_string,
     )
 
     storage = BlobStorage(blob_storage_settings)
@@ -79,7 +83,7 @@ class TestBlobStorageConstructor:
         settings = BlobStorageSettings("")
         with pytest.raises(Exception) as err:
             BlobStorage(settings)
-            
+
         assert err.value.args[0] == "BlobStorage: Container name is required."
 
     @pytest.mark.asyncio
@@ -100,7 +104,9 @@ class TestBlobStorageConstructor:
 
     @pytest.mark.asyncio
     async def test_blob_storage_init_from_account_key_and_name(self):
-        settings = BlobStorageSettings("norway", account_name="some_account_name", account_key="some_account_key")
+        settings = BlobStorageSettings(
+            "norway", account_name="some_account_name", account_key="some_account_key"
+        )
         BlobStorage(settings)
 
 
@@ -128,9 +134,7 @@ class TestBlobStorageBaseTests:
     @pytest.mark.skipif(not EMULATOR_RUNNING, reason="Needs the emulator to run.")
     @pytest.mark.asyncio
     async def does_raise_when_writing_no_items(self, blob_storage):
-        test_ran = await StorageBaseTests.does_raise_when_writing_no_items(
-            blob_storage
-        )
+        test_ran = await StorageBaseTests.does_raise_when_writing_no_items(blob_storage)
         assert test_ran
 
     @pytest.mark.skipif(not EMULATOR_RUNNING, reason="Needs the emulator to run.")
@@ -179,9 +183,7 @@ class TestBlobStorage:
 
     @pytest.mark.skipif(not EMULATOR_RUNNING, reason="Needs the emulator to run.")
     @pytest.mark.asyncio
-    async def test_blob_storage_write_should_overwrite(
-        self, blob_storage
-    ):
+    async def test_blob_storage_write_should_overwrite(self, blob_storage):
         await blob_storage.write({"user": SimpleStoreItem()})
         await blob_storage.write({"user": SimpleStoreItem(counter=10, value="*")})
         data = await blob_storage.read(["user"], target_cls=SimpleStoreItem)
@@ -190,7 +192,9 @@ class TestBlobStorage:
 
     @pytest.mark.skipif(not EMULATOR_RUNNING, reason="Needs the emulator to run.")
     @pytest.mark.asyncio
-    async def test_blob_storage_delete_should_delete_according_cached_data(self, blob_storage):
+    async def test_blob_storage_delete_should_delete_according_cached_data(
+        self, blob_storage
+    ):
         await blob_storage.write({"test": SimpleStoreItem()})
         try:
             await blob_storage.delete(["test"])
@@ -207,7 +211,9 @@ class TestBlobStorage:
     async def test_blob_storage_delete_should_delete_multiple_values_when_given_multiple_valid_keys(
         self, blob_storage
     ):
-        await blob_storage.write({"test": SimpleStoreItem(), "test2": SimpleStoreItem(2)})
+        await blob_storage.write(
+            {"test": SimpleStoreItem(), "test2": SimpleStoreItem(2)}
+        )
         await blob_storage.delete(["test", "test2"])
         data = await blob_storage.read(["test", "test2"], target_cls=SimpleStoreItem)
         assert not data.keys()
@@ -225,7 +231,9 @@ class TestBlobStorage:
             }
         )
         await blob_storage.delete(["test", "test2"])
-        data = await blob_storage.read(["test", "test2", "test3"], target_cls=SimpleStoreItem)
+        data = await blob_storage.read(
+            ["test", "test2", "test3"], target_cls=SimpleStoreItem
+        )
         assert len(data.keys()) == 1
 
     @pytest.mark.skipif(not EMULATOR_RUNNING, reason="Needs the emulator to run.")
