@@ -5,7 +5,6 @@ from typing import TypeVar
 from io import BytesIO
 import json
 
-from azure.core import MatchConditions
 from azure.core.exceptions import (
     HttpResponseError,
     ResourceExistsError,
@@ -14,7 +13,6 @@ from azure.core.exceptions import (
 from azure.storage.blob.aio import (
     ContainerClient,
     BlobServiceClient,
-    BlobClient,
 )
 
 from microsoft.agents.storage._type_aliases import JSON
