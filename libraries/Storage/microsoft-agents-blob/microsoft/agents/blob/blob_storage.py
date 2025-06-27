@@ -1,6 +1,3 @@
-# based on
-# https://github.com/microsoft/botbuilder-python/blob/main/libraries/botbuilder-azure/botbuilder/azure/blob_storage.py
-
 from typing import TypeVar
 from io import BytesIO
 import json
@@ -108,7 +105,6 @@ class BlobStorage(Storage):
                 item_rep: str = await (
                     await self._container_client.download_blob(blob=key)
                 ).readall()
-                item_JSON: JSON = json.loads(item_rep)
             except HttpResponseError as error:
                 if error.status_code == 404:
                     continue
@@ -117,6 +113,7 @@ class BlobStorage(Storage):
                         f"BlobStorage.read(): Error reading blob '{key}': {error}"
                     )
 
+            item_JSON: JSON = json.loads(item_rep)
             try:
                 result[key] = target_cls.from_json_to_store_item(item_JSON)
             except AttributeError as error:
