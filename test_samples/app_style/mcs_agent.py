@@ -5,7 +5,7 @@ from os import environ
 from typing import Optional
 from dotenv import load_dotenv
 
-from microsoft.agents.builder.app import AgentApplication, TurnState
+from microsoft.agents.builder.app import AgentApplication, TurnState, ConversationState
 from microsoft.agents.builder.app.oauth import Authorization
 from microsoft.agents.builder import TurnContext, MessageFactory
 from microsoft.agents.storage import MemoryStorage
@@ -52,7 +52,7 @@ class McsConnectionSettings(ConnectionSettings):
         self.tenant_id = tenant_id or kwargs.get("TENANTID")
 
         if not self.app_client_id:
-            raise ValueError("App Client ID must be provided")
+            raise ValueError("Agent App ID must be provided")
         if not self.tenant_id:
             raise ValueError("Tenant ID must be provided")
 
@@ -111,7 +111,9 @@ async def _handle_message(context: TurnContext, state: TurnState) -> None:
     """Handle incoming messages with MCS integration"""
 
     # Get conversation ID from state
-    conversation_id = state.get_value("ConversationState.conversationId")
+    conversation_id = state.get_value(
+        ConversationState.CONTEXT_SERVICE_KEY + ".conversation_id", None
+    )
 
     # Get OBO token for Power Platform API
     if not AGENT_APP.auth:
@@ -137,7 +139,8 @@ async def _handle_message(context: TurnContext, state: TurnState) -> None:
                     await context.send_activity(MessageFactory.text(activity.text))
                     if activity.conversation and activity.conversation.id:
                         state.set_value(
-                            "conversation.conversationId", activity.conversation.id
+                            ConversationState.CONTEXT_SERVICE_KEY + ".conversation_id",
+                            activity.conversation.id,
                         )
                         break
         else:
@@ -168,7 +171,7 @@ async def _status(context: TurnContext, state: TurnState) -> None:
 
 def _create_client(token: str) -> CopilotClient:
     """Create CopilotClient with connection settings from environment"""
-    settings = McsConnectionSettings(**agents_sdk_config)
+    settings = McsConnectionSettings(**agents_sdk_config.get("COPILOTSTUDIOAGENT", {}))
     return CopilotClient(settings, token)
 
 
