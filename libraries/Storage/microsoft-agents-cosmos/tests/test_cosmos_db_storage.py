@@ -236,7 +236,6 @@ import azure.cosmos.exceptions as cosmos_exceptions
 from azure.cosmos import documents
 
 from microsoft.agents.cosmos import CosmosDBStorage, CosmosDBConfig
-from tests.test_storage_base import StorageBaseTests
 
 EMULATOR_RUNNING = False
 
