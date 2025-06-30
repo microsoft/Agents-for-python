@@ -226,7 +226,6 @@ class StorageBaseTests:
         return True
 
 
-
 # Copyright (c) Microsoft Corporation. All rights reserved.
 # Licensed under the MIT License.
 
@@ -241,6 +240,7 @@ from tests.test_storage_base import StorageBaseTests
 
 EMULATOR_RUNNING = False
 
+
 @pytest.fixture()
 def config():
 
@@ -250,13 +250,16 @@ def config():
 
     config = CosmosDBConfig(
         cosmos_db_endpoint="https://localhost:8081",
-        auth_key=("C2y6yDjf5/R+ob0N8A7Cgv30VRDJIWEHLM+4QDU5DE2nQ9nDuVTqobD4b8mGG"
-        "yPMbIZnqyMsEcaGQy67XIw/Jw=="),
+        auth_key=(
+            "C2y6yDjf5/R+ob0N8A7Cgv30VRDJIWEHLM+4QDU5DE2nQ9nDuVTqobD4b8mGG"
+            "yPMbIZnqyMsEcaGQy67XIw/Jw=="
+        ),
         database_id=database_id,
         container_id=container_id,
     )
 
     return config
+
 
 @pytest_asyncio.fixture()
 def storage(config):
@@ -278,6 +281,7 @@ def storage(config):
             cosmos_storage.client.delete_database(config.database_id)
     except cosmos_exceptions.HttpResponseError:
         pass
+
 
 class TestCosmosDBPartitionedStorageConstructor:
     @pytest.mark.skipif(not EMULATOR_RUNNING, reason="Needs the emulator to run.")
@@ -375,9 +379,7 @@ class TestCosmosDBPartitionedStorageBaseStorageTests:
     @pytest.mark.skipif(not EMULATOR_RUNNING, reason="Needs the emulator to run.")
     @pytest.mark.asyncio
     async def test_does_raise_when_writing_no_items(self, storage):
-        test_ran = await StorageBaseTests.does_raise_when_writing_no_items(
-            storage
-        )
+        test_ran = await StorageBaseTests.does_raise_when_writing_no_items(storage)
         assert test_ran
 
     @pytest.mark.skipif(not EMULATOR_RUNNING, reason="Needs the emulator to run.")

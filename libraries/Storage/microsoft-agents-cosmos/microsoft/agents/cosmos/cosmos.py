@@ -57,7 +57,9 @@ class CosmosDBConfig:
         config_file = kwargs.get("filename", "")
         if config_file:
             kwargs = json.load(open(config_file))
-        self.cosmos_db_endpoint: str = cosmos_db_endpoint or kwargs.get("cosmos_db_endpoint")
+        self.cosmos_db_endpoint: str = cosmos_db_endpoint or kwargs.get(
+            "cosmos_db_endpoint"
+        )
         self.auth_key: str = auth_key or kwargs.get("auth_key")
         self.database_id: str = database_id or kwargs.get("database_id")
         self.container_id: str = container_id or kwargs.get("container_id")
@@ -68,7 +70,9 @@ class CosmosDBConfig:
             "container_throughput"
         )
         self.key_suffix: str = key_suffix or kwargs.get("key_suffix")
-        self.compatibility_mode: bool = compatibility_mode or kwargs.get("compatibility_mode")
+        self.compatibility_mode: bool = compatibility_mode or kwargs.get(
+            "compatibility_mode"
+        )
 
 
 class CosmosDBKeyEscape:
@@ -140,7 +144,9 @@ class CosmosDBStorage(Storage):
                     f"Cannot use invalid Row Key characters: {config.key_suffix} in keySuffix."
                 )
 
-    async def read(self, keys: list[str], *, target_cls: StoreItemT = None, **kwargs) -> dict[str, StoreItemT]:
+    async def read(
+        self, keys: list[str], *, target_cls: StoreItemT = None, **kwargs
+    ) -> dict[str, StoreItemT]:
         """Read storeitems from storage.
 
         :param keys:
@@ -161,7 +167,9 @@ class CosmosDBStorage(Storage):
                     escaped_key, self._get_partition_key(escaped_key)
                 )
                 doc: JSON = read_item_response.get("document")
-                result[read_item_response["realId"]] = target_cls.from_json_to_store_item(doc)
+                result[read_item_response["realId"]] = (
+                    target_cls.from_json_to_store_item(doc)
+                )
 
             # When an item is not found a CosmosException is thrown, but we want to
             # return an empty collection
@@ -188,7 +196,7 @@ class CosmosDBStorage(Storage):
                     key, self.config.key_suffix, self.config.compatibility_mode
                 ),
                 "realId": key,
-                "document": item.store_item_to_json()
+                "document": item.store_item_to_json(),
             }
 
             try:
