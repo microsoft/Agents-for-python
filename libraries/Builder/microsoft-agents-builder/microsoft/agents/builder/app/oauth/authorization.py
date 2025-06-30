@@ -27,11 +27,11 @@ class SignInState(StoreItem, BaseModel):
     completed: Optional[bool] = False
 
     def store_item_to_json(self) -> dict:
-        return self.model_dump()
+        return self.model_dump(exclude_unset=True)
 
     @staticmethod
     def from_json_to_store_item(json_data: dict) -> "StoreItem":
-        return FlowState.model_validate(json_data)
+        return SignInState.model_validate(json_data)
 
 
 class AuthHandler:
@@ -280,7 +280,7 @@ class Authorization:
             The token response from the OAuth provider.
         """
         # Get or initialize sign-in state
-        sign_in_state = state.get_value(self.SIGN_IN_STATE_KEY)
+        sign_in_state = state.get_value(self.SIGN_IN_STATE_KEY, target_cls=SignInState)
         if sign_in_state is None:
             sign_in_state = SignInState(
                 continuation_activity=None, handler_id=None, completed=False

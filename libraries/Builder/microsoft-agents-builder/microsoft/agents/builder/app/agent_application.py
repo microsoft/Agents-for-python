@@ -521,8 +521,8 @@ class AgentApplication(Agent, Generic[StateT]):
 
             turn_state = await self._initialize_state(context)
 
-            sign_in_state = cast(
-                SignInState, turn_state.get_value(Authorization.SIGN_IN_STATE_KEY)
+            sign_in_state = turn_state.get_value(
+                Authorization.SIGN_IN_STATE_KEY, target_cls=SignInState
             )
 
             if self._auth and sign_in_state:

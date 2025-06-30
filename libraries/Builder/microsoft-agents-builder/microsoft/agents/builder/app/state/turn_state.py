@@ -107,7 +107,11 @@ class TurnState:
         )
 
     def get_value(
-        self, name: str, default_value_factory: Optional[Callable[[], T]] = None
+        self,
+        name: str,
+        default_value_factory: Optional[Callable[[], T]] = None,
+        *,
+        target_cls: Type[T] = None,
     ) -> T:
         """
         Gets a value from state.
@@ -122,7 +126,9 @@ class TurnState:
         scope, property_name = self._get_scope_and_path(name)
         scope_obj = self.get_scope_by_name(scope)
         if hasattr(scope_obj, "get_value"):
-            return scope_obj.get_value(property_name, default_value_factory)
+            return scope_obj.get_value(
+                property_name, default_value_factory, target_cls=target_cls
+            )
         return None
 
     def set_value(self, path: str, value: Any) -> None:

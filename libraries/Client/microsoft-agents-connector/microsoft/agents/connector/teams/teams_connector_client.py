@@ -169,7 +169,9 @@ class TeamsConnectorClient(ConnectorClient):
         """
         async with self.client.post(
             "v3/conversations",
-            json=conversation_parameters.model_dump(by_alias=True, exclude_unset=True),
+            json=conversation_parameters.model_dump(
+                by_alias=True, exclude_unset=True, mode="json"
+            ),
             headers={"Content-Type": "application/json"},
         ) as response:
             response.raise_for_status()
@@ -187,7 +189,9 @@ class TeamsConnectorClient(ConnectorClient):
         """
         async with self.client.post(
             f"v1/meetings/{meeting_id}/notification",
-            json=notification.model_dump(by_alias=True, exclude_unset=True),
+            json=notification.model_dump(
+                by_alias=True, exclude_unset=True, mode="json"
+            ),
         ) as response:
             response.raise_for_status()
             return MeetingNotificationResponse.model_validate(await response.json())
@@ -204,9 +208,11 @@ class TeamsConnectorClient(ConnectorClient):
         :return: The batch operation response.
         """
         content = {
-            "activity": activity.model_dump(by_alias=True, exclude_unset=True),
+            "activity": activity.model_dump(
+                by_alias=True, exclude_unset=True, mode="json"
+            ),
             "members": [
-                member.model_dump(by_alias=True, exclude_unset=True)
+                member.model_dump(by_alias=True, exclude_unset=True, mode="json")
                 for member in members
             ],
             "tenantId": tenant_id,
@@ -229,7 +235,9 @@ class TeamsConnectorClient(ConnectorClient):
         :return: The batch operation response.
         """
         content = {
-            "activity": activity.model_dump(by_alias=True, exclude_unset=True),
+            "activity": activity.model_dump(
+                by_alias=True, exclude_unset=True, mode="json"
+            ),
             "tenantId": tenant_id,
         }
 
@@ -251,7 +259,9 @@ class TeamsConnectorClient(ConnectorClient):
         :return: The batch operation response.
         """
         content = {
-            "activity": activity.model_dump(by_alias=True, exclude_unset=True),
+            "activity": activity.model_dump(
+                by_alias=True, exclude_unset=True, mode="json"
+            ),
             "tenantId": tenant_id,
             "teamId": team_id,
         }
@@ -274,10 +284,12 @@ class TeamsConnectorClient(ConnectorClient):
         :return: The batch operation response.
         """
         content = {
-            "activity": activity.model_dump(by_alias=True, exclude_unset=True),
+            "activity": activity.model_dump(
+                by_alias=True, exclude_unset=True, mode="json"
+            ),
             "tenantId": tenant_id,
             "members": [
-                member.model_dump(by_alias=True, exclude_unset=True)
+                member.model_dump(by_alias=True, exclude_unset=True, mode="json")
                 for member in members
             ],
         }

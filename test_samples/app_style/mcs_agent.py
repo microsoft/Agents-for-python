@@ -1,6 +1,7 @@
 # Copyright (c) Microsoft Corporation. All rights reserved.
 # Licensed under the MIT License.
 
+import traceback
 from os import environ
 from typing import Optional
 from dotenv import load_dotenv
@@ -112,7 +113,7 @@ async def _handle_message(context: TurnContext, state: TurnState) -> None:
 
     # Get conversation ID from state
     conversation_id = state.get_value(
-        ConversationState.CONTEXT_SERVICE_KEY + ".conversation_id", None
+        ConversationState.CONTEXT_SERVICE_KEY + ".conversation_id", target_cls=str
     )
 
     # Get OBO token for Power Platform API
@@ -142,7 +143,7 @@ async def _handle_message(context: TurnContext, state: TurnState) -> None:
                             ConversationState.CONTEXT_SERVICE_KEY + ".conversation_id",
                             activity.conversation.id,
                         )
-                        break
+                        await state.save(context)
         else:
             # Continue existing conversation
             async for activity in copilot_client.ask_question(
@@ -157,6 +158,7 @@ async def _handle_message(context: TurnContext, state: TurnState) -> None:
                     await context.send_activity(typing_activity)
 
     except Exception as e:
+        traceback.print_exc()
         await context.send_activity(
             MessageFactory.text(f"Error communicating with MCS: {str(e)}")
         )
