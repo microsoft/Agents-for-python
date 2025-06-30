@@ -24,7 +24,7 @@ from microsoft.agents.storage import Storage, StoreItem
 StoreItemT = TypeVar("StoreItemT", bound=StoreItem)
 
 
-class CosmosDbPartitionedConfig:
+class CosmosDBConfig:
     """The class for partitioned CosmosDB configuration for the Azure Bot Framework."""
 
     def __init__(
@@ -52,7 +52,7 @@ class CosmosDbPartitionedConfig:
             key characters. (e.g. not: '\\', '?', '/', '#', '*')
         :param compatibility_mode: True if keys should be truncated in order to support previous CosmosDb
             max key length of 255.
-        :return CosmosDbPartitionedConfig:
+        :return CosmosDBConfig:
         """
         config_file = kwargs.get("filename", "")
         if config_file:
@@ -71,7 +71,7 @@ class CosmosDbPartitionedConfig:
         self.compatibility_mode: bool = compatibility_mode or kwargs.get("compatibility_mode")
 
 
-class CosmosDbKeyEscape:
+class CosmosDBKeyEscape:
 
     @staticmethod
     def sanitize_key(
@@ -85,7 +85,7 @@ class CosmosDbKeyEscape:
         :param key_suffix: The string to add a the end of all RowKeys.
         :param compatibility_mode: True if keys should be truncated in order to support previous CosmosDb
             max key length of 255.  This behavior can be overridden by setting
-            cosmosdb_partitioned_config.compatibility_mode to False.
+            cosmosdb_config.compatibility_mode to False.
         :return str:
         """
         # forbidden characters
@@ -94,7 +94,7 @@ class CosmosDbKeyEscape:
         # replace those with with '*' and the
         # Unicode code point of the character and return the new string
         key = "".join(map(lambda x: "*" + str(ord(x)) if x in bad_chars else x, key))
-        return CosmosDbKeyEscape.truncate_key(f"{key}{key_suffix}", compatibility_mode)
+        return CosmosDBKeyEscape.truncate_key(f"{key}{key_suffix}", compatibility_mode)
 
     @staticmethod
     def truncate_key(key: str, compatibility_mode: bool = True) -> str:
@@ -112,16 +112,16 @@ class CosmosDbKeyEscape:
         return key
 
 
-class CosmosDbPartitionedStorage(Storage):
+class CosmosDBStorage(Storage):
     """A CosmosDB based storage provider using partitioning for a bot."""
 
-    def __init__(self, config: CosmosDbPartitionedConfig):
+    def __init__(self, config: CosmosDBConfig):
         """Create the storage object.
 
         :param config:
         """
         super().__init__()
-        self.config: CosmosDbPartitionedConfig = config
+        self.config: CosmosDBConfig = config
         self.client: CosmosClient = None
         self.database: DatabaseProxy = None
         self.container: ContainerProxy = None
@@ -134,7 +134,7 @@ class CosmosDbPartitionedStorage(Storage):
                 raise Exception(
                     "compatibilityMode cannot be true while using a keySuffix."
                 )
-            suffix_escaped: str = CosmosDbKeyEscape.sanitize_key(config.key_suffix)
+            suffix_escaped: str = CosmosDBKeyEscape.sanitize_key(config.key_suffix)
             if suffix_escaped != config.key_suffix:
                 raise Exception(
                     f"Cannot use invalid Row Key characters: {config.key_suffix} in keySuffix."
@@ -147,14 +147,14 @@ class CosmosDbPartitionedStorage(Storage):
         :return dict:
         """
         if not keys:
-            raise ValueError("CosmosDbPartitionedStorage.read(): keys cannot be None or empty")
+            raise ValueError("CosmosDBStorage.read(): keys cannot be None or empty")
 
         await self.initialize()
 
         result: dict[str, StoreItemT] = {}
         for key in keys:
             try:
-                escaped_key: str = CosmosDbKeyEscape.sanitize_key(
+                escaped_key: str = CosmosDBKeyEscape.sanitize_key(
                     key, self.config.key_suffix, self.config.compatibility_mode
                 )
                 read_item_response: CosmosDict = self.container.read_item(
@@ -184,7 +184,7 @@ class CosmosDbPartitionedStorage(Storage):
 
         for key, item in changes.items():
             doc = {
-                "id": CosmosDbKeyEscape.sanitize_key(
+                "id": CosmosDBKeyEscape.sanitize_key(
                     key, self.config.key_suffix, self.config.compatibility_mode
                 ),
                 "realId": key,
@@ -205,7 +205,7 @@ class CosmosDbPartitionedStorage(Storage):
         await self.initialize()
 
         for key in keys:
-            escaped_key: str = CosmosDbKeyEscape.sanitize_key(
+            escaped_key: str = CosmosDBKeyEscape.sanitize_key(
                 key, self.config.key_suffix, self.config.compatibility_mode
             )
             try:
@@ -227,7 +227,7 @@ class CosmosDbPartitionedStorage(Storage):
 
                 # kwargs 'connection_verify' is to handle CosmosClient overwriting the
                 # ConnectionPolicy.DisableSSLVerification value.
-                self.client = cosmos_client.CosmosClient(
+                self.client = CosmosClient(
                     self.config.cosmos_db_endpoint,
                     self.config.auth_key,
                     self.config.cosmos_client_options.get("consistency_level", None),
@@ -249,7 +249,7 @@ class CosmosDbPartitionedStorage(Storage):
     def _get_or_create_container(self):
 
         if not self.container:
-            with self.__lock:
+            with self._lock:
                 partition_key = {
                     "paths": ["/id"],
                     "kind": documents.PartitionKind.Hash,

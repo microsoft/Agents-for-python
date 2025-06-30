@@ -58,6 +58,7 @@ steps:
     python -m pip install ./dist/microsoft_agents_hosting_aiohttp*.whl
     python -m pip install ./dist/microsoft_agents_storage*.whl
     python -m pip install ./dist/microsoft_agents_blob*.whl
+    python -m pip install ./dist/microsoft_agents_cosmos*.whl
   displayName: 'Install wheels'
 
 - script: |
