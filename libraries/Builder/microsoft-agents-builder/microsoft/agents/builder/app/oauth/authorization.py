@@ -129,6 +129,9 @@ class Authorization:
         self._sign_in_handler: Optional[
             Callable[[TurnContext, TurnState, Optional[str]], Awaitable[None]]
         ] = None
+        self._sign_in_failed_handler: Optional[
+            Callable[[TurnContext, TurnState, Optional[str]], Awaitable[None]]
+        ] = None
 
         # Configure each auth handler
         for auth_handler in self._auth_handlers.values():
@@ -266,7 +269,8 @@ class Authorization:
         self,
         context: TurnContext,
         state: TurnState,
-        auth_handler_id: Optional[str] = None,
+        auth_handler_id: str,
+        sec_route: bool = True,
     ) -> TokenResponse:
         """
         Begins or continues an OAuth flow.
@@ -279,6 +283,7 @@ class Authorization:
         Returns:
             The token response from the OAuth provider.
         """
+        auth_handler = self.resolver_handler(auth_handler_id)
         # Get or initialize sign-in state
         sign_in_state = state.get_value(self.SIGN_IN_STATE_KEY, target_cls=SignInState)
         if sign_in_state is None:
@@ -286,27 +291,37 @@ class Authorization:
                 continuation_activity=None, handler_id=None, completed=False
             )
 
-        flow = self.resolver_handler(auth_handler_id).flow
+        flow = auth_handler.flow
         if flow is None:
             raise ValueError("OAuth flow is not configured for the auth handler")
+
+        token_response = await flow.get_user_token(context)
+        if token_response and token_response.token:
+            return token_response
 
         # Get the current flow state
         flow_state = await flow._get_flow_state(context)
 
         if not flow_state.flow_started:
             token_response = await flow.begin_flow(context)
-            sign_in_state.continuation_activity = context.activity
-            sign_in_state.handler_id = auth_handler_id
-            state.set_value(self.SIGN_IN_STATE_KEY, sign_in_state)
+            if sec_route:
+                sign_in_state.continuation_activity = context.activity
+                sign_in_state.handler_id = auth_handler_id
+                state.set_value(self.SIGN_IN_STATE_KEY, sign_in_state)
         else:
             token_response = await flow.continue_flow(context)
             # Check if sign-in was successful and call handler if configured
             if token_response and token_response.token:
                 if self._sign_in_handler:
                     await self._sign_in_handler(context, state, auth_handler_id)
-                sign_in_state.completed = True
-                state.set_value(self.SIGN_IN_STATE_KEY, sign_in_state)
+                if sec_route:
+                    state.delete_value(self.SIGN_IN_STATE_KEY)
+            else:
+                if self._sign_in_failed_handler:
+                    await self._sign_in_failed_handler(context, state, auth_handler_id)
+                    
 
+        await state.save(context)
         return token_response
 
     def resolver_handler(self, auth_handler_id: Optional[str] = None) -> AuthHandler:
@@ -365,3 +380,14 @@ class Authorization:
             handler: The handler function to call on successful sign-in.
         """
         self._sign_in_handler = handler
+    
+    def on_sign_in_failure(
+        self,
+        handler: Callable[[TurnContext, TurnState, Optional[str]], Awaitable[None]],
+    ) -> None:
+        """
+        Sets a handler to be called when sign-in fails.
+        Args:
+            handler: The handler function to call on sign-in failure.
+        """
+        self._sign_in_failed_handler = handler

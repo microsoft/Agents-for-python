@@ -4,6 +4,7 @@ Licensed under the MIT License.
 """
 
 from __future__ import annotations
+from copy import copy
 from functools import partial
 
 from os import environ
@@ -479,6 +480,32 @@ class AgentApplication(Agent, Generic[StateT]):
                 """
             )
         return func
+    
+    def on_sign_in_failure(
+        self, func: Callable[[TurnContext, StateT, Optional[str]], Awaitable[None]]
+    ) -> Callable[[TurnContext, StateT, Optional[str]], Awaitable[None]]:
+        """
+        Registers a new event listener that will be executed when a user fails to sign in.
+
+        ```python
+        # Use this method as a decorator
+        @app.on_sign_in_failure
+        async def sign_in_failure(context: TurnContext, state: TurnState):
+            print("hello world!")
+            return True
+        ```
+        """
+
+        if self._auth:
+            self._auth.on_sign_in_failure(func)
+        else:
+            raise ApplicationError(
+                """
+                The `AgentApplication.on_sign_in_failure` method is unavailable because
+                no Auth options were configured.
+                """
+            )
+        return func
 
     def error(
         self, func: Callable[[TurnContext, Exception], Awaitable[None]]
@@ -525,26 +552,26 @@ class AgentApplication(Agent, Generic[StateT]):
                 Authorization.SIGN_IN_STATE_KEY, target_cls=SignInState
             )
 
-            if self._auth and sign_in_state:
+            if self._auth and sign_in_state and not sign_in_state.completed:
                 flow_state = self._auth.get_flow_state(sign_in_state.handler_id)
                 if (
                     flow_state.flow_started
-                    and flow_state.abs_oauth_connection_name
-                    == self._auth._auth_handlers[sign_in_state.handler_id].name
                 ):
                     token_response = await self._auth.begin_or_continue_flow(
                         context, turn_state, sign_in_state.handler_id
                     )
+                    saved_activity = (
+                        sign_in_state.continuation_activity.model_copy()
+                    )
                     if (
-                        sign_in_state.completed
-                        and token_response
+                        token_response
                         and token_response.token
                     ):
-                        saved_activity = (
-                            sign_in_state.continuation_activity.model_copy()
-                        )
-                        await self.on_turn(TurnContext(self._adapter, saved_activity))
+                        new_context = copy(context)
+                        new_context.activity = saved_activity
+                        await self.on_turn(new_context)
                         turn_state.delete_value(Authorization.SIGN_IN_STATE_KEY)
+                        await turn_state.save(context)
                     return
 
             if not await self._run_before_turn_middleware(context, turn_state):

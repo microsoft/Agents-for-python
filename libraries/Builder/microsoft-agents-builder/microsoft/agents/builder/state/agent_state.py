@@ -243,7 +243,7 @@ class AgentState:
         if not property_name:
             raise TypeError("BotState.delete_property(): property_name cannot be None.")
 
-        if self._cached_state[property_name]:
+        if self._cached_state.state.get(property_name):
             del self._cached_state.state[property_name]
 
     def set_value(self, property_name: str, value: StoreItem) -> None:

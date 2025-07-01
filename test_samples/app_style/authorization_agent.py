@@ -106,48 +106,9 @@ async def sign_out(
         return False
 
 
-@AGENT_APP.message(re.compile(r"^(login|signin|sign in)", re.IGNORECASE))
-async def sign_in(
-    context: TurnContext, state: TurnState, handler_id: str = None
-) -> TokenResponse:
-    """
-    Internal method to begin or continue sign-in flow for the specified handler.
-    """
-    if not AGENT_APP.auth:
-        await context.send_activity(
-            MessageFactory.text("Authorization is not configured.")
-        )
-        return None
-
-    try:
-        token_response = await AGENT_APP.auth.begin_or_continue_flow(
-            context, state, handler_id
-        )
-        if token_response and token_response.token:
-            await context.send_activity(
-                MessageFactory.text(
-                    f"Successfully signed in to {handler_id or 'service'}."
-                )
-            )
-        return token_response
-    except Exception as e:
-        await context.send_activity(
-            MessageFactory.text(f"Error during sign-in: {str(e)}")
-        )
-        return None
-
-
-@AGENT_APP.message(re.compile(r"^(gh login|gh signin|user)$", re.IGNORECASE))
-async def sign_in_github(context: TurnContext, state: TurnState) -> TokenResponse:
-    """
-    Internal method to begin or continue sign-in flow for GitHub.
-    """
-    return await sign_in(context, state, handler_id="GITHUB")
-
-
-@AGENT_APP.message(re.compile(r"^(me|profile)$", re.IGNORECASE))
+@AGENT_APP.message(re.compile(r"^(me|profile)$", re.IGNORECASE), auth_handlers=["GRAPH"])
 async def profile_request(
-    context: TurnContext, state: TurnState, handler_id: str = None
+    context: TurnContext, state: TurnState
 ) -> dict:
     """
     Internal method to get user profile information using the specified handler.
@@ -159,11 +120,11 @@ async def profile_request(
         return None
 
     try:
-        token_response = await AGENT_APP.auth.get_token(context, handler_id)
+        token_response = await AGENT_APP.auth.get_token(context, "GRAPH")
         if not token_response or not token_response.token:
             await context.send_activity(
                 MessageFactory.text(
-                    f"Not authenticated with {handler_id}. Please sign in first."
+                    f"Not authenticated with Graph. Please sign in first."
                 )
             )
             return None
@@ -184,9 +145,9 @@ async def profile_request(
         return None
 
 
-@AGENT_APP.message(re.compile(r"^(github profile|gh profile)$", re.IGNORECASE))
+@AGENT_APP.message(re.compile(r"^(github profile|gh profile)$", re.IGNORECASE), auth_handlers=["GITHUB"])
 async def profile_github(
-    context: TurnContext, state: TurnState, handler_id: str = "GITHUB"
+    context: TurnContext, state: TurnState
 ) -> dict:
     """
     Internal method to get GitHub profile information.
@@ -198,11 +159,11 @@ async def profile_github(
         return None
 
     try:
-        token_response = await AGENT_APP.auth.get_token(context, handler_id)
+        token_response = await AGENT_APP.auth.get_token(context, "GITHUB")
         if not token_response or not token_response.token:
             await context.send_activity(
                 MessageFactory.text(
-                    f"Not authenticated with {handler_id}. Please sign in first."
+                    f"Not authenticated with Github. Please sign in first."
                 )
             )
 
