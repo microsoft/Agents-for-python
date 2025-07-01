@@ -16,6 +16,7 @@ classifiers = [
 dependencies = [
     "microsoft-agents-connector",
     "microsoft-agents-core",
+    "python-dotenv>=1.1.1",
 ]
 
 [project.urls]
