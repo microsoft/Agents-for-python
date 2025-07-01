@@ -319,7 +319,6 @@ class Authorization:
             else:
                 if self._sign_in_failed_handler:
                     await self._sign_in_failed_handler(context, state, auth_handler_id)
-                    
 
         await state.save(context)
         return token_response
@@ -380,7 +379,7 @@ class Authorization:
             handler: The handler function to call on successful sign-in.
         """
         self._sign_in_handler = handler
-    
+
     def on_sign_in_failure(
         self,
         handler: Callable[[TurnContext, TurnState, Optional[str]], Awaitable[None]],

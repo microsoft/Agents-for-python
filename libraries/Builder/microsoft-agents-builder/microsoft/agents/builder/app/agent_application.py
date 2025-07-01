@@ -480,7 +480,7 @@ class AgentApplication(Agent, Generic[StateT]):
                 """
             )
         return func
-    
+
     def on_sign_in_failure(
         self, func: Callable[[TurnContext, StateT, Optional[str]], Awaitable[None]]
     ) -> Callable[[TurnContext, StateT, Optional[str]], Awaitable[None]]:
@@ -554,19 +554,12 @@ class AgentApplication(Agent, Generic[StateT]):
 
             if self._auth and sign_in_state and not sign_in_state.completed:
                 flow_state = self._auth.get_flow_state(sign_in_state.handler_id)
-                if (
-                    flow_state.flow_started
-                ):
+                if flow_state.flow_started:
                     token_response = await self._auth.begin_or_continue_flow(
                         context, turn_state, sign_in_state.handler_id
                     )
-                    saved_activity = (
-                        sign_in_state.continuation_activity.model_copy()
-                    )
-                    if (
-                        token_response
-                        and token_response.token
-                    ):
+                    saved_activity = sign_in_state.continuation_activity.model_copy()
+                    if token_response and token_response.token:
                         new_context = copy(context)
                         new_context.activity = saved_activity
                         await self.on_turn(new_context)

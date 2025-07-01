@@ -106,10 +106,10 @@ async def sign_out(
         return False
 
 
-@AGENT_APP.message(re.compile(r"^(me|profile)$", re.IGNORECASE), auth_handlers=["GRAPH"])
-async def profile_request(
-    context: TurnContext, state: TurnState
-) -> dict:
+@AGENT_APP.message(
+    re.compile(r"^(me|profile)$", re.IGNORECASE), auth_handlers=["GRAPH"]
+)
+async def profile_request(context: TurnContext, state: TurnState) -> dict:
     """
     Internal method to get user profile information using the specified handler.
     """
@@ -145,10 +145,11 @@ async def profile_request(
         return None
 
 
-@AGENT_APP.message(re.compile(r"^(github profile|gh profile)$", re.IGNORECASE), auth_handlers=["GITHUB"])
-async def profile_github(
-    context: TurnContext, state: TurnState
-) -> dict:
+@AGENT_APP.message(
+    re.compile(r"^(github profile|gh profile)$", re.IGNORECASE),
+    auth_handlers=["GITHUB"],
+)
+async def profile_github(context: TurnContext, state: TurnState) -> dict:
     """
     Internal method to get GitHub profile information.
     """
