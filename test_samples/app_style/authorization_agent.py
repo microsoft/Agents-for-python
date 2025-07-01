@@ -231,6 +231,23 @@ async def pull_requests(
         return []
 
 
+@AGENT_APP.message(
+    re.compile(r"^(all profiles|all)", re.IGNORECASE), auth_handlers=["GRAPH", "GITHUB"]
+)
+async def all_profiles(context: TurnContext, state: TurnState) -> dict:
+    """
+    Internal method to get profiles from all configured handlers.
+    """
+    try:
+        await profile_request(context, state)
+        await profile_github(context, state)
+    except Exception as e:
+        await context.send_activity(
+            MessageFactory.text(f"Error retrieving profiles: {str(e)}")
+        )
+        return None
+
+
 @AGENT_APP.activity(ActivityTypes.invoke)
 async def invoke(context: TurnContext, state: TurnState) -> str:
     """
@@ -251,30 +268,6 @@ async def handle_sign_in_success(
             f"Successfully signed in to {handler_id or 'service'}. You can now use authorized features."
         )
     )
-
-
-@AGENT_APP.message(re.compile(r"^\d{6}$"))
-async def on_magic_code(context: TurnContext, state: TurnState):
-    # Handle 6-digit magic codes for OAuth verification
-    if AGENT_APP.auth:
-        for handler_id, handler in AGENT_APP.auth._auth_handlers.items():
-            if handler.flow and handler.flow.state and handler.flow.state.flow_started:
-                try:
-                    await AGENT_APP.auth.begin_or_continue_flow(
-                        context, state, handler_id
-                    )
-                    return
-                except Exception:
-                    # Continue trying other handlers
-                    continue
-
-        await context.send_activity(
-            MessageFactory.text(
-                "Failed to verify the code: please check that the code is correct and that you started a sign-in process."
-            )
-        )
-    else:
-        await on_message(context, state)
 
 
 @AGENT_APP.conversation_update("membersAdded")

@@ -150,7 +150,7 @@ class AgentState:
             await self._storage.write(changes)
             self._cached_state.hash = self._cached_state.compute_hash()
 
-    async def clear(self, turn_context: TurnContext):
+    def clear(self, turn_context: TurnContext):
         """
         Clears any state currently stored in this state scope.
 
@@ -165,7 +165,7 @@ class AgentState:
         #  Explicitly setting the hash will mean IsChanged is always true. And that will force a Save.
         cache_value = CachedAgentState()
         cache_value.hash = ""
-        turn_context.turn_state[self._context_service_key] = cache_value
+        self._cached_state = cache_value
 
     async def delete(self, turn_context: TurnContext) -> None:
         """
@@ -318,8 +318,18 @@ class BotStatePropertyAccessor(StatePropertyAccessor):
         :param default_value_or_factory: Defines the default value for the property
         """
         await self._bot_state.load(turn_context, False)
+
+        def default_value_factory():
+            if callable(default_value_or_factory):
+                return default_value_or_factory()
+            return deepcopy(default_value_or_factory)
+
         try:
-            result = self._bot_state.get_value(self._name, target_cls=target_cls)
+            result = self._bot_state.get_value(
+                self._name,
+                default_value_factory=default_value_factory,
+                target_cls=target_cls,
+            )
             return result
         except:
             # ask for default value from factory

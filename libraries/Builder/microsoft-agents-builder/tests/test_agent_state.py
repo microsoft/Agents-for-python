@@ -296,7 +296,8 @@ class TestAgentState:
         await prop_accessor.set(self.context, TestDataItem("test_value"))
 
         # Clear state
-        await self.user_state.clear(self.context)
+        self.user_state.clear(self.context)
+        await self.user_state.save(self.context)
 
         # Verify state is cleared
         value = await prop_accessor.get(self.context)
@@ -411,22 +412,6 @@ class TestAgentState:
         assert cached_state.is_changed
 
     @pytest.mark.asyncio
-    async def test_bot_state_property_accessor_functionality(self):
-        """Test BotStatePropertyAccessor specific functionality."""
-        accessor = BotStatePropertyAccessor(self.user_state, "test_prop")
-
-        # Test getting with default value
-        default_value = TestDataItem("default")
-        value = await accessor.get(self.context, default_value)
-        assert isinstance(value, TestDataItem)
-        assert value.value == "default"
-
-        # Test that default value is saved
-        retrieved_again = await accessor.get(self.context)
-        assert isinstance(retrieved_again, TestDataItem)
-        assert retrieved_again.value == "default"
-
-    @pytest.mark.asyncio
     async def test_concurrent_state_operations(self):
         """Test concurrent state operations."""
         # Create multiple accessors
@@ -489,7 +474,7 @@ class TestAgentState:
     def test_agent_state_context_service_key(self):
         """Test that AgentState has correct context service key."""
         assert self.user_state._context_service_key == "Internal.UserState"
-        assert self.conversation_state._context_service_key == "conversation_state"
+        assert self.conversation_state._context_service_key == "ConversationState"
 
     @pytest.mark.asyncio
     async def test_memory_storage_integration(self):

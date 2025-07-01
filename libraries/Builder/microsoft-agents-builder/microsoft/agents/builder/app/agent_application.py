@@ -631,35 +631,6 @@ class AgentApplication(Agent, Generic[StateT]):
         turn_state.temp.input = context.activity.text
         return turn_state
 
-    """
-    async def _authenticate_user(self, context: TurnContext, state):
-        if self.options.auth and self._auth:
-            auth_condition = (
-                isinstance(self.options.auth.auto, bool) and self.options.auth.auto
-            ) or (callable(self.options.auth.auto) and self.options.auth.auto(context))
-            user_in_sign_in = IN_SIGN_IN_KEY in state.user
-            if auth_condition or user_in_sign_in:
-                key: Optional[str] = state.user.get(
-                    IN_SIGN_IN_KEY, self.options.auth.default
-                )
-
-                if key is not None:
-                    state.user[IN_SIGN_IN_KEY] = key
-                    res = await self._auth.sign_in(context, state, key=key)
-                    if res.status == "complete":
-                        del state.user[IN_SIGN_IN_KEY]
-
-                    if res.status == "pending":
-                        await state.save(context, self._options.storage)
-                        return False
-
-                    if res.status == "error" and res.reason != "invalid-activity":
-                        del state.user[IN_SIGN_IN_KEY]
-                        raise ApplicationError(f"[{res.reason}] => {res.message}")
-
-        return True
-        """
-
     async def _run_before_turn_middleware(self, context: TurnContext, state: StateT):
         for before_turn in self._internal_before_turn:
             is_ok = await before_turn(context, state)
@@ -702,11 +673,11 @@ class AgentApplication(Agent, Generic[StateT]):
                         token_response = await self._auth.begin_or_continue_flow(
                             context, state, auth_handler_id
                         )
-                        if token_response and token_response.token:
-                            sign_in_complete = True
-                        if sign_in_complete:
-                            await route.handler(context, state)
-
+                        sign_in_complete = token_response and token_response.token
+                        if not sign_in_complete:
+                            break
+                    if sign_in_complete:
+                        await route.handler(context, state)
                 return
 
     async def _start_long_running_call(
