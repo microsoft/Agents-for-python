@@ -143,7 +143,7 @@ class Authorization:
                 messages_config["button_text"] = auth_handler.text
 
             auth_handler.flow = OAuthFlow(
-                user_state=user_state,
+                storage=storage,
                 abs_oauth_connection_name=auth_handler.abs_oauth_connection_name,
                 messages_configuration=messages_config if messages_config else None,
             )
@@ -263,12 +263,12 @@ class Authorization:
             return FlowState()
 
         # Return flow state if available
-        return flow.state if flow.state else FlowState()
+        return flow.flow_state or FlowState()
 
     async def begin_or_continue_flow(
         self,
         context: TurnContext,
-        state: TurnState,
+        turn_state: TurnState,
         auth_handler_id: str,
         sec_route: bool = True,
     ) -> TokenResponse:
@@ -285,7 +285,9 @@ class Authorization:
         """
         auth_handler = self.resolver_handler(auth_handler_id)
         # Get or initialize sign-in state
-        sign_in_state = state.get_value(self.SIGN_IN_STATE_KEY, target_cls=SignInState)
+        sign_in_state = turn_state.get_value(
+            self.SIGN_IN_STATE_KEY, target_cls=SignInState
+        )
         if sign_in_state is None:
             sign_in_state = SignInState(
                 continuation_activity=None, handler_id=None, completed=False
@@ -307,20 +309,22 @@ class Authorization:
             if sec_route:
                 sign_in_state.continuation_activity = context.activity
                 sign_in_state.handler_id = auth_handler_id
-                state.set_value(self.SIGN_IN_STATE_KEY, sign_in_state)
+                turn_state.set_value(self.SIGN_IN_STATE_KEY, sign_in_state)
         else:
             token_response = await flow.continue_flow(context)
             # Check if sign-in was successful and call handler if configured
             if token_response and token_response.token:
                 if self._sign_in_handler:
-                    await self._sign_in_handler(context, state, auth_handler_id)
+                    await self._sign_in_handler(context, turn_state, auth_handler_id)
                 if sec_route:
-                    state.delete_value(self.SIGN_IN_STATE_KEY)
+                    turn_state.delete_value(self.SIGN_IN_STATE_KEY)
             else:
                 if self._sign_in_failed_handler:
-                    await self._sign_in_failed_handler(context, state, auth_handler_id)
+                    await self._sign_in_failed_handler(
+                        context, turn_state, auth_handler_id
+                    )
 
-        await state.save(context)
+        await turn_state.save(context)
         return token_response
 
     def resolver_handler(self, auth_handler_id: Optional[str] = None) -> AuthHandler:

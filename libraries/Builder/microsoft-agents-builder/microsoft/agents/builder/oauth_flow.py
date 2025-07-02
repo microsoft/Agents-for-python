@@ -4,7 +4,7 @@
 from __future__ import annotations
 
 from datetime import datetime
-from typing import Optional
+from typing import Dict, Optional
 
 from microsoft.agents.connector.client import UserTokenClient
 from microsoft.agents.core.models import (
@@ -20,7 +20,7 @@ from microsoft.agents.core.models import (
 from microsoft.agents.core import (
     TurnContextProtocol as TurnContext,
 )
-from microsoft.agents.storage import StoreItem
+from microsoft.agents.storage import StoreItem, Storage
 from pydantic import BaseModel
 
 from .message_factory import MessageFactory
@@ -51,7 +51,7 @@ class OAuthFlow:
 
     def __init__(
         self,
-        user_state: UserState,
+        storage: Storage,
         abs_oauth_connection_name: str,
         user_token_client: Optional[UserTokenClient] = None,
         messages_configuration: dict[str, str] = None,
@@ -80,8 +80,8 @@ class OAuthFlow:
         self.token_exchange_id: Optional[str] = None
 
         # Initialize state and flow state
-        self._user_state = user_state
-        self.state = None
+        self._storage = storage
+        self.flow_state = None
 
     async def get_user_token(self, context: TurnContext) -> TokenResponse:
         """
@@ -120,7 +120,7 @@ class OAuthFlow:
         Returns:
             A TokenResponse object.
         """
-        self.state = FlowState()
+        self.flow_state = FlowState()
 
         if not self.abs_oauth_connection_name:
             raise ValueError("connectionName is not set")
@@ -138,10 +138,9 @@ class OAuthFlow:
 
         if user_token and user_token.token:
             # Already have token, return it
-            self.state.flow_started = False
-            self.state.flow_expires = 0
-            self.state.abs_oauth_connection_name = self.abs_oauth_connection_name
-            self._user_state.set_value(self._get_storage_key(context), self.state)
+            self.flow_state.flow_started = False
+            self.flow_state.flow_expires = 0
+            self.flow_state.abs_oauth_connection_name = self.abs_oauth_connection_name
             await self._save_flow_state(context)
             return user_token
 
@@ -182,10 +181,9 @@ class OAuthFlow:
         await context.send_activity(MessageFactory.attachment(o_card))
 
         # Update flow state
-        self.state.flow_started = True
-        self.state.flow_expires = datetime.now().timestamp() + 30000
-        self.state.abs_oauth_connection_name = self.abs_oauth_connection_name
-        self._user_state.set_value(self._get_storage_key(context), self.state)
+        self.flow_state.flow_started = True
+        self.flow_state.flow_expires = datetime.now().timestamp() + 30000
+        self.flow_state.abs_oauth_connection_name = self.abs_oauth_connection_name
         await self._save_flow_state(context)
 
         # Return in-progress response
@@ -204,9 +202,9 @@ class OAuthFlow:
         await self._initialize_token_client(context)
 
         if (
-            self.state
-            and self.state.flow_expires != 0
-            and datetime.now().timestamp() > self.state.flow_expires
+            self.flow_state
+            and self.flow_state.flow_expires != 0
+            and datetime.now().timestamp() > self.flow_state.flow_expires
         ):
             await context.send_activity(
                 MessageFactory.text(
@@ -234,13 +232,10 @@ class OAuthFlow:
                 )
 
                 if result and result.token:
-                    self.state.flow_started = False
-                    self.state.flow_expires = 0
-                    self.state.abs_oauth_connection_name = (
+                    self.flow_state.flow_started = False
+                    self.flow_state.flow_expires = 0
+                    self.flow_state.abs_oauth_connection_name = (
                         self.abs_oauth_connection_name
-                    )
-                    self._user_state.set_value(
-                        self._get_storage_key(context), self.state
                     )
                     await self._save_flow_state(context)
                     return result
@@ -248,11 +243,8 @@ class OAuthFlow:
                     await context.send_activity(
                         MessageFactory.text("Invalid code. Please try again.")
                     )
-                    self.state.flow_started = True
-                    self.state.flow_expires = datetime.now().timestamp() + 30000
-                    self._user_state.set_value(
-                        self._get_storage_key(context), self.state
-                    )
+                    self.flow_state.flow_started = True
+                    self.flow_state.flow_expires = datetime.now().timestamp() + 30000
                     await self._save_flow_state(context)
                     return TokenResponse()
             else:
@@ -279,9 +271,10 @@ class OAuthFlow:
             )
 
             if result and result.token:
-                self.state.flow_started = False
-                self.state.abs_oauth_connection_name = self.abs_oauth_connection_name
-                self._user_state.set_value(self._get_storage_key(context), self.state)
+                self.flow_state.flow_started = False
+                self.flow_state.abs_oauth_connection_name = (
+                    self.abs_oauth_connection_name
+                )
                 await self._save_flow_state(context)
                 return result
             return TokenResponse()
@@ -311,12 +304,11 @@ class OAuthFlow:
             )
 
             if user_token_resp and user_token_resp.token:
-                self.state.flow_started = False
-                self._user_state.set_value(self._get_storage_key(context), self.state)
+                self.flow_state.flow_started = False
                 await self._save_flow_state(context)
                 return user_token_resp
             else:
-                self.state.flow_started = True
+                self.flow_state.flow_started = True
                 return TokenResponse()
 
         return TokenResponse()
@@ -336,9 +328,8 @@ class OAuthFlow:
             channel_id=context.activity.channel_id,
         )
 
-        if self.state:
-            self.state.flow_expires = 0
-            self._user_state.set_value(self._get_storage_key(context), self.state)
+        if self.flow_state:
+            self.flow_state.flow_expires = 0
             await self._save_flow_state(context)
 
     async def _get_flow_state(self, context: TurnContext) -> FlowState:
@@ -353,14 +344,12 @@ class OAuthFlow:
         """
         storage_key = self._get_storage_key(context)
 
-        await self._user_state.load(context)
-
-        user_profile: FlowState | None = self._user_state.get_value(
-            storage_key, target_cls=FlowState
+        storage_result: Dict[str, FlowState] | None = await self._storage.read(
+            [storage_key], target_cls=FlowState
         )
-        if user_profile is None:
-            user_profile = FlowState()
-        return user_profile
+        if not storage_result or storage_key not in storage_result:
+            return FlowState()
+        return storage_result[storage_key]
 
     async def _save_flow_state(self, context: TurnContext) -> None:
         """
@@ -368,7 +357,7 @@ class OAuthFlow:
         Args:
             context: The turn context.
         """
-        await self._user_state.save(context)
+        await self._storage.write({self._get_storage_key(context): self.flow_state})
 
     async def _initialize_token_client(self, context: TurnContext) -> None:
         """
@@ -396,10 +385,14 @@ class OAuthFlow:
         channel_id = context.activity.channel_id
         if not channel_id:
             raise ValueError("Channel ID is not set in the activity.")
-        conversation_id = (
-            context.activity.conversation.id if context.activity.conversation else None
+        user_id = (
+            context.activity.from_property.id
+            if context.activity.from_property
+            else None
         )
-        if not conversation_id:
-            raise ValueError("Conversation ID is not set in the activity.")
+        if not user_id:
+            raise ValueError("User ID is not set in the activity.")
 
-        return f"oauth/{self.abs_oauth_connection_name}/{channel_id}/{conversation_id}/flowState"
+        return (
+            f"oauth/{self.abs_oauth_connection_name}/{channel_id}/{user_id}/flowState"
+        )
