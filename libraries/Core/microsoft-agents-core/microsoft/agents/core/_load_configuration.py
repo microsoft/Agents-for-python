@@ -20,7 +20,6 @@ def load_configuration_from_env(env_vars: Dict[str, Any]) -> dict:
 
     return {
         "AGENTAPPLICATION": result.get("AGENTAPPLICATION", {}),
-        "COPILOTSTUDIOAGENT": result.get("COPILOTSTUDIOAGENT", {}),
         "CONNECTIONS": result.get("CONNECTIONS", {}),
         "CONNECTIONSMAP": result.get("CONNECTIONSMAP", {}),
     }
