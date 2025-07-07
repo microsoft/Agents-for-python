@@ -19,12 +19,11 @@ class RestChannelServiceClientFactory(ChannelServiceClientFactoryBase):
 
     def __init__(
         self,
-        configuration: Any,
-        connections: Connections,
+        connection_manager: Connections,
         token_service_endpoint=AuthenticationConstants.AGENTS_SDK_OAUTH_URL,
         token_service_audience=AuthenticationConstants.AGENTS_SDK_SCOPE,
     ) -> None:
-        self._connections = connections
+        self._connection_manager = connection_manager
         self._token_service_endpoint = token_service_endpoint
         self._token_service_audience = token_service_audience
 
@@ -46,7 +45,7 @@ class RestChannelServiceClientFactory(ChannelServiceClientFactoryBase):
             )
 
         token_provider: AccessTokenProviderBase = (
-            self._connections.get_token_provider(claims_identity, service_url)
+            self._connection_manager.get_token_provider(claims_identity, service_url)
             if not use_anonymous
             else self._ANONYMOUS_TOKEN_PROVIDER
         )
@@ -64,7 +63,7 @@ class RestChannelServiceClientFactory(ChannelServiceClientFactoryBase):
         self, claims_identity: ClaimsIdentity, use_anonymous: bool = False
     ) -> UserTokenClient:
         token_provider = (
-            self._connections.get_token_provider(
+            self._connection_manager.get_token_provider(
                 claims_identity, self._token_service_endpoint
             )
             if not use_anonymous

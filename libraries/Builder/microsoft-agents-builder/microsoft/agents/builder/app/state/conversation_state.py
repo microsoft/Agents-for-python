@@ -18,7 +18,7 @@ class ConversationState(AgentState):
     Default Conversation State
     """
 
-    CONTEXT_SERVICE_KEY = "conversation_state"
+    CONTEXT_SERVICE_KEY = "ConversationState"
 
     def __init__(self, storage: Storage) -> None:
         """

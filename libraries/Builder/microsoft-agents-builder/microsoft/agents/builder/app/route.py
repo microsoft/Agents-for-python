@@ -5,7 +5,7 @@ Licensed under the MIT License.
 
 from __future__ import annotations
 
-from typing import Awaitable, Callable, Generic, TypeVar
+from typing import Awaitable, Callable, Generic, List, TypeVar
 
 from .. import TurnContext
 from .state import TurnState
@@ -24,7 +24,9 @@ class Route(Generic[StateT]):
         selector: Callable[[TurnContext], bool],
         handler: RouteHandler,
         is_invoke: bool = False,
+        auth_handlers: List[str] = None,
     ) -> None:
         self.selector = selector
         self.handler = handler
         self.is_invoke = is_invoke
+        self.auth_handlers = auth_handlers or []
