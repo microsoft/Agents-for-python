@@ -148,7 +148,7 @@ class ConversationsOperations(ConversationsBase):
 
         async with self.client.post(
             "v3/conversations",
-            json=body.model_dump(by_alias=True, exclude_unset=True),
+            json=body.model_dump(by_alias=True, exclude_unset=True, mode="json"),
         ) as response:
             if response.status >= 400:
                 logger.error(f"Error creating conversation: {response.status}")
@@ -175,7 +175,7 @@ class ConversationsOperations(ConversationsBase):
 
         async with self.client.post(
             url,
-            json=body.model_dump(by_alias=True, exclude_unset=True),
+            json=body.model_dump(by_alias=True, exclude_unset=True, mode="json"),
         ) as response:
             if response.status >= 400:
                 logger.error(f"Error replying to activity: {response.status}")
@@ -204,7 +204,7 @@ class ConversationsOperations(ConversationsBase):
 
         async with self.client.post(
             url,
-            json=body.model_dump(by_alias=True, exclude_unset=True),
+            json=body.model_dump(by_alias=True, exclude_unset=True, mode="json"),
         ) as response:
             if response.status >= 400:
                 logger.error(f"Error sending to conversation: {response.status}")

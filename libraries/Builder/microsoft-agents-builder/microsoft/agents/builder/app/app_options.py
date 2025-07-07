@@ -9,6 +9,7 @@ from dataclasses import dataclass, field
 from logging import Logger
 from typing import Callable, List, Optional
 
+from microsoft.agents.builder.app.oauth.authorization import AuthorizationHandlers
 from microsoft.agents.storage import Storage
 
 # from .auth import AuthOptions
@@ -81,4 +82,10 @@ class ApplicationOptions:
     Optional. Factory function to create the turn state.
     This should return an instance of `TurnState` or a subclass.
     If not provided, the default `TurnState` will be used.
+    """
+
+    authorization_handlers: Optional[AuthorizationHandlers] = None
+    """
+    Optional. Authorization handler for OAuth flows.
+    If not provided, no OAuth flows will be supported.
     """

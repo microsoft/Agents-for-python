@@ -8,6 +8,7 @@ from microsoft.agents.authorization import ClaimsIdentity
 from microsoft.agents.core import ChannelAdapterProtocol
 from microsoft.agents.core.models import (
     Activity,
+    ConversationAccount,
     ConversationReference,
     ConversationParameters,
     ResourceResponse,

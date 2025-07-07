@@ -12,7 +12,11 @@ from aiohttp.web import (
     HTTPUnauthorized,
     HTTPUnsupportedMediaType,
 )
-from microsoft.agents.authorization import ClaimsIdentity
+from microsoft.agents.authorization import (
+    AgentAuthConfiguration,
+    ClaimsIdentity,
+    Connections,
+)
 from microsoft.agents.core.models import (
     Activity,
     DeliveryModes,
@@ -22,6 +26,7 @@ from microsoft.agents.builder import (
     ChannelServiceAdapter,
     ChannelServiceClientFactoryBase,
     MessageFactory,
+    RestChannelServiceClientFactory,
     TurnContext,
 )
 
@@ -31,14 +36,15 @@ from .agent_http_adapter import AgentHttpAdapter
 class CloudAdapter(ChannelServiceAdapter, AgentHttpAdapter):
     def __init__(
         self,
-        channel_service_client_factory: ChannelServiceClientFactoryBase,
+        *,
+        connection_manager: Connections,
+        channel_service_client_factory: ChannelServiceClientFactoryBase = None,
     ):
         """
         Initializes a new instance of the CloudAdapter class.
 
         :param channel_service_client_factory: The factory to use to create the channel service client.
         """
-        super().__init__(channel_service_client_factory)
 
         async def on_turn_error(context: TurnContext, error: Exception):
             error_message = f"Exception caught : {error}"
@@ -55,7 +61,13 @@ class CloudAdapter(ChannelServiceAdapter, AgentHttpAdapter):
             )
 
         self.on_turn_error = on_turn_error
-        self._channel_service_client_factory = channel_service_client_factory
+
+        channel_service_client_factory = (
+            channel_service_client_factory
+            or RestChannelServiceClientFactory(connection_manager)
+        )
+
+        super().__init__(channel_service_client_factory)
 
     async def process(self, request: Request, agent: Agent) -> Optional[Response]:
         if not request:

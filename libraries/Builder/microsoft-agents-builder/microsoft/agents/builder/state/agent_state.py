@@ -83,6 +83,7 @@ class AgentState:
         self.state_key = "state"
         self._storage = storage
         self._context_service_key = context_service_key
+        self._cached_state: CachedAgentState = None
 
     def get_cached_state(self, turn_context: TurnContext) -> CachedAgentState:
         """
@@ -124,12 +125,12 @@ class AgentState:
         :param force: Optional, true to bypass the cache
         :type force: bool
         """
-        cached_state = self.get_cached_state(turn_context)
         storage_key = self.get_storage_key(turn_context)
 
-        if force or not cached_state:
+        if force or not self._cached_state:
             items = await self._storage.read([storage_key], target_cls=CachedAgentState)
             val = items.get(storage_key, CachedAgentState())
+            self._cached_state = val
             turn_context.turn_state[self._context_service_key] = val
 
     async def save(self, turn_context: TurnContext, force: bool = False) -> None:
@@ -142,15 +143,14 @@ class AgentState:
         :param force: Optional, true to save state to storage whether or not there are changes
         :type force: bool
         """
-        cached_state = self.get_cached_state(turn_context)
 
-        if force or (cached_state is not None and cached_state.is_changed):
+        if force or (self._cached_state is not None and self._cached_state.is_changed):
             storage_key = self.get_storage_key(turn_context)
-            changes: Dict[str, StoreItem] = {storage_key: cached_state}
+            changes: Dict[str, StoreItem] = {storage_key: self._cached_state}
             await self._storage.write(changes)
-            cached_state.hash = cached_state.compute_hash()
+            self._cached_state.hash = self._cached_state.compute_hash()
 
-    async def clear(self, turn_context: TurnContext):
+    def clear(self, turn_context: TurnContext):
         """
         Clears any state currently stored in this state scope.
 
@@ -165,7 +165,7 @@ class AgentState:
         #  Explicitly setting the hash will mean IsChanged is always true. And that will force a Save.
         cache_value = CachedAgentState()
         cache_value.hash = ""
-        turn_context.turn_state[self._context_service_key] = cache_value
+        self._cached_state = cache_value
 
     async def delete(self, turn_context: TurnContext) -> None:
         """
@@ -187,10 +187,10 @@ class AgentState:
     ) -> str:
         raise NotImplementedError()
 
-    async def get_property_value(
+    def get_value(
         self,
-        turn_context: TurnContext,
         property_name: str,
+        default_value_factory: Callable[[], StoreItem] = None,
         *,
         target_cls: Type[StoreItem] = None,
     ) -> StoreItem:
@@ -205,16 +205,21 @@ class AgentState:
         :return: The value of the property
         """
         if not property_name:
-            raise TypeError(
-                "BotState.get_property_value(): property_name cannot be None."
-            )
-        cached_state = self.get_cached_state(turn_context)
+            raise TypeError("BotState.get_value(): property_name cannot be None.")
 
         # if there is no value, this will throw, to signal to IPropertyAccesor that a default value should be computed
         # This allows this to work with value types
-        value = cached_state.state[property_name]
+        value = (
+            self._cached_state.state.get(property_name, None)
+            if self._cached_state
+            else None
+        )
 
-        if target_cls:
+        if not value and default_value_factory:
+            # If the value is None and a factory is provided, call the factory to get a default value
+            return default_value_factory()
+
+        if target_cls and value:
             # Attempt to deserialize the value if it is not None
             try:
                 return target_cls.from_json_to_store_item(value)
@@ -224,9 +229,7 @@ class AgentState:
 
         return value
 
-    async def delete_property_value(
-        self, turn_context: TurnContext, property_name: str
-    ) -> None:
+    def delete_value(self, property_name: str) -> None:
         """
         Deletes a property from the state cache in the turn context.
 
@@ -239,12 +242,11 @@ class AgentState:
         """
         if not property_name:
             raise TypeError("BotState.delete_property(): property_name cannot be None.")
-        cached_state = self.get_cached_state(turn_context)
-        del cached_state.state[property_name]
 
-    async def set_property_value(
-        self, turn_context: TurnContext, property_name: str, value: StoreItem
-    ) -> None:
+        if self._cached_state.state.get(property_name):
+            del self._cached_state.state[property_name]
+
+    def set_value(self, property_name: str, value: StoreItem) -> None:
         """
         Sets a property to the specified value in the turn context.
 
@@ -259,8 +261,7 @@ class AgentState:
         """
         if not property_name:
             raise TypeError("BotState.delete_property(): property_name cannot be None.")
-        cached_state = self.get_cached_state(turn_context)
-        cached_state.state[property_name] = value
+        self._cached_state.state[property_name] = value
 
 
 class BotStatePropertyAccessor(StatePropertyAccessor):
@@ -300,7 +301,7 @@ class BotStatePropertyAccessor(StatePropertyAccessor):
         :type turn_context: :class:`TurnContext`
         """
         await self._bot_state.load(turn_context, False)
-        await self._bot_state.delete_property_value(turn_context, self._name)
+        self._bot_state.delete_value(self._name)
 
     async def get(
         self,
@@ -317,9 +318,17 @@ class BotStatePropertyAccessor(StatePropertyAccessor):
         :param default_value_or_factory: Defines the default value for the property
         """
         await self._bot_state.load(turn_context, False)
+
+        def default_value_factory():
+            if callable(default_value_or_factory):
+                return default_value_or_factory()
+            return deepcopy(default_value_or_factory)
+
         try:
-            result = await self._bot_state.get_property_value(
-                turn_context, self._name, target_cls=target_cls
+            result = self._bot_state.get_value(
+                self._name,
+                default_value_factory=default_value_factory,
+                target_cls=target_cls,
             )
             return result
         except:
@@ -332,7 +341,7 @@ class BotStatePropertyAccessor(StatePropertyAccessor):
                 else deepcopy(default_value_or_factory)
             )
             # save default value for any further calls
-            await self.set(turn_context, result)
+            self.set(result)
             return result
 
     async def set(self, turn_context: TurnContext, value: StoreItem) -> None:
@@ -345,4 +354,4 @@ class BotStatePropertyAccessor(StatePropertyAccessor):
         :param value: The value to assign to the property
         """
         await self._bot_state.load(turn_context, False)
-        await self._bot_state.set_property_value(turn_context, self._name, value)
+        self._bot_state.set_value(self._name, value)

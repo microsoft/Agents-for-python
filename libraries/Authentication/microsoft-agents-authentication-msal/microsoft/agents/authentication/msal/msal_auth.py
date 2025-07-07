@@ -13,17 +13,19 @@ from cryptography.x509 import load_pem_x509_certificate
 from cryptography.hazmat.backends import default_backend
 from cryptography.hazmat.primitives import hashes
 
-from microsoft.agents.authorization import AccessTokenProviderBase
+from microsoft.agents.authorization import (
+    AccessTokenProviderBase,
+    AgentAuthConfiguration,
+)
 
-from .auth_types import AuthTypes
-from .msal_auth_configuration import MsalAuthConfiguration
+from microsoft.agents.authorization.auth_types import AuthTypes
 
 
 class MsalAuth(AccessTokenProviderBase):
 
     _client_credential_cache = None
 
-    def __init__(self, msal_configuration: MsalAuthConfiguration):
+    def __init__(self, msal_configuration: AgentAuthConfiguration):
         self._msal_configuration = msal_configuration
 
     async def get_access_token(
@@ -47,6 +49,31 @@ class MsalAuth(AccessTokenProviderBase):
 
         # TODO: Handling token error / acquisition failed
         return auth_result_payload["access_token"]
+
+    async def aquire_token_on_behalf_of(
+        self, scopes: list[str], user_assertion: str
+    ) -> str:
+        """
+        Acquire a token on behalf of a user.
+        :param scopes: The scopes for which to get the token.
+        :param user_assertion: The user assertion token.
+        :return: The access token as a string.
+        """
+
+        msal_auth_client = self._create_client_application()
+        if isinstance(msal_auth_client, ManagedIdentityClient):
+            raise NotImplementedError(
+                "On-behalf-of flow is not supported with Managed Identity authentication."
+            )
+        elif isinstance(msal_auth_client, ConfidentialClientApplication):
+            # TODO: Handling token error / acquisition failed
+            return msal_auth_client.acquire_token_on_behalf_of(
+                user_assertion=user_assertion, scopes=scopes
+            )["access_token"]
+
+        raise NotImplementedError(
+            f"On-behalf-of flow is not supported with the current authentication type: {msal_auth_client.__class__.__name__}"
+        )
 
     def _create_client_application(
         self,
