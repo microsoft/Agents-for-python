@@ -1,3 +1,4 @@
+from typing import Optional
 from .agents_model import AgentsModel
 from ._type_aliases import NonEmptyString
 
@@ -34,5 +35,5 @@ class CardAction(AgentsModel):
     text: str = None
     display_text: str = None
     value: object = None
-    channel_data: object = None
+    channel_data: Optional[object] = None
     image_alt_text: str = None
