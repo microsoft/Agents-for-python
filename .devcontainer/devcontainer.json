@@ -2,7 +2,7 @@
 	"image": "mcr.microsoft.com/devcontainers/universal:2",
 	"features": {
 		"ghcr.io/roul/devcontainer-features/mise-python:1": {
-            "version": "3.9"
+            "version": "4.0"
         }
 	}
 }
