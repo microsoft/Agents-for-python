@@ -63,6 +63,7 @@ jobs:
         python -m pip install ./dist/microsoft_agents_copilotstudio_client*.whl
         python -m pip install ./dist/microsoft_agents_hosting_aiohttp*.whl
         python -m pip install ./dist/microsoft_agents_storage*.whl
+        python -m pip install ./dist/microsoft_agents_blob*.whl
     - name: Test with pytest
       run: |
         pytest
