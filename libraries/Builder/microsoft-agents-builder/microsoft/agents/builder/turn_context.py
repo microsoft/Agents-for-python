@@ -188,10 +188,11 @@ class TurnContext(TurnContextProtocol):
             activity_or_text = Activity(
                 type=ActivityTypes.message,
                 text=activity_or_text,
-                input_hint=input_hint or InputHints.accepting_input,
             )
             if speak:
                 activity_or_text.speak = speak
+            if input_hint:
+                activity_or_text.input_hint = input_hint
 
         result = await self.send_activities([activity_or_text])
         return result[0] if result else None
@@ -209,8 +210,6 @@ class TurnContext(TurnContextProtocol):
             if activity.type != ActivityTypes.trace:
                 nonlocal sent_non_trace_activity
                 sent_non_trace_activity = True
-            if not activity.input_hint:
-                activity.input_hint = "acceptingInput"
             activity.id = None
             return activity
 

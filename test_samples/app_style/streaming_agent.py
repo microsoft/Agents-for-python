@@ -52,7 +52,7 @@ async def invoke(context: TurnContext, state: TurnState) -> str:
 @AGENT_APP.conversation_update("membersAdded")
 async def on_members_added(context: TurnContext, _state: TurnState):
     await context.send_activity(
-        "Welcome to the Streaming sample, send a message to see the echo feature in action."
+        "Welcome to the Streaming sample, send a message to see the streaming feature in action."
     )
     return True
 
