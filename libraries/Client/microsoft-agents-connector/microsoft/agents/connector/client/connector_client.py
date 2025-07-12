@@ -175,13 +175,16 @@ class ConversationsOperations(ConversationsBase):
 
         async with self.client.post(
             url,
-            json=body.model_dump(by_alias=True, exclude_unset=True, mode="json"),
+            json=body.model_dump(
+                by_alias=True, exclude_unset=True, exclude_none=True, mode="json"
+            ),
         ) as response:
+            data = await response.json() if response.content_length else {}
+
             if response.status >= 400:
-                logger.error(f"Error replying to activity: {response.status}")
+                logger.error(f"Error replying to activity: {data or response.status}")
                 response.raise_for_status()
 
-            data = await response.json() if response.content_length else {}
             logger.info(
                 f"Reply to conversation/activity: {data.get('id')}, {activity_id}"
             )
