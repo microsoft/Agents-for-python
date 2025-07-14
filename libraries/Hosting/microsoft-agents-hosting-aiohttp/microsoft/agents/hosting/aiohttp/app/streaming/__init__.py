@@ -3,11 +3,10 @@
 
 from .citation import Citation
 from .citation_util import CitationUtil
-from .streaming_response import StreamingResponse, StreamingChannelData
+from .streaming_response import StreamingResponse
 
 __all__ = [
     "Citation",
     "CitationUtil",
     "StreamingResponse",
-    "StreamingChannelData",
 ]

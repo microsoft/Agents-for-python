@@ -10,7 +10,6 @@ from .app.streaming import (
     Citation,
     CitationUtil,
     StreamingResponse,
-    StreamingChannelData,
 )
 
 __all__ = [
@@ -23,5 +22,4 @@ __all__ = [
     "Citation",
     "CitationUtil",
     "StreamingResponse",
-    "StreamingChannelData",
 ]

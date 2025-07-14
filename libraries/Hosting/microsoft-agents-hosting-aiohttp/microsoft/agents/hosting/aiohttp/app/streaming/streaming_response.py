@@ -24,27 +24,6 @@ from .citation_util import CitationUtil
 logger = logging.getLogger(__name__)
 
 
-@dataclass
-class StreamingChannelData:
-    """
-    Structure of the outgoing channelData field for streaming responses.
-
-    The expected sequence of streamTypes is:
-    'informative', 'streaming', 'streaming', ..., 'final'.
-
-    Once a 'final' message is sent, the stream is considered ended.
-    """
-
-    stream_type: Literal["informative", "streaming", "final"]
-    """The type of message being sent."""
-
-    stream_sequence: int
-    """Sequence number of the message in the stream. Starts at 1 for the first message."""
-
-    stream_id: Optional[str] = None
-    """ID of the stream. Assigned after the initial update is sent."""
-
-
 class StreamingResponse:
     """
     A helper class for streaming responses to the client.
@@ -116,10 +95,13 @@ class StreamingResponse:
             activity = Activity(
                 type="typing",
                 text=text,
-                channel_data={
-                    "streamType": "informative",
-                    "streamSequence": self._next_sequence,
-                },
+                entities=[
+                    Entity(
+                        type="streaminfo",
+                        stream_type="informative",
+                        stream_sequence=self._next_sequence,
+                    )
+                ],
             )
             self._next_sequence += 1
             return activity
@@ -273,20 +255,26 @@ class StreamingResponse:
                     type="message",
                     text=self._message or "end stream response",
                     attachments=self._attachments or [],
-                    channel_data={
-                        "streamType": "final",
-                        "streamSequence": self._next_sequence,
-                    },
+                    entities=[
+                        Entity(
+                            type="streaminfo",
+                            stream_type="final",
+                            stream_sequence=self._next_sequence,
+                        )
+                    ],
                 )
             else:
                 # Send typing activity
                 activity = Activity(
                     type="typing",
                     text=self._message,
-                    channel_data={
-                        "streamType": "streaming",
-                        "streamSequence": self._next_sequence,
-                    },
+                    entities=[
+                        Entity(
+                            type="streaminfo",
+                            stream_type="streaming",
+                            stream_sequence=self._next_sequence,
+                        )
+                    ],
                 )
             self._next_sequence += 1
             return activity
@@ -326,17 +314,27 @@ class StreamingResponse:
         Args:
             activity: The activity to send.
         """
+
+        streaminfo_entity = None
+
+        if not activity.entities:
+            streaminfo_entity = Entity(type="streaminfo")
+            activity.entities = [streaminfo_entity]
+        else:
+            for entity in activity.entities:
+                if hasattr(entity, "type") and entity.type == "streaminfo":
+                    streaminfo_entity = entity
+                    break
+
+            if not streaminfo_entity:
+                # If no streaminfo entity exists, create one
+                streaminfo_entity = Entity(type="streaminfo")
+                activity.entities.append(streaminfo_entity)
+
         # Set activity ID to the assigned stream ID
         if self._stream_id:
             activity.id = self._stream_id
-            if not activity.channel_data:
-                activity.channel_data = {}
-            activity.channel_data["streamId"] = self._stream_id
-
-        if not activity.entities:
-            activity.entities = []
-
-        activity.entities.append(Entity(type="streaminfo", **activity.channel_data))
+            streaminfo_entity.stream_id = self._stream_id
 
         if self._citations and len(self._citations) > 0 and not self._ended:
             # Filter out the citations unused in content.
@@ -357,18 +355,11 @@ class StreamingResponse:
         # Add in Powered by AI feature flags
         if self._ended:
             if self._enable_feedback_loop and self._feedback_loop_type:
-                if not activity.channel_data:
-                    activity.channel_data = {}
-                activity.channel_data["feedbackLoop"] = {
-                    "type": self._feedback_loop_type
-                }
+                # Add feedback loop to streaminfo entity
+                streaminfo_entity.feedback_loop = {"type": self._feedback_loop_type}
             else:
-                if not activity.channel_data:
-                    activity.channel_data = {}
-                activity.channel_data["feedbackLoopEnabled"] = (
-                    self._enable_feedback_loop
-                )
-
+                # Add feedback loop enabled to streaminfo entity
+                streaminfo_entity.feedback_loop_enabled = self._enable_feedback_loop
         # Add in Generated by AI
         if self._enable_generated_by_ai_label:
             add_ai_to_activity(activity, self._citations, self._sensitivity_label)

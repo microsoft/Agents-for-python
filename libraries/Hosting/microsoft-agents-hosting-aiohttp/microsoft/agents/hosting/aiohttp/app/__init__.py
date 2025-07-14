@@ -5,12 +5,10 @@ from .streaming import (
     Citation,
     CitationUtil,
     StreamingResponse,
-    StreamingChannelData,
 )
 
 __all__ = [
     "Citation",
     "CitationUtil",
     "StreamingResponse",
-    "StreamingChannelData",
 ]
