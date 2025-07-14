@@ -3,7 +3,6 @@
 
 import asyncio
 import logging
-import uuid
 from typing import List, Optional, Callable, Literal, TYPE_CHECKING
 from dataclasses import dataclass
 
@@ -14,8 +13,6 @@ from microsoft.agents.core.models import (
     ClientCitation,
     SensitivityUsageInfo,
     add_ai_to_activity,
-    Channels,
-    DeliveryModes,
 )
 
 if TYPE_CHECKING:
@@ -55,7 +52,9 @@ class StreamingResponse:
     This class is used to send a series of updates to the client in a single response.
     The expected sequence of calls is:
 
-    `queue_informative_update()`, `queue_text_chunk()`, `queue_text_chunk()`, ..., `end_stream()`.    Once `end_stream()` is called, the stream is considered ended and no further updates can be sent.
+    `queue_informative_update()`, `queue_text_chunk()`, `queue_text_chunk()`, ..., `end_stream()`.
+
+    Once `end_stream()` is called, the stream is considered ended and no further updates can be sent.
     """
 
     def __init__(self, context: "TurnContext"):
@@ -71,16 +70,11 @@ class StreamingResponse:
         self._message = ""
         self._attachments: Optional[List[Attachment]] = None
         self._ended = False
-        self._cancelled = False
-        self._informative_sent = False
-        self._message_updated = False
-        self._final_message = None
 
         # Queue for outgoing activities
         self._queue: List[Callable[[], Activity]] = []
         self._queue_sync: Optional[asyncio.Task] = None
         self._chunk_queued = False
-        self._timer_task: Optional[asyncio.Task] = None
 
         # Powered by AI feature flags
         self._enable_feedback_loop = False
@@ -88,14 +82,6 @@ class StreamingResponse:
         self._enable_generated_by_ai_label = False
         self._citations: Optional[List[ClientCitation]] = []
         self._sensitivity_label: Optional[SensitivityUsageInfo] = None
-
-        # Channel-specific settings
-        self._is_teams_channel = False
-        self._interval = 100  # Default interval in milliseconds
-        self._is_streaming_channel = False
-
-        # Initialize channel-specific settings
-        self._set_defaults(context)
 
     @property
     def stream_id(self) -> Optional[str]:
@@ -115,23 +101,6 @@ class StreamingResponse:
         """Gets the number of updates sent for the stream."""
         return self._next_sequence - 1
 
-    @property
-    def final_message(self) -> Optional[Activity]:
-        """
-        Gets the final message that will be sent to the client.
-        This is only set after `end_stream()` is called.
-        """
-        return self._final_message
-
-    @final_message.setter
-    def set_final_message(self, value: Activity) -> None:
-        """Sets the final message to be sent to the client.
-
-        Args:
-            value: The final message to send.
-        """
-        self._final_message = value
-
     def queue_informative_update(self, text: str) -> None:
         """
         Queues an informative update to be sent to the client.
@@ -139,13 +108,8 @@ class StreamingResponse:
         Args:
             text: Text of the update to send.
         """
-        if not self._is_streaming_channel:
-            return
-
         if self._ended:
             raise RuntimeError("The stream has already ended.")
-
-        self._informative_sent = True
 
         # Queue a typing activity
         def create_activity():
@@ -175,28 +139,14 @@ class StreamingResponse:
             text: Partial text of the message to send.
             citations: Citations to be included in the message.
         """
-        if not text or self._cancelled:
-            return
-
         if self._ended:
             raise RuntimeError("The stream has already ended.")
-
-        if not self._informative_sent and self._is_teams_channel:
-            raise RuntimeError(
-                "Teams requires calling queue_informative_update() before queue_text_chunk()"
-            )
 
         # Update full message text
         self._message += text
 
         # If there are citations, modify the content so that the sources are numbers instead of [doc1], [doc2], etc.
         self._message = CitationUtil.format_citations_response(self._message)
-
-        self._message_updated = True
-
-        # Start stream if we're on a streaming channel
-        if self._is_streaming_channel:
-            self._start_stream()
 
         # Queue the next chunk
         self._queue_next_chunk()
@@ -205,35 +155,15 @@ class StreamingResponse:
         """
         Ends the stream by sending the final message to the client.
         """
-        if not self._is_streaming_channel:
-            if self._ended:
-                raise RuntimeError("The stream has already ended.")
-
-            self._ended = True
-
-            # Timer isn't running for non-streaming channels. Just send the Message buffer as a message.
-            if self.updates_sent > 0 or self._message or self._final_message:
-                await self._send_final_message()
-            return
-
         if self._ended:
-            return
+            raise RuntimeError("The stream has already ended.")
 
+        # Queue final message
         self._ended = True
+        self._queue_next_chunk()
 
-        if self.updates_sent == 0 or self._cancelled:
-            # Nothing was queued. Nothing to "end".
-            return
-
-        # Stop the streaming timer
-        self._stop_stream()
-
-        # Wait for the queue to drain and send final message
+        # Wait for the queue to drain
         await self.wait_for_queue()
-
-        # TODO: NEED to revisit final message logic
-        # if self.updates_sent > 0 or self._final_message:
-        # await self._send_final_message()
 
     def set_attachments(self, attachments: List[Attachment]) -> None:
         """
@@ -426,7 +356,6 @@ class StreamingResponse:
 
         # Add in Powered by AI feature flags
         if self._ended:
-            # TODO: fix feedback loop
             if self._enable_feedback_loop and self._feedback_loop_type:
                 if not activity.channel_data:
                     activity.channel_data = {}
@@ -444,127 +373,10 @@ class StreamingResponse:
         if self._enable_generated_by_ai_label:
             add_ai_to_activity(activity, self._citations, self._sensitivity_label)
 
-        if self._is_teams_channel:
-            activity.channel_data = None
-
         # Send activity
         response = await self._context.send_activity(activity)
+        await asyncio.sleep(1.5)  # Equivalent to setTimeout in the TypeScript code
 
         # Save assigned stream ID
         if not self._stream_id and response:
             self._stream_id = response.id
-
-    @property
-    def is_streaming_channel(self) -> bool:
-        """
-        Indicate if the current channel supports intermediate messages.
-
-        Channels that don't support intermediate messages will buffer
-        text, and send a normal final message when end_stream is called.
-        """
-        return self._is_streaming_channel
-
-    @property
-    def interval(self) -> int:
-        """
-        The interval in milliseconds at which intermediate messages are sent.
-
-        Teams default: 1000
-        WebChat default: 500
-        Other channels: 100
-        """
-        return self._interval
-
-    @interval.setter
-    def interval(self, value: int) -> None:
-        """Set the interval for sending intermediate messages."""
-        self._interval = value
-
-    def is_stream_started(self) -> bool:
-        """Check if the streaming timer has been started."""
-        return self._timer_task is not None and not self._timer_task.done()
-
-    def _set_defaults(self, context: "TurnContext") -> None:
-        """Set channel-specific defaults based on the turn context."""
-        channel_id = getattr(context.activity, "channel_id", None)
-        delivery_mode = getattr(context.activity, "delivery_mode", None)
-
-        self._is_teams_channel = channel_id == Channels.ms_teams
-
-        if self._is_teams_channel:
-            # Teams MUST use the Activity.Id returned from the first Informative message for
-            # subsequent intermediate messages. Do not set StreamId here.
-            self._interval = 1000
-            self._is_streaming_channel = True
-        elif channel_id == Channels.webchat:
-            self._interval = 500
-            self._is_streaming_channel = True
-            # WebChat will use whatever StreamId is created
-            self._stream_id = str(uuid.uuid4())
-        else:
-            # Support streaming for DeliveryMode.Stream
-            self._is_streaming_channel = delivery_mode == DeliveryModes.stream
-            self._interval = 100
-
-    def _start_stream(self) -> None:
-        """Start the streaming timer if not already started."""
-        if self._timer_task is None and self._is_streaming_channel:
-            self._timer_task = asyncio.create_task(self._send_intermediate_messages())
-
-    def _stop_stream(self) -> None:
-        """Stop the streaming timer."""
-        if self._timer_task and not self._timer_task.done():
-            self._timer_task.cancel()
-            self._timer_task = None
-
-    async def _send_intermediate_messages(self) -> None:
-        """Timer task to send intermediate messages at intervals."""
-        try:
-            while not self._ended and not self._cancelled:
-                await asyncio.sleep(self._interval / 1000.0)  # Convert ms to seconds
-
-                if self._message_updated:
-                    self._queue_next_chunk()
-                    self._message_updated = False
-
-                # Process any queued activities
-                await self._drain_queue()
-
-        except asyncio.CancelledError:
-            pass
-
-    async def _send_final_message(self) -> None:
-        """Send the final message with all accumulated content."""
-        activity = self.final_message or Activity(
-            type="message",
-            text=self._message or "No text was streamed",
-            attachments=self._attachments,
-            entities=[],
-        )
-
-        if self._is_streaming_channel:
-            channel_data = {
-                "streamType": "final",
-                # "streamSequence": self._next_sequence,
-                "streamResult": "success" if self._message else "error",
-                "streamId": self._stream_id,
-            }
-
-            activity.entities.append(Entity(type="streaminfo", **channel_data))
-
-            if not self._is_teams_channel:
-                activity.channel_data = channel_data
-
-            self._next_sequence += 1
-
-        # Add AI entity if enabled
-        if self._enable_generated_by_ai_label:
-            used_citations = None
-            if self._citations:
-                used_citations = CitationUtil.get_used_citations(
-                    self._message, self._citations
-                )
-            add_ai_to_activity(activity, used_citations, self._sensitivity_label)
-
-        # Send the final activity
-        await self._context.send_activity(activity)

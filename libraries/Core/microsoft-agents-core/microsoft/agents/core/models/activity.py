@@ -144,7 +144,7 @@ class Activity(AgentsModel):
     input_hint: NonEmptyString = None
     summary: NonEmptyString = None
     suggested_actions: SuggestedActions = None
-    attachments: Optional[list[Attachment]] = None
+    attachments: list[Attachment] = None
     entities: list[SerializeAsAny[Entity]] = None
     channel_data: object = None
     action: NonEmptyString = None

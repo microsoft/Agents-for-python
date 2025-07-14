@@ -179,12 +179,11 @@ class ConversationsOperations(ConversationsBase):
                 by_alias=True, exclude_unset=True, exclude_none=True, mode="json"
             ),
         ) as response:
-            data = await response.json() if response.content_length else {}
-
             if response.status >= 400:
-                logger.error(f"Error replying to activity: {data or response.status}")
+                logger.error(f"Error replying to activity: {response.status}")
                 response.raise_for_status()
 
+            data = await response.json() if response.content_length else {}
             logger.info(
                 f"Reply to conversation/activity: {data.get('id')}, {activity_id}"
             )

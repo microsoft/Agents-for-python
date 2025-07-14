@@ -19,7 +19,7 @@ def attachment_activity(
     attachments: list[Attachment],
     text: str = None,
     speak: str = None,
-    input_hint: InputHints | str = None,
+    input_hint: InputHints | str = InputHints.accepting_input,
 ) -> Activity:
     message = Activity(
         type=ActivityTypes.message,
@@ -45,7 +45,7 @@ class MessageFactory:
     def text(
         text: str,
         speak: str = None,
-        input_hint: InputHints | str = None,
+        input_hint: InputHints | str = InputHints.accepting_input,
     ) -> Activity:
         """
         Returns a simple text message.
@@ -59,11 +59,9 @@ class MessageFactory:
         :param input_hint:
         :return:
         """
-        message = Activity(type=ActivityTypes.message, text=text)
+        message = Activity(type=ActivityTypes.message, text=text, input_hint=input_hint)
         if speak:
             message.speak = speak
-        if input_hint:
-            message.input_hint = input_hint
 
         return message
 
@@ -72,7 +70,7 @@ class MessageFactory:
         actions: list[CardAction],
         text: str = None,
         speak: str = None,
-        input_hint: InputHints | str = None,
+        input_hint: InputHints | str = InputHints.accepting_input,
     ) -> Activity:
         """
         Returns a message that includes a set of suggested actions and optional text.
@@ -91,13 +89,13 @@ class MessageFactory:
         :return:
         """
         actions = SuggestedActions(actions=actions)
-        message = Activity(type=ActivityTypes.message, suggested_actions=actions)
+        message = Activity(
+            type=ActivityTypes.message, input_hint=input_hint, suggested_actions=actions
+        )
         if text:
             message.text = text
         if speak:
             message.speak = speak
-        if input_hint:
-            message.input_hint = input_hint
         return message
 
     @staticmethod
