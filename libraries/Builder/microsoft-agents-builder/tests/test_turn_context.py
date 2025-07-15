@@ -13,15 +13,15 @@ from microsoft.agents.core.models import (
 from microsoft.agents.builder import ChannelAdapter, MessageFactory, TurnContext
 
 activity_data = {
-    "type": "message", 
+    "type": "message",
     "id": "1234",
-    "text":"test",
+    "text": "test",
     "from_property": ChannelAccount(id="user", name="User Name"),
     "recipient": ChannelAccount(id="bot", name="Bot Name"),
     "conversation": ConversationAccount(id="convo", name="Convo Name"),
-    "channel_id":"UnitTest",
-    "locale":"en-uS",
-    "service_url":"https://example.org", 
+    "channel_id": "UnitTest",
+    "locale": "en-uS",
+    "service_url": "https://example.org",
 }
 
 ACTIVITY = Activity(**activity_data)
