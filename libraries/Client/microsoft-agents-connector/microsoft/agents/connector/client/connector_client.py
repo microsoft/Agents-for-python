@@ -18,9 +18,6 @@ from microsoft.agents.core.models import (
     ConversationsResult,
     PagedMembersResult,
 )
-from microsoft.agents.authorization import (
-    AccessTokenProviderBase,
-)
 from microsoft.agents.connector import ConnectorClientBase
 from ..attachments_base import AttachmentsBase
 from ..conversations_base import ConversationsBase
@@ -179,15 +176,16 @@ class ConversationsOperations(ConversationsBase):
                 by_alias=True, exclude_unset=True, exclude_none=True, mode="json"
             ),
         ) as response:
+            result = await response.json() if response.content_length else {}
+
             if response.status >= 400:
-                logger.error(f"Error replying to activity: {response.status}")
+                logger.error(f"Error replying to activity: {result or response.status}")
                 response.raise_for_status()
 
-            data = await response.json() if response.content_length else {}
             logger.info(
-                f"Reply to conversation/activity: {data.get('id')}, {activity_id}"
+                f"Reply to conversation/activity: {result.get('id')}, {activity_id}"
             )
-            return ResourceResponse.model_validate(data)
+            return ResourceResponse.model_validate(result)
 
     async def send_to_conversation(
         self, conversation_id: str, body: Activity
