@@ -46,11 +46,12 @@ class StreamingResponse:
             context: Context for the current turn of conversation with the user.
         """
         self._context = context
-        self._next_sequence = 1
+        self._sequence_number = 1
         self._stream_id: Optional[str] = None
         self._message = ""
         self._attachments: Optional[List[Attachment]] = None
         self._ended = False
+        self._cancelled = False
 
         # Queue for outgoing activities
         self._queue: List[Callable[[], Activity]] = []
@@ -66,6 +67,7 @@ class StreamingResponse:
 
         # Channel information
         self._is_streaming_channel: bool = False
+        self._channel_id: Channels = None
         self._interval: float = 0.1  # Default interval for sending updates
         self._set_defaults(context)
 
@@ -85,7 +87,7 @@ class StreamingResponse:
     @property
     def updates_sent(self) -> int:
         """Gets the number of updates sent for the stream."""
-        return self._next_sequence - 1
+        return self._sequence_number - 1
 
     def queue_informative_update(self, text: str) -> None:
         """
@@ -109,11 +111,11 @@ class StreamingResponse:
                     Entity(
                         type="streaminfo",
                         stream_type="informative",
-                        stream_sequence=self._next_sequence,
+                        stream_sequence=self._sequence_number,
                     )
                 ],
             )
-            self._next_sequence += 1
+            self._sequence_number += 1
             return activity
 
         self._queue_activity(create_activity)
@@ -131,6 +133,8 @@ class StreamingResponse:
             text: Partial text of the message to send.
             citations: Citations to be included in the message.
         """
+        if self._cancelled:
+            return
         if self._ended:
             raise RuntimeError("The stream has already ended.")
 
@@ -257,6 +261,8 @@ class StreamingResponse:
             self._is_streaming_channel = True
             self._interval = 0.1
 
+        self._channel_id = context.activity.channel_id
+
     def _queue_next_chunk(self) -> None:
         """
         Queues the next chunk of text to be sent to the client.
@@ -280,7 +286,7 @@ class StreamingResponse:
                         Entity(
                             type="streaminfo",
                             stream_type="final",
-                            stream_sequence=self._next_sequence,
+                            stream_sequence=self._sequence_number,
                         )
                     ],
                 )
@@ -293,13 +299,13 @@ class StreamingResponse:
                         Entity(
                             type="streaminfo",
                             stream_type="streaming",
-                            stream_sequence=self._next_sequence,
+                            stream_sequence=self._sequence_number,
                         )
                     ],
                 )
             else:
                 return
-            self._next_sequence += 1
+            self._sequence_number += 1
             return activity
 
         self._queue_activity(create_activity)
@@ -326,8 +332,17 @@ class StreamingResponse:
                 if activity:
                     await self._send_activity(activity)
         except Exception as err:
-            logger.error(f"Error occurred when sending activity while streaming: {err}")
-            raise
+            if (
+                "403" in str(err)
+                and self._context.activity.channel_id == Channels.ms_teams
+            ):
+                logger.warning("Teams channel stopped the stream.")
+                self._cancelled = True
+            else:
+                logger.error(
+                    f"Error occurred when sending activity while streaming: {err}"
+                )
+                raise
         finally:
             self._queue_sync = None
 
@@ -390,7 +405,7 @@ class StreamingResponse:
 
         # Send activity
         response = await self._context.send_activity(activity)
-        await asyncio.sleep(1)
+        await asyncio.sleep(self._interval)
 
         # Save assigned stream ID
         if not self._stream_id and response:
