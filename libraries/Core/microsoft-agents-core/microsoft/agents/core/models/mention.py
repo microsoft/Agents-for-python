@@ -1,9 +1,9 @@
 from .channel_account import ChannelAccount
-from .agents_model import AgentsModel
+from .entity import Entity
 from ._type_aliases import NonEmptyString
 
 
-class Mention(AgentsModel):
+class Mention(Entity):
     """Mention information (entity type: "mention").
 
     :param mentioned: The mentioned user
