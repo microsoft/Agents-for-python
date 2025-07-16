@@ -10,7 +10,9 @@ from microsoft.agents.core.models import (
     Activity,
     Entity,
     Attachment,
+    Channels,
     ClientCitation,
+    DeliveryModes,
     SensitivityUsageInfo,
     add_ai_to_activity,
 )
@@ -62,6 +64,11 @@ class StreamingResponse:
         self._citations: Optional[List[ClientCitation]] = []
         self._sensitivity_label: Optional[SensitivityUsageInfo] = None
 
+        # Channel information
+        self._is_streaming_channel: bool = False
+        self._interval: float = 0.1  # Default interval for sending updates
+        self._set_defaults(context)
+
     @property
     def stream_id(self) -> Optional[str]:
         """
@@ -87,6 +94,9 @@ class StreamingResponse:
         Args:
             text: Text of the update to send.
         """
+        if not self._is_streaming_channel:
+            return
+
         if self._ended:
             raise RuntimeError("The stream has already ended.")
 
@@ -236,6 +246,17 @@ class StreamingResponse:
         if self._queue_sync:
             await self._queue_sync
 
+    def _set_defaults(self, context: "TurnContext"):
+        if context.activity.channel_id == Channels.ms_teams:
+            self._is_streaming_channel = True
+            self._interval = 1.0
+        elif context.activity.channel_id == Channels.direct_line:
+            self._is_streaming_channel = True
+            self._interval = 0.5
+        elif context.activity.delivery_mode == DeliveryModes.stream:
+            self._is_streaming_channel = True
+            self._interval = 0.1
+
     def _queue_next_chunk(self) -> None:
         """
         Queues the next chunk of text to be sent to the client.
@@ -263,7 +284,7 @@ class StreamingResponse:
                         )
                     ],
                 )
-            else:
+            elif self._is_streaming_channel:
                 # Send typing activity
                 activity = Activity(
                     type="typing",
@@ -276,6 +297,8 @@ class StreamingResponse:
                         )
                     ],
                 )
+            else:
+                return
             self._next_sequence += 1
             return activity
 
@@ -300,7 +323,8 @@ class StreamingResponse:
             while self._queue:
                 factory = self._queue.pop(0)
                 activity = factory()
-                await self._send_activity(activity)
+                if activity:
+                    await self._send_activity(activity)
         except Exception as err:
             logger.error(f"Error occurred when sending activity while streaming: {err}")
             raise
@@ -366,7 +390,7 @@ class StreamingResponse:
 
         # Send activity
         response = await self._context.send_activity(activity)
-        await asyncio.sleep(1.5)  # Equivalent to setTimeout in the TypeScript code
+        await asyncio.sleep(1)
 
         # Save assigned stream ID
         if not self._stream_id and response:
