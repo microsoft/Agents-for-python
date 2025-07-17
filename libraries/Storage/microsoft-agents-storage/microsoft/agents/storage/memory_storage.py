@@ -17,7 +17,7 @@ class MemoryStorage(Storage):
     async def read(
         self, keys: list[str], *, target_cls: StoreItemT = None, **kwargs
     ) -> dict[str, StoreItemT]:
-        
+
         if not keys:
             raise ValueError("Storage.read(): Keys are required when reading.")
         if not target_cls:

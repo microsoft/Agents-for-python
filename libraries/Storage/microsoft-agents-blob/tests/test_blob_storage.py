@@ -15,10 +15,11 @@ from microsoft.agents.storage.storage_test_utils import (
     StorageMock,
     StorageBaseline,
     MockStoreItem,
-    MockStoreItemB
+    MockStoreItemB,
 )
 
 EMULATOR_RUNNING = False
+
 
 async def blob_storage_instance(existing=False):
 
@@ -55,6 +56,7 @@ async def blob_storage_instance(existing=False):
     storage = BlobStorage(blob_storage_config)
     return storage, container_client
 
+
 @pytest_asyncio.fixture
 async def blob_storage():
 
@@ -66,6 +68,7 @@ async def blob_storage():
     # teardown
     await container_client.delete_container()
 
+
 class BlobStorageMock(StorageMock):
 
     def __init__(self, blob_storage):
@@ -74,10 +77,11 @@ class BlobStorageMock(StorageMock):
     def get_backing_store(self):
         return self.storage
 
+
 @pytest.mark.skipif(not EMULATOR_RUNNING, reason="Needs the emulator to run.")
 class TestBlobStorage(CRUDStorageTests):
-    
-    async def storage(self, initial_data = None, existing=False):
+
+    async def storage(self, initial_data=None, existing=False):
         if not initial_data:
             initial_data = {}
         storage, container_client = await blob_storage_instance(existing=existing)
@@ -87,14 +91,18 @@ class TestBlobStorage(CRUDStorageTests):
             await container_client.upload_blob(name=key, data=value_rep, overwrite=True)
 
         return BlobStorageMock(storage)
-    
+
     @pytest.mark.asyncio
     async def test_initialize(self, blob_storage):
         await blob_storage.initialize()
         await blob_storage.initialize()
-        await blob_storage.write({"key": MockStoreItem({"id": "item", "value": "data"})})
+        await blob_storage.write(
+            {"key": MockStoreItem({"id": "item", "value": "data"})}
+        )
         await blob_storage.initialize()
-        assert (await blob_storage.read(["key"], target_cls=MockStoreItem)) == {"key": MockStoreItem({"id": "item", "value": "data"})}
+        assert (await blob_storage.read(["key"], target_cls=MockStoreItem)) == {
+            "key": MockStoreItem({"id": "item", "value": "data"})
+        }
 
     @pytest.mark.asyncio
     async def test_blob_storage_flow_existing_container_and_persistence(self):
@@ -105,7 +113,9 @@ class TestBlobStorage(CRUDStorageTests):
             + "http://127.0.0.1:10000/devstoreaccount1;QueueEndpoint=http://127.0.0.1:10001/devstoreaccount1;"
             + "TableEndpoint=http://127.0.0.1:10002/devstoreaccount1;"
         )
-        blob_service_client = BlobServiceClient.from_connection_string(connection_string)
+        blob_service_client = BlobServiceClient.from_connection_string(
+            connection_string
+        )
         container_name = "asdkunittestpopulated"
         container_client = blob_service_client.get_container_client(container_name)
 
@@ -131,17 +141,20 @@ class TestBlobStorage(CRUDStorageTests):
 
         for key, value in initial_data.items():
             value_rep = json.dumps(value.store_item_to_json()).encode("utf-8")
-            await container_client.upload_blob(name=key, data=BytesIO(value_rep), overwrite=True)
+            await container_client.upload_blob(
+                name=key, data=BytesIO(value_rep), overwrite=True
+            )
 
         blob_storage_config = BlobStorageConfig(
-            container_name=container_name,
-            connection_string=connection_string
+            container_name=container_name, connection_string=connection_string
         )
 
         storage = BlobStorage(blob_storage_config)
 
         assert await baseline_storage.equals(storage)
-        assert (await storage.read(["1230", "another key"], target_cls=MockStoreItemB)) == baseline_storage.read(["1230", "another key"])
+        assert (
+            await storage.read(["1230", "another key"], target_cls=MockStoreItemB)
+        ) == baseline_storage.read(["1230", "another key"])
 
         changes = {
             "item1": MockStoreItem({"id": "item1", "value": "data1_changed"}),
@@ -164,8 +177,11 @@ class TestBlobStorage(CRUDStorageTests):
             await (await blob_client.download_blob()).readall()
 
         blob_client = container_client.get_blob_client("1230")
-        item = await(await blob_client.download_blob()).readall()
-        assert MockStoreItemB.from_json_to_store_item(json.loads(item)) == initial_data["1230"]
+        item = await (await blob_client.download_blob()).readall()
+        assert (
+            MockStoreItemB.from_json_to_store_item(json.loads(item))
+            == initial_data["1230"]
+        )
 
         # teardown
         await container_client.delete_container()

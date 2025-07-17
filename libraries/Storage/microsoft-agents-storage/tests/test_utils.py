@@ -1,9 +1,17 @@
-from microsoft.agents.storage.storage_test_utils import MockStoreItem, MockStoreItemB, my_deepcopy, subsets
+from microsoft.agents.storage.storage_test_utils import (
+    MockStoreItem,
+    MockStoreItemB,
+    my_deepcopy,
+    subsets,
+)
+
 
 def eq_helper(a, b):
     def key(x):
         return str(x)
+
     return sorted(a, key=key) == sorted(b, key=key)
+
 
 def test_eq_helper():
 
@@ -19,17 +27,21 @@ def test_eq_helper():
     a2 = [[4], [3], [3], ["a"]]
     assert eq_helper(a1, a2)
 
+
 def test_my_deepcopy():
     original = {
         "a": MockStoreItem({"id": "a", "value": 1}),
         "b": {
             "b1": MockStoreItemB({"key": "b1"}, other_field=False),
             "b2": [1, 2, 3],
-            "b3": { "nested": MockStoreItem({"id": "nested", "value": 42}) }
+            "b3": {"nested": MockStoreItem({"id": "nested", "value": 42})},
         },
-        "c": [ MockStoreItem({"id": "c1"}), MockStoreItemB({"id": "c2"}, other_field=True) ],
+        "c": [
+            MockStoreItem({"id": "c1"}),
+            MockStoreItemB({"id": "c2"}, other_field=True),
+        ],
         "d": "just a string",
-        "e": 12345
+        "e": 12345,
     }
     copy = my_deepcopy(original)
     assert copy == original
@@ -45,35 +57,37 @@ def test_my_deepcopy():
     assert copy["d"] == original["d"]
     assert copy["e"] == original["e"]
 
+
 def test_subsets():
-    assert eq_helper(subsets(["a", "b", "c"], -1,), [
-        ["a"], ["a", "b"], ["a", "b", "c"],
-        ["b"], ["b", "c"],
-        ["c"]
-    ])
-    assert eq_helper(subsets(["a", "b", "c"]), [
-        ["a"], ["a", "b"], ["a", "b", "c"],
-        ["b"], ["b", "c"],
-        ["c"]
-    ])
+    assert eq_helper(
+        subsets(
+            ["a", "b", "c"],
+            -1,
+        ),
+        [["a"], ["a", "b"], ["a", "b", "c"], ["b"], ["b", "c"], ["c"]],
+    )
+    assert eq_helper(
+        subsets(["a", "b", "c"]),
+        [["a"], ["a", "b"], ["a", "b", "c"], ["b"], ["b", "c"], ["c"]],
+    )
+
 
 def test_subsets_0():
     assert subsets(["a", "b", "c", "d"], 0) == []
 
+
 def test_subsets_1():
-    assert eq_helper(subsets(["a", "b", "c", 3, 2], 1), [
-        ["a"], ["b"], ["c"], [3], [2]
-    ])
+    assert eq_helper(subsets(["a", "b", "c", 3, 2], 1), [["a"], ["b"], ["c"], [3], [2]])
+
 
 def test_subsets_2():
-    assert eq_helper(subsets(["a", "b", "c"], 2), [
-        ["a"], ["b"], ["c"],
-        ["a", "b"], ["b", "c"]
-    ])
+    assert eq_helper(
+        subsets(["a", "b", "c"], 2), [["a"], ["b"], ["c"], ["a", "b"], ["b", "c"]]
+    )
+
 
 def test_subsets_3():
-    assert eq_helper(subsets(["a", "b", "c"]), [
-        ["a"], ["a", "b"], ["a", "b", "c"],
-        ["b"], ["b", "c"],
-        ["c"]
-    ])
+    assert eq_helper(
+        subsets(["a", "b", "c"]),
+        [["a"], ["a", "b"], ["a", "b", "c"], ["b"], ["b", "c"], ["c"]],
+    )

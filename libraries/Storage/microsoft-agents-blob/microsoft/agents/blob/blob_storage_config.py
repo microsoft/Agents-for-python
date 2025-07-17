@@ -2,6 +2,7 @@ from typing import Union
 
 from azure.core.credentials import TokenCredential
 
+
 class BlobStorageConfig:
     """Configuration settings for BlobStorage."""
 
@@ -13,7 +14,7 @@ class BlobStorageConfig:
         credential: Union[TokenCredential, None] = None,
     ):
         """Configuration settings for BlobStorage.
-        
+
         container_name: The name of the blob container.
         connection_string: The connection string to the storage account.
         url: The URL of the blob service. If provided, credential must also be provided.
