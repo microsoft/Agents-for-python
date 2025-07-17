@@ -25,6 +25,16 @@ from .conversation_resource_response import ConversationResourceResponse
 from .conversations_result import ConversationsResult
 from .expected_replies import ExpectedReplies
 from .entity import Entity
+from .ai_entity import (
+    AIEntity,
+    ClientCitation,
+    ClientCitationAppearance,
+    ClientCitationImage,
+    ClientCitationIconName,
+    SensitivityUsageInfo,
+    SensitivityPattern,
+    add_ai_to_activity,
+)
 from .error import Error
 from .error_response import ErrorResponse
 from .fact import Fact
@@ -109,6 +119,14 @@ __all__ = [
     "ConversationsResult",
     "ExpectedReplies",
     "Entity",
+    "AIEntity",
+    "ClientCitation",
+    "ClientCitationAppearance",
+    "ClientCitationImage",
+    "ClientCitationIconName",
+    "SensitivityUsageInfo",
+    "SensitivityPattern",
+    "add_ai_to_activity",
     "Error",
     "ErrorResponse",
     "Fact",

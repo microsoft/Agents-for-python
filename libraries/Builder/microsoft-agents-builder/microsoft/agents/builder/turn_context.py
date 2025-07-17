@@ -124,6 +124,25 @@ class TurnContext(TurnContextProtocol):
         """
         return self._services
 
+    @property
+    def streaming_response(self):
+        """
+        Gets a StreamingResponse instance for this turn context.
+        This allows for streaming partial responses to the client.
+        """
+        # Use lazy import to avoid circular dependency
+        if not hasattr(self, "_streaming_response"):
+            try:
+                from microsoft.agents.hosting.aiohttp.app.streaming import (
+                    StreamingResponse,
+                )
+
+                self._streaming_response = StreamingResponse(self)
+            except ImportError:
+                # If the hosting library isn't available, return None
+                self._streaming_response = None
+        return self._streaming_response
+
     def get(self, key: str) -> object:
         if not key or not isinstance(key, str):
             raise TypeError('"key" must be a valid string.')
@@ -381,7 +400,7 @@ class TurnContext(TurnContextProtocol):
             if mention.additional_properties["mentioned"]["id"] == identifier:
                 mention_name_match = re.match(
                     r"<at(.*)>(.*?)<\/at>",
-                    re.escape(mention.additional_properties["text"]),
+                    re.escape(mention.additional_properties.get("text", "")),
                     re.IGNORECASE,
                 )
                 if mention_name_match:
