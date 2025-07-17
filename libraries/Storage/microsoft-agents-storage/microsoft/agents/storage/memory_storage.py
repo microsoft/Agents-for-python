@@ -17,9 +17,17 @@ class MemoryStorage(Storage):
     async def read(
         self, keys: list[str], *, target_cls: StoreItemT = None, **kwargs
     ) -> dict[str, StoreItemT]:
+
+        if not keys:
+            raise ValueError("Storage.read(): Keys are required when reading.")
+        if not target_cls:
+            raise ValueError("Storage.read(): target_cls cannot be None.")
+
         result: dict[str, StoreItem] = {}
         with self._lock:
             for key in keys:
+                if key == "":
+                    raise ValueError("MemoryStorage.read(): key cannot be empty")
                 if key in self._memory:
                     if not target_cls:
                         result[key] = self._memory[key]
@@ -40,10 +48,17 @@ class MemoryStorage(Storage):
 
         with self._lock:
             for key in changes:
+                if key == "":
+                    raise ValueError("MemoryStorage.write(): key cannot be empty")
                 self._memory[key] = changes[key].store_item_to_json()
 
     async def delete(self, keys: list[str]):
+        if not keys:
+            raise ValueError("Storage.delete(): Keys are required when deleting.")
+
         with self._lock:
             for key in keys:
+                if key == "":
+                    raise ValueError("MemoryStorage.delete(): key cannot be empty")
                 if key in self._memory:
                     del self._memory[key]
