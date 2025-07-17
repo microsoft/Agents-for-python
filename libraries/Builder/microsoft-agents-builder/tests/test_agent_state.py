@@ -491,7 +491,7 @@ class TestAgentState:
 
         # Verify data exists in memory storage
         storage_key = user_state.get_storage_key(self.context)
-        stored_data = await memory_storage.read([storage_key])
+        stored_data = await memory_storage.read([storage_key], target_cls=TestDataItem)
 
         assert storage_key in stored_data
         assert stored_data[storage_key] is not None
