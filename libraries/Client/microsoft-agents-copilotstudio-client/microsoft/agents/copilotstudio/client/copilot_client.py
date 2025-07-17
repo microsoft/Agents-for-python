@@ -41,12 +41,13 @@ class CopilotClient:
                         event_type = line[6:].decode("utf-8").strip()
                     if line.startswith(b"data:") and event_type == "activity":
                         activity_data = line[5:].decode("utf-8").strip()
-                        activity = Activity.model_validate_json(activity_data)
-
-                        if activity.type == ActivityTypes.message:
-                            self._current_conversation_id = activity.conversation.id
-
-                        yield activity
+                        try:
+                            activity = Activity.model_validate_json(activity_data)
+                            if activity.type == ActivityTypes.message:
+                                self._current_conversation_id = activity.conversation.id
+                            yield activity
+                        except Exception as e:
+                            print(f"Error parsing activity: {e} - {activity_data}")  
 
     async def start_conversation(
         self, emit_start_conversation_event: bool = True
