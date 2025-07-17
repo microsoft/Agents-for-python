@@ -47,7 +47,7 @@ class CopilotClient:
                                 self._current_conversation_id = activity.conversation.id
                             yield activity
                         except Exception as e:
-                            print(f"Error parsing activity: {e} - {activity_data}")  
+                            print(f"Error parsing activity: {e} - {activity_data}")
 
     async def start_conversation(
         self, emit_start_conversation_event: bool = True
