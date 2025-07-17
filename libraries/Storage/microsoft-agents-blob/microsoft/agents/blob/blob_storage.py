@@ -1,6 +1,5 @@
 import json
-
-from typing import TypeVar
+from typing import TypeVar, Union
 from io import BytesIO
 
 from azure.storage.blob.aio import (
@@ -59,7 +58,7 @@ class BlobStorage(AsyncStorageBase):
 
     async def _read_item(
         self, key: str, *, target_cls: StoreItemT = None, **kwargs
-    ) -> tuple[str | None, StoreItemT | None]:
+    ) -> tuple[Union[str, None], Union[StoreItemT, None]]:
         item = await ignore_error(
             self._container_client.download_blob(blob=key),
             is_status_code_error(404),

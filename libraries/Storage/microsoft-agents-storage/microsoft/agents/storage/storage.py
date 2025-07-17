@@ -1,4 +1,4 @@
-from typing import Protocol, TypeVar, Type
+from typing import Protocol, TypeVar, Type, Union
 from abc import ABC, abstractmethod
 from asyncio import gather
 
@@ -49,7 +49,7 @@ class AsyncStorageBase(Storage):
     @abstractmethod
     async def _read_item(
         self, key: str, *, target_cls: Type[StoreItemT] = None, **kwargs
-    ) -> tuple[str | None, StoreItemT | None]:
+    ) -> tuple[Union[str, None], Union[StoreItemT, None]]:
         """Reads a single item from storage by key.
 
         Returns a tuple of (key, StoreItem) if found, or (None, None) if not found.
@@ -66,7 +66,7 @@ class AsyncStorageBase(Storage):
 
         await self.initialize()
 
-        items: list[tuple[str | None, StoreItemT | None]] = await gather(
+        items: list[tuple[Union[str, None], Union[StoreItemT, None]]] = await gather(
             *[self._read_item(key, target_cls=target_cls, **kwargs) for key in keys]
         )
         return {key: value for key, value in items if key is not None}
