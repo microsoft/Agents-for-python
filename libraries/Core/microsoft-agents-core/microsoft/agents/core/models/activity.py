@@ -1,7 +1,7 @@
 from copy import copy
 from datetime import datetime, timezone
 from typing import Optional
-from pydantic import Field
+from pydantic import Field, SerializeAsAny
 from .activity_types import ActivityTypes
 from .channel_account import ChannelAccount
 from .conversation_account import ConversationAccount
@@ -145,7 +145,7 @@ class Activity(AgentsModel):
     summary: NonEmptyString = None
     suggested_actions: SuggestedActions = None
     attachments: list[Attachment] = None
-    entities: list[Entity] = None
+    entities: list[SerializeAsAny[Entity]] = None
     channel_data: object = None
     action: NonEmptyString = None
     reply_to_id: NonEmptyString = None
