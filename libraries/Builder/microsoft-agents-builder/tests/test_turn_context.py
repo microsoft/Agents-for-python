@@ -321,10 +321,11 @@ class TestTurnContext:
             text="<at>TestOAuth619</at> test activity",
             recipient=ChannelAccount(id="TestOAuth619"),
             entities=[
+                # Mentions are likely entities due to serialization
                 Entity(
                     type="mention",
                     text="<at>TestOAuth619</at>",
-                    mentioned=ChannelAccount(name="Bot", id="TestOAuth619"),
+                    mentioned={"name": "Bot", "id": "TestOAuth619"},
                 )
             ],
         )
@@ -340,10 +341,11 @@ class TestTurnContext:
             text="<at>Test (*.[]$%#^&?)</at> test activity",
             recipient=ChannelAccount(id="Test (*.[]$%#^&?)"),
             entities=[
+                # mentions are likely entities due to serialization
                 Entity(
                     type="mention",
                     text="<at>Test (*.[]$%#^&?)</at>",
-                    mentioned=ChannelAccount(name="Bot", id="Test (*.[]$%#^&?)"),
+                    mentioned={"name": "Bot", "id": "Test (*.[]$%#^&?)"},
                 )
             ],
         )
@@ -377,12 +379,13 @@ class TestTurnContext:
                 id="28:c5d5fb56-a1a4-4467-a7a3-1b37905498a0", name="Azure AI Agent"
             ),
             entities=[
+                # mentions are likely entities due to serialization
                 Entity(
                     type="mention",
-                    mentioned=ChannelAccount(
-                        id="28:c5d5fb56-a1a4-4467-a7a3-1b37905498a0",
-                        name="Custom Agent",
-                    ),
+                    mentioned={
+                        "id": "28:c5d5fb56-a1a4-4467-a7a3-1b37905498a0",
+                        "name": "Custom Agent",
+                    },
                 )
             ],
             channel_data={"tenant": {"id": "REDACTED"}, "productContext": "COPILOT"},
