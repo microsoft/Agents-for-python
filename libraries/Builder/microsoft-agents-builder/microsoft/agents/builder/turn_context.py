@@ -378,10 +378,10 @@ class TurnContext(TurnContextProtocol):
         """
         mentions = TurnContext.get_mentions(activity)
         for mention in mentions:
-            if mention.additional_properties["mention"]["id"] == identifier:
+            if mention.additional_properties["mentioned"]["id"] == identifier:
                 mention_name_match = re.match(
                     r"<at(.*)>(.*?)<\/at>",
-                    re.escape(mention.additional_properties["text"]),
+                    re.escape(mention.additional_properties.get("text", "")),
                     re.IGNORECASE,
                 )
                 if mention_name_match:
