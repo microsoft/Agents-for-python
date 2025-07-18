@@ -133,10 +133,14 @@ class StorageBaseline(Storage):
 
     async def equals(self, other) -> bool:
         """
-        Compare the items for all keys seenby this mock instance.
+        Compare the items for all keys seen by this mock instance.
+
+        Note:
         This is an extra safety measure, and I've made the
         executive decision to not test this method itself
-        as it is not the main focus of the test suite.
+        because passing tests with calls to this method
+        is also dependent on the correctness of other
+        aspects, based on the other assertions in the tests.
         """
         for key in self._key_history:
             if key not in self._memory:
@@ -155,6 +159,7 @@ class StorageBaseline(Storage):
 
 
 class StorageTestsCommon(ABC):
+    """Common fixtures for Storage implementations."""
 
     KEY_LIST = [
         "f",
@@ -211,8 +216,20 @@ class StorageTestsCommon(ABC):
 
 
 class CRUDStorageTests(StorageTestsCommon):
+    """Tests for Storage implementations that support CRUD operations.
+    
+    To use, subclass and implement the `storage` method.
+    """
 
-    async def storage(self, initial_data=None, existing=False):
+    async def storage(self, initial_data=None, existing=False) -> StorageMock:
+        """Return a StorageMock instance to be tested.
+        :param initial_data: The initial data to populate the storage with.
+        :param existing: If True, the storage instance should connect to an existing store.
+
+        When testing your own storage implementation, ensure that you also extend
+        StorageMock with a wrapper around your storage implementation. You would then
+        return an instance of that wrapper here.
+        """
         raise NotImplementedError("Subclasses must implement this")
 
     @pytest.mark.asyncio
@@ -452,3 +469,41 @@ class CRUDStorageTests(StorageTestsCommon):
             gc.collect()
             storage_alt = await self.storage(existing=True)
             assert await baseline_storage.equals(storage_alt)
+
+class QuickCRUDStorageTests(CRUDStorageTests):
+    """Reduced set of permutations for quicker tests. Useful for debugging."""
+
+    KEY_LIST = ([
+        "\\?/#\t\n\r*", "test.txt"
+    ])
+
+    READ_KEY_LIST = KEY_LIST + ["nonexistent_key"]
+
+    STATE_LIST = [
+        { key: MockStoreItem({"id": key, "value": f"value{key}"}) for key in KEY_LIST }
+    ]
+
+    @pytest.fixture(params=STATE_LIST)
+    def initial_state(self, request):
+        return request.param
+    
+    @pytest.fixture(params=KEY_LIST)
+    def key(self, request):
+        return request.param
+
+    @pytest.fixture(params=[KEY_LIST])
+    def keys(self, request):
+        return request.param
+
+    @pytest.fixture(params=subsets(KEY_LIST, 2))
+    def changes(self, request):
+        changes_obj = {}
+        keys = request.param
+        changes_obj["new_key"] = MockStoreItemB({"field": "new_value_for_new_key"}, True)
+        for i, key in enumerate(keys):
+            if i % 2 == 0:
+                changes_obj[key] = MockStoreItemB({"data": f"value{key}"}, (i // 2) % 2 == 0)
+            else:
+                changes_obj[key] = MockStoreItem({"id": key, "value": f"new_value_for_{key}"})
+        changes_obj["new_key_2"] = MockStoreItem({"field": "new_value_for_new_key_2"})
+        return changes_obj

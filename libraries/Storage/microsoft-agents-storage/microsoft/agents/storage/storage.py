@@ -40,7 +40,10 @@ class Storage(Protocol):
 
 
 class AsyncStorageBase(Storage):
-    """Base class for asynchronous storage implementations."""
+    """Base class for asynchronous storage implementations with operations
+    that work on single items. The bulk operations are implemented in terms
+    of the single-item operations.
+    """
 
     async def initialize(self) -> None:
         """Initializes the storage container"""
