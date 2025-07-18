@@ -1,4 +1,4 @@
-from microsoft.agents.builder import ActivityHandler, TurnContext
+from microsoft.agents.hosting import ActivityHandler, TurnContext
 from microsoft.agents.core.models import (
     ChannelAccount,
     Activity,

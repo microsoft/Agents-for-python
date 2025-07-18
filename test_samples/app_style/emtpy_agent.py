@@ -9,20 +9,20 @@ from dotenv import load_dotenv
 
 from os import environ
 from microsoft.agents.authentication.msal import AuthTypes, MsalAuthConfiguration
-from microsoft.agents.builder.app import AgentApplication, TurnState
+from microsoft.agents.hosting.app import AgentApplication, TurnState
 from microsoft.agents.hosting.aiohttp import (
     CloudAdapter,
     jwt_authorization_middleware,
     start_agent_process,
 )
-from microsoft.agents.authorization import (
+from microsoft.agents.hosting.authorization import (
     Connections,
     AccessTokenProviderBase,
     ClaimsIdentity,
 )
 from microsoft.agents.authentication.msal import MsalAuth
 
-from microsoft.agents.builder import RestChannelServiceClientFactory, TurnContext
+from microsoft.agents.hosting import RestChannelServiceClientFactory, TurnContext
 from microsoft.agents.storage import MemoryStorage
 
 load_dotenv()

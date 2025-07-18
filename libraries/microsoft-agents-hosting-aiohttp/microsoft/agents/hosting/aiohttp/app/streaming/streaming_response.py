@@ -18,7 +18,7 @@ from microsoft.agents.core.models import (
 )
 
 if TYPE_CHECKING:
-    from microsoft.agents.builder.turn_context import TurnContext
+    from microsoft.agents.hosting.turn_context import TurnContext
 
 from .citation import Citation
 from .citation_util import CitationUtil

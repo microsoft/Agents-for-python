@@ -12,7 +12,7 @@ from microsoft.agents.core.models import (
     ConversationParameters,
     Transcript,
 )
-from microsoft.agents.builder import ChannelApiHandlerProtocol
+from microsoft.agents.hosting import ChannelApiHandlerProtocol
 
 
 async def deserialize_from_body(

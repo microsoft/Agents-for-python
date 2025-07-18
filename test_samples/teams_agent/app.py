@@ -1,15 +1,14 @@
 # Copyright (c) Microsoft Corporation. All rights reserved.
 # Licensed under the MIT License.
 
-import os
 import pathlib
 from dotenv import load_dotenv
-from aiohttp.web import Application, Request, Response, run_app, static
+from aiohttp.web import Application, Request, Response, run_app
 
-from microsoft.agents.builder import RestChannelServiceClientFactory
-from microsoft.agents.builder.state import UserState
+from microsoft.agents.hosting import RestChannelServiceClientFactory
+from microsoft.agents.hosting.state import UserState
 from microsoft.agents.hosting.aiohttp import CloudAdapter, jwt_authorization_decorator
-from microsoft.agents.authorization import (
+from microsoft.agents.hosting.authorization import (
     Connections,
     AccessTokenProviderBase,
     ClaimsIdentity,

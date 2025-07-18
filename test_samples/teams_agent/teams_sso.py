@@ -1,10 +1,10 @@
-from microsoft.agents.builder import (
+from microsoft.agents.hosting import (
     ActivityHandler,
     OAuthFlow,
     MessageFactory,
     TurnContext,
 )
-from microsoft.agents.builder.state import UserState
+from microsoft.agents.hosting.state import UserState
 from microsoft.agents.core.models import ChannelAccount
 from microsoft.agents.hosting.teams import TeamsActivityHandler, TeamsInfo
 

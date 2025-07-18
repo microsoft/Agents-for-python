@@ -8,12 +8,12 @@ import sys
 import traceback
 
 from dotenv import load_dotenv
-from microsoft.agents.builder.app import AgentApplication, TurnState
-from microsoft.agents.builder.app.oauth import Authorization
+from microsoft.agents.hosting.app import AgentApplication, TurnState
+from microsoft.agents.hosting.app.oauth import Authorization
 from microsoft.agents.hosting.aiohttp import CloudAdapter, Citation
 from microsoft.agents.authentication.msal import MsalConnectionManager
 
-from microsoft.agents.builder import (
+from microsoft.agents.hosting import (
     TurnContext,
     MessageFactory,
 )

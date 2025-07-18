@@ -6,9 +6,9 @@ from os import environ
 from typing import Optional
 from dotenv import load_dotenv
 
-from microsoft.agents.builder.app import AgentApplication, TurnState, ConversationState
-from microsoft.agents.builder.app.oauth import Authorization
-from microsoft.agents.builder import TurnContext, MessageFactory
+from microsoft.agents.hosting.app import AgentApplication, TurnState, ConversationState
+from microsoft.agents.hosting.app.oauth import Authorization
+from microsoft.agents.hosting import TurnContext, MessageFactory
 from microsoft.agents.storage import MemoryStorage
 from microsoft.agents.core.models import ActivityTypes, Activity
 from microsoft.agents.core import load_configuration_from_env

@@ -12,8 +12,7 @@ from aiohttp.web import (
     HTTPUnauthorized,
     HTTPUnsupportedMediaType,
 )
-from microsoft.agents.authorization import (
-    AgentAuthConfiguration,
+from microsoft.agents.hosting.authorization import (
     ClaimsIdentity,
     Connections,
 )
@@ -21,7 +20,7 @@ from microsoft.agents.core.models import (
     Activity,
     DeliveryModes,
 )
-from microsoft.agents.builder import (
+from microsoft.agents.hosting import (
     Agent,
     ChannelServiceAdapter,
     ChannelServiceClientFactoryBase,

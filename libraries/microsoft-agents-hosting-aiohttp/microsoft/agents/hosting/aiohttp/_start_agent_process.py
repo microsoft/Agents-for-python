@@ -1,6 +1,6 @@
 from typing import Optional
 from aiohttp.web import Request, Response
-from microsoft.agents.builder.app import AgentApplication
+from microsoft.agents.hosting.app import AgentApplication
 from .cloud_adapter import CloudAdapter
 
 

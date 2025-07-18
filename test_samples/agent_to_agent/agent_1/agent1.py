@@ -17,14 +17,14 @@ from microsoft.agents.core.models import (
     ConversationResourceResponse,
     ConversationsResult,
 )
-from microsoft.agents.authorization import ClaimsIdentity
-from microsoft.agents.client import (
+from microsoft.agents.hosting.authorization import ClaimsIdentity
+from microsoft.agents.hosting.client import (
     ChannelHostProtocol,
     ChannelInfoProtocol,
     ConversationIdFactoryProtocol,
     ConversationIdFactoryOptions,
 )
-from microsoft.agents.builder import (
+from microsoft.agents.hosting import (
     ActivityHandler,
     ChannelApiHandlerProtocol,
     ChannelAdapter,
