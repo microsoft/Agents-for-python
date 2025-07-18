@@ -9,7 +9,6 @@ from .store_item import StoreItem
 from ._type_aliases import JSON
 from .memory_storage import MemoryStorage
 
-
 class MockStoreItem(StoreItem):
     """Test implementation of StoreItem for testing purposes"""
 
@@ -90,22 +89,6 @@ def subsets(lst, n=-1):
             if 1 <= i - j <= n:
                 subsets.append(lst[j:i])
     return subsets
-
-
-class StorageMock(ABC):
-    """A mock wrapper around a Storage implementation to be used in tests."""
-
-    def get_backing_store(self) -> Storage:
-        raise NotImplementedError("Subclasses must implement this")
-
-    async def read(self, *args, **kwargs):
-        return await self.get_backing_store().read(*args, **kwargs)
-
-    async def write(self, *args, **kwargs):
-        return await self.get_backing_store().write(*args, **kwargs)
-
-    async def delete(self, *args, **kwargs):
-        return await self.get_backing_store().delete(*args, **kwargs)
 
 
 # bootstrapping class to compare against
@@ -221,14 +204,10 @@ class CRUDStorageTests(StorageTestsCommon):
     To use, subclass and implement the `storage` method.
     """
 
-    async def storage(self, initial_data=None, existing=False) -> StorageMock:
-        """Return a StorageMock instance to be tested.
+    async def storage(self, initial_data=None, existing=False) -> Storage:
+        """Return a Storage instance to be tested.
         :param initial_data: The initial data to populate the storage with.
         :param existing: If True, the storage instance should connect to an existing store.
-
-        When testing your own storage implementation, ensure that you also extend
-        StorageMock with a wrapper around your storage implementation. You would then
-        return an instance of that wrapper here.
         """
         raise NotImplementedError("Subclasses must implement this")
 
@@ -463,7 +442,7 @@ class CRUDStorageTests(StorageTestsCommon):
             await storage.read(["key_b"], target_cls=MockStoreItemB)
         assert await baseline_storage.equals(storage)
 
-        if not isinstance(storage.get_backing_store(), MemoryStorage):
+        if not isinstance(storage, MemoryStorage):
             # if not memory storage, then items should persist
             del storage
             gc.collect()
@@ -507,3 +486,14 @@ class QuickCRUDStorageTests(CRUDStorageTests):
                 changes_obj[key] = MockStoreItem({"id": key, "value": f"new_value_for_{key}"})
         changes_obj["new_key_2"] = MockStoreItem({"field": "new_value_for_new_key_2"})
         return changes_obj
+
+def debug_print(*args):
+    """Print debug information clearly separated in the console."""
+    print("\n"*2)
+    print("--- DEBUG ---")
+    for arg in args:
+        print("\n"*2)
+        print(arg)
+    print("\n"*2)
+    print("--- ----- ---")
+    print("\n" *2)

@@ -12,14 +12,12 @@ from azure.core.exceptions import ResourceNotFoundError
 
 from microsoft.agents.storage.storage_test_utils import (
     CRUDStorageTests,
-    StorageMock,
     StorageBaseline,
     MockStoreItem,
     MockStoreItemB,
 )
 
 EMULATOR_RUNNING = False
-
 
 async def blob_storage_instance(existing=False):
 
@@ -56,7 +54,6 @@ async def blob_storage_instance(existing=False):
     storage = BlobStorage(blob_storage_config)
     return storage, container_client
 
-
 @pytest_asyncio.fixture
 async def blob_storage():
 
@@ -67,16 +64,6 @@ async def blob_storage():
 
     # teardown
     await container_client.delete_container()
-
-
-class BlobStorageMock(StorageMock):
-
-    def __init__(self, blob_storage):
-        self.storage = blob_storage
-
-    def get_backing_store(self):
-        return self.storage
-
 
 @pytest.mark.skipif(not EMULATOR_RUNNING, reason="Needs the emulator to run.")
 class TestBlobStorage(CRUDStorageTests):
@@ -90,7 +77,7 @@ class TestBlobStorage(CRUDStorageTests):
             value_rep = json.dumps(value.store_item_to_json())
             await container_client.upload_blob(name=key, data=value_rep, overwrite=True)
 
-        return BlobStorageMock(storage)
+        return storage
 
     @pytest.mark.asyncio
     async def test_initialize(self, blob_storage):
@@ -103,6 +90,16 @@ class TestBlobStorage(CRUDStorageTests):
         assert (await blob_storage.read(["key"], target_cls=MockStoreItem)) == {
             "key": MockStoreItem({"id": "item", "value": "data"})
         }
+
+    @pytest.mark.asyncio
+    async def test_external_change_is_visible(self):
+        blob_storage, container_client = await blob_storage_instance()
+        assert (await blob_storage.read(["key"], target_cls=MockStoreItem)) == MockStoreItem({"id": "item", "value": "data"})
+        assert (await blob_storage.read(["key2"], target_cls=MockStoreItem)) == MockStoreItem({"id": "another_item", "value": "another_value"})
+        await container_client.upload_blob(name="key", data=json.dumps({"id": "item", "value": "data"}), overwrite=True)
+        await container_client.upload_blob(name="key2", data=json.dumps({"id": "another_item", "value": "new_val"}), overwrite=True)
+        assert (await blob_storage.read(["key"], target_cls=MockStoreItem)) == MockStoreItem({"id": "item", "value": "data"})
+        assert (await blob_storage.read(["key2"], target_cls=MockStoreItem)) == MockStoreItem({"id": "another_item", "value": "new_val"})
 
     @pytest.mark.asyncio
     async def test_blob_storage_flow_existing_container_and_persistence(self):
