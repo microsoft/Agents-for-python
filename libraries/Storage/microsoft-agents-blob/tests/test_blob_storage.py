@@ -180,5 +180,4 @@ class TestBlobStorage(CRUDStorageTests):
             == initial_data["1230"]
         )
 
-        # teardown
         await container_client.delete_container()

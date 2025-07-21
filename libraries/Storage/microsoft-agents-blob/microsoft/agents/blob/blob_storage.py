@@ -7,8 +7,7 @@ from azure.storage.blob.aio import (
     BlobServiceClient,
 )
 
-from microsoft.agents.storage import StoreItem
-from microsoft.agents.storage.storage import AsyncStorageBase
+from microsoft.agents.storage import AsyncStorageBase, StoreItem
 from microsoft.agents.storage._type_aliases import JSON
 from microsoft.agents.storage.error_handling import ignore_error, is_status_code_error
 
