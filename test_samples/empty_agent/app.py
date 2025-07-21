@@ -4,9 +4,9 @@
 from aiohttp.web import Application, Request, Response, run_app
 from dotenv import load_dotenv
 
-from microsoft.agents.hosting import RestChannelServiceClientFactory
+from microsoft.agents.hosting.core import RestChannelServiceClientFactory
 from microsoft.agents.hosting.aiohttp import CloudAdapter, jwt_authorization_middleware
-from microsoft.agents.hosting.authorization import (
+from microsoft.agents.hosting.core.authorization import (
     Connections,
     AccessTokenProviderBase,
     ClaimsIdentity,

@@ -4,7 +4,7 @@
 from abc import abstractmethod
 from typing import AsyncIterator, Optional, Protocol
 
-from microsoft.agents.core.models import AttachmentInfo
+from microsoft.agents.activity import AttachmentInfo
 
 
 class AttachmentsBase(Protocol):

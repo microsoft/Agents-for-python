@@ -1,6 +1,6 @@
 from typing import Optional
 
-from microsoft.agents.hosting.authorization.auth_types import AuthTypes
+from microsoft.agents.hosting.core.authorization.auth_types import AuthTypes
 
 
 class AgentAuthConfiguration:

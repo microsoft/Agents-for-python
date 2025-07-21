@@ -1,7 +1,7 @@
 import pytest
 from typing import Callable, List
 
-from microsoft.agents.core.models import (
+from microsoft.agents.activity import (
     Activity,
     ActivityTypes,
     ChannelAccount,
@@ -10,7 +10,7 @@ from microsoft.agents.core.models import (
     Mention,
     ResourceResponse,
 )
-from microsoft.agents.hosting import ChannelAdapter, MessageFactory, TurnContext
+from microsoft.agents.hosting.core import ChannelAdapter, MessageFactory, TurnContext
 
 activity_data = {
     "type": "message",

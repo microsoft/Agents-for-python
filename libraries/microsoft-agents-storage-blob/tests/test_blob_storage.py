@@ -6,11 +6,11 @@ from io import BytesIO
 import pytest
 import pytest_asyncio
 
-from microsoft.agents.blob import BlobStorage, BlobStorageConfig
+from microsoft.agents.storage.blob import BlobStorage, BlobStorageConfig
 from azure.storage.blob.aio import BlobServiceClient
 from azure.core.exceptions import ResourceNotFoundError
 
-from microsoft.agents.storage.storage_test_utils import (
+from microsoft.agents.hosting.core.storage.storage_test_utils import (
     CRUDStorageTests,
     StorageMock,
     StorageBaseline,

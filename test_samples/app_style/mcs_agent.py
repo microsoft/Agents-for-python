@@ -6,12 +6,12 @@ from os import environ
 from typing import Optional
 from dotenv import load_dotenv
 
-from microsoft.agents.hosting.app import AgentApplication, TurnState, ConversationState
-from microsoft.agents.hosting.app.oauth import Authorization
-from microsoft.agents.hosting import TurnContext, MessageFactory
-from microsoft.agents.storage import MemoryStorage
-from microsoft.agents.core.models import ActivityTypes, Activity
-from microsoft.agents.core import load_configuration_from_env
+from microsoft.agents.hosting.core.app import AgentApplication, TurnState, ConversationState
+from microsoft.agents.hosting.core.app.oauth import Authorization
+from microsoft.agents.hosting.core import TurnContext, MessageFactory
+from microsoft.agents.hosting.core.storage import MemoryStorage
+from microsoft.agents.activity import ActivityTypes, Activity
+from microsoft.agents.activity import load_configuration_from_env
 from microsoft.agents.copilotstudio.client import (
     ConnectionSettings,
     CopilotClient,

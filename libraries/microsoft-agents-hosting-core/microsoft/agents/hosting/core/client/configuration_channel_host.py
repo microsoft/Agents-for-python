@@ -1,6 +1,6 @@
 from copy import copy
 
-from microsoft.agents.hosting.authorization import Connections
+from microsoft.agents.hosting.core.authorization import Connections
 
 from .channels_configuration import ChannelsConfiguration
 from .channel_factory_protocol import ChannelFactoryProtocol

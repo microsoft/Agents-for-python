@@ -2,7 +2,7 @@ from abc import abstractmethod
 from typing import Protocol, List, Callable, Awaitable, Optional
 
 from .turn_context_protocol import TurnContextProtocol
-from microsoft.agents.core.models import (
+from microsoft.agents.activity import (
     Activity,
     ResourceResponse,
     ConversationReference,

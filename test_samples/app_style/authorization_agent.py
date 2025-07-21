@@ -7,20 +7,20 @@ import sys
 import traceback
 
 from dotenv import load_dotenv
-from microsoft.agents.hosting.app import AgentApplication, TurnState
-from microsoft.agents.hosting.app.oauth import Authorization
+from microsoft.agents.hosting.core.app import AgentApplication, TurnState
+from microsoft.agents.hosting.core.app.oauth import Authorization
 from microsoft.agents.hosting.aiohttp import (
     CloudAdapter,
 )
 from microsoft.agents.authentication.msal import MsalConnectionManager
 
-from microsoft.agents.hosting import (
+from microsoft.agents.hosting.core import (
     TurnContext,
     MessageFactory,
 )
-from microsoft.agents.storage import MemoryStorage
-from microsoft.agents.core import load_configuration_from_env
-from microsoft.agents.core.models import ActivityTypes, TokenResponse
+from microsoft.agents.hosting.core.storage import MemoryStorage
+from microsoft.agents.activity import load_configuration_from_env
+from microsoft.agents.activity import ActivityTypes, TokenResponse
 
 from shared import GraphClient, GitHubClient, start_server
 

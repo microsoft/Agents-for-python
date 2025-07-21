@@ -8,8 +8,8 @@ from __future__ import annotations
 from threading import Timer
 from typing import Optional
 
-from microsoft.agents.hosting import TurnContext
-from microsoft.agents.core.models import Activity, ActivityTypes
+from microsoft.agents.hosting.core import TurnContext
+from microsoft.agents.activity import Activity, ActivityTypes
 
 
 class TypingIndicator:

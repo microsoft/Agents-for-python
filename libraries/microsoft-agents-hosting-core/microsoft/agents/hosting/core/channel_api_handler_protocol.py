@@ -1,7 +1,7 @@
 from abc import abstractmethod
 from typing import Protocol, Optional
 
-from microsoft.agents.core.models import (
+from microsoft.agents.activity import (
     Activity,
     AttachmentData,
     ChannelAccount,
@@ -13,7 +13,7 @@ from microsoft.agents.core.models import (
     Transcript,
 )
 
-from microsoft.agents.hosting.authorization import ClaimsIdentity
+from microsoft.agents.hosting.core.authorization import ClaimsIdentity
 
 
 class ChannelApiHandlerProtocol(Protocol):

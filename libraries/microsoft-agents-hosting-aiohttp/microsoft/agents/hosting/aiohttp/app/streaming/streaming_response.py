@@ -6,7 +6,7 @@ import logging
 from typing import List, Optional, Callable, Literal, TYPE_CHECKING
 from dataclasses import dataclass
 
-from microsoft.agents.core.models import (
+from microsoft.agents.activity import (
     Activity,
     Entity,
     Attachment,
@@ -18,7 +18,7 @@ from microsoft.agents.core.models import (
 )
 
 if TYPE_CHECKING:
-    from microsoft.agents.hosting.turn_context import TurnContext
+    from microsoft.agents.hosting.core.turn_context import TurnContext
 
 from .citation import Citation
 from .citation_util import CitationUtil

@@ -22,10 +22,10 @@ from typing import (
     cast,
 )
 
-from microsoft.agents.hosting.authorization import Connections
+from microsoft.agents.hosting.core.authorization import Connections
 
-from microsoft.agents.hosting import Agent, TurnContext
-from microsoft.agents.core.models import (
+from microsoft.agents.hosting.core import Agent, TurnContext
+from microsoft.agents.activity import (
     Activity,
     ActivityTypes,
     ConversationUpdateTypes,

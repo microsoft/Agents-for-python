@@ -3,7 +3,7 @@
 
 from __future__ import annotations
 
-from microsoft.agents.core.models import (
+from microsoft.agents.activity import (
     ActivityTypes,
     Activity,
     Attachment,

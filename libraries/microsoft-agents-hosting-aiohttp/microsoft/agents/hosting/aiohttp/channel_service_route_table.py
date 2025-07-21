@@ -5,14 +5,14 @@ from typing import List, Union, Type
 
 from aiohttp.web import RouteTableDef, Request, Response
 
-from microsoft.agents.core.models import (
+from microsoft.agents.activity import (
     AgentsModel,
     Activity,
     AttachmentData,
     ConversationParameters,
     Transcript,
 )
-from microsoft.agents.hosting import ChannelApiHandlerProtocol
+from microsoft.agents.hosting.core import ChannelApiHandlerProtocol
 
 
 async def deserialize_from_body(

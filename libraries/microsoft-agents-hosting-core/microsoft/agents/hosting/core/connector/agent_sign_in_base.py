@@ -1,7 +1,7 @@
 from abc import abstractmethod
 from typing import Protocol
 
-from microsoft.agents.core.models import SignInResource
+from microsoft.agents.activity import SignInResource
 
 
 class AgentSignInBase(Protocol):

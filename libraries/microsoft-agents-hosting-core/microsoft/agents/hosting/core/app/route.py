@@ -7,7 +7,7 @@ from __future__ import annotations
 
 from typing import Awaitable, Callable, Generic, List, TypeVar
 
-from microsoft.agents.hosting import TurnContext
+from microsoft.agents.hosting.core import TurnContext
 from .state import TurnState
 
 StateT = TypeVar("StateT", bound=TurnState)

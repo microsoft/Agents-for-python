@@ -3,7 +3,7 @@ from __future__ import annotations
 from typing import Protocol, List, Callable, Optional, Generic, TypeVar
 from abc import abstractmethod
 
-from microsoft.agents.core.models import (
+from microsoft.agents.activity import (
     Activity,
     ResourceResponse,
     ConversationReference,

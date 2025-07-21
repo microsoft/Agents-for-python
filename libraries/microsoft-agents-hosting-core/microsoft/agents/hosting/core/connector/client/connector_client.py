@@ -8,7 +8,7 @@ from typing import Any, Optional
 from aiohttp import ClientSession
 from io import BytesIO
 
-from microsoft.agents.core.models import (
+from microsoft.agents.activity import (
     Activity,
     ChannelAccount,
     ConversationParameters,
@@ -17,7 +17,7 @@ from microsoft.agents.core.models import (
     ConversationsResult,
     PagedMembersResult,
 )
-from microsoft.agents.hosting.connector import ConnectorClientBase
+from microsoft.agents.hosting.core.connector import ConnectorClientBase
 from ..attachments_base import AttachmentsBase
 from ..conversations_base import ConversationsBase
 from ..get_product_info import get_product_info

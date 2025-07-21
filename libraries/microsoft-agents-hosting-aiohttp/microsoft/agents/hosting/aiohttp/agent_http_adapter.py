@@ -9,7 +9,7 @@ from aiohttp.web import (
     Response,
 )
 
-from microsoft.agents.hosting import Agent
+from microsoft.agents.hosting.core import Agent
 
 
 class AgentHttpAdapter(Protocol):

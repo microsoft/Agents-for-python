@@ -44,26 +44,19 @@ jobs:
       run: |
         mkdir -p dist
         for dir in libraries/*; do
-          if [ -d "$dir" ]; then
-            for subdir in "$dir"/*; do
-              if [ -f "$subdir/pyproject.toml" ]; then
-                (cd "$subdir" && python -m build --outdir ../../../dist)
-              fi
-            done
+          if [ -f "$dir/pyproject.toml" ]; then
+            (cd "$dir" && python -m build --outdir ../../dist)
           fi
         done
     - name: Install wheels
       run: |
-        python -m pip install ./dist/microsoft_agents_core*.whl
-        python -m pip install ./dist/microsoft_agents_authorization*.whl
-        python -m pip install ./dist/microsoft_agents_connector*.whl
-        python -m pip install ./dist/microsoft_agents_client*.whl
-        python -m pip install ./dist/microsoft_agents_builder*.whl
+        python -m pip install ./dist/microsoft_agents_activity*.whl
+        python -m pip install ./dist/microsoft_agents_hosting_core*.whl
         python -m pip install ./dist/microsoft_agents_authentication_msal*.whl
         python -m pip install ./dist/microsoft_agents_copilotstudio_client*.whl
         python -m pip install ./dist/microsoft_agents_hosting_aiohttp*.whl
-        python -m pip install ./dist/microsoft_agents_storage*.whl
-        python -m pip install ./dist/microsoft_agents_blob*.whl
+        python -m pip install ./dist/microsoft_agents_hosting_teams*.whl
+        python -m pip install ./dist/microsoft_agents_storage_blob*.whl
     - name: Test with pytest
       run: |
         pytest

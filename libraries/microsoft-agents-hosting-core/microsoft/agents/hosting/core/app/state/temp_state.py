@@ -7,11 +7,11 @@ from __future__ import annotations
 
 from typing import Dict, List, Optional, TypeVar, Callable, Any, Generic
 
-from microsoft.agents.storage import Storage
+from microsoft.agents.hosting.core.storage import Storage
 
-from microsoft.agents.hosting.turn_context import TurnContext
-from microsoft.agents.hosting.app.input_file import InputFile
-from microsoft.agents.hosting.state import AgentState
+from microsoft.agents.hosting.core.turn_context import TurnContext
+from microsoft.agents.hosting.core.app.input_file import InputFile
+from microsoft.agents.hosting.core.state import AgentState
 
 T = TypeVar("T")
 

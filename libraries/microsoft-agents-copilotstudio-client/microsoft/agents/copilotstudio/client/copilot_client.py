@@ -1,7 +1,7 @@
 import aiohttp
 from typing import AsyncIterable, Callable, Optional
 
-from microsoft.agents.core.models import Activity, ActivityTypes, ConversationAccount
+from microsoft.agents.activity import Activity, ActivityTypes, ConversationAccount
 
 from .connection_settings import ConnectionSettings
 from .execute_turn_request import ExecuteTurnRequest

@@ -10,12 +10,12 @@ from abc import ABC, abstractmethod
 from copy import deepcopy
 from typing import Any, Callable, List, Optional, Type, TypeVar, Union, overload
 
-from microsoft.agents.hosting.state.state_property_accessor import (
+from microsoft.agents.hosting.core.state.state_property_accessor import (
     StatePropertyAccessor as _StatePropertyAccessor,
 )
-from microsoft.agents.storage import Storage, StoreItem
+from microsoft.agents.hosting.core.storage import Storage, StoreItem
 
-from microsoft.agents.hosting.turn_context import TurnContext
+from microsoft.agents.hosting.core.turn_context import TurnContext
 
 T = TypeVar("T")
 

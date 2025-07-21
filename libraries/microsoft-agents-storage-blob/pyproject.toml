@@ -3,7 +3,7 @@ requires = ["setuptools"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "microsoft-agents-blob"
+name = "microsoft-agents-storage-blob"
 version = "0.0.0a1"
 description = "A blob storage library for Microsoft Agents"
 authors = [{name = "Microsoft Corporation"}]
@@ -14,7 +14,7 @@ classifiers = [
     "Operating System :: OS Independent",
 ]
 dependencies = [
-    "microsoft.agents.storage",
+    "microsoft-agents-hosting-core",
     "azure-core",
     "azure-storage-blob",
 ]

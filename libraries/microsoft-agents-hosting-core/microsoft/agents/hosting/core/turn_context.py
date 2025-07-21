@@ -7,8 +7,8 @@ import re
 from copy import copy, deepcopy
 from collections.abc import Callable
 from datetime import datetime, timezone
-from microsoft.agents.core import TurnContextProtocol
-from microsoft.agents.core.models import (
+from microsoft.agents.activity import TurnContextProtocol
+from microsoft.agents.activity import (
     Activity,
     ActivityTypes,
     ConversationReference,

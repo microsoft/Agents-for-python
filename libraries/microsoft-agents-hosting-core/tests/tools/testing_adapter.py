@@ -7,8 +7,8 @@ from datetime import datetime, timezone
 from typing import Callable, List, Optional, Awaitable
 from collections import deque
 
-from microsoft.agents.hosting.authorization import ClaimsIdentity
-from microsoft.agents.core.models import (
+from microsoft.agents.hosting.core.authorization import ClaimsIdentity
+from microsoft.agents.activity import (
     Activity,
     ActivityTypes,
     ChannelAccount,
@@ -19,9 +19,9 @@ from microsoft.agents.core.models import (
     RoleTypes,
     InvokeResponse,
 )
-from microsoft.agents.hosting.channel_adapter import ChannelAdapter
-from microsoft.agents.hosting.turn_context import TurnContext
-from microsoft.agents.hosting.connector import UserTokenClient
+from microsoft.agents.hosting.core.channel_adapter import ChannelAdapter
+from microsoft.agents.hosting.core.turn_context import TurnContext
+from microsoft.agents.hosting.core.connector import UserTokenClient
 
 AgentCallbackHandler = Callable[[TurnContext], Awaitable]
 

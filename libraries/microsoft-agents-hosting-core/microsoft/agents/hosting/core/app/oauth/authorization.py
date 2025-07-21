@@ -5,10 +5,10 @@ from __future__ import annotations
 import jwt
 from typing import Dict, Optional, Callable, Awaitable
 
-from microsoft.agents.hosting.authorization import Connections, AccessTokenProviderBase
-from microsoft.agents.storage import Storage
-from microsoft.agents.core.models import TokenResponse, Activity
-from microsoft.agents.storage import StoreItem
+from microsoft.agents.hosting.core.authorization import Connections, AccessTokenProviderBase
+from microsoft.agents.hosting.core.storage import Storage
+from microsoft.agents.activity import TokenResponse, Activity
+from microsoft.agents.hosting.core.storage import StoreItem
 from pydantic import BaseModel
 
 from ...turn_context import TurnContext

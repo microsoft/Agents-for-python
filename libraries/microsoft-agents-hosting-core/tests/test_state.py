@@ -7,9 +7,9 @@ from typing import Any, Dict
 import pytest
 from unittest.mock import AsyncMock, MagicMock
 
-from microsoft.agents.hosting.app.state.state import State, state, StatePropertyAccessor
-from microsoft.agents.hosting.turn_context import TurnContext
-from microsoft.agents.storage import Storage, StoreItem
+from microsoft.agents.hosting.core.app.state.state import State, state, StatePropertyAccessor
+from microsoft.agents.hosting.core.turn_context import TurnContext
+from microsoft.agents.hosting.core.storage import Storage, StoreItem
 
 
 class MockStoreItem(StoreItem):

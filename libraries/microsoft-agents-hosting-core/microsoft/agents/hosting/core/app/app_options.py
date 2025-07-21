@@ -9,8 +9,8 @@ from dataclasses import dataclass, field
 from logging import Logger
 from typing import Callable, List, Optional
 
-from microsoft.agents.hosting.app.oauth.authorization import AuthorizationHandlers
-from microsoft.agents.storage import Storage
+from microsoft.agents.hosting.core.app.oauth.authorization import AuthorizationHandlers
+from microsoft.agents.hosting.core.storage import Storage
 
 # from .auth import AuthOptions
 from .input_file import InputFileDownloader

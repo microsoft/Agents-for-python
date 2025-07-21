@@ -9,7 +9,7 @@ from abc import ABC, abstractmethod
 from dataclasses import dataclass
 from typing import List, Optional
 
-from microsoft.agents.hosting import TurnContext
+from microsoft.agents.hosting.core import TurnContext
 
 
 @dataclass

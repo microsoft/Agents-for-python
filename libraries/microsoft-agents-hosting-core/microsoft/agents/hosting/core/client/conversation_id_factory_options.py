@@ -1,4 +1,4 @@
-from microsoft.agents.core.models import Activity
+from microsoft.agents.activity import Activity
 
 from .channel_info_protocol import ChannelInfoProtocol
 

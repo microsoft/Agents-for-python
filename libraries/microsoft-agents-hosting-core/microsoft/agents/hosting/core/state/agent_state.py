@@ -7,7 +7,7 @@ from abc import abstractmethod
 from copy import deepcopy
 from typing import Callable, Dict, Union, Type
 
-from microsoft.agents.storage import Storage, StoreItem
+from microsoft.agents.hosting.core.storage import Storage, StoreItem
 
 from .state_property_accessor import StatePropertyAccessor
 from ..turn_context import TurnContext

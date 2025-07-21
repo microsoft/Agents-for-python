@@ -1,15 +1,15 @@
 from typing import Optional
 
-from microsoft.agents.hosting.authorization import (
+from microsoft.agents.hosting.core.authorization import (
     AuthenticationConstants,
     AnonymousTokenProvider,
     ClaimsIdentity,
     Connections,
 )
-from microsoft.agents.hosting.authorization import AccessTokenProviderBase
-from microsoft.agents.hosting.connector import ConnectorClientBase
-from microsoft.agents.hosting.connector.client import UserTokenClient
-from microsoft.agents.hosting.connector.teams import TeamsConnectorClient
+from microsoft.agents.hosting.core.authorization import AccessTokenProviderBase
+from microsoft.agents.hosting.core.connector import ConnectorClientBase
+from microsoft.agents.hosting.core.connector.client import UserTokenClient
+from microsoft.agents.hosting.core.connector.teams import TeamsConnectorClient
 
 from .channel_service_client_factory_base import ChannelServiceClientFactoryBase
 

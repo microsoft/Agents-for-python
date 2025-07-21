@@ -4,7 +4,7 @@
 import re
 from typing import List, Optional
 
-from microsoft.agents.core.models import ClientCitation
+from microsoft.agents.activity import ClientCitation
 
 
 class CitationUtil:

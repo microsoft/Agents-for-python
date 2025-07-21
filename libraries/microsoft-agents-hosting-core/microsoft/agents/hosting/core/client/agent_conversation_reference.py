@@ -1,4 +1,4 @@
-from microsoft.agents.core.models import AgentsModel, ConversationReference
+from microsoft.agents.activity import AgentsModel, ConversationReference
 
 
 class AgentConversationReference(AgentsModel):

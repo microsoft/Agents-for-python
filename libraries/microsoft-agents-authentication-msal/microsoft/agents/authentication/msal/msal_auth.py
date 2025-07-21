@@ -13,12 +13,12 @@ from cryptography.x509 import load_pem_x509_certificate
 from cryptography.hazmat.backends import default_backend
 from cryptography.hazmat.primitives import hashes
 
-from microsoft.agents.hosting.authorization import (
+from microsoft.agents.hosting.core.authorization import (
     AccessTokenProviderBase,
     AgentAuthConfiguration,
 )
 
-from microsoft.agents.hosting.authorization import AuthTypes
+from microsoft.agents.hosting.core.authorization import AuthTypes
 
 
 class MsalAuth(AccessTokenProviderBase):

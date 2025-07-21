@@ -1,5 +1,5 @@
-from microsoft.agents.hosting import ActivityHandler, MessageFactory, TurnContext
-from microsoft.agents.core.models import ChannelAccount
+from microsoft.agents.hosting.core import ActivityHandler, MessageFactory, TurnContext
+from microsoft.agents.activity import ChannelAccount
 
 
 class EmptyAgent(ActivityHandler):

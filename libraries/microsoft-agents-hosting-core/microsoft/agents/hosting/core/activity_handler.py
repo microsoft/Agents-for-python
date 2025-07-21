@@ -4,8 +4,8 @@ from __future__ import annotations
 from http import HTTPStatus
 from pydantic import BaseModel
 
-from microsoft.agents.core import TurnContextProtocol
-from microsoft.agents.core.models import (
+from microsoft.agents.activity import TurnContextProtocol
+from microsoft.agents.activity import (
     Activity,
     ActivityTypes,
     AdaptiveCardInvokeResponse,

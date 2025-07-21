@@ -5,16 +5,16 @@ import pathlib
 from dotenv import load_dotenv
 from aiohttp.web import Application, Request, Response, run_app
 
-from microsoft.agents.hosting import RestChannelServiceClientFactory
-from microsoft.agents.hosting.state import UserState
+from microsoft.agents.hosting.core import RestChannelServiceClientFactory
+from microsoft.agents.hosting.core.state import UserState
 from microsoft.agents.hosting.aiohttp import CloudAdapter, jwt_authorization_decorator
-from microsoft.agents.hosting.authorization import (
+from microsoft.agents.hosting.core.authorization import (
     Connections,
     AccessTokenProviderBase,
     ClaimsIdentity,
 )
 from microsoft.agents.authentication.msal import MsalAuth
-from microsoft.agents.storage import MemoryStorage
+from microsoft.agents.hosting.core.storage import MemoryStorage
 
 from teams_handler import TeamsHandler
 from teams_sso import TeamsSso

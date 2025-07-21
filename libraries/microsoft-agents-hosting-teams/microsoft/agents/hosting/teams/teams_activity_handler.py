@@ -6,13 +6,13 @@ Licensed under the MIT License.
 from http import HTTPStatus
 from typing import Any, List
 
-from microsoft.agents.hosting import ActivityHandler, TurnContext
-from microsoft.agents.core.models import (
+from microsoft.agents.hosting.core import ActivityHandler, TurnContext
+from microsoft.agents.activity import (
     InvokeResponse,
     ChannelAccount,
 )
 
-from microsoft.agents.core.teams import (
+from microsoft.agents.activity.teams import (
     AppBasedLinkQuery,
     TeamInfo,
     ChannelInfo,

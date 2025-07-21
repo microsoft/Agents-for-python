@@ -1,7 +1,7 @@
 # Copyright (c) Microsoft Corporation. All rights reserved.
 # Licensed under the MIT License.
 
-from microsoft.agents.storage import Storage
+from microsoft.agents.hosting.core.storage import Storage
 
 from ..turn_context import TurnContext
 from .agent_state import AgentState

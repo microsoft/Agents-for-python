@@ -1,6 +1,6 @@
 from os import environ
 from microsoft.agents.authentication.msal import AuthTypes, MsalAuthConfiguration
-from microsoft.agents.hosting.client import (
+from microsoft.agents.hosting.core.client import (
     ChannelHostConfiguration,
     ChannelsConfiguration,
     ChannelInfo,

@@ -1,9 +1,9 @@
 import json
 from os import getenv
 
-from microsoft.agents.hosting import MessageFactory, TurnContext
-from microsoft.agents.core.models import ChannelAccount, Attachment
-from microsoft.agents.core.teams import (
+from microsoft.agents.hosting.core import MessageFactory, TurnContext
+from microsoft.agents.activity import ChannelAccount, Attachment
+from microsoft.agents.activity.teams import (
     TaskModuleResponse,
     TaskModuleTaskInfo,
     TaskModuleRequest,

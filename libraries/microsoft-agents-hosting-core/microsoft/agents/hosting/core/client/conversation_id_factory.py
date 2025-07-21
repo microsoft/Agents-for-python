@@ -2,8 +2,8 @@ from uuid import uuid4
 from functools import partial
 from typing import Type
 
-from microsoft.agents.core.models import AgentsModel
-from microsoft.agents.storage import Storage, StoreItem
+from microsoft.agents.activity import AgentsModel
+from microsoft.agents.hosting.core.storage import Storage, StoreItem
 
 from .agent_conversation_reference import AgentConversationReference
 from .conversation_id_factory_protocol import ConversationIdFactoryProtocol

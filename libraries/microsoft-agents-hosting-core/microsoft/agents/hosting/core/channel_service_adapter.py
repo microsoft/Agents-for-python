@@ -10,7 +10,7 @@ from http import HTTPStatus
 from typing import Awaitable, Callable, cast
 from uuid import uuid4
 
-from microsoft.agents.core.models import (
+from microsoft.agents.activity import (
     Activity,
     ActivityEventNames,
     ActivityTypes,
@@ -25,13 +25,13 @@ from microsoft.agents.core.models import (
     InvokeResponse,
     ResourceResponse,
 )
-from microsoft.agents.hosting.connector import (
+from microsoft.agents.hosting.core.connector import (
     ConnectorClientBase,
     UserTokenClientBase,
     ConnectorClient,
     UserTokenClient,
 )
-from microsoft.agents.hosting.authorization import AuthenticationConstants, ClaimsIdentity
+from microsoft.agents.hosting.core.authorization import AuthenticationConstants, ClaimsIdentity
 from .channel_service_client_factory_base import ChannelServiceClientFactoryBase
 from .channel_adapter import ChannelAdapter
 from .turn_context import TurnContext

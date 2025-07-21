@@ -7,8 +7,8 @@ import logging
 from typing import Optional
 from aiohttp import ClientSession
 
-from microsoft.agents.hosting.connector import UserTokenClientBase
-from microsoft.agents.core.models import TokenResponse, TokenStatus, SignInResource
+from microsoft.agents.hosting.core.connector import UserTokenClientBase
+from microsoft.agents.activity import TokenResponse, TokenStatus, SignInResource
 from ..get_product_info import get_product_info
 from ..user_token_base import UserTokenBase
 from ..agent_sign_in_base import AgentSignInBase

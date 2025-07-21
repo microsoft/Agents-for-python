@@ -5,7 +5,7 @@ from abc import abstractmethod
 from collections.abc import Callable
 from typing import Protocol, Type, Union
 
-from microsoft.agents.storage import StoreItem
+from microsoft.agents.hosting.core.storage import StoreItem
 
 from ..turn_context import TurnContext
 

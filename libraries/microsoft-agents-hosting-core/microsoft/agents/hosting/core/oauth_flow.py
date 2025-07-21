@@ -6,8 +6,8 @@ from __future__ import annotations
 from datetime import datetime
 from typing import Dict, Optional
 
-from microsoft.agents.hosting.connector.client import UserTokenClient
-from microsoft.agents.core.models import (
+from microsoft.agents.hosting.core.connector.client import UserTokenClient
+from microsoft.agents.activity import (
     ActionTypes,
     ActivityTypes,
     CardAction,
@@ -17,10 +17,10 @@ from microsoft.agents.core.models import (
     TokenResponse,
     Activity,
 )
-from microsoft.agents.core import (
+from microsoft.agents.activity import (
     TurnContextProtocol as TurnContext,
 )
-from microsoft.agents.storage import StoreItem, Storage
+from microsoft.agents.hosting.core.storage import StoreItem, Storage
 from pydantic import BaseModel
 
 from .message_factory import MessageFactory

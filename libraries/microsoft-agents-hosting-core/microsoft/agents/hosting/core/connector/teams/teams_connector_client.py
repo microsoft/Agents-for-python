@@ -6,15 +6,15 @@
 from typing import Any
 from aiohttp import ClientSession
 
-from microsoft.agents.core.models import Activity, ResourceResponse
-from microsoft.agents.hosting.authorization import (
+from microsoft.agents.activity import Activity, ResourceResponse
+from microsoft.agents.hosting.core.authorization import (
     AccessTokenProviderBase,
     AgentAuthConfiguration,
 )
-from microsoft.agents.hosting.connector.client import ConnectorClient
+from microsoft.agents.hosting.core.connector.client import ConnectorClient
 
-from microsoft.agents.core.models import ConversationParameters
-from microsoft.agents.core.teams import (
+from microsoft.agents.activity import ConversationParameters
+from microsoft.agents.activity.teams import (
     TeamsChannelAccount,
     TeamsPagedMembersResult,
     TeamDetails,

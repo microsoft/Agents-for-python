@@ -1,4 +1,4 @@
-from microsoft.agents.hosting.authorization import AccessTokenProviderBase
+from microsoft.agents.hosting.core.authorization import AccessTokenProviderBase
 
 from .channel_factory_protocol import ChannelFactoryProtocol
 from .channel_protocol import ChannelProtocol

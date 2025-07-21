@@ -2,13 +2,13 @@
 # Licensed under the MIT License.
 
 from .testing_adapter import TestingAdapter
-from microsoft.agents.core.models import (
+from microsoft.agents.activity import (
     Activity,
     ActivityTypes,
     ConversationAccount,
     ChannelAccount,
 )
-from microsoft.agents.hosting import TurnContext
+from microsoft.agents.hosting.core import TurnContext
 
 
 class TestingUtility:

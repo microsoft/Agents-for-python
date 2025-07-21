@@ -4,9 +4,9 @@
 from abc import ABC, abstractmethod
 from collections.abc import Callable
 from typing import List, Awaitable
-from microsoft.agents.hosting.authorization import ClaimsIdentity
-from microsoft.agents.core import ChannelAdapterProtocol
-from microsoft.agents.core.models import (
+from microsoft.agents.hosting.core.authorization import ClaimsIdentity
+from microsoft.agents.activity import ChannelAdapterProtocol
+from microsoft.agents.activity import (
     Activity,
     ConversationAccount,
     ConversationReference,
@@ -173,7 +173,7 @@ class ChannelAdapter(ABC, ChannelAdapterProtocol):
             If the conversation is established with the specified users, the ID of the activity
             will contain the ID of the new conversation.
         """
-        from microsoft.agents.core.models import ActivityTypes
+        from microsoft.agents.activity import ActivityTypes
 
         # If credentials are not provided, we can't create a conversation
         if not conversation_parameters:

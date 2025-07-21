@@ -8,13 +8,13 @@ from __future__ import annotations
 from typing import Any, Dict, Optional, Type, TypeVar, cast, Callable, Awaitable
 import asyncio
 
-from microsoft.agents.storage import Storage
+from microsoft.agents.hosting.core.storage import Storage
 
-from microsoft.agents.hosting.turn_context import TurnContext
-from microsoft.agents.hosting.app.state.conversation_state import ConversationState
-from microsoft.agents.hosting.state import AgentState
-from microsoft.agents.hosting.app.state.temp_state import TempState
-from microsoft.agents.hosting.state.user_state import UserState
+from microsoft.agents.hosting.core.turn_context import TurnContext
+from microsoft.agents.hosting.core.app.state.conversation_state import ConversationState
+from microsoft.agents.hosting.core.state import AgentState
+from microsoft.agents.hosting.core.app.state.temp_state import TempState
+from microsoft.agents.hosting.core.state.user_state import UserState
 
 ConversationStateT = TypeVar("ConversationStateT", bound=ConversationState)
 UserStateT = TypeVar("UserStateT", bound=UserState)

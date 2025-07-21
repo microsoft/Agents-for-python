@@ -5,9 +5,9 @@
 
 from typing import Optional, Tuple, Dict, Any, List
 
-from microsoft.agents.core.models import Activity, Channels, ConversationParameters
+from microsoft.agents.activity import Activity, Channels, ConversationParameters
 
-from microsoft.agents.core.teams import (
+from microsoft.agents.activity.teams import (
     TeamsChannelAccount,
     TeamsMeetingParticipant,
     MeetingInfo,
@@ -22,8 +22,8 @@ from microsoft.agents.core.teams import (
     TeamsBatchOperationResponse,
     ChannelInfo,
 )
-from microsoft.agents.hosting.connector.teams import TeamsConnectorClient
-from microsoft.agents.hosting import ChannelServiceAdapter, TurnContext
+from microsoft.agents.hosting.core.connector.teams import TeamsConnectorClient
+from microsoft.agents.hosting.core import ChannelServiceAdapter, TurnContext
 
 
 class TeamsInfo:

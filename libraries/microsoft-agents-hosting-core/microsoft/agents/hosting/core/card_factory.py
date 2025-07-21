@@ -1,7 +1,7 @@
 # Copyright (c) Microsoft Corporation. All rights reserved.
 # Licensed under the MIT License.
 
-from microsoft.agents.core.models import (
+from microsoft.agents.activity import (
     AnimationCard,
     Attachment,
     AudioCard,

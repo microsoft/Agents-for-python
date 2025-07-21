@@ -1,4 +1,4 @@
-from microsoft.agents.core.models import AgentsModel, Activity
+from microsoft.agents.activity import AgentsModel, Activity
 
 
 class ExecuteTurnRequest(AgentsModel):

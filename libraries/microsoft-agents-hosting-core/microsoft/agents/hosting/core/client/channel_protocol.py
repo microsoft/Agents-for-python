@@ -1,6 +1,6 @@
 from typing import Protocol
 
-from microsoft.agents.core.models import AgentsModel, Activity, InvokeResponse
+from microsoft.agents.activity import AgentsModel, Activity, InvokeResponse
 
 
 class ChannelProtocol(Protocol):
