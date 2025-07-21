@@ -1,7 +1,7 @@
 # Copyright (c) Microsoft Corporation. All rights reserved.
 # Licensed under the MIT License.
 
-from typing import TypeVar
+from typing import TypeVar, Union
 from threading import Lock
 
 from azure.cosmos import (
@@ -15,8 +15,9 @@ from azure.cosmos.aio import (
     DatabaseProxy,
 )
 import azure.cosmos.exceptions as cosmos_exceptions
+from azure.cosmos.partition_key import NonePartitionKeyValue
 
-from microsoft.agents.storage import Storage, StoreItem
+from microsoft.agents.storage import AsyncStorageBase, StoreItem
 from microsoft.agents.storage._type_aliases import JSON
 from microsoft.agents.storage.error_handling import ignore_error, is_status_code_error
 
@@ -25,7 +26,7 @@ from .key_ops import sanitize_key
 
 StoreItemT = TypeVar("StoreItemT", bound=StoreItem)
 
-class CosmosDBStorage(Storage):
+class CosmosDBStorage(AsyncStorageBase):
     """A CosmosDB based storage provider using partitioning"""
 
     def __init__(self, config: CosmosDBStorageConfig):
@@ -46,7 +47,6 @@ class CosmosDBStorage(Storage):
         self._lock: Lock = Lock()
             
     def _create_client(self) -> CosmosClient:
-
         if self._config.url:
             if not self._config.credential:
                 raise ValueError(
@@ -69,21 +69,44 @@ class CosmosDBStorage(Storage):
                 "connection_verify": not connection_policy.DisableSSLVerification,
             },
         )
+    
+    def _sanitize(self, key: str) -> str:
+        return sanitize_key(key, self._config.key_suffix, self._config.compatibility_mode)
+    
+    async def _get_item_safe(self, raw_key: str, sanitized_key: str) -> Union[JSON, None]:
+        """Get item, ensuring no collision occurs.
+        
+        :param raw_key: The original key provided by the user.
+        :param sanitized_key: The sanitized key used for CosmosDB operations.
+        :return: The item if found, None otherwise.
+
+        It's highly highly highly (highly) unlikely that a sha256 collision will ever occur.
+        But, just in case.
+        """
+
+        read_item_response: CosmosDict = await ignore_error(self._container.read_item(
+            sanitized_key, self._get_partition_key(sanitized_key)
+        ), lambda err: isinstance(err, cosmos_exceptions.CosmosResourceNotFoundError))
+
+        if (read_item_response is not None and
+            read_item_response.get("realId") is not None and
+            read_item_response.get("realId") != raw_key):
+            # This should never happen, but just in case...
+            # in fact, if this does happen, then we should probably document this
+            # and publish the first ever sha256 collision to the world.
+            raise Exception("CosmosDBStorage: Key mismatch on get_item_raw.")
+        
+        return read_item_response
 
     async def _read_item(
         self, key: str, *, target_cls: StoreItemT = None, **kwargs
-    ) -> tuple[str | None, StoreItemT | None]:
+    ) -> tuple[Union[str, None], Union[StoreItemT, None]]:
         
         if key == "":
             raise ValueError("CosmosDBStorage: Key cannot be empty.")
 
-        escaped_key: str = sanitize_key(
-            key, self._config.key_suffix, self._config.compatibility_mode
-        )
-        read_item_response: CosmosDict = await ignore_error(self._container.read_item(
-            escaped_key, self._get_partition_key(escaped_key)
-        ), lambda err: isinstance(err, cosmos_exceptions.CosmosResourceNotFoundError))
-        
+        escaped_key: str = self._sanitize(key)
+        read_item_response: CosmosDict = await self._get_item_safe(key, escaped_key)
         if read_item_response is None:
             return None, None
         
@@ -91,30 +114,60 @@ class CosmosDBStorage(Storage):
         return read_item_response["realId"], target_cls.from_json_to_store_item(doc)
 
     async def _write_item(self, key: str, item: StoreItem) -> None:
-
         if key == "":
             raise ValueError("CosmosDBStorage: Key cannot be empty.")
+        
+        escaped_key: str = self._sanitize(key)
+        await self._get_item_safe(key, escaped_key)  # ensure no collision
 
         doc = {
-            "id": sanitize_key(
-                key, self._config.key_suffix, self._config.compatibility_mode
-            ),
-            "realId": key,
+            "id": escaped_key,
+            "realId": key, # to retrieve the raw key later
             "document": item.store_item_to_json(),
         }
         await self._container.upsert_item(body=doc)
 
     async def _delete_item(self, key: str) -> None:
-
         if key == "":
             raise ValueError("CosmosDBStorage: Key cannot be empty.")
 
-        escaped_key: str = sanitize_key(
-            key, self._config.key_suffix, self._config.compatibility_mode
-        )
+        escaped_key: str = self._sanitize(key)
+        await self._get_item_safe(key, escaped_key)  # ensure no collision 
+
         await ignore_error(self._container.delete_item(
             escaped_key, self._get_partition_key(escaped_key)
         ), is_status_code_error(404))
+
+    async def _create_container(self) -> None:
+        partition_key = {
+            "paths": ["/id"],
+            "kind": documents.PartitionKind.Hash,
+        }
+        try:
+            self._container = await self._database.create_container(
+                self._config.container_id,
+                partition_key,
+                offer_throughput=self._config.container_throughput,
+            )
+        except cosmos_exceptions.CosmosHttpResponseError as err:
+            if err.status_code == http_constants.StatusCodes.CONFLICT:
+                self._container = self._database.get_container_client(
+                    self._config.container_id
+                )
+                properties = await self._container.read()
+                if "partitionKey" not in properties:
+                    self._compatability_mode_partition_key = True
+                else:
+                    paths = properties["partitionKey"]["paths"]
+                    if "/_partitionKey" in paths:
+                        self._compatability_mode_partition_key = True
+                    elif "/id" not in paths:
+                        raise Exception(
+                            f"Custom Partition Key Paths are not supported. {self._config.container_id} "
+                            "has a custom Partition Key Path of {paths[0]}."
+                        )
+            else:
+                raise err
 
     async def initialize(self) -> None:
         if not self._container:
@@ -127,35 +180,7 @@ class CosmosDBStorage(Storage):
                         self._config.database_id
                     )
 
-                partition_key = {
-                    "paths": ["/id"],
-                    "kind": documents.PartitionKind.Hash,
-                }
-                try:
-                    self._container = await self._database.create_container(
-                        self._config.container_id,
-                        partition_key,
-                        offer_throughput=self._config.container_throughput,
-                    )
-                except cosmos_exceptions.CosmosHttpResponseError as err:
-                    if err.status_code == http_constants.StatusCodes.CONFLICT:
-                        self._container = self._database.get_container_client(
-                            self._config.container_id
-                        )
-                        properties = await self._container.read()
-                        if "partitionKey" not in properties:
-                            self._compatability_mode_partition_key = True
-                        else:
-                            paths = properties["partitionKey"]["paths"]
-                            if "/partitionKey" in paths:
-                                self._compatability_mode_partition_key = True
-                            elif "/id" not in paths:
-                                raise Exception(
-                                    f"Custom Partition Key Paths are not supported. {self._config.container_id} "
-                                    "has a custom Partition Key Path of {paths[0]}."
-                                )
-                    else:
-                        raise err
+                await self._create_container()
 
-    def _get_partition_key(self, key: str) -> str:
-        return "" if self._compatability_mode_partition_key else key
+    def _get_partition_key(self, key: str):
+        return NonePartitionKeyValue if self._compatability_mode_partition_key else key

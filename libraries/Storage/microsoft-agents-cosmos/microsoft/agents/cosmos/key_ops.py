@@ -23,12 +23,18 @@ def sanitize_key(
     return truncate_key(f"{key}{key_suffix}", compatibility_mode)
 
 def truncate_key(key: str, compatibility_mode: bool = True) -> str:
+    """
+    Truncate the key to 255 characters if compatibility_mode is True. If the key is longer than 255 characters,
+    it will be truncated and a SHA-256 hash of the original key will be appended to minimize collisions.
+    """
     max_key_len: int = 255
 
     if not compatibility_mode:
         return key
 
     if len(key) > max_key_len:
+        # for now
+        # https://stackoverflow.com/questions/4014090/is-it-safe-to-ignore-the-possibility-of-sha-collisions-in-practice
         aux_hash = sha256(key.encode("utf-8"))
         aux_hex = aux_hash.hexdigest()
 
