@@ -102,6 +102,7 @@ async def cosmos_db_storage():
 
 @pytest.mark.asyncio
 @pytest.mark.parametrize("test_require_compat", [True, False])
+@pytest.mark.skipif(not EMULATOR_RUNNING, reason="Needs the emulator to run.")
 async def test_cosmos_db_storage_flow_existing_container_and_persistence(
     test_require_compat,
 ):

@@ -97,12 +97,8 @@ class TestBlobStorage(CRUDStorageTests):
     @pytest.mark.asyncio
     async def test_external_change_is_visible(self):
         blob_storage, container_client = await blob_storage_instance()
-        assert (
-            await blob_storage.read(["key"], target_cls=MockStoreItem)
-        ) == MockStoreItem({"id": "item", "value": "data"})
-        assert (
-            await blob_storage.read(["key2"], target_cls=MockStoreItem)
-        ) == MockStoreItem({"id": "another_item", "value": "another_value"})
+        assert (await blob_storage.read(["key"], target_cls=MockStoreItem)) == {}
+        assert (await blob_storage.read(["key2"], target_cls=MockStoreItem)) == {}
         await container_client.upload_blob(
             name="key", data=json.dumps({"id": "item", "value": "data"}), overwrite=True
         )
@@ -111,12 +107,12 @@ class TestBlobStorage(CRUDStorageTests):
             data=json.dumps({"id": "another_item", "value": "new_val"}),
             overwrite=True,
         )
-        assert (
-            await blob_storage.read(["key"], target_cls=MockStoreItem)
-        ) == MockStoreItem({"id": "item", "value": "data"})
-        assert (
-            await blob_storage.read(["key2"], target_cls=MockStoreItem)
-        ) == MockStoreItem({"id": "another_item", "value": "new_val"})
+        assert (await blob_storage.read(["key"], target_cls=MockStoreItem))[
+            "key"
+        ] == MockStoreItem({"id": "item", "value": "data"})
+        assert (await blob_storage.read(["key2"], target_cls=MockStoreItem))[
+            "key2"
+        ] == MockStoreItem({"id": "another_item", "value": "new_val"})
 
     @pytest.mark.asyncio
     async def test_blob_storage_flow_existing_container_and_persistence(self):
