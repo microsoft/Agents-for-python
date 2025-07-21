@@ -7,7 +7,7 @@ error_filter = TypeVar("error_filter", bound=Callable[[Exception], bool])
 async def ignore_error(promise: Awaitable, ignore_error_filter: error_filter):
     """
     Ignores errors based on the provided filter function.
-    
+
     promise: the awaitable to execute
     ignore_error_filter: a function that takes an Exception and returns True if the error should be
     ignored, False otherwise.

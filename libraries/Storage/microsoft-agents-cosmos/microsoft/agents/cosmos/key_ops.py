@@ -1,5 +1,6 @@
 from hashlib import sha256
 
+
 def sanitize_key(
     key: str, key_suffix: str = "", compatibility_mode: bool = True
 ) -> str:
@@ -21,6 +22,7 @@ def sanitize_key(
     # Unicode code point of the character and return the new string
     key = "".join(map(lambda x: "*" + str(ord(x)) if x in bad_chars else x, key))
     return truncate_key(f"{key}{key_suffix}", compatibility_mode)
+
 
 def truncate_key(key: str, compatibility_mode: bool = True) -> str:
     """

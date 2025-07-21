@@ -5,6 +5,7 @@ from azure.core.credentials import TokenCredential
 
 from .key_ops import sanitize_key
 
+
 class CosmosDBStorageConfig:
     """The class for partitioned CosmosDB configuration for the Azure Bot Framework."""
 
@@ -35,6 +36,8 @@ class CosmosDBStorageConfig:
             key characters. (e.g. not: '\\', '?', '/', '#', '*')
         :param compatibility_mode: True if keys should be truncated in order to support previous CosmosDb
             max key length of 255.
+        :param url: The URL to the CosmosDB resource.
+        :param credential: The TokenCredential to use for authentication.
         :return CosmosDBConfig:
         """
         config_file: str = kwargs.get("filename", "")
@@ -61,6 +64,9 @@ class CosmosDBStorageConfig:
 
     @staticmethod
     def validate_cosmos_db_config(config: "CosmosDBStorageConfig") -> None:
+        """Validate the CosmosDBConfig object.
+
+        This is used prior to the creation of the CosmosDBStorage object."""
         if not config:
             raise ValueError("CosmosDBStorage: CosmosDBConfig is required.")
         if not config.cosmos_db_endpoint:
@@ -71,7 +77,7 @@ class CosmosDBStorageConfig:
             raise ValueError("CosmosDBStorage: database_id is required.")
         if not config.container_id:
             raise ValueError("CosmosDBStorage: container_id is required.")
-        
+
         CosmosDBStorageConfig._validate_suffix(config)
 
     @staticmethod

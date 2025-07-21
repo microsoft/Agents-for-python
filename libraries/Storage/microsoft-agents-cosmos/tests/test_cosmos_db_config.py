@@ -5,6 +5,7 @@ from microsoft.agents.cosmos import CosmosDBStorageConfig
 
 # thank you AI, again
 
+
 @pytest.fixture()
 def valid_config():
     """Fixture providing a valid CosmosDBStorageConfig for tests"""
@@ -18,10 +19,12 @@ def valid_config():
         container_id="bot-storage",
     )
 
+
 @pytest.fixture()
 def minimal_config():
     """Fixture providing a minimal CosmosDBStorageConfig for tests"""
     return CosmosDBStorageConfig()
+
 
 @pytest.fixture()
 def config_with_options():
@@ -34,8 +37,9 @@ def config_with_options():
         cosmos_client_options={"connection_policy": "test"},
         container_throughput=800,
         key_suffix="_test",
-        compatibility_mode=False
+        compatibility_mode=False,
     )
+
 
 class TestCosmosDBStorageConfig:
 
@@ -48,9 +52,9 @@ class TestCosmosDBStorageConfig:
             container_id="test_container",
             container_throughput=800,
             key_suffix="_test",
-            compatibility_mode=False
+            compatibility_mode=False,
         )
-        
+
         assert config.cosmos_db_endpoint == "https://test.documents.azure.com:443/"
         assert config.auth_key == "test_key"
         assert config.database_id == "test_db"
@@ -64,7 +68,7 @@ class TestCosmosDBStorageConfig:
     def test_constructor_with_defaults(self):
         """Test creating config with default values"""
         config = CosmosDBStorageConfig()
-        
+
         assert config.cosmos_db_endpoint == ""
         assert config.auth_key == ""
         assert config.database_id == ""
@@ -87,7 +91,7 @@ class TestCosmosDBStorageConfig:
             "container_throughput": 600,
             "key_suffix": "_file",
             "compatibility_mode": True,
-            "cosmos_client_options": {"connection_policy": "test"}
+            "cosmos_client_options": {"connection_policy": "test"},
         }
 
         with open(config_file_path, "w") as f:
@@ -96,7 +100,10 @@ class TestCosmosDBStorageConfig:
         config = CosmosDBStorageConfig(filename=str(config_file_path))
 
         assert config.cosmos_db_endpoint == "https://localhost:8081"
-        assert config.auth_key == "C2y6yDjf5/R+ob0N8A7Cgv30VRDJIWEHLM+4QDU5DE2nQ9nDuVTqobD4b8mGGyPMbIZnqyMsEcaGQy67XIw/Jw=="
+        assert (
+            config.auth_key
+            == "C2y6yDjf5/R+ob0N8A7Cgv30VRDJIWEHLM+4QDU5DE2nQ9nDuVTqobD4b8mGGyPMbIZnqyMsEcaGQy67XIw/Jw=="
+        )
         assert config.database_id == "test-db"
         assert config.container_id == "bot-storage"
         assert config.container_throughput == 600
@@ -109,16 +116,19 @@ class TestCosmosDBStorageConfig:
         config_file_path = tmp_path / "cosmos_config.json"
 
         with open(config_file_path, "w") as f:
-            json.dump({
-                "cosmos_db_endpoint": "https://file-endpoint.com",
-                "auth_key": "file_key",
-                "database_id": "file_db"
-            }, f)
+            json.dump(
+                {
+                    "cosmos_db_endpoint": "https://file-endpoint.com",
+                    "auth_key": "file_key",
+                    "database_id": "file_db",
+                },
+                f,
+            )
 
         config = CosmosDBStorageConfig(
             cosmos_db_endpoint="https://param-endpoint.com",
             auth_key="param_key",
-            filename=str(config_file_path)
+            filename=str(config_file_path),
         )
 
         # Parameters should override file values
@@ -133,9 +143,9 @@ class TestCosmosDBStorageConfig:
             cosmos_db_endpoint="https://test.documents.azure.com:443/",
             auth_key="test_key",
             database_id="test_db",
-            container_id="test_container"
+            container_id="test_container",
         )
-        
+
         # Should not raise any exception
         CosmosDBStorageConfig.validate_cosmos_db_config(config)
 
@@ -147,9 +157,7 @@ class TestCosmosDBStorageConfig:
     def test_validation_missing_endpoint(self):
         """Test validation with missing cosmos_db_endpoint"""
         config = CosmosDBStorageConfig(
-            auth_key="test_key",
-            database_id="test_db",
-            container_id="test_container"
+            auth_key="test_key", database_id="test_db", container_id="test_container"
         )
         with pytest.raises(ValueError):
             CosmosDBStorageConfig.validate_cosmos_db_config(config)
@@ -159,7 +167,7 @@ class TestCosmosDBStorageConfig:
         config = CosmosDBStorageConfig(
             cosmos_db_endpoint="https://test.documents.azure.com:443/",
             database_id="test_db",
-            container_id="test_container"
+            container_id="test_container",
         )
         with pytest.raises(ValueError):
             CosmosDBStorageConfig.validate_cosmos_db_config(config)
@@ -169,7 +177,7 @@ class TestCosmosDBStorageConfig:
         config = CosmosDBStorageConfig(
             cosmos_db_endpoint="https://test.documents.azure.com:443/",
             auth_key="test_key",
-            container_id="test_container"
+            container_id="test_container",
         )
         with pytest.raises(ValueError):
             CosmosDBStorageConfig.validate_cosmos_db_config(config)
@@ -179,7 +187,7 @@ class TestCosmosDBStorageConfig:
         config = CosmosDBStorageConfig(
             cosmos_db_endpoint="https://test.documents.azure.com:443/",
             auth_key="test_key",
-            database_id="test_db"
+            database_id="test_db",
         )
         with pytest.raises(ValueError):
             CosmosDBStorageConfig.validate_cosmos_db_config(config)
@@ -192,7 +200,7 @@ class TestCosmosDBStorageConfig:
             database_id="test_db",
             container_id="test_container",
             key_suffix="_test",
-            compatibility_mode=True
+            compatibility_mode=True,
         )
         with pytest.raises(ValueError):
             CosmosDBStorageConfig.validate_cosmos_db_config(config)
@@ -205,7 +213,7 @@ class TestCosmosDBStorageConfig:
             database_id="test_db",
             container_id="test_container",
             key_suffix="invalid/suffix\\with?bad#chars",
-            compatibility_mode=False
+            compatibility_mode=False,
         )
         with pytest.raises(ValueError, match="Cannot use invalid Row Key characters"):
             CosmosDBStorageConfig.validate_cosmos_db_config(config)
@@ -218,7 +226,7 @@ class TestCosmosDBStorageConfig:
             database_id="test_db",
             container_id="test_container",
             key_suffix="valid_suffix_123",
-            compatibility_mode=False
+            compatibility_mode=False,
         )
         # Should not raise any exception
         CosmosDBStorageConfig.validate_cosmos_db_config(config)
@@ -226,16 +234,12 @@ class TestCosmosDBStorageConfig:
     def test_cosmos_client_options(self):
         """Test cosmos_client_options handling"""
         options = {"connection_policy": "test", "consistency_level": "strong"}
-        config = CosmosDBStorageConfig(
-            cosmos_client_options=options
-        )
+        config = CosmosDBStorageConfig(cosmos_client_options=options)
         assert config.cosmos_client_options == options
 
     def test_credential_parameter(self):
         """Test credential parameter handling"""
         # Mock credential (in real usage this would be a TokenCredential instance)
         mock_credential = object()  # Placeholder for actual TokenCredential
-        config = CosmosDBStorageConfig(
-            credential=mock_credential
-        )
+        config = CosmosDBStorageConfig(credential=mock_credential)
         assert config.credential is mock_credential

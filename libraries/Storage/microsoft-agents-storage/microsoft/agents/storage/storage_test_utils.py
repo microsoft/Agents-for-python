@@ -9,6 +9,7 @@ from .store_item import StoreItem
 from ._type_aliases import JSON
 from .memory_storage import MemoryStorage
 
+
 class MockStoreItem(StoreItem):
     """Test implementation of StoreItem for testing purposes"""
 
@@ -200,7 +201,7 @@ class StorageTestsCommon(ABC):
 
 class CRUDStorageTests(StorageTestsCommon):
     """Tests for Storage implementations that support CRUD operations.
-    
+
     To use, subclass and implement the `storage` method.
     """
 
@@ -449,23 +450,22 @@ class CRUDStorageTests(StorageTestsCommon):
             storage_alt = await self.storage(existing=True)
             assert await baseline_storage.equals(storage_alt)
 
+
 class QuickCRUDStorageTests(CRUDStorageTests):
     """Reduced set of permutations for quicker tests. Useful for debugging."""
 
-    KEY_LIST = ([
-        "\\?/#\t\n\r*", "test.txt"
-    ])
+    KEY_LIST = ["\\?/#\t\n\r*", "test.txt"]
 
     READ_KEY_LIST = KEY_LIST + ["nonexistent_key"]
 
     STATE_LIST = [
-        { key: MockStoreItem({"id": key, "value": f"value{key}"}) for key in KEY_LIST }
+        {key: MockStoreItem({"id": key, "value": f"value{key}"}) for key in KEY_LIST}
     ]
 
     @pytest.fixture(params=STATE_LIST)
     def initial_state(self, request):
         return request.param
-    
+
     @pytest.fixture(params=KEY_LIST)
     def key(self, request):
         return request.param
@@ -478,22 +478,29 @@ class QuickCRUDStorageTests(CRUDStorageTests):
     def changes(self, request):
         changes_obj = {}
         keys = request.param
-        changes_obj["new_key"] = MockStoreItemB({"field": "new_value_for_new_key"}, True)
+        changes_obj["new_key"] = MockStoreItemB(
+            {"field": "new_value_for_new_key"}, True
+        )
         for i, key in enumerate(keys):
             if i % 2 == 0:
-                changes_obj[key] = MockStoreItemB({"data": f"value{key}"}, (i // 2) % 2 == 0)
+                changes_obj[key] = MockStoreItemB(
+                    {"data": f"value{key}"}, (i // 2) % 2 == 0
+                )
             else:
-                changes_obj[key] = MockStoreItem({"id": key, "value": f"new_value_for_{key}"})
+                changes_obj[key] = MockStoreItem(
+                    {"id": key, "value": f"new_value_for_{key}"}
+                )
         changes_obj["new_key_2"] = MockStoreItem({"field": "new_value_for_new_key_2"})
         return changes_obj
 
+
 def debug_print(*args):
     """Print debug information clearly separated in the console."""
-    print("\n"*2)
+    print("\n" * 2)
     print("--- DEBUG ---")
     for arg in args:
-        print("\n"*2)
+        print("\n" * 2)
         print(arg)
-    print("\n"*2)
+    print("\n" * 2)
     print("--- ----- ---")
-    print("\n" *2)
+    print("\n" * 2)

@@ -26,6 +26,11 @@ from .key_ops import sanitize_key
 
 StoreItemT = TypeVar("StoreItemT", bound=StoreItem)
 
+cosmos_resource_not_found = lambda err: isinstance(
+    err, cosmos_exceptions.CosmosResourceNotFoundError
+)
+
+
 class CosmosDBStorage(AsyncStorageBase):
     """A CosmosDB based storage provider using partitioning"""
 
@@ -45,14 +50,16 @@ class CosmosDBStorage(AsyncStorageBase):
         self._compatability_mode_partition_key: bool = False
         # Lock used for synchronizing container creation
         self._lock: Lock = Lock()
-            
+
     def _create_client(self) -> CosmosClient:
         if self._config.url:
             if not self._config.credential:
                 raise ValueError(
                     "CosmosDBStorage: Credential is required when using a custom service URL."
                 )
-            return CosmosClient(account_url=self._config.url, credential=self._config.credential)
+            return CosmosClient(
+                account_url=self._config.url, credential=self._config.credential
+            )
 
         connection_policy = self._config.cosmos_client_options.get(
             "connection_policy", documents.ConnectionPolicy()
@@ -63,19 +70,25 @@ class CosmosDBStorage(AsyncStorageBase):
         return CosmosClient(
             self._config.cosmos_db_endpoint,
             self._config.auth_key,
-            consistency_level=self._config.cosmos_client_options.get("consistency_level", None),
+            consistency_level=self._config.cosmos_client_options.get(
+                "consistency_level", None
+            ),
             **{
                 "connection_policy": connection_policy,
                 "connection_verify": not connection_policy.DisableSSLVerification,
             },
         )
-    
+
     def _sanitize(self, key: str) -> str:
-        return sanitize_key(key, self._config.key_suffix, self._config.compatibility_mode)
-    
-    async def _get_item_safe(self, raw_key: str, sanitized_key: str) -> Union[JSON, None]:
+        return sanitize_key(
+            key, self._config.key_suffix, self._config.compatibility_mode
+        )
+
+    async def _get_item_safe(
+        self, raw_key: str, sanitized_key: str
+    ) -> Union[JSON, None]:
         """Get item, ensuring no collision occurs.
-        
+
         :param raw_key: The original key provided by the user.
         :param sanitized_key: The sanitized key used for CosmosDB operations.
         :return: The item if found, None otherwise.
@@ -84,24 +97,29 @@ class CosmosDBStorage(AsyncStorageBase):
         But, just in case.
         """
 
-        read_item_response: CosmosDict = await ignore_error(self._container.read_item(
-            sanitized_key, self._get_partition_key(sanitized_key)
-        ), lambda err: isinstance(err, cosmos_exceptions.CosmosResourceNotFoundError))
+        read_item_response: CosmosDict = await ignore_error(
+            self._container.read_item(
+                sanitized_key, self._get_partition_key(sanitized_key)
+            ),
+            cosmos_resource_not_found,
+        )
 
-        if (read_item_response is not None and
-            read_item_response.get("realId") is not None and
-            read_item_response.get("realId") != raw_key):
+        if (
+            read_item_response is not None
+            and read_item_response.get("realId") is not None
+            and read_item_response.get("realId") != raw_key
+        ):
             # This should never happen, but just in case...
             # in fact, if this does happen, then we should probably document this
             # and publish the first ever sha256 collision to the world.
             raise Exception("CosmosDBStorage: Key mismatch on get_item_raw.")
-        
+
         return read_item_response
 
     async def _read_item(
         self, key: str, *, target_cls: StoreItemT = None, **kwargs
     ) -> tuple[Union[str, None], Union[StoreItemT, None]]:
-        
+
         if key == "":
             raise ValueError("CosmosDBStorage: Key cannot be empty.")
 
@@ -109,20 +127,20 @@ class CosmosDBStorage(AsyncStorageBase):
         read_item_response: CosmosDict = await self._get_item_safe(key, escaped_key)
         if read_item_response is None:
             return None, None
-        
+
         doc: JSON = read_item_response.get("document")
         return read_item_response["realId"], target_cls.from_json_to_store_item(doc)
 
     async def _write_item(self, key: str, item: StoreItem) -> None:
         if key == "":
             raise ValueError("CosmosDBStorage: Key cannot be empty.")
-        
+
         escaped_key: str = self._sanitize(key)
         await self._get_item_safe(key, escaped_key)  # ensure no collision
 
         doc = {
             "id": escaped_key,
-            "realId": key, # to retrieve the raw key later
+            "realId": key,  # to retrieve the raw key later
             "document": item.store_item_to_json(),
         }
         await self._container.upsert_item(body=doc)
@@ -132,11 +150,14 @@ class CosmosDBStorage(AsyncStorageBase):
             raise ValueError("CosmosDBStorage: Key cannot be empty.")
 
         escaped_key: str = self._sanitize(key)
-        await self._get_item_safe(key, escaped_key)  # ensure no collision 
+        await self._get_item_safe(key, escaped_key)  # ensure no collision
 
-        await ignore_error(self._container.delete_item(
-            escaped_key, self._get_partition_key(escaped_key)
-        ), is_status_code_error(404))
+        await ignore_error(
+            self._container.delete_item(
+                escaped_key, self._get_partition_key(escaped_key)
+            ),
+            cosmos_resource_not_found,
+        )
 
     async def _create_container(self) -> None:
         partition_key = {
@@ -155,17 +176,18 @@ class CosmosDBStorage(AsyncStorageBase):
                     self._config.container_id
                 )
                 properties = await self._container.read()
-                if "partitionKey" not in properties:
+                # if "partitionKey" not in properties:
+                #     self._compatability_mode_partition_key = True
+                # else:
+                # containers created had no partition key, so the default was "/_partitionKey"
+                paths = properties["partitionKey"]["paths"]
+                if "/_partitionKey" in paths:
                     self._compatability_mode_partition_key = True
-                else:
-                    paths = properties["partitionKey"]["paths"]
-                    if "/_partitionKey" in paths:
-                        self._compatability_mode_partition_key = True
-                    elif "/id" not in paths:
-                        raise Exception(
-                            f"Custom Partition Key Paths are not supported. {self._config.container_id} "
-                            "has a custom Partition Key Path of {paths[0]}."
-                        )
+                elif "/id" not in paths:
+                    raise Exception(
+                        f"Custom Partition Key Paths are not supported. {self._config.container_id} "
+                        "has a custom Partition Key Path of {paths[0]}."
+                    )
             else:
                 raise err
 
@@ -173,7 +195,8 @@ class CosmosDBStorage(AsyncStorageBase):
         if not self._container:
             with self._lock:
                 # in case another thread attempted to initialize just before acquiring the lock
-                if self._container: return
+                if self._container:
+                    return
 
                 if not self._database:
                     self._database = await self._client.create_database_if_not_exists(

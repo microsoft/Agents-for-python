@@ -19,10 +19,10 @@ from microsoft.agents.storage.storage_test_utils import (
     MockStoreItem,
     MockStoreItemB,
     StorageBaseline,
-    debug_print
 )
 
-EMULATOR_RUNNING = True
+EMULATOR_RUNNING = False
+
 
 def create_config(compat_mode):
     return CosmosDBStorageConfig(
@@ -37,13 +37,15 @@ def create_config(compat_mode):
         container_throughput=800,
     )
 
+
 @pytest.fixture
 def config():
     return create_config(compat_mode=False)
 
+
 async def create_cosmos_env(config, compat_mode=False, existing=False):
     """Creates the Cosmos DB environment for testing.
-    
+
     If existing is False, creates a new database and container, deleting any
     existing ones with the same name. If existing is True, creates the database
     and container if they do not already exist."""
@@ -75,49 +77,144 @@ async def create_cosmos_env(config, compat_mode=False, existing=False):
             offer_throughput=config.container_throughput,
         )
     else:
-        database = await cosmos_client.create_database_if_not_exists(id=config.database_id)
+        database = await cosmos_client.create_database_if_not_exists(
+            id=config.database_id
+        )
         container_client = database.get_container_client(config.container_id)
 
     return container_client
 
+
 async def cosmos_db_storage_instance(compat_mode=False, existing=False):
     config = create_config(compat_mode)
-    container_client = await create_cosmos_env(config, compat_mode=compat_mode, existing=existing)
+    container_client = await create_cosmos_env(
+        config, compat_mode=compat_mode, existing=existing
+    )
     storage = CosmosDBStorage(config)
     return storage, container_client
+
 
 @pytest_asyncio.fixture()
 async def cosmos_db_storage():
     storage, _ = await cosmos_db_storage_instance()
     return storage
 
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("test_require_compat", [True, False])
+async def test_cosmos_db_storage_flow_existing_container_and_persistence(
+    test_require_compat,
+):
+
+    config = create_config(compat_mode=test_require_compat)
+    container_client = await create_cosmos_env(config)
+
+    initial_data = {
+        "__some_key": MockStoreItem({"id": "item2", "value": "data2"}),
+        "?test": MockStoreItem({"id": "?test", "value": "data1"}),
+        "!another_key": MockStoreItem({"id": "item3", "value": "data3"}),
+        "1230": MockStoreItemB({"id": "item8", "value": "data"}, False),
+        "key-with-dash": MockStoreItem({"id": "item4", "value": "data"}),
+        "key.with.dot": MockStoreItem({"id": "item5", "value": "data"}),
+        "key/with/slash": MockStoreItem({"id": "item6", "value": "data"}),
+        "another key": MockStoreItemB({"id": "item7", "value": "data"}, True),
+    }
+
+    baseline_storage = StorageBaseline(initial_data)
+
+    for key, value in initial_data.items():
+        doc = {
+            "id": sanitize_key(
+                key,
+                config.key_suffix,
+                test_require_compat,
+            ),
+            "realId": key,
+            "document": value.store_item_to_json(),
+        }
+        await container_client.upsert_item(body=doc)
+
+    storage = CosmosDBStorage(config)
+    assert await baseline_storage.equals(storage)
+    assert (
+        await storage.read(["1230", "another key"], target_cls=MockStoreItemB)
+    ) == baseline_storage.read(["1230", "another key"])
+
+    changes = {
+        "?test": MockStoreItem({"id": "?test", "value": "data1_changed"}),
+        "__some_key": MockStoreItem({"id": "item2", "value": "data2_changed"}),
+        "new_item": MockStoreItem({"id": "new_item", "value": "new_data"}),
+    }
+
+    baseline_storage.write(changes)
+    await storage.write(changes)
+
+    baseline_storage.delete(["!another_key", "?test"])
+    await storage.delete(["!another_key", "?test"])
+    assert await baseline_storage.equals(storage)
+
+    del storage
+    gc.collect()
+    storage = CosmosDBStorage(config)
+
+    escaped_key = storage._sanitize("?test")
+    with pytest.raises(CosmosResourceNotFoundError):
+        await container_client.read_item(
+            escaped_key, storage._get_partition_key(escaped_key)
+        )
+
+    escaped_key = storage._sanitize("1230")
+    item = (
+        await container_client.read_item(
+            escaped_key, storage._get_partition_key(escaped_key)
+        )
+    ).get("document")
+    assert MockStoreItemB.from_json_to_store_item(item) == initial_data["1230"]
+
+
 @pytest.mark.skipif(not EMULATOR_RUNNING, reason="Needs the emulator to run.")
-class dTestCosmosDBStorage(QuickCRUDStorageTests):
+class TestCosmosDBStorage(QuickCRUDStorageTests):
 
     def get_compat_mode(self):
         return False
-    
-    async def storage(self, initial_data = None, existing=False):
-        storage, _ = await cosmos_db_storage_instance(compat_mode=self.get_compat_mode(), existing=existing)
-        if initial_data: await storage.write(initial_data)
+
+    async def storage(self, initial_data=None, existing=False):
+        storage, _ = await cosmos_db_storage_instance(
+            compat_mode=self.get_compat_mode(), existing=existing
+        )
+        if initial_data:
+            await storage.write(initial_data)
         return storage
 
     @pytest.mark.asyncio
     async def test_initialize(self, cosmos_db_storage):
         await cosmos_db_storage.initialize()
         await cosmos_db_storage.initialize()
-        await cosmos_db_storage.write({"some_Key": MockStoreItem({"id": "123", "data": "value"})})
+        await cosmos_db_storage.write(
+            {"some_Key": MockStoreItem({"id": "123", "data": "value"})}
+        )
         await cosmos_db_storage.initialize()
-        assert (await cosmos_db_storage.read(["some_Key"], target_cls=MockStoreItem)) == {"some_Key": MockStoreItem({"id": "123", "data": "value"})}
+        assert (
+            await cosmos_db_storage.read(["some_Key"], target_cls=MockStoreItem)
+        ) == {"some_Key": MockStoreItem({"id": "123", "data": "value"})}
 
     @pytest.mark.asyncio
     async def test_collision_detection(self):
         cosmos_storage, container_client = await cosmos_db_storage_instance()
-        await container_client.upsert_item({"id": "key", "realId": "fake_key", "document": {"id": "key", "value": "data"}, "partitionKey": ""})
+        await container_client.upsert_item(
+            {
+                "id": "key",
+                "realId": "fake_key",
+                "document": {"id": "key", "value": "data"},
+                "partitionKey": "",
+            }
+        )
         with pytest.raises(Exception):
             await cosmos_storage.read(["key"], target_cls=MockStoreItem)
         with pytest.raises(Exception):
-            await cosmos_storage.write({"key": MockStoreItem({"id": "item", "value": "data"})})
+            await cosmos_storage.write(
+                {"key": MockStoreItem({"id": "item", "value": "data"})}
+            )
         with pytest.raises(Exception):
             await cosmos_storage.delete(["key"])
 
@@ -126,98 +223,35 @@ class dTestCosmosDBStorage(QuickCRUDStorageTests):
         cosmos_storage, container_client = await cosmos_db_storage_instance()
         assert (await cosmos_storage.read(["key"], target_cls=MockStoreItem)) == {}
         assert (await cosmos_storage.read(["key2"], target_cls=MockStoreItem)) == {}
-        await container_client.upsert_item({"id": "key", "realId": "key", "document": {"id": "key", "value": "data"}, "partitionKey": ""})
-        await container_client.upsert_item({"id": "key2", "realId": "key2", "document": {"id": "key2", "value": "new_val"}, "partitionKey": ""})
-        assert (await cosmos_storage.read(["key"], target_cls=MockStoreItem))["key"] == MockStoreItem({"id": "key", "value": "data"})
-        assert (await cosmos_storage.read(["key2"], target_cls=MockStoreItem))["key2"] == MockStoreItem({"id": "key2", "value": "new_val"})
-
-    @pytest.mark.asyncio
-    async def cosmos_db_storage_flow_existing_container_and_persistence(self, config, test_require_compat=False):
-
-        config = create_config(compat_mode=test_require_compat)
-        container_client = await create_cosmos_env(config)
-        config.compatibility_mode = self.get_compat_mode()
-
-        initial_data = {
-            "__some_key": MockStoreItem({"id": "item2", "value": "data2"}),
-            "item1"*100: MockStoreItem({"id": "item1", "value": "data1"}),
-            "!another_key": MockStoreItem({"id": "item3", "value": "data3"}),
-            "1230": MockStoreItemB({"id": "item8", "value": "data"}, False),
-            "key-with-dash": MockStoreItem({"id": "item4", "value": "data"}),
-            "key.with.dot": MockStoreItem({"id": "item5", "value": "data"}),
-            "key/with/slash": MockStoreItem({"id": "item6", "value": "data"}),
-            "another key": MockStoreItemB({"id": "item7", "value": "data"}, True),
-        }
-
-        baseline_storage = StorageBaseline(initial_data)
-
-        for key, value in initial_data.items():
-            doc = {
-                "id": sanitize_key(
-                    key, config.key_suffix, test_require_compat or self.get_compat_mode()
-                ),
-                "realId": key,
-                "document": value.store_item_to_json(),
-                "partitionKey": ""
+        await container_client.upsert_item(
+            {
+                "id": "key",
+                "realId": "key",
+                "document": {"id": "key", "value": "data"},
+                "partitionKey": "",
             }
-            await container_client.upsert_item(body=doc)
-
-        storage = CosmosDBStorage(config)
-        storage.initialize
-        # debug_print(storage._compatability_mode_partition_key, self.get_compat_mode(), test_require_compat)
-
-        assert await baseline_storage.equals(storage)
-        assert (
-            await storage.read(["1230", "another key"], target_cls=MockStoreItemB)
-        ) == baseline_storage.read(["1230", "another key"])
-
-        changes = {
-            "item1"*100: MockStoreItem({"id": "item1", "value": "data1_changed"}),
-            "__some_key": MockStoreItem({"id": "item2", "value": "data2_changed"}),
-            "new_item": MockStoreItem({"id": "new_item", "value": "new_data"}),
-        }
-
-        baseline_storage.write(changes)
-        await storage.write(changes)
-
-        baseline_storage.delete(["!another_key", "item1"*100])
-        await storage.delete(["!another_key", "item1"*100])
-        assert await baseline_storage.equals(storage)
-
-        del storage
-        gc.collect()
-        storage = CosmosDBStorage(config)
-
-        escaped_key = storage._sanitize("item1"*100)
-        with pytest.raises(CosmosResourceNotFoundError):
-            await container_client.read_item(escaped_key, storage._get_partition_key(escaped_key))
-
-        escaped_key = storage._sanitize("1230")
-        item = (await container_client.read_item(escaped_key, storage._get_partition_key(escaped_key))).get("document")
-        assert (
-            MockStoreItemB.from_json_to_store_item(item)
-            == initial_data["1230"]
         )
+        await container_client.upsert_item(
+            {
+                "id": "key2",
+                "realId": "key2",
+                "document": {"id": "key2", "value": "new_val"},
+                "partitionKey": "",
+            }
+        )
+        assert (await cosmos_storage.read(["key"], target_cls=MockStoreItem))[
+            "key"
+        ] == MockStoreItem({"id": "key", "value": "data"})
+        assert (await cosmos_storage.read(["key2"], target_cls=MockStoreItem))[
+            "key2"
+        ] == MockStoreItem({"id": "key2", "value": "new_val"})
 
-    @pytest.mark.asyncio
-    async def test_cosmos_db_storage_flow_existing_container_and_persistence(self):
-        await self.cosmos_db_storage_flow_existing_container_and_persistence(config)
-        assert True
 
 @pytest.mark.skipif(not EMULATOR_RUNNING, reason="Needs the emulator to run.")
-class TestCosmosDBStorageWithCompat(dTestCosmosDBStorage):
+class TestCosmosDBStorageWithCompat(TestCosmosDBStorage):
     def get_compat_mode(self):
         return True
-    
-    @pytest.mark.asyncio
-    async def test_cosmos_db_storage_flow_existing_container_and_persistence(self):
-        await self.cosmos_db_storage_flow_existing_container_and_persistence(config)
-        assert True
 
-    @pytest.mark.asyncio
-    async def test_cosmos_db_storage_flow_existing_container_and_persistence_with_compat(self):
-        await self.cosmos_db_storage_flow_existing_container_and_persistence(config, True)
-        assert True
 
 @pytest.mark.skipif(not EMULATOR_RUNNING, reason="Needs the emulator to run.")
 class TestCosmosDBStorageInit:
