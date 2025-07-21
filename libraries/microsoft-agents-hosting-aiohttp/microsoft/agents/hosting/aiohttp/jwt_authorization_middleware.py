@@ -1,7 +1,10 @@
 import functools
 from aiohttp.web import Request, middleware, json_response
 
-from microsoft.agents.hosting.core.authorization import AgentAuthConfiguration, JwtTokenValidator
+from microsoft.agents.hosting.core.authorization import (
+    AgentAuthConfiguration,
+    JwtTokenValidator,
+)
 
 
 @middleware

@@ -6,7 +6,11 @@ from os import environ
 from typing import Optional
 from dotenv import load_dotenv
 
-from microsoft.agents.hosting.core.app import AgentApplication, TurnState, ConversationState
+from microsoft.agents.hosting.core.app import (
+    AgentApplication,
+    TurnState,
+    ConversationState,
+)
 from microsoft.agents.hosting.core.app.oauth import Authorization
 from microsoft.agents.hosting.core import TurnContext, MessageFactory
 from microsoft.agents.hosting.core.storage import MemoryStorage

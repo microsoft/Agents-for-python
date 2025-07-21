@@ -31,7 +31,10 @@ from microsoft.agents.hosting.core.connector import (
     ConnectorClient,
     UserTokenClient,
 )
-from microsoft.agents.hosting.core.authorization import AuthenticationConstants, ClaimsIdentity
+from microsoft.agents.hosting.core.authorization import (
+    AuthenticationConstants,
+    ClaimsIdentity,
+)
 from .channel_service_client_factory_base import ChannelServiceClientFactoryBase
 from .channel_adapter import ChannelAdapter
 from .turn_context import TurnContext

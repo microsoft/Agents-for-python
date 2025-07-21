@@ -2,7 +2,10 @@ from typing import Protocol, Optional
 from abc import abstractmethod
 
 from microsoft.agents.hosting.core.authorization import ClaimsIdentity
-from microsoft.agents.hosting.core.connector import ConnectorClientBase, UserTokenClientBase
+from microsoft.agents.hosting.core.connector import (
+    ConnectorClientBase,
+    UserTokenClientBase,
+)
 
 
 class ChannelServiceClientFactoryBase(Protocol):

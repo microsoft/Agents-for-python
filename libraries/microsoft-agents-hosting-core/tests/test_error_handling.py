@@ -1,5 +1,8 @@
 import pytest
-from microsoft.agents.hosting.core.storage.error_handling import ignore_error, is_status_code_error
+from microsoft.agents.hosting.core.storage.error_handling import (
+    ignore_error,
+    is_status_code_error,
+)
 
 
 class CustomError(Exception):
