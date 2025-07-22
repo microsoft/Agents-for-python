@@ -1,14 +1,12 @@
 # Copyright (c) Microsoft Corporation. All rights reserved.
 # Licensed under the MIT License.
 
-import os
-from agents import set_tracing_export_api_key
 from dotenv import load_dotenv
 from aiohttp.web import Application, Request, Response, run_app
 
-from microsoft.agents.builder import RestChannelServiceClientFactory
+from microsoft.agents.hosting.core import RestChannelServiceClientFactory
 from microsoft.agents.hosting.aiohttp import CloudAdapter, jwt_authorization_middleware
-from microsoft.agents.authorization import (
+from microsoft.agents.hosting.core.authorization import (
     Connections,
     AccessTokenProviderBase,
     ClaimsIdentity,

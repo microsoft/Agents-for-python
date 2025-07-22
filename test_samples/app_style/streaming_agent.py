@@ -2,28 +2,31 @@
 # Licensed under the MIT License.
 
 import asyncio
-from os import environ
-import re
+from os import environ, path
 import sys
 import traceback
 
-from dotenv import load_dotenv
-from microsoft.agents.builder.app import AgentApplication, TurnState
-from microsoft.agents.builder.app.oauth import Authorization
+from dotenv import load_dotenv, find_dotenv
 from microsoft.agents.hosting.aiohttp import CloudAdapter, Citation
 from microsoft.agents.authentication.msal import MsalConnectionManager
 
-from microsoft.agents.builder import (
+from microsoft.agents.hosting.core import (
+    Authorization,
+    AgentApplication,
+    TurnState,
     TurnContext,
-    MessageFactory,
+    MemoryStorage,
 )
-from microsoft.agents.storage import MemoryStorage
-from microsoft.agents.core import load_configuration_from_env
-from microsoft.agents.core.models import Activity, ActivityTypes, SensitivityUsageInfo
+from microsoft.agents.activity import (
+    load_configuration_from_env,
+    Activity,
+    ActivityTypes,
+    SensitivityUsageInfo,
+)
 
 from shared import start_server
 
-load_dotenv()
+load_dotenv(path.join(path.dirname(__file__), ".env"))
 
 agents_sdk_config = load_configuration_from_env(environ)
 
