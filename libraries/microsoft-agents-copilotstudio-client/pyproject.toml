@@ -18,4 +18,4 @@ dependencies = [
 ]
 
 [project.urls]
-"Homepage" = "https://github.com/yourusername/microsoft-agents-client"
+"Homepage" = "https://github.com/microsoft/Agents"

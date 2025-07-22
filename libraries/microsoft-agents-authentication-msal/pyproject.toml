@@ -21,4 +21,4 @@ dependencies = [
 ]
 
 [project.urls]
-"Homepage" = "https://github.com/microsoft/microsoft-agents-protocol"
+"Homepage" = "https://github.com/microsoft/Agents"

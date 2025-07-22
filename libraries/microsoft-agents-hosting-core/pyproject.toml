@@ -5,7 +5,7 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "microsoft-agents-hosting-core"
 version = "0.0.0a1"
-description = "A protocol library for Microsoft Agents"
+description = "Core library for Microsoft Agents"
 authors = [{name = "Microsoft Corporation"}]
 requires-python = ">=3.9"
 classifiers = [
@@ -22,4 +22,4 @@ dependencies = [
 ]
 
 [project.urls]
-"Homepage" = "https://github.com/microsoft/microsoft-agents-protocol"
+"Homepage" = "https://github.com/microsoft/Agents"

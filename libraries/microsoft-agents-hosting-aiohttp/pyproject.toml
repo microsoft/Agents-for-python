@@ -5,7 +5,7 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "microsoft-agents-hosting-aiohttp"
 version = "0.0.0a1"
-description = "A protocol library for Microsoft Agents"
+description = "Integration library for Microsoft Agents with aiohttp"
 authors = [{name = "Microsoft Corporation"}]
 requires-python = ">=3.9"
 classifiers = [
@@ -19,4 +19,4 @@ dependencies = [
 ]
 
 [project.urls]
-"Homepage" = "https://github.com/microsoft/Agents-for-python"
+"Homepage" = "https://github.com/microsoft/Agents"
