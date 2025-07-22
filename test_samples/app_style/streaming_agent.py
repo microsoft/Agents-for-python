@@ -8,18 +8,22 @@ import sys
 import traceback
 
 from dotenv import load_dotenv
-from microsoft.agents.hosting.core.app import AgentApplication, TurnState
-from microsoft.agents.hosting.core.app.oauth import Authorization
 from microsoft.agents.hosting.aiohttp import CloudAdapter, Citation
 from microsoft.agents.authentication.msal import MsalConnectionManager
 
 from microsoft.agents.hosting.core import (
+    Authorization,
+    AgentApplication,
+    TurnState,
     TurnContext,
-    MessageFactory,
+    MemoryStorage,
 )
-from microsoft.agents.hosting.core.storage import MemoryStorage
-from microsoft.agents.activity import load_configuration_from_env
-from microsoft.agents.activity import Activity, ActivityTypes, SensitivityUsageInfo
+from microsoft.agents.activity import (
+    load_configuration_from_env,
+    Activity,
+    ActivityTypes,
+    SensitivityUsageInfo,
+)
 
 from shared import start_server
 

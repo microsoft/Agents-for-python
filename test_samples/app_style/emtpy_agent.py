@@ -8,62 +8,32 @@ from aiohttp.web import Application, Request, Response, run_app
 from dotenv import load_dotenv
 
 from os import environ
-from microsoft.agents.authentication.msal import AuthTypes, MsalAuthConfiguration
-from microsoft.agents.hosting.core.app import AgentApplication, TurnState
 from microsoft.agents.hosting.aiohttp import (
     CloudAdapter,
     jwt_authorization_middleware,
     start_agent_process,
 )
-from microsoft.agents.hosting.core.authorization import (
-    Connections,
-    AccessTokenProviderBase,
-    ClaimsIdentity,
+from microsoft.agents.hosting.core import (
+    Authorization,
+    AgentApplication,
+    TurnState,
+    TurnContext,
+    MemoryStorage,
 )
-from microsoft.agents.authentication.msal import MsalAuth
-
-from microsoft.agents.hosting.core import RestChannelServiceClientFactory, TurnContext
-from microsoft.agents.hosting.core.storage import MemoryStorage
+from microsoft.agents.authentication.msal import MsalConnectionManager
+from microsoft.agents.activity import load_configuration_from_env
 
 load_dotenv()
 
+agents_sdk_config = load_configuration_from_env(environ)
 
-class DefaultConfig(MsalAuthConfiguration):
-    """Agent Configuration"""
-
-    def __init__(self) -> None:
-        self.AUTH_TYPE = AuthTypes.client_secret
-        self.TENANT_ID = "" or environ.get("TENANT_ID")
-        self.CLIENT_ID = "" or environ.get("CLIENT_ID")
-        self.CLIENT_SECRET = "" or environ.get("CLIENT_SECRET")
-        self.PORT = 3978
-
-
-CONFIG = DefaultConfig()
-AUTH_PROVIDER = MsalAuth(CONFIG)
-
-
-class DefaultConnection(Connections):
-    def get_default_connection(self) -> AccessTokenProviderBase:
-        pass
-
-    def get_token_provider(
-        self, claims_identity: ClaimsIdentity, service_url: str
-    ) -> AccessTokenProviderBase:
-        return AUTH_PROVIDER
-
-    def get_connection(self, connection_name: str) -> AccessTokenProviderBase:
-        pass
-
-
-CHANNEL_CLIENT_FACTORY = RestChannelServiceClientFactory(CONFIG, DefaultConnection())
-
-# Create adapter.
-ADAPTER = CloudAdapter(CHANNEL_CLIENT_FACTORY)
+STORAGE = MemoryStorage()
+CONNECTION_MANAGER = MsalConnectionManager(**agents_sdk_config)
+ADAPTER = CloudAdapter(connection_manager=CONNECTION_MANAGER)
+AUTHORIZATION = Authorization(STORAGE, CONNECTION_MANAGER, **agents_sdk_config)
 
 AGENT_APP = AgentApplication[TurnState](
-    storage=MemoryStorage(),
-    adapter=ADAPTER,
+    storage=STORAGE, adapter=ADAPTER, authorization=AUTHORIZATION, **agents_sdk_config
 )
 
 
