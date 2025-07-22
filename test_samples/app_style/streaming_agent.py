@@ -2,12 +2,11 @@
 # Licensed under the MIT License.
 
 import asyncio
-from os import environ
-import re
+from os import environ, path
 import sys
 import traceback
 
-from dotenv import load_dotenv
+from dotenv import load_dotenv, find_dotenv
 from microsoft.agents.hosting.aiohttp import CloudAdapter, Citation
 from microsoft.agents.authentication.msal import MsalConnectionManager
 
@@ -27,7 +26,7 @@ from microsoft.agents.activity import (
 
 from shared import start_server
 
-load_dotenv()
+load_dotenv(path.join(path.dirname(__file__), ".env"))
 
 agents_sdk_config = load_configuration_from_env(environ)
 

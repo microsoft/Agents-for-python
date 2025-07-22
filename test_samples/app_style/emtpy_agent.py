@@ -7,7 +7,7 @@ import traceback
 from aiohttp.web import Application, Request, Response, run_app
 from dotenv import load_dotenv
 
-from os import environ
+from os import environ, path
 from microsoft.agents.hosting.aiohttp import (
     CloudAdapter,
     jwt_authorization_middleware,
@@ -23,7 +23,7 @@ from microsoft.agents.hosting.core import (
 from microsoft.agents.authentication.msal import MsalConnectionManager
 from microsoft.agents.activity import load_configuration_from_env
 
-load_dotenv()
+load_dotenv(path.join(path.dirname(__file__), ".env"))
 
 agents_sdk_config = load_configuration_from_env(environ)
 

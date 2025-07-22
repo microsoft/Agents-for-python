@@ -2,7 +2,7 @@
 # Licensed under the MIT License.
 
 import traceback
-from os import environ
+from os import environ, path
 from typing import Optional
 from dotenv import load_dotenv
 
@@ -31,7 +31,7 @@ from microsoft.agents.authentication.msal import MsalConnectionManager
 
 from shared import start_server
 
-load_dotenv()
+load_dotenv(path.join(path.dirname(__file__), ".env"))
 
 # Load configuration from environment
 agents_sdk_config = load_configuration_from_env(environ)
