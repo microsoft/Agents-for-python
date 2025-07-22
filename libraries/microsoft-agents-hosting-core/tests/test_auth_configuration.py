@@ -3,6 +3,7 @@ from typing import Dict
 from microsoft.agents.activity import load_configuration_from_env
 from microsoft.agents.hosting.core import AgentAuthConfiguration, AuthTypes
 
+
 class TestAuthorizationConfiguration:
     """
     Unit tests to validate Authorization Configuration cases
