@@ -38,7 +38,7 @@ steps:
     mkdir -p dist
     for dir in libraries/*; do
       if [ -f "$dir/pyproject.toml" ]; then
-        (cd "$dir" && python -m build --outdir ../../../dist)
+        (cd "$dir" && python -m build --outdir ../../dist)
       fi
     done
   displayName: 'Build packages'
