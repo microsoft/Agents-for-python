@@ -5,16 +5,22 @@ from msal import ManagedIdentityClient, ConfidentialClientApplication
 from microsoft.agents.authentication.msal import MsalAuth
 from microsoft.agents.hosting.core.authorization import AgentAuthConfiguration
 
+
 class MockMsalAuth(MsalAuth):
     """
     Mock object for MsalAuth
     """
+
     def __init__(self, client_type):
         super().__init__(AgentAuthConfiguration())
         mock_client = Mock(spec=client_type)
 
-        mock_client.acquire_token_for_client = Mock(return_value={"access_token": "token"})
-        mock_client.acquire_token_on_behalf_of= Mock(return_value={"access_token": "token"})
+        mock_client.acquire_token_for_client = Mock(
+            return_value={"access_token": "token"}
+        )
+        mock_client.acquire_token_on_behalf_of = Mock(
+            return_value={"access_token": "token"}
+        )
         self.mock_client = mock_client
 
         self._create_client_application = Mock(return_value=self.mock_client)
@@ -24,6 +30,7 @@ class TestMsalAuth:
     """
     Test suite for testing MsalAuth functionality
     """
+
     @pytest.mark.asyncio
     async def test_get_access_token_managed_identity(self):
         mock_auth = MockMsalAuth(ManagedIdentityClient)
