@@ -1,12 +1,11 @@
 from os import environ
-from microsoft.agents.hosting.core.authorization import AgentAuthConfiguration
-from microsoft.agents.hosting.core.app import AgentApplication
+from microsoft.agents.hosting.core import AgentApplication, AgentAuthConfiguration
 from microsoft.agents.hosting.aiohttp import (
+    start_agent_process,
     jwt_authorization_middleware,
     CloudAdapter,
 )
 from aiohttp.web import Request, Response, Application, run_app
-from microsoft.agents.hosting.aiohttp._start_agent_process import start_agent_process
 
 
 def start_server(

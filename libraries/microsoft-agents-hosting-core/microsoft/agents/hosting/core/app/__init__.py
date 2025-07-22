@@ -12,6 +12,16 @@ from .input_file import InputFile, InputFileDownloader
 from .query import Query
 from .route import Route, RouteHandler
 from .typing_indicator import TypingIndicator
+
+# OAuth
+from .oauth.authorization import (
+    Authorization,
+    AuthorizationHandlers,
+    AuthHandler,
+    SignInState,
+)
+
+# App State
 from .state.conversation_state import ConversationState
 from .state.state import State, StatePropertyAccessor, state
 from .state.temp_state import TempState
@@ -38,4 +48,8 @@ __all__ = [
     "StatePropertyAccessor",
     "TurnState",
     "TempState",
+    "Authorization",
+    "AuthorizationHandlers",
+    "AuthHandler",
+    "SignInState",
 ]
