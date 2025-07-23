@@ -1,7 +1,7 @@
 import json
 import pytest
 
-from microsoft.agents.cosmos import CosmosDBStorageConfig
+from microsoft.agents.storage.cosmos import CosmosDBStorageConfig
 
 # thank you AI, again
 

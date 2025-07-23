@@ -19,7 +19,7 @@ from azure.cosmos.partition_key import NonePartitionKeyValue
 
 from microsoft.agents.storage import AsyncStorageBase, StoreItem
 from microsoft.agents.storage._type_aliases import JSON
-from microsoft.agents.storage.error_handling import ignore_error, is_status_code_error
+from microsoft.agents.storage.error_handling import ignore_error
 
 from .cosmos_db_storage_config import CosmosDBStorageConfig
 from .key_ops import sanitize_key
@@ -84,38 +84,6 @@ class CosmosDBStorage(AsyncStorageBase):
             key, self._config.key_suffix, self._config.compatibility_mode
         )
 
-    async def _get_item_safe(
-        self, raw_key: str, sanitized_key: str
-    ) -> Union[JSON, None]:
-        """Get item, ensuring no collision occurs.
-
-        :param raw_key: The original key provided by the user.
-        :param sanitized_key: The sanitized key used for CosmosDB operations.
-        :return: The item if found, None otherwise.
-
-        It's highly highly highly (highly) unlikely that a sha256 collision will ever occur.
-        But, just in case.
-        """
-
-        read_item_response: CosmosDict = await ignore_error(
-            self._container.read_item(
-                sanitized_key, self._get_partition_key(sanitized_key)
-            ),
-            cosmos_resource_not_found,
-        )
-
-        if (
-            read_item_response is not None
-            and read_item_response.get("realId") is not None
-            and read_item_response.get("realId") != raw_key
-        ):
-            # This should never happen, but just in case...
-            # in fact, if this does happen, then we should probably document this
-            # and publish the first ever sha256 collision to the world.
-            raise Exception("CosmosDBStorage: Key mismatch on get_item_raw.")
-
-        return read_item_response
-
     async def _read_item(
         self, key: str, *, target_cls: StoreItemT = None, **kwargs
     ) -> tuple[Union[str, None], Union[StoreItemT, None]]:
@@ -124,7 +92,12 @@ class CosmosDBStorage(AsyncStorageBase):
             raise ValueError("CosmosDBStorage: Key cannot be empty.")
 
         escaped_key: str = self._sanitize(key)
-        read_item_response: CosmosDict = await self._get_item_safe(key, escaped_key)
+        read_item_response: CosmosDict = await ignore_error(
+            self._container.read_item(
+                escaped_key, self._get_partition_key(escaped_key)
+            ),
+            cosmos_resource_not_found,
+        )
         if read_item_response is None:
             return None, None
 
@@ -136,7 +109,6 @@ class CosmosDBStorage(AsyncStorageBase):
             raise ValueError("CosmosDBStorage: Key cannot be empty.")
 
         escaped_key: str = self._sanitize(key)
-        await self._get_item_safe(key, escaped_key)  # ensure no collision
 
         doc = {
             "id": escaped_key,
@@ -150,7 +122,6 @@ class CosmosDBStorage(AsyncStorageBase):
             raise ValueError("CosmosDBStorage: Key cannot be empty.")
 
         escaped_key: str = self._sanitize(key)
-        await self._get_item_safe(key, escaped_key)  # ensure no collision
 
         await ignore_error(
             self._container.delete_item(

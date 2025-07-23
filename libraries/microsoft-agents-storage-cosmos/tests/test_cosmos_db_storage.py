@@ -1,8 +1,7 @@
 # Copyright (c) Microsoft Corporation. All rights reserved.
 # Licensed under the MIT License.
 
-import json, gc
-from io import BytesIO
+import gc
 
 import pytest
 import pytest_asyncio
@@ -11,8 +10,8 @@ from azure.cosmos import documents
 from azure.cosmos.aio import CosmosClient
 from azure.cosmos.exceptions import CosmosResourceNotFoundError
 
-from microsoft.agents.cosmos import CosmosDBStorage, CosmosDBStorageConfig
-from microsoft.agents.cosmos.key_ops import sanitize_key
+from microsoft.agents.storage.cosmos import CosmosDBStorage, CosmosDBStorageConfig
+from microsoft.agents.storage.cosmos.key_ops import sanitize_key
 
 from microsoft.agents.storage.storage_test_utils import (
     QuickCRUDStorageTests,
