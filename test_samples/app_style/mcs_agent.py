@@ -2,16 +2,24 @@
 # Licensed under the MIT License.
 
 import traceback
-from os import environ
+from os import environ, path
 from typing import Optional
 from dotenv import load_dotenv
 
-from microsoft.agents.builder.app import AgentApplication, TurnState, ConversationState
-from microsoft.agents.builder.app.oauth import Authorization
-from microsoft.agents.builder import TurnContext, MessageFactory
-from microsoft.agents.storage import MemoryStorage
-from microsoft.agents.core.models import ActivityTypes, Activity
-from microsoft.agents.core import load_configuration_from_env
+from microsoft.agents.hosting.core import (
+    Authorization,
+    TurnContext,
+    MessageFactory,
+    MemoryStorage,
+    AgentApplication,
+    TurnState,
+    ConversationState,
+)
+from microsoft.agents.activity import (
+    load_configuration_from_env,
+    ActivityTypes,
+    Activity,
+)
 from microsoft.agents.copilotstudio.client import (
     ConnectionSettings,
     CopilotClient,
@@ -23,7 +31,7 @@ from microsoft.agents.authentication.msal import MsalConnectionManager
 
 from shared import start_server
 
-load_dotenv()
+load_dotenv(path.join(path.dirname(__file__), ".env"))
 
 # Load configuration from environment
 agents_sdk_config = load_configuration_from_env(environ)

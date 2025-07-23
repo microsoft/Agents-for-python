@@ -4,24 +4,22 @@
 from aiohttp.web import Application, Request, Response, run_app
 from dotenv import load_dotenv
 
-from microsoft.agents.builder import RestChannelServiceClientFactory
+from microsoft.agents.hosting.core import (
+    Connections,
+    AccessTokenProviderBase,
+    ClaimsIdentity,
+    ConfigurationChannelHost,
+    ConversationIdFactory,
+    HttpAgentChannelFactory,
+    MemoryStorage,
+    RestChannelServiceClientFactory,
+)
 from microsoft.agents.hosting.aiohttp import (
     CloudAdapter,
     jwt_authorization_middleware,
     channel_service_route_table,
 )
-from microsoft.agents.authorization import (
-    Connections,
-    AccessTokenProviderBase,
-    ClaimsIdentity,
-)
 from microsoft.agents.authentication.msal import MsalAuth
-from microsoft.agents.client import (
-    ConfigurationChannelHost,
-    ConversationIdFactory,
-    HttpAgentChannelFactory,
-)
-from microsoft.agents.storage import MemoryStorage
 
 from agent1 import Agent1
 from config import DefaultConfig

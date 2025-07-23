@@ -9,7 +9,7 @@ from msal_cache_plugin import get_msal_token_cache
 from chat_console_service import ChatConsoleService
 from config import McsConnectionSettings
 
-load_dotenv()
+load_dotenv(path.join(path.dirname(__file__), ".env"))
 mcs_connection_settings = McsConnectionSettings()
 
 
