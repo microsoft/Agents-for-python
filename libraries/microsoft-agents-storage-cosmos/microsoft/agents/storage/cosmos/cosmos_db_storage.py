@@ -17,9 +17,9 @@ from azure.cosmos.aio import (
 import azure.cosmos.exceptions as cosmos_exceptions
 from azure.cosmos.partition_key import NonePartitionKeyValue
 
-from microsoft.agents.storage import AsyncStorageBase, StoreItem
-from microsoft.agents.storage._type_aliases import JSON
-from microsoft.agents.storage.error_handling import ignore_error
+from microsoft.agents.hosting.core.storage import AsyncStorageBase, StoreItem
+from microsoft.agents.hosting.core.storage._type_aliases import JSON
+from microsoft.agents.hosting.core.storage.error_handling import ignore_error
 
 from .cosmos_db_storage_config import CosmosDBStorageConfig
 from .key_ops import sanitize_key

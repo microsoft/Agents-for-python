@@ -1,6 +1,7 @@
 from microsoft.agents.hosting.core.storage.memory_storage import MemoryStorage
 from microsoft.agents.hosting.core.storage.storage_test_utils import CRUDStorageTests
 
+
 class TestMemoryStorage(CRUDStorageTests):
     async def storage(self, initial_data=None):
         data = {

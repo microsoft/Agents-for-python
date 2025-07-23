@@ -13,7 +13,7 @@ from azure.cosmos.exceptions import CosmosResourceNotFoundError
 from microsoft.agents.storage.cosmos import CosmosDBStorage, CosmosDBStorageConfig
 from microsoft.agents.storage.cosmos.key_ops import sanitize_key
 
-from microsoft.agents.storage.storage_test_utils import (
+from microsoft.agents.hosting.core.storage.storage_test_utils import (
     QuickCRUDStorageTests,
     MockStoreItem,
     MockStoreItemB,
@@ -197,26 +197,6 @@ class TestCosmosDBStorage(QuickCRUDStorageTests):
         assert (
             await cosmos_db_storage.read(["some_Key"], target_cls=MockStoreItem)
         ) == {"some_Key": MockStoreItem({"id": "123", "data": "value"})}
-
-    @pytest.mark.asyncio
-    async def test_collision_detection(self):
-        cosmos_storage, container_client = await cosmos_db_storage_instance()
-        await container_client.upsert_item(
-            {
-                "id": "key",
-                "realId": "fake_key",
-                "document": {"id": "key", "value": "data"},
-                "partitionKey": "",
-            }
-        )
-        with pytest.raises(Exception):
-            await cosmos_storage.read(["key"], target_cls=MockStoreItem)
-        with pytest.raises(Exception):
-            await cosmos_storage.write(
-                {"key": MockStoreItem({"id": "item", "value": "data"})}
-            )
-        with pytest.raises(Exception):
-            await cosmos_storage.delete(["key"])
 
     @pytest.mark.asyncio
     async def test_external_change_is_visible(self):

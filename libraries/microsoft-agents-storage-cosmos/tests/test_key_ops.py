@@ -1,6 +1,6 @@
 import hashlib
 
-from microsoft.agents.cosmos.key_ops import truncate_key, sanitize_key
+from microsoft.agents.storage.cosmos.key_ops import truncate_key, sanitize_key
 
 # thank you AI
 
