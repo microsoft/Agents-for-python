@@ -35,28 +35,27 @@ steps:
   displayName: 'Lint with flake8'
 
 - script: |
+    PACKAGE_VERSION=$(pwsh -File replace-version.ps1)
+    echo "##vso[task.setvariable variable=PackageVersion]$PACKAGE_VERSION"
+  displayName: 'Set package version'
+
+- script: |
     mkdir -p dist
     for dir in libraries/*; do
-      if [ -d "$dir" ]; then
-        for subdir in "$dir"/*; do
-          if [ -f "$subdir/pyproject.toml" ]; then
-            (cd "$subdir" && python -m build --outdir ../../../dist)
-          fi
-        done
+      if [ -f "$dir/pyproject.toml" ]; then
+        (cd "$dir" && python -m build --outdir ../../dist)
       fi
     done
   displayName: 'Build packages'
 
 - script: |
-    python -m pip install ./dist/microsoft_agents_core*.whl
-    python -m pip install ./dist/microsoft_agents_authentication*.whl
-    python -m pip install ./dist/microsoft_agents_connector*.whl
-    python -m pip install ./dist/microsoft_agents_client*.whl
-    python -m pip install ./dist/microsoft_agents_botbuilder*.whl
-    python -m pip install ./dist/microsoft_agents_authorization_msal*.whl
+    python -m pip install ./dist/microsoft_agents_activity*.whl
+    python -m pip install ./dist/microsoft_agents_hosting_core*.whl
+    python -m pip install ./dist/microsoft_agents_authentication_msal*.whl
     python -m pip install ./dist/microsoft_agents_copilotstudio_client*.whl
     python -m pip install ./dist/microsoft_agents_hosting_aiohttp*.whl
-    python -m pip install ./dist/microsoft_agents_storage*.whl
+    python -m pip install ./dist/microsoft_agents_hosting_teams*.whl
+    python -m pip install ./dist/microsoft_agents_storage_blob*.whl
   displayName: 'Install wheels'
 
 - script: |

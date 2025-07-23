@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>YouTube Video</title>
+    <script src="https://res.cdn.office.net/teams-js/2.0.0/js/MicrosoftTeams.min.js"></script>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+        }
+        .container {
+            padding: 20px;
+            max-width: 100%;
+            box-sizing: border-box;
+        }
+        .video-container {
+            position: relative;
+            padding-bottom: 56.25%; /* 16:9 aspect ratio */
+            height: 0;
+            overflow: hidden;
+            max-width: 100%;
+        }
+        .video-container iframe {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+        }
+        .btn {
+            background-color: #6264A7;
+            border: none;
+            color: white;
+            padding: 8px 20px;
+            margin-top: 20px;
+            text-align: center;
+            text-decoration: none;
+            display: inline-block;
+            font-size: 16px;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Microsoft Teams Video</h1>
+        <div class="video-container">
+            <iframe width="560" height="315" src="https://www.youtube.com/embed/1aXrgLlqdbg?si=O8koR6Sa2JydQHDD" 
+                    title="Microsoft Teams" frameborder="0" 
+                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" 
+                    allowfullscreen></iframe>
+        </div>
+        <button class="btn" onclick="submitHandler()">Done</button>
+    </div>
+
+    <script>
+        microsoftTeams.app.initialize().then(() => {
+            // Teams initialization successful
+            console.log("Teams SDK initialized");
+        }).catch((error) => {
+            console.error(error);
+        });
+
+        function submitHandler() {
+            // Submit task module result
+            microsoftTeams.dialog.submit({ 
+                result: "success",
+                message: "Video watched successfully"
+            });
+        }
+    </script>
+</body>
+</html>

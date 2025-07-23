@@ -1,5 +1,4 @@
 import logging
-import json
 
 from msal_extensions import (
     build_encrypted_persistence,

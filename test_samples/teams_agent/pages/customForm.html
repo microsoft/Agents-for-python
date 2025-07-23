@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Custom Form</title>
+    <script src="https://res.cdn.office.net/teams-js/2.0.0/js/MicrosoftTeams.min.js"></script>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+        }
+        .container {
+            padding: 20px;
+            max-width: 600px;
+            margin: 0 auto;
+        }
+        .form-group {
+            margin-bottom: 15px;
+        }
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+        }
+        input[type="text"],
+        input[type="email"],
+        select,
+        textarea {
+            width: 100%;
+            padding: 8px 12px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            box-sizing: border-box;
+            font-size: 14px;
+        }
+        .buttons {
+            margin-top: 20px;
+            text-align: right;
+        }
+        .btn {
+            background-color: #6264A7;
+            border: none;
+            color: white;
+            padding: 8px 20px;
+            margin-left: 10px;
+            text-align: center;
+            text-decoration: none;
+            display: inline-block;
+            font-size: 16px;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        .btn-cancel {
+            background-color: #777;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Custom Form</h1>
+        <form id="customForm">
+            <div class="form-group">
+                <label for="name">Name</label>
+                <input type="text" id="name" name="name" placeholder="Enter your name" required>
+            </div>
+            
+            <div class="form-group">
+                <label for="email">Email</label>
+                <input type="email" id="email" name="email" placeholder="Enter your email" required>
+            </div>
+            
+            <div class="form-group">
+                <label for="department">Department</label>
+                <select id="department" name="department">
+                    <option value="">Select a department</option>
+                    <option value="engineering">Engineering</option>
+                    <option value="marketing">Marketing</option>
+                    <option value="sales">Sales</option>
+                    <option value="hr">Human Resources</option>
+                    <option value="support">Support</option>
+                </select>
+            </div>
+            
+            <div class="form-group">
+                <label for="message">Message</label>
+                <textarea id="message" name="message" rows="4" placeholder="Enter your message"></textarea>
+            </div>
+            
+            <div class="buttons">
+                <button type="button" class="btn btn-cancel" onclick="cancelHandler()">Cancel</button>
+                <button type="button" class="btn" onclick="submitHandler()">Submit</button>
+            </div>
+        </form>
+    </div>
+
+    <script>
+        microsoftTeams.app.initialize().then(() => {
+            // Teams initialization successful
+            console.log("Teams SDK initialized");
+        }).catch((error) => {
+            console.error(error);
+        });
+
+        function cancelHandler() {
+            // Close the dialog without submitting data
+            microsoftTeams.dialog.submit(null);
+        }
+
+        function submitHandler() {
+            // Get form values
+            const name = document.getElementById('name').value;
+            const email = document.getElementById('email').value;
+            const department = document.getElementById('department').value;
+            const message = document.getElementById('message').value;
+            
+            if (!name || !email) {
+                alert('Please fill out all required fields');
+                return;
+            }
+            
+            // Submit form data back to the agent
+            microsoftTeams.dialog.submit({
+                name: name,
+                email: email,
+                department: department,
+                message: message,
+                timestamp: new Date().toISOString()
+            });
+            
+            // In a real application, you might also want to submit this to your backend
+            fetch('/CustomForm', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    name: name,
+                    email: email,
+                    department: department,
+                    message: message
+                })
+            })
+            .then(response => {
+                console.log('Form submitted successfully');
+            })
+            .catch(error => {
+                console.error('Error submitting form:', error);
+            });
+        }
+    </script>
+</body>
+</html>

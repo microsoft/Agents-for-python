@@ -1,0 +1,18 @@
+[build-system]
+requires = ["setuptools"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "microsoft-agents-hosting-teams"
+dynamic = ["version", "dependencies"]
+description = "Integration library for Microsoft Agents with Teams"
+authors = [{name = "Microsoft Corporation"}]
+requires-python = ">=3.9"
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+]
+
+[project.urls]
+"Homepage" = "https://github.com/microsoft/Agents"

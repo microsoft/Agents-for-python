@@ -12,10 +12,6 @@ dirty_template = "{tag}{ccount}"
 [project]
 name = "helper"
 dynamic = ["version"]
-description = "Helper project to calculate verison"
+description = "Helper project to calculate version"
 authors = [{name = "Microsoft Corporation"}]
 requires-python = ">=3.9"
-classifiers = [
-]
-dependencies = [
-]

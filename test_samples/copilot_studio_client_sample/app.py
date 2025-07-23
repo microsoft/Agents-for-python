@@ -9,11 +9,11 @@ from msal_cache_plugin import get_msal_token_cache
 from chat_console_service import ChatConsoleService
 from config import McsConnectionSettings
 
-load_dotenv()
-connection_settings = McsConnectionSettings()
+load_dotenv(path.join(path.dirname(__file__), ".env"))
+mcs_connection_settings = McsConnectionSettings()
 
 
-def aquire_token(mcs_settings: McsConnectionSettings, cache_path: str) -> str:
+def acquire_token(mcs_settings: McsConnectionSettings, cache_path: str) -> str:
     cache = get_msal_token_cache(cache_path)
     app = PublicClientApplication(
         mcs_settings.app_client_id,
@@ -41,11 +41,11 @@ def aquire_token(mcs_settings: McsConnectionSettings, cache_path: str) -> str:
         print(result.get("error"))
         print(result.get("error_description"))
         print(result.get("correlation_id"))  # You may need this when reporting a bug
-        raise Exception("Authentication with the Public Application failed")
+        raise Exception("Authentication with the Public AgentApplication failed")
 
 
 def create_mcs_client(connection_settings: ConnectionSettings) -> CopilotClient:
-    token = aquire_token(
+    token = acquire_token(
         connection_settings,
         environ.get("TOKEN_CACHE_PATH")
         or path.join(path.dirname(__file__), "bin/token_cache.bin"),
@@ -56,7 +56,7 @@ def create_mcs_client(connection_settings: ConnectionSettings) -> CopilotClient:
 loop = asyncio.get_event_loop()
 try:
     loop.run_until_complete(
-        ChatConsoleService(create_mcs_client(connection_settings)).start_service()
+        ChatConsoleService(create_mcs_client(mcs_connection_settings)).start_service()
     )
 finally:
     loop.close()

@@ -3,6 +3,9 @@
 
 name: Python package
 
+permissions:
+  contents: read
+
 on:
   push:
     branches: [ "main" ]
@@ -37,29 +40,28 @@ jobs:
       run: |
         # exit-zero treats all errors as warnings. The GitHub editor is 127 chars wide
         flake8 . --count --exit-zero --show-source --statistics
+    - name: Set package version
+      shell: pwsh
+      run: |
+        $version = & ./replace-version.ps1
+        echo "PackageVersion=$version" >> $env:GITHUB_ENV
     - name: Build packages
       run: |
         mkdir -p dist
         for dir in libraries/*; do
-          if [ -d "$dir" ]; then
-            for subdir in "$dir"/*; do
-              if [ -f "$subdir/pyproject.toml" ]; then
-                (cd "$subdir" && python -m build --outdir ../../../dist)
-              fi
-            done
+          if [ -f "$dir/pyproject.toml" ]; then
+            (cd "$dir" && python -m build --outdir ../../dist)
           fi
         done
     - name: Install wheels
       run: |
-        python -m pip install ./dist/microsoft_agents_core*.whl
-        python -m pip install ./dist/microsoft_agents_authentication*.whl
-        python -m pip install ./dist/microsoft_agents_connector*.whl
-        python -m pip install ./dist/microsoft_agents_client*.whl
-        python -m pip install ./dist/microsoft_agents_botbuilder*.whl
-        python -m pip install ./dist/microsoft_agents_authorization_msal*.whl
+        python -m pip install ./dist/microsoft_agents_activity*.whl
+        python -m pip install ./dist/microsoft_agents_hosting_core*.whl
+        python -m pip install ./dist/microsoft_agents_authentication_msal*.whl
         python -m pip install ./dist/microsoft_agents_copilotstudio_client*.whl
         python -m pip install ./dist/microsoft_agents_hosting_aiohttp*.whl
-        python -m pip install ./dist/microsoft_agents_storage*.whl
+        python -m pip install ./dist/microsoft_agents_hosting_teams*.whl
+        python -m pip install ./dist/microsoft_agents_storage_blob*.whl
     - name: Test with pytest
       run: |
         pytest
