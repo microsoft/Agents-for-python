@@ -35,7 +35,7 @@ def truncate_key(key: str, compatibility_mode: bool = True) -> str:
         return key
 
     if len(key) > max_key_len:
-        # for now
+        # the risk is pretty low (by that I mean infinitesimal)
         # https://stackoverflow.com/questions/4014090/is-it-safe-to-ignore-the-possibility-of-sha-collisions-in-practice
         aux_hash = sha256(key.encode("utf-8"))
         aux_hex = aux_hash.hexdigest()

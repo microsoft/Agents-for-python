@@ -5,7 +5,6 @@ from azure.core.credentials import TokenCredential
 
 from .key_ops import sanitize_key
 
-
 class CosmosDBStorageConfig:
     """The class for partitioned CosmosDB configuration for the Azure Bot Framework."""
 
@@ -17,6 +16,7 @@ class CosmosDBStorageConfig:
         container_id: str = "",
         cosmos_client_options: dict = None,
         container_throughput: int = 0,
+        partitions: CosmosDBPartitions = DEFAULT_COSMOSDB_PARTITIONS,
         key_suffix: str = "",
         compatibility_mode: bool = False,
         url: str = "",
@@ -32,6 +32,7 @@ class CosmosDBStorageConfig:
         :param cosmos_client_options: The options for the CosmosClient. Currently only supports connection_policy and
             consistency_level
         :param container_throughput: The throughput set when creating the Container. Defaults to 400.
+        :param partition_keys: The partition keys for the Cosmos DB container. CosmosDB only supports three partition keys.
         :param key_suffix: The suffix to be added to every key. The keySuffix must contain only valid ComosDb
             key characters. (e.g. not: '\\', '?', '/', '#', '*')
         :param compatibility_mode: True if keys should be truncated in order to support previous CosmosDb
@@ -55,6 +56,7 @@ class CosmosDBStorageConfig:
         self.container_throughput: int = container_throughput or kwargs.get(
             "container_throughput", 400
         )
+        self.partition_keys: list[str] = partition_keys or kwargs.get("partition_keys", [])
         self.key_suffix: str = key_suffix or kwargs.get("key_suffix", "")
         self.compatibility_mode: bool = compatibility_mode or kwargs.get(
             "compatibility_mode", False
@@ -78,6 +80,7 @@ class CosmosDBStorageConfig:
         if not config.container_id:
             raise ValueError("CosmosDBStorage: container_id is required.")
 
+        CosmosDBStorageConfig._validate_partition_keys(config)
         CosmosDBStorageConfig._validate_suffix(config)
 
     @staticmethod
@@ -91,4 +94,19 @@ class CosmosDBStorageConfig:
             if suffix_escaped != config.key_suffix:
                 raise ValueError(
                     f"Cannot use invalid Row Key characters: {config.key_suffix} in keySuffix."
+                )
+
+    @staticmethod
+    def _validate_partition_keys(config: "CosmosDBStorageConfig") -> None:
+
+        if len(config.partition_keys) > 3:
+            raise ValueError("CosmosDBStorage: A maximum of three partition keys are allowed.")
+        for key in config.partition_keys:
+            if not key or not key.startswith("/"):
+                raise ValueError(
+                    f"CosmosDBStorage: Partition key '{key}' must start with a '/'."
+                )
+            if "//" in key or key.endswith("/"):
+                raise ValueError(
+                    f"CosmosDBStorage: Partition key '{key}' is not valid."
                 )

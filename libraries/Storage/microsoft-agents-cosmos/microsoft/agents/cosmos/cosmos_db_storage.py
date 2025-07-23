@@ -31,7 +31,7 @@ cosmos_resource_not_found = lambda err: isinstance(
 )
 
 
-class CosmosDBStorage(AsyncStorageBase):
+class CosmosDBStorage(AutoStorageBase):
     """A CosmosDB based storage provider using partitioning"""
 
     def __init__(self, config: CosmosDBStorageConfig):
@@ -116,9 +116,9 @@ class CosmosDBStorage(AsyncStorageBase):
 
         return read_item_response
 
-    async def _read_item(
+    async def read_item(
         self, key: str, *, target_cls: StoreItemT = None, **kwargs
-    ) -> tuple[Union[str, None], Union[StoreItemT, None]]:
+    ) -> tuple[Union[str, None], Union[JSON, None]]:
 
         if key == "":
             raise ValueError("CosmosDBStorage: Key cannot be empty.")
@@ -129,9 +129,68 @@ class CosmosDBStorage(AsyncStorageBase):
             return None, None
 
         doc: JSON = read_item_response.get("document")
-        return read_item_response["realId"], target_cls.from_json_to_store_item(doc)
+        return read_item_response["realId"], doc
 
-    async def _write_item(self, key: str, item: StoreItem) -> None:
+    async def readall(self, keyRegexFilter: str, partitionsFilter: CosmosDBPartitionsFilter, target_cls: Union[AutoStoreItemT, list[AutoStoreItemT]], **kwargs) -> dict[str, StoreItemT]:
+
+        """Reads all items from storage.
+
+        keyRegexFilter: An optional regex filter to apply to keys.
+        target_cls: The class to deserialize the stored JSON into.
+        Returns a dictionary of key to StoreItem.
+
+        missing keys are omitted from the result.
+        """
+        if not partitionsFilter:
+            return await super().readall(keyRegexFilter=keyRegexFilter, target_cls=target_cls, **kwargs)
+        
+        # perform batched read using query
+
+    async def batched_read(self, keys: list[str], *, target_cls: Type[StoreItemT] = None, partitionsFilter: CosmosDBPartitionsFilter = None, **kwargs) -> dict[str, StoreItemT]:
+        if not keys:
+            raise ValueError("Storage.read(): Keys are required when reading.")
+        if not target_cls:
+            raise ValueError("Storage.read(): target_cls cannot be None.")
+
+        await self.initialize()
+
+        results: dict[str, StoreItemT] = {}
+
+        # build query
+        sanitized_keys = [self._sanitize(key) for key in keys]
+        param_placeholders = []
+        query_params = []
+        for idx, sk in enumerate(sanitized_keys):
+            param_name = f"@key{idx}"
+            param_placeholders.append(param_name)
+            query_params.append({"name": param_name, "value": sk})
+
+        query = f"SELECT * FROM c WHERE c.id IN ({', '.join(param_placeholders)})"
+
+        if partitionsFilter and partitionsFilter._partition_keys:
+            for pk in partitionsFilter._partition_keys:
+                pk_param_name = f"@pk_{pk.strip('/').replace('/', '_')}"
+                query += f" AND c.{pk} = {pk_param_name}"
+                query_params.append({"name": pk_param_name, "value": partitionsFilter.item.get(pk.strip('/'))})
+
+        items_iterable = self._container.query_items(
+            query=query,
+            parameters=query_params,
+            enable_cross_partition_query=True
+        )
+
+        async for item in items_iterable:
+            if (
+                item is not None
+                and item.get("realId") is not None
+                and item.get("document") is not None
+            ):
+                doc: JSON = item.get("document")
+                results[item["realId"]] = target_cls.from_json_to_store_item(doc)
+
+        return results
+
+    async def write_item(self, key: str, item: StoreItem) -> None:
         if key == "":
             raise ValueError("CosmosDBStorage: Key cannot be empty.")
 
@@ -145,7 +204,7 @@ class CosmosDBStorage(AsyncStorageBase):
         }
         await self._container.upsert_item(body=doc)
 
-    async def _delete_item(self, key: str) -> None:
+    async def delete_item(self, key: str) -> None:
         if key == "":
             raise ValueError("CosmosDBStorage: Key cannot be empty.")
 
