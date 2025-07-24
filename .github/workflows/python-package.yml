@@ -45,6 +45,7 @@ jobs:
       run: |
         $version = & ./replace-version.ps1
         echo "PackageVersion=$version" >> $env:GITHUB_ENV
+        Write-Host "Package version set to: $version"
     - name: Build packages
       run: |
         mkdir -p dist

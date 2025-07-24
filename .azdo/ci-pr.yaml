@@ -44,6 +44,8 @@ steps:
         (cd "$dir" && python -m build --outdir ../../dist)
       fi
     done
+  env:
+    PackageVersion: $(PackageVersion)
   displayName: 'Set Version and Build packages'
 
 - script: |
