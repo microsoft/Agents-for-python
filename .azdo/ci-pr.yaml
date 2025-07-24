@@ -38,6 +38,7 @@ steps:
     PACKAGE_VERSION=$(pwsh -File replace-version.ps1)
     echo "Package version set to: $PACKAGE_VERSION"
     echo "##vso[task.setvariable variable=PackageVersion;isOutput=true]$PACKAGE_VERSION"
+  shell: bash
   displayName: 'Set package version'
 
 - script: |
