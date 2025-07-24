@@ -3,10 +3,8 @@ from microsoft.agents.hosting.core import Authorization, MemoryStorage
 from .tools.testing_authorization import (
     TestingAuthorization,
     create_test_auth_handler,
-    MockOAuthFlow,
 )
 from .tools.testing_utility import TestingUtility
-from unittest.mock import Mock
 import jwt
 
 
