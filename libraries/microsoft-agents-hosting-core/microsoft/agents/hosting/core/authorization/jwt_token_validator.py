@@ -1,3 +1,4 @@
+import logging
 import jwt
 
 from jwt import PyJWKClient, PyJWK, decode, get_unverified_header
@@ -5,12 +6,16 @@ from jwt import PyJWKClient, PyJWK, decode, get_unverified_header
 from .agent_auth_configuration import AgentAuthConfiguration
 from .claims_identity import ClaimsIdentity
 
+logger = logging.getLogger(__name__)
+
 
 class JwtTokenValidator:
     def __init__(self, configuration: AgentAuthConfiguration):
         self.configuration = configuration
 
     def validate_token(self, token: str) -> ClaimsIdentity:
+
+        logger.debug("Validating JWT token.")
         key = self._get_public_key_or_secret(token)
         decoded_token = jwt.decode(
             token,
@@ -20,9 +25,11 @@ class JwtTokenValidator:
             options={"verify_aud": False},
         )
         if decoded_token["aud"] != self.configuration.CLIENT_ID:
+            logger.error(f"Invalid audience: {decoded_token['aud']}")
             raise ValueError("Invalid audience.")
 
         # This probably should return a ClaimsIdentity
+        logger.debug("JWT token validated successfully.")
         return ClaimsIdentity(decoded_token, True)
 
     def get_anonymous_claims(self) -> ClaimsIdentity:
