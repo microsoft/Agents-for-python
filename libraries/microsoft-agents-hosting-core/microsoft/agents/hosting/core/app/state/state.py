@@ -4,6 +4,7 @@ Licensed under the MIT License.
 """
 
 from __future__ import annotations
+import logging
 
 import json
 from abc import ABC, abstractmethod
@@ -14,8 +15,9 @@ from microsoft.agents.hosting.core.state.state_property_accessor import (
     StatePropertyAccessor as _StatePropertyAccessor,
 )
 from microsoft.agents.hosting.core.storage import Storage, StoreItem
-
 from microsoft.agents.hosting.core.turn_context import TurnContext
+
+logger = logging.getLogger(__name__)
 
 T = TypeVar("T")
 
@@ -106,6 +108,7 @@ class State(dict[str, StoreItem], ABC):
         data = self.copy()
         del data["__key__"]
 
+        logger.info(f"Saving state {self.__key__}")
         await storage.delete(self.__deleted__)
         await storage.write(
             {

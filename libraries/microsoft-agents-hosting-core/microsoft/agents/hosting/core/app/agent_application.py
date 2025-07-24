@@ -4,6 +4,7 @@ Licensed under the MIT License.
 """
 
 from __future__ import annotations
+import logging
 from copy import copy
 from functools import partial
 
@@ -43,6 +44,8 @@ from .state import TurnState
 from ..channel_service_adapter import ChannelServiceAdapter
 from .oauth import Authorization, SignInState
 from .typing_indicator import TypingIndicator
+
+logger = logging.getLogger(__name__)
 
 StateT = TypeVar("StateT", bound=TurnState)
 IN_SIGN_IN_KEY = "__InSignInFlow__"
@@ -88,6 +91,11 @@ class AgentApplication(Agent, Generic[StateT]):
 
         configuration = kwargs
 
+        logger.debug(f"Initializing AgentApplication with options: {options}")
+        logger.debug(
+            f"Initializing AgentApplication with configuration: {configuration}"
+        )
+
         if not options:
             # TODO: consolidate configuration story
             # Take the options from the kwargs and create an ApplicationOptions instance
@@ -102,6 +110,10 @@ class AgentApplication(Agent, Generic[StateT]):
         self._options = options
 
         if not self._options.storage:
+            logger.error(
+                "ApplicationOptions.storage is required and was not configured.",
+                stack_info=True,
+            )
             raise ApplicationError(
                 """
                 The `ApplicationOptions.storage` property is required and was not configured.
@@ -111,6 +123,10 @@ class AgentApplication(Agent, Generic[StateT]):
         if options.long_running_messages and (
             not options.adapter or not options.bot_app_id
         ):
+            logger.error(
+                "ApplicationOptions.long_running_messages requires an adapter and bot_app_id.",
+                stack_info=True,
+            )
             raise ApplicationError(
                 """
                 The `ApplicationOptions.long_running_messages` property is unavailable because 
@@ -132,6 +148,10 @@ class AgentApplication(Agent, Generic[StateT]):
             self._auth = authorization
         else:
             if not connection_manager:
+                logger.error(
+                    "ApplicationOptions.authorization requires a Connections instance.",
+                    stack_info=True,
+                )
                 raise ApplicationError(
                     """
                     The `AgentApplication` requires a `Connections` instance to be passed as the
@@ -153,6 +173,10 @@ class AgentApplication(Agent, Generic[StateT]):
         """
 
         if not self._adapter:
+            logger.error(
+                "AgentApplication.adapter(): self._adapter is not configured.",
+                stack_info=True,
+            )
             raise ApplicationError(
                 """
                 The AgentApplication.adapter property is unavailable because it was 
@@ -168,6 +192,10 @@ class AgentApplication(Agent, Generic[StateT]):
         The application's authentication manager
         """
         if not self._auth:
+            logger.error(
+                "AgentApplication.auth(): self._auth is not configured.",
+                stack_info=True,
+            )
             raise ApplicationError(
                 """
                 The `AgentApplication.auth` property is unavailable because
@@ -210,6 +238,9 @@ class AgentApplication(Agent, Generic[StateT]):
             return activity_type == context.activity.type
 
         def __call(func: RouteHandler[StateT]) -> RouteHandler[StateT]:
+            logger.debug(
+                f"Registering activity handler for route handler {func.__name__} with type: {activity_type} with auth handlers: {auth_handlers}"
+            )
             self._routes.append(
                 Route[StateT](__selector, func, auth_handlers=auth_handlers)
             )
@@ -250,6 +281,9 @@ class AgentApplication(Agent, Generic[StateT]):
             return text == select
 
         def __call(func: RouteHandler[StateT]) -> RouteHandler[StateT]:
+            logger.debug(
+                f"Registering message handler for route handler {func.__name__} with select: {select} with auth handlers: {auth_handlers}"
+            )
             self._routes.append(
                 Route[StateT](__selector, func, auth_handlers=auth_handlers)
             )
@@ -301,6 +335,9 @@ class AgentApplication(Agent, Generic[StateT]):
             return False
 
         def __call(func: RouteHandler[StateT]) -> RouteHandler[StateT]:
+            logger.debug(
+                f"Registering conversation update handler for route handler {func.__name__} with type: {type} with auth handlers: {auth_handlers}"
+            )
             self._routes.append(
                 Route[StateT](__selector, func, auth_handlers=auth_handlers)
             )
@@ -344,6 +381,9 @@ class AgentApplication(Agent, Generic[StateT]):
             return False
 
         def __call(func: RouteHandler[StateT]) -> RouteHandler[StateT]:
+            logger.debug(
+                f"Registering message reaction handler for route handler {func.__name__} with type: {type} with auth handlers: {auth_handlers}"
+            )
             self._routes.append(
                 Route[StateT](__selector, func, auth_handlers=auth_handlers)
             )
@@ -400,6 +440,9 @@ class AgentApplication(Agent, Generic[StateT]):
             return False
 
         def __call(func: RouteHandler[StateT]) -> RouteHandler[StateT]:
+            logger.debug(
+                f"Registering message update handler for route handler {func.__name__} with type: {type} with auth handlers: {auth_handlers}"
+            )
             self._routes.append(
                 Route[StateT](__selector, func, auth_handlers=auth_handlers)
             )
@@ -444,6 +487,10 @@ class AgentApplication(Agent, Generic[StateT]):
                 )
                 return True
 
+            logger.debug(
+                f"Registering handoff handler for route handler {func.__name__} with auth handlers: {auth_handlers}"
+            )
+
             self._routes.append(
                 Route[StateT](__selector, __handler, True, auth_handlers)
             )
@@ -468,8 +515,15 @@ class AgentApplication(Agent, Generic[StateT]):
         """
 
         if self._auth:
+            logger.debug(
+                f"Registering sign-in success handler for route handler {func.__name__}"
+            )
             self._auth.on_sign_in_success(func)
         else:
+            logger.error(
+                f"Failed to register sign-in success handler for route handler {func.__name__}",
+                stack_info=True,
+            )
             raise ApplicationError(
                 """
                 The `AgentApplication.on_sign_in_success` method is unavailable because
@@ -494,8 +548,15 @@ class AgentApplication(Agent, Generic[StateT]):
         """
 
         if self._auth:
+            logger.debug(
+                f"Registering sign-in failure handler for route handler {func.__name__}"
+            )
             self._auth.on_sign_in_failure(func)
         else:
+            logger.error(
+                f"Failed to register sign-in failure handler for route handler {func.__name__}",
+                stack_info=True,
+            )
             raise ApplicationError(
                 """
                 The `AgentApplication.on_sign_in_failure` method is unavailable because
@@ -519,9 +580,13 @@ class AgentApplication(Agent, Generic[StateT]):
         ```
         """
 
+        logger.debug(f"Registering the error handler {func.__name__} ")
         self._error = func
 
         if self._adapter:
+            logger.debug(
+                f"Registering for adapter {self._adapter.__class__.__name__} the error handler {func.__name__} "
+            )
             self._adapter.on_turn_error = func
 
         return func
@@ -530,10 +595,11 @@ class AgentApplication(Agent, Generic[StateT]):
         """
         Custom Turn State Factory
         """
-
+        logger.debug(f"Setting custom turn state factory: {func.__name__}")
         self._turn_state_factory = func
         return func
 
+    # robrandao
     async def on_turn(self, context: TurnContext):
         await self._start_long_running_call(context, self._on_turn)
 
@@ -695,7 +761,14 @@ class AgentApplication(Agent, Generic[StateT]):
 
     async def _on_error(self, context: TurnContext, err: ApplicationError) -> None:
         if self._error:
+            self._options.logger.info(
+                f"Calling error handler {self._error.__name__} for error: {err}"
+            )
             return await self._error(context, err)
 
+        self._options.logger.error(
+            f"An error occurred in the AgentApplication: {err}",
+            exc_info=True,
+        )
         self._options.logger.error(err)
         raise err

@@ -347,7 +347,10 @@ class Authorization:
                     turn_state.delete_value(self.SIGN_IN_STATE_KEY)
             else:
                 if self._sign_in_failed_handler:
-                    logger.warning("Sign-in failed, calling sign-in failed handler")
+                    logger.warning(
+                        "Sign-in failed, calling sign-in failed handler",
+                        stack_info=True,
+                    )
                     await self._sign_in_failed_handler(
                         context, turn_state, auth_handler_id
                     )

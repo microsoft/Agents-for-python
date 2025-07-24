@@ -4,6 +4,7 @@ Licensed under the MIT License.
 """
 
 from __future__ import annotations
+import logging
 
 from typing import Any, Dict, Optional, Type, TypeVar, cast, Callable, Awaitable
 import asyncio
@@ -15,6 +16,8 @@ from microsoft.agents.hosting.core.app.state.conversation_state import Conversat
 from microsoft.agents.hosting.core.state import AgentState
 from microsoft.agents.hosting.core.app.state.temp_state import TempState
 from microsoft.agents.hosting.core.state.user_state import UserState
+
+logging = logging.getLogger(__name__)
 
 ConversationStateT = TypeVar("ConversationStateT", bound=ConversationState)
 UserStateT = TypeVar("UserStateT", bound=UserState)
@@ -60,6 +63,7 @@ class TurnState:
         Returns:
             A new TurnState instance with the default states.
         """
+        logger.debug("Creating TurnState with storage: %s", storage)
         turn_state = cls()
 
         # Add default states

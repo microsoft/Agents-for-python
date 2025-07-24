@@ -25,7 +25,7 @@ class JwtTokenValidator:
             options={"verify_aud": False},
         )
         if decoded_token["aud"] != self.configuration.CLIENT_ID:
-            logger.error(f"Invalid audience: {decoded_token['aud']}")
+            logger.error(f"Invalid audience: {decoded_token['aud']}", stack_info=True)
             raise ValueError("Invalid audience.")
 
         # This probably should return a ClaimsIdentity
@@ -33,6 +33,7 @@ class JwtTokenValidator:
         return ClaimsIdentity(decoded_token, True)
 
     def get_anonymous_claims(self) -> ClaimsIdentity:
+        logger.debug("Returning anonymous claims identity.")
         return ClaimsIdentity({}, False, authentication_type="Anonymous")
 
     def _get_public_key_or_secret(self, token: str) -> PyJWK:

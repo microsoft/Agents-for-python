@@ -14,7 +14,7 @@ from ..user_token_base import UserTokenBase
 from ..agent_sign_in_base import AgentSignInBase
 
 
-logger = logging.getLogger("microsoft.agents.connector.client.user_token_client")
+logger = logging.getLogger(__name__)
 
 
 class AgentSignIn(AgentSignInBase):
@@ -47,6 +47,9 @@ class AgentSignIn(AgentSignInBase):
         if final_redirect:
             params["finalRedirect"] = final_redirect
 
+        logger.info(
+            f"AgentSignIn.get_sign_in_url(): Getting sign-in URL with params: {params}"
+        )
         async with self.client.get(
             "api/agentsignin/getSignInUrl", params=params
         ) as response:
@@ -80,6 +83,9 @@ class AgentSignIn(AgentSignInBase):
         if final_redirect:
             params["finalRedirect"] = final_redirect
 
+        logger.info(
+            f"AgentSignIn.get_sign_in_resource(): Getting sign-in resource with params: {params}"
+        )
         async with self.client.get(
             "api/botsignin/getSignInResource", params=params
         ) as response:
@@ -120,6 +126,7 @@ class UserToken(UserTokenBase):
         if code:
             params["code"] = code
 
+        logger.info(f"User_token.get_token(): Getting token with params: {params}")
         async with self.client.get("api/usertoken/GetToken", params=params) as response:
             if response.status == 404:
                 return TokenResponse(model_validate={})
@@ -151,6 +158,7 @@ class UserToken(UserTokenBase):
         if channel_id:
             params["channelId"] = channel_id
 
+        logger.info(f"Getting AAD tokens with params: {params} and body: {body}")
         async with self.client.post(
             "api/usertoken/GetAadTokens", params=params, json=body
         ) as response:
@@ -181,6 +189,7 @@ class UserToken(UserTokenBase):
         if channel_id:
             params["channelId"] = channel_id
 
+        logger.info(f"Signing out user {user_id} with params: {params}")
         async with self.client.delete(
             "api/usertoken/SignOut", params=params
         ) as response:
@@ -209,6 +218,7 @@ class UserToken(UserTokenBase):
         if include:
             params["include"] = include
 
+        logger.info(f"Getting token status for user {user_id} with params: {params}")
         async with self.client.get(
             "api/usertoken/GetTokenStatus", params=params
         ) as response:
@@ -241,6 +251,7 @@ class UserToken(UserTokenBase):
             "channelId": channel_id,
         }
 
+        logger.info(f"Exchanging token with params: {params} and body: {body}")
         async with self.client.post(
             "api/usertoken/exchange", params=params, json=body
         ) as response:
@@ -280,6 +291,9 @@ class UserTokenClient(UserTokenClientBase):
             base_url=endpoint,
             headers=headers,
         )
+        logger.debug(
+            f"Creating UserTokenClient with endpoint: {endpoint} and headers: {headers}"
+        )
 
         if len(token) > 1:
             session.headers.update({"Authorization": f"Bearer {token}"})
@@ -309,4 +323,5 @@ class UserTokenClient(UserTokenClientBase):
     async def close(self) -> None:
         """Close the HTTP session."""
         if self.client:
+            logger.debug("Closing UserTokenClient session")
             await self.client.close()
