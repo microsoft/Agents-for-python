@@ -742,6 +742,9 @@ class AgentApplication(Agent, Generic[StateT]):
                     if sign_in_complete:
                         await route.handler(context, state)
                 return
+        logger.warning(
+            f"No route found for activity type: {context.activity.type} with text: {context.activity.text}"
+        )
 
     async def _start_long_running_call(
         self, context: TurnContext, func: Callable[[TurnContext], Awaitable]
@@ -751,6 +754,9 @@ class AgentApplication(Agent, Generic[StateT]):
             and ActivityTypes.message == context.activity.type
             and self._options.long_running_messages
         ):
+            logger.debug(
+                f"Starting long running call for context: {context.activity.id} with function: {func.__name__}"
+            )
             return await self._adapter.continue_conversation(
                 reference=context.get_conversation_reference(context.activity),
                 callback=func,
@@ -761,14 +767,14 @@ class AgentApplication(Agent, Generic[StateT]):
 
     async def _on_error(self, context: TurnContext, err: ApplicationError) -> None:
         if self._error:
-            self._options.logger.info(
+            logger.info(
                 f"Calling error handler {self._error.__name__} for error: {err}"
             )
             return await self._error(context, err)
 
-        self._options.logger.error(
+        ogger.error(
             f"An error occurred in the AgentApplication: {err}",
             exc_info=True,
         )
-        self._options.logger.error(err)
+        logger.error(err)
         raise err
