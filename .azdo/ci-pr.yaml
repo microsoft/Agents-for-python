@@ -48,7 +48,7 @@ steps:
       fi
     done
   env:
-    PackageVersion: $[ dependencies.PackageVersion ]
+    PackageVersion: $(PackageVersion)
   displayName: 'Set Version and Build packages'
 
 - script: |
