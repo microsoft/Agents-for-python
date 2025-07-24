@@ -617,9 +617,13 @@ class AgentApplication(Agent, Generic[StateT]):
             sign_in_state = turn_state.get_value(
                 Authorization.SIGN_IN_STATE_KEY, target_cls=SignInState
             )
+            logger.debug(
+                f"Sign-in state: {sign_in_state} for context: {context.activity.id}"
+            )
 
             if self._auth and sign_in_state and not sign_in_state.completed:
                 flow_state = self._auth.get_flow_state(sign_in_state.handler_id)
+                logger.debug("Flow state: %s", flow_state)
                 if flow_state.flow_started:
                     logger.debug("Continuing sign-in flow")
                     token_response = await self._auth.begin_or_continue_flow(
@@ -629,7 +633,9 @@ class AgentApplication(Agent, Generic[StateT]):
                     if token_response and token_response.token:
                         new_context = copy(context)
                         new_context.activity = saved_activity
-                        logger.debug("Continuing sign-in flow with token response")
+                        logger.info(
+                            "Resending continuation activity %s", saved_activity.text
+                        )
                         await self.on_turn(new_context)
                         turn_state.delete_value(Authorization.SIGN_IN_STATE_KEY)
                         await turn_state.save(context)
@@ -642,7 +648,7 @@ class AgentApplication(Agent, Generic[StateT]):
             logger.debug("Running file downloads")
             await self._handle_file_downloads(context, turn_state)
 
-            loggeer.debug("Running activity handlers")
+            logger.debug("Running activity handlers")
             await self._on_activity(context, turn_state)
 
             logger.debug("Running after turn middleware")
