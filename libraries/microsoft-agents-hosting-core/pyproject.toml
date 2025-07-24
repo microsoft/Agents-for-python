@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "microsoft-agents-hosting-core"
-version = "0.0.0a1"
+dynamic = ["version", "dependencies"]
 description = "Core library for Microsoft Agents"
 authors = [{name = "Microsoft Corporation"}]
 requires-python = ">=3.9"
@@ -12,13 +12,6 @@ classifiers = [
     "Programming Language :: Python :: 3",
     "License :: OSI Approved :: MIT License",
     "Operating System :: OS Independent",
-]
-dependencies = [
-    "pyjwt>=2.10.1",
-    "isodate>=0.6.1",
-    "azure-core>=1.30.0",
-    "microsoft-agents-activity",
-    "python-dotenv>=1.1.1",
 ]
 
 [project.urls]

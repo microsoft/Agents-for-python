@@ -14,6 +14,10 @@ strategy:
     Python_3.11:
       PYTHON_VERSION: '3.11'
 
+variables:
+  - name: PackageVersion
+    value: ''
+
 steps:
 - task: UsePythonVersion@0
   inputs:
@@ -22,7 +26,7 @@ steps:
 
 - script: |
     python -m pip install --upgrade pip
-    python -m pip install flake8 pytest black pytest-asyncio build
+    python -m pip install flake8 pytest black pytest-asyncio build setuptools-git-versioning
     if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
   displayName: 'Install dependencies'
 
@@ -35,13 +39,22 @@ steps:
   displayName: 'Lint with flake8'
 
 - script: |
+    PACKAGE_VERSION=$(pwsh -File replace-version.ps1)
+    echo "##vso[task.setvariable variable=PackageVersion]$PACKAGE_VERSION"
+    echo "Package version set to: $PACKAGE_VERSION"
+  displayName: 'Set package version'
+  condition: eq(variables['PackageVersion'], '')
+
+- script: |
     mkdir -p dist
     for dir in libraries/*; do
       if [ -f "$dir/pyproject.toml" ]; then
         (cd "$dir" && python -m build --outdir ../../dist)
       fi
     done
-  displayName: 'Build packages'
+  env:
+    PackageVersion: $(PackageVersion)
+  displayName: 'Set Version and Build packages'
 
 - script: |
     python -m pip install ./dist/microsoft_agents_activity*.whl
