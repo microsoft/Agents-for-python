@@ -17,7 +17,7 @@ from microsoft.agents.hosting.core.state import AgentState
 from microsoft.agents.hosting.core.app.state.temp_state import TempState
 from microsoft.agents.hosting.core.state.user_state import UserState
 
-logging = logging.getLogger(__name__)
+logger = logging.getLogger(__name__)
 
 ConversationStateT = TypeVar("ConversationStateT", bound=ConversationState)
 UserStateT = TypeVar("UserStateT", bound=UserState)
