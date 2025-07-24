@@ -599,8 +599,10 @@ class AgentApplication(Agent, Generic[StateT]):
         self._turn_state_factory = func
         return func
 
-    # robrandao
     async def on_turn(self, context: TurnContext):
+        logger.debug(
+            f"AgentApplication.on_turn(): Processing turn for context: {context.activity.id}"
+        )
         await self._start_long_running_call(context, self._on_turn)
 
     async def _on_turn(self, context: TurnContext):
@@ -609,6 +611,7 @@ class AgentApplication(Agent, Generic[StateT]):
 
             self._remove_mentions(context)
 
+            logger.debug("Initializing turn state")
             turn_state = await self._initialize_state(context)
 
             sign_in_state = turn_state.get_value(
@@ -618,6 +621,7 @@ class AgentApplication(Agent, Generic[StateT]):
             if self._auth and sign_in_state and not sign_in_state.completed:
                 flow_state = self._auth.get_flow_state(sign_in_state.handler_id)
                 if flow_state.flow_started:
+                    logger.debug("Continuing sign-in flow")
                     token_response = await self._auth.begin_or_continue_flow(
                         context, turn_state, sign_in_state.handler_id
                     )
@@ -625,29 +629,39 @@ class AgentApplication(Agent, Generic[StateT]):
                     if token_response and token_response.token:
                         new_context = copy(context)
                         new_context.activity = saved_activity
+                        logger.debug("Continuing sign-in flow with token response")
                         await self.on_turn(new_context)
                         turn_state.delete_value(Authorization.SIGN_IN_STATE_KEY)
                         await turn_state.save(context)
                     return
 
+            logger.debug("Running before turn middleware")
             if not await self._run_before_turn_middleware(context, turn_state):
                 return
 
+            logger.debug("Running file downloads")
             await self._handle_file_downloads(context, turn_state)
 
+            loggeer.debug("Running activity handlers")
             await self._on_activity(context, turn_state)
 
+            logger.debug("Running after turn middleware")
             if not await self._run_after_turn_middleware(context, turn_state):
                 await turn_state.save(context)
-
             return
         except ApplicationError as err:
+            logger.error(
+                f"An application error occurred in the AgentApplication: {err}",
+                exc_info=True,
+            )
             await self._on_error(context, err)
         finally:
+            logger.debug("Stopping typing indicator")
             self.typing.stop()
 
     async def _start_typing(self, context: TurnContext):
         if self._options.start_typing_timer:
+            logger.debug("Starting typing indicator for context")
             await self.typing.start(context)
 
     def _remove_mentions(self, context: TurnContext):
@@ -672,6 +686,7 @@ class AgentApplication(Agent, Generic[StateT]):
                     current_level[next_level] = {}
                 last_level = current_level
                 current_level = current_level[next_level]
+            logger.debug(f"Using environment variable '{key}'")
             last_level[levels[-1]] = value
 
         return {
@@ -683,13 +698,15 @@ class AgentApplication(Agent, Generic[StateT]):
 
     async def _initialize_state(self, context: TurnContext) -> StateT:
         if self._turn_state_factory:
+            logger.debug("Using custom turn state factory")
             turn_state = self._turn_state_factory()
         else:
+            logger.debug("Using default turn state factory")
             turn_state = TurnState.with_storage(self._options.storage)
-            await turn_state.load(context, self._options.storage)
 
         turn_state = cast(StateT, turn_state)
 
+        logger.debug("Loading turn state from storage")
         await turn_state.load(context, self._options.storage)
         turn_state.temp.input = context.activity.text
         return turn_state
@@ -706,6 +723,9 @@ class AgentApplication(Agent, Generic[StateT]):
         if self._options.file_downloaders and len(self._options.file_downloaders) > 0:
             input_files = state.temp.input_files if state.temp.input_files else []
             for file_downloader in self._options.file_downloaders:
+                logger.info(
+                    f"Using file downloader: {file_downloader.__class__.__name__}"
+                )
                 files = await file_downloader.download_files(context)
                 input_files.extend(files)
             state.temp.input_files = input_files
