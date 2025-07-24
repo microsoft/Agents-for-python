@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "microsoft-agents-storage-blob"
-version = "0.0.0a1"
+dynamic = ["version", "dependencies"]
 description = "A blob storage library for Microsoft Agents"
 authors = [{name = "Microsoft Corporation"}]
 requires-python = ">=3.9"
@@ -12,11 +12,6 @@ classifiers = [
     "Programming Language :: Python :: 3",
     "License :: OSI Approved :: MIT License",
     "Operating System :: OS Independent",
-]
-dependencies = [
-    "microsoft-agents-hosting-core",
-    "azure-core",
-    "azure-storage-blob",
 ]
 
 [project.urls]

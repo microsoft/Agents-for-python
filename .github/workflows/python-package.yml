@@ -30,7 +30,7 @@ jobs:
     - name: Install dependencies
       run: |
         python -m pip install --upgrade pip
-        python -m pip install flake8 pytest black pytest-asyncio build
+        python -m pip install flake8 pytest black pytest-asyncio build setuptools-git-versioning
         if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
     - name: Check format with black
       run: |
@@ -40,6 +40,12 @@ jobs:
       run: |
         # exit-zero treats all errors as warnings. The GitHub editor is 127 chars wide
         flake8 . --count --exit-zero --show-source --statistics
+    - name: Set package version
+      run: |
+        cd ./versioning
+        version=$(setuptools-git-versioning)
+        echo "PackageVersion=$version" >> $GITHUB_ENV
+        echo "Package version set to: $version"
     - name: Build packages
       run: |
         mkdir -p dist
@@ -57,6 +63,7 @@ jobs:
         python -m pip install ./dist/microsoft_agents_hosting_aiohttp*.whl
         python -m pip install ./dist/microsoft_agents_hosting_teams*.whl
         python -m pip install ./dist/microsoft_agents_storage_blob*.whl
+        python -m pip install ./dist/microsoft_agents_storage_cosmos*.whl
     - name: Test with pytest
       run: |
         pytest
