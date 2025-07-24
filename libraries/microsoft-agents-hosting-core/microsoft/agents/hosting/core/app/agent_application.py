@@ -709,6 +709,7 @@ class AgentApplication(Agent, Generic[StateT]):
         else:
             logger.debug("Using default turn state factory")
             turn_state = TurnState.with_storage(self._options.storage)
+            await turn_state.load(context, self._options.storage)
 
         turn_state = cast(StateT, turn_state)
 
