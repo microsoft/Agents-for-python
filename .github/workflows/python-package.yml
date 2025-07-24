@@ -43,9 +43,9 @@ jobs:
     - name: Set package version
       run: |
         cd ./versioning
-        $version = & { setuptools-git-versioning }
-        echo "PackageVersion=$version" >> $env:GITHUB_ENV
-        Write-Host "Package version set to: $version"
+        version=$(setuptools-git-versioning)
+        echo "PackageVersion=$version" >> $GITHUB_ENV
+        echo "Package version set to: $version"
     - name: Build packages
       run: |
         mkdir -p dist
