@@ -21,7 +21,7 @@ def test_sanitize_key_simple(input_key, expected):
 
 
 @pytest.mark.parametrize(
-    "input_key,expected,description",
+    "input_key,expected",
     [
         ("key\\value", "key*92value"),
         ("key?value", "key*63value"),
@@ -79,7 +79,14 @@ def test_sanitize_key_with_long_key_with_forbidden_chars_with_suffix_compat_mode
     assert "#" not in sanitized
 
 
-def test_sanitize_key_empty_and_whitespace():
+@pytest.mark.parametrize(
+    "input_key,expected",
+    [
+        ("", ""),
+        ("   ", "   "),
+    ],
+)
+def test_sanitize_key_empty_and_whitespace(input_key, expected):
     assert sanitize_key(input_key) == expected
 
 
@@ -231,7 +238,7 @@ def test_sanitize_key_integration():
 
 
 @pytest.mark.parametrize(
-    "input_key,expected,description",
+    "input_key,expected",
     [
         ("key_ñ_测试", "key_ñ_测试"),
         ("123456789", "123456789"),
