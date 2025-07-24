@@ -1,5 +1,5 @@
 from .store_item import StoreItem
-from .storage import Storage
+from .storage import Storage, AsyncStorageBase
 from .memory_storage import MemoryStorage
 
-__all__ = ["StoreItem", "Storage", "MemoryStorage"]
+__all__ = ["StoreItem", "Storage", "AsyncStorageBase", "MemoryStorage"]
