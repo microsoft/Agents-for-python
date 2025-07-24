@@ -6,6 +6,7 @@ from microsoft.agents.hosting.core import (
     Authorization,
     OAuthFlow,
     MemoryStorage,
+    oauth_flow,
 )
 from typing import Dict
 from microsoft.agents.hosting.core.authorization.agent_auth_configuration import (
@@ -83,16 +84,41 @@ class TestingOAuthFlow(OAuthFlow):
 
 
 class MockOAuthFlow(Mock):
-    def __init__(self, connection_name: str, token):
-        token_response = TokenResponse(
+    def __init__(self, connection_name: str, token: str | None, flow_started):
+
+        default_token = TokenResponse(
             connection_name=connection_name,
-            token=token if token else f"{connection_name}-token",
+            token=f"{connection_name}-token",
         )
-        super().__init__(get_user_token=AsyncMock(return_value=token_response))
+
+        if token == "default":
+            token_response = default_token
+        elif token:
+            token_response = TokenResponse(
+                connection_name=connection_name,
+                token=token,
+            )
+        else:
+            token_response = None
+
+        super().__init__(
+            get_user_token=AsyncMock(return_value=token_response),
+            _get_flow_state=AsyncMock(
+                return_value=oauth_flow.FlowState(flow_started=flow_started)
+            ),
+            begin_flow=AsyncMock(return_value=default_token),
+            continue_flow=AsyncMock(return_value=default_token),
+        )
+        self.flow_state = None
 
 
 class TestingAuthorization(Authorization):
-    def __init__(self, auth_handlers: Dict[str, AuthHandler], token: str = None):
+    def __init__(
+        self,
+        auth_handlers: Dict[str, AuthHandler],
+        token: str | None = "default",
+        flow_started=False,
+    ):
         storage = MemoryStorage()
         connection_manager = TestingConnectionManager()
         super().__init__(
@@ -102,5 +128,7 @@ class TestingAuthorization(Authorization):
         )
         for auth_handler in self._auth_handlers.values():
             auth_handler.flow = MockOAuthFlow(
-                auth_handler.abs_oauth_connection_name, token=token
+                auth_handler.abs_oauth_connection_name,
+                token=token,
+                flow_started=flow_started,
             )
