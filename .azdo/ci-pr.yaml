@@ -36,8 +36,11 @@ steps:
 
 - script: |
     PACKAGE_VERSION=$(pwsh -File replace-version.ps1)
-    echo "##vso[task.setvariable variable=PackageVersion]$PACKAGE_VERSION"
     echo "Package version set to: $PACKAGE_VERSION"
+    echo "##vso[task.setvariable variable=PackageVersion;isOutput=true]$PACKAGE_VERSION"
+  displayName: 'Set package version'
+
+- script: |
     mkdir -p dist
     for dir in libraries/*; do
       if [ -f "$dir/pyproject.toml" ]; then
@@ -45,7 +48,7 @@ steps:
       fi
     done
   env:
-    PackageVersion: $(PackageVersion)
+    PackageVersion: $[ dependencies.PackageVersion ]
   displayName: 'Set Version and Build packages'
 
 - script: |
