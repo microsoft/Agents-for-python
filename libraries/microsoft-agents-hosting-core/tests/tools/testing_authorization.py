@@ -15,7 +15,7 @@ from microsoft.agents.hosting.core import (
     MemoryStorage,
     oauth_flow,
 )
-from typing import Dict
+from typing import Dict, Union
 from microsoft.agents.hosting.core.authorization.agent_auth_configuration import (
     AgentAuthConfiguration,
 )
@@ -182,7 +182,7 @@ class TestingAuthorization(Authorization):
     def __init__(
         self,
         auth_handlers: Dict[str, AuthHandler],
-        token: str | None = "default",
+        token: Union[str, None] = "default",
         flow_started=False,
         sign_in_failed=False,
     ):
