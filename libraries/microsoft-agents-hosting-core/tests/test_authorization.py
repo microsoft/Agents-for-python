@@ -15,7 +15,7 @@ class TestAuthorization:
         self.turn_context = TestingUtility.create_empty_context()
 
     @pytest.mark.asyncio
-    async def test_authorization_get_token_single_handler(self):
+    async def test_get_token_single_handler(self):
         """
         Test Authorization - get_token() with single Auth Handler
         """
@@ -31,7 +31,7 @@ class TestAuthorization:
         assert token_res.token == f"{auth_handler.abs_oauth_connection_name}-token"
 
     @pytest.mark.asyncio
-    async def test_authorization_get_token_multiple_handlers(self):
+    async def test_get_token_multiple_handlers(self):
         """
         Test Authorization - get_token() with multiple Auth Handlers
         """
@@ -53,7 +53,7 @@ class TestAuthorization:
             assert token_res.token == f"{auth_handler.abs_oauth_connection_name}-token"
 
     @pytest.mark.asyncio
-    async def test_authorization_exchange_token_valid_token(self):
+    async def test_exchange_token_valid_token(self):
         valid_token = jwt.encode({"aud": "api://botframework.test.api"}, "")
         scopes = ["scope-a"]
         auth = TestingAuthorization(
@@ -69,7 +69,7 @@ class TestAuthorization:
         )
 
     @pytest.mark.asyncio
-    async def test_authorization_exchange_token_invalid_token(self):
+    async def test_exchange_token_invalid_token(self):
         invalid_token = jwt.encode({"aud": "invalid://botframework.test.api"}, "")
         scopes = ["scope-a"]
         auth = TestingAuthorization(
@@ -82,7 +82,7 @@ class TestAuthorization:
         assert token_res.token == invalid_token
 
     @pytest.mark.asyncio
-    async def test_authorization_get_flow_state_unavailable(self):
+    async def test_get_flow_state_unavailable(self):
         auth = TestingAuthorization(
             auth_handlers={
                 "auth-handler": create_test_auth_handler("test-auth-a"),
@@ -92,7 +92,7 @@ class TestAuthorization:
         assert auth.get_flow_state() == FlowState()
 
     @pytest.mark.asyncio
-    async def test_authorization_begin_or_continue_flow_not_started(self):
+    async def test_begin_or_continue_flow_not_started(self):
         auth = TestingAuthorization(
             auth_handlers={
                 "auth-handler": create_test_auth_handler("test-auth-a"),
@@ -124,7 +124,7 @@ class TestAuthorization:
         )
 
     @pytest.mark.asyncio
-    async def test_authorization_begin_or_continue_flow_started(self):
+    async def test_begin_or_continue_flow_started(self):
         auth = TestingAuthorization(
             auth_handlers={
                 "auth-handler": create_test_auth_handler("test-auth-a"),
@@ -151,7 +151,7 @@ class TestAuthorization:
         mock_turn_state.delete_value.assert_called_once_with(auth.SIGN_IN_STATE_KEY)
 
     @pytest.mark.asyncio
-    async def test_authorization_begin_or_continue_flow_started_with_handler(self):
+    async def test_begin_or_continue_flow_started_sign_in_success(self):
         auth = TestingAuthorization(
             auth_handlers={
                 "auth-handler": create_test_auth_handler("test-auth-a"),
@@ -179,5 +179,35 @@ class TestAuthorization:
         mock_turn_state.save.assert_called_once_with(self.turn_context)
         mock_turn_state.delete_value.assert_called_once_with(auth.SIGN_IN_STATE_KEY)
         auth._sign_in_handler.assert_called_once_with(
+            self.turn_context, mock_turn_state, "auth-handler"
+        )
+
+    @pytest.mark.asyncio
+    async def test_begin_or_continue_flow_started_sign_in_failure(self):
+        auth = TestingAuthorization(
+            auth_handlers={
+                "auth-handler": create_test_auth_handler("test-auth-a"),
+            },
+            token=None,
+            sign_in_failed=True,
+        )
+        mock_turn_state = AsyncMock(get_value=Mock(return_value=SignInState()))
+        auth.on_sign_in_failure(AsyncMock())
+
+        token_res = await auth.begin_or_continue_flow(
+            self.turn_context,
+            mock_turn_state,
+            "auth-handler",
+        )
+
+        # Test value propogation
+        auth_handler = auth.resolver_handler("auth-handler")
+        assert not token_res
+
+        # Test function calls
+        auth_handler.flow._get_flow_state.assert_called_once()
+        auth_handler.flow.continue_flow.assert_called_once()
+        mock_turn_state.save.assert_called_once_with(self.turn_context)
+        auth._sign_in_failed_handler.assert_called_once_with(
             self.turn_context, mock_turn_state, "auth-handler"
         )
