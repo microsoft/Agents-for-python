@@ -4,6 +4,7 @@ Licensed under the MIT License.
 """
 
 from __future__ import annotations
+import logging
 
 from typing import Type
 
@@ -11,6 +12,8 @@ from microsoft.agents.hosting.core.storage import Storage, StoreItem
 
 from microsoft.agents.hosting.core.turn_context import TurnContext
 from microsoft.agents.hosting.core.state import AgentState
+
+logger = logging.getLogger(__name__)
 
 
 class ConversationState(AgentState):
@@ -34,10 +37,12 @@ class ConversationState(AgentState):
     ):
         channel_id = turn_context.activity.channel_id
         if not channel_id:
+            logger.error("Invalid activity: missing channel_id.")
             raise ValueError("Invalid activity: missing channel_id.")
 
         conversation_id = turn_context.activity.conversation.id
         if not conversation_id:
+            logger.error("Invalid activity: missing conversation_id.")
             raise ValueError("Invalid activity: missing conversation_id.")
 
         return f"{channel_id}/conversations/{conversation_id}"
