@@ -23,7 +23,7 @@ from ..conversations_base import ConversationsBase
 from ..get_product_info import get_product_info
 
 
-logger = logging.getLogger("microsoft.agents.connector.client")
+logger = logging.getLogger(__name__)
 
 
 class AttachmentInfo:
@@ -74,9 +74,12 @@ class AttachmentsOperations(AttachmentsBase):
 
         url = f"v3/attachments/{attachment_id}"
 
+        logger.info(f"Getting attachment info for ID: {attachment_id}")
         async with self.client.get(url) as response:
             if response.status >= 400:
-                logger.error(f"Error getting attachment info: {response.status}")
+                logger.error(
+                    f"Error getting attachment info: {response.status}", stack_info=True
+                )
                 response.raise_for_status()
 
             data = await response.json()
@@ -91,15 +94,26 @@ class AttachmentsOperations(AttachmentsBase):
         :return: The attachment as a readable stream.
         """
         if attachment_id is None:
+            logger.error(
+                "AttachmentsOperations.get_attachment(): attachmentId is required",
+                stack_info=True,
+            )
             raise ValueError("attachmentId is required")
         if view_id is None:
+            logger.error(
+                "AttachmentsOperations.get_attachment(): viewId is required",
+                stack_info=True,
+            )
             raise ValueError("viewId is required")
 
         url = f"v3/attachments/{attachment_id}/views/{view_id}"
 
+        logger.info(f"Getting attachment for ID: {attachment_id}, View ID: {view_id}")
         async with self.client.get(url) as response:
             if response.status >= 400:
-                logger.error(f"Error getting attachment: {response.status}")
+                logger.error(
+                    f"Error getting attachment: {response.status}", stack_info=True
+                )
                 response.raise_for_status()
 
             data = await response.read()
@@ -124,9 +138,14 @@ class ConversationsOperations(ConversationsBase):
             {"continuationToken": continuation_token} if continuation_token else None
         )
 
+        logger.info(
+            f"Getting conversations with continuation token: {continuation_token}"
+        )
         async with self.client.get("v3/conversations", params=params) as response:
             if response.status >= 400:
-                logger.error(f"Error getting conversations: {response.status}")
+                logger.error(
+                    f"Error getting conversations: {response.status}", stack_info=True
+                )
                 response.raise_for_status()
 
             data = await response.json()
@@ -142,12 +161,15 @@ class ConversationsOperations(ConversationsBase):
         :return: The conversation resource response.
         """
 
+        logger.info("Creating a new conversation")
         async with self.client.post(
             "v3/conversations",
             json=body.model_dump(by_alias=True, exclude_unset=True, mode="json"),
         ) as response:
             if response.status >= 400:
-                logger.error(f"Error creating conversation: {response.status}")
+                logger.error(
+                    f"Error creating conversation: {response.status}", stack_info=True
+                )
                 response.raise_for_status()
 
             data = await response.json()
@@ -165,10 +187,17 @@ class ConversationsOperations(ConversationsBase):
         :return: The resource response.
         """
         if not conversation_id or not activity_id:
+            logger.error(
+                "ConversationsOperations.reply_to_activity(): conversationId and activityId are required",
+                stack_info=True,
+            )
             raise ValueError("conversationId and activityId are required")
 
         url = f"v3/conversations/{conversation_id}/activities/{activity_id}"
 
+        logger.info(
+            f"Replying to activity: {activity_id} in conversation: {conversation_id}. Activity type is {body.type}"
+        )
         async with self.client.post(
             url,
             json=body.model_dump(
@@ -178,7 +207,10 @@ class ConversationsOperations(ConversationsBase):
             result = await response.json() if response.content_length else {}
 
             if response.status >= 400:
-                logger.error(f"Error replying to activity: {result or response.status}")
+                logger.error(
+                    f"Error replying to activity: {result or response.status}",
+                    stack_info=True,
+                )
                 response.raise_for_status()
 
             logger.info(
@@ -197,16 +229,25 @@ class ConversationsOperations(ConversationsBase):
         :return: The resource response.
         """
         if not conversation_id:
+            logger.error(
+                "ConversationsOperations.sent_to_conversation(): conversationId is required",
+                stack_info=True,
+            )
             raise ValueError("conversationId is required")
 
         url = f"v3/conversations/{conversation_id}/activities"
 
+        logger.info(
+            f"Sending to conversation: {conversation_id}. Activity type is {body.type}"
+        )
         async with self.client.post(
             url,
             json=body.model_dump(by_alias=True, exclude_unset=True, mode="json"),
         ) as response:
             if response.status >= 400:
-                logger.error(f"Error sending to conversation: {response.status}")
+                logger.error(
+                    f"Error sending to conversation: {response.status}", stack_info=True
+                )
                 response.raise_for_status()
 
             data = await response.json()
@@ -224,16 +265,25 @@ class ConversationsOperations(ConversationsBase):
         :return: The resource response.
         """
         if not conversation_id or not activity_id:
+            logger.error(
+                "ConversationsOperations.update_activity(): conversationId and activityId are required",
+                stack_info=True,
+            )
             raise ValueError("conversationId and activityId are required")
 
         url = f"v3/conversations/{conversation_id}/activities/{activity_id}"
 
+        logger.info(
+            f"Updating activity: {activity_id} in conversation: {conversation_id}. Activity type is {body.type}"
+        )
         async with self.client.put(
             url,
             json=body.model_dump(by_alias=True, exclude_unset=True),
         ) as response:
             if response.status >= 400:
-                logger.error(f"Error updating activity: {response.status}")
+                logger.error(
+                    f"Error updating activity: {response.status}", stack_info=True
+                )
                 response.raise_for_status()
 
             data = await response.json()
@@ -247,13 +297,22 @@ class ConversationsOperations(ConversationsBase):
         :param activity_id: The ID of the activity.
         """
         if not conversation_id or not activity_id:
+            logger.error(
+                "ConversationsOperations.delete_activity(): conversationId and activityId are required",
+                stack_info=True,
+            )
             raise ValueError("conversationId and activityId are required")
 
         url = f"v3/conversations/{conversation_id}/activities/{activity_id}"
 
+        logger.info(
+            f"Deleting activity: {activity_id} from conversation: {conversation_id}"
+        )
         async with self.client.delete(url) as response:
             if response.status >= 400:
-                logger.error(f"Error deleting activity: {response.status}")
+                logger.error(
+                    f"Error deleting activity: {response.status}", stack_info=True
+                )
                 response.raise_for_status()
 
     async def upload_attachment(
@@ -267,6 +326,10 @@ class ConversationsOperations(ConversationsBase):
         :return: The resource response.
         """
         if conversation_id is None:
+            logger.error(
+                "ConversationsOperations.upload_attachment(): conversationId is required",
+                stack_info=True,
+            )
             raise ValueError("conversationId is required")
 
         url = f"v3/conversations/{conversation_id}/attachments"
@@ -279,9 +342,14 @@ class ConversationsOperations(ConversationsBase):
             "thumbnailBase64": body.thumbnail_base64,
         }
 
+        logger.info(
+            f"Uploading attachment to conversation: {conversation_id}, Attachment name: {body.name}"
+        )
         async with self.client.post(url, json=attachment_dict) as response:
             if response.status >= 400:
-                logger.error(f"Error uploading attachment: {response.status}")
+                logger.error(
+                    f"Error uploading attachment: {response.status}", stack_info=True
+                )
                 response.raise_for_status()
 
             data = await response.json()
@@ -297,13 +365,21 @@ class ConversationsOperations(ConversationsBase):
         :return: A list of members.
         """
         if not conversation_id:
+            logger.error(
+                "ConversationsOperations.get_conversation_members(): conversationId is required",
+                stack_info=True,
+            )
             raise ValueError("conversationId is required")
 
         url = f"v3/conversations/{conversation_id}/members"
 
+        logger.info(f"Getting conversation members for conversation: {conversation_id}")
         async with self.client.get(url) as response:
             if response.status >= 400:
-                logger.error(f"Error getting conversation members: {response.status}")
+                logger.error(
+                    f"Error getting conversation members: {response.status}",
+                    stack_info=True,
+                )
                 response.raise_for_status()
 
             data = await response.json()
@@ -320,13 +396,23 @@ class ConversationsOperations(ConversationsBase):
         :return: The member.
         """
         if not conversation_id or not member_id:
+            logger.error(
+                "ConversationsOperations.get_conversation_member(): conversationId and memberId are required",
+                stack_info=True,
+            )
             raise ValueError("conversationId and memberId are required")
 
         url = f"v3/conversations/{conversation_id}/members/{member_id}"
 
+        logger.info(
+            f"Getting conversation member: {member_id} from conversation: {conversation_id}"
+        )
         async with self.client.get(url) as response:
             if response.status >= 400:
-                logger.error(f"Error getting conversation member: {response.status}")
+                logger.error(
+                    f"Error getting conversation member: {response.status}",
+                    stack_info=True,
+                )
                 response.raise_for_status()
 
             data = await response.json()
@@ -342,13 +428,23 @@ class ConversationsOperations(ConversationsBase):
         :param member_id: The ID of the member.
         """
         if not conversation_id or not member_id:
+            logger.error(
+                "ConversationsOperations.delete_conversation_member(): conversationId and memberId are required",
+                stack_info=True,
+            )
             raise ValueError("conversationId and memberId are required")
 
         url = f"v3/conversations/{conversation_id}/members/{member_id}"
 
+        logger.info(
+            f"Deleting conversation member: {member_id} from conversation: {conversation_id}"
+        )
         async with self.client.delete(url) as response:
             if response.status >= 400 and response.status != 204:
-                logger.error(f"Error deleting conversation member: {response.status}")
+                logger.error(
+                    f"Error deleting conversation member: {response.status}",
+                    stack_info=True,
+                )
                 response.raise_for_status()
 
     async def get_activity_members(
@@ -362,13 +458,23 @@ class ConversationsOperations(ConversationsBase):
         :return: A list of members.
         """
         if not conversation_id or not activity_id:
+            logger.error(
+                "ConversationsOperations.get_activity_members(): conversationId and activityId are required",
+                stack_info=True,
+            )
             raise ValueError("conversationId and activityId are required")
 
         url = f"v3/conversations/{conversation_id}/activities/{activity_id}/members"
 
+        logger.info(
+            f"Getting activity members for conversation: {conversation_id}, Activity ID: {activity_id}"
+        )
         async with self.client.get(url) as response:
             if response.status >= 400:
-                logger.error(f"Error getting activity members: {response.status}")
+                logger.error(
+                    f"Error getting activity members: {response.status}",
+                    stack_info=True,
+                )
                 response.raise_for_status()
 
             data = await response.json()
@@ -389,6 +495,10 @@ class ConversationsOperations(ConversationsBase):
         :return: A paged list of members.
         """
         if not conversation_id:
+            logger.error(
+                "ConversationsOperations.get_conversation_paged_members(): conversationId is required",
+                stack_info=True,
+            )
             raise ValueError("conversationId is required")
 
         params = {}
@@ -399,10 +509,14 @@ class ConversationsOperations(ConversationsBase):
 
         url = f"v3/conversations/{conversation_id}/pagedmembers"
 
+        logger.info(
+            f"Getting paged members for conversation: {conversation_id}, Page Size: {page_size}, Continuation Token: {continuation_token}"
+        )
         async with self.client.get(url, params=params) as response:
             if response.status >= 400:
                 logger.error(
-                    f"Error getting conversation paged members: {response.status}"
+                    f"Error getting conversation paged members: {response.status}",
+                    stack_info=True,
                 )
                 response.raise_for_status()
 
@@ -420,17 +534,25 @@ class ConversationsOperations(ConversationsBase):
         :return: The resource response.
         """
         if not conversation_id:
+            logger.error(
+                "ConversationsOperations.send_conversation_history(): conversationId is required",
+                stack_info=True,
+            )
             raise ValueError("conversationId is required")
 
         url = f"v3/conversations/{conversation_id}/activities/history"
 
+        logger.info(f"Sending conversation history to conversation: {conversation_id}")
         async with self.client.post(url, json=body) as response:
             if (
                 response.status >= 400
                 and response.status != 201
                 and response.status != 202
             ):
-                logger.error(f"Error sending conversation history: {response.status}")
+                logger.error(
+                    f"Error sending conversation history: {response.status}",
+                    stack_info=True,
+                )
                 response.raise_for_status()
 
             data = await response.json()
@@ -461,6 +583,9 @@ class ConnectorClient(ConnectorClientBase):
         session = session or ClientSession(
             base_url=endpoint,
             headers=headers,
+        )
+        logger.debug(
+            f"ConnectorClient initialized with endpoint: {endpoint} and headers: {headers}"
         )
 
         if len(token) > 1:
@@ -504,4 +629,5 @@ class ConnectorClient(ConnectorClientBase):
     async def close(self) -> None:
         """Close the HTTP session."""
         if self.client:
+            logger.debug("Closing ConnectorClient session")
             await self.client.close()

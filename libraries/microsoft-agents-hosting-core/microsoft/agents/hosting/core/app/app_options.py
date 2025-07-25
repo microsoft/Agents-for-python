@@ -43,7 +43,7 @@ class ApplicationOptions:
     Optional. `Storage` provider to use for the application.
     """
 
-    logger: Logger = Logger("teams.ai")
+    logger: Logger = Logger(__name__)
     """
     Optional. `Logger` that will be used in this application.
     """

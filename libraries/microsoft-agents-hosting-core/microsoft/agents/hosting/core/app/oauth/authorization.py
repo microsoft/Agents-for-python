@@ -2,6 +2,7 @@
 # Licensed under the MIT License.
 
 from __future__ import annotations
+import logging
 import jwt
 from typing import Dict, Optional, Callable, Awaitable
 
@@ -18,6 +19,8 @@ from ...turn_context import TurnContext
 from ...app.state.turn_state import TurnState
 from ...oauth_flow import OAuthFlow, FlowState
 from ...state.user_state import UserState
+
+logger = logging.getLogger(__name__)
 
 
 class SignInState(StoreItem, BaseModel):
@@ -70,6 +73,9 @@ class AuthHandler:
             "OBOCONNECTIONNAME"
         )
         self.flow: OAuthFlow = None
+        logger.debug(
+            f"AuthHandler initialized: name={self.name}, title={self.title}, text={self.text} abs_connection_name={self.abs_oauth_connection_name} obo_connection_name={self.obo_connection_name}"
+        )
 
 
 # Type alias for authorization handlers dictionary
@@ -102,6 +108,7 @@ class Authorization:
             ValueError: If storage is None or no auth handlers are provided.
         """
         if storage is None:
+            logger.error("Storage is required for Authorization")
             raise ValueError("Storage is required for Authorization")
 
         user_state = UserState(storage)
@@ -120,6 +127,7 @@ class Authorization:
         if not auth_handlers:
             handlers_congif: Dict[str, Dict] = auth_configuration.get("HANDLERS")
             if not handlers_congif:
+                logger.error("No auth handlers provided in configuration")
                 raise ValueError("The authorization does not have any auth handlers")
             auth_handlers = {
                 handler_name: AuthHandler(
@@ -145,6 +153,7 @@ class Authorization:
             if auth_handler.text:
                 messages_config["button_text"] = auth_handler.text
 
+            logger.debug(f"Configuring OAuth flow for handler: {auth_handler.name}")
             auth_handler.flow = OAuthFlow(
                 storage=storage,
                 abs_oauth_connection_name=auth_handler.abs_oauth_connection_name,
@@ -166,6 +175,7 @@ class Authorization:
         """
         auth_handler = self.resolver_handler(auth_handler_id)
         if auth_handler.flow is None:
+            logger.error("OAuth flow is not configured for the auth handler")
             raise ValueError("OAuth flow is not configured for the auth handler")
 
         return await auth_handler.flow.get_user_token(context)
@@ -189,6 +199,7 @@ class Authorization:
         """
         auth_handler = self.resolver_handler(auth_handler_id)
         if not auth_handler.flow:
+            logger.error("OAuth flow is not configured for the auth handler")
             raise ValueError("OAuth flow is not configured for the auth handler")
 
         token_response = await auth_handler.flow.get_user_token(context)
@@ -217,6 +228,7 @@ class Authorization:
             aud = payload.get("aud")
             return isinstance(aud, str) and aud.startswith("api://")
         except Exception:
+            logger.exception("Failed to decode token to check audience")
             return False
 
     async def _handle_obo(
@@ -235,12 +247,14 @@ class Authorization:
         """
         auth_handler = self.resolver_handler(handler_id)
         if auth_handler.flow is None:
+            logger.error("OAuth flow is not configured for the auth handler")
             raise ValueError("OAuth flow is not configured for the auth handler")
 
         # Use the flow's OBO method to exchange the token
         token_provider: AccessTokenProviderBase = (
             self._connection_manager.get_connection(auth_handler.obo_connection_name)
         )
+        logger.info("Attempting to exchange token on behalf of user")
         token = await token_provider.aquire_token_on_behalf_of(
             scopes=scopes,
             user_assertion=token,
@@ -298,31 +312,45 @@ class Authorization:
 
         flow = auth_handler.flow
         if flow is None:
+            logger.error("OAuth flow is not configured for the auth handler")
             raise ValueError("OAuth flow is not configured for the auth handler")
 
+        logger.info(
+            "Beginning or continuing OAuth flow for handler: %s", auth_handler_id
+        )
         token_response = await flow.get_user_token(context)
         if token_response and token_response.token:
+            logger.debug("Token obtained successfully")
             return token_response
 
         # Get the current flow state
         flow_state = await flow._get_flow_state(context)
 
         if not flow_state.flow_started:
+            logger.info("Starting new OAuth flow for handler: %s", auth_handler_id)
             token_response = await flow.begin_flow(context)
             if sec_route:
                 sign_in_state.continuation_activity = context.activity
                 sign_in_state.handler_id = auth_handler_id
                 turn_state.set_value(self.SIGN_IN_STATE_KEY, sign_in_state)
         else:
+            logger.info(
+                "Continuing existing OAuth flow for handler: %s", auth_handler_id
+            )
             token_response = await flow.continue_flow(context)
             # Check if sign-in was successful and call handler if configured
             if token_response and token_response.token:
                 if self._sign_in_handler:
+                    logger.info("Sign-in successful, calling sign-in handler")
                     await self._sign_in_handler(context, turn_state, auth_handler_id)
                 if sec_route:
                     turn_state.delete_value(self.SIGN_IN_STATE_KEY)
             else:
                 if self._sign_in_failed_handler:
+                    logger.warning(
+                        "Sign-in failed, calling sign-in failed handler",
+                        stack_info=True,
+                    )
                     await self._sign_in_failed_handler(
                         context, turn_state, auth_handler_id
                     )
@@ -342,6 +370,7 @@ class Authorization:
         """
         if auth_handler_id:
             if auth_handler_id not in self._auth_handlers:
+                logger.error(f"Auth handler '{auth_handler_id}' not found")
                 raise ValueError(f"Auth handler '{auth_handler_id}' not found")
             return self._auth_handlers[auth_handler_id]
 
@@ -368,11 +397,13 @@ class Authorization:
             # Sign out from all handlers
             for handler_key, auth_handler in self._auth_handlers.items():
                 if auth_handler.flow:
+                    logger.info(f"Signing out from handler: {handler_key}")
                     await auth_handler.flow.sign_out(context)
         else:
             # Sign out from specific handler
             auth_handler = self.resolver_handler(auth_handler_id)
             if auth_handler.flow:
+                logger.info(f"Signing out from handler: {auth_handler_id}")
                 await auth_handler.flow.sign_out(context)
 
     def on_sign_in_success(
