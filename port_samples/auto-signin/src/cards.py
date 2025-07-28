@@ -1,89 +1,98 @@
-from adaptivecards.template import Template
+from microsoft.agents.hosting.core import CardFactory
 
-USER_TEMPLATE = {
-    "$schema": "http://adaptivecards.io/schemas/adaptive-card.json",
-    "version": "1.5",
-    "type": "AdaptiveCard",
-    "body": [
+
+def create_profile_card(profile):
+    return CardFactory.adaptive_card(
         {
-            "type": "ColumnSet",
-            "columns": [
+            "$schema": "http://adaptivecards.io/schemas/adaptive-card.json",
+            "version": "1.5",
+            "type": "AdaptiveCard",
+            "body": [
                 {
-                    "type": "Column",
-                    "width": "auto",
-                    "items": [
+                    "type": "ColumnSet",
+                    "columns": [
                         {
-                            "type": "Image",
-                            "altText": "",
-                            "url": "${imageUri}",
-                            "style": "Person",
-                            "size": "Small",
-                        }
-                    ],
-                },
-                {
-                    "type": "Column",
-                    "width": "auto",
-                    "items": [
-                        {
-                            "type": "TextBlock",
-                            "weight": "Bolder",
-                            "text": "${displayName}",
+                            "type": "Column",
+                            "width": "auto",
+                            "items": (
+                                [
+                                    {
+                                        "type": "Image",
+                                        "altText": "",
+                                        "url": profile.get("imageUri", ""),
+                                        "style": "Person",
+                                        "size": "Small",
+                                    }
+                                ]
+                                if profile.get("imageUri")
+                                else []
+                            ),
                         },
                         {
-                            "type": "Container",
-                            "spacing": "Small",
+                            "type": "Column",
+                            "width": "auto",
                             "items": [
                                 {
                                     "type": "TextBlock",
-                                    "text": "${toUpper(jobTitle)}",
+                                    "weight": "Bolder",
+                                    "text": profile["displayName"],
+                                },
+                                {
+                                    "type": "Container",
                                     "spacing": "Small",
-                                },
-                                {
-                                    "type": "TextBlock",
-                                    "text": "${mail}",
-                                    "spacing": "None",
-                                },
-                                {
-                                    "type": "TextBlock",
-                                    "text": "${givenName}",
-                                    "spacing": "None",
-                                },
-                                {
-                                    "type": "TextBlock",
-                                    "text": "${surname}",
-                                    "spacing": "None",
+                                    "items": [
+                                        {
+                                            "type": "TextBlock",
+                                            "text": profile["jobTitle"],
+                                            "spacing": "Small",
+                                        },
+                                        {
+                                            "type": "TextBlock",
+                                            "text": profile["mail"],
+                                            "spacing": "None",
+                                        },
+                                        {
+                                            "type": "TextBlock",
+                                            "text": profile["givenName"],
+                                            "spacing": "None",
+                                        },
+                                        {
+                                            "type": "TextBlock",
+                                            "text": profile["surname"],
+                                            "spacing": "None",
+                                        },
+                                    ],
                                 },
                             ],
                         },
                     ],
-                },
+                }
             ],
         }
-    ],
-}
-
-PR_TEMPLATE = {
-    "$schema": "http://adaptivecards.io/schemas/adaptive-card.json",
-    "type": "AdaptiveCard",
-    "version": "1.4",
-    "body": [
-        {"type": "TextBlock", "text": "${title}", "weight": "Bolder", "size": "Medium"},
-        {"type": "TextBlock", "text": "${url}"},
-    ],
-    "actions": [
-        {"type": "Action.OpenUrl", "title": "View Pull Request", "url": "${url}"}
-    ],
-}
-
-
-def create_profile_card(profile):
-    template = Template(USER_TEMPLATE)
-    return template.expand(profile)
+    )
 
 
 def create_pr_card(pr):
-    template = Template(PR_TEMPLATE)
-    return template.expand(
-        {"$root": {"title": pr.title, "url": pr.html_url, "id": pr.id}}
+    return CardFactory.adaptive_card(
+        {
+            "$schema": "http://adaptivecards.io/schemas/adaptive-card.json",
+            "type": "AdaptiveCard",
+            "version": "1.4",
+            "body": [
+                {
+                    "type": "TextBlock",
+                    "text": pr.title,
+                    "weight": "Bolder",
+                    "size": "Medium",
+                },
+                {"type": "TextBlock", "text": pr.id},
+            ],
+            "actions": [
+                {
+                    "type": "Action.OpenUrl",
+                    "title": "View Pull Request",
+                    "url": pr.html_url,
+                }
+            ],
+        }
     )

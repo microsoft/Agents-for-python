@@ -36,15 +36,8 @@ CONNECTION_MANAGER = MsalConnectionManager(**agents_sdk_config)
 ADAPTER = CloudAdapter(connection_manager=CONNECTION_MANAGER)
 AUTHORIZATION = Authorization(STORAGE, CONNECTION_MANAGER, **agents_sdk_config)
 
-GRAPH = "graph"
-GITHUB = "github"
-
-APP = AgentApplication(
-    storage=MemoryStorage(),
-    authorization={
-        "graph": {"text": "Sign in with Microsoft Graph", "title": "Graph Sign In"},
-        "github": {"text": "Sign in with GitHub", "title": "GitHub Sign In"},
-    },
+AGENT_APP = AgentApplication[TurnState](
+    storage=STORAGE, adapter=ADAPTER, authorization=AUTHORIZATION, **agents_sdk_config
 )
 
 load_dotenv(path.join(path.dirname(__file__), ".env"))
@@ -55,10 +48,6 @@ STORAGE = MemoryStorage()
 CONNECTION_MANAGER = MsalConnectionManager(**agents_sdk_config)
 ADAPTER = CloudAdapter(connection_manager=CONNECTION_MANAGER)
 AUTHORIZATION = Authorization(STORAGE, CONNECTION_MANAGER, **agents_sdk_config)
-# authorization = {
-#         "graph": {"text": "Sign in with Microsoft Graph", "title": "Graph Sign In"},
-#         "github": {"text": "Sign in with GitHub", "title": "GitHub Sign In"}
-#     }
 
 AGENT_APP = AgentApplication[TurnState](
     storage=STORAGE, adapter=ADAPTER, authorization=AUTHORIZATION, **agents_sdk_config
@@ -72,8 +61,8 @@ async def status(context: TurnContext, state: TurnState) -> bool:
     Returns True if at least one handler has a valid token.
     """
     await context.send_activity(MessageFactory.text("Welcome to the auto-signin demo"))
-    tok_graph = await AGENT_APP.auth.get_token(context, GRAPH)
-    tok_github = await AGENT_APP.auth.get_token(context, GITHUB)
+    tok_graph = await AGENT_APP.auth.get_token(context, "GRAPH")
+    tok_github = await AGENT_APP.auth.get_token(context, "GITHUB")
     status_graph = tok_graph.token is not None
     status_github = tok_github.token is not None
     await context.send_activity(
@@ -90,14 +79,14 @@ async def logout(context: TurnContext, state: TurnState) -> None:
     await context.send_activity(MessageFactory.text("You have been logged out."))
 
 
-@AGENT_APP.message(re.compile(r"^(me|profile)$", re.IGNORECASE), auth_handlers=[GRAPH])
+@AGENT_APP.message(
+    re.compile(r"^(me|profile)$", re.IGNORECASE), auth_handlers=["GRAPH"]
+)
 async def profile_request(context: TurnContext, state: TurnState) -> None:
-    user_token_response = await AGENT_APP.auth.get_token(context, GRAPH)
+    user_token_response = await AGENT_APP.auth.get_token(context, "GRAPH")
     if user_token_response and user_token_response is not None:
         user_info = await get_user_info(user_token_response.token)
-        activity = MessageFactory.attachment(
-            CardFactory.adaptive_card(create_profile_card(user_info))
-        )
+        activity = MessageFactory.attachment(create_profile_card(user_info))
         await context.send_activity(activity)
     else:
         await context.send_activity(
@@ -105,24 +94,23 @@ async def profile_request(context: TurnContext, state: TurnState) -> None:
         )
 
 
-@AGENT_APP.message("/prs", auth_handlers=[GITHUB])
+@AGENT_APP.message(
+    re.compile(r"^(prs|pull requests)$", re.IGNORECASE), auth_handlers=["GITHUB"]
+)
 async def pull_requests(context: TurnContext, state: TurnState) -> None:
-    user_token_response = await AGENT_APP.auth.get_token(context, GITHUB)
+    user_token_response = await AGENT_APP.auth.get_token(context, "GITHUB")
     if user_token_response and user_token_response is not None:
         gh_prof = await get_current_profile(user_token_response.token)
         await context.send_activity(
-            MessageFactory.attachment(
-                CardFactory.adaptive_card(create_profile_card(gh_prof))
-            )
+            MessageFactory.attachment(create_profile_card(gh_prof))
         )
 
         prs = await get_pull_requests("microsoft", "agents", user_token_response.token)
         for pr in prs:
-            pr_card = CardFactory.adaptive_card(create_pr_card(pr))
-            await context.send_activity(MessageFactory.attachment(pr_card))
+            await context.send_activity(MessageFactory.attachment(create_pr_card(pr)))
     else:
         token_response = await AGENT_APP.auth.begin_or_continue_flow(
-            context, state, GITHUB
+            context, state, "GITHUB"
         )
         logger.warning(f"GitHub token: {json.dumps(token_response)}")
         if token_response and token_response.token is not None:

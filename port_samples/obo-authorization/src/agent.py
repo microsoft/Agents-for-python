@@ -2,8 +2,7 @@
 # Licensed under the MIT License.
 
 import re
-import logging, json
-from os import environ, path
+from os import environ
 from dotenv import load_dotenv
 
 from microsoft.agents.hosting.core import (
@@ -13,18 +12,11 @@ from microsoft.agents.hosting.core import (
     MemoryStorage,
     AgentApplication,
     TurnState,
-    CardFactory,
     MemoryStorage,
 )
-from microsoft.agents.activity import load_configuration_from_env, ActivityTypes
+from microsoft.agents.activity import load_configuration_from_env
 from microsoft.agents.hosting.aiohttp import CloudAdapter
 from microsoft.agents.authentication.msal import MsalConnectionManager
-
-from .github_api_client import get_current_profile, get_pull_requests
-from .user_graph_client import get_user_info
-from .cards import create_profile_card, create_pr_card
-
-logger = logging.getLogger(__name__)
 
 # Load configuration from environment
 load_dotenv()
@@ -41,21 +33,64 @@ AGENT_APP = AgentApplication[TurnState](
 )
 
 
-@AGENT_APP.message(re.compile(r"^(status|auth status|check status)", re.IGNORECASE))
-async def status(context: TurnContext, state: TurnState) -> bool:
+@AGENT_APP.conversation_update("membersAdded")
+async def on_members_added(context: TurnContext, state: TurnState):
     """
     Internal method to check authorization status for all configured handlers.
     Returns True if at least one handler has a valid token.
     """
-    await context.send_activity(MessageFactory.text("Welcome to the auto-signin demo"))
-    tok_graph = await AGENT_APP.auth.get_token(context, GRAPH)
-    tok_github = await AGENT_APP.auth.get_token(context, GITHUB)
-    status_graph = tok_graph.token is not None
-    status_github = tok_github.token is not None
+    if not AGENT_APP.auth:
+        await context.send_activity(
+            MessageFactory.text("Authorization is not configured.")
+        )
+        return False
+
+    try:
+        # Check status for each auth handler
+        status_messages = []
+        has_valid_token = False
+
+        for handler_id in AGENT_APP.auth._auth_handlers.keys():
+            try:
+                token_response = await AGENT_APP.auth.get_token(context, handler_id)
+                if token_response and token_response.token:
+                    status_messages.append(f"✅ {handler_id}: Connected")
+                    has_valid_token = True
+                else:
+                    status_messages.append(f"❌ {handler_id}: Not connected")
+            except Exception as e:
+                status_messages.append(f"❌ {handler_id}: Error - {str(e)}")
+
+        status_text = "Authorization Status:\n" + "\n".join(status_messages)
+        await context.send_activity(MessageFactory.text(status_text))
+        return has_valid_token
+
+    except Exception as e:
+        await context.send_activity(
+            MessageFactory.text(f"Error checking status: {str(e)}")
+        )
+        return False
+
+
+@AGENT_APP.message(re.compile(r"^(status|auth status|check status)", re.IGNORECASE))
+async def status(context: TurnContext, state: TurnState):
+
+    await context.send_activity("Welcome to the OBO Auth App demo!")
+    tresp = await AGENT_APP.auth.get_token(context, "GRAPH")
+    if tresp and tresp.token:
+        await context.send_activity(
+            MessageFactory.text(f"Graph token: {tresp.token[:10]}... (truncated)")
+        )
+    else:
+        await context.send_activity(
+            MessageFactory.text(f"Token request status: {tresp or 'unknown'}")
+        )
+    obo_token = await AGENT_APP.auth.exchange_token(
+        context, ["https://graph.microsoft.com/.default"], "GRAPH"
+    )
     await context.send_activity(
         MessageFactory.text(
-            f"Graph status: {'Connected' if status_graph else 'Not connected'}\n"
-            f"GitHub status: {'Connected' if status_github else 'Not connected'}"
+            f"OBO Token received: {len(obo_token.token) if obo_token and obo_token.token else 0} characters"
         )
     )
 
