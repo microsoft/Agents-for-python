@@ -124,19 +124,16 @@ class Authorization:
             else auth_configuration.get("AUTOSIGNIN", False)
         )
 
-        if not auth_handlers:
-            handlers_congif: Dict[str, Dict] = auth_configuration.get("HANDLERS")
-            if not handlers_congif:
-                logger.error("No auth handlers provided in configuration")
-                raise ValueError("The authorization does not have any auth handlers")
+        handlers_config: Dict[str, Dict] = auth_configuration.get("HANDLERS")
+        if not auth_handlers and handlers_config:
             auth_handlers = {
                 handler_name: AuthHandler(
                     name=handler_name, **config.get("SETTINGS", {})
                 )
-                for handler_name, config in handlers_congif.items()
+                for handler_name, config in handlers_config.items()
             }
 
-        self._auth_handlers = auth_handlers
+        self._auth_handlers = auth_handlers or {}
         self._sign_in_handler: Optional[
             Callable[[TurnContext, TurnState, Optional[str]], Awaitable[None]]
         ] = None
