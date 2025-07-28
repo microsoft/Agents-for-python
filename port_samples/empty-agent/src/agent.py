@@ -1,9 +1,11 @@
 # Copyright (c) Microsoft Corporation. All rights reserved.
 # Licensed under the MIT License.
 
+import os.path as path
 import re
 import sys
 import traceback
+from dotenv import load_dotenv
 
 from os import environ
 from microsoft.agents.hosting.aiohttp import CloudAdapter
@@ -17,6 +19,7 @@ from microsoft.agents.hosting.core import (
 from microsoft.agents.authentication.msal import MsalConnectionManager
 from microsoft.agents.activity import load_configuration_from_env
 
+load_dotenv()  # robrandao: todo
 agents_sdk_config = load_configuration_from_env(environ)
 
 STORAGE = MemoryStorage()
@@ -24,6 +27,7 @@ CONNECTION_MANAGER = MsalConnectionManager(**agents_sdk_config)
 ADAPTER = CloudAdapter(connection_manager=CONNECTION_MANAGER)
 AUTHORIZATION = Authorization(STORAGE, CONNECTION_MANAGER, **agents_sdk_config)
 
+# robrandao: downloader?
 AGENT_APP = AgentApplication[TurnState](
     storage=STORAGE, adapter=ADAPTER, authorization=AUTHORIZATION, **agents_sdk_config
 )

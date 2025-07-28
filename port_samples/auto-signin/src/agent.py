@@ -1,9 +1,10 @@
 # Copyright (c) Microsoft Corporation. All rights reserved.
 # Licensed under the MIT License.
 
-import traceback
-from os import environ
-from typing import Optional
+import re
+import logging, json
+from os import environ, path
+from dotenv import load_dotenv
 
 from microsoft.agents.hosting.core import (
     Authorization,
@@ -12,23 +13,21 @@ from microsoft.agents.hosting.core import (
     MemoryStorage,
     AgentApplication,
     TurnState,
-    ConversationState,
+    CardFactory,
+    MemoryStorage,
 )
-from microsoft.agents.activity import (
-    load_configuration_from_env,
-    ActivityTypes,
-    Activity,
-)
-from microsoft.agents.copilotstudio.client import (
-    ConnectionSettings,
-    CopilotClient,
-    PowerPlatformCloud,
-    AgentType,
-)
+from microsoft.agents.activity import load_configuration_from_env, ActivityTypes
 from microsoft.agents.hosting.aiohttp import CloudAdapter
 from microsoft.agents.authentication.msal import MsalConnectionManager
 
+from .github_api_client import get_current_profile, get_pull_requests
+from .user_graph_client import get_user_info
+from .cards import create_profile_card, create_pr_card
+
+logger = logging.getLogger(__name__)
+
 # Load configuration from environment
+load_dotenv()
 agents_sdk_config = load_configuration_from_env(environ)
 
 # Create storage and connection manager
@@ -37,144 +36,112 @@ CONNECTION_MANAGER = MsalConnectionManager(**agents_sdk_config)
 ADAPTER = CloudAdapter(connection_manager=CONNECTION_MANAGER)
 AUTHORIZATION = Authorization(STORAGE, CONNECTION_MANAGER, **agents_sdk_config)
 
+GRAPH = "graph"
+GITHUB = "github"
 
-class McsConnectionSettings(ConnectionSettings):
-    """Connection settings for MCS that loads from environment variables"""
+APP = AgentApplication(
+    storage=MemoryStorage(),
+    authorization={
+        "graph": {"text": "Sign in with Microsoft Graph", "title": "Graph Sign In"},
+        "github": {"text": "Sign in with GitHub", "title": "GitHub Sign In"},
+    },
+)
 
-    def __init__(
-        self,
-        app_client_id: Optional[str] = None,
-        tenant_id: Optional[str] = None,
-        environment_id: Optional[str] = None,
-        agent_identifier: Optional[str] = None,
-        cloud: Optional[PowerPlatformCloud] = None,
-        copilot_agent_type: Optional[AgentType] = None,
-        custom_power_platform_cloud: Optional[str] = None,
-        **kwargs: Optional[str],
-    ) -> None:
-        self.app_client_id = app_client_id or kwargs.get("AGENTAPPID")
-        self.tenant_id = tenant_id or kwargs.get("TENANTID")
+load_dotenv(path.join(path.dirname(__file__), ".env"))
 
-        if not self.app_client_id:
-            raise ValueError("Agent App ID must be provided")
-        if not self.tenant_id:
-            raise ValueError("Tenant ID must be provided")
+agents_sdk_config = load_configuration_from_env(environ)
 
-        environment_id = environment_id or kwargs.get("ENVIRONMENTID")
-        agent_identifier = agent_identifier or kwargs.get("SCHEMANAME")
-        cloud = cloud or PowerPlatformCloud[kwargs.get("CLOUD", "UNKNOWN")]
-        copilot_agent_type = (
-            copilot_agent_type or AgentType[kwargs.get("COPILOTAGENTTYPE", "PUBLISHED")]
-        )
-        custom_power_platform_cloud = custom_power_platform_cloud or kwargs.get(
-            "CUSTOMPOWERPLATFORMCLOUD", None
-        )
+STORAGE = MemoryStorage()
+CONNECTION_MANAGER = MsalConnectionManager(**agents_sdk_config)
+ADAPTER = CloudAdapter(connection_manager=CONNECTION_MANAGER)
+AUTHORIZATION = Authorization(STORAGE, CONNECTION_MANAGER, **agents_sdk_config)
+# authorization = {
+#         "graph": {"text": "Sign in with Microsoft Graph", "title": "Graph Sign In"},
+#         "github": {"text": "Sign in with GitHub", "title": "GitHub Sign In"}
+#     }
 
-        super().__init__(
-            environment_id,
-            agent_identifier,
-            cloud,
-            copilot_agent_type,
-            custom_power_platform_cloud,
-        )
-
-
-# Create the agent instance
 AGENT_APP = AgentApplication[TurnState](
     storage=STORAGE, adapter=ADAPTER, authorization=AUTHORIZATION, **agents_sdk_config
 )
 
 
-@AGENT_APP.conversation_update("membersAdded")
-async def status(context: TurnContext, state: TurnState) -> None:
+@AGENT_APP.message(re.compile(r"^(status|auth status|check status)", re.IGNORECASE))
+async def status(context: TurnContext, state: TurnState) -> bool:
+    """
+    Internal method to check authorization status for all configured handlers.
+    Returns True if at least one handler has a valid token.
+    """
+    await context.send_activity(MessageFactory.text("Welcome to the auto-signin demo"))
+    tok_graph = await AGENT_APP.auth.get_token(context, GRAPH)
+    tok_github = await AGENT_APP.auth.get_token(context, GITHUB)
+    status_graph = tok_graph.token is not None
+    status_github = tok_github.token is not None
     await context.send_activity(
-        MessageFactory.text("Welcome to the MCS Agent demo!, ready to chat with MCS!")
+        MessageFactory.text(
+            f"Graph status: {'Connected' if status_graph else 'Not connected'}\n"
+            f"GitHub status: {'Connected' if status_github else 'Not connected'}"
+        )
     )
-
-
-@AGENT_APP.on_sign_in_success
-async def signin_success(
-    context: TurnContext, state: TurnState, handler_id: str = None
-) -> None:
-    await context.send_activity(MessageFactory.text("User signed in successfully"))
 
 
 @AGENT_APP.message("/logout")
-async def sign_out(context: TurnContext, state: TurnState) -> None:
-    if AGENT_APP.auth:
-        await AGENT_APP.auth.sign_out(context, state)
-    await context.send_activity(MessageFactory.text("User signed out"))
+async def logout(context: TurnContext, state: TurnState) -> None:
+    await AGENT_APP.auth.sign_out(context, state)
+    await context.send_activity(MessageFactory.text("You have been logged out."))
 
 
-@AGENT_APP.activity(ActivityTypes.message, auth_handlers=["MCS"])
-async def message(context: TurnContext, state: TurnState) -> None:
-    await _handle_message(context, state)
-
-
-async def _handle_message(context: TurnContext, state: TurnState) -> None:
-    """Handle incoming messages with MCS integration"""
-
-    # Get conversation ID from state
-    conversation_id = state.get_value(
-        ConversationState.CONTEXT_SERVICE_KEY + ".conversation_id", target_cls=str
-    )
-
-    # Get OBO token for Power Platform API
-    if not AGENT_APP.auth:
-        await _status(context, state)
-        return
-
-    try:
-        obo_token = await AGENT_APP.auth.exchange_token(
-            context, ["https://api.powerplatform.com/.default"], "MCS"
+@AGENT_APP.message(re.compile(r"^(me|profile)$", re.IGNORECASE), auth_handlers=[GRAPH])
+async def profile_request(context: TurnContext, state: TurnState) -> None:
+    user_token_response = await AGENT_APP.auth.get_token(context, GRAPH)
+    if user_token_response and user_token_response is not None:
+        user_info = await get_user_info(user_token_response.token)
+        activity = MessageFactory.attachment(
+            CardFactory.adaptive_card(create_profile_card(user_info))
         )
-
-        if not obo_token or not obo_token.token:
-            await _status(context, state)
-            return
-
-        # Create CopilotClient
-        copilot_client = _create_client(obo_token.token)
-
-        if not conversation_id:
-            # Start new conversation
-            async for activity in copilot_client.start_conversation():
-                if activity.type == ActivityTypes.message:
-                    await context.send_activity(MessageFactory.text(activity.text))
-                    if activity.conversation and activity.conversation.id:
-                        state.set_value(
-                            ConversationState.CONTEXT_SERVICE_KEY + ".conversation_id",
-                            activity.conversation.id,
-                        )
-                        await state.save(context)
-        else:
-            # Continue existing conversation
-            async for activity in copilot_client.ask_question(
-                context.activity.text, conversation_id
-            ):
-                print(f"Received activity: {activity.type}, {activity.text}")
-
-                if activity.type == ActivityTypes.message:
-                    await context.send_activity(activity)
-                elif activity.type == "typing":
-                    typing_activity = Activity(type=ActivityTypes.typing)
-                    await context.send_activity(typing_activity)
-
-    except Exception as e:
-        traceback.print_exc()
+        await context.send_activity(activity)
+    else:
         await context.send_activity(
-            MessageFactory.text(f"Error communicating with MCS: {str(e)}")
+            MessageFactory.text('Token not available. Enter "login" to sign in.')
         )
 
 
-async def _status(context: TurnContext, state: TurnState) -> None:
-    """Send status message when not authenticated"""
+@AGENT_APP.message("/prs", auth_handlers=[GITHUB])
+async def pull_requests(context: TurnContext, state: TurnState) -> None:
+    user_token_response = await AGENT_APP.auth.get_token(context, GITHUB)
+    if user_token_response and user_token_response is not None:
+        gh_prof = await get_current_profile(user_token_response.token)
+        await context.send_activity(
+            MessageFactory.attachment(
+                CardFactory.adaptive_card(create_profile_card(gh_prof))
+            )
+        )
+
+        prs = await get_pull_requests("microsoft", "agents", user_token_response.token)
+        for pr in prs:
+            pr_card = CardFactory.adaptive_card(create_pr_card(pr))
+            await context.send_activity(MessageFactory.attachment(pr_card))
+    else:
+        token_response = await AGENT_APP.auth.begin_or_continue_flow(
+            context, state, GITHUB
+        )
+        logger.warning(f"GitHub token: {json.dumps(token_response)}")
+        if token_response and token_response.token is not None:
+            await context.send_activity(
+                MessageFactory.text(f"GitHub token length: {len(token_response.token)}")
+            )
+        else:
+            await context.send_activity(
+                MessageFactory.text("Failed to obtain GitHub token.")
+            )
+
+
+@AGENT_APP.activity(ActivityTypes.invoke)
+async def invoke(context: TurnContext, state: TurnState) -> None:
+    await context.send_activity(MessageFactory.text("Invoke activity received."))
+
+
+@AGENT_APP.activity(ActivityTypes.message)
+async def message(context: TurnContext, state: TurnState) -> None:
     await context.send_activity(
-        MessageFactory.text("Welcome to the MCS Agent demo!, ready to chat with MCS!")
+        MessageFactory.text(f"You said: {context.activity.text}")
     )
-
-
-def _create_client(token: str) -> CopilotClient:
-    """Create CopilotClient with connection settings from environment"""
-    settings = McsConnectionSettings(**agents_sdk_config.get("COPILOTSTUDIOAGENT", {}))
-    return CopilotClient(settings, token)
