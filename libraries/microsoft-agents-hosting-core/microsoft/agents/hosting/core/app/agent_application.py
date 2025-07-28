@@ -799,7 +799,7 @@ class AgentApplication(Agent, Generic[StateT]):
             )
             return await self._error(context, err)
 
-        ogger.error(
+        logger.error(
             f"An error occurred in the AgentApplication: {err}",
             exc_info=True,
         )
