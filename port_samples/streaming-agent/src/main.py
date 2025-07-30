@@ -1,33 +1,10 @@
-from os import environ, path
-from dotenv import load_dotenv
-load_dotenv(path.join(path.dirname(__file__), ".env"))
-
-from microsoft.agents.hosting.core import AgentApplication
-from microsoft.agents.hosting.aiohttp import (
-    start_agent_process,
-    jwt_authorization_middleware,
-    CloudAdapter,
-)
-from aiohttp.web import Request, Response, Application, run_app
+# Copyright (c) Microsoft Corporation. All rights reserved.
+# Licensed under the MIT License.
 
 from .agent import AGENT_APP, CONNECTION_MANAGER
+from .start_server import start_server
 
-async def entry_point(req: Request) -> Response:
-    agent: AgentApplication = req.app["agent_app"]
-    adapter: CloudAdapter = req.app["adapter"]
-    return await start_agent_process(
-        req,
-        agent,
-        adapter,
-    )
-
-APP = Application(middlewares=[jwt_authorization_middleware])
-APP.router.add_post("/api/messages", entry_point)
-APP["agent_configuration"] = CONNECTION_MANAGER
-APP["agent_app"] = AGENT_APP
-APP["adapter"] = AGENT_APP.adapter
-
-try:
-    run_app(APP, host="localhost", port=environ.get("PORT", 3978))
-except Exception as error:
-    raise error
+start_server(
+    agent_application=AGENT_APP,
+    auth_configuration=CONNECTION_MANAGER.get_default_connection_configuration(),
+)
