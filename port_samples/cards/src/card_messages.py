@@ -42,6 +42,7 @@ class CardMessages:
         card = CardFactory.animation_card(AnimationCard(
             title="Microsoft Agents Framework",
             image=ThumbnailUrl(url="https://i.giphy.com/Ki55RUbOV5njy.gif", alt="Cute Robot"),
+            media=[MediaUrl(url="https://i.giphy.com/Ki55RUbOV5njy.gif")],
             subtitle="Animation Card",
             text="This is an example of an animation card using a gif.",
             aspect="16:9",
@@ -78,9 +79,9 @@ class CardMessages:
             title="John Doe",
             facts=[Fact(key="Order Number", value="1234"), Fact(key="Payment Method", value="VISA 5555-****")],
             items=[
-                ReceiptItem(title="Data Transfer", subtitle=".", text=".", price="$38.45", quantity="368",
+                ReceiptItem(title="Data Transfer", price="$38.45", quantity="368",
                             image=CardImage(url="https://github.com/amido/azure-vector-icons/raw/master/renders/traffic-manager.png")),
-                ReceiptItem(title="App Service", subtitle=".", text=".", price="$45.00", quantity="720",
+                ReceiptItem(title="App Service", price="$45.00", quantity="720",
                             image=CardImage(url="https://github.com/amido/azure-vector-icons/raw/master/renders/cloud-service.png")),
             ],
             tax="$7.50",
@@ -105,11 +106,11 @@ class CardMessages:
     @staticmethod
     async def send_video_card(context):
         card = CardFactory.video_card(VideoCard(
-            title="2018 Imagine Cup World Championship Intro",
-            media=[MediaUrl(url="https://sec.ch9.ms/ch9/783d/d57287a5-185f-4df9-aa08-fcab699a783d/IC18WorldChampionshipIntro2.jpg", profile="2018 Imagine Cup World Championship Intro")],
-            buttons=[CardAction(type=ActionTypes.open_url, title="Learn More",value="https://channel9.msdn.com/Events/Imagine-Cup/World-Finals-2018/2018-Imagine-Cup-World-Championship-Intro")],
-            subtitle="by Microsoft",
-            text="Microsoft's Imagine Cup has empowered student developers around the world to create and innovate on the world stage for the past 16 years. These innovations will shape how we live, work and play.",
+            title="M365 Copilot",
+            media=[MediaUrl(url="https://youtu.be/zqH-HtQbaeU")],
+            buttons=[CardAction(type=ActionTypes.open_url, title="Learn More",value="https://youtu.be/zqH-HtQbaeU")],
+            subtitle="by Microsoft Helps",
+            text="Copilot is a new way to interact with your data and applications using natural language. It is designed to help you get things done faster and more efficiently.",
         ))
         await CardMessages.send_activity(context, card)
 
