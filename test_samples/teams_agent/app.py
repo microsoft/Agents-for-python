@@ -2,51 +2,31 @@
 # Licensed under the MIT License.
 
 import pathlib
+from os import environ, path
 from dotenv import load_dotenv
 from aiohttp.web import Application, Request, Response, run_app
 
-from microsoft.agents.hosting.core import RestChannelServiceClientFactory
-from microsoft.agents.hosting.core.state import UserState
+from microsoft.agents.activity import load_configuration_from_env
+from microsoft.agents.authentication.msal import MsalConnectionManager
 from microsoft.agents.hosting.aiohttp import CloudAdapter, jwt_authorization_decorator
-from microsoft.agents.hosting.core.authorization import (
-    Connections,
-    AccessTokenProviderBase,
-    ClaimsIdentity,
-)
-from microsoft.agents.authentication.msal import MsalAuth
-from microsoft.agents.hosting.core.storage import MemoryStorage
+from microsoft.agents.hosting.core import Authorization, MemoryStorage, UserState
 
 from teams_handler import TeamsHandler
 from teams_sso import TeamsSso
 from teams_multi_feature import TeamsMultiFeature
 from config import DefaultConfig
 
-load_dotenv()
+load_dotenv(path.join(path.dirname(__file__), ".env"))
 
 CONFIG = DefaultConfig()
-AUTH_PROVIDER = MsalAuth(DefaultConfig())
 
+agents_sdk_config = load_configuration_from_env(environ)
 
-class DefaultConnection(Connections):
-    def get_default_connection(self) -> AccessTokenProviderBase:
-        pass
-
-    def get_token_provider(
-        self, claims_identity: ClaimsIdentity, service_url: str
-    ) -> AccessTokenProviderBase:
-        return AUTH_PROVIDER
-
-    def get_connection(self, connection_name: str) -> AccessTokenProviderBase:
-        return AUTH_PROVIDER
-
-
-CHANNEL_CLIENT_FACTORY = RestChannelServiceClientFactory(CONFIG, DefaultConnection())
-
-# Create adapter.
-ADAPTER = CloudAdapter(CHANNEL_CLIENT_FACTORY)
-
-# Create the storage and user state (for SSO agent)
 STORAGE = MemoryStorage()
+CONNECTION_MANAGER = MsalConnectionManager(**agents_sdk_config)
+ADAPTER = CloudAdapter(connection_manager=CONNECTION_MANAGER)
+AUTHORIZATION = Authorization(STORAGE, CONNECTION_MANAGER, **agents_sdk_config)
+
 USER_STATE = UserState(STORAGE)
 
 
