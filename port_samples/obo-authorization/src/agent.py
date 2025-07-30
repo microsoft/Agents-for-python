@@ -2,7 +2,7 @@
 # Licensed under the MIT License.
 
 import re
-from os import environ
+from os import environ, path
 from dotenv import load_dotenv
 
 from microsoft.agents.hosting.core import (
@@ -32,13 +32,36 @@ AGENT_APP = AgentApplication[TurnState](
     storage=STORAGE, adapter=ADAPTER, authorization=AUTHORIZATION, **agents_sdk_config
 )
 
-
 @AGENT_APP.conversation_update("membersAdded")
 async def on_members_added(context: TurnContext, state: TurnState):
     """
     Internal method to check authorization status for all configured handlers.
     Returns True if at least one handler has a valid token.
     """
+    await context.send_activity("Welcome to the OBO Auth App demo! Use **obo** to login and trigger OBO token exchange or enter **status** to check authorization status.")
+
+@AGENT_APP.message("obo", auth_handlers=["GRAPH"])
+async def obo(context: TurnContext, state: TurnState):
+    tresp = await AGENT_APP.auth.get_token(context, "GRAPH")
+    if tresp and tresp.token:
+        await context.send_activity(
+            MessageFactory.text(f"Graph token: {tresp.token[:10]}... (truncated)")
+        )
+    else:
+        await context.send_activity(
+            MessageFactory.text(f"Token request status: {tresp or 'unknown'}")
+        )
+    obo_token = await AGENT_APP.auth.exchange_token(
+        context, ["https://graph.microsoft.com/.default"], "GRAPH"
+    )
+    await context.send_activity(
+        MessageFactory.text(
+            f"OBO Token received: {len(obo_token.token) if obo_token and obo_token.token else 0} characters"
+        )
+    )
+
+@AGENT_APP.message(re.compile(r"^(status|auth status|check status)", re.IGNORECASE))
+async def status(context: TurnContext, state: TurnState):
     if not AGENT_APP.auth:
         await context.send_activity(
             MessageFactory.text("Authorization is not configured.")
@@ -46,7 +69,7 @@ async def on_members_added(context: TurnContext, state: TurnState):
         return False
 
     try:
-        # Check status for each auth handler
+        # Check status for each auth handlerF
         status_messages = []
         has_valid_token = False
 
@@ -71,30 +94,6 @@ async def on_members_added(context: TurnContext, state: TurnState):
         )
         return False
 
-
-@AGENT_APP.message(re.compile(r"^(status|auth status|check status)", re.IGNORECASE))
-async def status(context: TurnContext, state: TurnState):
-
-    await context.send_activity("Welcome to the OBO Auth App demo!")
-    tresp = await AGENT_APP.auth.get_token(context, "GRAPH")
-    if tresp and tresp.token:
-        await context.send_activity(
-            MessageFactory.text(f"Graph token: {tresp.token[:10]}... (truncated)")
-        )
-    else:
-        await context.send_activity(
-            MessageFactory.text(f"Token request status: {tresp or 'unknown'}")
-        )
-    obo_token = await AGENT_APP.auth.exchange_token(
-        context, ["https://graph.microsoft.com/.default"], "GRAPH"
-    )
-    await context.send_activity(
-        MessageFactory.text(
-            f"OBO Token received: {len(obo_token.token) if obo_token and obo_token.token else 0} characters"
-        )
-    )
-
-
 @AGENT_APP.message(re.compile(r"^(logout|signout|sign out)", re.IGNORECASE))
 async def logout(context: TurnContext, state: TurnState) -> None:
     """
@@ -106,14 +105,13 @@ async def logout(context: TurnContext, state: TurnState) -> None:
 
 
 @AGENT_APP.on_sign_in_success
-async def sign_in_success(context: TurnContext, state: TurnState) -> None:
+async def sign_in_success(context: TurnContext, state: TurnState, _auth_handler_id: str) -> None:
     """
     Handler for successful sign-in events.
     """
     await context.send_activity(
         MessageFactory.text("Sign-in successful! You can now use the bot's features.")
     )
-
 
 @AGENT_APP.activity("message")
 async def on_message(context: TurnContext, state: TurnState):
