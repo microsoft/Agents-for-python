@@ -1,16 +1,13 @@
 # Copyright (c) Microsoft Corporation. All rights reserved.
 # Licensed under the MIT License.
 
-import asyncio
 from os import environ
-import sys
-import traceback
 import logging
 
 from dotenv import load_dotenv
 from openai import AsyncAzureOpenAI
 
-from microsoft.agents.hosting.aiohttp import CloudAdapter, Citation
+from microsoft.agents.hosting.aiohttp import CloudAdapter
 from microsoft.agents.authentication.msal import MsalConnectionManager
 
 from microsoft.agents.hosting.core import (
@@ -24,8 +21,7 @@ from microsoft.agents.activity import (
     load_configuration_from_env,
     Activity,
     ActivityTypes,
-    SensitivityUsageInfo,
-    InvokeResponse
+    SensitivityUsageInfo
 )
 
 logger = logging.getLogger(__name__)
