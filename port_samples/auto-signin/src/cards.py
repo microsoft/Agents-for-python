@@ -77,7 +77,7 @@ def create_pr_card(pr):
         {
             "$schema": "http://adaptivecards.io/schemas/adaptive-card.json",
             "type": "AdaptiveCard",
-            "version": "1.4",
+            "version": "1.0",
             "body": [
                 {
                     "type": "TextBlock",
@@ -91,7 +91,7 @@ def create_pr_card(pr):
                 {
                     "type": "Action.OpenUrl",
                     "title": "View Pull Request",
-                    "url": pr.html_url,
+                    "url": pr.url,
                 }
             ],
         }

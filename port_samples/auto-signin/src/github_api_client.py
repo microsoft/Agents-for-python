@@ -56,8 +56,7 @@ async def get_pull_requests(owner: str, repo: str, token: str) -> List[PullReque
         headers = {
             "Authorization": f"Bearer {token}",
             "Accept": "application/vnd.github.v3+json",
-            "User-Agent": "AgentsSDKDemo",
-            "Content-Type": "application/json",
+            "User-Agent": "test-agent",
         }
         url = f"https://api.github.com/repos/{owner}/{repo}/pulls"
         async with session.get(url, headers=headers) as response:
@@ -67,9 +66,9 @@ async def get_pull_requests(owner: str, repo: str, token: str) -> List[PullReque
                     PullRequest(
                         id=pr.get("id"),
                         title=pr.get("title"),
-                        url=pr.get("html_url"),
+                        url=pr.get("htmlUrl"),
                     )
-                    for pr in data
+                    for pr in data[-5:-1]
                 ]
             else:
                 error_text = await response.text()

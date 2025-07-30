@@ -13,10 +13,9 @@ from microsoft.agents.hosting.core import (
     MemoryStorage,
     AgentApplication,
     TurnState,
-    CardFactory,
     MemoryStorage,
 )
-from microsoft.agents.activity import load_configuration_from_env, ActivityTypes
+from microsoft.agents.activity import activity, load_configuration_from_env, ActivityTypes, Activity
 from microsoft.agents.hosting.aiohttp import CloudAdapter
 from microsoft.agents.authentication.msal import MsalConnectionManager
 
@@ -41,7 +40,6 @@ AGENT_APP = AgentApplication[TurnState](
 )
 
 load_dotenv(path.join(path.dirname(__file__), ".env"))
-
 agents_sdk_config = load_configuration_from_env(environ)
 
 STORAGE = MemoryStorage()
@@ -105,9 +103,12 @@ async def pull_requests(context: TurnContext, state: TurnState) -> None:
             MessageFactory.attachment(create_profile_card(gh_prof))
         )
 
-        prs = await get_pull_requests("microsoft", "agents", user_token_response.token)
+        # prs = await get_pull_requests("microsoft", "agents", user_token_response.token)
+        # as suggested by Copilot, using a public repository without SAML enforcement
+        prs = await get_pull_requests("octocat", "Hello-World", user_token_response.token)
         for pr in prs:
-            await context.send_activity(MessageFactory.attachment(create_pr_card(pr)))
+            card = create_pr_card(pr)
+            await context.send_activity(MessageFactory.attachment(card))
     else:
         token_response = await AGENT_APP.auth.begin_or_continue_flow(
             context, state, "GITHUB"
