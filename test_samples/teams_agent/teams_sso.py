@@ -2,8 +2,9 @@ from microsoft.agents.hosting.core import (
     OAuthFlow,
     MessageFactory,
     TurnContext,
+    UserState,
+    Storage,
 )
-from microsoft.agents.hosting.core.state import UserState
 from microsoft.agents.activity import ChannelAccount
 from microsoft.agents.hosting.teams import TeamsActivityHandler
 
@@ -12,7 +13,11 @@ from graph_client import GraphClient
 
 class TeamsSso(TeamsActivityHandler):
     def __init__(
-        self, user_state: UserState, connection_name: str = None, app_id: str = None
+        self,
+        storage: Storage,
+        user_state: UserState,
+        connection_name: str = None,
+        app_id: str = None,
     ):
         """
         Initializes a new instance of the TeamsSso class.
@@ -21,7 +26,7 @@ class TeamsSso(TeamsActivityHandler):
         :param app_id: AgentApplication ID.
         """
         self.user_state = user_state
-        self.oauth_flow = OAuthFlow(user_state, connection_name)
+        self.oauth_flow = OAuthFlow(storage, connection_name)
 
     async def on_sign_in_invoke(self, turn_context):
         # Log Event trigggered

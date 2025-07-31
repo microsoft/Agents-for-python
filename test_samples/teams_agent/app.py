@@ -35,7 +35,7 @@ def create_agent(agent_type: str):
     Create the appropriate agent based on configuration.
     """
     if agent_type == "TeamsSso":
-        return TeamsSso(USER_STATE, CONFIG.CONNECTION_NAME, CONFIG.CLIENT_ID)
+        return TeamsSso(STORAGE, USER_STATE, CONFIG.CONNECTION_NAME, CONFIG.CLIENT_ID)
     elif agent_type == "TeamsMultiFeature":
         return TeamsMultiFeature()
     else:  # Default to TeamsHandler
