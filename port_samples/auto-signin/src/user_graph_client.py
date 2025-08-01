@@ -1,9 +1,8 @@
 import aiohttp
 
-
-async def get_user_info(token: str):
+async def get_user_info(token):
     """
-    Get information about the current user.
+    Get information about the current user from Microsoft Graph API.
     """
     async with aiohttp.ClientSession() as session:
         headers = {
@@ -11,12 +10,9 @@ async def get_user_info(token: str):
             "Content-Type": "application/json",
         }
         async with session.get(
-            f"https://graph.microsoft.com/v1.0/me", headers=headers
+            "https://graph.microsoft.com/v1.0/me", headers=headers
         ) as response:
             if response.status == 200:
                 return await response.json()
-            else:
-                error_text = await response.text()
-                raise Exception(
-                    f"Error from Graph API: {response.status} - {error_text}"
-                )
+            error_text = await response.text()
+            raise Exception(f"Error from Graph API: {response.status} - {error_text}")

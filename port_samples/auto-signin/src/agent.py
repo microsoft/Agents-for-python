@@ -52,7 +52,7 @@ AGENT_APP = AgentApplication[TurnState](
 )
 
 
-@AGENT_APP.message(re.compile(r"^(status|auth status|check status)", re.IGNORECASE))
+@AGENT_APP.message(re.compile(r"^/(status|auth status|check status)", re.IGNORECASE))
 async def status(context: TurnContext, state: TurnState) -> bool:
     """
     Internal method to check authorization status for all configured handlers.
@@ -78,7 +78,7 @@ async def logout(context: TurnContext, state: TurnState) -> None:
 
 
 @AGENT_APP.message(
-    re.compile(r"^(me|profile)$", re.IGNORECASE), auth_handlers=["GRAPH"]
+    re.compile(r"^/(me|profile)$", re.IGNORECASE), auth_handlers=["GRAPH"]
 )
 async def profile_request(context: TurnContext, state: TurnState) -> None:
     user_token_response = await AGENT_APP.auth.get_token(context, "GRAPH")
@@ -93,7 +93,7 @@ async def profile_request(context: TurnContext, state: TurnState) -> None:
 
 
 @AGENT_APP.message(
-    re.compile(r"^(prs|pull requests)$", re.IGNORECASE), auth_handlers=["GITHUB"]
+    re.compile(r"^/(prs|pull requests)$", re.IGNORECASE), auth_handlers=["GITHUB"]
 )
 async def pull_requests(context: TurnContext, state: TurnState) -> None:
     user_token_response = await AGENT_APP.auth.get_token(context, "GITHUB")

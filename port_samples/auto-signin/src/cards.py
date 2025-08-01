@@ -1,6 +1,5 @@
 from microsoft.agents.hosting.core import CardFactory
 
-
 def create_profile_card(profile):
     return CardFactory.adaptive_card(
         {
