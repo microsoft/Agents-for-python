@@ -22,7 +22,6 @@ from .local_token_cache import LocalTokenCache
 logger = logging.getLogger(__name__)
 
 load_dotenv()
-agents_sdk_config = load_configuration_from_env(environ)
 
 TOKEN_CACHE = LocalTokenCache("./.local_token_cache.json")
 
@@ -69,19 +68,18 @@ def acquire_token(settings: ConnectionSettings, app_client_id, tenant_id):
 
 def create_client():
     settings = ConnectionSettings(
-        environment_id=environ.get("environment_id"),
-        agent_identifier=environ.get("agent_identifier"),
-        cloud=environ.get("cloud", None),
-        copilot_agent_type=environ.get("copilot_agent_type", None),
-        custom_power_platform_cloud=environ.get("custom_power_platform_cloud", None),
+        environment_id=environ.get("COPILOTSTUDIOAGENT__ENVIRONMENTID"),
+        agent_identifier=environ.get("COPILOTSTUDIOAGENT__SCHEMANAME"),
+        cloud=None,
+        copilot_agent_type=None,
+        custom_power_platform_cloud=None,
     )
     token = acquire_token(
         settings,
-        app_client_id=environ.get("app_client_id"),
-        tenant_id=environ.get("tenant_id"),
+        app_client_id=environ.get("COPILOTSTUDIOAGENT__AGENTAPPID"),
+        tenant_id=environ.get("COPILOTSTUDIOAGENT__TENANTID"),
     )
     copilot_client = CopilotClient(settings, token)
-    # logger.log(f"Copilot Studio Client Version: 0.0.0, running with settings: {json.dumps(settings, indent=2)}")
     return copilot_client
 
 
