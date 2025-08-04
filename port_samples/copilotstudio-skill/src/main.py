@@ -3,7 +3,7 @@
 
 from os import environ
 
-from microsoft.agents.hosting.core import AgentApplication, AgentAuthConfiguration
+from microsoft.agents.hosting.core import AgentApplication
 from microsoft.agents.hosting.aiohttp import (
     start_agent_process,
     jwt_authorization_middleware,
@@ -13,6 +13,7 @@ from aiohttp.web import Request, Response, Application, run_app, static
 
 from .agent import AGENT_APP, CONNECTION_MANAGER
 
+
 async def entry_point(req: Request) -> Response:
     agent: AgentApplication = req.app["agent_app"]
     adapter: CloudAdapter = req.app["adapter"]
@@ -21,6 +22,7 @@ async def entry_point(req: Request) -> Response:
         agent,
         adapter,
     )
+
 
 APP_WRAPPER = Application()
 APP_WRAPPER.add_routes([static("/public", "./public")])
