@@ -58,7 +58,7 @@ AGENT_APP = AgentApplication[TurnState](
 class CustomModelProvider(ModelProvider):
     def get_model(self, model_name: str | None) -> Model:
         return OpenAIChatCompletionsModel(
-            model=model_name or "gpt-4o", openai_client=CLIENT
+            model=model_name or "gpt-4o-mini", openai_client=CLIENT
         )
 
 

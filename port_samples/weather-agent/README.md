@@ -1,6 +1,10 @@
-# Streaming Agent
+# Weather Prediction Agent
 
-This is a sample of a simple Agent that is hosted on a Python web service. The sample demonstrates how to stream responses, specifically with streamed OpenAI calls.
+This is a sample of a simple weather-forecasting Agent that is hosted on a Python web service. This Agent accepts a request asking for a weather forecast and responds to the users with an Adaptive Card.
+
+This sample is meant to introduce the basics of creating custom and more sophisticated agentic AI.
+
+***Note:*** This sample requires JSON output from the model which works best from newer versions of the model such as `gpt-4o-mini`.
 
 ## Prerequisites
 

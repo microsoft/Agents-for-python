@@ -1,4 +1,4 @@
-# OBO Auth
+# OBO Auth Sample
 
 This Agent has been created using [Microsoft 365 Agents SDK](https://github.com/microsoft/agents-for-net), it shows how to use authorization in your Agent using OAuth and OBO.
 
@@ -10,17 +10,20 @@ This Agent has been created using [Microsoft 365 Agents SDK](https://github.com/
 - [Python](https://www.python.org/) version 3.9 or higher
 - [dev tunnel](https://learn.microsoft.com/en-us/azure/developer/dev-tunnels/get-started?tabs=windows) (for local development)
 
-## Configuration and Execution
+## Local Setup
+
+### Configuration
 
 1. [Create an Azure Bot](https://aka.ms/AgentsSDK-CreateBot)
    - Record the Application ID, the Tenant ID, and the Client Secret for use below
 
 1. Configuring the token connection in the Agent settings
-   > The instructions for this sample are for a SingleTenant Azure Bot using ClientSecrets.  The token connection configuration will vary if a different type of Azure Bot was configured.  For more information see [TODO](contoso.com)
-
-  1. Open the `env.TEMPLATE` file in the root of the sample project and rename it to `.env`
-  1. Update **CONNECTIONS__SERVICE_CONNECTION__SETTINGS__CLIENTID**, **CONNECTIONS__SERVICE_CONNECTION__SETTINGS__TENANTID** and **CONNECTIONS__SERVICE_CONNECTION__SETTINGS__CLIENTSECRET**
+    1. Open the `env.TEMPLATE` file in the root of the sample project, rename it to `.env` and configure the following values:
+      1. Set the **CONNECTIONS__SERVICE_CONNECTION__SETTINGS__CLIENTID** to the AppId of the bot identity.
+      2. Set the **CONNECTIONS__SERVICE_CONNECTION__SETTINGS__CLIENTSECRET** to the Secret that was created for your identity. *This is the `Secret Value` shown in the AppRegistration*.
+      3. Set the **CONNECTIONS__SERVICE_CONNECTION__SETTINGS__TENANTID** to the Tenant Id where your application is registered.
   
+1. [Add OAuth to your bot](https://aka.ms/AgentsSDK-AddAuth) using the _Azure Active Directory v2_ Provider.
 
 1. Configure the authorization handlers
    1. Open the `.env` file and add the name of the OAuth Connections, note the prefix must match the name of the auth handlers in the code, so for:
@@ -29,28 +32,58 @@ This Agent has been created using [Microsoft 365 Agents SDK](https://github.com/
     @AGENT_APP.message("obo", auth_handlers=["GRAPH"])
     ```
 
-    you should have one item for `graph` and aonther for `github`
+    you should have one pair of environmental variables for `GRAPH`:
 
     ```env
     AGENTAPPLICATION__USERAUTHORIZATION__HANDLERS__GRAPH__SETTINGS__AZUREBOTOAUTHCONNECTIONNAME=
     AGENTAPPLICATION__USERAUTHORIZATION__HANDLERS__GRAPH__SETTINGS__OBOCONNECTIONNAME=
     ```
 
-    In this sample, this is the only auth handler to worry about.
+    In this sample, this is the only auth handler.
       
 
-1. Run `dev tunnels`. Please follow [Create and host a dev tunnel](https://learn.microsoft.com/en-us/azure/developer/dev-tunnels/get-started?tabs=windows) and host the tunnel with anonymous user access command as shown below:
+1. Run `dev tunnels`. See [Create and host a dev tunnel](https://learn.microsoft.com/en-us/azure/developer/dev-tunnels/get-started?tabs=windows) and host the tunnel with anonymous user access command as shown below:
 
    ```bash
    devtunnel host -p 3978 --allow-anonymous
    ```
 
-1. Update your Azure Bot ``Messaging endpoint`` with the tunnel Url:  `{tunnel-url}/api/messages`
+1. Take note of the url shown after `Connect via browser:`
 
-1. Run the bot from a terminal with `python -m src.main`
+1. On the Azure Bot, select **Settings**, then **Configuration**, and update the **Messaging endpoint** to `{tunnel-url}/api/messages`
 
-1. Test via "Test in WebChat"" on your Azure Bot in the Azure Portal.
+### Running the Agent
 
-## Interacting with the Agent
+1. Open this folder from your IDE or Terminal of preference
+1. (Optional but recommended) Set up virtual environment and activate it.
+1. Install dependencies
 
-TODO
+```sh
+pip install -r requirements.txt
+```
+
+### Run in localhost, anonymous mode
+
+1. Start the application
+
+```sh
+python -m src.main
+```
+
+At this point you should see the message 
+
+```text
+======== Running on http://localhost:3978 ========
+```
+
+The agent is ready to accept messages.
+
+## Accessing the Agent
+
+### Using the Agent in WebChat
+
+1. Go to your Azure Bot Service resource in the Azure Portal and select **Test in WebChat**
+
+## Further reading
+
+To learn more about building Bots and Agents, see our [Microsoft 365 Agents SDK](https://github.com/microsoft/agents) repo.
