@@ -12,7 +12,7 @@ from microsoft.agents.hosting.core import (
     TurnState,
     TurnContext,
     MessageFactory,
-    MemoryStorage
+    MemoryStorage,
 )
 from microsoft.agents.hosting.aiohttp import CloudAdapter
 from microsoft.agents.authentication.msal import MsalConnectionManager
@@ -40,25 +40,30 @@ AUTHORIZATION = Authorization(STORAGE, CONNECTION_MANAGER, **agents_sdk_config)
 
 # robrandao : todo
 from azure.identity import DefaultAzureCredential, get_bearer_token_provider
-token_provider = get_bearer_token_provider(DefaultAzureCredential(), "https://cognitiveservices.azure.com/.default")
+
+token_provider = get_bearer_token_provider(
+    DefaultAzureCredential(), "https://cognitiveservices.azure.com/.default"
+)
 CLIENT = AsyncAzureOpenAI(
     api_version=environ["AZURE_OPENAI_API_VERSION"],
     azure_endpoint=environ["AZURE_OPENAI_ENDPOINT"],
-    azure_ad_token_provider=token_provider
+    azure_ad_token_provider=token_provider,
 )
 
 AGENT_APP = AgentApplication[TurnState](
     storage=STORAGE, adapter=ADAPTER, authorization=AUTHORIZATION, **agents_sdk_config
 )
 
+
 class CustomModelProvider(ModelProvider):
     def get_model(self, model_name: str | None) -> Model:
         return OpenAIChatCompletionsModel(
             model=model_name or "gpt-4o", openai_client=CLIENT
         )
-    
+
+
 custom_model_provider = CustomModelProvider()
-    
+
 agent = OpenAIAgent(
     name="WeatherAgent",
     instructions=""""
@@ -74,16 +79,19 @@ agent = OpenAIAgent(
     tools=[get_weather, get_date],
 )
 
+
 class WeatherForecastAgentResponse(BaseModel):
     contentType: str = Field(pattern=r"^(Text|AdaptiveCard)$")
     content: Union[dict, str]
+
 
 @AGENT_APP.conversation_update("membersAdded")
 async def on_members_added(context: TurnContext, _state: TurnState):
     members_added = context.activity.members_added
     for member in members_added:
-            if member.id != context.activity.recipient.id:
-                await context.send_activity("Hello and welcome!")
+        if member.id != context.activity.recipient.id:
+            await context.send_activity("Hello and welcome!")
+
 
 @AGENT_APP.activity("message")
 async def on_message(context: TurnContext, _state: TurnState):
@@ -96,7 +104,13 @@ async def on_message(context: TurnContext, _state: TurnState):
         ),
     )
     print(f"Response: {response.final_output}")
-    llm_response = WeatherForecastAgentResponse.model_validate_json(response.final_output)
+    json_response = response.final_output
+    if "json" in json_response and json_response.index("json") < json_response.index(
+        "{"
+    ):
+        # a common pattern with OpenAI responses is that they may contain a "json" prefix
+        json_response = json_response[json_response.index("{") :]
+    llm_response = WeatherForecastAgentResponse.model_validate_json(json_response)
 
     activity = None
     if llm_response.contentType == "AdaptiveCard":
