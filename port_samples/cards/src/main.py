@@ -6,5 +6,5 @@ from .agent import AGENT_APP, CONNECTION_MANAGER
 
 start_server(
     AGENT_APP,
-    auth_configuration=CONNECTION_MANAGER.get_default_connection_configuration()
+    auth_configuration=CONNECTION_MANAGER.get_default_connection_configuration(),
 )
