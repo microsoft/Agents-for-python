@@ -1,4 +1,5 @@
 python-dotenv
+aiohttp
 microsoft-agents-activity
 microsoft-agents-hosting-core
 microsoft-agents-hosting-aiohttp

@@ -1,4 +1,5 @@
 python-dotenv
+aiohttp
 openai
 azure-identity
 microsoft-agents-activity
