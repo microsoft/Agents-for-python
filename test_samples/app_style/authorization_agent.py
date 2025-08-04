@@ -117,7 +117,10 @@ async def profile_request(context: TurnContext, state: TurnState) -> dict:
         return None
 
     try:
-        token_response = await AGENT_APP.auth.get_token(context, "GRAPH")
+        # token_to_exchange = await AGENT_APP.auth.get_token(context, "GRAPH")
+        token_response = await AGENT_APP.auth.exchange_token(
+            context, scopes=["User.Read", "email"], auth_handler_id="GRAPH"
+        )
         if not token_response or not token_response.token:
             await context.send_activity(
                 MessageFactory.text(
