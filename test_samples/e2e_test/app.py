@@ -40,14 +40,15 @@ AUTHORIZATION = Authorization(STORAGE, CONNECTION_MANAGER, **agents_sdk_config)
 
 # Initialize Semantic Kernel
 kernel = Kernel()
+
 chat_completion = AzureChatCompletion(
     deployment_name=environ.get("AZURE_OPENAI_DEPLOYMENT_NAME", "gpt-4o"),
     base_url=environ.get("AZURE_OPENAI_ENDPOINT"),
     api_key=environ.get("AZURE_OPENAI_API_KEY"),
+    service_id="adaptive_card_service"
 )
+
 kernel.add_service(chat_completion)
-setup_logging()
-logging.getLogger("kernel").setLevel(logging.DEBUG)
 
 # Initialize Azure OpenAI client
 client = AsyncAzureOpenAI(

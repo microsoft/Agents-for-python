@@ -1,3 +1,11 @@
 openai
 openai-agents
 semantic-kernel
+
+-e ../../libraries/microsoft-agents-hosting-core/ editable_mode=compat
+-e ../../libraries/microsoft-agents-hosting-aiohttp/ editable_mode=compat
+-e ../../libraries/microsoft-agents-authentication-msal/ editable_mode=compat
+-e ../../libraries/microsoft-agents-activity/ editable_mode=compat
+-e ../../libraries/microsoft-agents-hosting-teams/ editable_mode=compat
+-e ../../libraries/microsoft-agents-copilotstudio-client/ editable_mode=compat
+-e ../../libraries/microsoft-agents-storage-blob/ editable_mode=compat

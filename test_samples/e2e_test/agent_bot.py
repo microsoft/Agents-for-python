@@ -15,7 +15,7 @@ from microsoft.agents.activity import (
     Activity,
     ConversationUpdateTypes,
     ChannelAccount, 
-    Attachment
+    Attachment,
 )
 
 from agents import (
@@ -29,12 +29,11 @@ from agents import (
 )
 
 from pydantic import BaseModel, Field
-
-from tools.get_weather_tool import get_weather
-from tools.date_time_tool import get_date
+from semantic_kernel import Kernel
+from semantic_kernel.contents import ChatHistory
+from weather.agents.weather_forecast_agent import WeatherForecastAgent
 
 from openai import AsyncAzureOpenAI
-
 
 class AgentBot:
     def __init__(self, client: AsyncAzureOpenAI):
@@ -55,77 +54,35 @@ class AgentBot:
         await context.send_activity(MessageFactory.text("Hello and Welcome!"))
 
     async def on_weather_message(self, context: TurnContext, state: TurnState):
-            
-        class WeatherForecastAgentResponse(BaseModel):
-            contentType: str = Field(pattern=r"^(Text|AdaptiveCard)$")
-            content: Union[dict, str]
+        
         context.streaming_response.queue_informative_update("Working on a response for you")
-                
-        agent = OpenAIAgent(
-            name="WeatherAgent",
-            model_settings=ModelSettings(temperature=0, top_p=1),
-            instructions=""""
-            You are a friendly assistant that helps people find a weather forecast for a given time and place.
-            You may ask follow up questions until you have enough information to answer the customers question,
-            but once you have a forecast forecast, make sure to format it nicely using an adaptive card.
-            You should use adaptive JSON format to display the information in a visually appealing way
-            You should include a button for more details that points at https://www.msn.com/en-us/weather/forecast/in-{location} (replace {location} with the location the user asked about).
-            You should use adaptive cards version 1.5 or later.
 
-            Respond in JSON format with the following JSON schema:
-
-            {
-                "contentType": "'Text' or 'AdaptiveCard' only",
-                "content": "{The content of the response, may be plain text, or JSON based adaptive card}"
-            }
-            
-            Do not include "json" in front of the JSON response.
-            """,
-            tools=[get_weather, get_date],
-        )
-
-        class CustomModelProvider(ModelProvider):
-            def get_model(self, model_name: Optional[str]) -> Model:
-                return OpenAIChatCompletionsModel(
-                    model=model_name or "gpt-4o", 
-                    openai_client=self.client,
-                    )
-
-        custom_model_provider = CustomModelProvider()
-
-        phrase = context.activity.text.split("w: ", 1)[-1].strip()
-
-        response = await Runner.run(
-            agent,
-            phrase,
-            run_config=RunConfig(
-                model_provider=custom_model_provider,
-                tracing_disabled=True,
-            ),
-        )
-        
-        if "json\n" in response.final_output:
-            response.final_output = response.final_output.split("json\n", 1)[-1]
-
-        try:
-            llm_response = WeatherForecastAgentResponse.model_validate_json(
-                response.final_output
+        chat_history = state.get_value(
+            "ConversationState.chatHistory", 
+            lambda: ChatHistory(), 
+            target_cls=ChatHistory
             )
-        except:
-            llm_response = response.final_output
+                
+        weather_agent = WeatherForecastAgent()
+
+        forecast_response = await weather_agent.invoke_agent_async(context.activity.text, chat_history)
+        if forecast_response == None:
+            context.streaming_response.queue_text_chunk("Sorry, I couldn't get the weather forecast at the moment.")
+            await context.streaming_response.end_stream()
+            return
         
-        if type(llm_response) is str:
-            activity = MessageFactory.text(llm_response)
-            await context.streaming_response.queue_text_chunk(activity)
+        if forecast_response.contentType == "AdaptiveCard":
+            context.streaming_response.set_attachments(
+                [
+                    Attachment(
+                        content_type="application/vnd.microsoft.card.adaptive",
+                        content=forecast_response.content
+                    )
+                ]
+            )
         else:
-            activity = [
-                Attachment(
-                    content_type="application/vnd.microsoft.card.adaptive",
-                    content=llm_response.content,
-                )
-            ]
-            await context.streaming_response.set_attachments(activity)
-        
+            context.streaming_response.queue_text_chunk(forecast_response.content)
+
         await context.streaming_response.end_stream()
 
     async def on_multiple_message(self, context: TurnContext, state: TurnState):
