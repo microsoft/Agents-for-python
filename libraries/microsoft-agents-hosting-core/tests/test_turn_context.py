@@ -7,7 +7,6 @@ from microsoft.agents.activity import (
     ChannelAccount,
     ConversationAccount,
     Entity,
-    Mention,
     ResourceResponse,
 )
 from microsoft.agents.hosting.core import ChannelAdapter, MessageFactory, TurnContext
