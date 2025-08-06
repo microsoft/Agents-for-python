@@ -161,7 +161,6 @@ class AgentBot:
         counter += 1
         state.set_value("ConversationState.counter", counter)
 
-    # This needs a rework
     async def on_invoke(self, context: TurnContext, state: TurnState):
 
         # Simulate Teams extensions until implemented
@@ -175,9 +174,7 @@ class AgentBot:
                         "Attachments": [
                             {"content_type": "test", "content_url": "example.com"}
                         ],
-                    },
-                    "message": "Invoke received.",
-                    "data": context.activity.value,
+                    }
                 },
             )
 
