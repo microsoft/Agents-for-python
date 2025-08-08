@@ -11,8 +11,8 @@ param endpoint string
 param location string
 
 @allowed([
-  'Aadv2'
-  'None'
+  'aadv2'
+  'none'
 ])
 @description('The OAuth method to use for connections.')
 param oauthType string
@@ -32,8 +32,8 @@ resource azureBot 'microsoft.botService/botServices@2023-09-15-preview' = {
   }
 }
 
-// for now, automatically add Graph connection if oauthType is Aadv2
-resource graphConnectionSettings 'microsoft.botService/botServices/connections@2023-09-15-preview' = if (oauthType == 'Aadv2') {
+// for now, automatically add Graph connection if oauthType is aadv2
+resource graphConnectionSettings 'microsoft.botService/botServices/connections@2023-09-15-preview' = if (oauthType == 'aadv2') {
   parent: azureBot
   location: location
   name: 'graph-oauth'

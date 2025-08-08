@@ -1,24 +1,21 @@
 [CmdletBinding()]
 param(
     [Parameter(Mandatory=$true)]
+    [Alias('g')]
     [string]$RESOURCE_GROUP,
 
     [Parameter(Mandatory=$true)]
+    [Alias('n')]
     [string]$BOT_NAME,
 
     [Parameter(Mandatory=$true)]
+    [Alias('e')]
     [string]$ENDPOINT,
 
-    [Parameter(Mandatory=$true)]
-    [string]$APP_AUTH,
-
-    [ValidateSet("secret")]
-    [string]$AUTH_TYPE = 'secret',
-
-    [string]$LOCATION = 'global',
+    [Alias('d')]
     [string]$DEPLOYMENT_NAME = 'agent-deployment',
 
-    [bool]$USE_TEAMS = $false
+    [string]$USE_TEAMS = 'false'
 )
 
 $appId = az deployment group create -g $RESOURCE_GROUP -n $DEPLOYMENT_NAME --template-file ./bicep/app_registration.bicep `

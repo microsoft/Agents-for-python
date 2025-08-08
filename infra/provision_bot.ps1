@@ -1,21 +1,27 @@
 [CmdletBinding()]
 param(
     [Parameter(Mandatory=$true)]
+    [Alias('g')]
     [string]$RESOURCE_GROUP,
 
     [Parameter(Mandatory=$true)]
+    [Alias('n')]
     [string]$BOT_NAME,
 
     [Parameter(Mandatory=$true)]
+    [Alias('e')]
     [string]$ENDPOINT,
 
-    [Parameter(Mandatory=$true)]
-    [string]$APP_AUTH,
-
-    [ValidateSet("secret")]
+    [ValidateSet('secret')]
     [string]$AUTH_TYPE = 'secret',
 
+    [Alias('l')]
     [string]$LOCATION = 'global',
+
+    [ValidateSet('aadv2', 'none')]
+    [string]$OAUTH_TYPE = 'aadv2',
+
+    [Alias('d')]
     [string]$DEPLOYMENT_NAME = 'agent-deployment',
 
     [Parameter(Mandatory=$true)]
@@ -26,7 +32,8 @@ az deployment group create -g $RESOURCE_GROUP -n $DEPLOYMENT_NAME --template-fil
     --parameter endpoint=$ENDPOINT `
     --parameter location=$LOCATION `
     --parameter botName=$BOT_NAME `
-    --parameter appId=$appId
+    --parameter appId=$APP_ID `
+    --parameter oauthType=$OAUTH_TYPE
     
 if ($USE_TEAMS) {
     az deployment group create -g $RESOURCE_GROUP -n $DEPLOYMENT_NAME --template-file ./bicep/teams_oauth.bicep `
