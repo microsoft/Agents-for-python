@@ -147,24 +147,17 @@ class AgentApplication(Agent, Generic[StateT]):
         if authorization:
             self._auth = authorization
         else:
-            if not connection_manager:
-                logger.error(
-                    "ApplicationOptions.authorization requires a Connections instance.",
-                    stack_info=True,
-                )
-                raise ApplicationError(
-                    """
-                    The `AgentApplication` requires a `Connections` instance to be passed as the
-                    `connection_manager` parameter.
-                    """
-                )
-            else:
-                self._auth = Authorization(
-                    storage=self._options.storage,
-                    connection_manager=connection_manager,
-                    handlers=options.authorization_handlers,
-                    **configuration,
-                )
+            auth_options = {
+                key: value
+                for key, value in configuration.items()
+                if key not in ["storage", "connection_manager", "handlers"]
+            }
+            self._auth = Authorization(
+                storage=self._options.storage,
+                connection_manager=connection_manager,
+                handlers=options.authorization_handlers,
+                **auth_options,
+            )
 
     @property
     def adapter(self) -> ChannelServiceAdapter:
