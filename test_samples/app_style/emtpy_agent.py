@@ -7,11 +7,12 @@ from microsoft.agents.hosting.core import (
     TurnContext,
     MemoryStorage,
 )
+from microsoft.agents.hosting.aiohttp import CloudAdapter
 
 from shared import start_server
 
 AGENT_APP = AgentApplication[TurnState](
-    storage=MemoryStorage(),
+    storage=MemoryStorage(), adapter=CloudAdapter()
 )
 
 
