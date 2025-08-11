@@ -3,6 +3,8 @@ extension microsoftGraphV1
 param endpoint string
 param botName string
 param useTeams bool = false
+param location string = 'eastus'
+param oauthType string = 'none' // 'fic' or 'aadv2' or 'none'
 
 var preAuthorizedApplications = useTeams ? [
   {
@@ -98,5 +100,24 @@ resource appRegistration 'Microsoft.Graph/applications@v1.0' = {
     'api://botid-${appRegistrationBase.appId}'
   ]
 }
+
+resource managedIdentity 'Microsoft.ManagedIdentity/userAssignedIdentities@2025-01-31-preview' = if (oauthType == 'fic') {
+  name: botName
+  location: location
+}
+
+resource fic 'Microsoft.Graph/applications/federatedIdentityCredentials@v1.0' = if (oauthType == 'fic') {
+  name: '${botName}-app/agent'
+  dependsOn: [ appRegistration ]
+  description: 'Agent-to-Channel'
+  issuer: 'https://login.microsoftonline.com/${tenant().tenantId}/v2.0'
+  // subject: managedIdentity.properties.principalId
+  subject: '/eid1/c/pub/t/TZBJbQjOTU688CbEFC_CCQ/a/9ExAW52n_ky4ZiS_jhpJIQ/graph-oauth'
+
+  audiences: [
+    'api://AzureADTokenExchange'
+  ]
+}
+
 
 output appId string = appRegistrationBase.appId

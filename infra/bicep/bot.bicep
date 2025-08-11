@@ -11,7 +11,8 @@ param endpoint string
 param location string
 
 @allowed([
-  'aadv2'
+  'aadv2',
+  'fic',
   'none'
 ])
 @description('The OAuth method to use for connections.')
@@ -33,7 +34,7 @@ resource azureBot 'microsoft.botService/botServices@2023-09-15-preview' = {
 }
 
 // for now, automatically add Graph connection if oauthType is aadv2
-resource graphConnectionSettings 'microsoft.botService/botServices/connections@2023-09-15-preview' = if (oauthType == 'aadv2') {
+resource graphConnectionSettingsAadv2 'microsoft.botService/botServices/connections@2023-09-15-preview' = if (oauthType == 'aadv2') {
   parent: azureBot
   location: location
   name: 'graph-oauth'
@@ -41,6 +42,27 @@ resource graphConnectionSettings 'microsoft.botService/botServices/connections@2
     name: 'graph-oauth'
     serviceProviderDisplayName: 'Azure Active Directory v2'
     serviceProviderId: '30dd229c-58e3-4a48-bdfd-91ec48eb906c'
+    clientId: appId
+    clientSecret: '' // needs to be manually set
+    scopes: 'User.Read openId profile'
+    parameters: [
+      {
+        key: 'tenantId'
+        value: tenant().tenantId
+      }
+    ]
+  }
+}
+
+// for now, automatically add Graph connection if oauthType is aadv2
+resource graphConnectionSettingsFIC 'microsoft.botService/botServices/connections@2023-09-15-preview' = if (oauthType == 'fic') {
+  parent: azureBot
+  location: location
+  name: 'graph-oauth'
+  properties: {
+    name: 'graph-oauth'
+    serviceProviderDisplayName: 'Azure Active Directory v2'
+    serviceProviderId: '30dd229c-58e3-4a48-bdfd-91ec48eb906c' # robrandao: TODO
     clientId: appId
     clientSecret: '' // needs to be manually set
     scopes: 'User.Read openId profile'
