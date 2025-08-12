@@ -242,6 +242,10 @@ class Authorization:
         Returns:
             The new token response.
         """
+        if not self._connection_manager:
+            logger.error("Connection manager is not configured", stack_info=True)
+            raise ValueError("Connection manager is not configured")
+
         auth_handler = self.resolver_handler(handler_id)
         if auth_handler.flow is None:
             logger.error("OAuth flow is not configured for the auth handler")
