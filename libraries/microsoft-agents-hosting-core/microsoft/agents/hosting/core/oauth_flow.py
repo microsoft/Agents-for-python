@@ -3,6 +3,9 @@
 
 from __future__ import annotations
 
+import logging
+
+from enum import Enum
 from datetime import datetime
 from typing import Dict, Optional
 
@@ -21,18 +24,29 @@ from microsoft.agents.activity import (
     TurnContextProtocol as TurnContext,
 )
 from microsoft.agents.hosting.core.storage import StoreItem, Storage
-from pydantic import BaseModel
+from pydantic import BaseModel, PositiveInt
 
 from .message_factory import MessageFactory
 from .card_factory import CardFactory
 
+logger = logging.getLogger(__name__)
+
+# class FlowStatus(Enum):
+#     IN_ACTIVE = "not_started"
+#     IN_PROGRESS = "in_progress"
+#     COMPLETED = "completed"
+#     ERROR = "error"
+#     EXPIRED = "expired"
+
 
 class FlowState(StoreItem, BaseModel):
     flow_started: bool = False
+    # flow_status: FLOW_STATUS
     user_token: str = ""
     flow_expires: float = 0
     abs_oauth_connection_name: Optional[str] = None
     continuation_activity: Optional[Activity] = None
+    attempts_remaining: PositiveInt = 1
 
     def store_item_to_json(self) -> dict:
         return self.model_dump()
@@ -63,6 +77,9 @@ class OAuthFlow:
             abs_oauth_connection_name: The OAuth connection name.
             user_token_client: Optional user token client.
             messages_configuration: Optional messages configuration for backward compatibility.
+
+        Kwargs:
+            flow_total_tries: The total number of auth attempts made by the user during a single flow
         """
         if not abs_oauth_connection_name:
             raise ValueError(
@@ -80,6 +97,8 @@ class OAuthFlow:
         # Initialize state and flow state
         self._storage = storage
         self.flow_state = None
+
+        self.initial_attempts_remaining = kwargs.get("initial_attempts_remaining", 3)
 
     async def get_user_token(self, context: TurnContext) -> TokenResponse:
         """
@@ -107,6 +126,20 @@ class OAuthFlow:
             connection_name=self.abs_oauth_connection_name,
             channel_id=context.activity.channel_id,
         )
+
+    async def reset_to_initial_flow_state(self, context: TurnContext) -> None:
+        self.flow_state.flow_started = True
+        self.flow_state.flow_expires = datetime.now().timestamp() + 30000
+        self.flow_state.abs_oauth_connection_name = self.abs_oauth_connection_name
+        self.flow_state.attempts_remaining = self.initial_attempts_remaining
+        await self._save_flow_state(context)
+
+    async def reset_to_finished_flow_state(self, context: TurnContext) -> None:
+        self.flow_state.flow_started = False
+        self.flow_state.flow_expires = 0
+        self.flow_state.attempts_remaining = 0
+        self.flow_state.abs_oauth_connection_name = self.abs_oauth_connection_name
+        await self._save_flow_state(context)
 
     async def begin_flow(self, context: TurnContext) -> TokenResponse:
         """
@@ -138,6 +171,7 @@ class OAuthFlow:
             # Already have token, return it
             self.flow_state.flow_started = False
             self.flow_state.flow_expires = 0
+            self.flow_state.attempts_remaining = 0
             self.flow_state.abs_oauth_connection_name = self.abs_oauth_connection_name
             await self._save_flow_state(context)
             return user_token
@@ -180,10 +214,7 @@ class OAuthFlow:
         await context.send_activity(MessageFactory.attachment(o_card))
 
         # Update flow state
-        self.flow_state.flow_started = True
-        self.flow_state.flow_expires = datetime.now().timestamp() + 30000
-        self.flow_state.abs_oauth_connection_name = self.abs_oauth_connection_name
-        await self._save_flow_state(context)
+        await self.reset_to_initial_flow_state(context)
 
         # Return in-progress response
         return TokenResponse()
@@ -200,11 +231,14 @@ class OAuthFlow:
         """
         await self._initialize_token_client(context)
 
-        if (
-            self.flow_state
-            and self.flow_state.flow_expires != 0
-            and datetime.now().timestamp() > self.flow_state.flow_expires
+        if self.flow_state and (
+            (
+                self.flow_state.flow_expires != 0
+                and datetime.now().timestamp() > self.flow_state.flow_expires
+            )
+            or (self.flow_state.attempts_remaining <= 0)
         ):
+            # self.flow_state = False
             await context.send_activity(
                 MessageFactory.text(
                     self.messages_configuration.get(
@@ -219,6 +253,11 @@ class OAuthFlow:
 
         # Handle message type activities (typically when the user enters a code)
         if cont_flow_activity.type == ActivityTypes.message:
+            self.flow_state.attempts_remaining -= 1
+            logger.info(
+                f"Attempts remaining in this flow: {self.flow_state.attempts_remaining}"
+            )
+
             magic_code = cont_flow_activity.text
 
             # Validate magic code format (6 digits)
@@ -231,12 +270,7 @@ class OAuthFlow:
                 )
 
                 if result and result.token:
-                    self.flow_state.flow_started = False
-                    self.flow_state.flow_expires = 0
-                    self.flow_state.abs_oauth_connection_name = (
-                        self.abs_oauth_connection_name
-                    )
-                    await self._save_flow_state(context)
+                    await self.reset_to_finished_flow_state(context)
                     return result
                 else:
                     await context.send_activity(
@@ -259,6 +293,11 @@ class OAuthFlow:
             cont_flow_activity.type == ActivityTypes.invoke
             and cont_flow_activity.name == "signin/verifyState"
         ):
+            self.flow_state.attempts_remaining -= 1
+            logger.info(
+                f"Attempts remaining in this flow: {self.flow_state.attempts_remaining}"
+            )
+
             token_verify_state = cont_flow_activity.value
             magic_code = token_verify_state.get("state")
 
@@ -283,6 +322,11 @@ class OAuthFlow:
             cont_flow_activity.type == ActivityTypes.invoke
             and cont_flow_activity.name == "signin/tokenExchange"
         ):
+            self.flow_state.attempts_remaining -= 1
+            logger.info(
+                f"Attempts remaining in this flow: {self.flow_state.attempts_remaining}"
+            )
+
             token_exchange_request = cont_flow_activity.value
 
             # Dedupe checks to prevent duplicate processing
@@ -329,6 +373,7 @@ class OAuthFlow:
 
         if self.flow_state:
             self.flow_state.flow_expires = 0
+            self.flow_state.attempts_remaining = 0
             await self._save_flow_state(context)
 
     async def _get_flow_state(self, context: TurnContext) -> FlowState:

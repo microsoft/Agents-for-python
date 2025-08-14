@@ -18,13 +18,14 @@ from pydantic import BaseModel
 
 from ...turn_context import TurnContext
 from ...app.state.turn_state import TurnState
-from ...oauth_flow import OAuthFlow, FlowState
+from ...oauth_flow import OAuthFlow
 from ...state.user_state import UserState
 from .sign_in_context import SignInContext
 from .auth_handler import AuthHandler, AuthorizationHandlers
 from .sign_in_state import SignInState
 
-from .storage import AuthStateStorage
+from .storage import FlowStorageClient
+from .models import FlowResponse, FlowState, FlowStateTag
 
 logger = logging.getLogger(__name__)
 
@@ -220,13 +221,22 @@ class Authorization:
             scopes=scopes,  # Expiration can be set based on the token provider's response
         )
 
+    async def get_active_flow_state(self, context: TurnContext, turn_state: TurnState) -> Optional[FlowResponse]:
+        flow_storage_client = FlowStorageClient(context, self.__storage)
+
+        for auth_handler_id in self._auth_handlers.keys():
+            flow_state = await flow_storage_client.read(auth_handler_id)
+            if flow_state.is_active():
+                return flow_state
+        return None
+
     async def begin_or_continue_flow(
         self,
         context: TurnContext,
         turn_state: TurnState,
         auth_handler_id: str,
         sec_route: bool = True,
-    ) -> AuthFlowResponse:
+    ) -> FlowResponse:
         """
         Begins or continues an OAuth flow.
 
@@ -241,30 +251,17 @@ class Authorization:
         # robrandao: TODO -> is_started_from_route and sec_route
 
         flow_storage_client = FlowStorageClient(context, self.__storage)
-        flow = self.__create_flow(context, auth_handler_id)
+        flow = OAuthFlow(context, auth_handler_id)
 
+        flow_response: FlowResponse = flow.begin_or_continue_flow(context)
+        flow_state: FlowState = flow_response.flow_state
 
-        sign_in_context: SignInContext = self.__create_sign_in_context(
-            context, auth_handler_id, 42
-        )
-        if self.__sign_in_success_handler:
-            sign_in_context.on_success(
-                lambda: self.__sign_in_success_handler(
-                    context, turn_state, sign_in_context.handler.id
-                )
-            )
-        if self.__sign_in_failure_handler:
-            sign_in_context.on_failure(
-                lambda err: self.__sign_in_failure_handler(
-                    context, turn_state, sign_in_context.handler.id, err
-                )
-            )
-
-        async for activity in auth_handler.begin_or_continue_flow():
-            pass
-
-        token_response = await sign_in_context.get_token()
-        return BeginOrContinueFlowResponse(token_response, sign_in_context.handler)
+        if flow_state.tag == FlowStateTag.COMPLETE:
+            self.__on_sign_in_success_handler(context, turn_state, flow_state.handler.id)
+        elif flow_state.tag == FlowStateTag.FAILURE:
+            self.__on_sign_in_failure_handler(context, turn_state, flow_state.handler.id, err)
+            
+        return flow_response
 
     def resolve_handler(self, auth_handler_id: Optional[str] = None) -> AuthHandler:
         """

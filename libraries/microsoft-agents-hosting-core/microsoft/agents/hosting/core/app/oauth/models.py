@@ -8,7 +8,6 @@ from pydantic.types import PositiveInt
 from microsoft.agents.activity import Activity
 from microsoft.agents.hosting.core import StoreItem
 
-
 class FlowStateTag(Enum):
     BEGIN = "begin"
     CONTINUE = "continue"
@@ -46,10 +45,9 @@ class FlowState(BaseModel, StoreItem):
     def reached_max_retries(self) -> bool:
         return self.attempts_remaining <= 0
     
-    # @staticmethod
-    # def generate_begin_state():
-    #     pass
-
+    def is_active(self) -> bool:
+        return not self.is_expired() and not self.reached_max_retries() and self.tag in [FlowStateTag.BEGIN, FlowStateTag.CONTINUE]
+    
 class FlowResponse(BaseModel):
 
     flow_data: FlowData

@@ -1,14 +1,8 @@
-from enum import Enum
 from typing import Optional
 
-from pydantic import BaseModel
+from microsoft.agents.hosting.core import TurnContext, Storage
 
-from microsoft.agents.activity import Activity
-from microsoft.agents.hosting.core import (
-    TurnContext,
-    Storage,
-    StoreItem
-)
+from .models import FlowState
 
 # robrandao: TODO -> context.activity.from_property
 class FlowStorageClient:

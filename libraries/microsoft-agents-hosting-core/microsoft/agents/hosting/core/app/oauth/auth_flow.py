@@ -154,7 +154,6 @@ class AuthFlow:
             body=token_exchange_request
         )
 
-    
     async def continue_flow(self, context: TurnContext) -> FlowResponse:
         if self.flow_state.is_expired() or self.flow_state.reached_max_retries():
             self.flow_state.flow_state_tag = FlowStateTag.FAILURE
@@ -179,19 +178,9 @@ class AuthFlow:
         pass
 
 
-    async def continue_flow(self, context: TurnContext) -> FlowResponse:
-        pass
-
     async def begin_or_continue_flow(self, context: TurnContext) -> FlowResponse:
-        
-        tag = self.flow_state.flow_state_tag
 
-        if tag == FlowStateTag.CONTINUE:
-            self.continue_flow(context)
+        if self.flow_state.is_active():
+            return await self.continue_flow(context)
         else:
-            self.begin_flow(context)
-
-        if tag == FlowStateTag.BEGIN:
-            pass
-        elif tag == FlowStateTag.CONTINUE:
-            pass
+            return await self.begin_flow(context)
