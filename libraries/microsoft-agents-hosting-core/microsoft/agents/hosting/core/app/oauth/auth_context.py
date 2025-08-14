@@ -11,9 +11,7 @@ console_handler.setFormatter(logging.Formatter("%(asctime)s - %(name)s - %(level
 ms_agents_logger.addHandler(console_handler)
 ms_agents_logger.setLevel(logging.INFO)
 
-
-
-class SignInContext:
+class AuthContext:
 
     logger = logging.getLogger(f"{__name__}.SignInContext") # robrandao: TODO get logger with config
 
@@ -29,6 +27,12 @@ class SignInContext:
 
         if not hasattr(context, "activity"):  # robrandao: TODO -> see extra condition in JS code
             raise ValueError("context must have an activity property.")
+        
+        self.__storage = AuthStateStorage(context, storage)
+        
+                sign_in_storage = SignInStorage(
+            context, self.__storage, self.__auth_handlers
+        )  # robrandao: TODO
         
         # robrandao: TODO -> is this necessary here, or can we do this outside? Can we make the storage outside too?
         # if self.is_started_from_route:
@@ -87,6 +91,15 @@ class SignInContext:
     }
 
     def __set_status(status: SignInHandlerStateStatus) -> None:
+
+        if status == FlowProgression.BEGIN:
+            self.flow_state = FlowState(id)
+        elif status == FlowProgression.CONTINUE:
+            pass
+        elif status == FlowProgression.SUCCESS:
+            pass
+        elif status == FlowProgression.FAILURE:
+            pass
 
         # robrandao: TODO - type
         state_builder: dict[str, Callable] = {
@@ -206,3 +219,4 @@ class SignInContext:
     async def __get_auth_handler_or_throw(handler_id: str) -> AuthHandler:
         # robrandao: TODO
         pass
+
