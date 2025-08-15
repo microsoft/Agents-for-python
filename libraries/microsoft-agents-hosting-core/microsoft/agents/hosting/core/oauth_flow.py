@@ -152,7 +152,7 @@ class OAuthFlow:
             ],
         )
 
-        signing_resource = (
+        sign_in_resource = (
             await self.user_token_client.agent_sign_in.get_sign_in_resource(
                 state=token_exchange_state.get_encoded_state(),
             )
@@ -167,12 +167,12 @@ class OAuthFlow:
                     CardAction(
                         title=self.messages_configuration.get("button_text", "Sign in"),
                         type=ActionTypes.signin,
-                        value=signing_resource.sign_in_link,
+                        value=sign_in_resource.sign_in_link,
                         channel_data=None,
                     )
                 ],
-                token_exchange_resource=signing_resource.token_exchange_resource,
-                token_post_resource=signing_resource.token_post_resource,
+                token_exchange_resource=sign_in_resource.token_exchange_resource,
+                token_post_resource=sign_in_resource.token_post_resource,
             )
         )
 
