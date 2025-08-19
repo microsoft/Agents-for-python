@@ -1,10 +1,13 @@
+from datetime import datetime
+
 import pytest
 
 from microsoft.agents.activity import (
     ActivityTypes,
-    TokenResponse
+    TokenResponse,
+    SignInResource
 )
-from microsoft.agents.hosting.core import AuthFlow
+from microsoft.agents.hosting.core.app.oauth.auth_flow import AuthFlow
 
 from microsoft.agents.hosting.core.app.oauth.models import (
     FlowErrorTag,
@@ -22,24 +25,24 @@ class TestAuthFlow:
         context.activity.from_property.id = "__user_id"
         return context
 
-    def test_init_no_state(self):
-        flow = AuthFlow()
+    def test_init_no_state(self, mocker, turn_context):
+        flow = AuthFlow(turn_context, mocker.Mock())
         assert flow.flow_state == FlowState()
 
-    def test_init_with_state(self):
+    def test_init_with_state(self, mocker, turn_context):
         flow_state = FlowState(
             tag=FlowStateTag.CONTINUE,
             attempts_remaining=1,
             expires_at=datetime.now().timestamp() + 10000
         )
-        flow = AuthFlow(flow_state=flow_state)
+        flow = AuthFlow(turn_context, mocker.Mock(), flow_state=flow_state)
         assert flow.flow_state == flow_state
 
     @pytest.mark.asyncio
-    async def test_get_user_token(self, turn_context):
+    async def test_get_user_token(self, mocker, turn_context):
         # mock
-        user_token_client = pytest.Mock()
-        user_token_client.user_token.get_token = pytest.AsyncMock(return_value="test_token")
+        user_token_client = mocker.Mock()
+        user_token_client.user_token.get_token = mocker.AsyncMock(return_value="test_token")
 
         # test
         flow = AuthFlow(
@@ -50,7 +53,7 @@ class TestAuthFlow:
         
         # verify
         assert token == "test_token"
-        assert user_token_client.user_token.get_token.called_once_with(
+        user_token_client.user_token.get_token.assert_called_once_with(
             user_id="__user_id",
             connection_name="test_connection",
             channel_id="__channel_id",
@@ -58,10 +61,10 @@ class TestAuthFlow:
         )
 
     @pytest.mark.asyncio
-    async def test_sign_out(self, turn_context):
+    async def test_sign_out(self, mocker, turn_context):
         # mock
-        user_token_client = pytest.Mock()
-        user_token_client.user_token.sign_out = pytest.AsyncMock()
+        user_token_client = mocker.Mock()
+        user_token_client.user_token.sign_out = mocker.AsyncMock()
 
         # test
         flow = AuthFlow(
@@ -71,18 +74,17 @@ class TestAuthFlow:
         await flow.sign_out(turn_context)
 
         # verify
-        assert user_token_client.user_token.sign_out.called_once_with(
+        user_token_client.user_token.sign_out.assert_called_once_with(
             user_id="__user_id",
             connection_name="connection",
-            channel_id="__channel_id",
-            magic_code=None
+            channel_id="__channel_id"
         )
 
     @pytest.mark.asyncio
-    async def test_begin_flow_easy_case(self):
+    async def test_begin_flow_easy_case(self, mocker, turn_context):
         # mock
-        user_token_client = pytest.Mock()
-        user_token_client.user_token.get_token = pytest.AsyncMock(return_value=TokenResponse(token="test_token"))
+        user_token_client = mocker.Mock()
+        user_token_client.user_token.get_token = mocker.AsyncMock(return_value=TokenResponse(token="test_token"))
 
         # test
         flow = AuthFlow(
@@ -102,7 +104,7 @@ class TestAuthFlow:
         assert response.sign_in_resource is None  # No sign-in resource in this case
         assert response.flow_error_tag == FlowErrorTag.NONE
         assert response.token_response == "test_token"
-        assert user_token_client.user_token.get_token.called_once_with(
+        user_token_client.user_token.get_token.assert_called_once_with(
             user_id="__user_id",
             connection_name="test_connection",
             channel_id="__channel_id",
@@ -119,8 +121,8 @@ class TestAuthFlow:
             token_exchange_state=TokenExchangeState(connection_name="test_connection")
         )
         user_token_client = mocker.Mock()
-        user_token_client.user_token.get_token = pytest.AsyncMock(return_value=TokenResponse())
-        user_token_client.agent_sign_in.get_sign_in_resource = pytest.AsyncMock(return_value=dummy_sign_in_resource)
+        user_token_client.user_token.get_token = mocker.AsyncMock(return_value=TokenResponse())
+        user_token_client.agent_sign_in.get_sign_in_resource = mocker.AsyncMock(return_value=dummy_sign_in_resource)
 
         # test
         flow = AuthFlow(
@@ -144,34 +146,33 @@ class TestAuthFlow:
 
     @pytest.mark.asyncio
     @pytest.mark.parametrize(
-        "mocker", "turn_context, flow_state",
+        "flow_state",
         [
-            ("mocker", "turn_context", FlowState(
+            FlowState(
                 tag=FlowStateTag.BEGIN,
                 token="",
-                expires=datetime.now().timestamp() - 1,
+                expires_at=datetime.now().timestamp() - 1,
                 attempts_remaining=3
-            )),
-            ("mocker", "turn_context", FlowState(
+            ),
+            FlowState(
                 tag=FlowStateTag.CONTINUE,
                 token="",
-                expires=datetime.now().timestamp() + 1000,
+                expires_at=datetime.now().timestamp() + 1000,
                 attempts_remaining=0
-            )),
-            ("mocker", "turn_context", FlowState(
-                tag=FlowStateTag.FAILED,
+            ),
+            FlowState(
+                tag=FlowStateTag.FAILURE,
                 token="",
-                expires=datetime.now().timestamp() + 1000,
+                expires_at=datetime.now().timestamp() + 1000,
                 attempts_remaining=3
-            )),
-            ("mocker", "turn_context", FlowState(
-                tag=FlowStateTag.COMPLETED,
+            ),
+            FlowState(
+                tag=FlowStateTag.COMPLETE,
                 token="",
-                expires=datetime.now().timestamp() + 1000,
+                expires_at=datetime.now().timestamp() + 1000,
                 attempts_remaining=2
-            )),
+            ),
         ],
-        indirect=["mocker", "turn_context"]
     )
     async def test_continue_flow_not_active(self, mocker, turn_context, flow_state):
         user_token_client = mocker.Mock()
@@ -185,7 +186,7 @@ class TestAuthFlow:
         assert not flow_response.token_response
 
     @pytest.fixture(params=[
-        (FlowStateTag.ACTIVE, "test_token", 2),
+        (FlowStateTag.CONTINUE, "test_token", 2),
         (FlowStateTag.BEGIN, "", 1),
     ])
     def active_flow_state(self, request):
@@ -193,7 +194,7 @@ class TestAuthFlow:
         return FlowState(
             tag=tag,
             token=token,
-            expires=datetime.now().timestamp() + 1000,
+            expires_at=datetime.now().timestamp() + 1000,
             attempts_remaining=attempts_remaining
         )
 
@@ -202,8 +203,8 @@ class TestAuthFlow:
         turn_context.activity.type = ActivityTypes.message
         turn_context.activity.text = "magic-message"
         user_token_client = mocker.Mock()
-        user_token_client.user_token.get_token = pytest.AsyncMock(return_value=TokenResponse())
-        user_token_client.agent_sign_in.get_sign_in_resource = pytest.AsyncMock(return_value=dummy_sign_in_resource)
+        user_token_client.user_token.get_token = mocker.AsyncMock(return_value=TokenResponse())
+        user_token_client.agent_sign_in.get_sign_in_resource = mocker.AsyncMock(return_value=dummy_sign_in_resource)
 
         # test
         flow = AuthFlow(
@@ -214,16 +215,8 @@ class TestAuthFlow:
 
     @pytest.mark.asyncio
     @pytest.mark.parametrize(
-        "mocker, turn_context, active_flow_state, magic_code",
-        [
-            ("mocker", "turn_context", "active_flow_state", "magic-message"),
-            ("mocker", "turn_context", "active_flow_state", ""),
-            ("mocker", "turn_context", "active_flow_state", "abcdef"),
-            ("mocker", "turn_context", "active_flow_state", "@#0324"),
-            ("mocker", "turn_context", "active_flow_state", "231"),
-            ("mocker", "turn_context", "active_flow_state", None),
-        ],
-        indirect=["mocker", "turn_context", "active_flow_state"]
+        "magic_code",
+        ["magic-message", "", "abcdef", "@#0324", "231", None]
     )
     async def test_continue_flow_message_format_error(self, mocker, turn_context, active_flow_state, magic_code):
         # mock
@@ -250,7 +243,7 @@ class TestAuthFlow:
         turn_context.activity.type = ActivityTypes.message
         turn_context.activity.text = "123456"
         user_token_client = mocker.Mock()
-        user_token_client.user_token.get_token = pytest.AsyncMock(return_value=TokenResponse())
+        user_token_client.user_token.get_token = mocker.AsyncMock(return_value=TokenResponse())
 
         # test
         flow = AuthFlow(
@@ -264,7 +257,7 @@ class TestAuthFlow:
         assert active_flow_state.attempts_remaining - 1 == flow_response.flow_state.attempts_remaining
         assert not flow_response.token_response
         assert flow_response.flow_error_tag == FlowErrorTag.MAGIC_CODE
-        assert user_token_client.user_token.get_token.called_once_with(
+        user_token_client.user_token.get_token.assert_called_once_with(
             user_id="__user_id",
             connection_name="test_connection",
             channel_id="__channel_id",
@@ -278,7 +271,7 @@ class TestAuthFlow:
         turn_context.activity.name = "signin/verifyState"
         turn_context.activity.value = {"state": "987654"}
         user_token_client = mocker.Mock()
-        user_token_client.user_token.get_token = pytest.AsyncMock(return_value=TokenResponse(token="some-token"))
+        user_token_client.user_token.get_token = mocker.AsyncMock(return_value=TokenResponse(token="some-token"))
 
         # test
         flow = AuthFlow(
@@ -293,20 +286,21 @@ class TestAuthFlow:
         assert flow_response.token_response.token == "some-token"
         assert flow_response.flow_state.tag == FlowStateTag.COMPLETE
         assert flow_response.flow_error_tag == FlowErrorTag.NONE
-        assert user_token_client.user_token.get_token.called_once_with(
+        user_token_client.user_token.get_token.assert_called_once_with(
             user_id="__user_id",
             connection_name="test_connection",
             channel_id="__channel_id",
             magic_code="987654"
         )
 
+    @pytest.mark.asyncio
     async def test_continue_flow_invoke_verify_state_no_token(self, mocker, turn_context, active_flow_state):
         # mock
         turn_context.activity.type = ActivityTypes.message
         turn_context.activity.name = "signin/verifyState"
         turn_context.activity.value = {"state": "987654"}
         user_token_client = mocker.Mock()
-        user_token_client.user_token.get_token = pytest.AsyncMock(return_value=TokenResponse())
+        user_token_client.user_token.get_token = mocker.AsyncMock(return_value=TokenResponse())
 
         # test
         flow = AuthFlow(
@@ -324,7 +318,7 @@ class TestAuthFlow:
         else:
             assert flow_response.flow_state.tag == FlowStateTag.CONTINUE
         assert flow_response.flow_error_tag == FlowErrorTag.UNKNOWN
-        assert user_token_client.user_token.get_token.called_once_with(
+        user_token_client.user_token.get_token.assert_called_once_with(
             user_id="__user_id",
             connection_name="test_connection",
             channel_id="__channel_id",
@@ -338,7 +332,7 @@ class TestAuthFlow:
         turn_context.activity.name = "signin/exchangeState"
         turn_context.activity.value = "request_body"
         user_token_client = mocker.Mock()
-        user_token_client.user_token.exchange_token = pytest.AsyncMock(return_value=TokenResponse(token="exchange-token"))
+        user_token_client.user_token.exchange_token = mocker.AsyncMock(return_value=TokenResponse(token="exchange-token"))
 
         # test
         flow = AuthFlow(
@@ -353,7 +347,7 @@ class TestAuthFlow:
         assert flow_response.token_response.token == "exchange-token"
         assert flow_response.flow_state.tag == FlowStateTag.COMPLETE
         assert flow_response.flow_error_tag == FlowErrorTag.NONE
-        assert user_token_client.user_token.get_token.called_once_with(
+        user_token_client.user_token.get_token.assert_called_once_with(
             user_id="__user_id",
             connection_name="test_connection",
             channel_id="__channel_id",
@@ -367,7 +361,7 @@ class TestAuthFlow:
         turn_context.activity.name = "signin/exchangeState"
         turn_context.activity.value = "request_body"
         user_token_client = mocker.Mock()
-        user_token_client.user_token.exchange_token = pytest.AsyncMock(return_value=TokenResponse())
+        user_token_client.user_token.exchange_token = mocker.AsyncMock(return_value=TokenResponse())
 
         # test
         flow = AuthFlow(
@@ -385,7 +379,7 @@ class TestAuthFlow:
         else:
             assert flow_response.flow_state.tag == FlowStateTag.CONTINUE
         assert flow_response.flow_error_tag == FlowErrorTag.UNKNOWN
-        assert user_token_client.user_token.get_token.called_once_with(
+        user_token_client.user_token.get_token.assert_called_once_with(
             user_id="__user_id",
             connection_name="test_connection",
             channel_id="__channel_id",

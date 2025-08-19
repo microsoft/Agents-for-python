@@ -1,4 +1,4 @@
-import datetime
+from datetime import datetime
 
 import pytest
 
@@ -76,7 +76,7 @@ class TestFlowState:
              True),
         ]
     )
-    def test_reached_max_attempts(flow_state, expected):
+    def test_reached_max_attempts(self, flow_state, expected):
         assert flow_state.reached_max_attempts() == expected
 
     @pytest.mark.parametrize(
@@ -102,5 +102,5 @@ class TestFlowState:
              True)
         ]
     )
-    def test_is_active(flow_state, expected):
+    def test_is_active(self, flow_state, expected):
         assert flow_state.is_active() == expected

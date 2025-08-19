@@ -1,6 +1,7 @@
 from typing import Optional
 
-from microsoft.agents.hosting.core import TurnContext, Storage
+from ... import TurnContext
+from ...storage import Storage
 
 from .models import FlowState
 
@@ -42,7 +43,7 @@ class FlowStorageClient:
         channel_id = context.activity.channel_id
         user_id = context.activity.from_property.id
 
-        self.__base_key = f"auth/{channel_id}/{user_id}"
+        self.__base_key = f"auth/{channel_id}/{user_id}/"
         self.__storage = storage
 
     @property
@@ -51,7 +52,7 @@ class FlowStorageClient:
 
     def key(self, id: str) -> str:
         """Creates a storage key for a specific sign-in handler."""
-        return f"{self.__base_key}/${id}"
+        return f"{self.__base_key}{id}"
 
     async def read(self, auth_handler_id: str) -> Optional[FlowState]:
         """Reads the flow state for a specific authentication handler."""
@@ -61,7 +62,7 @@ class FlowStorageClient:
 
     async def write(self, value: FlowState) -> None:
         """Saves the flow state for a specific authentication handler."""
-        key: str = self.key(value.id)
+        key: str = self.key(value.auth_handler_id)
         await self.__storage.write({key: value})
 
     async def delete(self, auth_handler_id: str) -> None:

@@ -21,8 +21,6 @@ from microsoft.agents.activity import (
 from microsoft.agents.hosting.core.storage import StoreItem, Storage
 from pydantic import BaseModel, PositiveInt
 
-from .message_factory import MessageFactory
-from .card_factory import CardFactory
 from .models import FlowResponse, FlowState, FlowStateTag, FlowErrorTag
 
 logger = logging.getLogger(__name__)
@@ -76,9 +74,9 @@ class AuthFlow:
     #     # use cached value later
     #     self.__user_token_client = context.turn_state.get(context.adapter.USER_TOKEN_CLIENT_KEY)
 
-    async def __get_ids_or_raise(self, context: TurnContext) -> TokenResponse:
+    def __get_ids_or_raise(self, context: TurnContext) -> TokenResponse:
         if (
-            not not context.activity.channel_id or
+            not context.activity.channel_id or
             not context.activity.from_property or
             not context.activity.from_property.id
         ):
@@ -97,7 +95,7 @@ class AuthFlow:
         )
     
     async def get_user_token(self, context: TurnContext) -> TokenResponse:
-        return self.__get_user_token(context)
+        return await self.__get_user_token(context)
     
     async def sign_out(self, context: TurnContext) -> None:
         channel_id, from_id = self.__get_ids_or_raise(context)
@@ -122,7 +120,7 @@ class AuthFlow:
 
         # init flow state
         
-        token_response = self.get_user_token(context)
+        token_response = await self.get_user_token(context)
         if token_response:
             return FlowResponse(
                 flow_state=self.flow_state,

@@ -1,7 +1,7 @@
 # import datetime
 
 # import pytest
-# from pytest import lazy_fixture
+# from pytest_lazyfixture import lazy_fixture
 
 # from microsoft.agents.activity import (
 #     TokenResponse

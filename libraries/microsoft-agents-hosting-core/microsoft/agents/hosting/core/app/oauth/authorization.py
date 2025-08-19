@@ -22,7 +22,7 @@ from ...turn_context import TurnContext
 from ...app.state.turn_state import TurnState
 # from ...oauth_flow import AuthFlow
 from ...state.user_state import UserState
-from .auth_handler import AuthHandler, AuthorizationHandlers
+from .auth_handler import AuthHandler
 
 from .models import FlowResponse, FlowState, FlowStateTag, FlowErrorTag
 from .flow_storage_client import FlowStorageClient
@@ -41,7 +41,7 @@ class Authorization:
         self,
         storage: Storage,
         connection_manager: Connections,
-        auth_handlers: AuthorizationHandlers = None,
+        auth_handlers: dict[str, AuthHandler] = None,
         auto_signin: bool = None,
         **kwargs,
     ):
@@ -57,10 +57,10 @@ class Authorization:
         """
         if not storage:
             raise ValueError("Storage is required for Authorization")
-        if not auth_handlers:
-            raise ValueError("At least one AuthHandler must be provided")
+        # if not auth_handlers:
+        #     raise ValueError("At least one AuthHandler must be provided")
 
-        user_state = UserState(storage)
+        # user_state = UserState(storage)
 
         self._storage = storage
         self._connection_manager = connection_manager
@@ -108,7 +108,7 @@ class Authorization:
         #         messages_configuration=messages_config if messages_config else None,
         #     )
 
-    async def __load_flow(self, context: TurnContext, auth_handler_id: str) -> AuthFlow:
+    async def _load_flow(self, context: TurnContext, auth_handler_id: str) -> AuthFlow:
         user_token_client: UserTokenClient = context.turn_state.get(context.adapter.USER_TOKEN_CLIENT_KEY) # robrandao: TODO
         auth_handler: AuthHandler = self.resolve_handler(auth_handler_id)
 
@@ -133,7 +133,7 @@ class Authorization:
         if not context or not auth_handler_id:
             raise ValueError("context and auth_handler_id are required")
     
-        flow, flow_storage_client, init_flow_state = self.__load_flow(context, auth_handler_id)
+        flow, flow_storage_client, init_flow_state = self._load_flow(context, auth_handler_id)
         yield flow
 
         if not readonly and flow.flow_state != init_flow_state:
@@ -175,8 +175,8 @@ class Authorization:
         async with self.open_flow(context, auth_handler_id) as flow:
             token_response = await flow.get_user_token(context)
 
-        if token_response and self.__is_exchangeable(token_response.token):
-            return await self.__handle_obo(token_response.token, scopes, auth_handler_id)
+        if token_response and self._is_exchangeable(token_response.token):
+            return await self._handle_obo(token_response.token, scopes, auth_handler_id)
 
         return TokenResponse()
 
@@ -192,7 +192,7 @@ class Authorization:
 
         # return token_response
 
-    def __is_exchangeable(self, token: Optional[str]) -> bool:
+    def _is_exchangeable(self, token: Optional[str]) -> bool:
         """
         Checks if a token is exchangeable (has api:// audience).
 
@@ -214,7 +214,7 @@ class Authorization:
             logger.exception("Failed to decode token to check audience")
             return False
 
-    async def __handle_obo(
+    async def _handle_obo(
         self, token: str, scopes: list[str], handler_id: str = None
     ) -> TokenResponse:
         """
@@ -252,7 +252,7 @@ class Authorization:
         )
 
     async def get_active_flow_state(self, context: TurnContext, turn_state: TurnState = None) -> Optional[FlowState]:
-        flow_storage_client = FlowStorageClient(context, self.__storage)
+        flow_storage_client = FlowStorageClient(context, self._storage)
         for auth_handler_id in self._auth_handlers.keys():
             flow_state = await flow_storage_client.read(auth_handler_id)
             if flow_state.is_active():
@@ -285,9 +285,9 @@ class Authorization:
         flow_state: FlowState = flow_response.flow_state
 
         if flow_state.tag == FlowStateTag.COMPLETE:
-            self.__sign_in_success_handler(context, turn_state, flow_state.handler.id)
+            self._sign_in_success_handler(context, turn_state, flow_state.handler.id)
         elif flow_state.tag == FlowStateTag.FAILURE:
-            self.__sign_in_failure_handler(context, turn_state, flow_state.handler.id, err)
+            self._sign_in_failure_handler(context, turn_state, flow_state.handler.id, err)
             
         return flow_response
 
@@ -310,13 +310,13 @@ class Authorization:
         # Return the first handler if no ID specified
         return next(iter(self._auth_handlers.values))
     
-    async def __sign_out(
+    async def _sign_out(
         self,
         context: TurnContext,
         auth_handler_ids: Iterable[str] = None,
     ) -> None:
         for auth_handler_id in auth_handler_ids:
-            flow, flow_storage_client, initial_flow_state = self.__load_flow(context, auth_handler_id)
+            flow, flow_storage_client, initial_flow_state = self._load_flow(context, auth_handler_id)
             if initial_flow_state:
                 logger.info(f"Signing out from handler: {auth_handler_id}")
                 await flow.sign_out(context)
@@ -338,9 +338,9 @@ class Authorization:
             auth_handler_id: Optional ID of the auth handler to use for sign out.
         """
         if auth_handler_id:
-            self.__sign_out(context, [auth_handler_id])
+            self._sign_out(context, [auth_handler_id])
         else:
-            self.__sign_out(context, self._auth_handlers.keys())
+            self._sign_out(context, self._auth_handlers.keys())
 
     def on_sign_in_success(
         self,
@@ -352,7 +352,7 @@ class Authorization:
         Args:
             handler: The handler function to call on successful sign-in.
         """
-        self.__sign_in_success_handler = handler
+        self._sign_in_success_handler = handler
 
     def on_sign_in_failure(
         self,
@@ -363,4 +363,4 @@ class Authorization:
         Args:
             handler: The handler function to call on sign-in failure.
         """
-        self.__sign_in_failure_handler = handler
+        self._sign_in_failure_handler = handler
