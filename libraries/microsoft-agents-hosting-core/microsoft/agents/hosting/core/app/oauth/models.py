@@ -15,20 +15,23 @@ class FlowStateTag(Enum):
     FAILURE = "failure"
     COMPLETE = "complete"
 
+class FlowErrorTag(Enum):
+    NONE = "none"
+    MAGIC_FORMAT = "magic_format"
+    MAGIC_CODE = "magic_code"
+
 class FlowState(BaseModel, StoreItem):
 
+    flow_id: NonEmptyString
     flow_started: bool = False
     user_token: str = ""
-    flow_expires: float = 0
+    expires: float = 0
     abs_oauth_connection_name: Optional[str] = None
     continuation_activity: Optional[Activity] = None
     attempts_remaining: PositiveInt = 3
     tag: FlowStateTag = FlowStateTag.INACTIVE
 
-    def __init__(self, *args, **kwargs):
-
-        super().__init__(*args, **kwargs)
-
+    def refresh(self) -> None:
         if self.is_expired() or self.reached_max_retries():
             self.tag = FlowStateTag.FAILURE
 
@@ -42,7 +45,7 @@ class FlowState(BaseModel, StoreItem):
     def is_expired(self) -> bool:
         return datetime.now().timestamp() >= self.flow_expires
     
-    def reached_max_retries(self) -> bool:
+    def reached_max_attempts(self) -> bool:
         return self.attempts_remaining <= 0
     
     def is_active(self) -> bool:
@@ -51,5 +54,6 @@ class FlowState(BaseModel, StoreItem):
 class FlowResponse(BaseModel):
 
     flow_data: FlowData
-    in_flow_activity: Activity
+    flow_error_tag: FlowErrorTag = FlowErrorTag.NONE
     token_response: Optional[TokenResponse] = None
+    sign_in_resource: Optional[SignInResource] = None
