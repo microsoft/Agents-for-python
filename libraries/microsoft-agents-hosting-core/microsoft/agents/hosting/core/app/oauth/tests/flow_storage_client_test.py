@@ -1,9 +1,8 @@
-from microsoft.agents.hosting.core import MemoryStorage
-
 import pytest
+from pytest import lazy_fixture
 
 from microsoft.agents.hosting.core import (
-    Storage,
+    MemoryStorage
     FlowStorageClient,
     MockStoreItem,
     FlowState
@@ -19,24 +18,28 @@ class TestFlowStorageClient:
         return context
     
     @pytest.fixture
+    def storage(self):
+        return MemoryStorage()
+    
+    @pytest.fixture
     def client(self, turn_context, storage):
         return FlowStorageClient(turn_context, storage)
     
     @pytest.mark.asyncio
     @pytest.mark.parametrize(
-        "mocker, turn_context, storage, channel_id, from_property_id",
+        "mocker, channel_id, from_property_id",
         [
-            ("mocker", "turn_context", "storage", "channel_id", "from_property_id"),
-            ("mocker", "turn_context", "storage", "teams_id", "Bob"),
-            ("mocker", "turn_context", "storage", "channel", "Alice"),
+            ("mocker", "channel_id", "from_property_id"),
+            ("mocker", "teams_id", "Bob"),
+            ("mocker", "channel", "Alice"),
         ],
         indirect=["mocker", "turn_context", "storage"]
     )
-    async def test_init_base_key(self, mocker, turn_context, storage, channel_id, from_property_id):
+    async def test_init_base_key(self, mocker, channel_id, from_property_id):
         context = mocker.Mock()
         context.activity.channel_id = channel_id
         context.activity.from_property.id = from_property_id
-        client = FlowStorageClient(context, storage)
+        client = FlowStorageClient(context, mocker.Mock())
         assert client.base_key == f"auth/{channel_id}/{from_property_id}/"
 
     async def test_init_fails_without_from_id(self, mocker, storage):
@@ -63,13 +66,13 @@ class TestFlowStorageClient:
 
     @pytest.mark.asyncio
     @pytest.mark.parametrize(
-        "mocker, turn_context storage, client, auth_handler_id",
+        "mocker, turn_context, auth_handler_id",
         [
-            (mocker, turn_context, storage, client, "handler"),
-            (mocker, turn_context, storage, client, "auth_handler"),
+            (mocker, turn_context, "handler"),
+            (mocker, turn_context, "auth_handler"),
         ]
     )
-    async def test_read(self, mocker, turn_context, storage, client, auth_handler_id):
+    async def test_read(self, mocker, turn_context, auth_handler_id):
         storage = mocker.AsyncMock()
         storage.read.return_value = sentinel.read_response
         client = FlowStorageClient(turn_context, storage)
@@ -79,13 +82,13 @@ class TestFlowStorageClient:
 
     @pytest.mark.asyncio
     @pytest.mark.parametrize(
-        "mocker, turn_context storage, client, auth_handler_id",
+        "mocker, turn_context, auth_handler_id",
         [
-            (mocker, turn_context, storage, client, "handler", "auth/__channel_id/__user_id/handler"),
-            (mocker, turn_context, storage, client, "auth_handler", "auth/__channel_id/__user_id/auth_handler"),
+            (lazy_fixture("mocker"), lazy_fixture("turn_context"), "handler", "auth/__channel_id/__user_id/handler"),
+            (lazy_fixture("mocker"), lazy_fixture("turn_context"), "auth_handler", "auth/__channel_id/__user_id/auth_handler"),
         ]
     )
-    async def test_write(self, mocker, turn_context, storage, client, auth_handler_id, key, flow_state):
+    async def test_write(self, mocker, turn_context, auth_handler_id, key, flow_state):
         storage = mocker.AsyncMock()
         storage.write.return_value = None
         client = FlowStorageClient(turn_context, storage)
@@ -96,13 +99,13 @@ class TestFlowStorageClient:
 
     @pytest.mark.asyncio
     @pytest.mark.parametrize(
-        "mocker, turn_context storage, client, auth_handler_id",
+        "mocker, turn_context, auth_handler_id",
         [
-            (mocker, turn_context, storage, client, "handler", "auth/__channel_id/__user_id/handler"),
-            (mocker, turn_context, storage, client, "auth_handler", "auth/__channel_id/__user_id/auth_handler"),
+            (mocker, turn_context, "handler", "auth/__channel_id/__user_id/handler"),
+            (mocker, turn_context, "auth_handler", "auth/__channel_id/__user_id/auth_handler"),
         ]
     )
-    async def test_delete(self, mocker, turn_context, storage, client, auth_handler_id):
+    async def test_delete(self, mocker, turn_context, auth_handler_id):
         storage = mocker.AsyncMock()
         storage.write.return_value = None
         client = FlowStorageClient(turn_context, storage)

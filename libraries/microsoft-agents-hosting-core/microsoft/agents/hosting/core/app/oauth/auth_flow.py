@@ -28,7 +28,7 @@ from .models import FlowResponse, FlowState, FlowStateTag, FlowErrorTag
 logger = logging.getLogger(__name__)
 
 
-class OAuthFlow:
+class AuthFlow:
     """
     Manages the OAuth flow.
 
@@ -142,7 +142,6 @@ class OAuthFlow:
         return FlowResponse(flow_state=self.flow_state, sign_in_resource=sign_in_resource)
     
     async def __continue_from_message(self, context: TurnContext) -> tuple[TokenResponse, FlowErrorTag]:
-
         magic_code: str = context.activity.text
         if magic_code and magic_code.isdigit() and len(magic_code) == 6:
             token_response: TokenResponse = await self.__get_user_token(context, magic_code)

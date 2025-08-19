@@ -30,7 +30,6 @@ class AuthHandler:
         self.obo_connection_name = obo_connection_name or kwargs.get(
             "OBOCONNECTIONNAME"
         )
-        self.flow: OAuthFlow = None
         logger.debug(
             f"AuthHandler initialized: name={self.name}, title={self.title}, text={self.text} abs_connection_name={self.abs_oauth_connection_name} obo_connection_name={self.obo_connection_name}"
         )

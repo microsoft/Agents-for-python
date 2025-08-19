@@ -5,7 +5,7 @@ from microsoft.agents.hosting.core import TurnContext, Storage
 from .models import FlowState
 
 # robrandao: TODO -> context.activity.from_property
-class OAuthStorageClient:
+class FlowStorageClient:
     """
     Wrapper around storage that manages sign-in state specific to each user and channel.
 
