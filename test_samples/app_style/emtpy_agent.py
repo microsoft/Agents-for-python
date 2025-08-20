@@ -1,13 +1,13 @@
 # Copyright (c) Microsoft Corporation. All rights reserved.
 # Licensed under the MIT License.
 
-from microsoft.agents.hosting.core import (
+from msagents.hosting.core import (
     AgentApplication,
     TurnState,
     TurnContext,
     MemoryStorage,
 )
-from microsoft.agents.hosting.aiohttp import CloudAdapter
+from msagents.hosting.aiohttp import CloudAdapter
 
 from shared import start_server
 

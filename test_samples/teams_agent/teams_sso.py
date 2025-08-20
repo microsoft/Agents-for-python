@@ -1,12 +1,12 @@
-from microsoft.agents.hosting.core import (
+from msagents.hosting.core import (
     OAuthFlow,
     MessageFactory,
     TurnContext,
     UserState,
     Storage,
 )
-from microsoft.agents.activity import ChannelAccount
-from microsoft.agents.hosting.teams import TeamsActivityHandler
+from msagents.activity import ChannelAccount
+from msagents.hosting.teams import TeamsActivityHandler
 
 from graph_client import GraphClient
 

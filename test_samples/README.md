@@ -85,13 +85,13 @@ Make sure it shows a version between 3.9 and 3.11 as required.
 After activating your virtual environment, you can install packages from pypi test (the test index will be replaced with the regular index before going out of preview):
 
 ```bash
-pip install -i https://test.pypi.org/simple/ --extra-index-url https://pypi.org/simple/ microsoft-agents-activity
-pip install -i https://test.pypi.org/simple/ --extra-index-url https://pypi.org/simple/ microsoft-agents-authorization
-pip install -i https://test.pypi.org/simple/ --extra-index-url https://pypi.org/simple/ microsoft-agents-connector
-pip install -i https://test.pypi.org/simple/ --extra-index-url https://pypi.org/simple/ microsoft-agents-client
-pip install -i https://test.pypi.org/simple/ --extra-index-url https://pypi.org/simple/ microsoft-agents-hosting-core
-pip install -i https://test.pypi.org/simple/ --extra-index-url https://pypi.org/simple/ microsoft-agents-authentication-msal
-pip install -i https://test.pypi.org/simple/ --extra-index-url https://pypi.org/simple/ microsoft-agents-copilotstudio-client
-pip install -i https://test.pypi.org/simple/ --extra-index-url https://pypi.org/simple/ microsoft-agents-hosting-core-aiohttp
-pip install -i https://test.pypi.org/simple/ --extra-index-url https://pypi.org/simple/ microsoft-agents-storage-core
+pip install -i https://test.pypi.org/simple/ --extra-index-url https://pypi.org/simple/ msagents-activity
+pip install -i https://test.pypi.org/simple/ --extra-index-url https://pypi.org/simple/ msagents-authorization
+pip install -i https://test.pypi.org/simple/ --extra-index-url https://pypi.org/simple/ msagents-connector
+pip install -i https://test.pypi.org/simple/ --extra-index-url https://pypi.org/simple/ msagents-client
+pip install -i https://test.pypi.org/simple/ --extra-index-url https://pypi.org/simple/ msagents-hosting-core
+pip install -i https://test.pypi.org/simple/ --extra-index-url https://pypi.org/simple/ msagents-authentication-msal
+pip install -i https://test.pypi.org/simple/ --extra-index-url https://pypi.org/simple/ msagents-copilotstudio-client
+pip install -i https://test.pypi.org/simple/ --extra-index-url https://pypi.org/simple/ msagents-hosting-core-aiohttp
+pip install -i https://test.pypi.org/simple/ --extra-index-url https://pypi.org/simple/ msagents-storage-core
 ```

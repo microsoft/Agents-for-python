@@ -4,14 +4,14 @@
 from aiohttp.web import Application, Request, Response, run_app
 from dotenv import load_dotenv
 
-from microsoft.agents.hosting.core import (
+from msagents.hosting.core import (
     Connections,
     AccessTokenProviderBase,
     ClaimsIdentity,
     RestChannelServiceClientFactory,
 )
-from microsoft.agents.hosting.aiohttp import CloudAdapter, jwt_authorization_middleware
-from microsoft.agents.authentication.msal import MsalAuth
+from msagents.hosting.aiohttp import CloudAdapter, jwt_authorization_middleware
+from msagents.authentication.msal import MsalAuth
 
 from agent2 import Agent2
 from config import DefaultConfig

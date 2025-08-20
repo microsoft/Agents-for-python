@@ -1,5 +1,5 @@
 from os import environ
-from microsoft.agents.authentication.msal import AuthTypes, MsalAuthConfiguration
+from msagents.authentication.msal import AuthTypes, MsalAuthConfiguration
 
 
 class DefaultConfig(MsalAuthConfiguration):
