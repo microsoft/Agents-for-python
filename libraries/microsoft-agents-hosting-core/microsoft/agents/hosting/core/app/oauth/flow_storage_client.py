@@ -21,7 +21,8 @@ class FlowStorageClient:
 
     def __init__(
         self,
-        context: TurnContext,
+        channel_id: str,
+        user_id: str,
         storage: Storage
     ):
         """
@@ -32,16 +33,8 @@ class FlowStorageClient:
             storage: The Storage instance used to persist flow state data.
         """
 
-        if (
-            not context.activity
-            or not context.activity.channel_id
-            or not context.activity.from_property
-            or not context.activity.from_property.id
-        ):
-            raise ValueError("context.activity -> channel_id and from.id must be set.")
-
-        channel_id = context.activity.channel_id
-        user_id = context.activity.from_property.id
+        if not user_id or not channel_id:
+            raise ValueError("FlowStorageClient.__init__(): channel_id and user_id must be set.")
 
         self.__base_key = f"auth/{channel_id}/{user_id}/"
         self.__storage = storage
@@ -50,6 +43,7 @@ class FlowStorageClient:
     def base_key(self) -> str:
         return self.__base_key
 
+    @staticmethod
     def key(self, flow_id: str) -> str:
         """Creates a storage key for a specific sign-in handler."""
         return f"{self.__base_key}{flow_id}"

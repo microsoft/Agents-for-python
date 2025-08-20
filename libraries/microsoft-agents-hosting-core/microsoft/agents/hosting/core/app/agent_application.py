@@ -33,8 +33,12 @@ from microsoft.agents.activity import (
     MessageReactionTypes,
     MessageUpdateTypes,
     InvokeResponse,
+    OAuthCard,
+    Attachment,
+    CardAction
 )
 
+from .. import CardFactory, MessageFactory
 from .app_error import ApplicationError
 from .app_options import ApplicationOptions
 
@@ -42,7 +46,14 @@ from .app_options import ApplicationOptions
 from .route import Route, RouteHandler
 from .state import TurnState
 from ..channel_service_adapter import ChannelServiceAdapter
-from .oauth import Authorization, SignInState, FlowResponse, FlowStateTag
+from .oauth import (
+    Authorization,
+    FlowResponse,
+    FlowState,
+    FlowStateTag,
+    FlowErrorTag
+)
+from .typing_indicator import TypingIndicator
 
 logger = logging.getLogger(__name__)
 
@@ -597,7 +608,7 @@ class AgentApplication(Agent, Generic[StateT]):
         in_flow_activity = flow_response.in_flow_activity
 
         if in_flow_activity:
-            context.send_activity(in_flow_activity)
+            await context.send_activity(in_flow_activity)
         
         if flow_state.tag == FlowStateTag.BEGIN:
             # Create the OAuth card
@@ -642,9 +653,9 @@ class AgentApplication(Agent, Generic[StateT]):
                 logger.warning("Sign-in flow failed for unknown reasons.")
                 await context.send_activity("Sign-in failed. Please try again.")
 
-    async def _on_turn_auth_intercept(self, context: TurnContext, turn_state) -> bool:
+    async def _on_turn_auth_intercept(self, context: TurnContext, turn_state: TurnState) -> bool:
         
-        prev_flow_state = self._auth.get_active_flow_state(context)
+        prev_flow_state = await self._auth.get_active_flow_state(context)
         if self._auth and prev_flow_state:
 
             logger.debug("Sign-in flow is active for context: %s", context.activity.id)
@@ -653,7 +664,7 @@ class AgentApplication(Agent, Generic[StateT]):
                 context, turn_state, prev_flow_state.handler_id
             )
 
-            self._handle_flow_response(flow_response)
+            await self._handle_flow_response(context, flow_response)
 
             new_flow_state: FlowState = flow_response.flow_state
             token_response: TokenResponse = new_flow_state.token_response
@@ -688,7 +699,7 @@ class AgentApplication(Agent, Generic[StateT]):
             logger.debug("Initializing turn state")
             turn_state = await self._initialize_state(context)
 
-            if self._on_turn_auth_intercept(context):
+            if await self._on_turn_auth_intercept(context, turn_state):
                 return
 
             logger.debug("Running before turn middleware")
@@ -813,7 +824,7 @@ class AgentApplication(Agent, Generic[StateT]):
                         flow_response: FlowResponse = await self._auth.begin_or_continue_flow(
                             context, state, auth_handler_id
                         )
-                        self._handle_flow_response(context, flow_response.in_flow_activity)
+                        await self._handle_flow_response(context, flow_response.in_flow_activity)
                         sign_in_complete = flow_response.flow_state.tag == FlowStateTag.COMPLETE
                         if not sign_in_complete:
                             break

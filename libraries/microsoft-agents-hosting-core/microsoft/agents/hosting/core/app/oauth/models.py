@@ -18,18 +18,20 @@ class FlowStateTag(Enum):
 class FlowErrorTag(Enum):
     NONE = "none"
     MAGIC_FORMAT = "magic_format"
-    MAGIC_CODE = "magic_code"
+    MAGIC_CODE_INCORRECT = "magic_code_incorrect"
     OTHER = "OTHER"
 
 class FlowState(BaseModel, StoreItem):
 
-    flow_id: str = ""
-    flow_started: bool = False
+    flow_id: str = "" # robrandao: TODO
     user_token: str = ""
     expires_at: float = 0
+    channel_id: str = ""
+    user_id: str = ""
+    ms_app_id: str = ""
     abs_oauth_connection_name: Optional[str] = None
     continuation_activity: Optional[Activity] = None
-    attempts_remaining: int = 3
+    attempts_remaining: int = 0
     tag: FlowStateTag = FlowStateTag.NOT_STARTED
 
     def refresh(self) -> None:

@@ -25,66 +25,7 @@ from microsoft.agents.hosting.core.connector import UserTokenClient
 
 AgentCallbackHandler = Callable[[TurnContext], Awaitable]
 
-
-class MockUserTokenClient(UserTokenClient):
-    """A mock user token client for testing."""
-
-    def __init__(self):
-        self._store = {}
-        self._exchange_store = {}
-        self._throw_on_exchange = {}
-
-    def add_user_token(
-        self,
-        connection_name: str,
-        channel_id: str,
-        user_id: str,
-        token: str,
-        magic_code: str = None,
-    ):
-        """Add a token for a user that can be retrieved during testing."""
-        key = self._get_key(connection_name, channel_id, user_id)
-        self._store[key] = (token, magic_code)
-
-    def add_exchangeable_token(
-        self,
-        connection_name: str,
-        channel_id: str,
-        user_id: str,
-        exchangeable_item: str,
-        token: str,
-    ):
-        """Add an exchangeable token for a user that can be exchanged during testing."""
-        key = self._get_exchange_key(
-            connection_name, channel_id, user_id, exchangeable_item
-        )
-        self._exchange_store[key] = token
-
-    def throw_on_exchange_request(
-        self,
-        connection_name: str,
-        channel_id: str,
-        user_id: str,
-        exchangeable_item: str,
-    ):
-        """Add an instruction to throw an exception during exchange requests."""
-        key = self._get_exchange_key(
-            connection_name, channel_id, user_id, exchangeable_item
-        )
-        self._throw_on_exchange[key] = True
-
-    def _get_key(self, connection_name: str, channel_id: str, user_id: str) -> str:
-        return f"{connection_name}:{channel_id}:{user_id}"
-
-    def _get_exchange_key(
-        self,
-        connection_name: str,
-        channel_id: str,
-        user_id: str,
-        exchangeable_item: str,
-    ) -> str:
-        return f"{connection_name}:{channel_id}:{user_id}:{exchangeable_item}"
-
+from .mock_user_token_client import MockUserTokenClient
 
 class TestingAdapter(ChannelAdapter):
     """

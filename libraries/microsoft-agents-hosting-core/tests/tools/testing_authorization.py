@@ -207,6 +207,7 @@ class TestingAuthorization(Authorization):
             storage=storage,
             auth_handlers=auth_handlers,
             connection_manager=connection_manager,
+            service_url="a"
         )
 
         # Configure each auth handler with mock OAuth flow behavior

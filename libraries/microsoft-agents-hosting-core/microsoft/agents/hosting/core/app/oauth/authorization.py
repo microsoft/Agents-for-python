@@ -62,14 +62,14 @@ class Authorization:
 
         # user_state = UserState(storage)
 
-        self._storage = storage
-        self._connection_manager = connection_manager
+        self.__storage = storage
+        self.__connection_manager = connection_manager
 
         auth_configuration: Dict = kwargs.get("AGENTAPPLICATION", {}).get(
             "USERAUTHORIZATION", {}
         )
 
-        # self._auto_signin = (
+        # self.__auto_signin = (
         #     auto_signin
         #     if auto_signin is not None
         #     else auth_configuration.get("AUTOSIGNIN", False)
@@ -84,16 +84,16 @@ class Authorization:
                 for handler_name, config in handlers_config.items()
             }
 
-        self._auth_handlers = auth_handlers or {}
-        self._sign_in_handler: Optional[
+        self.__auth_handlers = auth_handlers or {}
+        self.__sign_in_handler: Optional[
             Callable[[TurnContext, TurnState, Optional[str]], Awaitable[None]]
         ] = None
-        self._sign_in_failed_handler: Optional[
+        self.__sign_in_failed_handler: Optional[
             Callable[[TurnContext, TurnState, Optional[str]], Awaitable[None]]
         ] = None
 
         # # Configure each auth handler
-        # for auth_handler in self._auth_handlers.values():
+        # for auth_handler in self.__auth_handlers.values():
         #     # Create OAuth flow with configuration
         #     messages_config = {}
         #     if auth_handler.title:
@@ -108,14 +108,34 @@ class Authorization:
         #         messages_configuration=messages_config if messages_config else None,
         #     )
 
-    async def _load_flow(self, context: TurnContext, auth_handler_id: str) -> AuthFlow:
+    def __check_for_ids(self, context: TurnContext):
+        if (
+            not context.activity.channel_id or
+            not context.activity.from_property or
+            not context.activity.from_property.id
+        ):
+            raise ValueError("Channel ID and User ID are required")
+
+    async def __load_flow(self, context: TurnContext, auth_handler_id: str) -> tuple[AuthFlow, FlowStorageClient, FlowState]:
         user_token_client: UserTokenClient = context.turn_state.get(context.adapter.USER_TOKEN_CLIENT_KEY) # robrandao: TODO
         auth_handler: AuthHandler = self.resolve_handler(auth_handler_id)
+        
+        self.__check_for_ids(context)
+        channel_id = context.activity.channel_id
+        user_id = context.activity.from_property.id
 
-        flow_storage_client = FlowStorageClient(context, self._storage)
+        flow_storage_client = FlowStorageClient(channel_id, user_id, self.__storage)
         flow_state: FlowState = await flow_storage_client.read(auth_handler_id)
 
-        flow = AuthFlow(auth_handler.abs_oauth_connection_name, user_token_client, flow_state)
+        if not flow_state:
+            flow_state = FlowState(
+                channel_id=channel_id,
+                user_id=user_id,
+                auth_handler_id=auth_handler_id,
+                abs_oauth_connection_name=auth_handler.abs_oauth_connection_name
+            )
+
+        flow = AuthFlow(flow_state, user_token_client)
         return flow, flow_storage_client, flow_state
 
     @asynccontextmanager
@@ -133,7 +153,7 @@ class Authorization:
         if not context or not auth_handler_id:
             raise ValueError("context and auth_handler_id are required")
     
-        flow, flow_storage_client, init_flow_state = self._load_flow(context, auth_handler_id)
+        flow, flow_storage_client, init_flow_state = self.__load_flow(context, auth_handler_id)
         yield flow
 
         if not readonly and flow.flow_state != init_flow_state:
@@ -173,10 +193,10 @@ class Authorization:
             The token response from the OAuth provider.
         """
         async with self.open_flow(context, auth_handler_id) as flow:
-            token_response = await flow.get_user_token(context)
+            token_response = await flow.get_user_token()
 
-        if token_response and self._is_exchangeable(token_response.token):
-            return await self._handle_obo(token_response.token, scopes, auth_handler_id)
+        if token_response and self.__is_exchangeable(token_response.token):
+            return await self.__handle_obo(token_response.token, scopes, auth_handler_id)
 
         return TokenResponse()
 
@@ -187,12 +207,12 @@ class Authorization:
 
         # token_response = await auth_handler.flow.get_user_token(context)
 
-        # if self._is_exchangeable(token_response.token if token_response else None):
-        #     return await self._handle_obo(token_response.token, scopes, auth_handler_id)
+        # if self.__is_exchangeable(token_response.token if token_response else None):
+        #     return await self.__handle_obo(token_response.token, scopes, auth_handler_id)
 
         # return token_response
 
-    def _is_exchangeable(self, token: Optional[str]) -> bool:
+    def __is_exchangeable(self, token: Optional[str]) -> bool:
         """
         Checks if a token is exchangeable (has api:// audience).
 
@@ -214,7 +234,7 @@ class Authorization:
             logger.exception("Failed to decode token to check audience")
             return False
 
-    async def _handle_obo(
+    async def __handle_obo(
         self, token: str, scopes: list[str], handler_id: str = None
     ) -> TokenResponse:
         """
@@ -228,7 +248,7 @@ class Authorization:
         Returns:
             The new token response.
         """
-        if not self._connection_manager:
+        if not self.__connection_manager:
             logger.error("Connection manager is not configured", stack_info=True)
             raise ValueError("Connection manager is not configured")
 
@@ -239,7 +259,7 @@ class Authorization:
 
         # Use the flow's OBO method to exchange the token
         token_provider: AccessTokenProviderBase = (
-            self._connection_manager.get_connection(auth_handler.obo_connection_name)
+            self.__connection_manager.get_connection(auth_handler.obo_connection_name)
         )
         logger.info("Attempting to exchange token on behalf of user")
         token = await token_provider.aquire_token_on_behalf_of(
@@ -252,8 +272,8 @@ class Authorization:
         )
 
     async def get_active_flow_state(self, context: TurnContext, turn_state: TurnState = None) -> Optional[FlowState]:
-        flow_storage_client = FlowStorageClient(context, self._storage)
-        for auth_handler_id in self._auth_handlers.keys():
+        flow_storage_client = FlowStorageClient(context, self.__storage)
+        for auth_handler_id in self.__auth_handlers.keys():
             flow_state = await flow_storage_client.read(auth_handler_id)
             if flow_state.is_active():
                 return flow_state
@@ -285,9 +305,9 @@ class Authorization:
         flow_state: FlowState = flow_response.flow_state
 
         if flow_state.tag == FlowStateTag.COMPLETE:
-            self._sign_in_success_handler(context, turn_state, flow_state.handler.id)
+            self.__sign_in_success_handler(context, turn_state, flow_state.handler.id)
         elif flow_state.tag == FlowStateTag.FAILURE:
-            self._sign_in_failure_handler(context, turn_state, flow_state.handler.id, err)
+            self.__sign_in_failure_handler(context, turn_state, flow_state.handler.id, err)
             
         return flow_response
 
@@ -302,24 +322,24 @@ class Authorization:
             The resolved auth handler.
         """
         if auth_handler_id:
-            if auth_handler_id not in self._auth_handlers:
+            if auth_handler_id not in self.__auth_handlers:
                 logger.error(f"Auth handler '{auth_handler_id}' not found")
                 raise ValueError(f"Auth handler '{auth_handler_id}' not found")
-            return self._auth_handlers[auth_handler_id]
+            return self.__auth_handlers[auth_handler_id]
 
         # Return the first handler if no ID specified
-        return next(iter(self._auth_handlers.values))
+        return next(iter(self.__auth_handlers.values))
     
-    async def _sign_out(
+    async def __sign_out(
         self,
         context: TurnContext,
         auth_handler_ids: Iterable[str] = None,
     ) -> None:
         for auth_handler_id in auth_handler_ids:
-            flow, flow_storage_client, initial_flow_state = self._load_flow(context, auth_handler_id)
+            flow, flow_storage_client, initial_flow_state = self.__load_flow(context, auth_handler_id)
             if initial_flow_state:
                 logger.info(f"Signing out from handler: {auth_handler_id}")
-                await flow.sign_out(context)
+                await flow.sign_out()
                 flow_storage_client.delete(auth_handler_id)
 
     async def sign_out(
@@ -338,9 +358,9 @@ class Authorization:
             auth_handler_id: Optional ID of the auth handler to use for sign out.
         """
         if auth_handler_id:
-            self._sign_out(context, [auth_handler_id])
+            self.__sign_out(context, [auth_handler_id])
         else:
-            self._sign_out(context, self._auth_handlers.keys())
+            self.__sign_out(context, self.__auth_handlers.keys())
 
     def on_sign_in_success(
         self,
@@ -352,7 +372,7 @@ class Authorization:
         Args:
             handler: The handler function to call on successful sign-in.
         """
-        self._sign_in_success_handler = handler
+        self.__sign_in_success_handler = handler
 
     def on_sign_in_failure(
         self,
@@ -363,4 +383,4 @@ class Authorization:
         Args:
             handler: The handler function to call on sign-in failure.
         """
-        self._sign_in_failure_handler = handler
+        self.__sign_in_failure_handler = handler
