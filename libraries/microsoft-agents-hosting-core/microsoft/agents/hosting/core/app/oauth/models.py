@@ -19,10 +19,11 @@ class FlowErrorTag(Enum):
     NONE = "none"
     MAGIC_FORMAT = "magic_format"
     MAGIC_CODE = "magic_code"
+    OTHER = "OTHER"
 
 class FlowState(BaseModel, StoreItem):
 
-    auth_handler_id: str = ""
+    flow_id: str = ""
     flow_started: bool = False
     user_token: str = ""
     expires_at: float = 0

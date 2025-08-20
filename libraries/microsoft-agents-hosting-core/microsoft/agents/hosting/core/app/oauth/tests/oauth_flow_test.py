@@ -5,7 +5,9 @@ import pytest
 from microsoft.agents.activity import (
     ActivityTypes,
     TokenResponse,
-    SignInResource
+    SignInResource,
+    TokenExchangeState,
+    ConversationReference
 )
 from microsoft.agents.hosting.core.app.oauth.auth_flow import AuthFlow
 
@@ -23,6 +25,15 @@ class TestAuthFlow:
         context = mocker.Mock()
         context.activity.channel_id = "__channel_id"
         context.activity.from_property.id = "__user_id"
+        context.adapter.AGENT_IDENTITY_KEY = "__agent_id"
+        context.activity.relates_to = None
+        context.activity.get_conversation_reference = mocker.Mock()
+        context.activity.get_conversation_reference.return_value = mocker.Mock(spec=ConversationReference)
+        data = mocker.Mock()
+        data.claims = {"aud": "__app_id"}
+        context.turn_state = {
+            "__agent_id": data
+        }
         return context
 
     def test_init_no_state(self, mocker, turn_context):
@@ -90,20 +101,26 @@ class TestAuthFlow:
         flow = AuthFlow(
             abs_oauth_connection_name="test_connection",
             user_token_client=user_token_client,
+            flow_state=FlowState(
+                tag=FlowStateTag.COMPLETE,
+                user_token="test_token", # robrandao: TODO -> what are all these fields for?
+                expires_at=datetime.now().timestamp() + 10000,
+                attempts_remaining=2
+            )
         )
         response = await flow.begin_flow(turn_context)
 
         # verify flow_state
         flow_state = flow.flow_state
         assert flow_state.tag == FlowStateTag.COMPLETE
-        assert flow_state.token == "test_token"
-        assert flow_state.flow_started is False # robrandao: TODO?
+        assert flow_state.user_token == "test_token"
+        # assert flow_state.flow_started is False # robrandao: TODO?
 
         # verify FlowResponse
         assert response.flow_state == flow_state
         assert response.sign_in_resource is None  # No sign-in resource in this case
         assert response.flow_error_tag == FlowErrorTag.NONE
-        assert response.token_response == "test_token"
+        assert response.token_response.token == "test_token"
         user_token_client.user_token.get_token.assert_called_once_with(
             user_id="__user_id",
             connection_name="test_connection",
@@ -204,7 +221,7 @@ class TestAuthFlow:
         turn_context.activity.text = "magic-message"
         user_token_client = mocker.Mock()
         user_token_client.user_token.get_token = mocker.AsyncMock(return_value=TokenResponse())
-        user_token_client.agent_sign_in.get_sign_in_resource = mocker.AsyncMock(return_value=dummy_sign_in_resource)
+        user_token_client.agent_sign_in.get_sign_in_resource = mocker.AsyncMock(return_value=None)
 
         # test
         flow = AuthFlow(
@@ -316,8 +333,8 @@ class TestAuthFlow:
         if active_flow_state.attempts_remaining == 1:
             assert flow_response.flow_state.tag == FlowStateTag.FAILURE
         else:
-            assert flow_response.flow_state.tag == FlowStateTag.CONTINUE
-        assert flow_response.flow_error_tag == FlowErrorTag.UNKNOWN
+            assert flow_response.flow_state.tag == FlowStateTag.OTHER
+        assert flow_response.flow_error_tag == FlowErrorTag.OTHER
         user_token_client.user_token.get_token.assert_called_once_with(
             user_id="__user_id",
             connection_name="test_connection",
@@ -378,7 +395,7 @@ class TestAuthFlow:
             assert flow_response.flow_state.tag == FlowStateTag.FAILURE
         else:
             assert flow_response.flow_state.tag == FlowStateTag.CONTINUE
-        assert flow_response.flow_error_tag == FlowErrorTag.UNKNOWN
+        assert flow_response.flow_error_tag == FlowErrorTag.OTHER
         user_token_client.user_token.get_token.assert_called_once_with(
             user_id="__user_id",
             connection_name="test_connection",

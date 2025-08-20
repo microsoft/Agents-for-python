@@ -64,8 +64,11 @@ class AuthFlow:
                 "OAuthFlow.__init__: user_token_client required."
             )
         
-        flow_state = flow_state or FlowState() # robrandao: TODO
-        self.flow_state = flow_state.copy()
+        if not flow_state:
+            self.flow_state = FlowState()
+        else:
+            self.flow_state = flow_state.model_copy()
+
         self.__abs_oauth_connection_name = abs_oauth_connection_name
         self.__user_token_client = user_token_client
 
@@ -112,12 +115,6 @@ class AuthFlow:
     
     async def begin_flow(self, context: TurnContext) -> FlowResponse:
 
-        self.flow_state = FlowState(
-            id=self.__abs_oauth_connection_name,
-            channel_id=context.activity.channel_id,
-            user_id=context.activity.from_property.id
-        )
-
         # init flow state
         
         token_response = await self.get_user_token(context)
@@ -126,6 +123,15 @@ class AuthFlow:
                 flow_state=self.flow_state,
                 token_response=token_response
             )
+        
+        self.flow_state = FlowState(
+            flow_id=self.__abs_oauth_connection_name,
+            channel_id=context.activity.channel_id,
+            user_id=context.activity.from_property.id,
+            abs_oauth_connection_name=self.__abs_oauth_connection_name,
+            tag=FlowStateTag.BEGIN,
+            expires_at=datetime.now().timestamp() + 60000,  # 60 seconds
+        )
 
         token_exchange_state = TokenExchangeState(
             connection_name=self.__abs_oauth_connection_name,
@@ -185,10 +191,10 @@ class AuthFlow:
         elif continue_flow_activity.flow_error_tag == ActivityTypes.invoke and continue_flow_activity.name == "signin/tokenExchange":
             token_response = await self.__continue_from_invoke_token_exchange(context)
         else:
-            pass
+            raise ValueError("Unknown activity type")
 
         if not token_response and flow_error_tag == FlowErrorTag.NONE:
-            flow_error_tag = FlowErrorTag.UNKNOWN
+            flow_error_tag = FlowErrorTag.OTHER
 
         if flow_error_tag != FlowErrorTag.NONE:
             self.__use_attempt()

@@ -97,7 +97,7 @@ class TestFlowStorageClient:
         storage.write.return_value = None
         client = FlowStorageClient(turn_context, storage)
         flow_state = mocker.Mock(spec=FlowState)
-        flow_state.auth_handler_id = auth_handler_id
+        flow_state.flow_id = auth_handler_id
         await client.write(flow_state)
         storage.write.assert_called_once_with({ key: flow_state })
 
@@ -119,8 +119,8 @@ class TestFlowStorageClient:
     @pytest.mark.asyncio
     async def test_integration_with_memory_storage(self, turn_context):
 
-        flow_state_alpha = FlowState(auth_handler_id="handler", flow_started=True)
-        flow_state_beta = FlowState(auth_handler_id="auth_handler", flow_started=True, user_token="token")
+        flow_state_alpha = FlowState(flow_id="handler", flow_started=True)
+        flow_state_beta = FlowState(flow_id="auth_handler", flow_started=True, user_token="token")
 
         storage = MemoryStorage({
             "some_data": MockStoreItem({"value": "test"}),
@@ -149,16 +149,16 @@ class TestFlowStorageClient:
 
         client = FlowStorageClient(turn_context, storage)
 
-        new_flow_state_alpha = FlowState(auth_handler_id="handler")
-        flow_state_chi = FlowState(auth_handler_id="chi")
+        new_flow_state_alpha = FlowState(flow_id="handler")
+        flow_state_chi = FlowState(flow_id="chi")
         
         await client.write(new_flow_state_alpha)
         await client.write(flow_state_chi)
-        await baseline.write({"auth/__channel_id/__user_id/handler": new_flow_state_alpha.copy()})
-        await baseline.write({"auth/__channel_id/__user_id/chi": flow_state_chi.copy()})
+        await baseline.write({"auth/__channel_id/__user_id/handler": new_flow_state_alpha.model_copy()})
+        await baseline.write({"auth/__channel_id/__user_id/chi": flow_state_chi.model_copy()})
 
-        await write_both({"auth/__channel_id/__user_id/handler": new_flow_state_alpha.copy()})
-        await write_both({"auth/__channel_id/__user_id/auth_handler": flow_state_beta.copy()})
+        await write_both({"auth/__channel_id/__user_id/handler": new_flow_state_alpha.model_copy()})
+        await write_both({"auth/__channel_id/__user_id/auth_handler": flow_state_beta.model_copy()})
         await write_both({"other_data": MockStoreItem({"value": "more"})})
 
         await delete_both(["some_data"])
