@@ -5,7 +5,7 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "microsoft-agents-hosting-core"
 dynamic = ["version", "dependencies"]
-description = "Core library for Microsoft Agents"
+description = "Core library for Microsoft Agents. DEPRECATED: This library has been renamed to msagents-hosting-core. This will be the last version published with the current name."
 authors = [{name = "Microsoft Corporation"}]
 requires-python = ">=3.9"
 classifiers = [
