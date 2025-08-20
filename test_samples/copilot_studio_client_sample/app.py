@@ -3,7 +3,7 @@ from dotenv import load_dotenv
 from os import environ, path
 from msal import PublicClientApplication
 
-from microsoft.agents.copilotstudio.client import ConnectionSettings, CopilotClient
+from msagents.copilotstudio.client import ConnectionSettings, CopilotClient
 
 from msal_cache_plugin import get_msal_token_cache
 from chat_console_service import ChatConsoleService

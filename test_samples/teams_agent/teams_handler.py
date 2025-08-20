@@ -1,7 +1,7 @@
-from microsoft.agents.hosting.core import MessageFactory, TurnContext
-from microsoft.agents.hosting.teams import TeamsActivityHandler, TeamsInfo
-from microsoft.agents.activity import ChannelAccount, ConversationParameters
-from microsoft.agents.activity.teams import MeetingNotification
+from msagents.hosting.core import MessageFactory, TurnContext
+from msagents.hosting.teams import TeamsActivityHandler, TeamsInfo
+from msagents.activity import ChannelAccount, ConversationParameters
+from msagents.activity.teams import MeetingNotification
 
 
 class TeamsHandler(TeamsActivityHandler):

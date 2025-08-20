@@ -1,5 +1,5 @@
 from os import environ
-from microsoft.agents.hosting.core import AuthTypes, AgentAuthConfiguration
+from msagents.hosting.core import AuthTypes, AgentAuthConfiguration
 
 
 class DefaultConfig(AgentAuthConfiguration):
