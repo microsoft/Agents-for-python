@@ -5,7 +5,7 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "microsoft-agents-copilotstudio-client"
 dynamic = ["version", "dependencies"]
-description = "A client library for Microsoft Agents"
+description = "A client library for Microsoft Agents. DEPRECATED: This library has been renamed to msagents-copilotstudio-client. This will be the last version published with the current name."
 authors = [{name = "Microsoft Corporation"}]
 requires-python = ">=3.9"
 classifiers = [

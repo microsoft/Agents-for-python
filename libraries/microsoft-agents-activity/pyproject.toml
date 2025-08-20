@@ -5,7 +5,7 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "microsoft-agents-activity"
 dynamic = ["version"]
-description = "A protocol library for Microsoft Agents"
+description = "A protocol library for Microsoft Agents. DEPRECATED: This library has been renamed to msagents-activity. This will be the last version published with the current name."
 authors = [{name = "Microsoft Corporation"}]
 requires-python = ">=3.9"
 classifiers = [
