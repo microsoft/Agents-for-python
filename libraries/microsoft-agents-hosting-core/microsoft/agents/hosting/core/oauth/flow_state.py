@@ -35,13 +35,15 @@ class FlowErrorTag(Enum):
 class FlowState(BaseModel, StoreItem):
     """Represents the state of an OAuthFlow"""
 
-    flow_id: str = "" # robrandao: TODO
     user_token: str = ""
-    expires_at: float = 0
+    
     channel_id: str = ""
     user_id: str = ""
     ms_app_id: str = ""
-    abs_oauth_connection_name: Optional[str] = None
+    connection: str = ""
+    auth_handler_id: str = ""
+
+    expires_at: float = 0
     continuation_activity: Optional[Activity] = None
     attempts_remaining: int = 0
     tag: FlowStateTag = FlowStateTag.NOT_STARTED
@@ -52,7 +54,7 @@ class FlowState(BaseModel, StoreItem):
     @staticmethod
     def from_json_to_store_item(json_data: dict) -> "FlowState":
         return FlowState.model_validate(json_data)
-    
+
     def is_expired(self) -> bool:
         return datetime.now().timestamp() >= self.expires_at
 

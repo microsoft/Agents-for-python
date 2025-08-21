@@ -59,17 +59,17 @@ class OAuthFlow:
             max_attempts: The maximum number of attempts for the flow
                 set when starting a flow (default: 3).
         """
-        if not self.flow_state or not user_token_client:
+        if not flow_state or not user_token_client:
             raise ValueError("OAuthFlow.__init__(): flow_state and user_token_client are required")
 
-        if (not flow_state.abs_oauth_connection_name or
+        if (not flow_state.connection or
             not flow_state.ms_app_id or
             not flow_state.channel_id or
             not flow_state.user_id):
-            raise ValueError("OAuthFlow.__init__: flow_state must have ms_app_id, channel_id, user_id, abs_oauth_connection_name defined")
+            raise ValueError("OAuthFlow.__init__: flow_state must have ms_app_id, channel_id, user_id, connection defined")
         
         self.__flow_state = flow_state.model_copy()
-        self.__abs_oauth_connection_name = self.__flow_state.abs_oauth_connection_name
+        self.__abs_oauth_connection_name = self.__flow_state.connection
         self.__ms_app_id = self.__flow_state.ms_app_id
         self.__channel_id = self.__flow_state.channel_id
         self.__user_id = self.__flow_state.user_id
@@ -82,11 +82,6 @@ class OAuthFlow:
     @property
     def flow_state(self) -> FlowState:
         return self.__flow_state.model_copy()
-
-    # async def __initialize_token_client(self, context: TurnContext) -> None:
-    #     # robrandao: TODO is this safe
-    #     # use cached value later
-    #     self.__user_token_client = context.turn_state.get(context.adapter.USER_TOKEN_CLIENT_KEY)
     
     async def get_user_token(self, magic_code: str = None) -> TokenResponse:
         """Get the user token based on the context.
@@ -162,7 +157,7 @@ class OAuthFlow:
             connection_name=self.__abs_oauth_connection_name,
             conversation=activity.get_conversation_reference(),
             relates_to=activity.relates_to,
-            ms_app_id=self.__ms_app_id # robrandao: TODO
+            ms_app_id=self.__ms_app_id
         )
 
         sign_in_resource = await self.__user_token_client.agent_sign_in.get_sign_in_resource(

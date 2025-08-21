@@ -13,7 +13,7 @@ from microsoft.agents.hosting.core import (
     AuthHandler,
     Authorization,
     MemoryStorage,
-    oauth_flow,
+    OAuthFlow,
 )
 from typing import Dict, Union
 from microsoft.agents.hosting.core.authorization.agent_auth_configuration import (

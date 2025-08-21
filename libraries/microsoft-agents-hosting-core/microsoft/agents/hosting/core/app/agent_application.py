@@ -51,7 +51,7 @@ from ..oauth import (
     FlowState,
     FlowStateTag,
 )
-from .auth import Authorization
+from .oauth import Authorization
 from .typing_indicator import TypingIndicator
 
 logger = logging.getLogger(__name__)
@@ -614,7 +614,7 @@ class AgentApplication(Agent, Generic[StateT]):
             o_card: Attachment = CardFactory.oauth_card(
                 OAuthCard(
                     text=self.messages_configuration.get("card_title", "Sign in"),
-                    connection_name=self.abs_oauth_connection_name,
+                    connection_name=flow_state.connection,
                     buttons=[
                         CardAction(
                             title=self.messages_configuration.get("button_text", "Sign in"),
@@ -676,7 +676,7 @@ class AgentApplication(Agent, Generic[StateT]):
                     "Resending continuation activity %s", saved_activity.text
                 )
                 await self.on_turn(new_context)
-                turn_state.delete_value(Authorization.SIGN_IN_STATE_KEY)
+                turn_state.delete_value(Authorization.SIGN_IN_STATE_KEY) # robrandao: TODOTODO
                 await turn_state.save(context)
             return True
         

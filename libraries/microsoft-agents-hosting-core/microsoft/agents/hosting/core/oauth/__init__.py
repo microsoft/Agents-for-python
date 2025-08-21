@@ -1,11 +1,10 @@
 from .flow_state import (
     FlowState,
     FlowStateTag,
-    FlowErrorTag,
-    FlowResponse
+    FlowErrorTag
 )
 from .flow_storage_client import FlowStorageClient
-from .oauth_flow import OAuthFlow
+from .oauth_flow import OAuthFlow, FlowResponse
 
 __all__ = [
     "FlowState",

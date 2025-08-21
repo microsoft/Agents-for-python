@@ -1,5 +1,6 @@
 from datetime import datetime
 
+from microsoft.agents.hosting.core.storage.storage_test_utils import MockStoreItem
 from microsoft.agents.hosting.core.oauth.flow_state import FlowState, FlowStateTag
 
 MS_APP_ID = "__ms_app_id"
@@ -12,7 +13,7 @@ DEF_ARGS = {
     "ms_app_id": MS_APP_ID,
     "channel_id": CHANNEL_ID,
     "user_id": USER_ID,
-    "abs_oauth_connection_name": ABS_OAUTH_CONNECTION_NAME
+    "connection": ABS_OAUTH_CONNECTION_NAME
 }
 
 class FLOW_STATES:
@@ -118,16 +119,21 @@ class FLOW_STATES:
 
 def flow_key(channel_id, user_id, handler_id):
     return f"auth/{channel_id}/{user_id}/{handler_id}"
+
+def update_flow_state_handler(flow_state, handler):
+    flow_state = flow_state.model_copy()
+    flow_state.auth_handler_id = handler
+    return flow_state
     
 STORAGE_SAMPLE_DICT = {
-    "user_id": "123",
-    "session_id": "abc",
-    flow_key("webchat", "Alice", "graph"): FLOW_STATES.COMPLETED_FLOW.model_copy(),
-    flow_key("webchat", "Alice", "github"): FLOW_STATES.ACTIVE_FLOW_ONE_RETRY.model_copy(),
-    flow_key("teams", "Alice", "graph"): FLOW_STATES.STARTED_FLOW.model_copy(),
-    flow_key("webchat", "Bob", "graph"): FLOW_STATES.ACTIVE_EXP_FLOW.model_copy(),
-    flow_key("teams", "Bob", "slack"): FLOW_STATES.STARTED_FLOW.model_copy(),
-    flow_key("webchat", "Chuck", "github"): FLOW_STATES.FAIL_BY_ATTEMPTS_FLOW.model_copy(),
+    "user_id": MockStoreItem({"id": "123"}),
+    "session_id": MockStoreItem({"id": "abc"}),
+    flow_key("webchat", "Alice", "graph"): update_flow_state_handler(FLOW_STATES.COMPLETED_FLOW.model_copy(), "graph"),
+    flow_key("webchat", "Alice", "github"): update_flow_state_handler(FLOW_STATES.ACTIVE_FLOW_ONE_RETRY.model_copy(), "github"),
+    flow_key("teams", "Alice", "graph"): update_flow_state_handler(FLOW_STATES.STARTED_FLOW.model_copy(), "graph"),
+    flow_key("webchat", "Bob", "graph"): update_flow_state_handler(FLOW_STATES.ACTIVE_EXP_FLOW.model_copy(), "graph"),
+    flow_key("teams", "Bob", "slack"): update_flow_state_handler(FLOW_STATES.STARTED_FLOW.model_copy(), "slack"),
+    flow_key("webchat", "Chuck", "github"): update_flow_state_handler(FLOW_STATES.FAIL_BY_ATTEMPTS_FLOW.model_copy(), "github"),
 }
 
 def STORAGE_INIT_DATA():

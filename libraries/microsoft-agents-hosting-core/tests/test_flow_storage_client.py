@@ -24,9 +24,9 @@ class TestFlowStorageClient:
 
     @pytest.mark.asyncio
     @pytest.mark.parametrize(
-        "channel_id, from_property_id",
+        "channel_id, user_id",
         [
-            ("channel_id", "from_property_id"),
+            ("channel_id", "user_id"),
             ("teams_id", "Bob"),
             ("channel", "Alice"),
         ],
@@ -66,7 +66,16 @@ class TestFlowStorageClient:
         client = FlowStorageClient(channel_id, user_id, storage)
         res = await client.read(auth_handler_id)
         assert res is storage.read.return_value[key]
-        storage.read.assert_called_once_with([client.key(auth_handler_id)], FlowState)
+        storage.read.assert_called_once_with([client.key(auth_handler_id)], target_cls=FlowState)
+
+    @pytest.mark.asyncio
+    async def test_read_missing(self, mocker):
+        storage = mocker.AsyncMock()
+        storage.read.return_value = {}
+        client = FlowStorageClient("__channel_id", "__user_id", storage)
+        res = await client.read("non_existent_handler")
+        assert res is None
+        storage.read.assert_called_once_with([client.key("non_existent_handler")], target_cls=FlowState)
 
     @pytest.mark.asyncio
     @pytest.mark.parametrize(
@@ -77,7 +86,7 @@ class TestFlowStorageClient:
         storage.write.return_value = None
         client = FlowStorageClient(channel_id, user_id, storage)
         flow_state = mocker.Mock(spec=FlowState)
-        flow_state.flow_id = auth_handler_id
+        flow_state.auth_handler_id = auth_handler_id
         await client.write(flow_state)
         storage.write.assert_called_once_with({ client.key(auth_handler_id): flow_state })
 
@@ -95,8 +104,8 @@ class TestFlowStorageClient:
     @pytest.mark.asyncio
     async def test_integration_with_memory_storage(self, channel_id, user_id):
 
-        flow_state_alpha = FlowState(flow_id="handler", flow_started=True)
-        flow_state_beta = FlowState(flow_id="auth_handler", flow_started=True, user_token="token")
+        flow_state_alpha = FlowState(auth_handler_id="handler", flow_started=True)
+        flow_state_beta = FlowState(auth_handler_id="auth_handler", flow_started=True, user_token="token")
 
         storage = MemoryStorage({
             "some_data": MockStoreItem({"value": "test"}),
@@ -106,7 +115,7 @@ class TestFlowStorageClient:
         baseline = MemoryStorage({
             "some_data": MockStoreItem({"value": "test"}),
             f"auth/{channel_id}/{user_id}/handler": flow_state_alpha,
-            "fauth/{channel_id}/{user_id}/auth_handler": flow_state_beta,
+            f"fauth/{channel_id}/{user_id}/auth_handler": flow_state_beta,
         })
 
         # helpers
@@ -125,8 +134,8 @@ class TestFlowStorageClient:
 
         client = FlowStorageClient(channel_id, user_id, storage)
 
-        new_flow_state_alpha = FlowState(flow_id="handler")
-        flow_state_chi = FlowState(flow_id="chi")
+        new_flow_state_alpha = FlowState(auth_handler_id="handler")
+        flow_state_chi = FlowState(auth_handler_id="chi")
         
         await client.write(new_flow_state_alpha)
         await client.write(flow_state_chi)

@@ -38,22 +38,24 @@ class FlowStorageClient:
         """Returns the prefix used for flow state storage isolation."""
         return self.__base_key
 
-    def key(self, flow_id: str) -> str:
+    def key(self, auth_handler_id: str) -> str:
         """Creates a storage key for a specific sign-in handler."""
-        return f"{self.__base_key}{flow_id}"
+        return f"{self.__base_key}{auth_handler_id}"
 
-    async def read(self, flow_id: str) -> Optional[FlowState]:
+    async def read(self, auth_handler_id: str) -> Optional[FlowState]:
         """Reads the flow state for a specific authentication handler."""
-        key: str = self.key(flow_id)
-        data = await self.__storage.read([key], FlowState)
-        return FlowState.model_validate(data.get(key))  # robrandao: TODO -> verify contract
+        key: str = self.key(auth_handler_id)
+        data = await self.__storage.read([key], target_cls=FlowState)
+        if key not in data:
+            return None
+        return FlowState.model_validate(data.get(key))
 
     async def write(self, value: FlowState) -> None:
         """Saves the flow state for a specific authentication handler."""
-        key: str = self.key(value.flow_id)
+        key: str = self.key(value.auth_handler_id)
         await self.__storage.write({key: value})
 
-    async def delete(self, flow_id: str) -> None:
+    async def delete(self, auth_handler_id: str) -> None:
         """Deletes the flow state for a specific authentication handler."""
-        key: str = self.key(flow_id)
+        key: str = self.key(auth_handler_id)
         await self.__storage.delete([key])

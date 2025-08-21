@@ -14,7 +14,7 @@ from .route import Route, RouteHandler
 from .typing_indicator import TypingIndicator
 
 # Auth
-from .auth import (
+from .oauth import (
     Authorization,
     AuthHandler,
     AuthorizationHandlers,

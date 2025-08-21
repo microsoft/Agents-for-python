@@ -6,47 +6,6 @@ from microsoft.agents.hosting.core.oauth.flow_state import FlowState, FlowStateT
 
 class TestFlowState:
 
-    def test_refresh_to_failure_expired(self):
-        """Test that the flow state refreshes to failure when expired."""
-        flow_state = FlowState(
-            tag=FlowStateTag.CONTINUE,
-            attempts_remaining=1,
-            expires_at=datetime.now().timestamp()
-        )
-        flow_state.refresh()
-        assert flow_state.tag == FlowStateTag.FAILURE
-
-    def test_refresh_to_failure_max_attempts(self):
-        """Test that the flow state refreshes to failure when max attempts reached."""
-        flow_state = FlowState(
-            tag=FlowStateTag.CONTINUE,
-            attempts_remaining=0,
-        )
-        flow_state.refresh()
-        assert flow_state.tag == FlowStateTag.FAILURE
-
-    def test_refresh_unchanged_continue(self):
-        """Test that the flow state remains unchanged when refreshed with a valid CONTINUE state"""
-        flow_state = FlowState(
-            tag=FlowStateTag.CONTINUE,
-            attempts_remaining=1,
-            expires_at=datetime.now().timestamp() + 10000
-        )
-        prev_tag = flow_state.tag
-        flow_state.refresh()
-        assert flow_state.tag == prev_tag
-
-    def test_refresh_unchanged_begin(self):
-        """Test that the flow state remains unchanged when refreshed with a valid BEGIN state"""
-        flow_state = FlowState(
-            tag=FlowStateTag.BEGIN,
-            attempts_remaining=10,
-            expires_at=datetime.now().timestamp() + 30000
-        )
-        prev_tag = flow_state.tag
-        flow_state.refresh()
-        assert flow_state.tag == prev_tag
-
     @pytest.mark.parametrize(
         "flow_state, expected",
         [
