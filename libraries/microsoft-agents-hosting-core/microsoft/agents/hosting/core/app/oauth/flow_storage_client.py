@@ -41,9 +41,9 @@ class FlowStorageClient:
 
     @property
     def base_key(self) -> str:
+        """Returns the prefix used for flow state storage isolation."""
         return self.__base_key
 
-    @staticmethod
     def key(self, flow_id: str) -> str:
         """Creates a storage key for a specific sign-in handler."""
         return f"{self.__base_key}{flow_id}"

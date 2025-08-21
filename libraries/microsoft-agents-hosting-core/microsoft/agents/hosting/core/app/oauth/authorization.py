@@ -109,6 +109,7 @@ class Authorization:
         #     )
 
     def __check_for_ids(self, context: TurnContext):
+        """Checks for IDs necessary to load a new or existing flow."""
         if (
             not context.activity.channel_id or
             not context.activity.from_property or
@@ -117,6 +118,20 @@ class Authorization:
             raise ValueError("Channel ID and User ID are required")
 
     async def __load_flow(self, context: TurnContext, auth_handler_id: str) -> tuple[AuthFlow, FlowStorageClient, FlowState]:
+        """Loads the OAuth flow for a specific auth handler.
+
+        Args:
+            context: The context object for the current turn.
+            auth_handler_id: The ID of the auth handler to use.
+
+        Returns:
+            The AuthFlow returned corresponds to the flow associated with the
+            chosen handler, and the channel and user info found in the context.
+
+            The FlowStorageClient corresponds to the channel and user info.
+            The FlowState returned is the flow state for the given channel/user/handler
+            triple at the time of creating the flow.
+        """
         user_token_client: UserTokenClient = context.turn_state.get(context.adapter.USER_TOKEN_CLIENT_KEY) # robrandao: TODO
         auth_handler: AuthHandler = self.resolve_handler(auth_handler_id)
         
@@ -139,16 +154,17 @@ class Authorization:
         return flow, flow_storage_client, flow_state
 
     @asynccontextmanager
-    async def open_flow(self, context: TurnContext, auth_handler_id: str = "", readonly: bool = False) -> FlowResponse:
-        """
-        Starts the OAuth flow for a specific auth handler.
+    async def open_flow(self, context: TurnContext, auth_handler_id: str) -> AuthFlow:
+        """Loads an Auth flow and saves changes the changes to storage if any are made.
 
         Args:
             context: The context object for the current turn.
-            auth_handler_id: Optional ID of the auth handler to use, defaults to first handler.
+            auth_handler_id: ID of the auth handler to use.
 
-        Returns:
-            The flow response from the OAuth provider.
+        Yields:
+            AuthFlow:
+                The AuthFlow instance loaded from storage or newly created
+                if not yet present in storage.
         """
         if not context or not auth_handler_id:
             raise ValueError("context and auth_handler_id are required")
@@ -156,17 +172,18 @@ class Authorization:
         flow, flow_storage_client, init_flow_state = self.__load_flow(context, auth_handler_id)
         yield flow
 
-        if not readonly and flow.flow_state != init_flow_state:
-            flow_storage_client.write(flow.flow_state)
+        new_flow_state = flow.flow_state
+        if new_flow_state != init_flow_state:
+            flow_storage_client.write(new_flow_state)
 
     async def get_token(
-        self, context: TurnContext, auth_handler_id: Optional[str] = None
+        self, context: TurnContext, auth_handler_id: str
     ) -> TokenResponse:
         """
         Gets the token for a specific auth handler.
 
         Args:
-                      context: The context object for the current turn.
+            context: The context object for the current turn.
   auth_handler_id: Optional ID of the auth handler to use, defaults to first handler.
 
         Returns:
@@ -271,7 +288,8 @@ class Authorization:
             scopes=scopes,  # Expiration can be set based on the token provider's response
         )
 
-    async def get_active_flow_state(self, context: TurnContext, turn_state: TurnState = None) -> Optional[FlowState]:
+    async def get_active_flow_state(self, context: TurnContext) -> Optional[FlowState]:
+        """Gets the first active flow state for the current context."""
         flow_storage_client = FlowStorageClient(context, self.__storage)
         for auth_handler_id in self.__auth_handlers.keys():
             flow_state = await flow_storage_client.read(auth_handler_id)
@@ -333,8 +351,16 @@ class Authorization:
     async def __sign_out(
         self,
         context: TurnContext,
-        auth_handler_ids: Iterable[str] = None,
+        auth_handler_ids: Iterable[str],
     ) -> None:
+        """Signs out from the specified auth handlers.
+        
+        Args:
+            context: The context object for the current turn.
+            auth_handler_ids: List of auth handler IDs to sign out from.
+
+        Deletes the associated flow states from storage.
+        """
         for auth_handler_id in auth_handler_ids:
             flow, flow_storage_client, initial_flow_state = self.__load_flow(context, auth_handler_id)
             if initial_flow_state:
@@ -345,7 +371,6 @@ class Authorization:
     async def sign_out(
         self,
         context: TurnContext,
-        _state: TurnState,
         auth_handler_id: Optional[str] = None,
     ) -> None:
         """
@@ -354,8 +379,10 @@ class Authorization:
 
         Args:
             context: The context object for the current turn.
-            state: The state object for the current turn.
-            auth_handler_id: Optional ID of the auth handler to use for sign out.
+            auth_handler_id: Optional ID of the auth handler to use for sign out. If None,
+                signs out from all the handlers.
+
+        Deletes the associated flow state(s) from storage.
         """
         if auth_handler_id:
             self.__sign_out(context, [auth_handler_id])
