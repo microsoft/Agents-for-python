@@ -29,10 +29,12 @@ from microsoft.agents.hosting.core import Agent, TurnContext
 from microsoft.agents.activity import (
     Activity,
     ActivityTypes,
+    ActionTypes,
     ConversationUpdateTypes,
     MessageReactionTypes,
     MessageUpdateTypes,
     InvokeResponse,
+    TokenResponse,
     OAuthCard,
     Attachment,
     CardAction
@@ -602,15 +604,11 @@ class AgentApplication(Agent, Generic[StateT]):
         return func
     
     async def _handle_flow_response(self, context: TurnContext, flow_response: FlowResponse) -> None:
-        
         flow_state: FlowState = flow_response.flow_state
-        in_flow_activity = flow_response.in_flow_activity
-
-        if in_flow_activity:
-            await context.send_activity(in_flow_activity)
         
         if flow_state.tag == FlowStateTag.BEGIN:
             # Create the OAuth card
+            sign_in_resource = flow_response.sign_in_resource
             o_card: Attachment = CardFactory.oauth_card(
                 OAuthCard(
                     text=self.messages_configuration.get("card_title", "Sign in"),
@@ -623,11 +621,10 @@ class AgentApplication(Agent, Generic[StateT]):
                             channel_data=None,
                         )
                     ],
-                    token_exchange_resource=signing_resource.token_exchange_resource,
-                    token_post_resource=signing_resource.token_post_resource,
+                    token_exchange_resource=sign_in_resource.token_exchange_resource,
+                    token_post_resource=sign_in_resource.token_post_resource,
                 )
             )
-
             # Send the card to the user
             await context.send_activity(MessageFactory.attachment(o_card))
         elif flow_state.tag == FlowStateTag.FAILURE:
@@ -669,14 +666,13 @@ class AgentApplication(Agent, Generic[StateT]):
             token_response: TokenResponse = new_flow_state.token_response
             saved_activity: Activity = new_flow_state.continuation_activity.model_copy()
 
-            if token_response and token_response.token:
+            if token_response:
                 new_context = copy(context)
                 new_context.activity = saved_activity
                 logger.info(
                     "Resending continuation activity %s", saved_activity.text
                 )
                 await self.on_turn(new_context)
-                turn_state.delete_value(Authorization.SIGN_IN_STATE_KEY) # robrandao: TODOTODO
                 await turn_state.save(context)
             return True
         

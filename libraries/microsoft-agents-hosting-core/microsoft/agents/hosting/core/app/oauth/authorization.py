@@ -308,7 +308,6 @@ class Authorization:
         context: TurnContext,
         turn_state: TurnState,
         auth_handler_id: str,
-        sec_route: bool = True,
     ) -> FlowResponse:
         """
         Begins or continues an OAuth flow.
@@ -320,9 +319,8 @@ class Authorization:
 
         Returns:
             The token response from the OAuth provider.
+            
         """
-        # robrandao: TODO -> is_started_from_route and sec_route
-
         async with self.open_flow(context, auth_handler_id) as flow:
             flow_response: FlowResponse = await flow.begin_or_continue_flow(context)
         
