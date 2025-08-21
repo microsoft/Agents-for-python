@@ -1,5 +1,3 @@
-import inspect
-
 def raise_if_empty_or_None(func_name, err=ValueError, **kwargs):
     s = ""
     for key, value in kwargs.items():

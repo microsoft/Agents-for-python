@@ -4,7 +4,7 @@
 from __future__ import annotations
 import logging
 import jwt
-from typing import Dict, Optional, Callable, Awaitable
+from typing import Dict, Optional, Callable, Awaitable, AsyncIterator
 from collections.abc import Iterable
 from contextlib import asynccontextmanager
 
@@ -97,7 +97,7 @@ class Authorization:
         #     # Create OAuth flow with configuration
         #     messages_config = {}
         #     if auth_handler.title:
-        #         messages_config["card_title"] = auth_handler.title
+        #         ["card_title"] = auth_handler.title
         #     if auth_handler.text:
         #         messages_config["button_text"] = auth_handler.text
 
@@ -108,16 +108,25 @@ class Authorization:
         #         messages_configuration=messages_config if messages_config else None,
         #     )
 
-    def __check_for_ids(self, context: TurnContext):
-        """Checks for IDs necessary to load a new or existing flow."""
+    def __ids_from_context(self, context: TurnContext) -> tuple[str, str]:
+        """Checks and returns IDs necessary to load a new or existing flow.
+
+        Raises a ValueError if channel ID or user ID are missing.
+        """
         if (
             not context.activity.channel_id or
             not context.activity.from_property or
             not context.activity.from_property.id
         ):
             raise ValueError("Channel ID and User ID are required")
+        
+        return context.activity.channel_id, context.activity.from_property.id
 
-    async def __load_flow(self, context: TurnContext, auth_handler_id: str) -> tuple[AuthFlow, FlowStorageClient, FlowState]:
+    async def __load_flow(
+            self,
+            context: TurnContext,
+            auth_handler_id: str = ""
+        ) -> tuple[AuthFlow, FlowStorageClient, FlowState]:
         """Loads the OAuth flow for a specific auth handler.
 
         Args:
@@ -133,12 +142,14 @@ class Authorization:
             triple at the time of creating the flow.
         """
         user_token_client: UserTokenClient = context.turn_state.get(context.adapter.USER_TOKEN_CLIENT_KEY) # robrandao: TODO
-        auth_handler: AuthHandler = self.resolve_handler(auth_handler_id)
         
-        self.__check_for_ids(context)
-        channel_id = context.activity.channel_id
-        user_id = context.activity.from_property.id
+        # resolve handler id
+        auth_handler: AuthHandler = self.resolve_handler(auth_handler_id)
+        auth_handler_id = auth_handler.id
 
+        channel_id, user_id = self.__ids_from_context(context)
+
+        # try to load existing state
         flow_storage_client = FlowStorageClient(channel_id, user_id, self.__storage)
         flow_state: FlowState = await flow_storage_client.read(auth_handler_id)
 
@@ -154,7 +165,7 @@ class Authorization:
         return flow, flow_storage_client, flow_state
 
     @asynccontextmanager
-    async def open_flow(self, context: TurnContext, auth_handler_id: str) -> AuthFlow:
+    async def open_flow(self, context: TurnContext, auth_handler_id: str = "") -> AsyncIterator[AuthFlow]:
         """Loads an Auth flow and saves changes the changes to storage if any are made.
 
         Args:
@@ -166,12 +177,13 @@ class Authorization:
                 The AuthFlow instance loaded from storage or newly created
                 if not yet present in storage.
         """
-        if not context or not auth_handler_id:
-            raise ValueError("context and auth_handler_id are required")
-    
+        if not context:
+            raise ValueError("context is required")
+
         flow, flow_storage_client, init_flow_state = self.__load_flow(context, auth_handler_id)
         yield flow
 
+        # persist state
         new_flow_state = flow.flow_state
         if new_flow_state != init_flow_state:
             flow_storage_client.write(new_flow_state)
@@ -229,7 +241,7 @@ class Authorization:
 
         # return token_response
 
-    def __is_exchangeable(self, token: Optional[str]) -> bool:
+    def __is_exchangeable(self, token: str) -> bool:
         """
         Checks if a token is exchangeable (has api:// audience).
 
@@ -239,9 +251,6 @@ class Authorization:
         Returns:
             True if the token is exchangeable, False otherwise.
         """
-        if not token:
-            return False
-
         try:
             # Decode without verification to check the audience
             payload = jwt.decode(token, options={"verify_signature": False})
@@ -264,33 +273,27 @@ class Authorization:
 
         Returns:
             The new token response.
+
         """
-        if not self.__connection_manager:
-            logger.error("Connection manager is not configured", stack_info=True)
-            raise ValueError("Connection manager is not configured")
-
-        auth_handler = self.resolver_handler(handler_id)
-        if auth_handler.flow is None:
-            logger.error("OAuth flow is not configured for the auth handler")
-            raise ValueError("OAuth flow is not configured for the auth handler")
-
-        # Use the flow's OBO method to exchange the token
-        token_provider: AccessTokenProviderBase = (
-            self.__connection_manager.get_connection(auth_handler.obo_connection_name)
+        auth_handler = self.resolve_handler(handler_id)
+        token_provider: AccessTokenProviderBase = self.__connection_manager.get_connection(
+            auth_handler.obo_connection_name
         )
+        
         logger.info("Attempting to exchange token on behalf of user")
-        token = await token_provider.aquire_token_on_behalf_of(
+        new_token = await token_provider.aquire_token_on_behalf_of(
             scopes=scopes,
             user_assertion=token,
         )
         return TokenResponse(
-            token=token,
+            token=new_token,
             scopes=scopes,  # Expiration can be set based on the token provider's response
         )
 
     async def get_active_flow_state(self, context: TurnContext) -> Optional[FlowState]:
         """Gets the first active flow state for the current context."""
-        flow_storage_client = FlowStorageClient(context, self.__storage)
+        channel_id, user_id = self.__ids_from_context(context)
+        flow_storage_client = FlowStorageClient(channel_id, user_id, self.__storage)
         for auth_handler_id in self.__auth_handlers.keys():
             flow_state = await flow_storage_client.read(auth_handler_id)
             if flow_state.is_active():
