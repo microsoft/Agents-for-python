@@ -68,20 +68,20 @@ class OAuthFlow:
             not flow_state.user_id):
             raise ValueError("OAuthFlow.__init__: flow_state must have ms_app_id, channel_id, user_id, connection defined")
         
-        self.__flow_state = flow_state.model_copy()
-        self.__abs_oauth_connection_name = self.__flow_state.connection
-        self.__ms_app_id = self.__flow_state.ms_app_id
-        self.__channel_id = self.__flow_state.channel_id
-        self.__user_id = self.__flow_state.user_id
+        self._flow_state = flow_state.model_copy()
+        self._abs_oauth_connection_name = self._flow_state.connection
+        self._ms_app_id = self._flow_state.ms_app_id
+        self._channel_id = self._flow_state.channel_id
+        self._user_id = self._flow_state.user_id
 
-        self.__user_token_client = user_token_client
+        self._user_token_client = user_token_client
 
-        self.__flow_duration = kwargs.get("flow_duration", 60000) # defaults to 60 seconds
-        self.__max_attempts = kwargs.get("max_attempts", 3) # defaults to 3 max attempts
+        self._default_expires_in = kwargs.get("default_flow_duration", 60000) # default to 60 seconds
+        self._max_attempts = kwargs.get("max_attempts", 3) # defaults to 3 max attempts
 
     @property
     def flow_state(self) -> FlowState:
-        return self.__flow_state.model_copy()
+        return self._flow_state.model_copy()
     
     async def get_user_token(self, magic_code: str = None) -> TokenResponse:
         """Get the user token based on the context.
@@ -96,14 +96,22 @@ class OAuthFlow:
         Notes:
             flow_state.user_token is updated with the latest token.
         """
-        token_response: TokenResponse = await self.__user_token_client.user_token.get_token(
-            user_id=self.__user_id,
-            connection_name=self.__abs_oauth_connection_name,
-            channel_id=self.__channel_id,
-            magic_code=magic_code
-        )
+        if magic_code:
+            token_response: TokenResponse = await self._user_token_client.user_token.get_token(
+                user_id=self._user_id,
+                connection_name=self._abs_oauth_connection_name,
+                channel_id=self._channel_id,
+                magic_code=magic_code
+            )
+        else:
+            token_response: TokenResponse = await self._user_token_client.user_token.get_token(
+                user_id=self._user_id,
+                connection_name=self._abs_oauth_connection_name,
+                channel_id=self._channel_id,
+            )
         if token_response:
-            self.__flow_state.user_token = token_response.token
+            self._flow_state.user_token = token_response.token
+            self._flow_state.expiration = token_response.expiration
         return token_response
     
     async def sign_out(self) -> None:
@@ -112,19 +120,19 @@ class OAuthFlow:
         Sets the flow state tag to NOT_STARTED
         Resets the flow state user_token field
         """
-        await self.__user_token_client.user_token.sign_out(
-            user_id=self.__user_id,
-            connection_name=self.__abs_oauth_connection_name,
-            channel_id=self.__channel_id
+        await self._user_token_client.user_token.sign_out(
+            user_id=self._user_id,
+            connection_name=self._abs_oauth_connection_name,
+            channel_id=self._channel_id
         )
-        self.__flow_state.user_token = ""
-        self.__flow_state.tag = FlowStateTag.NOT_STARTED
+        self._flow_state.user_token = ""
+        self._flow_state.tag = FlowStateTag.NOT_STARTED
     
-    def __use_attempt(self) -> None:
+    def _use_attempt(self) -> None:
         """Decrements the remaining attempts for the flow, checking for failure."""
-        self.__flow_state.attempts_remaining -= 1
-        if self.__flow_state.attempts_remaining <= 0:
-            self.__flow_state.tag = FlowStateTag.FAILURE
+        self._flow_state.attempts_remaining -= 1
+        if self._flow_state.attempts_remaining <= 0:
+            self._flow_state.tag = FlowStateTag.FAILURE
     
     async def begin_flow(self, activity: Activity) -> FlowResponse:
         """Begins the OAuthFlow.
@@ -144,28 +152,29 @@ class OAuthFlow:
         token_response = await self.get_user_token()
         if token_response:
             return FlowResponse(
-                flow_state=self.__flow_state,
+                flow_state=self._flow_state,
                 token_response=token_response
             )
         
-        self.__flow_state.tag = FlowStateTag.BEGIN
-        self.__flow_state.expires_at = datetime.now().timestamp() + self.__flow_duration
-        self.__flow_state.attempts_remaining = self.__max_attempts
-        self.__flow_state.user_token = ""
+        self._flow_state.tag = FlowStateTag.BEGIN
+        self._flow_state.expiration = datetime.now().timestamp()
+        self._flow_state.attempts_remaining = self._max_attempts
+        self._flow_state.user_token = ""
+        self._flow_state.continuation_activity = activity.model_copy()
 
         token_exchange_state = TokenExchangeState(
-            connection_name=self.__abs_oauth_connection_name,
+            connection_name=self._abs_oauth_connection_name,
             conversation=activity.get_conversation_reference(),
             relates_to=activity.relates_to,
-            ms_app_id=self.__ms_app_id
+            ms_app_id=self._ms_app_id
         )
 
-        sign_in_resource = await self.__user_token_client.agent_sign_in.get_sign_in_resource(
+        sign_in_resource = await self._user_token_client.agent_sign_in.get_sign_in_resource(
             state=token_exchange_state.get_encoded_state())
 
-        return FlowResponse(flow_state=self.__flow_state, sign_in_resource=sign_in_resource)
+        return FlowResponse(flow_state=self._flow_state, sign_in_resource=sign_in_resource)
     
-    async def __continue_from_message(self, activity: Activity) -> tuple[TokenResponse, FlowErrorTag]:
+    async def _continue_from_message(self, activity: Activity) -> tuple[TokenResponse, FlowErrorTag]:
         """Handles the continuation of the flow from a message activity."""
         magic_code: str = activity.text
         if magic_code and magic_code.isdigit() and len(magic_code) == 6:
@@ -178,20 +187,20 @@ class OAuthFlow:
         else:
             return TokenResponse(), FlowErrorTag.MAGIC_FORMAT
         
-    async def __continue_from_invoke_verify_state(self, activity: Activity) -> TokenResponse:
+    async def _continue_from_invoke_verify_state(self, activity: Activity) -> TokenResponse:
         """Handles the continuation of the flow from an invoke activity for verifying state."""
         token_verify_state = activity.value
         magic_code: str = token_verify_state.get("state")
         token_response: TokenResponse = await self.get_user_token(magic_code)
         return token_response
     
-    async def __continue_from_invoke_token_exchange(self, activity: Activity) -> TokenResponse:
+    async def _continue_from_invoke_token_exchange(self, activity: Activity) -> TokenResponse:
         """Handles the continuation of the flow from an invoke activity for token exchange."""
         token_exchange_request = activity.value
-        token_response = await self.__user_token_client.user_token.exchange_token(
-            user_id=self.__user_id,
-            connection_name=self.__abs_oauth_connection_name,
-            channel_id=self.__channel_id,
+        token_response = await self._user_token_client.user_token.exchange_token(
+            user_id=self._user_id,
+            connection_name=self._abs_oauth_connection_name,
+            channel_id=self._channel_id,
             body=token_exchange_request
         )
         return token_response
@@ -208,19 +217,19 @@ class OAuthFlow:
         """
         logger.debug("Continuing auth flow...")
 
-        if not self.__flow_state.is_active():
-            self.__flow_state.tag = FlowStateTag.FAILURE
-            return FlowResponse(flow_state=self.__flow_state)
+        if not self._flow_state.is_active():
+            self._flow_state.tag = FlowStateTag.FAILURE
+            return FlowResponse(flow_state=self._flow_state)
 
         flow_error_tag = FlowErrorTag.NONE
         if activity.type == ActivityTypes.message:
-            token_response, flow_error_tag = await self.__continue_from_message(activity)
+            token_response, flow_error_tag = await self._continue_from_message(activity)
         elif (activity.type == ActivityTypes.invoke
                 and activity.name == "signin/verifyState"):
-            token_response = await self.__continue_from_invoke_verify_state(activity)
+            token_response = await self._continue_from_invoke_verify_state(activity)
         elif (activity.type == ActivityTypes.invoke
                 and activity.name == "signin/tokenExchange"):
-            token_response = await self.__continue_from_invoke_token_exchange(activity)
+            token_response = await self._continue_from_invoke_token_exchange(activity)
         else:
             raise ValueError("Unknown activity type")
 
@@ -228,16 +237,15 @@ class OAuthFlow:
             flow_error_tag = FlowErrorTag.OTHER
 
         if flow_error_tag != FlowErrorTag.NONE:
-            self.__flow_state.tag = FlowStateTag.CONTINUE
-            self.__use_attempt()
+            self._flow_state.tag = FlowStateTag.CONTINUE
+            self._use_attempt()
         else:
-            self.__flow_state.tag = FlowStateTag.COMPLETE
-            self.__flow_state.expires_at = datetime.now().timestamp() + self.__flow_duration
-            self.__flow_state.user_token = token_response.token
-            
+            self._flow_state.tag = FlowStateTag.COMPLETE
+            self._flow_state.expiration = token_response.expiration
+            self._flow_state.user_token = token_response.token
 
         return FlowResponse(
-            flow_state=self.__flow_state.model_copy(),
+            flow_state=self._flow_state.model_copy(),
             flow_error_tag=flow_error_tag,
             token_response=token_response
         )
@@ -251,7 +259,7 @@ class OAuthFlow:
         Returns:
             A FlowResponse object containing the updated flow state and any token response.
         """
-        if self.__flow_state.is_active():
+        if self._flow_state.is_active():
             return await self.continue_flow(activity)
         else:
             return await self.begin_flow(activity)

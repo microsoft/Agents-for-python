@@ -20,7 +20,7 @@ from .app.route import Route, RouteHandler
 from .app.typing_indicator import TypingIndicator
 
 # App Auth
-from .app.auth import (
+from .app.oauth import (
     Authorization,
     AuthorizationHandlers,
     AuthHandler,

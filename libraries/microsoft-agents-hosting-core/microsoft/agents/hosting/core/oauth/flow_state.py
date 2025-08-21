@@ -30,7 +30,7 @@ class FlowErrorTag(Enum):
     NONE = "none"
     MAGIC_FORMAT = "magic_format"
     MAGIC_CODE_INCORRECT = "magic_code_incorrect"
-    OTHER = "OTHER"
+    OTHER = "other"
 
 class FlowState(BaseModel, StoreItem):
     """Represents the state of an OAuthFlow"""
@@ -43,7 +43,7 @@ class FlowState(BaseModel, StoreItem):
     connection: str = ""
     auth_handler_id: str = ""
 
-    expires_at: float = 0
+    expiration: float = 0
     continuation_activity: Optional[Activity] = None
     attempts_remaining: int = 0
     tag: FlowStateTag = FlowStateTag.NOT_STARTED
@@ -56,7 +56,7 @@ class FlowState(BaseModel, StoreItem):
         return FlowState.model_validate(json_data)
 
     def is_expired(self) -> bool:
-        return datetime.now().timestamp() >= self.expires_at
+        return datetime.now().timestamp() >= self.expiration
 
     def reached_max_attempts(self) -> bool:
         return self.attempts_remaining <= 0

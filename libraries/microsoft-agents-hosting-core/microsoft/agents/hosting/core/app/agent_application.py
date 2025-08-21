@@ -609,15 +609,29 @@ class AgentApplication(Agent, Generic[StateT]):
         if flow_state.tag == FlowStateTag.BEGIN:
             # Create the OAuth card
             sign_in_resource = flow_response.sign_in_resource
+                    # for auth_handler in self._auth_handlers.values():
+        #     # Create OAuth flow with configuration
+        #     messages_config = {}
+        #     if auth_handler.title:
+        #         ["card_title"] = auth_handler.title
+        #     if auth_handler.text:
+        #         messages_config["button_text"] = auth_handler.text
+
+        #     logger.debug(f"Configuring OAuth flow for handler: {auth_handler.name}")
+        #     auth_handler.flow = AuthFlow(
+        #         storage=storage,
+        #         abs_oauth_connection_name=auth_handler.abs_oauth_connection_name,
+        #         messages_configuration=messages_config if messages_config else None,
+            handler = self._auth.resolve_handler(flow_state.auth_handler_id)
             o_card: Attachment = CardFactory.oauth_card(
                 OAuthCard(
-                    text=self.messages_configuration.get("card_title", "Sign in"),
+                    text="Sign in",
                     connection_name=flow_state.connection,
                     buttons=[
                         CardAction(
-                            title=self.messages_configuration.get("button_text", "Sign in"),
+                            title="Sign in",
                             type=ActionTypes.signin,
-                            value=signing_resource.sign_in_link,
+                            value=sign_in_resource.sign_in_link,
                             channel_data=None,
                         )
                     ],
@@ -630,28 +644,22 @@ class AgentApplication(Agent, Generic[StateT]):
         elif flow_state.tag == FlowStateTag.FAILURE:
             if flow_state.reached_max_retries():
                 await context.send_activity(
-                    MessageFactory.text(
-                        self.messages_configuration.get(
-                            "max_retries_reached_messages",
-                            "Sign-in failed. Please try again later.",
-                        )
-                    )
+                    MessageFactory.text("Sign-in failed. Max retries reached. Please try again later.")
                 )
             elif flow_state.is_expired():
                 await context.send_activity(
-                    MessageFactory.text(
-                        self.messages_configuration.get(
-                            "session_expired_messages",
-                            "Sign-in session expired. Please try again.",
-                        )
-                    ))
+                    MessageFactory.text("Sign-in session expired. Please try again.")
+                )
             else:
                 logger.warning("Sign-in flow failed for unknown reasons.")
                 await context.send_activity("Sign-in failed. Please try again.")
 
     async def _on_turn_auth_intercept(self, context: TurnContext, turn_state: TurnState) -> bool:
         
+        print("*"*5)
         prev_flow_state = await self._auth.get_active_flow_state(context)
+        print(prev_flow_state)
+        print("*"*5)
         if self._auth and prev_flow_state:
 
             logger.debug("Sign-in flow is active for context: %s", context.activity.id)
@@ -819,7 +827,7 @@ class AgentApplication(Agent, Generic[StateT]):
                         flow_response: FlowResponse = await self._auth.begin_or_continue_flow(
                             context, state, auth_handler_id
                         )
-                        await self._handle_flow_response(context, flow_response.in_flow_activity)
+                        await self._handle_flow_response(context, flow_response)
                         sign_in_complete = flow_response.flow_state.tag == FlowStateTag.COMPLETE
                         if not sign_in_complete:
                             break
