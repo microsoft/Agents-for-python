@@ -13,20 +13,19 @@ from microsoft.agents.hosting.core.authorization import (
     AccessTokenProviderBase,
 )
 from microsoft.agents.hosting.core.storage import Storage
-from microsoft.agents.activity import TokenResponse, Activity
-from microsoft.agents.hosting.core.storage import StoreItem
+from microsoft.agents.activity import TokenResponse
 from microsoft.agents.hosting.core.connector.client import UserTokenClient
-from pydantic import BaseModel
 
 from ...turn_context import TurnContext
-from ...app.state.turn_state import TurnState
-# from ...oauth_flow import AuthFlow
-from ...state.user_state import UserState
+from ...oauth import (
+    OAuthFlow,
+    FlowResponse,
+    FlowState,
+    FlowStateTag,
+    FlowStorageClient
+)
+from ..state.turn_state import TurnState
 from .auth_handler import AuthHandler
-
-from .models import FlowResponse, FlowState, FlowStateTag, FlowErrorTag
-from .flow_storage_client import FlowStorageClient
-from .auth_flow import AuthFlow
 
 logger = logging.getLogger(__name__)
 
@@ -126,7 +125,7 @@ class Authorization:
             self,
             context: TurnContext,
             auth_handler_id: str = ""
-        ) -> tuple[AuthFlow, FlowStorageClient, FlowState]:
+        ) -> tuple[OAuthFlow, FlowStorageClient, FlowState]:
         """Loads the OAuth flow for a specific auth handler.
 
         Args:
@@ -134,7 +133,7 @@ class Authorization:
             auth_handler_id: The ID of the auth handler to use.
 
         Returns:
-            The AuthFlow returned corresponds to the flow associated with the
+            The OAuthFlow returned corresponds to the flow associated with the
             chosen handler, and the channel and user info found in the context.
 
             The FlowStorageClient corresponds to the channel and user info.
@@ -161,20 +160,20 @@ class Authorization:
                 abs_oauth_connection_name=auth_handler.abs_oauth_connection_name
             )
 
-        flow = AuthFlow(flow_state, user_token_client)
+        flow = OAuthFlow(flow_state, user_token_client)
         return flow, flow_storage_client, flow_state
 
     @asynccontextmanager
-    async def open_flow(self, context: TurnContext, auth_handler_id: str = "") -> AsyncIterator[AuthFlow]:
-        """Loads an Auth flow and saves changes the changes to storage if any are made.
+    async def open_flow(self, context: TurnContext, auth_handler_id: str = "") -> AsyncIterator[OAuthFlow]:
+        """Loads an OAuth flow and saves changes the changes to storage if any are made.
 
         Args:
             context: The context object for the current turn.
             auth_handler_id: ID of the auth handler to use.
 
         Yields:
-            AuthFlow:
-                The AuthFlow instance loaded from storage or newly created
+            OAuthFlow:
+                The OAuthFlow instance loaded from storage or newly created
                 if not yet present in storage.
         """
         if not context:

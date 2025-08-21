@@ -1,12 +1,8 @@
 import pytest
-from unittest.mock import sentinel
 
 from microsoft.agents.hosting.core.storage import MemoryStorage
 from microsoft.agents.hosting.core.storage.storage_test_utils import MockStoreItem
-from microsoft.agents.hosting.core.app.oauth import (
-    FlowState,
-    FlowStorageClient,
-)
+from microsoft.agents.hosting.core.oauth import FlowState, FlowStorageClient
 
 class TestFlowStorageClient:
 

@@ -13,12 +13,11 @@ from .query import Query
 from .route import Route, RouteHandler
 from .typing_indicator import TypingIndicator
 
-# OAuth
-from .oauth.authorization import (
+# Auth
+from .auth import (
     Authorization,
-    AuthorizationHandlers,
     AuthHandler,
-    SignInState,
+    AuthorizationHandlers,
 )
 
 # App State
@@ -49,7 +48,6 @@ __all__ = [
     "TurnState",
     "TempState",
     "Authorization",
-    "AuthorizationHandlers",
     "AuthHandler",
-    "SignInState",
+    "AuthorizationHandlers",
 ]

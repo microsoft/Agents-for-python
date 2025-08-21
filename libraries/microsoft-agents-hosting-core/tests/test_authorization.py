@@ -1,29 +1,26 @@
-import jwt
-
 import pytest
+
+import jwt
 
 from microsoft.agents.activity import (
     ActivityTypes,
     TokenResponse
-)
-from microsoft.agents.hosting.core.app.oauth import (
-    Authorization,
-    FlowStorageClient,
-    FlowErrorTag,
-    FlowStateTag,
 )
 from microsoft.agents.hosting.core import MemoryStorage
 from microsoft.agents.hosting.core.storage.storage_test_utils import StorageBaseline
 from microsoft.agents.hosting.core.connector.user_token_base import UserTokenBase
 from microsoft.agents.hosting.core.connector.user_token_client_base import UserTokenClientBase
 
-from microsoft.agents.hosting.core.app.oauth.auth_flow import AuthFlow
-
-from .tools.oauth_test_env import (
-    TEST_DEFAULTS,
-    STORAGE_INIT_DATA
+from microsoft.agents.hosting.core.app.oauth import Authorization
+from microsoft.agents.hosting.core.oauth import (
+    OAuthFlow,
+    FlowStorageClient,
+    FlowErrorTag,
+    FlowStateTag
 )
 
+# test constants
+from .tools.testing_oauth import *
 from .tools.testing_authorization import (
     TestingConnectionManager,
     create_test_auth_handler

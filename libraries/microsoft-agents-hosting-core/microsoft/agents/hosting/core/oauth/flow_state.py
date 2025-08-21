@@ -1,14 +1,24 @@
+# Copyright (c) Microsoft Corporation. All rights reserved.
+# Licensed under the MIT License.
+
 from datetime import datetime
 from enum import Enum
 from typing import Optional
 
 from pydantic import BaseModel
-from pydantic.types import PositiveInt
 
-from microsoft.agents.activity import Activity, SignInResource, TokenResponse
-from microsoft.agents.hosting.core.storage import StoreItem
+from microsoft.agents.activity import Activity
+
+from ..storage import StoreItem
 
 class FlowStateTag(Enum):
+    """Represents the top-level state of an OAuthFlow
+    
+    For instance, a flow can arrive at an error, but its
+    broader state may still be CONTINUE if the flow can
+    still progress
+    """
+
     BEGIN = "begin"
     CONTINUE = "continue"
     NOT_STARTED = "not_started"
@@ -16,12 +26,14 @@ class FlowStateTag(Enum):
     COMPLETE = "complete"
 
 class FlowErrorTag(Enum):
+    """Represents the various error states that can occur during an OAuthFlow"""
     NONE = "none"
     MAGIC_FORMAT = "magic_format"
     MAGIC_CODE_INCORRECT = "magic_code_incorrect"
     OTHER = "OTHER"
 
 class FlowState(BaseModel, StoreItem):
+    """Represents the state of an OAuthFlow"""
 
     flow_id: str = "" # robrandao: TODO
     user_token: str = ""
@@ -33,10 +45,6 @@ class FlowState(BaseModel, StoreItem):
     continuation_activity: Optional[Activity] = None
     attempts_remaining: int = 0
     tag: FlowStateTag = FlowStateTag.NOT_STARTED
-
-    def refresh(self) -> None:
-        if self.is_expired() or self.reached_max_attempts():
-            self.tag = FlowStateTag.FAILURE
 
     def store_item_to_json(self) -> dict:
         return self.model_dump()
@@ -53,10 +61,3 @@ class FlowState(BaseModel, StoreItem):
     
     def is_active(self) -> bool:
         return not self.is_expired() and not self.reached_max_attempts() and self.tag in [FlowStateTag.BEGIN, FlowStateTag.CONTINUE]
-    
-class FlowResponse(BaseModel):
-
-    flow_state: FlowState = FlowState()
-    flow_error_tag: FlowErrorTag = FlowErrorTag.NONE
-    token_response: Optional[TokenResponse] = None
-    sign_in_resource: Optional[SignInResource] = None

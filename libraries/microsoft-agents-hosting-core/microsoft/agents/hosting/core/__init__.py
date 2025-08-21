@@ -1,6 +1,5 @@
 from .activity_handler import ActivityHandler
 from .agent import Agent
-from .oauth_flow import OAuthFlow
 from .card_factory import CardFactory
 from .channel_adapter import ChannelAdapter
 from .channel_api_handler_protocol import ChannelApiHandlerProtocol
@@ -20,12 +19,11 @@ from .app.query import Query
 from .app.route import Route, RouteHandler
 from .app.typing_indicator import TypingIndicator
 
-# OAuth
-from .app.oauth.authorization import (
+# App Auth
+from .app.auth import (
     Authorization,
     AuthorizationHandlers,
     AuthHandler,
-    SignInState,
 )
 
 # App State
@@ -43,6 +41,16 @@ from .authorization.agent_auth_configuration import AgentAuthConfiguration
 from .authorization.claims_identity import ClaimsIdentity
 from .authorization.jwt_token_validator import JwtTokenValidator
 from .authorization.auth_types import AuthTypes
+
+#OAuth
+from .oauth import (
+    FlowState,
+    FlowStateTag,
+    FlowErrorTag,
+    FlowResponse,
+    FlowStorageClient,
+    OAuthFlow
+)
 
 # Client API
 from .client.agent_conversation_reference import AgentConversationReference
@@ -88,7 +96,6 @@ from .storage.memory_storage import MemoryStorage
 __all__ = [
     "ActivityHandler",
     "Agent",
-    "OAuthFlow",
     "CardFactory",
     "ChannelAdapter",
     "ChannelApiHandlerProtocol",
@@ -155,4 +162,10 @@ __all__ = [
     "StoreItem",
     "Storage",
     "MemoryStorage",
+    "FlowState",
+    "FlowStateTag",
+    "FlowErrorTag",
+    "FlowResponse",
+    "FlowStorageClient",
+    "OAuthFlow"
 ]

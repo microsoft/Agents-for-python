@@ -1,22 +1,16 @@
+# Copyright (c) Microsoft Corporation. All rights reserved.
+# Licensed under the MIT License.
+
 from typing import Optional
 
-from ... import TurnContext
-from ...storage import Storage
+from ..storage import Storage
+from .flow_state import FlowState
 
-from .models import FlowState
-
-# robrandao: TODO -> context.activity.from_property
+# this could be generalized, if needed
 class FlowStorageClient:
-    """
-    Wrapper around storage that manages sign-in state specific to each user and channel.
+    """Wrapper around Storage that manages sign-in state specific to each user and channel.
 
     Uses the activity's channel_id and from.id to create a key prefix for storage operations.
-
-    Contract with other classes (usage of other classes is enforced in unit tests):
-        TurnContext.activity.channel_id
-        TurnContext.activity.from_property.id
-
-        Storage: read(), write(), delete()
     """
 
     def __init__(

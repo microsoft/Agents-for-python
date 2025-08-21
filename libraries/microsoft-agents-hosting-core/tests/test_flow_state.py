@@ -2,11 +2,12 @@ from datetime import datetime
 
 import pytest
 
-from microsoft.agents.hosting.core.app.oauth.models import FlowState, FlowStateTag
+from microsoft.agents.hosting.core.oauth.flow_state import FlowState, FlowStateTag
 
 class TestFlowState:
 
     def test_refresh_to_failure_expired(self):
+        """Test that the flow state refreshes to failure when expired."""
         flow_state = FlowState(
             tag=FlowStateTag.CONTINUE,
             attempts_remaining=1,
@@ -16,6 +17,7 @@ class TestFlowState:
         assert flow_state.tag == FlowStateTag.FAILURE
 
     def test_refresh_to_failure_max_attempts(self):
+        """Test that the flow state refreshes to failure when max attempts reached."""
         flow_state = FlowState(
             tag=FlowStateTag.CONTINUE,
             attempts_remaining=0,
@@ -24,6 +26,7 @@ class TestFlowState:
         assert flow_state.tag == FlowStateTag.FAILURE
 
     def test_refresh_unchanged_continue(self):
+        """Test that the flow state remains unchanged when refreshed with a valid CONTINUE state"""
         flow_state = FlowState(
             tag=FlowStateTag.CONTINUE,
             attempts_remaining=1,
@@ -34,6 +37,7 @@ class TestFlowState:
         assert flow_state.tag == prev_tag
 
     def test_refresh_unchanged_begin(self):
+        """Test that the flow state remains unchanged when refreshed with a valid BEGIN state"""
         flow_state = FlowState(
             tag=FlowStateTag.BEGIN,
             attempts_remaining=10,

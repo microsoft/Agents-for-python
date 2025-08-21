@@ -5,26 +5,31 @@ from __future__ import annotations
 
 import logging
 
-from enum import Enum
+from pydantic import BaseModel
 from datetime import datetime
-from typing import Dict, Optional
+from typing import Optional
 
-from microsoft.agents.hosting.core.connector.client import UserTokenClient
 from microsoft.agents.activity import (
     Activity,
     ActivityTypes,
     TokenExchangeState,
     TokenResponse,
+    SignInResource
 )
-from microsoft.agents.hosting.core.storage import StoreItem, Storage
-from pydantic import BaseModel, PositiveInt
 
-from .models import FlowResponse, FlowState, FlowStateTag, FlowErrorTag
-from .utils import raise_if_empty_or_None
+from ..connector.client import UserTokenClient
+from .flow_state import FlowState, FlowStateTag, FlowErrorTag
 
 logger = logging.getLogger(__name__)
 
-class AuthFlow:
+class FlowResponse(BaseModel):
+    """Represents the response for a flow operation."""
+    flow_state: FlowState = FlowState()
+    flow_error_tag: FlowErrorTag = FlowErrorTag.NONE
+    token_response: Optional[TokenResponse] = None
+    sign_in_resource: Optional[SignInResource] = None
+
+class OAuthFlow:
     """
     Manages the OAuth flow.
 
@@ -54,11 +59,8 @@ class AuthFlow:
             max_attempts: The maximum number of attempts for the flow
                 set when starting a flow (default: 3).
         """
-        raise_if_empty_or_None(
-            self.__init__.__name__,
-            flow_state=flow_state,
-            user_token_client=user_token_client
-        )
+        if not self.flow_state or not user_token_client:
+            raise ValueError("OAuthFlow.__init__(): flow_state and user_token_client are required")
 
         if (not flow_state.abs_oauth_connection_name or
             not flow_state.ms_app_id or
