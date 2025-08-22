@@ -81,10 +81,6 @@ class Authorization:
             Callable[[TurnContext, TurnState, Optional[str]], Awaitable[None]]
         ] = lambda *args: None
 
-        self._cache = None
-        if use_cache:
-            self._cache = MemoryStorage()
-
     def _ids_from_context(self, context: TurnContext) -> tuple[str, str]:
         """Checks and returns IDs necessary to load a new or existing flow.
 
