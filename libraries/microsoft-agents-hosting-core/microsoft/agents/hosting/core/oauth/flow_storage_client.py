@@ -3,10 +3,10 @@
 
 from typing import Optional
 
-from ..storage import Storage, MemoryStorage
+from ..storage import Storage
 from .flow_state import FlowState
 
-class DummyStorage(Storage):
+class DummyCache(Storage):
 
     async def read(self, keys: list[str], **kwargs) -> dict[str, FlowState]:
         return {}
@@ -17,8 +17,10 @@ class DummyStorage(Storage):
     async def delete(self, keys: list[str]) -> None:
         pass
 
-# this could be generalized, if needed
-# not generally thread or async safe
+# this could be generalized. Ideas:
+# - CachedStorage class for two-tier storage
+# - Namespaced/PrefixedStorage class for namespacing keying
+# not generally thread or async safe (operations are not atomic)
 class FlowStorageClient:
     """Wrapper around Storage that manages sign-in state specific to each user and channel.
 
@@ -46,7 +48,7 @@ class FlowStorageClient:
         self._base_key = f"auth/{channel_id}/{user_id}/"
         self._storage = storage
         if cache_class is None:
-            cache_class = DummyStorage
+            cache_class = DummyCache
         self._cache = cache_class()
 
     @property

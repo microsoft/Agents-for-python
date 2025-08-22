@@ -28,6 +28,7 @@ class FlowResponse(BaseModel):
     flow_error_tag: FlowErrorTag = FlowErrorTag.NONE
     token_response: Optional[TokenResponse] = None
     sign_in_resource: Optional[SignInResource] = None
+    continuation_activity: Optional[Activity] = None
 
 class OAuthFlow:
     """
@@ -69,6 +70,7 @@ class OAuthFlow:
             raise ValueError("OAuthFlow.__init__: flow_state must have ms_app_id, channel_id, user_id, connection defined")
         
         self._flow_state = flow_state.model_copy()
+        
         self._abs_oauth_connection_name = self._flow_state.connection
         self._ms_app_id = self._flow_state.ms_app_id
         self._channel_id = self._flow_state.channel_id
@@ -133,7 +135,7 @@ class OAuthFlow:
         self._flow_state.attempts_remaining -= 1
         if self._flow_state.attempts_remaining <= 0:
             self._flow_state.tag = FlowStateTag.FAILURE
-    
+        
     async def begin_flow(self, activity: Activity) -> FlowResponse:
         """Begins the OAuthFlow.
 
@@ -216,10 +218,11 @@ class OAuthFlow:
 
         """
         logger.debug("Continuing auth flow...")
-
+        
         if not self._flow_state.is_active():
+            logger.debug("OAuth flow is not active, cannot continue")
             self._flow_state.tag = FlowStateTag.FAILURE
-            return FlowResponse(flow_state=self._flow_state)
+            return FlowResponse(flow_state=self._flow_state.model_copy(), token_response=None)
 
         flow_error_tag = FlowErrorTag.NONE
         if activity.type == ActivityTypes.message:
@@ -247,7 +250,8 @@ class OAuthFlow:
         return FlowResponse(
             flow_state=self._flow_state.model_copy(),
             flow_error_tag=flow_error_tag,
-            token_response=token_response
+            token_response=token_response,
+            continuation_activity=self._flow_state.continuation_activity
         )
 
     async def begin_or_continue_flow(self, activity: Activity) -> FlowResponse:
@@ -259,7 +263,12 @@ class OAuthFlow:
         Returns:
             A FlowResponse object containing the updated flow state and any token response.
         """
+        self._flow_state.refresh()
+        if self._flow_state.tag == FlowStateTag.COMPLETE: # robrandao: TODO -> test
+            logger.debug("OAuth flow has already been completed, nothing to do")
+            return FlowResponse(flow_state=self._flow_state.model_copy(), token_response=TokenResponse(token=self._flow_state.user_token))
+        
         if self._flow_state.is_active():
             return await self.continue_flow(activity)
-        else:
-            return await self.begin_flow(activity)
+
+        return await self.begin_flow(activity)

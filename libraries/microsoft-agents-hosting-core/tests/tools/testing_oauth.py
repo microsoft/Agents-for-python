@@ -18,60 +18,68 @@ DEF_ARGS = {
 
 class FLOW_STATES:
 
+    NOT_STARTED_FLOW = FlowState(
+                **DEF_ARGS,
+                tag=FlowStateTag.NOT_STARTED,
+                attempts_remaining=1,
+                user_token="____",
+                expiration=datetime.now().timestamp() + 1000000
+            )
+
     STARTED_FLOW = FlowState(
                 **DEF_ARGS,
                 tag=FlowStateTag.BEGIN,
                 attempts_remaining=1,
                 user_token="____",
-                expires_at=datetime.now().timestamp() + 1000000
+                expiration=datetime.now().timestamp() + 1000000
             )
     STARTED_FLOW_ONE_RETRY = FlowState(
                 **DEF_ARGS,
                 tag=FlowStateTag.BEGIN,
                 attempts_remaining=2,
                 user_token="____",
-                expires_at=datetime.now().timestamp() + 1000000
+                expiration=datetime.now().timestamp() + 1000000
             )
     ACTIVE_FLOW = FlowState(
                 **DEF_ARGS,
                 tag=FlowStateTag.CONTINUE,
                 attempts_remaining=2,
                 user_token="__token",
-                expires_at=datetime.now().timestamp() + 1000000
+                expiration=datetime.now().timestamp() + 1000000
             )
     ACTIVE_FLOW_ONE_RETRY = FlowState(
                 **DEF_ARGS,
                 tag=FlowStateTag.CONTINUE,
                 attempts_remaining=1,
                 user_token="__token",
-                expires_at=datetime.now().timestamp() + 1000000
+                expiration=datetime.now().timestamp() + 1000000
             )
     ACTIVE_EXP_FLOW = FlowState(
                 **DEF_ARGS,
                 tag=FlowStateTag.CONTINUE,
                 attempts_remaining=2,
                 user_token="__token",
-                expires_at=datetime.now().timestamp()
+                expiration=datetime.now().timestamp()
             )
     COMPLETED_FLOW = FlowState(
                 **DEF_ARGS,
                 tag=FlowStateTag.COMPLETE,
                 attempts_remaining=2,
                 user_token="test_token",
-                expires_at=datetime.now().timestamp() + 1000000
+                expiration=datetime.now().timestamp() + 1000000
             )
     FAIL_BY_ATTEMPTS_FLOW = FlowState(
                 **DEF_ARGS,
                 tag=FlowStateTag.FAILURE,
                 attempts_remaining=0,
-                expires_at=datetime.now().timestamp() + 1000000
+                expiration=datetime.now().timestamp() + 1000000
             )
 
     FAIL_BY_EXP_FLOW = FlowState(
                 **DEF_ARGS,
                 tag=FlowStateTag.FAILURE,
                 attempts_remaining=2,
-                expires_at=0
+                expiration=0
             )
 
     @staticmethod

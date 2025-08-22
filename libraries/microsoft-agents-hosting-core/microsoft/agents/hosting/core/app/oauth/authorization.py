@@ -186,7 +186,7 @@ class Authorization:
         Returns:
             The token response from the OAuth provider.
         """
-        logger.info(f"Getting token for auth handler: {auth_handler_id}")
+        logger.info("Getting token for auth handler: %s", auth_handler_id)
         async with self.open_flow(context, auth_handler_id) as flow:
             return await flow.get_user_token()
 
@@ -207,7 +207,7 @@ class Authorization:
         Returns:
             The token response from the OAuth provider.
         """
-        logger.info(f"Exchanging token for scopes: {scopes}")
+        logger.info("Exchanging token for scopes: %s", scopes)
         async with self.open_flow(context, auth_handler_id) as flow:
             token_response = await flow.get_user_token()
 
@@ -292,7 +292,7 @@ class Authorization:
         self,
         context: TurnContext,
         turn_state: TurnState,
-        auth_handler_id: str,
+        auth_handler_id: str = "",
     ) -> FlowResponse:
         """
         Begins or continues an OAuth flow.
@@ -306,16 +306,21 @@ class Authorization:
             The token response from the OAuth provider.
             
         """
-        logger.debug("Beginning OAuth flow")
+        if not auth_handler_id:
+            auth_handler_id = self.resolve_handler().name
+
+        logger.debug("Beginning or continuing OAuth flow")
         async with self.open_flow(context, auth_handler_id) as flow:
+            prev_tag = flow.flow_state.state_tag
             flow_response: FlowResponse = await flow.begin_or_continue_flow(context.activity)
         
         flow_state: FlowState = flow_response.flow_state
 
-        # stayed completed TODO
-        if flow_state.tag == FlowStateTag.COMPLETE:
+        if flow_state.tag == FlowStateTag.COMPLETE and prev_tag != FlowStateTag.COMPLETE:
+            logger.debug("Calling Authorization sign in success handler")
             self._sign_in_success_handler(context, turn_state, flow_state.auth_handler_id)
         elif flow_state.tag == FlowStateTag.FAILURE:
+            logger.debug("Calling Authorization sign in failure handler")
             self._sign_in_failure_handler(context, turn_state, flow_state.auth_handler_id, flow_response.flow_error_tag)
 
         return flow_response
@@ -332,8 +337,7 @@ class Authorization:
         """
         if auth_handler_id:
             if auth_handler_id not in self._auth_handlers:
-                breakpoint()
-                logger.error(f"Auth handler '{auth_handler_id}' not found")
+                logger.error("Auth handler '%s' not found", auth_handler_id)
                 raise ValueError(f"Auth handler '{auth_handler_id}' not found")
             return self._auth_handlers[auth_handler_id]
 
@@ -357,7 +361,7 @@ class Authorization:
             flow, flow_storage_client = await self._load_flow(context, auth_handler_id)
             # ensure that the id is valid
             self.resolve_handler(auth_handler_id)
-            logger.info(f"Signing out from handler: {auth_handler_id}")
+            logger.info("Signing out from handler: %s", auth_handler_id)
             await flow.sign_out()
             await flow_storage_client.delete(auth_handler_id)
 
