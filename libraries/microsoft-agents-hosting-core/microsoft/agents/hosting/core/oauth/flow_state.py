@@ -11,9 +11,10 @@ from microsoft.agents.activity import Activity
 
 from ..storage import StoreItem
 
+
 class FlowStateTag(Enum):
     """Represents the top-level state of an OAuthFlow
-    
+
     For instance, a flow can arrive at an error, but its
     broader state may still be CONTINUE if the flow can
     still progress
@@ -25,18 +26,21 @@ class FlowStateTag(Enum):
     FAILURE = "failure"
     COMPLETE = "complete"
 
+
 class FlowErrorTag(Enum):
     """Represents the various error states that can occur during an OAuthFlow"""
+
     NONE = "none"
     MAGIC_FORMAT = "magic_format"
     MAGIC_CODE_INCORRECT = "magic_code_incorrect"
     OTHER = "other"
 
+
 class FlowState(BaseModel, StoreItem):
     """Represents the state of an OAuthFlow"""
 
     user_token: str = ""
-    
+
     channel_id: str = ""
     user_id: str = ""
     ms_app_id: str = ""
@@ -60,10 +64,18 @@ class FlowState(BaseModel, StoreItem):
 
     def reached_max_attempts(self) -> bool:
         return self.attempts_remaining <= 0
-    
+
     def is_active(self) -> bool:
-        return not self.is_expired() and not self.reached_max_attempts() and self.tag in [FlowStateTag.BEGIN, FlowStateTag.CONTINUE]
-    
+        return (
+            not self.is_expired()
+            and not self.reached_max_attempts()
+            and self.tag in [FlowStateTag.BEGIN, FlowStateTag.CONTINUE]
+        )
+
     def refresh(self):
-        if self.tag in [FlowStateTag.BEGIN, FlowStateTag.CONTINUE, FlowStateTag.COMPLETE] and self.is_expired():
+        if (
+            self.tag
+            in [FlowStateTag.BEGIN, FlowStateTag.CONTINUE, FlowStateTag.COMPLETE]
+            and self.is_expired()
+        ):
             self.tag = FlowStateTag.NOT_STARTED

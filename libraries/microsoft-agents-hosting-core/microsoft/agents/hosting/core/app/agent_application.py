@@ -37,7 +37,7 @@ from microsoft.agents.activity import (
     TokenResponse,
     OAuthCard,
     Attachment,
-    CardAction
+    CardAction,
 )
 
 from .. import CardFactory, MessageFactory
@@ -602,11 +602,13 @@ class AgentApplication(Agent, Generic[StateT]):
         logger.debug(f"Setting custom turn state factory: {func.__name__}")
         self._turn_state_factory = func
         return func
-    
-    async def _handle_flow_response(self, context: TurnContext, flow_response: FlowResponse) -> None:
+
+    async def _handle_flow_response(
+        self, context: TurnContext, flow_response: FlowResponse
+    ) -> None:
         """Handles CONTINUE and FAILURE flow responses, sending activities back."""
         flow_state: FlowState = flow_response.flow_state
-        
+
         if flow_state.tag == FlowStateTag.BEGIN:
             # Create the OAuth card
             sign_in_resource = flow_response.sign_in_resource
@@ -631,7 +633,9 @@ class AgentApplication(Agent, Generic[StateT]):
         elif flow_state.tag == FlowStateTag.FAILURE:
             if flow_state.reached_max_attempts():
                 await context.send_activity(
-                    MessageFactory.text("Sign-in failed. Max retries reached. Please try again later.")
+                    MessageFactory.text(
+                        "Sign-in failed. Max retries reached. Please try again later."
+                    )
                 )
             elif flow_state.is_expired():
                 await context.send_activity(
@@ -641,25 +645,39 @@ class AgentApplication(Agent, Generic[StateT]):
                 logger.warning("Sign-in flow failed for unknown reasons.")
                 await context.send_activity("Sign-in failed. Please try again.")
 
-    async def _on_turn_auth_intercept(self, context: TurnContext, turn_state: TurnState) -> bool:
+    async def _on_turn_auth_intercept(
+        self, context: TurnContext, turn_state: TurnState
+    ) -> bool:
         """Intercepts the turn to check for active authentication flows."""
-        logger.debug("Checking for active sign-in flow for context: %s with activity type %s", context.activity.id, context.activity.type)
+        logger.debug(
+            "Checking for active sign-in flow for context: %s with activity type %s",
+            context.activity.id,
+            context.activity.type,
+        )
         prev_flow_state = await self._auth.get_active_flow_state(context)
         if prev_flow_state:
-            logger.debug("Previous flow state: %s", {
-                "user_id": prev_flow_state.user_id,
-                "connection": prev_flow_state.connection,
-                "channel_id": prev_flow_state.channel_id,
-                "auth_handler_id": prev_flow_state.auth_handler_id,
-                "tag": prev_flow_state.tag,
-                "expiration": prev_flow_state.expiration,
-            })
+            logger.debug(
+                "Previous flow state: %s",
+                {
+                    "user_id": prev_flow_state.user_id,
+                    "connection": prev_flow_state.connection,
+                    "channel_id": prev_flow_state.channel_id,
+                    "auth_handler_id": prev_flow_state.auth_handler_id,
+                    "tag": prev_flow_state.tag,
+                    "expiration": prev_flow_state.expiration,
+                },
+            )
         # proceed if there is an existing flow to continue
         # new flows should be initiated in _on_activity
         # this can be reorganized later... but it works for now
-        if (prev_flow_state and
-            (prev_flow_state.tag == FlowStateTag.NOT_STARTED or prev_flow_state.is_active())
-            and context.activity.type in [ActivityTypes.message, ActivityTypes.invoke]):
+        if (
+            prev_flow_state
+            and (
+                prev_flow_state.tag == FlowStateTag.NOT_STARTED
+                or prev_flow_state.is_active()
+            )
+            and context.activity.type in [ActivityTypes.message, ActivityTypes.invoke]
+        ):
 
             logger.debug("Sign-in flow is active for context: %s", context.activity.id)
 
@@ -676,13 +694,11 @@ class AgentApplication(Agent, Generic[StateT]):
             if token_response:
                 new_context = copy(context)
                 new_context.activity = saved_activity
-                logger.info(
-                    "Resending continuation activity %s", saved_activity.text
-                )
+                logger.info("Resending continuation activity %s", saved_activity.text)
                 await self.on_turn(new_context)
                 await turn_state.save(context)
-            return True # early return from _on_turn
-        return False # continue _on_turn
+            return True  # early return from _on_turn
+        return False  # continue _on_turn
 
     async def on_turn(self, context: TurnContext):
         logger.debug(
@@ -820,13 +836,23 @@ class AgentApplication(Agent, Generic[StateT]):
                 else:
                     sign_in_complete = False
                     for auth_handler_id in route.auth_handlers:
-                        logger.debug("Beginning or continuing flow for auth handler %s", auth_handler_id)
-                        flow_response: FlowResponse = await self._auth.begin_or_continue_flow(
-                            context, state, auth_handler_id
+                        logger.debug(
+                            "Beginning or continuing flow for auth handler %s",
+                            auth_handler_id,
+                        )
+                        flow_response: FlowResponse = (
+                            await self._auth.begin_or_continue_flow(
+                                context, state, auth_handler_id
+                            )
                         )
                         await self._handle_flow_response(context, flow_response)
-                        logger.debug("Flow response flow_state.tag: %s", flow_response.flow_state.tag)
-                        sign_in_complete = flow_response.flow_state.tag == FlowStateTag.COMPLETE
+                        logger.debug(
+                            "Flow response flow_state.tag: %s",
+                            flow_response.flow_state.tag,
+                        )
+                        sign_in_complete = (
+                            flow_response.flow_state.tag == FlowStateTag.COMPLETE
+                        )
                         if not sign_in_complete:
                             break
 

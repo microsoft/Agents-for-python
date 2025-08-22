@@ -42,14 +42,14 @@ from .authorization.claims_identity import ClaimsIdentity
 from .authorization.jwt_token_validator import JwtTokenValidator
 from .authorization.auth_types import AuthTypes
 
-#OAuth
+# OAuth
 from .oauth import (
     FlowState,
     FlowStateTag,
     FlowErrorTag,
     FlowResponse,
     FlowStorageClient,
-    OAuthFlow
+    OAuthFlow,
 )
 
 # Client API
@@ -167,5 +167,5 @@ __all__ = [
     "FlowErrorTag",
     "FlowResponse",
     "FlowStorageClient",
-    "OAuthFlow"
+    "OAuthFlow",
 ]

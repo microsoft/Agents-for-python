@@ -17,17 +17,12 @@ from microsoft.agents.activity import TokenResponse
 from microsoft.agents.hosting.core.connector.client import UserTokenClient
 
 from ...turn_context import TurnContext
-from ...oauth import (
-    OAuthFlow,
-    FlowResponse,
-    FlowState,
-    FlowStateTag,
-    FlowStorageClient
-)
+from ...oauth import OAuthFlow, FlowResponse, FlowState, FlowStateTag, FlowStorageClient
 from ..state.turn_state import TurnState
 from .auth_handler import AuthHandler
 
 logger = logging.getLogger(__name__)
+
 
 class Authorization:
     """
@@ -87,19 +82,17 @@ class Authorization:
         Raises a ValueError if channel ID or user ID are missing.
         """
         if (
-            not context.activity.channel_id or
-            not context.activity.from_property or
-            not context.activity.from_property.id
+            not context.activity.channel_id
+            or not context.activity.from_property
+            or not context.activity.from_property.id
         ):
             raise ValueError("Channel ID and User ID are required")
-        
+
         return context.activity.channel_id, context.activity.from_property.id
 
     async def _load_flow(
-            self,
-            context: TurnContext,
-            auth_handler_id: str = ""
-        ) -> tuple[OAuthFlow, FlowStorageClient]:
+        self, context: TurnContext, auth_handler_id: str = ""
+    ) -> tuple[OAuthFlow, FlowStorageClient]:
         """Loads the OAuth flow for a specific auth handler.
 
         Args:
@@ -111,15 +104,19 @@ class Authorization:
             chosen handler, and the channel and user info found in the context.
             The FlowStorageClient corresponds to the same channel and user info.
         """
-        user_token_client: UserTokenClient = context.turn_state.get(context.adapter.USER_TOKEN_CLIENT_KEY)
-        
+        user_token_client: UserTokenClient = context.turn_state.get(
+            context.adapter.USER_TOKEN_CLIENT_KEY
+        )
+
         # resolve handler id
         auth_handler: AuthHandler = self.resolve_handler(auth_handler_id)
         auth_handler_id = auth_handler.name
 
         channel_id, user_id = self._ids_from_context(context)
 
-        ms_app_id = context.turn_state.get(context.adapter.AGENT_IDENTITY_KEY).claims["aud"]
+        ms_app_id = context.turn_state.get(context.adapter.AGENT_IDENTITY_KEY).claims[
+            "aud"
+        ]
 
         # try to load existing state
         flow_storage_client = FlowStorageClient(channel_id, user_id, self._storage)
@@ -133,7 +130,7 @@ class Authorization:
                 user_id=user_id,
                 auth_handler_id=auth_handler_id,
                 connection=auth_handler.abs_oauth_connection_name,
-                ms_app_id=ms_app_id
+                ms_app_id=ms_app_id,
             )
             await flow_storage_client.write(flow_state)
 
@@ -141,7 +138,9 @@ class Authorization:
         return flow, flow_storage_client
 
     @asynccontextmanager
-    async def open_flow(self, context: TurnContext, auth_handler_id: str = "") -> AsyncIterator[OAuthFlow]:
+    async def open_flow(
+        self, context: TurnContext, auth_handler_id: str = ""
+    ) -> AsyncIterator[OAuthFlow]:
         """Loads an OAuth flow and saves changes the changes to storage if any are made.
 
         Args:
@@ -242,10 +241,10 @@ class Authorization:
 
         """
         auth_handler = self.resolve_handler(handler_id)
-        token_provider: AccessTokenProviderBase = self._connection_manager.get_connection(
-            auth_handler.obo_connection_name
+        token_provider: AccessTokenProviderBase = (
+            self._connection_manager.get_connection(auth_handler.obo_connection_name)
         )
-        
+
         logger.info("Attempting to exchange token on behalf of user")
         new_token = await token_provider.aquire_token_on_behalf_of(
             scopes=scopes,
@@ -282,7 +281,7 @@ class Authorization:
 
         Returns:
             The token response from the OAuth provider.
-            
+
         """
         if not auth_handler_id:
             auth_handler_id = self.resolve_handler().name
@@ -290,16 +289,28 @@ class Authorization:
         logger.debug("Beginning or continuing OAuth flow")
         async with self.open_flow(context, auth_handler_id) as flow:
             prev_tag = flow.flow_state.tag
-            flow_response: FlowResponse = await flow.begin_or_continue_flow(context.activity)
-        
+            flow_response: FlowResponse = await flow.begin_or_continue_flow(
+                context.activity
+            )
+
         flow_state: FlowState = flow_response.flow_state
 
-        if flow_state.tag == FlowStateTag.COMPLETE and prev_tag != FlowStateTag.COMPLETE:
+        if (
+            flow_state.tag == FlowStateTag.COMPLETE
+            and prev_tag != FlowStateTag.COMPLETE
+        ):
             logger.debug("Calling Authorization sign in success handler")
-            self._sign_in_success_handler(context, turn_state, flow_state.auth_handler_id)
+            self._sign_in_success_handler(
+                context, turn_state, flow_state.auth_handler_id
+            )
         elif flow_state.tag == FlowStateTag.FAILURE:
             logger.debug("Calling Authorization sign in failure handler")
-            self._sign_in_failure_handler(context, turn_state, flow_state.auth_handler_id, flow_response.flow_error_tag)
+            self._sign_in_failure_handler(
+                context,
+                turn_state,
+                flow_state.auth_handler_id,
+                flow_response.flow_error_tag,
+            )
 
         return flow_response
 
@@ -320,14 +331,14 @@ class Authorization:
 
         # Return the first handler if no ID specified
         return next(iter(self._auth_handlers.values()))
-    
+
     async def _sign_out(
         self,
         context: TurnContext,
         auth_handler_ids: Iterable[str],
     ) -> None:
         """Signs out from the specified auth handlers.
-        
+
         Args:
             context: The context object for the current turn.
             auth_handler_ids: Iterable of auth handler IDs to sign out from.

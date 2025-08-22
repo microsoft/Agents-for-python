@@ -6,6 +6,7 @@ from typing import Optional
 from ..storage import Storage
 from .flow_state import FlowState
 
+
 class DummyCache(Storage):
 
     async def read(self, keys: list[str], **kwargs) -> dict[str, FlowState]:
@@ -16,6 +17,7 @@ class DummyCache(Storage):
 
     async def delete(self, keys: list[str]) -> None:
         pass
+
 
 # this could be generalized. Ideas:
 # - CachedStorage class for two-tier storage
@@ -32,7 +34,7 @@ class FlowStorageClient:
         channel_id: str,
         user_id: str,
         storage: Storage,
-        cache_class: type[Storage] = None
+        cache_class: type[Storage] = None,
     ):
         """
         Args:
@@ -44,7 +46,9 @@ class FlowStorageClient:
         """
 
         if not user_id or not channel_id:
-            raise ValueError("FlowStorageClient.__init__(): channel_id and user_id must be set.")
+            raise ValueError(
+                "FlowStorageClient.__init__(): channel_id and user_id must be set."
+            )
 
         self._base_key = f"auth/{channel_id}/{user_id}/"
         self._storage = storage
