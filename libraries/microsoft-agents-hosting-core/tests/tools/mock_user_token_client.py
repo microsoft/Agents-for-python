@@ -30,12 +30,10 @@ AgentCallbackHandler = Callable[[TurnContext], Awaitable]
 class MockUserTokenClient(UserTokenClient):
     """A mock user token client for testing."""
 
-    def __init__(self, ...):
+    def __init__(self):
         self._store = {}
         self._exchange_store = {}
         self._throw_on_exchange = {}
-        self._user_token = mocker.Mock()
-        self._agent_sign_in = mocker.Mock()
 
     def add_user_token(
         self,

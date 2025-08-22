@@ -113,7 +113,7 @@ class OAuthFlow:
             )
         if token_response:
             self._flow_state.user_token = token_response.token
-            self._flow_state.expiration = token_response.expiration
+            self._flow_state.expiration = token_response.expiration_timestamp
         return token_response
     
     async def sign_out(self) -> None:
@@ -244,7 +244,7 @@ class OAuthFlow:
             self._use_attempt()
         else:
             self._flow_state.tag = FlowStateTag.COMPLETE
-            self._flow_state.expiration = token_response.expiration
+            self._flow_state.expiration = token_response.expiration_timestamp
             self._flow_state.user_token = token_response.token
 
         return FlowResponse(

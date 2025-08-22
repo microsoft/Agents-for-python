@@ -275,7 +275,7 @@ class TestAuthorization(TestAuthorizationUtils):
 
         # verify
         actual_flow_state = await flow_storage_client.read(auth_handler_id)
-        expected_flow_state.expires_at = res_flow_state.expires_at # we won't check this for now
+        expected_flow_state.expiration = res_flow_state.expiration # we won't check this for now
 
         assert res_flow_state == expected_flow_state
         assert actual_flow_state == expected_flow_state
@@ -310,7 +310,7 @@ class TestAuthorization(TestAuthorizationUtils):
 
         # verify
         actual_flow_state = await flow_storage_client.read(auth_handler_id)
-        expected_flow_state.expires_at = actual_flow_state.expires_at # we won't check this for now
+        expected_flow_state.expiration = actual_flow_state.expiration # we won't check this for now
 
         assert flow_response.flow_error_tag == FlowErrorTag.MAGIC_FORMAT
         assert res_flow_state == expected_flow_state
@@ -344,7 +344,7 @@ class TestAuthorization(TestAuthorizationUtils):
 
         # verify
         actual_flow_state = await flow_storage_client.read(auth_handler_id)
-        expected_flow_state.expires_at = actual_flow_state.expires_at # we won't check this for now
+        expected_flow_state.expiration = actual_flow_state.expiration # we won't check this for now
         assert actual_flow_state == expected_flow_state
 
     @pytest.mark.asyncio
@@ -462,6 +462,30 @@ class TestAuthorization(TestAuthorizationUtils):
         flow_response = await auth.begin_or_continue_flow(context, None, "github")
         assert context.dummy_val == "github"
         assert flow_response.token_response == TokenResponse(token="token")
+
+    @pytest.mark.asyncio
+    async def test_begin_or_continue_flow_already_completed(
+        self,
+        mocker,
+        auth
+    ):
+        # robrandao: TODO -> lower priority -> more testing here
+        # setup
+        context = self.create_context(mocker, "webchat", "Alice")
+
+        context.dummy_val = None
+        def on_sign_in_success(context, turn_state, auth_handler_id):
+            context.dummy_val = auth_handler_id
+        def on_sign_in_failure(context, turn_state, auth_handler_id, err):
+            context.dummy_val = str(err)
+
+        # test
+        auth.on_sign_in_success(on_sign_in_success)
+        auth.on_sign_in_failure(on_sign_in_failure)
+        flow_response = await auth.begin_or_continue_flow(context, None, "graph")
+        assert context.dummy_val == None
+        assert flow_response.token_response == TokenResponse(token="test_token")
+        assert flow_response.continuation_activity is None
 
     @pytest.mark.asyncio
     async def test_begin_or_continue_flow_failure(

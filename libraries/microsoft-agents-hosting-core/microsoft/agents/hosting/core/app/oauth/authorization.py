@@ -311,7 +311,7 @@ class Authorization:
 
         logger.debug("Beginning or continuing OAuth flow")
         async with self.open_flow(context, auth_handler_id) as flow:
-            prev_tag = flow.flow_state.state_tag
+            prev_tag = flow.flow_state.tag
             flow_response: FlowResponse = await flow.begin_or_continue_flow(context.activity)
         
         flow_state: FlowState = flow_response.flow_state
