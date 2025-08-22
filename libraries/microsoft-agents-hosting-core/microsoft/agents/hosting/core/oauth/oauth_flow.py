@@ -80,7 +80,7 @@ class OAuthFlow:
 
         self._user_token_client = user_token_client
 
-        self._default_flow_duration = kwargs.get("default_flow_duration", 10 * 60 * 1000) # default to 10 minutes
+        self._default_flow_duration = kwargs.get("default_flow_duration", 10 * 60) # default to 10 minutes
         self._max_attempts = kwargs.get("max_attempts", 3) # defaults to 3 max attempts
 
         logger.debug("OAuthFlow initialized with connection: %s, ms_app_id: %s, channel_id: %s, user_id: %s",
