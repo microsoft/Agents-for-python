@@ -76,10 +76,10 @@ class Authorization:
         self._auth_handlers = auth_handlers or {}
         self._sign_in_success_handler: Optional[
             Callable[[TurnContext, TurnState, Optional[str]], Awaitable[None]]
-        ] = None
+        ] = lambda *args: None
         self._sign_in_failure_handler: Optional[
             Callable[[TurnContext, TurnState, Optional[str]], Awaitable[None]]
-        ] = None
+        ] = lambda *args: None
 
         self._cache = None
         if use_cache:
@@ -134,11 +134,6 @@ class Authorization:
         flow_state: FlowState = await flow_storage_client.read(auth_handler_id)
 
         if not flow_state:
-            # breakpoint()
-            # print("\n"*3)
-            # print(channel_id, user_id, auth_handler_id, auth_handler.abs_oauth_connection_name, ms_app_id)
-            # print("\n"*3)
-            # breakpoint()
             logger.info("No existing flow state found, creating new flow state")
             flow_state = FlowState(
                 channel_id=channel_id,
@@ -166,6 +161,7 @@ class Authorization:
                 if not yet present in storage.
         """
         if not context:
+            logger.error("No context provided to open_flow")
             raise ValueError("context is required")
 
         flow, flow_storage_client = await self._load_flow(context, auth_handler_id)
@@ -212,6 +208,7 @@ class Authorization:
             token_response = await flow.get_user_token()
 
         if token_response and self._is_exchangeable(token_response.token):
+            logger.debug("Token is exchangeable, performing OBO flow")
             return await self._handle_obo(token_response.token, scopes, auth_handler_id)
 
         return TokenResponse()
@@ -244,7 +241,7 @@ class Authorization:
             aud = payload.get("aud")
             return isinstance(aud, str) and aud.startswith("api://")
         except Exception:
-            logger.exception("Failed to decode token to check audience")
+            logger.error("Failed to decode token to check audience")
             return False
 
     async def _handle_obo(
@@ -279,8 +276,8 @@ class Authorization:
 
     async def get_active_flow_state(self, context: TurnContext) -> Optional[FlowState]:
         """Gets the first active flow state for the current context."""
+        logger.debug("Getting active flow state")
         channel_id, user_id = self._ids_from_context(context)
-        # TODO -> single read
         flow_storage_client = FlowStorageClient(channel_id, user_id, self._storage)
         for auth_handler_id in self._auth_handlers.keys():
             flow_state = await flow_storage_client.read(auth_handler_id)
