@@ -63,3 +63,7 @@ class FlowState(BaseModel, StoreItem):
     
     def is_active(self) -> bool:
         return not self.is_expired() and not self.reached_max_attempts() and self.tag in [FlowStateTag.BEGIN, FlowStateTag.CONTINUE]
+    
+    def refresh(self):
+        if self.tag in [FlowStateTag.BEGIN, FlowStateTag.CONTINUE, FlowStateTag.COMPLETE] and self.is_expired():
+            self.tag = FlowStateTag.NOT_STARTED
