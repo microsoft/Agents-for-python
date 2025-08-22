@@ -133,7 +133,7 @@ class TestOAuthFlow(TestOAuthFlowUtils):
             user_id=USER_ID,
             connection_name=ABS_OAUTH_CONNECTION_NAME,
             channel_id=CHANNEL_ID,
-            # magic_code=None
+            code=None
         )
     
     @pytest.mark.asyncio
@@ -153,7 +153,7 @@ class TestOAuthFlow(TestOAuthFlowUtils):
             user_id=USER_ID,
             connection_name=ABS_OAUTH_CONNECTION_NAME,
             channel_id=CHANNEL_ID,
-            # magic_code=None
+            code=None
         )
 
     @pytest.mark.asyncio
@@ -199,9 +199,7 @@ class TestOAuthFlow(TestOAuthFlowUtils):
             user_id=USER_ID,
             connection_name=ABS_OAUTH_CONNECTION_NAME,
             channel_id=CHANNEL_ID,
-            # magic_code=None is an implementation detail, and ideally
-            # shouldn't be part of the test
-            # magic_code=None
+            code=None
         )
 
     @pytest.mark.asyncio
@@ -315,7 +313,7 @@ class TestOAuthFlow(TestOAuthFlowUtils):
             user_id=sample_active_flow_state.user_id,
             connection_name=sample_active_flow_state.connection,
             channel_id=sample_active_flow_state.channel_id,
-            magic_code="123456"
+            code="123456"
         )
 
     @pytest.mark.asyncio
@@ -327,7 +325,7 @@ class TestOAuthFlow(TestOAuthFlowUtils):
             user_id=sample_active_flow_state.user_id,
             connection_name=sample_active_flow_state.connection,
             channel_id=sample_active_flow_state.channel_id,
-            magic_code="123456"
+            code="123456"
         )
 
     @pytest.mark.asyncio
@@ -342,7 +340,7 @@ class TestOAuthFlow(TestOAuthFlowUtils):
             user_id=sample_active_flow_state.user_id,
             connection_name=sample_active_flow_state.connection,
             channel_id=sample_active_flow_state.channel_id,
-            magic_code="magic_code"
+            code="magic_code"
         )
 
     @pytest.mark.asyncio
@@ -355,7 +353,7 @@ class TestOAuthFlow(TestOAuthFlowUtils):
             user_id=sample_active_flow_state.user_id,
             connection_name=sample_active_flow_state.connection,
             channel_id=sample_active_flow_state.channel_id,
-            magic_code="magic_code"
+            code="magic_code"
         )
 
     @pytest.mark.asyncio
