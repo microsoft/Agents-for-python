@@ -1,8 +1,6 @@
 # Copyright (c) Microsoft Corporation. All rights reserved.
 # Licensed under the MIT License.
 
-from dateutil import parser
-
 from .agents_model import AgentsModel
 from ._type_aliases import NonEmptyString
 
@@ -25,12 +23,3 @@ class TokenResponse(AgentsModel):
     token: NonEmptyString = None
     expiration: NonEmptyString = None
     channel_id: NonEmptyString = None
-
-    def __bool__(self):
-        return bool(self.token)
-    
-    @property
-    def expiration_timestamp(self) -> float:
-        if not self.expiration:
-            return 0.0
-        return parser.isoparse(self.expiration).timestamp()
