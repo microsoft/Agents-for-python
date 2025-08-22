@@ -604,6 +604,7 @@ class AgentApplication(Agent, Generic[StateT]):
         return func
     
     async def _handle_flow_response(self, context: TurnContext, flow_response: FlowResponse) -> None:
+        """Handles CONTINUE and FAILURE flow responses, sending activities back."""
         flow_state: FlowState = flow_response.flow_state
         
         if flow_state.tag == FlowStateTag.BEGIN:
@@ -641,6 +642,7 @@ class AgentApplication(Agent, Generic[StateT]):
                 await context.send_activity("Sign-in failed. Please try again.")
 
     async def _on_turn_auth_intercept(self, context: TurnContext, turn_state: TurnState) -> bool:
+        """Intercepts the turn to check for active authentication flows."""
         logger.debug("Checking for active sign-in flow for context: %s with activity type %s", context.activity.id, context.activity.type)
         prev_flow_state = await self._auth.get_active_flow_state(context)
         if prev_flow_state:
@@ -652,6 +654,9 @@ class AgentApplication(Agent, Generic[StateT]):
                 "tag": prev_flow_state.tag,
                 "expiration": prev_flow_state.expiration,
             })
+        # proceed if there is an existing flow to continue
+        # new flows should be initiated in _on_activity
+        # this can be reorganized later... but it works for now
         if (prev_flow_state and
             (prev_flow_state.tag == FlowStateTag.NOT_STARTED or prev_flow_state.is_active())
             and context.activity.type in [ActivityTypes.message, ActivityTypes.invoke]):
