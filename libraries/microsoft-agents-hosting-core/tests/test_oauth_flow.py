@@ -120,7 +120,6 @@ class TestOAuthFlow(TestOAuthFlowUtils):
         flow = OAuthFlow(sample_flow_state, user_token_client)
         expected_final_flow_state = sample_flow_state
         expected_final_flow_state.user_token = RES_TOKEN
-        expected_final_flow_state.expiration = 0.0
 
         # test
         token_response = await flow.get_user_token()
@@ -128,6 +127,7 @@ class TestOAuthFlow(TestOAuthFlowUtils):
         
         # verify
         assert token == RES_TOKEN
+        expected_final_flow_state.expiration = flow.flow_state.expiration
         assert flow.flow_state == expected_final_flow_state
         user_token_client.user_token.get_token.assert_called_once_with(
             user_id=USER_ID,
@@ -182,13 +182,13 @@ class TestOAuthFlow(TestOAuthFlowUtils):
         activity = mocker.Mock(spec=Activity)
         expected_flow_state = sample_flow_state
         expected_flow_state.user_token = RES_TOKEN
-        expected_flow_state.expiration = 0.0
 
         # test
         response = await flow.begin_flow(activity)
 
         # verify
         flow_state = flow.flow_state
+        expected_flow_state.expiration = flow_state.expiration
         assert flow_state == expected_flow_state
 
         assert response.flow_state == flow_state
