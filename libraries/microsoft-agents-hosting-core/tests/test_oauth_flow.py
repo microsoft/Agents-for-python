@@ -141,7 +141,7 @@ class TestOAuthFlow(TestOAuthFlowUtils):
         # setup
         user_token_client = self.create_user_token_client(mocker, get_token_return=None)
         flow = OAuthFlow(sample_flow_state, user_token_client)
-        expected_final_flow_state = flow.flow_state # robrandao: TODO -> what happens if fails and has user_token?
+        expected_final_flow_state = flow.flow_state
 
         # test
         token_response = await flow.get_user_token()

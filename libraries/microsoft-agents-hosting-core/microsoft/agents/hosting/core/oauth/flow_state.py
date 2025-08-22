@@ -49,15 +49,7 @@ class FlowState(BaseModel, StoreItem):
     tag: FlowStateTag = FlowStateTag.NOT_STARTED
 
     def store_item_to_json(self) -> dict:
-        data = self.model_dump()
-        if self.continuation_activity:
-            omit_if_empty = {
-                k
-                for k, v in self.continuation_activity
-                if isinstance(v, list) and not v
-            }
-            data["continuation_activity"] = {k: v for k, v in self.continuation_activity if k not in omit_if_empty and v is not None}
-        return data
+        return self.model_dump(mode="json", exclude_unset=True, by_alias=True)
 
     @staticmethod
     def from_json_to_store_item(json_data: dict) -> "FlowState":

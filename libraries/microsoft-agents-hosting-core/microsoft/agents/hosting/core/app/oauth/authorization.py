@@ -99,7 +99,7 @@ class Authorization:
             self,
             context: TurnContext,
             auth_handler_id: str = ""
-        ) -> tuple[OAuthFlow, FlowStorageClient, FlowState]:
+        ) -> tuple[OAuthFlow, FlowStorageClient]:
         """Loads the OAuth flow for a specific auth handler.
 
         Args:
@@ -109,10 +109,7 @@ class Authorization:
         Returns:
             The OAuthFlow returned corresponds to the flow associated with the
             chosen handler, and the channel and user info found in the context.
-
-            The FlowStorageClient corresponds to the channel and user info.
-            The FlowState returned is the flow state for the given channel/user/handler
-            triple at the time of reading from storage and before creating the flow.
+            The FlowStorageClient corresponds to the same channel and user info.
         """
         user_token_client: UserTokenClient = context.turn_state.get(context.adapter.USER_TOKEN_CLIENT_KEY)
         
@@ -150,6 +147,7 @@ class Authorization:
         Args:
             context: The context object for the current turn.
             auth_handler_id: ID of the auth handler to use.
+                If none provided, uses the first handler.
 
         Yields:
             OAuthFlow:
@@ -173,7 +171,7 @@ class Authorization:
 
         Args:
             context: The context object for the current turn.
-  auth_handler_id: Optional ID of the auth handler to use, defaults to first handler.
+            auth_handler_id: Optional ID of the auth handler to use, defaults to first handler.
 
         Returns:
             The token response from the OAuth provider.
@@ -208,18 +206,6 @@ class Authorization:
             return await self._handle_obo(token_response.token, scopes, auth_handler_id)
 
         return TokenResponse()
-
-        # auth_handler = self.resolver_handler(auth_handler_id)
-        # if not auth_handler.flow:
-        #     logger.error("OAuth flow is not configured for the auth handler")
-        #     raise ValueError("OAuth flow is not configured for the auth handler")
-
-        # token_response = await auth_handler.flow.get_user_token(context)
-
-        # if self._is_exchangeable(token_response.token if token_response else None):
-        #     return await self._handle_obo(token_response.token, scopes, auth_handler_id)
-
-        # return token_response
 
     def _is_exchangeable(self, token: str) -> bool:
         """
@@ -287,12 +273,11 @@ class Authorization:
         turn_state: TurnState,
         auth_handler_id: str = "",
     ) -> FlowResponse:
-        """
-        Begins or continues an OAuth flow.
+        """Begins or continues an OAuth flow.
 
         Args:
             context: The context object for the current turn.
-            state: The state object for the current turn.
+            turn_state: The state object for the current turn.
             auth_handler_id: Optional ID of the auth handler to use, defaults to first handler.
 
         Returns:
@@ -319,8 +304,7 @@ class Authorization:
         return flow_response
 
     def resolve_handler(self, auth_handler_id: Optional[str] = None) -> AuthHandler:
-        """
-        Resolves the auth handler to use based on the provided ID.
+        """Resolves the auth handler to use based on the provided ID.
 
         Args:
             auth_handler_id: Optional ID of the auth handler to resolve, defaults to first handler.
@@ -346,7 +330,7 @@ class Authorization:
         
         Args:
             context: The context object for the current turn.
-            auth_handler_ids: List of auth handler IDs to sign out from.
+            auth_handler_ids: Iterable of auth handler IDs to sign out from.
 
         Deletes the associated flow states from storage.
         """

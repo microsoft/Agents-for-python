@@ -35,11 +35,12 @@ class FlowStorageClient:
         cache_class: type[Storage] = None
     ):
         """
-        Parameters
-            context: The TurnContext for the current conversation. Used to isolate
-                data across channels and users. This defines the prefix used to 
-                access storage.
-            storage: The Storage instance used to persist flow state data.
+        Args:
+            channel_id: used to create the prefix
+            user_id: used to create the prefix
+            storage: the backing storage
+            cache_class: the cache class to use (defaults to DummyCache, which performs no caching).
+                This cache's lifetime is tied to the FlowStorageClient instance.
         """
 
         if not user_id or not channel_id:
