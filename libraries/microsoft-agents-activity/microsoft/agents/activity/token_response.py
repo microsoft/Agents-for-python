@@ -23,3 +23,6 @@ class TokenResponse(AgentsModel):
     token: NonEmptyString = None
     expiration: NonEmptyString = None
     channel_id: NonEmptyString = None
+
+    def __bool__(self):
+        return bool(self.token)
