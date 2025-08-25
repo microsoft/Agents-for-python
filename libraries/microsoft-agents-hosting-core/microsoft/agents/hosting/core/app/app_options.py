@@ -9,7 +9,7 @@ from dataclasses import dataclass, field
 from logging import Logger
 from typing import Callable, List, Optional
 
-from microsoft.agents.hosting.core.app.oauth.authorization import AuthorizationHandlers
+from microsoft.agents.hosting.core.app.oauth import AuthHandler
 from microsoft.agents.hosting.core.storage import Storage
 
 # from .auth import AuthOptions
@@ -84,7 +84,7 @@ class ApplicationOptions:
     If not provided, the default `TurnState` will be used.
     """
 
-    authorization_handlers: Optional[AuthorizationHandlers] = None
+    authorization_handlers: Optional[dict[str, AuthHandler]] = None
     """
     Optional. Authorization handler for OAuth flows.
     If not provided, no OAuth flows will be supported.

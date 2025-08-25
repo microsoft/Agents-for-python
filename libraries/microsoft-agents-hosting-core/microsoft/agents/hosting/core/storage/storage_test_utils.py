@@ -129,6 +129,7 @@ class StorageBaseline(Storage):
         for key in self._key_history:
             if key not in self._memory:
                 if len(await other.read([key], target_cls=MockStoreItem)) > 0:
+                    breakpoint()
                     return False  # key should not exist in other
                 continue
 
@@ -138,6 +139,7 @@ class StorageBaseline(Storage):
             res = await other.read([key], target_cls=target_cls)
 
             if key not in res or item != res[key]:
+                breakpoint()
                 return False
         return True
 

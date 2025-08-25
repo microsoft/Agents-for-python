@@ -13,7 +13,7 @@ from microsoft.agents.hosting.core import (
     AuthHandler,
     Authorization,
     MemoryStorage,
-    oauth_flow,
+    OAuthFlow,
 )
 from typing import Dict, Union
 from microsoft.agents.hosting.core.authorization.agent_auth_configuration import (
@@ -207,6 +207,7 @@ class TestingAuthorization(Authorization):
             storage=storage,
             auth_handlers=auth_handlers,
             connection_manager=connection_manager,
+            service_url="a",
         )
 
         # Configure each auth handler with mock OAuth flow behavior
