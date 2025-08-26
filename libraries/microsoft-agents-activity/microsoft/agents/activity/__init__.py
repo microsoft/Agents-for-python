@@ -2,6 +2,7 @@ from .agents_model import AgentsModel
 from .action_types import ActionTypes
 from .activity import Activity
 from .activity_event_names import ActivityEventNames
+from .activity_treatment import ActivityTreatment, ActivityTreatmentType
 from .activity_types import ActivityTypes
 from .adaptive_card_invoke_action import AdaptiveCardInvokeAction
 from .adaptive_card_invoke_response import AdaptiveCardInvokeResponse
@@ -24,7 +25,7 @@ from .conversation_reference import ConversationReference
 from .conversation_resource_response import ConversationResourceResponse
 from .conversations_result import ConversationsResult
 from .expected_replies import ExpectedReplies
-from .entity import Entity
+from .entity import Entity, EntityTypes
 from .ai_entity import (
     AIEntity,
     ClientCitation,
