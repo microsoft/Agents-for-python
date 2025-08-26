@@ -1,6 +1,6 @@
 from os import environ
-from msagents.hosting.core import AgentApplication, AgentAuthConfiguration
-from msagents.hosting.aiohttp import (
+from microsoft.agents.hosting.core import AgentApplication, AgentAuthConfiguration
+from microsoft.agents.hosting.aiohttp import (
     start_agent_process,
     jwt_authorization_middleware,
     CloudAdapter,

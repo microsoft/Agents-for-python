@@ -3,7 +3,7 @@
 
 """Factory for creating task module responses."""
 
-from msagents.activity.teams import (
+from microsoft.agents.activity.teams import (
     TaskModuleResponse,
     TaskModuleTaskInfo,
     TaskModuleResponseBase,

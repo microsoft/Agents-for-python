@@ -4,14 +4,14 @@
 from dotenv import load_dotenv
 from aiohttp.web import Application, Request, Response, run_app
 
-from msagents.hosting.core import RestChannelServiceClientFactory
-from msagents.hosting.aiohttp import CloudAdapter, jwt_authorization_middleware
-from msagents.hosting.core.authorization import (
+from microsoft.agents.hosting.core import RestChannelServiceClientFactory
+from microsoft.agents.hosting.aiohttp import CloudAdapter, jwt_authorization_middleware
+from microsoft.agents.hosting.core.authorization import (
     Connections,
     AccessTokenProviderBase,
     ClaimsIdentity,
 )
-from msagents.authentication.msal import MsalAuth
+from microsoft.agents.authentication.msal import MsalAuth
 from openai import AsyncAzureOpenAI
 
 from weather_agent import WeatherAgent

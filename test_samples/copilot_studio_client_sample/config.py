@@ -1,7 +1,7 @@
 from os import environ
 from typing import Optional
 
-from msagents.copilotstudio.client import (
+from microsoft.agents.copilotstudio.client import (
     ConnectionSettings,
     PowerPlatformCloud,
     AgentType,

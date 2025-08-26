@@ -6,10 +6,10 @@ from os import environ, path
 from dotenv import load_dotenv
 from aiohttp.web import Application, Request, Response, run_app
 
-from msagents.activity import load_configuration_from_env
-from msagents.authentication.msal import MsalConnectionManager
-from msagents.hosting.aiohttp import CloudAdapter, jwt_authorization_decorator
-from msagents.hosting.core import Authorization, MemoryStorage, UserState
+from microsoft.agents.activity import load_configuration_from_env
+from microsoft.agents.authentication.msal import MsalConnectionManager
+from microsoft.agents.hosting.aiohttp import CloudAdapter, jwt_authorization_decorator
+from microsoft.agents.hosting.core import Authorization, MemoryStorage, UserState
 
 from teams_handler import TeamsHandler
 from teams_sso import TeamsSso

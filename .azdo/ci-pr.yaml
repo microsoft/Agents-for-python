@@ -57,14 +57,14 @@ steps:
   displayName: 'Set Version and Build packages'
 
 - script: |
-    python -m pip install ./dist/msagents_activity*.whl
-    python -m pip install ./dist/msagents_hosting_core*.whl
-    python -m pip install ./dist/msagents_authentication_msal*.whl
-    python -m pip install ./dist/msagents_copilotstudio_client*.whl
-    python -m pip install ./dist/msagents_hosting_aiohttp*.whl
-    python -m pip install ./dist/msagents_hosting_teams*.whl
-    python -m pip install ./dist/msagents_storage_blob*.whl
-    python -m pip install ./dist/msagents_storage_cosmos*.whl
+    python -m pip install ./dist/microsoft_agents_activity*.whl
+    python -m pip install ./dist/microsoft_agents_hosting_core*.whl
+    python -m pip install ./dist/microsoft_agents_authentication_msal*.whl
+    python -m pip install ./dist/microsoft_agents_copilotstudio_client*.whl
+    python -m pip install ./dist/microsoft_agents_hosting_aiohttp*.whl
+    python -m pip install ./dist/microsoft_agents_hosting_teams*.whl
+    python -m pip install ./dist/microsoft_agents_storage_blob*.whl
+    python -m pip install ./dist/microsoft_agents_storage_cosmos*.whl
   displayName: 'Install wheels'
 
 - script: |
