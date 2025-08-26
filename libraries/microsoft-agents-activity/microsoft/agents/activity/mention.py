@@ -1,5 +1,5 @@
 from .channel_account import ChannelAccount
-from .entity import Entity
+from .entity import Entity, EntityTypes
 from ._type_aliases import NonEmptyString
 
 
@@ -16,4 +16,4 @@ class Mention(Entity):
 
     mentioned: ChannelAccount = None
     text: NonEmptyString = None
-    type: NonEmptyString = None
+    type: NonEmptyString = EntityTypes.MENTION

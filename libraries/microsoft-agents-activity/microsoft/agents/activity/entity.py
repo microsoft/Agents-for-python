@@ -1,9 +1,24 @@
+from __future__ import annotations
+
 from typing import Any, Optional
 
 from pydantic import model_serializer, model_validator
 from .agents_model import AgentsModel, ConfigDict
 from pydantic.alias_generators import to_camel, to_snake
 from ._type_aliases import NonEmptyString
+
+from enum import Enum
+
+
+class EntityTypes:
+
+    MENTION = "mention"
+    ACTIVITY_TREATMENT = "activitytreatment"
+
+    # ENTITY_MAP = {
+    #     EntityTypes.MENTION: Mention,
+    #     EntityTypes.ACTIVITY_TREATMENT: ActivityTreatment,
+    # }
 
 
 class Entity(AgentsModel):
@@ -36,3 +51,7 @@ class Entity(AgentsModel):
                 new_data[to_camel(k)] = v
             return new_data
         return {k: v for k, v in self}
+
+    # @classmethod
+    # def deserialize_entity(cls, entity: Entity) -> Entity:
+    #     return EntityTypes.ENTITY_MAP[entity.type](entity.model_dump())

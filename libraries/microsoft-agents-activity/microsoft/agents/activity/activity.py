@@ -3,6 +3,7 @@ from datetime import datetime, timezone
 from typing import Optional
 from pydantic import Field, SerializeAsAny
 from .activity_types import ActivityTypes
+from .activity_treatment import ActivityTreatment
 from .channel_account import ChannelAccount
 from .conversation_account import ConversationAccount
 from .mention import Mention
@@ -532,8 +533,15 @@ class Activity(AgentsModel):
             This method is defined on the :class:`Activity` class, but is only intended for use with a message activity,
             where the activity Activity.Type is set to ActivityTypes.Message.
         """
-        _list = self.entities
-        return [x for x in _list if str(x.type).lower() == "mention"]
+        return [x for x in self.entities if str(x.type).lower() == "mention"]
+
+    def get_activity_treatments(self) -> list[ActivityTreatment]:
+        """
+        Resolves the activity treatments from the entities of this activity.
+
+        :returns: The array of activity treatments; or an empty array, if none are found.
+        """
+        return [x for x in self.entities if str(x.type).lower() == "activitytreatment"]
 
     def get_reply_conversation_reference(
         self, reply: ResourceResponse
