@@ -36,7 +36,7 @@ class CloudAdapter(ChannelServiceAdapter, AgentHttpAdapter):
     def __init__(
         self,
         *,
-        connection_manager: Connections,
+        connection_manager: Connections = None,
         channel_service_client_factory: ChannelServiceClientFactoryBase = None,
     ):
         """

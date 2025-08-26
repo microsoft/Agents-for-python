@@ -22,7 +22,7 @@ async def jwt_authorization_middleware(request: Request, handler):
             print(f"JWT validation error: {e}")
             return json_response({"error": str(e)}, status=401)
     else:
-        if not auth_config.CLIENT_ID:
+        if not auth_config or not auth_config.CLIENT_ID:
             # TODO: Refine anonymous strategy
             request["claims_identity"] = token_validator.get_anonymous_claims()
         else:

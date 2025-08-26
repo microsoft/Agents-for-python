@@ -27,6 +27,6 @@ class ConnectionSettings(DirectToEngineConnectionSettingsProtocol):
         if not self.agent_identifier:
             raise ValueError("Agent Identifier must be provided")
 
-        self.cloud = cloud or PowerPlatformCloud.UNKNOWN
+        self.cloud = cloud or PowerPlatformCloud.PROD
         self.copilot_agent_type = copilot_agent_type or AgentType.PUBLISHED
         self.custom_power_platform_cloud = custom_power_platform_cloud

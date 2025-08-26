@@ -1,5 +1,5 @@
 from typing import Dict, List, Optional
-from microsoft.agents.hosting.core.authorization import (
+from microsoft.agents.hosting.core import (
     AgentAuthConfiguration,
     AccessTokenProviderBase,
     ClaimsIdentity,

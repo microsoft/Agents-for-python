@@ -80,9 +80,18 @@ class MsalAuth(AccessTokenProviderBase):
             )
         elif isinstance(msal_auth_client, ConfidentialClientApplication):
             # TODO: Handling token error / acquisition failed
-            return msal_auth_client.acquire_token_on_behalf_of(
+
+            token = msal_auth_client.acquire_token_on_behalf_of(
                 user_assertion=user_assertion, scopes=scopes
-            )["access_token"]
+            )
+
+            if "access_token" not in token:
+                logger.error(
+                    f"Failed to acquire token on behalf of user: {user_assertion}"
+                )
+                raise ValueError(f"Failed to acquire token. {str(token)}")
+
+            return token["access_token"]
 
         logger.error(
             f"On-behalf-of flow is not supported with the current authentication type: {msal_auth_client.__class__.__name__}"
