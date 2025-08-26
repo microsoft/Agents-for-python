@@ -5,14 +5,13 @@ param botName string
 
 @allowed([
   'aadv2'
-  'none'
 ])
 param oauthType string = 'aadv2' // for later
-var appName = '${botName}-app'
+var appName = '${botName}-oauth-app'
 
 // for when creating a brand new app registration
 // we need to be able to access the app ID
-resource appRegistrationBase 'Microsoft.Graph/applications@v1.0' = if (oauthType == 'none') {
+resource appRegistrationBase 'Microsoft.Graph/applications@v1.0' = {
   displayName: appName
   uniqueName: appName
   signInAudience: 'AzureADMyOrg'
@@ -36,7 +35,7 @@ resource appRegistrationBase 'Microsoft.Graph/applications@v1.0' = if (oauthType
       'http://localhost'
       'msal79e090f7-bb8e-4b24-b966-1e88178962c6://auth'
       'https://login.live.com/oauth20_desktop.srf'
-      'https://login.microsoftonline.com/common/oauth2/nativeclient'
+      '${environment().authentication.loginEndpoint}common/oauth2/nativeclient'
     ]
   }
   isFallbackPublicClient: true // idk what this does
@@ -124,6 +123,7 @@ resource appRegistration 'Microsoft.Graph/applications@v1.0' = {
   uniqueName: appName
   signInAudience: appRegistrationBase.signInAudience
   web: appRegistrationBase.web
+  publicClient: appRegistrationBase.publicClient
   isFallbackPublicClient: appRegistrationBase.isFallbackPublicClient
   api: appRegistrationBase.api
   requiredResourceAccess: appRegistrationBase.requiredResourceAccess

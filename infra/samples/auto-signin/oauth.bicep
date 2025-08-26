@@ -22,7 +22,7 @@ module azureBot '../../bicep/bot.bicep' = {
 resource graphConnectionSettingsAadv2 'microsoft.botService/botServices/connections@2023-09-15-preview' = {
   dependsOn: [azureBot]
   location: location
-  name: 'graph-oauth'
+  name: '${botName}/graph-oauth'
   properties: {
     name: 'graph-oauth'
     serviceProviderDisplayName: 'Azure Active Directory v2'
@@ -42,11 +42,11 @@ resource graphConnectionSettingsAadv2 'microsoft.botService/botServices/connecti
 resource githubConnectionSettingsAadv2 'microsoft.botService/botServices/connections@2023-09-15-preview' = {
   dependsOn: [azureBot]
   location: location
-  name: 'github-oauth'
+  name: '${botName}/github-oauth'
   properties: {
     name: 'github-oauth'
     serviceProviderDisplayName: 'GitHub'
-    serviceProviderId: '30dd229c-58e3-4a48-bdfd-91ec48eb906c'
+    serviceProviderId: 'd05eaacf-1593-4603-9c6c-d4d8fffa46cb'
     clientId: '' // manually set
     scopes: 'user repo'
   }

@@ -1,19 +1,16 @@
 [CmdletBinding()]
 param(
-    # [Parameter(Mandatory=$true)]
+    [Parameter(Mandatory=$true)]
     [Alias('g')]
-    [string]$RESOURCE_GROUP='robrandao-resource',
+    [string]$RESOURCE_GROUP,
 
-    # [Parameter(Mandatory=$true)]
+    [Parameter(Mandatory=$true)]
     [Alias('n')]
-    [string]$BOT_NAME='rob-p-quickstart',
+    [string]$BOT_NAME,
 
-    # [Parameter(Mandatory=$true)]
+    [Parameter(Mandatory=$true)]
     [Alias('e')]
-    [string]$ENDPOINT='https://nxlf1rdl-3978.usw2.devtunnels.ms/api/messages',
-
-    [ValidateSet('clientsecret')]
-    [string]$AUTH_TYPE = 'clientsecret',
+    [string]$ENDPOINT,
 
     [Alias('l')]
     [string]$LOCATION = 'global',
@@ -22,7 +19,7 @@ param(
     [string]$DEPLOYMENT_NAME = 'agent-deployment'
 )
 
-$appId = az deployment group create -g $RESOURCE_GROUP -n $DEPLOYMENT_NAME --template-file ../../bicep/simple_app_registration.bicep `
+$appId = az deployment group create -g $RESOURCE_GROUP -n $DEPLOYMENT_NAME --template-file ../../bicep/simple_app.bicep `
     --parameter botName=$BOT_NAME `
     --query properties.outputs.appId.value --output tsv
 

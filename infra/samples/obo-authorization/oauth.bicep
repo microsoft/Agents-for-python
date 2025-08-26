@@ -35,7 +35,7 @@ module azureBot '../../bicep/bot.bicep' = {
 resource oauthConnection 'microsoft.botService/botServices/connections@2023-09-15-preview' = if (oauthAppId != appId) {
   dependsOn: [azureBot]
   location: location
-  name: oauthConnectionName
+  name: '${botName}/${oauthConnectionName}'
   properties: {
     name: oauthConnectionName
     serviceProviderDisplayName:'Azure Active Directory v2'

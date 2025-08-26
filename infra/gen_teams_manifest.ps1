@@ -75,5 +75,6 @@ $jsonContent = @'
 
 $jsonContent = $jsonContent.Replace('${APP_ID}', $APP_ID)
 
+Write-Output 'Saving generated JSON content to bot/manifest.json...'
 # Save the JSON content to a file
 $jsonContent | Set-Content -Path "bot/manifest.json"

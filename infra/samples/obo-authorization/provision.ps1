@@ -12,9 +12,6 @@ param(
     [Alias('e')]
     [string]$ENDPOINT,
 
-    [ValidateSet('secret', 'fic')]
-    [string]$AUTH_TYPE,
-
     [ValidateSet('aadv2', 'none')]
     [string]$OAUTH_TYPE = 'aadv2',
 
@@ -22,21 +19,19 @@ param(
     [string]$LOCATION = 'global',
 
     [Alias('d')]
-    [string]$DEPLOYMENT_NAME = 'agent-deployment',
-
-    [string]$USE_TEAMS = 'false'
+    [string]$DEPLOYMENT_NAME = 'agent-deployment'
 )
 
-$appId = ./provision_app.ps1 -g $RESOURCE_GROUP -n $BOT_NAME -e $ENDPOINT -d $DEPLOYMENT_NAME 
+$appId = ./prov_app.ps1 -g $RESOURCE_GROUP -n $BOT_NAME -d $DEPLOYMENT_NAME 
 
-$oauthAppId = ./provision_oauth_app.ps1 `
+$oauthAppId = ./prov_oauth_app.ps1 `
     -g $RESOURCE_GROUP `
     -d $DEPLOYMENT_NAME `
     -n $BOT_NAME `
     -e $ENDPOINT `
     -OAUTH_TYPE $OAUTH_TYPE
 
-./provision_bot.ps1 `
+./prov_bot.ps1 `
     -g $RESOURCE_GROUP `
     -n $BOT_NAME `
     -e $ENDPOINT `

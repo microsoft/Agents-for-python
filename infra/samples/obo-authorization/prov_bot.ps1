@@ -15,7 +15,7 @@ param(
     [Alias('l')]
     [string]$LOCATION = 'global',
 
-    [ValidateSet('aadv2', 'none')]
+    [ValidateSet('aadv2')]
     [string]$OAUTH_TYPE = 'aadv2',
 
     [Alias('d')]
@@ -33,7 +33,6 @@ az deployment group create -g $RESOURCE_GROUP -n $DEPLOYMENT_NAME --template-fil
     --parameter location=$LOCATION `
     --parameter botName=$BOT_NAME `
     --parameter appId=$APP_ID `
-    --parameter oauthType=$OAUTH_TYPE
 
 az deployment group create -g $RESOURCE_GROUP -n $DEPLOYMENT_NAME --template-file ./oauth.bicep `
     --parameter botName=$BOT_NAME `
