@@ -11,9 +11,7 @@ from microsoft_agents.hosting.aiohttp import CloudAdapter
 
 from shared import start_server
 
-AGENT_APP = AgentApplication[TurnState](
-    storage=MemoryStorage(), adapter=CloudAdapter()
-)
+AGENT_APP = AgentApplication[TurnState](storage=MemoryStorage(), adapter=CloudAdapter())
 
 
 async def _help(context: TurnContext, _state: TurnState):
