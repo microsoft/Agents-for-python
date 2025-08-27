@@ -7,7 +7,7 @@ class Mention(Entity):
     """Mention information (entity type: "mention").
 
     :param mentioned: The mentioned user
-    :type mentioned: ~microsoft_agents.protocols.models.ChannelAccount
+    :type mentioned: ~microsoft_agents.activity.ChannelAccount
     :param text: Sub Text which represents the mention (can be null or empty)
     :type text: str
     :param type: Type of this entity (RFC 3987 IRI)

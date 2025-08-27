@@ -11,7 +11,7 @@ class AttachmentInfo(AgentsModel):
     :param type: ContentType of the attachment
     :type type: str
     :param views: attachment views
-    :type views: list[~microsoft_agents.protocols.models.AttachmentView]
+    :type views: list[~microsoft_agents.activity.AttachmentView]
     """
 
     name: NonEmptyString = None

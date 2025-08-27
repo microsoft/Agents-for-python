@@ -34,7 +34,7 @@ class ActivityHandler(Agent):
     ):  # pylint: disable=arguments-differ
         """
         Called by the adapter (for example, :class:`ChannelAdapter`) at runtime
-        in order to process an inbound :class:`hosting.schema.Activity`.
+        in order to process an inbound :class:`microsoft_agents.activity.Activity`.
 
         :param turn_context: The context object for this turn
         :type turn_context: :class:`microsoft_agents.builder.TurnContext`

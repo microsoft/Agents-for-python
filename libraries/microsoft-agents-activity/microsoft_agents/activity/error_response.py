@@ -6,7 +6,7 @@ class ErrorResponse(AgentsModel):
     """An HTTP API response.
 
     :param error: Error message
-    :type error: ~microsoft_agents.protocols.models.Error
+    :type error: ~microsoft_agents.activity.Error
     """
 
     error: Error = None

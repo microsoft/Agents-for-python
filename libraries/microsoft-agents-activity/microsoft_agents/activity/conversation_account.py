@@ -21,7 +21,7 @@ class ConversationAccount(AgentsModel):
      Directory (AAD)
     :type aad_object_id: str
     :param role: Role of the entity behind the account
-    :type role: str or ~microsoft_agents.protocols.models.RoleTypes
+    :type role: str or ~microsoft_agents.activity.RoleTypes
     :param tenant_id: This conversation's tenant ID
     :type tenant_id: str
     :param properties: This conversation's properties
