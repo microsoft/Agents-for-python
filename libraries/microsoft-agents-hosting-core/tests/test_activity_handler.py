@@ -1,7 +1,7 @@
 import pytest
 from unittest.mock import AsyncMock
-from microsoft.agents.hosting.core import ActivityHandler, TurnContext
-from microsoft.agents.activity import (
+from microsoft_agents.hosting.core import ActivityHandler, TurnContext
+from microsoft_agents.activity import (
     ActivityTypes,
     ChannelAccount,
     MessageReaction,

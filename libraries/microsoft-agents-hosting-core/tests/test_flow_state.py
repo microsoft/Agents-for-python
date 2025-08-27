@@ -2,7 +2,7 @@ from datetime import datetime
 
 import pytest
 
-from microsoft.agents.hosting.core.oauth.flow_state import FlowState, FlowStateTag
+from microsoft_agents.hosting.core.oauth.flow_state import FlowState, FlowStateTag
 
 
 class TestFlowState:

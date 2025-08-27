@@ -10,16 +10,16 @@ import pytest
 from typing import Type
 from unittest.mock import AsyncMock, MagicMock
 
-from microsoft.agents.hosting.core.state.agent_state import (
+from microsoft_agents.hosting.core.state.agent_state import (
     AgentState,
     CachedAgentState,
     BotStatePropertyAccessor,
 )
-from microsoft.agents.hosting.core.state.user_state import UserState
-from microsoft.agents.hosting.core.app.state.conversation_state import ConversationState
-from microsoft.agents.hosting.core.turn_context import TurnContext
-from microsoft.agents.hosting.core.storage import Storage, StoreItem, MemoryStorage
-from microsoft.agents.activity import (
+from microsoft_agents.hosting.core.state.user_state import UserState
+from microsoft_agents.hosting.core.app.state.conversation_state import ConversationState
+from microsoft_agents.hosting.core.turn_context import TurnContext
+from microsoft_agents.hosting.core.storage import Storage, StoreItem, MemoryStorage
+from microsoft_agents.activity import (
     Activity,
     ActivityTypes,
     ChannelAccount,

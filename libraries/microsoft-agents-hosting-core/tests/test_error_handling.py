@@ -1,5 +1,5 @@
 import pytest
-from microsoft.agents.hosting.core.storage.error_handling import (
+from microsoft_agents.hosting.core.storage.error_handling import (
     ignore_error,
     is_status_code_error,
 )
