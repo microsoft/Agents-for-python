@@ -7,7 +7,7 @@ class Transcript(AgentsModel):
 
     :param activities: A collection of Activities that conforms to the
      Transcript schema.
-    :type activities: list[~microsoft_agents.protocols.models.Activity]
+    :type activities: list[~microsoft_agents.activity.Activity]
     """
 
     activities: list[Activity] = None

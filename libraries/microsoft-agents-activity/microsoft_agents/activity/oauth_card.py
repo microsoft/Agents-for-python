@@ -14,7 +14,7 @@ class OAuthCard(AgentsModel):
     :param connection_name: The name of the registered connection
     :type connection_name: str
     :param buttons: Action to use to perform signin
-    :type buttons: list[~microsoft_agents.protocols.models.CardAction]
+    :type buttons: list[~microsoft_agents.activity.CardAction]
     """
 
     text: NonEmptyString = None

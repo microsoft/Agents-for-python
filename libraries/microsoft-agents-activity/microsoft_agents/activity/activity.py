@@ -27,7 +27,7 @@ class Activity(AgentsModel):
         'endOfConversation', 'event', 'invoke', 'deleteUserData', 'messageUpdate',
         'messageDelete', 'installationUpdate', 'messageReaction', 'suggestion',
         'trace', 'handoff'
-    :type type: str or ~microsoft_agents.protocols.models.ActivityTypes
+    :type type: str or ~microsoft_agents.activity.ActivityTypes
     :param id: Contains an ID that uniquely identifies the activity on the channel.
     :type id: str
     :param timestamp: Contains the date and time that the message was sent, in UTC, expressed in ISO-8601 format.
@@ -43,23 +43,23 @@ class Activity(AgentsModel):
     :param channel_id: Contains an ID that uniquely identifies the channel. Set by the channel.
     :type channel_id: str
     :param from_property: Identifies the sender of the message.
-    :type from_property: ~microsoft_agents.protocols.models.ChannelAccount
+    :type from_property: ~microsoft_agents.activity.ChannelAccount
     :param conversation: Identifies the conversation to which the activity belongs.
-    :type conversation: ~microsoft_agents.protocols.models.ConversationAccount
+    :type conversation: ~microsoft_agents.activity.ConversationAccount
     :param recipient: Identifies the recipient of the message.
-    :type recipient: ~microsoft_agents.protocols.models.ChannelAccount
+    :type recipient: ~microsoft_agents.activity.ChannelAccount
     :param text_format: Format of text fields Default:markdown. Possible values include: 'markdown', 'plain', 'xml'
-    :type text_format: str or ~microsoft_agents.protocols.models.TextFormatTypes
+    :type text_format: str or ~microsoft_agents.activity.TextFormatTypes
     :param attachment_layout: The layout hint for multiple attachments. Default: list. Possible values include: 'list', 'carousel'
-    :type attachment_layout: str or ~microsoft_agents.protocols.models.AttachmentLayoutTypes
+    :type attachment_layout: str or ~microsoft_agents.activity.AttachmentLayoutTypes
     :param members_added: The collection of members added to the conversation.
-    :type members_added: list[~microsoft_agents.protocols.models.ChannelAccount]
+    :type members_added: list[~microsoft_agents.activity.ChannelAccount]
     :param members_removed: The collection of members removed from the conversation.
-    :type members_removed: list[~microsoft_agents.protocols.models.ChannelAccount]
+    :type members_removed: list[~microsoft_agents.activity.ChannelAccount]
     :param reactions_added: The collection of reactions added to the conversation.
-    :type reactions_added: list[~microsoft_agents.protocols.models.MessageReaction]
+    :type reactions_added: list[~microsoft_agents.activity.MessageReaction]
     :param reactions_removed: The collection of reactions removed from the conversation.
-    :type reactions_removed: list[~microsoft_agents.protocols.models.MessageReaction]
+    :type reactions_removed: list[~microsoft_agents.activity.MessageReaction]
     :param topic_name: The updated topic name of the conversation.
     :type topic_name: str
     :param history_disclosed: Indicates whether the prior history of the channel is disclosed.
@@ -74,15 +74,15 @@ class Activity(AgentsModel):
     :type speak: str
     :param input_hint: Indicates whether your agent is accepting, expecting, or ignoring user input after the message is delivered to the client.
         Possible values include: 'acceptingInput', 'ignoringInput', 'expectingInput'
-    :type input_hint: str or ~microsoft_agents.protocols.models.InputHints
+    :type input_hint: str or ~microsoft_agents.activity.InputHints
     :param summary: The text to display if the channel cannot render cards.
     :type summary: str
     :param suggested_actions: The suggested actions for the activity.
-    :type suggested_actions: ~microsoft_agents.protocols.models.SuggestedActions
+    :type suggested_actions: ~microsoft_agents.activity.SuggestedActions
     :param attachments: Attachments
-    :type attachments: list[~microsoft_agents.protocols.models.Attachment]
+    :type attachments: list[~microsoft_agents.activity.Attachment]
     :param entities: Represents the entities that were mentioned in the message.
-    :type entities: list[~microsoft_agents.protocols.models.Entity]
+    :type entities: list[~microsoft_agents.activity.Entity]
     :param channel_data: Contains channel-specific content.
     :type channel_data: object
     :param action: Indicates whether the recipient of a contactRelationUpdate was added or removed from the sender's contact list.
@@ -98,23 +98,23 @@ class Activity(AgentsModel):
     :param name: The name of the operation associated with an invoke or event activity.
     :type name: str
     :param relates_to: A reference to another conversation or activity.
-    :type relates_to: ~microsoft_agents.protocols.models.ConversationReference
+    :type relates_to: ~microsoft_agents.activity.ConversationReference
     :param code: The a code for endOfConversation activities that indicates why the conversation ended. Possible values include: 'unknown',
         'completedSuccessfully', 'userCancelled', 'botTimedOut', 'botIssuedInvalidMessage', 'channelFailed'
-    :type code: str or ~microsoft_agents.protocols.models.EndOfConversationCodes
+    :type code: str or ~microsoft_agents.activity.EndOfConversationCodes
     :param expiration: The time at which the activity should be considered to be "expired" and should not be presented to the recipient.
     :type expiration: datetime
     :param importance: The importance of the activity. Possible values include: 'low', 'normal', 'high'
-    :type importance: str or ~microsoft_agents.protocols.models.ActivityImportance
+    :type importance: str or ~microsoft_agents.activity.ActivityImportance
     :param delivery_mode: A delivery hint to signal to the recipient alternate delivery paths for the activity.
         The default delivery mode is "default". Possible values include: 'normal', 'notification', 'expectReplies', 'ephemeral'
-    :type delivery_mode: str or ~microsoft_agents.protocols.models.DeliveryModes
+    :type delivery_mode: str or ~microsoft_agents.activity.DeliveryModes
     :param listen_for: List of phrases and references that speech and language priming systems should listen for
     :type listen_for: list[str]
     :param text_highlights: The collection of text fragments to highlight when the activity contains a ReplyToId value.
-    :type text_highlights: list[~microsoft_agents.protocols.models.TextHighlight]
+    :type text_highlights: list[~microsoft_agents.activity.TextHighlight]
     :param semantic_action: An optional programmatic action accompanying this request
-    :type semantic_action: ~microsoft_agents.protocols.models.SemanticAction
+    :type semantic_action: ~microsoft_agents.activity.SemanticAction
     :param caller_id: A string containing an IRI identifying the caller of an agent. This field is not intended to be transmitted over the wire,
         but is instead populated by agents and clients based on cryptographically verifiable data that asserts the identity of the callers (e.g. tokens).
     :type caller_id: str

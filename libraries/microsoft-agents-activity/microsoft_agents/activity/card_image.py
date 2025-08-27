@@ -11,7 +11,7 @@ class CardImage(AgentsModel):
     :param alt: Image description intended for screen readers
     :type alt: str
     :param tap: Action assigned to specific Attachment
-    :type tap: ~microsoft_agents.protocols.models.CardAction
+    :type tap: ~microsoft_agents.activity.CardAction
     """
 
     url: NonEmptyString = None

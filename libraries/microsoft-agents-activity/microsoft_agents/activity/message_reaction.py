@@ -7,7 +7,7 @@ class MessageReaction(AgentsModel):
 
     :param type: Message reaction type. Possible values include: 'like',
      'plusOne'
-    :type type: str or ~microsoft_agents.protocols.models.MessageReactionTypes
+    :type type: str or ~microsoft_agents.activity.MessageReactionTypes
     """
 
     type: NonEmptyString

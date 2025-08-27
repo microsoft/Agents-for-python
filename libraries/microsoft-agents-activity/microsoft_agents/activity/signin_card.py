@@ -9,7 +9,7 @@ class SigninCard(AgentsModel):
     :param text: Text for signin request
     :type text: str
     :param buttons: Action to use to perform signin
-    :type buttons: list[~microsoft_agents.protocols.models.CardAction]
+    :type buttons: list[~microsoft_agents.activity.CardAction]
     """
 
     text: NonEmptyString = None

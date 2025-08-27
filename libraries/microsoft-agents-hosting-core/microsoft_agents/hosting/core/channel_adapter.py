@@ -55,7 +55,7 @@ class ChannelAdapter(ABC, ChannelAdapterProtocol):
         :param context: The context object for the turn.
         :type context: :class:`TurnContext`
         :param activity: New replacement activity.
-        :type activity: :class:`hosting.schema.Activity`
+        :type activity: :class:`microsoft_agents.activity.Activity`
         :return:
         """
         raise NotImplementedError()
@@ -70,7 +70,7 @@ class ChannelAdapter(ABC, ChannelAdapterProtocol):
         :param context: The context object for the turn.
         :type context: :class:`TurnContext`
         :param reference: Conversation reference for the activity to delete.
-        :type reference: :class:`hosting.schema.ConversationReference`
+        :type reference: :class:`microsoft_agents.activity.ConversationReference`
         :return:
         """
         raise NotImplementedError()
@@ -100,11 +100,11 @@ class ChannelAdapter(ABC, ChannelAdapterProtocol):
         single tenant the Adapters (Console, Test, etc) but is critical to the ChannelAdapter
         which is multi-tenant aware.
         :param reference: A reference to the conversation to continue.
-        :type reference: :class:`hosting.schema.ConversationReference`
+        :type reference: :class:`microsoft_agents.activity.ConversationReference`
         :param callback: The method to call for the resulting agent turn.
         :type callback: :class:`typing.Callable`
-        :param claims_identity: A :class:`microsoft_agents.authentication.ClaimsIdentity` for the conversation.
-        :type claims_identity: :class:`microsoft_agents.authentication.ClaimsIdentity`
+        :param claims_identity: A :class:`microsoft_agents.hosting.core.ClaimsIdentity` for the conversation.
+        :type claims_identity: :class:`microsoft_agents.hosting.core.ClaimsIdentity`
         :param audience:A value signifying the recipient of the proactive message.
         :type audience: str
         """
@@ -123,10 +123,10 @@ class ChannelAdapter(ABC, ChannelAdapterProtocol):
         Most channels require a user to initiate a conversation with an agent before the agent can send activities
         to the user.
 
-        :param claims_identity: A :class:`microsoft_agents.authentication.ClaimsIdentity` for the conversation.
-        :type claims_identity: :class:`microsoft_agents.authentication.ClaimsIdentity`
+        :param claims_identity: A :class:`microsoft_agents.hosting.core.ClaimsIdentity` for the conversation.
+        :type claims_identity: :class:`microsoft_agents.hosting.core.ClaimsIdentity`
         :param continuation_activity: The activity to send.
-        :type continuation_activity: :class:`hosting
+        :type continuation_activity: :class:`microsoft_agents.activity.Activity`
         :param callback: The method to call for the resulting agent turn.
         :type callback: :class:`typing.Callable`
         :param audience: A value signifying the recipient of the proactive message.

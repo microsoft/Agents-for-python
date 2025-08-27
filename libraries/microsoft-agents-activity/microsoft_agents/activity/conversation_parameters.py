@@ -12,15 +12,15 @@ class ConversationParameters(AgentsModel):
     :param is_group: IsGroup
     :type is_group: bool
     :param agent: The agent address for this conversation
-    :type agent: ~microsoft_agents.protocols.models.ChannelAccount
+    :type agent: ~microsoft_agents.activity.ChannelAccount
     :param members: Members to add to the conversation
-    :type members: list[~microsoft_agents.protocols.models.ChannelAccount]
+    :type members: list[~microsoft_agents.activity.ChannelAccount]
     :param topic_name: (Optional) Topic of the conversation (if supported by
      the channel)
     :type topic_name: str
     :param activity: (Optional) When creating a new conversation, use this
      activity as the initial message to the conversation
-    :type activity: ~microsoft_agents.protocols.models.Activity
+    :type activity: ~microsoft_agents.activity.Activity
     :param channel_data: Channel specific payload for creating the
      conversation
     :type channel_data: object

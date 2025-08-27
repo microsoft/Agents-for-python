@@ -14,9 +14,9 @@ class TokenExchangeState(AgentsModel):
     :param connection_name: The connection name that was used.
     :type connection_name: str
     :param conversation: Gets or sets a reference to the conversation.
-    :type conversation: ~microsoft_agents.protocols.models.ConversationReference
+    :type conversation: ~microsoft_agents.activity.ConversationReference
     :param relates_to: Gets or sets a reference to a related parent conversation for this token exchange.
-    :type relates_to: ~microsoft_agents.protocols.models.ConversationReference
+    :type relates_to: ~microsoft_agents.activity.ConversationReference
     :param agent_url: The URL of the agent messaging endpoint.
     :type agent_url: str
     :param ms_app_id: The agent's registered application ID.

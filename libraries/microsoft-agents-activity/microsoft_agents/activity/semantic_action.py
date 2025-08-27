@@ -8,9 +8,9 @@ class SemanticAction(AgentsModel):
     :param id: ID of this action
     :type id: str
     :param entities: Entities associated with this action
-    :type entities: dict[str, ~microsoft_agents.protocols.models.Entity]
+    :type entities: dict[str, ~microsoft_agents.activity.Entity]
     :param state: State of this action. Allowed values: `start`, `continue`, `done`
-    :type state: str or ~microsoft_agents.protocols.models.SemanticActionStates
+    :type state: str or ~microsoft_agents.activity.SemanticActionStates
     """
 
     id: NonEmptyString
