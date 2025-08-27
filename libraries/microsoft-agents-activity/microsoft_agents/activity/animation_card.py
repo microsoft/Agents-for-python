@@ -15,12 +15,12 @@ class AnimationCard(AgentsModel):
     :param text: Text of this card
     :type text: str
     :param image: Thumbnail placeholder
-    :type image: ~microsoft_agents.protocols.models.ThumbnailUrl
+    :type image: ~microsoft_agents.activity.ThumbnailUrl
     :param media: Media URLs for this card. When this field contains more than
      one URL, each URL is an alternative format of the same content.
-    :type media: list[~microsoft_agents.protocols.models.MediaUrl]
+    :type media: list[~microsoft_agents.activity.MediaUrl]
     :param buttons: Actions on this card
-    :type buttons: list[~microsoft_agents.protocols.models.CardAction]
+    :type buttons: list[~microsoft_agents.activity.CardAction]
     :param shareable: This content may be shared with others (default:true)
     :type shareable: bool
     :param autoloop: Should the client loop playback at end of content

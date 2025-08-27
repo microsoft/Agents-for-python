@@ -17,11 +17,11 @@ class ConversationReference(AgentsModel):
     :param activity_id: (Optional) ID of the activity to refer to
     :type activity_id: str
     :param user: (Optional) User participating in this conversation
-    :type user: ~microsoft_agents.protocols.models.ChannelAccount
+    :type user: ~microsoft_agents.activity.ChannelAccount
     :param agent: Agent participating in this conversation
-    :type agent: ~microsoft_agents.protocols.models.ChannelAccount
+    :type agent: ~microsoft_agents.activity.ChannelAccount
     :param conversation: Conversation reference
-    :type conversation: ~microsoft_agents.protocols.models.ConversationAccount
+    :type conversation: ~microsoft_agents.activity.ConversationAccount
     :param channel_id: Channel ID
     :type channel_id: str
     :param locale: A locale name for the contents of the text field.
