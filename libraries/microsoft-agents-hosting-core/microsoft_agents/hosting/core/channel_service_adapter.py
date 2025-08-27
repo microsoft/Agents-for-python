@@ -155,7 +155,7 @@ class ChannelServiceAdapter(ChannelAdapter, ABC):
         to the user.
 
         :param reference: A reference to the conversation to continue.
-        :type reference: :class:`hosting.schema.ConversationReference`
+        :type reference: :class:`microsoft_agents.activity.ConversationReference`
         :param callback: The method to call for the resulting agent turn.
         :type callback: :class:`typing.Callable`
         :param agent_app_id: The application Id of the agent. This is the appId returned by the Azure portal registration,

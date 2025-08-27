@@ -16,14 +16,14 @@ class ReceiptItem(AgentsModel):
      in font styling only
     :type text: str
     :param image: Image
-    :type image: ~microsoft_agents.protocols.models.CardImage
+    :type image: ~microsoft_agents.activity.CardImage
     :param price: Amount with currency
     :type price: str
     :param quantity: Number of items of given kind
     :type quantity: str
     :param tap: This action will be activated when user taps on the Item
      bubble.
-    :type tap: ~microsoft_agents.protocols.models.CardAction
+    :type tap: ~microsoft_agents.activity.CardAction
     """
 
     title: NonEmptyString = None

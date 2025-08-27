@@ -9,7 +9,7 @@ class ConversationMembers(AgentsModel):
     :param id: Conversation ID
     :type id: str
     :param members: List of members in this conversation
-    :type members: list[~microsoft_agents.protocols.models.ChannelAccount]
+    :type members: list[~microsoft_agents.activity.ChannelAccount]
     """
 
     id: NonEmptyString = None

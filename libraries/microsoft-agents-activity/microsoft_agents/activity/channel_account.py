@@ -17,7 +17,7 @@ class ChannelAccount(AgentsModel):
      Directory (AAD)
     :type aad_object_id: str
     :param role: Role of the entity behind the account
-    :type role: str or ~microsoft_agents.protocols.models.RoleTypes
+    :type role: str or ~microsoft_agents.activity.RoleTypes
     """
 
     model_config = ConfigDict(extra="allow")

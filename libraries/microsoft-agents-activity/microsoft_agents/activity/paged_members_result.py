@@ -9,7 +9,7 @@ class PagedMembersResult(AgentsModel):
     :param continuation_token: Paging token
     :type continuation_token: str
     :param members: The Channel Accounts.
-    :type members: list[~microsoft_agents.protocols.models.ChannelAccount]
+    :type members: list[~microsoft_agents.activity.ChannelAccount]
     """
 
     continuation_token: NonEmptyString = None

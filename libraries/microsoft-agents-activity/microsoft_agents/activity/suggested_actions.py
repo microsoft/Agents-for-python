@@ -11,7 +11,7 @@ class SuggestedActions(AgentsModel):
      the activity
     :type to: list[str]
     :param actions: Actions that can be shown to the user
-    :type actions: list[~microsoft_agents.protocols.models.CardAction]
+    :type actions: list[~microsoft_agents.activity.CardAction]
     """
 
     to: list[NonEmptyString]
