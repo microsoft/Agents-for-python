@@ -2,16 +2,16 @@ import pytest
 
 import jwt
 
-from microsoft.agents.activity import ActivityTypes, TokenResponse
-from microsoft.agents.hosting.core import MemoryStorage
-from microsoft.agents.hosting.core.storage.storage_test_utils import StorageBaseline
-from microsoft.agents.hosting.core.connector.user_token_base import UserTokenBase
-from microsoft.agents.hosting.core.connector.user_token_client_base import (
+from microsoft_agents.activity import ActivityTypes, TokenResponse
+from microsoft_agents.hosting.core import MemoryStorage
+from microsoft_agents.hosting.core.storage.storage_test_utils import StorageBaseline
+from microsoft_agents.hosting.core.connector.user_token_base import UserTokenBase
+from microsoft_agents.hosting.core.connector.user_token_client_base import (
     UserTokenClientBase,
 )
 
-from microsoft.agents.hosting.core.app.oauth import Authorization
-from microsoft.agents.hosting.core.oauth import (
+from microsoft_agents.hosting.core.app.oauth import Authorization
+from microsoft_agents.hosting.core.oauth import (
     FlowStorageClient,
     FlowErrorTag,
     FlowStateTag,

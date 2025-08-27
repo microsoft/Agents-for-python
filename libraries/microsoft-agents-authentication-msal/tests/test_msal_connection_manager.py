@@ -1,7 +1,7 @@
 from os import environ
-from microsoft.agents.activity import load_configuration_from_env
-from microsoft.agents.hosting.core import AuthTypes
-from microsoft.agents.authentication.msal import MsalConnectionManager
+from microsoft_agents.activity import load_configuration_from_env
+from microsoft_agents.hosting.core import AuthTypes
+from microsoft_agents.authentication.msal import MsalConnectionManager
 
 
 class TestMsalConnectionManager:

@@ -7,7 +7,7 @@ from typing import Callable, List, Optional, TypeVar, Union, Any, Dict
 from datetime import timedelta
 from functools import reduce
 
-from microsoft.agents.activity import Activity
+from microsoft_agents.activity import Activity
 
 T = TypeVar("T")
 

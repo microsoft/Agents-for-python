@@ -1,5 +1,5 @@
-from microsoft.agents.hosting.core import ActivityHandler, TurnContext
-from microsoft.agents.activity import (
+from microsoft_agents.hosting.core import ActivityHandler, TurnContext
+from microsoft_agents.activity import (
     ChannelAccount,
     Activity,
     EndOfConversationCodes,

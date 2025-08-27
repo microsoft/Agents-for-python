@@ -2,8 +2,8 @@ import unittest
 from unittest.mock import Mock
 import pytest
 from msal import ManagedIdentityClient, ConfidentialClientApplication
-from microsoft.agents.authentication.msal import MsalAuth
-from microsoft.agents.hosting.core.authorization import AgentAuthConfiguration
+from microsoft_agents.authentication.msal import MsalAuth
+from microsoft_agents.hosting.core.authorization import AgentAuthConfiguration
 
 
 class TestingMsalAuth(MsalAuth):

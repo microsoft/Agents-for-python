@@ -1,7 +1,7 @@
 from os import environ
 from typing import Dict
-from microsoft.agents.activity import load_configuration_from_env
-from microsoft.agents.hosting.core import AgentAuthConfiguration, AuthTypes
+from microsoft_agents.activity import load_configuration_from_env
+from microsoft_agents.hosting.core import AgentAuthConfiguration, AuthTypes
 
 
 class TestAuthorizationConfiguration:

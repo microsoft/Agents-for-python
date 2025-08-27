@@ -7,13 +7,13 @@ from typing import Any, Dict
 import pytest
 from unittest.mock import AsyncMock, MagicMock
 
-from microsoft.agents.hosting.core.app.state.state import (
+from microsoft_agents.hosting.core.app.state.state import (
     State,
     state,
     StatePropertyAccessor,
 )
-from microsoft.agents.hosting.core.turn_context import TurnContext
-from microsoft.agents.hosting.core.storage import Storage, StoreItem
+from microsoft_agents.hosting.core.turn_context import TurnContext
+from microsoft_agents.hosting.core.storage import Storage, StoreItem
 
 
 class MockStoreItem(StoreItem):

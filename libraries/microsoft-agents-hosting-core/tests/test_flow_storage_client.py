@@ -1,8 +1,8 @@
 import pytest
 
-from microsoft.agents.hosting.core.storage import MemoryStorage
-from microsoft.agents.hosting.core.storage.storage_test_utils import MockStoreItem
-from microsoft.agents.hosting.core.oauth import FlowState, FlowStorageClient
+from microsoft_agents.hosting.core.storage import MemoryStorage
+from microsoft_agents.hosting.core.storage.storage_test_utils import MockStoreItem
+from microsoft_agents.hosting.core.oauth import FlowState, FlowStorageClient
 
 
 class TestFlowStorageClient:

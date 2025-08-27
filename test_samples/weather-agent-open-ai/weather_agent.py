@@ -1,8 +1,8 @@
 from __future__ import annotations
 
 from typing import Union
-from microsoft.agents.hosting.core import ActivityHandler, MessageFactory, TurnContext
-from microsoft.agents.activity import ChannelAccount, Attachment
+from microsoft_agents.hosting.core import ActivityHandler, MessageFactory, TurnContext
+from microsoft_agents.activity import ChannelAccount, Attachment
 
 from agents import (
     Agent as OpenAIAgent,

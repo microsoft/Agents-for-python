@@ -1,6 +1,6 @@
 import pytest
 
-from microsoft.agents.activity import (
+from microsoft_agents.activity import (
     Activity,
     ActivityTypes,
     TokenResponse,
@@ -9,14 +9,14 @@ from microsoft.agents.activity import (
     ConversationReference,
     ChannelAccount,
 )
-from microsoft.agents.hosting.core.oauth import (
+from microsoft_agents.hosting.core.oauth import (
     OAuthFlow,
     FlowErrorTag,
     FlowStateTag,
     FlowResponse,
 )
-from microsoft.agents.hosting.core.connector.user_token_base import UserTokenBase
-from microsoft.agents.hosting.core.connector.user_token_client_base import (
+from microsoft_agents.hosting.core.connector.user_token_base import UserTokenBase
+from microsoft_agents.hosting.core.connector.user_token_client_base import (
     UserTokenClientBase,
 )
 

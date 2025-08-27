@@ -3,8 +3,8 @@ from uuid import uuid4
 
 from aiohttp.web import HTTPException
 
-from microsoft.agents.activity import ChannelAdapterProtocol, TurnContextProtocol
-from microsoft.agents.activity import (
+from microsoft_agents.activity import ChannelAdapterProtocol, TurnContextProtocol
+from microsoft_agents.activity import (
     ActivityTypes,
     Activity,
     CallerIdConstants,
@@ -17,14 +17,14 @@ from microsoft.agents.activity import (
     ConversationResourceResponse,
     ConversationsResult,
 )
-from microsoft.agents.hosting.core.authorization import ClaimsIdentity
-from microsoft.agents.hosting.core.client import (
+from microsoft_agents.hosting.core.authorization import ClaimsIdentity
+from microsoft_agents.hosting.core.client import (
     ChannelHostProtocol,
     ChannelInfoProtocol,
     ConversationIdFactoryProtocol,
     ConversationIdFactoryOptions,
 )
-from microsoft.agents.hosting.core import (
+from microsoft_agents.hosting.core import (
     ActivityHandler,
     ChannelApiHandlerProtocol,
     ChannelAdapter,

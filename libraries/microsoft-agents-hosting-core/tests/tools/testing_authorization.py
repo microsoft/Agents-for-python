@@ -7,7 +7,7 @@ providers, connection managers, and authorization handlers that can be configure
 to simulate various authentication states and flow conditions.
 """
 
-from microsoft.agents.hosting.core import (
+from microsoft_agents.hosting.core import (
     Connections,
     AccessTokenProviderBase,
     AuthHandler,
@@ -16,12 +16,12 @@ from microsoft.agents.hosting.core import (
     OAuthFlow,
 )
 from typing import Dict, Union
-from microsoft.agents.hosting.core.authorization.agent_auth_configuration import (
+from microsoft_agents.hosting.core.authorization.agent_auth_configuration import (
     AgentAuthConfiguration,
 )
-from microsoft.agents.hosting.core.authorization.claims_identity import ClaimsIdentity
+from microsoft_agents.hosting.core.authorization.claims_identity import ClaimsIdentity
 
-from microsoft.agents.activity import TokenResponse
+from microsoft_agents.activity import TokenResponse
 
 from unittest.mock import Mock, AsyncMock
 
