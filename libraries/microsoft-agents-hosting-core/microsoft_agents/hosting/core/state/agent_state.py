@@ -215,7 +215,7 @@ class AgentState:
             else None
         )
 
-        if not value and default_value_factory:
+        if not value and default_value_factory is not None:
             # If the value is None and a factory is provided, call the factory to get a default value
             return default_value_factory()
 

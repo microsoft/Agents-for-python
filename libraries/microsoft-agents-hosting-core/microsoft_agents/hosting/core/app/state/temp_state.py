@@ -96,6 +96,10 @@ class TempState(AgentState):
         """Loads the state asynchronously"""
         pass
 
+    async def save(self, turn_context, force=False):
+        """Saves the state asynchronously"""
+        pass
+
     async def save_changes(
         self, turn_context: TurnContext, force: bool = False, **_
     ) -> None:
