@@ -3,9 +3,8 @@ from microsoft_agents.activity import (
     Attachment
 )
 
-class MyChannelData:
-    foo: str
-    bar: str
+def GEN_TEST_CHANNEL_DATA():
+    return [ None, {}, MyChannelData() ]
 
 def GEN_HAS_CONTENT_DATA():
     return [
@@ -16,5 +15,10 @@ def GEN_HAS_CONTENT_DATA():
         (Activity(), False)
     ]
 
-def GEN_TEST_CHANNEL_DATA():
-    return [ None, {}, MyChannelData() ]
+class MyChannelData:
+    foo: str
+    bar: str
+
+class TestActivity(Activity):
+    def is_target_activity_type(activity_type: str) -> bool:
+        return self.is_activity(activity_type)

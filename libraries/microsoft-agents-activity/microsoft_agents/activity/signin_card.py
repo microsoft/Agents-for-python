@@ -12,5 +12,5 @@ class SigninCard(AgentsModel):
     :type buttons: list[~microsoft_agents.activity.CardAction]
     """
 
-    text: NonEmptyString = None
+    text: str = None
     buttons: list[CardAction] = None

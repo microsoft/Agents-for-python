@@ -12,5 +12,5 @@ class TextHighlight(AgentsModel):
     :type occurrence: int
     """
 
-    text: NonEmptyString
+    text: str
     occurrence: int

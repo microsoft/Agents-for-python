@@ -42,7 +42,7 @@ class AudioCard(AgentsModel):
 
     title: NonEmptyString = None
     subtitle: NonEmptyString = None
-    text: NonEmptyString = None
+    text: str = None
     image: ThumbnailUrl = None
     media: list[MediaUrl] = None
     buttons: list[CardAction] = None

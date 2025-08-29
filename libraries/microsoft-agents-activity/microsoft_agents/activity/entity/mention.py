@@ -20,4 +20,4 @@ class Mention(Entity):
     at_type: Literal[AtEntityTypes.MENTION] = AtEntityTypes.MENTION
 
     mentioned: ChannelAccount = None
-    text: NonEmptyString = None
+    text: str = None

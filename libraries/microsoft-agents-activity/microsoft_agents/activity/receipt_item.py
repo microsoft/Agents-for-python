@@ -28,7 +28,7 @@ class ReceiptItem(AgentsModel):
 
     title: NonEmptyString = None
     subtitle: NonEmptyString = None
-    text: NonEmptyString = None
+    text: str = None
     image: CardImage = None
     price: NonEmptyString = None
     quantity: NonEmptyString = None

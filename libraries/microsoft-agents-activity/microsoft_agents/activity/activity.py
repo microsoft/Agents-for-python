@@ -23,6 +23,10 @@ from .text_highlight import TextHighlight
 from .semantic_action import SemanticAction
 from .agents_model import AgentsModel
 from ._type_aliases import NonEmptyString
+from ._model_utils import (
+    pick_model,
+    SkipNone
+)
 
 
 # TODO: A2A Agent 2 is responding with None as id, had to mark it as optional (investigate)
@@ -397,39 +401,30 @@ class Activity(AgentsModel):
         .. remarks::
             The new activity sets up routing information based on this activity.
         """
-        return Activity(
+        return pick_model(Activity(
             type=ActivityTypes.message,
             timestamp=datetime.now(timezone.utc),
-            from_property=ChannelAccount(
-                id=self.recipient.id if self.recipient else None,
-                name=self.recipient.name if self.recipient else None,
-            ),
-            recipient=ChannelAccount(
-                id=self.from_property.id if self.from_property else None,
-                name=self.from_property.name if self.from_property else None,
-            ),
+            from_property=ChannelAccount.pick_properties(self.recipient, ["id", "name"]),
+            recipient=ChannelAccount.pick_properties(self.from_property, ["id", "name"]),
             reply_to_id=(
-                self.id
+                SkipNone(self.id)
                 if type != ActivityTypes.conversation_update
                 or self.channel_id not in ["directline", "webchat"]
                 else None
             ),
             service_url=self.service_url,
             channel_id=self.channel_id,
-            conversation=ConversationAccount(
-                is_group=self.conversation.is_group,
-                id=self.conversation.id,
-                name=self.conversation.name,
-            ),
+            conversation=ConversationAccount.pick_properties(self.conversation, [ "is_group", "id", "name" ]),
             text=text if text else "",
             locale=locale if locale else self.locale,
             attachments=[],
             entities=[],
-        )
+        ))
 
     def create_trace(
         self, name: str, value: object = None, value_type: str = None, label: str = None
     ):
+        # robrandao: TODO -> needs to handle Nones like create_reply
         """
         Creates a new trace activity based on this activity.
 
@@ -443,40 +438,31 @@ class Activity(AgentsModel):
         if not value_type and value:
             value_type = type(value)
 
-        return Activity(
+        return pick_set(Activity(
             type=ActivityTypes.trace,
             timestamp=datetime.now(timezone.utc),
-            from_property=ChannelAccount(
-                id=self.recipient.id if self.recipient else None,
-                name=self.recipient.name if self.recipient else None,
-            ),
-            recipient=ChannelAccount(
-                id=self.from_property.id if self.from_property else None,
-                name=self.from_property.name if self.from_property else None,
-            ),
+            from_property=ChannelAccount.pick_properties(self.recipient, ["id", "name"]),
+            recipient=ChannelAccount.pick_properties(self.from_property, ["id", "name"]),
             reply_to_id=(
-                self.id
+                SkipNone(self.id) # preserve unset
                 if type != ActivityTypes.conversation_update
                 or self.channel_id not in ["directline", "webchat"]
                 else None
             ),
             service_url=self.service_url,
             channel_id=self.channel_id,
-            conversation=ConversationAccount(
-                is_group=self.conversation.is_group,
-                id=self.conversation.id,
-                name=self.conversation.name,
-            ),
+            conversation=ConversationAccount.pick_properties(self.conversation, ["is_group", "id", "name"]),
             name=name,
             label=label,
             value_type=value_type,
             value=value,
-        ).as_trace_activity()
+        )).as_trace_activity()
 
     @staticmethod
     def create_trace_activity(
         name: str, value: object = None, value_type: str = None, label: str = None
     ):
+        # robrandao: TODO -> SkipNone
         """
         Creates an instance of the :class:`Activity` class as a TraceActivity object.
 
@@ -490,12 +476,12 @@ class Activity(AgentsModel):
         if not value_type and value:
             value_type = type(value)
 
-        return Activity(
+        return pick_set(Activity,
             type=ActivityTypes.trace,
             name=name,
-            label=label,
-            value_type=value_type,
-            value=value,
+            label=SkipNone(label),
+            value_type=SkipNone(value_type),
+            value=SkipNone(value),
         )
 
     @staticmethod
@@ -514,9 +500,9 @@ class Activity(AgentsModel):
         :returns: A conversation reference for the conversation that contains this activity.
         """
 
-        return ConversationReference(
+        return pick_model(ConversationReference(
             activity_id=(
-                self.id
+                SkipNone(self.id)
                 if self.type != ActivityTypes.conversation_update
                 or self.channel_id not in ["directline", "webchat"]
                 else None
@@ -527,7 +513,7 @@ class Activity(AgentsModel):
             channel_id=self.channel_id,
             locale=self.locale,
             service_url=self.service_url,
-        )
+        ))
 
     def get_entities_by_type(self, entity_type: str) -> list[Entity]:
         """
@@ -537,6 +523,7 @@ class Activity(AgentsModel):
 
         :returns: The array of entities; or an empty array, if none are found.
         """
+        if not self.entities: return []
         return [x for x in self.entities if x.has_type(entity_type)]
 
     def get_mentions(self) -> list[Mention]:
