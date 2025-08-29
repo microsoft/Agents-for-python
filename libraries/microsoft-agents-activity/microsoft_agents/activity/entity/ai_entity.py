@@ -1,12 +1,14 @@
 # Copyright (c) Microsoft Corporation. All rights reserved.
 # Licensed under the MIT License.
 
+from typing import Literal
+
 from enum import Enum
 from typing import List, Optional, Union, Literal
 from dataclasses import dataclass
 
-from .agents_model import AgentsModel
-from .activity import Activity
+from ..agents_model import AgentsModel
+from .entity_types import EntityTypes, AtEntityTypes
 from .entity import Entity
 
 
@@ -47,18 +49,23 @@ class SensitivityPattern(AgentsModel):
     """Pattern information for sensitivity usage info."""
 
     type: str = "DefinedTerm"
+    type: Literal[EntityTypes.SENSITIVITY_USAGE_INFO] = EntityTypes.SENSITIVITY_USAGE_INFO
+    at_type: Literal[AtEntityTypes.SENSITIVITY_USAGE_INFO] = AtEntityTypes.SENSITIVITY_USAGE_INFO
+
     in_defined_term_set: str = ""
     name: str = ""
     term_code: str = ""
 
 
-class SensitivityUsageInfo(AgentsModel):
+class SensitivityUsageInfo(Entity):
     """
     Sensitivity usage info for content sent to the user.
     This is used to provide information about the content to the user.
     """
 
-    type: str = "https://schema.org/Message"
+    type: Literal[EntityTypes.SENSITIVITY_USAGE_INFO] = EntityTypes.SENSITIVITY_USAGE_INFO
+    at_type: Literal[AtEntityTypes.SENSITIVITY_USAGE_INFO] = AtEntityTypes.SENSITIVITY_USAGE_INFO
+
     schema_type: str = "CreativeWork"
     description: Optional[str] = None
     name: str = ""
@@ -99,7 +106,6 @@ class ClientCitation(AgentsModel):
 class AIEntity(Entity):
     """Entity indicating AI-generated content."""
 
-    type: str = "https://schema.org/Message"
     schema_type: str = "Message"
     context: str = "https://schema.org"
     id: str = ""
@@ -107,36 +113,9 @@ class AIEntity(Entity):
     citation: Optional[List[ClientCitation]] = None
     usage_info: Optional[SensitivityUsageInfo] = None
 
+    at_type: Literal[AtEntityTypes.AI_ENTITY] = AtEntityTypes.AI_ENTITY
+    type: Literal[EntityTypes.AI_ENTITY] = EntityTypes.AI_ENTITY
+
     def __post_init__(self):
         if self.additional_type is None:
             self.additional_type = ["AIGeneratedContent"]
-
-
-def add_ai_to_activity(
-    activity: Activity,
-    citations: Optional[List[ClientCitation]] = None,
-    usage_info: Optional[SensitivityUsageInfo] = None,
-) -> None:
-    """
-    Adds AI entity to an activity to indicate AI-generated content.
-
-    Args:
-        activity: The activity to modify
-        citations: Optional list of citations
-        usage_info: Optional sensitivity usage information
-    """
-    if citations:
-        ai_entity = AIEntity(
-            type="https://schema.org/Message",
-            schema_type="Message",
-            context="https://schema.org",
-            id="",
-            additional_type=["AIGeneratedContent"],
-            citation=citations,
-            usage_info=usage_info,
-        )
-
-        if activity.entities is None:
-            activity.entities = []
-
-        activity.entities.append(ai_entity)

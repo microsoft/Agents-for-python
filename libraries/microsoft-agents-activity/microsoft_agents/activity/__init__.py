@@ -1,6 +1,6 @@
 from .agents_model import AgentsModel
 from .action_types import ActionTypes
-from .activity import Activity
+from .activity import Activity, add_ai_to_activity
 from .activity_event_names import ActivityEventNames
 from .activity_types import ActivityTypes
 from .adaptive_card_invoke_action import AdaptiveCardInvokeAction
@@ -24,32 +24,34 @@ from .conversation_reference import ConversationReference
 from .conversation_resource_response import ConversationResourceResponse
 from .conversations_result import ConversationsResult
 from .expected_replies import ExpectedReplies
-from .entity import Entity
-from .ai_entity import (
+from .entity import (
+    Entity,
+    EntityTypes,
+    AtEntityTypes,
     AIEntity,
     ClientCitation,
     ClientCitationAppearance,
     ClientCitationImage,
     ClientCitationIconName,
+    Mention,
     SensitivityUsageInfo,
     SensitivityPattern,
-    add_ai_to_activity,
+    GeoCoordinates,
+    Place,
+    Thing,
 )
 from .error import Error
 from .error_response import ErrorResponse
 from .fact import Fact
-from .geo_coordinates import GeoCoordinates
 from .hero_card import HeroCard
 from .inner_http_error import InnerHttpError
 from .invoke_response import InvokeResponse
 from .media_card import MediaCard
 from .media_event_value import MediaEventValue
 from .media_url import MediaUrl
-from .mention import Mention
 from .message_reaction import MessageReaction
 from .oauth_card import OAuthCard
 from .paged_members_result import PagedMembersResult
-from .place import Place
 from .receipt_card import ReceiptCard
 from .receipt_item import ReceiptItem
 from .resource_response import ResourceResponse
@@ -57,7 +59,6 @@ from .semantic_action import SemanticAction
 from .signin_card import SigninCard
 from .suggested_actions import SuggestedActions
 from .text_highlight import TextHighlight
-from .thing import Thing
 from .thumbnail_card import ThumbnailCard
 from .thumbnail_url import ThumbnailUrl
 from .token_exchange_invoke_request import TokenExchangeInvokeRequest
@@ -124,6 +125,8 @@ __all__ = [
     "ConversationsResult",
     "ExpectedReplies",
     "Entity",
+    "EntityTypes",
+    "AtEntityTypes",
     "AIEntity",
     "ClientCitation",
     "ClientCitationAppearance",

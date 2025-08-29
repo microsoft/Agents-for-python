@@ -1,7 +1,9 @@
-from .channel_account import ChannelAccount
-from .entity import Entity
-from ._type_aliases import NonEmptyString
+from typing import Literal
 
+from ..channel_account import ChannelAccount
+from .._type_aliases import NonEmptyString
+from .entity_types import EntityTypes, AtEntityTypes
+from .entity import Entity
 
 class Mention(Entity):
     """Mention information (entity type: "mention").
@@ -14,6 +16,8 @@ class Mention(Entity):
     :type type: str
     """
 
+    type: Literal[EntityTypes.MENTION] = EntityTypes.MENTION
+    at_type: Literal[AtEntityTypes.MENTION] = AtEntityTypes.MENTION
+
     mentioned: ChannelAccount = None
     text: NonEmptyString = None
-    type: NonEmptyString = None

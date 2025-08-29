@@ -1,8 +1,13 @@
-from .agents_model import AgentsModel
-from ._type_aliases import NonEmptyString
+from typing import Literal
+
+from .._type_aliases import NonEmptyString
+from ..agents_model import AgentsModel
+from .entity import Entity
+from .entity_types import EntityTypes, AtEntityTypes
 
 
-class Place(AgentsModel):
+
+class Place(Entity):
     """Place (entity type: "https://schema.org/Place").
 
     :param address: Address of the place (may be `string` or complex object of
@@ -20,8 +25,10 @@ class Place(AgentsModel):
     :type name: str
     """
 
+    type: Literal[EntityTypes.PLACE] = EntityTypes.PLACE
+    at_type: Literal[AtEntityTypes.PLACE] = AtEntityTypes.PLACE
+
     address: object = None
     geo: object = None
     has_map: object = None
-    type: NonEmptyString = None
     name: NonEmptyString = None

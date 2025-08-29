@@ -1,10 +1,11 @@
 from typing import Any, Optional
+from enum import Enum
 
 from pydantic import model_serializer, model_validator
-from .agents_model import AgentsModel, ConfigDict
 from pydantic.alias_generators import to_camel, to_snake
-from ._type_aliases import NonEmptyString
 
+from ..agents_model import AgentsModel, ConfigDict
+from .._type_aliases import NonEmptyString
 
 class Entity(AgentsModel):
     """Metadata object pertaining to an activity.
@@ -15,7 +16,8 @@ class Entity(AgentsModel):
 
     model_config = ConfigDict(extra="allow")
 
-    type: NonEmptyString
+    type: str
+    at_type: str
 
     @property
     def additional_properties(self) -> dict[str, Any]:
@@ -36,3 +38,7 @@ class Entity(AgentsModel):
                 new_data[to_camel(k)] = v
             return new_data
         return {k: v for k, v in self}
+
+    def has_type(self, entity_type: str) -> bool:
+        # robrandao: TODO
+        return self.type == entity_type or self.at_type == entity_type

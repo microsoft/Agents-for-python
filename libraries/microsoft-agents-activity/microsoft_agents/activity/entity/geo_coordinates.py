@@ -1,8 +1,10 @@
-from .agents_model import AgentsModel
-from ._type_aliases import NonEmptyString
+from typing import Literal
 
+from .._type_aliases import NonEmptyString
+from .entity import Entity
+from .entity_types import EntityTypes, AtEntityTypes
 
-class GeoCoordinates(AgentsModel):
+class GeoCoordinates(Entity):
     """GeoCoordinates (entity type: "https://schema.org/GeoCoordinates").
 
     :param elevation: Elevation of the location [WGS
@@ -14,14 +16,16 @@ class GeoCoordinates(AgentsModel):
     :param longitude: Longitude of the location [WGS
      84](https://en.wikipedia.org/wiki/World_Geodetic_System)
     :type longitude: float
-    :param type: The type of the thing
+    :param type: The type of the Entity
     :type type: str
-    :param name: The name of the thing
+    :param name: The name of the Entity
     :type name: str
     """
+
+    type: Literal[EntityTypes.GEO_COORDINATES] = EntityTypes.GEO_COORDINATES
+    at_type: Literal[AtEntityTypes.GEO_COORDINATES] = AtEntityTypes.GEO_COORDINATES
 
     elevation: float = None
     latitude: float = None
     longitude: float = None
-    type: NonEmptyString = None
     name: NonEmptyString = None

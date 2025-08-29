@@ -5,12 +5,19 @@ from pydantic import Field, SerializeAsAny
 from .activity_types import ActivityTypes
 from .channel_account import ChannelAccount
 from .conversation_account import ConversationAccount
-from .mention import Mention
 from .message_reaction import MessageReaction
 from .resource_response import ResourceResponse
 from .suggested_actions import SuggestedActions
 from .attachment import Attachment
-from .entity import Entity
+from .entity import (
+    Entity,
+    EntityTypes,
+    AtEntityTypes,
+    Mention,
+    AIEntity,
+    ClientCitation,
+    SensitivityUsageInfo,
+)
 from .conversation_reference import ConversationReference
 from .text_highlight import TextHighlight
 from .semantic_action import SemanticAction
@@ -522,6 +529,16 @@ class Activity(AgentsModel):
             service_url=self.service_url,
         )
 
+    def get_entities_by_type(self, entity_type: str) -> list[Entity]:
+        """
+        Resolves the entities of a specific type from the entities of this activity.
+
+        :param entity_type: The entity type to look for (RFC 3987 IRI).
+
+        :returns: The array of entities; or an empty array, if none are found.
+        """
+        return [x for x in self.entities if x.has_type(entity_type)]
+
     def get_mentions(self) -> list[Mention]:
         """
         Resolves the mentions from the entities of this activity.
@@ -532,8 +549,7 @@ class Activity(AgentsModel):
             This method is defined on the :class:`Activity` class, but is only intended for use with a message activity,
             where the activity Activity.Type is set to ActivityTypes.Message.
         """
-        _list = self.entities
-        return [x for x in _list if str(x.type).lower() == "mention"]
+        return self.get_entities_by_type(EntityTypes.MENTION)
 
     def get_reply_conversation_reference(
         self, reply: ResourceResponse
@@ -611,3 +627,32 @@ class Activity(AgentsModel):
                 )
 
         return result
+
+def add_ai_to_activity(
+    activity: Activity,
+    citations: Optional[list[ClientCitation]] = None,
+    usage_info: Optional[SensitivityUsageInfo] = None,
+) -> None:
+    """
+    Adds AI entity to an activity to indicate AI-generated content.
+
+    Args:
+        activity: The activity to modify
+        citations: Optional list of citations
+        usage_info: Optional sensitivity usage information
+    """
+    if citations:
+        ai_entity = AIEntity(
+            type="https://schema.org/Message",
+            schema_type="Message",
+            context="https://schema.org",
+            id="",
+            additional_type=["AIGeneratedContent"],
+            citation=citations,
+            usage_info=usage_info,
+        )
+
+        if activity.entities is None:
+            activity.entities = []
+
+        activity.entities.append(ai_entity)
