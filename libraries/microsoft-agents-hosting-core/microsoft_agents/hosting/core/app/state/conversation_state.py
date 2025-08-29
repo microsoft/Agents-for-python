@@ -46,3 +46,6 @@ class ConversationState(AgentState):
             raise ValueError("Invalid activity: missing conversation_id.")
 
         return f"{channel_id}/conversations/{conversation_id}"
+
+    def clear(self, turn_context):
+        return super().clear(turn_context)

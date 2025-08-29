@@ -48,7 +48,7 @@ class TempState(AgentState):
     def input_files(self, value: List[InputFile]) -> None:
         self.set_value(self.INPUT_FILES_KEY, value)
 
-    def clear(self) -> None:
+    def clear(self, turn_context: TurnContext) -> None:
         """Clears all state values"""
         self._state.clear()
 
