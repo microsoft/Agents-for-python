@@ -730,7 +730,7 @@ class AgentApplication(Agent, Generic[StateT]):
             await self._on_activity(context, turn_state)
 
             logger.debug("Running after turn middleware")
-            if not await self._run_after_turn_middleware(context, turn_state):
+            if await self._run_after_turn_middleware(context, turn_state):
                 await turn_state.save(context)
             return
         except ApplicationError as err:
@@ -798,7 +798,7 @@ class AgentApplication(Agent, Generic[StateT]):
         for before_turn in self._internal_before_turn:
             is_ok = await before_turn(context, state)
             if not is_ok:
-                await state.save(context, self._options.storage)
+                await state.save(context)
                 return False
         return True
 
@@ -824,7 +824,7 @@ class AgentApplication(Agent, Generic[StateT]):
         for after_turn in self._internal_after_turn:
             is_ok = await after_turn(context, state)
             if not is_ok:
-                await state.save(context, self._options.storage)
+                await state.save(context)
                 return False
         return True
 
