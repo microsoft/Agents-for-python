@@ -15,13 +15,16 @@ from microsoft_agents.activity import (
     GeoCoordinates,
     AIEntity,
     Place,
-    Thing
+    Thing,
 )
 
 from .data.activity_test_data import MyChannelData
 from .tools.testing_activity import create_test_activity
 
-def helper_validate_recipient_and_from(activity: Activity, create_recipient: bool, create_from: bool):
+
+def helper_validate_recipient_and_from(
+    activity: Activity, create_recipient: bool, create_from: bool
+):
     if create_recipient:
         assert activity.from_property.id == "ChannelAccount_Id_2"
         assert activity.from_property.name == "ChannelAccount_Name_2"
@@ -36,8 +39,10 @@ def helper_validate_recipient_and_from(activity: Activity, create_recipient: boo
         assert activity.recipient.id is None
         assert activity.recipient.name is None
 
+
 def helper_get_expected_try_get_channel_data_result(channel_data) -> bool:
     return isinstance(channel_data, dict) or isinstance(channel_data, MyChannelData)
+
 
 class TestActivityConversationOps:
 
@@ -74,7 +79,7 @@ class TestActivityConversationOps:
 
         mention = Mention(
             mentioned=ChannelAccount(id=activity.recipient.id, name="firstName"),
-            text=None
+            text=None,
         )
         lst = []
 
@@ -93,7 +98,7 @@ class TestActivityConversationOps:
 
         mention = Mention(
             ChannelAccount(id=activity.recipient.id, name="<at>firstName</a>"),
-            text="<at>firstName</at>"
+            text="<at>firstName</at>",
         )
         lst = []
 
@@ -107,19 +112,21 @@ class TestActivityConversationOps:
         assert stripped_activity_text == expected_stripped_name
 
     def test_apply_conversation_reference_is_incoming(self):
-        activity = create_test_activity("en-uS") # on purpose
+        activity = create_test_activity("en-uS")  # on purpose
         conversation_reference = ConversationReference(
-            channel_id = "cr_123",
-            service_url = "cr_serviceUrl",
-            conversation = ConversationAccount(id="cr_456"),
-            user = ChannelAccount(id="cr_abc"),
-            agent = ChannelAccount(id="cr_def"),
-            activity_id = "cr_12345",
-            locale = "en-us",
+            channel_id="cr_123",
+            service_url="cr_serviceUrl",
+            conversation=ConversationAccount(id="cr_456"),
+            user=ChannelAccount(id="cr_abc"),
+            agent=ChannelAccount(id="cr_def"),
+            activity_id="cr_12345",
+            locale="en-us",
             # delivery_mode = DeliveryModes.expect_replies
         )
 
-        activity_to_send = activity.apply_conversation_reference(conversation_reference, is_incoming=True)
+        activity_to_send = activity.apply_conversation_reference(
+            conversation_reference, is_incoming=True
+        )
         conversation_reference = activity_to_send.get_conversation_reference()
 
         assert conversation_reference.channel_id == activity.channel_id
@@ -135,16 +142,18 @@ class TestActivityConversationOps:
     def test_apply_conversation_reference(self, locale):
         activity = create_test_activity(locale)
         conversation_reference = ConversationReference(
-            channel_id = "123",
-            service_url = "serviceUrl",
-            conversation = ConversationAccount(id="456"),
-            user = ChannelAccount(id="abc"),
-            agent = ChannelAccount(id="def"),
-            activity_id = "12345",
-            locale = "en-us",
+            channel_id="123",
+            service_url="serviceUrl",
+            conversation=ConversationAccount(id="456"),
+            user=ChannelAccount(id="abc"),
+            agent=ChannelAccount(id="def"),
+            activity_id="12345",
+            locale="en-us",
         )
 
-        activity_to_send = activity.apply_conversation_reference(conversation_reference, is_incoming=False)
+        activity_to_send = activity.apply_conversation_reference(
+            conversation_reference, is_incoming=False
+        )
 
         assert conversation_reference.channel_id == activity.channel_id
         assert conversation_reference.service_url == activity.service_url
@@ -158,14 +167,19 @@ class TestActivityConversationOps:
         else:
             assert activity.locale == activity_to_send.locale
 
-    @pytest.mark.parametrize("value, value_type, create_recipient, create_from, label", [
-        ["myValue", None, False, False, None],
-        [None, None, False, False, None],
-        [None, "myValueType", False, False, None],
-        [None, None, True, False, None],
-        [None, None, False, True, "testLabel"]
-    ])
-    def test_create_trace(self, value, value_type, create_recipient, create_from, label):
+    @pytest.mark.parametrize(
+        "value, value_type, create_recipient, create_from, label",
+        [
+            ["myValue", None, False, False, None],
+            [None, None, False, False, None],
+            [None, "myValueType", False, False, None],
+            [None, None, True, False, None],
+            [None, None, False, True, "testLabel"],
+        ],
+    )
+    def test_create_trace(
+        self, value, value_type, create_recipient, create_from, label
+    ):
         activity = create_test_activity("en-us", create_recipient, create_from)
         trace = activity.create_trace("test", value, value_type, label)
 
@@ -188,11 +202,13 @@ class TestActivityConversationOps:
             (ActivityTypes.handoff, "handoff"),
             (ActivityTypes.invoke, "invoke"),
             (ActivityTypes.message, "message"),
-            (ActivityTypes.typing, "typing")
-        ]
+            (ActivityTypes.typing, "typing"),
+        ],
     )
     def test_can_create_activities(self, activity_type, activity_type_name):
-        create_activity_method = getattr(Activity, f"create_{activity_type_name}_activity")
+        create_activity_method = getattr(
+            Activity, f"create_{activity_type_name}_activity"
+        )
         activity = create_activity_method()
         expected_activity_type = activity_type
 
@@ -205,10 +221,7 @@ class TestActivityConversationOps:
 
     @pytest.mark.parametrize(
         "name, value_type, value, label",
-        [
-            ["TestTrace", "NoneType", None, None],
-            ["TestTrace", None, "TestValue", None]
-        ]
+        [["TestTrace", "NoneType", None, None], ["TestTrace", None, "TestValue", None]],
     )
     def test_create_trace_activity(self, name, value_type, value, label):
         activity = Activity.create_trace_activity(name, value, value_type, label)
@@ -226,10 +239,12 @@ class TestActivityConversationOps:
             ["en-uS", "response", False, True, None],
             ["en-uS", "response", False, False, None],
             [None, "", True, False, "en-us"],
-            [None, None, True, True, None]
-        ]
+            [None, None, True, True, None],
+        ],
     )
-    def test_can_create_reply_activity(self, activity_locale, text, create_recipient, create_from, create_reply_locale):
+    def test_can_create_reply_activity(
+        self, activity_locale, text, create_recipient, create_from, create_reply_locale
+    ):
         activity = create_test_activity(activity_locale, create_recipient, create_from)
         reply = activity.create_reply(text, locale=create_reply_locale)
 
@@ -263,15 +278,58 @@ class TestActivityConversationOps:
             [Activity(type=ActivityTypes.message, text="Hello"), True],
             [Activity(type=ActivityTypes.message, text=" \n \t "), False],
             [Activity(type=ActivityTypes.message, text=" "), False],
-            [Activity(type=ActivityTypes.message, attachments=[], summary="Summary"), True],
+            [
+                Activity(type=ActivityTypes.message, attachments=[], summary="Summary"),
+                True,
+            ],
             [Activity(type=ActivityTypes.message, text=" ", summary="\t"), False],
             [Activity(type=ActivityTypes.message, summary="\t"), False],
-            [Activity(type=ActivityTypes.message, text="\n", summary="\n", attachments=[Attachment(content_type="123")]), True],
-            [Activity(type=ActivityTypes.message, text="\n", summary="\n", attachments=[]), False],
-            [Activity(type=ActivityTypes.message, text="\n", summary="\t", attachments=[], channel_data=MyChannelData()), True],
-            [Activity(type=ActivityTypes.message, text="\n", summary=" wow ", attachments=[], channel_data=MyChannelData()), True],
-            [Activity(type=ActivityTypes.message, text="huh ", summary="\t", attachments=[], channel_data=MyChannelData()), True],
-        ]
+            [
+                Activity(
+                    type=ActivityTypes.message,
+                    text="\n",
+                    summary="\n",
+                    attachments=[Attachment(content_type="123")],
+                ),
+                True,
+            ],
+            [
+                Activity(
+                    type=ActivityTypes.message, text="\n", summary="\n", attachments=[]
+                ),
+                False,
+            ],
+            [
+                Activity(
+                    type=ActivityTypes.message,
+                    text="\n",
+                    summary="\t",
+                    attachments=[],
+                    channel_data=MyChannelData(),
+                ),
+                True,
+            ],
+            [
+                Activity(
+                    type=ActivityTypes.message,
+                    text="\n",
+                    summary=" wow ",
+                    attachments=[],
+                    channel_data=MyChannelData(),
+                ),
+                True,
+            ],
+            [
+                Activity(
+                    type=ActivityTypes.message,
+                    text="huh ",
+                    summary="\t",
+                    attachments=[],
+                    channel_data=MyChannelData(),
+                ),
+                True,
+            ],
+        ],
     )
     def test_has_content(self, activity, expected):
         assert activity.has_content() == expected
@@ -284,25 +342,30 @@ class TestActivityConversationOps:
             ["http", False],
             ["HTTP", False],
             ["api://123", True],
-            [" ", True]
-        ]
+            [" ", True],
+        ],
     )
     def test_is_from_streaming_connection(self, service_url, expected):
         activity = Activity(type="message", service_url=service_url)
         assert activity.is_from_streaming_connection() == expected
 
     def test_serialize_basic(self, activity):
-        activity_copy = Activity(**activity.model_dump(mode="json", exclude_unset=True, by_alias=True))
+        activity_copy = Activity(
+            **activity.model_dump(mode="json", exclude_unset=True, by_alias=True)
+        )
         assert activity_copy == activity
 
     def test_get_mentions(self):
-        activity = Activity(type="message", entities=[
-            Mention(text="Hello"),
-            Entity(type="other"),
-            Entity(type="mention", text="Another mention")
-        ])
+        activity = Activity(
+            type="message",
+            entities=[
+                Mention(text="Hello"),
+                Entity(type="other"),
+                Entity(type="mention", text="Another mention"),
+            ],
+        )
         mentions = activity.get_mentions()
         assert mentions == [
-                Mention(text="Hello"),
-                Entity(type="mention", text="Another mention")
-            ]
+            Mention(text="Hello"),
+            Entity(type="mention", text="Another mention"),
+        ]

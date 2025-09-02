@@ -20,10 +20,7 @@ from .conversation_reference import ConversationReference
 from .text_highlight import TextHighlight
 from .semantic_action import SemanticAction
 from .agents_model import AgentsModel
-from ._model_utils import (
-    pick_model,
-    SkipNone
-)
+from ._model_utils import pick_model, SkipNone
 from ._type_aliases import NonEmptyString
 
 
@@ -399,11 +396,16 @@ class Activity(AgentsModel):
         .. remarks::
             The new activity sets up routing information based on this activity.
         """
-        return pick_model(Activity,
+        return pick_model(
+            Activity,
             type=ActivityTypes.message,
             timestamp=datetime.now(timezone.utc),
-            from_property=SkipNone(ChannelAccount.pick_properties(self.recipient, ["id", "name"])),
-            recipient=SkipNone(ChannelAccount.pick_properties(self.from_property, ["id", "name"])),
+            from_property=SkipNone(
+                ChannelAccount.pick_properties(self.recipient, ["id", "name"])
+            ),
+            recipient=SkipNone(
+                ChannelAccount.pick_properties(self.from_property, ["id", "name"])
+            ),
             reply_to_id=(
                 SkipNone(self.id)
                 if type != ActivityTypes.conversation_update
@@ -412,7 +414,11 @@ class Activity(AgentsModel):
             ),
             service_url=self.service_url,
             channel_id=self.channel_id,
-            conversation=SkipNone(ConversationAccount.pick_properties(self.conversation, [ "is_group", "id", "name" ])),
+            conversation=SkipNone(
+                ConversationAccount.pick_properties(
+                    self.conversation, ["is_group", "id", "name"]
+                )
+            ),
             text=text if text else "",
             locale=locale if locale else SkipNone(self.locale),
             attachments=[],
@@ -436,20 +442,29 @@ class Activity(AgentsModel):
         if not value_type and value:
             value_type = type(value).__name__
 
-        return pick_model(Activity,
+        return pick_model(
+            Activity,
             type=ActivityTypes.trace,
             timestamp=datetime.now(timezone.utc),
-            from_property=SkipNone(ChannelAccount.pick_properties(self.recipient, ["id", "name"])),
-            recipient=SkipNone(ChannelAccount.pick_properties(self.from_property, ["id", "name"])),
+            from_property=SkipNone(
+                ChannelAccount.pick_properties(self.recipient, ["id", "name"])
+            ),
+            recipient=SkipNone(
+                ChannelAccount.pick_properties(self.from_property, ["id", "name"])
+            ),
             reply_to_id=(
-                SkipNone(self.id) # preserve unset
+                SkipNone(self.id)  # preserve unset
                 if type != ActivityTypes.conversation_update
                 or self.channel_id not in ["directline", "webchat"]
                 else None
             ),
             service_url=self.service_url,
             channel_id=self.channel_id,
-            conversation=SkipNone(ConversationAccount.pick_properties(self.conversation, ["is_group", "id", "name"])),
+            conversation=SkipNone(
+                ConversationAccount.pick_properties(
+                    self.conversation, ["is_group", "id", "name"]
+                )
+            ),
             name=SkipNone(name),
             label=SkipNone(label),
             value_type=SkipNone(value_type),
@@ -474,7 +489,8 @@ class Activity(AgentsModel):
         if not value_type and value:
             value_type = type(value).__name__
 
-        return pick_model(Activity,
+        return pick_model(
+            Activity,
             type=ActivityTypes.trace,
             name=name,
             label=SkipNone(label),
@@ -497,7 +513,8 @@ class Activity(AgentsModel):
 
         :returns: A conversation reference for the conversation that contains this activity.
         """
-        return pick_model(ConversationReference,
+        return pick_model(
+            ConversationReference,
             activity_id=(
                 SkipNone(self.id)
                 if self.type != ActivityTypes.conversation_update
@@ -522,9 +539,10 @@ class Activity(AgentsModel):
             This method is defined on the :class:`Activity` class, but is only intended for use with a message activity,
             where the activity Activity.Type is set to ActivityTypes.Message.
         """
-        if not self.entities: return []
+        if not self.entities:
+            return []
         return [x for x in self.entities if x.type.lower() == "mention"]
-    
+
     def get_reply_conversation_reference(
         self, reply: ResourceResponse
     ) -> ConversationReference:
@@ -601,7 +619,8 @@ class Activity(AgentsModel):
                 )
 
         return result
-    
+
+
 def add_ai_to_activity(
     activity: Activity,
     citations: Optional[list[ClientCitation]] = None,

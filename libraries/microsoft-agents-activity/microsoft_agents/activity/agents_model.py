@@ -3,6 +3,7 @@ from __future__ import annotations
 from pydantic import BaseModel, ConfigDict
 from pydantic.alias_generators import to_camel
 
+
 class AgentsModel(BaseModel):
     model_config = ConfigDict(alias_generator=to_camel, populate_by_name=True)
 
@@ -21,7 +22,7 @@ class AgentsModel(BaseModel):
     @classmethod
     def pick_properties(cls, original: AgentsModel, fields_to_copy=None, **kwargs):
         """Picks properties from the original model and returns a new instance (of a possibly different AgentsModel) with those properties.
-        
+
         This method preserves unset values.
 
         args:

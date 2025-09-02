@@ -6,14 +6,11 @@ from microsoft_agents.activity._model_utils import (
     SkipNone,
     SkipIf,
     pick_model,
-    pick_model_dict
+    pick_model_dict,
 )
 
-from .tools.testing_model_utils import (
-    SkipFalse,
-    SkipEmpty,
-    PickField
-)
+from .tools.testing_model_utils import SkipFalse, SkipEmpty, PickField
+
 
 class TestModelUtils:
 
@@ -27,7 +24,7 @@ class TestModelUtils:
             [None, {}],
             [42, {"field": 42}],
             ["foo", {"field": "foo"}],
-        ]
+        ],
     )
     def test_skip_none(self, value, expected):
         field = SkipNone(value)
@@ -54,34 +51,29 @@ class TestModelUtils:
         assert field.process("key") == {"key": value}
 
     def test_pick_model(self, mocker):
-        recipient = ChannelAccount(
-            id="123",
-            name="foo"
-        )
-        activity = pick_model(Activity,
+        recipient = ChannelAccount(id="123", name="foo")
+        activity = pick_model(
+            Activity,
             type="message",
             id=SkipNone(None),
-            from_property=pick_model(ChannelAccount,
+            from_property=pick_model(
+                ChannelAccount,
                 id=PickField(recipient),
-                aad_object_id=PickField(recipient)
+                aad_object_id=PickField(recipient),
             ),
-            recipient=pick_model(ChannelAccount,
+            recipient=pick_model(
+                ChannelAccount,
                 id=PickField(recipient),
                 name=PickField(recipient),
-                role=PickField(recipient)
+                role=PickField(recipient),
             ),
-            text=PickField(recipient, "name")
+            text=PickField(recipient, "name"),
         )
         expected = Activity(
             type="message",
-            from_property=ChannelAccount(
-                id="123"
-            ),
-            recipient=ChannelAccount(
-                id="123",
-                name="foo"
-            ),
-            text="foo"
+            from_property=ChannelAccount(id="123"),
+            recipient=ChannelAccount(id="123", name="foo"),
+            text="foo",
         )
 
         assert activity == expected
@@ -94,6 +86,7 @@ class TestModelUtils:
         class Foo(ModelFieldHelper):
             def process(self, key):
                 return {key: "bar"}
+
         class Bar(ModelFieldHelper):
             def process(self, key):
                 return {"bar": "bar"}
@@ -110,7 +103,7 @@ class TestModelUtils:
             e=None,
             f=42,
             bar=7,
-            g=Bar()
+            g=Bar(),
         )
 
         assert res == {
@@ -119,5 +112,5 @@ class TestModelUtils:
             "d": "bar",
             "e": None,
             "f": 42,
-            "bar": "bar"
+            "bar": "bar",
         }

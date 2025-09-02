@@ -5,12 +5,14 @@ from microsoft_agents.activity import (
     GeoCoordinates,
     Place,
     Thing,
-    Entity
+    Entity,
 )
+
 
 class MyChannelData:
     foo: str
     bar: str
+
 
 def GEN_HAS_CONTENT_DATA():
     return [
@@ -18,8 +20,9 @@ def GEN_HAS_CONTENT_DATA():
         (Activity(summary="summary"), True),
         (Activity(attachments=[Attachment()]), True),
         (Activity(channel_data=MyChannelData()), True),
-        (Activity(), False)
+        (Activity(), False),
     ]
 
+
 def GEN_TEST_CHANNEL_DATA():
-    return [ None, {}, MyChannelData() ]
+    return [None, {}, MyChannelData()]
