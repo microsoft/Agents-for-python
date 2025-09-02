@@ -20,8 +20,8 @@ from microsoft_agents.hosting.core.oauth import (
 )
 
 # test constants
-from .tools.testing_oauth import *
-from .tools.testing_authorization import (
+from core_tools.testing_oauth import *
+from core_tools.testing_authorization import (
     TestingConnectionManager as MockConnectionManager,
     create_test_auth_handler,
 )

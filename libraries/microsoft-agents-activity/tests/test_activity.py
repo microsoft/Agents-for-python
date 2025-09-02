@@ -18,8 +18,8 @@ from microsoft_agents.activity import (
     Thing,
 )
 
-from .data.activity_test_data import MyChannelData
-from .tools.testing_activity import create_test_activity
+from activity_data.activity_test_data import MyChannelData
+from activity_tools.testing_activity import create_test_activity
 
 
 def helper_validate_recipient_and_from(
