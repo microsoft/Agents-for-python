@@ -1,17 +1,21 @@
+from microsoft_agents.activity.entity import mention
 import pytest
 
 from microsoft_agents.activity import (
     Activity,
     ActivityTypes,
     Entity,
-    EntityTypes,
     Mention,
     ResourceResponse,
     ChannelAccount,
     ConversationAccount,
     ConversationReference,
     DeliveryModes,
-    Attachment
+    Attachment,
+    GeoCoordinates,
+    AIEntity,
+    Place,
+    Thing
 )
 
 from .data.activity_test_data import MyChannelData
@@ -161,17 +165,16 @@ class TestActivityConversationOps:
         [None, None, True, False, None],
         [None, None, False, True, "testLabel"]
     ])
-    @pytest.mark.skip(reason="Fails for same issues as create_reply did")
     def test_create_trace(self, value, value_type, create_recipient, create_from, label):
         activity = create_test_activity("en-us", create_recipient, create_from)
-        trace_activity = activity.create_trace("test", value, value_type, label)
+        trace = activity.create_trace("test", value, value_type, label)
 
         assert trace is not None
         assert trace.type == ActivityTypes.trace
         if value_type:
-            assert trace.value_type == value.get_type.name
+            assert trace.value_type == value_type
         elif value:
-            assert trace.value_type == value.get_type.name
+            assert trace.value_type == type(value).__name__
         else:
             assert trace.value_type is None
         assert trace.label == label
@@ -203,11 +206,10 @@ class TestActivityConversationOps:
     @pytest.mark.parametrize(
         "name, value_type, value, label",
         [
-            ["TestTrace", None, None, None],
+            ["TestTrace", "NoneType", None, None],
             ["TestTrace", None, "TestValue", None]
         ]
     )
-    @pytest.mark.skip(reason="Different behavior as C#, and fails")
     def test_create_trace_activity(self, name, value_type, value, label):
         activity = Activity.create_trace_activity(name, value, value_type, label)
 
@@ -227,7 +229,6 @@ class TestActivityConversationOps:
             [None, None, True, True, None]
         ]
     )
-    @pytest.mark.skip(reason="Fails stress test")
     def test_can_create_reply_activity(self, activity_locale, text, create_recipient, create_from, create_reply_locale):
         activity = create_test_activity(activity_locale, create_recipient, create_from)
         reply = activity.create_reply(text, locale=create_reply_locale)
@@ -237,9 +238,20 @@ class TestActivityConversationOps:
         assert reply.reply_to_id == "123"
         assert reply.service_url == "ServiceUrl123"
         assert reply.channel_id == "ChannelId123"
-        assert reply.text == text or ""
+        assert reply.text == text or reply.text == ""
         assert reply.locale == activity_locale or create_reply_locale
-        validate_recipient_and_from(reply, create_recipient, create_from) # robrandao: TODO
+
+        if create_recipient:
+            assert reply.from_property.id == "ChannelAccount_Id_2"
+            assert reply.from_property.name == "ChannelAccount_Name_2"
+        else:
+            assert reply.from_property is None
+
+        if create_from:
+            assert reply.recipient.id == "ChannelAccount_Id_1"
+            assert reply.recipient.name == "ChannelAccount_Name_1"
+        else:
+            assert reply.recipient is None
 
     @pytest.fixture(params=[None, {}, MyChannelData()])
     def channel_data(self, request):
@@ -282,3 +294,15 @@ class TestActivityConversationOps:
     def test_serialize_basic(self, activity):
         activity_copy = Activity(**activity.model_dump(mode="json", exclude_unset=True, by_alias=True))
         assert activity_copy == activity
+
+    def test_get_mentions(self):
+        activity = Activity(type="message", entities=[
+            Mention(text="Hello"),
+            Entity(type="other"),
+            Entity(type="mention", text="Another mention")
+        ])
+        mentions = activity.get_mentions()
+        assert mentions == [
+                Mention(text="Hello"),
+                Entity(type="mention", text="Another mention")
+            ]

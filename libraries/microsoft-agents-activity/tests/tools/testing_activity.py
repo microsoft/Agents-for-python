@@ -3,12 +3,9 @@ from microsoft_agents.activity import (
     ChannelAccount,
     ConversationAccount
 )
-
-from .model_helpers import (
-    model,
-    SkipNone,
-    SkipFalse,
-    CloneField
+from microsoft_agents.activity._model_utils import (
+    pick_model,
+    SkipNone
 )
 
 def create_test_activity(locale: str, create_recipient: bool = True, create_from: bool = True) -> Activity:
@@ -41,13 +38,13 @@ def create_test_activity(locale: str, create_recipient: bool = True, create_from
         properties = properties,
         role = "ConversationAccount_Role",
     )
-    return model(Activity,
+    return pick_model(Activity,
         id="123",
         from_property=SkipNone(account1),
         recipient=SkipNone(account2),
         conversation=conversation_account,
         channel_id="ChannelId123",
-        locale=locale,
+        locale=SkipNone(locale),
         service_url="ServiceUrl123",
         type="message"
     )

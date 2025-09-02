@@ -1,6 +1,5 @@
 from .mention import Mention
 from .entity import Entity
-from .entity_types import EntityTypes, AtEntityTypes
 from .ai_entity import (
     ClientCitation,
     ClientCitationAppearance,
@@ -16,8 +15,6 @@ from .thing import Thing
 
 __all__ = [
     "Entity",
-    "EntityTypes",
-    "AtEntityTypes",
     "AIEntity",
     "ClientCitation",
     "ClientCitationAppearance",

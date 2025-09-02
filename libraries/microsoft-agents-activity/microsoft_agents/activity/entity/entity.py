@@ -17,7 +17,6 @@ class Entity(AgentsModel):
     model_config = ConfigDict(extra="allow")
 
     type: str
-    at_type: str
 
     @property
     def additional_properties(self) -> dict[str, Any]:
@@ -38,7 +37,3 @@ class Entity(AgentsModel):
                 new_data[to_camel(k)] = v
             return new_data
         return {k: v for k, v in self}
-
-    def has_type(self, entity_type: str) -> bool:
-        # robrandao: TODO
-        return self.type == entity_type or self.at_type == entity_type

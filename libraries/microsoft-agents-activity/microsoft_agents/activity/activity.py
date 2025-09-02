@@ -11,8 +11,6 @@ from .suggested_actions import SuggestedActions
 from .attachment import Attachment
 from .entity import (
     Entity,
-    EntityTypes,
-    AtEntityTypes,
     Mention,
     AIEntity,
     ClientCitation,
@@ -22,11 +20,11 @@ from .conversation_reference import ConversationReference
 from .text_highlight import TextHighlight
 from .semantic_action import SemanticAction
 from .agents_model import AgentsModel
-from ._type_aliases import NonEmptyString
 from ._model_utils import (
     pick_model,
     SkipNone
 )
+from ._type_aliases import NonEmptyString
 
 
 # TODO: A2A Agent 2 is responding with None as id, had to mark it as optional (investigate)
@@ -401,11 +399,11 @@ class Activity(AgentsModel):
         .. remarks::
             The new activity sets up routing information based on this activity.
         """
-        return pick_model(Activity(
+        return pick_model(Activity,
             type=ActivityTypes.message,
             timestamp=datetime.now(timezone.utc),
-            from_property=ChannelAccount.pick_properties(self.recipient, ["id", "name"]),
-            recipient=ChannelAccount.pick_properties(self.from_property, ["id", "name"]),
+            from_property=SkipNone(ChannelAccount.pick_properties(self.recipient, ["id", "name"])),
+            recipient=SkipNone(ChannelAccount.pick_properties(self.from_property, ["id", "name"])),
             reply_to_id=(
                 SkipNone(self.id)
                 if type != ActivityTypes.conversation_update
@@ -414,12 +412,12 @@ class Activity(AgentsModel):
             ),
             service_url=self.service_url,
             channel_id=self.channel_id,
-            conversation=ConversationAccount.pick_properties(self.conversation, [ "is_group", "id", "name" ]),
+            conversation=SkipNone(ConversationAccount.pick_properties(self.conversation, [ "is_group", "id", "name" ])),
             text=text if text else "",
-            locale=locale if locale else self.locale,
+            locale=locale if locale else SkipNone(self.locale),
             attachments=[],
             entities=[],
-        ))
+        )
 
     def create_trace(
         self, name: str, value: object = None, value_type: str = None, label: str = None
@@ -436,13 +434,13 @@ class Activity(AgentsModel):
         :returns: The new trace activity.
         """
         if not value_type and value:
-            value_type = type(value)
+            value_type = type(value).__name__
 
-        return pick_set(Activity(
+        return pick_model(Activity,
             type=ActivityTypes.trace,
             timestamp=datetime.now(timezone.utc),
-            from_property=ChannelAccount.pick_properties(self.recipient, ["id", "name"]),
-            recipient=ChannelAccount.pick_properties(self.from_property, ["id", "name"]),
+            from_property=SkipNone(ChannelAccount.pick_properties(self.recipient, ["id", "name"])),
+            recipient=SkipNone(ChannelAccount.pick_properties(self.from_property, ["id", "name"])),
             reply_to_id=(
                 SkipNone(self.id) # preserve unset
                 if type != ActivityTypes.conversation_update
@@ -451,12 +449,12 @@ class Activity(AgentsModel):
             ),
             service_url=self.service_url,
             channel_id=self.channel_id,
-            conversation=ConversationAccount.pick_properties(self.conversation, ["is_group", "id", "name"]),
-            name=name,
-            label=label,
-            value_type=value_type,
-            value=value,
-        )).as_trace_activity()
+            conversation=SkipNone(ConversationAccount.pick_properties(self.conversation, ["is_group", "id", "name"])),
+            name=SkipNone(name),
+            label=SkipNone(label),
+            value_type=SkipNone(value_type),
+            value=SkipNone(value),
+        ).as_trace_activity()
 
     @staticmethod
     def create_trace_activity(
@@ -474,9 +472,9 @@ class Activity(AgentsModel):
         :returns: The new trace activity.
         """
         if not value_type and value:
-            value_type = type(value)
+            value_type = type(value).__name__
 
-        return pick_set(Activity,
+        return pick_model(Activity,
             type=ActivityTypes.trace,
             name=name,
             label=SkipNone(label),
@@ -499,8 +497,7 @@ class Activity(AgentsModel):
 
         :returns: A conversation reference for the conversation that contains this activity.
         """
-
-        return pick_model(ConversationReference(
+        return pick_model(ConversationReference,
             activity_id=(
                 SkipNone(self.id)
                 if self.type != ActivityTypes.conversation_update
@@ -513,18 +510,7 @@ class Activity(AgentsModel):
             channel_id=self.channel_id,
             locale=self.locale,
             service_url=self.service_url,
-        ))
-
-    def get_entities_by_type(self, entity_type: str) -> list[Entity]:
-        """
-        Resolves the entities of a specific type from the entities of this activity.
-
-        :param entity_type: The entity type to look for (RFC 3987 IRI).
-
-        :returns: The array of entities; or an empty array, if none are found.
-        """
-        if not self.entities: return []
-        return [x for x in self.entities if x.has_type(entity_type)]
+        )
 
     def get_mentions(self) -> list[Mention]:
         """
@@ -536,8 +522,9 @@ class Activity(AgentsModel):
             This method is defined on the :class:`Activity` class, but is only intended for use with a message activity,
             where the activity Activity.Type is set to ActivityTypes.Message.
         """
-        return self.get_entities_by_type(EntityTypes.MENTION)
-
+        if not self.entities: return []
+        return [x for x in self.entities if x.type.lower() == "mention"]
+    
     def get_reply_conversation_reference(
         self, reply: ResourceResponse
     ) -> ConversationReference:
@@ -599,7 +586,7 @@ class Activity(AgentsModel):
         if self.type is None:
             return False
 
-        type_attribute = str(self.type).lower()
+        type_attribute = f"ActivityTypes.{str(self.type)}".lower()
         activity_type = str(activity_type).lower()
 
         result = type_attribute.startswith(activity_type)
@@ -614,7 +601,7 @@ class Activity(AgentsModel):
                 )
 
         return result
-
+    
 def add_ai_to_activity(
     activity: Activity,
     citations: Optional[list[ClientCitation]] = None,

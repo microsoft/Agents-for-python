@@ -1,10 +1,8 @@
-from typing import Literal
-
+from ..agents_model import AgentsModel
 from .._type_aliases import NonEmptyString
-from .entity_types import EntityTypes, AtEntityTypes
-from .entity import Entity
 
-class Thing(Entity):
+
+class Thing(AgentsModel):
     """Thing (entity type: "https://schema.org/Thing").
 
     :param type: The type of the thing
@@ -12,7 +10,6 @@ class Thing(Entity):
     :param name: The name of the thing
     :type name: str
     """
-    type: Literal[EntityTypes.THING] = EntityTypes.THING
-    at_type: Literal[AtEntityTypes.THING] = AtEntityTypes.THING
 
+    type: NonEmptyString = None
     name: NonEmptyString = None

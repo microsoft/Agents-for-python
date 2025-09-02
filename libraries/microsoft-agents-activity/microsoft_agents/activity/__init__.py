@@ -26,8 +26,6 @@ from .conversations_result import ConversationsResult
 from .expected_replies import ExpectedReplies
 from .entity import (
     Entity,
-    EntityTypes,
-    AtEntityTypes,
     AIEntity,
     ClientCitation,
     ClientCitationAppearance,
@@ -93,7 +91,6 @@ from .caller_id_constants import CallerIdConstants
 from .conversation_update_types import ConversationUpdateTypes
 from .message_update_types import MessageUpdateTypes
 
-
 from .channel_adapter_protocol import ChannelAdapterProtocol
 from .turn_context_protocol import TurnContextProtocol
 from ._load_configuration import load_configuration_from_env
@@ -125,8 +122,6 @@ __all__ = [
     "ConversationsResult",
     "ExpectedReplies",
     "Entity",
-    "EntityTypes",
-    "AtEntityTypes",
     "AIEntity",
     "ClientCitation",
     "ClientCitationAppearance",

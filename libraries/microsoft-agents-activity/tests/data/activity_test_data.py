@@ -1,6 +1,11 @@
 from microsoft_agents.activity import (
     Activity,
-    Attachment
+    Attachment,
+    Mention,
+    GeoCoordinates,
+    Place,
+    Thing,
+    Entity
 )
 
 class MyChannelData:

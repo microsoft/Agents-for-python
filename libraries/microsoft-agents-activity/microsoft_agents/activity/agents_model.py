@@ -20,19 +20,26 @@ class AgentsModel(BaseModel):
 
     @classmethod
     def pick_properties(cls, original: AgentsModel, fields_to_copy=None, **kwargs):
+        """Picks properties from the original model and returns a new instance (of a possibly different AgentsModel) with those properties.
+        
+        This method preserves unset values.
+
+        args:
+            original: The original model instance to copy properties from. If None, returns None.
+            fields_to_copy: The specific fields to copy. If None, all fields are copied.
+            **kwargs: Additional fields to include in the new instance.
+        """
         if not original:
-            return {}
+            return None
 
         if fields_to_copy is None:
-            fields_to_copy = set(original.model_fields_set)
+            fields_to_copy = original.model_fields_set
         else:
             fields_to_copy = original.model_fields_set & set(fields_to_copy)
 
-        clone_dict = {}
+        dest = {}
         for field in fields_to_copy:
-            if field in kwargs:
-                clone_dict[field] = getattr(original, field)
-                setattr(self, field, kwargs[field])
+            dest[field] = getattr(original, field)
 
-        clone_dict.update(kwargs)
-        return cls.model_validate(clone_dict)
+        dest.update(kwargs)
+        return cls.model_validate(dest)
