@@ -1,6 +1,6 @@
 from .agents_model import AgentsModel
 from .action_types import ActionTypes
-from .activity import Activity, add_ai_to_activity
+from .activity import Activity, add_ai_metadata
 from .activity_event_names import ActivityEventNames
 from .activity_types import ActivityTypes
 from .adaptive_card_invoke_action import AdaptiveCardInvokeAction
@@ -129,7 +129,7 @@ __all__ = [
     "ClientCitationIconName",
     "SensitivityUsageInfo",
     "SensitivityPattern",
-    "add_ai_to_activity",
+    "add_ai_metadata",
     "Error",
     "ErrorResponse",
     "Fact",
