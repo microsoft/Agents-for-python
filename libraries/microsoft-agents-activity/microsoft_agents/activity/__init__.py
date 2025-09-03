@@ -65,6 +65,7 @@ from .token_exchange_invoke_response import TokenExchangeInvokeResponse
 from .token_exchange_state import TokenExchangeState
 from .token_request import TokenRequest
 from .token_response import TokenResponse
+from .token_or_sign_in_resource_response import TokenOrSignInResourceResponse
 from .token_status import TokenStatus
 from .transcript import Transcript
 from .video_card import VideoCard
@@ -163,6 +164,7 @@ __all__ = [
     "TokenRequest",
     "TokenResponse",
     "TokenStatus",
+    "TokenOrSignInResourceResponse",
     "Transcript",
     "VideoCard",
     "ActivityTypes",

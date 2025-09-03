@@ -1,7 +1,11 @@
 from abc import abstractmethod
 from typing import Protocol
 
-from microsoft_agents.activity import TokenResponse, TokenStatus
+from microsoft_agents.activity import (
+    TokenResponse,
+    TokenStatus,
+    TokenOrSignInResourceResponse
+)
 
 
 class UserTokenBase(Protocol):
@@ -13,6 +17,19 @@ class UserTokenBase(Protocol):
         channel_id: str = None,
         code: str = None,
     ) -> TokenResponse:
+        raise NotImplementedError()
+
+    @abstractmethod
+    async def get_token_or_sign_in_resource(
+        self,
+        user_id: str,
+        connection_name: str,
+        channel_id: str,
+        state: str,
+        code: str = "",
+        final_redirect: str = "",
+        fwd_url: str = ""
+    ) -> TokenOrSignInResourceResponse:
         raise NotImplementedError()
 
     @abstractmethod
