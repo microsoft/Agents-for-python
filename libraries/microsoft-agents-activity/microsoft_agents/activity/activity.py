@@ -621,7 +621,7 @@ class Activity(AgentsModel):
         return result
 
 
-def add_ai_to_activity(
+def add_ai_metadata(
     activity: Activity,
     citations: Optional[list[ClientCitation]] = None,
     usage_info: Optional[SensitivityUsageInfo] = None,
