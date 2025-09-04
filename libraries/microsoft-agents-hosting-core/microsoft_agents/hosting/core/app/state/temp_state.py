@@ -48,7 +48,7 @@ class TempState(AgentState):
     def input_files(self, value: List[InputFile]) -> None:
         self.set_value(self.INPUT_FILES_KEY, value)
 
-    def clear(self) -> None:
+    def clear(self, turn_context: TurnContext) -> None:
         """Clears all state values"""
         self._state.clear()
 
@@ -94,6 +94,10 @@ class TempState(AgentState):
 
     async def load(self, turn_context: TurnContext, force: bool = False, **_) -> None:
         """Loads the state asynchronously"""
+        pass
+
+    async def save(self, turn_context, force=False):
+        """Saves the state asynchronously"""
         pass
 
     async def save_changes(
