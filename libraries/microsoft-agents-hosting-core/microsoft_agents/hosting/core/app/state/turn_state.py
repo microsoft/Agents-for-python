@@ -246,16 +246,21 @@ class TurnState:
         ]
         await asyncio.gather(*tasks)
 
-    def clear(self, scope: str) -> None:
+    def clear(self, turn_context: TurnContext, scope: str = None) -> None:
         """
         Clears a state scope.
 
         Args:
             scope: The name of the scope to clear.
         """
-        scope_obj = self.get_scope_by_name(scope)
-        if hasattr(scope_obj, "clear"):
-            scope_obj.clear()
+        if scope:
+            scope_obj = self.get_scope_by_name(scope)
+            if hasattr(scope_obj, "clear"):
+                scope_obj.clear(turn_context)
+        else:
+            for scope in self._scopes.values():
+                if hasattr(scope, "clear"):
+                    scope.clear(turn_context)
 
     async def save(self, turn_context: TurnContext, force: bool = False) -> None:
         """
