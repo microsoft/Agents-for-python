@@ -17,7 +17,7 @@ class OAuthCard(AgentsModel):
     :type buttons: list[~microsoft_agents.activity.CardAction]
     """
 
-    text: NonEmptyString = None
+    text: str = None
     connection_name: NonEmptyString = None
     buttons: list[CardAction] = None
     token_exchange_resource: Optional[TokenExchangeResource] = None

@@ -5,8 +5,7 @@ from enum import Enum
 from typing import List, Optional, Union, Literal
 from dataclasses import dataclass
 
-from .agents_model import AgentsModel
-from .activity import Activity
+from ..agents_model import AgentsModel
 from .entity import Entity
 
 
@@ -110,33 +109,3 @@ class AIEntity(Entity):
     def __post_init__(self):
         if self.additional_type is None:
             self.additional_type = ["AIGeneratedContent"]
-
-
-def add_ai_to_activity(
-    activity: Activity,
-    citations: Optional[List[ClientCitation]] = None,
-    usage_info: Optional[SensitivityUsageInfo] = None,
-) -> None:
-    """
-    Adds AI entity to an activity to indicate AI-generated content.
-
-    Args:
-        activity: The activity to modify
-        citations: Optional list of citations
-        usage_info: Optional sensitivity usage information
-    """
-    if citations:
-        ai_entity = AIEntity(
-            type="https://schema.org/Message",
-            schema_type="Message",
-            context="https://schema.org",
-            id="",
-            additional_type=["AIGeneratedContent"],
-            citation=citations,
-            usage_info=usage_info,
-        )
-
-        if activity.entities is None:
-            activity.entities = []
-
-        activity.entities.append(ai_entity)

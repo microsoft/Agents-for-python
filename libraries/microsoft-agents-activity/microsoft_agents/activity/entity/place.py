@@ -1,5 +1,5 @@
-from .agents_model import AgentsModel
-from ._type_aliases import NonEmptyString
+from ..agents_model import AgentsModel
+from .._type_aliases import NonEmptyString
 
 
 class Place(AgentsModel):

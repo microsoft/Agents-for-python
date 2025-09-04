@@ -5,16 +5,22 @@ from pydantic import Field, SerializeAsAny
 from .activity_types import ActivityTypes
 from .channel_account import ChannelAccount
 from .conversation_account import ConversationAccount
-from .mention import Mention
 from .message_reaction import MessageReaction
 from .resource_response import ResourceResponse
 from .suggested_actions import SuggestedActions
 from .attachment import Attachment
-from .entity import Entity
+from .entity import (
+    Entity,
+    Mention,
+    AIEntity,
+    ClientCitation,
+    SensitivityUsageInfo,
+)
 from .conversation_reference import ConversationReference
 from .text_highlight import TextHighlight
 from .semantic_action import SemanticAction
 from .agents_model import AgentsModel
+from ._model_utils import pick_model, SkipNone
 from ._type_aliases import NonEmptyString
 
 
@@ -390,32 +396,31 @@ class Activity(AgentsModel):
         .. remarks::
             The new activity sets up routing information based on this activity.
         """
-        return Activity(
+        return pick_model(
+            Activity,
             type=ActivityTypes.message,
             timestamp=datetime.now(timezone.utc),
-            from_property=ChannelAccount(
-                id=self.recipient.id if self.recipient else None,
-                name=self.recipient.name if self.recipient else None,
+            from_property=SkipNone(
+                ChannelAccount.pick_properties(self.recipient, ["id", "name"])
             ),
-            recipient=ChannelAccount(
-                id=self.from_property.id if self.from_property else None,
-                name=self.from_property.name if self.from_property else None,
+            recipient=SkipNone(
+                ChannelAccount.pick_properties(self.from_property, ["id", "name"])
             ),
             reply_to_id=(
-                self.id
+                SkipNone(self.id)
                 if type != ActivityTypes.conversation_update
                 or self.channel_id not in ["directline", "webchat"]
                 else None
             ),
             service_url=self.service_url,
             channel_id=self.channel_id,
-            conversation=ConversationAccount(
-                is_group=self.conversation.is_group,
-                id=self.conversation.id,
-                name=self.conversation.name,
+            conversation=SkipNone(
+                ConversationAccount.pick_properties(
+                    self.conversation, ["is_group", "id", "name"]
+                )
             ),
             text=text if text else "",
-            locale=locale if locale else self.locale,
+            locale=locale if locale else SkipNone(self.locale),
             attachments=[],
             entities=[],
         )
@@ -423,6 +428,7 @@ class Activity(AgentsModel):
     def create_trace(
         self, name: str, value: object = None, value_type: str = None, label: str = None
     ):
+        # robrandao: TODO -> needs to handle Nones like create_reply
         """
         Creates a new trace activity based on this activity.
 
@@ -434,42 +440,42 @@ class Activity(AgentsModel):
         :returns: The new trace activity.
         """
         if not value_type and value:
-            value_type = type(value)
+            value_type = type(value).__name__
 
-        return Activity(
+        return pick_model(
+            Activity,
             type=ActivityTypes.trace,
             timestamp=datetime.now(timezone.utc),
-            from_property=ChannelAccount(
-                id=self.recipient.id if self.recipient else None,
-                name=self.recipient.name if self.recipient else None,
+            from_property=SkipNone(
+                ChannelAccount.pick_properties(self.recipient, ["id", "name"])
             ),
-            recipient=ChannelAccount(
-                id=self.from_property.id if self.from_property else None,
-                name=self.from_property.name if self.from_property else None,
+            recipient=SkipNone(
+                ChannelAccount.pick_properties(self.from_property, ["id", "name"])
             ),
             reply_to_id=(
-                self.id
+                SkipNone(self.id)  # preserve unset
                 if type != ActivityTypes.conversation_update
                 or self.channel_id not in ["directline", "webchat"]
                 else None
             ),
             service_url=self.service_url,
             channel_id=self.channel_id,
-            conversation=ConversationAccount(
-                is_group=self.conversation.is_group,
-                id=self.conversation.id,
-                name=self.conversation.name,
+            conversation=SkipNone(
+                ConversationAccount.pick_properties(
+                    self.conversation, ["is_group", "id", "name"]
+                )
             ),
-            name=name,
-            label=label,
-            value_type=value_type,
-            value=value,
+            name=SkipNone(name),
+            label=SkipNone(label),
+            value_type=SkipNone(value_type),
+            value=SkipNone(value),
         ).as_trace_activity()
 
     @staticmethod
     def create_trace_activity(
         name: str, value: object = None, value_type: str = None, label: str = None
     ):
+        # robrandao: TODO -> SkipNone
         """
         Creates an instance of the :class:`Activity` class as a TraceActivity object.
 
@@ -481,14 +487,15 @@ class Activity(AgentsModel):
         :returns: The new trace activity.
         """
         if not value_type and value:
-            value_type = type(value)
+            value_type = type(value).__name__
 
-        return Activity(
+        return pick_model(
+            Activity,
             type=ActivityTypes.trace,
             name=name,
-            label=label,
-            value_type=value_type,
-            value=value,
+            label=SkipNone(label),
+            value_type=SkipNone(value_type),
+            value=SkipNone(value),
         )
 
     @staticmethod
@@ -506,10 +513,10 @@ class Activity(AgentsModel):
 
         :returns: A conversation reference for the conversation that contains this activity.
         """
-
-        return ConversationReference(
+        return pick_model(
+            ConversationReference,
             activity_id=(
-                self.id
+                SkipNone(self.id)
                 if self.type != ActivityTypes.conversation_update
                 or self.channel_id not in ["directline", "webchat"]
                 else None
@@ -532,8 +539,9 @@ class Activity(AgentsModel):
             This method is defined on the :class:`Activity` class, but is only intended for use with a message activity,
             where the activity Activity.Type is set to ActivityTypes.Message.
         """
-        _list = self.entities
-        return [x for x in _list if str(x.type).lower() == "mention"]
+        if not self.entities:
+            return []
+        return [x for x in self.entities if x.type.lower() == "mention"]
 
     def get_reply_conversation_reference(
         self, reply: ResourceResponse
@@ -596,7 +604,7 @@ class Activity(AgentsModel):
         if self.type is None:
             return False
 
-        type_attribute = str(self.type).lower()
+        type_attribute = f"ActivityTypes.{str(self.type)}".lower()
         activity_type = str(activity_type).lower()
 
         result = type_attribute.startswith(activity_type)
@@ -611,3 +619,32 @@ class Activity(AgentsModel):
                 )
 
         return result
+
+    def add_ai_metadata(
+        self,
+        citations: Optional[list[ClientCitation]] = None,
+        usage_info: Optional[SensitivityUsageInfo] = None,
+    ) -> None:
+        """
+        Adds AI entity to an activity to indicate AI-generated content.
+
+        Args:
+            activity: The activity to modify
+            citations: Optional list of citations
+            usage_info: Optional sensitivity usage information
+        """
+        if citations:
+            ai_entity = AIEntity(
+                type="https://schema.org/Message",
+                schema_type="Message",
+                context="https://schema.org",
+                id="",
+                additional_type=["AIGeneratedContent"],
+                citation=citations,
+                usage_info=usage_info,
+            )
+
+            if self.entities is None:
+                self.entities = []
+
+            self.entities.append(ai_entity)

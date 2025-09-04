@@ -1,6 +1,8 @@
-from .channel_account import ChannelAccount
+from typing import Literal
+
+from ..channel_account import ChannelAccount
 from .entity import Entity
-from ._type_aliases import NonEmptyString
+from .._type_aliases import NonEmptyString
 
 
 class Mention(Entity):
@@ -15,5 +17,5 @@ class Mention(Entity):
     """
 
     mentioned: ChannelAccount = None
-    text: NonEmptyString = None
-    type: NonEmptyString = None
+    text: str = None
+    type: Literal["mention"] = "mention"

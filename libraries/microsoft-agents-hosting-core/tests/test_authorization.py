@@ -4,7 +4,7 @@ import jwt
 
 from microsoft_agents.activity import ActivityTypes, TokenResponse
 from microsoft_agents.hosting.core import MemoryStorage
-from microsoft_agents.hosting.core.storage.storage_test_utils import StorageBaseline
+from microsoft_agents.hosting.core.storage._storage_test_utils import StorageBaseline
 from microsoft_agents.hosting.core.connector.user_token_base import UserTokenBase
 from microsoft_agents.hosting.core.connector.user_token_client_base import (
     UserTokenClientBase,
@@ -20,8 +20,8 @@ from microsoft_agents.hosting.core.oauth import (
 )
 
 # test constants
-from .tools.testing_oauth import *
-from .tools.testing_authorization import (
+from core_tools.testing_oauth import *
+from core_tools.testing_authorization import (
     TestingConnectionManager as MockConnectionManager,
     create_test_auth_handler,
 )

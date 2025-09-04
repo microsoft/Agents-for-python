@@ -24,7 +24,7 @@ class HeroCard(AgentsModel):
 
     title: NonEmptyString = None
     subtitle: NonEmptyString = None
-    text: NonEmptyString = None
+    text: str = None
     images: list[CardImage] = None
     buttons: list[CardAction] = None
     tap: CardAction = None

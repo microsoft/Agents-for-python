@@ -21,7 +21,7 @@ from microsoft_agents.hosting.core.connector.user_token_client_base import (
 )
 
 # test constants
-from .tools.testing_oauth import *
+from core_tools.testing_oauth import *
 
 
 class TestOAuthFlowUtils:

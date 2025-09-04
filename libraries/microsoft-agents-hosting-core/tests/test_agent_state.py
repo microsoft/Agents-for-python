@@ -25,7 +25,7 @@ from microsoft_agents.activity import (
     ChannelAccount,
     ConversationAccount,
 )
-from tests.tools.testing_adapter import TestingAdapter
+from core_tools.testing_adapter import TestingAdapter
 
 
 class MockCustomState(AgentState):
