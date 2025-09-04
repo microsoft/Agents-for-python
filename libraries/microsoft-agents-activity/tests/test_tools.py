@@ -9,7 +9,7 @@ from microsoft_agents.activity._model_utils import (
     pick_model_dict,
 )
 
-from activity_tools.testing_model_utils import SkipFalse, SkipEmpty, PickField
+from .activity_tools.testing_model_utils import SkipFalse, SkipEmpty, PickField
 
 
 class TestModelUtils:

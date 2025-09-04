@@ -620,32 +620,31 @@ class Activity(AgentsModel):
 
         return result
 
+    def add_ai_metadata(
+        self,
+        citations: Optional[list[ClientCitation]] = None,
+        usage_info: Optional[SensitivityUsageInfo] = None,
+    ) -> None:
+        """
+        Adds AI entity to an activity to indicate AI-generated content.
 
-def add_ai_metadata(
-    activity: Activity,
-    citations: Optional[list[ClientCitation]] = None,
-    usage_info: Optional[SensitivityUsageInfo] = None,
-) -> None:
-    """
-    Adds AI entity to an activity to indicate AI-generated content.
+        Args:
+            activity: The activity to modify
+            citations: Optional list of citations
+            usage_info: Optional sensitivity usage information
+        """
+        if citations:
+            ai_entity = AIEntity(
+                type="https://schema.org/Message",
+                schema_type="Message",
+                context="https://schema.org",
+                id="",
+                additional_type=["AIGeneratedContent"],
+                citation=citations,
+                usage_info=usage_info,
+            )
 
-    Args:
-        activity: The activity to modify
-        citations: Optional list of citations
-        usage_info: Optional sensitivity usage information
-    """
-    if citations:
-        ai_entity = AIEntity(
-            type="https://schema.org/Message",
-            schema_type="Message",
-            context="https://schema.org",
-            id="",
-            additional_type=["AIGeneratedContent"],
-            citation=citations,
-            usage_info=usage_info,
-        )
+            if self.entities is None:
+                self.entities = []
 
-        if activity.entities is None:
-            activity.entities = []
-
-        activity.entities.append(ai_entity)
+            self.entities.append(ai_entity)

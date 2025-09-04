@@ -1,6 +1,6 @@
 from datetime import datetime
 
-from microsoft_agents.hosting.core.storage.storage_test_utils import MockStoreItem
+from microsoft_agents.hosting.core.storage._storage_test_utils import MockStoreItem
 from microsoft_agents.hosting.core.oauth.flow_state import FlowState, FlowStateTag
 
 MS_APP_ID = "__ms_app_id"

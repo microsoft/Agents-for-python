@@ -4,7 +4,7 @@ import jwt
 
 from microsoft_agents.activity import ActivityTypes, TokenResponse
 from microsoft_agents.hosting.core import MemoryStorage
-from microsoft_agents.hosting.core.storage.storage_test_utils import StorageBaseline
+from microsoft_agents.hosting.core.storage._storage_test_utils import StorageBaseline
 from microsoft_agents.hosting.core.connector.user_token_base import UserTokenBase
 from microsoft_agents.hosting.core.connector.user_token_client_base import (
     UserTokenClientBase,
