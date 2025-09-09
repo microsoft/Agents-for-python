@@ -137,6 +137,7 @@ class TestOAuthFlow(TestOAuthFlowUtils):
         flow = OAuthFlow(sample_flow_state, user_token_client)
         expected_final_flow_state = sample_flow_state
         expected_final_flow_state.user_token = RES_TOKEN
+        expected_final_flow_state.tag = FlowStateTag.COMPLETE
 
         # test
         token_response = await flow.get_user_token()
@@ -201,6 +202,7 @@ class TestOAuthFlow(TestOAuthFlowUtils):
         activity = mocker.Mock(spec=Activity)
         expected_flow_state = sample_flow_state
         expected_flow_state.user_token = RES_TOKEN
+        expected_flow_state.tag = FlowStateTag.COMPLETE
 
         # test
         response = await flow.begin_flow(activity)
