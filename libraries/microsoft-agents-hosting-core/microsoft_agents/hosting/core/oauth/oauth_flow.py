@@ -140,6 +140,7 @@ class OAuthFlow:
             self._flow_state.expiration = (
                 datetime.now().timestamp() + self._default_flow_duration
             )
+            self._flow_state.tag = FlowStateTag.COMPLETE
 
         return token_response
 
