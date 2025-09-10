@@ -1,5 +1,5 @@
 from microsoft_agents.hosting.core.storage.memory_storage import MemoryStorage
-from microsoft_agents.hosting.core.storage._storage_test_utils import CRUDStorageTests
+from tests._common.storage.utils import CRUDStorageTests
 
 
 class TestMemoryStorage(CRUDStorageTests):

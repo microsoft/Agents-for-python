@@ -1,4 +1,4 @@
-from microsoft_agents.hosting.core.storage._storage_test_utils import (
+from tests._common.storage.utils import (
     MockStoreItem,
     MockStoreItemB,
     my_deepcopy,

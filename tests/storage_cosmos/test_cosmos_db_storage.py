@@ -13,7 +13,7 @@ from azure.cosmos.exceptions import CosmosResourceNotFoundError
 from microsoft_agents.storage.cosmos import CosmosDBStorage, CosmosDBStorageConfig
 from microsoft_agents.storage.cosmos.key_ops import sanitize_key
 
-from microsoft_agents.hosting.core.storage._storage_test_utils import (
+from tests._common.storage.utils import (
     QuickCRUDStorageTests,
     MockStoreItem,
     MockStoreItemB,
