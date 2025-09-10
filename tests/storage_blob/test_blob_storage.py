@@ -10,7 +10,7 @@ from microsoft_agents.storage.blob import BlobStorage, BlobStorageConfig
 from azure.storage.blob.aio import BlobServiceClient
 from azure.core.exceptions import ResourceNotFoundError
 
-from microsoft_agents.hosting.core.storage._storage_test_utils import (
+from tests._common.storage.utils import (
     CRUDStorageTests,
     StorageBaseline,
     MockStoreItem,
