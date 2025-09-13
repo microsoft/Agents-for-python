@@ -4,10 +4,11 @@
 from __future__ import annotations
 
 import logging
+import time
 
 from pydantic import BaseModel
 from datetime import datetime
-from typing import Optional
+from typing import Optional, Set
 
 from microsoft_agents.activity import (
     Activity,
@@ -103,6 +104,20 @@ class OAuthFlow:
             self._default_flow_duration,
             self._max_attempts,
         )
+
+        # Public registry of token exchange ids. This set is periodically cleared
+        # by a background asyncio task to avoid unbounded growth.
+        self.token_exchange_id_registry: Set[str] = set()
+
+        # Background task for periodically clearing the registry. The task is
+        # created lazily when an asyncio event loop is running.
+        self._clear_interval_seconds = kwargs.get(
+            "token_exchange_registry_clear_interval", 10
+        )
+        # Track the last time the registry was cleared (epoch seconds). The
+        # registry will be cleared lazily when an async entrypoint is hit and
+        # the interval has elapsed.
+        self._last_registry_clear: float = time.time()
 
     @property
     def flow_state(self) -> FlowState:
@@ -246,16 +261,26 @@ class OAuthFlow:
 
     async def _continue_from_invoke_token_exchange(
         self, activity: Activity
-    ) -> TokenResponse:
+    ) -> tuple[TokenResponse, FlowErrorTag]:
         """Handles the continuation of the flow from an invoke activity for token exchange."""
+        logger.info("Continuing OAuth flow with token exchange...")
         token_exchange_request = activity.value
+        token_exchange_id = token_exchange_request.get("id")
+
+        if token_exchange_id in self.token_exchange_id_registry:
+            logger.warning(
+                "Token exchange request with id %s has already been processed",
+                token_exchange_id,
+            )
+            return None, FlowErrorTag.DUPLICATE_EXCHANGE
+        self.token_exchange_id_registry.add(token_exchange_id)
         token_response = await self._user_token_client.user_token.exchange_token(
             user_id=self._user_id,
             connection_name=self._abs_oauth_connection_name,
             channel_id=self._channel_id,
             body=token_exchange_request,
         )
-        return token_response
+        return token_response, FlowErrorTag.NONE
 
     async def continue_flow(self, activity: Activity) -> FlowResponse:
         """Continues the OAuth flow based on the incoming activity.
@@ -269,7 +294,24 @@ class OAuthFlow:
         """
         logger.debug("Continuing auth flow...")
 
+        # Lazily clear the registry if the configured interval has elapsed.
+        self._maybe_clear_token_exchange_registry()
+
         if not self._flow_state.is_active():
+            if (
+                activity.type == ActivityTypes.invoke
+                and activity.name == "signin/tokenExchange"
+                and activity.value.get("id") in self.token_exchange_id_registry
+            ):
+                logger.debug(
+                    "Token exchange request with id %s has already been processed",
+                    activity.value.get("id"),
+                )
+                return FlowResponse(
+                    flow_state=self._flow_state.model_copy(),
+                    token_response=None,
+                    flow_error_tag=FlowErrorTag.DUPLICATE_EXCHANGE,
+                )
             logger.debug("OAuth flow is not active, cannot continue")
             self._flow_state.tag = FlowStateTag.FAILURE
             return FlowResponse(
@@ -288,14 +330,20 @@ class OAuthFlow:
             activity.type == ActivityTypes.invoke
             and activity.name == "signin/tokenExchange"
         ):
-            token_response = await self._continue_from_invoke_token_exchange(activity)
+            (
+                token_response,
+                flow_error_tag,
+            ) = await self._continue_from_invoke_token_exchange(activity)
         else:
             raise ValueError(f"Unknown activity type {activity.type}")
 
         if not token_response and flow_error_tag == FlowErrorTag.NONE:
             flow_error_tag = FlowErrorTag.OTHER
 
-        if flow_error_tag != FlowErrorTag.NONE:
+        if (
+            flow_error_tag != FlowErrorTag.NONE
+            and flow_error_tag != FlowErrorTag.DUPLICATE_EXCHANGE
+        ):
             logger.debug("Flow error occurred: %s", flow_error_tag)
             self._flow_state.tag = FlowStateTag.CONTINUE
             self._use_attempt()
@@ -340,3 +388,20 @@ class OAuthFlow:
 
         logger.debug("No active flow, beginning new flow...")
         return await self.begin_flow(activity)
+
+    def _maybe_clear_token_exchange_registry(self) -> None:
+        """Clear the `token_exchange_id_registry` if the configured interval
+        (seconds) has elapsed since the last clear. This uses the machine
+        epoch (time.time()) and performs lazy eviction when registry access
+        occurs instead of running a background task.
+        """
+        now = time.time()
+
+        if now - self._last_registry_clear >= self._clear_interval_seconds:
+            if self.token_exchange_id_registry:
+                logger.debug(
+                    "Clearing token_exchange_id_registry by epoch check (size=%d)",
+                    len(self.token_exchange_id_registry),
+                )
+                self.token_exchange_id_registry.clear()
+            self._last_registry_clear = now

@@ -33,6 +33,7 @@ class FlowErrorTag(Enum):
     NONE = "none"
     MAGIC_FORMAT = "magic_format"
     MAGIC_CODE_INCORRECT = "magic_code_incorrect"
+    DUPLICATE_EXCHANGE = "duplicate_exchange"
     OTHER = "other"
 
 

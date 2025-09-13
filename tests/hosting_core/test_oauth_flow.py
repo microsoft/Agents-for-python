@@ -25,7 +25,6 @@ from .tools.testing_oauth import *
 
 
 class TestOAuthFlowUtils:
-
     def create_user_token_client(self, mocker, get_token_return=None):
 
         user_token_client = mocker.Mock(spec=UserTokenClientBase)
@@ -104,7 +103,6 @@ class TestOAuthFlowUtils:
 
 
 class TestOAuthFlow(TestOAuthFlowUtils):
-
     def test_init_no_user_token_client(self, sample_flow_state):
         with pytest.raises(ValueError):
             OAuthFlow(sample_flow_state, None)
@@ -602,3 +600,82 @@ class TestOAuthFlow(TestOAuthFlowUtils):
         assert actual_response == expected_response
         OAuthFlow.begin_flow.assert_not_called()
         OAuthFlow.continue_flow.assert_not_called()
+
+    @pytest.mark.asyncio
+    async def test_token_exchange_dedupe_prevents_replay(
+        self, mocker, sample_active_flow_state, user_token_client
+    ):
+        # setup
+        token_exchange_request = {"id": "exchange-1"}
+        user_token_client.user_token.exchange_token = mocker.AsyncMock(
+            return_value=TokenResponse(token=RES_TOKEN)
+        )
+        activity = self.create_activity(
+            mocker,
+            ActivityTypes.invoke,
+            name="signin/tokenExchange",
+            value=token_exchange_request,
+        )
+
+        flow = OAuthFlow(sample_active_flow_state, user_token_client)
+
+        # first request should be processed
+        response1 = await flow.continue_flow(activity)
+        user_token_client.user_token.exchange_token.assert_called_once_with(
+            user_id=sample_active_flow_state.user_id,
+            connection_name=sample_active_flow_state.connection,
+            channel_id=sample_active_flow_state.channel_id,
+            body=token_exchange_request,
+        )
+        assert response1.token_response == TokenResponse(token=RES_TOKEN)
+        # registry should contain the processed id
+        assert "exchange-1" in flow.token_exchange_id_registry
+
+        # second request with same id should be ignored (no additional call)
+        response2 = await flow.continue_flow(activity)
+        # still only called once
+        assert user_token_client.user_token.exchange_token.call_count == 1
+        assert response2.token_response == None
+        assert response2.flow_error_tag == FlowErrorTag.DUPLICATE_EXCHANGE
+
+    @pytest.mark.asyncio
+    async def test_token_exchange_registry_clears_after_interval(
+        self, mocker, sample_active_flow_state, user_token_client
+    ):
+        # setup
+        token_exchange_request = {"id": "exchange-2"}
+        user_token_client.user_token.exchange_token = mocker.AsyncMock(
+            return_value=TokenResponse(token=RES_TOKEN)
+        )
+        activity = self.create_activity(
+            mocker,
+            ActivityTypes.invoke,
+            name="signin/tokenExchange",
+            value=token_exchange_request,
+        )
+
+        flow = OAuthFlow(sample_active_flow_state, user_token_client)
+
+        # first request should be processed
+        response1 = await flow.continue_flow(activity)
+        assert user_token_client.user_token.exchange_token.call_count == 1
+        assert response1.token_response == TokenResponse(token=RES_TOKEN)
+        # registry should contain the processed id
+        assert "exchange-2" in flow.token_exchange_id_registry
+
+        # simulate passage of time beyond the clear interval so the registry is cleared
+        import time as _time
+
+        flow._last_registry_clear = _time.time() - (flow._clear_interval_seconds + 100)
+
+        # explicitly invoke the lazy clear helper to simulate the moment when
+        # the registry would be cleared and assert it was removed.
+        flow._maybe_clear_token_exchange_registry()
+        flow._flow_state.tag = FlowStateTag.CONTINUE  # keep it active
+        assert "exchange-2" not in flow.token_exchange_id_registry
+
+        # second request should now be processed again (registry was lazily cleared)
+
+        response2 = await flow.continue_flow(activity)
+        assert user_token_client.user_token.exchange_token.call_count == 2
+        assert response2.token_response == TokenResponse(token=RES_TOKEN)
