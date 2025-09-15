@@ -6,7 +6,7 @@ from os import environ, path
 from typing import Optional
 from dotenv import load_dotenv
 
-from microsoft.agents.hosting.core import (
+from microsoft_agents.hosting.core import (
     Authorization,
     TurnContext,
     MessageFactory,
@@ -15,19 +15,19 @@ from microsoft.agents.hosting.core import (
     TurnState,
     ConversationState,
 )
-from microsoft.agents.activity import (
+from microsoft_agents.activity import (
     load_configuration_from_env,
     ActivityTypes,
     Activity,
 )
-from microsoft.agents.copilotstudio.client import (
+from microsoft_agents.copilotstudio.client import (
     ConnectionSettings,
     CopilotClient,
     PowerPlatformCloud,
     AgentType,
 )
-from microsoft.agents.hosting.aiohttp import CloudAdapter
-from microsoft.agents.authentication.msal import MsalConnectionManager
+from microsoft_agents.hosting.aiohttp import CloudAdapter
+from microsoft_agents.authentication.msal import MsalConnectionManager
 
 from shared import start_server
 

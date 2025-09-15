@@ -1,14 +1,14 @@
 import json
 from os import getenv
 
-from microsoft.agents.hosting.core import MessageFactory, TurnContext
-from microsoft.agents.activity import ChannelAccount, Attachment
-from microsoft.agents.activity.teams import (
+from microsoft_agents.hosting.core import MessageFactory, TurnContext
+from microsoft_agents.activity import ChannelAccount, Attachment
+from microsoft_agents.activity.teams import (
     TaskModuleResponse,
     TaskModuleTaskInfo,
     TaskModuleRequest,
 )
-from microsoft.agents.hosting.teams import (
+from microsoft_agents.hosting.teams import (
     TeamsActivityHandler,
     TeamsInfo,
 )

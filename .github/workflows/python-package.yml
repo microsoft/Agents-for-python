@@ -8,9 +8,9 @@ permissions:
 
 on:
   push:
-    branches: [ "main" ]
+    branches: [ "main", "release/*" ]
   pull_request:
-    branches: [ "main" ]
+    branches: [ "main", "release/*" ]
 
 jobs:
   build:
@@ -30,8 +30,8 @@ jobs:
     - name: Install dependencies
       run: |
         python -m pip install --upgrade pip
-        python -m pip install flake8 pytest black pytest-asyncio build setuptools-git-versioning
-        if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
+        python -m pip install flake8 black build setuptools-git-versioning
+        if [ -f dev_dependencies.txt ]; then pip install -r dev_dependencies.txt; fi
     - name: Check format with black
       run: |
         # stop the build if black raises an issue

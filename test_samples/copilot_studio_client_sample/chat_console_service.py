@@ -1,5 +1,5 @@
-from microsoft.agents.copilotstudio.client import CopilotClient
-from microsoft.agents.activity import Activity, ActivityTypes
+from microsoft_agents.copilotstudio.client import CopilotClient
+from microsoft_agents.activity import Activity, ActivityTypes
 
 
 class ChatConsoleService:

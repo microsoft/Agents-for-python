@@ -7,17 +7,17 @@ import sys
 import traceback
 
 from dotenv import load_dotenv, find_dotenv
-from microsoft.agents.hosting.aiohttp import CloudAdapter, Citation
-from microsoft.agents.authentication.msal import MsalConnectionManager
+from microsoft_agents.hosting.aiohttp import CloudAdapter, Citation
+from microsoft_agents.authentication.msal import MsalConnectionManager
 
-from microsoft.agents.hosting.core import (
+from microsoft_agents.hosting.core import (
     Authorization,
     AgentApplication,
     TurnState,
     TurnContext,
     MemoryStorage,
 )
-from microsoft.agents.activity import (
+from microsoft_agents.activity import (
     load_configuration_from_env,
     Activity,
     ActivityTypes,

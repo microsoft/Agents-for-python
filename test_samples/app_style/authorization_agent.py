@@ -7,7 +7,7 @@ import sys
 import traceback
 
 from dotenv import load_dotenv
-from microsoft.agents.hosting.core import (
+from microsoft_agents.hosting.core import (
     Authorization,
     AgentApplication,
     TurnState,
@@ -15,9 +15,9 @@ from microsoft.agents.hosting.core import (
     MessageFactory,
     MemoryStorage,
 )
-from microsoft.agents.activity import load_configuration_from_env, ActivityTypes
-from microsoft.agents.hosting.aiohttp import CloudAdapter
-from microsoft.agents.authentication.msal import MsalConnectionManager
+from microsoft_agents.activity import load_configuration_from_env, ActivityTypes
+from microsoft_agents.hosting.aiohttp import CloudAdapter
+from microsoft_agents.authentication.msal import MsalConnectionManager
 
 from shared import GraphClient, GitHubClient, start_server
 
