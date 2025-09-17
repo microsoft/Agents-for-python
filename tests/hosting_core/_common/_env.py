@@ -41,3 +41,20 @@ class TestingActivityMixin:
             value=value,
             text=text,
         )
+    
+class Mocks:
+
+    def mock_TokenExchangeState(
+        self,
+        mocker,
+        get_encoded_state_return="encoded_state",
+    ):
+        pass
+
+    def mock_SignInResource(
+        self,
+        mocker,
+        sign_in_link="https://example.com/signin",
+        token_exchange_state=None,
+    ):
+        pass

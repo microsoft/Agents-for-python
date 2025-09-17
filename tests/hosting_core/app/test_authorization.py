@@ -27,14 +27,24 @@ from .tools.testing_authorization import (
     create_test_auth_handler,
 )
 
+from tests._common import (
+    SDKFixtures,
+    TestingEnvironment,
+    TEST_DEFAULTS
+)
 
-class TestUtils:
+DEFAULTS = TEST_DEFAULTS()
 
-    def create_context(
+class AuthorizationTestEnv(TestingEnvironment):
+    pass
+
+class TestUtils(SDKFixtures[AuthorizationTestEnv]):
+
+    def TurnContext(
         self,
         mocker,
-        channel_id="__channel_id",
-        user_id="__user_id",
+        channel_id=DEFAULTS.channel_id,
+        user_id=DEFAULTS.user_id,
         user_token_client=None,
     ):
 
@@ -45,10 +55,10 @@ class TestUtils:
         turn_context.activity.channel_id = channel_id
         turn_context.activity.from_property.id = user_id
         turn_context.activity.type = ActivityTypes.message
-        turn_context.adapter.USER_TOKEN_CLIENT_KEY = "__user_token_client"
-        turn_context.adapter.AGENT_IDENTITY_KEY = "__agent_identity_key"
+        turn_context.adapter.USER_TOKEN_CLIENT_KEY = DEFAULTS.token_client_key # "__user_token_client"
+        turn_context.adapter.AGENT_IDENTITY_KEY = DEFAULTS.agent_identity_key # "__agent_identity_key"
         agent_identity = mocker.Mock()
-        agent_identity.claims = {"aud": MS_APP_ID}
+        agent_identity.claims = {"aud": DEFAULTS.ms_app_id}
         turn_context.turn_state = {
             "__user_token_client": user_token_client,
             "__agent_identity_key": agent_identity,
@@ -58,7 +68,7 @@ class TestUtils:
     def create_mock_user_token_client(
         self,
         mocker,
-        token=RES_TOKEN,
+        token=DEFAULTS.token,
     ):
         mock_user_token_client_class = mocker.Mock(spec=UserTokenClientBase)
         mock_user_token_client_class.user_token = mocker.Mock(spec=UserTokenBase)
@@ -94,7 +104,7 @@ class TestUtils:
 
     @pytest.fixture
     def turn_context(self, mocker):
-        return self.create_context(mocker, "__channel_id", "__user_id", "__connection")
+        return self.create_context(mocker, DEFAULTS.channel_id, DEFAULTS.user_id, DEFAULTS.abs_oauth_connection_name)
 
     def create_user_token_client(self, mocker, get_token_return=""):
 
