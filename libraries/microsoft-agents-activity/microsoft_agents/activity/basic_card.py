@@ -14,12 +14,12 @@ class BasicCard(AgentsModel):
     :param text: Text for the card
     :type text: str
     :param images: Array of images for the card
-    :type images: list[~microsoft_agents.protocols.models.CardImage]
+    :type images: list[~microsoft_agents.activity.CardImage]
     :param buttons: Set of actions applicable to the current card
-    :type buttons: list[~microsoft_agents.protocols.models.CardAction]
+    :type buttons: list[~microsoft_agents.activity.CardAction]
     :param tap: This action will be activated when user taps on the card
      itself
-    :type tap: ~microsoft_agents.protocols.models.CardAction
+    :type tap: ~microsoft_agents.activity.CardAction
     """
 
     title: NonEmptyString = None

@@ -11,7 +11,7 @@ class Error(AgentsModel):
     :param message: Error message
     :type message: str
     :param inner_http_error: Error from inner http call
-    :type inner_http_error: ~microsoft_agents.protocols.models.InnerHttpError
+    :type inner_http_error: ~microsoft_agents.activity.InnerHttpError
     """
 
     code: NonEmptyString = None

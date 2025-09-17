@@ -10,7 +10,7 @@ class ConversationsResult(AgentsModel):
     :type continuation_token: str
     :param conversations: List of conversations
     :type conversations:
-     list[~microsoft_agents.protocols.models.ConversationMembers]
+     list[~microsoft_agents.activity.ConversationMembers]
     """
 
     continuation_token: NonEmptyString = None

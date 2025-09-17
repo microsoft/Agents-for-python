@@ -9,7 +9,7 @@ class CardAction(AgentsModel):
     :param type: The type of action implemented by this button. Possible
      values include: 'openUrl', 'imBack', 'postBack', 'playAudio', 'playVideo',
      'showImage', 'downloadFile', 'signin', 'call', 'messageBack'
-    :type type: str or ~microsoft_agents.protocols.models.ActionTypes
+    :type type: str or ~microsoft_agents.activity.ActionTypes
     :param title: Text description which appears on the button
     :type title: str
     :param image: Image URL which will appear on the button, next to text
