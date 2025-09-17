@@ -441,18 +441,76 @@ class TeamsActivityHandler(ActivityHandler):
     ) -> TeamsActivityHandler:
         async def callback(context: TurnContext, next: Awaitable[None, None]) -> None:
             meeting = TeamsMeetingStartT.parse(context.activity.value)
-            await handler( # robrandao: TODO
+            await handler(
                 MeetingStartEventDetails(
                     id=meeting.meeting_id,
-                    meeting_time=meeting.meeting_time,
                     join_url=meeting.join_url,
-                    subject=meeting.subject,
-                    organizer=TeamsMeetingMember.parse_obj(meeting.organizer) if meeting.organizer else None,
-                    participants=[TeamsMeetingMember.parse_obj(p) for p in meeting.participants] if meeting.participants else []
+                    meeting_type=meeting.meeting_type,
+                    start_time=meeting.start_time,
+                    title=meeting.title
                 ),
                 context,
                 next
             )
             meeting_info = MeetingStartEventDetails(context.activity.value)
             await handler(meeting_info, context, next)
-        return self.on("TeamsMeetingStart", create_callback_with_meeting_info(handler))
+        return self.on("TeamsMeetingStart", callback)
+    
+    async def on_teams_meeting_end_event(
+        self,
+        handler: Awaitable[[MeetingEndEventDetails, TurnContext, Awaitable[None, None]], None]
+    ) -> TeamsActivityHandler:
+        async def callback(context: TurnContext, next: Awaitable[None, None]) -> None:
+            meeting = TeamsMeetingEndT.parse(context.activity.value)
+            await handler(
+                MeetingEndEventDetails(
+                    id=meeting.meeting_id,
+                    join_url=meeting.join_url,
+                    meeting_type=meeting.meeting_type,
+                    end_time=meeting.end_time,
+                    title=meeting.title
+                ),
+                context,
+                next
+            )
+        return self.on("TeamsMeetingEnd", callback)
+    
+    async def on_teams_read_receipt_event(
+        self,
+        handler: Awaitable[[ReadReceiptInfo, TurnContext, Awaitable[None, None]], None]
+    ) -> TeamsActivityHandler:
+        async def callback(context: TurnContext, next: Awaitable[None, None]) -> None:
+            receipt_info = context.activity.value
+            await handler(
+                ReadReceiptInfo(receipt_info.get("last_read_message_id")),
+                context,
+                next
+            )
+        return self.on("TeamsReadReceipt", callback)
+    
+    async def on_teams_meeting_participants_join_event(
+        self,
+        handler: Awaitable[[MeetingParticipantsEventDetails, TurnContext, Awaitable[None, None]], None]
+    ) -> TeamsActivityHandler:
+        async def callback(context: TurnContext, next: Awaitable[None, None]) -> None:
+            meeting = TeamsMeetingStartT.parse(context.activity.value)
+            await handler(
+                MeetingParticipantsEventDetails(members=meeting.members),
+                context,
+                next
+            )
+        return self.on("TeamsMeetingParticipantsJoin", callback)
+    
+    async def on_teams_meeting_participants_leave_event(
+        self,
+        handler: Awaitable[[MeetingParticipantsEventDetails, TurnContext, Awaitable[None, None]], None]
+    ) -> TeamsActivityHandler:
+        async def callback(context: TurnContext, next: Awaitable[None, None]) -> None:
+            meeting = TeamsMeetingStartT.parse(context.activity.value)
+            await handler(
+                MeetingParticipantsEventDetails(members=meeting.members),
+                context,
+                next
+            )
+        return self.on("TeamsMeetingParticipantsLeave", callback
+    )
