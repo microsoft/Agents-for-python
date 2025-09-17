@@ -1,0 +1,3 @@
+class TestingActivityMixin:
+
+    pass
