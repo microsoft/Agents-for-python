@@ -5,7 +5,7 @@ Licensed under the MIT License.
 
 from __future__ import annotations
 
-from typing import Generic, List, Optional
+from typing import Generic, Optional
 
 from ..type_defs import RouteHandler, RouteSelector, StateT
 from .route_rank import RouteRank
@@ -23,7 +23,7 @@ class Route(Generic[StateT]):
         handler: RouteHandler[StateT],
         is_invoke: bool = False,
         rank: RouteRank = RouteRank.DEFAULT,
-        auth_handlers: Optional[List[str]] = None,
+        auth_handlers: Optional[list[str]] = None,
     ) -> None:
         self.selector = selector
         self.handler = handler

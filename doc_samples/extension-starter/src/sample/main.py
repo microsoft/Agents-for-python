@@ -1,10 +1,13 @@
 # this will mock HTTP requests
-import mocks
+import logging
 
 from microsoft_agents.activity import Activity
 from microsoft_agents.hosting.core import ChannelAdapter
 
 from extension_agent import APP, ext, MockAdapter
+
+logger = logging.getLogger("src.extension.extension")
+print(logger)
         
 def main():
 

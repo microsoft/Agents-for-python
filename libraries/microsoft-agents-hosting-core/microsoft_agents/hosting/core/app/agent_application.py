@@ -13,9 +13,7 @@ from typing import (
     Any,
     Awaitable,
     Callable,
-    Dict,
     Generic,
-    List,
     Optional,
     Pattern,
     TypeVar,
@@ -56,14 +54,14 @@ from ..oauth import (
 from .oauth import Authorization
 from .typing_indicator import TypingIndicator
 
-from .type_defs import StateT, RouteHandler, RouteSelector
+from .type_defs import RouteHandler, RouteSelector
 from .routes import RouteList, Route, RouteRank
 
 logger = logging.getLogger(__name__)
 
 IN_SIGN_IN_KEY = "__InSignInFlow__"
 
-
+StateT = TypeVar("StateT", bound=TurnState)
 class AgentApplication(Agent, Generic[StateT]):
     """
     AgentApplication class for routing and processing incoming requests.
@@ -82,8 +80,8 @@ class AgentApplication(Agent, Generic[StateT]):
     _options: ApplicationOptions
     _adapter: Optional[ChannelServiceAdapter] = None
     _auth: Optional[Authorization] = None
-    _internal_before_turn: List[Callable[[TurnContext, StateT], Awaitable[bool]]] = []
-    _internal_after_turn: List[Callable[[TurnContext, StateT], Awaitable[bool]]] = []
+    _internal_before_turn: list[Callable[[TurnContext, StateT], Awaitable[bool]]] = []
+    _internal_after_turn: list[Callable[[TurnContext, StateT], Awaitable[bool]]] = []
     _routes: RouteList[StateT] = RouteList[StateT]()
     _error: Optional[Callable[[TurnContext, Exception], Awaitable[None]]] = None
     _turn_state_factory: Optional[Callable[[TurnContext], StateT]] = None
@@ -224,15 +222,15 @@ class AgentApplication(Agent, Generic[StateT]):
         handler: RouteHandler[StateT],
         is_invoke: bool = False,
         rank: RouteRank = RouteRank.DEFAULT,
-        auth_handlers: Optional[List[str]] = None
+        auth_handlers: Optional[list[str]] = None
     ) -> None:
         self._routes.add_route(selector, handler, is_invoke, rank, auth_handlers)
 
     def activity(
         self,
-        activity_type: Union[str, ActivityTypes, List[Union[str, ActivityTypes]]],
+        activity_type: Union[str, ActivityTypes, list[Union[str, ActivityTypes]]],
         *,
-        auth_handlers: Optional[List[str]] = None,
+        auth_handlers: Optional[list[str]] = None,
     ) -> Callable[[RouteHandler[StateT]], RouteHandler[StateT]]:
         """
         Registers a new activity event listener. This method can be used as either
@@ -266,9 +264,9 @@ class AgentApplication(Agent, Generic[StateT]):
 
     def message(
         self,
-        select: Union[str, Pattern[str], List[Union[str, Pattern[str]]]],
+        select: Union[str, Pattern[str], list[Union[str, Pattern[str]]]],
         *,
-        auth_handlers: Optional[List[str]] = None,
+        auth_handlers: Optional[list[str]] = None,
     ) -> Callable[[RouteHandler[StateT]], RouteHandler[StateT]]:
         """
         Registers a new message activity event listener. This method can be used as either
@@ -311,7 +309,7 @@ class AgentApplication(Agent, Generic[StateT]):
         self,
         type: ConversationUpdateTypes,
         *,
-        auth_handlers: Optional[List[str]] = None,
+        auth_handlers: Optional[list[str]] = None,
     ) -> Callable[[RouteHandler[StateT]], RouteHandler[StateT]]:
         """
         Registers a new message activity event listener. This method can be used as either
@@ -335,12 +333,12 @@ class AgentApplication(Agent, Generic[StateT]):
                 return False
 
             if type == "membersAdded":
-                if isinstance(context.activity.members_added, List):
+                if isinstance(context.activity.members_added, list):
                     return len(context.activity.members_added) > 0
                 return False
 
             if type == "membersRemoved":
-                if isinstance(context.activity.members_removed, List):
+                if isinstance(context.activity.members_removed, list):
                     return len(context.activity.members_removed) > 0
                 return False
 
@@ -362,7 +360,7 @@ class AgentApplication(Agent, Generic[StateT]):
         return __call
 
     def message_reaction(
-        self, type: MessageReactionTypes, *, auth_handlers: Optional[List[str]] = None
+        self, type: MessageReactionTypes, *, auth_handlers: Optional[list[str]] = None
     ) -> Callable[[RouteHandler[StateT]], RouteHandler[StateT]]:
         """
         Registers a new message activity event listener. This method can be used as either
@@ -385,12 +383,12 @@ class AgentApplication(Agent, Generic[StateT]):
                 return False
 
             if type == "reactionsAdded":
-                if isinstance(context.activity.reactions_added, List):
+                if isinstance(context.activity.reactions_added, list):
                     return len(context.activity.reactions_added) > 0
                 return False
 
             if type == "reactionsRemoved":
-                if isinstance(context.activity.reactions_removed, List):
+                if isinstance(context.activity.reactions_removed, list):
                     return len(context.activity.reactions_removed) > 0
                 return False
 
@@ -408,7 +406,7 @@ class AgentApplication(Agent, Generic[StateT]):
         return __call
 
     def message_update(
-        self, type: MessageUpdateTypes, *, auth_handlers: Optional[List[str]] = None
+        self, type: MessageUpdateTypes, *, auth_handlers: Optional[list[str]] = None
     ) -> Callable[[RouteHandler[StateT]], RouteHandler[StateT]]:
         """
         Registers a new message activity event listener. This method can be used as either
@@ -466,7 +464,7 @@ class AgentApplication(Agent, Generic[StateT]):
 
         return __call
 
-    def handoff(self, *, auth_handlers: Optional[List[str]] = None) -> Callable[
+    def handoff(self, *, auth_handlers: Optional[list[str]] = None) -> Callable[
         [Callable[[TurnContext, StateT, str], Awaitable[None]]],
         Callable[[TurnContext, StateT, str], Awaitable[None]],
     ]:
@@ -765,7 +763,7 @@ class AgentApplication(Agent, Generic[StateT]):
             context.activity.text = context.remove_recipient_mention(context.activity)
 
     @staticmethod
-    def parse_env_vars_configuration(vars: Dict[str, Any]) -> dict:
+    def parse_env_vars_configuration(vars: dict[str, Any]) -> dict:
         """
         Parses environment variables and returns a dictionary with the relevant configuration.
         """

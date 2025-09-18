@@ -5,12 +5,17 @@ Licensed under the MIT License.
 
 from __future__ import annotations
 
+from ast import TypeVar
 import heapq
-from typing import Generic, Optional
+from typing import Generic, Optional, TypeVar
 
-from ..type_defs import RouteSelector, RouteHandler, StateT
+from microsoft_agents.hosting.core import TurnState
+
+from ..type_defs import RouteSelector, RouteHandler
 from .route import Route
 from .route_rank import RouteRank
+
+StateT = TypeVar("StateT", bound=TurnState)
 
 class RouteList(Generic[StateT]):
     _routes: list[Route[StateT]]
