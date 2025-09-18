@@ -56,9 +56,11 @@ from ..oauth import (
 from .oauth import Authorization
 from .typing_indicator import TypingIndicator
 
+from .type_defs import StateT, RouteHandler, RouteSelector
+from .routes import RouteList, Route, RouteRank
+
 logger = logging.getLogger(__name__)
 
-StateT = TypeVar("StateT", bound=TurnState)
 IN_SIGN_IN_KEY = "__InSignInFlow__"
 
 
@@ -82,7 +84,7 @@ class AgentApplication(Agent, Generic[StateT]):
     _auth: Optional[Authorization] = None
     _internal_before_turn: List[Callable[[TurnContext, StateT], Awaitable[bool]]] = []
     _internal_after_turn: List[Callable[[TurnContext, StateT], Awaitable[bool]]] = []
-    _routes: List[Route[StateT]] = []
+    _routes: RouteList[StateT] = RouteList[StateT]()
     _error: Optional[Callable[[TurnContext, Exception], Awaitable[None]]] = None
     _turn_state_factory: Optional[Callable[[TurnContext], StateT]] = None
 
@@ -98,7 +100,7 @@ class AgentApplication(Agent, Generic[StateT]):
         Creates a new AgentApplication instance.
         """
         self.typing = TypingIndicator()
-        self._routes = []
+        self._routes = RouteList[StateT]()
 
         configuration = kwargs
 
@@ -215,6 +217,16 @@ class AgentApplication(Agent, Generic[StateT]):
         The application's configured options.
         """
         return self._options
+    
+    def add_route(
+        self,
+        selector: RouteSelector,
+        handler: RouteHandler[StateT],
+        is_invoke: bool = False,
+        rank: RouteRank = RouteRank.DEFAULT,
+        auth_handlers: Optional[List[str]] = None
+    ) -> None:
+        self._routes.add_route(selector, handler, is_invoke, rank, auth_handlers)
 
     def activity(
         self,
@@ -245,7 +257,7 @@ class AgentApplication(Agent, Generic[StateT]):
             logger.debug(
                 f"Registering activity handler for route handler {func.__name__} with type: {activity_type} with auth handlers: {auth_handlers}"
             )
-            self._routes.append(
+            self.add_route(
                 Route[StateT](__selector, func, auth_handlers=auth_handlers)
             )
             return func
@@ -288,7 +300,7 @@ class AgentApplication(Agent, Generic[StateT]):
             logger.debug(
                 f"Registering message handler for route handler {func.__name__} with select: {select} with auth handlers: {auth_handlers}"
             )
-            self._routes.append(
+            self.add_route(
                 Route[StateT](__selector, func, auth_handlers=auth_handlers)
             )
             return func
@@ -342,7 +354,7 @@ class AgentApplication(Agent, Generic[StateT]):
             logger.debug(
                 f"Registering conversation update handler for route handler {func.__name__} with type: {type} with auth handlers: {auth_handlers}"
             )
-            self._routes.append(
+            self.add_route(
                 Route[StateT](__selector, func, auth_handlers=auth_handlers)
             )
             return func
@@ -388,7 +400,7 @@ class AgentApplication(Agent, Generic[StateT]):
             logger.debug(
                 f"Registering message reaction handler for route handler {func.__name__} with type: {type} with auth handlers: {auth_handlers}"
             )
-            self._routes.append(
+            self.add_route(
                 Route[StateT](__selector, func, auth_handlers=auth_handlers)
             )
             return func
@@ -447,7 +459,7 @@ class AgentApplication(Agent, Generic[StateT]):
             logger.debug(
                 f"Registering message update handler for route handler {func.__name__} with type: {type} with auth handlers: {auth_handlers}"
             )
-            self._routes.append(
+            self.add_route(
                 Route[StateT](__selector, func, auth_handlers=auth_handlers)
             )
             return func
@@ -495,10 +507,9 @@ class AgentApplication(Agent, Generic[StateT]):
                 f"Registering handoff handler for route handler {func.__name__} with auth handlers: {auth_handlers}"
             )
 
-            self._routes.append(
+            self.add_route(
                 Route[StateT](__selector, __handler, True, auth_handlers)
             )
-            self._routes = sorted(self._routes, key=lambda route: not route.is_invoke)
             return func
 
         return __call

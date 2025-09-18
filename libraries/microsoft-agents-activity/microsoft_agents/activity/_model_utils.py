@@ -3,7 +3,6 @@ from typing import Any, Callable
 
 from .agents_model import AgentsModel
 
-
 class ModelFieldHelper(ABC):
     """Base class for model field processing prior to initialization of an AgentsModel"""
 
