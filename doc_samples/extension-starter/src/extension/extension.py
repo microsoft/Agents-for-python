@@ -1,5 +1,6 @@
 from microsoft_agents.hosting.core import (
     AgentApplication,
+    TurnContext
 )
 
 from src.extension.my_connector_client import MyConnectorClient
