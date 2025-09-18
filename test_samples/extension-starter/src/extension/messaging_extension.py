@@ -8,12 +8,6 @@ from microsoft_agents.hosting.core import (
     TurnContext
 )
 
-class ExtensionQuery(AgentsModel):
-    pass
-
-class ExtensionResult(AgentsModel):
-    pass
-
 TState = TypeVar("TState", bound=TurnState)
 RouteQueryHandler = TypeVar("RouteQueryHandler",
     bound=Awaitable[[TurnContext, TState, query: ExtensionQuery], ExtensionResult])
