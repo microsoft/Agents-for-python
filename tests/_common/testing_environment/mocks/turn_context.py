@@ -7,8 +7,8 @@ class TestingTurnContextMixin:
     def TurnContext(
         self,
         mocker,
-        channel_id="__channel_id",
-        user_id="__user_id",
+        channel_id=DEFAULTS.channel_id,
+        user_id=DEFAULTS.user_id,
         user_token_client=None,
         *args,
         **kwargs
@@ -30,3 +30,17 @@ class TestingTurnContextMixin:
             "__agent_identity_key": agent_identity,
         }
         return turn_context
+
+class AuthTestingTurnContextMixin(TestingTurnContextMixin):
+
+    def TurnContext(
+        self,
+        mocker,
+        user_token_client,
+        channel_id=DEFAULTS.channel_id,
+        user_id=DEFAULTS.user_id,
+        *args,
+        **kwargs
+    ):
+        turn_context = super().TurnContext(mocker, channel_id
+        turn_context.turn_state["__user_token_client"] = user_token_client

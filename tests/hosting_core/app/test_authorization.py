@@ -35,6 +35,10 @@ from tests._common import (
 
 DEFAULTS = TEST_DEFAULTS()
 
+class TurnContextMixin(TestingTurnContextMixin):
+
+    
+
 class AuthorizationTestEnv(TestingEnvironment):
     pass
 
