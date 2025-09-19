@@ -17,7 +17,7 @@ def mock_UserTokenClient(mocker, get_user_token_return=SKIP, sign_out_user_retur
     
     return mock_user_token_client
 
-def mock_UserTokenClient_class(mocker, get_user_token_return=SKIP, sign_out_user_return=SKIP, token_exchange_return=SKIP):
+def mock_class_UserTokenClient(mocker, get_user_token_return=SKIP, sign_out_user_return=SKIP, token_exchange_return=SKIP):
     mocker.patch(
         "microsoft_agents.hosting.core.UserTokenClient",
         new=mock_UserTokenClient(
@@ -27,3 +27,11 @@ def mock_UserTokenClient_class(mocker, get_user_token_return=SKIP, sign_out_user
             token_exchange_return=token_exchange_return,
         ),
     )
+
+class MockUserTokenClientMixin:
+
+    def mock_class_UserTokenClient(self, mocker, *args, **kwargs):
+        mock_class_UserTokenClient(mocker, *args, **kwargs)
+
+    def UserTokenClient(self, mocker, *args, **kwargs):
+        return mock_UserTokenClient(mocker, *args, **kwargs)

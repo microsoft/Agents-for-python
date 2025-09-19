@@ -40,8 +40,8 @@ class SDKFixtures(Generic[TestingEnvironmentT]):
         return self.testenv.ConnectionManager(mocker)
     
     @pytest.fixture
-    def authorization(self, mocker):
-        return self.testenv.Authorization(mocker)
+    def authorization(self, mocker, storage, connection_manager, auth_handlers):
+        return self.testenv.Authorization(mocker, storage, connection_manager, auth_handlers)
     
     @pytest.fixture
     def testenv(self):

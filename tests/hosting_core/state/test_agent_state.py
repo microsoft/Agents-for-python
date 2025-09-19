@@ -7,11 +7,9 @@ Test suite for the AgentState class that closely follows the C# test implementat
 
 import asyncio
 import pytest
-from typing import Type
 from unittest.mock import AsyncMock, MagicMock
 
 from microsoft_agents.hosting.core.state.agent_state import (
-    AgentState,
     CachedAgentState,
     BotStatePropertyAccessor,
 )
@@ -25,8 +23,7 @@ from microsoft_agents.activity import (
     ChannelAccount,
     ConversationAccount,
 )
-from tests.hosting_core.tools.testing_adapter import TestingAdapter
-from tests._common.mocks import MockCustomState
+from tests._common.testing_objects import TestingAdapter, TestingCustomState
 
 class TestDataItem(StoreItem):
     """Test data item for testing state functionality."""
@@ -54,7 +51,7 @@ class TestAgentState:
         self.storage = MemoryStorage()
         self.user_state = UserState(self.storage)
         self.conversation_state = ConversationState(self.storage)
-        self.custom_state = MockCustomState(self.storage)
+        self.custom_state = TestingCustomState(self.storage)
 
         # Create a test context
         self.adapter = TestingAdapter()

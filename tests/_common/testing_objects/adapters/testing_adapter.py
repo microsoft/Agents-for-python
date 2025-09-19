@@ -53,7 +53,7 @@ class TestingAdapter(ChannelAdapter):
         self._send_trace_activity = send_trace_activity
         self._conversation_lock = asyncio.Lock()
         self._active_queue_lock = asyncio.Lock()
-        self._user_token_client = MockUserTokenClient()
+        self._user_token_client = TestingUserTokenClient()
 
         self._next_id = 0
         self._queued_requests = deque()

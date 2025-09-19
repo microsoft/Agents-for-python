@@ -11,7 +11,7 @@ from microsoft_agents.hosting.core import (
     Authorization,
 )
 
-from tests._common.test_data.defaults import TEST_DEFAULTS
+from tests._common.data.defaults import TEST_DEFAULTS
 
 class TestingEnvironment:
 

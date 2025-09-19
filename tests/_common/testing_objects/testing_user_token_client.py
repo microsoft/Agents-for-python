@@ -26,8 +26,8 @@ from microsoft_agents.hosting.core.connector import UserTokenClient
 AgentCallbackHandler = Callable[[TurnContext], Awaitable]
 
 
-# patch userTokenclient constructor
-class MockUserTokenClient(UserTokenClient):
+# patch userTokenclient 
+class TestingUserTokenClient(UserTokenClient):
     """A mock user token client for testing."""
 
     def __init__(self):

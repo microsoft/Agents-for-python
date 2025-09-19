@@ -4,7 +4,7 @@ from microsoft_agents.hosting.core.storage import MemoryStorage
 from microsoft_agents.hosting.core.oauth import FlowState, FlowStorageClient
 
 from tests._common.storage.utils import MockStoreItem
-from tests._common.defaults import TEST_DEFAULTS
+from tests._common.data import TEST_DEFAULTS
 
 DEFAULTS = TEST_DEFAULTS()
 

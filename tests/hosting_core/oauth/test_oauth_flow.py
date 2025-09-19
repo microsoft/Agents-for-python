@@ -2,6 +2,7 @@ from datetime import datetime
 import pytest
 
 from microsoft_agents.activity import (
+    Activity,
     ActivityTypes,
     TokenResponse,
     SignInResource,
@@ -14,39 +15,62 @@ from microsoft_agents.hosting.core.oauth import (
     FlowResponse,
 )
 
-# test constants
-from .tools.testing_oauth import *
-
-from tests._common import (
-    CoreFixtures,
-    FlowStateFixtures
-    TestingEnvironment,
-    DefaultTestingEnvironment,
-    TestingUserTokenClientMixin,
-    TestingActivityMixin,
-    TEST_DEFAULTS
+from tests._common.data import TEST_DEFAULTS
+from tests._common.testing_objects import (
+    mock_UserTokenClient,
+    mock_TokenExchangeState,
 )
+from tests._common.fixtures import FlowStateFixtures
 
 DEFAULTS = TEST_DEFAULTS()
 
-class OAuthFlowTestEnvBase(DefaultTestingEnvironment,
-                           TestingUserTokenClientMixin,
-                           TestingActivityMixin):
-    ...
+def testing_Activity(
+    mocker,
+    activity_type=ActivityTypes.message,
+    name="a",
+    value=None,
+    text="a",
+):
+    # def conv_ref():
+    #     return mocker.MagicMock(spec=ConversationReference)
+    mock_conversation_ref = mocker.MagicMock(ConversationReference)
+    mocker.patch.object(
+        Activity,
+        "get_conversation_reference",
+        return_value=mocker.MagicMock(ConversationReference),
+    )
+    # mocker.patch.object(ConversationReference, "create", return_value=conv_ref())
+    return Activity(
+        type=activity_type,
+        name=name,
+        from_property=ChannelAccount(id=USER_ID),
+        channel_id=CHANNEL_ID,
+        # get_conversation_reference=mocker.Mock(return_value=conv_ref),
+        relates_to=mocker.MagicMock(ConversationReference),
+        value=value,
+        text=text,
+    )
+    
+class TestUtils(FlowStateFixtures):
 
-class OAuthFlowTestEnv(OAuthFlowTestEnvBase):
+    def setup_method(self, mocker):
+        self.UserTokenClient = mock_UserTokenClient
+        self.Activity = testing_Activity
 
-    def mock_TokenExchangeState(self, mocker, get_encoded_value_return):
-        mocker.patch.object(
-            TokenExchangeState, "get_encoded_state", return_value=get_encoded_value_return
-        )
+    @pytest.fixture
+    def user_token_client(self, mocker):
+        return self.UserTokenClient(mocker)
+    
+    @pytest.fixture
+    def activity(self, mocker):
+        return self.Activity(mocker)
 
     @pytest.fixture
     def flow(self, flow_state, user_token_client):
         return OAuthFlow(flow_state, user_token_client)
 
 
-class TestOAuthFlow(CoreFixtures[OAuthFlowTestEnv], FlowStateFixtures):
+class TestOAuthFlow(TestUtils):
 
     def test_init_no_user_token_client(self, flow_state, user_token_client):
         with pytest.raises(ValueError):
@@ -98,9 +122,9 @@ class TestOAuthFlow(CoreFixtures[OAuthFlowTestEnv], FlowStateFixtures):
         )
 
     @pytest.mark.asyncio
-    async def test_get_user_token_failure(self, testenv, mocker, flow_state):
+    async def test_get_user_token_failure(self, mocker, flow_state):
         # setup
-        user_token_client = testenv.UserTokenClient(mocker, get_token_return=None)
+        user_token_client = self.UserTokenClient(mocker, get_token_return=None)
         flow = OAuthFlow(flow_state, user_token_client)
         expected_final_flow_state = flow.flow_state
 
@@ -138,10 +162,10 @@ class TestOAuthFlow(CoreFixtures[OAuthFlowTestEnv], FlowStateFixtures):
 
     @pytest.mark.asyncio
     async def test_begin_flow_easy_case(
-        self, testenv, mocker, flow_state, activity
+        self, mocker, flow_state, activity
     ):
         # setup
-        user_token_client = testenv.UserTokenClient(
+        user_token_client = self.UserTokenClient(
             mocker, get_token_return=TokenResponse(token=DEFAULTS.token)
         )
         flow = OAuthFlow(flow_state, user_token_client)
@@ -171,14 +195,14 @@ class TestOAuthFlow(CoreFixtures[OAuthFlowTestEnv], FlowStateFixtures):
 
     @pytest.mark.asyncio
     async def test_begin_flow_long_case(
-        self, testenv, mocker, flow_state, activity
+        self, mocker, flow_state, activity
     ):
         # resources
         dummy_sign_in_resource = SignInResource(
             sign_in_link="https://example.com/signin",
-            token_exchange_state=testenv.TokenExchangeState(mocker, get_encoded_state_return="encoded_state")
+            token_exchange_state=self.TokenExchangeState(mocker, get_encoded_state_return="encoded_state")
         )
-        user_token_client = testenv.UserTokenClient(
+        user_token_client = self.UserTokenClient(
             mocker,
             get_token_return=TokenResponse(),
             get_sign_in_resource_return=dummy_sign_in_resource
@@ -278,10 +302,10 @@ class TestOAuthFlow(CoreFixtures[OAuthFlowTestEnv], FlowStateFixtures):
     @pytest.mark.asyncio
     @pytest.mark.parametrize("magic_code", ["magic", "123", "", "1239453"])
     async def test_continue_flow_active_message_magic_format_error(
-        self, testenv, mocker, active_flow_state, user_token_client, magic_code
+        self, mocker, active_flow_state, user_token_client, magic_code
     ):
         # setup
-        activity = testenv.Activity(mocker, type=ActivityTypes.message, text=magic_code)
+        activity = self.Activity(mocker, type=ActivityTypes.message, text=magic_code)
         await self.helper_continue_flow_failure(
             active_flow_state,
             user_token_client,
@@ -292,11 +316,11 @@ class TestOAuthFlow(CoreFixtures[OAuthFlowTestEnv], FlowStateFixtures):
 
     @pytest.mark.asyncio
     async def test_continue_flow_active_message_magic_code_error(
-        self, testenv, mocker, active_flow_state
+        self, mocker, active_flow_state
     ):
         # setup
-        user_token_client = testenv.UserTokenClient(get_token_return=TokenResponse())
-        activity = testenv.Activity(mocker, type=ActivityTypes.message, text="123456")
+        user_token_client = self.UserTokenClient(get_token_return=TokenResponse())
+        activity = self.Activity(mocker, type=ActivityTypes.message, text="123456")
         await self.helper_continue_flow_failure(
             active_flow_state,
             user_token_client,
@@ -312,13 +336,13 @@ class TestOAuthFlow(CoreFixtures[OAuthFlowTestEnv], FlowStateFixtures):
 
     @pytest.mark.asyncio
     async def test_continue_flow_active_message_success(
-        self, testenv, mocker, active_flow_state, user_token_client
+        self, mocker, active_flow_state, user_token_client
     ):
         # setup
-        user_token_client = testenv.UserTokenClient(
+        user_token_client = self.UserTokenClient(
             mocker, get_token_return=TokenResponse(token=DEFAULTS.token)
         )
-        activity = testenv.Activity(mocker, ActivityTypes.message, text="123456")
+        activity = self.Activity(mocker, ActivityTypes.message, text="123456")
         await self.helper_continue_flow_success(
             active_flow_state,
             user_token_client,
@@ -334,11 +358,11 @@ class TestOAuthFlow(CoreFixtures[OAuthFlowTestEnv], FlowStateFixtures):
 
     @pytest.mark.asyncio
     async def test_continue_flow_active_sign_in_verify_state_error(
-        self, testenv, mocker, active_flow_state
+        self, mocker, active_flow_state
     ):
         # setup
-        user_token_client = testenv.UserTokenClient(get_token_return=TokenResponse())
-        activity = testenv.Activity(
+        user_token_client = self.UserTokenClient(get_token_return=TokenResponse())
+        activity = self.Activity(
             mocker,
             type=ActivityTypes.invoke,
             name="signin/verifyState",
@@ -356,12 +380,12 @@ class TestOAuthFlow(CoreFixtures[OAuthFlowTestEnv], FlowStateFixtures):
 
     @pytest.mark.asyncio
     async def test_continue_flow_active_sign_in_verify_success(
-        self, testenv, mocker, active_flow_state,
+        self, mocker, active_flow_state,
     ):
-        user_token_client = testenv.UserTokenClient(
+        user_token_client = self.UserTokenClient(
             mocker, get_token_return=TokenResponse(token=DEFAULTS.token)
         )
-        activity = testenv.Activity(
+        activity = self.Activity(
             mocker,
             type=ActivityTypes.invoke,
             name="signin/verifyState",
@@ -382,11 +406,11 @@ class TestOAuthFlow(CoreFixtures[OAuthFlowTestEnv], FlowStateFixtures):
 
     @pytest.mark.asyncio
     async def test_continue_flow_active_sign_in_token_exchange_error(
-        self, testenv, mocker, active_flow_state
+        self, mocker, active_flow_state
     ):
         token_exchange_request = {}
-        user_token_client = testenv.UserTokenClient(mocker, exchange_token_return=TokenResponse())
-        activity = testenv.Activity(
+        user_token_client = self.UserTokenClient(mocker, exchange_token_return=TokenResponse())
+        activity = self.Activity(
             mocker,
             type=ActivityTypes.invoke,
             name="signin/tokenExchange",
@@ -404,13 +428,13 @@ class TestOAuthFlow(CoreFixtures[OAuthFlowTestEnv], FlowStateFixtures):
 
     @pytest.mark.asyncio
     async def test_continue_flow_active_sign_in_token_exchange_success(
-        self, testenv, mocker, active_flow_state
+        self, mocker, active_flow_state
     ):
         token_exchange_request = {}
-        user_token_client = testenv.UserTokenClient(
+        user_token_client = self.UserTokenClient(
             mocker, token_exchange_return=TokenResponse(token=DEFAULTS.token)
         )
-        activity = testenv.Activity(
+        activity = self.Activity(
             mocker,
             type=ActivityTypes.invoke,
             name="signin/tokenExchange",
@@ -431,10 +455,10 @@ class TestOAuthFlow(CoreFixtures[OAuthFlowTestEnv], FlowStateFixtures):
 
     @pytest.mark.asyncio
     async def test_continue_flow_invalid_invoke_name(
-        self, testenv, mocker, active_flow_state, user_token_client
+        self, mocker, active_flow_state, user_token_client
     ):
         with pytest.raises(ValueError):
-            activity = testenv.Activity(
+            activity = self.Activity(
                 mocker, type=ActivityTypes.invoke, name="other", value={}
             )
             flow = OAuthFlow(active_flow_state, user_token_client)
@@ -442,10 +466,10 @@ class TestOAuthFlow(CoreFixtures[OAuthFlowTestEnv], FlowStateFixtures):
 
     @pytest.mark.asyncio
     async def test_continue_flow_invalid_activity_type(
-        self, testenv, mocker, active_flow_state, user_token_client
+        self, mocker, active_flow_state, user_token_client
     ):
         with pytest.raises(ValueError):
-            activity = testenv.Activity(
+            activity = self.Activity(
                 mocker, type=ActivityTypes.command, name="other", value={}
             )
             flow = OAuthFlow(active_flow_state, user_token_client)
@@ -526,7 +550,6 @@ class TestOAuthFlow(CoreFixtures[OAuthFlowTestEnv], FlowStateFixtures):
     @pytest.mark.asyncio
     async def test_begin_or_continue_flow_stale_flow_state(
         self,
-        testenv,
         mocker,
         activity,
         expired_flow_state

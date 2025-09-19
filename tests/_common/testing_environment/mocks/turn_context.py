@@ -1,4 +1,4 @@
-from tests._common.test_data import TEST_DEFAULTS
+from tests._common.data import TEST_DEFAULTS
 
 DEFAULTS = TEST_DEFAULTS()
 

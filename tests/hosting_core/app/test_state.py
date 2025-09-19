@@ -15,18 +15,7 @@ from microsoft_agents.hosting.core.app.state.state import (
 from microsoft_agents.hosting.core.turn_context import TurnContext
 from microsoft_agents.hosting.core.storage import Storage, StoreItem
 
-
-class MockStoreItem(StoreItem):
-    def __init__(self, data=None):
-        self.data = data or {}
-
-    def store_item_to_json(self):
-        return self.data
-
-    @staticmethod
-    def from_json_to_store_item(json_data):
-        return MockStoreItem(json_data)
-
+from tests._common.storage import MockStoreItem
 
 @state
 class StateForTesting(State):
