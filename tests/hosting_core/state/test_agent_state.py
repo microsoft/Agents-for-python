@@ -26,30 +26,7 @@ from microsoft_agents.activity import (
     ConversationAccount,
 )
 from tests.hosting_core.tools.testing_adapter import TestingAdapter
-
-
-class MockCustomState(AgentState):
-    """Custom state implementation for testing."""
-
-    def __init__(self, storage: Storage, namespace: str = ""):
-        self.namespace = namespace
-        super().__init__(storage, "MockCustomState")
-
-    def get_storage_key(
-        self, turn_context: TurnContext, *, target_cls: Type[StoreItem] = None
-    ) -> str:
-        """
-        Returns the storage key for the custom state.
-        """
-        conversation_id = turn_context.activity.conversation.id
-        if not conversation_id:
-            raise ValueError("Invalid activity: missing conversation.id")
-
-        key = f"custom/{conversation_id}"
-        if self.namespace:
-            key = f"{self.namespace}/{key}"
-        return key
-
+from tests._common.mocks import MockCustomState
 
 class TestDataItem(StoreItem):
     """Test data item for testing state functionality."""

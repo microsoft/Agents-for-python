@@ -32,5 +32,55 @@ microsoft_agents/hosting/core
 
 ## Mocking and Testing Environments
 
+### Usage and Philosophy
+
+I am open to other approaches, but I'll describe my approach here with an example:
+
+```python
+
+DEFAULTS = TEST_DEFAULTS()
+
+class OAuthFlowTestEnvBase(DefaultTestingEnvironment, TestingUserTokenClientMixin, TestingActivityMixin):
+    ...
+
+class OAuthFlowTestEnv(OAuthFlowTestEnvBase):
+
+    def mock_TokenExchangeState(self, mocker, get_encoded_value_return):
+        mocker.patch.object(
+            TokenExchangeState, "get_encoded_state", return_value=get_encoded_value_return
+        )
+
+    @pytest.fixture(params=FLOW_STATES.ALL())
+    def sample_flow_state(self, request):
+        return request.param.model_copy()
+
+# more code
+
+class TestOauthFlow(OauthFlowTestEnv):
+
+    @pytest.mark.asyncio
+    async def test_get_user_token_failure(self, testenv, mocker, sample_flow_state):
+        # setup
+        user_token_client = testenv.UserTokenClient(mocker, get_token_return=None)
+        flow = OAuthFlow(sample_flow_state, user_token_client)
+        expected_final_flow_state = flow.flow_state
+
+        # test
+        token_response = await flow.get_user_token()
+
+        # verify
+        assert token_response == TokenResponse()
+        assert flow.flow_state == expected_final_flow_state
+        user_token_client.user_token.get_token.assert_called_once_with(
+            user_id=DEFAULTS.user_id,
+            connection_name=DEFAULTS.abs_oauth_connection_name,
+            channel_id=DEFAULTS.channel_id,
+            code=None,
+        )
+```
+
+This is a test case for the OAuthFlow class.
+
 ## Storage Utilities
+
 

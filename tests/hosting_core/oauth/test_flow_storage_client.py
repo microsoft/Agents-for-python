@@ -4,25 +4,20 @@ from microsoft_agents.hosting.core.storage import MemoryStorage
 from microsoft_agents.hosting.core.oauth import FlowState, FlowStorageClient
 
 from tests._common.storage.utils import MockStoreItem
+from tests._common.defaults import TEST_DEFAULTS
+
+DEFAULTS = TEST_DEFAULTS()
 
 
 class TestFlowStorageClient:
-
-    @pytest.fixture
-    def channel_id(self):
-        return "__channel_id"
-
-    @pytest.fixture
-    def user_id(self):
-        return "__user_id"
 
     @pytest.fixture
     def storage(self):
         return MemoryStorage()
 
     @pytest.fixture
-    def client(self, channel_id, user_id, storage):
-        return FlowStorageClient(channel_id, user_id, storage)
+    def client(self, storage):
+        return FlowStorageClient(DEFAULTS.channel_id, DEFAULTS.user_id, storage)
 
     @pytest.mark.asyncio
     @pytest.mark.parametrize(
@@ -33,19 +28,19 @@ class TestFlowStorageClient:
             ("channel", "Alice"),
         ],
     )
-    async def test_init_base_key(self, mocker, channel_id, user_id):
-        client = FlowStorageClient(channel_id, user_id, mocker.Mock())
-        assert client.base_key == f"auth/{channel_id}/{user_id}/"
+    async def test_init_base_key(self, mocker):
+        client = FlowStorageClient(DEFAULTS.channel_id, DEFAULTS.user_id, mocker.Mock())
+        assert client.base_key == f"auth/{DEFAULTS.channel_id}/{DEFAULTS.user_id}/"
 
     @pytest.mark.asyncio
-    async def test_init_fails_without_user_id(self, channel_id, storage):
+    async def test_init_fails_without_user_id(self, storage):
         with pytest.raises(ValueError):
-            FlowStorageClient(channel_id, "", storage)
+            FlowStorageClient(DEFAULTS.channel_id, "", storage)
 
     @pytest.mark.asyncio
-    async def test_init_fails_without_channel_id(self, user_id, storage):
+    async def test_init_fails_without_channel_id(self, storage):
         with pytest.raises(ValueError):
-            FlowStorageClient("", user_id, storage)
+            FlowStorageClient("", DEFAULTS.user_id, storage)
 
     @pytest.mark.parametrize(
         "auth_handler_id, expected",
@@ -59,11 +54,11 @@ class TestFlowStorageClient:
 
     @pytest.mark.asyncio
     @pytest.mark.parametrize("auth_handler_id", ["handler", "auth_handler"])
-    async def test_read(self, mocker, user_id, channel_id, auth_handler_id):
+    async def test_read(self, mocker, auth_handler_id):
         storage = mocker.AsyncMock()
-        key = f"auth/{channel_id}/{user_id}/{auth_handler_id}"
+        key = f"auth/{DEFAULTS.channel_id}/{DEFAULTS.user_id}/{auth_handler_id}"
         storage.read.return_value = {key: FlowState()}
-        client = FlowStorageClient(channel_id, user_id, storage)
+        client = FlowStorageClient(DEFAULTS.channel_id, DEFAULTS.user_id, storage)
         res = await client.read(auth_handler_id)
         assert res is storage.read.return_value[key]
         storage.read.assert_called_once_with(
@@ -83,10 +78,10 @@ class TestFlowStorageClient:
 
     @pytest.mark.asyncio
     @pytest.mark.parametrize("auth_handler_id", ["handler", "auth_handler"])
-    async def test_write(self, mocker, channel_id, user_id, auth_handler_id):
+    async def test_write(self, mocker, auth_handler_id):
         storage = mocker.AsyncMock()
         storage.write.return_value = None
-        client = FlowStorageClient(channel_id, user_id, storage)
+        client = FlowStorageClient(DEFAULTS.channel_id, DEFAULTS.user_id, storage)
         flow_state = mocker.Mock(spec=FlowState)
         flow_state.auth_handler_id = auth_handler_id
         await client.write(flow_state)
@@ -94,33 +89,33 @@ class TestFlowStorageClient:
 
     @pytest.mark.asyncio
     @pytest.mark.parametrize("auth_handler_id", ["handler", "auth_handler"])
-    async def test_delete(self, mocker, channel_id, user_id, auth_handler_id):
+    async def test_delete(self, mocker, auth_handler_id):
         storage = mocker.AsyncMock()
         storage.delete.return_value = None
-        client = FlowStorageClient(channel_id, user_id, storage)
+        client = FlowStorageClient(DEFAULTS.channel_id, DEFAULTS.user_id, storage)
         await client.delete(auth_handler_id)
         storage.delete.assert_called_once_with([client.key(auth_handler_id)])
 
     @pytest.mark.asyncio
-    async def test_integration_with_memory_storage(self, channel_id, user_id):
+    async def test_integration_with_memory_storage(self):
 
-        flow_state_alpha = FlowState(auth_handler_id="handler", flow_started=True)
+        flow_state_alpha = FlowState(auth_handler_id="handler")
         flow_state_beta = FlowState(
-            auth_handler_id="auth_handler", flow_started=True, user_token="token"
+            auth_handler_id="auth_handler", user_token="token"
         )
 
         storage = MemoryStorage(
             {
                 "some_data": MockStoreItem({"value": "test"}),
-                f"auth/{channel_id}/{user_id}/handler": flow_state_alpha,
-                f"auth/{channel_id}/{user_id}/auth_handler": flow_state_beta,
+                f"auth/{DEFAULTS.channel_id}/{DEFAULTS.user_id}/handler": flow_state_alpha,
+                f"auth/{DEFAULTS.channel_id}/{DEFAULTS.user_id}/auth_handler": flow_state_beta,
             }
         )
         baseline = MemoryStorage(
             {
                 "some_data": MockStoreItem({"value": "test"}),
-                f"auth/{channel_id}/{user_id}/handler": flow_state_alpha,
-                f"fauth/{channel_id}/{user_id}/auth_handler": flow_state_beta,
+                f"auth/{DEFAULTS.channel_id}/{DEFAULTS.user_id}/handler": flow_state_alpha,
+                f"auth/{DEFAULTS.channel_id}/{DEFAULTS.user_id}/auth_handler": flow_state_beta,
             }
         )
 
@@ -138,7 +133,7 @@ class TestFlowStorageClient:
             await storage.delete(*args, **kwargs)
             await baseline.delete(*args, **kwargs)
 
-        client = FlowStorageClient(channel_id, user_id, storage)
+        client = FlowStorageClient(DEFAULTS.channel_id, DEFAULTS.user_id, storage)
 
         new_flow_state_alpha = FlowState(auth_handler_id="handler")
         flow_state_chi = FlowState(auth_handler_id="chi")
@@ -146,26 +141,26 @@ class TestFlowStorageClient:
         await client.write(new_flow_state_alpha)
         await client.write(flow_state_chi)
         await baseline.write(
-            {f"auth/{channel_id}/{user_id}/handler": new_flow_state_alpha.model_copy()}
+            {f"auth/{DEFAULTS.channel_id}/{DEFAULTS.user_id}/handler": new_flow_state_alpha.model_copy()}
         )
         await baseline.write(
-            {f"auth/{channel_id}/{user_id}/chi": flow_state_chi.model_copy()}
+            {f"auth/{DEFAULTS.channel_id}/{DEFAULTS.user_id}/chi": flow_state_chi.model_copy()}
         )
 
         await write_both(
-            {f"auth/{channel_id}/{user_id}/handler": new_flow_state_alpha.model_copy()}
+            {f"auth/{DEFAULTS.channel_id}/{DEFAULTS.user_id}/handler": new_flow_state_alpha.model_copy()}
         )
         await write_both(
-            {f"auth/{channel_id}/{user_id}/auth_handler": flow_state_beta.model_copy()}
+            {f"auth/{DEFAULTS.channel_id}/{DEFAULTS.user_id}/auth_handler": flow_state_beta.model_copy()}
         )
         await write_both({"other_data": MockStoreItem({"value": "more"})})
 
         await delete_both(["some_data"])
 
-        await read_check([f"auth/{channel_id}/{user_id}/handler"], target_cls=FlowState)
+        await read_check([f"auth/{DEFAULTS.channel_id}/{DEFAULTS.user_id}/handler"], target_cls=FlowState)
         await read_check(
-            [f"auth/{channel_id}/{user_id}/auth_handler"], target_cls=FlowState
+            [f"auth/{DEFAULTS.channel_id}/{DEFAULTS.user_id}/auth_handler"], target_cls=FlowState
         )
-        await read_check([f"auth/{channel_id}/{user_id}/chi"], target_cls=FlowState)
+        await read_check([f"auth/{DEFAULTS.channel_id}/{DEFAULTS.user_id}/chi"], target_cls=FlowState)
         await read_check(["other_data"], target_cls=MockStoreItem)
         await read_check(["some_data"], target_cls=MockStoreItem)

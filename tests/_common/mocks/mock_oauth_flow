@@ -1,0 +1,28 @@
+from test._common.data import TEST_DEFAULTS
+
+DEFAULTS = TEST_DEFAULTS()
+
+def mock_OAuthFlow(mocker, token_response=DEFAULTS.token):
+    mock_oauth_flow_class = mocker.Mock(spec=OAuthFlow)
+    # mock_oauth_flow_class.get_user_token = mocker.AsyncMock(return_value=token_response)
+    # mock_oauth_flow_class.sign_out = mocker.AsyncMock()
+    mocker.patch.object(OAuthFlow, "get_user_token", return_value=token_response)
+    mocker.patch.object(OAuthFlow, "sign_out")
+    return mock_oauth_flow_class
+
+def mock_OAuthFlow_class(mocker, token_response=DEFAULTS.token):
+    mocker.patch("microsoft_agents.hosting.core.OAuthFlow", new=self.mock_OAuthFlow(mocker, token_response))
+
+def patch_flow(
+    self,
+    mocker,
+    flow_response=None,
+    token=None,
+):
+    mocker.patch.object(
+            OAuthFlow, "get_user_token", return_value=TokenResponse(token=token)
+    )
+    mocker.patch.object(OAuthFlow, "sign_out")
+    mocker.patch.object(
+            OAuthFlow, "begin_or_continue_flow", return_value=flow_response
+    )

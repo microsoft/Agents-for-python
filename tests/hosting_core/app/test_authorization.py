@@ -85,27 +85,7 @@ class TestUtils(SDKFixtures[AuthorizationTestEnv]):
     @pytest.fixture
     def mock_user_token_client_class(self, mocker):
         return self.create_mock_user_token_client(mocker)
-
-    def create_mock_oauth_flow_class(self, mocker, token_response):
-        mock_oauth_flow_class = mocker.Mock(spec=OAuthFlow)
-        # mock_oauth_flow_class.get_user_token = mocker.AsyncMock(return_value=token_response)
-        # mock_oauth_flow_class.sign_out = mocker.AsyncMock()
-        mocker.patch.object(OAuthFlow, "get_user_token", return_value=token_response)
-        mocker.patch.object(OAuthFlow, "sign_out")
-        return mock_oauth_flow_class
-
-    @pytest.fixture
-    def mock_oauth_flow_class(self, mocker):
-        return self.create_mock_oauth_flow_class(mocker, TokenResponse(token=RES_TOKEN))
-        # mock_flow_class = mocker.Mock(spec=OAuthFlow)
-
-        # # mocker.patch.object(OAuthFlow, "__init__", return_value=mock_flow_class)
-        # mock_flow_class.get_user_token = mocker.AsyncMock(return_value=TokenResponse(token=RES_TOKEN))
-        # mock_flow_class.sign_out = mocker.AsyncMock()
-        # mocker.patch.object(OAuthFlow, "get_user_token")
-
-        # return mock_flow_class
-
+    
     @pytest.fixture
     def turn_context(self, mocker):
         return self.create_context(mocker, DEFAULTS.channel_id, DEFAULTS.user_id, DEFAULTS.abs_oauth_connection_name)
@@ -162,20 +142,6 @@ class TestAuthorizationUtils(TestUtils):
     @pytest.fixture
     def baseline_storage(self):
         return StorageBaseline(STORAGE_INIT_DATA())
-
-    def patch_flow(
-        self,
-        mocker,
-        flow_response=None,
-        token=None,
-    ):
-        mocker.patch.object(
-            OAuthFlow, "get_user_token", return_value=TokenResponse(token=token)
-        )
-        mocker.patch.object(OAuthFlow, "sign_out")
-        mocker.patch.object(
-            OAuthFlow, "begin_or_continue_flow", return_value=flow_response
-        )
 
 
 class TestAuthorization(TestAuthorizationUtils):
@@ -568,7 +534,6 @@ class TestAuthorization(TestAuthorizationUtils):
         mock_user_token_client_class,
         mock_oauth_flow_class,
         storage,
-        baseline_storage,
         connection_manager,
         auth_handlers,
     ):
