@@ -1,3 +1,7 @@
+from microsoft_agents.hosting.core import (
+    AccessTokenProviderBase
+)
+
 class TestingTokenProvider(AccessTokenProviderBase):
     """
     Access token provider for unit tests.

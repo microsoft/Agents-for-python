@@ -1,12 +1,13 @@
-from datetime import datetime
 import pytest
 
 from microsoft_agents.activity import (
     Activity,
     ActivityTypes,
+    ChannelAccount,
     TokenResponse,
     SignInResource,
     TokenExchangeState,
+    ConversationReference,
 )
 from microsoft_agents.hosting.core.oauth import (
     OAuthFlow,
@@ -16,11 +17,8 @@ from microsoft_agents.hosting.core.oauth import (
 )
 
 from tests._common.data import TEST_DEFAULTS
-from tests._common.testing_objects import (
-    mock_UserTokenClient,
-    mock_TokenExchangeState,
-)
 from tests._common.fixtures import FlowStateFixtures
+from tests._common.testing_objects import mock_UserTokenClient
 
 DEFAULTS = TEST_DEFAULTS()
 
@@ -200,7 +198,7 @@ class TestOAuthFlow(TestUtils):
         # resources
         dummy_sign_in_resource = SignInResource(
             sign_in_link="https://example.com/signin",
-            token_exchange_state=self.TokenExchangeState(mocker, get_encoded_state_return="encoded_state")
+            token_exchange_state=TokenExchangeState()
         )
         user_token_client = self.UserTokenClient(
             mocker,
@@ -361,7 +359,7 @@ class TestOAuthFlow(TestUtils):
         self, mocker, active_flow_state
     ):
         # setup
-        user_token_client = self.UserTokenClient(get_token_return=TokenResponse())
+        user_token_client = self.UserTokenClient(mocker, get_token_return=TokenResponse())
         activity = self.Activity(
             mocker,
             type=ActivityTypes.invoke,
@@ -507,13 +505,13 @@ class TestOAuthFlow(TestUtils):
     ):
         # mock
         expected_response = FlowResponse(
-            flow_state=sample_inactive_flow_state_not_completed,
+            flow_state=inactive_flow_state_not_completed,
             token_response=TokenResponse(),
         )
         mocker.patch.object(OAuthFlow, "begin_flow", return_value=expected_response)
 
         # setup
-        flow = OAuthFlow(sample_inactive_flow_state_not_completed, mocker.Mock())
+        flow = OAuthFlow(inactive_flow_state_not_completed, mocker.Mock())
 
         # test
         actual_response = await flow.begin_or_continue_flow(activity)

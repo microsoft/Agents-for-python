@@ -5,7 +5,6 @@ Licensed under the MIT License.
 
 from typing import Any, Dict
 import pytest
-from unittest.mock import AsyncMock, MagicMock
 
 from microsoft_agents.hosting.core.app.state.state import (
     State,
@@ -113,20 +112,20 @@ class TestStateClass:
         assert accessor._state == test_state
 
     @pytest.mark.asyncio
-    async def test_save_with_no_storage(self):
+    async def test_save_with_no_storage(self, mocker):
         """Test that save does nothing when no storage is provided."""
         test_state = StateForTesting()
-        context = MagicMock(spec=TurnContext)
+        context = mocker.MagicMock(spec=TurnContext)
 
         # Should not raise any exceptions
         await test_state.save(context)
 
     @pytest.mark.asyncio
-    async def test_save_with_empty_key(self):
+    async def test_save_with_empty_key(self, mocker):
         """Test that save does nothing when key is empty."""
         test_state = StateForTesting()
-        context = MagicMock(spec=TurnContext)
-        storage = MagicMock(spec=Storage)
+        context = mocker.MagicMock(spec=TurnContext)
+        storage = mocker.MagicMock(spec=Storage)
 
         # Should not call storage methods
         await test_state.save(context, storage)
@@ -135,18 +134,18 @@ class TestStateClass:
         storage.write.assert_not_called()
 
     @pytest.mark.asyncio
-    async def test_save_with_storage(self):
+    async def test_save_with_storage(self, mocker):
         """Test saving state to storage."""
-        test_state = await StateForTesting.load(MagicMock())
+        test_state = await StateForTesting.load(mocker.MagicMock())
         test_state.test_property = "new_value"
 
         # Add item to deleted list
         test_state.__deleted__ = ["deleted-key"]
 
-        context = MagicMock(spec=TurnContext)
-        storage = MagicMock(spec=Storage)
-        storage.delete = AsyncMock()
-        storage.write = AsyncMock()
+        context = mocker.MagicMock(spec=TurnContext)
+        storage = mocker.MagicMock(spec=Storage)
+        storage.delete = mocker.AsyncMock()
+        storage.write = mocker.AsyncMock()
 
         await test_state.save(context, storage)
 
@@ -168,19 +167,19 @@ class TestStateClass:
         assert test_state.__deleted__ == []
 
     @pytest.mark.asyncio
-    async def test_load_from_storage(self):
+    async def test_load_from_storage(self, mocker):
         """Test loading state from storage."""
-        context = MagicMock(spec=TurnContext)
+        context = mocker.MagicMock(spec=TurnContext)
         context.activity.conversation.id = "test-conversation"
 
-        storage = MagicMock(spec=Storage)
+        storage = mocker.MagicMock(spec=Storage)
         mock_data = {
             "test": {
                 "test_property": "stored_value",
                 "new_property": "new_value",
             }
         }
-        storage.read = AsyncMock(return_value=mock_data)
+        storage.read = mocker.AsyncMock(return_value=mock_data)
 
         test_state = await StateForTesting.load(context, storage)
 
@@ -196,64 +195,64 @@ class TestStatePropertyAccessor:
     """Tests for the StatePropertyAccessor class."""
 
     @pytest.mark.asyncio
-    async def test_get_existing_property(self):
+    async def test_get_existing_property(self, mocker):
         """Test getting an existing property."""
         test_state = StateForTesting()
         test_state.test_property = "existing_value"
 
         accessor = StatePropertyAccessor(test_state, "test_property")
-        context = MagicMock(spec=TurnContext)
+        context = mocker.MagicMock(spec=TurnContext)
 
         value = await accessor.get(context)
         assert value == "existing_value"
 
     @pytest.mark.asyncio
-    async def test_get_non_existent_without_default(self):
+    async def test_get_non_existent_without_default(self, mocker):
         """Test getting a non-existent property without a default value."""
         test_state = StateForTesting()
         accessor = StatePropertyAccessor(test_state, "non_existent")
-        context = MagicMock(spec=TurnContext)
+        context = mocker.MagicMock(spec=TurnContext)
 
         value = await accessor.get(context)
         assert value is None
 
     @pytest.mark.asyncio
-    async def test_get_with_default_value(self):
+    async def test_get_with_default_value(self, mocker):
         """Test getting a property with a default value."""
         test_state = StateForTesting()
         accessor = StatePropertyAccessor(test_state, "non_existent")
-        context = MagicMock(spec=TurnContext)
+        context = mocker.MagicMock(spec=TurnContext)
 
         value = await accessor.get(context, "default")
         assert value == "default"
 
     @pytest.mark.asyncio
-    async def test_get_with_default_factory(self):
+    async def test_get_with_default_factory(self, mocker):
         """Test getting a property with a default factory function."""
         test_state = StateForTesting()
         accessor = StatePropertyAccessor(test_state, "non_existent")
-        context = MagicMock(spec=TurnContext)
+        context = mocker.MagicMock(spec=TurnContext)
 
         value = await accessor.get(context, lambda: "factory_default")
         assert value == "factory_default"
 
     @pytest.mark.asyncio
-    async def test_set_property(self):
+    async def test_set_property(self, mocker):
         """Test setting a property value."""
         test_state = StateForTesting()
         accessor = StatePropertyAccessor(test_state, "test_property")
-        context = MagicMock(spec=TurnContext)
+        context = mocker.MagicMock(spec=TurnContext)
 
         await accessor.set(context, "new_value")
         assert test_state.test_property == "new_value"
 
     @pytest.mark.asyncio
-    async def test_delete_property(self):
+    async def test_delete_property(self, mocker):
         """Test deleting a property."""
         test_state = StateForTesting()
         test_state.test_property = "value_to_delete"
         accessor = StatePropertyAccessor(test_state, "test_property")
-        context = MagicMock(spec=TurnContext)
+        context = mocker.MagicMock(spec=TurnContext)
 
         await accessor.delete(context)
         assert "test_property" not in test_state
