@@ -1,0 +1,2 @@
+class TestingClientSessionBase:
+    pass
