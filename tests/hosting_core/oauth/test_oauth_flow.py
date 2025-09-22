@@ -16,49 +16,49 @@ from microsoft_agents.hosting.core.oauth import (
     FlowResponse,
 )
 
-from tests._common.data import TEST_DEFAULTS
+from tests._common.data import TEST_DEFAULTS, TEST_FLOW_DATA
+from tests._common.data.test_storage_data import FLOW_DATA
 from tests._common.fixtures import FlowStateFixtures
 from tests._common.testing_objects import mock_UserTokenClient
 
 DEFAULTS = TEST_DEFAULTS()
+FLOW_DATA = TEST_FLOW_DATA()
+
 
 def testing_Activity(
     mocker,
-    activity_type=ActivityTypes.message,
+    type=ActivityTypes.message,
     name="a",
     value=None,
     text="a",
 ):
-    # def conv_ref():
-    #     return mocker.MagicMock(spec=ConversationReference)
-    mock_conversation_ref = mocker.MagicMock(ConversationReference)
+    # mock_conversation_ref = mocker.MagicMock(ConversationReference)
     mocker.patch.object(
         Activity,
         "get_conversation_reference",
         return_value=mocker.MagicMock(ConversationReference),
     )
-    # mocker.patch.object(ConversationReference, "create", return_value=conv_ref())
     return Activity(
-        type=activity_type,
+        type=type,
         name=name,
-        from_property=ChannelAccount(id=USER_ID),
-        channel_id=CHANNEL_ID,
+        from_property=ChannelAccount(id=DEFAULTS.user_id),
+        channel_id=DEFAULTS.channel_id,
         # get_conversation_reference=mocker.Mock(return_value=conv_ref),
         relates_to=mocker.MagicMock(ConversationReference),
         value=value,
         text=text,
     )
-    
-class TestUtils(FlowStateFixtures):
 
+
+class TestUtils(FlowStateFixtures):
     def setup_method(self, mocker):
         self.UserTokenClient = mock_UserTokenClient
         self.Activity = testing_Activity
 
     @pytest.fixture
     def user_token_client(self, mocker):
-        return self.UserTokenClient(mocker)
-    
+        return self.UserTokenClient(mocker, get_token_return=DEFAULTS.token)
+
     @pytest.fixture
     def activity(self, mocker):
         return self.Activity(mocker)
@@ -69,15 +69,15 @@ class TestUtils(FlowStateFixtures):
 
 
 class TestOAuthFlow(TestUtils):
-
-    def test_init_no_user_token_client(self, flow_state, user_token_client):
+    def test_init_no_user_token_client(self, flow_state):
         with pytest.raises(ValueError):
-            OAuthFlow(flow_state, user_token_client)
+            OAuthFlow(flow_state, None)
 
     @pytest.mark.parametrize(
         "missing_value", ["connection", "ms_app_id", "channel_id", "user_id"]
     )
-    def test_init_errors(self, started_flow_state, missing_value, user_token_client):
+    def test_init_errors(self, missing_value, user_token_client):
+        started_flow_state = FLOW_DATA.started.model_copy()
         flow_state = started_flow_state
         flow_state.__setattr__(missing_value, None)
         with pytest.raises(ValueError):
@@ -93,8 +93,8 @@ class TestOAuthFlow(TestUtils):
     def test_flow_state_prop_copy(self, flow):
         flow_state = flow.flow_state
         flow_state.user_id = flow_state.user_id + "_copy"
-        assert flow.flow_state.user_id == flow_state.user_id
-        assert flow_state.user_id == f"{flow_state.user_id}_copy"
+        assert flow.flow_state.user_id == flow.flow_state.user_id
+        assert flow_state.user_id == f"{flow.flow_state.user_id}_copy"
 
     @pytest.mark.asyncio
     async def test_get_user_token_success(self, flow_state, user_token_client):
@@ -114,7 +114,7 @@ class TestOAuthFlow(TestUtils):
         assert flow.flow_state == expected_final_flow_state
         user_token_client.user_token.get_token.assert_called_once_with(
             user_id=flow_state.user_id,
-            connection_name=flow_state.abs_oauth_connection_name,
+            connection_name=flow_state.connection,
             channel_id=flow_state.channel_id,
             code=None,
         )
@@ -122,7 +122,9 @@ class TestOAuthFlow(TestUtils):
     @pytest.mark.asyncio
     async def test_get_user_token_failure(self, mocker, flow_state):
         # setup
-        user_token_client = self.UserTokenClient(mocker, get_token_return=None)
+        user_token_client = self.UserTokenClient(
+            mocker, get_token_return=TokenResponse()
+        )
         flow = OAuthFlow(flow_state, user_token_client)
         expected_final_flow_state = flow.flow_state
 
@@ -134,7 +136,7 @@ class TestOAuthFlow(TestUtils):
         assert flow.flow_state == expected_final_flow_state
         user_token_client.user_token.get_token.assert_called_once_with(
             user_id=flow_state.user_id,
-            connection_name=flow_state.abs_oauth_connection_name,
+            connection_name=flow_state.connection,
             channel_id=flow_state.channel_id,
             code=None,
         )
@@ -159,9 +161,7 @@ class TestOAuthFlow(TestUtils):
         assert flow.flow_state == expected_flow_state
 
     @pytest.mark.asyncio
-    async def test_begin_flow_easy_case(
-        self, mocker, flow_state, activity
-    ):
+    async def test_begin_flow_easy_case(self, mocker, flow_state, activity):
         # setup
         user_token_client = self.UserTokenClient(
             mocker, get_token_return=TokenResponse(token=DEFAULTS.token)
@@ -192,18 +192,18 @@ class TestOAuthFlow(TestUtils):
         )
 
     @pytest.mark.asyncio
-    async def test_begin_flow_long_case(
-        self, mocker, flow_state, activity
-    ):
+    async def test_begin_flow_long_case(self, mocker, flow_state, activity):
         # resources
+        mocker.patch.object(
+            TokenExchangeState, "get_encoded_state", return_value="encoded_state"
+        )
         dummy_sign_in_resource = SignInResource(
             sign_in_link="https://example.com/signin",
-            token_exchange_state=TokenExchangeState()
         )
         user_token_client = self.UserTokenClient(
             mocker,
             get_token_return=TokenResponse(),
-            get_sign_in_resource_return=dummy_sign_in_resource
+            get_sign_in_resource_return=dummy_sign_in_resource,
         )
 
         # setup
@@ -317,7 +317,9 @@ class TestOAuthFlow(TestUtils):
         self, mocker, active_flow_state
     ):
         # setup
-        user_token_client = self.UserTokenClient(get_token_return=TokenResponse())
+        user_token_client = self.UserTokenClient(
+            mocker, get_token_return=TokenResponse()
+        )
         activity = self.Activity(mocker, type=ActivityTypes.message, text="123456")
         await self.helper_continue_flow_failure(
             active_flow_state,
@@ -359,7 +361,9 @@ class TestOAuthFlow(TestUtils):
         self, mocker, active_flow_state
     ):
         # setup
-        user_token_client = self.UserTokenClient(mocker, get_token_return=TokenResponse())
+        user_token_client = self.UserTokenClient(
+            mocker, get_token_return=TokenResponse()
+        )
         activity = self.Activity(
             mocker,
             type=ActivityTypes.invoke,
@@ -378,7 +382,9 @@ class TestOAuthFlow(TestUtils):
 
     @pytest.mark.asyncio
     async def test_continue_flow_active_sign_in_verify_success(
-        self, mocker, active_flow_state,
+        self,
+        mocker,
+        active_flow_state,
     ):
         user_token_client = self.UserTokenClient(
             mocker, get_token_return=TokenResponse(token=DEFAULTS.token)
@@ -407,7 +413,9 @@ class TestOAuthFlow(TestUtils):
         self, mocker, active_flow_state
     ):
         token_exchange_request = {}
-        user_token_client = self.UserTokenClient(mocker, exchange_token_return=TokenResponse())
+        user_token_client = self.UserTokenClient(
+            mocker, exchange_token_return=TokenResponse()
+        )
         activity = self.Activity(
             mocker,
             type=ActivityTypes.invoke,
@@ -430,7 +438,7 @@ class TestOAuthFlow(TestUtils):
     ):
         token_exchange_request = {}
         user_token_client = self.UserTokenClient(
-            mocker, token_exchange_return=TokenResponse(token=DEFAULTS.token)
+            mocker, exchange_token_return=TokenResponse(token=DEFAULTS.token)
         )
         activity = self.Activity(
             mocker,
@@ -478,9 +486,9 @@ class TestOAuthFlow(TestUtils):
         self,
         mocker,
         activity,
-        not_started_flow_state
-):
+    ):
         # setup
+        not_started_flow_state = FLOW_DATA.not_started.model_copy()
         expected_response = FlowResponse(
             flow_state=not_started_flow_state,
             token_response=TokenResponse(token=not_started_flow_state.user_token),
@@ -498,10 +506,7 @@ class TestOAuthFlow(TestUtils):
 
     @pytest.mark.asyncio
     async def test_begin_or_continue_flow_inactive_flow(
-        self,
-        mocker,
-        inactive_flow_state_not_completed,
-        activity
+        self, mocker, inactive_flow_state_not_completed, activity
     ):
         # mock
         expected_response = FlowResponse(
@@ -522,11 +527,7 @@ class TestOAuthFlow(TestUtils):
 
     @pytest.mark.asyncio
     async def test_begin_or_continue_flow_active_flow(
-        self,
-        mocker,
-        active_flow_state,
-        activity,
-        user_token_client
+        self, mocker, active_flow_state, activity, user_token_client
     ):
         # mock
         expected_response = FlowResponse(
@@ -550,9 +551,9 @@ class TestOAuthFlow(TestUtils):
         self,
         mocker,
         activity,
-        expired_flow_state
     ):
         # mock
+        expired_flow_state = FLOW_DATA.active_exp.model_copy()
         expected_response = FlowResponse()
         mocker.patch.object(OAuthFlow, "begin_flow", return_value=expected_response)
 
@@ -567,9 +568,8 @@ class TestOAuthFlow(TestUtils):
         OAuthFlow.begin_flow.assert_called_once_with(activity)
 
     @pytest.mark.asyncio
-    async def test_begin_or_continue_flow_completed_flow_state(
-        self, mocker, activity, completed_flow_state
-    ):
+    async def test_begin_or_continue_flow_completed_flow_state(self, mocker, activity):
+        completed_flow_state = FLOW_DATA.completed.model_copy()
         # mock
         mocker.patch.object(OAuthFlow, "begin_flow", return_value=None)
         mocker.patch.object(OAuthFlow, "continue_flow", return_value=None)

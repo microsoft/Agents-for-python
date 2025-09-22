@@ -16,6 +16,7 @@ from microsoft_agents.hosting.core.storage import Storage, StoreItem
 
 from tests._common.storage import MockStoreItem
 
+
 @state
 class StateForTesting(State):
     """Test state implementation for testing."""

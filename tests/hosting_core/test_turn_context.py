@@ -7,10 +7,9 @@ from microsoft_agents.activity import (
     ChannelAccount,
     ConversationAccount,
     Entity,
+    ResourceResponse,
 )
-from microsoft_agents.hosting.core import MessageFactory, TurnContext
-
-from tests._common import TestingSimpleAdapter
+from microsoft_agents.hosting.core import MessageFactory, TurnContext, ChannelAdapter
 
 activity_data = {
     "type": "message",
@@ -25,6 +24,32 @@ activity_data = {
 }
 
 ACTIVITY = Activity(**activity_data)
+
+
+class TestingSimpleAdapter(ChannelAdapter):
+    async def send_activities(self, context, activities) -> list[ResourceResponse]:
+        responses = []
+        assert context is not None
+        assert activities is not None
+        assert isinstance(activities, list)
+        assert activities
+        for idx, activity in enumerate(activities):  # pylint: disable=unused-variable
+            assert isinstance(activity, Activity)
+            assert activity.type == "message" or activity.type == ActivityTypes.trace
+            responses.append(ResourceResponse(id="5678"))
+        return responses
+
+    async def update_activity(self, context, activity):
+        assert context is not None
+        assert activity is not None
+        assert activity.id is not None
+        return ResourceResponse(id=activity.id)
+
+    async def delete_activity(self, context, reference):
+        assert context is not None
+        assert reference is not None
+        assert reference.activity_id == ACTIVITY.id
+
 
 class TestTurnContext:
     def test_should_create_context_with_request_and_adapter(self):

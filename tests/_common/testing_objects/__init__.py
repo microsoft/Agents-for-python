@@ -1,14 +1,11 @@
-from .adapters import (
-    TestingAdapter,
-    TestingSimpleAdapter,
-)
+from .adapters import TestingAdapter
 
 from .mocks import (
     MockMsalAuth,
     mock_OAuthFlow,
     mock_class_OAuthFlow,
     mock_UserTokenClient,
-    mock_class_UserTokenClient
+    mock_class_UserTokenClient,
 )
 
 from .testing_authorization import TestingAuthorization
@@ -27,5 +24,6 @@ __all__ = [
     "TestingConnectionManager",
     "TestingCustomState",
     "TestingTokenProvider",
-    "TestingUserTokenClient"
+    "TestingUserTokenClient",
+    "TestingAdapter",
 ]

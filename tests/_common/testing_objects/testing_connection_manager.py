@@ -1,3 +1,13 @@
+from microsoft_agents.hosting.core import (
+    Connections,
+    AccessTokenProviderBase,
+    ClaimsIdentity,
+    AgentAuthConfiguration,
+)
+
+from .testing_token_provider import TestingTokenProvider
+
+
 class TestingConnectionManager(Connections):
     """
     Connection manager for unit tests.

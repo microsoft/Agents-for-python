@@ -1,9 +1,5 @@
-from microsoft_agents.hosting.core import (
-    AgentState,
-    Storage,
-    StoreItem,
-    TurnContext
-)
+from microsoft_agents.hosting.core import AgentState, Storage, StoreItem, TurnContext
+
 
 class TestingCustomState(AgentState):
     """Custom state implementation for testing."""

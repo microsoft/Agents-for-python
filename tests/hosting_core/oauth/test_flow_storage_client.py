@@ -10,7 +10,6 @@ DEFAULTS = TEST_DEFAULTS()
 
 
 class TestFlowStorageClient:
-
     @pytest.fixture
     def storage(self):
         return MemoryStorage()
@@ -28,9 +27,9 @@ class TestFlowStorageClient:
             ("channel", "Alice"),
         ],
     )
-    async def test_init_base_key(self, mocker):
-        client = FlowStorageClient(DEFAULTS.channel_id, DEFAULTS.user_id, mocker.Mock())
-        assert client.base_key == f"auth/{DEFAULTS.channel_id}/{DEFAULTS.user_id}/"
+    async def test_init_base_key(self, mocker, channel_id, user_id):
+        client = FlowStorageClient(channel_id, user_id, mocker.Mock())
+        assert client.base_key == f"auth/{channel_id}/{user_id}/"
 
     @pytest.mark.asyncio
     async def test_init_fails_without_user_id(self, storage):
@@ -100,9 +99,7 @@ class TestFlowStorageClient:
     async def test_integration_with_memory_storage(self):
 
         flow_state_alpha = FlowState(auth_handler_id="handler")
-        flow_state_beta = FlowState(
-            auth_handler_id="auth_handler", user_token="token"
-        )
+        flow_state_beta = FlowState(auth_handler_id="auth_handler", user_token="token")
 
         storage = MemoryStorage(
             {
@@ -141,26 +138,40 @@ class TestFlowStorageClient:
         await client.write(new_flow_state_alpha)
         await client.write(flow_state_chi)
         await baseline.write(
-            {f"auth/{DEFAULTS.channel_id}/{DEFAULTS.user_id}/handler": new_flow_state_alpha.model_copy()}
+            {
+                f"auth/{DEFAULTS.channel_id}/{DEFAULTS.user_id}/handler": new_flow_state_alpha.model_copy()
+            }
         )
         await baseline.write(
-            {f"auth/{DEFAULTS.channel_id}/{DEFAULTS.user_id}/chi": flow_state_chi.model_copy()}
+            {
+                f"auth/{DEFAULTS.channel_id}/{DEFAULTS.user_id}/chi": flow_state_chi.model_copy()
+            }
         )
 
         await write_both(
-            {f"auth/{DEFAULTS.channel_id}/{DEFAULTS.user_id}/handler": new_flow_state_alpha.model_copy()}
+            {
+                f"auth/{DEFAULTS.channel_id}/{DEFAULTS.user_id}/handler": new_flow_state_alpha.model_copy()
+            }
         )
         await write_both(
-            {f"auth/{DEFAULTS.channel_id}/{DEFAULTS.user_id}/auth_handler": flow_state_beta.model_copy()}
+            {
+                f"auth/{DEFAULTS.channel_id}/{DEFAULTS.user_id}/auth_handler": flow_state_beta.model_copy()
+            }
         )
         await write_both({"other_data": MockStoreItem({"value": "more"})})
 
         await delete_both(["some_data"])
 
-        await read_check([f"auth/{DEFAULTS.channel_id}/{DEFAULTS.user_id}/handler"], target_cls=FlowState)
         await read_check(
-            [f"auth/{DEFAULTS.channel_id}/{DEFAULTS.user_id}/auth_handler"], target_cls=FlowState
+            [f"auth/{DEFAULTS.channel_id}/{DEFAULTS.user_id}/handler"],
+            target_cls=FlowState,
         )
-        await read_check([f"auth/{DEFAULTS.channel_id}/{DEFAULTS.user_id}/chi"], target_cls=FlowState)
+        await read_check(
+            [f"auth/{DEFAULTS.channel_id}/{DEFAULTS.user_id}/auth_handler"],
+            target_cls=FlowState,
+        )
+        await read_check(
+            [f"auth/{DEFAULTS.channel_id}/{DEFAULTS.user_id}/chi"], target_cls=FlowState
+        )
         await read_check(["other_data"], target_cls=MockStoreItem)
         await read_check(["some_data"], target_cls=MockStoreItem)

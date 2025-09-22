@@ -8,13 +8,16 @@ from datetime import timedelta
 from functools import reduce
 
 from microsoft_agents.activity import Activity
+from microsoft_agents.hosting.core import Connections
 
 T = TypeVar("T")
 
 
-class TestingFlow:
+# currently unused (probably outdated)
+# but may be useful to bring up-to-date for future testing scenarios
+class TestClient:
     """
-    A mock channel that can be used for unit testing of agent logic.
+    A testing channel that connects directly to an adapter.
 
     You can use this class to mimic input from a user or a channel to validate
     that the agent or adapter responds as expected.
@@ -33,18 +36,8 @@ class TestingFlow:
         self._test_task = asyncio.create_task(asyncio.sleep(0))
 
     @classmethod
-    def _create_from_flow(cls, task, flow):
-        """
-        Creates a new TestingFlow from an existing flow.
-
-        Args:
-            task: The task to add to the tasks in the existing flow.
-            flow: The flow to build up from.
-
-        Returns:
-            A new TestingFlow instance.
-        """
-        new_flow = cls(flow._adapter, flow._callback)
+    def _clone(cls, task, client):
+        new_flow = cls(client._adapter, client._callback)
         new_flow._test_task = task
         return new_flow
 

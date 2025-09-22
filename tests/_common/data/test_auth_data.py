@@ -1,34 +1,9 @@
-"""
-Testing utilities for authorization functionality
-
-This module provides mock implementations and helper classes for testing authorization,
-authentication, and token management scenarios. It includes test doubles for token
-providers, connection managers, and authorization handlers that can be configured
-to simulate various authentication states and flow conditions.
-"""
-
-from microsoft_agents.hosting.core import (
-    Connections,
-    AccessTokenProviderBase,
-    AuthHandler,
-    Authorization,
-    MemoryStorage,
-    OAuthFlow,
-)
-from typing import Dict, Union
-from microsoft_agents.hosting.core.authorization.agent_auth_configuration import (
-    AgentAuthConfiguration,
-)
-from microsoft_agents.hosting.core.authorization.claims_identity import ClaimsIdentity
-
-from microsoft_agents.activity import TokenResponse
-
-from unittest.mock import Mock, AsyncMock
+from microsoft_agents.hosting.core import AuthHandler
 
 
 def create_test_auth_handler(
     name: str, obo: bool = False, title: str = None, text: str = None
-):
+) -> AuthHandler:
     """
     Creates a test AuthHandler instance with standardized connection names.
 
@@ -52,3 +27,15 @@ def create_test_auth_handler(
         title=title,
         text=text,
     )
+
+
+class TEST_AUTH_DATA:
+    def __init__(self):
+
+        self.auth_handler: AuthHandler = create_test_auth_handler("graph")
+
+        self.auth_handlers: dict[str, AuthHandler] = {
+            "graph": create_test_auth_handler("graph"),
+            "github": create_test_auth_handler("github", obo=True),
+            "slack": create_test_auth_handler("slack", obo=True),
+        }

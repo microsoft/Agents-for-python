@@ -1,6 +1,7 @@
 from microsoft_agents.authentication.msal import MsalAuth
 from microsoft_agents.hosting.core.authorization import AgentAuthConfiguration
 
+
 class MockMsalAuth(MsalAuth):
     """
     Mock object for MsalAuth

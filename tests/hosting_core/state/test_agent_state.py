@@ -25,6 +25,7 @@ from microsoft_agents.activity import (
 )
 from tests._common.testing_objects import TestingAdapter, TestingCustomState
 
+
 class TestDataItem(StoreItem):
     """Test data item for testing state functionality."""
 

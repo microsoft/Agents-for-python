@@ -21,11 +21,10 @@ from microsoft_agents.activity import (
 )
 from microsoft_agents.hosting.core.channel_adapter import ChannelAdapter
 from microsoft_agents.hosting.core.turn_context import TurnContext
-from microsoft_agents.hosting.core.connector import UserTokenClient
+
+from ..testing_user_token_client import TestingUserTokenClient
 
 AgentCallbackHandler = Callable[[TurnContext], Awaitable]
-
-from .mock_user_token_client import MockUserTokenClient
 
 
 class TestingAdapter(ChannelAdapter):
@@ -120,7 +119,7 @@ class TestingAdapter(ChannelAdapter):
             service_url="https://test.com",
             conversation=ConversationAccount(is_group=False, id=name, name=name),
             user=ChannelAccount(id=user.lower(), name=user),
-            agent=ChannelAccount(id=agent.lower(), name=agent),
+            bot=ChannelAccount(id=agent.lower(), name=agent),
             locale="en-us",
         )
 

@@ -2,8 +2,8 @@ from datetime import datetime
 import pytest
 from microsoft_agents.hosting.core.oauth.flow_state import FlowState, FlowStateTag
 
-class TestFlowState:
 
+class TestFlowState:
     @pytest.mark.parametrize(
         "original_flow_state, refresh_to_not_started",
         [

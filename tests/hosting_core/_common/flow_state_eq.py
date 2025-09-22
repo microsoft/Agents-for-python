@@ -4,8 +4,11 @@ from microsoft_agents.hosting.core import FlowState
 
 from tests._common import approx_eq
 
+
 # 100 ms tolerance
-def flow_state_eq(fs1: Optional[FlowState], fs2: Optional[FlowState], tol: float=0.1) -> bool:
+def flow_state_eq(
+    fs1: Optional[FlowState], fs2: Optional[FlowState], tol: float = 0.1
+) -> bool:
 
     if fs1 is None and fs2 is None:
         return True

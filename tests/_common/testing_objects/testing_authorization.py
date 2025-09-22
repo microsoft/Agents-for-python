@@ -1,4 +1,14 @@
+from typing import Union
 
+from microsoft_agents.activity import TokenResponse
+
+from microsoft_agents.hosting.core import Authorization, AuthHandler, MemoryStorage
+
+from .testing_connection_manager import TestingConnectionManager
+
+
+# this is broken
+# keeping it around for reference
 class TestingAuthorization(Authorization):
     """
     Authorization system for comprehensive unit testing.
@@ -11,7 +21,8 @@ class TestingAuthorization(Authorization):
 
     def __init__(
         self,
-        auth_handlers: Dict[str, AuthHandler],
+        mocker,
+        auth_handlers: dict[str, AuthHandler],
         token: Union[str, None] = "default",
         flow_started=False,
         sign_in_failed=False,
@@ -60,17 +71,17 @@ class TestingAuthorization(Authorization):
                 token_response = None
 
             # Mock the OAuth flow with configurable behavior
-            auth_handler.flow = Mock(
-                get_user_token=AsyncMock(return_value=token_response),
-                _get_flow_state=AsyncMock(
+            auth_handler.flow = mocker.Mock(
+                get_user_token=mocker.AsyncMock(return_value=token_response),
+                _get_flow_state=mocker.AsyncMock(
                     # sign-in failed requires flow to be started
                     return_value=oauth_flow.FlowState(
                         flow_started=(flow_started or sign_in_failed)
                     )
                 ),
-                begin_flow=AsyncMock(return_value=default_token),
+                begin_flow=mocker.AsyncMock(return_value=default_token),
                 # Mock flow continuation with optional failure simulation
-                continue_flow=AsyncMock(
+                continue_flow=mocker.AsyncMock(
                     return_value=None if sign_in_failed else default_token
                 ),
             )

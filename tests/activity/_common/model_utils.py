@@ -1,15 +1,7 @@
-from abc import ABC
-from typing import Any, Callable
-
-from microsoft_agents.activity import (
-    AgentsModel,
-    Activity,
-)
+from microsoft_agents.activity import AgentsModel
 from microsoft_agents.activity._model_utils import (
     ModelFieldHelper,
     SkipIf,
-    pick_model_dict,
-    pick_model,
 )
 
 
@@ -24,12 +16,12 @@ class SkipEmpty(SkipIf):
 
 
 class PickField(ModelFieldHelper):
-    def __init__(self, original, key_in_original=None):
+    def __init__(self, original: AgentsModel, key_in_original=None):
         assert isinstance(original, AgentsModel)
         self.original = original
         self.key_in_original = key_in_original
 
-    def process(self, key):
+    def process(self, key: str):
 
         target_key = self.key_in_original or key
 

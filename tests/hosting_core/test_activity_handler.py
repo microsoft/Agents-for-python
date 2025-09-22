@@ -9,6 +9,7 @@ from microsoft_agents.activity import (
     InvokeResponse,
 )
 
+
 class TestActivityHandler:
     @pytest.fixture
     def handler(self):

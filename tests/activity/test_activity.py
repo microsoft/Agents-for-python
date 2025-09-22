@@ -18,8 +18,8 @@ from microsoft_agents.activity import (
     Thing,
 )
 
-from tests.activity._tools.activity_test_data import MyChannelData
-from tests.activity._tools.testing_activity import create_test_activity
+from tests.activity._common.my_channel_data import MyChannelData
+from tests.activity._common.testing_activity import create_test_activity
 
 
 def helper_validate_recipient_and_from(
@@ -45,7 +45,6 @@ def helper_get_expected_try_get_channel_data_result(channel_data) -> bool:
 
 
 class TestActivityConversationOps:
-
     @pytest.fixture
     def activity(self):
         return create_test_activity("en-us")

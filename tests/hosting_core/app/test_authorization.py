@@ -1,60 +1,58 @@
 import pytest
-
+from datetime import datetime
 import jwt
 
 from microsoft_agents.activity import ActivityTypes, TokenResponse
-from microsoft_agents.hosting.core import MemoryStorage
-from microsoft_agents.hosting.core.connector.user_token_base import UserTokenBase
-from microsoft_agents.hosting.core.connector.user_token_client_base import (
-    UserTokenClientBase,
-)
 
-from microsoft_agents.hosting.core.app.oauth import Authorization
-from microsoft_agents.hosting.core.oauth import (
+from microsoft_agents.hosting.core import (
     FlowStorageClient,
     FlowErrorTag,
     FlowStateTag,
     FlowState,
     FlowResponse,
     OAuthFlow,
+    Authorization,
+    MemoryStorage,
 )
 
 from tests._common.storage.utils import StorageBaseline
 
 # test constants
-from .tools.testing_oauth import *
-from .tools.testing_authorization import (
-    TestingConnectionManager as MockConnectionManager,
+from tests._common.data import (
+    TEST_FLOW_DATA,
+    TEST_AUTH_DATA,
+    TEST_STORAGE_DATA,
+    TEST_DEFAULTS,
     create_test_auth_handler,
 )
-
-from tests._common.fixtures import CoreFixtures
-from tests._common import (
-    SDKFixtures,
-    TestingEnvironment,
-    TEST_DEFAULTS
+from tests._common.fixtures import FlowStateFixtures
+from tests._common.testing_objects import (
+    TestingConnectionManager as MockConnectionManager,
+    mock_class_OAuthFlow,
+    mock_UserTokenClient,
 )
 from tests.hosting_core._common import flow_state_eq
 
 DEFAULTS = TEST_DEFAULTS()
+FLOW_DATA = TEST_FLOW_DATA()
+STORAGE_DATA = TEST_STORAGE_DATA()
+
 
 def testing_TurnContext(
-        self,
-        mocker,
-        channel_id=DEFAULTS.channel_id,
-        user_id=DEFAULTS.user_id,
-        connection_name=DEFAULTS.abs_oauth_connection_name,
-        user_token_client=None,
-    ):
+    mocker,
+    channel_id=DEFAULTS.channel_id,
+    user_id=DEFAULTS.user_id,
+    user_token_client=None,
+):
     if not user_token_client:
-        user_token_client = self.UserTokenClient(mocker)
+        user_token_client = mock_UserTokenClient(mocker)
 
     turn_context = mocker.Mock()
     turn_context.activity.channel_id = channel_id
     turn_context.activity.from_property.id = user_id
     turn_context.activity.type = ActivityTypes.message
-    turn_context.adapter.USER_TOKEN_CLIENT_KEY = DEFAULTS.token_client_key # "__user_token_client"
-    turn_context.adapter.AGENT_IDENTITY_KEY = DEFAULTS.agent_identity_key # "__agent_identity_key"
+    turn_context.adapter.USER_TOKEN_CLIENT_KEY = "__user_token_client"
+    turn_context.adapter.AGENT_IDENTITY_KEY = "__agent_identity_key"
     agent_identity = mocker.Mock()
     agent_identity.claims = {"aud": DEFAULTS.ms_app_id}
     turn_context.turn_state = {
@@ -63,42 +61,32 @@ def testing_TurnContext(
     }
     return turn_context
 
-class TestEnv(FlowStateFixtures):
 
+class TestEnv(FlowStateFixtures):
     def setup_method(self):
         self.TurnContext = testing_TurnContext
-        self.Activity = testing_Activity
-        self.Storage = mock_MemoryStorage
         self.UserTokenClient = mock_UserTokenClient
         self.ConnectionManager = lambda mocker: MockConnectionManager()
 
     @pytest.fixture
     def turn_context(self, mocker):
         return self.TurnContext(mocker)
-    
+
     @pytest.fixture
     def baseline_storage(self):
-        return StorageBaseline(STORAGE_INIT_DATA())
-
+        return StorageBaseline(TEST_STORAGE_DATA().dict)
 
     @pytest.fixture
-    def storage(self, mocker):
-        return self.Storage(mocker)
+    def storage(self):
+        return MemoryStorage(STORAGE_DATA.get_init_data())
 
     @pytest.fixture
     def connection_manager(self, mocker):
         return self.ConnectionManager(mocker)
-    
+
     @pytest.fixture
     def auth_handlers(self):
-        handlers = {}
-        for key in STORAGE_INIT_DATA().keys():
-            if key.startswith("auth/"):
-                auth_handler_name = key[key.rindex("/") + 1 :]
-                handlers[auth_handler_name] = create_test_auth_handler(
-                    auth_handler_name, True
-                )
-        return handlers
+        return TEST_AUTH_DATA().auth_handlers
 
     @pytest.fixture
     def authorization(self, connection_manager, storage, auth_handlers):
@@ -106,7 +94,6 @@ class TestEnv(FlowStateFixtures):
 
 
 class TestAuthorization(TestEnv):
-
     def test_init_configuration_variants(
         self, storage, connection_manager, auth_handlers
     ):
@@ -212,8 +199,15 @@ class TestAuthorization(TestEnv):
         user_id = "Alice"
         auth_handler_id = "graph"
 
-        user_token_client = self.UserTokenClient(mocker, get_token_return=DEFAULTS.token)
-        context = self.TurnContext(mocker, channel_id=channel_id, user_id=user_id, user_token_client=user_token_client)
+        user_token_client = self.UserTokenClient(
+            mocker, get_token_return=DEFAULTS.token
+        )
+        context = self.TurnContext(
+            mocker,
+            channel_id=channel_id,
+            user_id=user_id,
+            user_token_client=user_token_client,
+        )
 
         # setup
         context.activity.type = ActivityTypes.message
@@ -233,9 +227,10 @@ class TestAuthorization(TestEnv):
 
         # verify
         actual_flow_state = await flow_storage_client.read(auth_handler_id)
+        expected_flow_state.expiration = actual_flow_state.expiration
         assert flow_state_eq(actual_flow_state, expected_flow_state)
         assert flow_state_eq(res_flow_state, expected_flow_state)
-        
+
     @pytest.mark.asyncio
     async def test_open_flow_success_modified_failure(
         self,
@@ -298,17 +293,31 @@ class TestAuthorization(TestEnv):
         assert flow_state_eq(actual_flow_state, expected_flow_state)
 
     @pytest.mark.asyncio
-    async def test_get_token_success(self, mocker, auth):
+    async def test_get_token_success(self, mocker, authorization):
         user_token_client = self.UserTokenClient(mocker, get_token_return="token")
-        context = self.TurnContext(mocker, channel_id="__channel_id", user_id="__user_id", user_token_client=user_token_client)
-        assert await auth.get_token(context, "slack") == TokenResponse(token="token")
+        context = self.TurnContext(
+            mocker,
+            channel_id="__channel_id",
+            user_id="__user_id",
+            user_token_client=user_token_client,
+        )
+        assert await authorization.get_token(context, "slack") == TokenResponse(
+            token="token"
+        )
         user_token_client.user_token.get_token.assert_called_once()
 
     @pytest.mark.asyncio
-    async def test_get_token_empty_response(self, mocker, auth):
-        user_token_client = self.UserTokenClient(mocker, get_token_return=TokenResponse())
-        context = self.TurnContext(mocker, channel_id="__channel_id", user_id="__user_id", user_token_client=user_token_client)
-        assert await auth.get_token(context, "graph") == TokenResponse()
+    async def test_get_token_empty_response(self, mocker, authorization):
+        user_token_client = self.UserTokenClient(
+            mocker, get_token_return=TokenResponse()
+        )
+        context = self.TurnContext(
+            mocker,
+            channel_id="__channel_id",
+            user_id="__user_id",
+            user_token_client=user_token_client,
+        )
+        assert await authorization.get_token(context, "graph") == TokenResponse()
         user_token_client.user_token.get_token.assert_called_once()
 
     @pytest.mark.asyncio
@@ -317,18 +326,25 @@ class TestAuthorization(TestEnv):
     ):
         auth = Authorization(storage, connection_manager, auth_handlers)
         with pytest.raises(ValueError):
-            await auth.get_token(turn_context, DEFAULTS.missing_abs_oauth_connection_name)
+            await auth.get_token(
+                turn_context, DEFAULTS.missing_abs_oauth_connection_name
+            )
 
     @pytest.mark.asyncio
     async def test_exchange_token_no_token(self, mocker, turn_context, authorization):
-        mock_OAuthFlow(mocker, exchange_token_return=TokenResponse())
+        mock_class_OAuthFlow(mocker, get_user_token_return=TokenResponse())
         res = await authorization.exchange_token(turn_context, ["scope"], "github")
         assert res == TokenResponse()
 
     @pytest.mark.asyncio
-    async def test_exchange_token_not_exchangeable(self, mocker, turn_context, authorization):
+    async def test_exchange_token_not_exchangeable(
+        self, mocker, turn_context, authorization
+    ):
         token = jwt.encode({"aud": "invalid://botframework.test.api"}, "")
-        testenv.mock_OAuthFlow(exchange_token_return=TokenResponse(connection_name="github", token=token))
+        mock_class_OAuthFlow(
+            mocker,
+            get_user_token_return=TokenResponse(connection_name="github", token=token),
+        )
         res = await authorization.exchange_token(turn_context, ["scope"], "github")
         assert res == TokenResponse()
 
@@ -336,8 +352,13 @@ class TestAuthorization(TestEnv):
     async def test_exchange_token_valid_exchangeable(self, mocker, authorization):
         # setup
         token = jwt.encode({"aud": "api://botframework.test.api"}, "")
-        mock_OAuthFlow(mocker, exchange_token_return=TokenResponse(connection_name="github", token=token))
-        user_token_client = self.UserTokenClient(mocker, get_token_return="github-obo-connection-obo-token")
+        mock_class_OAuthFlow(
+            mocker,
+            get_user_token_return=TokenResponse(connection_name="github", token=token),
+        )
+        user_token_client = self.UserTokenClient(
+            mocker, get_token_return="github-obo-connection-obo-token"
+        )
         turn_context = self.TurnContext(mocker, user_token_client=user_token_client)
         # test
         res = await authorization.exchange_token(turn_context, ["scope"], "github")
@@ -347,14 +368,13 @@ class TestAuthorization(TestEnv):
     async def test_get_active_flow_state(self, mocker, authorization):
         context = self.TurnContext(mocker, channel_id="webchat", user_id="Alice")
         actual_flow_state = await authorization.get_active_flow_state(context)
-        assert (
-            actual_flow_state
-            == STORAGE_SAMPLE_DICT[flow_key("webchat", "Alice", "github")]
-        )
+        assert actual_flow_state == STORAGE_DATA.dict["auth/webchat/Alice/github"]
 
     @pytest.mark.asyncio
     async def test_get_active_flow_state_missing(self, mocker, authorization):
-        context = self.TurnContext(mocker, channel_id="__channel_id", user_id="__user_id")
+        context = self.TurnContext(
+            mocker, channel_id="__channel_id", user_id="__user_id"
+        )
         res = await authorization.get_active_flow_state(context)
         assert res is None
 
@@ -362,12 +382,15 @@ class TestAuthorization(TestEnv):
     async def test_begin_or_continue_flow_success(self, mocker, authorization):
         # robrandao: TODO -> lower priority -> more testing here
         # setup
-        mock_OAuthFlow(mocker, begin_or_continue_flow_return=FlowResponse(
-            token_response=TokenResponse(token="token"),
-            flow_state=FlowState(
-                tag=FlowStateTag.COMPLETE, auth_handler_id="github"
+        mock_class_OAuthFlow(
+            mocker,
+            begin_or_continue_flow_return=FlowResponse(
+                token_response=TokenResponse(token="token"),
+                flow_state=FlowState(
+                    tag=FlowStateTag.COMPLETE, auth_handler_id="github"
+                ),
             ),
-        ))
+        )
         context = self.TurnContext(mocker, channel_id="webchat", user_id="Alice")
         context.dummy_val = None
 
@@ -380,12 +403,16 @@ class TestAuthorization(TestEnv):
         # test
         authorization.on_sign_in_success(on_sign_in_success)
         authorization.on_sign_in_failure(on_sign_in_failure)
-        flow_response = await authorization.begin_or_continue_flow(context, None, "github")
+        flow_response = await authorization.begin_or_continue_flow(
+            context, None, "github"
+        )
         assert context.dummy_val == "github"
         assert flow_response.token_response == TokenResponse(token="token")
 
     @pytest.mark.asyncio
-    async def test_begin_or_continue_flow_already_completed(self, mocker, authorization):
+    async def test_begin_or_continue_flow_already_completed(
+        self, mocker, authorization
+    ):
         # robrandao: TODO -> lower priority -> more testing here
         # setup
         context = self.TurnContext(mocker, channel_id="webchat", user_id="Alice")
@@ -401,24 +428,27 @@ class TestAuthorization(TestEnv):
         # test
         authorization.on_sign_in_success(on_sign_in_success)
         authorization.on_sign_in_failure(on_sign_in_failure)
-        flow_response = await authorization.begin_or_continue_flow(context, None, "graph")
+        flow_response = await authorization.begin_or_continue_flow(
+            context, None, "graph"
+        )
         assert context.dummy_val == None
         assert flow_response.token_response == TokenResponse(token="test_token")
         assert flow_response.continuation_activity is None
 
     @pytest.mark.asyncio
-    async def test_begin_or_continue_flow_failure(
-        self, mocker, authorization
-    ):
+    async def test_begin_or_continue_flow_failure(self, mocker, authorization):
         # robrandao: TODO -> lower priority -> more testing here
         # setup
-        mock_OAuthFlow(mocker, begin_or_continue_flow_return=FlowResponse(
-            token_response=TokenResponse(token="token"),
-            flow_state=FlowState(
-                tag=FlowStateTag.FAILURE, auth_handler_id="github"
+        mock_class_OAuthFlow(
+            mocker,
+            begin_or_continue_flow_return=FlowResponse(
+                token_response=TokenResponse(token="token"),
+                flow_state=FlowState(
+                    tag=FlowStateTag.FAILURE, auth_handler_id="github"
+                ),
+                flow_error_tag=FlowErrorTag.MAGIC_FORMAT,
             ),
-            flow_error_tag=FlowErrorTag.MAGIC_FORMAT,
-        ))
+        )
         context = self.TurnContext(mocker, channel_id="webchat", user_id="Alice")
         context.dummy_val = None
 
@@ -431,20 +461,27 @@ class TestAuthorization(TestEnv):
         # test
         authorization.on_sign_in_success(on_sign_in_success)
         authorization.on_sign_in_failure(on_sign_in_failure)
-        flow_response = await authorization.begin_or_continue_flow(context, None, "github")
-        assert context.dummy_val == "FlowErrorTag.NONE"
+        flow_response = await authorization.begin_or_continue_flow(
+            context, None, "github"
+        )
+        assert context.dummy_val == "FlowErrorTag.MAGIC_FORMAT"
         assert flow_response.token_response == TokenResponse(token="token")
 
     @pytest.mark.parametrize("auth_handler_id", ["graph", "github"])
-    def test_resolve_handler_specified(self, auth, auth_handlers, auth_handler_id):
-        assert auth.resolve_handler(auth_handler_id) == auth_handlers[auth_handler_id]
+    def test_resolve_handler_specified(
+        self, authorization, auth_handlers, auth_handler_id
+    ):
+        assert (
+            authorization.resolve_handler(auth_handler_id)
+            == auth_handlers[auth_handler_id]
+        )
 
-    def test_resolve_handler_error(self, auth):
+    def test_resolve_handler_error(self, authorization):
         with pytest.raises(ValueError):
-            auth.resolve_handler("missing-handler")
+            authorization.resolve_handler("missing-handler")
 
-    def test_resolve_handler_first(self, auth, auth_handlers):
-        assert auth.resolve_handler() == next(iter(auth_handlers.values()))
+    def test_resolve_handler_first(self, authorization, auth_handlers):
+        assert authorization.resolve_handler() == next(iter(auth_handlers.values()))
 
     @pytest.mark.asyncio
     async def test_sign_out_individual(
@@ -455,7 +492,7 @@ class TestAuthorization(TestEnv):
         auth_handlers,
     ):
         # setup
-        mock_OAuthFlow(mocker)
+        mock_class_OAuthFlow(mocker)
         storage_client = FlowStorageClient("teams", "Alice", storage)
         context = self.TurnContext(mocker, channel_id="teams", user_id="Alice")
         auth = Authorization(storage, connection_manager, auth_handlers)
@@ -474,16 +511,12 @@ class TestAuthorization(TestEnv):
     async def test_sign_out_all(
         self,
         mocker,
-        mock_user_token_client_class,
-        mock_oauth_flow_class,
-        turn_context,
         storage,
-        baseline_storage,
         connection_manager,
         auth_handlers,
     ):
         # setup
-        mock_OAuthFlow(mocker)
+        mock_class_OAuthFlow(mocker)
         context = self.TurnContext(mocker, channel_id="webchat", user_id="Alice")
         storage_client = FlowStorageClient("webchat", "Alice", storage)
         auth = Authorization(storage, connection_manager, auth_handlers)

@@ -1,6 +1,5 @@
-from microsoft_agents.hosting.core import (
-    AccessTokenProviderBase
-)
+from microsoft_agents.hosting.core import AccessTokenProviderBase
+
 
 class TestingTokenProvider(AccessTokenProviderBase):
     """
