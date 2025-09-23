@@ -1,9 +1,9 @@
 from __future__ import annotations
 
 import logging
+import jwt
 from typing import Optional
 
-import aiohttp
 from msal import ConfidentialClientApplication
 
 from .msal_auth import MsalAuth
@@ -37,7 +37,9 @@ class AgenticMsalAuth(MsalAuth):
 
         return None
 
-    async def get_agentic_instance_token(self, agent_app_instance_id: str) -> str:
+    async def get_agentic_instance_token(
+        self, agent_app_instance_id: str
+    ) -> tuple[str, str]:
 
         if not agent_app_instance_id:
             raise ValueError("Agent application instance Id must be provided.")
@@ -61,7 +63,17 @@ class AgenticMsalAuth(MsalAuth):
         )
 
         assert agent_instance_token
-        return agent_instance_token["access_token"]
+        assert agent_token_result
+
+        # future scenario where we don't know the blueprint id upfront
+        token = agent_instance_token["access_token"]
+        payload = jwt.decode(token, options={"verify_signature": False})
+        agentic_blueprint_id = payload.get("xms_par_app_azp")
+        logger.debug("Agentic blueprint id: %s", agentic_blueprint_id)
+
+        # "xms_par_app_azp": "84df77a3-1e3f-4372-a49f-c7e93c3db681",
+
+        return agent_instance_token["access_token"], agent_token_result
 
     async def get_agentic_user_token(
         self, agent_app_instance_id: str, upn: str, scopes: list[str]
@@ -72,8 +84,9 @@ class AgenticMsalAuth(MsalAuth):
                 "Agent application instance Id and user principal name must be provided."
             )
 
-        agent_token = await self.get_agentic_application_token(agent_app_instance_id)
-        instance_token = await self.get_agentic_instance_token(agent_app_instance_id)
+        instance_token, agent_token = await self.get_agentic_instance_token(
+            agent_app_instance_id
+        )
 
         authority = (
             f"https://login.microsoftonline.com/{self._msal_configuration.TENANT_ID}"
