@@ -26,6 +26,9 @@ class ChannelAccount(AgentsModel):
     name: str = None
     aad_object_id: NonEmptyString = None
     role: NonEmptyString = None
+    agentic_app_id: NonEmptyString = None
+    agentic_user_id: NonEmptyString = None
+    tenant_id: NonEmptyString = None
 
     @property
     def properties(self) -> dict[str, Any]:
