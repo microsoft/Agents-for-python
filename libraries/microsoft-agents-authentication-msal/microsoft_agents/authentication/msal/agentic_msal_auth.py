@@ -100,3 +100,30 @@ class AgenticMsalAuth(MsalAuth):
     #                 return token_response.get("access_token")
 
     #             return None
+
+    async def get_agentic_user_token(self, agent_app_instance_id: str, upn: str, scopes: list[str]) -> Optional[str]:
+
+        if not agent_app_instance_id or not upn:
+            raise ValueError("Agent application instance Id and user principal name must be provided.")
+
+        agent_token = await self.get_agentic_application_token(agent_app_instance_id)
+        instance_token = await self.get_agentic_instance_token(agent_app_instance_id)
+
+        authority = f"https://login.microsoftonline.com/{self._msal_configuration.TENANT_ID}"
+
+        instance_app = ConfidentialClientApplication(
+            client_id=agent_app_instance_id,
+            authority=authority,
+            client_credential={"client_assertion": agent_token},
+        )
+
+        auth_result_payload = instance_app.acquire_token_for_client(
+            scopes,
+            data={
+                "username": upn,
+                "user_federated_identity_credential": instance_token,
+                "grant_type": "user_fic",
+            },
+        )
+
+        return auth_result_payload.get("access_token") if auth_result_payload else None
