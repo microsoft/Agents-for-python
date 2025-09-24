@@ -4,12 +4,9 @@ from copy import deepcopy
 from abc import ABC
 from typing import Any
 
-from microsoft_agents.hosting.core.storage import (
-    Storage,
-    StoreItem,
-    MemoryStorage
-)
+from microsoft_agents.hosting.core.storage import Storage, StoreItem, MemoryStorage
 from microsoft_agents.hosting.core.storage._type_aliases import JSON
+
 
 class MockStoreItem(StoreItem):
     """Test implementation of StoreItem for testing purposes"""

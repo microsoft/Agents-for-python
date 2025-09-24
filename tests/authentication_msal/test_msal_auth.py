@@ -1,29 +1,9 @@
-import unittest
-from unittest.mock import Mock
 import pytest
 from msal import ManagedIdentityClient, ConfidentialClientApplication
-from microsoft_agents.authentication.msal import MsalAuth
-from microsoft_agents.hosting.core.authorization import AgentAuthConfiguration
 
+from microsoft_agents.hosting.core import Connections
 
-class TestingMsalAuth(MsalAuth):
-    """
-    Mock object for MsalAuth
-    """
-
-    def __init__(self, client_type):
-        super().__init__(AgentAuthConfiguration())
-        mock_client = Mock(spec=client_type)
-
-        mock_client.acquire_token_for_client = Mock(
-            return_value={"access_token": "token"}
-        )
-        mock_client.acquire_token_on_behalf_of = Mock(
-            return_value={"access_token": "token"}
-        )
-        self.mock_client = mock_client
-
-        self._create_client_application = Mock(return_value=self.mock_client)
+from tests._common.testing_objects import MockMsalAuth
 
 
 class TestMsalAuth:
@@ -32,8 +12,8 @@ class TestMsalAuth:
     """
 
     @pytest.mark.asyncio
-    async def test_get_access_token_managed_identity(self):
-        mock_auth = TestingMsalAuth(ManagedIdentityClient)
+    async def test_get_access_token_managed_identity(self, mocker):
+        mock_auth = MockMsalAuth(mocker, ManagedIdentityClient)
         token = await mock_auth.get_access_token(
             "https://test.api.botframework.com", scopes=["test-scope"]
         )
@@ -44,8 +24,8 @@ class TestMsalAuth:
         )
 
     @pytest.mark.asyncio
-    async def test_get_access_token_confidential(self):
-        mock_auth = TestingMsalAuth(ConfidentialClientApplication)
+    async def test_get_access_token_confidential(self, mocker):
+        mock_auth = MockMsalAuth(mocker, ConfidentialClientApplication)
         token = await mock_auth.get_access_token(
             "https://test.api.botframework.com", scopes=["test-scope"]
         )
@@ -56,8 +36,8 @@ class TestMsalAuth:
         )
 
     @pytest.mark.asyncio
-    async def test_aquire_token_on_behalf_of_managed_identity(self):
-        mock_auth = TestingMsalAuth(ManagedIdentityClient)
+    async def test_aquire_token_on_behalf_of_managed_identity(self, mocker):
+        mock_auth = MockMsalAuth(mocker, ManagedIdentityClient)
 
         try:
             await mock_auth.aquire_token_on_behalf_of(
@@ -69,9 +49,11 @@ class TestMsalAuth:
             assert False
 
     @pytest.mark.asyncio
-    async def test_aquire_token_on_behalf_of_confidential(self):
-        mock_auth = TestingMsalAuth(ConfidentialClientApplication)
-        mock_auth._create_client_application = Mock(return_value=mock_auth.mock_client)
+    async def test_aquire_token_on_behalf_of_confidential(self, mocker):
+        mock_auth = MockMsalAuth(mocker, ConfidentialClientApplication)
+        mock_auth._create_client_application = mocker.Mock(
+            return_value=mock_auth.mock_client
+        )
 
         token = await mock_auth.aquire_token_on_behalf_of(
             scopes=["test-scope"], user_assertion="test-assertion"
