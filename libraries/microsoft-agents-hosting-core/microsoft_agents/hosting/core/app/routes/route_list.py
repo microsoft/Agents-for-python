@@ -5,7 +5,6 @@ Licensed under the MIT License.
 
 from __future__ import annotations
 
-from ast import TypeVar
 import heapq
 from typing import Generic, Optional, TypeVar
 
