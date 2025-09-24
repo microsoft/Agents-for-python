@@ -44,6 +44,10 @@ class RouteList(Generic[StateT]):
 
         heapq.heappush(self._routes, route)
 
-    def get_routes(self) -> list[Route[StateT]]:
+    @property
+    def routes(self) -> list[Route[StateT]]:
         """Get all routes in priority order."""
         return self._routes
+    
+    def __iter__(self):
+        return iter(self._routes)

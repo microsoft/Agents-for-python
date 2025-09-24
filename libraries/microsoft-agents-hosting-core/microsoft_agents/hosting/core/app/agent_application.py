@@ -54,7 +54,7 @@ from ..oauth import (
 from .oauth import Authorization
 from .typing_indicator import TypingIndicator
 
-from .type_defs import RouteHandler, RouteSelector
+from .type_defs import RouteHandler, RouteSelector, StateT
 from .routes import RouteList, Route, RouteRank
 
 logger = logging.getLogger(__name__)
@@ -98,7 +98,7 @@ class AgentApplication(Agent, Generic[StateT]):
         Creates a new AgentApplication instance.
         """
         self.typing = TypingIndicator()
-        self._routes = RouteList[StateT]()
+        self._route_list = RouteList[StateT]()
 
         configuration = kwargs
 
@@ -224,7 +224,7 @@ class AgentApplication(Agent, Generic[StateT]):
         rank: RouteRank = RouteRank.DEFAULT,
         auth_handlers: Optional[list[str]] = None
     ) -> None:
-        self._routes.add_route(selector, handler, is_invoke, rank, auth_handlers)
+        self._route_list.add_route(selector, handler, is_invoke, rank, auth_handlers)
 
     def activity(
         self,
@@ -838,7 +838,7 @@ class AgentApplication(Agent, Generic[StateT]):
         return True
 
     async def _on_activity(self, context: TurnContext, state: StateT):
-        for route in self._routes:
+        for route in self._route_list:
             if route.selector(context):
                 if not route.auth_handlers:
                     await route.handler(context, state)
