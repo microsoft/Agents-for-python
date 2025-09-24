@@ -20,6 +20,7 @@ from .conversation_reference import ConversationReference
 from .text_highlight import TextHighlight
 from .semantic_action import SemanticAction
 from .agents_model import AgentsModel
+from .role_types import RoleTypes
 from ._model_utils import pick_model, SkipNone
 from ._type_aliases import NonEmptyString
 
@@ -648,3 +649,9 @@ class Activity(AgentsModel):
                 self.entities = []
 
             self.entities.append(ai_entity)
+
+    def is_agentic(self) -> bool:
+        return self.recipient and self.recipient.role in [
+            RoleTypes.agentic_identity,
+            RoleTypes.agentic_user,
+        ]

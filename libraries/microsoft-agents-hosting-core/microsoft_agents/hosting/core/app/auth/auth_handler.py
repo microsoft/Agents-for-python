@@ -19,6 +19,7 @@ class AuthHandler:
         text: str = None,
         abs_oauth_connection_name: str = None,
         obo_connection_name: str = None,
+        auth_type: str = None,
         **kwargs,
     ):
         """
@@ -39,6 +40,7 @@ class AuthHandler:
         self.obo_connection_name = obo_connection_name or kwargs.get(
             "OBOCONNECTIONNAME"
         )
+        self.auth_type = auth_type or kwargs.get("TYPE")
         logger.debug(
             f"AuthHandler initialized: name={self.name}, title={self.title}, text={self.text} abs_connection_name={self.abs_oauth_connection_name} obo_connection_name={self.obo_connection_name}"
         )

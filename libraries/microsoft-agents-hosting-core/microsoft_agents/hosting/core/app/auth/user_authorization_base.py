@@ -3,8 +3,8 @@
 
 from __future__ import annotations
 import logging
-import jwt
-from typing import Dict, Optional, Callable, Awaitable, AsyncIterator
+from abc import ABC
+from typing import Dict, Optional, Callable, Awaitable, AsyncIterator, TypeVar
 from collections.abc import Iterable
 from contextlib import asynccontextmanager
 
@@ -19,12 +19,14 @@ from microsoft_agents.hosting.core.connector.client import UserTokenClient
 from ...turn_context import TurnContext
 from ...oauth import OAuthFlow, FlowResponse, FlowState, FlowStateTag, FlowStorageClient
 from ..state.turn_state import TurnState
+from .authorization_variant import AuthorizationVariant
 from .auth_handler import AuthHandler
 
 logger = logging.getLogger(__name__)
 
+StateT = TypeVar("StateT", bound=TurnState)
 
-class Authorization:
+class UserAuthorizationBase(AuthorizationVariant[StateT], ABC):
     """
     Class responsible for managing authorization and OAuth flows.
     Handles multiple OAuth providers and manages the complete authentication lifecycle.
@@ -59,7 +61,7 @@ class Authorization:
             "USERAUTHORIZATION", {}
         )
 
-        handlers_config: Dict[str, Dict] = auth_configuration.get("HANDLERS")
+        handlers_config: Dict[str, Dict] = auth_configuration.get("HANDLERS", {})
         if not auth_handlers and handlers_config:
             auth_handlers = {
                 handler_name: AuthHandler(
@@ -69,12 +71,6 @@ class Authorization:
             }
 
         self._auth_handlers = auth_handlers or {}
-        self._sign_in_success_handler: Optional[
-            Callable[[TurnContext, TurnState, Optional[str]], Awaitable[None]]
-        ] = lambda *args: None
-        self._sign_in_failure_handler: Optional[
-            Callable[[TurnContext, TurnState, Optional[str]], Awaitable[None]]
-        ] = lambda *args: None
 
     def _ids_from_context(self, context: TurnContext) -> tuple[str, str]:
         """Checks and returns IDs necessary to load a new or existing flow.
@@ -89,7 +85,7 @@ class Authorization:
             raise ValueError("Channel ID and User ID are required")
 
         return context.activity.channel_id, context.activity.from_property.id
-
+    
     async def _load_flow(
         self, context: TurnContext, auth_handler_id: str = ""
     ) -> tuple[OAuthFlow, FlowStorageClient]:
@@ -136,7 +132,7 @@ class Authorization:
 
         flow = OAuthFlow(flow_state, user_token_client)
         return flow, flow_storage_client
-
+    
     @asynccontextmanager
     async def open_flow(
         self, context: TurnContext, auth_handler_id: str = ""
@@ -206,55 +202,6 @@ class Authorization:
 
         return TokenResponse()
 
-    def _is_exchangeable(self, token: str) -> bool:
-        """
-        Checks if a token is exchangeable (has api:// audience).
-
-        Args:
-            token: The token to check.
-
-        Returns:
-            True if the token is exchangeable, False otherwise.
-        """
-        try:
-            # Decode without verification to check the audience
-            payload = jwt.decode(token, options={"verify_signature": False})
-            aud = payload.get("aud")
-            return isinstance(aud, str) and aud.startswith("api://")
-        except Exception:
-            logger.error("Failed to decode token to check audience")
-            return False
-
-    async def _handle_obo(
-        self, token: str, scopes: list[str], handler_id: str = None
-    ) -> TokenResponse:
-        """
-        Handles On-Behalf-Of token exchange.
-
-        Args:
-            context: The context object for the current turn.
-            token: The original token.
-            scopes: The scopes to request.
-
-        Returns:
-            The new token response.
-
-        """
-        auth_handler = self.resolve_handler(handler_id)
-        token_provider: AccessTokenProviderBase = (
-            self._connection_manager.get_connection(auth_handler.obo_connection_name)
-        )
-
-        logger.info("Attempting to exchange token on behalf of user")
-        new_token = await token_provider.aquire_token_on_behalf_of(
-            scopes=scopes,
-            user_assertion=token,
-        )
-        return TokenResponse(
-            token=new_token,
-            scopes=scopes,  # Expiration can be set based on the token provider's response
-        )
-
     async def get_active_flow_state(self, context: TurnContext) -> Optional[FlowState]:
         """Gets the first active flow state for the current context."""
         logger.debug("Getting active flow state")
@@ -295,22 +242,22 @@ class Authorization:
 
         flow_state: FlowState = flow_response.flow_state
 
-        if (
-            flow_state.tag == FlowStateTag.COMPLETE
-            and prev_tag != FlowStateTag.COMPLETE
-        ):
-            logger.debug("Calling Authorization sign in success handler")
-            self._sign_in_success_handler(
-                context, turn_state, flow_state.auth_handler_id
-            )
-        elif flow_state.tag == FlowStateTag.FAILURE:
-            logger.debug("Calling Authorization sign in failure handler")
-            self._sign_in_failure_handler(
-                context,
-                turn_state,
-                flow_state.auth_handler_id,
-                flow_response.flow_error_tag,
-            )
+        # if (
+        #     flow_state.tag == FlowStateTag.COMPLETE
+        #     and prev_tag != FlowStateTag.COMPLETE
+        # ):
+        #     logger.debug("Calling Authorization sign in success handler")
+        #     self._sign_in_success_handler(
+        #         context, turn_state, flow_state.auth_handler_id
+        #     )
+        # elif flow_state.tag == FlowStateTag.FAILURE:
+        #     logger.debug("Calling Authorization sign in failure handler")
+        #     self._sign_in_failure_handler(
+        #         context,
+        #         turn_state,
+        #         flow_state.auth_handler_id,
+        #         flow_response.flow_error_tag,
+        #     )
 
         return flow_response
 
@@ -373,26 +320,3 @@ class Authorization:
             await self._sign_out(context, [auth_handler_id])
         else:
             await self._sign_out(context, self._auth_handlers.keys())
-
-    def on_sign_in_success(
-        self,
-        handler: Callable[[TurnContext, TurnState, Optional[str]], Awaitable[None]],
-    ) -> None:
-        """
-        Sets a handler to be called when sign-in is successfully completed.
-
-        Args:
-            handler: The handler function to call on successful sign-in.
-        """
-        self._sign_in_success_handler = handler
-
-    def on_sign_in_failure(
-        self,
-        handler: Callable[[TurnContext, TurnState, Optional[str]], Awaitable[None]],
-    ) -> None:
-        """
-        Sets a handler to be called when sign-in fails.
-        Args:
-            handler: The handler function to call on sign-in failure.
-        """
-        self._sign_in_failure_handler = handler

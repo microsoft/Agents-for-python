@@ -427,7 +427,7 @@ class ChannelServiceAdapter(ChannelAdapter, ABC):
         user_token_client: UserTokenClientBase,
         callback: Callable[[TurnContext], Awaitable],
     ) -> TurnContext:
-        context = TurnContext(self, activity)
+        context = TurnContext(self, activity, claims_identity)
 
         context.turn_state[self.AGENT_IDENTITY_KEY] = claims_identity
         context.turn_state[self._AGENT_CONNECTOR_CLIENT_KEY] = connector_client
