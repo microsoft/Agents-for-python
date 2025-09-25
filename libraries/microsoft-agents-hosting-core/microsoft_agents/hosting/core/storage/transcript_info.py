@@ -8,4 +8,4 @@ from dataclasses import dataclass
 class TranscriptInfo:
     channel_id : str = ""
     conversation_id : str = ""
-    created_on : datetime = datetime.min        
+    created_on : datetime = datetime.min.replace(tzinfo=timezone.utc)

@@ -2,7 +2,7 @@
 # Licensed under the MIT License.
 
 from abc import ABC, abstractmethod
-from datetime import datetime
+from datetime import datetime, timezone
 from microsoft_agents.activity.transcript import Activity
 from microsoft_agents.hosting.core.storage.transcript_info import TranscriptInfo
 from microsoft_agents.hosting.core.storage.transcript_logger import TranscriptLogger
@@ -23,7 +23,7 @@ class TranscriptStore(ABC, TranscriptLogger):
         channel_id: str,
         conversation_id: str,
         continuation_token: str = None,
-        start_date: datetime = datetime.min,
+        start_date: datetime = datetime.min.replace(tzinfo=timezone.utc),
     ) -> tuple[list[Activity], str]:
         """
         Asynchronously retrieves activities from a transcript.
