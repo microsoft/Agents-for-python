@@ -24,12 +24,13 @@ from .auth_handler import AuthHandler
 
 logger = logging.getLogger(__name__)
 
+
 class UserAuthorizationBase(AuthorizationVariant, ABC):
     """
     Class responsible for managing authorization and OAuth flows.
     Handles multiple OAuth providers and manages the complete authentication lifecycle.
     """
-    
+
     async def _load_flow(
         self, context: TurnContext, auth_handler_id: str
     ) -> tuple[OAuthFlow, FlowStorageClient]:
@@ -86,9 +87,7 @@ class UserAuthorizationBase(AuthorizationVariant, ABC):
         return flow, flow_storage_client
 
     async def begin_or_continue_flow(
-        self,
-        context: TurnContext,
-        auth_handler_id: str
+        self, context: TurnContext, auth_handler_id: str
     ) -> FlowResponse:
         """Begins or continues an OAuth flow.
 
@@ -105,11 +104,13 @@ class UserAuthorizationBase(AuthorizationVariant, ABC):
 
         flow, flow_storage_client = await self._load_flow(context, auth_handler_id)
         prev_tag = flow.flow_state.tag
-        flow_response: FlowResponse = await flow.begin_or_continue_flow(context.activity)
+        flow_response: FlowResponse = await flow.begin_or_continue_flow(
+            context.activity
+        )
 
         logger.info("Saving OAuth flow state to storage")
         await flow_storage_client.write(flow_response.flow_state)
-        
+
         # if prev_tag != flow_response.flow_state.tag and flow_response.flow_state.tag == FlowStateTag.COMPLETE:
         #     # Clear the flow state on completion
         #     await flow_storage_client.delete(auth_handler_id)

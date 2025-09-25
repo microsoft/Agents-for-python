@@ -15,7 +15,9 @@ AGENTAPPLICATION__USERAUTHORIZATION__HANDLERS__{auth_handler_id}__SETTINGS__TYPE
     obo_connection_name=DEFAULTS.obo_connection_name,
     auth_handler_id=DEFAULTS.auth_handler_id,
     auth_handler_title=DEFAULTS.auth_handler_title,
-    auth_handler_text=DEFAULTS.auth_handler_text)
+    auth_handler_text=DEFAULTS.auth_handler_text,
+)
+
 
 def TEST_ENV():
     lines = _TEST_ENV_RAW.strip().split("\n")
@@ -24,6 +26,7 @@ def TEST_ENV():
         key, value = line.split("=", 1)
         env[key.strip()] = value.strip()
     return env
+
 
 def TEST_ENV_DICT():
     return load_configuration_from_env(TEST_ENV())

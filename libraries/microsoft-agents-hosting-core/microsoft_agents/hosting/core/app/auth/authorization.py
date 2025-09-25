@@ -20,14 +20,14 @@ from .sign_in_response import SignInResponse
 
 AUTHORIZATION_TYPE_MAP: dict[str, type[AuthorizationVariant]] = {
     UserAuthorization.__name__.lower(): UserAuthorization,
-    AgenticAuthorization.__name__.lower(): AgenticAuthorization
+    AgenticAuthorization.__name__.lower(): AgenticAuthorization,
 }
 
 logger = logging.getLogger(__name__)
 StateT = TypeVar("StateT", bound=TurnState)
 
-class Authorization(Generic[StateT]):
 
+class Authorization(Generic[StateT]):
     def __init__(
         self,
         storage: Storage,
@@ -83,7 +83,7 @@ class Authorization(Generic[StateT]):
             auth_type = auth_type.lower()
 
             associated_handlers = {
-                auth_handler.name: auth_handler 
+                auth_handler.name: auth_handler
                 for auth_handler in self._auth_handlers.values()
                 if auth_handler.auth_type.lower() == auth_type
             }
@@ -91,7 +91,7 @@ class Authorization(Generic[StateT]):
             self._authorization_variants[auth_type] = AUTHORIZATION_TYPE_MAP[auth_type](
                 storage=self._storage,
                 connection_manager=self._connection_manager,
-                auth_handlers=associated_handlers
+                auth_handlers=associated_handlers,
             )
 
     def sign_in_state_key(self, context: TurnContext) -> str:
@@ -100,8 +100,10 @@ class Authorization(Generic[StateT]):
     async def _load_sign_in_state(self, context: TurnContext) -> Optional[SignInState]:
         key = self.sign_in_state_key(context)
         return (await self._storage.read([key], target_cls=SignInState)).get(key)
-    
-    async def _save_sign_in_state(self, context: TurnContext, state: SignInState) -> None:
+
+    async def _save_sign_in_state(
+        self, context: TurnContext, state: SignInState
+    ) -> None:
         key = self.sign_in_state_key(context)
         await self._storage.write({key: state})
 
@@ -111,33 +113,49 @@ class Authorization(Generic[StateT]):
 
     @property
     def user_auth(self) -> UserAuthorization:
-        return cast(UserAuthorization, self._resolve_auth_variant(UserAuthorization.__name__))
-    
+        return cast(
+            UserAuthorization, self._resolve_auth_variant(UserAuthorization.__name__)
+        )
+
     @property
     def agentic_auth(self) -> AgenticAuthorization:
-        return cast(AgenticAuthorization, self._resolve_auth_variant(AgenticAuthorization.__name__))
+        return cast(
+            AgenticAuthorization,
+            self._resolve_auth_variant(AgenticAuthorization.__name__),
+        )
 
     def _resolve_auth_variant(self, auth_variant: str) -> AuthorizationVariant:
-        
+
         auth_variant = auth_variant.lower()
         if auth_variant not in self._authorization_variants:
-            raise ValueError(f"Auth variant {auth_variant} not recognized or not configured.")
+            raise ValueError(
+                f"Auth variant {auth_variant} not recognized or not configured."
+            )
 
         return self._authorization_variants[auth_variant]
-    
+
     def resolve_handler(self, handler_id: str) -> AuthHandler:
         if handler_id not in self._auth_handlers:
-            raise ValueError(f"Auth handler {handler_id} not recognized or not configured.")
+            raise ValueError(
+                f"Auth handler {handler_id} not recognized or not configured."
+            )
         return self._auth_handlers[handler_id]
 
-    async def start_or_continue_sign_in(self, context: TurnContext, state: StateT, auth_handler_id: str) -> SignInResponse:
+    async def start_or_continue_sign_in(
+        self, context: TurnContext, state: StateT, auth_handler_id: str
+    ) -> SignInResponse:
 
         sign_in_state = await self._load_sign_in_state(context)
         if not sign_in_state:
             sign_in_state = SignInState({auth_handler_id: ""})
 
         if sign_in_state.tokens.get(auth_handler_id):
-            return SignInResponse(tag=FlowStateTag.COMPLETE, token_response=TokenResponse(token=sign_in_state.tokens[auth_handler_id]))
+            return SignInResponse(
+                tag=FlowStateTag.COMPLETE,
+                token_response=TokenResponse(
+                    token=sign_in_state.tokens[auth_handler_id]
+                ),
+            )
 
         handler = self.resolve_handler(auth_handler_id)
         variant = self._resolve_auth_variant(handler.auth_type)
@@ -149,18 +167,20 @@ class Authorization(Generic[StateT]):
             token = sign_in_response.token_response.token
             sign_in_state.tokens[auth_handler_id] = token
             await self._save_sign_in_state(context, sign_in_state)
-        
+
         elif sign_in_response.tag == FlowStateTag.FAILURE:
             if self._sign_in_failure_handler:
                 await self._sign_in_failure_handler(context, state, auth_handler_id)
-        
+
         elif sign_in_response.tag in [FlowStateTag.BEGIN, FlowStateTag.CONTINUE]:
             sign_in_state.continuation_activity = context.activity
             await self._save_sign_in_state(context, sign_in_state)
-        
+
         return sign_in_response
-    
-    async def sign_out(self, context: TurnContext, state: StateT, auth_handler_id=None) -> None:
+
+    async def sign_out(
+        self, context: TurnContext, state: StateT, auth_handler_id=None
+    ) -> None:
         sign_in_state = await self._load_sign_in_state(context)
         if sign_in_state:
             if not auth_handler_id:
@@ -177,25 +197,31 @@ class Authorization(Generic[StateT]):
                 del sign_in_state.tokens[auth_handler_id]
                 await self._save_sign_in_state(context, sign_in_state)
 
-    async def on_turn_auth_intercept(self, context: TurnContext, state: StateT) -> tuple[bool, Optional[Activity]]:
+    async def on_turn_auth_intercept(
+        self, context: TurnContext, state: StateT
+    ) -> tuple[bool, Optional[Activity]]:
         """Intercepts the turn to check for active authentication flows.
-        
+
         Returns true if the rest of the turn should be skipped because auth did not finish.
         Returns false if the turn should continue processing as normal.
         Calls continue_turn_callback if auth completes and a new turn should be started. <- TODO, seems a bit strange
         """
 
         # get active thing...
-    
+
         sign_in_state = await self._load_sign_in_state(context)
-        
+
         if sign_in_state:
             auth_handler_id = sign_in_state.active_handler()
             if auth_handler_id:
-                sign_in_response = await self.start_or_continue_sign_in(context, state, auth_handler_id)
+                sign_in_response = await self.start_or_continue_sign_in(
+                    context, state, auth_handler_id
+                )
                 if sign_in_response.tag == FlowStateTag.COMPLETE:
                     assert sign_in_state.continuation_activity is not None
-                    continuation_activity = sign_in_state.continuation_activity.model_copy()
+                    continuation_activity = (
+                        sign_in_state.continuation_activity.model_copy()
+                    )
                     return True, continuation_activity
                 return True, None
         return False, None
@@ -242,9 +268,9 @@ class Authorization(Generic[StateT]):
         if token_response and self._is_exchangeable(token_response.token):
             logger.debug("Token is exchangeable, performing OBO flow")
             return await self._handle_obo(token_response.token, scopes, auth_handler_id)
-        
+
         return token_response
-    
+
     def _is_exchangeable(self, token: str) -> bool:
         """
         Checks if a token is exchangeable (has api:// audience).
@@ -280,7 +306,9 @@ class Authorization(Generic[StateT]):
 
         """
         auth_handler = self.resolve_handler(handler_id)
-        token_provider = self._connection_manager.get_connection(auth_handler.obo_connection_name)
+        token_provider = self._connection_manager.get_connection(
+            auth_handler.obo_connection_name
+        )
 
         logger.info("Attempting to exchange token on behalf of user")
         new_token = await token_provider.aquire_token_on_behalf_of(

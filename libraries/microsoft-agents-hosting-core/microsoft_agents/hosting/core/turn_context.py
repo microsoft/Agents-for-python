@@ -25,7 +25,12 @@ class TurnContext(TurnContextProtocol):
     # Same constant as in the BF Adapter, duplicating here to avoid circular dependency
     _INVOKE_RESPONSE_KEY = "TurnContext.InvokeResponse"
 
-    def __init__(self, adapter_or_context, request: Activity = None, identity: ClaimsIdentity = None):
+    def __init__(
+        self,
+        adapter_or_context,
+        request: Activity = None,
+        identity: ClaimsIdentity = None,
+    ):
         """
         Creates a new TurnContext instance.
         :param adapter_or_context:
@@ -146,7 +151,7 @@ class TurnContext(TurnContextProtocol):
                 # If the hosting library isn't available, return None
                 self._streaming_response = None
         return self._streaming_response
-    
+
     @property
     def identity(self) -> Optional[ClaimsIdentity]:
         return self._identity
@@ -427,7 +432,7 @@ class TurnContext(TurnContextProtocol):
                     result.append(entity)
 
         return result
-    
+
     @staticmethod
     def is_agentic_request(context: TurnContext) -> bool:
         return context.activity.is_agentic()

@@ -25,7 +25,9 @@ AGENTAPPLICATION__USERAUTHORIZATION__HANDLERS__{agentic_auth_handler_id}__SETTIN
     agentic_obo_connection_name=DEFAULTS.agentic_obo_connection_name,
     agentic_auth_handler_id=DEFAULTS.agentic_auth_handler_id,
     agentic_auth_handler_title=DEFAULTS.agentic_auth_handler_title,
-    agentic_auth_handler_text=DEFAULTS.agentic_auth_handler_text)
+    agentic_auth_handler_text=DEFAULTS.agentic_auth_handler_text,
+)
+
 
 def TEST_AGENTIC_ENV():
     lines = _TEST_AGENTIC_ENV_RAW.strip().split("\n")
@@ -34,6 +36,7 @@ def TEST_AGENTIC_ENV():
         key, value = line.split("=", 1)
         env[key.strip()] = value.strip()
     return env
+
 
 def TEST_AGENTIC_ENV_DICT():
     return load_configuration_from_env(TEST_AGENTIC_ENV())

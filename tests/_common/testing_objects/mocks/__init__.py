@@ -4,7 +4,7 @@ from .mock_user_token_client import mock_UserTokenClient, mock_class_UserTokenCl
 from .mock_authorization import (
     mock_class_UserAuthorization,
     mock_class_AgenticAuthorization,
-    mock_class_Authorization
+    mock_class_Authorization,
 )
 
 __all__ = [
@@ -16,5 +16,5 @@ __all__ = [
     "mock_class_UserAuthorization",
     "mock_class_AgenticAuthorization",
     "mock_class_Authorization",
-    "agentic_mock_class_MsalAuth"
+    "agentic_mock_class_MsalAuth",
 ]

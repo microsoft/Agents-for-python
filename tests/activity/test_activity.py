@@ -370,15 +370,18 @@ class TestActivityConversationOps:
             Entity(type="mention", text="Another mention"),
         ]
 
-    @pytest.mark.parametrize("role, expected", [
-        [RoleTypes.user, False],
-        [RoleTypes.agent, False],
-        [RoleTypes.skill, False],
-        [RoleTypes.agentic_user, True],
-        [RoleTypes.agentic_identity, True]
-    ])
+    @pytest.mark.parametrize(
+        "role, expected",
+        [
+            [RoleTypes.user, False],
+            [RoleTypes.agent, False],
+            [RoleTypes.skill, False],
+            [RoleTypes.agentic_user, True],
+            [RoleTypes.agentic_identity, True],
+        ],
+    )
     def test_is_agentic(self, role, expected):
-        activity = Activity(type="message",
-            recipient=ChannelAccount(id="bot", name="bot", role=role)
+        activity = Activity(
+            type="message", recipient=ChannelAccount(id="bot", name="bot", role=role)
         )
         assert activity.is_agentic() == expected

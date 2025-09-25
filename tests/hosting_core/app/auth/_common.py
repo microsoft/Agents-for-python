@@ -1,16 +1,12 @@
-from microsoft_agents.activity import (
-    Activity,
-    ActivityTypes
-)
+from microsoft_agents.activity import Activity, ActivityTypes
 
-from microsoft_agents.hosting.core import (
-    TurnContext
-)
+from microsoft_agents.hosting.core import TurnContext
 
 from tests._common.data import TEST_DEFAULTS
 from tests._common.testing_objects import mock_UserTokenClient
 
 DEFAULTS = TEST_DEFAULTS()
+
 
 def testing_Activity():
     return Activity(
@@ -20,12 +16,13 @@ def testing_Activity():
         text="Hello, World!",
     )
 
+
 def testing_TurnContext(
     mocker,
     channel_id=DEFAULTS.channel_id,
     user_id=DEFAULTS.user_id,
     user_token_client=None,
-    activity=None
+    activity=None,
 ):
     if not user_token_client:
         user_token_client = mock_UserTokenClient(mocker)
@@ -46,13 +43,14 @@ def testing_TurnContext(
         "__agent_identity_key": agent_identity,
     }
     return turn_context
-    
+
+
 def testing_TurnContext_magic(
     mocker,
     channel_id=DEFAULTS.channel_id,
     user_id=DEFAULTS.user_id,
     user_token_client=None,
-    activity=None
+    activity=None,
 ):
     if not user_token_client:
         user_token_client = mock_UserTokenClient(mocker)
@@ -76,4 +74,3 @@ def testing_TurnContext_magic(
         "__agent_identity_key": agent_identity,
     }
     return turn_context
-    

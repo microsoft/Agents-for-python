@@ -4,11 +4,16 @@ from microsoft_agents.activity import TokenResponse
 
 from ...oauth import FlowStateTag
 
+
 class SignInResponse:
     token_response: TokenResponse
     tag: FlowStateTag
 
-    def __init__(self, token_response: Optional[TokenResponse] = None, tag: FlowStateTag = FlowStateTag.FAILURE) -> None:
+    def __init__(
+        self,
+        token_response: Optional[TokenResponse] = None,
+        tag: FlowStateTag = FlowStateTag.FAILURE,
+    ) -> None:
         self.token_response = token_response or TokenResponse()
         self.tag = tag
 

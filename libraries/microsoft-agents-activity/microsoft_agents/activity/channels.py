@@ -4,6 +4,7 @@
 from enum import Enum
 from typing_extensions import Self
 
+
 class Channels(str, Enum):
     """
     Ids of channels supported by ABS.

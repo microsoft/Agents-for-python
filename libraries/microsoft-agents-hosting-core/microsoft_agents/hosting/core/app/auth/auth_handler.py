@@ -6,6 +6,7 @@ from typing import Dict
 
 logger = logging.getLogger(__name__)
 
+
 class AuthHandler:
     """
     Interface defining an authorization handler for OAuth flows.

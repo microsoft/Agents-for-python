@@ -10,7 +10,6 @@ from .msal_auth import MsalAuth
 
 
 class MsalConnectionManager(Connections):
-
     def __init__(
         self,
         connections_configurations: Dict[str, AgentAuthConfiguration] = None,
@@ -62,7 +61,7 @@ class MsalConnectionManager(Connections):
         """
         if not self._connections_map:
             return self.get_default_connection()
-        
+
         return self.get_default_connection()
         # TODO: Implement logic to select the appropriate connection based on the connection map
 

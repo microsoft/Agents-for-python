@@ -443,7 +443,9 @@ class AgentApplication(Agent, Generic[StateT]):
 
         return __call
 
-    def handoff(self, *, auth_handlers: Optional[List[str]] = None) -> Callable[
+    def handoff(
+        self, *, auth_handlers: Optional[List[str]] = None
+    ) -> Callable[
         [Callable[[TurnContext, StateT, str], Awaitable[None]]],
         Callable[[TurnContext, StateT, str], Awaitable[None]],
     ]:
@@ -608,12 +610,17 @@ class AgentApplication(Agent, Generic[StateT]):
             logger.debug("Initializing turn state")
             turn_state = await self._initialize_state(context)
 
-            auth_intercepts, continuation_activity = await self._auth.on_turn_auth_intercept(context, turn_state)
+            (
+                auth_intercepts,
+                continuation_activity,
+            ) = await self._auth.on_turn_auth_intercept(context, turn_state)
             if auth_intercepts:
                 if continuation_activity:
                     new_context = copy(context)
                     new_context.activity = continuation_activity
-                    logger.info("Resending continuation activity %s", continuation_activity.text)
+                    logger.info(
+                        "Resending continuation activity %s", continuation_activity.text
+                    )
                     await self.on_turn(new_context)
                     await turn_state.save(context)
                 return
@@ -735,7 +742,11 @@ class AgentApplication(Agent, Generic[StateT]):
                 else:
                     sign_in_complete = True
                     for auth_handler_id in route.auth_handlers:
-                        if not (await self._auth.start_or_continue_sign_in(context, state, auth_handler_id)).sign_in_complete():
+                        if not (
+                            await self._auth.start_or_continue_sign_in(
+                                context, state, auth_handler_id
+                            )
+                        ).sign_in_complete():
                             sign_in_complete = False
                             break
 

@@ -18,8 +18,8 @@ from .sign_in_response import SignInResponse
 
 logger = logging.getLogger(__name__)
 
-class UserAuthorization(UserAuthorizationBase):
 
+class UserAuthorization(UserAuthorizationBase):
     async def _handle_flow_response(
         self, context: TurnContext, flow_response: FlowResponse
     ) -> None:
@@ -63,16 +63,14 @@ class UserAuthorization(UserAuthorizationBase):
                 logger.warning("Sign-in flow failed for unknown reasons.")
                 await context.send_activity("Sign-in failed. Please try again.")
 
-    async def sign_in(self, context: TurnContext, auth_handler_id: str) -> SignInResponse:
+    async def sign_in(
+        self, context: TurnContext, auth_handler_id: str
+    ) -> SignInResponse:
         logger.debug(
             "Beginning or continuing flow for auth handler %s",
             auth_handler_id,
         )
-        flow_response = (
-            await self.begin_or_continue_flow(
-                context, auth_handler_id
-            )
-        )
+        flow_response = await self.begin_or_continue_flow(context, auth_handler_id)
         await self._handle_flow_response(context, flow_response)
         logger.debug(
             "Flow response flow_state.tag: %s",
@@ -81,7 +79,7 @@ class UserAuthorization(UserAuthorizationBase):
 
         sign_in_response = SignInResponse(
             token_response=flow_response.token_response,
-            tag=flow_response.flow_state.tag
+            tag=flow_response.flow_state.tag,
         )
 
         return sign_in_response

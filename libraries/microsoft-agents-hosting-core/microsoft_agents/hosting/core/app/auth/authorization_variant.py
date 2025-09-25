@@ -15,8 +15,8 @@ from .sign_in_response import SignInResponse
 
 logger = logging.getLogger(__name__)
 
-class AuthorizationVariant(ABC):
 
+class AuthorizationVariant(ABC):
     def __init__(
         self,
         storage: Storage,
@@ -56,11 +56,9 @@ class AuthorizationVariant(ABC):
             }
 
         self._auth_handlers = auth_handlers or {}
-    
+
     async def sign_in(
-        self,
-        context: TurnContext,
-        auth_handler_id: Optional[str] = None
+        self, context: TurnContext, auth_handler_id: Optional[str] = None
     ) -> SignInResponse:
         raise NotImplementedError()
 

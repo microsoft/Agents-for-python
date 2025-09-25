@@ -65,6 +65,7 @@ class TestMsalAuth:
             scopes=["test-scope"], user_assertion="test-assertion"
         )
 
+
 # class TestMsalAuthAgentic:
 
 #     @pytest.mark.asyncio
