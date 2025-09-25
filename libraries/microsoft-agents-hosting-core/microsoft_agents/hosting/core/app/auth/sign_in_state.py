@@ -9,8 +9,8 @@ from ...storage import StoreItem
 
 class SignInState(StoreItem):
 
-    def __init__(self, data: Optional[JSON] = None, continuation_activity: Optional[Activity] = None) -> None:
-        self.tokens = data or {}
+    def __init__(self, tokens: Optional[JSON] = None, continuation_activity: Optional[Activity] = None) -> None:
+        self.tokens = tokens or {}
         self.continuation_activity = continuation_activity
 
     def store_item_to_json(self) -> JSON:

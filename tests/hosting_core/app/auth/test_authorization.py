@@ -2,6 +2,8 @@ import pytest
 from datetime import datetime
 import jwt
 
+from typing import Optional
+
 from microsoft_agents.activity import (
     Activity,
     ActivityTypes,
@@ -17,11 +19,14 @@ from microsoft_agents.hosting.core import (
     OAuthFlow,
     Authorization,
     UserAuthorization,
+    Storage,
+    TurnContext,
     MemoryStorage,
     AuthHandler,
     FlowStateTag,
+    SignInState,
+    SignInResponse,
 )
-from microsoft_agents.hosting.core.app.auth import SignInState
 
 from tests._common.storage.utils import StorageBaseline
 
@@ -54,14 +59,30 @@ STORAGE_DATA = TEST_STORAGE_DATA()
 ENV_DICT = TEST_ENV_DICT()
 AGENTIC_ENV_DICT = TEST_AGENTIC_ENV_DICT()
 
-def get_sign_in_state(auth: Authorization, storage: Storage, context: TurnContext) -> Optional[SignInState]:
-    key = auth.get_sign_in_state_key(context)
-    return storage.read([key], target_cls=SignInState).get(key)
+async def get_sign_in_state(auth: Authorization, storage: Storage, context: TurnContext) -> Optional[SignInState]:
+    key = auth.sign_in_state_key(context)
+    return (await storage.read([key], target_cls=SignInState)).get(key)
 
-def set_sign_in_state(auth: Authorization, storage: Storage, context: TurnContext, state: SignInState):
-    key = auth.get_sign_in_state_key(context)
-    storage.write({key: state})
+async def set_sign_in_state(auth: Authorization, storage: Storage, context: TurnContext, state: SignInState):
+    key = auth.sign_in_state_key(context)
+    await storage.write({key: state})
 
+def mock_variants(mocker, sign_in_return=None):
+    mock_class_UserAuthorization(mocker, sign_in_return=sign_in_return)
+    mock_class_AgenticAuthorization(mocker, sign_in_return=sign_in_return)
+
+def sign_in_state_eq(a: Optional[SignInState], b: Optional[SignInState]) -> bool:
+    if a is None and b is None:
+        return True
+    if a is None or b is None:
+        return False
+    return a.tokens == b.tokens and a.continuation_activity == b.continuation_activity
+
+def copy_sign_in_state(state: SignInState) -> SignInState:
+    return SignInState(
+        tokens=state.tokens.copy(),
+        continuation_activity=state.continuation_activity.model_copy() if state.continuation_activity else None
+    )
 
 class TestEnv(FlowStateFixtures):
     def setup_method(self):
@@ -99,6 +120,10 @@ class TestEnv(FlowStateFixtures):
 
     @pytest.fixture(params=[ENV_DICT, AGENTIC_ENV_DICT])
     def env_dict(self, request):
+        return request.param
+
+    @pytest.fixture(params=[DEFAULTS.auth_handler_id, DEFAULTS.agentic_auth_handler_id])
+    def auth_handler_id(self, request):
         return request.param
 
 class TestAuthorizationSetup(TestEnv):
@@ -140,8 +165,8 @@ class TestAuthorizationUsage(TestEnv):
     @pytest.mark.asyncio
     async def test_get_token_with_sign_in_state_empty(self, mocker, storage, authorization, context):
         # setup
-        key = authorization.get_sign_in_state_key(context)
-        storage.write({key: SignInState(
+        key = authorization.sign_in_state_key(context)
+        await storage.write({key: SignInState(
             tokens={DEFAULTS.auth_handler_id: "", DEFAULTS.agentic_auth_handler_id: ""}
         )})
 
@@ -152,8 +177,8 @@ class TestAuthorizationUsage(TestEnv):
     @pytest.mark.asyncio
     async def test_get_token_with_sign_in_state_empty_alt(self, mocker, storage, authorization, context):
         # setup
-        key = authorization.get_sign_in_state_key(context)
-        storage.write({key: SignInState(
+        key = authorization.sign_in_state_key(context)
+        await storage.write({key: SignInState(
             tokens={DEFAULTS.auth_handler_id: "token", DEFAULTS.agentic_auth_handler_id: ""}
         )})
 
@@ -165,8 +190,8 @@ class TestAuthorizationUsage(TestEnv):
     async def test_get_token_with_sign_in_state_valid(self, mocker, storage, authorization):
         # setup
         context = self.TurnContext(mocker)
-        key = authorization.get_sign_in_state_key(context)
-        storage.write({key: SignInState(
+        key = authorization.sign_in_state_key(context)
+        await storage.write({key: SignInState(
             tokens={DEFAULTS.auth_handler_id: "valid_token"}
         )})
 
@@ -174,22 +199,205 @@ class TestAuthorizationUsage(TestEnv):
         token_response = await authorization.get_token(context, DEFAULTS.auth_handler_id)
         assert token_response.token == "valid_token"
 
-    def test_start_or_continue_sign_in_cached(self, storage, authorization, context, activity):
+    @pytest.mark.asyncio
+    async def test_start_or_continue_sign_in_cached(self, storage, authorization, context, activity):
         # setup
         initial_state = SignInState(
             tokens={DEFAULTS.auth_handler_id: "valid_token"}, continuation_activity=activity
         )
-        set_sign_in_state(authorization, storage, context, initial_state)
-        assert await authorization.start_or_continue_sign_in(context, None, DEFAULTS.auth_handler_id)
-        assert get_sign_in_state(authorization, storage, context) == initial_state
+        await set_sign_in_state(authorization, storage, context, initial_state)
+        sign_in_response = await authorization.start_or_continue_sign_in(context, None, DEFAULTS.auth_handler_id)
+        assert sign_in_response.tag == FlowStateTag.COMPLETE
+        assert sign_in_response.token_response.token == "valid_token"
 
-    def test_start_or_continue_sign_in_no_state_to_complete(self, mocker, storage, authorization, context):
-        mock_class_UserAuthorization(mocker, sign_in_return=SignInResponse(
+        assert sign_in_state_eq(await get_sign_in_state(authorization, storage, context), initial_state)
+
+    @pytest.mark.asyncio
+    @pytest.mark.parametrize("auth_handler_id", [DEFAULTS.auth_handler_id, DEFAULTS.agentic_auth_handler_id])
+    async def test_start_or_continue_sign_in_no_initial_state_to_complete(self, mocker, storage, authorization, context, auth_handler_id):
+        mock_variants(mocker, sign_in_return=SignInResponse(
             token_response=TokenResponse(token=DEFAULTS.token),
             tag=FlowStateTag.COMPLETE
         ))
-        await authorization.start_or_continue_sign_in(context, None, DEFAULTS.auth_handler_id)
+        sign_in_response = await authorization.start_or_continue_sign_in(context, None, auth_handler_id)
+        assert sign_in_response.tag == FlowStateTag.COMPLETE
+        assert sign_in_response.token_response.token == DEFAULTS.token
+        
+        final_state = await get_sign_in_state(authorization, storage, context)
+        assert final_state.tokens[auth_handler_id] == DEFAULTS.token
+        assert final_state.continuation_activity is None
 
+    @pytest.mark.asyncio
+    @pytest.mark.parametrize("auth_handler_id", [DEFAULTS.auth_handler_id, DEFAULTS.agentic_auth_handler_id])
+    async def test_start_or_continue_sign_in_to_complete_with_prev_state(self, mocker, storage, authorization, context, auth_handler_id):
+        # setup
+        initial_state = SignInState(
+            tokens={"my_handler": "old_token"}, continuation_activity=Activity(type=ActivityTypes.message, text="old activity")
+        )
+        await set_sign_in_state(authorization, storage, context, initial_state)
+        mock_variants(mocker, sign_in_return=SignInResponse(
+            token_response=TokenResponse(token=DEFAULTS.token),
+            tag=FlowStateTag.COMPLETE
+        ))
 
-        assert not await authorization.start_or_continue_sign_in(context, None, DEFAULTS.auth_handler_id)
-        assert get_sign_in_state(authorization, storage, context) is None
+        # test
+        sign_in_response = await authorization.start_or_continue_sign_in(context, None, auth_handler_id)
+        assert sign_in_response.tag == FlowStateTag.COMPLETE
+        assert sign_in_response.token_response.token == DEFAULTS.token
+        
+        # verify
+        final_state = await get_sign_in_state(authorization, storage, context)
+        assert final_state.tokens[auth_handler_id] == DEFAULTS.token
+        assert final_state.tokens["my_handler"] == "old_token"
+        assert final_state.continuation_activity == initial_state.continuation_activity
+
+    @pytest.mark.asyncio
+    @pytest.mark.parametrize("auth_handler_id", [DEFAULTS.auth_handler_id, DEFAULTS.agentic_auth_handler_id])
+    async def test_start_or_continue_sign_in_to_failure_with_prev_state(self, mocker, storage, authorization, context, auth_handler_id):
+        # setup
+        initial_state = SignInState(
+            tokens={"my_handler": "old_token"}, continuation_activity=Activity(type=ActivityTypes.message, text="old activity")
+        )
+        await set_sign_in_state(authorization, storage, context, initial_state)
+        mock_variants(mocker, sign_in_return=SignInResponse(
+            token_response=TokenResponse(),
+            tag=FlowStateTag.FAILURE
+        ))
+
+        # test
+        sign_in_response = await authorization.start_or_continue_sign_in(context, None, auth_handler_id)
+        assert sign_in_response.tag == FlowStateTag.FAILURE
+        assert not sign_in_response.token_response
+        
+        # verify
+        final_state = await get_sign_in_state(authorization, storage, context)
+        assert not final_state.tokens.get(auth_handler_id)
+        assert final_state.tokens["my_handler"] == "old_token"
+        assert final_state.continuation_activity == initial_state.continuation_activity
+
+    @pytest.mark.asyncio
+    @pytest.mark.parametrize("auth_handler_id, tag", [
+        (DEFAULTS.auth_handler_id, FlowStateTag.BEGIN),
+        (DEFAULTS.agentic_auth_handler_id, FlowStateTag.BEGIN),
+        (DEFAULTS.auth_handler_id, FlowStateTag.CONTINUE),
+        (DEFAULTS.agentic_auth_handler_id, FlowStateTag.CONTINUE)
+    ])
+    async def test_start_or_continue_sign_in_to_pending_with_prev_state(self, mocker, storage, authorization, context, auth_handler_id, tag):
+        # setup
+        initial_state = SignInState(
+            tokens={"my_handler": "old_token"}, continuation_activity=Activity(type=ActivityTypes.message, text="old activity")
+        )
+        await set_sign_in_state(authorization, storage, context, initial_state)
+        mock_variants(mocker, sign_in_return=SignInResponse(
+            token_response=TokenResponse(),
+            tag=tag
+        ))
+
+        # test
+        sign_in_response = await authorization.start_or_continue_sign_in(context, None, auth_handler_id)
+        assert sign_in_response.tag == tag
+        assert not sign_in_response.token_response
+        
+        # verify
+        final_state = await get_sign_in_state(authorization, storage, context)
+        assert not final_state.tokens.get(auth_handler_id)
+        assert final_state.tokens["my_handler"] == "old_token"
+        assert final_state.continuation_activity == context.activity
+
+    @pytest.mark.asyncio
+    @pytest.mark.parametrize("auth_handler_id", [DEFAULTS.auth_handler_id, DEFAULTS.agentic_auth_handler_id])
+    async def test_sign_out_not_signed_in_single_handler(self, mocker, storage, authorization, context, activity, auth_handler_id):
+        mock_variants(mocker)
+        initial_state = SignInState(tokens={DEFAULTS.auth_handler_id: "", "my_handler": "old_token"}, continuation_activity=activity)
+        await set_sign_in_state(authorization, storage, context, copy_sign_in_state(initial_state))
+        await authorization.sign_out(context, None, auth_handler_id)
+        final_state = await get_sign_in_state(authorization, storage, context)
+        if auth_handler_id in initial_state.tokens:
+            del initial_state.tokens[auth_handler_id]
+        assert sign_in_state_eq(final_state, initial_state)
+
+    @pytest.mark.asyncio
+    @pytest.mark.parametrize("auth_handler_id", [DEFAULTS.auth_handler_id, DEFAULTS.agentic_auth_handler_id])
+    async def test_sign_out_signed_in_in_single_handler(self, mocker, storage, authorization, context, activity, auth_handler_id):
+        mock_variants(mocker)
+        initial_state = SignInState(tokens={DEFAULTS.auth_handler_id: "token", DEFAULTS.agentic_auth_handler_id: "another_token", "my_handler": "old_token"}, continuation_activity=activity)
+        await set_sign_in_state(authorization, storage, context, copy_sign_in_state(initial_state))
+        await authorization.sign_out(context, None, auth_handler_id)
+        final_state = await get_sign_in_state(authorization, storage, context)
+        del initial_state.tokens[auth_handler_id]
+        assert sign_in_state_eq(final_state, initial_state)
+
+    @pytest.mark.asyncio
+    async def test_sign_out_not_signed_in_all_handlers(self, mocker, storage, authorization, context, activity):
+        mock_variants(mocker)
+        initial_state = SignInState(tokens={DEFAULTS.auth_handler_id: ""}, continuation_activity=activity)
+        await set_sign_in_state(authorization, storage, context, initial_state)
+        await authorization.sign_out(context, None)
+        final_state = await get_sign_in_state(authorization, storage, context)
+        assert final_state is None
+
+    @pytest.mark.asyncio
+    async def test_sign_out_signed_in_in_all_handlers(self, mocker, storage, authorization, context, activity):
+        mock_variants(mocker)
+        initial_state = SignInState(tokens={DEFAULTS.auth_handler_id: "token", DEFAULTS.agentic_auth_handler_id: "another_token"}, continuation_activity=activity)
+        await set_sign_in_state(authorization, storage, context, initial_state)
+        await authorization.sign_out(context, None)
+        final_state = await get_sign_in_state(authorization, storage, context)
+        assert final_state is None
+        
+    @pytest.mark.asyncio
+    @pytest.mark.parametrize("sign_in_state", [
+        SignInState(),
+        SignInState(tokens={DEFAULTS.auth_handler_id: "token"}, continuation_activity=Activity(type=ActivityTypes.message, text="activity")),
+        SignInState(tokens={DEFAULTS.auth_handler_id: "token", DEFAULTS.agentic_auth_handler_id: "another_token"}, continuation_activity=Activity(type=ActivityTypes.message, text="activity")),
+        SignInState(tokens={DEFAULTS.auth_handler_id: "token", "my_handler": "old_token"}, continuation_activity=Activity(type=ActivityTypes.message, text="activity")),
+    ])
+    async def test_on_turn_auth_intercept_no_intercept(self, storage, authorization, context, sign_in_state):
+        await set_sign_in_state(authorization, storage, context, copy_sign_in_state(sign_in_state))
+        
+        intercepts, continuation_activity = await authorization.on_turn_auth_intercept(context, None)
+
+        assert not continuation_activity
+        assert not intercepts
+
+        final_state = await get_sign_in_state(authorization, storage, context)
+
+        assert sign_in_state_eq(final_state, sign_in_state)
+
+    @pytest.mark.asyncio
+    @pytest.mark.parametrize("sign_in_response", [
+        SignInResponse(tag=FlowStateTag.BEGIN),
+        SignInResponse(tag=FlowStateTag.CONTINUE),
+        SignInResponse(tag=FlowStateTag.FAILURE)
+    ])
+    async def test_on_turn_auth_intercept_with_intercept_incomplete(self, mocker, storage, authorization, context, sign_in_response, auth_handler_id):
+        mock_class_Authorization(mocker, start_or_continue_sign_in_return=sign_in_response)
+
+        initial_state = SignInState(tokens={"some_handler": "old_token", auth_handler_id: ""}, continuation_activity=Activity(type=ActivityTypes.message, text="old activity"))
+        await set_sign_in_state(authorization, storage, context, copy_sign_in_state(initial_state))
+
+        intercepts, continuation_activity = await authorization.on_turn_auth_intercept(context, auth_handler_id)
+
+        assert not continuation_activity
+        assert intercepts
+
+        final_state = await get_sign_in_state(authorization, storage, context)
+        assert sign_in_state_eq(final_state, initial_state)
+
+    @pytest.mark.asyncio
+    async def test_on_turn_auth_intercept_with_intercept_complete(self, mocker, storage, authorization, context, auth_handler_id):
+        mock_class_Authorization(mocker, start_or_continue_sign_in_return=SignInResponse(tag=FlowStateTag.COMPLETE))
+
+        old_activity = Activity(type=ActivityTypes.message, text="old activity")
+        initial_state = SignInState(tokens={"some_handler": "old_token", auth_handler_id: ""}, continuation_activity=old_activity)
+        await set_sign_in_state(authorization, storage, context, copy_sign_in_state(initial_state))
+
+        intercepts, continuation_activity = await authorization.on_turn_auth_intercept(context, auth_handler_id)
+
+        assert continuation_activity == old_activity
+        assert intercepts
+
+        # start_or_continue_sign_in is the only method that modifies the state,
+        # so since it is mocked, the state should not be changed
+        final_state = await get_sign_in_state(authorization, storage, context)
+        assert sign_in_state_eq(final_state, initial_state)

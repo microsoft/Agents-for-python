@@ -172,4 +172,9 @@ __all__ = [
     "FlowResponse",
     "FlowStorageClient",
     "OAuthFlow",
+    "UserAuthorization",
+    "AgenticAuthorization",
+    "Authorization",
+    "SignInState",
+    "SignInResponse",
 ]

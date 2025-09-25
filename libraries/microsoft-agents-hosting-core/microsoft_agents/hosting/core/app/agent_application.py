@@ -735,7 +735,7 @@ class AgentApplication(Agent, Generic[StateT]):
                 else:
                     sign_in_complete = True
                     for auth_handler_id in route.auth_handlers:
-                        if not await self._auth.start_or_continue_sign_in(context, state, auth_handler_id):
+                        if not (await self._auth.start_or_continue_sign_in(context, state, auth_handler_id)).sign_in_complete():
                             sign_in_complete = False
                             break
 

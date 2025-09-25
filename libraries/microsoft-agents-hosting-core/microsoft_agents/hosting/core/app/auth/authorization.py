@@ -95,7 +95,7 @@ class Authorization(Generic[StateT]):
             )
 
     def sign_in_state_key(self, context: TurnContext) -> str:
-        return f"auth:SignInState:{context.activity.conversation.id}:{context.activity.from_property.id}"
+        return f"auth:SignInState:{context.activity.channel_id}:{context.activity.from_property.id}"
 
     async def _load_sign_in_state(self, context: TurnContext) -> Optional[SignInState]:
         key = self.sign_in_state_key(context)
@@ -130,21 +130,23 @@ class Authorization(Generic[StateT]):
             raise ValueError(f"Auth handler {handler_id} not recognized or not configured.")
         return self._auth_handlers[handler_id]
 
-    async def _start_or_continue_sign_in(self, context: TurnContext, state: StateT, auth_handler_id: str) -> SignInResponse:
+    async def start_or_continue_sign_in(self, context: TurnContext, state: StateT, auth_handler_id: str) -> SignInResponse:
 
         sign_in_state = await self._load_sign_in_state(context)
         if not sign_in_state:
             sign_in_state = SignInState({auth_handler_id: ""})
 
         if sign_in_state.tokens.get(auth_handler_id):
-            return SignInResponse(tag=FlowStateTag.COMPLETE, token=sign_in_state.tokens[auth_handler_id])
+            return SignInResponse(tag=FlowStateTag.COMPLETE, token_response=TokenResponse(token=sign_in_state.tokens[auth_handler_id]))
 
-        sign_in_response = await self._resolve_auth_variant(auth_handler_id).sign_in(context, auth_handler_id)
+        handler = self.resolve_handler(auth_handler_id)
+        variant = self._resolve_auth_variant(handler.auth_type)
+        sign_in_response = await variant.sign_in(context, auth_handler_id)
 
         if sign_in_response.tag == FlowStateTag.COMPLETE:
             if self._sign_in_success_handler:
                 await self._sign_in_success_handler(context, state, auth_handler_id)
-            token = sign_in_response.token
+            token = sign_in_response.token_response.token
             sign_in_state.tokens[auth_handler_id] = token
             await self._save_sign_in_state(context, sign_in_state)
         
@@ -154,20 +156,24 @@ class Authorization(Generic[StateT]):
         
         elif sign_in_response.tag in [FlowStateTag.BEGIN, FlowStateTag.CONTINUE]:
             sign_in_state.continuation_activity = context.activity
-    
-    async def start_or_continue_sign_in(self, context: TurnContext, state: StateT, auth_handler_id: str) -> bool:
-        sign_in_response = await self._start_or_continue_sign_in(context, state, auth_handler_id)
-        return sign_in_response.tag in [FlowStateTag.NOT_STARTED, FlowStateTag.COMPLETE]
+            await self._save_sign_in_state(context, sign_in_state)
+        
+        return sign_in_response
     
     async def sign_out(self, context: TurnContext, state: StateT, auth_handler_id=None) -> None:
         sign_in_state = await self._load_sign_in_state(context)
         if sign_in_state:
             if not auth_handler_id:
                 for handler_id in sign_in_state.tokens.keys():
-                    await self._resolve_auth_variant(handler_id).sign_out(context, handler_id)
+                    if handler_id in sign_in_state.tokens:
+                        handler = self.resolve_handler(handler_id)
+                        variant = self._resolve_auth_variant(handler.auth_type)
+                        await variant.sign_out(context, handler_id)
                 await self._delete_sign_in_state(context)
-            else:
-                await self._resolve_auth_variant(auth_handler_id).sign_out(context, auth_handler_id)
+            elif auth_handler_id in sign_in_state.tokens:
+                handler = self.resolve_handler(auth_handler_id)
+                variant = self._resolve_auth_variant(handler.auth_type)
+                await variant.sign_out(context, auth_handler_id)
                 del sign_in_state.tokens[auth_handler_id]
                 await self._save_sign_in_state(context, sign_in_state)
 
@@ -180,18 +186,18 @@ class Authorization(Generic[StateT]):
         """
 
         # get active thing...
-
+    
         sign_in_state = await self._load_sign_in_state(context)
         
         if sign_in_state:
             auth_handler_id = sign_in_state.active_handler()
             if auth_handler_id:
-                assert sign_in_state.continuation_activity is not None
-                continuation_activity = None
-                sign_in_response = await self._start_or_continue_sign_in(context, state, auth_handler_id)
+                sign_in_response = await self.start_or_continue_sign_in(context, state, auth_handler_id)
                 if sign_in_response.tag == FlowStateTag.COMPLETE:
+                    assert sign_in_state.continuation_activity is not None
                     continuation_activity = sign_in_state.continuation_activity.model_copy()
-                return True, continuation_activity  # continue _on_turn
+                    return True, continuation_activity
+                return True, None
         return False, None
 
     async def get_token(
