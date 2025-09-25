@@ -14,10 +14,14 @@ from .route import Route, RouteHandler
 from .typing_indicator import TypingIndicator
 
 # Auth
-from .oauth import (
+from .auth import (
     Authorization,
     AuthHandler,
     AuthorizationHandlers,
+    UserAuthorization,
+    AgenticAuthorization,
+    SignInResponse,
+    SignInState,
 )
 
 # App State
@@ -27,15 +31,11 @@ from .state.temp_state import TempState
 from .state.turn_state import TurnState
 
 __all__ = [
-    "ActivityType",
     "AgentApplication",
     "ApplicationError",
     "ApplicationOptions",
-    "ConversationUpdateType",
     "InputFile",
     "InputFileDownloader",
-    "MessageReactionType",
-    "MessageUpdateType",
     "Query",
     "Route",
     "RouteHandler",
@@ -50,4 +50,9 @@ __all__ = [
     "Authorization",
     "AuthHandler",
     "AuthorizationHandlers",
+    "AuthorizationVariant",
+    "UserAuthorization",
+    "AgenticAuthorization",
+    "SignInState",
+    "SignInResponse",
 ]

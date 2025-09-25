@@ -4,6 +4,7 @@ from .agentic_authorization import AgenticAuthorization
 from .user_authorization import UserAuthorization
 from .authorization_variant import AuthorizationVariant
 from .sign_in_state import SignInState
+from .sign_in_response import SignInResponse
 
 __all__ = [
     "Authorization",
@@ -12,5 +13,6 @@ __all__ = [
     "AgenticAuthorization",
     "UserAuthorization",
     "AuthorizationVariant",
-    "SignInState"
+    "SignInState",
+    "SignInResponse",
 ]

@@ -16,6 +16,7 @@ from microsoft_agents.activity import (
     AIEntity,
     Place,
     Thing,
+    RoleTypes,
 )
 
 from tests.activity._common.my_channel_data import MyChannelData
@@ -369,4 +370,15 @@ class TestActivityConversationOps:
             Entity(type="mention", text="Another mention"),
         ]
 
-    # robrandao: TODO -> is_agentic
+    @pytest.mark.parametrize("role, expected", [
+        [RoleTypes.user, False],
+        [RoleTypes.agent, False],
+        [RoleTypes.skill, False],
+        [RoleTypes.agentic_user, True],
+        [RoleTypes.agentic_identity, True]
+    ])
+    def test_is_agentic(self, role, expected):
+        activity = Activity(type="message",
+            recipient=ChannelAccount(id="bot", name="bot", role=role)
+        )
+        assert activity.is_agentic() == expected

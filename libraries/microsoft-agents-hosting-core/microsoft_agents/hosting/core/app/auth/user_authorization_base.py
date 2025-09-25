@@ -110,10 +110,9 @@ class UserAuthorizationBase(AuthorizationVariant, ABC):
         logger.info("Saving OAuth flow state to storage")
         await flow_storage_client.write(flow_response.flow_state)
         
-        if prev_tag != flow_response.flow_state.tag and flow_response.flow_state.tag == FlowStateTag.COMPLETED:
-            # Clear the flow state on completion
-            flow_response.continuation_activity = 
-            await flow_storage_client.delete(auth_handler_id)
+        # if prev_tag != flow_response.flow_state.tag and flow_response.flow_state.tag == FlowStateTag.COMPLETE:
+        #     # Clear the flow state on completion
+        #     await flow_storage_client.delete(auth_handler_id)
 
         return flow_response
 

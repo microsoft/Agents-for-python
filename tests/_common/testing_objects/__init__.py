@@ -6,6 +6,9 @@ from .mocks import (
     mock_class_OAuthFlow,
     mock_UserTokenClient,
     mock_class_UserTokenClient,
+    mock_class_UserAuthorization,
+    mock_class_AgenticAuthorization,
+    mock_class_Authorization
 )
 
 from .testing_authorization import TestingAuthorization
@@ -26,4 +29,7 @@ __all__ = [
     "TestingTokenProvider",
     "TestingUserTokenClient",
     "TestingAdapter",
+    "mock_class_UserAuthorization",
+    "mock_class_AgenticAuthorization",
+    "mock_class_Authorization",
 ]

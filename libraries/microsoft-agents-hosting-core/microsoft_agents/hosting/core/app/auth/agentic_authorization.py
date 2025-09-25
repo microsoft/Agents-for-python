@@ -66,7 +66,7 @@ class AgenticAuthorization(AuthorizationVariant):
     async def sign_in(self, context: TurnContext, scopes: Optional[list[str]] = None) -> SignInResponse:
         scopes = scopes or []
         token = await self.get_agentic_user_token(context, scopes)
-        return SignInResponse(token=token, tag=FlowStateTag.COMPLETED) if token else SignInResponse()
+        return SignInResponse(token_response=TokenResponse(token=token), tag=FlowStateTag.COMPLETED) if token else SignInResponse()
 
     async def sign_out(self, context: TurnContext) -> None:
         pass

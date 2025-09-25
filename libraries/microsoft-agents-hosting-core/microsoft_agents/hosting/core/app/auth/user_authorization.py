@@ -80,7 +80,7 @@ class UserAuthorization(UserAuthorizationBase):
         )
 
         sign_in_response = SignInResponse(
-            token=flow_response.token_response.token if flow_response.token_response else None,
+            token_response=flow_response.token_response,
             tag=flow_response.flow_state.tag
         )
 

@@ -23,24 +23,18 @@ from typing import (
     cast,
 )
 
-from microsoft_agents.hosting.core.authorization import Connections
-
-from microsoft_agents.hosting.core import Agent, TurnContext
 from microsoft_agents.activity import (
     Activity,
     ActivityTypes,
-    ActionTypes,
     ConversationUpdateTypes,
     MessageReactionTypes,
     MessageUpdateTypes,
     InvokeResponse,
-    TokenResponse,
-    OAuthCard,
-    Attachment,
-    CardAction,
 )
 
-from .. import CardFactory, MessageFactory
+from ..turn_context import TurnContext
+from ..agent import Agent
+from ..authorization import Connections
 from .app_error import ApplicationError
 from .app_options import ApplicationOptions
 
@@ -48,16 +42,7 @@ from .app_options import ApplicationOptions
 from .route import Route, RouteHandler
 from .state import TurnState
 from ..channel_service_adapter import ChannelServiceAdapter
-from ..oauth import (
-    FlowResponse,
-    FlowState,
-    FlowStateTag,
-)
-from .auth import (
-    Authorization,
-    UserAuthorization,
-    AgenticAuthorization,
-)
+from .auth import Authorization
 from .typing_indicator import TypingIndicator
 
 logger = logging.getLogger(__name__)
@@ -623,7 +608,14 @@ class AgentApplication(Agent, Generic[StateT]):
             logger.debug("Initializing turn state")
             turn_state = await self._initialize_state(context)
 
-            if await self._auth.on_turn_auth_intercept(context, turn_state):
+            auth_intercepts, continuation_activity = await self._auth.on_turn_auth_intercept(context, turn_state)
+            if auth_intercepts:
+                if continuation_activity:
+                    new_context = copy(context)
+                    new_context.activity = continuation_activity
+                    logger.info("Resending continuation activity %s", continuation_activity.text)
+                    await self.on_turn(new_context)
+                    await turn_state.save(context)
                 return
 
             logger.debug("Running before turn middleware")
