@@ -7,9 +7,11 @@ from microsoft_agents.activity import (
 )
 
 from ...turn_context import TurnContext
+from ...oauth import FlowStateTag
 from ...storage import Storage
 from ...authorization import Connections
 from .auth_handler import AuthHandler
+from .sign_in_response import SignInResponse
 
 logger = logging.getLogger(__name__)
 
@@ -59,7 +61,7 @@ class AuthorizationVariant(ABC):
         self,
         context: TurnContext,
         auth_handler_id: Optional[str] = None
-    ) -> TokenResponse:
+    ) -> SignInResponse:
         raise NotImplementedError()
 
     async def sign_out(

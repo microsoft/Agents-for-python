@@ -1,27 +1,22 @@
 import logging
 from typing import TypeVar, Optional, Callable, Awaitable, Generic, cast
 import jwt
+from copy import copy
 
-from microsoft_agents.activity import (
-    ActivityTypes,
-    TokenResponse
-)
+from microsoft_agents.activity import TokenResponse
 from microsoft_agents.hosting.core import (
     TurnContext,
     TurnState,
     Connections
 )
-
-from ...oauth import (
-    FlowState,
-    FlowResponse,
-)
 from ...storage import Storage
+from ...oauth import FlowStateTag
 from .auth_handler import AuthHandler
 from .user_authorization import UserAuthorization
 from .agentic_authorization import AgenticAuthorization
 from .authorization_variant import AuthorizationVariant
 from .sign_in_state import SignInState
+from .sign_in_response import SignInResponse
 
 AUTHORIZATION_TYPE_MAP: dict[str, type[AuthorizationVariant]] = {
     "userauthorization": UserAuthorization,
@@ -130,21 +125,38 @@ class Authorization(Generic[StateT]):
             raise ValueError(f"Auth handler {handler_id} not recognized or not configured.")
         return self._auth_handlers[handler_id]
 
-    async def start_or_continue_sign_in(self, context: TurnContext, state: StateT, auth_handler_id: str) -> bool:
+    async def _start_or_continue_sign_in(self, context: TurnContext, state: StateT, auth_handler_id: str) -> SignInResponse:
 
         sign_in_state = await self._load_sign_in_state(context)
-        auth_handler_id = sign_in_state.active_handler() if sign_in_state else ""
+        if not sign_in_state:
+            sign_in_state = SignInState({auth_handler_id: ""})
 
+        if sign_in_state.tokens.get(auth_handler_id):
+            return SignInResponse(tag=FlowStateTag.COMPLETE, token=sign_in_state.tokens[auth_handler_id])
+
+        sign_in_response = SignInResponse(tag=FlowStateTag.NOT_STARTED)
         if auth_handler_id:
-            token = await self._resolve_auth_variant(auth_handler_id).sign_in(context, auth_handler_id)
-            if token:
-                if not sign_in_state:
-                    sign_in_state = SignInState()
+            sign_in_response = await self._resolve_auth_variant(auth_handler_id).sign_in(context, auth_handler_id)
+
+            if sign_in_response.tag == FlowStateTag.COMPLETE:
+                if self._sign_in_success_handler:
+                    await self._sign_in_success_handler(context, state, auth_handler_id)
+                token = sign_in_response.token
                 sign_in_state.tokens[auth_handler_id] = token
                 await self._save_sign_in_state(context, sign_in_state)
-            else:
-                return False
-        return True
+            
+            elif sign_in_response.tag == FlowStateTag.FAILURE:
+                if self._sign_in_failure_handler:
+                    await self._sign_in_failure_handler(context, state, auth_handler_id)
+            
+            elif sign_in_response.tag in [FlowStateTag.BEGIN, FlowStateTag.CONTINUE]:
+                sign_in_state.continuation_activity = context.activity
+
+        return sign_in_response
+    
+    async def start_or_continue_sign_in(self, context: TurnContext, state: StateT, auth_handler_id: str) -> bool:
+        sign_in_response = await self._start_or_continue_sign_in(context, state, auth_handler_id)
+        return sign_in_response.tag in [FlowStateTag.NOT_STARTED, FlowStateTag.COMPLETE]
 
     async def on_turn_auth_intercept(self, context: TurnContext, state: StateT, continue_turn_callback: Callable[[TurnContext], Awaitable[None]]) -> bool:
         """Intercepts the turn to check for active authentication flows.
@@ -157,33 +169,22 @@ class Authorization(Generic[StateT]):
         # get active thing...
 
         sign_in_state = await self._load_sign_in_state(context)
-        auth_handler_id = sign_in_state.active_handler() if sign_in_state else ""
-
-        if auth_handler_id:
-            await self.start_or_continue_sign_in(context, state, auth_handler_id)
-            
-            
         
-                logger.debug("Sign-in flow is active for context: %s", context.activity.id)
+        if sign_in_state:
+            auth_handler_id = sign_in_state.active_handler()
+            if auth_handler_id:
+                assert sign_in_state.continuation_activity is not None
+                continuation_activity = sign_in_state.continuation_activity.model_copy()
+                sign_in_response = await self._start_or_continue_sign_in(context, state, auth_handler_id)
+                
+                if sign_in_response.tag == FlowStateTag.COMPLETE:
 
-                flow_response: FlowResponse = await self._auth.begin_or_continue_flow(
-                    context, turn_state, prev_flow_state.auth_handler_id
-                )
-
-                await self._handle_flow_response(context, flow_response)
-
-                new_flow_state: FlowState = flow_response.flow_state
-                token_response: TokenResponse = flow_response.token_response
-                saved_activity: Activity = new_flow_state.continuation_activity.model_copy()
-
-                if token_response:
                     new_context = copy(context)
-                    new_context.activity = saved_activity
-                    logger.info("Resending continuation activity %s", saved_activity.text)
-                    await self.on_turn(new_context)
-                    await turn_state.save(context)
-                return True  # early return from _on_turn
-            return False  # continue _on_turn
+                    new_context.activity = continuation_activity
+                    logger.info("Resending continuation activity %s", continuation_activity.text)
+                    await continue_turn_callback(new_context)
+                    await state.save(context)
+                return True  # continue _on_turn
         return False
 
     async def get_token(

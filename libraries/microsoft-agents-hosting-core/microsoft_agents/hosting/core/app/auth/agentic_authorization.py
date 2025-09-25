@@ -6,10 +6,12 @@ from microsoft_agents.activity import (
     Activity,
     TokenResponse
 )
+from microsoft_agents.hosting.core.app.auth.sign_in_response import SignInResponse
 
 from ...turn_context import TurnContext
 
 from .authorization_variant import AuthorizationVariant
+from .sign_in_response import SignInResponse
 
 logger = logging.getLogger(__name__)
 
@@ -61,10 +63,10 @@ class AgenticAuthorization(AuthorizationVariant):
             agentic_instance_id, upn, scopes
         )
     
-    async def sign_in(self, context: TurnContext, scopes: Optional[list[str]] = None) -> Optional[str]:
+    async def sign_in(self, context: TurnContext, scopes: Optional[list[str]] = None) -> SignInResponse:
         scopes = scopes or []
         token = await self.get_agentic_user_token(context, scopes)
-        return token
+        return SignInResponse(token=token, tag=FlowStateTag.COMPLETED) if token else SignInResponse()
 
     async def sign_out(self, context: TurnContext) -> None:
         pass

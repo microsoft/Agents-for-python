@@ -104,10 +104,16 @@ class UserAuthorizationBase(AuthorizationVariant, ABC):
         logger.debug("Beginning or continuing OAuth flow")
 
         flow, flow_storage_client = await self._load_flow(context, auth_handler_id)
+        prev_tag = flow.flow_state.tag
         flow_response: FlowResponse = await flow.begin_or_continue_flow(context.activity)
 
         logger.info("Saving OAuth flow state to storage")
         await flow_storage_client.write(flow_response.flow_state)
+        
+        if prev_tag != flow_response.flow_state.tag and flow_response.flow_state.tag == FlowStateTag.COMPLETED:
+            # Clear the flow state on completion
+            flow_response.continuation_activity = 
+            await flow_storage_client.delete(auth_handler_id)
 
         return flow_response
 

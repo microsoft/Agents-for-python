@@ -14,6 +14,7 @@ from ...oauth import FlowResponse, FlowState, FlowStateTag
 from ...message_factory import MessageFactory
 from ...card_factory import CardFactory
 from .user_authorization_base import UserAuthorizationBase
+from .sign_in_response import SignInResponse
 
 logger = logging.getLogger(__name__)
 
@@ -62,7 +63,7 @@ class UserAuthorization(UserAuthorizationBase):
                 logger.warning("Sign-in flow failed for unknown reasons.")
                 await context.send_activity("Sign-in failed. Please try again.")
 
-    async def sign_in(self, context: TurnContext, auth_handler_id: str) -> Optional[str]:
+    async def sign_in(self, context: TurnContext, auth_handler_id: str) -> SignInResponse:
         logger.debug(
             "Beginning or continuing flow for auth handler %s",
             auth_handler_id,
@@ -77,4 +78,10 @@ class UserAuthorization(UserAuthorizationBase):
             "Flow response flow_state.tag: %s",
             flow_response.flow_state.tag,
         )
-        return flow_response.token_response.token if flow_response.token_response else None
+
+        sign_in_response = SignInResponse(
+            token=flow_response.token_response.token if flow_response.token_response else None,
+            tag=flow_response.flow_state.tag
+        )
+
+        return sign_in_response
