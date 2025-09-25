@@ -15,6 +15,10 @@ class TranscriptMemoryStore(TranscriptLogger):
     This class is thread-safe and stores all activities in a list. It supports logging activities,
     retrieving activities for a specific channel and conversation, and filtering by timestamp.
     Activities with a None timestamp are treated as the earliest possible datetime.
+
+    Note: This class is intended for testing and prototyping purposes only. It does not persist 
+    data and is not suitable for production use. This store will also grow without bound over 
+    time, making it especially unsuited for production use.
     """
     def __init__(self):
         """
