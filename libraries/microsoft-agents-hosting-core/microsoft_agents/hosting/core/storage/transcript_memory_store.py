@@ -84,23 +84,36 @@ class TranscriptMemoryStore(TranscriptLogger):
             return filtered_sorted_activities, None
 
     async def delete_transcript(self, channel_id: str, conversation_id: str) -> None:
+        """
+        Deletes all activities for a given channel and conversation from the in-memory transcript.
 
+        :param channel_id: The channel ID whose transcript should be deleted.
+        :param conversation_id: The conversation ID whose transcript should be deleted.
+        :raises ValueError: If channel_id or conversation_id is None.
+        """
         if channel_id is None:
             raise ValueError("channel_id cannot be None")
-
         if conversation_id is None:
             raise ValueError("conversation_id cannot be None")
-        
         with self.lock:
-            self._transcript = [a for a in self._transcript if not (a.channel_id == channel_id and a.conversation and a.conversation.id == conversation_id)]
+            self._transcript = [
+                a for a in self._transcript
+                if not (a.channel_id == channel_id and a.conversation and a.conversation.id == conversation_id)
+            ]
         
     async def list_transcripts(self, channel_id: str, continuation_token: str = None) -> tuple[list[TranscriptInfo], str]:
+        """
+        Lists all transcripts (unique conversation IDs) for a given channel.
+
+        :param channel_id: The channel ID to list transcripts for.
+        :param continuation_token: (Unused) Token for pagination.
+        :return: A tuple containing a list of TranscriptInfo objects and a continuation token (always None).
+        :raises ValueError: If channel_id is None.
+        """
         if channel_id is None:
             raise ValueError("channel_id cannot be None")
-
         with self.lock:
-            relevant_activities = [a for a in self._transcript if a.channel_id == channel_id]            
-            conversations = set(a.conversation.id for a in relevant_activities if a.conversation and a.conversation.id)            
+            relevant_activities = [a for a in self._transcript if a.channel_id == channel_id]
+            conversations = set(a.conversation.id for a in relevant_activities if a.conversation and a.conversation.id)
             transcript_infos = [TranscriptInfo(channel_id=channel_id, conversation_id=conversation_id) for conversation_id in conversations]
-
             return transcript_infos, None
