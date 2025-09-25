@@ -13,9 +13,7 @@ from .authorization_variant import AuthorizationVariant
 
 logger = logging.getLogger(__name__)
 
-StateT = TypeVar("StateT", bound=TurnState)
-
-class AgenticAuthorization(AuthorizationVariant[StateT]):
+class AgenticAuthorization(AuthorizationVariant):
 
     def is_agentic_request(self, context_or_activity: Union[TurnContext, Activity]) -> bool:
         if isinstance(context_or_activity, TurnContext):
@@ -25,7 +23,7 @@ class AgenticAuthorization(AuthorizationVariant[StateT]):
 
         return activity.is_agentic()
     
-    async def get_agent_instance_id(self, context: TurnContext) -> Optional[str]:
+    def get_agent_instance_id(self, context: TurnContext) -> Optional[str]:
         if not self.is_agentic_request(context):
             return None
         
@@ -42,34 +40,31 @@ class AgenticAuthorization(AuthorizationVariant[StateT]):
         if not self.is_agentic_request(context):
             return None
         
+        assert context.identity
         connection = self._connection_manager.get_token_provider(context.identity, "agentic")
-        return await connection.get_agentic_instance_token(self.get_agent_instance_id(context))
+        agent_instance_id = self.get_agent_instance_id(context)
+        assert agent_instance_id
+        instance_token, _ = await connection.get_agentic_instance_token(agent_instance_id)
+        return instance_token
 
     async def get_agentic_user_token(self, context: TurnContext, scopes: list[str]) -> Optional[str]:
         
         if not self.is_agentic_request(context) or not self.get_agentic_user(context):
             return None
         
+        assert context.identity
         connection = self._connection_manager.get_token_provider(context.identity, "agentic")
+        upn = self.get_agentic_user(context)
+        agentic_instance_id = self.get_agent_instance_id(context)
+        assert upn and agentic_instance_id
         return await connection.get_agentic_user_token(
-            await self.get_agentic_instance_token(context), self.get_agentic_user(context), scopes
+            agentic_instance_id, upn, scopes
         )
     
-    async def sign_in_user(self, context: TurnContext, exchange_connection: str, scopes: list[str]) -> TokenResponse:
-        return await self.get_refreshed_user_token(context, exchange_connection, scopes)
-    
-    async def get_refreshed_user_token(self, context: TurnContext, exchange_connection: str, scopes: list[str]) -> TokenResponse:
-        # not worrying about this for now...
-        # if not self._auth_settings.alternate_blueprint_connection_name:
-        #     connection = self._connection_manager.get_connection(self._auth_settings.alternate_blueprint_connection_name)
-        # else:
-        connection = self._connection_manager.get_token_provider(context.identity, "agentic")
+    async def sign_in(self, context: TurnContext, scopes: Optional[list[str]] = None) -> Optional[str]:
+        scopes = scopes or []
+        token = await self.get_agentic_user_token(context, scopes)
+        return token
 
-        token = await connection.get_agentic_user_token(
-            await self.get_agentic_instance_token(context), self.get_agentic_user(context), scopes
-        )
-
-        return TokenResponse(token=token)
-
-    async def sign_out_user(self, context: TurnContext) -> None:
+    async def sign_out(self, context: TurnContext) -> None:
         pass

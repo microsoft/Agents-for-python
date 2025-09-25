@@ -212,18 +212,6 @@ class AgentApplication(Agent, Generic[StateT]):
             )
 
         return self._auth
-    
-    @property
-    def user_auth(self) -> UserAuthorization:
-        """The application's user authorization client."""
-        assert self._auth
-        return cast(UserAuthorization, self._auth.resolve_auth_client(UserAuthorization.__name__))
-    
-    @property
-    def agentic_auth(self) -> AgenticAuthorization:
-        """The application's agentic authorization client."""
-        assert self._auth
-        return cast(AgenticAuthorization, self._auth.resolve_auth_client(AgenticAuthorization.__name__))
 
     @property
     def options(self) -> ApplicationOptions:
@@ -755,7 +743,7 @@ class AgentApplication(Agent, Generic[StateT]):
                 else:
                     sign_in_complete = True
                     for auth_handler_id in route.auth_handlers:
-                        if not await self._auth.sign_in(context, state, auth_handler_id):
+                        if not await self._auth.start_or_continue_sign_in(context, state, auth_handler_id):
                             sign_in_complete = False
                             break
 

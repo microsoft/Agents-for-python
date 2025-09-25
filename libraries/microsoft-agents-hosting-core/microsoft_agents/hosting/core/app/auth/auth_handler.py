@@ -6,7 +6,6 @@ from typing import Dict
 
 logger = logging.getLogger(__name__)
 
-
 class AuthHandler:
     """
     Interface defining an authorization handler for OAuth flows.
@@ -14,12 +13,12 @@ class AuthHandler:
 
     def __init__(
         self,
-        name: str = None,
-        title: str = None,
-        text: str = None,
-        abs_oauth_connection_name: str = None,
-        obo_connection_name: str = None,
-        auth_type: str = None,
+        name: str = "",
+        title: str = "",
+        text: str = "",
+        abs_oauth_connection_name: str = "",
+        obo_connection_name: str = "",
+        auth_type: str = "",
         **kwargs,
     ):
         """
@@ -31,16 +30,16 @@ class AuthHandler:
             title: Title for the OAuth card.
             text: Text for the OAuth button.
         """
-        self.name = name or kwargs.get("NAME")
-        self.title = title or kwargs.get("TITLE")
-        self.text = text or kwargs.get("TEXT")
+        self.name = name or kwargs.get("NAME", "")
+        self.title = title or kwargs.get("TITLE", "")
+        self.text = text or kwargs.get("TEXT", "")
         self.abs_oauth_connection_name = abs_oauth_connection_name or kwargs.get(
-            "AZUREBOTOAUTHCONNECTIONNAME"
+            "AZUREBOTOAUTHCONNECTIONNAME", ""
         )
         self.obo_connection_name = obo_connection_name or kwargs.get(
-            "OBOCONNECTIONNAME"
+            "OBOCONNECTIONNAME", ""
         )
-        self.auth_type = auth_type or kwargs.get("TYPE")
+        self.auth_type = auth_type or kwargs.get("TYPE", "")
         logger.debug(
             f"AuthHandler initialized: name={self.name}, title={self.title}, text={self.text} abs_connection_name={self.abs_oauth_connection_name} obo_connection_name={self.obo_connection_name}"
         )

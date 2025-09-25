@@ -1,8 +1,9 @@
 from .authorization import Authorization
 from .auth_handler import AuthHandler, AuthorizationHandlers
 from .agentic_authorization import AgenticAuthorization
-from .user_authorization_base import UserAuthorization
-from .authorization_variant import AuthorizationClient
+from .user_authorization import UserAuthorization
+from .authorization_variant import AuthorizationVariant
+from .sign_in_state import SignInState
 
 __all__ = [
     "Authorization",
@@ -10,5 +11,6 @@ __all__ = [
     "AuthorizationHandlers",
     "AgenticAuthorization",
     "UserAuthorization",
-    "AuthorizationClient",
+    "AuthorizationVariant",
+    "SignInState"
 ]

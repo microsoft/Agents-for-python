@@ -1,37 +1,23 @@
 from __future__ import annotations
 import logging
-from typing import Dict, Optional, Callable, Awaitable, AsyncIterator, TypeVar
-from collections.abc import Iterable
-from contextlib import asynccontextmanager
+from typing import Optional
 
-from microsoft_agents.hosting.core.authorization import (
-    Connections,
-    AccessTokenProviderBase,
-)
-from microsoft_agents.hosting.core.storage import Storage, MemoryStorage
 from microsoft_agents.activity import (
     ActionTypes,
-    TokenResponse,
     CardAction,
     OAuthCard,
     Attachment,
-    CardFactory,
 )
-from microsoft_agents.hosting.core.connector.client import UserTokenClient
 
 from ...turn_context import TurnContext
-from ...oauth import OAuthFlow, FlowResponse, FlowState, FlowStateTag, FlowStorageClient
+from ...oauth import FlowResponse, FlowState, FlowStateTag
 from ...message_factory import MessageFactory
-from ..state.turn_state import TurnState
-from .authorization_variant import AuthorizationClient
-from .auth_handler import AuthHandler
+from ...card_factory import CardFactory
 from .user_authorization_base import UserAuthorizationBase
 
 logger = logging.getLogger(__name__)
 
-StateT = TypeVar("StateT", bound=TurnState)
-
-class UserAuthorization(UserAuthorizationBase[StateT]):
+class UserAuthorization(UserAuthorizationBase):
 
     async def _handle_flow_response(
         self, context: TurnContext, flow_response: FlowResponse
@@ -76,14 +62,14 @@ class UserAuthorization(UserAuthorizationBase[StateT]):
                 logger.warning("Sign-in flow failed for unknown reasons.")
                 await context.send_activity("Sign-in failed. Please try again.")
 
-    async def sign_in(self, context: TurnContext, state: StateT, auth_handler_id: Optional[str] = None) -> bool:
+    async def sign_in(self, context: TurnContext, auth_handler_id: str) -> Optional[str]:
         logger.debug(
             "Beginning or continuing flow for auth handler %s",
             auth_handler_id,
         )
-        flow_response: FlowResponse = (
+        flow_response = (
             await self.begin_or_continue_flow(
-                context, state, auth_handler_id
+                context, auth_handler_id
             )
         )
         await self._handle_flow_response(context, flow_response)
@@ -91,4 +77,4 @@ class UserAuthorization(UserAuthorizationBase[StateT]):
             "Flow response flow_state.tag: %s",
             flow_response.flow_state.tag,
         )
-        return flow_response.flow_state.tag == FlowStateTag.COMPLETE
+        return flow_response.token_response.token if flow_response.token_response else None

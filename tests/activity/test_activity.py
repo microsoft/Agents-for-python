@@ -368,3 +368,5 @@ class TestActivityConversationOps:
             Mention(text="Hello"),
             Entity(type="mention", text="Another mention"),
         ]
+
+    # robrandao: TODO -> is_agentic
