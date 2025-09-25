@@ -7,8 +7,18 @@ from __future__ import annotations
 
 from typing import Generic, Optional
 
+from ...turn_context import TurnContext
 from ..type_defs import RouteHandler, RouteSelector, StateT
 from .route_rank import RouteRank
+
+
+def agentic_selector(selector: RouteSelector) -> RouteSelector:
+    def wrapped_selector(context: TurnContext) -> bool:
+        # TODO
+        return selector(context)
+
+    return wrapped_selector
+
 
 class Route(Generic[StateT]):
     selector: RouteSelector
@@ -32,5 +42,6 @@ class Route(Generic[StateT]):
         self.auth_handlers = auth_handlers or []
 
     def __lt__(self, other: Route) -> bool:
-        return self.is_invoke < other.is_invoke or \
-            (self.is_invoke == other.is_invoke and self.rank < other.rank)
+        return self.is_invoke < other.is_invoke or (
+            self.is_invoke == other.is_invoke and self.rank < other.rank
+        )

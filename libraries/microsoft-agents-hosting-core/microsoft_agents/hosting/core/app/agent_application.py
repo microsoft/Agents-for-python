@@ -62,6 +62,8 @@ logger = logging.getLogger(__name__)
 IN_SIGN_IN_KEY = "__InSignInFlow__"
 
 StateT = TypeVar("StateT", bound=TurnState)
+
+
 class AgentApplication(Agent, Generic[StateT]):
     """
     AgentApplication class for routing and processing incoming requests.
@@ -215,15 +217,16 @@ class AgentApplication(Agent, Generic[StateT]):
         The application's configured options.
         """
         return self._options
-    
+
     def add_route(
         self,
         selector: RouteSelector,
         handler: RouteHandler[StateT],
         is_invoke: bool = False,
         rank: RouteRank = RouteRank.DEFAULT,
-        auth_handlers: Optional[list[str]] = None
+        auth_handlers: Optional[list[str]] = None,
     ) -> None:
+        """Adds a new route to the application."""
         self._route_list.add_route(selector, handler, is_invoke, rank, auth_handlers)
 
     def activity(
@@ -255,9 +258,7 @@ class AgentApplication(Agent, Generic[StateT]):
             logger.debug(
                 f"Registering activity handler for route handler {func.__name__} with type: {activity_type} with auth handlers: {auth_handlers}"
             )
-            self.add_route(
-                Route[StateT](__selector, func, auth_handlers=auth_handlers)
-            )
+            self.add_route(__selector, func, auth_handlers=auth_handlers)
             return func
 
         return __call
@@ -298,9 +299,7 @@ class AgentApplication(Agent, Generic[StateT]):
             logger.debug(
                 f"Registering message handler for route handler {func.__name__} with select: {select} with auth handlers: {auth_handlers}"
             )
-            self.add_route(
-                Route[StateT](__selector, func, auth_handlers=auth_handlers)
-            )
+            self.add_route(Route[StateT](__selector, func, auth_handlers=auth_handlers))
             return func
 
         return __call
@@ -352,9 +351,7 @@ class AgentApplication(Agent, Generic[StateT]):
             logger.debug(
                 f"Registering conversation update handler for route handler {func.__name__} with type: {type} with auth handlers: {auth_handlers}"
             )
-            self.add_route(
-                Route[StateT](__selector, func, auth_handlers=auth_handlers)
-            )
+            self.add_route(Route[StateT](__selector, func, auth_handlers=auth_handlers))
             return func
 
         return __call
@@ -398,9 +395,7 @@ class AgentApplication(Agent, Generic[StateT]):
             logger.debug(
                 f"Registering message reaction handler for route handler {func.__name__} with type: {type} with auth handlers: {auth_handlers}"
             )
-            self.add_route(
-                Route[StateT](__selector, func, auth_handlers=auth_handlers)
-            )
+            self.add_route(Route[StateT](__selector, func, auth_handlers=auth_handlers))
             return func
 
         return __call
@@ -457,9 +452,7 @@ class AgentApplication(Agent, Generic[StateT]):
             logger.debug(
                 f"Registering message update handler for route handler {func.__name__} with type: {type} with auth handlers: {auth_handlers}"
             )
-            self.add_route(
-                Route[StateT](__selector, func, auth_handlers=auth_handlers)
-            )
+            self.add_route(Route[StateT](__selector, func, auth_handlers=auth_handlers))
             return func
 
         return __call
@@ -505,9 +498,7 @@ class AgentApplication(Agent, Generic[StateT]):
                 f"Registering handoff handler for route handler {func.__name__} with auth handlers: {auth_handlers}"
             )
 
-            self.add_route(
-                Route[StateT](__selector, __handler, True, auth_handlers)
-            )
+            self.add_route(Route[StateT](__selector, __handler, True, auth_handlers))
             return func
 
         return __call
