@@ -62,7 +62,8 @@ class MsalConnectionManager(Connections):
         """
         if not self._connections_map:
             return self.get_default_connection()
-
+        
+        return self.get_default_connection()
         # TODO: Implement logic to select the appropriate connection based on the connection map
 
     def get_default_connection_configuration(self) -> AgentAuthConfiguration:

@@ -27,6 +27,9 @@ class TEST_DEFAULTS:
         self.agentic_auth_handler_title = "agentic_auth_handler_title"
         self.agentic_auth_handler_text = "agentic_auth_handler_text"
 
+        self.agentic_instance_id = "agentic_instance_id"
+        self.agentic_user_id = "agentic_user_id"
+
 
         self.missing_abs_oauth_connection_name = "missing_connection_name"
 
