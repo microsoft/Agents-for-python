@@ -1,11 +1,15 @@
+# Copyright (c) Microsoft Corporation. All rights reserved.
+# Licensed under the MIT License.
+
 from abc import ABC, abstractmethod
+from datetime import datetime
 from microsoft_agents.activity.transcript import Activity
 from microsoft_agents.hosting.core.storage.transcript_info import TranscriptInfo
 from microsoft_agents.hosting.core.storage.transcript_logger import TranscriptLogger
 
 class TranscriptStore(ABC, TranscriptLogger):
     @abstractmethod
-    async def LogActivity(self, activity: Activity) -> None:
+    async def log_activity(self, activity: Activity) -> None:
         """
         Asynchronously logs an activity.
 
@@ -14,12 +18,12 @@ class TranscriptStore(ABC, TranscriptLogger):
         pass
 
     @abstractmethod
-    async def GetTranscriptActivities(
+    async def get_transcript_activities(
         self,
         channel_id: str,
         conversation_id: str,
         continuation_token: str = None,
-        start_date: str = None,
+        start_date: datetime = datetime.min,
     ) -> tuple[list[Activity], str]:
         """
         Asynchronously retrieves activities from a transcript.
@@ -33,7 +37,7 @@ class TranscriptStore(ABC, TranscriptLogger):
         pass
 
     @abstractmethod
-    async def ListTranscripts( self, channel_id: str, continuation_token: str = None) -> tuple[list[TranscriptInfo, str]]:
+    async def list_transcripts( self, channel_id: str, continuation_token: str = None) -> tuple[list[TranscriptInfo, str]]:
         """
         Asynchronously lists transcripts for a given channel.
 
@@ -44,7 +48,7 @@ class TranscriptStore(ABC, TranscriptLogger):
         pass
 
     @abstractmethod
-    async def DeleteTranscript(self, channel_id: str, conversation_id: str) -> None:
+    async def delete_transcript(self, channel_id: str, conversation_id: str) -> None:
         """
         Asynchronously deletes a transcript.
 
@@ -52,4 +56,5 @@ class TranscriptStore(ABC, TranscriptLogger):
         :param conversation_id: The conversation ID.
         """
         pass    
+
 

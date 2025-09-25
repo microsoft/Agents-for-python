@@ -1,9 +1,12 @@
+# Copyright (c) Microsoft Corporation. All rights reserved.
+# Licensed under the MIT License.
+
 from abc import ABC, abstractmethod
-from microsoft_agents.activity.transcript import Activity
+from microsoft_agents.activity import Activity
 
 class TranscriptLogger(ABC):
     @abstractmethod
-    async def LogActivity(self, activity: Activity) -> None:
+    async def log_activity(self, activity: Activity) -> None:
         """
         Asynchronously logs an activity.
 
