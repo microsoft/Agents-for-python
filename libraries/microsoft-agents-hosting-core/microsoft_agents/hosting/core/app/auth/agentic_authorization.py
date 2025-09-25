@@ -1,12 +1,11 @@
 import logging
 
-from typing import Optional, Union, TypeVar
+from typing import Optional, Union
 
 from microsoft_agents.activity import (
     Activity,
     TokenResponse
 )
-from microsoft_agents.hosting.core.app.auth.sign_in_response import SignInResponse
 
 from ...turn_context import TurnContext
 
@@ -17,7 +16,8 @@ logger = logging.getLogger(__name__)
 
 class AgenticAuthorization(AuthorizationVariant):
 
-    def is_agentic_request(self, context_or_activity: Union[TurnContext, Activity]) -> bool:
+    @staticmethod
+    def is_agentic_request(context_or_activity: Union[TurnContext, Activity]) -> bool:
         if isinstance(context_or_activity, TurnContext):
             activity = context_or_activity.activity
         else:
@@ -25,14 +25,16 @@ class AgenticAuthorization(AuthorizationVariant):
 
         return activity.is_agentic()
     
-    def get_agent_instance_id(self, context: TurnContext) -> Optional[str]:
-        if not self.is_agentic_request(context):
+    @staticmethod
+    def get_agent_instance_id(context: TurnContext) -> Optional[str]:
+        if not AgenticAuthorization.is_agentic_request(context):
             return None
         
         return context.activity.recipient.agentic_app_id
     
-    def get_agentic_user(self, context: TurnContext) -> Optional[str]:
-        if not self.is_agentic_request(context):
+    @staticmethod
+    def get_agentic_user(context: TurnContext) -> Optional[str]:
+        if not AgenticAuthorization.is_agentic_request(context):
             return None
         
         return context.activity.recipient.id
