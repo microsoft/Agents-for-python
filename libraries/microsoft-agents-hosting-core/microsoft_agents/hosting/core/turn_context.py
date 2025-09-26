@@ -432,7 +432,3 @@ class TurnContext(TurnContextProtocol):
                     result.append(entity)
 
         return result
-
-    @staticmethod
-    def is_agentic_request(context: TurnContext) -> bool:
-        return context.activity.is_agentic()

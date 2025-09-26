@@ -68,7 +68,7 @@ class UserAuthorization(UserAuthorizationBase):
                 await context.send_activity("Sign-in failed. Please try again.")
 
     async def sign_in(
-        self, context: TurnContext, auth_handler_id: str
+        self, context: TurnContext, auth_handler_id: str, scopes: Optional[list[str]] = None
     ) -> SignInResponse:
         """Begins or continues an OAuth flow.
 

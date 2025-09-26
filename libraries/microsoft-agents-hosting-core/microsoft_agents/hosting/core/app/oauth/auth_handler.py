@@ -20,6 +20,7 @@ class AuthHandler:
         abs_oauth_connection_name: str = "",
         obo_connection_name: str = "",
         auth_type: str = "",
+        scopes: list[str] = None
         **kwargs,
     ):
         """
@@ -50,6 +51,8 @@ class AuthHandler:
             "OBOCONNECTIONNAME", ""
         )
         self.auth_type = auth_type or kwargs.get("TYPE", "")
+        self.auth_type = self.auth_type.lower()
+        self.scopes = list(scopes) or kwargs.get("SCOPES", [])
 
 
 # # Type alias for authorization handlers dictionary

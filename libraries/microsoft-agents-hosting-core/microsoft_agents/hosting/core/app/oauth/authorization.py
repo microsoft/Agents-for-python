@@ -22,10 +22,8 @@ AUTHORIZATION_TYPE_MAP: dict[str, type[AuthorizationVariant]] = {
 }
 
 logger = logging.getLogger(__name__)
-StateT = TypeVar("StateT", bound=TurnState)
 
-
-class Authorization(Generic[StateT]):
+class Authorization:
     def __init__(
         self,
         storage: Storage,
@@ -77,9 +75,9 @@ class Authorization(Generic[StateT]):
         ] = None
 
         self._authorization_variants = {}
-        self._init_auth_variants(self._auth_handlers)
+        self._init_auth_variants()
 
-    def _init_auth_variants(self, auth_handlers: dict[str, AuthHandler]):
+    def _init_auth_variants(self) -> None:
         """Initialize authorization variants based on the provided auth handlers.
 
         This method maps the auth types to their corresponding authorization variants, and
@@ -90,13 +88,11 @@ class Authorization(Generic[StateT]):
         """
         auth_types = set(handler.auth_type for handler in auth_handlers.values())
         for auth_type in auth_types:
-            auth_type = auth_type.lower()
-
             # get handlers that match this variant type
             associated_handlers = {
                 auth_handler.name: auth_handler
                 for auth_handler in self._auth_handlers.values()
-                if auth_handler.auth_type.lower() == auth_type
+                if auth_handler.auth_type == auth_type
             }
 
             self._authorization_variants[auth_type] = AUTHORIZATION_TYPE_MAP[auth_type](
@@ -105,7 +101,8 @@ class Authorization(Generic[StateT]):
                 auth_handlers=associated_handlers,
             )
 
-    def sign_in_state_key(self, context: TurnContext) -> str:
+    @staticmethod
+    def sign_in_state_key(context: TurnContext) -> str:
         """Generate a unique storage key for the sign-in state based on the context.
 
         This is the key used to store and retrieve the sign-in state from storage, and
@@ -160,8 +157,6 @@ class Authorization(Generic[StateT]):
         :rtype: AuthorizationVariant
         :raises ValueError: If the auth variant is not recognized or not configured.
         """
-
-        auth_variant = auth_variant.lower()
         if auth_variant not in self._authorization_variants:
             raise ValueError(
                 f"Auth variant {auth_variant} not recognized or not configured."
@@ -185,7 +180,7 @@ class Authorization(Generic[StateT]):
         return self._auth_handlers[handler_id]
 
     async def start_or_continue_sign_in(
-        self, context: TurnContext, state: StateT, auth_handler_id: str
+        self, context: TurnContext, state: TurnState, auth_handler_id: str
     ) -> SignInResponse:
         """Start or continue the sign-in process for the user with the given auth handler.
 
@@ -195,7 +190,7 @@ class Authorization(Generic[StateT]):
         :param context: The turn context for the current turn of conversation.
         :type context: TurnContext
         :param state: The turn state for the current turn of conversation.
-        :type state: StateT
+        :type state: TurnState
         :param auth_handler_id: The ID of the auth handler to use for sign-in. If None, the first handler will be used.
         :type auth_handler_id: str
         :return: A SignInResponse indicating the result of the sign-in attempt.
@@ -221,7 +216,7 @@ class Authorization(Generic[StateT]):
         variant = self._resolve_auth_variant(handler.auth_type)
 
         # attempt sign-in continuation (or beginning)
-        sign_in_response = await variant.sign_in(context, auth_handler_id)
+        sign_in_response = await variant.sign_in(context, auth_handler_id, handler.scopes)
 
         if sign_in_response.tag == FlowStateTag.COMPLETE:
             if self._sign_in_success_handler:
@@ -248,14 +243,14 @@ class Authorization(Generic[StateT]):
         await variant.sign_out(context, auth_handler_id)
 
     async def sign_out(
-        self, context: TurnContext, state: StateT, auth_handler_id=None
+        self, context: TurnContext, state: TurnState, auth_handler_id=None
     ) -> None:
         """Attempts to sign out the user from the specified auth handler or all handlers if none specified.
 
         :param context: The turn context for the current turn of conversation.
         :type context: TurnContext
         :param state: The turn state for the current turn of conversation.
-        :type state: StateT
+        :type state: TurnState
         :param auth_handler_id: The ID of the auth handler to sign out from. If None, sign out from all handlers.
         :type auth_handler_id: Optional[str]
         :return: None
@@ -277,7 +272,7 @@ class Authorization(Generic[StateT]):
                 await self._save_sign_in_state(context, sign_in_state)
 
     async def on_turn_auth_intercept(
-        self, context: TurnContext, state: StateT
+        self, context: TurnContext, state: TurnState
     ) -> tuple[bool, Optional[Activity]]:
         """Intercepts the turn to check for active authentication flows.
 
@@ -289,7 +284,7 @@ class Authorization(Generic[StateT]):
         :param context: The context object for the current turn.
         :type context: TurnContext
         :param state: The turn state for the current turn.
-        :type state: StateT
+        :type state: TurnState
         :return: A tuple indicating whether the turn should be skipped and the continuation activity if applicable.
         :rtype: tuple[bool, Optional[Activity]]
         """

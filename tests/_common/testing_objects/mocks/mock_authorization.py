@@ -3,7 +3,7 @@ from microsoft_agents.hosting.core import (
     UserAuthorization,
     AgenticAuthorization,
 )
-from microsoft_agents.hosting.core.app.auth import SignInResponse
+from microsoft_agents.hosting.core.app.oauth import SignInResponse
 
 
 def mock_class_UserAuthorization(mocker, sign_in_return=None):

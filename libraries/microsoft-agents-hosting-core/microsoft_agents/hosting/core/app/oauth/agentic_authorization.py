@@ -1,8 +1,8 @@
 import logging
 
-from typing import Optional, Union
+from typing import Optional
 
-from microsoft_agents.activity import Activity, TokenResponse
+from microsoft_agents.activity import TokenResponse
 
 from ...turn_context import TurnContext
 from ...oauth import FlowStateTag
@@ -25,7 +25,7 @@ class AgenticAuthorization(AuthorizationVariant):
         :rtype: Optional[str]
         """
 
-        if not self.is_agentic_request(context):
+        if not context.activity.is_agentic():
             return None
 
         assert context.identity
@@ -52,7 +52,7 @@ class AgenticAuthorization(AuthorizationVariant):
         :rtype: Optional[str]
         """
 
-        if not self.is_agentic_request(context) or not self.get_agentic_user(context):
+        if not context.activity.is_agentic() or not self.get_agentic_user(context):
             return None
 
         assert context.identity
@@ -96,27 +96,15 @@ class AgenticAuthorization(AuthorizationVariant):
         pass
 
     @staticmethod
-    def is_agentic_request(context_or_activity: Union[TurnContext, Activity]) -> bool:
-        """Determines if the request is from an agentic source."""
-        if isinstance(context_or_activity, TurnContext):
-            activity = context_or_activity.activity
-        else:
-            activity = context_or_activity
-
-        return activity.is_agentic()
-
-    @staticmethod
     def get_agent_instance_id(context: TurnContext) -> Optional[str]:
         """Gets the agent instance ID from the context if it's an agentic request."""
-        if not AgenticAuthorization.is_agentic_request(context):
+        if not context.activity.is_agentic() or not context.activity.recipient:
             return None
-
         return context.activity.recipient.agentic_app_id
 
     @staticmethod
     def get_agentic_user(context: TurnContext) -> Optional[str]:
         """Gets the agentic user (UPN) from the context if it's an agentic request."""
-        if not AgenticAuthorization.is_agentic_request(context):
+        if not context.activity.is_agentic() or not context.activity.recipient:
             return None
-
         return context.activity.recipient.id

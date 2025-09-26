@@ -57,7 +57,7 @@ class AuthorizationVariant(ABC):
         self._auth_handlers = auth_handlers or {}
 
     async def sign_in(
-        self, context: TurnContext, auth_handler_id: Optional[str] = None
+        self, context: TurnContext, auth_handler_id: str, scopes: Optional[list[str]] = None
     ) -> SignInResponse:
         """Initiate or continue the sign-in process for the user with the given auth handler.
 
