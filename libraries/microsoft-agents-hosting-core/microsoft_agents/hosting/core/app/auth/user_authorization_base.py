@@ -4,21 +4,13 @@
 from __future__ import annotations
 import logging
 from abc import ABC
-from re import U
-from typing import Dict, Optional, Callable, Awaitable, AsyncIterator, TypeVar
+from typing import Optional
 from collections.abc import Iterable
-from contextlib import asynccontextmanager
 
-from microsoft_agents.hosting.core.authorization import (
-    Connections,
-    AccessTokenProviderBase,
-)
-from microsoft_agents.hosting.core.storage import Storage, MemoryStorage
-from microsoft_agents.activity import TokenResponse
 from microsoft_agents.hosting.core.connector.client import UserTokenClient
 
 from ...turn_context import TurnContext
-from ...oauth import OAuthFlow, FlowResponse, FlowState, FlowStateTag, FlowStorageClient
+from ...oauth import OAuthFlow, FlowResponse, FlowState, FlowStorageClient
 from .authorization_variant import AuthorizationVariant
 from .auth_handler import AuthHandler
 
@@ -36,14 +28,16 @@ class UserAuthorizationBase(AuthorizationVariant, ABC):
     ) -> tuple[OAuthFlow, FlowStorageClient]:
         """Loads the OAuth flow for a specific auth handler.
 
-        Args:
-            context: The context object for the current turn.
-            auth_handler_id: The ID of the auth handler to use.
+        A new flow is created in Storage if none exists for the channel, user, and handler
+        combination.
 
-        Returns:
-            The OAuthFlow returned corresponds to the flow associated with the
-            chosen handler, and the channel and user info found in the context.
-            The FlowStorageClient corresponds to the same channel and user info.
+        :param context: The context object for the current turn.
+        :type context: TurnContext
+        :param auth_handler_id: The ID of the auth handler to use.
+        :type auth_handler_id: str
+        :return: A tuple containing the OAuthFlow and FlowStorageClient created from the
+            context and the specified auth handler.
+        :rtype: tuple[OAuthFlow, FlowStorageClient]
         """
         user_token_client: UserTokenClient = context.turn_state.get(
             context.adapter.USER_TOKEN_CLIENT_KEY
@@ -91,19 +85,20 @@ class UserAuthorizationBase(AuthorizationVariant, ABC):
     ) -> FlowResponse:
         """Begins or continues an OAuth flow.
 
-        Args:
-            context: The context object for the current turn.
-            auth_handler_id: Optional ID of the auth handler to use, defaults to first handler.
+        Delegates to the OAuthFlow to handle the activity and manage the flow state.
 
-        Returns:
-            The token response from the OAuth provider.
-
+        :param context: The context object for the current turn.
+        :type context: TurnContext
+        :param auth_handler_id: The ID of the auth handler to use.
+        :type auth_handler_id: str
+        :return: The FlowResponse from the OAuth flow.
+        :rtype: FlowResponse
         """
 
         logger.debug("Beginning or continuing OAuth flow")
 
         flow, flow_storage_client = await self._load_flow(context, auth_handler_id)
-        prev_tag = flow.flow_state.tag
+        # prev_tag = flow.flow_state.tag
         flow_response: FlowResponse = await flow.begin_or_continue_flow(
             context.activity
         )
@@ -111,6 +106,7 @@ class UserAuthorizationBase(AuthorizationVariant, ABC):
         logger.info("Saving OAuth flow state to storage")
         await flow_storage_client.write(flow_response.flow_state)
 
+        # optimization for the future. Would like to double check this logic.
         # if prev_tag != flow_response.flow_state.tag and flow_response.flow_state.tag == FlowStateTag.COMPLETE:
         #     # Clear the flow state on completion
         #     await flow_storage_client.delete(auth_handler_id)
@@ -124,11 +120,13 @@ class UserAuthorizationBase(AuthorizationVariant, ABC):
     ) -> None:
         """Signs out from the specified auth handlers.
 
-        Args:
-            context: The context object for the current turn.
-            auth_handler_ids: Iterable of auth handler IDs to sign out from.
+        Deletes the associated flows from storage.
 
-        Deletes the associated flow states from storage.
+        :param context: The context object for the current turn.
+        :type context: TurnContext
+        :param auth_handler_ids: Iterable of auth handler IDs to sign out from.
+        :type auth_handler_ids: Iterable[str]
+        :return: None
         """
         for auth_handler_id in auth_handler_ids:
             flow, flow_storage_client = await self._load_flow(context, auth_handler_id)
@@ -145,12 +143,9 @@ class UserAuthorizationBase(AuthorizationVariant, ABC):
         Signs out the current user.
         This method clears the user's token and resets the OAuth state.
 
-        Args:
-            context: The context object for the current turn.
-            auth_handler_id: Optional ID of the auth handler to use for sign out. If None,
-                signs out from all the handlers.
-
-        Deletes the associated flow state(s) from storage.
+        :param context: The context object for the current turn.
+        :param auth_handler_id: Optional ID of the auth handler to use for sign out. If None,
+            signs out from all the handlers.
         """
         if auth_handler_id:
             await self._sign_out(context, [auth_handler_id])

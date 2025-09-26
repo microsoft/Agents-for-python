@@ -2,10 +2,6 @@ from abc import ABC
 from typing import Optional
 import logging
 
-from microsoft_agents.activity import (
-    TokenResponse,
-)
-
 from ...turn_context import TurnContext
 from ...oauth import FlowStateTag
 from ...storage import Storage
@@ -17,6 +13,8 @@ logger = logging.getLogger(__name__)
 
 
 class AuthorizationVariant(ABC):
+    """Base class for different authorization strategies."""
+
     def __init__(
         self,
         storage: Storage,
@@ -25,16 +23,17 @@ class AuthorizationVariant(ABC):
         auto_signin: bool = None,
         use_cache: bool = False,
         **kwargs,
-    ):
+    ) -> None:
         """
         Creates a new instance of Authorization.
 
-        Args:
-            storage: The storage system to use for state management.
-            auth_handlers: Configuration for OAuth providers.
-
-        Raises:
-            ValueError: If storage is None or no auth handlers are provided.
+        :param storage: The storage system to use for state management.
+        :type storage: Storage
+        :param connection_manager: The connection manager for OAuth providers.
+        :type connection_manager: Connections
+        :param auth_handlers: Configuration for OAuth providers.
+        :type auth_handlers: dict[str, AuthHandler], optional
+        :raises ValueError: When storage is None or no auth handlers provided.
         """
         if not storage:
             raise ValueError("Storage is required for Authorization")
@@ -60,6 +59,15 @@ class AuthorizationVariant(ABC):
     async def sign_in(
         self, context: TurnContext, auth_handler_id: Optional[str] = None
     ) -> SignInResponse:
+        """Initiate or continue the sign-in process for the user with the given auth handler.
+
+        :param context: The turn context for the current turn of conversation.
+        :type context: TurnContext
+        :param auth_handler_id: The ID of the auth handler to use for sign-in. If None, the first handler will be used.
+        :type auth_handler_id: Optional[str]
+        :return: A SignInResponse indicating the result of the sign-in attempt.
+        :rtype: SignInResponse
+        """
         raise NotImplementedError()
 
     async def sign_out(
@@ -67,4 +75,11 @@ class AuthorizationVariant(ABC):
         context: TurnContext,
         auth_handler_id: Optional[str] = None,
     ) -> None:
+        """Attempts to sign out the user from the specified auth handler or all handlers if none specified.
+
+        :param context: The turn context for the current turn of conversation.
+        :type context: TurnContext
+        :param auth_handler_id: The ID of the auth handler to sign out from. If None, sign out from all handlers.
+        :type auth_handler_id: Optional[str]
+        """
         raise NotImplementedError()

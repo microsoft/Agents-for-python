@@ -443,9 +443,7 @@ class AgentApplication(Agent, Generic[StateT]):
 
         return __call
 
-    def handoff(
-        self, *, auth_handlers: Optional[List[str]] = None
-    ) -> Callable[
+    def handoff(self, *, auth_handlers: Optional[List[str]] = None) -> Callable[
         [Callable[[TurnContext, StateT, str], Awaitable[None]]],
         Callable[[TurnContext, StateT, str], Awaitable[None]],
     ]:

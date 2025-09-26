@@ -25,11 +25,20 @@ class AuthHandler:
         """
         Initializes a new instance of AuthHandler.
 
-        Args:
-            name: The name of the OAuth connection.
-            auto: Whether to automatically start the OAuth flow.
-            title: Title for the OAuth card.
-            text: Text for the OAuth button.
+        :param name: The name of the handler. This is how it is accessed programatically
+            in this library.
+        :type name: str
+        :param title: Title for the OAuth card.
+        :type title: str
+        :param text: Text for the OAuth button.
+        :type text: str
+        :param abs_oauth_connection_name: The name of the Azure Bot Service OAuth connection.
+        :type abs_oauth_connection_name: str
+        :param obo_connection_name: The name of the On-Behalf-Of connection.
+        :type obo_connection_name: str
+        :param auth_type: The authorization variant used. This is likely to change in the future
+            to accept a class that implements AuthorizationVariant.
+        :type auth_type: str
         """
         self.name = name or kwargs.get("NAME", "")
         self.title = title or kwargs.get("TITLE", "")

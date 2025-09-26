@@ -1,6 +1,5 @@
 from __future__ import annotations
 import logging
-from typing import Optional
 
 from microsoft_agents.activity import (
     ActionTypes,
@@ -20,6 +19,11 @@ logger = logging.getLogger(__name__)
 
 
 class UserAuthorization(UserAuthorizationBase):
+    """Class responsible for managing user authorization and OAuth flows.
+
+    Handles the sending and receiving of OAuth cards, and manages the complete user OAuth lifecycle.
+    """
+
     async def _handle_flow_response(
         self, context: TurnContext, flow_response: FlowResponse
     ) -> None:
@@ -66,6 +70,18 @@ class UserAuthorization(UserAuthorizationBase):
     async def sign_in(
         self, context: TurnContext, auth_handler_id: str
     ) -> SignInResponse:
+        """Begins or continues an OAuth flow.
+
+        Handles the flow response, sending the OAuth card to the context.
+
+        :param context: The context object for the current turn.
+        :type context: TurnContext
+        :param auth_handler_id: The ID of the auth handler to use.
+        :type auth_handler_id: str
+        :return: The SignInResponse containing the token response and flow state tag.
+        :rtype: SignInResponse
+        """
+
         logger.debug(
             "Beginning or continuing flow for auth handler %s",
             auth_handler_id,

@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import logging
+import jwt
 from typing import Optional
 from urllib.parse import urlparse, ParseResult as URI
 from msal import (
@@ -192,6 +193,13 @@ class MsalAuth(AccessTokenProviderBase):
     async def get_agentic_application_token(
         self, agent_app_instance_id: str
     ) -> Optional[str]:
+        """Gets the agentic application token for the given agent application instance ID.
+
+        :param agent_app_instance_id: The agent application instance ID.
+        :type agent_app_instance_id: str
+        :return: The agentic application token, or None if not found.
+        :rtype: Optional[str]
+        """
 
         if not agent_app_instance_id:
             raise ValueError("Agent application instance Id must be provided.")
@@ -214,6 +222,13 @@ class MsalAuth(AccessTokenProviderBase):
     async def get_agentic_instance_token(
         self, agent_app_instance_id: str
     ) -> tuple[str, str]:
+        """Gets the agentic instance token for the given agent application instance ID.
+
+        :param agent_app_instance_id: The agent application instance ID.
+        :type agent_app_instance_id: str
+        :return: A tuple containing the agentic instance token and the agent application token.
+        :rtype: tuple[str, str]
+        """
 
         if not agent_app_instance_id:
             raise ValueError("Agent application instance Id must be provided.")
@@ -245,13 +260,22 @@ class MsalAuth(AccessTokenProviderBase):
         agentic_blueprint_id = payload.get("xms_par_app_azp")
         logger.debug("Agentic blueprint id: %s", agentic_blueprint_id)
 
-        # "xms_par_app_azp": "84df77a3-1e3f-4372-a49f-c7e93c3db681",
-
         return agent_instance_token["access_token"], agent_token_result
 
     async def get_agentic_user_token(
         self, agent_app_instance_id: str, upn: str, scopes: list[str]
     ) -> Optional[str]:
+        """Gets the agentic user token for the given agent application instance ID and user principal name and the scopes.
+
+        :param agent_app_instance_id: The agent application instance ID.
+        :type agent_app_instance_id: str
+        :param upn: The user principal name.
+        :type upn: str
+        :param scopes: The scopes to request for the token.
+        :type scopes: list[str]
+        :return: The agentic user token, or None if not found.
+        :rtype: Optional[str]
+        """
 
         if not agent_app_instance_id or not upn:
             raise ValueError(

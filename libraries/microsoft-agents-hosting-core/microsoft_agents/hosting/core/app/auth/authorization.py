@@ -4,8 +4,6 @@ import jwt
 
 from microsoft_agents.activity import Activity, TokenResponse
 
-from tests.hosting_core.app import auth
-
 from ...turn_context import TurnContext
 from ...storage import Storage
 from ...authorization import Connections
@@ -40,12 +38,16 @@ class Authorization(Generic[StateT]):
         """
         Creates a new instance of Authorization.
 
-        Args:
-            storage: The storage system to use for state management.
-            auth_handlers: Configuration for OAuth providers.
+        Handlers defined in the configuration (passed in via kwargs) will be used
+        only if auth_handlers is empty or None.
 
-        Raises:
-            ValueError: If storage is None or no auth handlers are provided.
+        :param storage: The storage system to use for state management.
+        :type storage: Storage
+        :param connection_manager: The connection manager for OAuth providers.
+        :type connection_manager: Connections
+        :param auth_handlers: Configuration for OAuth providers.
+        :type auth_handlers: dict[str, AuthHandler], optional
+        :raises ValueError: When storage is None or no auth handlers provided.
         """
         if not storage:
             raise ValueError("Storage is required for Authorization")
@@ -78,10 +80,19 @@ class Authorization(Generic[StateT]):
         self._init_auth_variants(self._auth_handlers)
 
     def _init_auth_variants(self, auth_handlers: dict[str, AuthHandler]):
+        """Initialize authorization variants based on the provided auth handlers.
+
+        This method maps the auth types to their corresponding authorization variants, and
+        it initializes an instance of each variant that is referenced.
+
+        :param auth_handlers: A dictionary of auth handler configurations.
+        :type auth_handlers: dict[str, AuthHandler]
+        """
         auth_types = set(handler.auth_type for handler in auth_handlers.values())
         for auth_type in auth_types:
             auth_type = auth_type.lower()
 
+            # get handlers that match this variant type
             associated_handlers = {
                 auth_handler.name: auth_handler
                 for auth_handler in self._auth_handlers.values()
@@ -95,36 +106,60 @@ class Authorization(Generic[StateT]):
             )
 
     def sign_in_state_key(self, context: TurnContext) -> str:
+        """Generate a unique storage key for the sign-in state based on the context.
+
+        This is the key used to store and retrieve the sign-in state from storage, and
+        can be used to inspect or manipulate the state directly if needed.
+
+        :param context: The turn context for the current turn of conversation.
+        :type context: TurnContext
+        :return: A unique (across other values of channel_id and user_id) key for the sign-in state.
+        :rtype: str
+        """
         return f"auth:SignInState:{context.activity.channel_id}:{context.activity.from_property.id}"
 
     async def _load_sign_in_state(self, context: TurnContext) -> Optional[SignInState]:
+        """Load the sign-in state from storage for the given context."""
         key = self.sign_in_state_key(context)
         return (await self._storage.read([key], target_cls=SignInState)).get(key)
 
     async def _save_sign_in_state(
         self, context: TurnContext, state: SignInState
     ) -> None:
+        """Save the sign-in state to storage for the given context."""
         key = self.sign_in_state_key(context)
         await self._storage.write({key: state})
 
     async def _delete_sign_in_state(self, context: TurnContext) -> None:
+        """Delete the sign-in state from storage for the given context."""
         key = self.sign_in_state_key(context)
         await self._storage.delete([key])
 
     @property
     def user_auth(self) -> UserAuthorization:
+        """Get the user authorization variant. Raises if not configured."""
         return cast(
             UserAuthorization, self._resolve_auth_variant(UserAuthorization.__name__)
         )
 
     @property
     def agentic_auth(self) -> AgenticAuthorization:
+        """Get the agentic authorization variant. Raises if not configured."""
         return cast(
             AgenticAuthorization,
             self._resolve_auth_variant(AgenticAuthorization.__name__),
         )
 
     def _resolve_auth_variant(self, auth_variant: str) -> AuthorizationVariant:
+        """Resolve the authorization variant by its type name.
+
+        :param auth_variant: The type name of the authorization variant to resolve.
+            Should corresponde to the __name__ of the class, e.g. "UserAuthorization".
+        :type auth_variant: str
+        :return: The corresponding AuthorizationVariant instance.
+        :rtype: AuthorizationVariant
+        :raises ValueError: If the auth variant is not recognized or not configured.
+        """
 
         auth_variant = auth_variant.lower()
         if auth_variant not in self._authorization_variants:
@@ -135,6 +170,14 @@ class Authorization(Generic[StateT]):
         return self._authorization_variants[auth_variant]
 
     def resolve_handler(self, handler_id: str) -> AuthHandler:
+        """Resolve the auth handler by its ID.
+
+        :param handler_id: The ID of the auth handler to resolve.
+        :type handler_id: str
+        :return: The corresponding AuthHandler instance.
+        :rtype: AuthHandler
+        :raises ValueError: If the handler ID is not recognized or not configured.
+        """
         if handler_id not in self._auth_handlers:
             raise ValueError(
                 f"Auth handler {handler_id} not recognized or not configured."
@@ -144,12 +187,29 @@ class Authorization(Generic[StateT]):
     async def start_or_continue_sign_in(
         self, context: TurnContext, state: StateT, auth_handler_id: str
     ) -> SignInResponse:
+        """Start or continue the sign-in process for the user with the given auth handler.
 
+        SignInResponse output is based on the result of the variant used by the handler.
+        Storage is updated as needed with SignInState data for caching purposes.
+
+        :param context: The turn context for the current turn of conversation.
+        :type context: TurnContext
+        :param state: The turn state for the current turn of conversation.
+        :type state: StateT
+        :param auth_handler_id: The ID of the auth handler to use for sign-in. If None, the first handler will be used.
+        :type auth_handler_id: str
+        :return: A SignInResponse indicating the result of the sign-in attempt.
+        :rtype: SignInResponse
+        """
+
+        # check cached sign in state
         sign_in_state = await self._load_sign_in_state(context)
         if not sign_in_state:
+            # no existing sign-in state, create a new one
             sign_in_state = SignInState({auth_handler_id: ""})
 
         if sign_in_state.tokens.get(auth_handler_id):
+            # already signed in with this handler, got it from cached SignInState
             return SignInResponse(
                 tag=FlowStateTag.COMPLETE,
                 token_response=TokenResponse(
@@ -159,6 +219,8 @@ class Authorization(Generic[StateT]):
 
         handler = self.resolve_handler(auth_handler_id)
         variant = self._resolve_auth_variant(handler.auth_type)
+
+        # attempt sign-in continuation (or beginning)
         sign_in_response = await variant.sign_in(context, auth_handler_id)
 
         if sign_in_response.tag == FlowStateTag.COMPLETE:
@@ -173,27 +235,44 @@ class Authorization(Generic[StateT]):
                 await self._sign_in_failure_handler(context, state, auth_handler_id)
 
         elif sign_in_response.tag in [FlowStateTag.BEGIN, FlowStateTag.CONTINUE]:
+            # store continuation activity and wait for next turn
             sign_in_state.continuation_activity = context.activity
             await self._save_sign_in_state(context, sign_in_state)
 
         return sign_in_response
 
+    async def _sign_out(self, context: TurnContext, auth_handler_id) -> None:
+        """Helper to sign out from a specific handler."""
+        handler = self.resolve_handler(auth_handler_id)
+        variant = self._resolve_auth_variant(handler.auth_type)
+        await variant.sign_out(context, auth_handler_id)
+
     async def sign_out(
         self, context: TurnContext, state: StateT, auth_handler_id=None
     ) -> None:
+        """Attempts to sign out the user from the specified auth handler or all handlers if none specified.
+
+        :param context: The turn context for the current turn of conversation.
+        :type context: TurnContext
+        :param state: The turn state for the current turn of conversation.
+        :type state: StateT
+        :param auth_handler_id: The ID of the auth handler to sign out from. If None, sign out from all handlers.
+        :type auth_handler_id: Optional[str]
+        :return: None
+        """
         sign_in_state = await self._load_sign_in_state(context)
         if sign_in_state:
+
             if not auth_handler_id:
+                # sign out from all handlers
                 for handler_id in sign_in_state.tokens.keys():
                     if handler_id in sign_in_state.tokens:
-                        handler = self.resolve_handler(handler_id)
-                        variant = self._resolve_auth_variant(handler.auth_type)
-                        await variant.sign_out(context, handler_id)
+                        await self._sign_out(context, handler_id)
                 await self._delete_sign_in_state(context)
+
             elif auth_handler_id in sign_in_state.tokens:
-                handler = self.resolve_handler(auth_handler_id)
-                variant = self._resolve_auth_variant(handler.auth_type)
-                await variant.sign_out(context, auth_handler_id)
+                # sign out from specific handler
+                await self._sign_out(context, auth_handler_id)
                 del sign_in_state.tokens[auth_handler_id]
                 await self._save_sign_in_state(context, sign_in_state)
 
@@ -204,11 +283,16 @@ class Authorization(Generic[StateT]):
 
         Returns true if the rest of the turn should be skipped because auth did not finish.
         Returns false if the turn should continue processing as normal.
-        Calls continue_turn_callback if auth completes and a new turn should be started. <- TODO, seems a bit strange
+        If auth completes and a new turn should be started, returns the continuation activity
+        from the cached SignInState.
+
+        :param context: The context object for the current turn.
+        :type context: TurnContext
+        :param state: The turn state for the current turn.
+        :type state: StateT
+        :return: A tuple indicating whether the turn should be skipped and the continuation activity if applicable.
+        :rtype: tuple[bool, Optional[Activity]]
         """
-
-        # get active thing...
-
         sign_in_state = await self._load_sign_in_state(context)
 
         if sign_in_state:
@@ -222,22 +306,26 @@ class Authorization(Generic[StateT]):
                     continuation_activity = (
                         sign_in_state.continuation_activity.model_copy()
                     )
+                    # flow complete, start new turn with continuation activity
                     return True, continuation_activity
+                # auth flow still in progress, the turn should be skipped
                 return True, None
+        # no active auth flow, continue processing
         return False, None
 
     async def get_token(
         self, context: TurnContext, auth_handler_id: str
     ) -> TokenResponse:
-        """
-        Gets the token for a specific auth handler.
+        """Gets the token for a specific auth handler.
 
-        Args:
-            context: The context object for the current turn.
-            auth_handler_id: Optional ID of the auth handler to use, defaults to first handler.
+        The token is taken from cache, so this does not initiate nor continue a sign-in flow.
 
-        Returns:
-            The token response from the OAuth provider.
+        :param context: The context object for the current turn.
+        :type context: TurnContext
+        :param auth_handler_id: The ID of the auth handler to get the token for.
+        :type auth_handler_id: str
+        :return: The token response from the OAuth provider.
+        :rtype: TokenResponse
         """
         sign_in_state = await self._load_sign_in_state(context)
         if not sign_in_state or not sign_in_state.tokens.get(auth_handler_id):
@@ -254,13 +342,15 @@ class Authorization(Generic[StateT]):
         """
         Exchanges a token for another token with different scopes.
 
-        Args:
-            context: The context object for the current turn.
-            scopes: The scopes to request for the new token.
-            auth_handler_id: Optional ID of the auth handler to use, defaults to first handler.
-
-        Returns:
-            The token response from the OAuth provider.
+        :param context: The context object for the current turn.
+        :type context: TurnContext
+        :param scopes: The scopes to request for the new token.
+        :type scopes: list[str]
+        :param auth_handler_id: Optional ID of the auth handler to use, defaults to first
+        :type auth_handler_id: str
+        :return: The token response from the OAuth provider from the exchange.
+            If the cached token is not exchangeable, returns the cached token.
+        :rtype: TokenResponse
         """
 
         token_response = await self.get_token(context, auth_handler_id)
@@ -275,11 +365,9 @@ class Authorization(Generic[StateT]):
         """
         Checks if a token is exchangeable (has api:// audience).
 
-        Args:
-            token: The token to check.
-
-        Returns:
-            True if the token is exchangeable, False otherwise.
+        :param token: The token to check.
+        :type token: str
+        :return: True if the token is exchangeable, False otherwise.
         """
         try:
             # Decode without verification to check the audience
@@ -296,14 +384,14 @@ class Authorization(Generic[StateT]):
         """
         Handles On-Behalf-Of token exchange.
 
-        Args:
-            context: The context object for the current turn.
-            token: The original token.
-            scopes: The scopes to request.
-
-        Returns:
-            The new token response.
-
+        :param token: The original token.
+        :type token: str
+        :param scopes: The scopes to request.
+        :type scopes: list[str]
+        :param handler_id: The ID of the auth handler to use, defaults to first
+        :type handler_id: str, optional
+        :return: The new token response.
+        :rtype: TokenResponse
         """
         auth_handler = self.resolve_handler(handler_id)
         token_provider = self._connection_manager.get_connection(
@@ -324,8 +412,7 @@ class Authorization(Generic[StateT]):
         """
         Sets a handler to be called when sign-in is successfully completed.
 
-        Args:
-            handler: The handler function to call on successful sign-in.
+        :param handler: The handler function to call on successful sign-in.
         """
         self._sign_in_success_handler = handler
 
@@ -335,7 +422,7 @@ class Authorization(Generic[StateT]):
     ) -> None:
         """
         Sets a handler to be called when sign-in fails.
-        Args:
-            handler: The handler function to call on sign-in failure.
+
+        :param handler: The handler function to call on sign-in failure.
         """
         self._sign_in_failure_handler = handler
