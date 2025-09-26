@@ -5,7 +5,7 @@ Licensed under the MIT License.
 
 from __future__ import annotations
 
-from typing import Generic, Optional
+from typing import Callable, Generic, Optional
 
 from ...turn_context import TurnContext
 from ..type_defs import RouteHandler, RouteSelector, StateT
@@ -18,7 +18,6 @@ def agentic_selector(selector: RouteSelector) -> RouteSelector:
         return selector(context)
 
     return wrapped_selector
-
 
 class Route(Generic[StateT]):
     selector: RouteSelector

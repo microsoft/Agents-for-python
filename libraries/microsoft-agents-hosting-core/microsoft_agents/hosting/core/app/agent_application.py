@@ -230,13 +230,14 @@ class AgentApplication(Agent, Generic[StateT]):
         """Adds a new route to the application."""
         if is_agentic:
             selector = agentic_selector(selector)
-        self._route_list.add_route(selector, handler, is_invoke, rank, auth_handlers)
+        self._route_list.add_route(selector, handler, is_invoke=is_invoke, rank=rank, auth_handlers=auth_handlers)
 
     def activity(
         self,
         activity_type: Union[str, ActivityTypes, list[Union[str, ActivityTypes]]],
         *,
         auth_handlers: Optional[list[str]] = None,
+        **kwargs
     ) -> Callable[[RouteHandler[StateT]], RouteHandler[StateT]]:
         """
         Registers a new activity event listener. This method can be used as either
@@ -261,7 +262,7 @@ class AgentApplication(Agent, Generic[StateT]):
             logger.debug(
                 f"Registering activity handler for route handler {func.__name__} with type: {activity_type} with auth handlers: {auth_handlers}"
             )
-            self.add_route(__selector, func, auth_handlers=auth_handlers)
+            self.add_route(__selector, func, auth_handlers=auth_handlers, **kwargs)
             return func
 
         return __call
@@ -271,6 +272,7 @@ class AgentApplication(Agent, Generic[StateT]):
         select: Union[str, Pattern[str], list[Union[str, Pattern[str]]]],
         *,
         auth_handlers: Optional[list[str]] = None,
+        **kwargs
     ) -> Callable[[RouteHandler[StateT]], RouteHandler[StateT]]:
         """
         Registers a new message activity event listener. This method can be used as either
@@ -302,7 +304,7 @@ class AgentApplication(Agent, Generic[StateT]):
             logger.debug(
                 f"Registering message handler for route handler {func.__name__} with select: {select} with auth handlers: {auth_handlers}"
             )
-            self.add_route(Route[StateT](__selector, func, auth_handlers=auth_handlers))
+            self.add_route(Route[StateT](__selector, func, auth_handlers=auth_handlers, **kwargs))
             return func
 
         return __call
@@ -312,6 +314,7 @@ class AgentApplication(Agent, Generic[StateT]):
         type: ConversationUpdateTypes,
         *,
         auth_handlers: Optional[list[str]] = None,
+        **kwargs
     ) -> Callable[[RouteHandler[StateT]], RouteHandler[StateT]]:
         """
         Registers a new message activity event listener. This method can be used as either
@@ -354,13 +357,13 @@ class AgentApplication(Agent, Generic[StateT]):
             logger.debug(
                 f"Registering conversation update handler for route handler {func.__name__} with type: {type} with auth handlers: {auth_handlers}"
             )
-            self.add_route(Route[StateT](__selector, func, auth_handlers=auth_handlers))
+            self.add_route(Route[StateT](__selector, func, auth_handlers=auth_handlers, **kwargs))
             return func
 
         return __call
 
     def message_reaction(
-        self, type: MessageReactionTypes, *, auth_handlers: Optional[list[str]] = None
+        self, type: MessageReactionTypes, *, auth_handlers: Optional[list[str]] = None, **kwargs
     ) -> Callable[[RouteHandler[StateT]], RouteHandler[StateT]]:
         """
         Registers a new message activity event listener. This method can be used as either
@@ -398,13 +401,13 @@ class AgentApplication(Agent, Generic[StateT]):
             logger.debug(
                 f"Registering message reaction handler for route handler {func.__name__} with type: {type} with auth handlers: {auth_handlers}"
             )
-            self.add_route(Route[StateT](__selector, func, auth_handlers=auth_handlers))
+            self.add_route(Route[StateT](__selector, func, auth_handlers=auth_handlers, **kwargs))
             return func
 
         return __call
 
     def message_update(
-        self, type: MessageUpdateTypes, *, auth_handlers: Optional[list[str]] = None
+        self, type: MessageUpdateTypes, *, auth_handlers: Optional[list[str]] = None, **kwargs
     ) -> Callable[[RouteHandler[StateT]], RouteHandler[StateT]]:
         """
         Registers a new message activity event listener. This method can be used as either
@@ -455,7 +458,7 @@ class AgentApplication(Agent, Generic[StateT]):
             logger.debug(
                 f"Registering message update handler for route handler {func.__name__} with type: {type} with auth handlers: {auth_handlers}"
             )
-            self.add_route(Route[StateT](__selector, func, auth_handlers=auth_handlers))
+            self.add_route(Route[StateT](__selector, func, auth_handlers=auth_handlers), **kwargs)
             return func
 
         return __call
@@ -465,6 +468,7 @@ class AgentApplication(Agent, Generic[StateT]):
     ) -> Callable[
         [Callable[[TurnContext, StateT, str], Awaitable[None]]],
         Callable[[TurnContext, StateT, str], Awaitable[None]],
+        **kwargs
     ]:
         """
         Registers a handler to handoff conversations from one copilot to another.
@@ -503,7 +507,7 @@ class AgentApplication(Agent, Generic[StateT]):
                 f"Registering handoff handler for route handler {func.__name__} with auth handlers: {auth_handlers}"
             )
 
-            self.add_route(Route[StateT](__selector, __handler, True, auth_handlers))
+            self.add_route(Route[StateT](__selector, __handler, True, auth_handlers), **kwargs)
             return func
 
         return __call
