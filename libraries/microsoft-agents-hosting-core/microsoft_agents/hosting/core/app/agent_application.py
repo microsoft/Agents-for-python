@@ -43,7 +43,7 @@ from .app_error import ApplicationError
 from .app_options import ApplicationOptions
 
 # from .auth import AuthManager, OAuth, OAuthOptions
-from .route import Route, RouteHandler
+from .route import Route, RouteHandler, agentic_selector
 from .state import TurnState
 from ..channel_service_adapter import ChannelServiceAdapter
 from ..oauth import (
@@ -223,10 +223,13 @@ class AgentApplication(Agent, Generic[StateT]):
         selector: RouteSelector,
         handler: RouteHandler[StateT],
         is_invoke: bool = False,
+        is_agentic: bool = False,
         rank: RouteRank = RouteRank.DEFAULT,
         auth_handlers: Optional[list[str]] = None,
     ) -> None:
         """Adds a new route to the application."""
+        if is_agentic:
+            selector = agentic_selector(selector)
         self._route_list.add_route(selector, handler, is_invoke, rank, auth_handlers)
 
     def activity(
@@ -457,7 +460,9 @@ class AgentApplication(Agent, Generic[StateT]):
 
         return __call
 
-    def handoff(self, *, auth_handlers: Optional[list[str]] = None) -> Callable[
+    def handoff(
+        self, *, auth_handlers: Optional[list[str]] = None
+    ) -> Callable[
         [Callable[[TurnContext, StateT, str], Awaitable[None]]],
         Callable[[TurnContext, StateT, str], Awaitable[None]],
     ]:
