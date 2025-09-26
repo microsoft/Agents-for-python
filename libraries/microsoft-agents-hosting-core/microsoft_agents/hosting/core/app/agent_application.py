@@ -38,7 +38,6 @@ from ..authorization import Connections
 from .app_error import ApplicationError
 from .app_options import ApplicationOptions
 
-# from .auth import AuthManager, OAuth, OAuthOptions
 from .route import Route, RouteHandler
 from .state import TurnState
 from ..channel_service_adapter import ChannelServiceAdapter
@@ -443,7 +442,9 @@ class AgentApplication(Agent, Generic[StateT]):
 
         return __call
 
-    def handoff(self, *, auth_handlers: Optional[List[str]] = None) -> Callable[
+    def handoff(
+        self, *, auth_handlers: Optional[List[str]] = None
+    ) -> Callable[
         [Callable[[TurnContext, StateT, str], Awaitable[None]]],
         Callable[[TurnContext, StateT, str], Awaitable[None]],
     ]:
