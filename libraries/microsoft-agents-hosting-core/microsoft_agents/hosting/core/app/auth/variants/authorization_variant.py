@@ -4,11 +4,11 @@ import logging
 
 from microsoft_agents.activity import TokenResponse
 
-from ...turn_context import TurnContext
-from ...storage import Storage
-from ...authorization import Connections
-from .auth_handler import AuthHandler
-from .sign_in_response import SignInResponse
+from ....turn_context import TurnContext
+from ....storage import Storage
+from ....authorization import Connections
+from ..auth_handler import AuthHandler
+from ..sign_in_response import SignInResponse
 
 logger = logging.getLogger(__name__)
 
@@ -76,7 +76,7 @@ class AuthorizationVariant(ABC):
             If the cached token is not exchangeable, returns the cached token.
         :rtype: TokenResponse
         """
-
+        
         token_response = await self.get_token(context, auth_handler_id)
 
         if token_response and self._is_exchangeable(token_response.token):

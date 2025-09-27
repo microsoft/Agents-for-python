@@ -4,11 +4,11 @@ from typing import Optional
 
 from microsoft_agents.activity import TokenResponse
 
-from ...turn_context import TurnContext
-from ...oauth import FlowStateTag
+from ....turn_context import TurnContext
+from ....oauth import FlowStateTag
 
 from .authorization_variant import AuthorizationVariant
-from .sign_in_response import SignInResponse
+from ..sign_in_response import SignInResponse
 
 logger = logging.getLogger(__name__)
 

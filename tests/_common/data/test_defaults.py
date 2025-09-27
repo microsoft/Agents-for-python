@@ -15,11 +15,20 @@ class TEST_DEFAULTS:
         self.bot_url = "https://botframework.com"
         self.ms_app_id = "__ms_app_id"
 
+        # Auth Handler Settings
         self.abs_oauth_connection_name = "connection_name"
         self.obo_connection_name = "SERVICE_CONNECTION"
         self.auth_handler_id = "auth_handler_id"
         self.auth_handler_title = "auth_handler_title"
         self.auth_handler_text = "auth_handler_text"
+
+        # Connections Settings
+        self.connections_default_tenant_id = "service-tenant-id"
+        self.connections_default_client_id = "service-client-id"
+        self.connections_default_client_secret = "service-client-secret"
+        self.connections_agentic_tenant_id = "agentic-tenant-id"
+        self.connections_agentic_client_id = "agentic-client-id"
+        self.connections_agentic_client_secret = "agentic-client-secret"
 
         self.agentic_abs_oauth_connection_name = "agentic_connection_name"
         self.agentic_obo_connection_name = "SERVICE_CONNECTION"

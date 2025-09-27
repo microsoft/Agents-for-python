@@ -3,13 +3,16 @@ from microsoft_agents.activity import load_configuration_from_env
 from microsoft_agents.hosting.core import AuthTypes
 from microsoft_agents.authentication.msal import MsalConnectionManager
 
+from tests._common.data import TEST_ENV_DICT
+
+ENV_DICT = TEST_ENV_DICT()
 
 class TestMsalConnectionManager:
     """
     Test suite for the Msal Connection Manager
     """
 
-    def test_msal_connection_manager(self):
+    def test_init_from_env(self):
         mock_environ = {
             **environ,
             "CONNECTIONS__SERVICE_CONNECTION__SETTINGS__TENANTID": "test-tenant-id-SERVICE_CONNECTION",
@@ -33,3 +36,11 @@ class TestMsalConnectionManager:
                 f"https://sts.windows.net/test-tenant-id-{key}/",
                 f"https://login.microsoftonline.com/test-tenant-id-{key}/v2.0",
             ]
+
+    def test_init_from_config(self):
+        connection_manager = MsalConnectionManager(
+            **ENV_DICT
+        )
+        
+
+    def test_get_default_connection(self):

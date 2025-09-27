@@ -10,7 +10,7 @@ from collections.abc import Iterable
 from microsoft_agents.hosting.core.connector.client import UserTokenClient
 
 from ...turn_context import TurnContext
-from ...oauth import OAuthFlow, FlowResponse, FlowState, FlowStorageClient
+from ...auth import OAuthFlow, FlowResponse, FlowState, FlowStorageClient
 from .authorization_variant import AuthorizationVariant
 from .auth_handler import AuthHandler
 
@@ -151,3 +151,79 @@ class UserAuthorizationBase(AuthorizationVariant, ABC):
             await self._sign_out(context, [auth_handler_id])
         else:
             await self._sign_out(context, self._auth_handlers.keys())
+
+    async def _handle_flow_response(
+        self, context: TurnContext, flow_response: FlowResponse
+    ) -> None:
+        """Handles CONTINUE and FAILURE flow responses, sending activities back."""
+        flow_state: FlowState = flow_response.flow_state
+
+        if flow_state.tag == FlowStateTag.BEGIN:
+            # Create the OAuth card
+            sign_in_resource = flow_response.sign_in_resource
+            assert sign_in_resource
+            o_card: Attachment = CardFactory.oauth_card(
+                OAuthCard(
+                    text="Sign in",
+                    connection_name=flow_state.connection,
+                    buttons=[
+                        CardAction(
+                            title="Sign in",
+                            type=ActionTypes.signin,
+                            value=sign_in_resource.sign_in_link,
+                            channel_data=None,
+                        )
+                    ],
+                    token_exchange_resource=sign_in_resource.token_exchange_resource,
+                    token_post_resource=sign_in_resource.token_post_resource,
+                )
+            )
+            # Send the card to the user
+            await context.send_activity(MessageFactory.attachment(o_card))
+        elif flow_state.tag == FlowStateTag.FAILURE:
+            if flow_state.reached_max_attempts():
+                await context.send_activity(
+                    MessageFactory.text(
+                        "Sign-in failed. Max retries reached. Please try again later."
+                    )
+                )
+            elif flow_state.is_expired():
+                await context.send_activity(
+                    MessageFactory.text("Sign-in session expired. Please try again.")
+                )
+            else:
+                logger.warning("Sign-in flow failed for unknown reasons.")
+                await context.send_activity("Sign-in failed. Please try again.")
+
+    async def sign_in(
+        self, context: TurnContext, auth_handler_id: str, scopes: Optional[list[str]] = None
+    ) -> SignInResponse:
+        """Begins or continues an OAuth flow.
+
+        Handles the flow response, sending the OAuth card to the context.
+
+        :param context: The context object for the current turn.
+        :type context: TurnContext
+        :param auth_handler_id: The ID of the auth handler to use.
+        :type auth_handler_id: str
+        :return: The SignInResponse containing the token response and flow state tag.
+        :rtype: SignInResponse
+        """
+
+        logger.debug(
+            "Beginning or continuing flow for auth handler %s",
+            auth_handler_id,
+        )
+        flow_response = await self.begin_or_continue_flow(context, auth_handler_id)
+        await self._handle_flow_response(context, flow_response)
+        logger.debug(
+            "Flow response flow_state.tag: %s",
+            flow_response.flow_state.tag,
+        )
+
+        sign_in_response = SignInResponse(
+            token_response=flow_response.token_response,
+            tag=flow_response.flow_state.tag,
+        )
+
+        return sign_in_response

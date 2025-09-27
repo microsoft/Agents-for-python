@@ -68,9 +68,14 @@ class MsalConnectionManager(Connections):
             aud = aud.lower()
 
             for item in self._connections_map:
-                if item.get("audience", "").lower() == aud:
-                    item_service_url = item.get("serviceUrl", "")
+                audience_match = True
 
+                item_aud = item.get("AUDIENCE", "")
+                if item_aud:
+                    audience_match = item_aud.lower() == aud
+
+                if audience_match:
+                    item_service_url = item.get("serviceUrl", "")
                     if item_service_url == "*" or item_service_url == "":
                         connection_name = item.get("connectionName")
                         connection = self.get_connection(connection_name)

@@ -1,6 +1,6 @@
 import pytest
 
-from microsoft_agents.hosting.core.app.oauth import SignInState
+from microsoft_agents.hosting.core.app.auth import SignInState
 
 from ._common import testing_Activity, testing_TurnContext
 

@@ -11,15 +11,10 @@ from ...oauth import FlowStateTag
 from ..state import TurnState
 from .auth_handler import AuthHandler
 from .user_authorization import UserAuthorization
-from .agentic_authorization import AgenticAuthorization
-from .authorization_variant import AuthorizationVariant
+from .variants.agentic_authorization import AgenticAuthorization
+from .variants.authorization_variant import AuthorizationVariant
 from .sign_in_state import SignInState
 from .sign_in_response import SignInResponse
-
-AUTHORIZATION_TYPE_MAP: dict[str, type[AuthorizationVariant]] = {
-    UserAuthorization.__name__.lower(): UserAuthorization,
-    AgenticAuthorization.__name__.lower(): AgenticAuthorization,
-}
 
 logger = logging.getLogger(__name__)
 
@@ -161,7 +156,6 @@ class Authorization:
             raise ValueError(
                 f"Auth variant {auth_variant} not recognized or not configured."
             )
-
         return self._authorization_variants[auth_variant]
 
     def resolve_handler(self, handler_id: str) -> AuthHandler:
@@ -309,7 +303,7 @@ class Authorization:
         return False, None
 
     async def get_token(
-        self, context: TurnContext, auth_handler_id: str
+        self, context: TurnContext, auth_handler_id: str, scopes: Optional[list[str]] = None
     ) -> TokenResponse:
         """Gets the token for a specific auth handler.
 
@@ -326,6 +320,12 @@ class Authorization:
         if not sign_in_state or not sign_in_state.tokens.get(auth_handler_id):
             return TokenResponse()
         token = sign_in_state.tokens[auth_handler_id]
+
+        handler = self.resolve_handler(auth_handler_id)
+        variant = self._resolve_auth_variant(handler.auth_type)
+
+        variant.exchange_token(context, auth_handler_id, token=token, scopes=scopes)
+
         return TokenResponse(token=token)
 
     def on_sign_in_success(
