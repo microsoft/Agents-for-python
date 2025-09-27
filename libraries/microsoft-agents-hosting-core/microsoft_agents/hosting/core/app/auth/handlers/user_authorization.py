@@ -7,24 +7,25 @@ from abc import ABC
 from typing import Optional
 from collections.abc import Iterable
 
-from microsoft_agents.hosting.core.connector.client import UserTokenClient
-
+from microsoft_agents.activity import (
+    TokenResponse
+)
+...connector.client import UserTokenClient
 from ...turn_context import TurnContext
 from ...auth import OAuthFlow, FlowResponse, FlowState, FlowStorageClient
-from .authorization_variant import AuthorizationVariant
-from .auth_handler import AuthHandler
+from .authorization_handler import AuthorizationHandler
 
 logger = logging.getLogger(__name__)
 
 
-class UserAuthorizationBase(AuthorizationVariant, ABC):
+class UserAuthorization(AuthorizationHandler):
     """
     Class responsible for managing authorization and OAuth flows.
     Handles multiple OAuth providers and manages the complete authentication lifecycle.
     """
 
     async def _load_flow(
-        self, context: TurnContext, auth_handler_id: str
+        self, context: TurnContext
     ) -> tuple[OAuthFlow, FlowStorageClient]:
         """Loads the OAuth flow for a specific auth handler.
 
@@ -43,10 +44,6 @@ class UserAuthorizationBase(AuthorizationVariant, ABC):
             context.adapter.USER_TOKEN_CLIENT_KEY
         )
 
-        # resolve handler id
-        auth_handler: AuthHandler = self._auth_handlers[auth_handler_id]
-        auth_handler_id = auth_handler.name
-
         if (
             not context.activity.channel_id
             or not context.activity.from_property
@@ -64,7 +61,7 @@ class UserAuthorizationBase(AuthorizationVariant, ABC):
         # try to load existing state
         flow_storage_client = FlowStorageClient(channel_id, user_id, self._storage)
         logger.info("Loading OAuth flow state from storage")
-        flow_state: FlowState = await flow_storage_client.read(auth_handler_id)
+        flow_state: FlowState = await flow_storage_client.read(self._auth_handler_id)
 
         if not flow_state:
             logger.info("No existing flow state found, creating new flow state")
@@ -79,65 +76,71 @@ class UserAuthorizationBase(AuthorizationVariant, ABC):
 
         flow = OAuthFlow(flow_state, user_token_client)
         return flow, flow_storage_client
-
-    async def begin_or_continue_flow(
-        self, context: TurnContext, auth_handler_id: str
-    ) -> FlowResponse:
-        """Begins or continues an OAuth flow.
-
-        Delegates to the OAuthFlow to handle the activity and manage the flow state.
-
-        :param context: The context object for the current turn.
-        :type context: TurnContext
-        :param auth_handler_id: The ID of the auth handler to use.
-        :type auth_handler_id: str
-        :return: The FlowResponse from the OAuth flow.
-        :rtype: FlowResponse
-        """
-
-        logger.debug("Beginning or continuing OAuth flow")
-
-        flow, flow_storage_client = await self._load_flow(context, auth_handler_id)
-        # prev_tag = flow.flow_state.tag
-        flow_response: FlowResponse = await flow.begin_or_continue_flow(
-            context.activity
-        )
-
-        logger.info("Saving OAuth flow state to storage")
-        await flow_storage_client.write(flow_response.flow_state)
-
-        # optimization for the future. Would like to double check this logic.
-        # if prev_tag != flow_response.flow_state.tag and flow_response.flow_state.tag == FlowStateTag.COMPLETE:
-        #     # Clear the flow state on completion
-        #     await flow_storage_client.delete(auth_handler_id)
-
-        return flow_response
-
-    async def _sign_out(
+    
+    async def _handle_obo(
         self,
         context: TurnContext,
-        auth_handler_ids: Iterable[str],
-    ) -> None:
-        """Signs out from the specified auth handlers.
-
-        Deletes the associated flows from storage.
+        input_token_response: TokenResponse,
+        exchange_connection: Optional[str] = None,
+        scopes: Optional[list[str]] = None,
+    ) -> TokenResponse:
+        """
+        Exchanges a token for another token with different scopes.
 
         :param context: The context object for the current turn.
         :type context: TurnContext
-        :param auth_handler_ids: Iterable of auth handler IDs to sign out from.
-        :type auth_handler_ids: Iterable[str]
-        :return: None
+        :param scopes: The scopes to request for the new token.
+        :type scopes: list[str]
+        :param auth_handler_id: Optional ID of the auth handler to use, defaults to first
+        :type auth_handler_id: str
+        :return: The token response from the OAuth provider from the exchange.
+            If the cached token is not exchangeable, returns the cached token.
+        :rtype: TokenResponse
         """
-        for auth_handler_id in auth_handler_ids:
-            flow, flow_storage_client = await self._load_flow(context, auth_handler_id)
-            logger.info("Signing out from handler: %s", auth_handler_id)
-            await flow.sign_out()
-            await flow_storage_client.delete(auth_handler_id)
+        if not input_token_response:
+            return input_token_response
+        
+        token = input_token_response.token
+        
+        connection_name = exchange_connection or self._handler.obo_connection_name
+        scopes = scopes or self._handler.scopes
+
+        if not connection_name or not scopes:
+            return input_token_response
+        
+        if not self._is_exchangeable(input_token_response.token):
+            raise ValueError("Token is not exchangeable")
+        
+        token_provider = self._connection_manager.get_connection(connection_name)
+        if not token_provider:
+            raise ValueError(f"Connection '{connection_name}' not found")
+        
+        token = await token_provider.acquire_token_on_behalf_of(
+            scopes=scopes,
+            user_assertion=input_token_response.token,
+        )
+        return TokenResponse(token=token)
+
+    def _is_exchangeable(self, token: str) -> bool:
+        """
+        Checks if a token is exchangeable (has api:// audience).
+
+        :param token: The token to check.
+        :type token: str
+        :return: True if the token is exchangeable, False otherwise.
+        """
+        try:
+            # Decode without verification to check the audience
+            payload = jwt.decode(token, options={"verify_signature": False})
+            aud = payload.get("aud")
+            return isinstance(aud, str) and aud.startswith("api://")
+        except Exception:
+            logger.error("Failed to decode token to check audience")
+            return False
 
     async def sign_out(
         self,
         context: TurnContext,
-        auth_handler_id: Optional[str] = None,
     ) -> None:
         """
         Signs out the current user.
@@ -147,10 +150,10 @@ class UserAuthorizationBase(AuthorizationVariant, ABC):
         :param auth_handler_id: Optional ID of the auth handler to use for sign out. If None,
             signs out from all the handlers.
         """
-        if auth_handler_id:
-            await self._sign_out(context, [auth_handler_id])
-        else:
-            await self._sign_out(context, self._auth_handlers.keys())
+        flow, flow_storage_client = await self._load_flow(context)
+        logger.info("Signing out from handler: %s", self._handler.name)
+        await flow.sign_out()
+        await flow_storage_client.delete(auth_handler_id)))
 
     async def _handle_flow_response(
         self, context: TurnContext, flow_response: FlowResponse
@@ -214,7 +217,14 @@ class UserAuthorizationBase(AuthorizationVariant, ABC):
             "Beginning or continuing flow for auth handler %s",
             auth_handler_id,
         )
-        flow_response = await self.begin_or_continue_flow(context, auth_handler_id)
+        flow, flow_storage_client = await self._load_flow(context)
+        # prev_tag = flow.flow_state.tag
+        flow_response: FlowResponse = await flow.begin_or_continue_flow(
+            context.activity
+        )
+
+        logger.info("Saving OAuth flow state to storage")
+        await flow_storage_client.write(flow_response.flow_state)
         await self._handle_flow_response(context, flow_response)
         logger.debug(
             "Flow response flow_state.tag: %s",
@@ -227,3 +237,29 @@ class UserAuthorizationBase(AuthorizationVariant, ABC):
         )
 
         return sign_in_response
+
+    async def get_refreshed_token(
+        self, context: TurnContext, exchange_connection, exchange_scopes: Optional[list[str]] = None
+    ) -> TokenResponse:
+        """
+        Gets a refreshed token for the user.
+
+        :param context: The context object for the current turn.
+        :type context: TurnContext
+        :param auth_handler_id: The ID of the auth handler to use.
+        :type auth_handler_id: str
+        :param exchange_connection: The connection to use for token exchange.
+        :type exchange_connection: str
+        :param exchange_scopes: The scopes to request for the new token.
+        :type exchange_scopes: Optional[list[str]]
+        :return: The token response from the OAuth provider.
+        :rtype: TokenResponse
+        """
+        flow, _ = await self._load_flow(context)
+        input_token_response = await flow.get_user_token() # TODO
+        return self._handle_obo(
+            context,
+            input_token_response,
+            exchange_connection,
+            exchange_scopes,
+        )

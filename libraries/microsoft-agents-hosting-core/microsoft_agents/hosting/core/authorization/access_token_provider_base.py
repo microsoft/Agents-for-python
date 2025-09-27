@@ -17,7 +17,7 @@ class AccessTokenProviderBase(Protocol):
         """
         pass
 
-    async def aquire_token_on_behalf_of(
+    async def acquire_token_on_behalf_of(
         self, scopes: list[str], user_assertion: str
     ) -> str:
         """

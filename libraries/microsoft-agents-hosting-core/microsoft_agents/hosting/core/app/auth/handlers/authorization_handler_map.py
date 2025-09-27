@@ -1,4 +1,4 @@
-from .authorization_variant import AuthorizationVariant
+from .authorization_handler import AuthorizationVariant
 from .agentic_authorization import AgenticAuthorization
 from .user_authorization import UserAuthorization
 

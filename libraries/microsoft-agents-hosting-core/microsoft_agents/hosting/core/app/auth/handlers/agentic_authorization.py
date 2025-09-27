@@ -7,13 +7,13 @@ from microsoft_agents.activity import TokenResponse
 from ....turn_context import TurnContext
 from ....oauth import FlowStateTag
 
-from .authorization_variant import AuthorizationVariant
+from .authorization_handler import AuthorizationVariant
 from ..sign_in_response import SignInResponse
 
 logger = logging.getLogger(__name__)
 
 
-class AgenticAuthorization(AuthorizationVariant):
+class AgenticAuthorization(AuthorizationHandler):
     """Class responsible for managing agentic authorization"""
 
     async def get_agentic_instance_token(self, context: TurnContext) -> Optional[str]:
@@ -67,7 +67,7 @@ class AgenticAuthorization(AuthorizationVariant):
     async def sign_in(
         self,
         context: TurnContext,
-        connection_name: str,
+        exchange_connection: Optional[str] = None,
         scopes: Optional[list[str]] = None,
     ) -> SignInResponse:
         """Retrieves the agentic user token if available.
@@ -81,6 +81,19 @@ class AgenticAuthorization(AuthorizationVariant):
         :return: A SignInResponse containing the token response and flow state tag.
         :rtype: SignInResponse
         """
+        token_response = await self.get_refreshed_token(context, exchange_connection, scopes)
+        if token_response:
+            return SignInResponse(token_response=token_response, tag=FlowStateTag.COMPLETE)
+        return SignInResponse()
+
+    async def get_refreshed_token(self,
+        context: TurnContext,
+        auth_handler_id: str,
+        exchange_connection: Optional[str] = None,
+        scopes: Optional[list[str]] = None
+    ) -> TokenResponse:
+        if not scopes:
+            scopes = self.resolve_handler(connection_name).scopes
         scopes = scopes or []
         token = await self.get_agentic_user_token(context, scopes)
         return (
@@ -91,9 +104,8 @@ class AgenticAuthorization(AuthorizationVariant):
             else SignInResponse()
         )
 
-    async def sign_out(self, context: TurnContext) -> None:
-        """Signs out the agentic user by clearing any stored tokens."""
-        pass
+    async def sign_out(self, context: TurnContext, auth_handler_id: Optional[str] = None) -> None:
+        """Nothing to do for agentic sign out."""
 
     @staticmethod
     def get_agent_instance_id(context: TurnContext) -> Optional[str]:

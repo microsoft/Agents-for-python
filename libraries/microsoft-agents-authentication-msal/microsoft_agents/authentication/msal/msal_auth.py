@@ -61,7 +61,7 @@ class MsalAuth(AccessTokenProviderBase):
         # TODO: Handling token error / acquisition failed
         return auth_result_payload["access_token"]
 
-    async def aquire_token_on_behalf_of(
+    async def acquire_token_on_behalf_of(
         self, scopes: list[str], user_assertion: str
     ) -> str:
         """

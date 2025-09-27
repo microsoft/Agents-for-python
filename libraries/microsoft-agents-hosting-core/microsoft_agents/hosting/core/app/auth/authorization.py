@@ -1,3 +1,4 @@
+from datetime import datetime
 import logging
 from typing import TypeVar, Optional, Callable, Awaitable, Generic, cast
 import jwt
@@ -10,15 +11,29 @@ from ...authorization import Connections
 from ...oauth import FlowStateTag
 from ..state import TurnState
 from .auth_handler import AuthHandler
-from .user_authorization import UserAuthorization
-from .variants.agentic_authorization import AgenticAuthorization
-from .variants.authorization_variant import AuthorizationVariant
 from .sign_in_state import SignInState
 from .sign_in_response import SignInResponse
+from .handlers import (
+    AgenticAuthorization,
+    UserAuthorization,
+    AuthorizationHandler
+)
+from microsoft_agents.hosting.core.app.auth import auth_handler
 
 logger = logging.getLogger(__name__)
 
+AUTHORIZATION_TYPE_MAP = {
+    UserAuthorization.__name__.lower(): UserAuthorization,
+    AgenticAuthorization.__name__.lower(): AgenticAuthorization,
+}
+
 class Authorization:
+    """Class responsible for managing authorization flows."""
+
+    _storage: Storage
+    _connection_manager: Connections
+    _handlers: dict[str, AuthorizationHandler]
+
     def __init__(
         self,
         storage: Storage,
@@ -48,20 +63,6 @@ class Authorization:
         self._storage = storage
         self._connection_manager = connection_manager
 
-        auth_configuration: dict = kwargs.get("AGENTAPPLICATION", {}).get(
-            "USERAUTHORIZATION", {}
-        )
-
-        handlers_config: dict[str, dict] = auth_configuration.get("HANDLERS")
-        if not auth_handlers and handlers_config:
-            auth_handlers = {
-                handler_name: AuthHandler(
-                    name=handler_name, **config.get("SETTINGS", {})
-                )
-                for handler_name, config in handlers_config.items()
-            }
-
-        self._auth_handlers = auth_handlers or {}
         self._sign_in_success_handler: Optional[
             Callable[[TurnContext, TurnState, Optional[str]], Awaitable[None]]
         ] = None
@@ -69,10 +70,36 @@ class Authorization:
             Callable[[TurnContext, TurnState, Optional[str]], Awaitable[None]]
         ] = None
 
-        self._authorization_variants = {}
-        self._init_auth_variants()
+        self._handlers = {}
 
-    def _init_auth_variants(self) -> None:
+        if auth_handlers and len(auth_handlers) > 0:
+            self._init_auth_variants(auth_handlers)
+        else:
+
+            auth_configuration: dict = kwargs.get("AGENTAPPLICATION", {}).get(
+                "USERAUTHORIZATION", {}
+            )
+
+            handlers_config: dict[str, dict] = auth_configuration.get("HANDLERS")
+            if not auth_handlers and handlers_config:
+                auth_handlers = {
+                    handler_name: AuthHandler(
+                        name=handler_name, **config.get("SETTINGS", {})
+                    )
+                    for handler_name, config in handlers_config.items()
+                }
+        
+        self._handler_settings = auth_handlers
+
+        # compatibility? TODO
+        if not auth_handlers or len(auth_handlers) == 0:
+            raise ValueError("At least one auth handler configuration is required.")
+
+        # operations default to the first handler if none specified
+        self._default_handler_id = next(iter(self._handler_settings.items()))[0]
+        self._init_handlers()
+
+    def _init_handlers(self) -> None:
         """Initialize authorization variants based on the provided auth handlers.
 
         This method maps the auth types to their corresponding authorization variants, and
@@ -81,19 +108,15 @@ class Authorization:
         :param auth_handlers: A dictionary of auth handler configurations.
         :type auth_handlers: dict[str, AuthHandler]
         """
-        auth_types = set(handler.auth_type for handler in auth_handlers.values())
-        for auth_type in auth_types:
-            # get handlers that match this variant type
-            associated_handlers = {
-                auth_handler.name: auth_handler
-                for auth_handler in self._auth_handlers.values()
-                if auth_handler.auth_type == auth_type
-            }
-
-            self._authorization_variants[auth_type] = AUTHORIZATION_TYPE_MAP[auth_type](
+        for name, auth_handler in self._handler_settings.items():
+            auth_type = auth_handler.auth_type
+            if auth_type not in AUTHORIZATION_TYPE_MAP:
+                raise ValueError(f"Auth type {auth_type} not recognized.")
+            
+            self._handlers[name] = AUTHORIZATION_TYPE_MAP[auth_type](
                 storage=self._storage,
                 connection_manager=self._connection_manager,
-                auth_handlers=associated_handlers,
+                auth_handler=auth_handler,
             )
 
     @staticmethod
@@ -127,54 +150,23 @@ class Authorization:
         key = self.sign_in_state_key(context)
         await self._storage.delete([key])
 
-    @property
-    def user_auth(self) -> UserAuthorization:
-        """Get the user authorization variant. Raises if not configured."""
-        return cast(
-            UserAuthorization, self._resolve_auth_variant(UserAuthorization.__name__)
-        )
-
-    @property
-    def agentic_auth(self) -> AgenticAuthorization:
-        """Get the agentic authorization variant. Raises if not configured."""
-        return cast(
-            AgenticAuthorization,
-            self._resolve_auth_variant(AgenticAuthorization.__name__),
-        )
-
-    def _resolve_auth_variant(self, auth_variant: str) -> AuthorizationVariant:
-        """Resolve the authorization variant by its type name.
-
-        :param auth_variant: The type name of the authorization variant to resolve.
-            Should corresponde to the __name__ of the class, e.g. "UserAuthorization".
-        :type auth_variant: str
-        :return: The corresponding AuthorizationVariant instance.
-        :rtype: AuthorizationVariant
-        :raises ValueError: If the auth variant is not recognized or not configured.
-        """
-        if auth_variant not in self._authorization_variants:
-            raise ValueError(
-                f"Auth variant {auth_variant} not recognized or not configured."
-            )
-        return self._authorization_variants[auth_variant]
-
-    def resolve_handler(self, handler_id: str) -> AuthHandler:
+    def resolve_handler(self, handler_id: str) -> AuthorizationHandler:
         """Resolve the auth handler by its ID.
 
         :param handler_id: The ID of the auth handler to resolve.
         :type handler_id: str
-        :return: The corresponding AuthHandler instance.
-        :rtype: AuthHandler
+        :return: The corresponding AuthorizationHandler instance.
+        :rtype: AuthorizationHandler
         :raises ValueError: If the handler ID is not recognized or not configured.
         """
-        if handler_id not in self._auth_handlers:
+        if handler_id not in self._handlers:
             raise ValueError(
                 f"Auth handler {handler_id} not recognized or not configured."
             )
-        return self._auth_handlers[handler_id]
+        return self._handlers[handler_id]
 
     async def start_or_continue_sign_in(
-        self, context: TurnContext, state: TurnState, auth_handler_id: str
+        self, context: TurnContext, state: TurnState, auth_handler_id: Optional[str] = None
     ) -> SignInResponse:
         """Start or continue the sign-in process for the user with the given auth handler.
 
@@ -190,6 +182,8 @@ class Authorization:
         :return: A SignInResponse indicating the result of the sign-in attempt.
         :rtype: SignInResponse
         """
+
+        auth_handler_id = auth_handler_id or self._default_handler_id
 
         # check cached sign in state
         sign_in_state = await self._load_sign_in_state(context)
@@ -207,10 +201,9 @@ class Authorization:
             )
 
         handler = self.resolve_handler(auth_handler_id)
-        variant = self._resolve_auth_variant(handler.auth_type)
 
         # attempt sign-in continuation (or beginning)
-        sign_in_response = await variant.sign_in(context, auth_handler_id, handler.scopes)
+        sign_in_response = await handler.sign_in(context, auth_handler_id, handler.scopes)
 
         if sign_in_response.tag == FlowStateTag.COMPLETE:
             if self._sign_in_success_handler:
@@ -230,14 +223,8 @@ class Authorization:
 
         return sign_in_response
 
-    async def _sign_out(self, context: TurnContext, auth_handler_id) -> None:
-        """Helper to sign out from a specific handler."""
-        handler = self.resolve_handler(auth_handler_id)
-        variant = self._resolve_auth_variant(handler.auth_type)
-        await variant.sign_out(context, auth_handler_id)
-
     async def sign_out(
-        self, context: TurnContext, state: TurnState, auth_handler_id=None
+        self, context: TurnContext, state: TurnState, auth_handler_id: Optional[str] = None
     ) -> None:
         """Attempts to sign out the user from the specified auth handler or all handlers if none specified.
 
@@ -249,19 +236,12 @@ class Authorization:
         :type auth_handler_id: Optional[str]
         :return: None
         """
+        auth_handler_id = auth_handler_id or self._default_handler_id
         sign_in_state = await self._load_sign_in_state(context)
-        if sign_in_state:
-
-            if not auth_handler_id:
-                # sign out from all handlers
-                for handler_id in sign_in_state.tokens.keys():
-                    if handler_id in sign_in_state.tokens:
-                        await self._sign_out(context, handler_id)
-                await self._delete_sign_in_state(context)
-
-            elif auth_handler_id in sign_in_state.tokens:
+        if sign_in_state and auth_handler_id in sign_in_state.tokens:
                 # sign out from specific handler
-                await self._sign_out(context, auth_handler_id)
+                handler = self.resolve_handler(auth_handler_id)
+                await handler.sign_out(context)
                 del sign_in_state.tokens[auth_handler_id]
                 await self._save_sign_in_state(context, sign_in_state)
 
@@ -303,8 +283,8 @@ class Authorization:
         return False, None
 
     async def get_token(
-        self, context: TurnContext, auth_handler_id: str, scopes: Optional[list[str]] = None
-    ) -> TokenResponse:
+        self, context: TurnContext, auth_handler_id: Optional[str] = None
+    ) -> str:
         """Gets the token for a specific auth handler.
 
         The token is taken from cache, so this does not initiate nor continue a sign-in flow.
@@ -316,17 +296,38 @@ class Authorization:
         :return: The token response from the OAuth provider.
         :rtype: TokenResponse
         """
+        return self.exchange_token(context, auth_handler_id)
+
+    async def exchange_token(
+        self,
+        context: TurnContext,
+        auth_handler_id: Optional[str] = None,
+        exchange_connection: Optional[str] = None,
+        scopes: Optional[list[str]] = None
+    ) -> Optional[str]:
+        
+        handler = self.resolve_handler(auth_handler_id)
+
         sign_in_state = await self._load_sign_in_state(context)
         if not sign_in_state or not sign_in_state.tokens.get(auth_handler_id):
-            return TokenResponse()
-        token = sign_in_state.tokens[auth_handler_id]
-
+            return None
+        
+        token_res = sign_in_state.tokens[auth_handler_id]
+        if not context.activity.is_agentic():
+            if not token_res.is_exchangeable:
+                if token.expiration is not None:
+                    diff = token.expiration - datetime.now().timestamp()
+                    if diff >= SOME_VALUE:
+                        return token_res.token
+                    
         handler = self.resolve_handler(auth_handler_id)
-        variant = self._resolve_auth_variant(handler.auth_type)
+        res = await handler.get_refreshed_token(context, auth_handler_id, exchange_connection, scopes)
+        if res:
+            sign_in_state.tokens[auth_handler_id] = res.token
+            await self._save_sign_in_state(context, sign_in_state)
+            return res.token
+        raise Exception("Failed to exchange token")
 
-        variant.exchange_token(context, auth_handler_id, token=token, scopes=scopes)
-
-        return TokenResponse(token=token)
 
     def on_sign_in_success(
         self,

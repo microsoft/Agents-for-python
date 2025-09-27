@@ -7,6 +7,8 @@ from typing import Dict
 logger = logging.getLogger(__name__)
 
 
+# name due to compat.
+# see AuthorizationHandler for a class that does work.
 class AuthHandler:
     """
     Interface defining an authorization handler for OAuth flows.
@@ -54,6 +56,25 @@ class AuthHandler:
         self.auth_type = self.auth_type.lower()
         self.scopes = list(scopes) or kwargs.get("SCOPES", [])
 
+    @staticmethod
+    def from_settings(settings: dict):
+        """
+        Creates an AuthHandler instance from a settings dictionary.
 
-# # Type alias for authorization handlers dictionary
-AuthorizationHandlers = Dict[str, AuthHandler]
+        :param settings: The settings dictionary containing configuration for the AuthHandler.
+        :type settings: dict
+        :return: An instance of AuthHandler configured with the provided settings.
+        :rtype: AuthHandler
+        """
+        if not settings:
+            raise ValueError("Settings dictionary is required to create AuthHandler")
+
+        return AuthHandler(
+            name=settings.get("NAME", ""),
+            title=settings.get("TITLE", ""),
+            text=settings.get("TEXT", ""),
+            abs_oauth_connection_name=settings.get("AZUREBOTOAUTHCONNECTIONNAME", ""),
+            obo_connection_name=settings.get("OBOCONNECTIONNAME", ""),
+            auth_type=settings.get("TYPE", ""),
+            scopes=settings.get("SCOPES", []),
+        )

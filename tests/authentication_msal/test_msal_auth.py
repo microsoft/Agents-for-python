@@ -37,11 +37,11 @@ class TestMsalAuth:
         )
 
     @pytest.mark.asyncio
-    async def test_aquire_token_on_behalf_of_managed_identity(self, mocker):
+    async def test_acquire_token_on_behalf_of_managed_identity(self, mocker):
         mock_auth = MockMsalAuth(mocker, ManagedIdentityClient)
 
         try:
-            await mock_auth.aquire_token_on_behalf_of(
+            await mock_auth.acquire_token_on_behalf_of(
                 scopes=["test-scope"], user_assertion="test-assertion"
             )
         except NotImplementedError:
@@ -50,13 +50,13 @@ class TestMsalAuth:
             assert False
 
     @pytest.mark.asyncio
-    async def test_aquire_token_on_behalf_of_confidential(self, mocker):
+    async def test_acquire_token_on_behalf_of_confidential(self, mocker):
         mock_auth = MockMsalAuth(mocker, ConfidentialClientApplication)
         mock_auth._create_client_application = mocker.Mock(
             return_value=mock_auth.mock_client
         )
 
-        token = await mock_auth.aquire_token_on_behalf_of(
+        token = await mock_auth.acquire_token_on_behalf_of(
             scopes=["test-scope"], user_assertion="test-assertion"
         )
 
