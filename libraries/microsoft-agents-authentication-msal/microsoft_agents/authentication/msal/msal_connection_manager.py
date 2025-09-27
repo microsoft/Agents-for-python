@@ -1,3 +1,4 @@
+import re
 from typing import Dict, List, Optional
 from microsoft_agents.hosting.core import (
     AgentAuthConfiguration,
@@ -61,9 +62,32 @@ class MsalConnectionManager(Connections):
         """
         if not self._connections_map:
             return self.get_default_connection()
+        
+        aud = claims_identity.get_app_id()
+        if aud:
+            aud = aud.lower()
 
-        return self.get_default_connection()
-        # TODO: Implement logic to select the appropriate connection based on the connection map
+            for item in self._connections_map:
+                if item.get("audience", "").lower() == aud:
+                    item_service_url = item.get("serviceUrl", "")
+
+                    if item_service_url == "*" or item_service_url == "":
+                        connection_name = item.get("connectionName")
+                        connection = self.get_connection(connection_name)
+                        if connection:
+                            return connection
+                        
+                    else:
+                        match = re.match(item_service_url, service_url)
+                        if match:
+                            connection_name = item.get("connectionName")
+                            connection = self.get_connection(connection_name)
+                            if connection:
+                                return connection
+                            
+        raise ValueError(
+            f"No connection found for audience '{aud}' and serviceUrl '{service_url}'."
+        )
 
     def get_default_connection_configuration(self) -> AgentAuthConfiguration:
         """
