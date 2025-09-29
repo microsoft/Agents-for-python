@@ -3,20 +3,11 @@
 
 from abc import ABC, abstractmethod
 from datetime import datetime, timezone
-from microsoft_agents.activity.transcript import Activity
-from microsoft_agents.hosting.core.storage.transcript_info import TranscriptInfo
-from microsoft_agents.hosting.core.storage.transcript_logger import TranscriptLogger
+from microsoft_agents.activity import Activity
+from .transcript_info import TranscriptInfo
+from .transcript_logger import TranscriptLogger
 
-class TranscriptStore(ABC, TranscriptLogger):
-    @abstractmethod
-    async def log_activity(self, activity: Activity) -> None:
-        """
-        Asynchronously logs an activity.
-
-        :param activity: The activity to log.
-        """
-        pass
-
+class TranscriptStore(TranscriptLogger):
     @abstractmethod
     async def get_transcript_activities(
         self,
@@ -55,6 +46,4 @@ class TranscriptStore(ABC, TranscriptLogger):
         :param channel_id: The channel ID of the conversation.
         :param conversation_id: The conversation ID.
         """
-        pass    
-
-
+        pass

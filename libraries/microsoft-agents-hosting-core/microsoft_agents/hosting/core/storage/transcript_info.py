@@ -1,7 +1,7 @@
 # Copyright (c) Microsoft Corporation. All rights reserved.
 # Licensed under the MIT License.
 
-from datetime import datetime, timezone, timedelta
+from datetime import datetime, timezone
 from dataclasses import dataclass
 
 @dataclass
