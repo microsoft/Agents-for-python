@@ -13,7 +13,7 @@ from ..sign_in_response import SignInResponse
 logger = logging.getLogger(__name__)
 
 
-class AuthorizationVariant(ABC):
+class AuthorizationHandler(ABC):
     """Base class for different authorization strategies."""
 
     _storage: Storage
@@ -25,6 +25,7 @@ class AuthorizationVariant(ABC):
         storage: Storage,
         connection_manager: Connections,
         auth_handler: Optional[AuthHandler] = None,
+        *,
         auth_handler_settings: Optional[dict] = None,
         **kwargs,
     ) -> None:
@@ -53,7 +54,7 @@ class AuthorizationVariant(ABC):
             self._handler = AuthHandler.from_settings(auth_handler_settings)
 
     async def sign_in(
-        self, context: TurnContext, auth_handler_id: str, scopes: Optional[list[str]] = None
+        self, context: TurnContext, scopes: Optional[list[str]] = None
     ) -> SignInResponse:
         """Initiate or continue the sign-in process for the user with the given auth handler.
 
@@ -67,15 +68,12 @@ class AuthorizationVariant(ABC):
         raise NotImplementedError()
     
     async def get_refreshed_token(
-        self, context: TurnContext, auth_handler_id: str, exchange_connection, exchange_scopes: Optional[list[str]] = None
+        self, context: TurnContext, exchange_connection: Optional[str]=None, exchange_scopes: Optional[list[str]] = None
     ) -> TokenResponse:
+        """Attempts to get a refreshed token for the user with the given scopes"""
         raise NotImplementedError()
 
-    async def sign_out(
-        self,
-        context: TurnContext,
-        auth_handler_id: Optional[str] = None,
-    ) -> None:
+    async def sign_out(self, context: TurnContext) -> None:
         """Attempts to sign out the user from the specified auth handler or all handlers if none specified.
 
         :param context: The turn context for the current turn of conversation.

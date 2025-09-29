@@ -18,7 +18,7 @@ class MsalConnectionManager(Connections):
         **kwargs
     ):
         self._connections: Dict[str, MsalAuth] = {}
-        self._connections_map = connections_map or kwargs.get("CONNECTIONS_MAP", {})
+        self._connections_map = connections_map or kwargs.get("CONNECTIONSMAP", {})
         self._service_connection_configuration: AgentAuthConfiguration = None
 
         if connections_configurations:
@@ -60,35 +60,34 @@ class MsalConnectionManager(Connections):
         """
         Get the OAuth token provider for the agent.
         """
+        if not claims_identity or not service_url:
+            raise ValueError("Claims identity and Service URL are required to get the token provider.")    
+
         if not self._connections_map:
             return self.get_default_connection()
         
-        aud = claims_identity.get_app_id()
-        if aud:
-            aud = aud.lower()
+        aud = claims_identity.get_app_id() or ""
+        for item in self._connections_map:
+            audience_match = True
+            item_aud = item.get("AUDIENCE", "")
+            if item_aud:
+                audience_match = item_aud.lower() == aud.lower()
 
-            for item in self._connections_map:
-                audience_match = True
-
-                item_aud = item.get("AUDIENCE", "")
-                if item_aud:
-                    audience_match = item_aud.lower() == aud
-
-                if audience_match:
-                    item_service_url = item.get("serviceUrl", "")
-                    if item_service_url == "*" or item_service_url == "":
-                        connection_name = item.get("connectionName")
+            if audience_match:
+                item_service_url = item.get("SERVICEURL", "")
+                if item_service_url == "*" or item_service_url == "":
+                    connection_name = item.get("CONNECTION")
+                    connection = self.get_connection(connection_name)
+                    if connection:
+                        return connection
+                    
+                else:
+                    res = re.match(item_service_url, service_url, re.IGNORECASE)
+                    if res:
+                        connection_name = item.get("CONNECTION")
                         connection = self.get_connection(connection_name)
                         if connection:
                             return connection
-                        
-                    else:
-                        match = re.match(item_service_url, service_url)
-                        if match:
-                            connection_name = item.get("connectionName")
-                            connection = self.get_connection(connection_name)
-                            if connection:
-                                return connection
                             
         raise ValueError(
             f"No connection found for audience '{aud}' and serviceUrl '{service_url}'."

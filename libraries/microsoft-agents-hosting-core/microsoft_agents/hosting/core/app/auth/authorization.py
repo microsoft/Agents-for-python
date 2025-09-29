@@ -14,17 +14,16 @@ from .auth_handler import AuthHandler
 from .sign_in_state import SignInState
 from .sign_in_response import SignInResponse
 from .handlers import (
-    AgenticAuthorization,
+    AgenticUserAuthorization,
     UserAuthorization,
     AuthorizationHandler
 )
-from microsoft_agents.hosting.core.app.auth import auth_handler
 
 logger = logging.getLogger(__name__)
 
 AUTHORIZATION_TYPE_MAP = {
     UserAuthorization.__name__.lower(): UserAuthorization,
-    AgenticAuthorization.__name__.lower(): AgenticAuthorization,
+    AgenticUserAuthorization.__name__.lower(): AgenticUserAuthorization,
 }
 
 class Authorization:

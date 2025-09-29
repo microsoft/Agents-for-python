@@ -2,7 +2,7 @@
 # Licensed under the MIT License.
 
 import logging
-from typing import Dict
+from typing import Optional
 
 logger = logging.getLogger(__name__)
 
@@ -13,6 +13,13 @@ class AuthHandler:
     """
     Interface defining an authorization handler for OAuth flows.
     """
+    name: str
+    title: str
+    text: str
+    abs_oauth_connection_name: str
+    obo_connection_name: str
+    auth_type: str
+    scopes: list[str]
 
     def __init__(
         self,
@@ -22,7 +29,7 @@ class AuthHandler:
         abs_oauth_connection_name: str = "",
         obo_connection_name: str = "",
         auth_type: str = "",
-        scopes: list[str] = None
+        scopes: Optional[list[str]] = None,
         **kwargs,
     ):
         """
@@ -54,7 +61,10 @@ class AuthHandler:
         )
         self.auth_type = auth_type or kwargs.get("TYPE", "")
         self.auth_type = self.auth_type.lower()
-        self.scopes = list(scopes) or kwargs.get("SCOPES", [])
+        if scopes:
+            self.scopes = list(scopes)
+        else:
+            self.scopes = kwargs.get("SCOPES", [])
 
     @staticmethod
     def from_settings(settings: dict):

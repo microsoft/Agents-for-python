@@ -1,11 +1,9 @@
-from .agentic_authorization import AgenticAuthorization
+from .agentic_user_authorization import AgenticUserAuthorization
 from .user_authorization import UserAuthorization
-from .authorization_handler_map import AuthorizationVariantMap
-from .authorization_handler import AuthorizationVariant
+from .authorization_handler import AuthorizationHandler
 
 __all__ = [
-    "AgenticAuthorization",
+    "AgenticUserAuthorization",
     "UserAuthorization",
-    "AuthorizationVariantMap",
-    "AuthorizationVariant",
+    "AuthorizationHandler",
 ]

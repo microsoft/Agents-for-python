@@ -1,7 +1,7 @@
 from microsoft_agents.activity import load_configuration_from_env
 
 from ...create_env_var_dict import create_env_var_dict
-from .test_defaults import TEST_DEFAULTS
+from ..test_defaults import TEST_DEFAULTS
 
 DEFAULTS = TEST_DEFAULTS()
 
@@ -21,7 +21,7 @@ AGENTAPPLICATION__USERAUTHORIZATION__HANDLERS__{auth_handler_id}__SETTINGS__TYPE
 
 
 def TEST_ENV():
-    create_env_var_dict(_TEST_ENV_RAW)
+    return create_env_var_dict(_TEST_ENV_RAW)
 
 
 def TEST_ENV_DICT():

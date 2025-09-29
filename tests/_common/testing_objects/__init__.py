@@ -1,6 +1,3 @@
-from tests._common.testing_objects.mocks.mock_msal_auth import (
-    agentic_mock_class_MsalAuth,
-)
 from .adapters import TestingAdapter
 
 from .mocks import (

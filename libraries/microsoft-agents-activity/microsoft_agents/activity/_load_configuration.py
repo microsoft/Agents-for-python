@@ -1,18 +1,5 @@
 from typing import Any
 
-def _list_out_seq_dicts(node) -> Any:
-    """ Converts any dictionaries with integer keys to a list if the keys are sequential integers starting from 0."""
-
-    if isinstance(node, dict):
-        keys = node.keys()
-        num_keys = len(keys)
-        if set(keys) == set(range(num_keys)):
-            # this is a seq dict
-            return [
-                _list_out_seq_dicts(node[i]) for i in range(num_keys)
-            ]
-    return node
-
 def load_configuration_from_env(env_vars: dict[str, Any]) -> dict:
     """
     Parses environment variables and returns a dictionary with the relevant configuration.
@@ -30,7 +17,10 @@ def load_configuration_from_env(env_vars: dict[str, Any]) -> dict:
             current_level = current_level[next_level]
         last_level[levels[-1]] = value
 
-    result = _list_out_seq_dicts(result)
+    if result.get("CONNECTIONSMAP") and isinstance(result["CONNECTIONSMAP"], dict):
+        result["CONNECTIONSMAP"] = [
+            conn for conn in result.get("CONNECTIONSMAP", {}).values()
+        ]
 
     return {
         "AGENTAPPLICATION": result.get("AGENTAPPLICATION", {}),

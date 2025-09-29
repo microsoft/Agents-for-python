@@ -1,10 +1,9 @@
 from microsoft_agents.hosting.core import (
     Authorization,
     UserAuthorization,
-    AgenticAuthorization,
+    AgenticUserAuthorization,
+    SignInResponse
 )
-from microsoft_agents.hosting.core.app.auth import SignInResponse
-
 
 def mock_class_UserAuthorization(mocker, sign_in_return=None):
     if sign_in_return is None:
@@ -16,8 +15,8 @@ def mock_class_UserAuthorization(mocker, sign_in_return=None):
 def mock_class_AgenticAuthorization(mocker, sign_in_return=None):
     if sign_in_return is None:
         sign_in_return = SignInResponse()
-    mocker.patch.object(AgenticAuthorization, "sign_in", return_value=sign_in_return)
-    mocker.patch.object(AgenticAuthorization, "sign_out")
+    mocker.patch.object(AgenticUserAuthorization, "sign_in", return_value=sign_in_return)
+    mocker.patch.object(AgenticUserAuthorization, "sign_out")
 
 
 def mock_class_Authorization(mocker, start_or_continue_sign_in_return=False):

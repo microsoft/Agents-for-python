@@ -1,7 +1,7 @@
 from microsoft_agents.activity import load_configuration_from_env
 
 from ...create_env_var_dict import create_env_var_dict
-from .test_defaults import TEST_DEFAULTS
+from ..test_defaults import TEST_DEFAULTS
 
 DEFAULTS = TEST_DEFAULTS()
 

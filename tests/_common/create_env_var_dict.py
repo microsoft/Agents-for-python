@@ -3,6 +3,7 @@ def create_env_var_dict(env_raw: str) -> dict[str, str]:
     lines = env_raw.strip().split("\n")
     env = {}
     for line in lines:
+        if not line.strip(): continue
         key, value = line.split("=", 1)
         env[key.strip()] = value.strip()
     return env

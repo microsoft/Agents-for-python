@@ -17,9 +17,9 @@ from .typing_indicator import TypingIndicator
 from .auth import (
     Authorization,
     AuthHandler,
-    AuthorizationHandlers,
+    AuthorizationHandler,
     UserAuthorization,
-    AgenticAuthorization,
+    AgenticUserAuthorization,
     SignInResponse,
     SignInState,
 )
@@ -49,10 +49,9 @@ __all__ = [
     "TempState",
     "Authorization",
     "AuthHandler",
-    "AuthorizationHandlers",
-    "AuthorizationVariant",
+    "AuthorizationHandler",
     "UserAuthorization",
-    "AgenticAuthorization",
+    "AgenticUserAuthorization",
     "SignInState",
     "SignInResponse",
 ]

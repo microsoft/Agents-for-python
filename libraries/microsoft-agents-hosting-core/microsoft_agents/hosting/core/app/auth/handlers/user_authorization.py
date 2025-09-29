@@ -3,16 +3,29 @@
 
 from __future__ import annotations
 import logging
-from abc import ABC
+import jwt
 from typing import Optional
-from collections.abc import Iterable
 
 from microsoft_agents.activity import (
+    Attachment,
+    ActionTypes,
+    CardAction,
+    OAuthCard,
     TokenResponse
 )
-...connector.client import UserTokenClient
-from ...turn_context import TurnContext
-from ...auth import OAuthFlow, FlowResponse, FlowState, FlowStorageClient
+
+from microsoft_agents.hosting.core.card_factory import CardFactory
+from microsoft_agents.hosting.core.message_factory import MessageFactory
+from microsoft_agents.hosting.core.connector.client import UserTokenClient
+from microsoft_agents.hosting.core.turn_context import TurnContext
+from microsoft_agents.hosting.core.oauth import (
+    OAuthFlow,
+    FlowResponse,
+    FlowState,
+    FlowStorageClient,
+    FlowStateTag
+)
+from ..sign_in_response import SignInResponse
 from .authorization_handler import AuthorizationHandler
 
 logger = logging.getLogger(__name__)
@@ -61,15 +74,15 @@ class UserAuthorization(AuthorizationHandler):
         # try to load existing state
         flow_storage_client = FlowStorageClient(channel_id, user_id, self._storage)
         logger.info("Loading OAuth flow state from storage")
-        flow_state: FlowState = await flow_storage_client.read(self._auth_handler_id)
+        flow_state: FlowState = await flow_storage_client.read(self._handler.name)
 
         if not flow_state:
             logger.info("No existing flow state found, creating new flow state")
             flow_state = FlowState(
                 channel_id=channel_id,
                 user_id=user_id,
-                auth_handler_id=auth_handler_id,
-                connection=auth_handler.abs_oauth_connection_name,
+                auth_handler_id=self._handler,
+                connection=self._handler.abs_oauth_connection_name,
                 ms_app_id=ms_app_id,
             )
             await flow_storage_client.write(flow_state)
@@ -153,7 +166,7 @@ class UserAuthorization(AuthorizationHandler):
         flow, flow_storage_client = await self._load_flow(context)
         logger.info("Signing out from handler: %s", self._handler.name)
         await flow.sign_out()
-        await flow_storage_client.delete(auth_handler_id)))
+        await flow_storage_client.delete(self._handler.name)
 
     async def _handle_flow_response(
         self, context: TurnContext, flow_response: FlowResponse
@@ -199,7 +212,7 @@ class UserAuthorization(AuthorizationHandler):
                 await context.send_activity("Sign-in failed. Please try again.")
 
     async def sign_in(
-        self, context: TurnContext, auth_handler_id: str, scopes: Optional[list[str]] = None
+        self, context: TurnContext, exchange_connection: Optional[str] = None, scopes: Optional[list[str]] = None
     ) -> SignInResponse:
         """Begins or continues an OAuth flow.
 
@@ -239,7 +252,7 @@ class UserAuthorization(AuthorizationHandler):
         return sign_in_response
 
     async def get_refreshed_token(
-        self, context: TurnContext, exchange_connection, exchange_scopes: Optional[list[str]] = None
+        self, context: TurnContext, exchange_connection: Optional[str] = None, exchange_scopes: Optional[list[str]] = None
     ) -> TokenResponse:
         """
         Gets a refreshed token for the user.
@@ -257,7 +270,7 @@ class UserAuthorization(AuthorizationHandler):
         """
         flow, _ = await self._load_flow(context)
         input_token_response = await flow.get_user_token() # TODO
-        return self._handle_obo(
+        return await self._handle_obo(
             context,
             input_token_response,
             exchange_connection,
