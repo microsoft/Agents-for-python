@@ -8,12 +8,12 @@ from ....turn_context import TurnContext
 from ....storage import Storage
 from ....authorization import Connections
 from ..auth_handler import AuthHandler
-from ..sign_in_response import SignInResponse
+from .._sign_in_response import _SignInResponse
 
 logger = logging.getLogger(__name__)
 
 
-class AuthorizationHandler(ABC):
+class _AuthorizationHandler(ABC):
     """Base class for different authorization strategies."""
 
     _storage: Storage
@@ -52,15 +52,15 @@ class AuthorizationHandler(ABC):
         if auth_handler:
             self._handler = auth_handler
         else:
-            self._handler = AuthHandler.from_settings(auth_handler_settings)
+            self._handler = AuthHandler._from_settings(auth_handler_settings)
 
         self._id = auth_handler_id or self._handler.name
         if not self._id:
             raise ValueError("Auth handler must have an ID. Could not be deduced from settings or constructor args.")
 
-    async def sign_in(
+    async def _sign_in(
         self, context: TurnContext, scopes: Optional[list[str]] = None
-    ) -> SignInResponse:
+    ) -> _SignInResponse:
         """Initiate or continue the sign-in process for the user with the given auth handler.
 
         :param context: The turn context for the current turn of conversation.
@@ -72,13 +72,13 @@ class AuthorizationHandler(ABC):
         """
         raise NotImplementedError()
     
-    async def get_refreshed_token(
+    async def _get_refreshed_token(
         self, context: TurnContext, exchange_connection: Optional[str]=None, exchange_scopes: Optional[list[str]] = None
     ) -> TokenResponse:
         """Attempts to get a refreshed token for the user with the given scopes"""
         raise NotImplementedError()
 
-    async def sign_out(self, context: TurnContext) -> None:
+    async def _sign_out(self, context: TurnContext) -> None:
         """Attempts to sign out the user from the specified auth handler or all handlers if none specified.
 
         :param context: The turn context for the current turn of conversation.

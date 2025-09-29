@@ -11,20 +11,19 @@ from ...authorization import Connections
 from ...oauth import FlowStateTag
 from ..state import TurnState
 from .auth_handler import AuthHandler
-from .sign_in_state import SignInState
-from .sign_in_response import SignInResponse
-from .handlers import (
+from ._sign_in_state import _SignInState
+from ._sign_in_response import _SignInResponse
+from ._handlers import (
     AgenticUserAuthorization,
-    UserAuthorization,
-    AuthorizationHandler
+    _UserAuthorization,
+    _AuthorizationHandler
 )
-from microsoft_agents.hosting.core.app.auth import auth_handler
 
 logger = logging.getLogger(__name__)
 
 AUTHORIZATION_TYPE_MAP = {
-    UserAuthorization.__name__.lower(): UserAuthorization,
-    AgenticUserAuthorization.__name__.lower(): AgenticUserAuthorization,
+    "userauthorization": _UserAuthorization,
+    "agenticuserauthorization": AgenticUserAuthorization,
 }
 
 class Authorization:
@@ -32,7 +31,7 @@ class Authorization:
 
     _storage: Storage
     _connection_manager: Connections
-    _handlers: dict[str, AuthorizationHandler]
+    _handlers: dict[str, _AuthorizationHandler]
 
     def __init__(
         self,
@@ -115,7 +114,7 @@ class Authorization:
             )
 
     @staticmethod
-    def sign_in_state_key(context: TurnContext) -> str:
+    def _sign_in_state_key(context: TurnContext) -> str:
         """Generate a unique storage key for the sign-in state based on the context.
 
         This is the key used to store and retrieve the sign-in state from storage, and
@@ -130,22 +129,22 @@ class Authorization:
 
     async def _load_sign_in_state(self, context: TurnContext) -> Optional[SignInState]:
         """Load the sign-in state from storage for the given context."""
-        key = self.sign_in_state_key(context)
+        key = self._sign_in_state_key(context)
         return (await self._storage.read([key], target_cls=SignInState)).get(key)
 
     async def _save_sign_in_state(
         self, context: TurnContext, state: SignInState
     ) -> None:
         """Save the sign-in state to storage for the given context."""
-        key = self.sign_in_state_key(context)
+        key = self._sign_in_state_key(context)
         await self._storage.write({key: state})
 
     async def _delete_sign_in_state(self, context: TurnContext) -> None:
         """Delete the sign-in state from storage for the given context."""
-        key = self.sign_in_state_key(context)
+        key = self._sign_in_state_key(context)
         await self._storage.delete([key])
 
-    def resolve_handler(self, handler_id: str) -> AuthorizationHandler:
+    def _resolve_handler(self, handler_id: str) -> _AuthorizationHandler:
         """Resolve the auth handler by its ID.
 
         :param handler_id: The ID of the auth handler to resolve.
@@ -160,7 +159,7 @@ class Authorization:
             )
         return self._handlers[handler_id]
 
-    async def start_or_continue_sign_in(
+    async def _start_or_continue_sign_in(
         self, context: TurnContext, state: TurnState, auth_handler_id: Optional[str] = None
     ) -> SignInResponse:
         """Start or continue the sign-in process for the user with the given auth handler.
@@ -195,10 +194,10 @@ class Authorization:
                 ),
             )
 
-        handler = self.resolve_handler(auth_handler_id)
+        handler = self._resolve_handler(auth_handler_id)
 
         # attempt sign-in continuation (or beginning)
-        sign_in_response = await handler.sign_in(context)
+        sign_in_response = await handler._sign_in(context)
 
         if sign_in_response.tag == FlowStateTag.COMPLETE:
             if self._sign_in_success_handler:
@@ -235,12 +234,12 @@ class Authorization:
         sign_in_state = await self._load_sign_in_state(context)
         if sign_in_state and auth_handler_id in sign_in_state.tokens:
                 # sign out from specific handler
-                handler = self.resolve_handler(auth_handler_id)
-                await handler.sign_out(context)
+                handler = self._resolve_handler(auth_handler_id)
+                await handler._sign_out(context)
                 del sign_in_state.tokens[auth_handler_id]
                 await self._save_sign_in_state(context, sign_in_state)
 
-    async def on_turn_auth_intercept(
+    async def _on_turn_auth_intercept(
         self, context: TurnContext, state: TurnState
     ) -> tuple[bool, Optional[Activity]]:
         """Intercepts the turn to check for active authentication flows.
@@ -307,7 +306,7 @@ class Authorization:
                 f"Auth handler {auth_handler_id} not recognized or not configured."
             )
 
-        handler = self.resolve_handler(auth_handler_id)
+        handler = self._resolve_handler(auth_handler_id)
 
         sign_in_state = await self._load_sign_in_state(context)
         if not sign_in_state or not sign_in_state.tokens.get(auth_handler_id):
@@ -323,8 +322,7 @@ class Authorization:
         #             if diff > 0:
         #                 return token_res.token
                     
-        handler = self.resolve_handler(auth_handler_id)
-        res = await handler.get_refreshed_token(context, exchange_connection, scopes)
+        res = await handler._get_refreshed_token(context, exchange_connection, scopes)
         if res:
             sign_in_state.tokens[auth_handler_id] = res.token
             await self._save_sign_in_state(context, sign_in_state)

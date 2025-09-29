@@ -5,7 +5,7 @@ from microsoft_agents.activity import TokenResponse
 from ...oauth import FlowStateTag
 
 
-class SignInResponse:
+class _SignInResponse:
     """Response for a sign-in attempt, including the token response and flow state tag."""
 
     token_response: TokenResponse

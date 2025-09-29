@@ -18,20 +18,20 @@ from microsoft_agents.hosting.core.card_factory import CardFactory
 from microsoft_agents.hosting.core.message_factory import MessageFactory
 from microsoft_agents.hosting.core.connector.client import UserTokenClient
 from microsoft_agents.hosting.core.turn_context import TurnContext
-from microsoft_agents.hosting.core.oauth import (
-    OAuthFlow,
-    FlowResponse,
-    FlowState,
-    FlowStorageClient,
-    FlowStateTag
+from microsoft_agents.hosting.core._oauth import (
+    _OAuthFlow,
+    _FlowResponse,
+    _FlowState,
+    _FlowStorageClient,
+    _FlowStateTag
 )
-from ..sign_in_response import SignInResponse
-from .authorization_handler import AuthorizationHandler
+from ..sign_in_response import _SignInResponse
+from ._authorization_handler import _AuthorizationHandler
 
 logger = logging.getLogger(__name__)
 
 
-class UserAuthorization(AuthorizationHandler):
+class _UserAuthorization(_AuthorizationHandler):
     """
     Class responsible for managing authorization and OAuth flows.
     Handles multiple OAuth providers and manages the complete authentication lifecycle.
@@ -133,7 +133,7 @@ class UserAuthorization(AuthorizationHandler):
         )
         return TokenResponse(token=token) if token else TokenResponse()
 
-    async def sign_out(
+    async def _sign_out(
         self,
         context: TurnContext,
     ) -> None:
@@ -193,7 +193,7 @@ class UserAuthorization(AuthorizationHandler):
                 logger.warning("Sign-in flow failed for unknown reasons.")
                 await context.send_activity("Sign-in failed. Please try again.")
 
-    async def sign_in(
+    async def _sign_in(
         self, context: TurnContext, exchange_connection: Optional[str] = None, exchange_scopes: Optional[list[str]] = None
     ) -> SignInResponse:
         """Begins or continues an OAuth flow.
@@ -233,7 +233,7 @@ class UserAuthorization(AuthorizationHandler):
         
         return SignInResponse(tag=flow_response.flow_state.tag)
 
-    async def get_refreshed_token(
+    async def _get_refreshed_token(
         self, context: TurnContext, exchange_connection: Optional[str] = None, exchange_scopes: Optional[list[str]] = None
     ) -> TokenResponse:
         """

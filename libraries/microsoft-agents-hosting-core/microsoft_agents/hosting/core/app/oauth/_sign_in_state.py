@@ -8,7 +8,7 @@ from ...storage._type_aliases import JSON
 from ...storage import StoreItem
 
 
-class SignInState(StoreItem):
+class _SignInState(StoreItem):
     """Store item for sign-in state, including tokens and continuation activity.
 
     Used to cache tokens and keep track of activities during single and
@@ -30,10 +30,10 @@ class SignInState(StoreItem):
         }
 
     @staticmethod
-    def from_json_to_store_item(json_data: JSON) -> SignInState:
-        return SignInState(json_data["tokens"], json_data.get("continuation_activity"))
+    def from_json_to_store_item(json_data: JSON) -> _SignInState:
+        return _SignInState(json_data["tokens"], json_data.get("continuation_activity"))
 
-    def active_handler(self) -> str:
+    def _active_handler(self) -> str:
         """Return the handler ID that is missing a token, according to the state."""
         for handler_id, token in self.tokens.items():
             if not token:

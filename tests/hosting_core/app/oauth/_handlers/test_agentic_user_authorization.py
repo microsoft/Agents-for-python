@@ -10,31 +10,12 @@ from microsoft_agents.activity import (
 
 from microsoft_agents.authentication.msal import MsalAuth, MsalConnectionManager
 
-from microsoft_agents.hosting.core import (
-    AgenticUserAuthorization,
-    SignInResponse,
-    MemoryStorage,
-    FlowStateTag,
-)
+from microsoft_agents.hosting.core.app.oauth import AgenticUserAuthorization
+from microsoft_agents.hosting.core.storage import MemoryStorage
+from microsoft_agents.hosting.core._oauth import FlowStateTag
 
-from tests._common.data import (
-    # TEST_FLOW_DATA,
-    # TEST_AUTH_DATA,
-    # TEST_STORAGE_DATA,
-    TEST_DEFAULTS,
-    # TEST_ENV_DICT,
-    TEST_AGENTIC_ENV_DICT,
-    # create_test_auth_handler,
-)
-
-from tests._common.testing_objects import (
-    # TestingConnectionManager,
-    # TestingTokenProvider,
-    # agentic_mock_class_MsalAuth,
-    TestingConnectionManager as MockConnectionManager,
-)
-
-from tests._common.mock_utils import mock_class, mock_instance
+from tests._common.data import TEST_DEFAULTS, TEST_AGENTIC_ENV_DICT
+from tests._common.mock_utils import mock_class
 
 from .._common import (
     testing_TurnContext_magic,

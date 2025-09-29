@@ -7,12 +7,12 @@ from microsoft_agents.activity import TokenResponse
 from ....turn_context import TurnContext
 from ....oauth import FlowStateTag
 from ..sign_in_response import SignInResponse
-from .authorization_handler import AuthorizationHandler
+from ._authorization_handler import _AuthorizationHandler
 
 logger = logging.getLogger(__name__)
 
 
-class AgenticUserAuthorization(AuthorizationHandler):
+class AgenticUserAuthorization(_AuthorizationHandler):
     """Class responsible for managing agentic authorization"""
 
     async def get_agentic_instance_token(self, context: TurnContext) -> Optional[str]:

@@ -610,7 +610,7 @@ class AgentApplication(Agent, Generic[StateT]):
             (
                 auth_intercepts,
                 continuation_activity,
-            ) = await self._auth.on_turn_auth_intercept(context, turn_state)
+            ) = await self._auth._on_turn_auth_intercept(context, turn_state)
             if auth_intercepts:
                 if continuation_activity:
                     new_context = copy(context)
@@ -740,7 +740,7 @@ class AgentApplication(Agent, Generic[StateT]):
                     sign_in_complete = True
                     for auth_handler_id in route.auth_handlers:
                         if not (
-                            await self._auth.start_or_continue_sign_in(
+                            await self._auth._start_or_continue_sign_in(
                                 context, state, auth_handler_id
                             )
                         ).sign_in_complete():

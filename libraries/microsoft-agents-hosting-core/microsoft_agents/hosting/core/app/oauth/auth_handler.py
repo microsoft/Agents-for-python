@@ -64,14 +64,14 @@ class AuthHandler:
         if scopes:
             self.scopes = list(scopes)
         else:
-            self.scopes = AuthHandler.format_scopes(kwargs.get("SCOPES", ""))
+            self.scopes = AuthHandler._format_scopes(kwargs.get("SCOPES", ""))
     @staticmethod
-    def format_scopes(scopes: str) -> list[str]:
+    def _format_scopes(scopes: str) -> list[str]:
         lst = scopes.strip().split(" ")
         return [ s for s in lst if s ]
 
     @staticmethod
-    def from_settings(settings: dict):
+    def _from_settings(settings: dict):
         """
         Creates an AuthHandler instance from a settings dictionary.
 
