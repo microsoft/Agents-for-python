@@ -35,12 +35,12 @@ class ConsoleTranscriptLogger(TranscriptLogger):
         """Log an activity to the transcript.
         :param activity:Activity being logged.
         """
-        if activity:
-            json_data = activity.model_dump_json()
-            parsed = json.loads(json_data)
-            print(json.dumps(parsed, indent=4))            
-        else:
+        if not activity:
             raise TypeError("Activity is required")
+        
+        json_data = activity.model_dump_json()
+        parsed = json.loads(json_data)
+        print(json.dumps(parsed, indent=4))                        
 
 class FileTranscriptLogger(TranscriptLogger):
     """ 
@@ -66,6 +66,9 @@ class FileTranscriptLogger(TranscriptLogger):
 
         :param activity: The Activity object to log.
         """
+        if not activity:
+            raise TypeError("Activity is required")
+        
         json_data = activity.model_dump_json()
         parsed = json.loads(json_data)
 
@@ -81,9 +84,8 @@ class TranscriptLoggerMiddleware(Middleware):
 
     def __init__(self, logger: TranscriptLogger):
         if not logger:
-            raise TypeError(
-                "TranscriptLoggerMiddleware requires a TranscriptLogger instance."
-            )
+            raise TypeError("TranscriptLoggerMiddleware requires a TranscriptLogger instance.")
+        
         self.logger = logger
 
     async def on_turn(
