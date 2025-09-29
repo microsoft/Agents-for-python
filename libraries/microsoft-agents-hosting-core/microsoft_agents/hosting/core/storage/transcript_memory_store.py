@@ -34,12 +34,13 @@ class TranscriptMemoryStore(TranscriptLogger):
         :param activity: The Activity object to log. Must have a valid conversation and conversation id.
         :raises ValueError: If activity, activity.conversation, or activity.conversation.id is None.
         """
-        if activity is None:
+        if not activity:
             raise ValueError("Activity cannot be None")
-        if activity.conversation is None:
+        if not activity.conversation:
             raise ValueError("Activity.Conversation cannot be None")
-        if activity.conversation.id is None:
+        if not activity.conversation.id:
             raise ValueError("Activity.Conversation.id cannot be None")
+        
         with self.lock:
             self._transcript.append(activity)
 
@@ -60,10 +61,11 @@ class TranscriptMemoryStore(TranscriptLogger):
         :return: A tuple containing the filtered list of Activity objects and a continuation token (always None).
         :raises ValueError: If channel_id or conversation_id is None.
         """
-        if channel_id is None:
+        if not channel_id:
             raise ValueError("channel_id cannot be None")
-        if conversation_id is None:
+        if not conversation_id:
             raise ValueError("conversation_id cannot be None")
+        
         with self.lock:
             # Get the activities that match on channel and conversation id
             relevant_activities = [
@@ -91,10 +93,11 @@ class TranscriptMemoryStore(TranscriptLogger):
         :param conversation_id: The conversation ID whose transcript should be deleted.
         :raises ValueError: If channel_id or conversation_id is None.
         """
-        if channel_id is None:
+        if not channel_id:
             raise ValueError("channel_id cannot be None")
-        if conversation_id is None:
+        if not conversation_id:
             raise ValueError("conversation_id cannot be None")
+        
         with self.lock:
             self._transcript = [
                 a for a in self._transcript
@@ -110,8 +113,9 @@ class TranscriptMemoryStore(TranscriptLogger):
         :return: A tuple containing a list of TranscriptInfo objects and a continuation token (always None).
         :raises ValueError: If channel_id is None.
         """
-        if channel_id is None:
+        if not channel_id:
             raise ValueError("channel_id cannot be None")
+        
         with self.lock:
             relevant_activities = [a for a in self._transcript if a.channel_id == channel_id]
             conversations = set(a.conversation.id for a in relevant_activities if a.conversation and a.conversation.id)
