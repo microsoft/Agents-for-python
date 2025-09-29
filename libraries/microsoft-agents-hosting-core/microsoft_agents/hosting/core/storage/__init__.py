@@ -2,7 +2,7 @@ from .store_item import StoreItem
 from .storage import Storage, AsyncStorageBase
 from .memory_storage import MemoryStorage
 from .transcript_info import TranscriptInfo
-from .transcript_logger import TranscriptLogger, ConsoleTranscriptLogger, TranscriptLoggerMiddleware # TranscriptStore
+from .transcript_logger import TranscriptLogger, ConsoleTranscriptLogger, TranscriptLoggerMiddleware, FileTranscriptLogger
 from .transcript_store import TranscriptStore
 
 __all__ = ["StoreItem",
@@ -13,8 +13,6 @@ __all__ = ["StoreItem",
             "TranscriptLogger",
             "ConsoleTranscriptLogger",
             "TranscriptLoggerMiddleware",
-            "TranscriptStore"
+            "TranscriptStore",
+            "FileTranscriptLogger"
         ]
-
-            # "TranscriptStore", 
-            # "TranscriptMemoryStore" ]

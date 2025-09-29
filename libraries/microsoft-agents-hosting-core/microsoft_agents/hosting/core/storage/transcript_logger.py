@@ -7,7 +7,8 @@ import copy
 from datetime import datetime, timezone
 import random
 import string
-from typing import Awaitable, Callable, List
+from typing import Awaitable, Callable, List, Optional
+import json
 from microsoft_agents.activity import Activity, ChannelAccount
 from microsoft_agents.activity.activity import ConversationReference
 from microsoft_agents.activity.activity_types import ActivityTypes
@@ -25,16 +26,55 @@ class TranscriptLogger(ABC):
         pass
 
 class ConsoleTranscriptLogger(TranscriptLogger):
-    """ConsoleTranscriptLogger writes activities to Console output."""
+    """
+        ConsoleTranscriptLogger writes activities to Console output. This is a DEBUG class, intended for testing 
+        and log tailing
+    """
 
     async def log_activity(self, activity: Activity) -> None:
         """Log an activity to the transcript.
         :param activity:Activity being logged.
         """
         if activity:
-            print(f"Activity Log: {activity}")
+            json_data = activity.model_dump_json()
+            parsed = json.loads(json_data)
+            print(json.dumps(parsed, indent=4))            
         else:
             raise TypeError("Activity is required")
+
+class FileTranscriptLogger(TranscriptLogger):
+    """ 
+    A TranscriptLogger implementation that appends each activity as JSON to a file. This class appends 
+    each activity to the given file using basic formatting. This is a DEBUG class, intended for testing 
+    and log tailing. 
+    """
+    def __init__(self, file_path: str, encoding: Optional[str] = "utf-8"):
+        """
+        Initializes the FileTranscriptLogger and opens the file for appending.
+
+        :param file_path: Path to the transcript log file.
+        :param encoding: File encoding (default: utf-8).
+        """
+        self.file_path = file_path
+        self.encoding = encoding
+        # Open file in append mode to ensure it exists
+        self._file = open(self.file_path, "a", encoding=self.encoding)
+
+    async def log_activity(self, activity: Activity) -> None:
+        """
+        Appends the given activity as a JSON line to the file.
+
+        :param activity: The Activity object to log.
+        """
+        json_data = activity.model_dump_json()
+        parsed = json.loads(json_data)
+
+        self._file.write(json.dumps(parsed, indent=4))
+        self._file.flush()
+
+    def __del__(self):
+        if hasattr(self, "_file"):
+            self._file.close()
 
 class TranscriptLoggerMiddleware(Middleware):
     """Logs incoming and outgoing activities to a TranscriptLogger."""

@@ -1,6 +1,8 @@
+# Copyright (c) Microsoft Corporation. All rights reserved.
+# Licensed under the MIT License.
+
 from datetime import datetime, timezone
 import pytest
-import asyncio
 from microsoft_agents.hosting.core.storage.transcript_memory_store import TranscriptMemoryStore
 from microsoft_agents.activity import Activity, ConversationAccount
 
