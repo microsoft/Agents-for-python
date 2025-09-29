@@ -18,6 +18,7 @@ from .handlers import (
     UserAuthorization,
     AuthorizationHandler
 )
+from microsoft_agents.hosting.core.app.auth import auth_handler
 
 logger = logging.getLogger(__name__)
 
@@ -71,9 +72,7 @@ class Authorization:
 
         self._handlers = {}
 
-        if auth_handlers and len(auth_handlers) > 0:
-            self._init_auth_variants(auth_handlers)
-        else:
+        if not auth_handlers:
 
             auth_configuration: dict = kwargs.get("AGENTAPPLICATION", {}).get(
                 "USERAUTHORIZATION", {}
@@ -202,7 +201,7 @@ class Authorization:
         handler = self.resolve_handler(auth_handler_id)
 
         # attempt sign-in continuation (or beginning)
-        sign_in_response = await handler.sign_in(context, auth_handler_id, handler.scopes)
+        sign_in_response = await handler.sign_in(context)
 
         if sign_in_response.tag == FlowStateTag.COMPLETE:
             if self._sign_in_success_handler:
@@ -283,7 +282,7 @@ class Authorization:
 
     async def get_token(
         self, context: TurnContext, auth_handler_id: Optional[str] = None
-    ) -> str:
+    ) -> Optional[str]:
         """Gets the token for a specific auth handler.
 
         The token is taken from cache, so this does not initiate nor continue a sign-in flow.
@@ -295,7 +294,7 @@ class Authorization:
         :return: The token response from the OAuth provider.
         :rtype: TokenResponse
         """
-        return self.exchange_token(context, auth_handler_id)
+        return await self.exchange_token(context, auth_handler_id)
 
     async def exchange_token(
         self,
@@ -305,22 +304,30 @@ class Authorization:
         scopes: Optional[list[str]] = None
     ) -> Optional[str]:
         
+        auth_handler_id = auth_handler_id or self._default_handler_id
+        if auth_handler_id not in self._handlers:
+            raise ValueError(
+                f"Auth handler {auth_handler_id} not recognized or not configured."
+            )
+
         handler = self.resolve_handler(auth_handler_id)
 
         sign_in_state = await self._load_sign_in_state(context)
         if not sign_in_state or not sign_in_state.tokens.get(auth_handler_id):
             return None
         
-        token_res = sign_in_state.tokens[auth_handler_id]
-        if not context.activity.is_agentic():
-            if not token_res.is_exchangeable:
-                if token.expiration is not None:
-                    diff = token.expiration - datetime.now().timestamp()
-                    if diff >= SOME_VALUE:
-                        return token_res.token
+        # for later -> parity with .NET
+        # token_res = sign_in_state.tokens[auth_handler_id]
+        # if not context.activity.is_agentic():
+        #     if token_res and not token_res.is_exchangeable():
+        #         token = token_res.token
+        #         if token.expiration is not None:
+        #             diff = token.expiration - datetime.now().timestamp()
+        #             if diff > 0:
+        #                 return token_res.token
                     
         handler = self.resolve_handler(auth_handler_id)
-        res = await handler.get_refreshed_token(context, auth_handler_id, exchange_connection, scopes)
+        res = await handler.get_refreshed_token(context, exchange_connection, scopes)
         if res:
             sign_in_state.tokens[auth_handler_id] = res.token
             await self._save_sign_in_state(context, sign_in_state)

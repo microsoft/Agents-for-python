@@ -92,7 +92,7 @@ class AgenticUserAuthorization(AuthorizationHandler):
     ) -> TokenResponse:
         """Gets a refreshed agentic user token if available."""
         if not exchange_scopes:
-            exchange_scopes = self._handler.exchange_scopes or []
+            exchange_scopes = self._handler.scopes or []
         token = await self.get_agentic_user_token(context, exchange_scopes)
         return TokenResponse(token=token) if token else TokenResponse()
 

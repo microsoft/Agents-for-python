@@ -7,7 +7,7 @@ from .mocks import (
     mock_UserTokenClient,
     mock_class_UserTokenClient,
     mock_class_UserAuthorization,
-    mock_class_AgenticAuthorization,
+    mock_class_AgenticUserAuthorization,
     mock_class_Authorization,
     agentic_mock_class_MsalAuth,
 )
@@ -31,7 +31,7 @@ __all__ = [
     "TestingUserTokenClient",
     "TestingAdapter",
     "mock_class_UserAuthorization",
-    "mock_class_AgenticAuthorization",
+    "mock_class_AgenticUserAuthorization",
     "mock_class_Authorization",
     "agentic_mock_class_MsalAuth",
 ]

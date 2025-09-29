@@ -120,7 +120,7 @@ class UserAuthorization(AuthorizationHandler):
         if not connection_name or not exchange_scopes:
             return input_token_response
         
-        if not self._is_exchangeable(input_token_response.token):
+        if not input_token_response.is_exchangeable():
             return input_token_response
         
         token_provider = self._connection_manager.get_connection(connection_name)
@@ -132,23 +132,6 @@ class UserAuthorization(AuthorizationHandler):
             user_assertion=input_token_response.token,
         )
         return TokenResponse(token=token) if token else TokenResponse()
-
-    def _is_exchangeable(self, token: str) -> bool:
-        """
-        Checks if a token is exchangeable (has api:// audience).
-
-        :param token: The token to check.
-        :type token: str
-        :return: True if the token is exchangeable, False otherwise.
-        """
-        try:
-            # Decode without verification to check the audience
-            payload = jwt.decode(token, options={"verify_signature": False})
-            aud = payload.get("aud")
-            return isinstance(aud, str) and aud.startswith("api://")
-        except Exception:
-            logger.error("Failed to decode token to check audience")
-            return False
 
     async def sign_out(
         self,

@@ -195,7 +195,7 @@ class TestAgenticUserAuthorization(TestUtils):
         connection_manager.get_token_provider = mocker.Mock(return_value=mock_provider)
 
         agentic_auth = AgenticUserAuthorization(
-            MemoryStorage(), connection_manager, auth_handler_settings=auth_handler_settings
+            MemoryStorage(), connection_manager, auth_handler_settings=auth_handler_settings, auth_handler_id=DEFAULTS.agentic_auth_handler_id
         )
 
         activity = Activity(
@@ -222,7 +222,7 @@ class TestAgenticUserAuthorization(TestUtils):
         connection_manager.get_token_provider = mocker.Mock(return_value=mock_provider)
 
         agentic_auth = AgenticUserAuthorization(
-            MemoryStorage(), connection_manager, auth_handler_settings=auth_handler_settings
+            MemoryStorage(), connection_manager, auth_handler_settings=auth_handler_settings, auth_handler_id=DEFAULTS.agentic_auth_handler_id
         )
 
         activity = Activity(
@@ -257,7 +257,7 @@ class TestAgenticUserAuthorization(TestUtils):
         connection_manager.get_token_provider = mocker.Mock(return_value=mock_provider)
 
         agentic_auth = AgenticUserAuthorization(
-            MemoryStorage(), connection_manager, auth_handler_settings=auth_handler_settings
+            MemoryStorage(), connection_manager, auth_handler_settings=auth_handler_settings, auth_handler_id=DEFAULTS.agentic_auth_handler_id
         )
         activity = Activity(
             type="message",
@@ -292,7 +292,7 @@ class TestAgenticUserAuthorization(TestUtils):
         connection_manager.get_token_provider = mocker.Mock(return_value=mock_provider)
 
         agentic_auth = AgenticUserAuthorization(
-            MemoryStorage(), connection_manager, auth_handler_settings=auth_handler_settings
+            MemoryStorage(), connection_manager, auth_handler_settings=auth_handler_settings, auth_handler_id=DEFAULTS.agentic_auth_handler_id
         )
         activity = Activity(
             type="message",
@@ -327,7 +327,7 @@ class TestAgenticUserAuthorization(TestUtils):
         connection_manager.get_token_provider = mocker.Mock(return_value=mock_provider)
 
         agentic_auth = AgenticUserAuthorization(
-            MemoryStorage(), connection_manager, auth_handler_settings=auth_handler_settings
+            MemoryStorage(), connection_manager, auth_handler_settings=auth_handler_settings, auth_handler_id=DEFAULTS.agentic_auth_handler_id
         )
         activity = Activity(
             type="message",
@@ -361,7 +361,7 @@ class TestAgenticUserAuthorization(TestUtils):
         connection_manager.get_token_provider = mocker.Mock(return_value=mock_provider)
 
         agentic_auth = AgenticUserAuthorization(
-            MemoryStorage(), connection_manager, auth_handler_settings=auth_handler_settings
+            MemoryStorage(), connection_manager, auth_handler_settings=auth_handler_settings, auth_handler_id=DEFAULTS.agentic_auth_handler_id
         )
         activity = Activity(
             type="message",

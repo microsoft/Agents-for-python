@@ -45,9 +45,6 @@ ENV_DICT = {
                 },
             }
         },
-        "AGENTICAUTHORIZATION": {
-            "HANDLERS": {}
-        }
     },
     "CONNECTIONSMAP": [
         {
