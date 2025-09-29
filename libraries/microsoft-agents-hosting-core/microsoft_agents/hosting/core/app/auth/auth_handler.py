@@ -59,7 +59,7 @@ class AuthHandler:
         self.obo_connection_name = obo_connection_name or kwargs.get(
             "OBOCONNECTIONNAME", ""
         )
-        self.auth_type = auth_type or kwargs.get("TYPE", "")
+        self.auth_type = auth_type or kwargs.get("TYPE", "UserAuthorization")
         self.auth_type = self.auth_type.lower()
         if scopes:
             self.scopes = list(scopes)

@@ -89,13 +89,10 @@ class Authorization:
         
         self._handler_settings = auth_handlers
 
-        # compatibility? TODO
-        if not auth_handlers or len(auth_handlers) == 0:
-            raise ValueError("At least one auth handler configuration is required.")
-
         # operations default to the first handler if none specified
-        self._default_handler_id = next(iter(self._handler_settings.items()))[0]
-        self._init_handlers()
+        if self._handler_settings:
+            self._default_handler_id = next(iter(self._handler_settings.items()))[0]
+            self._init_handlers()
 
     def _init_handlers(self) -> None:
         """Initialize authorization variants based on the provided auth handlers.
