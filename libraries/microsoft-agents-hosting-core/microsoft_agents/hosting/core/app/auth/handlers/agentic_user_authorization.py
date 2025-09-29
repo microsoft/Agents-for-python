@@ -67,7 +67,7 @@ class AgenticUserAuthorization(AuthorizationHandler):
         self,
         context: TurnContext,
         exchange_connection: Optional[str] = None,
-        scopes: Optional[list[str]] = None,
+        exchange_scopes: Optional[list[str]] = None,
     ) -> SignInResponse:
         """Retrieves the agentic user token if available.
 
@@ -80,7 +80,7 @@ class AgenticUserAuthorization(AuthorizationHandler):
         :return: A SignInResponse containing the token response and flow state tag.
         :rtype: SignInResponse
         """
-        token_response = await self.get_refreshed_token(context, exchange_connection, scopes)
+        token_response = await self.get_refreshed_token(context, exchange_connection, exchange_scopes)
         if token_response:
             return SignInResponse(token_response=token_response, tag=FlowStateTag.COMPLETE)
         return SignInResponse(tag=FlowStateTag.FAILURE)
@@ -88,12 +88,12 @@ class AgenticUserAuthorization(AuthorizationHandler):
     async def get_refreshed_token(self,
         context: TurnContext,
         exchange_connection: Optional[str] = None,
-        scopes: Optional[list[str]] = None
+        exchange_scopes: Optional[list[str]] = None
     ) -> TokenResponse:
         """Gets a refreshed agentic user token if available."""
-        if not scopes:
-            scopes = self._handler.scopes or []
-        token = await self.get_agentic_user_token(context, scopes)
+        if not exchange_scopes:
+            exchange_scopes = self._handler.exchange_scopes or []
+        token = await self.get_agentic_user_token(context, exchange_scopes)
         return TokenResponse(token=token) if token else TokenResponse()
 
     async def sign_out(self, context: TurnContext, auth_handler_id: Optional[str] = None) -> None:

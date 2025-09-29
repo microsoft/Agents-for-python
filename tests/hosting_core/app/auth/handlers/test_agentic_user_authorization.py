@@ -58,12 +58,12 @@ class TestUtils:
 
     @pytest.fixture
     def auth_handler_settings(self):
-        return AGENTIC_ENV_DICT["AGENTAPPLICATION"]["USERAUTHORIZATION"]["HANDLERS"][DEFAULTS.auth_handler_id]["SETTINGS"]
+        return AGENTIC_ENV_DICT["AGENTAPPLICATION"]["USERAUTHORIZATION"]["HANDLERS"][DEFAULTS.agentic_auth_handler_id]["SETTINGS"]
 
     @pytest.fixture
     def agentic_auth(self, storage, connection_manager, auth_handler_settings):
         return AgenticUserAuthorization(storage, connection_manager,
-            auth_handler_settings=auth_handler_settings)
+            auth_handler_settings=auth_handler_settings, auth_handler_id=DEFAULTS.agentic_auth_handler_id)
 
     @pytest.fixture(params=[RoleTypes.user, RoleTypes.skill, RoleTypes.agent])
     def non_agentic_role(self, request):
@@ -89,40 +89,6 @@ class TestUtils:
 
 
 class TestAgenticUserAuthorization(TestUtils):
-    # @pytest.mark.parametrize(
-    #     "activity",
-    #     [
-    #         Activity(
-    #             type="message",
-    #             recipient=ChannelAccount(
-    #                 id="bot_id",
-    #                 agentic_app_id=DEFAULTS.agentic_instance_id,
-    #                 role=RoleTypes.agent,
-    #             ),
-    #         ),
-    #         Activity(
-    #             type="message",
-    #             recipient=ChannelAccount(
-    #                 id=DEFAULTS.agentic_user_id,
-    #                 agentic_app_id=DEFAULTS.agentic_instance_id,
-    #                 role=RoleTypes.agentic_user,
-    #             ),
-    #         ),
-    #         Activity(
-    #             type="message",
-    #             recipient=ChannelAccount(
-    #                 id=DEFAULTS.agentic_user_id,
-    #             ),
-    #         ),
-    #         Activity(type="message", recipient=ChannelAccount(id="some_id")),
-    #     ],
-    # )
-    # def test_is_agentic_request(self, mocker, activity):
-    #     assert activity.is_agentic() == AgenticUserAuthorization.is_agentic_request(
-    #         activity
-    #     )
-    #     context = self.TurnContext(mocker, activity=activity)
-    #     assert activity.is_agentic() == AgenticUserAuthorization.is_agentic_request(context)
 
     def test_get_agent_instance_id_is_agentic(self, mocker, agentic_role):
         activity = Activity(
@@ -280,16 +246,11 @@ class TestAgenticUserAuthorization(TestUtils):
         "scopes_list, expected_scopes_list",
         [
             (["user.Read"], ["user.Read"]),
-            # (["User.Read"], ["user.Read"]),
-            # (["USER.READ"], ["user.Read"]),
-            # ([" user.read "], ["user.Read"]),
-            # (["user.read", "Mail.Read"], ["user.Read", "mail.Read"]),
-            # ([" user.read ", " mail.read "], ["user.Read", "mail.Read"]),
-            # ([], []),
-            # (None, []),
+            ([], ["user.Read", "Mail.Read"]),
+            (None, ["user.Read", "Mail.Read"]),
         ],
     )
-    async def test_sign_in_success(self, mocker, scopes_list, expected_scopes_list, auth_handler_settings):
+    async def test_sign_in_success(self, mocker, scopes_list, agentic_role, expected_scopes_list, auth_handler_settings):
         mock_provider = self.mock_provider(mocker, user_token="my_token")
 
         connection_manager = mocker.Mock(spec=MsalConnectionManager)
@@ -298,26 +259,121 @@ class TestAgenticUserAuthorization(TestUtils):
         agentic_auth = AgenticUserAuthorization(
             MemoryStorage(), connection_manager, auth_handler_settings=auth_handler_settings
         )
-        context = self.TurnContext(mocker)
+        activity = Activity(
+            type="message",
+            recipient=ChannelAccount(
+                id="some_id",
+                agentic_app_id=DEFAULTS.agentic_instance_id,
+                role=agentic_role,
+            ),
+        )
+        context = self.TurnContext(mocker, activity=activity)
         res = await agentic_auth.sign_in(context, "my_connection", scopes_list)
         assert res.token_response.token == "my_token"
         assert res.tag == FlowStateTag.COMPLETE
 
-        assert mock_provider.get_agentic_user_token.call_count == 1
-        args = mock_provider.get_agentic_user_token.call_args[0]
-        assert args[0] == context
-        assert args[1] == "my_connection"
-        assert args[2] == expected_scopes_list
+        mock_provider.get_agentic_user_token.assert_called_once_with(
+            DEFAULTS.agentic_instance_id, "some_id", expected_scopes_list
+        )
     
-    # @pytest.mark.asyncio
-    # async def test_sign_in_failure(self, mocker, agentic_auth):
-    #      mocker.patch.object(
-    #         AgenticUserAuthorization, "get_refreshed_token", return_value=TokenResponse()
-    #     )
-    #     context = self.TurnContext(mocker)
-    #     res = await agentic_auth.sign_in(context, "my_connection", ["user.Write"])
-    #     assert not res.token_response
-    #     assert res.tag == FlowStateTag.FAILURE
-    #     AgenticUserAuthorization.get_refreshed_token.assert_called_once_with(
-    #         context, "my_connection", ["user.Read"]
-    #     )
+    @pytest.mark.asyncio
+    @pytest.mark.parametrize(
+        "scopes_list, expected_scopes_list",
+        [
+            (["user.Read"], ["user.Read"]),
+            ([], ["user.Read", "Mail.Read"]),
+            (None, ["user.Read", "Mail.Read"]),
+        ],
+    )
+    async def test_sign_in_failure(self, mocker, scopes_list, agentic_role, expected_scopes_list, auth_handler_settings):
+        mock_provider = self.mock_provider(mocker, user_token=None)
+
+        connection_manager = mocker.Mock(spec=MsalConnectionManager)
+        connection_manager.get_token_provider = mocker.Mock(return_value=mock_provider)
+
+        agentic_auth = AgenticUserAuthorization(
+            MemoryStorage(), connection_manager, auth_handler_settings=auth_handler_settings
+        )
+        activity = Activity(
+            type="message",
+            recipient=ChannelAccount(
+                id="some_id",
+                agentic_app_id=DEFAULTS.agentic_instance_id,
+                role=agentic_role,
+            ),
+        )
+        context = self.TurnContext(mocker, activity=activity)
+        res = await agentic_auth.sign_in(context, "my_connection", scopes_list)
+        assert not res.token_response
+        assert res.tag == FlowStateTag.FAILURE
+
+        mock_provider.get_agentic_user_token.assert_called_once_with(
+            DEFAULTS.agentic_instance_id, "some_id", expected_scopes_list
+        )
+
+    @pytest.mark.asyncio
+    @pytest.mark.parametrize(
+        "scopes_list, expected_scopes_list",
+        [
+            (["user.Read"], ["user.Read"]),
+            ([], ["user.Read", "Mail.Read"]),
+            (None, ["user.Read", "Mail.Read"]),
+        ],
+    )
+    async def test_get_refreshed_token_success(self, mocker, scopes_list, agentic_role, expected_scopes_list, auth_handler_settings):
+        mock_provider = self.mock_provider(mocker, user_token="my_token")
+
+        connection_manager = mocker.Mock(spec=MsalConnectionManager)
+        connection_manager.get_token_provider = mocker.Mock(return_value=mock_provider)
+
+        agentic_auth = AgenticUserAuthorization(
+            MemoryStorage(), connection_manager, auth_handler_settings=auth_handler_settings
+        )
+        activity = Activity(
+            type="message",
+            recipient=ChannelAccount(
+                id="some_id",
+                agentic_app_id=DEFAULTS.agentic_instance_id,
+                role=agentic_role,
+            ),
+        )
+        context = self.TurnContext(mocker, activity=activity)
+        res = await agentic_auth.get_refreshed_token(context, "my_connection", scopes_list)
+        assert res.token == "my_token"
+
+        mock_provider.get_agentic_user_token.assert_called_once_with(
+            DEFAULTS.agentic_instance_id, "some_id", expected_scopes_list
+        )
+
+    @pytest.mark.asyncio
+    @pytest.mark.parametrize(
+        "scopes_list, expected_scopes_list",
+        [
+            (["user.Read"], ["user.Read"]),
+            ([], ["user.Read", "Mail.Read"]),
+            (None, ["user.Read", "Mail.Read"]),
+        ],
+    )
+    async def test_get_refreshed_token_failure(self, mocker, scopes_list, agentic_role, expected_scopes_list, auth_handler_settings):
+        mock_provider = self.mock_provider(mocker, user_token=None)
+
+        connection_manager = mocker.Mock(spec=MsalConnectionManager)
+        connection_manager.get_token_provider = mocker.Mock(return_value=mock_provider)
+
+        agentic_auth = AgenticUserAuthorization(
+            MemoryStorage(), connection_manager, auth_handler_settings=auth_handler_settings
+        )
+        activity = Activity(
+            type="message",
+            recipient=ChannelAccount(
+                id="some_id",
+                agentic_app_id=DEFAULTS.agentic_instance_id,
+                role=agentic_role,
+            ),
+        )
+        context = self.TurnContext(mocker, activity=activity)
+        res = await agentic_auth.get_refreshed_token(context, "my_connection", scopes_list)
+        assert not res
+        mock_provider.get_agentic_user_token.assert_called_once_with(
+            DEFAULTS.agentic_instance_id, "some_id", expected_scopes_list
+        )

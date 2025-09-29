@@ -26,6 +26,7 @@ class AuthorizationHandler(ABC):
         connection_manager: Connections,
         auth_handler: Optional[AuthHandler] = None,
         *,
+        auth_handler_id: Optional[str] = None,
         auth_handler_settings: Optional[dict] = None,
         **kwargs,
     ) -> None:
@@ -52,6 +53,10 @@ class AuthorizationHandler(ABC):
             self._handler = auth_handler
         else:
             self._handler = AuthHandler.from_settings(auth_handler_settings)
+
+        self._id = auth_handler_id or self._handler.name
+        if not self._id:
+            raise ValueError("Auth handler must have an ID. Could not be deduced from settings or constructor args.")
 
     async def sign_in(
         self, context: TurnContext, scopes: Optional[list[str]] = None

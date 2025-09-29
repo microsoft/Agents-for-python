@@ -64,7 +64,11 @@ class AuthHandler:
         if scopes:
             self.scopes = list(scopes)
         else:
-            self.scopes = kwargs.get("SCOPES", [])
+            self.scopes = AuthHandler.format_scopes(kwargs.get("SCOPES", ""))
+    @staticmethod
+    def format_scopes(scopes: str) -> list[str]:
+        lst = scopes.strip().split(" ")
+        return [ s for s in lst if s ]
 
     @staticmethod
     def from_settings(settings: dict):
@@ -86,5 +90,5 @@ class AuthHandler:
             abs_oauth_connection_name=settings.get("AZUREBOTOAUTHCONNECTIONNAME", ""),
             obo_connection_name=settings.get("OBOCONNECTIONNAME", ""),
             auth_type=settings.get("TYPE", ""),
-            scopes=settings.get("SCOPES", []),
+            scopes=AuthHandler.format_scopes(settings.get("SCOPES", "")),
         )
