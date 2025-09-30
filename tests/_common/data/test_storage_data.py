@@ -1,8 +1,9 @@
+from microsoft_agents.hosting.core._oauth import _FlowState
+
 from tests._common.storage import MockStoreItem
 
 from .test_flow_data import (
     TEST_FLOW_DATA,
-    _FlowState,
     update_flow_state_handler,
     flow_key,
 )

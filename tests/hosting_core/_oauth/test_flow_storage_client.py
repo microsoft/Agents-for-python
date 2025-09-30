@@ -99,7 +99,7 @@ class TestFlowStorageClient:
     async def test_integration_with_memory_storage(self):
 
         flow_state_alpha = _FlowState(auth_handler_id="handler")
-        flow_state_beta = _FlowState(auth_handler_id="auth_handler", user_token="token")
+        flow_state_beta = _FlowState(auth_handler_id="auth_handler")
 
         storage = MemoryStorage(
             {

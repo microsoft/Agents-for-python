@@ -34,7 +34,7 @@ class _FlowStorageClient:
         channel_id: str,
         user_id: str,
         storage: Storage,
-        cache_class: type[Storage] = None,
+        cache_class: Optional[type[Storage]] = None,
     ):
         """
         Args:

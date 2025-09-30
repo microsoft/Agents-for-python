@@ -1,3 +1,4 @@
+from re import A
 import pytest
 import jwt
 
@@ -85,7 +86,7 @@ def sign_in_state_eq(a: Optional[_SignInState], b: Optional[_SignInState]) -> bo
 
 def copy_sign_in_state(state: _SignInState) -> _SignInState:
     return _SignInState(
-        tokens=state.tokens.copy(),
+        active_handler_id=state.active_handler_id,
         continuation_activity=(
             state.continuation_activity.model_copy()
             if state.continuation_activity
@@ -184,7 +185,7 @@ class TestAuthorizationUsage(TestEnv):
     ):
         mock_variants(mocker)
         initial_state = _SignInState(
-            tokens={DEFAULTS.auth_handler_id: "", "my_handler": "old_token"},
+            active_handler_id=DEFAULTS.auth_handler_id,
             continuation_activity=activity,
         )
         await set_sign_in_state(
@@ -192,8 +193,8 @@ class TestAuthorizationUsage(TestEnv):
         )
         await authorization.sign_out(context, None, auth_handler_id)
         final_state = await get_sign_in_state(authorization, storage, context)
-        if auth_handler_id in initial_state.tokens:
-            del initial_state.tokens[auth_handler_id]
+        if auth_handler_id == initial_state.active_handler_id:
+            final_state = None
         assert sign_in_state_eq(final_state, initial_state)
 
     @pytest.mark.asyncio

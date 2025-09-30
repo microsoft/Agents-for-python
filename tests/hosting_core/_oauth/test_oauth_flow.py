@@ -68,7 +68,7 @@ class TestUtils(FlowStateFixtures):
         return _OAuthFlow(flow_state, user_token_client)
 
 
-class Test_OAuthFlow(TestUtils):
+class TestOAuthFlow(TestUtils):
     def test_init_no_user_token_client(self, flow_state):
         with pytest.raises(ValueError):
             _OAuthFlow(flow_state, None)
@@ -101,7 +101,6 @@ class Test_OAuthFlow(TestUtils):
         # setup
         flow = _OAuthFlow(flow_state, user_token_client)
         expected_final_flow_state = flow_state
-        expected_final_flow_state.user_token = DEFAULTS.token
         expected_final_flow_state.tag = _FlowStateTag.COMPLETE
 
         # test
@@ -146,7 +145,6 @@ class Test_OAuthFlow(TestUtils):
         # setup
         flow = _OAuthFlow(flow_state, user_token_client)
         expected_flow_state = flow_state
-        expected_flow_state.user_token = ""
         expected_flow_state.tag = _FlowStateTag.NOT_STARTED
 
         # test
@@ -168,7 +166,6 @@ class Test_OAuthFlow(TestUtils):
         )
         flow = _OAuthFlow(flow_state, user_token_client)
         expected_flow_state = flow_state
-        expected_flow_state.user_token = DEFAULTS.token
         expected_flow_state.tag = _FlowStateTag.COMPLETE
 
         # test
@@ -209,7 +206,6 @@ class Test_OAuthFlow(TestUtils):
         # setup
         flow = _OAuthFlow(flow_state, user_token_client)
         expected_flow_state = flow_state
-        expected_flow_state.user_token = ""
         expected_flow_state.tag = _FlowStateTag.BEGIN
         expected_flow_state.attempts_remaining = 3
         expected_flow_state.continuation_activity = activity
@@ -281,7 +277,6 @@ class Test_OAuthFlow(TestUtils):
         flow = _OAuthFlow(active_flow_state, user_token_client)
         expected_flow_state = active_flow_state
         expected_flow_state.tag = _FlowStateTag.COMPLETE
-        expected_flow_state.user_token = DEFAULTS.token
         expected_flow_state.attempts_remaining = active_flow_state.attempts_remaining
 
         # test
@@ -491,7 +486,7 @@ class Test_OAuthFlow(TestUtils):
         not_started_flow_state = FLOW_DATA.not_started.model_copy()
         expected_response = _FlowResponse(
             flow_state=not_started_flow_state,
-            token_response=TokenResponse(token=not_started_flow_state.user_token),
+            token_response=TokenResponse(),
         )
         mocker.patch.object(_OAuthFlow, "begin_flow", return_value=expected_response)
 
@@ -532,7 +527,7 @@ class Test_OAuthFlow(TestUtils):
         # mock
         expected_response = _FlowResponse(
             flow_state=active_flow_state,
-            token_response=TokenResponse(token=active_flow_state.user_token),
+            token_response=TokenResponse(token=DEFAULTS.token),
         )
         mocker.patch.object(_OAuthFlow, "continue_flow", return_value=expected_response)
 
@@ -571,14 +566,14 @@ class Test_OAuthFlow(TestUtils):
     async def test_begin_or_continue_flow_completed_flow_state(self, mocker, activity):
         completed_flow_state = FLOW_DATA.completed.model_copy()
         # mock
-        mocker.patch.object(_OAuthFlow, "begin_flow", return_value=None)
+        expected_response = _FlowResponse(
+            flow_state=completed_flow_state,
+            token_response=TokenResponse(token="some-token"),
+        )
+        mocker.patch.object(_OAuthFlow, "begin_flow", return_value=expected_response)
         mocker.patch.object(_OAuthFlow, "continue_flow", return_value=None)
 
         # setup
-        expected_response = _FlowResponse(
-            flow_state=completed_flow_state,
-            token_response=TokenResponse(token=completed_flow_state.user_token),
-        )
         flow = _OAuthFlow(completed_flow_state, mocker.Mock())
 
         # test
@@ -586,5 +581,5 @@ class Test_OAuthFlow(TestUtils):
 
         # verify
         assert actual_response == expected_response
-        _OAuthFlow.begin_flow.assert_not_called()
+        _OAuthFlow.begin_flow.assert_called_once()
         _OAuthFlow.continue_flow.assert_not_called()

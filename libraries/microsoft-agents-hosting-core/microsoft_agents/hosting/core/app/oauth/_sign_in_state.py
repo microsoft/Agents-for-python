@@ -17,25 +17,18 @@ class _SignInState(StoreItem):
 
     def __init__(
         self,
-        tokens: Optional[JSON] = None,
+        active_handler_id: str,
         continuation_activity: Optional[Activity] = None,
     ) -> None:
-        self.tokens = tokens or {}
+        self.active_handler_id = active_handler_id
         self.continuation_activity = continuation_activity
 
     def store_item_to_json(self) -> JSON:
         return {
-            "tokens": self.tokens,
+            "active_handler_id": self.active_handler_id,
             "continuation_activity": self.continuation_activity,
         }
 
     @staticmethod
     def from_json_to_store_item(json_data: JSON) -> _SignInState:
-        return _SignInState(json_data["tokens"], json_data.get("continuation_activity"))
-
-    def _active_handler(self) -> str:
-        """Return the handler ID that is missing a token, according to the state."""
-        for handler_id, token in self.tokens.items():
-            if not token:
-                return handler_id
-        return ""
+        return _SignInState(json_data["active_handler_id"], json_data.get("continuation_activity"))

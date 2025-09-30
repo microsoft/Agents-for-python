@@ -136,7 +136,6 @@ class _OAuthFlow:
         )
         if token_response:
             logger.info("User token obtained successfully: %s", token_response)
-            self._flow_state.user_token = token_response.token
             self._flow_state.expiration = (
                 datetime.now().timestamp() + self._default_flow_duration
             )
@@ -160,7 +159,6 @@ class _OAuthFlow:
             connection_name=self._abs_oauth_connection_name,
             channel_id=self._channel_id,
         )
-        self._flow_state.user_token = ""
         self._flow_state.tag = _FlowStateTag.NOT_STARTED
 
     def _use_attempt(self) -> None:
@@ -198,7 +196,6 @@ class _OAuthFlow:
         )
 
         self._flow_state.attempts_remaining = self._max_attempts
-        self._flow_state.user_token = ""
         self._flow_state.continuation_activity = activity.model_copy()
 
         token_exchange_state = TokenExchangeState(
@@ -304,7 +301,6 @@ class _OAuthFlow:
             self._flow_state.expiration = (
                 datetime.now().timestamp() + self._default_flow_duration
             )
-            self._flow_state.user_token = token_response.token
             logger.debug(
                 "OAuth flow completed successfully, got TokenResponse: %s",
                 token_response,
@@ -327,12 +323,6 @@ class _OAuthFlow:
             A FlowResponse object containing the updated flow state and any token response.
         """
         self._flow_state.refresh()
-        if self._flow_state.tag == _FlowStateTag.COMPLETE:  # robrandao: TODO -> test
-            logger.debug("OAuth flow has already been completed, nothing to do")
-            return _FlowResponse(
-                flow_state=self._flow_state.model_copy(),
-                token_response=TokenResponse(token=self._flow_state.user_token),
-            )
 
         if self._flow_state.is_active():
             logger.debug("Active flow, continuing...")

@@ -37,8 +37,8 @@ class Authorization:
         self,
         storage: Storage,
         connection_manager: Connections,
-        auth_handlers: dict[str, AuthHandler] = None,
-        auto_signin: bool = None,
+        auth_handlers: Optional[dict[str, AuthHandler]] = None,
+        auto_signin: bool = False,
         use_cache: bool = False,
         **kwargs,
     ):
@@ -144,6 +144,28 @@ class Authorization:
         key = self._sign_in_state_key(context)
         await self._storage.delete([key])
 
+    @staticmethod
+    def _get_cached_token(
+        context: TurnContext, handler_id: str
+    ) -> Optional[TokenResponse]:
+        key = f"{Authorization._sign_in_state_key(context)}:{handler_id}:token"
+        return context.turn_state.get(key)
+
+    @staticmethod
+    def _cache_token(
+        context: TurnContext, handler_id: str, token_response: TokenResponse
+    ) -> None:
+        key = f"{Authorization._sign_in_state_key(context)}:{handler_id}:token"
+        context.turn_state[key] = token_response
+    
+    @staticmethod
+    def _delete_cached_token(
+        context: TurnContext, handler_id: str
+    ) -> None:
+        key = f"{Authorization._sign_in_state_key(context)}:{handler_id}:token"
+        if key in context.turn_state:
+            del context.turn_state[key]
+
     def _resolve_handler(self, handler_id: str) -> _AuthorizationHandler:
         """Resolve the auth handler by its ID.
 
@@ -183,16 +205,9 @@ class Authorization:
         sign_in_state = await self._load_sign_in_state(context)
         if not sign_in_state:
             # no existing sign-in state, create a new one
-            sign_in_state = _SignInState({auth_handler_id: ""})
+            sign_in_state = _SignInState(active_handler_id=auth_handler_id)
 
-        if sign_in_state.tokens.get(auth_handler_id):
-            # already signed in with this handler, got it from cached _SignInState
-            return _SignInResponse(
-                tag=_FlowStateTag.COMPLETE,
-                token_response=TokenResponse(
-                    token=sign_in_state.tokens[auth_handler_id]
-                ),
-            )
+        auth_handler_id = sign_in_state.active_handler_id
 
         handler = self._resolve_handler(auth_handler_id)
 
@@ -202,13 +217,13 @@ class Authorization:
         if sign_in_response.tag == _FlowStateTag.COMPLETE:
             if self._sign_in_success_handler:
                 await self._sign_in_success_handler(context, state, auth_handler_id)
-            token = sign_in_response.token_response.token
-            sign_in_state.tokens[auth_handler_id] = token
-            await self._save_sign_in_state(context, sign_in_state)
+            await self._delete_sign_in_state(context)
+            await self._cache_token(context, auth_handler_id, sign_in_response.token_response)
 
         elif sign_in_response.tag == _FlowStateTag.FAILURE:
             if self._sign_in_failure_handler:
                 await self._sign_in_failure_handler(context, state, auth_handler_id)
+            await self._delete_sign_in_state(context)
 
         elif sign_in_response.tag in [_FlowStateTag.BEGIN, _FlowStateTag.CONTINUE]:
             # store continuation activity and wait for next turn
@@ -232,12 +247,12 @@ class Authorization:
         """
         auth_handler_id = auth_handler_id or self._default_handler_id
         sign_in_state = await self._load_sign_in_state(context)
-        if sign_in_state and auth_handler_id in sign_in_state.tokens:
+        if sign_in_state and auth_handler_id == sign_in_state.active_handler_id:
                 # sign out from specific handler
                 handler = self._resolve_handler(auth_handler_id)
+                self._delete_cached_token(context, auth_handler_id)
+                await self._delete_sign_in_state(context)
                 await handler._sign_out(context)
-                del sign_in_state.tokens[auth_handler_id]
-                await self._save_sign_in_state(context, sign_in_state)
 
     async def _on_turn_auth_intercept(
         self, context: TurnContext, state: TurnState
@@ -259,7 +274,7 @@ class Authorization:
         sign_in_state = await self._load_sign_in_state(context)
 
         if sign_in_state:
-            auth_handler_id = sign_in_state._active_handler()
+            auth_handler_id = sign_in_state.active_handler
             if auth_handler_id:
                 sign_in_response = await self._start_or_continue_sign_in(
                     context, state, auth_handler_id
@@ -305,28 +320,26 @@ class Authorization:
             raise ValueError(
                 f"Auth handler {auth_handler_id} not recognized or not configured."
             )
-
-        handler = self._resolve_handler(auth_handler_id)
-
-        sign_in_state = await self._load_sign_in_state(context)
-        if not sign_in_state or not sign_in_state.tokens.get(auth_handler_id):
-            return TokenResponse()
         
-        # for later -> parity with .NET
-        # token_res = sign_in_state.tokens[auth_handler_id]
-        # if not context.activity.is_agentic():
-        #     if token_res and not token_res.is_exchangeable():
-        #         token = token_res.token
-        #         if token.expiration is not None:
-        #             diff = token.expiration - datetime.now().timestamp()
-        #             if diff > 0:
-        #                 return token_res.token
-                    
-        res = await handler.get_refreshed_token(context, exchange_connection, scopes)
-        if res:
-            sign_in_state.tokens[auth_handler_id] = res.token
-            await self._save_sign_in_state(context, sign_in_state)
-            return res
+        cached_token = await self._get_cached_token(context, auth_handler_id)
+
+        if cached_token:
+
+            handler = self._resolve_handler(auth_handler_id)
+            
+            # for later -> parity with .NET
+            # token_res = sign_in_state.tokens[auth_handler_id]
+            # if not context.activity.is_agentic():
+            #     if token_res and not token_res.is_exchangeable():
+            #         token = token_res.token
+            #         if token.expiration is not None:
+            #             diff = token.expiration - datetime.now().timestamp()
+            #             if diff > 0:
+            #                 return token_res.token
+                        
+            res = await handler.get_refreshed_token(context, exchange_connection, scopes)
+            if res:
+                return res
         raise Exception("Failed to exchange token")
 
 
@@ -350,4 +363,4 @@ class Authorization:
 
         :param handler: The handler function to call on sign-in failure.
         """
-        self._sign_in_failure_handler = handler
+        self._sign_in_failure_handler = handle

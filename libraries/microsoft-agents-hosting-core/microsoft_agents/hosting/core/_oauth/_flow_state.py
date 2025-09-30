@@ -41,8 +41,6 @@ class _FlowErrorTag(Enum):
 class _FlowState(BaseModel, StoreItem):
     """Represents the state of an OAuthFlow"""
 
-    user_token: str = ""
-
     channel_id: str = ""
     user_id: str = ""
     ms_app_id: str = ""

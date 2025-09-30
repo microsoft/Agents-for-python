@@ -22,7 +22,6 @@ class TEST_FLOW_DATA:
             **DEF_FLOW_ARGS,
             tag=_FlowStateTag.NOT_STARTED,
             attempts_remaining=1,
-            user_token="____",
             expiration=datetime.now().timestamp() + 1000000,
         )
 
@@ -30,7 +29,6 @@ class TEST_FLOW_DATA:
             **DEF_FLOW_ARGS,
             tag=_FlowStateTag.BEGIN,
             attempts_remaining=1,
-            user_token="____",
             expiration=datetime.now().timestamp() + 1000000,
         )
 
@@ -38,7 +36,6 @@ class TEST_FLOW_DATA:
             **DEF_FLOW_ARGS,
             tag=_FlowStateTag.BEGIN,
             attempts_remaining=2,
-            user_token="____",
             expiration=datetime.now().timestamp() + 1000000,
         )
 
@@ -46,7 +43,6 @@ class TEST_FLOW_DATA:
             **DEF_FLOW_ARGS,
             tag=_FlowStateTag.CONTINUE,
             attempts_remaining=2,
-            user_token="__token",
             expiration=datetime.now().timestamp() + 1000000,
         )
 
@@ -54,21 +50,18 @@ class TEST_FLOW_DATA:
             **DEF_FLOW_ARGS,
             tag=_FlowStateTag.CONTINUE,
             attempts_remaining=1,
-            user_token="__token",
             expiration=datetime.now().timestamp() + 1000000,
         )
         self.active_exp = _FlowState(
             **DEF_FLOW_ARGS,
             tag=_FlowStateTag.CONTINUE,
             attempts_remaining=2,
-            user_token="__token",
             expiration=datetime.now().timestamp(),
         )
         self.completed = _FlowState(
             **DEF_FLOW_ARGS,
             tag=_FlowStateTag.COMPLETE,
             attempts_remaining=2,
-            user_token="test_token",
             expiration=datetime.now().timestamp() + 1000000,
         )
         self.fail_by_attempts = _FlowState(
