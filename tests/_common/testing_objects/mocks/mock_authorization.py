@@ -12,8 +12,8 @@ def mock_class_UserAuthorization(mocker, sign_in_return=None, get_refreshed_toke
         sign_in_return = _SignInResponse()
     if get_refreshed_token_return is None:
         get_refreshed_token_return = TokenResponse()
-    mocker.patch.object(_UserAuthorization, "sign_in", return_value=sign_in_return)
-    mocker.patch.object(_UserAuthorization, "sign_out")
+    mocker.patch.object(_UserAuthorization, "_sign_in", return_value=sign_in_return)
+    mocker.patch.object(_UserAuthorization, "_sign_out")
     mocker.patch.object(_UserAuthorization, "get_refreshed_token", return_value=get_refreshed_token_return)
 
 
@@ -22,14 +22,14 @@ def mock_class_AgenticUserAuthorization(mocker, sign_in_return=None, get_refresh
         sign_in_return = _SignInResponse()
     if get_refreshed_token_return is None:
         get_refreshed_token_return = TokenResponse()
-    mocker.patch.object(AgenticUserAuthorization, "sign_in", return_value=sign_in_return)
-    mocker.patch.object(AgenticUserAuthorization, "sign_out")
+    mocker.patch.object(AgenticUserAuthorization, "_sign_in", return_value=sign_in_return)
+    mocker.patch.object(AgenticUserAuthorization, "_sign_out")
     mocker.patch.object(AgenticUserAuthorization, "get_refreshed_token", return_value=get_refreshed_token_return)
 
 
 def mock_class_Authorization(mocker, start_or_continue_sign_in_return=False):
     mocker.patch.object(
         Authorization,
-        "start_or_continue_sign_in",
+        "_start_or_continue_sign_in",
         return_value=start_or_continue_sign_in_return,
     )

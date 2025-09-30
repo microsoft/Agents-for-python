@@ -8,15 +8,14 @@ from microsoft_agents.authentication.msal import (
     MsalConnectionManager
 )
 
-from microsoft_agents.hosting.core import (
-    FlowStorageClient,
-    FlowStateTag,
-    FlowState,
-    FlowResponse,
-    UserAuthorization,
-    MemoryStorage,
-    SignInResponse,
-    OAuthFlow,
+from microsoft_agents.hosting.core import MemoryStorage
+from microsoft_agents.hosting.core.app.oauth import _UserAuthorization, _SignInResponse
+from microsoft_agents.hosting.core._oauth import (
+    _FlowStorageClient,
+    _FlowStateTag,
+    _FlowState,
+    _FlowResponse,
+    _OAuthFlow
 )
 
 # test constants
@@ -47,7 +46,7 @@ def make_jwt(token: str = DEFAULTS.token, aud="api://default"):
         return jwt.encode({}, token, algorithm="HS256")
 
 
-class MyUserAuthorization(UserAuthorization):
+class MyUserAuthorization(_UserAuthorization):
     async def _handle_flow_response(self, *args, **kwargs):
         pass
 
@@ -75,9 +74,9 @@ def testing_TurnContext(
     return turn_context
 
 async def read_state(storage, channel_id=DEFAULTS.channel_id, user_id=DEFAULTS.user_id, auth_handler_id=DEFAULTS.auth_handler_id):
-    storage_client = FlowStorageClient(channel_id, user_id, storage)
+    storage_client = _FlowStorageClient(channel_id, user_id, storage)
     key = storage_client.key(auth_handler_id)
-    return (await storage.read([key], target_cls=FlowState)).get(key)
+    return (await storage.read([key], target_cls=_FlowState)).get(key)
 
 def mock_provider(mocker, exchange_token=None):
     instance = mock_instance(mocker, MsalAuth, {"acquire_token_on_behalf_of": exchange_token})
@@ -145,71 +144,71 @@ class TestUserAuthorization(TestEnv):
         "flow_response, exchange_attempted, token_exchange_response, expected_response",
         [
             [
-                FlowResponse(
+                _FlowResponse(
                     token_response=TokenResponse(token=make_jwt()),
-                    flow_state=FlowState(
-                        tag=FlowStateTag.COMPLETE, auth_handler_id=DEFAULTS.auth_handler_id
+                    flow_state=_FlowState(
+                        tag=_FlowStateTag.COMPLETE, auth_handler_id=DEFAULTS.auth_handler_id
                     ),
                 ),
                 True, "wow",
-                SignInResponse(token_response=TokenResponse(token="wow"), tag=FlowStateTag.COMPLETE)
+                _SignInResponse(token_response=TokenResponse(token="wow"), tag=_FlowStateTag.COMPLETE)
             ],
             [
-                FlowResponse(
+                _FlowResponse(
                     token_response=TokenResponse(token=make_jwt(aud=None)),
-                    flow_state=FlowState(
-                        tag=FlowStateTag.COMPLETE, auth_handler_id=DEFAULTS.auth_handler_id
+                    flow_state=_FlowState(
+                        tag=_FlowStateTag.COMPLETE, auth_handler_id=DEFAULTS.auth_handler_id
                     ),
                 ),
                 False, "wow",
-                SignInResponse(token_response=TokenResponse(token=make_jwt(aud=None)), tag=FlowStateTag.COMPLETE)
+                _SignInResponse(token_response=TokenResponse(token=make_jwt(aud=None)), tag=_FlowStateTag.COMPLETE)
             ],
             [
-                FlowResponse(
+                _FlowResponse(
                     token_response=TokenResponse(token=make_jwt(token="some_value", aud="other")),
-                    flow_state=FlowState(
-                        tag=FlowStateTag.COMPLETE, auth_handler_id=DEFAULTS.auth_handler_id
+                    flow_state=_FlowState(
+                        tag=_FlowStateTag.COMPLETE, auth_handler_id=DEFAULTS.auth_handler_id
                     ),
                 ),
                 False, DEFAULTS.token,
-                SignInResponse(token_response=TokenResponse(token=make_jwt("some_value", aud="other")), tag=FlowStateTag.COMPLETE)
+                _SignInResponse(token_response=TokenResponse(token=make_jwt("some_value", aud="other")), tag=_FlowStateTag.COMPLETE)
             ],
             [
-                FlowResponse(
+                _FlowResponse(
                     token_response=TokenResponse(token=make_jwt(token="some_value")),
-                    flow_state=FlowState(
-                        tag=FlowStateTag.COMPLETE, auth_handler_id=DEFAULTS.auth_handler_id
+                    flow_state=_FlowState(
+                        tag=_FlowStateTag.COMPLETE, auth_handler_id=DEFAULTS.auth_handler_id
                     ),
                 ),
                 True, None,
-                SignInResponse(tag=FlowStateTag.FAILURE)
+                _SignInResponse(tag=_FlowStateTag.FAILURE)
             ],
             [
-                FlowResponse(
-                    flow_state=FlowState(
-                        tag=FlowStateTag.BEGIN, auth_handler_id=DEFAULTS.auth_handler_id
+                _FlowResponse(
+                    flow_state=_FlowState(
+                        tag=_FlowStateTag.BEGIN, auth_handler_id=DEFAULTS.auth_handler_id
                     ),
                 ),
                 False, None,
-                SignInResponse(tag=FlowStateTag.BEGIN)
+                _SignInResponse(tag=_FlowStateTag.BEGIN)
             ],
             [
-                FlowResponse(
-                    flow_state=FlowState(
-                        tag=FlowStateTag.CONTINUE, auth_handler_id=DEFAULTS.auth_handler_id
+                _FlowResponse(
+                    flow_state=_FlowState(
+                        tag=_FlowStateTag.CONTINUE, auth_handler_id=DEFAULTS.auth_handler_id
                     ),
                 ),
                 False, None,
-                SignInResponse(tag=FlowStateTag.CONTINUE)
+                _SignInResponse(tag=_FlowStateTag.CONTINUE)
             ],
             [
-                FlowResponse(
-                    flow_state=FlowState(
-                        tag=FlowStateTag.FAILURE, auth_handler_id=DEFAULTS.auth_handler_id
+                _FlowResponse(
+                    flow_state=_FlowState(
+                        tag=_FlowStateTag.FAILURE, auth_handler_id=DEFAULTS.auth_handler_id
                     ),
                 ),
                 False, None,
-                SignInResponse(tag=FlowStateTag.FAILURE)
+                _SignInResponse(tag=_FlowStateTag.FAILURE)
             ],
         ]
     )
@@ -231,7 +230,7 @@ class TestUserAuthorization(TestEnv):
         mock_class_OAuthFlow(mocker, begin_or_continue_flow_return=flow_response)
         provider = mock_provider(mocker, exchange_token=token_exchange_response)
 
-        sign_in_response = await user_authorization.sign_in(context, request_connection, request_scopes)
+        sign_in_response = await user_authorization._sign_in(context, request_connection, request_scopes)
         assert sign_in_response.token_response == expected_response.token_response
         assert sign_in_response.tag == expected_response.tag
         
@@ -252,9 +251,9 @@ class TestUserAuthorization(TestEnv):
         context
     ):
         mock_class_OAuthFlow(mocker)
-        await user_authorization.sign_out(context)
+        await user_authorization._sign_out(context)
         assert await read_state(storage, auth_handler_id=DEFAULTS.auth_handler_id) is None
-        OAuthFlow.sign_out.assert_called_once()
+        _OAuthFlow.sign_out.assert_called_once()
 
     @pytest.mark.asyncio
     @pytest.mark.parametrize(

@@ -90,5 +90,5 @@ class AuthHandler:
             abs_oauth_connection_name=settings.get("AZUREBOTOAUTHCONNECTIONNAME", ""),
             obo_connection_name=settings.get("OBOCONNECTIONNAME", ""),
             auth_type=settings.get("TYPE", ""),
-            scopes=AuthHandler.format_scopes(settings.get("SCOPES", "")),
+            scopes=AuthHandler._format_scopes(settings.get("SCOPES", "")),
         )

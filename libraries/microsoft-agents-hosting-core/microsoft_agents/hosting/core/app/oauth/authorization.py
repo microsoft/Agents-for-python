@@ -8,7 +8,7 @@ from microsoft_agents.activity import Activity, TokenResponse
 from ...turn_context import TurnContext
 from ...storage import Storage
 from ...authorization import Connections
-from ...oauth import FlowStateTag
+from ..._oauth import _FlowStateTag
 from ..state import TurnState
 from .auth_handler import AuthHandler
 from ._sign_in_state import _SignInState
@@ -125,15 +125,15 @@ class Authorization:
         :return: A unique (across other values of channel_id and user_id) key for the sign-in state.
         :rtype: str
         """
-        return f"auth:SignInState:{context.activity.channel_id}:{context.activity.from_property.id}"
+        return f"auth:_SignInState:{context.activity.channel_id}:{context.activity.from_property.id}"
 
-    async def _load_sign_in_state(self, context: TurnContext) -> Optional[SignInState]:
+    async def _load_sign_in_state(self, context: TurnContext) -> Optional[_SignInState]:
         """Load the sign-in state from storage for the given context."""
         key = self._sign_in_state_key(context)
-        return (await self._storage.read([key], target_cls=SignInState)).get(key)
+        return (await self._storage.read([key], target_cls=_SignInState)).get(key)
 
     async def _save_sign_in_state(
-        self, context: TurnContext, state: SignInState
+        self, context: TurnContext, state: _SignInState
     ) -> None:
         """Save the sign-in state to storage for the given context."""
         key = self._sign_in_state_key(context)
@@ -161,11 +161,11 @@ class Authorization:
 
     async def _start_or_continue_sign_in(
         self, context: TurnContext, state: TurnState, auth_handler_id: Optional[str] = None
-    ) -> SignInResponse:
+    ) -> _SignInResponse:
         """Start or continue the sign-in process for the user with the given auth handler.
 
-        SignInResponse output is based on the result of the variant used by the handler.
-        Storage is updated as needed with SignInState data for caching purposes.
+        _SignInResponse output is based on the result of the variant used by the handler.
+        Storage is updated as needed with _SignInState data for caching purposes.
 
         :param context: The turn context for the current turn of conversation.
         :type context: TurnContext
@@ -173,8 +173,8 @@ class Authorization:
         :type state: TurnState
         :param auth_handler_id: The ID of the auth handler to use for sign-in. If None, the first handler will be used.
         :type auth_handler_id: str
-        :return: A SignInResponse indicating the result of the sign-in attempt.
-        :rtype: SignInResponse
+        :return: A _SignInResponse indicating the result of the sign-in attempt.
+        :rtype: _SignInResponse
         """
 
         auth_handler_id = auth_handler_id or self._default_handler_id
@@ -183,12 +183,12 @@ class Authorization:
         sign_in_state = await self._load_sign_in_state(context)
         if not sign_in_state:
             # no existing sign-in state, create a new one
-            sign_in_state = SignInState({auth_handler_id: ""})
+            sign_in_state = _SignInState({auth_handler_id: ""})
 
         if sign_in_state.tokens.get(auth_handler_id):
-            # already signed in with this handler, got it from cached SignInState
-            return SignInResponse(
-                tag=FlowStateTag.COMPLETE,
+            # already signed in with this handler, got it from cached _SignInState
+            return _SignInResponse(
+                tag=_FlowStateTag.COMPLETE,
                 token_response=TokenResponse(
                     token=sign_in_state.tokens[auth_handler_id]
                 ),
@@ -199,18 +199,18 @@ class Authorization:
         # attempt sign-in continuation (or beginning)
         sign_in_response = await handler._sign_in(context)
 
-        if sign_in_response.tag == FlowStateTag.COMPLETE:
+        if sign_in_response.tag == _FlowStateTag.COMPLETE:
             if self._sign_in_success_handler:
                 await self._sign_in_success_handler(context, state, auth_handler_id)
             token = sign_in_response.token_response.token
             sign_in_state.tokens[auth_handler_id] = token
             await self._save_sign_in_state(context, sign_in_state)
 
-        elif sign_in_response.tag == FlowStateTag.FAILURE:
+        elif sign_in_response.tag == _FlowStateTag.FAILURE:
             if self._sign_in_failure_handler:
                 await self._sign_in_failure_handler(context, state, auth_handler_id)
 
-        elif sign_in_response.tag in [FlowStateTag.BEGIN, FlowStateTag.CONTINUE]:
+        elif sign_in_response.tag in [_FlowStateTag.BEGIN, _FlowStateTag.CONTINUE]:
             # store continuation activity and wait for next turn
             sign_in_state.continuation_activity = context.activity
             await self._save_sign_in_state(context, sign_in_state)
@@ -247,7 +247,7 @@ class Authorization:
         Returns true if the rest of the turn should be skipped because auth did not finish.
         Returns false if the turn should continue processing as normal.
         If auth completes and a new turn should be started, returns the continuation activity
-        from the cached SignInState.
+        from the cached _SignInState.
 
         :param context: The context object for the current turn.
         :type context: TurnContext
@@ -259,12 +259,12 @@ class Authorization:
         sign_in_state = await self._load_sign_in_state(context)
 
         if sign_in_state:
-            auth_handler_id = sign_in_state.active_handler()
+            auth_handler_id = sign_in_state._active_handler()
             if auth_handler_id:
-                sign_in_response = await self.start_or_continue_sign_in(
+                sign_in_response = await self._start_or_continue_sign_in(
                     context, state, auth_handler_id
                 )
-                if sign_in_response.tag == FlowStateTag.COMPLETE:
+                if sign_in_response.tag == _FlowStateTag.COMPLETE:
                     assert sign_in_state.continuation_activity is not None
                     continuation_activity = (
                         sign_in_state.continuation_activity.model_copy()
@@ -278,7 +278,7 @@ class Authorization:
 
     async def get_token(
         self, context: TurnContext, auth_handler_id: Optional[str] = None
-    ) -> Optional[str]:
+    ) -> TokenResponse:
         """Gets the token for a specific auth handler.
 
         The token is taken from cache, so this does not initiate nor continue a sign-in flow.
@@ -290,15 +290,15 @@ class Authorization:
         :return: The token response from the OAuth provider.
         :rtype: TokenResponse
         """
-        return await self.exchange_token(context, auth_handler_id)
+        return await self.exchange_token(context, auth_handler_id=auth_handler_id)
 
     async def exchange_token(
         self,
         context: TurnContext,
+        scopes: Optional[list[str]] = None,
         auth_handler_id: Optional[str] = None,
         exchange_connection: Optional[str] = None,
-        scopes: Optional[list[str]] = None
-    ) -> Optional[str]:
+    ) -> TokenResponse:
         
         auth_handler_id = auth_handler_id or self._default_handler_id
         if auth_handler_id not in self._handlers:
@@ -310,7 +310,7 @@ class Authorization:
 
         sign_in_state = await self._load_sign_in_state(context)
         if not sign_in_state or not sign_in_state.tokens.get(auth_handler_id):
-            return None
+            return TokenResponse()
         
         # for later -> parity with .NET
         # token_res = sign_in_state.tokens[auth_handler_id]
@@ -322,11 +322,11 @@ class Authorization:
         #             if diff > 0:
         #                 return token_res.token
                     
-        res = await handler._get_refreshed_token(context, exchange_connection, scopes)
+        res = await handler.get_refreshed_token(context, exchange_connection, scopes)
         if res:
             sign_in_state.tokens[auth_handler_id] = res.token
             await self._save_sign_in_state(context, sign_in_state)
-            return res.token
+            return res
         raise Exception("Failed to exchange token")
 
 

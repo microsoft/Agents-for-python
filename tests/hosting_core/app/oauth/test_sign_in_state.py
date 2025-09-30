@@ -1,19 +1,19 @@
 import pytest
 
-from microsoft_agents.hosting.core.app.oauth import SignInState
+from microsoft_agents.hosting.core.app.oauth import _SignInState
 
 from ._common import testing_Activity, testing_TurnContext
 
 
 class TestSignInState:
     def test_init(self):
-        state = SignInState()
+        state = _SignInState()
         assert state.tokens == {}
         assert state.continuation_activity is None
 
     def test_init_with_values(self):
         activity = testing_Activity()
-        state = SignInState({"handler": "some_token"}, activity)
+        state = _SignInState({"handler": "some_token"}, activity)
         assert state.tokens == {"handler": "some_token"}
         assert state.continuation_activity == activity
 
@@ -21,14 +21,14 @@ class TestSignInState:
         tokens = {"some_handler": "some_token", "other_handler": "other_token"}
         activity = testing_Activity()
         data = {"tokens": tokens, "continuation_activity": activity}
-        state = SignInState.from_json_to_store_item(data)
+        state = _SignInState.from_json_to_store_item(data)
         assert state.tokens == tokens
         assert state.continuation_activity == activity
 
     def test_store_item_to_json(self):
         tokens = {"some_handler": "some_token", "other_handler": "other_token"}
         activity = testing_Activity()
-        state = SignInState(tokens, activity)
+        state = _SignInState(tokens, activity)
         json_data = state.store_item_to_json()
         assert json_data["tokens"] == tokens
         assert json_data["continuation_activity"] == activity
@@ -48,5 +48,5 @@ class TestSignInState:
         ],
     )
     def test_active_handler(self, tokens, active_handler):
-        state = SignInState(tokens)
-        assert state.active_handler() == active_handler
+        state = _SignInState(tokens)
+        assert state._active_handler() == active_handler

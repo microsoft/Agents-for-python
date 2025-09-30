@@ -72,7 +72,7 @@ class _AuthorizationHandler(ABC):
         """
         raise NotImplementedError()
     
-    async def _get_refreshed_token(
+    async def get_refreshed_token(
         self, context: TurnContext, exchange_connection: Optional[str]=None, exchange_scopes: Optional[list[str]] = None
     ) -> TokenResponse:
         """Attempts to get a refreshed token for the user with the given scopes"""

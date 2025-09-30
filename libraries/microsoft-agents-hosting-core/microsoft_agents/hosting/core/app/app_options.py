@@ -9,7 +9,7 @@ from dataclasses import dataclass, field
 from logging import Logger
 from typing import Callable, List, Optional
 
-from microsoft_agents.hosting.core.app.auth import AuthHandler
+from microsoft_agents.hosting.core.app.oauth import AuthHandler
 from microsoft_agents.hosting.core.storage import Storage
 
 # from .auth import AuthOptions

@@ -5,14 +5,14 @@ from microsoft_agents.activity import (
     Activity,
     ChannelAccount,
     RoleTypes,
-    TokenResponse
+    TokenResponse,
 )
 
 from microsoft_agents.authentication.msal import MsalAuth, MsalConnectionManager
 
 from microsoft_agents.hosting.core.app.oauth import AgenticUserAuthorization
 from microsoft_agents.hosting.core.storage import MemoryStorage
-from microsoft_agents.hosting.core._oauth import FlowStateTag
+from microsoft_agents.hosting.core._oauth import _FlowStateTag
 
 from tests._common.data import TEST_DEFAULTS, TEST_AGENTIC_ENV_DICT
 from tests._common.mock_utils import mock_class
@@ -137,7 +137,7 @@ class TestAgenticUserAuthorization(TestUtils):
             ),
         )
         context = self.TurnContext(mocker, activity=activity)
-        assert await agentic_auth.get_agentic_instance_token(context) is None
+        assert await agentic_auth.get_agentic_instance_token(context) == TokenResponse()
 
     @pytest.mark.asyncio
     async def test_get_agentic_user_token_not_agentic(
@@ -152,7 +152,7 @@ class TestAgenticUserAuthorization(TestUtils):
             ),
         )
         context = self.TurnContext(mocker, activity=activity)
-        assert await agentic_auth.get_agentic_user_token(context, ["user.Read"]) is None
+        assert await agentic_auth.get_agentic_user_token(context, ["user.Read"]) == TokenResponse()
 
     @pytest.mark.asyncio
     async def test_get_agentic_user_token_agentic_no_user_id(
@@ -165,7 +165,7 @@ class TestAgenticUserAuthorization(TestUtils):
             ),
         )
         context = self.TurnContext(mocker, activity=activity)
-        assert await agentic_auth.get_agentic_user_token(context, ["user.Read"]) is None
+        assert await agentic_auth.get_agentic_user_token(context, ["user.Read"]) == TokenResponse()
 
     @pytest.mark.asyncio
     async def test_get_agentic_instance_token_is_agentic(
@@ -190,7 +190,7 @@ class TestAgenticUserAuthorization(TestUtils):
         context = self.TurnContext(mocker, activity=activity)
 
         token = await agentic_auth.get_agentic_instance_token(context)
-        assert token == DEFAULTS.token
+        assert token == TokenResponse(token=DEFAULTS.token)
         mock_provider.get_agentic_instance_token.assert_called_once_with(DEFAULTS.agentic_instance_id)
 
     @pytest.mark.asyncio
@@ -217,7 +217,7 @@ class TestAgenticUserAuthorization(TestUtils):
         context = self.TurnContext(mocker, activity=activity)
 
         token = await agentic_auth.get_agentic_user_token(context, ["user.Read"])
-        assert token == DEFAULTS.token
+        assert token == TokenResponse(token=DEFAULTS.token)
         mock_provider.get_agentic_user_token.assert_called_once_with(
             DEFAULTS.agentic_instance_id, "some_id", ["user.Read"]
         )
@@ -249,9 +249,9 @@ class TestAgenticUserAuthorization(TestUtils):
             ),
         )
         context = self.TurnContext(mocker, activity=activity)
-        res = await agentic_auth.sign_in(context, "my_connection", scopes_list)
+        res = await agentic_auth._sign_in(context, "my_connection", scopes_list)
         assert res.token_response.token == "my_token"
-        assert res.tag == FlowStateTag.COMPLETE
+        assert res.tag == _FlowStateTag.COMPLETE
 
         mock_provider.get_agentic_user_token.assert_called_once_with(
             DEFAULTS.agentic_instance_id, "some_id", expected_scopes_list
@@ -284,9 +284,9 @@ class TestAgenticUserAuthorization(TestUtils):
             ),
         )
         context = self.TurnContext(mocker, activity=activity)
-        res = await agentic_auth.sign_in(context, "my_connection", scopes_list)
+        res = await agentic_auth._sign_in(context, "my_connection", scopes_list)
         assert not res.token_response
-        assert res.tag == FlowStateTag.FAILURE
+        assert res.tag == _FlowStateTag.FAILURE
 
         mock_provider.get_agentic_user_token.assert_called_once_with(
             DEFAULTS.agentic_instance_id, "some_id", expected_scopes_list
@@ -320,7 +320,7 @@ class TestAgenticUserAuthorization(TestUtils):
         )
         context = self.TurnContext(mocker, activity=activity)
         res = await agentic_auth.get_refreshed_token(context, "my_connection", scopes_list)
-        assert res.token == "my_token"
+        assert res == TokenResponse(token="my_token")
 
         mock_provider.get_agentic_user_token.assert_called_once_with(
             DEFAULTS.agentic_instance_id, "some_id", expected_scopes_list
@@ -354,7 +354,7 @@ class TestAgenticUserAuthorization(TestUtils):
         )
         context = self.TurnContext(mocker, activity=activity)
         res = await agentic_auth.get_refreshed_token(context, "my_connection", scopes_list)
-        assert not res
+        assert res == TokenResponse()
         mock_provider.get_agentic_user_token.assert_called_once_with(
             DEFAULTS.agentic_instance_id, "some_id", expected_scopes_list
         )

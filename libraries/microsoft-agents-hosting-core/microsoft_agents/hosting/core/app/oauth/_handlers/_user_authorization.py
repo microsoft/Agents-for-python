@@ -25,7 +25,7 @@ from microsoft_agents.hosting.core._oauth import (
     _FlowStorageClient,
     _FlowStateTag
 )
-from ..sign_in_response import _SignInResponse
+from .._sign_in_response import _SignInResponse
 from ._authorization_handler import _AuthorizationHandler
 
 logger = logging.getLogger(__name__)
@@ -39,7 +39,7 @@ class _UserAuthorization(_AuthorizationHandler):
 
     async def _load_flow(
         self, context: TurnContext
-    ) -> tuple[OAuthFlow, FlowStorageClient]:
+    ) -> tuple[_OAuthFlow, _FlowStorageClient]:
         """Loads the OAuth flow for a specific auth handler.
 
         A new flow is created in Storage if none exists for the channel, user, and handler
@@ -72,12 +72,12 @@ class _UserAuthorization(_AuthorizationHandler):
         ]
 
         # try to load existing state
-        flow_storage_client = FlowStorageClient(channel_id, user_id, self._storage)
+        flow_storage_client = _FlowStorageClient(channel_id, user_id, self._storage)
         logger.info("Loading OAuth flow state from storage")
-        flow_state: FlowState = await flow_storage_client.read(self._id)
+        flow_state: _FlowState = await flow_storage_client.read(self._id)
         if not flow_state:
             logger.info("No existing flow state found, creating new flow state")
-            flow_state = FlowState(
+            flow_state = _FlowState(
                 channel_id=channel_id,
                 user_id=user_id,
                 auth_handler_id=self._id,
@@ -86,7 +86,7 @@ class _UserAuthorization(_AuthorizationHandler):
             )
             # await flow_storage_client.write(flow_state)
 
-        flow = OAuthFlow(flow_state, user_token_client)
+        flow = _OAuthFlow(flow_state, user_token_client)
         return flow, flow_storage_client
     
     async def _handle_obo(
@@ -138,7 +138,7 @@ class _UserAuthorization(_AuthorizationHandler):
         context: TurnContext,
     ) -> None:
         """
-        Signs out the current user.
+        _Signs out the current user.
         This method clears the user's token and resets the OAuth state.
 
         :param context: The context object for the current turn.
@@ -146,27 +146,27 @@ class _UserAuthorization(_AuthorizationHandler):
             signs out from all the handlers.
         """
         flow, flow_storage_client = await self._load_flow(context)
-        logger.info("Signing out from handler: %s", self._id)
+        logger.info("_Signing out from handler: %s", self._id)
         await flow.sign_out()
         await flow_storage_client.delete(self._id)
 
     async def _handle_flow_response(
-        self, context: TurnContext, flow_response: FlowResponse
+        self, context: TurnContext, flow_response: _FlowResponse
     ) -> None:
         """Handles CONTINUE and FAILURE flow responses, sending activities back."""
-        flow_state: FlowState = flow_response.flow_state
+        flow_state: _FlowState = flow_response.flow_state
 
-        if flow_state.tag == FlowStateTag.BEGIN:
+        if flow_state.tag == _FlowStateTag.BEGIN:
             # Create the OAuth card
             sign_in_resource = flow_response.sign_in_resource
             assert sign_in_resource
             o_card: Attachment = CardFactory.oauth_card(
                 OAuthCard(
-                    text="Sign in",
+                    text="_Sign in",
                     connection_name=flow_state.connection,
                     buttons=[
                         CardAction(
-                            title="Sign in",
+                            title="_Sign in",
                             type=ActionTypes.signin,
                             value=sign_in_resource.sign_in_link,
                             channel_data=None,
@@ -178,24 +178,24 @@ class _UserAuthorization(_AuthorizationHandler):
             )
             # Send the card to the user
             await context.send_activity(MessageFactory.attachment(o_card))
-        elif flow_state.tag == FlowStateTag.FAILURE:
+        elif flow_state.tag == _FlowStateTag.FAILURE:
             if flow_state.reached_max_attempts():
                 await context.send_activity(
                     MessageFactory.text(
-                        "Sign-in failed. Max retries reached. Please try again later."
+                        "_Sign-in failed. Max retries reached. Please try again later."
                     )
                 )
             elif flow_state.is_expired():
                 await context.send_activity(
-                    MessageFactory.text("Sign-in session expired. Please try again.")
+                    MessageFactory.text("_Sign-in session expired. Please try again.")
                 )
             else:
-                logger.warning("Sign-in flow failed for unknown reasons.")
-                await context.send_activity("Sign-in failed. Please try again.")
+                logger.warning("_Sign-in flow failed for unknown reasons.")
+                await context.send_activity("_Sign-in failed. Please try again.")
 
     async def _sign_in(
         self, context: TurnContext, exchange_connection: Optional[str] = None, exchange_scopes: Optional[list[str]] = None
-    ) -> SignInResponse:
+    ) -> _SignInResponse:
         """Begins or continues an OAuth flow.
 
         Handles the flow response, sending the OAuth card to the context.
@@ -204,11 +204,11 @@ class _UserAuthorization(_AuthorizationHandler):
         :type context: TurnContext
         :param auth_handler_id: The ID of the auth handler to use.
         :type auth_handler_id: str
-        :return: The SignInResponse containing the token response and flow state tag.
-        :rtype: SignInResponse
+        :return: The _SignInResponse containing the token response and flow state tag.
+        :rtype: _SignInResponse
         """
         flow, flow_storage_client = await self._load_flow(context)
-        flow_response: FlowResponse = await flow.begin_or_continue_flow(
+        flow_response: _FlowResponse = await flow.begin_or_continue_flow(
             context.activity
         )
 
@@ -226,14 +226,14 @@ class _UserAuthorization(_AuthorizationHandler):
                 exchange_scopes,
             )
 
-            return SignInResponse(
+            return _SignInResponse(
                 token_response=token_response,
-                tag=FlowStateTag.COMPLETE if token_response else FlowStateTag.FAILURE
+                tag=_FlowStateTag.COMPLETE if token_response else _FlowStateTag.FAILURE
             )
-        
-        return SignInResponse(tag=flow_response.flow_state.tag)
 
-    async def _get_refreshed_token(
+        return _SignInResponse(tag=flow_response.flow_state.tag)
+
+    async def get_refreshed_token(
         self, context: TurnContext, exchange_connection: Optional[str] = None, exchange_scopes: Optional[list[str]] = None
     ) -> TokenResponse:
         """

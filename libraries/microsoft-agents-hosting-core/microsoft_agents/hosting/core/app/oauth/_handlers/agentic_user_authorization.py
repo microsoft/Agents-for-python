@@ -5,8 +5,8 @@ from typing import Optional
 from microsoft_agents.activity import TokenResponse
 
 from ....turn_context import TurnContext
-from ....oauth import FlowStateTag
-from ..sign_in_response import SignInResponse
+from ...._oauth import _FlowStateTag
+from .._sign_in_response import _SignInResponse
 from ._authorization_handler import _AuthorizationHandler
 
 logger = logging.getLogger(__name__)
@@ -15,7 +15,7 @@ logger = logging.getLogger(__name__)
 class AgenticUserAuthorization(_AuthorizationHandler):
     """Class responsible for managing agentic authorization"""
 
-    async def get_agentic_instance_token(self, context: TurnContext) -> Optional[str]:
+    async def get_agentic_instance_token(self, context: TurnContext) -> TokenResponse:
         """Gets the agentic instance token for the current agent instance.
 
         :param context: The context object for the current turn.
@@ -25,7 +25,7 @@ class AgenticUserAuthorization(_AuthorizationHandler):
         """
 
         if not context.activity.is_agentic():
-            return None
+            return TokenResponse()
 
         assert context.identity
         connection = self._connection_manager.get_token_provider(
@@ -36,11 +36,11 @@ class AgenticUserAuthorization(_AuthorizationHandler):
         instance_token, _ = await connection.get_agentic_instance_token(
             agent_instance_id
         )
-        return instance_token
+        return TokenResponse(token=instance_token) if instance_token else TokenResponse()
 
     async def get_agentic_user_token(
         self, context: TurnContext, scopes: list[str]
-    ) -> Optional[str]:
+    ) -> TokenResponse:
         """Gets the agentic user token for the current agent instance and user.
 
         :param context: The context object for the current turn.
@@ -52,7 +52,7 @@ class AgenticUserAuthorization(_AuthorizationHandler):
         """
 
         if not context.activity.is_agentic() or not self.get_agentic_user(context):
-            return None
+            return TokenResponse()
 
         assert context.identity
         connection = self._connection_manager.get_token_provider(
@@ -61,14 +61,15 @@ class AgenticUserAuthorization(_AuthorizationHandler):
         upn = self.get_agentic_user(context)
         agentic_instance_id = self.get_agent_instance_id(context)
         assert upn and agentic_instance_id
-        return await connection.get_agentic_user_token(agentic_instance_id, upn, scopes)
+        token = await connection.get_agentic_user_token(agentic_instance_id, upn, scopes)
+        return TokenResponse(token=token) if token else TokenResponse()
 
-    async def sign_in(
+    async def _sign_in(
         self,
         context: TurnContext,
         exchange_connection: Optional[str] = None,
         exchange_scopes: Optional[list[str]] = None,
-    ) -> SignInResponse:
+    ) -> _SignInResponse:
         """Retrieves the agentic user token if available.
 
         :param context: The context object for the current turn.
@@ -77,13 +78,13 @@ class AgenticUserAuthorization(_AuthorizationHandler):
         :type connection_name: str
         :param scopes: The scopes to request for the token.
         :type scopes: Optional[list[str]]
-        :return: A SignInResponse containing the token response and flow state tag.
-        :rtype: SignInResponse
+        :return: A _SignInResponse containing the token response and flow state tag.
+        :rtype: _SignInResponse
         """
         token_response = await self.get_refreshed_token(context, exchange_connection, exchange_scopes)
         if token_response:
-            return SignInResponse(token_response=token_response, tag=FlowStateTag.COMPLETE)
-        return SignInResponse(tag=FlowStateTag.FAILURE)
+            return _SignInResponse(token_response=token_response, tag=_FlowStateTag.COMPLETE)
+        return _SignInResponse(tag=_FlowStateTag.FAILURE)
 
     async def get_refreshed_token(self,
         context: TurnContext,
@@ -93,8 +94,7 @@ class AgenticUserAuthorization(_AuthorizationHandler):
         """Gets a refreshed agentic user token if available."""
         if not exchange_scopes:
             exchange_scopes = self._handler.scopes or []
-        token = await self.get_agentic_user_token(context, exchange_scopes)
-        return TokenResponse(token=token) if token else TokenResponse()
+        return await self.get_agentic_user_token(context, exchange_scopes)
 
     async def sign_out(self, context: TurnContext, auth_handler_id: Optional[str] = None) -> None:
         """Nothing to do for agentic sign out."""

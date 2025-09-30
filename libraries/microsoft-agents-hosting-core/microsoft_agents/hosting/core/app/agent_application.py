@@ -41,7 +41,7 @@ from .app_options import ApplicationOptions
 from .route import Route, RouteHandler
 from .state import TurnState
 from ..channel_service_adapter import ChannelServiceAdapter
-from .auth import Authorization
+from .oauth import Authorization
 from .typing_indicator import TypingIndicator
 
 logger = logging.getLogger(__name__)
