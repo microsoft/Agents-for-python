@@ -145,24 +145,28 @@ class Authorization:
         await self._storage.delete([key])
 
     @staticmethod
+    def _cache_key(context: TurnContext, handler_id: str) -> str:
+        return f"{Authorization._sign_in_state_key(context)}:{handler_id}:token"
+
+    @staticmethod
     def _get_cached_token(
         context: TurnContext, handler_id: str
     ) -> Optional[TokenResponse]:
-        key = f"{Authorization._sign_in_state_key(context)}:{handler_id}:token"
+        key = Authorization._cache_key(context, handler_id)
         return context.turn_state.get(key)
 
     @staticmethod
     def _cache_token(
         context: TurnContext, handler_id: str, token_response: TokenResponse
     ) -> None:
-        key = f"{Authorization._sign_in_state_key(context)}:{handler_id}:token"
+        key = Authorization._cache_key(context, handler_id)
         context.turn_state[key] = token_response
     
     @staticmethod
     def _delete_cached_token(
         context: TurnContext, handler_id: str
     ) -> None:
-        key = f"{Authorization._sign_in_state_key(context)}:{handler_id}:token"
+        key = Authorization._cache_key(context, handler_id)
         if key in context.turn_state:
             del context.turn_state[key]
 
@@ -218,7 +222,7 @@ class Authorization:
             if self._sign_in_success_handler:
                 await self._sign_in_success_handler(context, state, auth_handler_id)
             await self._delete_sign_in_state(context)
-            await self._cache_token(context, auth_handler_id, sign_in_response.token_response)
+            Authorization._cache_token(context, auth_handler_id, sign_in_response.token_response)
 
         elif sign_in_response.tag == _FlowStateTag.FAILURE:
             if self._sign_in_failure_handler:
@@ -246,13 +250,10 @@ class Authorization:
         :return: None
         """
         auth_handler_id = auth_handler_id or self._default_handler_id
-        sign_in_state = await self._load_sign_in_state(context)
-        if sign_in_state and auth_handler_id == sign_in_state.active_handler_id:
-                # sign out from specific handler
-                handler = self._resolve_handler(auth_handler_id)
-                self._delete_cached_token(context, auth_handler_id)
-                await self._delete_sign_in_state(context)
-                await handler._sign_out(context)
+        handler = self._resolve_handler(auth_handler_id)
+        Authorization._delete_cached_token(context, auth_handler_id)
+        await self._delete_sign_in_state(context)
+        await handler._sign_out(context)
 
     async def _on_turn_auth_intercept(
         self, context: TurnContext, state: TurnState
@@ -274,7 +275,7 @@ class Authorization:
         sign_in_state = await self._load_sign_in_state(context)
 
         if sign_in_state:
-            auth_handler_id = sign_in_state.active_handler
+            auth_handler_id = sign_in_state.active_handler_id
             if auth_handler_id:
                 sign_in_response = await self._start_or_continue_sign_in(
                     context, state, auth_handler_id
@@ -321,7 +322,7 @@ class Authorization:
                 f"Auth handler {auth_handler_id} not recognized or not configured."
             )
         
-        cached_token = await self._get_cached_token(context, auth_handler_id)
+        cached_token = Authorization._get_cached_token(context, auth_handler_id)
 
         if cached_token:
 
