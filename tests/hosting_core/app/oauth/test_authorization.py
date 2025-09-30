@@ -201,7 +201,7 @@ class TestAuthorizationUsage(TestEnv):
             await authorization._save_sign_in_state(context, initial_sign_in_state)
 
         # test
-        await authorization.sign_out(context, None, auth_handler_id)
+        await authorization.sign_out(context, auth_handler_id)
 
         # verify
         assert context.turn_state == expected_turn_state
@@ -445,19 +445,15 @@ class TestAuthorizationUsage(TestEnv):
             await authorization._save_sign_in_state(context, initial_state)
 
         # test
-        if expected:
-            res = await authorization.get_token(context, handler_id)
-            assert res == expected
+        res = await authorization.get_token(context, handler_id)
+        assert res == expected
 
-            if handler_id:
-                authorization._resolve_handler(expected_handler_id).get_refreshed_token.assert_called_once_with(
-                    context,
-                    None,
-                    None
-                )
-        else:
-            with pytest.raises(Exception):
-                await authorization.get_token(context, handler_id)
+        if handler_id and refresh_token:
+            authorization._resolve_handler(expected_handler_id).get_refreshed_token.assert_called_once_with(
+                context,
+                None,
+                None
+            )
 
         final_state = await authorization._load_sign_in_state(context)
         assert sign_in_state_eq(initial_state, final_state)
@@ -507,22 +503,17 @@ class TestAuthorizationUsage(TestEnv):
         else:
             await authorization._save_sign_in_state(context, initial_state)
 
+        res = await authorization.exchange_token(context, auth_handler_id=handler_id, exchange_connection="some_connection", scopes=["scope1", "scope2"])
+        assert res == refresh_token
 
-        if refresh_token:
-            res = await authorization.exchange_token(context, auth_handler_id=handler_id, exchange_connection="some_connection", scopes=["scope1", "scope2"])
-            assert res == refresh_token
-
-            final_state = await authorization._load_sign_in_state(context)
-            assert sign_in_state_eq(initial_state, final_state)
-            if handler_id:
-                authorization._resolve_handler(handler_id).get_refreshed_token.assert_called_once_with(
-                    context,
-                    "some_connection",
-                    ["scope1", "scope2"]
-                )
-        else:
-            with pytest.raises(Exception):
-                token_res = await authorization.exchange_token(context, auth_handler_id=handler_id, exchange_connection="some_connection", scopes=["scope1", "scope2"])
+        final_state = await authorization._load_sign_in_state(context)
+        assert sign_in_state_eq(initial_state, final_state)
+        if handler_id and refresh_token:
+            authorization._resolve_handler(handler_id).get_refreshed_token.assert_called_once_with(
+                context,
+                "some_connection",
+                ["scope1", "scope2"]
+            )
 
         final_state = await authorization._load_sign_in_state(context)
         assert sign_in_state_eq(initial_state, final_state)
