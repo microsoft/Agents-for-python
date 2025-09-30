@@ -146,7 +146,7 @@ class _UserAuthorization(_AuthorizationHandler):
             signs out from all the handlers.
         """
         flow, flow_storage_client = await self._load_flow(context)
-        logger.info("_Signing out from handler: %s", self._id)
+        logger.info("Signing out from handler: %s", self._id)
         await flow.sign_out()
         await flow_storage_client.delete(self._id)
 
@@ -162,11 +162,11 @@ class _UserAuthorization(_AuthorizationHandler):
             assert sign_in_resource
             o_card: Attachment = CardFactory.oauth_card(
                 OAuthCard(
-                    text="_Sign in",
+                    text="Sign in",
                     connection_name=flow_state.connection,
                     buttons=[
                         CardAction(
-                            title="_Sign in",
+                            title="Sign in",
                             type=ActionTypes.signin,
                             value=sign_in_resource.sign_in_link,
                             channel_data=None,
@@ -182,16 +182,16 @@ class _UserAuthorization(_AuthorizationHandler):
             if flow_state.reached_max_attempts():
                 await context.send_activity(
                     MessageFactory.text(
-                        "_Sign-in failed. Max retries reached. Please try again later."
+                        "Sign-in failed. Max retries reached. Please try again later."
                     )
                 )
             elif flow_state.is_expired():
                 await context.send_activity(
-                    MessageFactory.text("_Sign-in session expired. Please try again.")
+                    MessageFactory.text("Sign-in session expired. Please try again.")
                 )
             else:
-                logger.warning("_Sign-in flow failed for unknown reasons.")
-                await context.send_activity("_Sign-in failed. Please try again.")
+                logger.warning("Sign-in flow failed for unknown reasons.")
+                await context.send_activity("Sign-in failed. Please try again.")
 
     async def _sign_in(
         self, context: TurnContext, exchange_connection: Optional[str] = None, exchange_scopes: Optional[list[str]] = None

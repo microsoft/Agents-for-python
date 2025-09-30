@@ -237,7 +237,7 @@ class Authorization:
         return sign_in_response
 
     async def sign_out(
-        self, context: TurnContext, state: TurnState, auth_handler_id: Optional[str] = None
+        self, context: TurnContext, auth_handler_id: Optional[str] = None
     ) -> None:
         """Attempts to sign out the user from the specified auth handler or all handlers if none specified.
 
@@ -341,7 +341,7 @@ class Authorization:
             res = await handler.get_refreshed_token(context, exchange_connection, scopes)
             if res:
                 return res
-        raise Exception("Failed to exchange token")
+        return TokenResponse()
 
 
     def on_sign_in_success(

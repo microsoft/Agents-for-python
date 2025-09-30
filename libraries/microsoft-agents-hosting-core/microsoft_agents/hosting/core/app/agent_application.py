@@ -606,21 +606,22 @@ class AgentApplication(Agent, Generic[StateT]):
 
             logger.debug("Initializing turn state")
             turn_state = await self._initialize_state(context)
+            if context.activity.type == ActivityTypes.message or context.activity.type == ActivityTypes.invoke:
 
-            (
-                auth_intercepts,
-                continuation_activity,
-            ) = await self._auth._on_turn_auth_intercept(context, turn_state)
-            if auth_intercepts:
-                if continuation_activity:
-                    new_context = copy(context)
-                    new_context.activity = continuation_activity
-                    logger.info(
-                        "Resending continuation activity %s", continuation_activity.text
-                    )
-                    await self.on_turn(new_context)
-                    await turn_state.save(context)
-                return
+                (
+                    auth_intercepts,
+                    continuation_activity,
+                ) = await self._auth._on_turn_auth_intercept(context, turn_state)
+                if auth_intercepts:
+                    if continuation_activity:
+                        new_context = copy(context)
+                        new_context.activity = continuation_activity
+                        logger.info(
+                            "Resending continuation activity %s", continuation_activity.text
+                        )
+                        await self.on_turn(new_context)
+                        await turn_state.save(context)
+                    return
 
             logger.debug("Running before turn middleware")
             if not await self._run_before_turn_middleware(context, turn_state):
