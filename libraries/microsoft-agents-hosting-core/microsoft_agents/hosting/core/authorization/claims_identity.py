@@ -10,7 +10,7 @@ class ClaimsIdentity:
         self,
         claims: dict[str, str],
         is_authenticated: bool,
-        authentication_type: str = None,
+        authentication_type: Optional[str] = None,
     ):
         self.claims = claims
         self.is_authenticated = is_authenticated

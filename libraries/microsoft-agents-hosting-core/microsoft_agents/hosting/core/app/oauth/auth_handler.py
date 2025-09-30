@@ -65,6 +65,8 @@ class AuthHandler:
             self.scopes = list(scopes)
         else:
             self.scopes = AuthHandler._format_scopes(kwargs.get("SCOPES", ""))
+        self._alt_blueprint_name = kwargs.get("ALT_BLUEPRINT_NAME", None)
+        
     @staticmethod
     def _format_scopes(scopes: str) -> list[str]:
         lst = scopes.strip().split(" ")

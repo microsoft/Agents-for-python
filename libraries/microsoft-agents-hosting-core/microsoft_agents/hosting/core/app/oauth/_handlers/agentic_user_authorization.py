@@ -8,12 +8,47 @@ from ....turn_context import TurnContext
 from ...._oauth import _FlowStateTag
 from .._sign_in_response import _SignInResponse
 from ._authorization_handler import _AuthorizationHandler
+from ....storage import Storage
+from ....authorization import Connections
+from ..auth_handler import AuthHandler
 
 logger = logging.getLogger(__name__)
 
 
 class AgenticUserAuthorization(_AuthorizationHandler):
     """Class responsible for managing agentic authorization"""
+
+    def __init__(
+        self,
+        storage: Storage,
+        connection_manager: Connections,
+        auth_handler: Optional[AuthHandler] = None,
+        *,
+        auth_handler_id: Optional[str] = None,
+        auth_handler_settings: Optional[dict] = None,
+        **kwargs,
+    ) -> None:
+        """
+        Creates a new instance of Authorization.
+
+        :param storage: The storage system to use for state management.
+        :type storage: Storage
+        :param connection_manager: The connection manager for OAuth providers.
+        :type connection_manager: Connections
+        :param auth_handlers: Configuration for OAuth providers.
+        :type auth_handlers: dict[str, AuthHandler], optional
+        :raises ValueError: When storage is None or no auth handlers provided.
+        """
+        super().__init__(
+            storage,
+            connection_manager,
+            auth_handler,
+            auth_handler_id=auth_handler_id,
+            auth_handler_settings=auth_handler_settings,
+            **kwargs,
+        )
+        self._alt_blueprint_name = auth_handler._alt_blueprint_name if auth_handler else None
+        
 
     async def get_agentic_instance_token(self, context: TurnContext) -> TokenResponse:
         """Gets the agentic instance token for the current agent instance.
@@ -37,6 +72,8 @@ class AgenticUserAuthorization(_AuthorizationHandler):
             agent_instance_id
         )
         return TokenResponse(token=instance_token) if instance_token else TokenResponse()
+    
+
 
     async def get_agentic_user_token(
         self, context: TurnContext, scopes: list[str]
@@ -55,9 +92,12 @@ class AgenticUserAuthorization(_AuthorizationHandler):
             return TokenResponse()
 
         assert context.identity
-        connection = self._connection_manager.get_token_provider(
-            context.identity, "agentic"
-        )
+        if self._alt_blueprint_name:
+            connection = self._connection_manager.get_connection(self._alt_bluerprint_name)
+        else:
+            connection = self._connection_manager.get_token_provider(
+                context.identity, "agentic"
+            )
         upn = self.get_agentic_user(context)
         agentic_instance_id = self.get_agent_instance_id(context)
         assert upn and agentic_instance_id

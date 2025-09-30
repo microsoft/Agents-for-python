@@ -10,6 +10,7 @@ from microsoft_agents.hosting.core.authorization import AccessTokenProviderBase
 from microsoft_agents.hosting.core.connector import ConnectorClientBase
 from microsoft_agents.hosting.core.connector.client import UserTokenClient
 from microsoft_agents.hosting.core.connector.teams import TeamsConnectorClient
+from microsoft_agents.hosting.core.turn_context import TurnContext
 
 from .channel_service_client_factory_base import ChannelServiceClientFactoryBase
 
@@ -29,6 +30,7 @@ class RestChannelServiceClientFactory(ChannelServiceClientFactoryBase):
 
     async def create_connector_client(
         self,
+        context: TurnContext,
         claims_identity: ClaimsIdentity,
         service_url: str,
         audience: str,
