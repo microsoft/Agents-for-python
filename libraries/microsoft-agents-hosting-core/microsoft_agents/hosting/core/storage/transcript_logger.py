@@ -1,14 +1,15 @@
 # Copyright (c) Microsoft Corporation. All rights reserved.
 # Licensed under the MIT License.
-
-from abc import ABC, abstractmethod
-from queue import Queue
 import copy
-from datetime import datetime, timezone
 import random
 import string
-from typing import Awaitable, Callable, List, Optional
 import json
+
+from abc import ABC, abstractmethod
+from datetime import datetime, timezone
+from queue import Queue
+from typing import Awaitable, Callable, List, Optional
+
 from microsoft_agents.activity import Activity, ChannelAccount
 from microsoft_agents.activity.activity import ConversationReference
 from microsoft_agents.activity.activity_types import ActivityTypes
@@ -57,12 +58,14 @@ class FileTranscriptLogger(TranscriptLogger):
         """
         self.file_path = file_path
         self.encoding = encoding
+
         # Open file in append mode to ensure it exists
         self._file = open(self.file_path, "a", encoding=self.encoding)
 
     async def log_activity(self, activity: Activity) -> None:
         """
-        Appends the given activity as a JSON line to the file.
+        Appends the given activity as a JSON line to the file. This method pretty-prints the JSON for readability, which makes
+        it non-performant. For production scenarios, consider a more efficient logging mechanism.
 
         :param activity: The Activity object to log.
         """
@@ -73,6 +76,9 @@ class FileTranscriptLogger(TranscriptLogger):
         parsed = json.loads(json_data)
 
         self._file.write(json.dumps(parsed, indent=4))
+
+        # As this is a logging / debugging class, we want to ensure the data is written out immediately. This is another
+        # consideration that makes this class non-performant for production scenarios.
         self._file.flush()
 
     def __del__(self):
