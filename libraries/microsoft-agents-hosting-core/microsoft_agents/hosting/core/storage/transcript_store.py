@@ -7,6 +7,7 @@ from microsoft_agents.activity import Activity
 from .transcript_info import TranscriptInfo
 from .transcript_logger import TranscriptLogger
 
+
 class TranscriptStore(TranscriptLogger):
     @abstractmethod
     async def get_transcript_activities(
@@ -28,7 +29,9 @@ class TranscriptStore(TranscriptLogger):
         pass
 
     @abstractmethod
-    async def list_transcripts( self, channel_id: str, continuation_token: str = None) -> tuple[list[TranscriptInfo, str]]:
+    async def list_transcripts(
+        self, channel_id: str, continuation_token: str = None
+    ) -> tuple[list[TranscriptInfo, str]]:
         """
         Asynchronously lists transcripts for a given channel.
 

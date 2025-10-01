@@ -16,6 +16,7 @@ from microsoft_agents.activity.activity_types import ActivityTypes
 from microsoft_agents.activity.conversation_reference import ActivityEventNames
 from microsoft_agents.hosting.core.middleware_set import Middleware, TurnContext
 
+
 class TranscriptLogger(ABC):
     @abstractmethod
     async def log_activity(self, activity: Activity) -> None:
@@ -26,10 +27,11 @@ class TranscriptLogger(ABC):
         """
         pass
 
+
 class ConsoleTranscriptLogger(TranscriptLogger):
     """
-        ConsoleTranscriptLogger writes activities to Console output. This is a DEBUG class, intended for testing 
-        and log tailing
+    ConsoleTranscriptLogger writes activities to Console output. This is a DEBUG class, intended for testing
+    and log tailing
     """
 
     async def log_activity(self, activity: Activity) -> None:
@@ -38,17 +40,19 @@ class ConsoleTranscriptLogger(TranscriptLogger):
         """
         if not activity:
             raise TypeError("Activity is required")
-        
+
         json_data = activity.model_dump_json()
         parsed = json.loads(json_data)
-        print(json.dumps(parsed, indent=4))                        
+        print(json.dumps(parsed, indent=4))
+
 
 class FileTranscriptLogger(TranscriptLogger):
-    """ 
-    A TranscriptLogger implementation that appends each activity as JSON to a file. This class appends 
-    each activity to the given file using basic formatting. This is a DEBUG class, intended for testing 
-    and log tailing. 
     """
+    A TranscriptLogger implementation that appends each activity as JSON to a file. This class appends
+    each activity to the given file using basic formatting. This is a DEBUG class, intended for testing
+    and log tailing.
+    """
+
     def __init__(self, file_path: str, encoding: Optional[str] = "utf-8"):
         """
         Initializes the FileTranscriptLogger and opens the file for appending.
@@ -71,7 +75,7 @@ class FileTranscriptLogger(TranscriptLogger):
         """
         if not activity:
             raise TypeError("Activity is required")
-        
+
         json_data = activity.model_dump_json()
         parsed = json.loads(json_data)
 
@@ -85,13 +89,16 @@ class FileTranscriptLogger(TranscriptLogger):
         if hasattr(self, "_file"):
             self._file.close()
 
+
 class TranscriptLoggerMiddleware(Middleware):
     """Logs incoming and outgoing activities to a TranscriptLogger."""
 
     def __init__(self, logger: TranscriptLogger):
         if not logger:
-            raise TypeError("TranscriptLoggerMiddleware requires a TranscriptLogger instance.")
-        
+            raise TypeError(
+                "TranscriptLoggerMiddleware requires a TranscriptLogger instance."
+            )
+
         self.logger = logger
 
     async def on_turn(

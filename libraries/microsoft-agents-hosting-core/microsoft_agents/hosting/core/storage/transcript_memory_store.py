@@ -8,6 +8,7 @@ from .transcript_logger import TranscriptLogger
 from .transcript_info import TranscriptInfo
 from microsoft_agents.activity import Activity
 
+
 class TranscriptMemoryStore(TranscriptLogger):
     """
     An in-memory implementation of the TranscriptLogger for storing and retrieving activities.
@@ -16,17 +17,18 @@ class TranscriptMemoryStore(TranscriptLogger):
     retrieving activities for a specific channel and conversation, and filtering by timestamp.
     Activities with a None timestamp are treated as the earliest possible datetime.
 
-    Note: This class is intended for testing and prototyping purposes only. It does not persist 
-    data and is not suitable for production use. This store will also grow without bound over 
+    Note: This class is intended for testing and prototyping purposes only. It does not persist
+    data and is not suitable for production use. This store will also grow without bound over
     time, making it especially unsuited for production use.
     """
+
     def __init__(self):
         """
         Initializes the TranscriptMemoryStore.
         """
         self._transcript = []
         self.lock = Lock()
-    
+
     async def log_activity(self, activity: Activity) -> None:
         """
         Asynchronously logs an activity to the in-memory transcript.
@@ -40,7 +42,7 @@ class TranscriptMemoryStore(TranscriptLogger):
             raise ValueError("Activity.Conversation cannot be None")
         if not activity.conversation.id:
             raise ValueError("Activity.Conversation.id cannot be None")
-        
+
         with self.lock:
             self._transcript.append(activity)
 
@@ -65,22 +67,35 @@ class TranscriptMemoryStore(TranscriptLogger):
             raise ValueError("channel_id cannot be None")
         if not conversation_id:
             raise ValueError("conversation_id cannot be None")
-        
+
         with self.lock:
             # Get the activities that match on channel and conversation id
             relevant_activities = [
-                a for a in self._transcript
-                if a.channel_id == channel_id and a.conversation and a.conversation.id == conversation_id
+                a
+                for a in self._transcript
+                if a.channel_id == channel_id
+                and a.conversation
+                and a.conversation.id == conversation_id
             ]
             # sort these by timestamp, treating None as datetime.min
             sorted_relevant_activities = sorted(
                 relevant_activities,
-                key=lambda a: a.timestamp if a.timestamp is not None else datetime.min.replace(tzinfo=timezone.utc)
+                key=lambda a: (
+                    a.timestamp
+                    if a.timestamp is not None
+                    else datetime.min.replace(tzinfo=timezone.utc)
+                ),
             )
             # grab the ones bigger than the requested start date, treating None as datetime.min
             filtered_sorted_activities = [
-                a for a in sorted_relevant_activities
-                if (a.timestamp if a.timestamp is not None else datetime.min.replace(tzinfo=timezone.utc)) >= start_date
+                a
+                for a in sorted_relevant_activities
+                if (
+                    a.timestamp
+                    if a.timestamp is not None
+                    else datetime.min.replace(tzinfo=timezone.utc)
+                )
+                >= start_date
             ]
 
             return filtered_sorted_activities, None
@@ -97,14 +112,21 @@ class TranscriptMemoryStore(TranscriptLogger):
             raise ValueError("channel_id cannot be None")
         if not conversation_id:
             raise ValueError("conversation_id cannot be None")
-        
+
         with self.lock:
             self._transcript = [
-                a for a in self._transcript
-                if not (a.channel_id == channel_id and a.conversation and a.conversation.id == conversation_id)
+                a
+                for a in self._transcript
+                if not (
+                    a.channel_id == channel_id
+                    and a.conversation
+                    and a.conversation.id == conversation_id
+                )
             ]
-        
-    async def list_transcripts(self, channel_id: str, continuation_token: str = None) -> tuple[list[TranscriptInfo], str]:
+
+    async def list_transcripts(
+        self, channel_id: str, continuation_token: str = None
+    ) -> tuple[list[TranscriptInfo], str]:
         """
         Lists all transcripts (unique conversation IDs) for a given channel.
 
@@ -115,9 +137,18 @@ class TranscriptMemoryStore(TranscriptLogger):
         """
         if not channel_id:
             raise ValueError("channel_id cannot be None")
-        
+
         with self.lock:
-            relevant_activities = [a for a in self._transcript if a.channel_id == channel_id]
-            conversations = set(a.conversation.id for a in relevant_activities if a.conversation and a.conversation.id)
-            transcript_infos = [TranscriptInfo(channel_id=channel_id, conversation_id=conversation_id) for conversation_id in conversations]
+            relevant_activities = [
+                a for a in self._transcript if a.channel_id == channel_id
+            ]
+            conversations = set(
+                a.conversation.id
+                for a in relevant_activities
+                if a.conversation and a.conversation.id
+            )
+            transcript_infos = [
+                TranscriptInfo(channel_id=channel_id, conversation_id=conversation_id)
+                for conversation_id in conversations
+            ]
             return transcript_infos, None
