@@ -3,17 +3,23 @@
 
 from datetime import datetime, timezone
 import pytest
-from microsoft_agents.hosting.core.storage.transcript_memory_store import TranscriptMemoryStore
+from microsoft_agents.hosting.core.storage.transcript_memory_store import (
+    TranscriptMemoryStore,
+)
 from microsoft_agents.activity import Activity, ConversationAccount
+
 
 @pytest.mark.asyncio
 async def test_get_transcript_empty():
     store = TranscriptMemoryStore()
-    transcriptAndContinuationToken = await store.get_transcript_activities("Channel 1", "Conversation 1")
+    transcriptAndContinuationToken = await store.get_transcript_activities(
+        "Channel 1", "Conversation 1"
+    )
     transcript = transcriptAndContinuationToken[0]
     continuationToken = transcriptAndContinuationToken[1]
     assert transcript == []
     assert continuationToken is None
+
 
 @pytest.mark.asyncio
 async def test_log_activity_add_one_activity():
@@ -21,13 +27,15 @@ async def test_log_activity_add_one_activity():
     activity = Activity.create_message_activity()
     activity.text = "Activity 1"
     activity.channel_id = "Channel 1"
-    activity.conversation = ConversationAccount( id="Conversation 1" )
-    
-    # Add one activity and make sure it's there and comes back    
+    activity.conversation = ConversationAccount(id="Conversation 1")
+
+    # Add one activity and make sure it's there and comes back
     await store.log_activity(activity)
 
     # Ask for the activity we just added
-    transcriptAndContinuationToken = await store.get_transcript_activities("Channel 1", "Conversation 1")
+    transcriptAndContinuationToken = await store.get_transcript_activities(
+        "Channel 1", "Conversation 1"
+    )
     transcript = transcriptAndContinuationToken[0]
     continuationToken = transcriptAndContinuationToken[1]
 
@@ -38,18 +46,23 @@ async def test_log_activity_add_one_activity():
     assert continuationToken is None
 
     # Ask for a channel that doesn't exist and make sure we get nothing
-    transcriptAndContinuationToken = await store.get_transcript_activities("Invalid", "Conversation 1")
+    transcriptAndContinuationToken = await store.get_transcript_activities(
+        "Invalid", "Conversation 1"
+    )
     transcript = transcriptAndContinuationToken[0]
     continuationToken = transcriptAndContinuationToken[1]
-    assert transcript == []    
+    assert transcript == []
     assert continuationToken is None
 
     # Ask for a ConversationID that doesn't exist and make sure we get nothing
-    transcriptAndContinuationToken = await store.get_transcript_activities("Channel 1", "INVALID")
+    transcriptAndContinuationToken = await store.get_transcript_activities(
+        "Channel 1", "INVALID"
+    )
     transcript = transcriptAndContinuationToken[0]
     continuationToken = transcriptAndContinuationToken[1]
-    assert transcript == []    
+    assert transcript == []
     assert continuationToken is None
+
 
 @pytest.mark.asyncio
 async def test_log_activity_add_two_activity_same_conversation():
@@ -57,18 +70,20 @@ async def test_log_activity_add_two_activity_same_conversation():
     activity1 = Activity.create_message_activity()
     activity1.text = "Activity 1"
     activity1.channel_id = "Channel 1"
-    activity1.conversation = ConversationAccount( id="Conversation 1" )
+    activity1.conversation = ConversationAccount(id="Conversation 1")
 
     activity2 = Activity.create_message_activity()
     activity2.text = "Activity 2"
     activity2.channel_id = "Channel 1"
-    activity2.conversation = ConversationAccount( id="Conversation 1" )
+    activity2.conversation = ConversationAccount(id="Conversation 1")
 
     await store.log_activity(activity1)
-    await store.log_activity(activity2)  
+    await store.log_activity(activity2)
 
     # Ask for the activity we just added
-    transcriptAndContinuationToken = await store.get_transcript_activities("Channel 1", "Conversation 1")
+    transcriptAndContinuationToken = await store.get_transcript_activities(
+        "Channel 1", "Conversation 1"
+    )
     transcript = transcriptAndContinuationToken[0]
     continuationToken = transcriptAndContinuationToken[1]
 
@@ -83,50 +98,57 @@ async def test_log_activity_add_two_activity_same_conversation():
 
     assert continuationToken is None
 
+
 @pytest.mark.asyncio
 async def test_log_activity_add_two_activity_same_conversation():
     store = TranscriptMemoryStore()
     activity1 = Activity.create_message_activity()
     activity1.text = "Activity 1"
     activity1.channel_id = "Channel 1"
-    activity1.conversation = ConversationAccount( id="Conversation 1" )
-    activity1.timestamp = datetime(2000, 1, 1, 12, 0, 0 , tzinfo=timezone.utc)
+    activity1.conversation = ConversationAccount(id="Conversation 1")
+    activity1.timestamp = datetime(2000, 1, 1, 12, 0, 0, tzinfo=timezone.utc)
 
     activity2 = Activity.create_message_activity()
     activity2.text = "Activity 2"
     activity2.channel_id = "Channel 1"
-    activity2.conversation = ConversationAccount( id="Conversation 1" )
-    activity2.timestamp = datetime(2010, 1, 1, 12, 0, 1 , tzinfo=timezone.utc)
+    activity2.conversation = ConversationAccount(id="Conversation 1")
+    activity2.timestamp = datetime(2010, 1, 1, 12, 0, 1, tzinfo=timezone.utc)
 
     activity3 = Activity.create_message_activity()
     activity3.text = "Activity 2"
     activity3.channel_id = "Channel 1"
-    activity3.conversation = ConversationAccount( id="Conversation 1" )
-    activity3.timestamp = datetime(2020, 1, 1, 12, 0, 1 , tzinfo=timezone.utc)
+    activity3.conversation = ConversationAccount(id="Conversation 1")
+    activity3.timestamp = datetime(2020, 1, 1, 12, 0, 1, tzinfo=timezone.utc)
 
-    await store.log_activity(activity1) # 2000
-    await store.log_activity(activity2) # 2010
-    await store.log_activity(activity3) # 2020
+    await store.log_activity(activity1)  # 2000
+    await store.log_activity(activity2)  # 2010
+    await store.log_activity(activity3)  # 2020
 
     # Ask for the activities we just added
-    date1 = datetime(1999, 1, 1, 12, 0, 0 , tzinfo=timezone.utc)
-    date2 = datetime(2009, 1, 1, 12, 0, 0 , tzinfo=timezone.utc)
-    date3 = datetime(2019, 1, 1, 12, 0, 0 , tzinfo=timezone.utc)
+    date1 = datetime(1999, 1, 1, 12, 0, 0, tzinfo=timezone.utc)
+    date2 = datetime(2009, 1, 1, 12, 0, 0, tzinfo=timezone.utc)
+    date3 = datetime(2019, 1, 1, 12, 0, 0, tzinfo=timezone.utc)
 
     # ask for everything after 1999. Should get all 3 activities
-    transcriptAndContinuationToken = await store.get_transcript_activities("Channel 1", "Conversation 1", None, date1)
+    transcriptAndContinuationToken = await store.get_transcript_activities(
+        "Channel 1", "Conversation 1", None, date1
+    )
     transcript = transcriptAndContinuationToken[0]
     continuationToken = transcriptAndContinuationToken[1]
     assert len(transcript) == 3
 
     # ask for everything after 2009. Should get 2 activities - the 2010 and 2020 activities
-    transcriptAndContinuationToken = await store.get_transcript_activities("Channel 1", "Conversation 1", None, date2)
+    transcriptAndContinuationToken = await store.get_transcript_activities(
+        "Channel 1", "Conversation 1", None, date2
+    )
     transcript = transcriptAndContinuationToken[0]
     continuationToken = transcriptAndContinuationToken[1]
     assert len(transcript) == 2
 
     # ask for everything after 2019. Should only get the 2020 activity
-    transcriptAndContinuationToken = await store.get_transcript_activities("Channel 1", "Conversation 1", None, date3)
+    transcriptAndContinuationToken = await store.get_transcript_activities(
+        "Channel 1", "Conversation 1", None, date3
+    )
     transcript = transcriptAndContinuationToken[0]
     continuationToken = transcriptAndContinuationToken[1]
     assert len(transcript) == 1
@@ -138,18 +160,20 @@ async def test_log_activity_add_two_activity_two_conversation():
     activity1 = Activity.create_message_activity()
     activity1.text = "Activity 1 Channel 1 Conversation 1"
     activity1.channel_id = "Channel 1"
-    activity1.conversation = ConversationAccount( id="Conversation 1" )
+    activity1.conversation = ConversationAccount(id="Conversation 1")
 
     activity2 = Activity.create_message_activity()
     activity2.text = "Activity 1 Channel 1 Conversation 2"
     activity2.channel_id = "Channel 1"
-    activity2.conversation = ConversationAccount( id="Conversation 2" )
+    activity2.conversation = ConversationAccount(id="Conversation 2")
 
     await store.log_activity(activity1)
-    await store.log_activity(activity2)  
+    await store.log_activity(activity2)
 
     # Ask for the activity we just added
-    transcriptAndContinuationToken = await store.get_transcript_activities("Channel 1", "Conversation 1")
+    transcriptAndContinuationToken = await store.get_transcript_activities(
+        "Channel 1", "Conversation 1"
+    )
     transcript = transcriptAndContinuationToken[0]
     continuationToken = transcriptAndContinuationToken[1]
 
@@ -160,7 +184,9 @@ async def test_log_activity_add_two_activity_two_conversation():
     assert continuationToken is None
 
     # Now grab Conversation 2
-    transcriptAndContinuationToken = await store.get_transcript_activities("Channel 1", "Conversation 2")
+    transcriptAndContinuationToken = await store.get_transcript_activities(
+        "Channel 1", "Conversation 2"
+    )
     transcript = transcriptAndContinuationToken[0]
     continuationToken = transcriptAndContinuationToken[1]
 
@@ -170,19 +196,22 @@ async def test_log_activity_add_two_activity_two_conversation():
     assert transcript[0].text == activity2.text
     assert continuationToken is None
 
+
 @pytest.mark.asyncio
 async def test_delete_one_transcript():
     store = TranscriptMemoryStore()
     activity = Activity.create_message_activity()
     activity.text = "Activity 1"
     activity.channel_id = "Channel 1"
-    activity.conversation = ConversationAccount( id="Conversation 1" )
-    
-    # Add one activity and make sure it's there and comes back    
+    activity.conversation = ConversationAccount(id="Conversation 1")
+
+    # Add one activity and make sure it's there and comes back
     await store.log_activity(activity)
 
     # Ask for the activity we just added
-    transcriptAndContinuationToken = await store.get_transcript_activities("Channel 1", "Conversation 1")
+    transcriptAndContinuationToken = await store.get_transcript_activities(
+        "Channel 1", "Conversation 1"
+    )
     transcript = transcriptAndContinuationToken[0]
     continuationToken = transcriptAndContinuationToken[1]
 
@@ -190,25 +219,28 @@ async def test_delete_one_transcript():
 
     # Now delete the transcript
     await store.delete_transcript("Channel 1", "Conversation 1")
-    transcriptAndContinuationToken = await store.get_transcript_activities("Channel 1", "Conversation 1")
+    transcriptAndContinuationToken = await store.get_transcript_activities(
+        "Channel 1", "Conversation 1"
+    )
     transcript = transcriptAndContinuationToken[0]
     assert len(transcript) == 0
+
 
 @pytest.mark.asyncio
 async def test_delete_one_transcript_of_two():
     store = TranscriptMemoryStore()
-    
+
     activity = Activity.create_message_activity()
     activity.text = "Activity 1"
     activity.channel_id = "Channel 1"
-    activity.conversation = ConversationAccount( id="Conversation 1" )
+    activity.conversation = ConversationAccount(id="Conversation 1")
 
     activity2 = Activity.create_message_activity()
     activity2.text = "Activity 2"
     activity2.channel_id = "Channel 2"
-    activity2.conversation = ConversationAccount( id="Conversation 1" )
+    activity2.conversation = ConversationAccount(id="Conversation 1")
 
-    # Add one activity and make sure it's there and comes back    
+    # Add one activity and make sure it's there and comes back
     await store.log_activity(activity)
     await store.log_activity(activity2)
 
@@ -218,28 +250,33 @@ async def test_delete_one_transcript_of_two():
     await store.delete_transcript("Channel 1", "Conversation 1")
 
     # Make sure the one we deleted is gone
-    transcriptAndContinuationToken = await store.get_transcript_activities("Channel 1", "Conversation 1")
+    transcriptAndContinuationToken = await store.get_transcript_activities(
+        "Channel 1", "Conversation 1"
+    )
     transcript = transcriptAndContinuationToken[0]
     assert len(transcript) == 0
 
     # Make sure the other one is still there
-    transcriptAndContinuationToken = await store.get_transcript_activities("Channel 2", "Conversation 1")
+    transcriptAndContinuationToken = await store.get_transcript_activities(
+        "Channel 2", "Conversation 1"
+    )
     transcript = transcriptAndContinuationToken[0]
     assert len(transcript) == 1
+
 
 @pytest.mark.asyncio
 async def test_list_transcripts():
     store = TranscriptMemoryStore()
-    
+
     activity = Activity.create_message_activity()
     activity.text = "Activity 1"
     activity.channel_id = "Channel 1"
-    activity.conversation = ConversationAccount( id="Conversation 1" )
+    activity.conversation = ConversationAccount(id="Conversation 1")
 
     activity2 = Activity.create_message_activity()
     activity2.text = "Activity 2"
     activity2.channel_id = "Channel 2"
-    activity2.conversation = ConversationAccount( id="Conversation 1" )
+    activity2.conversation = ConversationAccount(id="Conversation 1")
 
     # Make sure a list on an empty store returns an empty set
     transcriptAndContinuationToken = await store.list_transcripts("Should Be Empty")
@@ -251,7 +288,7 @@ async def test_list_transcripts():
     # Add one activity so we can go searching
     await store.log_activity(activity)
 
-    transcriptAndContinuationToken = await store.list_transcripts("Channel 1")    
+    transcriptAndContinuationToken = await store.list_transcripts("Channel 1")
     transcript = transcriptAndContinuationToken[0]
     continuationToken = transcriptAndContinuationToken[1]
     assert len(transcript) == 1
@@ -261,14 +298,14 @@ async def test_list_transcripts():
     await store.log_activity(activity2)
 
     # Check again for "Transcript 1" which is on channel 1
-    transcriptAndContinuationToken = await store.list_transcripts("Channel 1")    
+    transcriptAndContinuationToken = await store.list_transcripts("Channel 1")
     transcript = transcriptAndContinuationToken[0]
     continuationToken = transcriptAndContinuationToken[1]
     assert len(transcript) == 1
     assert continuationToken is None
 
     # Check for "Transcript 2" which is on channel 2
-    transcriptAndContinuationToken = await store.list_transcripts("Channel 2")    
+    transcriptAndContinuationToken = await store.list_transcripts("Channel 2")
     transcript = transcriptAndContinuationToken[0]
     continuationToken = transcriptAndContinuationToken[1]
     assert len(transcript) == 1
