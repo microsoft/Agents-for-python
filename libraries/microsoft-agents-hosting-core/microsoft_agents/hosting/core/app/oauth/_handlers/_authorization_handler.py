@@ -65,8 +65,8 @@ class _AuthorizationHandler(ABC):
 
         :param context: The turn context for the current turn of conversation.
         :type context: TurnContext
-        :param auth_handler_id: The ID of the auth handler to use for sign-in. If None, the first handler will be used.
-        :type auth_handler_id: Optional[str]
+        :param scopes: Optional list of scopes to request during sign-in. If None, default scopes will be used.
+        :type scopes: Optional[list[str]], optional
         :return: A SignInResponse indicating the result of the sign-in attempt.
         :rtype: SignInResponse
         """
@@ -75,7 +75,15 @@ class _AuthorizationHandler(ABC):
     async def get_refreshed_token(
         self, context: TurnContext, exchange_connection: Optional[str]=None, exchange_scopes: Optional[list[str]] = None
     ) -> TokenResponse:
-        """Attempts to get a refreshed token for the user with the given scopes"""
+        """Attempts to get a refreshed token for the user with the given scopes
+        
+        :param context: The turn context for the current turn of conversation.
+        :type context: TurnContext
+        :param exchange_connection: Optional name of the connection to use for token exchange. If None, default connection will be used.
+        :type exchange_connection: Optional[str], optional
+        :param exchange_scopes: Optional list of scopes to request during token exchange. If None, default scopes will be used.
+        :type exchange_scopes: Optional[list[str]], optional
+        """
         raise NotImplementedError()
 
     async def _sign_out(self, context: TurnContext) -> None:

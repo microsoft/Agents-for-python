@@ -239,12 +239,10 @@ class Authorization:
     async def sign_out(
         self, context: TurnContext, auth_handler_id: Optional[str] = None
     ) -> None:
-        """Attempts to sign out the user from the specified auth handler or all handlers if none specified.
+        """Attempts to sign out the user from a specified auth handler or the default handler.
 
         :param context: The turn context for the current turn of conversation.
         :type context: TurnContext
-        :param state: The turn state for the current turn of conversation.
-        :type state: TurnState
         :param auth_handler_id: The ID of the auth handler to sign out from. If None, sign out from all handlers.
         :type auth_handler_id: Optional[str]
         :return: None
@@ -295,7 +293,7 @@ class Authorization:
     async def get_token(
         self, context: TurnContext, auth_handler_id: Optional[str] = None
     ) -> TokenResponse:
-        """Gets the token for a specific auth handler.
+        """Gets the token for a specific auth handler or the default handler.
 
         The token is taken from cache, so this does not initiate nor continue a sign-in flow.
 
@@ -315,6 +313,23 @@ class Authorization:
         auth_handler_id: Optional[str] = None,
         exchange_connection: Optional[str] = None,
     ) -> TokenResponse:
+        """Exchanges or refreshes the token for a specific auth handler or the default handler.
+        
+        :param context: The context object for the current turn.
+        :type context: TurnContext
+        :param scopes: The scopes to request during the token exchange or refresh. Defaults
+            to the list given in the AuthHandler configuration if None.
+        :type scopes: Optional[list[str]]
+        :param auth_handler_id: The ID of the auth handler to exchange or refresh the token for.
+            If None, the default handler will be used.
+        :type auth_handler_id: Optional[str]
+        :param exchange_connection: The name of the connection to use for token exchange. If None,
+            the connection defined in the AuthHandler configuration will be used.
+        :type exchange_connection: Optional[str]
+        :return: The token response from the OAuth provider.
+        :rtype: TokenResponse
+        :raises ValueError: If the specified auth handler ID is not recognized or not configured.
+        """
         
         auth_handler_id = auth_handler_id or self._default_handler_id
         if auth_handler_id not in self._handlers:
@@ -364,4 +379,4 @@ class Authorization:
 
         :param handler: The handler function to call on sign-in failure.
         """
-        self._sign_in_failure_handler = handle
+        self._sign_in_failure_handler = handler

@@ -236,19 +236,14 @@ class _UserAuthorization(_AuthorizationHandler):
     async def get_refreshed_token(
         self, context: TurnContext, exchange_connection: Optional[str] = None, exchange_scopes: Optional[list[str]] = None
     ) -> TokenResponse:
-        """
-        Gets a refreshed token for the user.
-
-        :param context: The context object for the current turn.
+        """Attempts to get a refreshed token for the user with the given scopes
+        
+        :param context: The turn context for the current turn of conversation.
         :type context: TurnContext
-        :param auth_handler_id: The ID of the auth handler to use.
-        :type auth_handler_id: str
-        :param exchange_connection: The connection to use for token exchange.
-        :type exchange_connection: str
-        :param exchange_scopes: The scopes to request for the new token.
-        :type exchange_scopes: Optional[list[str]]
-        :return: The token response from the OAuth provider.
-        :rtype: TokenResponse
+        :param exchange_connection: Optional name of the connection to use for token exchange. If None, default connection will be used.
+        :type exchange_connection: Optional[str], optional
+        :param exchange_scopes: Optional list of scopes to request during token exchange. If None, default scopes will be used.
+        :type exchange_scopes: Optional[list[str]], optional
         """
         flow, _ = await self._load_flow(context)
         input_token_response = await flow.get_user_token()

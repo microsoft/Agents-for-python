@@ -57,9 +57,16 @@ class MsalAuth(AccessTokenProviderBase):
             auth_result_payload = msal_auth_client.acquire_token_for_client(
                 scopes=local_scopes
             )
+        else:
+            auth_result_payload = None
 
-        # TODO: Handling token error / acquisition failed
-        return auth_result_payload["access_token"]
+        res = auth_result_payload.get("access_token") if auth_result_payload else None
+        if not res:
+            logger.error(
+                "Failed to acquire token for resource %s", auth_result_payload
+            )
+            raise ValueError(f"Failed to acquire token. {str(auth_result_payload)}")
+        return res
 
     async def acquire_token_on_behalf_of(
         self, scopes: list[str], user_assertion: str
@@ -255,7 +262,12 @@ class MsalAuth(AccessTokenProviderBase):
         assert agent_token_result
 
         # future scenario where we don't know the blueprint id upfront
-        token = agent_instance_token["access_token"]
+
+        token = agent_instance_token.get("access_token")
+        if not token:
+            logger.error("Failed to acquire agentic instance token, %s", agent_instance_token)
+            raise ValueError(f"Failed to acquire token. {str(agent_instance_token)}")
+
         payload = jwt.decode(token, options={"verify_signature": False})
         agentic_blueprint_id = payload.get("xms_par_app_azp")
         logger.debug("Agentic blueprint id: %s", agentic_blueprint_id)
@@ -276,7 +288,7 @@ class MsalAuth(AccessTokenProviderBase):
         :return: The agentic user token, or None if not found.
         :rtype: Optional[str]
         """
-
+        breakpoint()
         if not agent_app_instance_id or not upn:
             raise ValueError(
                 "Agent application instance Id and user principal name must be provided."

@@ -93,7 +93,7 @@ class AgenticUserAuthorization(_AuthorizationHandler):
 
         assert context.identity
         if self._alt_blueprint_name:
-            connection = self._connection_manager.get_connection(self._alt_bluerprint_name)
+            connection = self._connection_manager.get_connection(self._alt_blueprint_name)
         else:
             connection = self._connection_manager.get_token_provider(
                 context.identity, "agentic"
@@ -131,7 +131,15 @@ class AgenticUserAuthorization(_AuthorizationHandler):
         exchange_connection: Optional[str] = None,
         exchange_scopes: Optional[list[str]] = None
     ) -> TokenResponse:
-        """Gets a refreshed agentic user token if available."""
+        """Attempts to get a refreshed token for the user with the given scopes
+        
+        :param context: The turn context for the current turn of conversation.
+        :type context: TurnContext
+        :param exchange_connection: Optional name of the connection to use for token exchange. If None, default connection will be used.
+        :type exchange_connection: Optional[str], optional
+        :param exchange_scopes: Optional list of scopes to request during token exchange. If None, default scopes will be used.
+        :type exchange_scopes: Optional[list[str]], optional
+        """
         if not exchange_scopes:
             exchange_scopes = self._handler.scopes or []
         return await self.get_agentic_user_token(context, exchange_scopes)

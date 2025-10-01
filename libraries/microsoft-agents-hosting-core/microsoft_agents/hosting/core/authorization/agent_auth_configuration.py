@@ -40,6 +40,7 @@ class AgentAuthConfiguration:
         self.CERT_KEY_FILE = cert_key_file or kwargs.get("CERTKEYFILE", None)
         self.CONNECTION_NAME = connection_name or kwargs.get("CONNECTIONNAME", None)
         self.SCOPES = scopes or kwargs.get("SCOPES", None)
+        self.ALT_BLUEPRINT_ID = kwargs.get("ALT_BLUEPRINT_NAME", None)
 
     @property
     def ISSUERS(self) -> list[str]:
