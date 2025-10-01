@@ -24,7 +24,6 @@ from .role_types import RoleTypes
 from ._model_utils import pick_model, SkipNone
 from ._type_aliases import NonEmptyString
 
-
 # TODO: A2A Agent 2 is responding with None as id, had to mark it as optional (investigate)
 class Activity(AgentsModel):
     """An Activity is the basic communication type for the protocol.
@@ -650,8 +649,20 @@ class Activity(AgentsModel):
 
             self.entities.append(ai_entity)
 
-    def is_agentic(self) -> bool:
+    def is_agentic_request(self) -> bool:
         return self.recipient and self.recipient.role in [
             RoleTypes.agentic_identity,
             RoleTypes.agentic_user,
         ]
+    
+    def get_agentic_instance_id(self) -> Optional[str]:
+        """Gets the agent instance ID from the context if it's an agentic request."""
+        if not self.is_agentic_request() or not self.recipient:
+            return None
+        return self.recipient.agentic_app_id
+
+    def get_agentic_user(self) -> Optional[str]:
+        """Gets the agentic user (UPN) from the context if it's an agentic request."""
+        if not self.is_agentic_request() or not self.recipient:
+            return None
+        return self.recipient.id

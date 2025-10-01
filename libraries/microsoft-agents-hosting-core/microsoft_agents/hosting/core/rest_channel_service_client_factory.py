@@ -16,20 +16,6 @@ from microsoft_agents.hosting.core.connector.teams import TeamsConnectorClient
 from .channel_service_client_factory_base import ChannelServiceClientFactoryBase
 from .turn_context import TurnContext
 
-# DIRTY HACK -> to avoid circular import
-# PLEASE REMOVE, thank you.
-def get_agent_instance_id(context: TurnContext) -> Optional[str]:
-    """Gets the agent instance ID from the context if it's an agentic request."""
-    if not context.activity.is_agentic() or not context.activity.recipient:
-        return None
-    return context.activity.recipient.agentic_app_id
-
-def get_agentic_user(context: TurnContext) -> Optional[str]:
-    """Gets the agentic user (UPN) from the context if it's an agentic request."""
-    if not context.activity.is_agentic() or not context.activity.recipient:
-        return None
-    return context.activity.recipient.id
-
 
 class RestChannelServiceClientFactory(ChannelServiceClientFactoryBase):
     _ANONYMOUS_TOKEN_PROVIDER = AnonymousTokenProvider()
@@ -62,7 +48,7 @@ class RestChannelServiceClientFactory(ChannelServiceClientFactoryBase):
                 "RestChannelServiceClientFactory.create_connector_client: audience can't be None or Empty"
             )
         
-        if context.activity.is_agentic():
+        if context.activity.is_agentic_request():
 
             # breakpoint()
 
@@ -72,14 +58,14 @@ class RestChannelServiceClientFactory(ChannelServiceClientFactoryBase):
             connection = self._connection_manager.get_token_provider(context.identity, service_url)
             if connection._msal_configuration.ALT_BLUEPRINT_ID:
                 connection = self._connection_manager.get_connection(connection._msal_configuration.ALT_BLUEPRINT_ID)
-            agent_instance_id = get_agent_instance_id(context)
+            agent_instance_id = context.activity.get_agentic_instance_id()
             if not agent_instance_id:
                 raise ValueError("Agent instance ID is required for agentic identity role")
 
             if context.activity.recipient.role == RoleTypes.agentic_identity:
                 token, _ = await connection.get_agentic_instance_token(agent_instance_id)
             else:
-                agentic_user = get_agentic_user(context)
+                agentic_user = context.activity.get_agentic_user()
                 if not agentic_user:
                     raise ValueError("Agentic user is required for agentic user role")
                 token = await connection.get_agentic_user_token(agent_instance_id, agentic_user, [AuthenticationConstants.APX_PRODUCTION_SCOPE])

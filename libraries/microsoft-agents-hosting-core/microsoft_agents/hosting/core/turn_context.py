@@ -18,7 +18,7 @@ from microsoft_agents.activity import (
     ResourceResponse,
     DeliveryModes,
 )
-from .authorization import ClaimsIdentity
+from microsoft_agents.hosting.core.authorization.claims_identity import ClaimsIdentity
 
 
 class TurnContext(TurnContextProtocol):

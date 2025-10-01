@@ -21,6 +21,9 @@ from microsoft_agents.activity import (
 
 from tests.activity._common.my_channel_data import MyChannelData
 from tests.activity._common.testing_activity import create_test_activity
+from tests._common.data import TEST_DEFAULTS
+
+DEFAULTS = TEST_DEFAULTS()
 
 
 def helper_validate_recipient_and_from(
@@ -370,6 +373,16 @@ class TestActivityConversationOps:
             Entity(type="mention", text="Another mention"),
         ]
 
+class TestActivityAgenticOps:
+
+    @pytest.fixture(params=[RoleTypes.user, RoleTypes.skill, RoleTypes.agent])
+    def non_agentic_role(self, request):
+        return request.param
+
+    @pytest.fixture(params=[RoleTypes.agentic_user, RoleTypes.agentic_identity])
+    def agentic_role(self, request):
+        return request.param
+
     @pytest.mark.parametrize(
         "role, expected",
         [
@@ -380,8 +393,57 @@ class TestActivityConversationOps:
             [RoleTypes.agentic_identity, True],
         ],
     )
-    def test_is_agentic(self, role, expected):
+    def test_is_agentic_request(self, role, expected):
         activity = Activity(
             type="message", recipient=ChannelAccount(id="bot", name="bot", role=role)
         )
-        assert activity.is_agentic() == expected
+        assert activity.is_agentic_request() == expected
+
+    def test_get_agentic_instance_id_is_agentic(self, mocker, agentic_role):
+        activity = Activity(
+            type="message",
+            recipient=ChannelAccount(
+                id="some_id",
+                agentic_app_id=DEFAULTS.agentic_instance_id,
+                role=agentic_role,
+            ),
+        )
+        assert (
+            activity.get_agentic_instance_id()
+            == DEFAULTS.agentic_instance_id
+        )
+
+    def test_get_agentic_instance_id_not_agentic(self, non_agentic_role):
+        activity = Activity(
+            type="message",
+            recipient=ChannelAccount(
+                id="some_id",
+                agentic_app_id=DEFAULTS.agentic_instance_id,
+                role=non_agentic_role,
+            ),
+        )
+        assert activity.get_agentic_instance_id() is None
+
+    def test_get_agentic_user_is_agentic(self, agentic_role):
+        activity = Activity(
+            type="message",
+            recipient=ChannelAccount(
+                id=DEFAULTS.agentic_user_id,
+                agentic_app_id=DEFAULTS.agentic_instance_id,
+                role=agentic_role,
+            ),
+        )
+        assert (
+            activity.get_agentic_user() == DEFAULTS.agentic_user_id
+        )
+
+    def test_get_agentic_user_not_agentic(self, non_agentic_role):
+        activity = Activity(
+            type="message",
+            recipient=ChannelAccount(
+                id=DEFAULTS.agentic_user_id,
+                agentic_app_id=DEFAULTS.agentic_instance_id,
+                role=non_agentic_role,
+            ),
+        )
+        assert activity.get_agentic_user() is None

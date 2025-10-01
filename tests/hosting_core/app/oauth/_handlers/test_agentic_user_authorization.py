@@ -71,59 +71,6 @@ class TestUtils:
 
 class TestAgenticUserAuthorization(TestUtils):
 
-    def test_get_agent_instance_id_is_agentic(self, mocker, agentic_role):
-        activity = Activity(
-            type="message",
-            recipient=ChannelAccount(
-                id="some_id",
-                agentic_app_id=DEFAULTS.agentic_instance_id,
-                role=agentic_role,
-            ),
-        )
-        context = self.TurnContext(mocker, activity=activity)
-        assert (
-            AgenticUserAuthorization.get_agent_instance_id(context)
-            == DEFAULTS.agentic_instance_id
-        )
-
-    def test_get_agent_instance_id_not_agentic(self, mocker, non_agentic_role):
-        activity = Activity(
-            type="message",
-            recipient=ChannelAccount(
-                id="some_id",
-                agentic_app_id=DEFAULTS.agentic_instance_id,
-                role=non_agentic_role,
-            ),
-        )
-        context = self.TurnContext(mocker, activity=activity)
-        assert AgenticUserAuthorization.get_agent_instance_id(context) is None
-
-    def test_get_agentic_user_is_agentic(self, mocker, agentic_role):
-        activity = Activity(
-            type="message",
-            recipient=ChannelAccount(
-                id=DEFAULTS.agentic_user_id,
-                agentic_app_id=DEFAULTS.agentic_instance_id,
-                role=agentic_role,
-            ),
-        )
-        context = self.TurnContext(mocker, activity=activity)
-        assert (
-            AgenticUserAuthorization.get_agentic_user(context) == DEFAULTS.agentic_user_id
-        )
-
-    def test_get_agentic_user_not_agentic(self, mocker, non_agentic_role):
-        activity = Activity(
-            type="message",
-            recipient=ChannelAccount(
-                id=DEFAULTS.agentic_user_id,
-                agentic_app_id=DEFAULTS.agentic_instance_id,
-                role=non_agentic_role,
-            ),
-        )
-        context = self.TurnContext(mocker, activity=activity)
-        assert AgenticUserAuthorization.get_agentic_user(context) is None
-
     @pytest.mark.asyncio
     async def test_get_agentic_instance_token_not_agentic(
         self, mocker, non_agentic_role, agentic_auth

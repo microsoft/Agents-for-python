@@ -59,17 +59,17 @@ class AgenticUserAuthorization(_AuthorizationHandler):
         :rtype: Optional[str]
         """
 
-        if not context.activity.is_agentic():
+        if not context.activity.is_agentic_request():
             return TokenResponse()
 
         assert context.identity
         connection = self._connection_manager.get_token_provider(
             context.identity, "agentic"
         )
-        agent_instance_id = self.get_agent_instance_id(context)
-        assert agent_instance_id
+        agentic_instance_id = context.activity.get_agentic_instance_id()
+        assert agentic_instance_id
         instance_token, _ = await connection.get_agentic_instance_token(
-            agent_instance_id
+            agentic_instance_id
         )
         return TokenResponse(token=instance_token) if instance_token else TokenResponse()
     
@@ -88,7 +88,7 @@ class AgenticUserAuthorization(_AuthorizationHandler):
         :rtype: Optional[str]
         """
 
-        if not context.activity.is_agentic() or not self.get_agentic_user(context):
+        if not context.activity.is_agentic_request() or not context.activity.get_agentic_user():
             return TokenResponse()
 
         assert context.identity
@@ -98,8 +98,8 @@ class AgenticUserAuthorization(_AuthorizationHandler):
             connection = self._connection_manager.get_token_provider(
                 context.identity, "agentic"
             )
-        upn = self.get_agentic_user(context)
-        agentic_instance_id = self.get_agent_instance_id(context)
+        upn = context.activity.get_agentic_user()
+        agentic_instance_id = context.activity.get_agentic_instance_id()
         assert upn and agentic_instance_id
         token = await connection.get_agentic_user_token(agentic_instance_id, upn, scopes)
         return TokenResponse(token=token) if token else TokenResponse()
@@ -146,17 +146,3 @@ class AgenticUserAuthorization(_AuthorizationHandler):
 
     async def sign_out(self, context: TurnContext, auth_handler_id: Optional[str] = None) -> None:
         """Nothing to do for agentic sign out."""
-
-    @staticmethod
-    def get_agent_instance_id(context: TurnContext) -> Optional[str]:
-        """Gets the agent instance ID from the context if it's an agentic request."""
-        if not context.activity.is_agentic() or not context.activity.recipient:
-            return None
-        return context.activity.recipient.agentic_app_id
-
-    @staticmethod
-    def get_agentic_user(context: TurnContext) -> Optional[str]:
-        """Gets the agentic user (UPN) from the context if it's an agentic request."""
-        if not context.activity.is_agentic() or not context.activity.recipient:
-            return None
-        return context.activity.recipient.id

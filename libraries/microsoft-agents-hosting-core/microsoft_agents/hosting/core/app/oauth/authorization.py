@@ -345,7 +345,7 @@ class Authorization:
             
             # for later -> parity with .NET
             # token_res = sign_in_state.tokens[auth_handler_id]
-            # if not context.activity.is_agentic():
+            # if not context.activity.is_agentic_request():
             #     if token_res and not token_res.is_exchangeable():
             #         token = token_res.token
             #         if token.expiration is not None:
