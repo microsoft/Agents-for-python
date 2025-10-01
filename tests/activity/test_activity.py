@@ -373,6 +373,7 @@ class TestActivityConversationOps:
             Entity(type="mention", text="Another mention"),
         ]
 
+
 class TestActivityAgenticOps:
 
     @pytest.fixture(params=[RoleTypes.user, RoleTypes.skill, RoleTypes.agent])
@@ -408,10 +409,7 @@ class TestActivityAgenticOps:
                 role=agentic_role,
             ),
         )
-        assert (
-            activity.get_agentic_instance_id()
-            == DEFAULTS.agentic_instance_id
-        )
+        assert activity.get_agentic_instance_id() == DEFAULTS.agentic_instance_id
 
     def test_get_agentic_instance_id_not_agentic(self, non_agentic_role):
         activity = Activity(
@@ -433,9 +431,7 @@ class TestActivityAgenticOps:
                 role=agentic_role,
             ),
         )
-        assert (
-            activity.get_agentic_user() == DEFAULTS.agentic_user_id
-        )
+        assert activity.get_agentic_user() == DEFAULTS.agentic_user_id
 
     def test_get_agentic_user_not_agentic(self, non_agentic_role):
         activity = Activity(

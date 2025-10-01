@@ -11,6 +11,7 @@ from tests._common.create_env_var_dict import create_env_var_dict
 
 from ._data import ENV_CONFIG
 
+
 class TestMsalConnectionManager:
     """
     Test suite for the Msal Connection Manager
@@ -57,7 +58,7 @@ class TestMsalConnectionManager:
             [ClaimsIdentity(claims={}, is_authenticated=False), ""],
             [ClaimsIdentity(claims={}, is_authenticated=False), "https://example.com"],
             [ClaimsIdentity(claims={"aud": "api://misc"}, is_authenticated=False), ""],
-        ]
+        ],
     )
     def test_get_token_provider_errors(self, claims_identity, service_url):
         connection_manager = MsalConnectionManager(**ENV_CONFIG)
@@ -67,45 +68,69 @@ class TestMsalConnectionManager:
     def test_get_token_provider_no_map(self, config):
         del config["CONNECTIONSMAP"]
         connection_manager = MsalConnectionManager(**config)
-        claims_identity = ClaimsIdentity(claims={"aud": "api://misc"}, is_authenticated=True)
-        token_provider = connection_manager.get_token_provider(claims_identity, "https://example.com")
+        claims_identity = ClaimsIdentity(
+            claims={"aud": "api://misc"}, is_authenticated=True
+        )
+        token_provider = connection_manager.get_token_provider(
+            claims_identity, "https://example.com"
+        )
         assert token_provider == connection_manager.get_default_connection()
 
     def test_get_token_provider_aud_match(self, config):
         connection_manager = MsalConnectionManager(**config)
-        claims_identity = ClaimsIdentity(claims={"aud": "api://misc"}, is_authenticated=True)
-        token_provider = connection_manager.get_token_provider(claims_identity, "https://example.com")
+        claims_identity = ClaimsIdentity(
+            claims={"aud": "api://misc"}, is_authenticated=True
+        )
+        token_provider = connection_manager.get_token_provider(
+            claims_identity, "https://example.com"
+        )
         assert token_provider == connection_manager.get_connection("MISC")
 
     def test_get_token_provider_aud_and_service_url_match(self, config):
         connection_manager = MsalConnectionManager(**config)
-        claims_identity = ClaimsIdentity(claims={"aud": "api://service"}, is_authenticated=True)
-        token_provider = connection_manager.get_token_provider(claims_identity, "https://service.com/api")
+        claims_identity = ClaimsIdentity(
+            claims={"aud": "api://service"}, is_authenticated=True
+        )
+        token_provider = connection_manager.get_token_provider(
+            claims_identity, "https://service.com/api"
+        )
         assert token_provider == connection_manager.get_connection("SERVICE_CONNECTION")
 
     def test_get_token_provider_service_url_wildcard_star(self, config):
         connection_manager = MsalConnectionManager(**config)
-        claims_identity = ClaimsIdentity(claims={"aud": "api://misc"}, is_authenticated=False)
-        token_provider = connection_manager.get_token_provider(claims_identity, "https://service.com/api")
+        claims_identity = ClaimsIdentity(
+            claims={"aud": "api://misc"}, is_authenticated=False
+        )
+        token_provider = connection_manager.get_token_provider(
+            claims_identity, "https://service.com/api"
+        )
         assert token_provider == connection_manager.get_connection("MISC")
 
     def test_get_token_provider_service_url_wildcard_empty(self, config):
         connection_manager = MsalConnectionManager(**config)
-        claims_identity = ClaimsIdentity(claims={"aud": "api://misc_other"}, is_authenticated=False)
-        token_provider = connection_manager.get_token_provider(claims_identity, "https://service.com/api")
+        claims_identity = ClaimsIdentity(
+            claims={"aud": "api://misc_other"}, is_authenticated=False
+        )
+        token_provider = connection_manager.get_token_provider(
+            claims_identity, "https://service.com/api"
+        )
         assert token_provider == connection_manager.get_connection("MISC")
 
     @pytest.mark.parametrize(
         "service_url, expected_connection",
-        [ 
+        [
             ["agentic", "AGENTIC"],
             ["https://microsoft.com/api", "MISC"],
             ["https://microsoft.com/some-url", "MISC"],
-            ["https://microsoft.com/", "MISC"]
-        ]
+            ["https://microsoft.com/", "MISC"],
+        ],
     )
-    def test_get_token_provider_service_url_match(self, config, service_url, expected_connection):
+    def test_get_token_provider_service_url_match(
+        self, config, service_url, expected_connection
+    ):
         connection_manager = MsalConnectionManager(**config)
         claims_identity = ClaimsIdentity(claims={}, is_authenticated=False)
-        token_provider = connection_manager.get_token_provider(claims_identity, service_url)
+        token_provider = connection_manager.get_token_provider(
+            claims_identity, service_url
+        )
         assert token_provider == connection_manager.get_connection(expected_connection)

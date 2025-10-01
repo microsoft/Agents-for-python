@@ -5,7 +5,7 @@ from ._sign_in_response import _SignInResponse
 from ._handlers import (
     _UserAuthorization,
     AgenticUserAuthorization,
-    _AuthorizationHandler
+    _AuthorizationHandler,
 )
 
 __all__ = [

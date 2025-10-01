@@ -6,6 +6,17 @@ from microsoft_agents.hosting.core.authorization.auth_types import AuthTypes
 class AgentAuthConfiguration:
     """
     Configuration for Agent authentication.
+
+    TENANT_ID: The tenant ID for the Azure AD.
+    CLIENT_ID: The client ID for the Azure AD application.
+    AUTH_TYPE: The type of authentication to use (microsoft_agents.hosting.core.authorization.auth_types.AuthTypes).
+    CLIENT_SECRET: The client secret for the Azure AD application (if using client secret authentication).
+    CERT_PEM_FILE: The path to the PEM file for certificate authentication (if using certificate authentication).
+    CERT_KEY_FILE: The path to the key file for certificate authentication (if using certificate authentication).
+    CONNECTION_NAME: The name of the connection
+    SCOPES: The scopes to request
+    AUTHORITY: The authority URL for the Azure AD (if different from the default).f
+    ALT_BLUEPRINT_ID: An optional alternative blueprint ID used when constructing a connector client.
     """
 
     TENANT_ID: Optional[str]
@@ -17,6 +28,7 @@ class AgentAuthConfiguration:
     CONNECTION_NAME: Optional[str]
     SCOPES: Optional[list[str]]
     AUTHORITY: Optional[str]
+    ALT_BLUEPRINT_ID: Optional[str]
 
     def __init__(
         self,
@@ -31,6 +43,7 @@ class AgentAuthConfiguration:
         scopes: Optional[list[str]] = None,
         **kwargs: Optional[dict[str, str]],
     ):
+
         self.AUTH_TYPE = auth_type or kwargs.get("AUTHTYPE", AuthTypes.client_secret)
         self.CLIENT_ID = client_id or kwargs.get("CLIENTID", None)
         self.AUTHORITY = authority or kwargs.get("AUTHORITY", None)

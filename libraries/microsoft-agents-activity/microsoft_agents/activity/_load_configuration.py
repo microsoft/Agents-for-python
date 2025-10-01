@@ -1,5 +1,6 @@
 from typing import Any
 
+
 def load_configuration_from_env(env_vars: dict[str, Any]) -> dict:
     """
     Parses environment variables and returns a dictionary with the relevant configuration.

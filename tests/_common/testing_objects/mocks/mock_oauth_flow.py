@@ -17,7 +17,9 @@ def mock_OAuthFlow(
     # mock_oauth_flow_class.sign_out = mocker.AsyncMock()
     if isinstance(get_user_token_return, str):
         get_user_token_return = TokenResponse(token=get_user_token_return)
-    mocker.patch.object(_OAuthFlow, "get_user_token", return_value=get_user_token_return)
+    mocker.patch.object(
+        _OAuthFlow, "get_user_token", return_value=get_user_token_return
+    )
     mocker.patch.object(_OAuthFlow, "sign_out")
     mocker.patch.object(
         _OAuthFlow, "begin_or_continue_flow", return_value=begin_or_continue_flow_return

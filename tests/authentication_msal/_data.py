@@ -4,23 +4,23 @@ ENV_CONFIG = {
             "SETTINGS": {
                 "TENANTID": "test-tenant-id-SERVICE_CONNECTION",
                 "CLIENTID": "test-client-id-SERVICE_CONNECTION",
-                "CLIENTSECRET": "test-client-secret-SERVICE_CONNECTION"
+                "CLIENTSECRET": "test-client-secret-SERVICE_CONNECTION",
             }
         },
         "AGENTIC": {
             "SETTINGS": {
                 "TENANTID": "test-tenant-id-AGENTIC",
                 "CLIENTID": "test-client-id-AGENTIC",
-                "CLIENTSECRET": "test-client-secret-AGENTIC"
+                "CLIENTSECRET": "test-client-secret-AGENTIC",
             }
         },
         "MISC": {
             "SETTINGS": {
                 "TENANTID": "test-tenant-id-MISC",
                 "CLIENTID": "test-client-id-MISC",
-                "CLIENTSECRET": "test-client-secret-MISC"
+                "CLIENTSECRET": "test-client-secret-MISC",
             }
-        }
+        },
     },
     "AGENTAPPLICATION": {
         "USERAUTHORIZATION": {
@@ -32,14 +32,14 @@ ENV_CONFIG = {
                         "SCOPES": ["User.Read"],
                         "TITLE": "Sign in with Microsoft",
                         "TEXT": "Sign in with your Microsoft account",
-                        "TYPE": "UserAuthorization"
+                        "TYPE": "UserAuthorization",
                     }
                 },
                 "github": {
                     "SETTINGS": {
                         "AZUREBOTOAUTHCONNECTIONNAME": "github",
                         "OBOCONNECTIONNAME": "SERVICE_CONNECTION",
-                        "TYPE": "UserAuthorization"
+                        "TYPE": "UserAuthorization",
                     }
                 },
                 "agentic": {
@@ -49,9 +49,9 @@ ENV_CONFIG = {
                         "SCOPES": ["https://graph.microsoft.com/.default"],
                         "TITLE": "Sign in with Agentic",
                         "TEXT": "Sign in with your Agentic account",
-                        "TYPE": "AgenticUserAuthorization"
+                        "TYPE": "AgenticUserAuthorization",
                     }
-                }
+                },
             }
         }
     },
@@ -60,11 +60,7 @@ ENV_CONFIG = {
             "CONNECTION": "AGENTIC",
             "SERVICEURL": "agentic",
         },
-        {
-            "CONNECTION": "MISC",
-            "AUDIENCE": "api://misc",
-            "SERVICEURL": "*"
-        },
+        {"CONNECTION": "MISC", "AUDIENCE": "api://misc", "SERVICEURL": "*"},
         {
             "CONNECTION": "MISC",
             "AUDIENCE": "api://misc_other",
@@ -72,11 +68,8 @@ ENV_CONFIG = {
         {
             "CONNECTION": "SERVICE_CONNECTION",
             "AUDIENCE": "api://service",
-            "SERVICEURL": "https://service*"
+            "SERVICEURL": "https://service*",
         },
-        {
-            "CONNECTION": "MISC",
-            "SERVICEURL": "https://microsoft.com/*"
-        }
-    ]
+        {"CONNECTION": "MISC", "SERVICEURL": "https://microsoft.com/*"},
+    ],
 }

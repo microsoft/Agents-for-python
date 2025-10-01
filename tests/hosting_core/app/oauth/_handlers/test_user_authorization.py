@@ -3,10 +3,7 @@ import jwt
 
 from microsoft_agents.activity import ActivityTypes, TokenResponse
 
-from microsoft_agents.authentication.msal import (
-    MsalAuth,
-    MsalConnectionManager
-)
+from microsoft_agents.authentication.msal import MsalAuth, MsalConnectionManager
 
 from microsoft_agents.hosting.core import MemoryStorage
 from microsoft_agents.hosting.core.app.oauth import _UserAuthorization, _SignInResponse
@@ -15,7 +12,7 @@ from microsoft_agents.hosting.core._oauth import (
     _FlowStateTag,
     _FlowState,
     _FlowResponse,
-    _OAuthFlow
+    _OAuthFlow,
 )
 
 # test constants
@@ -39,6 +36,7 @@ FLOW_DATA = TEST_FLOW_DATA()
 STORAGE_DATA = TEST_STORAGE_DATA()
 AGENTIC_ENV_DICT = TEST_AGENTIC_ENV_DICT()
 
+
 def make_jwt(token: str = DEFAULTS.token, aud="api://default"):
     if aud:
         return jwt.encode({"aud": aud}, token, algorithm="HS256")
@@ -49,6 +47,7 @@ def make_jwt(token: str = DEFAULTS.token, aud="api://default"):
 class MyUserAuthorization(_UserAuthorization):
     async def _handle_flow_response(self, *args, **kwargs):
         pass
+
 
 def testing_TurnContext(
     mocker,
@@ -73,15 +72,25 @@ def testing_TurnContext(
     }
     return turn_context
 
-async def read_state(storage, channel_id=DEFAULTS.channel_id, user_id=DEFAULTS.user_id, auth_handler_id=DEFAULTS.auth_handler_id):
+
+async def read_state(
+    storage,
+    channel_id=DEFAULTS.channel_id,
+    user_id=DEFAULTS.user_id,
+    auth_handler_id=DEFAULTS.auth_handler_id,
+):
     storage_client = _FlowStorageClient(channel_id, user_id, storage)
     key = storage_client.key(auth_handler_id)
     return (await storage.read([key], target_cls=_FlowState)).get(key)
 
+
 def mock_provider(mocker, exchange_token=None):
-    instance = mock_instance(mocker, MsalAuth, {"acquire_token_on_behalf_of": exchange_token})
+    instance = mock_instance(
+        mocker, MsalAuth, {"acquire_token_on_behalf_of": exchange_token}
+    )
     mocker.patch.object(MsalConnectionManager, "get_connection", return_value=instance)
     return instance
+
 
 class TestEnv(FlowStateFixtures):
     def setup_method(self):
@@ -90,7 +99,7 @@ class TestEnv(FlowStateFixtures):
     @pytest.fixture
     def context(self, mocker):
         return self.TurnContext(mocker)
-    
+
     @pytest.fixture
     def storage(self):
         return MemoryStorage(STORAGE_DATA.get_init_data())
@@ -102,7 +111,7 @@ class TestEnv(FlowStateFixtures):
     @pytest.fixture
     def auth_handlers(self):
         return TEST_AUTH_DATA().auth_handlers
-    
+
     @pytest.fixture
     def auth_handler_settings(self):
         return AGENTIC_ENV_DICT["AGENTAPPLICATION"]["USERAUTHORIZATION"]["HANDLERS"][
@@ -112,28 +121,36 @@ class TestEnv(FlowStateFixtures):
     @pytest.fixture
     def user_authorization(self, connection_manager, storage, auth_handler_settings):
         return MyUserAuthorization(
-            storage, connection_manager, auth_handler_settings=auth_handler_settings, auth_handler_id=DEFAULTS.auth_handler_id
+            storage,
+            connection_manager,
+            auth_handler_settings=auth_handler_settings,
+            auth_handler_id=DEFAULTS.auth_handler_id,
         )
-    
+
     @pytest.fixture
     def exchangeable_token(self):
         jwt.encode({"aud": "exchange_audience"}, "secret", algorithm="HS256")
 
-    @pytest.fixture(params=[
-        [None, ["scope1", "scope2"]],
-        [[], ["scope1", "scope2"]],
-        [["scope1"], ["scope1"]],
-    ])
+    @pytest.fixture(
+        params=[
+            [None, ["scope1", "scope2"]],
+            [[], ["scope1", "scope2"]],
+            [["scope1"], ["scope1"]],
+        ]
+    )
     def scope_set(self, request):
         return request.param
-    
-    @pytest.fixture(params=[
-        ["AGENTIC", "AGENTIC"],
-        [None, DEFAULTS.obo_connection_name],
-        ["", DEFAULTS.obo_connection_name],
-    ])
+
+    @pytest.fixture(
+        params=[
+            ["AGENTIC", "AGENTIC"],
+            [None, DEFAULTS.obo_connection_name],
+            ["", DEFAULTS.obo_connection_name],
+        ]
+    )
     def connection_set(self, request):
         return request.param
+
 
 class TestUserAuthorization(TestEnv):
 
@@ -147,70 +164,97 @@ class TestUserAuthorization(TestEnv):
                 _FlowResponse(
                     token_response=TokenResponse(token=make_jwt()),
                     flow_state=_FlowState(
-                        tag=_FlowStateTag.COMPLETE, auth_handler_id=DEFAULTS.auth_handler_id
+                        tag=_FlowStateTag.COMPLETE,
+                        auth_handler_id=DEFAULTS.auth_handler_id,
                     ),
                 ),
-                True, "wow",
-                _SignInResponse(token_response=TokenResponse(token="wow"), tag=_FlowStateTag.COMPLETE)
+                True,
+                "wow",
+                _SignInResponse(
+                    token_response=TokenResponse(token="wow"),
+                    tag=_FlowStateTag.COMPLETE,
+                ),
             ],
             [
                 _FlowResponse(
                     token_response=TokenResponse(token=make_jwt(aud=None)),
                     flow_state=_FlowState(
-                        tag=_FlowStateTag.COMPLETE, auth_handler_id=DEFAULTS.auth_handler_id
+                        tag=_FlowStateTag.COMPLETE,
+                        auth_handler_id=DEFAULTS.auth_handler_id,
                     ),
                 ),
-                False, "wow",
-                _SignInResponse(token_response=TokenResponse(token=make_jwt(aud=None)), tag=_FlowStateTag.COMPLETE)
+                False,
+                "wow",
+                _SignInResponse(
+                    token_response=TokenResponse(token=make_jwt(aud=None)),
+                    tag=_FlowStateTag.COMPLETE,
+                ),
             ],
             [
                 _FlowResponse(
-                    token_response=TokenResponse(token=make_jwt(token="some_value", aud="other")),
+                    token_response=TokenResponse(
+                        token=make_jwt(token="some_value", aud="other")
+                    ),
                     flow_state=_FlowState(
-                        tag=_FlowStateTag.COMPLETE, auth_handler_id=DEFAULTS.auth_handler_id
+                        tag=_FlowStateTag.COMPLETE,
+                        auth_handler_id=DEFAULTS.auth_handler_id,
                     ),
                 ),
-                False, DEFAULTS.token,
-                _SignInResponse(token_response=TokenResponse(token=make_jwt("some_value", aud="other")), tag=_FlowStateTag.COMPLETE)
+                False,
+                DEFAULTS.token,
+                _SignInResponse(
+                    token_response=TokenResponse(
+                        token=make_jwt("some_value", aud="other")
+                    ),
+                    tag=_FlowStateTag.COMPLETE,
+                ),
             ],
             [
                 _FlowResponse(
                     token_response=TokenResponse(token=make_jwt(token="some_value")),
                     flow_state=_FlowState(
-                        tag=_FlowStateTag.COMPLETE, auth_handler_id=DEFAULTS.auth_handler_id
+                        tag=_FlowStateTag.COMPLETE,
+                        auth_handler_id=DEFAULTS.auth_handler_id,
                     ),
                 ),
-                True, None,
-                _SignInResponse(tag=_FlowStateTag.FAILURE)
+                True,
+                None,
+                _SignInResponse(tag=_FlowStateTag.FAILURE),
             ],
             [
                 _FlowResponse(
                     flow_state=_FlowState(
-                        tag=_FlowStateTag.BEGIN, auth_handler_id=DEFAULTS.auth_handler_id
+                        tag=_FlowStateTag.BEGIN,
+                        auth_handler_id=DEFAULTS.auth_handler_id,
                     ),
                 ),
-                False, None,
-                _SignInResponse(tag=_FlowStateTag.BEGIN)
+                False,
+                None,
+                _SignInResponse(tag=_FlowStateTag.BEGIN),
             ],
             [
                 _FlowResponse(
                     flow_state=_FlowState(
-                        tag=_FlowStateTag.CONTINUE, auth_handler_id=DEFAULTS.auth_handler_id
+                        tag=_FlowStateTag.CONTINUE,
+                        auth_handler_id=DEFAULTS.auth_handler_id,
                     ),
                 ),
-                False, None,
-                _SignInResponse(tag=_FlowStateTag.CONTINUE)
+                False,
+                None,
+                _SignInResponse(tag=_FlowStateTag.CONTINUE),
             ],
             [
                 _FlowResponse(
                     flow_state=_FlowState(
-                        tag=_FlowStateTag.FAILURE, auth_handler_id=DEFAULTS.auth_handler_id
+                        tag=_FlowStateTag.FAILURE,
+                        auth_handler_id=DEFAULTS.auth_handler_id,
                     ),
                 ),
-                False, None,
-                _SignInResponse(tag=_FlowStateTag.FAILURE)
+                False,
+                None,
+                _SignInResponse(tag=_FlowStateTag.FAILURE),
             ],
-        ]
+        ],
     )
     async def test_sign_in(
         self,
@@ -223,68 +267,66 @@ class TestUserAuthorization(TestEnv):
         token_exchange_response,
         expected_response,
         scope_set,
-        connection_set
+        connection_set,
     ):
         request_scopes, expected_scopes = scope_set
         request_connection, expected_connection = connection_set
         mock_class_OAuthFlow(mocker, begin_or_continue_flow_return=flow_response)
         provider = mock_provider(mocker, exchange_token=token_exchange_response)
 
-        sign_in_response = await user_authorization._sign_in(context, request_connection, request_scopes)
+        sign_in_response = await user_authorization._sign_in(
+            context, request_connection, request_scopes
+        )
         assert sign_in_response.token_response == expected_response.token_response
         assert sign_in_response.tag == expected_response.tag
-        
+
         state = await read_state(storage, auth_handler_id=DEFAULTS.auth_handler_id)
         assert flow_state_eq(state, flow_response.flow_state)
         if exchange_attempted:
-            MsalConnectionManager.get_connection.assert_called_once_with(expected_connection)
+            MsalConnectionManager.get_connection.assert_called_once_with(
+                expected_connection
+            )
             provider.acquire_token_on_behalf_of.assert_called_once_with(
-                scopes=expected_scopes, user_assertion=flow_response.token_response.token
+                scopes=expected_scopes,
+                user_assertion=flow_response.token_response.token,
             )
 
     @pytest.mark.asyncio
     async def test_sign_out_individual(
-        self,
-        mocker,
-        storage,
-        user_authorization,
-        context
+        self, mocker, storage, user_authorization, context
     ):
         mock_class_OAuthFlow(mocker)
         await user_authorization._sign_out(context)
-        assert await read_state(storage, auth_handler_id=DEFAULTS.auth_handler_id) is None
+        assert (
+            await read_state(storage, auth_handler_id=DEFAULTS.auth_handler_id) is None
+        )
         _OAuthFlow.sign_out.assert_called_once()
 
     @pytest.mark.asyncio
     @pytest.mark.parametrize(
         "get_user_token_return, exchange_attempted, token_exchange_response, expected_response",
         [
-            [
-                TokenResponse(token=make_jwt()),
-                True, "wow",
-                TokenResponse(token="wow")
-            ],
+            [TokenResponse(token=make_jwt()), True, "wow", TokenResponse(token="wow")],
             [
                 TokenResponse(token=make_jwt(aud=None)),
-                False, "wow",
-                TokenResponse(token=make_jwt(aud=None))
+                False,
+                "wow",
+                TokenResponse(token=make_jwt(aud=None)),
             ],
             [
                 TokenResponse(token=make_jwt(token="some_value", aud="other")),
-                False, DEFAULTS.token,
-                TokenResponse(token=make_jwt("some_value", aud="other"))
+                False,
+                DEFAULTS.token,
+                TokenResponse(token=make_jwt("some_value", aud="other")),
             ],
             [
                 TokenResponse(token=make_jwt(token="some_value")),
-                True, None,
-                TokenResponse()
-            ],
-            [
+                True,
+                None,
                 TokenResponse(),
-                False, None,
-                TokenResponse()
             ],
-        ]
+            [TokenResponse(), False, None, TokenResponse()],
+        ],
     )
     async def test_get_refreshed_token(
         self,
@@ -297,15 +339,19 @@ class TestUserAuthorization(TestEnv):
         token_exchange_response,
         expected_response,
         scope_set,
-        connection_set
+        connection_set,
     ):
         request_scopes, expected_scopes = scope_set
         request_connection, expected_connection = connection_set
         mock_class_OAuthFlow(mocker, get_user_token_return=get_user_token_return)
         provider = mock_provider(mocker, exchange_token=token_exchange_response)
 
-        state_before = await read_state(storage, auth_handler_id=DEFAULTS.auth_handler_id)
-        token_response = await user_authorization.get_refreshed_token(context, request_connection, request_scopes)
+        state_before = await read_state(
+            storage, auth_handler_id=DEFAULTS.auth_handler_id
+        )
+        token_response = await user_authorization.get_refreshed_token(
+            context, request_connection, request_scopes
+        )
         assert token_response == expected_response
 
         state = await read_state(storage, auth_handler_id=DEFAULTS.auth_handler_id)
@@ -313,7 +359,9 @@ class TestUserAuthorization(TestEnv):
         if state:
             assert flow_state_eq(state, state_before)
         if exchange_attempted:
-            MsalConnectionManager.get_connection.assert_called_once_with(expected_connection)
+            MsalConnectionManager.get_connection.assert_called_once_with(
+                expected_connection
+            )
             provider.acquire_token_on_behalf_of.assert_called_once_with(
                 scopes=expected_scopes, user_assertion=get_user_token_return.token
             )

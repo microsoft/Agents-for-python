@@ -49,5 +49,6 @@ CONNECTIONSMAP__1__SERVICEURL=agentic
 def TEST_AGENTIC_ENV():
     return create_env_var_dict(_TEST_AGENTIC_ENV_RAW)
 
+
 def TEST_AGENTIC_ENV_DICT():
     return load_configuration_from_env(TEST_AGENTIC_ENV())

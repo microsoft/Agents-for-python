@@ -16,7 +16,7 @@ from ._sign_in_response import _SignInResponse
 from ._handlers import (
     AgenticUserAuthorization,
     _UserAuthorization,
-    _AuthorizationHandler
+    _AuthorizationHandler,
 )
 
 logger = logging.getLogger(__name__)
@@ -25,6 +25,7 @@ AUTHORIZATION_TYPE_MAP = {
     "userauthorization": _UserAuthorization,
     "agenticuserauthorization": AgenticUserAuthorization,
 }
+
 
 class Authorization:
     """Class responsible for managing authorization flows."""
@@ -72,11 +73,10 @@ class Authorization:
         self._handlers = {}
 
         if not auth_handlers:
-
+            # get from config
             auth_configuration: dict = kwargs.get("AGENTAPPLICATION", {}).get(
                 "USERAUTHORIZATION", {}
             )
-
             handlers_config: dict[str, dict] = auth_configuration.get("HANDLERS")
             if not auth_handlers and handlers_config:
                 auth_handlers = {
@@ -85,7 +85,7 @@ class Authorization:
                     )
                     for handler_name, config in handlers_config.items()
                 }
-        
+
         self._handler_settings = auth_handlers
 
         # operations default to the first handler if none specified
@@ -106,7 +106,7 @@ class Authorization:
             auth_type = auth_handler.auth_type
             if auth_type not in AUTHORIZATION_TYPE_MAP:
                 raise ValueError(f"Auth type {auth_type} not recognized.")
-            
+
             self._handlers[name] = AUTHORIZATION_TYPE_MAP[auth_type](
                 storage=self._storage,
                 connection_manager=self._connection_manager,
@@ -153,7 +153,7 @@ class Authorization:
         context: TurnContext, handler_id: str
     ) -> Optional[TokenResponse]:
         key = Authorization._cache_key(context, handler_id)
-        return context.turn_state.get(key)
+        return cast(Optional[TokenResponse], context.turn_state.get(key))
 
     @staticmethod
     def _cache_token(
@@ -161,11 +161,9 @@ class Authorization:
     ) -> None:
         key = Authorization._cache_key(context, handler_id)
         context.turn_state[key] = token_response
-    
+
     @staticmethod
-    def _delete_cached_token(
-        context: TurnContext, handler_id: str
-    ) -> None:
+    def _delete_cached_token(context: TurnContext, handler_id: str) -> None:
         key = Authorization._cache_key(context, handler_id)
         if key in context.turn_state:
             del context.turn_state[key]
@@ -186,7 +184,10 @@ class Authorization:
         return self._handlers[handler_id]
 
     async def _start_or_continue_sign_in(
-        self, context: TurnContext, state: TurnState, auth_handler_id: Optional[str] = None
+        self,
+        context: TurnContext,
+        state: TurnState,
+        auth_handler_id: Optional[str] = None,
     ) -> _SignInResponse:
         """Start or continue the sign-in process for the user with the given auth handler.
 
@@ -222,7 +223,9 @@ class Authorization:
             if self._sign_in_success_handler:
                 await self._sign_in_success_handler(context, state, auth_handler_id)
             await self._delete_sign_in_state(context)
-            Authorization._cache_token(context, auth_handler_id, sign_in_response.token_response)
+            Authorization._cache_token(
+                context, auth_handler_id, sign_in_response.token_response
+            )
 
         elif sign_in_response.tag == _FlowStateTag.FAILURE:
             if self._sign_in_failure_handler:
@@ -314,7 +317,7 @@ class Authorization:
         exchange_connection: Optional[str] = None,
     ) -> TokenResponse:
         """Exchanges or refreshes the token for a specific auth handler or the default handler.
-        
+
         :param context: The context object for the current turn.
         :type context: TurnContext
         :param scopes: The scopes to request during the token exchange or refresh. Defaults
@@ -330,20 +333,20 @@ class Authorization:
         :rtype: TokenResponse
         :raises ValueError: If the specified auth handler ID is not recognized or not configured.
         """
-        
+
         auth_handler_id = auth_handler_id or self._default_handler_id
         if auth_handler_id not in self._handlers:
             raise ValueError(
                 f"Auth handler {auth_handler_id} not recognized or not configured."
             )
-        
+
         cached_token = Authorization._get_cached_token(context, auth_handler_id)
 
         if cached_token:
 
             handler = self._resolve_handler(auth_handler_id)
-            
-            # for later -> parity with .NET
+
+            # TODO: for later -> parity with .NET
             # token_res = sign_in_state.tokens[auth_handler_id]
             # if not context.activity.is_agentic_request():
             #     if token_res and not token_res.is_exchangeable():
@@ -352,12 +355,13 @@ class Authorization:
             #             diff = token.expiration - datetime.now().timestamp()
             #             if diff > 0:
             #                 return token_res.token
-                        
-            res = await handler.get_refreshed_token(context, exchange_connection, scopes)
+
+            res = await handler.get_refreshed_token(
+                context, exchange_connection, scopes
+            )
             if res:
                 return res
         return TokenResponse()
-
 
     def on_sign_in_success(
         self,

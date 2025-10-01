@@ -606,7 +606,10 @@ class AgentApplication(Agent, Generic[StateT]):
 
             logger.debug("Initializing turn state")
             turn_state = await self._initialize_state(context)
-            if context.activity.type == ActivityTypes.message or context.activity.type == ActivityTypes.invoke:
+            if (
+                context.activity.type == ActivityTypes.message
+                or context.activity.type == ActivityTypes.invoke
+            ):
 
                 (
                     auth_intercepts,
@@ -617,7 +620,8 @@ class AgentApplication(Agent, Generic[StateT]):
                         new_context = copy(context)
                         new_context.activity = continuation_activity
                         logger.info(
-                            "Resending continuation activity %s", continuation_activity.text
+                            "Resending continuation activity %s",
+                            continuation_activity.text,
                         )
                         await self.on_turn(new_context)
                         await turn_state.save(context)

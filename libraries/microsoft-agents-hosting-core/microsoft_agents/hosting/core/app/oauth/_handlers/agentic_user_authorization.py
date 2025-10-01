@@ -47,8 +47,9 @@ class AgenticUserAuthorization(_AuthorizationHandler):
             auth_handler_settings=auth_handler_settings,
             **kwargs,
         )
-        self._alt_blueprint_name = auth_handler._alt_blueprint_name if auth_handler else None
-        
+        self._alt_blueprint_name = (
+            auth_handler._alt_blueprint_name if auth_handler else None
+        )
 
     async def get_agentic_instance_token(self, context: TurnContext) -> TokenResponse:
         """Gets the agentic instance token for the current agent instance.
@@ -71,9 +72,9 @@ class AgenticUserAuthorization(_AuthorizationHandler):
         instance_token, _ = await connection.get_agentic_instance_token(
             agentic_instance_id
         )
-        return TokenResponse(token=instance_token) if instance_token else TokenResponse()
-    
-
+        return (
+            TokenResponse(token=instance_token) if instance_token else TokenResponse()
+        )
 
     async def get_agentic_user_token(
         self, context: TurnContext, scopes: list[str]
@@ -89,25 +90,44 @@ class AgenticUserAuthorization(_AuthorizationHandler):
         """
         logger.info("Retrieving agentic user token for scopes: %s", scopes)
 
-        if not context.activity.is_agentic_request() or not context.activity.get_agentic_user():
+        if (
+            not context.activity.is_agentic_request()
+            or not context.activity.get_agentic_user()
+        ):
             return TokenResponse()
 
         assert context.identity
         if self._alt_blueprint_name:
-            logger.debug("Using alternative blueprint name for agentic user token retrieval: %s", self._alt_blueprint_name)
-            connection = self._connection_manager.get_connection(self._alt_blueprint_name)
+            logger.debug(
+                "Using alternative blueprint name for agentic user token retrieval: %s",
+                self._alt_blueprint_name,
+            )
+            connection = self._connection_manager.get_connection(
+                self._alt_blueprint_name
+            )
         else:
-            logger.debug("Using connection manager for agentic user token retrieval with handler id: %s", self._id)
+            logger.debug(
+                "Using connection manager for agentic user token retrieval with handler id: %s",
+                self._id,
+            )
             connection = self._connection_manager.get_token_provider(
                 context.identity, "agentic"
             )
         upn = context.activity.get_agentic_user()
         agentic_instance_id = context.activity.get_agentic_instance_id()
         if not upn or not agentic_instance_id:
-            logger.error("Unable to retrieve agentic user token: missing UPN or agentic instance ID. UPN: %s, Agentic Instance ID: %s", upn, agentic_instance_id)
-            raise ValueError(f"Unable to retrieve agentic user token: missing UPN or agentic instance ID. UPN: {upn}, Agentic Instance ID: {agentic_instance_id}")
+            logger.error(
+                "Unable to retrieve agentic user token: missing UPN or agentic instance ID. UPN: %s, Agentic Instance ID: %s",
+                upn,
+                agentic_instance_id,
+            )
+            raise ValueError(
+                f"Unable to retrieve agentic user token: missing UPN or agentic instance ID. UPN: {upn}, Agentic Instance ID: {agentic_instance_id}"
+            )
 
-        token = await connection.get_agentic_user_token(agentic_instance_id, upn, scopes)
+        token = await connection.get_agentic_user_token(
+            agentic_instance_id, upn, scopes
+        )
         return TokenResponse(token=token) if token else TokenResponse()
 
     async def _sign_in(
@@ -127,18 +147,23 @@ class AgenticUserAuthorization(_AuthorizationHandler):
         :return: A _SignInResponse containing the token response and flow state tag.
         :rtype: _SignInResponse
         """
-        token_response = await self.get_refreshed_token(context, exchange_connection, exchange_scopes)
+        token_response = await self.get_refreshed_token(
+            context, exchange_connection, exchange_scopes
+        )
         if token_response:
-            return _SignInResponse(token_response=token_response, tag=_FlowStateTag.COMPLETE)
+            return _SignInResponse(
+                token_response=token_response, tag=_FlowStateTag.COMPLETE
+            )
         return _SignInResponse(tag=_FlowStateTag.FAILURE)
 
-    async def get_refreshed_token(self,
+    async def get_refreshed_token(
+        self,
         context: TurnContext,
         exchange_connection: Optional[str] = None,
-        exchange_scopes: Optional[list[str]] = None
+        exchange_scopes: Optional[list[str]] = None,
     ) -> TokenResponse:
         """Attempts to get a refreshed token for the user with the given scopes
-        
+
         :param context: The turn context for the current turn of conversation.
         :type context: TurnContext
         :param exchange_connection: Optional name of the connection to use for token exchange. If None, default connection will be used.
@@ -150,5 +175,7 @@ class AgenticUserAuthorization(_AuthorizationHandler):
             exchange_scopes = self._handler.scopes or []
         return await self.get_agentic_user_token(context, exchange_scopes)
 
-    async def sign_out(self, context: TurnContext, auth_handler_id: Optional[str] = None) -> None:
+    async def sign_out(
+        self, context: TurnContext, auth_handler_id: Optional[str] = None
+    ) -> None:
         """Nothing to do for agentic sign out."""

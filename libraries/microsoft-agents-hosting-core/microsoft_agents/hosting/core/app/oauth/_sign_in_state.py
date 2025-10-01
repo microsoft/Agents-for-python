@@ -31,4 +31,6 @@ class _SignInState(StoreItem):
 
     @staticmethod
     def from_json_to_store_item(json_data: JSON) -> _SignInState:
-        return _SignInState(json_data["active_handler_id"], json_data.get("continuation_activity"))
+        return _SignInState(
+            json_data["active_handler_id"], json_data.get("continuation_activity")
+        )

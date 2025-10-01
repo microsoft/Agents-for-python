@@ -13,8 +13,10 @@ class AnonymousTokenProvider(AccessTokenProviderBase):
         self, resource_url: str, scopes: list[str], force_refresh: bool = False
     ) -> str:
         return ""
-    
-    async def acquire_token_on_behalf_of(self, scopes: list[str], user_assertion: str) -> str:
+
+    async def acquire_token_on_behalf_of(
+        self, scopes: list[str], user_assertion: str
+    ) -> str:
         return ""
 
     async def get_agentic_application_token(

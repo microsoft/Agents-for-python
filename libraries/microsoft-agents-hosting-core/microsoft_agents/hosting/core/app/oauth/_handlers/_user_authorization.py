@@ -11,7 +11,7 @@ from microsoft_agents.activity import (
     ActionTypes,
     CardAction,
     OAuthCard,
-    TokenResponse
+    TokenResponse,
 )
 
 from microsoft_agents.hosting.core.card_factory import CardFactory
@@ -23,7 +23,7 @@ from microsoft_agents.hosting.core._oauth import (
     _FlowResponse,
     _FlowState,
     _FlowStorageClient,
-    _FlowStateTag
+    _FlowStateTag,
 )
 from .._sign_in_response import _SignInResponse
 from ._authorization_handler import _AuthorizationHandler
@@ -88,7 +88,7 @@ class _UserAuthorization(_AuthorizationHandler):
 
         flow = _OAuthFlow(flow_state, user_token_client)
         return flow, flow_storage_client
-    
+
     async def _handle_obo(
         self,
         context: TurnContext,
@@ -111,22 +111,22 @@ class _UserAuthorization(_AuthorizationHandler):
         """
         if not input_token_response:
             return input_token_response
-        
+
         token = input_token_response.token
-        
+
         connection_name = exchange_connection or self._handler.obo_connection_name
         exchange_scopes = exchange_scopes or self._handler.scopes
 
         if not connection_name or not exchange_scopes:
             return input_token_response
-        
+
         if not input_token_response.is_exchangeable():
             return input_token_response
-        
+
         token_provider = self._connection_manager.get_connection(connection_name)
         if not token_provider:
             raise ValueError(f"Connection '{connection_name}' not found")
-        
+
         token = await token_provider.acquire_token_on_behalf_of(
             scopes=exchange_scopes,
             user_assertion=input_token_response.token,
@@ -194,7 +194,10 @@ class _UserAuthorization(_AuthorizationHandler):
                 await context.send_activity("Sign-in failed. Please try again.")
 
     async def _sign_in(
-        self, context: TurnContext, exchange_connection: Optional[str] = None, exchange_scopes: Optional[list[str]] = None
+        self,
+        context: TurnContext,
+        exchange_connection: Optional[str] = None,
+        exchange_scopes: Optional[list[str]] = None,
     ) -> _SignInResponse:
         """Begins or continues an OAuth flow.
 
@@ -228,16 +231,19 @@ class _UserAuthorization(_AuthorizationHandler):
 
             return _SignInResponse(
                 token_response=token_response,
-                tag=_FlowStateTag.COMPLETE if token_response else _FlowStateTag.FAILURE
+                tag=_FlowStateTag.COMPLETE if token_response else _FlowStateTag.FAILURE,
             )
 
         return _SignInResponse(tag=flow_response.flow_state.tag)
 
     async def get_refreshed_token(
-        self, context: TurnContext, exchange_connection: Optional[str] = None, exchange_scopes: Optional[list[str]] = None
+        self,
+        context: TurnContext,
+        exchange_connection: Optional[str] = None,
+        exchange_scopes: Optional[list[str]] = None,
     ) -> TokenResponse:
         """Attempts to get a refreshed token for the user with the given scopes
-        
+
         :param context: The turn context for the current turn of conversation.
         :type context: TurnContext
         :param exchange_connection: Optional name of the connection to use for token exchange. If None, default connection will be used.

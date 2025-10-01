@@ -20,7 +20,7 @@ ENV_DICT = {
                 "CLIENTID": DEFAULTS.connections_agentic_client_id,
                 "CLIENTSECRET": DEFAULTS.connections_agentic_client_secret,
             }
-        }
+        },
     },
     "AGENTAPPLICATION": {
         "USERAUTHORIZATION": {
@@ -47,15 +47,9 @@ ENV_DICT = {
         },
     },
     "CONNECTIONSMAP": [
-        {
-            "CONNECTION": "SERVICE_CONNECTION",
-            "SERVICEURL": "*"
-        },
-        {
-            "CONNECTION": "AGENTIC",
-            "SERVICEURL": "agentic"
-        }
-    ]
+        {"CONNECTION": "SERVICE_CONNECTION", "SERVICEURL": "*"},
+        {"CONNECTION": "AGENTIC", "SERVICEURL": "agentic"},
+    ],
 }
 
 ENV_RAW = """

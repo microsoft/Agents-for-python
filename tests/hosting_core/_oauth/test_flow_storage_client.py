@@ -171,7 +171,8 @@ class TestFlowStorageClient:
             target_cls=_FlowState,
         )
         await read_check(
-            [f"auth/{DEFAULTS.channel_id}/{DEFAULTS.user_id}/chi"], target_cls=_FlowState
+            [f"auth/{DEFAULTS.channel_id}/{DEFAULTS.user_id}/chi"],
+            target_cls=_FlowState,
         )
         await read_check(["other_data"], target_cls=MockStoreItem)
         await read_check(["some_data"], target_cls=MockStoreItem)

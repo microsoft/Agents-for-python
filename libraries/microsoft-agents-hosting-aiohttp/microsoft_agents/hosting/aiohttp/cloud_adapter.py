@@ -84,7 +84,9 @@ class CloudAdapter(ChannelServiceAdapter, AgentHttpAdapter):
             activity: Activity = Activity.model_validate(body)
 
             # default to anonymous identity with no claims
-            claims_identity: ClaimsIdentity = request.get("claims_identity", ClaimsIdentity({}, False))
+            claims_identity: ClaimsIdentity = request.get(
+                "claims_identity", ClaimsIdentity({}, False)
+            )
 
             # A POST request must contain an Activity
             if (

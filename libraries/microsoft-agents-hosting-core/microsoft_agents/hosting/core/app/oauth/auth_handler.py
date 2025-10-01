@@ -13,6 +13,7 @@ class AuthHandler:
     """
     Interface defining an authorization handler for OAuth flows.
     """
+
     name: str
     title: str
     text: str
@@ -66,11 +67,11 @@ class AuthHandler:
         else:
             self.scopes = AuthHandler._format_scopes(kwargs.get("SCOPES", ""))
         self._alt_blueprint_name = kwargs.get("ALT_BLUEPRINT_NAME", None)
-        
+
     @staticmethod
     def _format_scopes(scopes: str) -> list[str]:
         lst = scopes.strip().split(" ")
-        return [ s for s in lst if s ]
+        return [s for s in lst if s]
 
     @staticmethod
     def _from_settings(settings: dict):

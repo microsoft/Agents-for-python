@@ -44,7 +44,9 @@ class _AuthorizationHandler(ABC):
         if not storage:
             raise ValueError("Storage is required for Authorization")
         if not auth_handler and not auth_handler_settings:
-            raise ValueError("At least one of auth_handler or auth_handler_settings is required.")
+            raise ValueError(
+                "At least one of auth_handler or auth_handler_settings is required."
+            )
 
         self._storage = storage
         self._connection_manager = connection_manager
@@ -56,7 +58,9 @@ class _AuthorizationHandler(ABC):
 
         self._id = auth_handler_id or self._handler.name
         if not self._id:
-            raise ValueError("Auth handler must have an ID. Could not be deduced from settings or constructor args.")
+            raise ValueError(
+                "Auth handler must have an ID. Could not be deduced from settings or constructor args."
+            )
 
     async def _sign_in(
         self, context: TurnContext, scopes: Optional[list[str]] = None
@@ -71,12 +75,15 @@ class _AuthorizationHandler(ABC):
         :rtype: SignInResponse
         """
         raise NotImplementedError()
-    
+
     async def get_refreshed_token(
-        self, context: TurnContext, exchange_connection: Optional[str]=None, exchange_scopes: Optional[list[str]] = None
+        self,
+        context: TurnContext,
+        exchange_connection: Optional[str] = None,
+        exchange_scopes: Optional[list[str]] = None,
     ) -> TokenResponse:
         """Attempts to get a refreshed token for the user with the given scopes
-        
+
         :param context: The turn context for the current turn of conversation.
         :type context: TurnContext
         :param exchange_connection: Optional name of the connection to use for token exchange. If None, default connection will be used.
@@ -95,4 +102,3 @@ class _AuthorizationHandler(ABC):
         :type auth_handler_id: Optional[str]
         """
         raise NotImplementedError()
-

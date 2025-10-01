@@ -108,4 +108,3 @@ class AuthenticationConstants(ABC):
     APX_GCCH_SCOPE = "6f669b9e-7701-4e2b-b624-82c9207fde26/.default"
     APX_DOD_SCOPE = "0a069c81-8c7c-4712-886b-9c542d673ffb/.default"
     APX_GALLATIN_SCOPE = "bd004c8e-5acf-4c48-8570-4e7d46b2f63b/.default"
-    

@@ -18,16 +18,15 @@
 #     @pytest.fixture
 #     def options(self):
 #         return ApplicationOptions()
-    
+
 #     @pytest.fixture
 #     def storage(self):
 #         return MemoryStorage()
-    
+
 #     @pytest.fixture
 #     def connection_manager(self):
 #         return MsalConnectionManager()
 
-        
 
 # class TestAgentApplication:
 

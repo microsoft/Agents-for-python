@@ -250,7 +250,6 @@ class ChannelServiceAdapter(ChannelAdapter, ABC):
 
         context.activity = create_activity
 
-
         # Run the pipeline
         await self.run_pipeline(context, callback)
 
@@ -352,7 +351,7 @@ class ChannelServiceAdapter(ChannelAdapter, ABC):
             outgoing_audience,
             user_token_client,
             callback,
-            activity=activity
+            activity=activity,
         )
 
         # Create the connector client to use for outbound requests.

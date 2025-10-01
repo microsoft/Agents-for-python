@@ -62,9 +62,7 @@ class MsalAuth(AccessTokenProviderBase):
 
         res = auth_result_payload.get("access_token") if auth_result_payload else None
         if not res:
-            logger.error(
-                "Failed to acquire token for resource %s", auth_result_payload
-            )
+            logger.error("Failed to acquire token for resource %s", auth_result_payload)
             raise ValueError(f"Failed to acquire token. {str(auth_result_payload)}")
         return res
 
@@ -211,7 +209,10 @@ class MsalAuth(AccessTokenProviderBase):
         if not agent_app_instance_id:
             raise ValueError("Agent application instance Id must be provided.")
 
-        logger.info("Attempting to get agentic application token from agent_app_instance_id %s", agent_app_instance_id)
+        logger.info(
+            "Attempting to get agentic application token from agent_app_instance_id %s",
+            agent_app_instance_id,
+        )
         msal_auth_client = self._create_client_application()
 
         if isinstance(msal_auth_client, ConfidentialClientApplication):
@@ -241,14 +242,22 @@ class MsalAuth(AccessTokenProviderBase):
         if not agent_app_instance_id:
             raise ValueError("Agent application instance Id must be provided.")
 
-        logger.info("Attempting to get agentic instance token from agent_app_instance_id %s", agent_app_instance_id)
+        logger.info(
+            "Attempting to get agentic instance token from agent_app_instance_id %s",
+            agent_app_instance_id,
+        )
         agent_token_result = await self.get_agentic_application_token(
             agent_app_instance_id
         )
 
         if not agent_token_result:
-            logger.error("Failed to acquire agentic instance token or agent token for agent_app_instance_id %s", agent_app_instance_id)
-            raise Exception(f"Failed to acquire agentic instance token or agent token for agent_app_instance_id {agent_app_instance_id}")
+            logger.error(
+                "Failed to acquire agentic instance token or agent token for agent_app_instance_id %s",
+                agent_app_instance_id,
+            )
+            raise Exception(
+                f"Failed to acquire agentic instance token or agent token for agent_app_instance_id {agent_app_instance_id}"
+            )
 
         authority = (
             f"https://login.microsoftonline.com/{self._msal_configuration.TENANT_ID}"
@@ -265,14 +274,21 @@ class MsalAuth(AccessTokenProviderBase):
         )
 
         if not agentic_instance_token:
-            logger.error("Failed to acquire agentic instance token or agent token for agent_app_instance_id %s", agent_app_instance_id)
-            raise Exception(f"Failed to acquire agentic instance token or agent token for agent_app_instance_id {agent_app_instance_id}")
+            logger.error(
+                "Failed to acquire agentic instance token or agent token for agent_app_instance_id %s",
+                agent_app_instance_id,
+            )
+            raise Exception(
+                f"Failed to acquire agentic instance token or agent token for agent_app_instance_id {agent_app_instance_id}"
+            )
 
         # future scenario where we don't know the blueprint id upfront
 
         token = agentic_instance_token.get("access_token")
         if not token:
-            logger.error("Failed to acquire agentic instance token, %s", agentic_instance_token)
+            logger.error(
+                "Failed to acquire agentic instance token, %s", agentic_instance_token
+            )
             raise ValueError(f"Failed to acquire token. {str(agentic_instance_token)}")
 
         payload = jwt.decode(token, options={"verify_signature": False})
@@ -300,14 +316,24 @@ class MsalAuth(AccessTokenProviderBase):
                 "Agent application instance Id and user principal name must be provided."
             )
 
-        logger.info("Attempting to get agentic user token from agent_app_instance_id %s and upn %s", agent_app_instance_id, upn)
+        logger.info(
+            "Attempting to get agentic user token from agent_app_instance_id %s and upn %s",
+            agent_app_instance_id,
+            upn,
+        )
         instance_token, agent_token = await self.get_agentic_instance_token(
             agent_app_instance_id
         )
 
         if not instance_token or not agent_token:
-            logger.error("Failed to acquire instance token or agent token for agent_app_instance_id %s and upn %s", agent_app_instance_id, upn)
-            raise Exception(f"Failed to acquire instance token or agent token for agent_app_instance_id {agent_app_instance_id} and upn {upn}")
+            logger.error(
+                "Failed to acquire instance token or agent token for agent_app_instance_id %s and upn %s",
+                agent_app_instance_id,
+                upn,
+            )
+            raise Exception(
+                f"Failed to acquire instance token or agent token for agent_app_instance_id {agent_app_instance_id} and upn {upn}"
+            )
 
         authority = (
             f"https://login.microsoftonline.com/{self._msal_configuration.TENANT_ID}"
@@ -319,7 +345,11 @@ class MsalAuth(AccessTokenProviderBase):
             client_credential={"client_assertion": agent_token},
         )
 
-        logger.info("Acquiring agentic user token for agent_app_instance_id %s and upn %s", agent_app_instance_id, upn)
+        logger.info(
+            "Acquiring agentic user token for agent_app_instance_id %s and upn %s",
+            agent_app_instance_id,
+            upn,
+        )
         auth_result_payload = instance_app.acquire_token_for_client(
             scopes,
             data={
@@ -330,13 +360,23 @@ class MsalAuth(AccessTokenProviderBase):
         )
 
         if not auth_result_payload:
-            logger.error("Failed to acquire agentic user token for agent_app_instance_id %s and upn %s, %s", agent_app_instance_id, upn, auth_result_payload)
+            logger.error(
+                "Failed to acquire agentic user token for agent_app_instance_id %s and upn %s, %s",
+                agent_app_instance_id,
+                upn,
+                auth_result_payload,
+            )
             return None
 
         access_token = auth_result_payload.get("access_token")
         if not access_token:
-            logger.error("Failed to acquire agentic user token for agent_app_instance_id %s and upn %s, %s", agent_app_instance_id, upn, auth_result_payload)
+            logger.error(
+                "Failed to acquire agentic user token for agent_app_instance_id %s and upn %s, %s",
+                agent_app_instance_id,
+                upn,
+                auth_result_payload,
+            )
             return None
-        
+
         logger.info("Acquired agentic user token response.")
         return access_token
