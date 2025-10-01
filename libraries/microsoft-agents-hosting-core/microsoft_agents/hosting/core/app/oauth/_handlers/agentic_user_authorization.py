@@ -87,20 +87,26 @@ class AgenticUserAuthorization(_AuthorizationHandler):
         :return: The agentic user token, or None if not an agentic request or no user.
         :rtype: Optional[str]
         """
+        logger.info("Retrieving agentic user token for scopes: %s", scopes)
 
         if not context.activity.is_agentic_request() or not context.activity.get_agentic_user():
             return TokenResponse()
 
         assert context.identity
         if self._alt_blueprint_name:
+            logger.debug("Using alternative blueprint name for agentic user token retrieval: %s", self._alt_blueprint_name)
             connection = self._connection_manager.get_connection(self._alt_blueprint_name)
         else:
+            logger.debug("Using connection manager for agentic user token retrieval with handler id: %s", self._id)
             connection = self._connection_manager.get_token_provider(
                 context.identity, "agentic"
             )
         upn = context.activity.get_agentic_user()
         agentic_instance_id = context.activity.get_agentic_instance_id()
-        assert upn and agentic_instance_id
+        if not upn or not agentic_instance_id:
+            logger.error("Unable to retrieve agentic user token: missing UPN or agentic instance ID. UPN: %s, Agentic Instance ID: %s", upn, agentic_instance_id)
+            raise ValueError(f"Unable to retrieve agentic user token: missing UPN or agentic instance ID. UPN: {upn}, Agentic Instance ID: {agentic_instance_id}")
+
         token = await connection.get_agentic_user_token(agentic_instance_id, upn, scopes)
         return TokenResponse(token=token) if token else TokenResponse()
 

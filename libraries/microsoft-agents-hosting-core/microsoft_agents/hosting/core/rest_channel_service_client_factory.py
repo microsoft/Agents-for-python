@@ -1,5 +1,6 @@
 import re
 from typing import Optional
+import logging
 
 from microsoft_agents.activity import RoleTypes
 from microsoft_agents.hosting.core.authorization import (
@@ -16,6 +17,7 @@ from microsoft_agents.hosting.core.connector.teams import TeamsConnectorClient
 from .channel_service_client_factory_base import ChannelServiceClientFactoryBase
 from .turn_context import TurnContext
 
+logger = logging.getLogger(__name__)
 
 class RestChannelServiceClientFactory(ChannelServiceClientFactoryBase):
     _ANONYMOUS_TOKEN_PROVIDER = AnonymousTokenProvider()
@@ -49,15 +51,18 @@ class RestChannelServiceClientFactory(ChannelServiceClientFactoryBase):
             )
         
         if context.activity.is_agentic_request():
-
-            # breakpoint()
+            logger.info("Creating connector client for agentic request to service_url: %s", service_url)
 
             if not context.identity:
                 raise ValueError("context.identity is required for agentic activities")
             
             connection = self._connection_manager.get_token_provider(context.identity, service_url)
+
+            # TODO: clean up linter
             if connection._msal_configuration.ALT_BLUEPRINT_ID:
+                logger.debug("Using alternative blueprint ID for agentic token retrieval: %s", connection._msal_configuration.ALT_BLUEPRINT_ID)
                 connection = self._connection_manager.get_connection(connection._msal_configuration.ALT_BLUEPRINT_ID)
+
             agent_instance_id = context.activity.get_agentic_instance_id()
             if not agent_instance_id:
                 raise ValueError("Agent instance ID is required for agentic identity role")

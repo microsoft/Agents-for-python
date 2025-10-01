@@ -31,7 +31,6 @@ from microsoft_agents.activity import (
     MessageUpdateTypes,
     InvokeResponse,
 )
-from microsoft_agents.hosting.core.app.oauth._handlers.agentic_user_authorization import AgenticUserAuthorization
 
 from ..turn_context import TurnContext
 from ..agent import Agent
