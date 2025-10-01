@@ -47,11 +47,11 @@ async def test_should_round_trip_via_middleware():
 @pytest.mark.asyncio
 async def test_should_write_to_file():
     fileName = "test_transcript.log"
+
     if os.path.exists(fileName): # Check if the file exists
-        os.remove(fileName) # Delete the file
-        print(f"{fileName} has been deleted.")
-    else:
-        print(f"{fileName} does not exist.")
+        os.remove(fileName) # Delete the file        
+
+    assert not os.path.exists(fileName), "file already exists."
 
     file_store = FileTranscriptLogger(file_path=fileName)
     conversation_id = "id.1"
