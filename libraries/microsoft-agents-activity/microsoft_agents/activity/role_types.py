@@ -5,3 +5,5 @@ class RoleTypes(str, Enum):
     user = "user"
     agent = "bot"
     skill = "skill"
+    agentic_identity = "agenticAppInstance"
+    agentic_user = "agenticUser"

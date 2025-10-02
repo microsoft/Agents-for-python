@@ -1,3 +1,4 @@
 pytest
 pytest-asyncio
 pytest-mock
+pre-commit

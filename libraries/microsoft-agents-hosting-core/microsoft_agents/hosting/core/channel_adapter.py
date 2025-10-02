@@ -42,7 +42,7 @@ class ChannelAdapter(ABC, ChannelAdapterProtocol):
         :param context: The context object for the turn.
         :type context: :class:`TurnContext`
         :param activities: The activities to send.
-        :type activities: :class:`typing.List[Activity]`
+        :type activities: list[Activity]
         :return:
         """
         raise NotImplementedError()
@@ -102,7 +102,7 @@ class ChannelAdapter(ABC, ChannelAdapterProtocol):
         :param reference: A reference to the conversation to continue.
         :type reference: :class:`microsoft_agents.activity.ConversationReference`
         :param callback: The method to call for the resulting agent turn.
-        :type callback: :class:`typing.Callable`
+        :type callback: Callable[[TurnContext], Awaitable]
         :param claims_identity: A :class:`microsoft_agents.hosting.core.ClaimsIdentity` for the conversation.
         :type claims_identity: :class:`microsoft_agents.hosting.core.ClaimsIdentity`
         :param audience:A value signifying the recipient of the proactive message.
@@ -128,7 +128,7 @@ class ChannelAdapter(ABC, ChannelAdapterProtocol):
         :param continuation_activity: The activity to send.
         :type continuation_activity: :class:`microsoft_agents.activity.Activity`
         :param callback: The method to call for the resulting agent turn.
-        :type callback: :class:`typing.Callable`
+        :type callback: Callable[[TurnContext], Awaitable]
         :param audience: A value signifying the recipient of the proactive message.
         :type audience: str
         """
@@ -157,7 +157,7 @@ class ChannelAdapter(ABC, ChannelAdapterProtocol):
         :param conversation_parameters: The information to use to create the conversation
         :type conversation_parameters: :class:`microsoft_agents.activity.models.ConversationParameters`
         :param callback: The method to call for the resulting agent turn.
-        :type callback: :class:`typing.Callable[[TurnContext], Awaitable]`
+        :type callback: Callable[[TurnContext], Awaitable]
 
         :raises: Exception - Not implemented or when the implementation fails.
 
@@ -224,7 +224,7 @@ class ChannelAdapter(ABC, ChannelAdapterProtocol):
         :param context: The context object for the turn.
         :type context: :class:`TurnContext`
         :param callback: A callback method to run at the end of the pipeline.
-        :type callback: :class:`typing.Callable[[TurnContext], Awaitable]`
+        :type callback: Callable[[TurnContext], Awaitable]
         :return:
         """
         if context is None:
