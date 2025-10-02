@@ -36,18 +36,15 @@ from ..authorization import Connections
 from .app_error import ApplicationError
 from .app_options import ApplicationOptions
 
-from .route import Route, RouteHandler
 from .state import TurnState
 from ..channel_service_adapter import ChannelServiceAdapter
 from .oauth import Authorization
 from .typing_indicator import TypingIndicator
 
 from ._type_defs import RouteHandler, RouteSelector
-from ._routes import RouteList, Route, RouteRank
+from ._routes import _RouteList, _Route, RouteRank, _agentic_selector
 
 logger = logging.getLogger(__name__)
-
-IN_SIGN_IN_KEY = "__InSignInFlow__"
 
 StateT = TypeVar("StateT", bound=TurnState)
 class AgentApplication(Agent, Generic[StateT]):
@@ -70,23 +67,23 @@ class AgentApplication(Agent, Generic[StateT]):
     _auth: Optional[Authorization] = None
     _internal_before_turn: list[Callable[[TurnContext, StateT], Awaitable[bool]]] = []
     _internal_after_turn: list[Callable[[TurnContext, StateT], Awaitable[bool]]] = []
-    _route_list: RouteList[StateT] = RouteList[StateT]()
+    _route_list: _RouteList[StateT] = _RouteList[StateT]()
     _error: Optional[Callable[[TurnContext, Exception], Awaitable[None]]] = None
     _turn_state_factory: Optional[Callable[[TurnContext], StateT]] = None
 
     def __init__(
         self,
-        options: ApplicationOptions = None,
+        options: Optional[ApplicationOptions] = None,
         *,
-        connection_manager: Connections = None,
-        authorization: Authorization = None,
+        connection_manager: Optional[Connections] = None,
+        authorization: Optional[Authorization] = None,
         **kwargs,
     ) -> None:
         """
         Creates a new AgentApplication instance.
         """
         self.typing = TypingIndicator()
-        self._route_list = RouteList[StateT]()
+        self._route_list = _RouteList[StateT]()
 
         configuration = kwargs
 
@@ -290,7 +287,7 @@ class AgentApplication(Agent, Generic[StateT]):
             logger.debug(
                 f"Registering message handler for route handler {func.__name__} with select: {select} with auth handlers: {auth_handlers}"
             )
-            self.add_route(Route[StateT](__selector, func, auth_handlers=auth_handlers, **kwargs))
+            self.add_route(_Route[StateT](__selector, func, auth_handlers=auth_handlers, **kwargs))
             return func
 
         return __call
@@ -343,7 +340,7 @@ class AgentApplication(Agent, Generic[StateT]):
             logger.debug(
                 f"Registering conversation update handler for route handler {func.__name__} with type: {type} with auth handlers: {auth_handlers}"
             )
-            self.add_route(Route[StateT](__selector, func, auth_handlers=auth_handlers, **kwargs))
+            self.add_route(_Route[StateT](__selector, func, auth_handlers=auth_handlers, **kwargs))
             return func
 
         return __call
@@ -387,7 +384,7 @@ class AgentApplication(Agent, Generic[StateT]):
             logger.debug(
                 f"Registering message reaction handler for route handler {func.__name__} with type: {type} with auth handlers: {auth_handlers}"
             )
-            self.add_route(Route[StateT](__selector, func, auth_handlers=auth_handlers, **kwargs))
+            self.add_route(_Route[StateT](__selector, func, auth_handlers=auth_handlers, **kwargs))
             return func
 
         return __call
@@ -444,17 +441,16 @@ class AgentApplication(Agent, Generic[StateT]):
             logger.debug(
                 f"Registering message update handler for route handler {func.__name__} with type: {type} with auth handlers: {auth_handlers}"
             )
-            self.add_route(Route[StateT](__selector, func, auth_handlers=auth_handlers), **kwargs)
+            self.add_route(_Route[StateT](__selector, func, auth_handlers=auth_handlers), **kwargs)
             return func
 
         return __call
 
     def handoff(
-        self, *, auth_handlers: Optional[list[str]] = None
+        self, *, auth_handlers: Optional[list[str]] = None, **kwargs
     ) -> Callable[
         [Callable[[TurnContext, StateT, str], Awaitable[None]]],
-        Callable[[TurnContext, StateT, str], Awaitable[None]],
-        **kwargs
+        Callable[[TurnContext, StateT, str], Awaitable[None]]
     ]:
         """
         Registers a handler to handoff conversations from one copilot to another.
@@ -493,7 +489,7 @@ class AgentApplication(Agent, Generic[StateT]):
                 f"Registering handoff handler for route handler {func.__name__} with auth handlers: {auth_handlers}"
             )
 
-            self.add_route(Route[StateT](__selector, __handler, True, auth_handlers), **kwargs)
+            self.add_route(_Route[StateT](__selector, __handler, True, auth_handlers), **kwargs)
             return func
 
         return __call

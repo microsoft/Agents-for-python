@@ -17,7 +17,7 @@ from .app.app_error import ApplicationError
 from .app.app_options import ApplicationOptions
 from .app.input_file import InputFile, InputFileDownloader
 from .app.query import Query
-from .app._routes import Route, RouteList, RouteRank
+from .app._routes import _Route, _RouteList, RouteRank
 from .app.typing_indicator import TypingIndicator
 
 # App Auth

@@ -1,6 +1,7 @@
 from typing import Callable, TypeVar, Awaitable, Protocol
 
-from microsoft_agents.hosting.core import TurnContext, TurnState
+from ..turn_context import TurnContext
+from .state import TurnState
 
 RouteSelector = Callable[[TurnContext], bool]
 

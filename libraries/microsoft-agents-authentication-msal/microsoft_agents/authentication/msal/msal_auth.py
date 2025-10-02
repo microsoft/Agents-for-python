@@ -303,13 +303,7 @@ class MsalAuth(AccessTokenProviderBase):
             )
             raise ValueError(f"Failed to acquire token. {str(agentic_instance_token)}")
 
-<<<<<<< HEAD
-        payload = jwt.decode(token, options={"verify_signature": False})
-        agentic_blueprint_id = payload.get("xms_par_app_azp")
-        logger.debug("Agentic blueprint id: %s", agentic_blueprint_id)
-=======
         logger.debug(_DeferredLogOfBlueprintId(token))
->>>>>>> 4ea2c5701c4e0ab1dc797d5b86bf611265f851db
 
         return agentic_instance_token["access_token"], agent_token_result
 
