@@ -10,8 +10,9 @@ from .app_error import ApplicationError
 from .app_options import ApplicationOptions
 from .input_file import InputFile, InputFileDownloader
 from .query import Query
-from .route import Route, RouteHandler
+from ._routes import _RouteList, _Route, RouteRank
 from .typing_indicator import TypingIndicator
+from ._type_defs import RouteHandler, RouteSelector, StateT
 
 # Auth
 from .oauth import (
