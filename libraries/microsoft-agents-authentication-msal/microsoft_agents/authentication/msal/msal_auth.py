@@ -24,6 +24,18 @@ from microsoft_agents.hosting.core import (
 logger = logging.getLogger(__name__)
 
 
+# this is deferred because jwt.decode is expensive and we don't want to do it unless we
+# have logging.DEBUG enabled
+class _DeferredLogOfBlueprintId:
+    def __init__(self, jwt_token: str):
+        self.jwt_token = jwt_token
+
+    def __str__(self):
+        payload = jwt.decode(self.jwt_token, options={"verify_signature": False})
+        agentic_blueprint_id = payload.get("xms_par_app_azp")
+        return f"Agentic blueprint id: {agentic_blueprint_id}"
+
+
 class MsalAuth(AccessTokenProviderBase):
 
     _client_credential_cache = None
@@ -291,9 +303,7 @@ class MsalAuth(AccessTokenProviderBase):
             )
             raise ValueError(f"Failed to acquire token. {str(agentic_instance_token)}")
 
-        payload = jwt.decode(token, options={"verify_signature": False})
-        agentic_blueprint_id = payload.get("xms_par_app_azp")
-        logger.debug("Agentic blueprint id: %s", agentic_blueprint_id)
+        logger.debug(_DeferredLogOfBlueprintId(token))
 
         return agentic_instance_token["access_token"], agent_token_result
 
