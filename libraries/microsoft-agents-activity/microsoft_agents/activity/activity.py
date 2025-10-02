@@ -20,6 +20,7 @@ from .conversation_reference import ConversationReference
 from .text_highlight import TextHighlight
 from .semantic_action import SemanticAction
 from .agents_model import AgentsModel
+from .role_types import RoleTypes
 from ._model_utils import pick_model, SkipNone
 from ._type_aliases import NonEmptyString
 
@@ -648,3 +649,21 @@ class Activity(AgentsModel):
                 self.entities = []
 
             self.entities.append(ai_entity)
+
+    def is_agentic_request(self) -> bool:
+        return self.recipient and self.recipient.role in [
+            RoleTypes.agentic_identity,
+            RoleTypes.agentic_user,
+        ]
+
+    def get_agentic_instance_id(self) -> Optional[str]:
+        """Gets the agent instance ID from the context if it's an agentic request."""
+        if not self.is_agentic_request() or not self.recipient:
+            return None
+        return self.recipient.agentic_app_id
+
+    def get_agentic_user(self) -> Optional[str]:
+        """Gets the agentic user (UPN) from the context if it's an agentic request."""
+        if not self.is_agentic_request() or not self.recipient:
+            return None
+        return self.recipient.id

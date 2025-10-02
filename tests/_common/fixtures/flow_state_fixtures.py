@@ -1,6 +1,6 @@
 import pytest
 
-from microsoft_agents.hosting.core import FlowStateTag
+from microsoft_agents.hosting.core._oauth import _FlowStateTag
 
 from tests._common.data import TEST_FLOW_DATA
 
@@ -24,7 +24,7 @@ class FlowStateFixtures:
         params=[
             flow_state
             for flow_state in FLOW_STATES.inactive_flows()
-            if flow_state.tag != FlowStateTag.COMPLETE
+            if flow_state.tag != _FlowStateTag.COMPLETE
         ]
     )
     def inactive_flow_state_not_completed(self, request):
@@ -38,7 +38,7 @@ class FlowStateFixtures:
         params=[
             flow_state
             for flow_state in FLOW_STATES.inactive_flows()
-            if flow_state.tag != FlowStateTag.COMPLETE
+            if flow_state.tag != _FlowStateTag.COMPLETE
         ]
     )
     def sample_inactive_flow_state_not_completed(self, request):
