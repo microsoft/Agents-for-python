@@ -10,7 +10,7 @@ from microsoft_agents.hosting.core import (
     TurnState,
 )
 
-from microsoft_agents.hosting.core.app.type_defs import (
+from microsoft_agents.hosting.core.app._type_defs import (
     RouteHandler,
     RouteSelector,
     StateT,
