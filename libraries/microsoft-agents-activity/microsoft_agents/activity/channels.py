@@ -12,15 +12,6 @@ class Channels(str, Enum):
 
     """Agents channel."""
     agents = "agents"
-    agents_email_sub_channel = "email"
-    agents_excel_sub_channel = "excel"
-    agents_word_sub_channel = "word"
-    agents_power_point_sub_channel = "powerpoint"
-
-    agents_email = "agents:email"
-    agents_excel = "agents:excel"
-    agents_word = "agents:word"
-    agents_power_point = "agents:powerpoint"
 
     console = "console"
     """Console channel."""
