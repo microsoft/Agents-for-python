@@ -154,13 +154,13 @@ class ChannelServiceAdapter(ChannelAdapter, ABC):
         Most channels require a user to initiate a conversation with an agent before the agent can send activities
         to the user.
 
-        :param reference: A reference to the conversation to continue.
-        :type reference: :class:`microsoft_agents.activity.ConversationReference`
-        :param callback: The method to call for the resulting agent turn.
-        :type callback: :class:`typing.Callable`
         :param agent_app_id: The application Id of the agent. This is the appId returned by the Azure portal registration,
-        and is generally found in the `MicrosoftAppId` parameter in `config.py`.
-        :type agent_app_id: :class:`typing.str`
+            and is generally found in the `MicrosoftAppId` parameter in `config.py`.
+        :type agent_app_id: str
+        :param continuation_activity: The activity to continue the conversation with.
+        :type continuation_activity: Activity
+        :param callback: The method to call for the resulting agent turn.
+        :type callback: Callable[[TurnContext], Awaitable]
         """
         if not callable:
             raise TypeError(
@@ -304,11 +304,11 @@ class ChannelServiceAdapter(ChannelAdapter, ABC):
         Creates a turn context and runs the middleware pipeline for an incoming activity.
 
         :param auth_header: The HTTP authentication header of the request
-        :type auth_header: :class:`typing.Union[typing.str, AuthenticateRequestResult]`
+        :type auth_header: Union[str, AuthenticateRequestResult]
         :param activity: The incoming activity
-        :type activity: :class:`Activity`
+        :type activity: Activity
         :param callback: The callback to execute at the end of the adapter's middleware pipeline.
-        :type callback: :class:`typing.Callable`
+        :type callback: Callable[[TurnContext], Awaitable]
 
         :return: A task that represents the work queued to execute.
 
@@ -318,7 +318,7 @@ class ChannelServiceAdapter(ChannelAdapter, ABC):
             agent *reactive messaging* flow.
             Call this method to reactively send a message to a conversation.
             If the task completes successfully, then an :class:`InvokeResponse` is returned;
-            otherwise. `null` is returned.
+            otherwise, `null` is returned.
         """
         scopes: list[str] = None
         outgoing_audience: str = None
