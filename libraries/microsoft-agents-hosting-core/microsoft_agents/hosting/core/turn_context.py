@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import re
+from typing import Optional
 
 from copy import copy, deepcopy
 from collections.abc import Callable
@@ -17,13 +18,19 @@ from microsoft_agents.activity import (
     ResourceResponse,
     DeliveryModes,
 )
+from microsoft_agents.hosting.core.authorization.claims_identity import ClaimsIdentity
 
 
 class TurnContext(TurnContextProtocol):
     # Same constant as in the BF Adapter, duplicating here to avoid circular dependency
     _INVOKE_RESPONSE_KEY = "TurnContext.InvokeResponse"
 
-    def __init__(self, adapter_or_context, request: Activity = None):
+    def __init__(
+        self,
+        adapter_or_context,
+        request: Activity = None,
+        identity: ClaimsIdentity = None,
+    ):
         """
         Creates a new TurnContext instance.
         :param adapter_or_context:
@@ -31,6 +38,7 @@ class TurnContext(TurnContextProtocol):
         """
         if isinstance(adapter_or_context, TurnContext):
             adapter_or_context.copy_to(self)
+            self._identity = adapter_or_context.identity
         else:
             self.adapter = adapter_or_context
             self._activity = request
@@ -46,6 +54,7 @@ class TurnContext(TurnContextProtocol):
                 ["TurnContext", ConversationReference, Callable], None
             ] = []
             self._responded: bool = False
+            self._identity = identity
 
         if self.adapter is None:
             raise TypeError("TurnContext must be instantiated with an adapter.")
@@ -142,6 +151,10 @@ class TurnContext(TurnContextProtocol):
                 # If the hosting library isn't available, return None
                 self._streaming_response = None
         return self._streaming_response
+
+    @property
+    def identity(self) -> Optional[ClaimsIdentity]:
+        return self._identity
 
     def get(self, key: str) -> object:
         if not key or not isinstance(key, str):

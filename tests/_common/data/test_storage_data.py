@@ -1,8 +1,9 @@
+from microsoft_agents.hosting.core._oauth import _FlowState
+
 from tests._common.storage import MockStoreItem
 
 from .test_flow_data import (
     TEST_FLOW_DATA,
-    FlowState,
     update_flow_state_handler,
     flow_key,
 )
@@ -39,7 +40,7 @@ class TEST_STORAGE_DATA:
     def get_init_data(self):
         data = self.dict.copy()
         for key, value in data.items():
-            data[key] = value.model_copy() if isinstance(value, FlowState) else value
+            data[key] = value.model_copy() if isinstance(value, _FlowState) else value
         return data
 
 

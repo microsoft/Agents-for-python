@@ -1,4 +1,4 @@
-from typing import Protocol
+from typing import Protocol, Optional
 from abc import abstractmethod
 
 
@@ -17,7 +17,7 @@ class AccessTokenProviderBase(Protocol):
         """
         pass
 
-    async def aquire_token_on_behalf_of(
+    async def acquire_token_on_behalf_of(
         self, scopes: list[str], user_assertion: str
     ) -> str:
         """
@@ -27,4 +27,19 @@ class AccessTokenProviderBase(Protocol):
         :param user_assertion: The user assertion token.
         :return: The access token as a string.
         """
+        raise NotImplementedError()
+
+    async def get_agentic_application_token(
+        self, agent_app_instance_id: str
+    ) -> Optional[str]:
+        raise NotImplementedError()
+
+    async def get_agentic_instance_token(
+        self, agent_app_instance_id: str
+    ) -> tuple[str, str]:
+        raise NotImplementedError()
+
+    async def get_agentic_user_token(
+        self, agent_app_instance_id: str, upn: str, scopes: list[str]
+    ) -> Optional[str]:
         raise NotImplementedError()

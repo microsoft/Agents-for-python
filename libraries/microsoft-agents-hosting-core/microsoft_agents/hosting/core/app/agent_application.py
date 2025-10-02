@@ -23,36 +23,24 @@ from typing import (
     cast,
 )
 
-from microsoft_agents.hosting.core.authorization import Connections
-
-from microsoft_agents.hosting.core import Agent, TurnContext
 from microsoft_agents.activity import (
     Activity,
     ActivityTypes,
-    ActionTypes,
     ConversationUpdateTypes,
     MessageReactionTypes,
     MessageUpdateTypes,
     InvokeResponse,
-    TokenResponse,
-    OAuthCard,
-    Attachment,
-    CardAction,
 )
 
-from .. import CardFactory, MessageFactory
+from ..turn_context import TurnContext
+from ..agent import Agent
+from ..authorization import Connections
 from .app_error import ApplicationError
 from .app_options import ApplicationOptions
 
-# from .auth import AuthManager, OAuth, OAuthOptions
 from .route import Route, RouteHandler
 from .state import TurnState
 from ..channel_service_adapter import ChannelServiceAdapter
-from ..oauth import (
-    FlowResponse,
-    FlowState,
-    FlowStateTag,
-)
 from .oauth import Authorization
 from .typing_indicator import TypingIndicator
 
@@ -191,7 +179,7 @@ class AgentApplication(Agent, Generic[StateT]):
         return self._adapter
 
     @property
-    def auth(self):
+    def auth(self) -> Authorization:
         """
         The application's authentication manager
         """
@@ -603,103 +591,6 @@ class AgentApplication(Agent, Generic[StateT]):
         self._turn_state_factory = func
         return func
 
-    async def _handle_flow_response(
-        self, context: TurnContext, flow_response: FlowResponse
-    ) -> None:
-        """Handles CONTINUE and FAILURE flow responses, sending activities back."""
-        flow_state: FlowState = flow_response.flow_state
-
-        if flow_state.tag == FlowStateTag.BEGIN:
-            # Create the OAuth card
-            sign_in_resource = flow_response.sign_in_resource
-            o_card: Attachment = CardFactory.oauth_card(
-                OAuthCard(
-                    text="Sign in",
-                    connection_name=flow_state.connection,
-                    buttons=[
-                        CardAction(
-                            title="Sign in",
-                            type=ActionTypes.signin,
-                            value=sign_in_resource.sign_in_link,
-                            channel_data=None,
-                        )
-                    ],
-                    token_exchange_resource=sign_in_resource.token_exchange_resource,
-                    token_post_resource=sign_in_resource.token_post_resource,
-                )
-            )
-            # Send the card to the user
-            await context.send_activity(MessageFactory.attachment(o_card))
-        elif flow_state.tag == FlowStateTag.FAILURE:
-            if flow_state.reached_max_attempts():
-                await context.send_activity(
-                    MessageFactory.text(
-                        "Sign-in failed. Max retries reached. Please try again later."
-                    )
-                )
-            elif flow_state.is_expired():
-                await context.send_activity(
-                    MessageFactory.text("Sign-in session expired. Please try again.")
-                )
-            else:
-                logger.warning("Sign-in flow failed for unknown reasons.")
-                await context.send_activity("Sign-in failed. Please try again.")
-
-    async def _on_turn_auth_intercept(
-        self, context: TurnContext, turn_state: TurnState
-    ) -> bool:
-        """Intercepts the turn to check for active authentication flows."""
-        logger.debug(
-            "Checking for active sign-in flow for context: %s with activity type %s",
-            context.activity.id,
-            context.activity.type,
-        )
-        prev_flow_state = await self._auth.get_active_flow_state(context)
-        if prev_flow_state:
-            logger.debug(
-                "Previous flow state: %s",
-                {
-                    "user_id": prev_flow_state.user_id,
-                    "connection": prev_flow_state.connection,
-                    "channel_id": prev_flow_state.channel_id,
-                    "auth_handler_id": prev_flow_state.auth_handler_id,
-                    "tag": prev_flow_state.tag,
-                    "expiration": prev_flow_state.expiration,
-                },
-            )
-        # proceed if there is an existing flow to continue
-        # new flows should be initiated in _on_activity
-        # this can be reorganized later... but it works for now
-        if (
-            prev_flow_state
-            and (
-                prev_flow_state.tag == FlowStateTag.NOT_STARTED
-                or prev_flow_state.is_active()
-            )
-            and context.activity.type in [ActivityTypes.message, ActivityTypes.invoke]
-        ):
-
-            logger.debug("Sign-in flow is active for context: %s", context.activity.id)
-
-            flow_response: FlowResponse = await self._auth.begin_or_continue_flow(
-                context, turn_state, prev_flow_state.auth_handler_id
-            )
-
-            await self._handle_flow_response(context, flow_response)
-
-            new_flow_state: FlowState = flow_response.flow_state
-            token_response: TokenResponse = flow_response.token_response
-            saved_activity: Activity = new_flow_state.continuation_activity.model_copy()
-
-            if token_response:
-                new_context = copy(context)
-                new_context.activity = saved_activity
-                logger.info("Resending continuation activity %s", saved_activity.text)
-                await self.on_turn(new_context)
-                await turn_state.save(context)
-            return True  # early return from _on_turn
-        return False  # continue _on_turn
-
     async def on_turn(self, context: TurnContext):
         logger.debug(
             f"AgentApplication.on_turn(): Processing turn for context: {context.activity.id}"
@@ -715,9 +606,26 @@ class AgentApplication(Agent, Generic[StateT]):
 
             logger.debug("Initializing turn state")
             turn_state = await self._initialize_state(context)
+            if (
+                context.activity.type == ActivityTypes.message
+                or context.activity.type == ActivityTypes.invoke
+            ):
 
-            if self._auth and await self._on_turn_auth_intercept(context, turn_state):
-                return
+                (
+                    auth_intercepts,
+                    continuation_activity,
+                ) = await self._auth._on_turn_auth_intercept(context, turn_state)
+                if auth_intercepts:
+                    if continuation_activity:
+                        new_context = copy(context)
+                        new_context.activity = continuation_activity
+                        logger.info(
+                            "Resending continuation activity %s",
+                            continuation_activity.text,
+                        )
+                        await self.on_turn(new_context)
+                        await turn_state.save(context)
+                    return
 
             logger.debug("Running before turn middleware")
             if not await self._run_before_turn_middleware(context, turn_state):
@@ -834,26 +742,14 @@ class AgentApplication(Agent, Generic[StateT]):
                 if not route.auth_handlers:
                     await route.handler(context, state)
                 else:
-                    sign_in_complete = False
+                    sign_in_complete = True
                     for auth_handler_id in route.auth_handlers:
-                        logger.debug(
-                            "Beginning or continuing flow for auth handler %s",
-                            auth_handler_id,
-                        )
-                        flow_response: FlowResponse = (
-                            await self._auth.begin_or_continue_flow(
+                        if not (
+                            await self._auth._start_or_continue_sign_in(
                                 context, state, auth_handler_id
                             )
-                        )
-                        await self._handle_flow_response(context, flow_response)
-                        logger.debug(
-                            "Flow response flow_state.tag: %s",
-                            flow_response.flow_state.tag,
-                        )
-                        sign_in_complete = (
-                            flow_response.flow_state.tag == FlowStateTag.COMPLETE
-                        )
-                        if not sign_in_complete:
+                        ).sign_in_complete():
+                            sign_in_complete = False
                             break
 
                     if sign_in_complete:

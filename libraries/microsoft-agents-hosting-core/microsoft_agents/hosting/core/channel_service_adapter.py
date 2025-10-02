@@ -7,7 +7,7 @@ from asyncio import sleep
 from abc import ABC
 from copy import Error
 from http import HTTPStatus
-from typing import Awaitable, Callable, cast
+from typing import Awaitable, Callable, cast, Optional
 from uuid import uuid4
 
 from microsoft_agents.activity import (
@@ -213,12 +213,28 @@ class ChannelServiceAdapter(ChannelAdapter, ABC):
         claims_identity = self.create_claims_identity(agent_app_id)
         claims_identity.claims[AuthenticationConstants.SERVICE_URL_CLAIM] = service_url
 
+        # Create a UserTokenClient instance for the application to use. (For example, in the OAuthPrompt.)
+        user_token_client: UserTokenClient = (
+            await self._channel_service_client_factory.create_user_token_client(
+                claims_identity
+            )
+        )
+
+        # Create a turn context and run the pipeline.
+        context = self._create_turn_context(
+            claims_identity,
+            None,
+            user_token_client,
+            callback,
+        )
+
         # Create the connector client to use for outbound requests.
         connector_client: ConnectorClient = (
             await self._channel_service_client_factory.create_connector_client(
-                claims_identity, service_url, audience
+                context, claims_identity, service_url, audience
             )
         )
+        context.turn_state[self._AGENT_CONNECTOR_CLIENT_KEY] = connector_client
 
         # Make the actual create conversation call using the connector.
         create_conversation_result = (
@@ -232,22 +248,7 @@ class ChannelServiceAdapter(ChannelAdapter, ABC):
             create_conversation_result, channel_id, service_url, conversation_parameters
         )
 
-        # Create a UserTokenClient instance for the application to use. (For example, in the OAuthPrompt.)
-        user_token_client: UserTokenClient = (
-            await self._channel_service_client_factory.create_user_token_client(
-                claims_identity
-            )
-        )
-
-        # Create a turn context and run the pipeline.
-        context = self._create_turn_context(
-            create_activity,
-            claims_identity,
-            None,
-            connector_client,
-            user_token_client,
-            callback,
-        )
+        context.activity = create_activity
 
         # Run the pipeline
         await self.run_pipeline(context, callback)
@@ -262,12 +263,6 @@ class ChannelServiceAdapter(ChannelAdapter, ABC):
         audience: str,
         callback: Callable[[TurnContext], Awaitable],
     ):
-        # Create the connector client to use for outbound requests.
-        connector_client: ConnectorClient = (
-            await self._channel_service_client_factory.create_connector_client(
-                claims_identity, continuation_activity.service_url, audience
-            )
-        )
 
         # Create a UserTokenClient instance for the application to use. (For example, in the OAuthPrompt.)
         user_token_client: UserTokenClient = (
@@ -278,13 +273,20 @@ class ChannelServiceAdapter(ChannelAdapter, ABC):
 
         # Create a turn context and run the pipeline.
         context = self._create_turn_context(
-            continuation_activity,
             claims_identity,
             audience,
-            connector_client,
             user_token_client,
             callback,
+            activity=continuation_activity,
         )
+
+        # Create the connector client to use for outbound requests.
+        connector_client: ConnectorClient = (
+            await self._channel_service_client_factory.create_connector_client(
+                context, claims_identity, continuation_activity.service_url, audience
+            )
+        )
+        context.turn_state[self._AGENT_CONNECTOR_CLIENT_KEY] = connector_client
 
         # Run the pipeline
         await self.run_pipeline(context, callback)
@@ -336,17 +338,6 @@ class ChannelServiceAdapter(ChannelAdapter, ABC):
         ):
             use_anonymous_auth_callback = True
 
-        # Create the connector client to use for outbound requests.
-        connector_client: ConnectorClient = (
-            await self._channel_service_client_factory.create_connector_client(
-                claims_identity,
-                activity.service_url,
-                outgoing_audience,
-                scopes,
-                use_anonymous_auth_callback,
-            )
-        )
-
         # Create a UserTokenClient instance for the OAuth flow.
         user_token_client: UserTokenClient = (
             await self._channel_service_client_factory.create_user_token_client(
@@ -356,13 +347,25 @@ class ChannelServiceAdapter(ChannelAdapter, ABC):
 
         # Create a turn context and run the pipeline.
         context = self._create_turn_context(
-            activity,
             claims_identity,
             outgoing_audience,
-            connector_client,
             user_token_client,
             callback,
+            activity=activity,
         )
+
+        # Create the connector client to use for outbound requests.
+        connector_client: ConnectorClient = (
+            await self._channel_service_client_factory.create_connector_client(
+                context,
+                claims_identity,
+                activity.service_url,
+                outgoing_audience,
+                scopes,
+                use_anonymous_auth_callback,
+            )
+        )
+        context.turn_state[self._AGENT_CONNECTOR_CLIENT_KEY] = connector_client
 
         await self.run_pipeline(context, callback)
 
@@ -420,17 +423,15 @@ class ChannelServiceAdapter(ChannelAdapter, ABC):
 
     def _create_turn_context(
         self,
-        activity: Activity,
         claims_identity: ClaimsIdentity,
         oauth_scope: str,
-        connector_client: ConnectorClientBase,
         user_token_client: UserTokenClientBase,
         callback: Callable[[TurnContext], Awaitable],
+        activity: Optional[Activity] = None,
     ) -> TurnContext:
-        context = TurnContext(self, activity)
+        context = TurnContext(self, activity, claims_identity)
 
         context.turn_state[self.AGENT_IDENTITY_KEY] = claims_identity
-        context.turn_state[self._AGENT_CONNECTOR_CLIENT_KEY] = connector_client
         context.turn_state[self.USER_TOKEN_CLIENT_KEY] = user_token_client
         context.turn_state[self.AGENT_CALLBACK_HANDLER_KEY] = callback
         context.turn_state[self.CHANNEL_SERVICE_FACTORY_KEY] = (

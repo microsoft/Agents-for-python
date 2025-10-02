@@ -1,6 +1,6 @@
-from datetime import datetime
 import pytest
-from microsoft_agents.hosting.core.oauth.flow_state import FlowState, FlowStateTag
+from datetime import datetime
+from microsoft_agents.hosting.core._oauth._flow_state import _FlowState, _FlowStateTag
 
 
 class TestFlowState:
@@ -8,40 +8,40 @@ class TestFlowState:
         "original_flow_state, refresh_to_not_started",
         [
             (
-                FlowState(
-                    tag=FlowStateTag.CONTINUE,
+                _FlowState(
+                    tag=_FlowStateTag.CONTINUE,
                     attempts_remaining=0,
                     expiration=datetime.now().timestamp(),
                 ),
                 True,
             ),
             (
-                FlowState(
-                    tag=FlowStateTag.BEGIN,
+                _FlowState(
+                    tag=_FlowStateTag.BEGIN,
                     attempts_remaining=1,
                     expiration=datetime.now().timestamp(),
                 ),
                 True,
             ),
             (
-                FlowState(
-                    tag=FlowStateTag.COMPLETE,
+                _FlowState(
+                    tag=_FlowStateTag.COMPLETE,
                     attempts_remaining=0,
                     expiration=datetime.now().timestamp() - 100,
                 ),
                 True,
             ),
             (
-                FlowState(
-                    tag=FlowStateTag.CONTINUE,
+                _FlowState(
+                    tag=_FlowStateTag.CONTINUE,
                     attempts_remaining=1,
                     expiration=datetime.now().timestamp() + 1000,
                 ),
                 False,
             ),
             (
-                FlowState(
-                    tag=FlowStateTag.FAILURE,
+                _FlowState(
+                    tag=_FlowStateTag.FAILURE,
                     attempts_remaining=-1,
                     expiration=datetime.now().timestamp(),
                 ),
@@ -54,47 +54,47 @@ class TestFlowState:
         new_flow_state.refresh()
         expected_flow_state = original_flow_state.model_copy()
         if refresh_to_not_started:
-            expected_flow_state.tag = FlowStateTag.NOT_STARTED
+            expected_flow_state.tag = _FlowStateTag.NOT_STARTED
         assert new_flow_state == expected_flow_state
 
     @pytest.mark.parametrize(
         "flow_state, expected",
         [
             (
-                FlowState(
-                    tag=FlowStateTag.CONTINUE,
+                _FlowState(
+                    tag=_FlowStateTag.CONTINUE,
                     attempts_remaining=0,
                     expiration=datetime.now().timestamp(),
                 ),
                 True,
             ),
             (
-                FlowState(
-                    tag=FlowStateTag.BEGIN,
+                _FlowState(
+                    tag=_FlowStateTag.BEGIN,
                     attempts_remaining=1,
                     expiration=datetime.now().timestamp(),
                 ),
                 True,
             ),
             (
-                FlowState(
-                    tag=FlowStateTag.COMPLETE,
+                _FlowState(
+                    tag=_FlowStateTag.COMPLETE,
                     attempts_remaining=0,
                     expiration=datetime.now().timestamp() - 100,
                 ),
                 True,
             ),
             (
-                FlowState(
-                    tag=FlowStateTag.CONTINUE,
+                _FlowState(
+                    tag=_FlowStateTag.CONTINUE,
                     attempts_remaining=1,
                     expiration=datetime.now().timestamp() + 1000,
                 ),
                 False,
             ),
             (
-                FlowState(
-                    tag=FlowStateTag.FAILURE,
+                _FlowState(
+                    tag=_FlowStateTag.FAILURE,
                     attempts_remaining=-1,
                     expiration=datetime.now().timestamp() + 1000,
                 ),
@@ -109,40 +109,40 @@ class TestFlowState:
         "flow_state, expected",
         [
             (
-                FlowState(
-                    tag=FlowStateTag.CONTINUE,
+                _FlowState(
+                    tag=_FlowStateTag.CONTINUE,
                     attempts_remaining=0,
                     expiration=datetime.now().timestamp(),
                 ),
                 True,
             ),
             (
-                FlowState(
-                    tag=FlowStateTag.BEGIN,
+                _FlowState(
+                    tag=_FlowStateTag.BEGIN,
                     attempts_remaining=1,
                     expiration=datetime.now().timestamp(),
                 ),
                 False,
             ),
             (
-                FlowState(
-                    tag=FlowStateTag.COMPLETE,
+                _FlowState(
+                    tag=_FlowStateTag.COMPLETE,
                     attempts_remaining=0,
                     expiration=datetime.now().timestamp() - 100,
                 ),
                 True,
             ),
             (
-                FlowState(
-                    tag=FlowStateTag.CONTINUE,
+                _FlowState(
+                    tag=_FlowStateTag.CONTINUE,
                     attempts_remaining=1,
                     expiration=datetime.now().timestamp() - 100,
                 ),
                 False,
             ),
             (
-                FlowState(
-                    tag=FlowStateTag.FAILURE,
+                _FlowState(
+                    tag=_FlowStateTag.FAILURE,
                     attempts_remaining=-1,
                     expiration=datetime.now().timestamp(),
                 ),
@@ -157,72 +157,72 @@ class TestFlowState:
         "flow_state, expected",
         [
             (
-                FlowState(
-                    tag=FlowStateTag.CONTINUE,
+                _FlowState(
+                    tag=_FlowStateTag.CONTINUE,
                     attempts_remaining=0,
                     expiration=datetime.now().timestamp(),
                 ),
                 False,
             ),
             (
-                FlowState(
-                    tag=FlowStateTag.BEGIN,
+                _FlowState(
+                    tag=_FlowStateTag.BEGIN,
                     attempts_remaining=1,
                     expiration=datetime.now().timestamp(),
                 ),
                 False,
             ),
             (
-                FlowState(
-                    tag=FlowStateTag.COMPLETE,
+                _FlowState(
+                    tag=_FlowStateTag.COMPLETE,
                     attempts_remaining=0,
                     expiration=datetime.now().timestamp() - 100,
                 ),
                 False,
             ),
             (
-                FlowState(
-                    tag=FlowStateTag.FAILURE,
+                _FlowState(
+                    tag=_FlowStateTag.FAILURE,
                     attempts_remaining=1,
                     expiration=datetime.now().timestamp() - 100,
                 ),
                 False,
             ),
             (
-                FlowState(
-                    tag=FlowStateTag.CONTINUE,
+                _FlowState(
+                    tag=_FlowStateTag.CONTINUE,
                     attempts_remaining=2,
                     expiration=datetime.now().timestamp() + 1000,
                 ),
                 True,
             ),
             (
-                FlowState(
-                    tag=FlowStateTag.BEGIN,
+                _FlowState(
+                    tag=_FlowStateTag.BEGIN,
                     attempts_remaining=0,
                     expiration=datetime.now().timestamp() + 1000,
                 ),
                 False,
             ),
             (
-                FlowState(
-                    tag=FlowStateTag.COMPLETE,
+                _FlowState(
+                    tag=_FlowStateTag.COMPLETE,
                     attempts_remaining=-1,
                     expiration=datetime.now().timestamp() + 1000,
                 ),
                 False,
             ),
             (
-                FlowState(
-                    tag=FlowStateTag.FAILURE,
+                _FlowState(
+                    tag=_FlowStateTag.FAILURE,
                     attempts_remaining=1,
                     expiration=datetime.now().timestamp() + 1000,
                 ),
                 False,
             ),
             (
-                FlowState(
-                    tag=FlowStateTag.CONTINUE,
+                _FlowState(
+                    tag=_FlowStateTag.CONTINUE,
                     attempts_remaining=1,
                     expiration=datetime.now().timestamp() + 1000,
                 ),
