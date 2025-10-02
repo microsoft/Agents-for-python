@@ -497,7 +497,7 @@ class TestingAdapter(ChannelAdapter):
         turn_context = TurnContext(self, activity)
 
         turn_context.services["UserTokenClient"] = self._user_token_client
-        turn_context.identity = identity or self.claims_identity
+        turn_context._identity = identity or self.claims_identity
 
         return turn_context
 

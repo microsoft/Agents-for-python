@@ -1,13 +1,13 @@
 from typing import Optional
 
-from microsoft_agents.hosting.core import FlowState
+from microsoft_agents.hosting.core._oauth import _FlowState
 
 from tests._common import approx_eq
 
 
 # 100 ms tolerance
 def flow_state_eq(
-    fs1: Optional[FlowState], fs2: Optional[FlowState], tol: float = 0.1
+    fs1: Optional[_FlowState], fs2: Optional[_FlowState], tol: float = 0.1
 ) -> bool:
 
     if fs1 is None and fs2 is None:

@@ -82,7 +82,11 @@ class CloudAdapter(ChannelServiceAdapter, AgentHttpAdapter):
                 raise HTTPUnsupportedMediaType()
 
             activity: Activity = Activity.model_validate(body)
-            claims_identity: ClaimsIdentity = request.get("claims_identity")
+
+            # default to anonymous identity with no claims
+            claims_identity: ClaimsIdentity = request.get(
+                "claims_identity", ClaimsIdentity({}, False)
+            )
 
             # A POST request must contain an Activity
             if (

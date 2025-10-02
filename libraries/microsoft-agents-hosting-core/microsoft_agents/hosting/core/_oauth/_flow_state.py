@@ -1,6 +1,8 @@
 # Copyright (c) Microsoft Corporation. All rights reserved.
 # Licensed under the MIT License.
 
+from __future__ import annotations
+
 from datetime import datetime
 from enum import Enum
 from typing import Optional
@@ -12,7 +14,7 @@ from microsoft_agents.activity import Activity
 from ..storage import StoreItem
 
 
-class FlowStateTag(Enum):
+class _FlowStateTag(Enum):
     """Represents the top-level state of an OAuthFlow
 
     For instance, a flow can arrive at an error, but its
@@ -27,7 +29,7 @@ class FlowStateTag(Enum):
     COMPLETE = "complete"
 
 
-class FlowErrorTag(Enum):
+class _FlowErrorTag(Enum):
     """Represents the various error states that can occur during an OAuthFlow"""
 
     NONE = "none"
@@ -36,10 +38,8 @@ class FlowErrorTag(Enum):
     OTHER = "other"
 
 
-class FlowState(BaseModel, StoreItem):
+class _FlowState(BaseModel, StoreItem):
     """Represents the state of an OAuthFlow"""
-
-    user_token: str = ""
 
     channel_id: str = ""
     user_id: str = ""
@@ -50,14 +50,14 @@ class FlowState(BaseModel, StoreItem):
     expiration: float = 0
     continuation_activity: Optional[Activity] = None
     attempts_remaining: int = 0
-    tag: FlowStateTag = FlowStateTag.NOT_STARTED
+    tag: _FlowStateTag = _FlowStateTag.NOT_STARTED
 
     def store_item_to_json(self) -> dict:
         return self.model_dump(mode="json", exclude_unset=True, by_alias=True)
 
     @staticmethod
-    def from_json_to_store_item(json_data: dict) -> "FlowState":
-        return FlowState.model_validate(json_data)
+    def from_json_to_store_item(json_data: dict) -> _FlowState:
+        return _FlowState.model_validate(json_data)
 
     def is_expired(self) -> bool:
         return datetime.now().timestamp() >= self.expiration
@@ -69,13 +69,13 @@ class FlowState(BaseModel, StoreItem):
         return (
             not self.is_expired()
             and not self.reached_max_attempts()
-            and self.tag in [FlowStateTag.BEGIN, FlowStateTag.CONTINUE]
+            and self.tag in [_FlowStateTag.BEGIN, _FlowStateTag.CONTINUE]
         )
 
     def refresh(self):
         if (
             self.tag
-            in [FlowStateTag.BEGIN, FlowStateTag.CONTINUE, FlowStateTag.COMPLETE]
+            in [_FlowStateTag.BEGIN, _FlowStateTag.CONTINUE, _FlowStateTag.COMPLETE]
             and self.is_expired()
         ):
-            self.tag = FlowStateTag.NOT_STARTED
+            self.tag = _FlowStateTag.NOT_STARTED

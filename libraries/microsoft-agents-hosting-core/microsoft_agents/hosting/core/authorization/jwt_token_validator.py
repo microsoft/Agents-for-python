@@ -45,7 +45,6 @@ class JwtTokenValidator:
             if unverified_payload.get("iss") == "https://api.botframework.com"
             else f"https://login.microsoftonline.com/{self.configuration.TENANT_ID}/discovery/v2.0/keys"
         )
-
         jwks_client = PyJWKClient(jwksUri)
 
         key = jwks_client.get_signing_key(header["kid"])
