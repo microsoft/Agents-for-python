@@ -11,13 +11,13 @@ from .rest_channel_service_client_factory import RestChannelServiceClientFactory
 from .turn_context import TurnContext
 
 # Application Style
-from .app.type_defs import RouteHandler, RouteSelector, StateT
+from .app._type_defs import RouteHandler, RouteSelector, StateT
 from .app.agent_application import AgentApplication
 from .app.app_error import ApplicationError
 from .app.app_options import ApplicationOptions
 from .app.input_file import InputFile, InputFileDownloader
 from .app.query import Query
-from .app.route import Route, RouteHandler
+from .app._routes import Route, RouteList, RouteRank
 from .app.typing_indicator import TypingIndicator
 
 # App Auth

@@ -10,7 +10,7 @@ from typing import Generic, Optional, TypeVar
 
 from microsoft_agents.hosting.core import TurnState
 
-from ..type_defs import RouteSelector, RouteHandler
+from .._type_defs import RouteSelector, RouteHandler
 from .route import Route
 from .route_rank import RouteRank
 

@@ -36,22 +36,20 @@ from ..authorization import Connections
 from .app_error import ApplicationError
 from .app_options import ApplicationOptions
 
-from .route import Route, RouteHandler
+from ._routes import Route, _agentic_selector
 from .state import TurnState
 from ..channel_service_adapter import ChannelServiceAdapter
 from .oauth import Authorization
 from .typing_indicator import TypingIndicator
 
-from .type_defs import RouteHandler, RouteSelector, StateT
-from .routes import RouteList, Route, RouteRank
+from ._type_defs import RouteHandler, RouteSelector
+from ._routes import RouteList, Route, RouteRank
 
 logger = logging.getLogger(__name__)
 
 IN_SIGN_IN_KEY = "__InSignInFlow__"
 
 StateT = TypeVar("StateT", bound=TurnState)
-
-
 class AgentApplication(Agent, Generic[StateT]):
     """
     AgentApplication class for routing and processing incoming requests.
@@ -72,7 +70,7 @@ class AgentApplication(Agent, Generic[StateT]):
     _auth: Optional[Authorization] = None
     _internal_before_turn: list[Callable[[TurnContext, StateT], Awaitable[bool]]] = []
     _internal_after_turn: list[Callable[[TurnContext, StateT], Awaitable[bool]]] = []
-    _routes: RouteList[StateT] = RouteList[StateT]()
+    _route_list: RouteList[StateT] = RouteList[StateT]()
     _error: Optional[Callable[[TurnContext, Exception], Awaitable[None]]] = None
     _turn_state_factory: Optional[Callable[[TurnContext], StateT]] = None
 
@@ -217,7 +215,7 @@ class AgentApplication(Agent, Generic[StateT]):
     ) -> None:
         """Adds a new route to the application."""
         if is_agentic:
-            selector = agentic_selector(selector)
+            selector = _agentic_selector(selector)
         self._route_list.add_route(selector, handler, is_invoke=is_invoke, rank=rank, auth_handlers=auth_handlers)
 
     def activity(

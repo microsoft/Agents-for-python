@@ -5,14 +5,14 @@ Licensed under the MIT License.
 
 from __future__ import annotations
 
-from typing import Callable, Generic, Optional
+from typing import Generic, Optional
 
 from ...turn_context import TurnContext
-from ..type_defs import RouteHandler, RouteSelector, StateT
+from .._type_defs import RouteHandler, RouteSelector, StateT
 from .route_rank import RouteRank
 
 
-def agentic_selector(selector: RouteSelector) -> RouteSelector:
+def _agentic_selector(selector: RouteSelector) -> RouteSelector:
     def wrapped_selector(context: TurnContext) -> bool:
         # TODO
         return selector(context)

@@ -12,7 +12,7 @@ from .input_file import InputFile, InputFileDownloader
 from .query import Query
 from .route import RouteList, Rouete, RouteRank
 from .typing_indicator import TypingIndicator
-from .type_defs import RouteHandler, RouteSelector, StateT
+from ._type_defs import RouteHandler, RouteSelector, StateT
 
 # Auth
 from .oauth import (
