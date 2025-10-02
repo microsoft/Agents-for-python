@@ -105,8 +105,7 @@ class ActivityHandler(Agent):
         such as the conversational logic.
 
         :param turn_context: The context object for this turn
-        :type turn_context: :class:`microsoft_agents.builder.TurnContext`
-
+        :type turn_context: :class:`microsoft_agents.activity.TurnContextProtocol`
         :returns: A task that represents the work queued to execute
         """
         return
@@ -119,8 +118,7 @@ class ActivityHandler(Agent):
         such as the conversational logic.
 
         :param turn_context: The context object for this turn
-        :type turn_context: :class:`microsoft_agents.builder.TurnContext`
-
+        :type turn_context: :class:`microsoft_agents.activity.TurnContextProtocol`
         :returns: A task that represents the work queued to execute
         """
         return
@@ -133,8 +131,7 @@ class ActivityHandler(Agent):
         such as the conversational logic.
 
         :param turn_context: The context object for this turn
-        :type turn_context: :class:`microsoft_agents.builder.TurnContext`
-
+        :type turn_context: :class:`microsoft_agents.activity.TurnContextProtocol`
         :returns: A task that represents the work queued to execute
         """
         return
@@ -146,7 +143,6 @@ class ActivityHandler(Agent):
 
         :param turn_context: The context object for this turn
         :type turn_context: :class:`microsoft_agents.builder.TurnContext`
-
         :returns: A task that represents the work queued to execute
 
         .. remarks::
@@ -179,10 +175,9 @@ class ActivityHandler(Agent):
 
         :param members_added: A list of all the members added to the conversation, as described by the
         conversation update activity
-        :type members_added: :class:`typing.List`
+        :type members_added: list[ChannelAccount]
         :param turn_context: The context object for this turn
-        :type turn_context: :class:`microsoft_agents.builder.TurnContext`
-
+        :type turn_context: :class:`microsoft_agents.activity.TurnContextProtocol`
         :returns: A task that represents the work queued to execute
 
         .. remarks::
@@ -201,10 +196,9 @@ class ActivityHandler(Agent):
 
         :param members_added: A list of all the members removed from the conversation, as described by the
         conversation update activity
-        :type members_added: :class:`typing.List`
+        :type members_added: list[ChannelAccount]
         :param turn_context: The context object for this turn
-        :type turn_context: :class:`microsoft_agents.builder.TurnContext`
-
+        :type turn_context: :class:`microsoft_agents.activity.TurnContextProtocol`
         :returns: A task that represents the work queued to execute
 
         .. remarks::
@@ -265,10 +259,9 @@ class ActivityHandler(Agent):
         are added to the conversation.
 
         :param message_reactions: The list of reactions added
-        :type message_reactions: :class:`typing.List`
+        :type message_reactions: list[MessageReaction]
         :param turn_context: The context object for this turn
-        :type turn_context: :class:`microsoft_agents.builder.TurnContext`
-
+        :type turn_context: :class:`microsoft_agents.activity.TurnContextProtocol`
         :returns: A task that represents the work queued to execute
 
         .. remarks::
@@ -291,9 +284,9 @@ class ActivityHandler(Agent):
         are removed from the conversation.
 
         :param message_reactions: The list of reactions removed
-        :type message_reactions: :class:`typing.List`
+        :type message_reactions: list[MessageReaction]
         :param turn_context: The context object for this turn
-        :type turn_context: :class:`microsoft_agents.builder.TurnContext`
+        :type turn_context: :class:`microsoft_agents.activity.TurnContextProtocol`
 
         :returns: A task that represents the work queued to execute
 
@@ -312,8 +305,7 @@ class ActivityHandler(Agent):
         :meth:`on_turn()` is used.
 
         :param turn_context: The context object for this turn
-        :type turn_context: :class:`microsoft_agents.builder.TurnContext`
-
+        :type turn_context: :class:`microsoft_agents.activity.TurnContextProtocol`
         :returns: A task that represents the work queued to execute
 
         .. remarks::
@@ -343,8 +335,7 @@ class ActivityHandler(Agent):
         If using an `oauth_prompt`, override this method to forward this activity to the current dialog.
 
         :param turn_context: The context object for this turn
-        :type turn_context: :class:`microsoft_agents.builder.TurnContext`
-
+        :type turn_context: :class:`microsoft_agents.activity.TurnContextProtocol`
         :returns: A task that represents the work queued to execute
 
         .. remarks::
@@ -360,11 +351,8 @@ class ActivityHandler(Agent):
         """
         Invoked when an event other than `tokens/response` is received when the base behavior of
         :meth:`on_event_activity()` is used.
-
-
         :param turn_context: The context object for this turn
-        :type turn_context: :class:`microsoft_agents.builder.TurnContext`
-
+        :type turn_context: :class:`microsoft_agents.activity.TurnContextProtocol`
         :returns: A task that represents the work queued to execute
 
         .. remarks::
@@ -379,9 +367,8 @@ class ActivityHandler(Agent):
     ):
         """
         Invoked when a conversation end activity is received from the channel.
-
         :param turn_context: The context object for this turn
-        :type turn_context: :class:`microsoft_agents.builder.TurnContext`
+        :type turn_context: :class:`microsoft_agents.activity.TurnContextProtocol`
         :returns: A task that represents the work queued to execute
         """
         return
@@ -522,7 +509,7 @@ class ActivityHandler(Agent):
         :param turn_context: A context object for this turn.
         :type turn_context: :class:`microsoft_agents.builder.TurnContext`
         :param invoke_value: A string-typed object from the incoming activity's value.
-        :type invoke_value: :class:`microsoft_agents.activity.models.AdaptiveCardInvokeValue`
+        :type invoke_value: :class:`microsoft_agents.activity.adaptive_card_invoke_value.AdaptiveCardInvokeValue`
         :return: The HealthCheckResponse object
         """
         raise _InvokeResponseException(HTTPStatus.NOT_IMPLEMENTED)

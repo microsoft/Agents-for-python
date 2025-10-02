@@ -17,7 +17,7 @@ from .typing_indicator import TypingIndicator
 from .oauth import (
     Authorization,
     AuthHandler,
-    AuthorizationHandlers,
+    AgenticUserAuthorization,
 )
 
 # App State
@@ -27,15 +27,11 @@ from .state.temp_state import TempState
 from .state.turn_state import TurnState
 
 __all__ = [
-    "ActivityType",
     "AgentApplication",
     "ApplicationError",
     "ApplicationOptions",
-    "ConversationUpdateType",
     "InputFile",
     "InputFileDownloader",
-    "MessageReactionType",
-    "MessageUpdateType",
     "Query",
     "Route",
     "RouteHandler",
@@ -49,5 +45,5 @@ __all__ = [
     "TempState",
     "Authorization",
     "AuthHandler",
-    "AuthorizationHandlers",
+    "AgenticUserAuthorization",
 ]

@@ -9,11 +9,10 @@ from microsoft_agents.activity._model_utils import (
     pick_model_dict,
 )
 
-from .tools.testing_model_utils import SkipFalse, SkipEmpty, PickField
+from tests.activity._common.model_utils import SkipFalse, SkipEmpty, PickField
 
 
 class TestModelUtils:
-
     def test_skip_if(self):
         field = SkipIf("foo", lambda v: v == "foo")
         assert field.process("key") == {}

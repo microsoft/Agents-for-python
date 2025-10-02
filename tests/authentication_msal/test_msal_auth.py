@@ -1,29 +1,10 @@
-import unittest
-from unittest.mock import Mock
 import pytest
 from msal import ManagedIdentityClient, ConfidentialClientApplication
+
 from microsoft_agents.authentication.msal import MsalAuth
-from microsoft_agents.hosting.core.authorization import AgentAuthConfiguration
+from microsoft_agents.hosting.core import Connections
 
-
-class TestingMsalAuth(MsalAuth):
-    """
-    Mock object for MsalAuth
-    """
-
-    def __init__(self, client_type):
-        super().__init__(AgentAuthConfiguration())
-        mock_client = Mock(spec=client_type)
-
-        mock_client.acquire_token_for_client = Mock(
-            return_value={"access_token": "token"}
-        )
-        mock_client.acquire_token_on_behalf_of = Mock(
-            return_value={"access_token": "token"}
-        )
-        self.mock_client = mock_client
-
-        self._create_client_application = Mock(return_value=self.mock_client)
+from tests._common.testing_objects import MockMsalAuth
 
 
 class TestMsalAuth:
@@ -32,8 +13,8 @@ class TestMsalAuth:
     """
 
     @pytest.mark.asyncio
-    async def test_get_access_token_managed_identity(self):
-        mock_auth = TestingMsalAuth(ManagedIdentityClient)
+    async def test_get_access_token_managed_identity(self, mocker):
+        mock_auth = MockMsalAuth(mocker, ManagedIdentityClient)
         token = await mock_auth.get_access_token(
             "https://test.api.botframework.com", scopes=["test-scope"]
         )
@@ -44,8 +25,8 @@ class TestMsalAuth:
         )
 
     @pytest.mark.asyncio
-    async def test_get_access_token_confidential(self):
-        mock_auth = TestingMsalAuth(ConfidentialClientApplication)
+    async def test_get_access_token_confidential(self, mocker):
+        mock_auth = MockMsalAuth(mocker, ConfidentialClientApplication)
         token = await mock_auth.get_access_token(
             "https://test.api.botframework.com", scopes=["test-scope"]
         )
@@ -56,11 +37,11 @@ class TestMsalAuth:
         )
 
     @pytest.mark.asyncio
-    async def test_aquire_token_on_behalf_of_managed_identity(self):
-        mock_auth = TestingMsalAuth(ManagedIdentityClient)
+    async def test_acquire_token_on_behalf_of_managed_identity(self, mocker):
+        mock_auth = MockMsalAuth(mocker, ManagedIdentityClient)
 
         try:
-            await mock_auth.aquire_token_on_behalf_of(
+            await mock_auth.acquire_token_on_behalf_of(
                 scopes=["test-scope"], user_assertion="test-assertion"
             )
         except NotImplementedError:
@@ -69,11 +50,13 @@ class TestMsalAuth:
             assert False
 
     @pytest.mark.asyncio
-    async def test_aquire_token_on_behalf_of_confidential(self):
-        mock_auth = TestingMsalAuth(ConfidentialClientApplication)
-        mock_auth._create_client_application = Mock(return_value=mock_auth.mock_client)
+    async def test_acquire_token_on_behalf_of_confidential(self, mocker):
+        mock_auth = MockMsalAuth(mocker, ConfidentialClientApplication)
+        mock_auth._create_client_application = mocker.Mock(
+            return_value=mock_auth.mock_client
+        )
 
-        token = await mock_auth.aquire_token_on_behalf_of(
+        token = await mock_auth.acquire_token_on_behalf_of(
             scopes=["test-scope"], user_assertion="test-assertion"
         )
 
@@ -81,3 +64,45 @@ class TestMsalAuth:
         mock_auth.mock_client.acquire_token_on_behalf_of.assert_called_with(
             scopes=["test-scope"], user_assertion="test-assertion"
         )
+
+
+# class TestMsalAuthAgentic:
+
+#     @pytest.mark.asyncio
+#     async def test_get_agentic_user_token_data_flow(self, mocker):
+#         agent_app_instance_id = "test-agent-app-id"
+#         app_token = "app-token"
+#         instance_token = "instance-token"
+#         agent_user_token = "agent-token"
+#         upn = "test-upn"
+#         scopes = ["user.read"]
+
+#         mocker.patch.object(MsalAuth, "get_agentic_instance_token", return_value=[instance_token, app_token])
+
+#         mock_auth = MockMsalAuth(mocker, ConfidentialClientApplication)
+#         mocker.patch.object(ConfidentialClientApplication, "__new__", return_value=mocker.Mock(spec=ConfidentialClientApplication))
+
+#         result = await mock_auth.get_agentic_user_token(agent_app_instance_id, upn, scopes)
+#         mock_auth.get_agentic_instance_token.assert_called_once_with(agent_app_instance_id)
+
+#         assert result == agent_user_token
+
+#     @pytest.mark.asyncio
+#     async def test_get_agentic_user_token_failure(self, mocker):
+#         agent_app_instance_id = "test-agent-app-id"
+#         app_token = "app-token"
+#         instance_token = "instance-token"
+#         agent_user_token = "agent-token"
+#         upn = "test-upn"
+#         scopes = ["user.read"]
+
+#         mocker.patch.object(MsalAuth, "get_agentic_instance_token", return_value=[instance_token, app_token])
+
+#         mock_auth = MockMsalAuth(mocker, ConfidentialClientApplication, acquire_token_for_client_return=None)
+#         mocker.patch.object(ConfidentialClientApplication, "__new__", return_value=mocker.Mock(spec=ConfidentialClientApplication))
+
+#         result = await mock_auth.get_agentic_user_token(agent_app_instance_id, upn, scopes)
+
+#         mock_auth.get_agentic_instance_token.assert_called_once_with(agent_app_instance_id)
+
+#         assert result is None
