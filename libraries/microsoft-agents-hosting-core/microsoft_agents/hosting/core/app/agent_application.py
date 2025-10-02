@@ -36,7 +36,7 @@ from ..authorization import Connections
 from .app_error import ApplicationError
 from .app_options import ApplicationOptions
 
-from ._routes import Route, _agentic_selector
+from .route import Route, RouteHandler
 from .state import TurnState
 from ..channel_service_adapter import ChannelServiceAdapter
 from .oauth import Authorization
