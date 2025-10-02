@@ -1,7 +1,7 @@
-from typing import Any, Dict
+from typing import Any
 
 
-def load_configuration_from_env(env_vars: Dict[str, Any]) -> dict:
+def load_configuration_from_env(env_vars: dict[str, Any]) -> dict:
     """
     Parses environment variables and returns a dictionary with the relevant configuration.
     """
@@ -17,6 +17,11 @@ def load_configuration_from_env(env_vars: Dict[str, Any]) -> dict:
             last_level = current_level
             current_level = current_level[next_level]
         last_level[levels[-1]] = value
+
+    if result.get("CONNECTIONSMAP") and isinstance(result["CONNECTIONSMAP"], dict):
+        result["CONNECTIONSMAP"] = [
+            conn for conn in result.get("CONNECTIONSMAP", {}).values()
+        ]
 
     return {
         "AGENTAPPLICATION": result.get("AGENTAPPLICATION", {}),

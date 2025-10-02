@@ -4,15 +4,15 @@
 from typing import Optional
 
 from ..storage import Storage
-from .flow_state import FlowState
+from ._flow_state import _FlowState
 
 
-class DummyCache(Storage):
+class _DummyCache(Storage):
 
-    async def read(self, keys: list[str], **kwargs) -> dict[str, FlowState]:
+    async def read(self, keys: list[str], **kwargs) -> dict[str, _FlowState]:
         return {}
 
-    async def write(self, changes: dict[str, FlowState]) -> None:
+    async def write(self, changes: dict[str, _FlowState]) -> None:
         pass
 
     async def delete(self, keys: list[str]) -> None:
@@ -23,7 +23,7 @@ class DummyCache(Storage):
 # - CachedStorage class for two-tier storage
 # - Namespaced/PrefixedStorage class for namespacing keying
 # not generally thread or async safe (operations are not atomic)
-class FlowStorageClient:
+class _FlowStorageClient:
     """Wrapper around Storage that manages sign-in state specific to each user and channel.
 
     Uses the activity's channel_id and from.id to create a key prefix for storage operations.
@@ -34,7 +34,7 @@ class FlowStorageClient:
         channel_id: str,
         user_id: str,
         storage: Storage,
-        cache_class: type[Storage] = None,
+        cache_class: Optional[type[Storage]] = None,
     ):
         """
         Args:
@@ -53,7 +53,7 @@ class FlowStorageClient:
         self._base_key = f"auth/{channel_id}/{user_id}/"
         self._storage = storage
         if cache_class is None:
-            cache_class = DummyCache
+            cache_class = _DummyCache
         self._cache = cache_class()
 
     @property
@@ -65,21 +65,21 @@ class FlowStorageClient:
         """Creates a storage key for a specific sign-in handler."""
         return f"{self._base_key}{auth_handler_id}"
 
-    async def read(self, auth_handler_id: str) -> Optional[FlowState]:
+    async def read(self, auth_handler_id: str) -> Optional[_FlowState]:
         """Reads the flow state for a specific authentication handler."""
         key: str = self.key(auth_handler_id)
-        data = await self._cache.read([key], target_cls=FlowState)
+        data = await self._cache.read([key], target_cls=_FlowState)
         if key not in data:
-            data = await self._storage.read([key], target_cls=FlowState)
+            data = await self._storage.read([key], target_cls=_FlowState)
             if key not in data:
                 return None
             await self._cache.write({key: data[key]})
-        return FlowState.model_validate(data.get(key))
+        return _FlowState.model_validate(data.get(key))
 
-    async def write(self, value: FlowState) -> None:
+    async def write(self, value: _FlowState) -> None:
         """Saves the flow state for a specific authentication handler."""
         key: str = self.key(value.auth_handler_id)
-        cached_state = await self._cache.read([key], target_cls=FlowState)
+        cached_state = await self._cache.read([key], target_cls=_FlowState)
         if not cached_state or cached_state != value:
             await self._cache.write({key: value})
             await self._storage.write({key: value})
@@ -87,7 +87,7 @@ class FlowStorageClient:
     async def delete(self, auth_handler_id: str) -> None:
         """Deletes the flow state for a specific authentication handler."""
         key: str = self.key(auth_handler_id)
-        cached_state = await self._cache.read([key], target_cls=FlowState)
+        cached_state = await self._cache.read([key], target_cls=_FlowState)
         if cached_state:
             await self._cache.delete([key])
         await self._storage.delete([key])

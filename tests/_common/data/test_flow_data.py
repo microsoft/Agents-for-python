@@ -1,6 +1,6 @@
 from datetime import datetime
 
-from microsoft_agents.hosting.core.oauth.flow_state import FlowState, FlowStateTag
+from microsoft_agents.hosting.core._oauth import _FlowState, _FlowStateTag
 
 from tests._common.storage import MockStoreItem
 from tests._common.data.test_defaults import TEST_DEFAULTS
@@ -18,69 +18,62 @@ DEF_FLOW_ARGS = {
 class TEST_FLOW_DATA:
     def __init__(self):
 
-        self.not_started = FlowState(
+        self.not_started = _FlowState(
             **DEF_FLOW_ARGS,
-            tag=FlowStateTag.NOT_STARTED,
+            tag=_FlowStateTag.NOT_STARTED,
             attempts_remaining=1,
-            user_token="____",
             expiration=datetime.now().timestamp() + 1000000,
         )
 
-        self.started = FlowState(
+        self.started = _FlowState(
             **DEF_FLOW_ARGS,
-            tag=FlowStateTag.BEGIN,
+            tag=_FlowStateTag.BEGIN,
             attempts_remaining=1,
-            user_token="____",
             expiration=datetime.now().timestamp() + 1000000,
         )
 
-        self.started_one_retry = FlowState(
+        self.started_one_retry = _FlowState(
             **DEF_FLOW_ARGS,
-            tag=FlowStateTag.BEGIN,
+            tag=_FlowStateTag.BEGIN,
             attempts_remaining=2,
-            user_token="____",
             expiration=datetime.now().timestamp() + 1000000,
         )
 
-        self.active = FlowState(
+        self.active = _FlowState(
             **DEF_FLOW_ARGS,
-            tag=FlowStateTag.CONTINUE,
+            tag=_FlowStateTag.CONTINUE,
             attempts_remaining=2,
-            user_token="__token",
             expiration=datetime.now().timestamp() + 1000000,
         )
 
-        self.active_one_retry = FlowState(
+        self.active_one_retry = _FlowState(
             **DEF_FLOW_ARGS,
-            tag=FlowStateTag.CONTINUE,
+            tag=_FlowStateTag.CONTINUE,
             attempts_remaining=1,
-            user_token="__token",
             expiration=datetime.now().timestamp() + 1000000,
         )
-        self.active_exp = FlowState(
+        self.active_exp = _FlowState(
             **DEF_FLOW_ARGS,
-            tag=FlowStateTag.CONTINUE,
+            tag=_FlowStateTag.CONTINUE,
             attempts_remaining=2,
-            user_token="__token",
             expiration=datetime.now().timestamp(),
         )
-        self.completed = FlowState(
+        self.completed = _FlowState(
             **DEF_FLOW_ARGS,
-            tag=FlowStateTag.COMPLETE,
+            tag=_FlowStateTag.COMPLETE,
             attempts_remaining=2,
-            user_token="test_token",
             expiration=datetime.now().timestamp() + 1000000,
         )
-        self.fail_by_attempts = FlowState(
+        self.fail_by_attempts = _FlowState(
             **DEF_FLOW_ARGS,
-            tag=FlowStateTag.FAILURE,
+            tag=_FlowStateTag.FAILURE,
             attempts_remaining=0,
             expiration=datetime.now().timestamp() + 1000000,
         )
 
-        self.fail_by_exp = FlowState(
+        self.fail_by_exp = _FlowState(
             **DEF_FLOW_ARGS,
-            tag=FlowStateTag.FAILURE,
+            tag=_FlowStateTag.FAILURE,
             attempts_remaining=2,
             expiration=0,
         )
