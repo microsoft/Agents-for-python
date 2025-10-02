@@ -8,7 +8,12 @@ from typing import Optional
 from aiohttp import ClientSession
 
 from microsoft_agents.hosting.core.connector import UserTokenClientBase
-from microsoft_agents.activity import TokenResponse, TokenStatus, SignInResource
+from microsoft_agents.activity import (
+    TokenOrSignInResourceResponse,
+    TokenResponse,
+    TokenStatus,
+    SignInResource
+)
 from ..get_product_info import get_product_info
 from ..user_token_base import UserTokenBase
 from ..agent_sign_in_base import AgentSignInBase
@@ -136,6 +141,40 @@ class UserToken(UserTokenBase):
 
             data = await response.json()
             return TokenResponse.model_validate(data)
+        
+    async def get_token_or_sign_in_resource(
+        self,
+        user_id,
+        connection_name,
+        channel_id,
+        state: str,
+        code: str = "",
+        final_redirect: str = "",
+        fwd_url: str = "",
+    ) -> TokenOrSignInResourceResponse:
+
+        params = {
+            "userId": user_id,
+            "connectionName": connection_name,
+            "channelId": channel_id,
+            "state": state,
+            "code": code,
+            "finalRedirect": final_redirect,
+            "fwdUrl": fwd_url,
+        }
+
+        logger.info("Getting token or sign-in resource with params: %s", params)
+        async with self.client.get(
+            "/api/usertoken/GetTokenOrSignInResource", params=params
+        ) as response:
+            if response.status >= 400:
+                logger.error(
+                    "Error getting token or sign-in resource: %s", response.status
+                )
+                response.raise_for_status()
+
+            data = await response.json()
+            return TokenOrSignInResourceResponse.model_validate(data)
 
     async def get_aad_tokens(
         self,

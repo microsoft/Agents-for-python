@@ -16,6 +16,19 @@ class UserTokenBase(Protocol):
         raise NotImplementedError()
 
     @abstractmethod
+    async def get_token_or_sign_in_resource(
+        self,
+        user_id: str,
+        connection_name: str,
+        channel_id: str,
+        state: str,
+        code: str = "",
+        final_redirect: str = "",
+        fwd_url: str = "",
+    ) -> TokenOrSignInResourceResponse:
+        raise NotImplementedError()
+
+    @abstractmethod
     async def get_aad_tokens(
         self,
         user_id: str,
