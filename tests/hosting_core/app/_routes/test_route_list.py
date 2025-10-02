@@ -3,24 +3,27 @@ from microsoft_agents.hosting.core import (
     TurnState,
     _RouteList,
     _Route,
-    RouteRank
+    RouteRank,
 )
+
 
 def selector(context: TurnContext) -> bool:
     return True
 
+
 async def handler(context: TurnContext, state: TurnState) -> None:
     pass
+
 
 class Test_RouteList:
 
     def assert_priority_invariant(self, route_list: _RouteList):
-        
+
         # check priority invariant
         routes = list(route_list)
         for i in range(1, len(routes)):
             assert not routes[i] < routes[i - 1]
-        
+
     def has_contents(self, route_list: _RouteList, should_contain: list[_Route]):
         for route in should_contain:
             for existing in list(route_list):
@@ -54,8 +57,9 @@ class Test_RouteList:
                 "handler": route[1],
                 "is_invoke": route[2],
                 "rank": route[3],
-                "auth_handlers": route[4] if len(route) > 4 else None
-            } for route in all_routes
+                "auth_handlers": route[4] if len(route) > 4 else None,
+            }
+            for route in all_routes
         ]
         added_routes = []
 

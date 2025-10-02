@@ -65,7 +65,7 @@ class TestRoute:
             is_invoke=False,
             rank=RouteRank.LAST,
             auth_handlers=["auth2"],
-            is_agentic=True
+            is_agentic=True,
         )
         route_c = _Route(
             selector=selector,
@@ -73,7 +73,7 @@ class TestRoute:
             is_invoke=False,
             rank=RouteRank.DEFAULT,
             auth_handlers=["auth2"],
-            is_agentic=False
+            is_agentic=False,
         )
 
         assert route_a.ordering == [1, 0, RouteRank.FIRST]
@@ -88,53 +88,354 @@ class TestRoute:
     def auth_handlers_b(self, request):
         return request.param
 
-    
     @pytest.mark.parametrize(
         "is_invoke_a, rank_a, is_agentic_a, is_invoke_b, rank_b, is_agentic_b, expected_result",
         [
             # Same agentic status (both False)
-            [False, RouteRank.DEFAULT, False, False, RouteRank.DEFAULT, False, False],  # [1,1,DEFAULT] vs [1,1,DEFAULT]
-            [False, RouteRank.DEFAULT, False, False, RouteRank.LAST, False, True],     # [1,1,DEFAULT] vs [1,1,LAST]
-            [False, RouteRank.LAST, False, False, RouteRank.DEFAULT, False, False],    # [1,1,LAST] vs [1,1,DEFAULT]
-            [False, RouteRank.DEFAULT, False, True, RouteRank.DEFAULT, False, False],   # [1,1,DEFAULT] vs [1,0,DEFAULT]
-            [True, RouteRank.DEFAULT, False, False, RouteRank.DEFAULT, False, True],   # [1,0,DEFAULT] vs [1,1,DEFAULT]
-            [True, RouteRank.DEFAULT, False, True, RouteRank.DEFAULT, False, False],   # [1,0,DEFAULT] vs [1,0,DEFAULT]
-            [True, RouteRank.LAST, False, True, RouteRank.DEFAULT, False, False],      # [1,0,LAST] vs [1,0,DEFAULT]
-            [True, RouteRank.DEFAULT, False, True, RouteRank.LAST, False, True],       # [1,0,DEFAULT] vs [1,0,LAST]
-            [False, RouteRank.FIRST, False, True, RouteRank.DEFAULT, False, False],     # [1,1,FIRST] vs [1,0,DEFAULT]
-            [True, RouteRank.DEFAULT, False, False, RouteRank.LAST, False, True],      # [1,0,DEFAULT] vs [1,1,LAST]
-            [False, RouteRank.LAST, False, True, RouteRank.FIRST, False, False],       # [1,1,LAST] vs [1,0,FIRST]
-            [True, RouteRank.FIRST, False, False, RouteRank.LAST, False, True],        # [1,0,FIRST] vs [1,1,LAST]
-            [False, RouteRank.FIRST, False, False, RouteRank.LAST, False, True],       # [1,1,FIRST] vs [1,1,LAST]
-            [True, RouteRank.FIRST, False, True, RouteRank.LAST, False, True],         # [1,0,FIRST] vs [1,0,LAST]
-            
+            [
+                False,
+                RouteRank.DEFAULT,
+                False,
+                False,
+                RouteRank.DEFAULT,
+                False,
+                False,
+            ],  # [1,1,DEFAULT] vs [1,1,DEFAULT]
+            [
+                False,
+                RouteRank.DEFAULT,
+                False,
+                False,
+                RouteRank.LAST,
+                False,
+                True,
+            ],  # [1,1,DEFAULT] vs [1,1,LAST]
+            [
+                False,
+                RouteRank.LAST,
+                False,
+                False,
+                RouteRank.DEFAULT,
+                False,
+                False,
+            ],  # [1,1,LAST] vs [1,1,DEFAULT]
+            [
+                False,
+                RouteRank.DEFAULT,
+                False,
+                True,
+                RouteRank.DEFAULT,
+                False,
+                False,
+            ],  # [1,1,DEFAULT] vs [1,0,DEFAULT]
+            [
+                True,
+                RouteRank.DEFAULT,
+                False,
+                False,
+                RouteRank.DEFAULT,
+                False,
+                True,
+            ],  # [1,0,DEFAULT] vs [1,1,DEFAULT]
+            [
+                True,
+                RouteRank.DEFAULT,
+                False,
+                True,
+                RouteRank.DEFAULT,
+                False,
+                False,
+            ],  # [1,0,DEFAULT] vs [1,0,DEFAULT]
+            [
+                True,
+                RouteRank.LAST,
+                False,
+                True,
+                RouteRank.DEFAULT,
+                False,
+                False,
+            ],  # [1,0,LAST] vs [1,0,DEFAULT]
+            [
+                True,
+                RouteRank.DEFAULT,
+                False,
+                True,
+                RouteRank.LAST,
+                False,
+                True,
+            ],  # [1,0,DEFAULT] vs [1,0,LAST]
+            [
+                False,
+                RouteRank.FIRST,
+                False,
+                True,
+                RouteRank.DEFAULT,
+                False,
+                False,
+            ],  # [1,1,FIRST] vs [1,0,DEFAULT]
+            [
+                True,
+                RouteRank.DEFAULT,
+                False,
+                False,
+                RouteRank.LAST,
+                False,
+                True,
+            ],  # [1,0,DEFAULT] vs [1,1,LAST]
+            [
+                False,
+                RouteRank.LAST,
+                False,
+                True,
+                RouteRank.FIRST,
+                False,
+                False,
+            ],  # [1,1,LAST] vs [1,0,FIRST]
+            [
+                True,
+                RouteRank.FIRST,
+                False,
+                False,
+                RouteRank.LAST,
+                False,
+                True,
+            ],  # [1,0,FIRST] vs [1,1,LAST]
+            [
+                False,
+                RouteRank.FIRST,
+                False,
+                False,
+                RouteRank.LAST,
+                False,
+                True,
+            ],  # [1,1,FIRST] vs [1,1,LAST]
+            [
+                True,
+                RouteRank.FIRST,
+                False,
+                True,
+                RouteRank.LAST,
+                False,
+                True,
+            ],  # [1,0,FIRST] vs [1,0,LAST]
             # Same agentic status (both True)
-            [False, RouteRank.DEFAULT, True, False, RouteRank.DEFAULT, True, False],   # [0,1,DEFAULT] vs [0,1,DEFAULT]
-            [False, RouteRank.DEFAULT, True, False, RouteRank.LAST, True, True],       # [0,1,DEFAULT] vs [0,1,LAST]
-            [False, RouteRank.LAST, True, False, RouteRank.DEFAULT, True, False],      # [0,1,LAST] vs [0,1,DEFAULT]
-            [False, RouteRank.DEFAULT, True, True, RouteRank.DEFAULT, True, False],     # [0,1,DEFAULT] vs [0,0,DEFAULT]
-            [True, RouteRank.DEFAULT, True, False, RouteRank.DEFAULT, True, True],     # [0,0,DEFAULT] vs [0,1,DEFAULT]
-            [True, RouteRank.DEFAULT, True, True, RouteRank.DEFAULT, True, False],     # [0,0,DEFAULT] vs [0,0,DEFAULT]
-            [True, RouteRank.LAST, True, True, RouteRank.DEFAULT, True, False],        # [0,0,LAST] vs [0,0,DEFAULT]
-            [True, RouteRank.DEFAULT, True, True, RouteRank.LAST, True, True],         # [0,0,DEFAULT] vs [0,0,LAST]
-            [False, RouteRank.FIRST, True, True, RouteRank.DEFAULT, True, False],       # [0,1,FIRST] vs [0,0,DEFAULT]
-            [True, RouteRank.DEFAULT, True, False, RouteRank.LAST, True, True],        # [0,0,DEFAULT] vs [0,1,LAST]
-            [False, RouteRank.LAST, True, True, RouteRank.FIRST, True, False],         # [0,1,LAST] vs [0,0,FIRST]
-            [True, RouteRank.FIRST, True, False, RouteRank.LAST, True, True],          # [0,0,FIRST] vs [0,1,LAST]
-            [False, RouteRank.FIRST, True, False, RouteRank.LAST, True, True],         # [0,1,FIRST] vs [0,1,LAST]
-            [True, RouteRank.FIRST, True, True, RouteRank.LAST, True, True],           # [0,0,FIRST] vs [0,0,LAST]
-            
+            [
+                False,
+                RouteRank.DEFAULT,
+                True,
+                False,
+                RouteRank.DEFAULT,
+                True,
+                False,
+            ],  # [0,1,DEFAULT] vs [0,1,DEFAULT]
+            [
+                False,
+                RouteRank.DEFAULT,
+                True,
+                False,
+                RouteRank.LAST,
+                True,
+                True,
+            ],  # [0,1,DEFAULT] vs [0,1,LAST]
+            [
+                False,
+                RouteRank.LAST,
+                True,
+                False,
+                RouteRank.DEFAULT,
+                True,
+                False,
+            ],  # [0,1,LAST] vs [0,1,DEFAULT]
+            [
+                False,
+                RouteRank.DEFAULT,
+                True,
+                True,
+                RouteRank.DEFAULT,
+                True,
+                False,
+            ],  # [0,1,DEFAULT] vs [0,0,DEFAULT]
+            [
+                True,
+                RouteRank.DEFAULT,
+                True,
+                False,
+                RouteRank.DEFAULT,
+                True,
+                True,
+            ],  # [0,0,DEFAULT] vs [0,1,DEFAULT]
+            [
+                True,
+                RouteRank.DEFAULT,
+                True,
+                True,
+                RouteRank.DEFAULT,
+                True,
+                False,
+            ],  # [0,0,DEFAULT] vs [0,0,DEFAULT]
+            [
+                True,
+                RouteRank.LAST,
+                True,
+                True,
+                RouteRank.DEFAULT,
+                True,
+                False,
+            ],  # [0,0,LAST] vs [0,0,DEFAULT]
+            [
+                True,
+                RouteRank.DEFAULT,
+                True,
+                True,
+                RouteRank.LAST,
+                True,
+                True,
+            ],  # [0,0,DEFAULT] vs [0,0,LAST]
+            [
+                False,
+                RouteRank.FIRST,
+                True,
+                True,
+                RouteRank.DEFAULT,
+                True,
+                False,
+            ],  # [0,1,FIRST] vs [0,0,DEFAULT]
+            [
+                True,
+                RouteRank.DEFAULT,
+                True,
+                False,
+                RouteRank.LAST,
+                True,
+                True,
+            ],  # [0,0,DEFAULT] vs [0,1,LAST]
+            [
+                False,
+                RouteRank.LAST,
+                True,
+                True,
+                RouteRank.FIRST,
+                True,
+                False,
+            ],  # [0,1,LAST] vs [0,0,FIRST]
+            [
+                True,
+                RouteRank.FIRST,
+                True,
+                False,
+                RouteRank.LAST,
+                True,
+                True,
+            ],  # [0,0,FIRST] vs [0,1,LAST]
+            [
+                False,
+                RouteRank.FIRST,
+                True,
+                False,
+                RouteRank.LAST,
+                True,
+                True,
+            ],  # [0,1,FIRST] vs [0,1,LAST]
+            [
+                True,
+                RouteRank.FIRST,
+                True,
+                True,
+                RouteRank.LAST,
+                True,
+                True,
+            ],  # [0,0,FIRST] vs [0,0,LAST]
             # Different agentic status - agentic (True) has higher priority than non-agentic (False)
-            [False, RouteRank.DEFAULT, True, False, RouteRank.DEFAULT, False, True],   # [0,1,DEFAULT] vs [1,1,DEFAULT]
-            [False, RouteRank.DEFAULT, False, False, RouteRank.DEFAULT, True, False],  # [1,1,DEFAULT] vs [0,1,DEFAULT]
-            [True, RouteRank.DEFAULT, True, True, RouteRank.DEFAULT, False, True],     # [0,0,DEFAULT] vs [1,0,DEFAULT]
-            [True, RouteRank.DEFAULT, False, True, RouteRank.DEFAULT, True, False],    # [1,0,DEFAULT] vs [0,0,DEFAULT]
-            [False, RouteRank.LAST, True, False, RouteRank.FIRST, False, True],        # [0,1,LAST] vs [1,1,FIRST]
-            [False, RouteRank.FIRST, False, False, RouteRank.LAST, True, False],       # [1,1,FIRST] vs [0,1,LAST]
-            [True, RouteRank.LAST, True, True, RouteRank.FIRST, False, True],          # [0,0,LAST] vs [1,0,FIRST]
-            [True, RouteRank.FIRST, False, True, RouteRank.LAST, True, False],         # [1,0,FIRST] vs [0,0,LAST]
-            [False, RouteRank.LAST, True, True, RouteRank.FIRST, False, True],         # [0,1,LAST] vs [1,0,FIRST]
-            [True, RouteRank.LAST, False, False, RouteRank.FIRST, True, False],        # [1,0,LAST] vs [0,1,FIRST]
+            [
+                False,
+                RouteRank.DEFAULT,
+                True,
+                False,
+                RouteRank.DEFAULT,
+                False,
+                True,
+            ],  # [0,1,DEFAULT] vs [1,1,DEFAULT]
+            [
+                False,
+                RouteRank.DEFAULT,
+                False,
+                False,
+                RouteRank.DEFAULT,
+                True,
+                False,
+            ],  # [1,1,DEFAULT] vs [0,1,DEFAULT]
+            [
+                True,
+                RouteRank.DEFAULT,
+                True,
+                True,
+                RouteRank.DEFAULT,
+                False,
+                True,
+            ],  # [0,0,DEFAULT] vs [1,0,DEFAULT]
+            [
+                True,
+                RouteRank.DEFAULT,
+                False,
+                True,
+                RouteRank.DEFAULT,
+                True,
+                False,
+            ],  # [1,0,DEFAULT] vs [0,0,DEFAULT]
+            [
+                False,
+                RouteRank.LAST,
+                True,
+                False,
+                RouteRank.FIRST,
+                False,
+                True,
+            ],  # [0,1,LAST] vs [1,1,FIRST]
+            [
+                False,
+                RouteRank.FIRST,
+                False,
+                False,
+                RouteRank.LAST,
+                True,
+                False,
+            ],  # [1,1,FIRST] vs [0,1,LAST]
+            [
+                True,
+                RouteRank.LAST,
+                True,
+                True,
+                RouteRank.FIRST,
+                False,
+                True,
+            ],  # [0,0,LAST] vs [1,0,FIRST]
+            [
+                True,
+                RouteRank.FIRST,
+                False,
+                True,
+                RouteRank.LAST,
+                True,
+                False,
+            ],  # [1,0,FIRST] vs [0,0,LAST]
+            [
+                False,
+                RouteRank.LAST,
+                True,
+                True,
+                RouteRank.FIRST,
+                False,
+                True,
+            ],  # [0,1,LAST] vs [1,0,FIRST]
+            [
+                True,
+                RouteRank.LAST,
+                False,
+                False,
+                RouteRank.FIRST,
+                True,
+                False,
+            ],  # [1,0,LAST] vs [0,1,FIRST]
         ],
     )
     def test_lt_with_agentic(
