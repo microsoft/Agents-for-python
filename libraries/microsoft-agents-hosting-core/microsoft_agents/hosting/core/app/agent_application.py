@@ -600,7 +600,8 @@ class AgentApplication(Agent, Generic[StateT]):
     async def _on_turn(self, context: TurnContext):
         # robrandao: TODO
         try:
-            await self._start_typing(context)
+            if context.activity.type != ActivityTypes.typing:
+                await self._start_typing(context)
 
             self._remove_mentions(context)
 
