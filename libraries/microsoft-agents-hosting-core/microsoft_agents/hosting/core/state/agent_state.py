@@ -15,7 +15,7 @@ from ..turn_context import TurnContext
 
 class CachedAgentState(StoreItem):
     """
-    Internal cached bot state.
+    Internal cached Agent state.
     """
 
     def __init__(self, state: Dict[str, StoreItem | dict] = None):
@@ -59,18 +59,20 @@ class AgentState:
 
     .. remarks::
         Each state management object defines a scope for a storage layer.
-        State properties are created within a state management scope, and the Bot Framework
-        defines these scopes: :class:`ConversationState`, :class:`UserState`, and :class:`PrivateConversationState`.
-        You can define additional scopes for your bot.
+        State properties are created within a state management scope, and the Agent Framework
+        defines these scopes: :class:`microsoft_agents.hosting.core.state.conversation_state.ConversationState`,
+        :class:`microsoft_agents.hosting.core.state.user_state.UserState`, and
+        :class:`microsoft_agents.hosting.core.state.private_conversation_state.PrivateConversationState`.
+        You can define additional scopes for your agent.
     """
 
     def __init__(self, storage: Storage, context_service_key: str):
         """
-        Initializes a new instance of the :class:`BotState` class.
+        Initializes a new instance of the :class:`AgentState` class.
 
         :param storage: The storage layer this state management object will use to store and retrieve state
-        :type storage:  :class:`bptbuilder.activity.Storage`
-        :param context_service_key: The key for the state cache for this :class:`BotState`
+        :type storage:  :class:`microsoft_agents.hosting.core.storage.Storage`
+        :param context_service_key: The key for the state cache for this :class:`AgentState`
         :type context_service_key: str
 
         .. remarks::
@@ -87,18 +89,18 @@ class AgentState:
 
     def get_cached_state(self, turn_context: TurnContext) -> CachedAgentState:
         """
-        Gets the cached bot state instance that wraps the raw cached data for this "BotState"
+        Gets the cached agent state instance that wraps the raw cached data for this "AgentState"
         from the turn context.
 
         :param turn_context: The context object for this turn.
         :type turn_context: :class:`TurnContext`
-        :return: The cached bot state instance.
+        :return: The cached agent state instance.
         """
         return turn_context.turn_state.get(self._context_service_key)
 
     def create_property(self, name: str) -> StatePropertyAccessor:
         """
-        Creates a property definition and registers it with this :class:`BotState`.
+        Creates a property definition and registers it with this :class:`AgentState`.
 
         :param name: The name of the property
         :type name: str
@@ -205,7 +207,7 @@ class AgentState:
         :return: The value of the property
         """
         if not property_name:
-            raise TypeError("BotState.get_value(): property_name cannot be None.")
+            raise TypeError("AgentState.get_value(): property_name cannot be None.")
 
         # if there is no value, this will throw, to signal to IPropertyAccesor that a default value should be computed
         # This allows this to work with value types
@@ -234,14 +236,14 @@ class AgentState:
         Deletes a property from the state cache in the turn context.
 
         :param turn_context: The context object for this turn
-        :type turn_context: :TurnContext`
+        :type turn_context: :class:`TurnContext`
         :param property_name: The name of the property to delete
         :type property_name: str
 
         :return: None
         """
         if not property_name:
-            raise TypeError("BotState.delete_property(): property_name cannot be None.")
+            raise TypeError("AgentState.delete_property(): property_name cannot be None.")
 
         if self._cached_state.state.get(property_name):
             del self._cached_state.state[property_name]
@@ -260,30 +262,30 @@ class AgentState:
         :return: None
         """
         if not property_name:
-            raise TypeError("BotState.delete_property(): property_name cannot be None.")
+            raise TypeError("AgentState.delete_property(): property_name cannot be None.")
         self._cached_state.state[property_name] = value
 
 
 class BotStatePropertyAccessor(StatePropertyAccessor):
     """
-    Defines methods for accessing a state property created in a :class:`BotState` object.
+    Defines methods for accessing a state property created in a :class:`AgentState` object.
     """
 
-    def __init__(self, bot_state: AgentState, name: str):
+    def __init__(self, agent_state: AgentState, name: str):
         """
         Initializes a new instance of the :class:`BotStatePropertyAccessor` class.
 
-        :param bot_state: The state object to access
-        :type bot_state:  :class:`BotState`
+        :param agent_state: The state object to access
+        :type agent_state:  :class:`AgentState`
         :param name: The name of the state property to access
         :type name: str
 
         """
-        if not bot_state:
-            raise TypeError("BotStatePropertyAccessor: bot_state cannot be None.")
+        if not agent_state:
+            raise TypeError("BotStatePropertyAccessor: agent_state cannot be None.")
         if not name or not name.strip():
             raise ValueError("BotStatePropertyAccessor: name cannot be None or empty.")
-        self._bot_state = bot_state
+        self._agent_state = agent_state
         self._name = name
 
     @property
@@ -300,8 +302,8 @@ class BotStatePropertyAccessor(StatePropertyAccessor):
         :param turn_context: The context object for this turn
         :type turn_context: :class:`TurnContext`
         """
-        await self._bot_state.load(turn_context, False)
-        self._bot_state.delete_value(self._name)
+        await self._agent_state.load(turn_context, False)
+        self._agent_state.delete_value(self._name)
 
     async def get(
         self,
@@ -317,7 +319,7 @@ class BotStatePropertyAccessor(StatePropertyAccessor):
         :type turn_context: :class:`TurnContext`
         :param default_value_or_factory: Defines the default value for the property
         """
-        await self._bot_state.load(turn_context, False)
+        await self._agent_state.load(turn_context, False)
 
         def default_value_factory():
             if callable(default_value_or_factory):
@@ -325,7 +327,7 @@ class BotStatePropertyAccessor(StatePropertyAccessor):
             return deepcopy(default_value_or_factory)
 
         try:
-            result = self._bot_state.get_value(
+            result = self._agent_state.get_value(
                 self._name,
                 default_value_factory=default_value_factory,
                 target_cls=target_cls,
@@ -353,5 +355,5 @@ class BotStatePropertyAccessor(StatePropertyAccessor):
 
         :param value: The value to assign to the property
         """
-        await self._bot_state.load(turn_context, False)
-        self._bot_state.set_value(self._name, value)
+        await self._agent_state.load(turn_context, False)
+        self._agent_state.set_value(self._name, value)
