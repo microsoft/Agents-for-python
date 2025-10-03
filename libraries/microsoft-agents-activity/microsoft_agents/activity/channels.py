@@ -10,6 +10,9 @@ class Channels(str, Enum):
     Ids of channels supported by ABS.
     """
 
+    """Agents channel."""
+    agents = "agents"
+
     console = "console"
     """Console channel."""
 
