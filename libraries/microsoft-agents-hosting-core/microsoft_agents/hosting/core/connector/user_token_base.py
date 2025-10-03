@@ -1,7 +1,7 @@
 from abc import abstractmethod
 from typing import Protocol
 
-from microsoft_agents.activity import TokenResponse, TokenStatus
+from microsoft_agents.activity import TokenResponse, TokenStatus, TokenOrSignInResourceResponse
 
 
 class UserTokenBase(Protocol):

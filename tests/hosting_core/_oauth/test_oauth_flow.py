@@ -51,7 +51,7 @@ def testing_Activity(
 
 
 class TestUtils(FlowStateFixtures):
-    def setup_method(self, mocker):
+    def setup_method(self):
         self.UserTokenClient = mock_UserTokenClient
         self.Activity = testing_Activity
 
@@ -161,8 +161,14 @@ class TestOAuthFlow(TestUtils):
     @pytest.mark.asyncio
     async def test_begin_flow_easy_case(self, mocker, flow_state, activity):
         # setup
+        # user_token_client = self.UserTokenClient(
+        #     mocker, get_token_return=TokenResponse(token=DEFAULTS.token)
+        # )
         user_token_client = self.UserTokenClient(
-            mocker, get_token_return=TokenResponse(token=DEFAULTS.token)
+            mocker, get_token_or_sign_in_resource_return=TokenResponse(token=DEFAULTS.token)
+        )
+        mocker.patch.object(
+            TokenExchangeState, "get_encoded_state", return_value="encoded_state"
         )
         flow = _OAuthFlow(flow_state, user_token_client)
         expected_flow_state = flow_state
@@ -181,11 +187,11 @@ class TestOAuthFlow(TestUtils):
         assert response.flow_error_tag == _FlowErrorTag.NONE
         assert response.token_response
         assert response.token_response.token == DEFAULTS.token
-        user_token_client.user_token.get_token.assert_called_once_with(
-            user_id=flow_state.user_id,
-            connection_name=flow_state.connection,
-            channel_id=flow_state.channel_id,
-            code=None,
+        user_token_client.user_token.get_token_or_sign_in_resource.assert_called_once_with(
+            activity.from_property.id,
+            flow_state.connection,
+            activity.channel_id,
+            "encoded_state"
         )
 
     @pytest.mark.asyncio

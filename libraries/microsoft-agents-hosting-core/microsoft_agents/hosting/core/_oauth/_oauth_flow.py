@@ -184,11 +184,6 @@ class _OAuthFlow:
         """
 
         logger.debug("Starting new OAuth flow")
-        self._flow_state.tag = _FlowStateTag.BEGIN
-        self._flow_state.expiration = (
-            datetime.now().timestamp() + self._default_flow_duration
-        )
-        self._flow_state.attempts_remaining = self._max_attempts
 
         token_exchange_state = TokenExchangeState(
             connection_name=self._abs_oauth_connection_name,
@@ -211,6 +206,12 @@ class _OAuthFlow:
             return _FlowResponse(
                 flow_state=self._flow_state, token_response=res.token_response
             )
+        
+        self._flow_state.tag = _FlowStateTag.BEGIN
+        self._flow_state.expiration = (
+            datetime.now().timestamp() + self._default_flow_duration
+        )
+        self._flow_state.attempts_remaining = self._max_attempts
         
         logger.debug("Sign-in resource obtained successfully: %s", res.sign_in_resource)
 
