@@ -52,15 +52,12 @@ class FileTranscriptStore(TranscriptLogger):
 
     async def log_activity(self, activity: Activity) -> None:
         """
-        Append a single Activity to its conversation transcript.
-
-        Parameters
-        ----------
-        activity : Activity
-            An activity object (from microsoft_agents.activity.Activity or a dict with similar shape)
-            Must contain:
-                - channel_id (str)               -> activity["channel_id"] or activity.channel_id
-                - conversation.id (str)          -> activity["conversation"]["id"] or activity.conversation.id
+        Asynchronously persist a transcript activity to the file system.
+        This method computes the transcript file path based on the activity’s channel
+        and conversation identifiers, ensures the directory exists, and appends the
+        activity data to the transcript file in JSON format using a background thread.
+        If the activity lacks a timestamp, one is assigned prior to serialization.
+        :param activity: The activity to log.
         """
         if not activity:
             raise ValueError("Activity is required")
@@ -87,9 +84,7 @@ class FileTranscriptStore(TranscriptLogger):
     async def list_transcripts(self, channel_id: str) -> PagedResult[TranscriptInfo]:
         """
         List transcripts (conversations) for a channel.
-
-        Returns TranscriptInfo for each `<conversationId>.transcript` found.
-        """
+        :param channel_id: The channel ID to list transcripts for."""
         channel_dir = self._channel_dir(channel_id)
 
         def _list() -> List[TranscriptInfo]:
@@ -123,23 +118,12 @@ class FileTranscriptStore(TranscriptLogger):
     ) -> PagedResult[Activity]:
         """
         Read activities from the transcript file (paged by byte size).
-
-        Parameters
-        ----------
-        continuation_token : str, optional
-            An opaque token from a previous call. In this implementation it's the
-            byte offset (str(int)). Omit or pass None to start at the beginning.
-        start_date : datetime, optional
-            If provided, only activities with `timestamp >= start_date` are returned.
-            (Compares the 'timestamp' property when present; otherwise includes the line.)
-        page_bytes : int
-            Max bytes to read from file on this call (not a hard activity count limit).
-
-        Returns
-        -------
-        PagedResult with:
-          - items: List[Activity-like dicts]
-          - continuation_token: str offset for next page, or None if EOF
+        :param channel_id: The channel ID of the conversation.
+        :param conversation_id: The conversation ID to read activities from.
+        :param continuation_token: Optional continuation token (byte offset as string).
+        :param start_date: Optional filter to only include activities on or after this date.
+        :param page_bytes: Maximum number of bytes to read (default: 512kB).
+        :return: A PagedResult containing a list of Activities and an optional continuation token.
         """
         file_path = self._file_path(channel_id, conversation_id)
 
