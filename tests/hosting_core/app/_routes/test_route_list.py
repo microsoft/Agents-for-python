@@ -14,6 +14,7 @@ def selector(context: TurnContext) -> bool:
 async def handler(context: TurnContext, state: TurnState) -> None:
     pass
 
+
 def route_eq(route1: _Route, route2: _Route) -> bool:
     return (
         route1.selector == route2.selector
@@ -23,6 +24,7 @@ def route_eq(route1: _Route, route2: _Route) -> bool:
         and route1.auth_handlers == route2.auth_handlers
         and route1.is_agentic == route2.is_agentic
     )
+
 
 class Test_RouteList:
 

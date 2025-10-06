@@ -13,6 +13,7 @@ from ._route import _Route
 
 StateT = TypeVar("StateT", bound=TurnState)
 
+
 class _RouteList(Generic[StateT]):
     _routes: list[_Route[StateT]]
 
