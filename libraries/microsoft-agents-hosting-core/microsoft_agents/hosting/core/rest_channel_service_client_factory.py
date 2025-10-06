@@ -115,11 +115,14 @@ class RestChannelServiceClientFactory(ChannelServiceClientFactoryBase):
         )
 
     async def create_user_token_client(
-        self, context: TurnContext, claims_identity: ClaimsIdentity, use_anonymous: bool = False
+        self,
+        context: TurnContext,
+        claims_identity: ClaimsIdentity,
+        use_anonymous: bool = False,
     ) -> UserTokenClient:
         if use_anonymous:
             return UserTokenClient(endpoint=self._token_service_endpoint, token="")
-        
+
         if context.activity.is_agentic_request():
             logger.info(
                 "Creating user token client for agentic request to token service endpoint: %s",
@@ -177,7 +180,7 @@ class RestChannelServiceClientFactory(ChannelServiceClientFactoryBase):
         if not token:
             logger.error("Failed to obtain token for user token client")
             raise ValueError("Failed to obtain token for user token client")
-        
+
         return UserTokenClient(
             endpoint=self._token_service_endpoint,
             token=token,

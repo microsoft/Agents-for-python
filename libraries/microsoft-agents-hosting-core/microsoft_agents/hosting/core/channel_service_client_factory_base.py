@@ -34,7 +34,10 @@ class ChannelServiceClientFactoryBase(Protocol):
 
     @abstractmethod
     async def create_user_token_client(
-        self, context: TurnContext, claims_identity: ClaimsIdentity, use_anonymous: bool = False
+        self,
+        context: TurnContext,
+        claims_identity: ClaimsIdentity,
+        use_anonymous: bool = False,
     ) -> UserTokenClientBase:
         """
         Creates the appropriate UserTokenClientBase instance.

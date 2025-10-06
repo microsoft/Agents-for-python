@@ -202,7 +202,9 @@ class ConversationsOperations(ConversationsBase):
 
         async with self.client.post(
             url,
-            json=body.model_dump(by_alias=True, exclude_unset=True, exclude_none=True, mode="json"),
+            json=body.model_dump(
+                by_alias=True, exclude_unset=True, exclude_none=True, mode="json"
+            ),
         ) as response:
             result = await response.json() if response.content_length else {}
 
