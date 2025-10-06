@@ -26,6 +26,7 @@ class _RouteList(Generic[StateT]):
         self._routes = []
 
     def add_route(self, route: _Route[StateT]) -> None:
+        """Adds a route to the list."""
         heapq.heappush(self._routes, route)
 
     def __iter__(self):

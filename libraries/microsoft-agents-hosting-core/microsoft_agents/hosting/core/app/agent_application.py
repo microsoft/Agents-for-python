@@ -210,10 +210,31 @@ class AgentApplication(Agent, Generic[StateT]):
         rank: RouteRank = RouteRank.DEFAULT,
         auth_handlers: Optional[list[str]] = None,
     ) -> None:
-        """Adds a new route to the application."""
+        """Adds a new route to the application.
+
+        Routes are ordered by: is_agentic, is_invoke, rank (lower is higher priority), in that order.
+        
+        :param selector: A function that takes a TurnContext and returns a boolean indicating whether the route should be selected.
+        :type selector: RouteSelector
+        :param handler: A function that takes a TurnContext and a TurnState and returns an Awaitable.
+        :type handler: RouteHandler[StateT]
+        :param is_invoke: Whether the route is for an invoke activity, defaults to False
+        :type is_invoke: bool, optional
+        :param is_agentic: Whether the route is for an agentic request, defaults to False. For agentic requests
+            the selector will include a new check for `context.activity.is_agentic_request()`.
+        :type is_agentic: bool, optional
+        :param rank: The rank of the route, defaults to RouteRank.DEFAULT
+        :type rank: RouteRank, optional
+        :param auth_handlers: A list of authentication handler IDs to use for this route, defaults to None
+        :type auth_handlers: Optional[list[str]], optional
+        :raises ApplicationError: If the selector or handler are not valid.
+        """
         if is_agentic:
             selector = _agentic_selector(selector)
-        self._route_list.add_route(selector, handler, is_invoke=is_invoke, rank=rank, auth_handlers=auth_handlers)
+        route = _Route[StateT](
+            selector, handler, is_invoke, rank, auth_handlers, is_agentic
+        )
+        self._route_list.add_route(route)
 
     def activity(
         self,
