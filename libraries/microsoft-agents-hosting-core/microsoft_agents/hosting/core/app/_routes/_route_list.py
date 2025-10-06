@@ -25,23 +25,7 @@ class _RouteList(Generic[StateT]):
         # a min-heap where lower "values" indicate higher priority
         self._routes = []
 
-    def add_route(
-        self,
-        route_selector: RouteSelector,
-        route_handler: RouteHandler[StateT],
-        is_invoke: bool = False,
-        rank: RouteRank = RouteRank.DEFAULT,
-        auth_handlers: Optional[list[str]] = None,
-    ) -> None:
-        """Add a route to the priority queue."""
-        route = _Route(
-            selector=route_selector,
-            handler=route_handler,
-            is_invoke=is_invoke,
-            rank=rank,
-            auth_handlers=auth_handlers or [],
-        )
-
+    def add_route(self, route: _Route[StateT]) -> None:
         heapq.heappush(self._routes, route)
 
     def __iter__(self):
