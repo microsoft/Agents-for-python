@@ -2,7 +2,6 @@ from typing import Optional
 import logging
 
 from microsoft_agents.activity import RoleTypes
-from microsoft_agents.authentication.msal import MsalAuth
 from microsoft_agents.hosting.core.authorization import (
     AuthenticationConstants,
     AnonymousTokenProvider,
@@ -45,8 +44,10 @@ class RestChannelServiceClientFactory(ChannelServiceClientFactoryBase):
         connection = self._connection_manager.get_token_provider(
             context.identity, service_url
         )
-        if not isinstance(connection, MsalAuth):
-            raise TypeError("Expected MsalAuth connection for agentic activities")
+        if not hasattr(connection, "_msal_configuration"):
+            raise TypeError(
+                "Connection does not support MSAL configuration for agentic token retrieval"
+            )
 
         # TODO: clean up linter
         if connection._msal_configuration.ALT_BLUEPRINT_ID:
@@ -60,14 +61,10 @@ class RestChannelServiceClientFactory(ChannelServiceClientFactoryBase):
 
         agent_instance_id = context.activity.get_agentic_instance_id()
         if not agent_instance_id:
-            raise ValueError(
-                "Agent instance ID is required for agentic identity role"
-            )
+            raise ValueError("Agent instance ID is required for agentic identity role")
 
         if context.activity.recipient.role == RoleTypes.agentic_identity:
-            token, _ = await connection.get_agentic_instance_token(
-                agent_instance_id
-            )
+            token, _ = await connection.get_agentic_instance_token(agent_instance_id)
         else:
             agentic_user = context.activity.get_agentic_user()
             if not agentic_user:
@@ -129,7 +126,7 @@ class RestChannelServiceClientFactory(ChannelServiceClientFactoryBase):
         use_anonymous: bool = False,
     ) -> UserTokenClient:
         """Create a UserTokenClient for the given context and claims identity.
-        
+
         :param context: The TurnContext for the current turn of conversation.
         :param claims_identity: The ClaimsIdentity of the user.
         :param use_anonymous: Whether to use an anonymous token provider.
