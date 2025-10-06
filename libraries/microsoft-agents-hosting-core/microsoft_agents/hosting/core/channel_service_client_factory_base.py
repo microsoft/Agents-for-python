@@ -6,12 +6,14 @@ from microsoft_agents.hosting.core.connector import (
     ConnectorClientBase,
     UserTokenClientBase,
 )
+from microsoft_agents.hosting.core.turn_context import TurnContext
 
 
 class ChannelServiceClientFactoryBase(Protocol):
     @abstractmethod
     async def create_connector_client(
         self,
+        context: TurnContext,
         claims_identity: ClaimsIdentity,
         service_url: str,
         audience: str,
@@ -32,7 +34,10 @@ class ChannelServiceClientFactoryBase(Protocol):
 
     @abstractmethod
     async def create_user_token_client(
-        self, claims_identity: ClaimsIdentity, use_anonymous: bool = False
+        self,
+        context: TurnContext,
+        claims_identity: ClaimsIdentity,
+        use_anonymous: bool = False,
     ) -> UserTokenClientBase:
         """
         Creates the appropriate UserTokenClientBase instance.
