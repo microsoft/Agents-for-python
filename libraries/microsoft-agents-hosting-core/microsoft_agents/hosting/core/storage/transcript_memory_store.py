@@ -4,7 +4,7 @@
 from threading import Lock
 from datetime import datetime, timezone
 from typing import List
-from .transcript_logger import TranscriptLogger
+from .transcript_logger import TranscriptLogger, PagedResult
 from .transcript_info import TranscriptInfo
 from microsoft_agents.activity import Activity
 
@@ -52,7 +52,7 @@ class TranscriptMemoryStore(TranscriptLogger):
         conversation_id: str,
         continuation_token: str = None,
         start_date: datetime = datetime.min.replace(tzinfo=timezone.utc),
-    ) -> tuple[list[Activity], str]:
+    ) -> PagedResult:
         """
         Retrieves activities for a given channel and conversation, optionally filtered by start_date.
 
@@ -60,7 +60,7 @@ class TranscriptMemoryStore(TranscriptLogger):
         :param conversation_id: The conversation ID to filter activities.
         :param continuation_token: (Unused) Token for pagination.
         :param start_date: Only activities with timestamp >= start_date are returned. None timestamps are treated as datetime.min.
-        :return: A tuple containing the filtered list of Activity objects and a continuation token (always None).
+        :return: A PagedResult containing the filtered list of Activity objects and a continuation token (always None).
         :raises ValueError: If channel_id or conversation_id is None.
         """
         if not channel_id:
@@ -98,7 +98,7 @@ class TranscriptMemoryStore(TranscriptLogger):
                 >= start_date
             ]
 
-            return filtered_sorted_activities, None
+            return PagedResult(items=filtered_sorted_activities, continuation_token=None)            
 
     async def delete_transcript(self, channel_id: str, conversation_id: str) -> None:
         """
@@ -126,13 +126,13 @@ class TranscriptMemoryStore(TranscriptLogger):
 
     async def list_transcripts(
         self, channel_id: str, continuation_token: str = None
-    ) -> tuple[list[TranscriptInfo], str]:
+    ) -> PagedResult:
         """
         Lists all transcripts (unique conversation IDs) for a given channel.
 
         :param channel_id: The channel ID to list transcripts for.
         :param continuation_token: (Unused) Token for pagination.
-        :return: A tuple containing a list of TranscriptInfo objects and a continuation token (always None).
+        :return: A PagedResult containing a list of TranscriptInfo objects and a continuation token (always None).
         :raises ValueError: If channel_id is None.
         """
         if not channel_id:
@@ -151,4 +151,4 @@ class TranscriptMemoryStore(TranscriptLogger):
                 TranscriptInfo(channel_id=channel_id, conversation_id=conversation_id)
                 for conversation_id in conversations
             ]
-            return transcript_infos, None
+            return PagedResult(items=transcript_infos, continuation_token=None)

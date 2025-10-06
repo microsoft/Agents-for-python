@@ -1,0 +1,284 @@
+# Copyright (c) Microsoft Corporation. All rights reserved.
+# Licensed under the MIT License.
+
+from __future__ import annotations
+
+import asyncio
+import json
+import os
+import re
+
+from datetime import datetime, timezone
+from pathlib import Path
+from typing import Any, Dict, Iterable, List, Optional, Tuple, Union
+
+from .transcript_logger import TranscriptLogger
+from .transcript_logger import PagedResult
+from .transcript_info import TranscriptInfo
+
+from microsoft_agents.activity import Activity  # type: ignore
+
+class FileTranscriptStore(TranscriptLogger):
+    """
+    Python port of the .NET FileTranscriptStore which creates a single
+    `.transcript` file per conversation and appends each Activity as newline-delimited JSON.
+
+    Layout on disk:
+        <root>/<channelId>/<conversationId>.transcript
+
+    - Each line is a JSON object representing one Activity.
+    - Methods are async to match the Agents SDK shape.
+
+    Notes
+    -----
+    * Continuation tokens are simple integer byte offsets encoded as strings.
+    * Activities are written using UTF-8 with newline separators (JSONL).
+    * Filenames are sanitized to avoid path traversal and invalid characters.
+
+    Inspired by the .NET design for FileTranscriptLogger. See:
+      - Microsoft.Bot.Builder FileTranscriptLogger docs (for behavior)  [DOTNET] 
+      - Microsoft.Agents.Storage.Transcript namespace overview           [AGENTS]
+    """
+
+    def __init__(self, root_folder: Union[str, Path]) -> None:
+        self._root = Path(root_folder).expanduser().resolve()
+        self._root.mkdir(parents=True, exist_ok=True)
+
+        # precompiled regex for safe names (letters, digits, dash, underscore, dot)
+        self._safe = re.compile(r"[^A-Za-z0-9._-]+")
+
+    # -------- Logger surface --------
+
+    async def log_activity(self, activity: Activity) -> None:
+        """
+        Append a single Activity to its conversation transcript.
+
+        Parameters
+        ----------
+        activity : Activity
+            An activity object (from microsoft_agents.activity.Activity or a dict with similar shape)
+            Must contain:
+                - channel_id (str)               -> activity["channel_id"] or activity.channel_id
+                - conversation.id (str)          -> activity["conversation"]["id"] or activity.conversation.id
+        """
+        if not activity:
+            raise ValueError("Activity is required")
+        
+        channel_id, conversation_id = _get_ids(activity)
+        file_path = self._file_path(channel_id, conversation_id)
+        file_path.parent.mkdir(parents=True, exist_ok=True)
+
+        # Ensure a stable timestamp property if absent
+        # Write in a background thread to avoid blocking the event loop
+        def _write() -> None:
+            # Normalize to a dict to ensure json serializable content.
+            obj = _to_plain_dict(activity)
+            obj.setdefault("timestamp", _utc_iso_now())
+
+            with open(file_path, "a", encoding="utf-8", newline="\n") as f:
+                json.dump(obj, f, ensure_ascii=False, separators=(",", ":"))
+                f.write("\n")
+
+        await asyncio.to_thread(_write)
+
+    # -------- Store surface --------
+
+    async def list_transcripts(self, channel_id: str) -> PagedResult:
+        """
+        List transcripts (conversations) for a channel.
+
+        Returns TranscriptInfo for each `<conversationId>.transcript` found.
+        """
+        channel_dir = self._channel_dir(channel_id)
+
+        def _list() -> List[TranscriptInfo]:
+            if not channel_dir.exists():
+                return []
+            results: List[TranscriptInfo] = []
+            for p in channel_dir.glob("*.transcript"):
+                # mtime is a reasonable proxy for 'created/updated'
+                created = datetime.fromtimestamp(p.stat().st_mtime, tz=timezone.utc)
+                results.append(
+                    TranscriptInfo(
+                        channel_id=_sanitize(self._safe, channel_id),
+                        conversation_id=p.stem,
+                        created_on=created,
+                    )
+                )
+            # Sort newest first (consistent, useful default)
+            results.sort(key=lambda t: t.created_on, reverse=True)
+            return results
+
+        items = await asyncio.to_thread(_list)
+        return PagedResult(items=items, continuation_token=None)
+
+    async def get_transcript_activities(
+        self,
+        channel_id: str,
+        conversation_id: str,
+        continuation_token: Optional[str] = None,
+        start_date: Optional[datetime] = None,
+        page_bytes: int = 512 * 1024,
+    ) -> PagedResult:
+        """
+        Read activities from the transcript file (paged by byte size).
+
+        Parameters
+        ----------
+        continuation_token : str, optional
+            An opaque token from a previous call. In this implementation it's the
+            byte offset (str(int)). Omit or pass None to start at the beginning.
+        start_date : datetime, optional
+            If provided, only activities with `timestamp >= start_date` are returned.
+            (Compares the 'timestamp' property when present; otherwise includes the line.)
+        page_bytes : int
+            Max bytes to read from file on this call (not a hard activity count limit).
+
+        Returns
+        -------
+        PagedResult with:
+          - items: List[Activity-like dicts]
+          - continuation_token: str offset for next page, or None if EOF
+        """
+        file_path = self._file_path(channel_id, conversation_id)
+
+        def _read_page() -> Tuple[List[Dict[str, Any]], Optional[str]]:
+            if not file_path.exists():
+                return [], None
+
+            offset = int(continuation_token) if continuation_token else 0
+            results: List[Dict[str, Any]] = []
+
+            with open(file_path, "rb") as f:
+                f.seek(0, os.SEEK_END)
+                end = f.tell()
+                if offset > end:
+                    return [], None
+                f.seek(offset)
+                # Read a chunk
+                raw = f.read(page_bytes)
+                # Extend to end of current line to avoid cutting a JSON record in half
+                # (read until newline or EOF)
+                while True:
+                    ch = f.read(1)
+                    if not ch:
+                        break
+                    raw += ch
+                    if ch == b"\n":
+                        break
+
+                next_offset = f.tell()
+            # Decode and split lines
+            text = raw.decode("utf-8", errors="ignore")
+            lines = [ln for ln in text.splitlines() if ln.strip()]
+
+            # Parse JSONL
+            for ln in lines:
+                try:
+                    obj = json.loads(ln)
+                except Exception:
+                    # Skip malformed lines
+                    continue
+                if start_date:
+                    ts = _parse_iso_utc(obj.get("timestamp"))
+                    if ts and ts < start_date.astimezone(timezone.utc):
+                        continue
+                results.append(obj)
+
+            token = str(next_offset) if next_offset < end else None
+            return results, token
+
+        items, token = await asyncio.to_thread(_read_page)
+        return PagedResult(items=items, continuation_token=token)
+
+    async def delete_transcript(self, channel_id: str, conversation_id: str) -> None:
+        """Delete the specified conversation transcript file (no-op if absent)."""
+        file_path = self._file_path(channel_id, conversation_id)
+
+        def _delete() -> None:
+            try:
+                file_path.unlink(missing_ok=True)
+            except Exception:
+                # Best-effort deletion: ignore failures (locked file, etc.)
+                pass
+
+        await asyncio.to_thread(_delete)
+
+    # ----------------------------
+    # Helpers
+    # ----------------------------
+
+    def _channel_dir(self, channel_id: str) -> Path:
+        return self._root / _sanitize(self._safe, channel_id)
+
+    def _file_path(self, channel_id: str, conversation_id: str) -> Path:
+        safe_channel = _sanitize(self._safe, channel_id)
+        safe_conv = _sanitize(self._safe, conversation_id)
+        return self._root / safe_channel / f"{safe_conv}.transcript"
+
+
+# ----------------------------
+# Module-level helpers
+# ----------------------------
+
+def _sanitize(pattern: re.Pattern[str], value: str) -> str:
+    # Replace path-separators and illegal filename chars with '-'
+    value = (value or "").strip().replace(os.sep, "-").replace("/", "-")
+    value = pattern.sub("-", value)
+    return value or "unknown"
+
+def _get_ids(activity: Activity) -> Tuple[str, str]:
+    # Works with both dict-like and object-like Activity
+    def _get(obj: Any, *path: str) -> Optional[Any]:
+        cur = obj
+        for key in path:
+            if cur is None:
+                return None
+            if isinstance(cur, dict):
+                cur = cur.get(key)
+            else:
+                cur = getattr(cur, key, None)
+        return cur
+
+    channel_id = _get(activity, "channel_id") or _get(activity, "channelId")
+    conversation_id = _get(activity, "conversation", "id")
+    if not channel_id or not conversation_id:
+        raise ValueError("Activity must include channel_id and conversation.id")
+    return str(channel_id), str(conversation_id)
+
+def _to_plain_dict(activity: Activity) -> Dict[str, Any]:
+    if isinstance(activity, dict):
+        return activity
+    # Best-effort conversion for dataclass/attr/objects
+    try:
+        import dataclasses
+        if dataclasses.is_dataclass(activity):
+            return dataclasses.asdict(activity)  # type: ignore[arg-type]
+    except Exception:
+        pass
+    try:
+        return json.loads(json.dumps(activity, default=lambda o: getattr(o, "__dict__", str(o))))
+    except Exception:
+        # Fallback: minimal projection
+        channel_id, conversation_id = _get_ids(activity)
+        return {
+            "type": getattr(activity, "type", "message"),
+            "id": getattr(activity, "id", None),
+            "channel_id": channel_id,
+            "conversation": {"id": conversation_id},
+            "text": getattr(activity, "text", None),
+        }
+
+def _utc_iso_now() -> str:
+    return datetime.now(timezone.utc).isoformat()
+
+def _parse_iso_utc(value: Optional[str]) -> Optional[datetime]:
+    if not value:
+        return None
+    try:
+        # Allow fromisoformat with 'Z' or offset
+        if value.endswith("Z"):
+            value = value[:-1] + "+00:00"
+        return datetime.fromisoformat(value).astimezone(timezone.utc)
+    except Exception:
+        return None
