@@ -193,7 +193,7 @@ class ConversationsOperations(ConversationsBase):
             )
             raise ValueError("conversationId and activityId are required")
 
-        conversation_id = conversation_id[:200] # TODO -> when else
+        conversation_id = conversation_id[:200]
         url = f"v3/conversations/{conversation_id}/activities/{activity_id}"
 
         logger.info(
@@ -236,6 +236,7 @@ class ConversationsOperations(ConversationsBase):
             )
             raise ValueError("conversationId is required")
 
+        conversation_id = conversation_id[:200]
         url = f"v3/conversations/{conversation_id}/activities"
 
         logger.info(
@@ -272,6 +273,7 @@ class ConversationsOperations(ConversationsBase):
             )
             raise ValueError("conversationId and activityId are required")
 
+        conversation_id = conversation_id[:200]
         url = f"v3/conversations/{conversation_id}/activities/{activity_id}"
 
         logger.info(
@@ -304,6 +306,7 @@ class ConversationsOperations(ConversationsBase):
             )
             raise ValueError("conversationId and activityId are required")
 
+        conversation_id = conversation_id[:200]
         url = f"v3/conversations/{conversation_id}/activities/{activity_id}"
 
         logger.info(
@@ -333,6 +336,7 @@ class ConversationsOperations(ConversationsBase):
             )
             raise ValueError("conversationId is required")
 
+        conversation_id = conversation_id[:200]
         url = f"v3/conversations/{conversation_id}/attachments"
 
         # Convert the AttachmentData to a dictionary
@@ -372,6 +376,7 @@ class ConversationsOperations(ConversationsBase):
             )
             raise ValueError("conversationId is required")
 
+        conversation_id = conversation_id[:200]
         url = f"v3/conversations/{conversation_id}/members"
 
         logger.info(f"Getting conversation members for conversation: {conversation_id}")
@@ -403,6 +408,7 @@ class ConversationsOperations(ConversationsBase):
             )
             raise ValueError("conversationId and memberId are required")
 
+        conversation_id = conversation_id[:200]
         url = f"v3/conversations/{conversation_id}/members/{member_id}"
 
         logger.info(
@@ -435,6 +441,7 @@ class ConversationsOperations(ConversationsBase):
             )
             raise ValueError("conversationId and memberId are required")
 
+        conversation_id = conversation_id[:200]
         url = f"v3/conversations/{conversation_id}/members/{member_id}"
 
         logger.info(
@@ -465,6 +472,7 @@ class ConversationsOperations(ConversationsBase):
             )
             raise ValueError("conversationId and activityId are required")
 
+        conversation_id = conversation_id[:200]
         url = f"v3/conversations/{conversation_id}/activities/{activity_id}/members"
 
         logger.info(
@@ -508,6 +516,7 @@ class ConversationsOperations(ConversationsBase):
         if continuation_token is not None:
             params["continuationToken"] = continuation_token
 
+        conversation_id = conversation_id[:200]
         url = f"v3/conversations/{conversation_id}/pagedmembers"
 
         logger.info(
@@ -541,6 +550,7 @@ class ConversationsOperations(ConversationsBase):
             )
             raise ValueError("conversationId is required")
 
+        conversation_id = conversation_id[:200]
         url = f"v3/conversations/{conversation_id}/activities/history"
 
         logger.info(f"Sending conversation history to conversation: {conversation_id}")
