@@ -193,16 +193,16 @@ class ConversationsOperations(ConversationsBase):
             )
             raise ValueError("conversationId and activityId are required")
 
+        conversation_id = conversation_id[:200] # TODO -> when else
         url = f"v3/conversations/{conversation_id}/activities/{activity_id}"
 
         logger.info(
             f"Replying to activity: {activity_id} in conversation: {conversation_id}. Activity type is {body.type}"
         )
+
         async with self.client.post(
             url,
-            json=body.model_dump(
-                by_alias=True, exclude_unset=True, exclude_none=True, mode="json"
-            ),
+            json=body.model_dump(by_alias=True, exclude_unset=True, exclude_none=True, mode="json"),
         ) as response:
             result = await response.json() if response.content_length else {}
 
@@ -216,7 +216,8 @@ class ConversationsOperations(ConversationsBase):
             logger.info(
                 f"Reply to conversation/activity: {result.get('id')}, {activity_id}"
             )
-            return ResourceResponse.model_validate(result)
+
+        return ResourceResponse.model_validate(result)
 
     async def send_to_conversation(
         self, conversation_id: str, body: Activity

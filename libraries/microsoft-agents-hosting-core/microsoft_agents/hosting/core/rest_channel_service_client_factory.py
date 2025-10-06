@@ -115,18 +115,69 @@ class RestChannelServiceClientFactory(ChannelServiceClientFactoryBase):
         )
 
     async def create_user_token_client(
-        self, claims_identity: ClaimsIdentity, use_anonymous: bool = False
+        self, context: TurnContext, claims_identity: ClaimsIdentity, use_anonymous: bool = False
     ) -> UserTokenClient:
         if use_anonymous:
             return UserTokenClient(endpoint=self._token_service_endpoint, token="")
+        
+        if context.activity.is_agentic_request():
+            logger.info(
+                "Creating user token client for agentic request to token service endpoint: %s",
+                self._token_service_endpoint,
+            )
 
-        token_provider = self._connection_manager.get_token_provider(
-            claims_identity, self._token_service_endpoint
-        )
+            if not context.identity:
+                raise ValueError("context.identity is required for agentic activities")
 
-        token = await token_provider.get_access_token(
-            self._token_service_audience, [f"{self._token_service_audience}/.default"]
-        )
+            connection = self._connection_manager.get_token_provider(
+                context.identity, self._token_service_endpoint
+            )
+
+            # TODO: clean up linter
+            if connection._msal_configuration.ALT_BLUEPRINT_ID:
+                logger.debug(
+                    "Using alternative blueprint ID for agentic token retrieval: %s",
+                    connection._msal_configuration.ALT_BLUEPRINT_ID,
+                )
+                connection = self._connection_manager.get_connection(
+                    connection._msal_configuration.ALT_BLUEPRINT_ID
+                )
+
+            agent_instance_id = context.activity.get_agentic_instance_id()
+            if not agent_instance_id:
+                raise ValueError(
+                    "Agent instance ID is required for agentic identity role"
+                )
+
+            if context.activity.recipient.role == RoleTypes.agentic_identity:
+                token, _ = await connection.get_agentic_instance_token(
+                    agent_instance_id
+                )
+            else:
+                agentic_user = context.activity.get_agentic_user()
+                if not agentic_user:
+                    raise ValueError("Agentic user is required for agentic user role")
+                token = await connection.get_agentic_user_token(
+                    agent_instance_id,
+                    agentic_user,
+                    [AuthenticationConstants.APX_PRODUCTION_SCOPE],
+                )
+
+        else:
+            scopes = [f"{self._token_service_audience}/.default"]
+
+            token_provider = self._connection_manager.get_token_provider(
+                claims_identity, self._token_service_endpoint
+            )
+
+            token = await token_provider.get_access_token(
+                self._token_service_audience, scopes
+            )
+
+        if not token:
+            logger.error("Failed to obtain token for user token client")
+            raise ValueError("Failed to obtain token for user token client")
+        
         return UserTokenClient(
             endpoint=self._token_service_endpoint,
             token=token,
