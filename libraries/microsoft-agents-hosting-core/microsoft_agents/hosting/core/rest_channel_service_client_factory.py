@@ -49,7 +49,6 @@ class RestChannelServiceClientFactory(ChannelServiceClientFactoryBase):
                 "Connection does not support MSAL configuration for agentic token retrieval"
             )
 
-        # TODO: clean up linter
         if connection._msal_configuration.ALT_BLUEPRINT_ID:
             logger.debug(
                 "Using alternative blueprint ID for agentic token retrieval: %s",
