@@ -7,8 +7,10 @@ from .transcript_logger import (
     ConsoleTranscriptLogger,
     TranscriptLoggerMiddleware,
     FileTranscriptLogger,
+    PagedResult,
 )
 from .transcript_store import TranscriptStore
+from .transcript_file_store import FileTranscriptStore
 
 __all__ = [
     "StoreItem",
@@ -21,4 +23,6 @@ __all__ = [
     "TranscriptLoggerMiddleware",
     "TranscriptStore",
     "FileTranscriptLogger",
+    "FileTranscriptStore",
+    "PagedResult",
 ]
