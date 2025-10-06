@@ -73,18 +73,18 @@ class FileTranscriptStore(TranscriptLogger):
         # Write in a background thread to avoid blocking the event loop
         def _write() -> None:
             # Normalize to a dict to ensure json serializable content.
-            obj = _to_plain_dict(activity)
-            obj.setdefault("timestamp", _utc_iso_now())
+            if not activity.timestamp:
+                activity.timestamp = _utc_iso_now()
 
             with open(file_path, "a", encoding="utf-8", newline="\n") as f:
-                json.dump(obj, f, ensure_ascii=False, separators=(",", ":"))
+                f.write(activity.model_dump_json(exclude_none=True, exclude_unset=True))
                 f.write("\n")
 
         await asyncio.to_thread(_write)
 
     # -------- Store surface --------
 
-    async def list_transcripts(self, channel_id: str) -> PagedResult:
+    async def list_transcripts(self, channel_id: str) -> PagedResult[TranscriptInfo]:
         """
         List transcripts (conversations) for a channel.
 
@@ -120,7 +120,7 @@ class FileTranscriptStore(TranscriptLogger):
         continuation_token: Optional[str] = None,
         start_date: Optional[datetime] = None,
         page_bytes: int = 512 * 1024,
-    ) -> PagedResult:
+    ) -> PagedResult[Activity]:
         """
         Read activities from the transcript file (paged by byte size).
 
@@ -143,12 +143,12 @@ class FileTranscriptStore(TranscriptLogger):
         """
         file_path = self._file_path(channel_id, conversation_id)
 
-        def _read_page() -> Tuple[List[Dict[str, Any]], Optional[str]]:
+        def _read_page() -> Tuple[List[Activity], Optional[str]]:
             if not file_path.exists():
                 return [], None
 
             offset = int(continuation_token) if continuation_token else 0
-            results: List[Dict[str, Any]] = []
+            results: List[Activity] = []
 
             with open(file_path, "rb") as f:
                 f.seek(0, os.SEEK_END)
@@ -176,15 +176,16 @@ class FileTranscriptStore(TranscriptLogger):
             # Parse JSONL
             for ln in lines:
                 try:
-                    obj = json.loads(ln)
+                    a = Activity.model_validate_json(ln)
                 except Exception:
                     # Skip malformed lines
                     continue
                 if start_date:
-                    ts = _parse_iso_utc(obj.get("timestamp"))
-                    if ts and ts < start_date.astimezone(timezone.utc):
+                    if a.timestamp and a.timestamp < start_date.astimezone(
+                        timezone.utc
+                    ):
                         continue
-                results.append(obj)
+                results.append(a)
 
             token = str(next_offset) if next_offset < end else None
             return results, token
@@ -251,6 +252,7 @@ def _get_ids(activity: Activity) -> Tuple[str, str]:
 
 
 def _to_plain_dict(activity: Activity) -> Dict[str, Any]:
+
     if isinstance(activity, dict):
         return activity
     # Best-effort conversion for dataclass/attr/objects
@@ -279,15 +281,3 @@ def _to_plain_dict(activity: Activity) -> Dict[str, Any]:
 
 def _utc_iso_now() -> str:
     return datetime.now(timezone.utc).isoformat()
-
-
-def _parse_iso_utc(value: Optional[str]) -> Optional[datetime]:
-    if not value:
-        return None
-    try:
-        # Allow fromisoformat with 'Z' or offset
-        if value.endswith("Z"):
-            value = value[:-1] + "+00:00"
-        return datetime.fromisoformat(value).astimezone(timezone.utc)
-    except Exception:
-        return None

@@ -52,7 +52,7 @@ class TranscriptMemoryStore(TranscriptLogger):
         conversation_id: str,
         continuation_token: str = None,
         start_date: datetime = datetime.min.replace(tzinfo=timezone.utc),
-    ) -> PagedResult:
+    ) -> PagedResult[Activity]:
         """
         Retrieves activities for a given channel and conversation, optionally filtered by start_date.
 
@@ -128,7 +128,7 @@ class TranscriptMemoryStore(TranscriptLogger):
 
     async def list_transcripts(
         self, channel_id: str, continuation_token: str = None
-    ) -> PagedResult:
+    ) -> PagedResult[TranscriptInfo]:
         """
         Lists all transcripts (unique conversation IDs) for a given channel.
 
