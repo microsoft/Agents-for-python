@@ -1,8 +1,8 @@
-import re
 from typing import Optional
 import logging
 
 from microsoft_agents.activity import RoleTypes
+from microsoft_agents.authentication.msal import MsalAuth
 from microsoft_agents.hosting.core.authorization import (
     AuthenticationConstants,
     AnonymousTokenProvider,
@@ -33,6 +33,55 @@ class RestChannelServiceClientFactory(ChannelServiceClientFactoryBase):
         self._token_service_endpoint = token_service_endpoint
         self._token_service_audience = token_service_audience
 
+    async def _get_agentic_token(self, context: TurnContext, service_url: str) -> str:
+        logger.info(
+            "Creating connector client for agentic request to service_url: %s",
+            service_url,
+        )
+
+        if not context.identity:
+            raise ValueError("context.identity is required for agentic activities")
+
+        connection = self._connection_manager.get_token_provider(
+            context.identity, service_url
+        )
+        if not isinstance(connection, MsalAuth):
+            raise TypeError("Expected MsalAuth connection for agentic activities")
+
+        # TODO: clean up linter
+        if connection._msal_configuration.ALT_BLUEPRINT_ID:
+            logger.debug(
+                "Using alternative blueprint ID for agentic token retrieval: %s",
+                connection._msal_configuration.ALT_BLUEPRINT_ID,
+            )
+            connection = self._connection_manager.get_connection(
+                connection._msal_configuration.ALT_BLUEPRINT_ID
+            )
+
+        agent_instance_id = context.activity.get_agentic_instance_id()
+        if not agent_instance_id:
+            raise ValueError(
+                "Agent instance ID is required for agentic identity role"
+            )
+
+        if context.activity.recipient.role == RoleTypes.agentic_identity:
+            token, _ = await connection.get_agentic_instance_token(
+                agent_instance_id
+            )
+        else:
+            agentic_user = context.activity.get_agentic_user()
+            if not agentic_user:
+                raise ValueError("Agentic user is required for agentic user role")
+            token = await connection.get_agentic_user_token(
+                agent_instance_id,
+                agentic_user,
+                [AuthenticationConstants.APX_PRODUCTION_SCOPE],
+            )
+
+        if not token:
+            raise ValueError("Failed to obtain token for agentic activity")
+        return token
+
     async def create_connector_client(
         self,
         context: TurnContext,
@@ -42,6 +91,8 @@ class RestChannelServiceClientFactory(ChannelServiceClientFactoryBase):
         scopes: Optional[list[str]] = None,
         use_anonymous: bool = False,
     ) -> ConnectorClientBase:
+        if not context or not claims_identity:
+            raise TypeError("context and claims_identity are required")
         if not service_url:
             raise TypeError(
                 "RestChannelServiceClientFactory.create_connector_client: service_url can't be None or Empty"
@@ -52,50 +103,7 @@ class RestChannelServiceClientFactory(ChannelServiceClientFactoryBase):
             )
 
         if context.activity.is_agentic_request():
-            logger.info(
-                "Creating connector client for agentic request to service_url: %s",
-                service_url,
-            )
-
-            if not context.identity:
-                raise ValueError("context.identity is required for agentic activities")
-
-            connection = self._connection_manager.get_token_provider(
-                context.identity, service_url
-            )
-
-            # TODO: clean up linter
-            if connection._msal_configuration.ALT_BLUEPRINT_ID:
-                logger.debug(
-                    "Using alternative blueprint ID for agentic token retrieval: %s",
-                    connection._msal_configuration.ALT_BLUEPRINT_ID,
-                )
-                connection = self._connection_manager.get_connection(
-                    connection._msal_configuration.ALT_BLUEPRINT_ID
-                )
-
-            agent_instance_id = context.activity.get_agentic_instance_id()
-            if not agent_instance_id:
-                raise ValueError(
-                    "Agent instance ID is required for agentic identity role"
-                )
-
-            if context.activity.recipient.role == RoleTypes.agentic_identity:
-                token, _ = await connection.get_agentic_instance_token(
-                    agent_instance_id
-                )
-            else:
-                agentic_user = context.activity.get_agentic_user()
-                if not agentic_user:
-                    raise ValueError("Agentic user is required for agentic user role")
-                token = await connection.get_agentic_user_token(
-                    agent_instance_id,
-                    agentic_user,
-                    [AuthenticationConstants.APX_PRODUCTION_SCOPE],
-                )
-
-            if not token:
-                raise ValueError("Failed to obtain token for agentic activity")
+            token = await self._get_agentic_token(context, service_url)
         else:
             token_provider: AccessTokenProviderBase = (
                 self._connection_manager.get_token_provider(
@@ -120,52 +128,20 @@ class RestChannelServiceClientFactory(ChannelServiceClientFactoryBase):
         claims_identity: ClaimsIdentity,
         use_anonymous: bool = False,
     ) -> UserTokenClient:
+        """Create a UserTokenClient for the given context and claims identity.
+        
+        :param context: The TurnContext for the current turn of conversation.
+        :param claims_identity: The ClaimsIdentity of the user.
+        :param use_anonymous: Whether to use an anonymous token provider.
+        """
+        if not context or not claims_identity:
+            raise ValueError("context and claims_identity are required")
+
         if use_anonymous:
             return UserTokenClient(endpoint=self._token_service_endpoint, token="")
 
         if context.activity.is_agentic_request():
-            logger.info(
-                "Creating user token client for agentic request to token service endpoint: %s",
-                self._token_service_endpoint,
-            )
-
-            if not context.identity:
-                raise ValueError("context.identity is required for agentic activities")
-
-            connection = self._connection_manager.get_token_provider(
-                context.identity, self._token_service_endpoint
-            )
-
-            # TODO: clean up linter
-            if connection._msal_configuration.ALT_BLUEPRINT_ID:
-                logger.debug(
-                    "Using alternative blueprint ID for agentic token retrieval: %s",
-                    connection._msal_configuration.ALT_BLUEPRINT_ID,
-                )
-                connection = self._connection_manager.get_connection(
-                    connection._msal_configuration.ALT_BLUEPRINT_ID
-                )
-
-            agent_instance_id = context.activity.get_agentic_instance_id()
-            if not agent_instance_id:
-                raise ValueError(
-                    "Agent instance ID is required for agentic identity role"
-                )
-
-            if context.activity.recipient.role == RoleTypes.agentic_identity:
-                token, _ = await connection.get_agentic_instance_token(
-                    agent_instance_id
-                )
-            else:
-                agentic_user = context.activity.get_agentic_user()
-                if not agentic_user:
-                    raise ValueError("Agentic user is required for agentic user role")
-                token = await connection.get_agentic_user_token(
-                    agent_instance_id,
-                    agentic_user,
-                    [AuthenticationConstants.APX_PRODUCTION_SCOPE],
-                )
-
+            token = await self._get_agentic_token(context, self._token_service_endpoint)
         else:
             scopes = [f"{self._token_service_audience}/.default"]
 
