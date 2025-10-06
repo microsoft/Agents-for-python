@@ -21,8 +21,6 @@ def start_server(
         )
 
     APP = Application(middlewares=[jwt_authorization_middleware])
-    # APP = Application(middlewares=])
-    # APP = Application()
     APP.router.add_post("/api/messages", entry_point)
     APP["agent_configuration"] = auth_configuration
     APP["agent_app"] = agent_application

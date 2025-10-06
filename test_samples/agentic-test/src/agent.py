@@ -14,6 +14,10 @@ from microsoft_agents.hosting.core import (
     TurnContext,
     MemoryStorage,
 )
+from microsoft_agents.hosting.core.storage import (
+    TranscriptLoggerMiddleware,
+    ConsoleTranscriptLogger,
+)
 from microsoft_agents.authentication.msal import MsalConnectionManager
 from microsoft_agents.activity import load_configuration_from_env
 
@@ -23,6 +27,7 @@ agents_sdk_config = load_configuration_from_env(environ)
 STORAGE = MemoryStorage()
 CONNECTION_MANAGER = MsalConnectionManager(**agents_sdk_config)
 ADAPTER = CloudAdapter(connection_manager=CONNECTION_MANAGER)
+ADAPTER.use(TranscriptLoggerMiddleware(ConsoleTranscriptLogger()))
 AUTHORIZATION = Authorization(STORAGE, CONNECTION_MANAGER, **agents_sdk_config)
 
 # robrandao: downloader?
@@ -34,6 +39,7 @@ AGENT_APP = AgentApplication[TurnState](
 @AGENT_APP.activity("message", auth_handlers=["AGENTIC"])
 async def on_message(context: TurnContext, _state: TurnState):
     aau_token = await AGENT_APP.auth.get_token(context, "AGENTIC")
+
     await context.send_activity(
         f"Acquired agentic user token with length: {len(aau_token.token)}"
     )
