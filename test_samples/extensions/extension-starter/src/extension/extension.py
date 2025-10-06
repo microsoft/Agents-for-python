@@ -1,5 +1,5 @@
 import logging
-from typing import Awaitable, Callable, Generic, TypeVar
+from typing import Callable, Generic, TypeVar
 
 from microsoft_agents.activity import Activity, ActivityTypes, InvokeResponse
 from microsoft_agents.hosting.core import (
@@ -12,7 +12,6 @@ from microsoft_agents.hosting.core import (
 from .models import (
     CustomEventData,
     CustomEventResult,
-    CustomEventTypes,
     CustomRouteHandler,
 )
 
@@ -20,8 +19,8 @@ logger = logging.getLogger(__name__)
 
 MY_CHANNEL = "mychannel"
 
-
 StateT = TypeVar("StateT", bound=TurnState)
+
 
 # This extension defines event decorators with custom selecting/handling logic:
 class ExtensionAgent(Generic[StateT]):
@@ -33,7 +32,8 @@ class ExtensionAgent(Generic[StateT]):
     # Allowing event decorators to accept **kwargs and passing
     # **kwargs to app.add_route is recommended.
     def _on_message_has_hello_event(
-        self, **kwargs,
+        self,
+        **kwargs,
     ) -> Callable[[CustomRouteHandler[StateT]], RouteHandler[StateT]]:
         def route_selector(context: TurnContext) -> bool:
             return (
@@ -45,6 +45,7 @@ class ExtensionAgent(Generic[StateT]):
             async def route_handler(context: TurnContext, state: StateT):
                 custom_event_data = CustomEventData.from_context(context)
                 await handler(context, state, custom_event_data)
+
             return route_handler
 
         def __call(func: CustomRouteHandler[StateT]) -> RouteHandler[StateT]:
@@ -56,20 +57,24 @@ class ExtensionAgent(Generic[StateT]):
         return __call
 
     def on_message_has_hello_event(
-        self, **kwargs,
+        self,
+        **kwargs,
     ) -> Callable[[CustomRouteHandler[StateT]], RouteHandler[StateT]]:
         return self._on_message_has_hello_event(is_agentic=False, **kwargs)
 
     def on_agentic_message_has_hello_event(
-        self, **kwargs,
+        self,
+        **kwargs,
     ) -> Callable[[CustomRouteHandler[StateT]], RouteHandler[StateT]]:
         return self._on_message_has_hello_event(is_agentic=True, **kwargs)
 
     # events that are handled with custom payloads
-    def on_invoke_custom_event(self, custom_event_type: str, **kwargs) -> Callable[[CustomRouteHandler[StateT]], RouteHandler[StateT]]:
+    def on_invoke_custom_event(
+        self, custom_event_type: str, **kwargs
+    ) -> Callable[[CustomRouteHandler[StateT]], RouteHandler[StateT]]:
         def route_selector(context: TurnContext) -> bool:
             return (
-                context.activity.type == ActivityTypes.message
+                context.activity.type == ActivityTypes.invoke
                 and context.activity.channel_id == MY_CHANNEL
                 and context.activity.name == f"invoke/{custom_event_type}"
             )
@@ -85,9 +90,12 @@ class ExtensionAgent(Generic[StateT]):
                 # invokes must send back an invoke response
                 response = Activity(
                     type=ActivityTypes.invoke_response,
-                    value=InvokeResponse(status=200, body=result),
+                    value=InvokeResponse(
+                        status=200, body=result.model_dump(mode="json")
+                    ),
                 )
                 await context.send_activity(response)
+
             return route_handler
 
         def __call(func: CustomRouteHandler[StateT]) -> RouteHandler[StateT]:

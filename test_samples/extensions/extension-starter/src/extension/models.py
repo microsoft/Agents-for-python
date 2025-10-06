@@ -11,8 +11,8 @@ StateT = TypeVar("StateT", bound=TurnState)
 
 class CustomRouteHandler(Protocol[StateT]):
     async def __call__(
-        self, context: TurnContext, state: StateT, event_data: CustomEventData
-    ) -> CustomEventResult: ...
+        self, context: TurnContext, state: StateT, data: CustomEventData
+    ) -> Optional[CustomEventResult]: ...
 
 
 class CustomEventTypes(StrEnum):
@@ -28,7 +28,11 @@ class CustomEventData(AgentsModel):
     def from_context(context) -> CustomEventData:
         return CustomEventData(
             user_id=context.activity.from_property.id,
-            field=context.activity.channel_data.get("field"),
+            field=(
+                context.activity.channel_data.get("field")
+                if context.activity.channel_data
+                else None
+            ),
         )
 
 
