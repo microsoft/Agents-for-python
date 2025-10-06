@@ -231,6 +231,13 @@ class AgentApplication(Agent, Generic[StateT]):
         :type auth_handlers: Optional[list[str]], optional
         :raises ApplicationError: If the selector or handler are not valid.
         """
+        if not selector or not handler:
+            logger.error(
+                "AgentApplication.add_route(): selector and handler are required.",
+                stack_info=True,
+            )
+            raise ApplicationError("selector and handler are required.")
+
         if is_agentic:
             selector = _agentic_selector(selector)
         route = _Route[StateT](
