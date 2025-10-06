@@ -20,6 +20,15 @@ async def message_has_hello_event(
     )
 
 
+@EXT.on_message_has_hello_event
+async def message_has_hello_event(
+    context: TurnContext, state: TurnState, data: CustomEventData
+):
+    await context.send_activity(
+        f"Hello event detected! User ID: {data.user_id}, Field: {data.field}"
+    )
+
+
 @EXT.on_invoke_custom_event
 async def invoke_custom_event(
     context: TurnContext, state: TurnState, data: CustomEventData
@@ -35,8 +44,3 @@ async def invoke_other_custom_event(context: TurnContext, state: TurnState):
     await context.send_activity(
         f"Custom event triggered {context.activity.type}/{context.activity.name}"
     )
-
-
-@EXT.on_message_reaction_added
-async def reaction_added(context: TurnContext, state: TurnState, reaction: str):
-    await context.send_activity(f"Reaction added: {reaction}")

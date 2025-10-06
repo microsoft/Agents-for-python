@@ -12,12 +12,16 @@ from .._type_defs import RouteHandler, RouteSelector
 from ..state.turn_state import TurnState
 from .route_rank import RouteRank
 
+
 def _agentic_selector(selector: RouteSelector) -> RouteSelector:
     def wrapped_selector(context: TurnContext) -> bool:
         return context.activity.is_agentic_request() and selector(context)
+
     return wrapped_selector
 
+
 StateT = TypeVar("StateT", bound=TurnState)
+
 
 class _Route(Generic[StateT]):
     selector: RouteSelector
@@ -47,22 +51,22 @@ class _Route(Generic[StateT]):
     @property
     def is_invoke(self) -> bool:
         return self._is_invoke
-    
+
     @property
     def rank(self) -> RouteRank:
         return self._rank
-    
+
     @property
     def is_agentic(self) -> bool:
         return self._is_agentic
-    
+
     @property
     def ordering(self) -> list[int]:
-       return [
+        return [
             0 if self._is_agentic else 1,
             0 if self._is_invoke else 1,
-            self._rank.value
-       ]
+            self._rank.value,
+        ]
 
     def __lt__(self, other: _Route) -> bool:
         # list ordering is a lexicographic comparison

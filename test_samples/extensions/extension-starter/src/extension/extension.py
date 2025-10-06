@@ -1,13 +1,11 @@
 import logging
-from msvcrt import kbhit
-from typing import Awaitable, Callable, Generic, TypeVar, Iterable, cast
+from typing import Awaitable, Callable, Generic, TypeVar
 
 from microsoft_agents.activity import Activity, ActivityTypes, InvokeResponse
 from microsoft_agents.hosting.core import (
     AgentApplication,
     TurnContext,
     TurnState,
-    RouteSelector,
     RouteHandler,
 )
 
@@ -23,18 +21,6 @@ logger = logging.getLogger(__name__)
 MY_CHANNEL = "mychannel"
 
 
-def create_route_selector(event_name: str) -> RouteSelector:
-
-    def route_selector(context: TurnContext) -> bool:
-        return (
-            context.activity.type == ActivityTypes.message
-            and context.activity.channel_id == MY_CHANNEL
-            and context.activity.name == f"invoke/{event_name}"
-        )
-
-    return route_selector
-
-
 StateT = TypeVar("StateT", bound=TurnState)
 
 
@@ -44,6 +30,9 @@ class ExtensionAgent(Generic[StateT]):
     def __init__(self, app: AgentApplication[StateT]):
         self.app = app
 
+    # defining event decorators with custom selectors
+    # allowing event decorators to accept **kwargs and passing
+    # **kwargs to app.add_route is recommended
     def _on_message_has_hello_event(
         self,
         handler: Callable[[TurnContext, StateT, CustomEventData], Awaitable[None]],
@@ -63,17 +52,27 @@ class ExtensionAgent(Generic[StateT]):
         self.app.add_route(route_selector, route_handler, **kwargs)
 
     def on_message_has_hello_event(
-        self, handler: Callable[[TurnContext, StateT, CustomEventData], Awaitable[None]]
+        self,
+        handler: Callable[[TurnContext, StateT, CustomEventData], Awaitable[None]],
+        **kwargs,
     ):
-        self._on_message_has_hello_event(handler, is_agentic=False)
+        self._on_message_has_hello_event(handler, is_agentic=False, **kwargs)
 
     def on_agentic_message_has_hello_event(
-        self, handler: Callable[[TurnContext, StateT, CustomEventData], Awaitable[None]]
+        self,
+        handler: Callable[[TurnContext, StateT, CustomEventData], Awaitable[None]],
+        **kwargs,
     ):
-        self._on_message_has_hello_event(handler, is_agentic=True)
+        self._on_message_has_hello_event(handler, is_agentic=True, **kwargs)
 
-    def on_invoke_custom_event(self, handler: CustomRouteHandler[StateT]):
-        route_selector = create_route_selector(CustomEventTypes.CUSTOM_EVENT)
+    # events that are handled with custom payloads
+    def on_invoke_custom_event(self, handler: CustomRouteHandler[StateT], **kwargs):
+        def route_selector(context: TurnContext) -> bool:
+            return (
+                context.activity.type == ActivityTypes.message
+                and context.activity.channel_id == MY_CHANNEL
+                and context.activity.name == f"invoke/{CustomEventTypes.CUSTOM_EVENT}"
+            )
 
         async def route_handler(context: TurnContext, state: StateT):
             custom_event_data = CustomEventData.from_context(context)
@@ -81,6 +80,8 @@ class ExtensionAgent(Generic[StateT]):
             if not result:
                 result = CustomEventResult()
 
+            # send an invoke response back to the caller
+            # invokes must send back an invoke response
             response = Activity(
                 type=ActivityTypes.invoke_response,
                 value=InvokeResponse(status=200, body=result),
@@ -88,13 +89,23 @@ class ExtensionAgent(Generic[StateT]):
             await context.send_activity(response)
 
         logger.debug("Registering route for custom event")
-        self.app.add_route(route_selector, route_handler, is_invoke=True)
+        self.app.add_route(route_selector, route_handler, is_invoke=True, **kwargs)
 
-    def on_invoke_other_custom_event(self, handler: RouteHandler[StateT]):
-        route_selector = create_route_selector(CustomEventTypes.OTHER_CUSTOM_EVENT)
+    # event that does not require a custom payload
+    def on_invoke_other_custom_event(self, handler: RouteHandler[StateT], **kwargs):
+        def route_selector(context: TurnContext) -> bool:
+            return (
+                context.activity.type == ActivityTypes.message
+                and context.activity.channel_id == MY_CHANNEL
+                and context.activity.name
+                == f"invoke/{CustomEventTypes.OTHER_CUSTOM_EVENT}"
+            )
 
         async def route_handler(context: TurnContext, state: StateT):
             await handler(context, state)
+
+            # send an invoke response back to the caller
+            # invokes must send back an invoke response
             response = Activity(
                 type=ActivityTypes.invoke_response,
                 value=InvokeResponse(status=200, body={}),
@@ -102,23 +113,4 @@ class ExtensionAgent(Generic[StateT]):
             await context.send_activity(response)
 
         logger.debug("Registering route for other custom event")
-        self.app.add_route(route_selector, route_handler, is_invoke=True)
-
-    # Callable that takes in three arguments (TurnContext, StateT, str) and returns Awaitable[None]
-    # Awaitable indicates that the function is asynchronous and returns a coroutine
-    def on_message_reaction_added(
-        self, handler: Callable[[TurnContext, StateT, str], Awaitable[None]]
-    ):
-
-        def route_selector(context: TurnContext) -> bool:
-            return (
-                context.activity.type == ActivityTypes.message
-                and context.activity.name == "reactionAdded"
-            )
-
-        async def route_handler(context: TurnContext, state: StateT):
-            for reaction in cast(Iterable, context.activity.value):
-                await handler(context, state, reaction.type)
-
-        logger.debug("Registering route for message reaction added")
-        self.app.add_route(route_selector, route_handler)
+        self.app.add_route(route_selector, route_handler, is_invoke=True, **kwargs)
