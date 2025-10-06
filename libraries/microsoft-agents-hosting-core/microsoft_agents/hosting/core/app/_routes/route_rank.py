@@ -1,6 +1,6 @@
 from enum import IntEnum
 
-MAX_RANK = 2**32 - 1  # Python ints don't have a max value, LOL
+MAX_RANK = 2**32 - 1
 
 
 class RouteRank(IntEnum):

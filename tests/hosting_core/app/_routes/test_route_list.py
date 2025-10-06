@@ -14,6 +14,15 @@ def selector(context: TurnContext) -> bool:
 async def handler(context: TurnContext, state: TurnState) -> None:
     pass
 
+def route_eq(route1: _Route, route2: _Route) -> bool:
+    return (
+        route1.selector == route2.selector
+        and route1.handler == route2.handler
+        and route1.is_invoke == route2.is_invoke
+        and route1.rank == route2.rank
+        and route1.auth_handlers == route2.auth_handlers
+        and route1.is_agentic == route2.is_agentic
+    )
 
 class Test_RouteList:
 
@@ -27,7 +36,7 @@ class Test_RouteList:
     def has_contents(self, route_list: _RouteList, should_contain: list[_Route]):
         for route in should_contain:
             for existing in list(route_list):
-                if existing == route:
+                if route_eq(existing, route):
                     break
             else:
                 return False
@@ -42,14 +51,14 @@ class Test_RouteList:
         route_list = _RouteList()
 
         all_routes = [
-            (selector, handler, False, RouteRank.DEFAULT, ["a"]),
-            (selector, handler, True, RouteRank.LAST, ["a"]),
-            (selector, handler, False, RouteRank.FIRST),
-            (selector, handler, True),
-            (selector, handler),
-            (selector, handler, True, RouteRank.DEFAULT, ["slack"]),
-            (selector, handler, False, RouteRank.FIRST, ["a", "b"]),
-            (selector, handler, True, RouteRank.DEFAULT, ["c"]),
+            (selector, handler, False, RouteRank.DEFAULT, ["a"], False),
+            (selector, handler, True, RouteRank.LAST, ["a"], False),
+            (selector, handler, False, RouteRank.FIRST, [], True),
+            (selector, handler, True, RouteRank.DEFAULT, [], True),
+            (selector, handler, False, RouteRank.DEFAULT, [], False),
+            (selector, handler, True, RouteRank.DEFAULT, ["slack"], True),
+            (selector, handler, False, RouteRank.FIRST, ["a", "b"], False),
+            (selector, handler, True, RouteRank.DEFAULT, ["c"], True),
         ]
         all_routes = [
             {
@@ -57,14 +66,15 @@ class Test_RouteList:
                 "handler": route[1],
                 "is_invoke": route[2],
                 "rank": route[3],
-                "auth_handlers": route[4] if len(route) > 4 else None,
+                "auth_handlers": route[4],
+                "is_agentic": route[5],
             }
             for route in all_routes
         ]
         added_routes = []
 
-        for i, route in enumerate(all_routes):
-            added_routes.append(_Route(**route))
-            route_list.add_route(**route)
+        for i, kwargs in enumerate(all_routes):
+            added_routes.append(_Route(**kwargs))
+            route_list.add_route(_Route(**kwargs))
             self.assert_priority_invariant(route_list)
             assert self.has_contents(route_list, added_routes)

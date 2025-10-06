@@ -62,6 +62,7 @@ class _Route(Generic[StateT]):
 
     @property
     def ordering(self) -> list[int]:
+        """Lower "values" indicate higher priority."""
         return [
             0 if self._is_agentic else 1,
             0 if self._is_invoke else 1,
@@ -69,5 +70,5 @@ class _Route(Generic[StateT]):
         ]
 
     def __lt__(self, other: _Route) -> bool:
-        # list ordering is a lexicographic comparison
+        # built-in list ordering is a lexicographic comparison in Python
         return self.ordering < other.ordering
