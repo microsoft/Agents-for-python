@@ -7,7 +7,7 @@ from .transcript_logger import (
     ConsoleTranscriptLogger,
     TranscriptLoggerMiddleware,
     FileTranscriptLogger,
-    PagedResult    
+    PagedResult,
 )
 from .transcript_store import TranscriptStore
 from .transcript_file_store import FileTranscriptStore
@@ -24,5 +24,5 @@ __all__ = [
     "TranscriptStore",
     "FileTranscriptLogger",
     "FileTranscriptStore",
-    "PagedResult"
+    "PagedResult",
 ]

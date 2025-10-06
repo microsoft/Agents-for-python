@@ -18,10 +18,12 @@ from microsoft_agents.activity.activity_types import ActivityTypes
 from microsoft_agents.activity.conversation_reference import ActivityEventNames
 from microsoft_agents.hosting.core.middleware_set import Middleware, TurnContext
 
+
 @dataclass
 class PagedResult:
     items: List[Any]
     continuation_token: Optional[str] = None
+
 
 class TranscriptLogger(ABC):
     @abstractmethod
@@ -32,6 +34,7 @@ class TranscriptLogger(ABC):
         :param activity: The activity to log.
         """
         pass
+
 
 class ConsoleTranscriptLogger(TranscriptLogger):
     """

@@ -98,7 +98,9 @@ class TranscriptMemoryStore(TranscriptLogger):
                 >= start_date
             ]
 
-            return PagedResult(items=filtered_sorted_activities, continuation_token=None)            
+            return PagedResult(
+                items=filtered_sorted_activities, continuation_token=None
+            )
 
     async def delete_transcript(self, channel_id: str, conversation_id: str) -> None:
         """

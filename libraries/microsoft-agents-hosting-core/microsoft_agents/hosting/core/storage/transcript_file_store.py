@@ -18,6 +18,7 @@ from .transcript_info import TranscriptInfo
 
 from microsoft_agents.activity import Activity  # type: ignore
 
+
 class FileTranscriptStore(TranscriptLogger):
     """
     Python port of the .NET FileTranscriptStore which creates a single
@@ -36,7 +37,7 @@ class FileTranscriptStore(TranscriptLogger):
     * Filenames are sanitized to avoid path traversal and invalid characters.
 
     Inspired by the .NET design for FileTranscriptLogger. See:
-      - Microsoft.Bot.Builder FileTranscriptLogger docs (for behavior)  [DOTNET] 
+      - Microsoft.Bot.Builder FileTranscriptLogger docs (for behavior)  [DOTNET]
       - Microsoft.Agents.Storage.Transcript namespace overview           [AGENTS]
     """
 
@@ -63,7 +64,7 @@ class FileTranscriptStore(TranscriptLogger):
         """
         if not activity:
             raise ValueError("Activity is required")
-        
+
         channel_id, conversation_id = _get_ids(activity)
         file_path = self._file_path(channel_id, conversation_id)
         file_path.parent.mkdir(parents=True, exist_ok=True)
@@ -221,11 +222,13 @@ class FileTranscriptStore(TranscriptLogger):
 # Module-level helpers
 # ----------------------------
 
+
 def _sanitize(pattern: re.Pattern[str], value: str) -> str:
     # Replace path-separators and illegal filename chars with '-'
     value = (value or "").strip().replace(os.sep, "-").replace("/", "-")
     value = pattern.sub("-", value)
     return value or "unknown"
+
 
 def _get_ids(activity: Activity) -> Tuple[str, str]:
     # Works with both dict-like and object-like Activity
@@ -246,18 +249,22 @@ def _get_ids(activity: Activity) -> Tuple[str, str]:
         raise ValueError("Activity must include channel_id and conversation.id")
     return str(channel_id), str(conversation_id)
 
+
 def _to_plain_dict(activity: Activity) -> Dict[str, Any]:
     if isinstance(activity, dict):
         return activity
     # Best-effort conversion for dataclass/attr/objects
     try:
         import dataclasses
+
         if dataclasses.is_dataclass(activity):
             return dataclasses.asdict(activity)  # type: ignore[arg-type]
     except Exception:
         pass
     try:
-        return json.loads(json.dumps(activity, default=lambda o: getattr(o, "__dict__", str(o))))
+        return json.loads(
+            json.dumps(activity, default=lambda o: getattr(o, "__dict__", str(o)))
+        )
     except Exception:
         # Fallback: minimal projection
         channel_id, conversation_id = _get_ids(activity)
@@ -269,8 +276,10 @@ def _to_plain_dict(activity: Activity) -> Dict[str, Any]:
             "text": getattr(activity, "text", None),
         }
 
+
 def _utc_iso_now() -> str:
     return datetime.now(timezone.utc).isoformat()
+
 
 def _parse_iso_utc(value: Optional[str]) -> Optional[datetime]:
     if not value:
