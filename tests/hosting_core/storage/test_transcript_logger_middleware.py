@@ -41,18 +41,15 @@ async def test_should_round_trip_via_middleware():
 
     await adapter.process_activity(id, a1, callback)
 
-    transcriptAndContinuationToken = await transcript_store.get_transcript_activities(
+    pagedResult = await transcript_store.get_transcript_activities(
         channelName, conversation_id
     )
 
-    transcript = transcriptAndContinuationToken[0]
-    continuationToken = transcriptAndContinuationToken[1]
-
-    assert len(transcript) == 1
-    assert transcript[0].channel_id == channelName
-    assert transcript[0].conversation.id == conversation_id
-    assert transcript[0].text == a1.text
-    assert continuationToken is None
+    assert len(pagedResult.items) == 1
+    assert pagedResult.items[0].channel_id == channelName
+    assert pagedResult.items[0].conversation.id == conversation_id
+    assert pagedResult.items[0].text == a1.text
+    assert pagedResult.continuation_token is None
 
 
 @pytest.mark.asyncio
