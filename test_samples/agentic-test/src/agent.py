@@ -22,7 +22,7 @@ from microsoft_agents.activity import load_configuration_from_env
 
 logger = logging.getLogger(__name__)
 
-load_dotenv()  # robrandao: todo
+load_dotenv()
 agents_sdk_config = load_configuration_from_env(environ)
 
 STORAGE = MemoryStorage()
@@ -31,7 +31,6 @@ ADAPTER = CloudAdapter(connection_manager=CONNECTION_MANAGER)
 ADAPTER.use(TranscriptLoggerMiddleware(ConsoleTranscriptLogger()))
 AUTHORIZATION = Authorization(STORAGE, CONNECTION_MANAGER, **agents_sdk_config)
 
-# robrandao: downloader?
 AGENT_APP = AgentApplication[TurnState](
     storage=STORAGE, adapter=ADAPTER, authorization=AUTHORIZATION, **agents_sdk_config
 )

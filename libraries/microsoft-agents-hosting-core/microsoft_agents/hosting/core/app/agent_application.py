@@ -639,7 +639,6 @@ class AgentApplication(Agent, Generic[StateT]):
         await self._start_long_running_call(context, self._on_turn)
 
     async def _on_turn(self, context: TurnContext):
-        # robrandao: TODO
         try:
             if context.activity.type != ActivityTypes.typing:
                 await self._start_typing(context)
