@@ -1,7 +1,9 @@
 from copy import copy
 from datetime import datetime, timezone
-from typing import Optional
-from pydantic import Field, SerializeAsAny
+from typing import Optional, Any
+
+from pydantic import Field, SerializeAsAny, model_serializer, model_validator
+
 from .activity_types import ActivityTypes
 from .channel_account import ChannelAccount
 from .conversation_account import ConversationAccount
@@ -21,6 +23,7 @@ from .text_highlight import TextHighlight
 from .semantic_action import SemanticAction
 from .agents_model import AgentsModel
 from .role_types import RoleTypes
+from .channel_id import ChannelId
 from ._model_utils import pick_model, SkipNone
 from ._type_aliases import NonEmptyString
 
@@ -133,7 +136,7 @@ class Activity(AgentsModel):
     local_timestamp: datetime = None
     local_timezone: NonEmptyString = None
     service_url: NonEmptyString = None
-    channel_id: NonEmptyString = None
+    channel_id: ChannelId = None
     from_property: ChannelAccount = Field(None, alias="from")
     conversation: ConversationAccount = None
     recipient: ChannelAccount = None
@@ -169,6 +172,31 @@ class Activity(AgentsModel):
     text_highlights: list[TextHighlight] = None
     semantic_action: SemanticAction = None
     caller_id: NonEmptyString = None
+
+    @classmethod
+    @model_validator(mode="before")
+    def _channel_id_extension(cls, data: Any) -> Any:
+        if "channel_id" in data and data["channel_id"]:
+            if data["entities"]:
+                for entity in data["entities"]:
+                    if entity.get("type", "") == "ProductInfo":
+                        sub_channel = entity.get("id")
+
+                        # TODO: check if mutation occurs
+    
+                        data["channel_id"] = {
+                            "channel": data["channel_id"],
+                            "sub_channel": sub_channel,
+                        }
+                        break
+        return data
+    
+    @classmethod
+    @model_serializer(mode="plain")
+    def _add_product_info(cls, channel_id: ChannelId) -> str:
+        if channel_id.sub_channel:
+            return f"{channel_id.channel}:{channel_id.sub_channel}"
+        return channel_id.channel
 
     def apply_conversation_reference(
         self, reference: ConversationReference, is_incoming: bool = False

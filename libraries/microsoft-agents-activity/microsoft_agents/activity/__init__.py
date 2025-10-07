@@ -17,6 +17,7 @@ from .card_action import CardAction
 from .card_image import CardImage
 from .channels import Channels
 from .channel_account import ChannelAccount
+from .channel_id import ChannelId
 from .conversation_account import ConversationAccount
 from .conversation_members import ConversationMembers
 from .conversation_parameters import ConversationParameters
@@ -114,6 +115,7 @@ __all__ = [
     "CardImage",
     "Channels",
     "ChannelAccount",
+    "ChannelId",
     "ConversationAccount",
     "ConversationMembers",
     "ConversationParameters",
