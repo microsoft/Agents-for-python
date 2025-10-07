@@ -1,3 +1,6 @@
+# Copyright (c) Microsoft Corporation. All rights reserved.
+# Licensed under the MIT License.
+
 from typing import Protocol, TypeVar, Type, Union
 from abc import ABC, abstractmethod
 from asyncio import gather
