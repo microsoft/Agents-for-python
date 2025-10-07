@@ -197,9 +197,6 @@ class ConversationsOperations(ConversationsBase):
             )
             raise ValueError("conversationId and activityId are required")
 
-        print("\n*3")
-        print(conversation_id)
-        print("\n*3")
         conversation_id = self._normalize_conversation_id(conversation_id)
         url = f"v3/conversations/{conversation_id}/activities/{activity_id}"
 
