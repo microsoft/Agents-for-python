@@ -1,3 +1,8 @@
+"""
+Copyright (c) Microsoft Corporation. All rights reserved.
+Licensed under the MIT License.
+"""
+
 from datetime import datetime
 import logging
 from typing import TypeVar, Optional, Callable, Awaitable, Generic, cast

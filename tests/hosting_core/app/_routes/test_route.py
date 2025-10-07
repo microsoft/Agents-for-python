@@ -50,7 +50,7 @@ class TestRoute:
         assert route.rank == RouteRank.DEFAULT
         assert route.auth_handlers == []
 
-    def test_ordering(self):
+    def test_priority(self):
 
         route_a = _Route(
             selector=selector,
@@ -76,9 +76,9 @@ class TestRoute:
             is_agentic=False,
         )
 
-        assert route_a.ordering == [1, 0, RouteRank.FIRST]
-        assert route_b.ordering == [0, 1, RouteRank.LAST]
-        assert route_c.ordering == [1, 1, RouteRank.DEFAULT]
+        assert route_a.priority == [0, 1, RouteRank.FIRST]
+        assert route_b.priority == [1, 0, RouteRank.LAST]
+        assert route_c.priority == [1, 1, RouteRank.DEFAULT]
 
     @pytest.fixture(params=[None, [], ["authA1", "authA2"], ["github"]])
     def auth_handlers_a(self, request):
@@ -89,7 +89,7 @@ class TestRoute:
         return request.param
 
     @pytest.mark.parametrize(
-        "is_invoke_a, rank_a, is_agentic_a, is_invoke_b, rank_b, is_agentic_b, expected_result",
+        "is_agentic_a, rank_a, is_invoke_a, is_agentic_b, rank_b, is_invoke_b, expected_result",
         [
             # Same agentic status (both False)
             [

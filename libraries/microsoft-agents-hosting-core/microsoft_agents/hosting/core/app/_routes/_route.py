@@ -41,6 +41,10 @@ class _Route(Generic[StateT]):
         is_agentic: bool = False,
         **kwargs,
     ) -> None:
+        
+        if rank < 0 or rank > RouteRank.LAST:
+            raise ValueError("Route rank must be between 0 and RouteRank.LAST (inclusive)")
+
         self.selector = selector
         self.handler = handler
         self._is_invoke = is_invoke
@@ -61,14 +65,14 @@ class _Route(Generic[StateT]):
         return self._is_agentic
 
     @property
-    def ordering(self) -> list[int]:
+    def priority(self) -> list[int]:
         """Lower "values" indicate higher priority."""
         return [
-            0 if self._is_agentic else 1,
             0 if self._is_invoke else 1,
+            0 if self._is_agentic else 1,
             self._rank.value,
         ]
 
     def __lt__(self, other: _Route) -> bool:
         # built-in list ordering is a lexicographic comparison in Python
-        return self.ordering < other.ordering
+        return self.priority < other.priority

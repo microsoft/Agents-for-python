@@ -1,11 +1,15 @@
+"""
+Copyright (c) Microsoft Corporation. All rights reserved.
+Licensed under the MIT License.
+"""
+
 from enum import IntEnum
 
-MAX_RANK = 2**32 - 1
-
+_MAX_RANK = 2**16 - 1  # 65,535
 
 class RouteRank(IntEnum):
     """Defines the rank of a route. Lower values indicate higher priority."""
 
     FIRST = 0
-    DEFAULT = MAX_RANK // 2
-    LAST = MAX_RANK
+    DEFAULT = _MAX_RANK // 2
+    LAST = _MAX_RANK
