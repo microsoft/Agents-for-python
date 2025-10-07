@@ -50,6 +50,25 @@ class TestRoute:
         assert route.rank == RouteRank.DEFAULT
         assert route.auth_handlers == []
 
+    @pytest.mark.parametrize(
+        "rank, is_error",
+        [
+            [RouteRank.FIRST, False],
+            [RouteRank.LAST, False],
+            [RouteRank.DEFAULT, False],
+            [1, False],
+            [-1, True],
+            [RouteRank.LAST + 1, True],
+        ],
+    )
+    def test_init_error(self, rank, is_error):
+        if is_error:
+            with pytest.raises(ValueError):
+                _Route(selector=selector, handler=handler, rank=rank)
+        else:
+            route = _Route(selector=selector, handler=handler, rank=rank)
+            assert route.rank == rank
+
     def test_priority(self):
 
         route_a = _Route(
@@ -75,10 +94,19 @@ class TestRoute:
             auth_handlers=["auth2"],
             is_agentic=False,
         )
+        route_d = _Route(
+            selector=selector,
+            handler=handler,
+            is_invoke=False,
+            rank=23,
+            auth_handlers=["auth2"],
+            is_agentic=False,
+        )
 
         assert route_a.priority == [0, 1, RouteRank.FIRST]
         assert route_b.priority == [1, 0, RouteRank.LAST]
         assert route_c.priority == [1, 1, RouteRank.DEFAULT]
+        assert route_d.priority == [1, 1, 23]
 
     @pytest.fixture(params=[None, [], ["authA1", "authA2"], ["github"]])
     def auth_handlers_a(self, request):

@@ -5,6 +5,7 @@ from enum import IntEnum
 
 _MAX_RANK = 2**16 - 1  # 65,535
 
+
 class RouteRank(IntEnum):
     """Defines the rank of a route. Lower values indicate higher priority."""
 

@@ -25,7 +25,7 @@ class _Route(Generic[StateT]):
     selector: RouteSelector
     handler: RouteHandler[StateT]
     _is_invoke: bool
-    _rank: RouteRank
+    _rank: int
     auth_handlers: list[str]
     _is_agentic: bool
 
@@ -34,19 +34,21 @@ class _Route(Generic[StateT]):
         selector: RouteSelector,
         handler: RouteHandler[StateT],
         is_invoke: bool = False,
-        rank: RouteRank = RouteRank.DEFAULT,
+        rank: int = RouteRank.DEFAULT,
         auth_handlers: Optional[list[str]] = None,
         is_agentic: bool = False,
         **kwargs,
     ) -> None:
-        
+
         if rank < 0 or rank > RouteRank.LAST:
-            raise ValueError("Route rank must be between 0 and RouteRank.LAST (inclusive)")
+            raise ValueError(
+                "Route rank must be between 0 and RouteRank.LAST (inclusive)"
+            )
 
         self.selector = selector
         self.handler = handler
         self._is_invoke = is_invoke
-        self._rank = rank
+        self._rank = int(rank)  # conversion from RouteRank IntEnum if necessary
         self._is_agentic = is_agentic
         self.auth_handlers = auth_handlers or []
 
@@ -55,7 +57,7 @@ class _Route(Generic[StateT]):
         return self._is_invoke
 
     @property
-    def rank(self) -> RouteRank:
+    def rank(self) -> int:
         return self._rank
 
     @property
@@ -64,11 +66,22 @@ class _Route(Generic[StateT]):
 
     @property
     def priority(self) -> list[int]:
-        """Lower "values" indicate higher priority."""
+        """Lower "values" indicate higher priority.
+
+        Priority is determined by:
+        1. Whether the route is for an invoke activity (0) or not (1).
+        2. Whether the route is agentic (0) or not (1).
+        3. The rank of the route (lower numbers indicate higher priority).
+
+        In that order. If both are invokes, the agentic one has higher priority.
+        If both are agentic and invokes, then the rank determines priority.
+
+        priority is represented as a list of three integers for easy lexicographic comparison.
+        """
         return [
             0 if self._is_invoke else 1,
             0 if self._is_agentic else 1,
-            self._rank.value,
+            self._rank,
         ]
 
     def __lt__(self, other: _Route) -> bool:

@@ -11,6 +11,5 @@ setup(
         "isodate>=0.6.1",
         "azure-core>=1.30.0",
         "python-dotenv>=1.1.1",
-        "strenum",
     ],
 )
