@@ -233,13 +233,13 @@ class AgentApplication(Agent, Generic[StateT]):
         """
         if not selector or not handler:
             logger.error(
-                "AgentApplication.add_route(): selector and handler are required.",
-                stack_info=True,
+                "AgentApplication.add_route(): selector and handler are required."
             )
             raise ApplicationError("selector and handler are required.")
 
         if is_agentic:
             selector = _agentic_selector(selector)
+
         route = _Route[StateT](
             selector, handler, is_invoke, rank, auth_handlers, is_agentic
         )
