@@ -13,9 +13,7 @@ from typing import (
     Any,
     Awaitable,
     Callable,
-    Dict,
     Generic,
-    List,
     Optional,
     Pattern,
     TypeVar,
@@ -38,16 +36,17 @@ from ..authorization import Connections
 from .app_error import ApplicationError
 from .app_options import ApplicationOptions
 
-from .route import Route, RouteHandler
 from .state import TurnState
 from ..channel_service_adapter import ChannelServiceAdapter
 from .oauth import Authorization
 from .typing_indicator import TypingIndicator
 
+from ._type_defs import RouteHandler, RouteSelector
+from ._routes import _RouteList, _Route, RouteRank, _agentic_selector
+
 logger = logging.getLogger(__name__)
 
 StateT = TypeVar("StateT", bound=TurnState)
-IN_SIGN_IN_KEY = "__InSignInFlow__"
 
 
 class AgentApplication(Agent, Generic[StateT]):
@@ -68,25 +67,25 @@ class AgentApplication(Agent, Generic[StateT]):
     _options: ApplicationOptions
     _adapter: Optional[ChannelServiceAdapter] = None
     _auth: Optional[Authorization] = None
-    _internal_before_turn: List[Callable[[TurnContext, StateT], Awaitable[bool]]] = []
-    _internal_after_turn: List[Callable[[TurnContext, StateT], Awaitable[bool]]] = []
-    _routes: List[Route[StateT]] = []
+    _internal_before_turn: list[Callable[[TurnContext, StateT], Awaitable[bool]]] = []
+    _internal_after_turn: list[Callable[[TurnContext, StateT], Awaitable[bool]]] = []
+    _route_list: _RouteList[StateT] = _RouteList[StateT]()
     _error: Optional[Callable[[TurnContext, Exception], Awaitable[None]]] = None
     _turn_state_factory: Optional[Callable[[TurnContext], StateT]] = None
 
     def __init__(
         self,
-        options: ApplicationOptions = None,
+        options: Optional[ApplicationOptions] = None,
         *,
-        connection_manager: Connections = None,
-        authorization: Authorization = None,
+        connection_manager: Optional[Connections] = None,
+        authorization: Optional[Authorization] = None,
         **kwargs,
     ) -> None:
         """
         Creates a new AgentApplication instance.
         """
         self.typing = TypingIndicator()
-        self._routes = []
+        self._route_list = _RouteList[StateT]()
 
         configuration = kwargs
 
@@ -204,11 +203,54 @@ class AgentApplication(Agent, Generic[StateT]):
         """
         return self._options
 
+    def add_route(
+        self,
+        selector: RouteSelector,
+        handler: RouteHandler[StateT],
+        is_invoke: bool = False,
+        is_agentic: bool = False,
+        rank: RouteRank = RouteRank.DEFAULT,
+        auth_handlers: Optional[list[str]] = None,
+    ) -> None:
+        """Adds a new route to the application.
+
+        Routes are ordered by: is_agentic, is_invoke, rank (lower is higher priority), in that order.
+
+        :param selector: A function that takes a TurnContext and returns a boolean indicating whether the route should be selected.
+        :type selector: RouteSelector
+        :param handler: A function that takes a TurnContext and a TurnState and returns an Awaitable.
+        :type handler: RouteHandler[StateT]
+        :param is_invoke: Whether the route is for an invoke activity, defaults to False
+        :type is_invoke: bool, optional
+        :param is_agentic: Whether the route is for an agentic request, defaults to False. For agentic requests
+            the selector will include a new check for `context.activity.is_agentic_request()`.
+        :type is_agentic: bool, optional
+        :param rank: The rank of the route, defaults to RouteRank.DEFAULT
+        :type rank: RouteRank, optional
+        :param auth_handlers: A list of authentication handler IDs to use for this route, defaults to None
+        :type auth_handlers: Optional[list[str]], optional
+        :raises ApplicationError: If the selector or handler are not valid.
+        """
+        if not selector or not handler:
+            logger.error(
+                "AgentApplication.add_route(): selector and handler are required."
+            )
+            raise ApplicationError("selector and handler are required.")
+
+        if is_agentic:
+            selector = _agentic_selector(selector)
+
+        route = _Route[StateT](
+            selector, handler, is_invoke, rank, auth_handlers, is_agentic
+        )
+        self._route_list.add_route(route)
+
     def activity(
         self,
-        activity_type: Union[str, ActivityTypes, List[Union[str, ActivityTypes]]],
+        activity_type: Union[str, ActivityTypes, list[Union[str, ActivityTypes]]],
         *,
-        auth_handlers: Optional[List[str]] = None,
+        auth_handlers: Optional[list[str]] = None,
+        **kwargs,
     ) -> Callable[[RouteHandler[StateT]], RouteHandler[StateT]]:
         """
         Registers a new activity event listener. This method can be used as either
@@ -233,18 +275,17 @@ class AgentApplication(Agent, Generic[StateT]):
             logger.debug(
                 f"Registering activity handler for route handler {func.__name__} with type: {activity_type} with auth handlers: {auth_handlers}"
             )
-            self._routes.append(
-                Route[StateT](__selector, func, auth_handlers=auth_handlers)
-            )
+            self.add_route(__selector, func, auth_handlers=auth_handlers, **kwargs)
             return func
 
         return __call
 
     def message(
         self,
-        select: Union[str, Pattern[str], List[Union[str, Pattern[str]]]],
+        select: Union[str, Pattern[str], list[Union[str, Pattern[str]]]],
         *,
-        auth_handlers: Optional[List[str]] = None,
+        auth_handlers: Optional[list[str]] = None,
+        **kwargs,
     ) -> Callable[[RouteHandler[StateT]], RouteHandler[StateT]]:
         """
         Registers a new message activity event listener. This method can be used as either
@@ -276,9 +317,7 @@ class AgentApplication(Agent, Generic[StateT]):
             logger.debug(
                 f"Registering message handler for route handler {func.__name__} with select: {select} with auth handlers: {auth_handlers}"
             )
-            self._routes.append(
-                Route[StateT](__selector, func, auth_handlers=auth_handlers)
-            )
+            self.add_route(__selector, func, auth_handlers=auth_handlers, **kwargs)
             return func
 
         return __call
@@ -287,7 +326,8 @@ class AgentApplication(Agent, Generic[StateT]):
         self,
         type: ConversationUpdateTypes,
         *,
-        auth_handlers: Optional[List[str]] = None,
+        auth_handlers: Optional[list[str]] = None,
+        **kwargs,
     ) -> Callable[[RouteHandler[StateT]], RouteHandler[StateT]]:
         """
         Registers a new message activity event listener. This method can be used as either
@@ -311,12 +351,12 @@ class AgentApplication(Agent, Generic[StateT]):
                 return False
 
             if type == "membersAdded":
-                if isinstance(context.activity.members_added, List):
+                if isinstance(context.activity.members_added, list):
                     return len(context.activity.members_added) > 0
                 return False
 
             if type == "membersRemoved":
-                if isinstance(context.activity.members_removed, List):
+                if isinstance(context.activity.members_removed, list):
                     return len(context.activity.members_removed) > 0
                 return False
 
@@ -330,15 +370,17 @@ class AgentApplication(Agent, Generic[StateT]):
             logger.debug(
                 f"Registering conversation update handler for route handler {func.__name__} with type: {type} with auth handlers: {auth_handlers}"
             )
-            self._routes.append(
-                Route[StateT](__selector, func, auth_handlers=auth_handlers)
-            )
+            self.add_route(__selector, func, auth_handlers=auth_handlers, **kwargs)
             return func
 
         return __call
 
     def message_reaction(
-        self, type: MessageReactionTypes, *, auth_handlers: Optional[List[str]] = None
+        self,
+        type: MessageReactionTypes,
+        *,
+        auth_handlers: Optional[list[str]] = None,
+        **kwargs,
     ) -> Callable[[RouteHandler[StateT]], RouteHandler[StateT]]:
         """
         Registers a new message activity event listener. This method can be used as either
@@ -361,12 +403,12 @@ class AgentApplication(Agent, Generic[StateT]):
                 return False
 
             if type == "reactionsAdded":
-                if isinstance(context.activity.reactions_added, List):
+                if isinstance(context.activity.reactions_added, list):
                     return len(context.activity.reactions_added) > 0
                 return False
 
             if type == "reactionsRemoved":
-                if isinstance(context.activity.reactions_removed, List):
+                if isinstance(context.activity.reactions_removed, list):
                     return len(context.activity.reactions_removed) > 0
                 return False
 
@@ -376,15 +418,17 @@ class AgentApplication(Agent, Generic[StateT]):
             logger.debug(
                 f"Registering message reaction handler for route handler {func.__name__} with type: {type} with auth handlers: {auth_handlers}"
             )
-            self._routes.append(
-                Route[StateT](__selector, func, auth_handlers=auth_handlers)
-            )
+            self.add_route(__selector, func, auth_handlers=auth_handlers, **kwargs)
             return func
 
         return __call
 
     def message_update(
-        self, type: MessageUpdateTypes, *, auth_handlers: Optional[List[str]] = None
+        self,
+        type: MessageUpdateTypes,
+        *,
+        auth_handlers: Optional[list[str]] = None,
+        **kwargs,
     ) -> Callable[[RouteHandler[StateT]], RouteHandler[StateT]]:
         """
         Registers a new message activity event listener. This method can be used as either
@@ -435,14 +479,14 @@ class AgentApplication(Agent, Generic[StateT]):
             logger.debug(
                 f"Registering message update handler for route handler {func.__name__} with type: {type} with auth handlers: {auth_handlers}"
             )
-            self._routes.append(
-                Route[StateT](__selector, func, auth_handlers=auth_handlers)
-            )
+            self.add_route(__selector, func, auth_handlers=auth_handlers, **kwargs)
             return func
 
         return __call
 
-    def handoff(self, *, auth_handlers: Optional[List[str]] = None) -> Callable[
+    def handoff(
+        self, *, auth_handlers: Optional[list[str]] = None, **kwargs
+    ) -> Callable[
         [Callable[[TurnContext, StateT, str], Awaitable[None]]],
         Callable[[TurnContext, StateT, str], Awaitable[None]],
     ]:
@@ -483,10 +527,7 @@ class AgentApplication(Agent, Generic[StateT]):
                 f"Registering handoff handler for route handler {func.__name__} with auth handlers: {auth_handlers}"
             )
 
-            self._routes.append(
-                Route[StateT](__selector, __handler, True, auth_handlers)
-            )
-            self._routes = sorted(self._routes, key=lambda route: not route.is_invoke)
+            self.add_route(__selector, func, auth_handlers=auth_handlers, **kwargs)
             return func
 
         return __call
@@ -598,7 +639,6 @@ class AgentApplication(Agent, Generic[StateT]):
         await self._start_long_running_call(context, self._on_turn)
 
     async def _on_turn(self, context: TurnContext):
-        # robrandao: TODO
         try:
             if context.activity.type != ActivityTypes.typing:
                 await self._start_typing(context)
@@ -663,7 +703,7 @@ class AgentApplication(Agent, Generic[StateT]):
             context.activity.text = context.remove_recipient_mention(context.activity)
 
     @staticmethod
-    def parse_env_vars_configuration(vars: Dict[str, Any]) -> dict:
+    def parse_env_vars_configuration(vars: dict[str, Any]) -> dict:
         """
         Parses environment variables and returns a dictionary with the relevant configuration.
         """
@@ -738,7 +778,7 @@ class AgentApplication(Agent, Generic[StateT]):
         return True
 
     async def _on_activity(self, context: TurnContext, state: StateT):
-        for route in self._routes:
+        for route in self._route_list:
             if route.selector(context):
                 if not route.auth_handlers:
                     await route.handler(context, state)

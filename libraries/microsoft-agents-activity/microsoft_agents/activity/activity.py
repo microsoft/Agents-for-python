@@ -429,7 +429,6 @@ class Activity(AgentsModel):
     def create_trace(
         self, name: str, value: object = None, value_type: str = None, label: str = None
     ):
-        # robrandao: TODO -> needs to handle Nones like create_reply
         """
         Creates a new trace activity based on this activity.
 
@@ -476,7 +475,6 @@ class Activity(AgentsModel):
     def create_trace_activity(
         name: str, value: object = None, value_type: str = None, label: str = None
     ):
-        # robrandao: TODO -> SkipNone
         """
         Creates an instance of the :class:`Activity` class as a TraceActivity object.
 

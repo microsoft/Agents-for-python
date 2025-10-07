@@ -1,3 +1,7 @@
+# Copyright (c) Microsoft Corporation. All rights reserved.
+# Licensed under the MIT License.
+
+
 from .authorization import Authorization
 from .auth_handler import AuthHandler
 from ._sign_in_state import _SignInState

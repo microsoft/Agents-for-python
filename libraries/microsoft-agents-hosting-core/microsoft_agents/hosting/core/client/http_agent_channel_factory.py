@@ -1,3 +1,6 @@
+# Copyright (c) Microsoft Corporation. All rights reserved.
+# Licensed under the MIT License.
+
 from microsoft_agents.hosting.core.authorization import AccessTokenProviderBase
 
 from .channel_factory_protocol import ChannelFactoryProtocol
