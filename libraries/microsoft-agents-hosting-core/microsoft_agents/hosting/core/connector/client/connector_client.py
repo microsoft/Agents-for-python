@@ -122,8 +122,12 @@ class AttachmentsOperations(AttachmentsBase):
 
 class ConversationsOperations(ConversationsBase):
 
-    def __init__(self, client: ClientSession):
+    def __init__(self, client: ClientSession, **kwargs):
         self.client = client
+        self._max_conversation_id_length = kwargs.get("max_conversation_id_length", 200)
+
+    def _normalize_conversation_id(self, conversation_id: str) -> str:
+        return conversation_id[: self._max_conversation_id_length]
 
     async def get_conversations(
         self, continuation_token: Optional[str] = None
@@ -193,11 +197,13 @@ class ConversationsOperations(ConversationsBase):
             )
             raise ValueError("conversationId and activityId are required")
 
+        conversation_id = self._normalize_conversation_id(conversation_id)
         url = f"v3/conversations/{conversation_id}/activities/{activity_id}"
 
         logger.info(
             f"Replying to activity: {activity_id} in conversation: {conversation_id}. Activity type is {body.type}"
         )
+
         async with self.client.post(
             url,
             json=body.model_dump(
@@ -216,7 +222,8 @@ class ConversationsOperations(ConversationsBase):
             logger.info(
                 f"Reply to conversation/activity: {result.get('id')}, {activity_id}"
             )
-            return ResourceResponse.model_validate(result)
+
+        return ResourceResponse.model_validate(result)
 
     async def send_to_conversation(
         self, conversation_id: str, body: Activity
@@ -235,6 +242,7 @@ class ConversationsOperations(ConversationsBase):
             )
             raise ValueError("conversationId is required")
 
+        conversation_id = self._normalize_conversation_id(conversation_id)
         url = f"v3/conversations/{conversation_id}/activities"
 
         logger.info(
@@ -271,6 +279,7 @@ class ConversationsOperations(ConversationsBase):
             )
             raise ValueError("conversationId and activityId are required")
 
+        conversation_id = self._normalize_conversation_id(conversation_id)
         url = f"v3/conversations/{conversation_id}/activities/{activity_id}"
 
         logger.info(
@@ -303,6 +312,7 @@ class ConversationsOperations(ConversationsBase):
             )
             raise ValueError("conversationId and activityId are required")
 
+        conversation_id = self._normalize_conversation_id(conversation_id)
         url = f"v3/conversations/{conversation_id}/activities/{activity_id}"
 
         logger.info(
@@ -332,6 +342,7 @@ class ConversationsOperations(ConversationsBase):
             )
             raise ValueError("conversationId is required")
 
+        conversation_id = self._normalize_conversation_id(conversation_id)
         url = f"v3/conversations/{conversation_id}/attachments"
 
         # Convert the AttachmentData to a dictionary
@@ -371,6 +382,7 @@ class ConversationsOperations(ConversationsBase):
             )
             raise ValueError("conversationId is required")
 
+        conversation_id = self._normalize_conversation_id(conversation_id)
         url = f"v3/conversations/{conversation_id}/members"
 
         logger.info(f"Getting conversation members for conversation: {conversation_id}")
@@ -402,6 +414,7 @@ class ConversationsOperations(ConversationsBase):
             )
             raise ValueError("conversationId and memberId are required")
 
+        conversation_id = self._normalize_conversation_id(conversation_id)
         url = f"v3/conversations/{conversation_id}/members/{member_id}"
 
         logger.info(
@@ -434,6 +447,7 @@ class ConversationsOperations(ConversationsBase):
             )
             raise ValueError("conversationId and memberId are required")
 
+        conversation_id = self._normalize_conversation_id(conversation_id)
         url = f"v3/conversations/{conversation_id}/members/{member_id}"
 
         logger.info(
@@ -464,6 +478,7 @@ class ConversationsOperations(ConversationsBase):
             )
             raise ValueError("conversationId and activityId are required")
 
+        conversation_id = self._normalize_conversation_id(conversation_id)
         url = f"v3/conversations/{conversation_id}/activities/{activity_id}/members"
 
         logger.info(
@@ -507,6 +522,7 @@ class ConversationsOperations(ConversationsBase):
         if continuation_token is not None:
             params["continuationToken"] = continuation_token
 
+        conversation_id = self._normalize_conversation_id(conversation_id)
         url = f"v3/conversations/{conversation_id}/pagedmembers"
 
         logger.info(
@@ -540,6 +556,7 @@ class ConversationsOperations(ConversationsBase):
             )
             raise ValueError("conversationId is required")
 
+        conversation_id = self._normalize_conversation_id(conversation_id)
         url = f"v3/conversations/{conversation_id}/activities/history"
 
         logger.info(f"Sending conversation history to conversation: {conversation_id}")

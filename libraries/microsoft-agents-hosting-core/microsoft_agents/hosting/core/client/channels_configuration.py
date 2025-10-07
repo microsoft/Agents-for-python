@@ -1,3 +1,6 @@
+# Copyright (c) Microsoft Corporation. All rights reserved.
+# Licensed under the MIT License.
+
 from typing import Protocol
 
 from .channel_info_protocol import ChannelInfoProtocol

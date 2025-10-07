@@ -5,6 +5,7 @@ from datetime import datetime, timezone
 import pytest
 from microsoft_agents.hosting.core.storage.transcript_memory_store import (
     TranscriptMemoryStore,
+    PagedResult,
 )
 from microsoft_agents.activity import Activity, ConversationAccount
 
@@ -12,13 +13,9 @@ from microsoft_agents.activity import Activity, ConversationAccount
 @pytest.mark.asyncio
 async def test_get_transcript_empty():
     store = TranscriptMemoryStore()
-    transcriptAndContinuationToken = await store.get_transcript_activities(
-        "Channel 1", "Conversation 1"
-    )
-    transcript = transcriptAndContinuationToken[0]
-    continuationToken = transcriptAndContinuationToken[1]
-    assert transcript == []
-    assert continuationToken is None
+    pagedResult = await store.get_transcript_activities("Channel 1", "Conversation 1")
+    assert pagedResult.items == []
+    assert pagedResult.continuation_token is None
 
 
 @pytest.mark.asyncio
@@ -33,35 +30,23 @@ async def test_log_activity_add_one_activity():
     await store.log_activity(activity)
 
     # Ask for the activity we just added
-    transcriptAndContinuationToken = await store.get_transcript_activities(
-        "Channel 1", "Conversation 1"
-    )
-    transcript = transcriptAndContinuationToken[0]
-    continuationToken = transcriptAndContinuationToken[1]
+    pagedResult = await store.get_transcript_activities("Channel 1", "Conversation 1")
 
-    assert len(transcript) == 1
-    assert transcript[0].channel_id == activity.channel_id
-    assert transcript[0].conversation.id == activity.conversation.id
-    assert transcript[0].text == activity.text
-    assert continuationToken is None
+    assert len(pagedResult.items) == 1
+    assert pagedResult.items[0].channel_id == activity.channel_id
+    assert pagedResult.items[0].conversation.id == activity.conversation.id
+    assert pagedResult.items[0].text == activity.text
+    assert pagedResult.continuation_token is None
 
     # Ask for a channel that doesn't exist and make sure we get nothing
-    transcriptAndContinuationToken = await store.get_transcript_activities(
-        "Invalid", "Conversation 1"
-    )
-    transcript = transcriptAndContinuationToken[0]
-    continuationToken = transcriptAndContinuationToken[1]
-    assert transcript == []
-    assert continuationToken is None
+    pagedResult = await store.get_transcript_activities("Invalid", "Conversation 1")
+    assert pagedResult.items == []
+    assert pagedResult.continuation_token is None
 
     # Ask for a ConversationID that doesn't exist and make sure we get nothing
-    transcriptAndContinuationToken = await store.get_transcript_activities(
-        "Channel 1", "INVALID"
-    )
-    transcript = transcriptAndContinuationToken[0]
-    continuationToken = transcriptAndContinuationToken[1]
-    assert transcript == []
-    assert continuationToken is None
+    pagedResult = await store.get_transcript_activities("Channel 1", "INVALID")
+    assert pagedResult.items == []
+    assert pagedResult.continuation_token is None
 
 
 @pytest.mark.asyncio
@@ -81,26 +66,22 @@ async def test_log_activity_add_two_activity_same_conversation():
     await store.log_activity(activity2)
 
     # Ask for the activity we just added
-    transcriptAndContinuationToken = await store.get_transcript_activities(
-        "Channel 1", "Conversation 1"
-    )
-    transcript = transcriptAndContinuationToken[0]
-    continuationToken = transcriptAndContinuationToken[1]
+    pagedResult = await store.get_transcript_activities("Channel 1", "Conversation 1")
 
-    assert len(transcript) == 2
-    assert transcript[0].channel_id == activity1.channel_id
-    assert transcript[0].conversation.id == activity1.conversation.id
-    assert transcript[0].text == activity1.text
+    assert len(pagedResult.items) == 2
+    assert pagedResult.items[0].channel_id == activity1.channel_id
+    assert pagedResult.items[0].conversation.id == activity1.conversation.id
+    assert pagedResult.items[0].text == activity1.text
 
-    assert transcript[1].channel_id == activity2.channel_id
-    assert transcript[1].conversation.id == activity2.conversation.id
-    assert transcript[1].text == activity2.text
+    assert pagedResult.items[1].channel_id == activity2.channel_id
+    assert pagedResult.items[1].conversation.id == activity2.conversation.id
+    assert pagedResult.items[1].text == activity2.text
 
-    assert continuationToken is None
+    assert pagedResult.continuation_token is None
 
 
 @pytest.mark.asyncio
-async def test_log_activity_add_two_activity_same_conversation():
+async def test_log_activity_add_three_activity_same_conversation():
     store = TranscriptMemoryStore()
     activity1 = Activity.create_message_activity()
     activity1.text = "Activity 1"
@@ -130,28 +111,22 @@ async def test_log_activity_add_two_activity_same_conversation():
     date3 = datetime(2019, 1, 1, 12, 0, 0, tzinfo=timezone.utc)
 
     # ask for everything after 1999. Should get all 3 activities
-    transcriptAndContinuationToken = await store.get_transcript_activities(
+    pagedResult = await store.get_transcript_activities(
         "Channel 1", "Conversation 1", None, date1
     )
-    transcript = transcriptAndContinuationToken[0]
-    continuationToken = transcriptAndContinuationToken[1]
-    assert len(transcript) == 3
+    assert len(pagedResult.items) == 3
 
     # ask for everything after 2009. Should get 2 activities - the 2010 and 2020 activities
-    transcriptAndContinuationToken = await store.get_transcript_activities(
+    pagedResult = await store.get_transcript_activities(
         "Channel 1", "Conversation 1", None, date2
     )
-    transcript = transcriptAndContinuationToken[0]
-    continuationToken = transcriptAndContinuationToken[1]
-    assert len(transcript) == 2
+    assert len(pagedResult.items) == 2
 
     # ask for everything after 2019. Should only get the 2020 activity
-    transcriptAndContinuationToken = await store.get_transcript_activities(
+    pagedResult = await store.get_transcript_activities(
         "Channel 1", "Conversation 1", None, date3
     )
-    transcript = transcriptAndContinuationToken[0]
-    continuationToken = transcriptAndContinuationToken[1]
-    assert len(transcript) == 1
+    assert len(pagedResult.items) == 1
 
 
 @pytest.mark.asyncio
@@ -171,30 +146,22 @@ async def test_log_activity_add_two_activity_two_conversation():
     await store.log_activity(activity2)
 
     # Ask for the activity we just added
-    transcriptAndContinuationToken = await store.get_transcript_activities(
-        "Channel 1", "Conversation 1"
-    )
-    transcript = transcriptAndContinuationToken[0]
-    continuationToken = transcriptAndContinuationToken[1]
+    pagedResult = await store.get_transcript_activities("Channel 1", "Conversation 1")
 
-    assert len(transcript) == 1
-    assert transcript[0].channel_id == activity1.channel_id
-    assert transcript[0].conversation.id == activity1.conversation.id
-    assert transcript[0].text == activity1.text
-    assert continuationToken is None
+    assert len(pagedResult.items) == 1
+    assert pagedResult.items[0].channel_id == activity1.channel_id
+    assert pagedResult.items[0].conversation.id == activity1.conversation.id
+    assert pagedResult.items[0].text == activity1.text
+    assert pagedResult.continuation_token is None
 
     # Now grab Conversation 2
-    transcriptAndContinuationToken = await store.get_transcript_activities(
-        "Channel 1", "Conversation 2"
-    )
-    transcript = transcriptAndContinuationToken[0]
-    continuationToken = transcriptAndContinuationToken[1]
+    pagedResult = await store.get_transcript_activities("Channel 1", "Conversation 2")
 
-    assert len(transcript) == 1
-    assert transcript[0].channel_id == activity2.channel_id
-    assert transcript[0].conversation.id == activity2.conversation.id
-    assert transcript[0].text == activity2.text
-    assert continuationToken is None
+    assert len(pagedResult.items) == 1
+    assert pagedResult.items[0].channel_id == activity2.channel_id
+    assert pagedResult.items[0].conversation.id == activity2.conversation.id
+    assert pagedResult.items[0].text == activity2.text
+    assert pagedResult.continuation_token is None
 
 
 @pytest.mark.asyncio
@@ -209,21 +176,14 @@ async def test_delete_one_transcript():
     await store.log_activity(activity)
 
     # Ask for the activity we just added
-    transcriptAndContinuationToken = await store.get_transcript_activities(
-        "Channel 1", "Conversation 1"
-    )
-    transcript = transcriptAndContinuationToken[0]
-    continuationToken = transcriptAndContinuationToken[1]
+    pagedResult = await store.get_transcript_activities("Channel 1", "Conversation 1")
 
-    assert len(transcript) == 1
+    assert len(pagedResult.items) == 1
 
     # Now delete the transcript
     await store.delete_transcript("Channel 1", "Conversation 1")
-    transcriptAndContinuationToken = await store.get_transcript_activities(
-        "Channel 1", "Conversation 1"
-    )
-    transcript = transcriptAndContinuationToken[0]
-    assert len(transcript) == 0
+    pagedResult = await store.get_transcript_activities("Channel 1", "Conversation 1")
+    assert len(pagedResult.items) == 0
 
 
 @pytest.mark.asyncio
@@ -250,18 +210,12 @@ async def test_delete_one_transcript_of_two():
     await store.delete_transcript("Channel 1", "Conversation 1")
 
     # Make sure the one we deleted is gone
-    transcriptAndContinuationToken = await store.get_transcript_activities(
-        "Channel 1", "Conversation 1"
-    )
-    transcript = transcriptAndContinuationToken[0]
-    assert len(transcript) == 0
+    pagedResult = await store.get_transcript_activities("Channel 1", "Conversation 1")
+    assert len(pagedResult.items) == 0
 
     # Make sure the other one is still there
-    transcriptAndContinuationToken = await store.get_transcript_activities(
-        "Channel 2", "Conversation 1"
-    )
-    transcript = transcriptAndContinuationToken[0]
-    assert len(transcript) == 1
+    pagedResult = await store.get_transcript_activities("Channel 2", "Conversation 1")
+    assert len(pagedResult.items) == 1
 
 
 @pytest.mark.asyncio
@@ -279,34 +233,26 @@ async def test_list_transcripts():
     activity2.conversation = ConversationAccount(id="Conversation 1")
 
     # Make sure a list on an empty store returns an empty set
-    transcriptAndContinuationToken = await store.list_transcripts("Should Be Empty")
-    transcript = transcriptAndContinuationToken[0]
-    continuationToken = transcriptAndContinuationToken[1]
-    assert len(transcript) == 0
-    assert continuationToken is None
+    pagedResult = await store.list_transcripts("Should Be Empty")
+    assert len(pagedResult.items) == 0
+    assert pagedResult.continuation_token is None
 
     # Add one activity so we can go searching
     await store.log_activity(activity)
 
-    transcriptAndContinuationToken = await store.list_transcripts("Channel 1")
-    transcript = transcriptAndContinuationToken[0]
-    continuationToken = transcriptAndContinuationToken[1]
-    assert len(transcript) == 1
-    assert continuationToken is None
+    pagedResult = await store.list_transcripts("Channel 1")
+    assert len(pagedResult.items) == 1
+    assert pagedResult.continuation_token is None
 
     # Add second activity on a different channel, so now we have 2 transcripts
     await store.log_activity(activity2)
 
     # Check again for "Transcript 1" which is on channel 1
-    transcriptAndContinuationToken = await store.list_transcripts("Channel 1")
-    transcript = transcriptAndContinuationToken[0]
-    continuationToken = transcriptAndContinuationToken[1]
-    assert len(transcript) == 1
-    assert continuationToken is None
+    pagedResult = await store.list_transcripts("Channel 1")
+    assert len(pagedResult.items) == 1
+    assert pagedResult.continuation_token is None
 
     # Check for "Transcript 2" which is on channel 2
-    transcriptAndContinuationToken = await store.list_transcripts("Channel 2")
-    transcript = transcriptAndContinuationToken[0]
-    continuationToken = transcriptAndContinuationToken[1]
-    assert len(transcript) == 1
-    assert continuationToken is None
+    pagedResult = await store.list_transcripts("Channel 2")
+    assert len(pagedResult.items) == 1
+    assert pagedResult.continuation_token is None
