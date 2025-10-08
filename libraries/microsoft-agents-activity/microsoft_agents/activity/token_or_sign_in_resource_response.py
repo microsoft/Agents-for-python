@@ -1,3 +1,6 @@
+# Copyright (c) Microsoft Corporation. All rights reserved.
+# Licensed under the MIT License.
+
 from .agents_model import AgentsModel
 from .token_response import TokenResponse
 from .sign_in_resource import SignInResource

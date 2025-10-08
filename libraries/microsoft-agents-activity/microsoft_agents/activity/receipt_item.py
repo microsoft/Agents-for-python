@@ -1,3 +1,6 @@
+# Copyright (c) Microsoft Corporation. All rights reserved.
+# Licensed under the MIT License.
+
 from .card_image import CardImage
 from .card_action import CardAction
 from .agents_model import AgentsModel
