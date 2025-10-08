@@ -1,3 +1,6 @@
+# Copyright (c) Microsoft Corporation. All rights reserved.
+# Licensed under the MIT License.
+
 from .thumbnail_url import ThumbnailUrl
 from .media_url import MediaUrl
 from .card_action import CardAction

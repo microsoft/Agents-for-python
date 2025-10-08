@@ -1,3 +1,6 @@
+# Copyright (c) Microsoft Corporation. All rights reserved.
+# Licensed under the MIT License.
+
 from .fact import Fact
 from .receipt_item import ReceiptItem
 from .card_action import CardAction

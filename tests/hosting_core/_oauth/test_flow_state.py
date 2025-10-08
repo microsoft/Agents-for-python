@@ -1,5 +1,5 @@
 import pytest
-from datetime import datetime
+from datetime import datetime, timezone
 from microsoft_agents.hosting.core._oauth._flow_state import _FlowState, _FlowStateTag
 
 
@@ -11,7 +11,7 @@ class TestFlowState:
                 _FlowState(
                     tag=_FlowStateTag.CONTINUE,
                     attempts_remaining=0,
-                    expiration=datetime.now().timestamp(),
+                    expiration=datetime.now(timezone.utc).timestamp(),
                 ),
                 True,
             ),
@@ -19,7 +19,7 @@ class TestFlowState:
                 _FlowState(
                     tag=_FlowStateTag.BEGIN,
                     attempts_remaining=1,
-                    expiration=datetime.now().timestamp(),
+                    expiration=datetime.now(timezone.utc).timestamp(),
                 ),
                 True,
             ),
@@ -27,7 +27,7 @@ class TestFlowState:
                 _FlowState(
                     tag=_FlowStateTag.COMPLETE,
                     attempts_remaining=0,
-                    expiration=datetime.now().timestamp() - 100,
+                    expiration=datetime.now(timezone.utc).timestamp() - 100,
                 ),
                 True,
             ),
@@ -35,7 +35,7 @@ class TestFlowState:
                 _FlowState(
                     tag=_FlowStateTag.CONTINUE,
                     attempts_remaining=1,
-                    expiration=datetime.now().timestamp() + 1000,
+                    expiration=datetime.now(timezone.utc).timestamp() + 1000,
                 ),
                 False,
             ),
@@ -43,7 +43,7 @@ class TestFlowState:
                 _FlowState(
                     tag=_FlowStateTag.FAILURE,
                     attempts_remaining=-1,
-                    expiration=datetime.now().timestamp(),
+                    expiration=datetime.now(timezone.utc).timestamp(),
                 ),
                 False,
             ),
@@ -64,7 +64,7 @@ class TestFlowState:
                 _FlowState(
                     tag=_FlowStateTag.CONTINUE,
                     attempts_remaining=0,
-                    expiration=datetime.now().timestamp(),
+                    expiration=datetime.now(timezone.utc).timestamp(),
                 ),
                 True,
             ),
@@ -72,7 +72,7 @@ class TestFlowState:
                 _FlowState(
                     tag=_FlowStateTag.BEGIN,
                     attempts_remaining=1,
-                    expiration=datetime.now().timestamp(),
+                    expiration=datetime.now(timezone.utc).timestamp(),
                 ),
                 True,
             ),
@@ -80,7 +80,7 @@ class TestFlowState:
                 _FlowState(
                     tag=_FlowStateTag.COMPLETE,
                     attempts_remaining=0,
-                    expiration=datetime.now().timestamp() - 100,
+                    expiration=datetime.now(timezone.utc).timestamp() - 100,
                 ),
                 True,
             ),
@@ -88,7 +88,7 @@ class TestFlowState:
                 _FlowState(
                     tag=_FlowStateTag.CONTINUE,
                     attempts_remaining=1,
-                    expiration=datetime.now().timestamp() + 1000,
+                    expiration=datetime.now(timezone.utc).timestamp() + 1000,
                 ),
                 False,
             ),
@@ -96,7 +96,7 @@ class TestFlowState:
                 _FlowState(
                     tag=_FlowStateTag.FAILURE,
                     attempts_remaining=-1,
-                    expiration=datetime.now().timestamp() + 1000,
+                    expiration=datetime.now(timezone.utc).timestamp() + 1000,
                 ),
                 False,
             ),
@@ -112,7 +112,7 @@ class TestFlowState:
                 _FlowState(
                     tag=_FlowStateTag.CONTINUE,
                     attempts_remaining=0,
-                    expiration=datetime.now().timestamp(),
+                    expiration=datetime.now(timezone.utc).timestamp(),
                 ),
                 True,
             ),
@@ -120,7 +120,7 @@ class TestFlowState:
                 _FlowState(
                     tag=_FlowStateTag.BEGIN,
                     attempts_remaining=1,
-                    expiration=datetime.now().timestamp(),
+                    expiration=datetime.now(timezone.utc).timestamp(),
                 ),
                 False,
             ),
@@ -128,7 +128,7 @@ class TestFlowState:
                 _FlowState(
                     tag=_FlowStateTag.COMPLETE,
                     attempts_remaining=0,
-                    expiration=datetime.now().timestamp() - 100,
+                    expiration=datetime.now(timezone.utc).timestamp() - 100,
                 ),
                 True,
             ),
@@ -136,7 +136,7 @@ class TestFlowState:
                 _FlowState(
                     tag=_FlowStateTag.CONTINUE,
                     attempts_remaining=1,
-                    expiration=datetime.now().timestamp() - 100,
+                    expiration=datetime.now(timezone.utc).timestamp() - 100,
                 ),
                 False,
             ),
@@ -144,7 +144,7 @@ class TestFlowState:
                 _FlowState(
                     tag=_FlowStateTag.FAILURE,
                     attempts_remaining=-1,
-                    expiration=datetime.now().timestamp(),
+                    expiration=datetime.now(timezone.utc).timestamp(),
                 ),
                 True,
             ),
@@ -160,7 +160,7 @@ class TestFlowState:
                 _FlowState(
                     tag=_FlowStateTag.CONTINUE,
                     attempts_remaining=0,
-                    expiration=datetime.now().timestamp(),
+                    expiration=datetime.now(timezone.utc).timestamp(),
                 ),
                 False,
             ),
@@ -168,7 +168,7 @@ class TestFlowState:
                 _FlowState(
                     tag=_FlowStateTag.BEGIN,
                     attempts_remaining=1,
-                    expiration=datetime.now().timestamp(),
+                    expiration=datetime.now(timezone.utc).timestamp(),
                 ),
                 False,
             ),
@@ -176,7 +176,7 @@ class TestFlowState:
                 _FlowState(
                     tag=_FlowStateTag.COMPLETE,
                     attempts_remaining=0,
-                    expiration=datetime.now().timestamp() - 100,
+                    expiration=datetime.now(timezone.utc).timestamp() - 100,
                 ),
                 False,
             ),
@@ -184,7 +184,7 @@ class TestFlowState:
                 _FlowState(
                     tag=_FlowStateTag.FAILURE,
                     attempts_remaining=1,
-                    expiration=datetime.now().timestamp() - 100,
+                    expiration=datetime.now(timezone.utc).timestamp() - 100,
                 ),
                 False,
             ),
@@ -192,7 +192,7 @@ class TestFlowState:
                 _FlowState(
                     tag=_FlowStateTag.CONTINUE,
                     attempts_remaining=2,
-                    expiration=datetime.now().timestamp() + 1000,
+                    expiration=datetime.now(timezone.utc).timestamp() + 1000,
                 ),
                 True,
             ),
@@ -200,7 +200,7 @@ class TestFlowState:
                 _FlowState(
                     tag=_FlowStateTag.BEGIN,
                     attempts_remaining=0,
-                    expiration=datetime.now().timestamp() + 1000,
+                    expiration=datetime.now(timezone.utc).timestamp() + 1000,
                 ),
                 False,
             ),
@@ -208,7 +208,7 @@ class TestFlowState:
                 _FlowState(
                     tag=_FlowStateTag.COMPLETE,
                     attempts_remaining=-1,
-                    expiration=datetime.now().timestamp() + 1000,
+                    expiration=datetime.now(timezone.utc).timestamp() + 1000,
                 ),
                 False,
             ),
@@ -216,7 +216,7 @@ class TestFlowState:
                 _FlowState(
                     tag=_FlowStateTag.FAILURE,
                     attempts_remaining=1,
-                    expiration=datetime.now().timestamp() + 1000,
+                    expiration=datetime.now(timezone.utc).timestamp() + 1000,
                 ),
                 False,
             ),
@@ -224,7 +224,7 @@ class TestFlowState:
                 _FlowState(
                     tag=_FlowStateTag.CONTINUE,
                     attempts_remaining=1,
-                    expiration=datetime.now().timestamp() + 1000,
+                    expiration=datetime.now(timezone.utc).timestamp() + 1000,
                 ),
                 True,
             ),
