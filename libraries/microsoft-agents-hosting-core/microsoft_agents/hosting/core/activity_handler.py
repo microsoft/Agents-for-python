@@ -38,7 +38,7 @@ class ActivityHandler(Agent):
         in order to process an inbound :class:`microsoft_agents.activity.Activity`.
 
         :param turn_context: The context object for this turn
-        :type turn_context: :class:`microsoft_agents.builder.TurnContext`
+        :type turn_context: :class:`microsoft_agents.builder.TurnContextProtocol`
 
         :returns: A task that represents the work queued to execute
 
@@ -143,7 +143,7 @@ class ActivityHandler(Agent):
         :meth:`on_turn()` is used.
 
         :param turn_context: The context object for this turn
-        :type turn_context: :class:`microsoft_agents.builder.TurnContext`
+        :type turn_context: :class:`microsoft_agents.activity.TurnContextProtocol`
         :returns: A task that represents the work queued to execute
 
         .. remarks::
@@ -216,7 +216,7 @@ class ActivityHandler(Agent):
         :meth:`on_turn()` is used.
 
         :param turn_context: The context object for this turn
-        :type turn_context: :class:`microsoft_agents.builder.TurnContext`
+        :type turn_context: :class:`microsoft_agents.activity.TurnContextProtocol`
 
         :returns: A task that represents the work queued to execute
 
@@ -382,7 +382,7 @@ class ActivityHandler(Agent):
         ActivityTypes.typing activities, such as the conversational logic.
 
         :param turn_context: The context object for this turn
-        :type turn_context: :class:`microsoft_agents.builder.TurnContext`
+        :type turn_context: :class:`microsoft_agents.activity.TurnContextProtocol`
         :returns: A task that represents the work queued to execute
         """
         return
@@ -395,7 +395,7 @@ class ActivityHandler(Agent):
         ActivityTypes.InstallationUpdate activities.
 
         :param turn_context: The context object for this turn
-        :type turn_context: :class:`microsoft_agents.builder.TurnContext`
+        :type turn_context: :class:`microsoft_agents.activity.TurnContextProtocol`
         :returns: A task that represents the work queued to execute
         """
         if turn_context.activity.action in ("add", "add-upgrade"):
@@ -412,7 +412,7 @@ class ActivityHandler(Agent):
         ActivityTypes.InstallationUpdate activities with 'action' set to 'add'.
 
         :param turn_context: The context object for this turn
-        :type turn_context: :class:`microsoft_agents.builder.TurnContext`
+        :type turn_context: :class:`microsoft_agents.activity.TurnContextProtocol`
         :returns: A task that represents the work queued to execute
         """
         return
@@ -425,7 +425,7 @@ class ActivityHandler(Agent):
         ActivityTypes.InstallationUpdate activities with 'action' set to 'remove'.
 
         :param turn_context: The context object for this turn
-        :type turn_context: :class:`microsoft_agents.builder.TurnContext`
+        :type turn_context: :class:`microsoft_agents.activity.TurnContextProtocol`
         :returns: A task that represents the work queued to execute
         """
         return
@@ -439,7 +439,7 @@ class ActivityHandler(Agent):
         If overridden, this method could potentially respond to any of the other activity types.
 
         :param turn_context: The context object for this turn
-        :type turn_context: :class:`microsoft_agents.builder.TurnContext`
+        :type turn_context: :class:`microsoft_agents.activity.TurnContextProtocol`
 
         :returns: A task that represents the work queued to execute
 
@@ -456,7 +456,7 @@ class ActivityHandler(Agent):
         Registers an activity event handler for the _invoke_ event, emitted for every incoming event activity.
 
         :param turn_context: The context object for this turn
-        :type turn_context: :class:`microsoft_agents.builder.TurnContext`
+        :type turn_context: :class:`microsoft_agents.activity.TurnContextProtocol`
 
         :returns: A task that represents the work queued to execute
         """
@@ -492,7 +492,7 @@ class ActivityHandler(Agent):
         By default, this method does nothing.
 
         :param turn_context: The context object for this turn
-        :type turn_context: :class:`microsoft_agents.builder.TurnContext`
+        :type turn_context: :class:`microsoft_agents.activity.TurnContextProtocol`
 
         :returns: A task that represents the work queued to execute
         """
@@ -508,7 +508,7 @@ class ActivityHandler(Agent):
         calls this method.
 
         :param turn_context: A context object for this turn.
-        :type turn_context: :class:`microsoft_agents.builder.TurnContext`
+        :type turn_context: :class:`microsoft_agents.activity.TurnContextProtocol`
         :param invoke_value: A string-typed object from the incoming activity's value.
         :type invoke_value: :class:`microsoft_agents.activity.adaptive_card_invoke_value.AdaptiveCardInvokeValue`
         :return: The HealthCheckResponse object
