@@ -187,7 +187,7 @@ class Activity(AgentsModel):
     @classmethod
     def _channel_id_str_to_obj(cls, value: Union[str, ChannelId]) -> ChannelId:
         if isinstance(value, str):
-            return ChannelId.from_string(value)
+            return ChannelId.model_validate(value)
         return value
 
     @model_validator(mode="before")

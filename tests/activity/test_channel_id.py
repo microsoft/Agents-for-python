@@ -10,7 +10,7 @@ DEFAULTS = TEST_DEFAULTS()
 class TestChannelId:
 
     @pytest.mark.parametrize(
-        "input, expected",
+        "data, expected",
         [
             [
                 "email:support",
@@ -56,7 +56,7 @@ class TestChannelId:
             [
                 ChannelId(channel="email", sub_channel="support"),
                 ChannelId(channel="word", sub_channel="support"),
-                True
+                False
             ],
             [
                 ChannelId(channel="email", sub_channel="support"),
@@ -81,8 +81,9 @@ class TestChannelId:
         ]
     )
     def test_eq(self, channel_a, channel_b, expected):
-        assert (a == b) == expected
-        assert (a == a) == True
+        assert (channel_a == channel_b) == expected
+        assert (channel_a == channel_a) == True
+        assert (channel_b == channel_b) == True
 
     def test_hash(self):
         a = ChannelId(channel="email", sub_channel="SUPPORT")
@@ -93,10 +94,18 @@ class TestChannelId:
         assert str(a) == "email:support"
         b = ChannelId(channel="email", sub_channel=None)
         assert str(b) == "email"
-        c = ChannelId({"channel": "agents", "sub_channel": "word"})
+        c = ChannelId(**{"channel": "agents", "sub_channel": "word"})
         assert str(c) == "agents:word"
-        d = ChannelId("agents:COPILOT")
+        d = ChannelId.model_validate("agents:COPILOT")
         assert str(d) == "agents:COPILOT"
+
+    def test_round_trip(self):
+        a = ChannelId(channel="email", sub_channel="support")
+        b = ChannelId.model_validate(str(a))
+        assert a == b
+        c = ChannelId.model_validate(b.model_dump())
+        assert a == c
+        assert b == c
 
     # def test_validation_error(self):
     #     pass

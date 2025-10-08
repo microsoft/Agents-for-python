@@ -29,11 +29,6 @@ class ChannelId(AgentsModel):
             return data
         else:
             raise ValueError("Invalid data type for ChannelId")
-        
-    
-    @model_serializer(model="plain")
-    def serialize_modeL(self) -> str:
-        return self.channel
     
     def is_parent_channel(self, channel_id: str) -> bool:
         return self.channel.lower() == channel_id.lower()
