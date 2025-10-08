@@ -115,15 +115,6 @@ class UserToken(UserTokenBase):
         channel_id: Optional[str] = None,
         code: Optional[str] = None,
     ) -> TokenResponse:
-        """
-        Gets a token for a user and connection.
-
-        :param user_id: ID of the user.
-        :param connection_name: Name of the connection to use.
-        :param channel_id: ID of the channel.
-        :param code: Optional authorization code.
-        :return: A token response.
-        """
         params = {"userId": user_id, "connectionName": connection_name}
 
         if channel_id:
@@ -152,18 +143,6 @@ class UserToken(UserTokenBase):
         final_redirect: str = "",
         fwd_url: str = "",
     ) -> TokenOrSignInResourceResponse:
-        """
-        Gets a token or a sign-in resource for a user and connection.
-
-        :param user_id: ID of the user.
-        :param connection_name: Name of the connection to use.
-        :param channel_id: ID of the channel.
-        :param state: State parameter for OAuth flow.
-        :param code: Optional authorization code.
-        :param final_redirect: Final redirect URL.
-        :param fwd_url: Forward URL.
-        :return: A token or sign-in resource response.
-        """
 
         params = {
             "userId": user_id,
@@ -179,7 +158,7 @@ class UserToken(UserTokenBase):
         async with self.client.get(
             "/api/usertoken/GetTokenOrSignInResource", params=params
         ) as response:
-            if response.status >= 400:
+            if response.status != 200:
                 logger.error(
                     "Error getting token or sign-in resource: %s", response.status
                 )
@@ -195,15 +174,6 @@ class UserToken(UserTokenBase):
         channel_id: Optional[str] = None,
         body: Optional[dict] = None,
     ) -> dict[str, TokenResponse]:
-        """
-        Gets Azure Active Directory tokens for a user and connection.
-
-        :param user_id: ID of the user.
-        :param connection_name: Name of the connection to use.
-        :param channel_id: ID of the channel.
-        :param body: An optional dictionary containing resource URLs.
-        :return: A dictionary of tokens.
-        """
         params = {"userId": user_id, "connectionName": connection_name}
 
         if channel_id:
@@ -226,13 +196,6 @@ class UserToken(UserTokenBase):
         connection_name: Optional[str] = None,
         channel_id: Optional[str] = None,
     ) -> None:
-        """
-        Signs the user out from the specified connection.
-
-        :param user_id: ID of the user.
-        :param connection_name: Name of the connection to use.
-        :param channel_id: ID of the channel.
-        """
         params = {"userId": user_id}
 
         if connection_name:
@@ -254,14 +217,6 @@ class UserToken(UserTokenBase):
         channel_id: Optional[str] = None,
         include: Optional[str] = None,
     ) -> list[TokenStatus]:
-        """
-        Gets token status for the user.
-
-        :param user_id: ID of the user.
-        :param channel_id: ID of the channel.
-        :param include: Optional filter.
-        :return: A list of token status objects.
-        """
         params = {"userId": user_id}
 
         if channel_id:
@@ -287,15 +242,6 @@ class UserToken(UserTokenBase):
         channel_id: str,
         body: Optional[dict] = None,
     ) -> TokenResponse:
-        """
-        Exchanges a token.
-
-        :param user_id: ID of the user.
-        :param connection_name: Name of the connection to use.
-        :param channel_id: ID of the channel.
-        :param body: An optional token exchange request body.
-        :return: A token response.
-        """
         params = {
             "userId": user_id,
             "connectionName": connection_name,

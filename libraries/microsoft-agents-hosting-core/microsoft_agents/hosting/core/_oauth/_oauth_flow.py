@@ -6,7 +6,7 @@ from __future__ import annotations
 import logging
 
 from pydantic import BaseModel
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Optional
 
 from microsoft_agents.activity import (
@@ -136,7 +136,7 @@ class _OAuthFlow:
         if token_response:
             logger.info("User token obtained successfully: %s", token_response)
             self._flow_state.expiration = (
-                datetime.now().timestamp() + self._default_flow_duration
+                datetime.now(timezone.utc).timestamp() + self._default_flow_duration
             )
             self._flow_state.tag = _FlowStateTag.COMPLETE
 
@@ -203,7 +203,7 @@ class _OAuthFlow:
             logger.info("Skipping flow, user token obtained.")
             self._flow_state.tag = _FlowStateTag.COMPLETE
             self._flow_state.expiration = (
-                datetime.now().timestamp() + self._default_flow_duration
+                datetime.now(timezone.utc).timestamp() + self._default_flow_duration
             )
             return _FlowResponse(
                 flow_state=self._flow_state, token_response=res.token_response
@@ -211,7 +211,7 @@ class _OAuthFlow:
 
         self._flow_state.tag = _FlowStateTag.BEGIN
         self._flow_state.expiration = (
-            datetime.now().timestamp() + self._default_flow_duration
+            datetime.now(timezone.utc).timestamp() + self._default_flow_duration
         )
         self._flow_state.attempts_remaining = self._max_attempts
 
@@ -303,7 +303,7 @@ class _OAuthFlow:
         else:
             self._flow_state.tag = _FlowStateTag.COMPLETE
             self._flow_state.expiration = (
-                datetime.now().timestamp() + self._default_flow_duration
+                datetime.now(timezone.utc).timestamp() + self._default_flow_duration
             )
             logger.debug(
                 "OAuth flow completed successfully, got TokenResponse: %s",
