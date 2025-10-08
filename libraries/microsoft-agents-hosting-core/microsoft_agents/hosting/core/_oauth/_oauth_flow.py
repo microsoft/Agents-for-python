@@ -6,7 +6,7 @@ from __future__ import annotations
 import logging
 
 from pydantic import BaseModel
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Optional
 
 from microsoft_agents.activity import (
@@ -30,7 +30,6 @@ class _FlowResponse(BaseModel):
     flow_error_tag: _FlowErrorTag = _FlowErrorTag.NONE
     token_response: Optional[TokenResponse] = None
     sign_in_resource: Optional[SignInResource] = None
-    continuation_activity: Optional[Activity] = None
 
 
 class _OAuthFlow:
@@ -137,7 +136,7 @@ class _OAuthFlow:
         if token_response:
             logger.info("User token obtained successfully: %s", token_response)
             self._flow_state.expiration = (
-                datetime.now().timestamp() + self._default_flow_duration
+                datetime.now(timezone.utc).timestamp() + self._default_flow_duration
             )
             self._flow_state.tag = _FlowStateTag.COMPLETE
 
@@ -183,20 +182,8 @@ class _OAuthFlow:
         Notes:
             The flow state is reset if a token is not obtained from cache.
         """
-        token_response = await self.get_user_token()
-        if token_response:
-            return _FlowResponse(
-                flow_state=self._flow_state, token_response=token_response
-            )
 
         logger.debug("Starting new OAuth flow")
-        self._flow_state.tag = _FlowStateTag.BEGIN
-        self._flow_state.expiration = (
-            datetime.now().timestamp() + self._default_flow_duration
-        )
-
-        self._flow_state.attempts_remaining = self._max_attempts
-        self._flow_state.continuation_activity = activity.model_copy()
 
         token_exchange_state = TokenExchangeState(
             connection_name=self._abs_oauth_connection_name,
@@ -205,16 +192,33 @@ class _OAuthFlow:
             ms_app_id=self._ms_app_id,
         )
 
-        sign_in_resource = (
-            await self._user_token_client.agent_sign_in.get_sign_in_resource(
-                state=token_exchange_state.get_encoded_state()
-            )
+        res = await self._user_token_client.user_token._get_token_or_sign_in_resource(
+            activity.from_property.id,
+            self._abs_oauth_connection_name,
+            activity.channel_id,
+            token_exchange_state.get_encoded_state(),
         )
 
-        logger.debug("Sign-in resource obtained successfully: %s", sign_in_resource)
+        if res.token_response:
+            logger.info("Skipping flow, user token obtained.")
+            self._flow_state.tag = _FlowStateTag.COMPLETE
+            self._flow_state.expiration = (
+                datetime.now(timezone.utc).timestamp() + self._default_flow_duration
+            )
+            return _FlowResponse(
+                flow_state=self._flow_state, token_response=res.token_response
+            )
+
+        self._flow_state.tag = _FlowStateTag.BEGIN
+        self._flow_state.expiration = (
+            datetime.now(timezone.utc).timestamp() + self._default_flow_duration
+        )
+        self._flow_state.attempts_remaining = self._max_attempts
+
+        logger.debug("Sign-in resource obtained successfully: %s", res.sign_in_resource)
 
         return _FlowResponse(
-            flow_state=self._flow_state, sign_in_resource=sign_in_resource
+            flow_state=self._flow_state, sign_in_resource=res.sign_in_resource
         )
 
     async def _continue_from_message(
@@ -299,7 +303,7 @@ class _OAuthFlow:
         else:
             self._flow_state.tag = _FlowStateTag.COMPLETE
             self._flow_state.expiration = (
-                datetime.now().timestamp() + self._default_flow_duration
+                datetime.now(timezone.utc).timestamp() + self._default_flow_duration
             )
             logger.debug(
                 "OAuth flow completed successfully, got TokenResponse: %s",
@@ -310,7 +314,6 @@ class _OAuthFlow:
             flow_state=self._flow_state.model_copy(),
             flow_error_tag=flow_error_tag,
             token_response=token_response,
-            continuation_activity=self._flow_state.continuation_activity,
         )
 
     async def begin_or_continue_flow(self, activity: Activity) -> _FlowResponse:
