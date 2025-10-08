@@ -190,6 +190,7 @@ class Activity(AgentsModel):
     semantic_action: SemanticAction = None
     caller_id: NonEmptyString = None
 
+    # required to define the setter below
     @computed_field(return_type=Optional[ChannelId])
     @property
     def channel_id(self):
@@ -200,7 +201,7 @@ class Activity(AgentsModel):
     # previously, channel_id was directly assigned with strings
     @channel_id.setter
     def channel_id(self, value: Any):
-        """Sets the channel_id after validating and converting to ChannelId model."""
+        """Sets the channel_id after validating it as a ChannelId model."""
         self._channel_id = ChannelId.model_validate(value)
 
     @model_validator(mode="wrap")
@@ -208,7 +209,14 @@ class Activity(AgentsModel):
     def _validate_sub_channel_data(
         self, data: Any, handler: ModelWrapValidatorHandler[Activity]
     ) -> Activity:
+        """Validate the Activity, ensuring consistency between channel_id.sub_channel and productInfo entity.
+
+        :param data: The input data to validate.
+        :param handler: The validation handler provided by Pydantic.
+        :return: The validated Activity instance.
+        """
         try:
+            # run Pydantic's standard validation first
             activity = handler(data)
 
             # needed to assign to a computed field
@@ -230,7 +238,12 @@ class Activity(AgentsModel):
     def _serialize_sub_channel_data(
         self, handler: SerializerFunctionWrapHandler
     ) -> dict[str, object]:
+        """Serialize the Activity, ensuring consistency between channel_id.sub_channel and productInfo entity.
 
+        :param handler: The serialization handler provided by Pydantic.
+        :return: A dictionary representing the serialized Activity.
+        """
+        # run Pydantic's standard serialization first
         serialized = handler(self)
 
         product_info = None

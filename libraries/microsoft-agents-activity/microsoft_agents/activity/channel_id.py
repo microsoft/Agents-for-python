@@ -1,3 +1,6 @@
+# Copyright (c) Microsoft Corporation. All rights reserved.
+# Licensed under the MIT License.
+
 from __future__ import annotations
 
 from typing import Optional, Any
@@ -24,6 +27,7 @@ class ChannelId(AgentsModel):
     @classmethod
     def _split_channel_ids(cls, data: Any) -> Any:
         """Validator to split a string into channel and sub_channel if needed."""
+
         if isinstance(data, str) and data:
             split = data.strip().split(":", 1)
             return {
@@ -31,6 +35,7 @@ class ChannelId(AgentsModel):
                 "sub_channel": split[1].strip() if len(split) == 2 else None,
             }
         elif isinstance(data, dict) and data:
+            # let Pydantic handle the dict case
             return data
         else:
             raise ValueError("Invalid data type for ChannelId")
