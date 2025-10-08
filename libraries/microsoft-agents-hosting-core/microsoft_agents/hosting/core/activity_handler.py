@@ -38,7 +38,7 @@ class ActivityHandler(Agent):
         in order to process an inbound :class:`microsoft_agents.activity.Activity`.
 
         :param turn_context: The context object for this turn
-        :type turn_context: :class:`microsoft_agents.builder.TurnContextProtocol`
+        :type turn_context: :class:`microsoft_agents.activity.TurnContextProtocol`
 
         :returns: A task that represents the work queued to execute
 
