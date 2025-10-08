@@ -7,39 +7,25 @@ from tests._common.data import TEST_DEFAULTS
 
 DEFAULTS = TEST_DEFAULTS()
 
+
 class TestChannelId:
 
     @pytest.mark.parametrize(
         "data, expected",
         [
-            [
-                "email:support",
-                ChannelId(channel="email", sub_channel="support")
-            ],
-            [
-                "email",
-                ChannelId(channel="email", sub_channel=None)
-            ],
-            [
-                " email:support ",
-                ChannelId(channel="email", sub_channel="support")
-            ],
-            [
-                " email ",
-                ChannelId(channel="email", sub_channel=None)
-            ],
+            ["email:support", ChannelId(channel="email", sub_channel="support")],
+            ["email", ChannelId(channel="email", sub_channel=None)],
+            [" email:support ", ChannelId(channel="email", sub_channel="support")],
+            [" email ", ChannelId(channel="email", sub_channel=None)],
             [
                 "email:support:extra",
-                ChannelId(channel="email", sub_channel="support:extra")
+                ChannelId(channel="email", sub_channel="support:extra"),
             ],
             [
-                {
-                    "channel": "email",
-                    "sub_channel": "support"
-                },
-                ChannelId(channel="email", sub_channel="support")
-            ]
-        ]
+                {"channel": "email", "sub_channel": "support"},
+                ChannelId(channel="email", sub_channel="support"),
+            ],
+        ],
     )
     def test_validation_dict_form(self, data, expected):
         channel_id = ChannelId.model_validate(data)
@@ -51,34 +37,34 @@ class TestChannelId:
             [
                 ChannelId(channel="email", sub_channel="support"),
                 ChannelId(channel="email", sub_channel="support"),
-                True
+                True,
             ],
             [
                 ChannelId(channel="email", sub_channel="support"),
                 ChannelId(channel="word", sub_channel="support"),
-                False
+                False,
             ],
             [
                 ChannelId(channel="email", sub_channel="support"),
                 ChannelId(channel="email", sub_channel="info"),
-                False
+                False,
             ],
             [
                 ChannelId(channel="email", sub_channel=None),
                 ChannelId(channel="email", sub_channel=None),
-                True
+                True,
             ],
             [
                 ChannelId(channel="email", sub_channel=None),
                 ChannelId(channel="email", sub_channel="support"),
-                False
+                False,
             ],
             [
                 ChannelId(channel="email", sub_channel=None),
                 ChannelId(channel="sms", sub_channel=None),
-                False
-            ]
-        ]
+                False,
+            ],
+        ],
     )
     def test_eq(self, channel_a, channel_b, expected):
         assert (channel_a == channel_b) == expected

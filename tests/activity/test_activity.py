@@ -383,14 +383,14 @@ class TestActivityConversationOps:
                 Entity(
                     type="ProductInfo",
                     id="product_123",
-                )
+                ),
             ],
             [
                 [
                     Entity(type="other"),
                     Entity(type="mention", text="Another mention"),
                 ],
-                None
+                None,
             ],
             [
                 [
@@ -404,13 +404,10 @@ class TestActivityConversationOps:
                     ),
                     Entity(type="mention", text="Another mention"),
                 ],
-                Entity(type="ProductInfo", id="product_123")
+                Entity(type="ProductInfo", id="product_123"),
             ],
-            [
-                [],
-                None
-            ]
-        ]
+            [[], None],
+        ],
     )
     def test_get_product_info_entity_single(self, entities, expected):
         activity = Activity(type="message", entities=entities)

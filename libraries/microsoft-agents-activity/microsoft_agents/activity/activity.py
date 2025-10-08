@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-importl logging
+import logging
 from copy import copy
 from datetime import datetime, timezone
 from typing import Optional, Union, Any
@@ -13,8 +13,9 @@ from pydantic import (
     SerializerFunctionWrapHandler,
     ModelWrapValidatorHandler,
     computed_field,
-    ValidationError
+    ValidationError,
 )
+from yaml import serialize
 
 from .activity_types import ActivityTypes
 from .channel_account import ChannelAccount
@@ -29,6 +30,7 @@ from .entity import (
     Mention,
     AIEntity,
     ClientCitation,
+    ProductInfo,
     SensitivityUsageInfo,
 )
 from .conversation_reference import ConversationReference
@@ -41,6 +43,7 @@ from ._model_utils import pick_model, SkipNone
 from ._type_aliases import NonEmptyString
 
 logger = logging.getLogger(__name__)
+
 
 # TODO: A2A Agent 2 is responding with None as id, had to mark it as optional (investigate)
 class Activity(AgentsModel):
@@ -187,61 +190,76 @@ class Activity(AgentsModel):
     semantic_action: SemanticAction = None
     caller_id: NonEmptyString = None
 
+    @computed_field(return_type=Optional[ChannelId])
     @property
     def channel_id(self):
         """Gets the _channel_id field"""
         return self._channel_id
-    
+
     # necessary for backward compatibility
     # previously, channel_id was directly assigned with strings
     @channel_id.setter
     def channel_id(self, value: Any):
         """Sets the channel_id after validating and converting to ChannelId model."""
         self._channel_id = ChannelId.model_validate(value)
-    
+
     @model_validator(mode="wrap")
     @classmethod
-    def _validate(self, data: Any, handler: ModelWrapValidatorHandler[Activity]) -> Activity:
+    def _validate_sub_channel_data(
+        self, data: Any, handler: ModelWrapValidatorHandler[Activity]
+    ) -> Activity:
         try:
             activity = handler(data)
+
+            # needed to assign to a computed field
             data_channel_id = data.get("channel_id", None)
             if data_channel_id:
                 activity.channel_id = data_channel_id
+
+            # sync sub_channel with productInfo entity
+            product_info = activity.get_product_info_entity()
+            if product_info and activity.channel_id:
+                activity.channel_id.sub_channel = product_info.id
+
             return activity
         except ValidationError:
             logger.error("Validation error for Activity")
             raise
-        
-    @model_validator(mode="after")
-    def _validate_channel(self) -> Activity:
-        product_info = self.get_product_info_entity()
-        if product_info:
-            if self._channel_id:
-                self._channel_id.sub_channel = product_info.id
-        return self
-    
-    @model_serializer(mode="wrap")
-    def serialize_model(self, handler: SerializerFunctionWrapHandler) -> dict[str, object]:
 
-        product_info = self.get_product_info_entity()
+    @model_serializer(mode="wrap")
+    def _serialize_sub_channel_data(
+        self, handler: SerializerFunctionWrapHandler
+    ) -> dict[str, object]:
 
         serialized = handler(self)
 
         product_info = None
-        for i, entity in enumerate(serialized.get("entities", [])):
+        for i, entity in enumerate(serialized.get("entities") or []):
             if entity.get("type", "") == EntityTypes.PRODUCT_INFO:
                 product_info = entity
                 break
 
         if self.channel_id and self.channel_id.sub_channel:
+            # maintain consistency between productInfo entity and sub channel
             if product_info:
-                product_info.id = self.channel_id.sub_channel
+                product_info["id"] = self.channel_id.sub_channel
             else:
-                if not serialized["entities"]:
+                if not serialized.get("entities"):
                     serialized["entities"] = []
-                serialized["entities"].append({"type": EntityTypes.PRODUCT_INFO, "id": self.channel_id.sub_channel})
-        elif product_info:
+                serialized["entities"].append(
+                    {
+                        "type": EntityTypes.PRODUCT_INFO,
+                        "id": self.channel_id.sub_channel,
+                    }
+                )
+        elif product_info:  # remove productInfo entity if sub_channel is not set
             del serialized["entities"][i]
+            if not serialized["entities"]:
+                del serialized["entities"]
+
+        # do not include unset value
+        if not self.channel_id:
+            del serialized["channelId"]
 
         return serialized
 
@@ -602,13 +620,12 @@ class Activity(AgentsModel):
             locale=self.locale,
             service_url=self.service_url,
         )
-    
+
     def get_product_info_entity(self) -> Optional[ProductInfo]:
         if not self.entities:
             return None
         target = EntityTypes.PRODUCT_INFO.lower()
         return next(filter(lambda e: e.type.lower() == target, self.entities), None)
-
 
     def get_mentions(self) -> list[Mention]:
         """

@@ -27,6 +27,7 @@ from .conversations_result import ConversationsResult
 from .expected_replies import ExpectedReplies
 from .entity import (
     Entity,
+    EntityTypes,
     AIEntity,
     ClientCitation,
     ClientCitationAppearance,
