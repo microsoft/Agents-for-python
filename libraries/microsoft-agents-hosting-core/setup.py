@@ -10,7 +10,7 @@ package_version = environ.get("PackageVersion", "0.0.0")
 setup(
     version=package_version,
     long_description=long_description,
-    long_description_content_type='text/markdown',
+    long_description_content_type="text/markdown",
     install_requires=[
         f"microsoft-agents-activity=={package_version}",
         "pyjwt>=2.10.1",

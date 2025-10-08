@@ -11,7 +11,7 @@ setup(
     version=package_version,
     install_requires=[
         f"microsoft-agents-hosting-core=={package_version}",
-    ],    
+    ],
     long_description=long_description,
-    long_description_content_type='text/markdown',
+    long_description_content_type="text/markdown",
 )

@@ -10,5 +10,5 @@ package_version = environ.get("PackageVersion", "0.0.0")
 setup(
     version=package_version,
     long_description=long_description,
-    long_description_content_type='text/markdown'
+    long_description_content_type="text/markdown",
 )
