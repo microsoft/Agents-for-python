@@ -66,10 +66,7 @@ class ChannelServiceAdapter(ChannelAdapter, ABC):
 
             response = ResourceResponse()
 
-            if activity.type == "delay":
-                delay_time = int((activity.value or 1000) / 1000)
-                await sleep(delay_time)
-            elif activity.type == ActivityTypes.invoke_response:
+            if activity.type == ActivityTypes.invoke_response:
                 context.turn_state[self.INVOKE_RESPONSE_KEY] = activity
             elif (
                 activity.type == ActivityTypes.trace

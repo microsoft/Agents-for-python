@@ -74,7 +74,7 @@ class Channels(str, Enum):
 
         Args:
             channel_id (str): The Channel to check the if Suggested Actions are supported in.
-            button_cnt (int, optional): Defaults to 100. The number of Suggested Actions to check for the Channel.
+            button_cnt (int, Optional): Defaults to 100. The number of Suggested Actions to check for the Channel.
 
         Returns:
             bool: True if the Channel supports the button_cnt total Suggested Actions, False if the Channel does not
@@ -107,7 +107,7 @@ class Channels(str, Enum):
 
         Args:
             channel_id (str): The Channel to check if the Card Actions are supported in.
-            button_cnt (int, optional): Defaults to 100. The number of Card Actions to check for the Channel.
+            button_cnt (int, Optional): Defaults to 100. The number of Card Actions to check for the Channel.
 
         Returns:
             bool: True if the Channel supports the button_cnt total Card Actions, False if the Channel does not support

@@ -43,7 +43,7 @@ class _AuthorizationHandler(ABC):
         :param connection_manager: The connection manager for OAuth providers.
         :type connection_manager: Connections
         :param auth_handlers: Configuration for OAuth providers.
-        :type auth_handlers: dict[str, AuthHandler], optional
+        :type auth_handlers: dict[str, AuthHandler], Optional
         :raises ValueError: When storage is None or no auth handlers provided.
         """
         if not storage:
@@ -75,7 +75,7 @@ class _AuthorizationHandler(ABC):
         :param context: The turn context for the current turn of conversation.
         :type context: TurnContext
         :param scopes: Optional list of scopes to request during sign-in. If None, default scopes will be used.
-        :type scopes: Optional[list[str]], optional
+        :type scopes: Optional[list[str]], Optional
         :return: A SignInResponse indicating the result of the sign-in attempt.
         :rtype: SignInResponse
         """
@@ -92,9 +92,9 @@ class _AuthorizationHandler(ABC):
         :param context: The turn context for the current turn of conversation.
         :type context: TurnContext
         :param exchange_connection: Optional name of the connection to use for token exchange. If None, default connection will be used.
-        :type exchange_connection: Optional[str], optional
+        :type exchange_connection: Optional[str], Optional
         :param exchange_scopes: Optional list of scopes to request during token exchange. If None, default scopes will be used.
-        :type exchange_scopes: Optional[list[str]], optional
+        :type exchange_scopes: Optional[list[str]], Optional
         """
         raise NotImplementedError()
 
