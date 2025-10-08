@@ -1,8 +1,17 @@
+from __future__ import annotations
+
 from copy import copy
 from datetime import datetime, timezone
-from typing import Optional, Any
+from typing import Optional, Any, Union
 
-from pydantic import Field, SerializeAsAny, model_serializer, model_validator
+from pydantic import (
+    Field,
+    SerializeAsAny,
+    model_serializer,
+    model_validator,
+    field_validator,
+    SerializerFunctionWrapHandler
+)
 
 from .activity_types import ActivityTypes
 from .channel_account import ChannelAccount
@@ -13,6 +22,7 @@ from .suggested_actions import SuggestedActions
 from .attachment import Attachment
 from .entity import (
     Entity,
+    EntityTypes,
     Mention,
     AIEntity,
     ClientCitation,
@@ -50,8 +60,8 @@ class Activity(AgentsModel):
     :type local_timezone: str
     :param service_url: Contains the URL that specifies the channel's service endpoint. Set by the channel.
     :type service_url: str
-    :param channel_id: Contains an ID that uniquely identifies the channel. Set by the channel.
-    :type channel_id: str
+    :param channel_id: Contains an ID that uniquely identifies the channel (and possibly the sub-channel). Set by the channel.
+    :type channel_id: ~microsoft_agents.activity.ChannelId
     :param from_property: Identifies the sender of the message.
     :type from_property: ~microsoft_agents.activity.ChannelAccount
     :param conversation: Identifies the conversation to which the activity belongs.
@@ -173,9 +183,16 @@ class Activity(AgentsModel):
     semantic_action: SemanticAction = None
     caller_id: NonEmptyString = None
 
+    @field_validator("channel_id", mode="before")
     @classmethod
+    def _channel_id_str_to_obj(cls, value: Union[str, ChannelId]) -> ChannelId:
+        if isinstance(value, str):
+            return ChannelId.from_string(value)
+        return value
+
     @model_validator(mode="before")
-    def _channel_id_extension(cls, data: Any) -> Any:
+    @classmethod
+    def _channel_validation(cls, data: Any) -> Any:
         if "channel_id" in data and data["channel_id"]:
             if data["entities"]:
                 for entity in data["entities"]:
@@ -190,13 +207,38 @@ class Activity(AgentsModel):
                         }
                         break
         return data
+
+    @model_validator(mode="after")
+    def _channel_validation(self) -> Activity:
+        product_info = self.get_product_info_entity()
+        if product_info:
+            if self.channel_id:
+                self.channel_id.sub_channel = product_info.id
+        return self
     
-    @classmethod
-    @model_serializer(mode="plain")
-    def _add_product_info(cls, channel_id: ChannelId) -> str:
-        if channel_id.sub_channel:
-            return f"{channel_id.channel}:{channel_id.sub_channel}"
-        return channel_id.channel
+    @model_serializer(mode="wrap")
+    def serialize_model(self, handler: SerializerFunctionWrapHandler) -> dict[str, object]:
+
+        product_info = self.get_product_info_entity()
+
+        serialized = handler(self)
+        product_info = None
+        for i, entity in enumerate(serialized.get("entities", [])):
+            if entity.get("type", "") == EntityTypes.PRODUCT_INFO:
+                product_info = entity
+                break
+
+        if self.channel_id and self.channel_id.sub_channel:
+            if product_info:
+                product_info.id = self.channel_id.sub_channel
+            else:
+                if not serialized["entities"]:
+                    serialized["entities"] = []
+                serialized["entities"].append({"type": EntityTypes.PRODUCT_INFO, "id": self.channel_id.sub_channel})
+        elif product_info:
+            del serialized["entities"][i]
+
+        return serialized
 
     def apply_conversation_reference(
         self, reference: ConversationReference, is_incoming: bool = False
@@ -555,6 +597,13 @@ class Activity(AgentsModel):
             locale=self.locale,
             service_url=self.service_url,
         )
+    
+    def get_product_info_entity(self) -> Optional[ProductInfo]:
+        if not self.entities:
+            return None
+        target = EntityTypes.PRODUCT_INFO.lower()
+        return next(filter(lambda e: e.type.lower() == target, self.entities), None)
+
 
     def get_mentions(self) -> list[Mention]:
         """

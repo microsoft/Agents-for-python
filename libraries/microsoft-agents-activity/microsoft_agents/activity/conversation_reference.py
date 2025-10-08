@@ -4,6 +4,7 @@ from typing import Optional
 from pydantic import Field
 
 from .channel_account import ChannelAccount
+from .channel_id import ChannelId
 from .conversation_account import ConversationAccount
 from .agents_model import AgentsModel
 from ._type_aliases import NonEmptyString
@@ -23,7 +24,7 @@ class ConversationReference(AgentsModel):
     :param conversation: Conversation reference
     :type conversation: ~microsoft_agents.activity.ConversationAccount
     :param channel_id: Channel ID
-    :type channel_id: str
+    :type channel_id: ~microsoft_agents.activity.ChannelId
     :param locale: A locale name for the contents of the text field.
         The locale name is a combination of an ISO 639 two- or three-letter
         culture code associated with a language and an ISO 3166 two-letter
@@ -40,7 +41,7 @@ class ConversationReference(AgentsModel):
     user: Optional[ChannelAccount] = None
     agent: ChannelAccount = Field(None, alias="bot")
     conversation: ConversationAccount
-    channel_id: NonEmptyString
+    channel_id: ChannelId
     locale: Optional[NonEmptyString] = None
     service_url: NonEmptyString = None
 

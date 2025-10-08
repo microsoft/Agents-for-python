@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from typing import Optional, Any
 
 from pydantic import model_validator, model_serializer
@@ -7,6 +9,12 @@ from .agents_model import AgentsModel
 class ChannelId(AgentsModel):
     channel: str
     sub_channel: Optional[str] = None
+
+    @staticmethod
+    def from_str(channel_id: str) -> ChannelId:
+        return ChannelId(
+            **ChannelId.split_channel_ids(channel_id)  # type: ignore
+        )
 
     @model_validator(mode="before")
     @classmethod
