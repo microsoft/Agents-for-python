@@ -221,14 +221,14 @@ class AgentApplication(Agent, Generic[StateT]):
         :param handler: A function that takes a TurnContext and a TurnState and returns an Awaitable.
         :type handler: RouteHandler[StateT]
         :param is_invoke: Whether the route is for an invoke activity, defaults to False
-        :type is_invoke: bool, optional
+        :type is_invoke: bool, Optional
         :param is_agentic: Whether the route is for an agentic request, defaults to False. For agentic requests
             the selector will include a new check for `context.activity.is_agentic_request()`.
-        :type is_agentic: bool, optional
+        :type is_agentic: bool, Optional
         :param rank: The rank of the route, defaults to RouteRank.DEFAULT
-        :type rank: RouteRank, optional
+        :type rank: RouteRank, Optional
         :param auth_handlers: A list of authentication handler IDs to use for this route, defaults to None
-        :type auth_handlers: Optional[list[str]], optional
+        :type auth_handlers: Optional[list[str]], Optional
         :raises ApplicationError: If the selector or handler are not valid.
         """
         if not selector or not handler:

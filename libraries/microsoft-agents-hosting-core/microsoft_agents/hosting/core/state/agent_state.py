@@ -68,11 +68,11 @@ class AgentState:
 
     def __init__(self, storage: Storage, context_service_key: str):
         """
-        Initializes a new instance of the :class:`AgentState` class.
+        Initializes a new instance of the :class:`microsoft_agents.hosting.core.state.agent_state.AgentState` class.
 
         :param storage: The storage layer this state management object will use to store and retrieve state
         :type storage:  :class:`microsoft_agents.hosting.core.storage.Storage`
-        :param context_service_key: The key for the state cache for this :class:`AgentState`
+        :param context_service_key: The key for the state cache for this :class:`microsoft_agents.hosting.core.state.agent_state.AgentState`
         :type context_service_key: str
 
         .. remarks::
@@ -93,19 +93,19 @@ class AgentState:
         from the turn context.
 
         :param turn_context: The context object for this turn.
-        :type turn_context: :class:`TurnContext`
+        :type turn_context: :class:`microsoft_agents.hosting.core.turn_context.TurnContext`
         :return: The cached agent state instance.
         """
         return turn_context.turn_state.get(self._context_service_key)
 
     def create_property(self, name: str) -> StatePropertyAccessor:
         """
-        Creates a property definition and registers it with this :class:`AgentState`.
+        Creates a property definition and registers it with this :class:`microsoft_agents.hosting.core.state.agent_state.AgentState`.
 
         :param name: The name of the property
         :type name: str
         :return: If successful, the state property accessor created
-        :rtype: :class:`StatePropertyAccessor`
+        :rtype: :class:`microsoft_agents.hosting.core.state.state_property_accessor.StatePropertyAccessor`
         """
         if not name or not name.strip():
             raise ValueError(
@@ -123,7 +123,7 @@ class AgentState:
         Reads the current state object and caches it in the context object for this turn.
 
         :param turn_context: The context object for this turn
-        :type turn_context: :class:`TurnContext`
+        :type turn_context: :class:`microsoft_agents.hosting.core.turn_context.TurnContext`
         :param force: Optional, true to bypass the cache
         :type force: bool
         """
@@ -141,7 +141,7 @@ class AgentState:
         If the state has changed, it saves the state cached in the current context for this turn.
 
         :param turn_context: The context object for this turn
-        :type turn_context: :class:`TurnContext`
+        :type turn_context: :class:`microsoft_agents.hosting.core.turn_context.TurnContext`
         :param force: Optional, true to save state to storage whether or not there are changes
         :type force: bool
         """
@@ -157,7 +157,7 @@ class AgentState:
         Clears any state currently stored in this state scope.
 
         :param turn_context: The context object for this turn
-        :type turn_context: :class:`TurnContext`
+        :type turn_context: :class:`microsoft_agents.hosting.core.turn_context.TurnContext`
 
         :return: None
 
@@ -174,7 +174,7 @@ class AgentState:
         Deletes any state currently stored in this state scope.
 
         :param turn_context: The context object for this turn
-        :type turn_context: :class:`TurnContext`
+        :type turn_context: :class:`microsoft_agents.hosting.core.turn_context.TurnContext`
 
         :return: None
         """
@@ -200,7 +200,7 @@ class AgentState:
         Gets the value of the specified property in the turn context.
 
         :param turn_context: The context object for this turn
-        :type turn_context: :class:`TurnContext`
+        :type turn_context: :class:`microsoft_agents.hosting.core.turn_context.TurnContext`
         :param property_name: The property name
         :type property_name: str
 
@@ -235,8 +235,6 @@ class AgentState:
         """
         Deletes a property from the state cache in the turn context.
 
-        :param turn_context: The context object for this turn
-        :type turn_context: :class:`TurnContext`
         :param property_name: The name of the property to delete
         :type property_name: str
 
@@ -254,8 +252,6 @@ class AgentState:
         """
         Sets a property to the specified value in the turn context.
 
-        :param turn_context: The context object for this turn
-        :type turn_context: :class:`TurnContext`
         :param property_name: The property name
         :type property_name: str
         :param value: The value to assign to the property
@@ -272,15 +268,15 @@ class AgentState:
 
 class BotStatePropertyAccessor(StatePropertyAccessor):
     """
-    Defines methods for accessing a state property created in a :class:`AgentState` object.
+    Defines methods for accessing a state property created in a :class:`microsoft_agents.hosting.core.state.agent_state.AgentState` object.
     """
 
     def __init__(self, agent_state: AgentState, name: str):
         """
-        Initializes a new instance of the :class:`BotStatePropertyAccessor` class.
+        Initializes a new instance of the :class:`microsoft_agents.hosting.core.state.agent_state.BotStatePropertyAccessor` class.
 
         :param agent_state: The state object to access
-        :type agent_state:  :class:`AgentState`
+        :type agent_state:  :class:`microsoft_agents.hosting.core.state.agent_state.AgentState`
         :param name: The name of the state property to access
         :type name: str
 
@@ -304,7 +300,7 @@ class BotStatePropertyAccessor(StatePropertyAccessor):
         Deletes the property.
 
         :param turn_context: The context object for this turn
-        :type turn_context: :class:`TurnContext`
+        :type turn_context: :class:`microsoft_agents.hosting.core.turn_context.TurnContext`
         """
         await self._agent_state.load(turn_context, False)
         self._agent_state.delete_value(self._name)
@@ -320,7 +316,7 @@ class BotStatePropertyAccessor(StatePropertyAccessor):
         Gets the property value.
 
         :param turn_context: The context object for this turn
-        :type turn_context: :class:`TurnContext`
+        :type turn_context: :class:`microsoft_agents.hosting.core.turn_context.TurnContext`
         :param default_value_or_factory: Defines the default value for the property
         """
         await self._agent_state.load(turn_context, False)
@@ -355,7 +351,7 @@ class BotStatePropertyAccessor(StatePropertyAccessor):
         Sets the property value.
 
         :param turn_context: The context object for this turn
-        :type turn_context: :class:`TurnContext`
+        :type turn_context: :class:`microsoft_agents.hosting.core.turn_context.TurnContext`
 
         :param value: The value to assign to the property
         """
