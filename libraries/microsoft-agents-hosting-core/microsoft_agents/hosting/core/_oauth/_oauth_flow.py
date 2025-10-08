@@ -202,17 +202,19 @@ class _OAuthFlow:
         if res.token_response:
             logger.info("Skipping flow, user token obtained.")
             self._flow_state.tag = _FlowStateTag.COMPLETE
-            self._flow_state.expiration = datetime.now().timestamp() + self._default_flow_duration
+            self._flow_state.expiration = (
+                datetime.now().timestamp() + self._default_flow_duration
+            )
             return _FlowResponse(
                 flow_state=self._flow_state, token_response=res.token_response
             )
-        
+
         self._flow_state.tag = _FlowStateTag.BEGIN
         self._flow_state.expiration = (
             datetime.now().timestamp() + self._default_flow_duration
         )
         self._flow_state.attempts_remaining = self._max_attempts
-        
+
         logger.debug("Sign-in resource obtained successfully: %s", res.sign_in_resource)
 
         return _FlowResponse(

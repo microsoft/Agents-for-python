@@ -165,7 +165,8 @@ class TestOAuthFlow(TestUtils):
         #     mocker, get_token_return=TokenResponse(token=DEFAULTS.token)
         # )
         user_token_client = self.UserTokenClient(
-            mocker, get_token_or_sign_in_resource_return=TokenResponse(token=DEFAULTS.token)
+            mocker,
+            get_token_or_sign_in_resource_return=TokenResponse(token=DEFAULTS.token),
         )
         mocker.patch.object(
             TokenExchangeState, "get_encoded_state", return_value="encoded_state"
@@ -191,7 +192,7 @@ class TestOAuthFlow(TestUtils):
             activity.from_property.id,
             flow_state.connection,
             activity.channel_id,
-            "encoded_state"
+            "encoded_state",
         )
 
     @pytest.mark.asyncio
@@ -204,9 +205,7 @@ class TestOAuthFlow(TestUtils):
             sign_in_link="https://example.com/signin",
         )
         user_token_client = self.UserTokenClient(
-            mocker,
-            get_token_return=TokenResponse(),
-            get_sign_in_resource_return=dummy_sign_in_resource,
+            mocker, get_token_or_sign_in_resource_return=dummy_sign_in_resource
         )
 
         # setup
@@ -214,7 +213,6 @@ class TestOAuthFlow(TestUtils):
         expected_flow_state = flow_state
         expected_flow_state.tag = _FlowStateTag.BEGIN
         expected_flow_state.attempts_remaining = 3
-        expected_flow_state.continuation_activity = activity
 
         # test
         response = await flow.begin_flow(activity)

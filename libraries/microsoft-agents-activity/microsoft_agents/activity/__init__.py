@@ -186,5 +186,5 @@ __all__ = [
     "load_configuration_from_env",
     "ChannelAdapterProtocol",
     "TurnContextProtocol",
-    "TokenOrSignInResourceResponse"
+    "TokenOrSignInResourceResponse",
 ]

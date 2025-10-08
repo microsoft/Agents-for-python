@@ -12,7 +12,7 @@ from microsoft_agents.activity import (
     TokenOrSignInResourceResponse,
     TokenResponse,
     TokenStatus,
-    SignInResource
+    SignInResource,
 )
 from ..get_product_info import get_product_info
 from ..user_token_base import UserTokenBase
@@ -141,7 +141,7 @@ class UserToken(UserTokenBase):
 
             data = await response.json()
             return TokenResponse.model_validate(data)
-        
+
     async def get_token_or_sign_in_resource(
         self,
         user_id,

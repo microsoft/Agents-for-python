@@ -3,7 +3,7 @@ from typing import Union
 from microsoft_agents.activity import (
     TokenResponse,
     SignInResource,
-    TokenOrSignInResourceResponse
+    TokenOrSignInResourceResponse,
 )
 from microsoft_agents.hosting.core import UserTokenClient
 
@@ -12,10 +12,12 @@ from tests._common.type_defs import SKIP
 
 def mock_UserTokenClient(
     mocker,
-    get_token_return: Union[str, TokenResponse]=SKIP,
-    exchange_token_return: Union[str, TokenResponse]=SKIP,
-    get_sign_in_resource_return: Union[str, SignInResource]=SKIP,
-    get_token_or_sign_in_resource_return: Union[str, TokenResponse, SignInResource, TokenOrSignInResourceResponse]=SKIP,
+    get_token_return: Union[str, TokenResponse] = SKIP,
+    exchange_token_return: Union[str, TokenResponse] = SKIP,
+    get_sign_in_resource_return: Union[str, SignInResource] = SKIP,
+    get_token_or_sign_in_resource_return: Union[
+        str, TokenResponse, SignInResource, TokenOrSignInResourceResponse
+    ] = SKIP,
 ):
 
     mock_user_token_client = mocker.Mock(spec=UserTokenClient)
@@ -48,8 +50,8 @@ def mock_UserTokenClient(
             get_token_or_sign_in_resource_return = TokenOrSignInResourceResponse(
                 sign_in_resource=get_token_or_sign_in_resource_return
             )
-        mock_user_token_client.user_token.get_token_or_sign_in_resource = mocker.AsyncMock(
-            return_value=get_token_or_sign_in_resource_return
+        mock_user_token_client.user_token.get_token_or_sign_in_resource = (
+            mocker.AsyncMock(return_value=get_token_or_sign_in_resource_return)
         )
 
     mock_user_token_client.user_token.sign_out = mocker.AsyncMock(return_value=None)
@@ -59,10 +61,12 @@ def mock_UserTokenClient(
 
 def mock_class_UserTokenClient(
     mocker,
-    get_token_return: Union[str, TokenResponse]=SKIP,
-    exchange_token_return: Union[str, TokenResponse]=SKIP,
-    get_sign_in_resource_return: Union[str, SignInResource]=SKIP,
-    get_token_or_sign_in_resource_return: Union[str, TokenResponse, SignInResource, TokenOrSignInResourceResponse]=SKIP,
+    get_token_return: Union[str, TokenResponse] = SKIP,
+    exchange_token_return: Union[str, TokenResponse] = SKIP,
+    get_sign_in_resource_return: Union[str, SignInResource] = SKIP,
+    get_token_or_sign_in_resource_return: Union[
+        str, TokenResponse, SignInResource, TokenOrSignInResourceResponse
+    ] = SKIP,
 ):
     mocker.patch(
         "UserTokenClient",
