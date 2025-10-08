@@ -68,11 +68,11 @@ class AgentState:
 
     def __init__(self, storage: Storage, context_service_key: str):
         """
-        Initializes a new instance of the :class:`AgentState` class.
+        Initializes a new instance of the :class:`microsoft_agents.hosting.core.state.agent_state.AgentState` class.
 
         :param storage: The storage layer this state management object will use to store and retrieve state
         :type storage:  :class:`microsoft_agents.hosting.core.storage.Storage`
-        :param context_service_key: The key for the state cache for this :class:`AgentState`
+        :param context_service_key: The key for the state cache for this :class:`microsoft_agents.hosting.core.state.agent_state.AgentState`
         :type context_service_key: str
 
         .. remarks::
