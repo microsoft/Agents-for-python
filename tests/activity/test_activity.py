@@ -16,6 +16,7 @@ from microsoft_agents.activity import (
     AIEntity,
     Place,
     Thing,
+    ProductInfo
     RoleTypes,
 )
 
@@ -372,6 +373,59 @@ class TestActivityConversationOps:
             Mention(text="Hello"),
             Entity(type="mention", text="Another mention"),
         ]
+
+    @pytest.mark.parametrize(
+        "entities, expected",
+        [
+            [
+                [
+                    Entity(
+                        type="ProductInfo",
+                        id="product_123",
+                    ),
+                    Entity(type="other"),
+                    Entity(type="mention", text="Another mention"),
+                ],
+                ProductInfo(
+                    type="PRODUCTINFO",
+                    id="product_123",
+                )
+            ],
+            [
+                [
+                    Entity(type="other"),
+                    Entity(type="mention", text="Another mention"),
+                ],
+                None
+            ],
+            [
+                [
+                    Entity(
+                        type="ProductInfo",
+                        id="product_123",
+                    ),
+                    Entity(
+                        type="ProductInfo",
+                        id="product_456",
+                    ),
+                    Entity(type="mention", text="Another mention"),
+                ],
+                Entity(type="ProductInfo", id="product_123")
+            ],
+            [
+                [],
+                None
+            ],
+            [
+                None,
+                None
+            ]
+        ]
+    )
+    def test_get_product_info_entity_single(self, entities, expected):
+        activity = Activity(type="message", entities=entities)
+        retrieved_product_info = activity.get_product_info_entity()
+        assert retrieved_product_info == expected
 
 
 class TestActivityAgenticOps:

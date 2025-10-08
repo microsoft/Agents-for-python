@@ -12,6 +12,7 @@ from .ai_entity import (
 )
 from .geo_coordinates import GeoCoordinates
 from .place import Place
+from .product_info import ProductInfo
 from .thing import Thing
 
 __all__ = [
@@ -27,5 +28,6 @@ __all__ = [
     "SensitivityPattern",
     "GeoCoordinates",
     "Place",
+    "ProductInfo",
     "Thing",
 ]

@@ -32,9 +32,6 @@ class ChannelId(AgentsModel):
     
     def is_parent_channel(self, channel_id: str) -> bool:
         return self.channel.lower() == channel_id.lower()
-
-    def is_sub_channel(self) -> bool:
-        return bool(self.sub_channel)
     
     def __eq__(self, other: Any) -> bool:
         return str(self) == str(other)

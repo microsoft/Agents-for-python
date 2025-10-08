@@ -37,6 +37,7 @@ from .entity import (
     SensitivityPattern,
     GeoCoordinates,
     Place,
+    ProductInfo,
     Thing,
 )
 from .error import Error
@@ -146,6 +147,7 @@ __all__ = [
     "OAuthCard",
     "PagedMembersResult",
     "Place",
+    "ProductInfo",
     "ReceiptCard",
     "ReceiptItem",
     "ResourceResponse",

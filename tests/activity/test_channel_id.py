@@ -107,8 +107,12 @@ class TestChannelId:
         assert a == c
         assert b == c
 
-    # def test_validation_error(self):
-    #     pass
-
-    # def test_serialization(self):
-    #     pass
+    def test_is_parent_channel(self):
+        a = ChannelId(channel="email", sub_channel="support")
+        assert a.is_parent_channel("email") == True
+        assert a.is_parent_channel("EMAIL") == True
+        assert a.is_parent_channel("word") == False
+        b = ChannelId(channel="sms", sub_channel=None)
+        assert b.is_parent_channel("sms") == True
+        assert b.is_parent_channel("SMS") == True
+        assert b.is_parent_channel("email") == False
