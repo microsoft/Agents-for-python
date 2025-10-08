@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from copy import copy
 from datetime import datetime, timezone
-from typing import Optional, Any, Union
+from typing import Optional, Union
 
 from pydantic import (
     Field,
