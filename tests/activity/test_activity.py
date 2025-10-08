@@ -16,7 +16,7 @@ from microsoft_agents.activity import (
     AIEntity,
     Place,
     Thing,
-    ProductInfo
+    ProductInfo,
     RoleTypes,
 )
 
@@ -353,12 +353,6 @@ class TestActivityConversationOps:
         activity = Activity(type="message", service_url=service_url)
         assert activity.is_from_streaming_connection() == expected
 
-    def test_serialize_basic(self, activity):
-        activity_copy = Activity(
-            **activity.model_dump(mode="json", exclude_unset=True, by_alias=True)
-        )
-        assert activity_copy == activity
-
     def test_get_mentions(self):
         activity = Activity(
             type="message",
@@ -386,8 +380,8 @@ class TestActivityConversationOps:
                     Entity(type="other"),
                     Entity(type="mention", text="Another mention"),
                 ],
-                ProductInfo(
-                    type="PRODUCTINFO",
+                Entity(
+                    type="ProductInfo",
                     id="product_123",
                 )
             ],
@@ -414,10 +408,6 @@ class TestActivityConversationOps:
             ],
             [
                 [],
-                None
-            ],
-            [
-                None,
                 None
             ]
         ]

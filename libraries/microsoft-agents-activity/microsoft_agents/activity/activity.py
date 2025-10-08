@@ -189,25 +189,7 @@ class Activity(AgentsModel):
         if isinstance(value, str):
             return ChannelId.model_validate(value)
         return value
-
-    @model_validator(mode="before")
-    @classmethod
-    def _channel_validation(cls, data: Any) -> Any:
-        if "channel_id" in data and data["channel_id"]:
-            if data["entities"]:
-                for entity in data["entities"]:
-                    if entity.get("type", "") == "ProductInfo":
-                        sub_channel = entity.get("id")
-
-                        # TODO: check if mutation occurs
-    
-                        data["channel_id"] = {
-                            "channel": data["channel_id"],
-                            "sub_channel": sub_channel,
-                        }
-                        break
-        return data
-
+        
     @model_validator(mode="after")
     def _channel_validation(self) -> Activity:
         product_info = self.get_product_info_entity()
