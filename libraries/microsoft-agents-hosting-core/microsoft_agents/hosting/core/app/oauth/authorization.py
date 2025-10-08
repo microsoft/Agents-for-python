@@ -59,7 +59,7 @@ class Authorization:
         :param connection_manager: The connection manager for OAuth providers.
         :type connection_manager: Connections
         :param auth_handlers: Configuration for OAuth providers.
-        :type auth_handlers: dict[str, AuthHandler], optional
+        :type auth_handlers: dict[str, AuthHandler], Optional
         :raises ValueError: When storage is None or no auth handlers provided.
         """
         if not storage:

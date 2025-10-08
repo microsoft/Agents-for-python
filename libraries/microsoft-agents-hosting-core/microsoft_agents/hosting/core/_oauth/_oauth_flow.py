@@ -112,7 +112,7 @@ class _OAuthFlow:
         """Get the user token based on the context.
 
         Args:
-            magic_code (str, optional): Defaults to None. The magic code for user authentication.
+            magic_code (str, Optional): Defaults to None. The magic code for user authentication.
 
         Returns:
             TokenResponse
