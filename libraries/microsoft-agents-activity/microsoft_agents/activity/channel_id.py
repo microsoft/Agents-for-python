@@ -8,16 +8,6 @@ class ChannelId(AgentsModel):
     channel: str
     sub_channel: Optional[str] = None
 
-    def __init__(self, channel_id: str):
-
-        split = channel_id.strip().split(":", 1)
-        if len(split) == 2:
-            self.channel = split[0].strip()
-            self.sub_channel = split[1].strip()
-        else:
-            self.channel = channel_id
-            self.sub_channel = None
-
     @model_validator(mode="before")
     @classmethod
     def split_channel_ids(cls, data: Any) -> Any:
