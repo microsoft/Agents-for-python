@@ -16,10 +16,12 @@ from microsoft_agents.hosting.core import TurnContext
 class InputFile:
     """A file sent by the user to the bot.
 
-    Attributes:
-        content (bytes): The downloaded content of the file.
-        content_type (str): The content type of the file.
-        content_url (Optional[str]): Optional. URL to the content of the file.
+    :param content: The downloaded content of the file.
+    :type content: bytes
+    :param content_type: The content type of the file.
+    :type content_type: str
+    :param content_url: Optional. URL to the content of the file.
+    :type content_url: Optional[str]
     """
 
     content: bytes
@@ -29,17 +31,19 @@ class InputFile:
 
 class InputFileDownloader(ABC):
     """
-    A plugin responsible for downloading files relative to the current user's input.
+    Abstract base class for a plugin responsible for downloading files provided by the user.
+
+    Implementations should download any files referenced by the incoming activity and return a
+    list of :class:`InputFile` instances representing the downloaded content.
     """
 
     @abstractmethod
     async def download_files(self, context: TurnContext) -> List[InputFile]:
         """
-        Download any files relative to the current user's input.
+        Download any files referenced by the incoming activity for the current turn.
 
-        Args:
-            context (TurnContext): Context for the current turn of conversation.
-
-        Returns:
-            List[InputFile]: A list of input files.
+        :param context: The turn context for the current request.
+        :type context: :class:`microsoft_agents.hosting.core.turn_context.TurnContext`
+        :return: A list of downloaded :class:`InputFile` objects.
+        :rtype: list[:class:`microsoft_agents.hosting.core.app.input_file.InputFile`]
         """

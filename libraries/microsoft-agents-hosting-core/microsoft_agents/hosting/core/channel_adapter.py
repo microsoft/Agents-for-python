@@ -40,7 +40,7 @@ class ChannelAdapter(ABC, ChannelAdapterProtocol):
         Sends a set of activities to the user. An array of responses from the server will be returned.
 
         :param context: The context object for the turn.
-        :type context: :class:`TurnContext`
+        :type context: :class:`microsoft_agents.hosting.core.turn_context.TurnContext`
         :param activities: The activities to send.
         :type activities: list[Activity]
         :return:
@@ -53,7 +53,7 @@ class ChannelAdapter(ABC, ChannelAdapterProtocol):
         Replaces an existing activity.
 
         :param context: The context object for the turn.
-        :type context: :class:`TurnContext`
+        :type context: :class:`microsoft_agents.hosting.core.turn_context.TurnContext`
         :param activity: New replacement activity.
         :type activity: :class:`microsoft_agents.activity.Activity`
         :return:
@@ -68,7 +68,7 @@ class ChannelAdapter(ABC, ChannelAdapterProtocol):
         Deletes an existing activity.
 
         :param context: The context object for the turn.
-        :type context: :class:`TurnContext`
+        :type context: :class:`microsoft_agents.hosting.core.turn_context.TurnContext`
         :param reference: Conversation reference for the activity to delete.
         :type reference: :class:`microsoft_agents.activity.ConversationReference`
         :return:
@@ -102,7 +102,7 @@ class ChannelAdapter(ABC, ChannelAdapterProtocol):
         :param reference: A reference to the conversation to continue.
         :type reference: :class:`microsoft_agents.activity.ConversationReference`
         :param callback: The method to call for the resulting agent turn.
-        :type callback: Callable[[TurnContext], Awaitable]
+        :type callback: Callable[[microsoft_agents.hosting.core.turn_context.TurnContext], Awaitable]
         :param claims_identity: A :class:`microsoft_agents.hosting.core.ClaimsIdentity` for the conversation.
         :type claims_identity: :class:`microsoft_agents.hosting.core.ClaimsIdentity`
         :param audience:A value signifying the recipient of the proactive message.
@@ -124,11 +124,11 @@ class ChannelAdapter(ABC, ChannelAdapterProtocol):
         to the user.
 
         :param claims_identity: A :class:`microsoft_agents.hosting.core.ClaimsIdentity` for the conversation.
-        :type claims_identity: :class:`microsoft_agents.hosting.core.ClaimsIdentity`
+        :type claims_identity: :class:`microsoft_agents.hosting.core.authorization.ClaimsIdentity`
         :param continuation_activity: The activity to send.
         :type continuation_activity: :class:`microsoft_agents.activity.Activity`
         :param callback: The method to call for the resulting agent turn.
-        :type callback: Callable[[TurnContext], Awaitable]
+        :type callback: Callable[[microsoft_agents.hosting.core.turn_context.TurnContext], Awaitable]
         :param audience: A value signifying the recipient of the proactive message.
         :type audience: str
         """
@@ -155,9 +155,9 @@ class ChannelAdapter(ABC, ChannelAdapterProtocol):
         :param audience: A value signifying the recipient of the proactive message.
         :type audience: str
         :param conversation_parameters: The information to use to create the conversation
-        :type conversation_parameters: :class:`microsoft_agents.activity.models.ConversationParameters`
+        :type conversation_parameters: :class:`microsoft_agents.activity.ConversationParameters`
         :param callback: The method to call for the resulting agent turn.
-        :type callback: Callable[[TurnContext], Awaitable]
+        :type callback: Callable[[microsoft_agents.hosting.core.turn_context.TurnContext], Awaitable]
 
         :raises: Exception - Not implemented or when the implementation fails.
 
@@ -222,7 +222,7 @@ class ChannelAdapter(ABC, ChannelAdapterProtocol):
         the end of the chain.
 
         :param context: The context object for the turn.
-        :type context: :class:`TurnContext`
+        :type context: :class:`microsoft_agents.hosting.core.turn_context.TurnContext`
         :param callback: A callback method to run at the end of the pipeline.
         :type callback: Callable[[TurnContext], Awaitable]
         :return:
