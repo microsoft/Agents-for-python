@@ -1,16 +1,19 @@
 from __future__ import annotations
 
+importl logging
 from copy import copy
 from datetime import datetime, timezone
-from typing import Optional, Union
+from typing import Optional, Union, Any
 
 from pydantic import (
     Field,
     SerializeAsAny,
     model_serializer,
     model_validator,
-    field_validator,
-    SerializerFunctionWrapHandler
+    SerializerFunctionWrapHandler,
+    ModelWrapValidatorHandler,
+    computed_field,
+    ValidationError
 )
 
 from .activity_types import ActivityTypes
@@ -37,6 +40,7 @@ from .channel_id import ChannelId
 from ._model_utils import pick_model, SkipNone
 from ._type_aliases import NonEmptyString
 
+logger = logging.getLogger(__name__)
 
 # TODO: A2A Agent 2 is responding with None as id, had to mark it as optional (investigate)
 class Activity(AgentsModel):
@@ -146,7 +150,7 @@ class Activity(AgentsModel):
     local_timestamp: datetime = None
     local_timezone: NonEmptyString = None
     service_url: NonEmptyString = None
-    channel_id: ChannelId = None
+    _channel_id: ChannelId = None
     from_property: ChannelAccount = Field(None, alias="from")
     conversation: ConversationAccount = None
     recipient: ChannelAccount = None
@@ -183,19 +187,37 @@ class Activity(AgentsModel):
     semantic_action: SemanticAction = None
     caller_id: NonEmptyString = None
 
-    @field_validator("channel_id", mode="before")
+    @property
+    def channel_id(self):
+        """Gets the _channel_id field"""
+        return self._channel_id
+    
+    # necessary for backward compatibility
+    # previously, channel_id was directly assigned with strings
+    @channel_id.setter
+    def channel_id(self, value: Any):
+        """Sets the channel_id after validating and converting to ChannelId model."""
+        self._channel_id = ChannelId.model_validate(value)
+    
+    @model_validator(mode="wrap")
     @classmethod
-    def _channel_id_str_to_obj(cls, value: Union[str, ChannelId]) -> ChannelId:
-        if isinstance(value, str):
-            return ChannelId.model_validate(value)
-        return value
+    def _validate(self, data: Any, handler: ModelWrapValidatorHandler[Activity]) -> Activity:
+        try:
+            activity = handler(data)
+            data_channel_id = data.get("channel_id", None)
+            if data_channel_id:
+                activity.channel_id = data_channel_id
+            return activity
+        except ValidationError:
+            logger.error("Validation error for Activity")
+            raise
         
     @model_validator(mode="after")
-    def _channel_validation(self) -> Activity:
+    def _validate_channel(self) -> Activity:
         product_info = self.get_product_info_entity()
         if product_info:
-            if self.channel_id:
-                self.channel_id.sub_channel = product_info.id
+            if self._channel_id:
+                self._channel_id.sub_channel = product_info.id
         return self
     
     @model_serializer(mode="wrap")
@@ -204,6 +226,7 @@ class Activity(AgentsModel):
         product_info = self.get_product_info_entity()
 
         serialized = handler(self)
+
         product_info = None
         for i, entity in enumerate(serialized.get("entities", [])):
             if entity.get("type", "") == EntityTypes.PRODUCT_INFO:

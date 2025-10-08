@@ -14,25 +14,19 @@ class TestActivityModel:
         assert activity_copy == activity
 
     @pytest.mark.parametrize(
-        "data, expected,
+        "data, expected",
         [
-            (ChannelId.MSTEAMS, ChannelId(channel=C)),
-            ("msteams", "msteams",),
-            ("msteams/subchannel", "msteams/subchannel"),
-            ("channel:sub", "channel:sub"),
-        ]
-
-    def test_channel_id_field_validator_basic(self):
+            ("msteams:subchannel", ChannelId(channel="msteams", sub_channel="subchannel")),
+            ("msteams/subchannel", ChannelId(channel="msteams/subchannel")),
+            ("channel:sub", ChannelId(channel="channel", sub_channel="sub")),
+            (ChannelId(channel="msteams", sub_channel="subchannel"), ChannelId(channel="msteams", sub_channel="subchannel")),
+            (ChannelId(channel="msteams"), ChannelId(channel="msteams")),
+        ])
+    def test_channel_id_field_validator(self, data, expected):
         activity = Activity(type="message")
-        activity.channel_id = ChannelId.MSTEAMS
-        assert activity.channel_id == ChannelId.MSTEAMS
-        assert isinstance(activity.channel_id, ChannelId)
+        activity.channel_id = data
 
-    def test_channel_id_field_validator_from_str_basic(self):
-        activity = Activity(type="message")
-        activity.channel_id = "msteams"
-        assert activity.channel_id == "msteams"
+        assert activity.channel_id == expected
+        breakpoint()
         assert isinstance(activity.channel_id, ChannelId)
-
-    def test_channel_id_field_validator_from_str_with_sub_channel(self):
-        pass
+        assert activity.channel_id == data

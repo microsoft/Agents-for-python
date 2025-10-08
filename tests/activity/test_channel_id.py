@@ -1,5 +1,5 @@
 import pytest
-import pydantic
+from pydantic import ValidationError
 
 from microsoft_agents.activity import ChannelId
 
@@ -107,12 +107,6 @@ class TestChannelId:
         assert a == c
         assert b == c
 
-    def test_is_parent_channel(self):
-        a = ChannelId(channel="email", sub_channel="support")
-        assert a.is_parent_channel("email") == True
-        assert a.is_parent_channel("EMAIL") == True
-        assert a.is_parent_channel("word") == False
-        b = ChannelId(channel="sms", sub_channel=None)
-        assert b.is_parent_channel("sms") == True
-        assert b.is_parent_channel("SMS") == True
-        assert b.is_parent_channel("email") == False
+    def test_channel_id_validation_error(self):
+        with pytest.raises(ValidationError):
+            ChannelId(channel="")

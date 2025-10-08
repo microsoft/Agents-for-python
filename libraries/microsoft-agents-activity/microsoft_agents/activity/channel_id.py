@@ -2,36 +2,35 @@ from __future__ import annotations
 
 from typing import Optional, Any
 
-from pydantic import model_validator, model_serializer
+from pydantic import model_validator
 
 from .agents_model import AgentsModel
 
 class ChannelId(AgentsModel):
+    """A class representing a channel identifier with optional sub-channel.
+    
+    :param channel: The main channel identifier (e.g., "msteams").
+    :type channel: str
+    :param sub_channel: An optional sub-channel identifier (e.g., "subchannel").
+    :type sub_channel: Optional[str]
+    """
     channel: str
     sub_channel: Optional[str] = None
 
-    @staticmethod
-    def from_str(channel_id: str) -> ChannelId:
-        return ChannelId(
-            **ChannelId.split_channel_ids(channel_id)  # type: ignore
-        )
-
     @model_validator(mode="before")
     @classmethod
-    def split_channel_ids(cls, data: Any) -> Any:
-        if isinstance(data, str):
+    def _split_channel_ids(cls, data: Any) -> Any:
+        """Validator to split a string into channel and sub_channel if needed."""
+        if isinstance(data, str) and data:
             split = data.strip().split(":", 1)
             return {
                 "channel": split[0].strip(),
                 "sub_channel": split[1].strip() if len(split) == 2 else None,
             }
-        elif isinstance(data, dict):
+        elif isinstance(data, dict) and data:
             return data
         else:
             raise ValueError("Invalid data type for ChannelId")
-    
-    def is_parent_channel(self, channel_id: str) -> bool:
-        return self.channel.lower() == channel_id.lower()
     
     def __eq__(self, other: Any) -> bool:
         return str(self) == str(other)
