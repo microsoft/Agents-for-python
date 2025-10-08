@@ -50,7 +50,7 @@ def mock_UserTokenClient(
             get_token_or_sign_in_resource_return = TokenOrSignInResourceResponse(
                 sign_in_resource=get_token_or_sign_in_resource_return
             )
-        mock_user_token_client.user_token.get_token_or_sign_in_resource = (
+        mock_user_token_client.user_token._get_token_or_sign_in_resource = (
             mocker.AsyncMock(return_value=get_token_or_sign_in_resource_return)
         )
 

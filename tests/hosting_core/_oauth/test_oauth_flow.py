@@ -188,7 +188,7 @@ class TestOAuthFlow(TestUtils):
         assert response.flow_error_tag == _FlowErrorTag.NONE
         assert response.token_response
         assert response.token_response.token == DEFAULTS.token
-        user_token_client.user_token.get_token_or_sign_in_resource.assert_called_once_with(
+        user_token_client.user_token._get_token_or_sign_in_resource.assert_called_once_with(
             activity.from_property.id,
             flow_state.connection,
             activity.channel_id,

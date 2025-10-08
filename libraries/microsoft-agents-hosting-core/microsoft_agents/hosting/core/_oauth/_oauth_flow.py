@@ -192,7 +192,7 @@ class _OAuthFlow:
             ms_app_id=self._ms_app_id,
         )
 
-        res = await self._user_token_client.user_token.get_token_or_sign_in_resource(
+        res = await self._user_token_client.user_token._get_token_or_sign_in_resource(
             activity.from_property.id,
             self._abs_oauth_connection_name,
             activity.channel_id,

@@ -142,16 +142,28 @@ class UserToken(UserTokenBase):
             data = await response.json()
             return TokenResponse.model_validate(data)
 
-    async def get_token_or_sign_in_resource(
+    async def _get_token_or_sign_in_resource(
         self,
-        user_id,
-        connection_name,
-        channel_id,
+        user_id: str,
+        connection_name: str,
+        channel_id: str,
         state: str,
         code: str = "",
         final_redirect: str = "",
         fwd_url: str = "",
     ) -> TokenOrSignInResourceResponse:
+        """
+        Gets a token or a sign-in resource for a user and connection.
+
+        :param user_id: ID of the user.
+        :param connection_name: Name of the connection to use.
+        :param channel_id: ID of the channel.
+        :param state: State parameter for OAuth flow.
+        :param code: Optional authorization code.
+        :param final_redirect: Final redirect URL.
+        :param fwd_url: Forward URL.
+        :return: A token or sign-in resource response.
+        """
 
         params = {
             "userId": user_id,

@@ -20,7 +20,7 @@ class UserTokenBase(Protocol):
         raise NotImplementedError()
 
     @abstractmethod
-    async def get_token_or_sign_in_resource(
+    async def _get_token_or_sign_in_resource(
         self,
         user_id: str,
         connection_name: str,
