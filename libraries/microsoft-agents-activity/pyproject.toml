@@ -8,6 +8,9 @@ dynamic = ["version"]
 description = "A protocol library for Microsoft Agents"
 authors = [{name = "Microsoft Corporation"}]
 license = "MIT"
+license-files = [
+    "asdfasdfasfdsafasdfLICENSE"]
+
 requires-python = ">=3.9"
 classifiers = [
     "Programming Language :: Python :: 3",
