@@ -4,9 +4,31 @@
 
 The core hosting library for Microsoft 365 Agents SDK. This library provides the fundamental building blocks for creating conversational AI agents, including activity processing, state management, authentication, and channel communication.
 
-## What is this?
-
 This is the heart of the Microsoft 365 Agents SDK - think of it as the engine that powers your conversational agents. It handles the complex orchestration of conversations, manages state across turns, and provides the infrastructure needed to build production-ready agents that work across Microsoft 365 platforms.
+
+# What is this?
+This library is part of the **Microsoft 365 Agents SDK for Python** - a comprehensive framework for building enterprise-grade conversational AI agents. The SDK enables developers to create intelligent agents that work across multiple platforms including Microsoft Teams, M365 Copilot, Copilot Studio, and web chat, with support for third-party integrations like Slack, Facebook Messenger, and Twilio.
+
+## Packages Overview
+
+We offer the following PyPI packages to create conversational experiences based on Agents:
+
+| Package Name | PyPI Version | Description |
+|--------------|-------------|-------------|
+| `microsoft-agents-activity` | [![PyPI](https://img.shields.io/pypi/v/microsoft-agents-activity)](https://pypi.org/project/microsoft-agents-activity/) | Types and validators implementing the Activity protocol spec. |
+| `microsoft-agents-hosting-core` | [![PyPI](https://img.shields.io/pypi/v/microsoft-agents-hosting-core)](https://pypi.org/project/microsoft-agents-hosting-core/) | Core library for Microsoft Agents hosting. |
+| `microsoft-agents-hosting-aiohttp` | [![PyPI](https://img.shields.io/pypi/v/microsoft-agents-hosting-aiohttp)](https://pypi.org/project/microsoft-agents-hosting-aiohttp/) | Configures aiohttp to run the Agent. |
+| `microsoft-agents-hosting-teams` | [![PyPI](https://img.shields.io/pypi/v/microsoft-agents-hosting-teams)](https://pypi.org/project/microsoft-agents-hosting-teams/) | Provides classes to host an Agent for Teams. |
+| `microsoft-agents-storage-blob` | [![PyPI](https://img.shields.io/pypi/v/microsoft-agents-storage-blob)](https://pypi.org/project/microsoft-agents-storage-blob/) | Extension to use Azure Blob as storage. |
+| `microsoft-agents-storage-cosmos` | [![PyPI](https://img.shields.io/pypi/v/microsoft-agents-storage-cosmos)](https://pypi.org/project/microsoft-agents-storage-cosmos/) | Extension to use CosmosDB as storage. |
+| `microsoft-agents-authentication-msal` | [![PyPI](https://img.shields.io/pypi/v/microsoft-agents-authentication-msal)](https://pypi.org/project/microsoft-agents-authentication-msal/) | MSAL-based authentication for Microsoft Agents. |
+
+Additionally we provide a Copilot Studio Client, to interact with Agents created in CopilotStudio:
+
+| Package Name | PyPI Version | Description |
+|--------------|-------------|-------------|
+| `microsoft-agents-copilotstudio-client` | [![PyPI](https://img.shields.io/pypi/v/microsoft-agents-copilotstudio-client)](https://pypi.org/project/microsoft-agents-copilotstudio-client/) | Direct to Engine client to interact with Agents created in CopilotStudio |
+
 
 ## Installation
 
@@ -562,12 +584,19 @@ async def resilient_handler(context: TurnContext, state: TurnState):
 | `MemoryStorage` | `MemoryStorage` |
 | `MessageFactory` | `MessageFactory` |
 
-## Need Help?
+# Quick Links
 
-- 📖 [Full SDK Documentation](https://aka.ms/agents)
-- 🏗️ [Architecture Guide](https://docs.microsoft.com/azure/bot-service/bot-builder-concept-activity-processing)
+- 📦 [All SDK Packages on PyPI](https://pypi.org/search/?q=microsoft-agents)
+- 📖 [Complete Documentation](https://aka.ms/agents)
+- 💡 [Python Samples Repository](https://github.com/microsoft/Agents/tree/main/samples/python)
 - 🐛 [Report Issues](https://github.com/microsoft/Agents-for-python/issues)
-- 💡 [Sample Applications](https://github.com/microsoft/Agents-for-python/tree/main/test_samples)
-- 📚 [Bot Framework Migration Guide](https://docs.microsoft.com/azure/bot-service/migration/)
 
-Part of the [Microsoft 365 Agents SDK](https://github.com/microsoft/Agents-for-python) family.
+# Sample Applications
+
+Explore working examples in the [Python samples repository](https://github.com/microsoft/Agents/tree/main/samples/python):
+- **Teams Agent**: Full-featured Microsoft Teams bot with SSO and adaptive cards
+- **Copilot Studio Integration**: Connect to Copilot Studio agents
+- **Multi-Channel Agent**: Deploy to Teams, webchat, and third-party platforms
+- **Authentication Flows**: OAuth, MSAL, and token management examples
+- **State Management**: Conversation and user state with Azure storage
+- **Streaming Responses**: Real-time agent responses with citations
