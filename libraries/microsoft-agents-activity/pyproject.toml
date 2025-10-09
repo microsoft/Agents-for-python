@@ -9,7 +9,7 @@ description = "A protocol library for Microsoft Agents"
 authors = [{name = "Microsoft Corporation"}]
 license = "MIT"
 license-files = [
-    "asdfasdfasfdsafasdfLICENSE"]
+    "LICENSE"]
 
 requires-python = ">=3.9"
 classifiers = [
