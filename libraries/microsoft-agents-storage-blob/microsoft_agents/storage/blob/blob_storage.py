@@ -8,7 +8,7 @@ from azure.storage.blob.aio import (
 )
 
 from microsoft_agents.hosting.core.storage import StoreItem
-from microsoft_agents.hosting.core.storage.storage import AsyncStorageBase
+from microsoft_agents.hosting.core.storage.storage import _AsyncStorageBase
 from microsoft_agents.hosting.core.storage._type_aliases import JSON
 from microsoft_agents.hosting.core.storage.error_handling import (
     ignore_error,
@@ -20,7 +20,7 @@ from .blob_storage_config import BlobStorageConfig
 StoreItemT = TypeVar("StoreItemT", bound=StoreItem)
 
 
-class BlobStorage(AsyncStorageBase):
+class BlobStorage(_AsyncStorageBase):
 
     def __init__(self, config: BlobStorageConfig):
 

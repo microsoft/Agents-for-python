@@ -1,5 +1,5 @@
 from .store_item import StoreItem
-from .storage import Storage, AsyncStorageBase
+from .storage import Storage, _AsyncStorageBase
 from .memory_storage import MemoryStorage
 from ._transcript import (
     TranscriptInfo,
@@ -15,7 +15,7 @@ from ._transcript import (
 __all__ = [
     "StoreItem",
     "Storage",
-    "AsyncStorageBase",
+    "_AsyncStorageBase",
     "MemoryStorage",
     "TranscriptInfo",
     "TranscriptLogger",

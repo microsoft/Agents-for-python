@@ -17,7 +17,7 @@ from azure.cosmos.aio import (
 import azure.cosmos.exceptions as cosmos_exceptions
 from azure.cosmos.partition_key import NonePartitionKeyValue
 
-from microsoft_agents.hosting.core.storage import AsyncStorageBase, StoreItem
+from microsoft_agents.hosting.core.storage import _AsyncStorageBase, StoreItem
 from microsoft_agents.hosting.core.storage._type_aliases import JSON
 from microsoft_agents.hosting.core.storage.error_handling import ignore_error
 
@@ -31,7 +31,7 @@ cosmos_resource_not_found = lambda err: isinstance(
 )
 
 
-class CosmosDBStorage(AsyncStorageBase):
+class CosmosDBStorage(_AsyncStorageBase):
     """A CosmosDB based storage provider using partitioning"""
 
     def __init__(self, config: CosmosDBStorageConfig):

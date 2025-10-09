@@ -24,13 +24,13 @@ class Storage(Protocol):
 
         missing keys are omitted from the result.
         """
-        pass
+        raise NotImplementedError()
 
     async def write(self, changes: dict[str, StoreItemT]) -> None:
         """Writes multiple items to storage.
 
         changes: A dictionary of key to StoreItem to write."""
-        pass
+        raise NotImplementedError()
 
     async def delete(self, keys: list[str]) -> None:
         """Deletes multiple items from storage.
@@ -39,10 +39,10 @@ class Storage(Protocol):
 
         keys: A list of keys to delete.
         """
-        pass
+        raise NotImplementedError()
 
 
-class AsyncStorageBase(Storage):
+class _AsyncStorageBase(Storage):
     """Base class for asynchronous storage implementations with operations
     that work on single items. The bulk operations are implemented in terms
     of the single-item operations.
@@ -50,7 +50,7 @@ class AsyncStorageBase(Storage):
 
     async def initialize(self) -> None:
         """Initializes the storage container"""
-        pass
+        raise NotImplementedError()
 
     @abstractmethod
     async def _read_item(
@@ -60,7 +60,7 @@ class AsyncStorageBase(Storage):
 
         Returns a tuple of (key, StoreItem) if found, or (None, None) if not found.
         """
-        pass
+        raise NotImplementedError()
 
     async def read(
         self, keys: list[str], *, target_cls: Type[StoreItemT] = None, **kwargs
@@ -80,7 +80,7 @@ class AsyncStorageBase(Storage):
     @abstractmethod
     async def _write_item(self, key: str, value: StoreItemT) -> None:
         """Writes a single item to storage by key."""
-        pass
+        raise NotImplementedError()
 
     async def write(self, changes: dict[str, StoreItemT]) -> None:
         if not changes:
@@ -93,7 +93,7 @@ class AsyncStorageBase(Storage):
     @abstractmethod
     async def _delete_item(self, key: str) -> None:
         """Deletes a single item from storage by key."""
-        pass
+        raise NotImplementedError()
 
     async def delete(self, keys: list[str]) -> None:
         if not keys:
