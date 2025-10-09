@@ -7,10 +7,10 @@ name = "microsoft-agents-storage-blob"
 dynamic = ["version", "dependencies"]
 description = "A blob storage library for Microsoft Agents"
 authors = [{name = "Microsoft Corporation"}]
+license = {text = "MIT"}
 requires-python = ">=3.9"
 classifiers = [
     "Programming Language :: Python :: 3",
-    "License :: OSI Approved :: MIT License",
     "Operating System :: OS Independent",
 ]
 
