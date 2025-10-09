@@ -1,3 +1,6 @@
+# Copyright (c) Microsoft Corporation. All rights reserved.
+# Licensed under the MIT License.
+
 from ._type_aliases import NonEmptyString
 from .agents_model import AgentsModel
 from .token_exchange_resource import TokenExchangeResource

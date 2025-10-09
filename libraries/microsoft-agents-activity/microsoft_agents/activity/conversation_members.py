@@ -1,3 +1,6 @@
+# Copyright (c) Microsoft Corporation. All rights reserved.
+# Licensed under the MIT License.
+
 from .channel_account import ChannelAccount
 from .agents_model import AgentsModel
 from ._type_aliases import NonEmptyString

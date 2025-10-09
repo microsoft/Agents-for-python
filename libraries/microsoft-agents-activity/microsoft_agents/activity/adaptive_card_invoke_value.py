@@ -1,3 +1,6 @@
+# Copyright (c) Microsoft Corporation. All rights reserved.
+# Licensed under the MIT License.
+
 from .adaptive_card_invoke_action import AdaptiveCardInvokeAction
 from .token_exchange_invoke_request import TokenExchangeInvokeRequest
 from .agents_model import AgentsModel

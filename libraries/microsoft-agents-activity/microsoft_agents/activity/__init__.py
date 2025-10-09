@@ -62,6 +62,7 @@ from .thumbnail_url import ThumbnailUrl
 from .token_exchange_invoke_request import TokenExchangeInvokeRequest
 from .token_exchange_invoke_response import TokenExchangeInvokeResponse
 from .token_exchange_state import TokenExchangeState
+from .token_or_sign_in_resource_response import TokenOrSignInResourceResponse
 from .token_request import TokenRequest
 from .token_response import TokenResponse
 from .token_status import TokenStatus
@@ -185,4 +186,5 @@ __all__ = [
     "load_configuration_from_env",
     "ChannelAdapterProtocol",
     "TurnContextProtocol",
+    "TokenOrSignInResourceResponse",
 ]

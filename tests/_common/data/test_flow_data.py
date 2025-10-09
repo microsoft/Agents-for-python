@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import datetime, timezone
 
 from microsoft_agents.hosting.core._oauth import _FlowState, _FlowStateTag
 
@@ -22,53 +22,53 @@ class TEST_FLOW_DATA:
             **DEF_FLOW_ARGS,
             tag=_FlowStateTag.NOT_STARTED,
             attempts_remaining=1,
-            expiration=datetime.now().timestamp() + 1000000,
+            expiration=datetime.now(timezone.utc).timestamp() + 1000000,
         )
 
         self.started = _FlowState(
             **DEF_FLOW_ARGS,
             tag=_FlowStateTag.BEGIN,
             attempts_remaining=1,
-            expiration=datetime.now().timestamp() + 1000000,
+            expiration=datetime.now(timezone.utc).timestamp() + 1000000,
         )
 
         self.started_one_retry = _FlowState(
             **DEF_FLOW_ARGS,
             tag=_FlowStateTag.BEGIN,
             attempts_remaining=2,
-            expiration=datetime.now().timestamp() + 1000000,
+            expiration=datetime.now(timezone.utc).timestamp() + 1000000,
         )
 
         self.active = _FlowState(
             **DEF_FLOW_ARGS,
             tag=_FlowStateTag.CONTINUE,
             attempts_remaining=2,
-            expiration=datetime.now().timestamp() + 1000000,
+            expiration=datetime.now(timezone.utc).timestamp() + 1000000,
         )
 
         self.active_one_retry = _FlowState(
             **DEF_FLOW_ARGS,
             tag=_FlowStateTag.CONTINUE,
             attempts_remaining=1,
-            expiration=datetime.now().timestamp() + 1000000,
+            expiration=datetime.now(timezone.utc).timestamp() + 1000000,
         )
         self.active_exp = _FlowState(
             **DEF_FLOW_ARGS,
             tag=_FlowStateTag.CONTINUE,
             attempts_remaining=2,
-            expiration=datetime.now().timestamp(),
+            expiration=datetime.now(timezone.utc).timestamp(),
         )
         self.completed = _FlowState(
             **DEF_FLOW_ARGS,
             tag=_FlowStateTag.COMPLETE,
             attempts_remaining=2,
-            expiration=datetime.now().timestamp() + 1000000,
+            expiration=datetime.now(timezone.utc).timestamp() + 1000000,
         )
         self.fail_by_attempts = _FlowState(
             **DEF_FLOW_ARGS,
             tag=_FlowStateTag.FAILURE,
             attempts_remaining=0,
-            expiration=datetime.now().timestamp() + 1000000,
+            expiration=datetime.now(timezone.utc).timestamp() + 1000000,
         )
 
         self.fail_by_exp = _FlowState(

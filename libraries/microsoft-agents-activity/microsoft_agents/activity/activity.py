@@ -1,3 +1,6 @@
+# Copyright (c) Microsoft Corporation. All rights reserved.
+# Licensed under the MIT License.
+
 from copy import copy
 from datetime import datetime, timezone
 from typing import Optional

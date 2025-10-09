@@ -3,7 +3,7 @@
 
 from __future__ import annotations
 
-from datetime import datetime
+from datetime import datetime, timezone
 from enum import Enum
 from typing import Optional
 
@@ -60,7 +60,7 @@ class _FlowState(BaseModel, StoreItem):
         return _FlowState.model_validate(json_data)
 
     def is_expired(self) -> bool:
-        return datetime.now().timestamp() >= self.expiration
+        return datetime.now(timezone.utc).timestamp() >= self.expiration
 
     def reached_max_attempts(self) -> bool:
         return self.attempts_remaining <= 0
