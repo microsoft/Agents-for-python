@@ -3,10 +3,12 @@
 
 from threading import Lock
 from datetime import datetime, timezone
-from typing import List
+from typing import Optional
+
+from microsoft_agents.activity import Activity
+
 from .transcript_logger import TranscriptLogger, PagedResult
 from .transcript_info import TranscriptInfo
-from microsoft_agents.activity import Activity
 
 
 class TranscriptMemoryStore(TranscriptLogger):
@@ -50,7 +52,7 @@ class TranscriptMemoryStore(TranscriptLogger):
         self,
         channel_id: str,
         conversation_id: str,
-        continuation_token: str = None,
+        continuation_token: Optional[str] = None,
         start_date: datetime = datetime.min.replace(tzinfo=timezone.utc),
     ) -> PagedResult[Activity]:
         """
@@ -127,7 +129,7 @@ class TranscriptMemoryStore(TranscriptLogger):
             ]
 
     async def list_transcripts(
-        self, channel_id: str, continuation_token: str = None
+        self, channel_id: str, continuation_token: Optional[str] = None
     ) -> PagedResult[TranscriptInfo]:
         """
         Lists all transcripts (unique conversation IDs) for a given channel.

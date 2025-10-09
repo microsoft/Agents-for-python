@@ -1,9 +1,12 @@
 # Copyright (c) Microsoft Corporation. All rights reserved.
 # Licensed under the MIT License.
 
-from abc import ABC, abstractmethod
+from abc import abstractmethod
 from datetime import datetime, timezone
+from typing import Optional
+
 from microsoft_agents.activity import Activity
+
 from .transcript_info import TranscriptInfo
 from .transcript_logger import TranscriptLogger
 
@@ -14,7 +17,7 @@ class TranscriptStore(TranscriptLogger):
         self,
         channel_id: str,
         conversation_id: str,
-        continuation_token: str = None,
+        continuation_token: Optional[str] = None,
         start_date: datetime = datetime.min.replace(tzinfo=timezone.utc),
     ) -> tuple[list[Activity], str]:
         """
@@ -30,8 +33,8 @@ class TranscriptStore(TranscriptLogger):
 
     @abstractmethod
     async def list_transcripts(
-        self, channel_id: str, continuation_token: str = None
-    ) -> tuple[list[TranscriptInfo, str]]:
+        self, channel_id: str, continuation_token: Optional[str] = None
+    ) -> tuple[list[TranscriptInfo], Optional[str]]:
         """
         Asynchronously lists transcripts for a given channel.
 

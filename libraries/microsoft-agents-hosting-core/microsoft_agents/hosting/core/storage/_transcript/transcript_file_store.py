@@ -4,19 +4,18 @@
 from __future__ import annotations
 
 import asyncio
-import json
 import os
 import re
 
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Any, Dict, Iterable, List, Optional, Tuple, Union
+from typing import Any, Optional, Union
+
+from microsoft_agents.activity import Activity  # type: ignore
 
 from .transcript_logger import TranscriptLogger
 from .transcript_logger import PagedResult
 from .transcript_info import TranscriptInfo
-
-from microsoft_agents.activity import Activity  # type: ignore
 
 
 class FileTranscriptStore(TranscriptLogger):
@@ -87,10 +86,10 @@ class FileTranscriptStore(TranscriptLogger):
         :param channel_id: The channel ID to list transcripts for."""
         channel_dir = self._channel_dir(channel_id)
 
-        def _list() -> List[TranscriptInfo]:
+        def _list() -> list[TranscriptInfo]:
             if not channel_dir.exists():
                 return []
-            results: List[TranscriptInfo] = []
+            results: list[TranscriptInfo] = []
             for p in channel_dir.glob("*.transcript"):
                 # mtime is a reasonable proxy for 'created/updated'
                 created = datetime.fromtimestamp(p.stat().st_mtime, tz=timezone.utc)
@@ -127,12 +126,12 @@ class FileTranscriptStore(TranscriptLogger):
         """
         file_path = self._file_path(channel_id, conversation_id)
 
-        def _read_page() -> Tuple[List[Activity], Optional[str]]:
+        def _read_page() -> tuple[list[Activity], Optional[str]]:
             if not file_path.exists():
                 return [], None
 
             offset = int(continuation_token) if continuation_token else 0
-            results: List[Activity] = []
+            results: list[Activity] = []
 
             with open(file_path, "rb") as f:
                 f.seek(0, os.SEEK_END)
@@ -215,7 +214,7 @@ def _sanitize(pattern: re.Pattern[str], value: str) -> str:
     return value or "unknown"
 
 
-def _get_ids(activity: Activity) -> Tuple[str, str]:
+def _get_ids(activity: Activity) -> tuple[str, str]:
     # Works with both dict-like and object-like Activity
     def _get(obj: Any, *path: str) -> Optional[Any]:
         cur = obj
@@ -233,35 +232,6 @@ def _get_ids(activity: Activity) -> Tuple[str, str]:
     if not channel_id or not conversation_id:
         raise ValueError("Activity must include channel_id and conversation.id")
     return str(channel_id), str(conversation_id)
-
-
-def _to_plain_dict(activity: Activity) -> Dict[str, Any]:
-
-    if isinstance(activity, dict):
-        return activity
-    # Best-effort conversion for dataclass/attr/objects
-    try:
-        import dataclasses
-
-        if dataclasses.is_dataclass(activity):
-            return dataclasses.asdict(activity)  # type: ignore[arg-type]
-    except Exception:
-        pass
-    try:
-        return json.loads(
-            json.dumps(activity, default=lambda o: getattr(o, "__dict__", str(o)))
-        )
-    except Exception:
-        # Fallback: minimal projection
-        channel_id, conversation_id = _get_ids(activity)
-        return {
-            "type": getattr(activity, "type", "message"),
-            "id": getattr(activity, "id", None),
-            "channel_id": channel_id,
-            "conversation": {"id": conversation_id},
-            "text": getattr(activity, "text", None),
-        }
-
 
 def _utc_iso_now() -> str:
     return datetime.now(timezone.utc).isoformat()
