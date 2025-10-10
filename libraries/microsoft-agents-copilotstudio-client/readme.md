@@ -40,126 +40,41 @@ pip install microsoft-agents-copilotstudio-client
 
 ### Basic Setup
 
+Code below from the [main.py in the Copilot Studio Client](https://github.com/microsoft/Agents/blob/main/samples/python/copilotstudio-client/src/main.py)
 ```python
-from microsoft_agents.copilotstudio.client import (
-    CopilotClient, 
-    ConnectionSettings, 
-    PowerPlatformCloud, 
-    AgentType
-)
-
-# Configure connection to your Copilot Studio agent
-settings = ConnectionSettings(
-    environment_id="your-environment-id",
-    agent_identifier="your-agent-id", 
-    cloud=PowerPlatformCloud.PROD,
-    copilot_agent_type=AgentType.PUBLISHED
-)
-
-# Create client with access token
-client = CopilotClient(settings, "your-access-token")
+def create_client():
+    settings = ConnectionSettings(
+        environment_id=environ.get("COPILOTSTUDIOAGENT__ENVIRONMENTID"),
+        agent_identifier=environ.get("COPILOTSTUDIOAGENT__SCHEMANAME"),
+        cloud=None,
+        copilot_agent_type=None,
+        custom_power_platform_cloud=None,
+    )
+    token = acquire_token(
+        settings,
+        app_client_id=environ.get("COPILOTSTUDIOAGENT__AGENTAPPID"),
+        tenant_id=environ.get("COPILOTSTUDIOAGENT__TENANTID"),
+    )
+    copilot_client = CopilotClient(settings, token)
+    return copilot_client
 ```
 
 ### Start a Conversation
+The code below is summarized from the [main.py in the Copilot Studio Client](https://github.com/microsoft/Agents/blob/main/samples/python/copilotstudio-client/src/main.py). See that sample for complete & working code. 
 
 ```python
-import asyncio
+    copilot_client = create_client()
+    act = copilot_client.start_conversation(True)
 
-async def chat_with_agent():
-    # Initialize conversation
-    async for activity in client.start_conversation():
-        if activity.type == "message":
-            print(f"Agent: {activity.text}")
-    
-    # Send a question
-    async for activity in client.ask_question("Hello, how can you help me?"):
-        if activity.type == "message":
-            print(f"Agent: {activity.text}")
+    ...
 
-# Run the conversation
-asyncio.run(chat_with_agent())
-```
-
-## Configuration Options
-
-### Connection Settings
-
-```python
-settings = ConnectionSettings(
-    environment_id="12345678-1234-1234-1234-123456789012",  # Required
-    agent_identifier="your-agent-name",                      # Required  
-    cloud=PowerPlatformCloud.PROD,                          # Environment
-    copilot_agent_type=AgentType.PUBLISHED                  # Agent version
-)
-```
-
-### Power Platform Clouds
-
-Choose the appropriate cloud environment:
-
-```python
-from microsoft_agents.copilotstudio.client import PowerPlatformCloud
-
-# Production (default)
-cloud = PowerPlatformCloud.PROD
-
-# Government clouds
-cloud = PowerPlatformCloud.GOV
-cloud = PowerPlatformCloud.HIGH
-cloud = PowerPlatformCloud.DOD
-
-# Testing environments
-cloud = PowerPlatformCloud.DEV
-cloud = PowerPlatformCloud.TEST
-
-# Custom cloud
-settings = ConnectionSettings(
-    environment_id="your-env-id",
-    agent_identifier="your-agent-id",
-    cloud=PowerPlatformCloud.OTHER,
-    custom_power_platform_cloud="your-custom-cloud.powerplatform.com"
-)
-```
-
-### Agent Types
-
-```python
-from microsoft_agents.copilotstudio.client import AgentType
-
-# Published agent (default)
-agent_type = AgentType.PUBLISHED
-
-# Prebuilt agent
-agent_type = AgentType.PREBUILT
-```
-
-## Authentication
-
-### Get Access Token
-
-You need a valid access token for the Power Platform API:
-
-```python
-from msal import PublicClientApplication
-
-# MSAL configuration
-app = PublicClientApplication(
-    client_id="your-app-client-id",
-    authority="https://login.microsoftonline.com/your-tenant-id"
-)
-
-# Get token
-result = app.acquire_token_interactive(
-    scopes=["https://api.powerplatform.com/.default"]
-)
-
-if "access_token" in result:
-    token = result["access_token"]
-    client = CopilotClient(settings, token)
+    replies = copilot_client.ask_question("Who are you?", conversation_id)
+    async for reply in replies:
+        if reply.type == ActivityTypes.message:
+            print(f"\n{reply.text}")
 ```
 
 ### Environment Variables
-
 Set up your `.env` file:
 
 ```bash
@@ -174,118 +89,6 @@ CLOUD=PROD
 COPILOT_AGENT_TYPE=PUBLISHED
 CUSTOM_POWER_PLATFORM_CLOUD=your-custom-cloud.com
 ```
-
-## Advanced Usage
-
-### Send Custom Activities
-
-```python
-from microsoft_agents.activity import Activity, ActivityTypes, ConversationAccount
-
-# Create custom activity
-activity = Activity(
-    type=ActivityTypes.message,
-    text="Custom message with metadata",
-    conversation=ConversationAccount(id="conversation-123"),
-    value={"customData": "example"}
-)
-
-# Send to agent
-async for response in client.ask_question_with_activity(activity):
-    print(f"Response: {response.text}")
-```
-
-### Handle Different Activity Types
-
-```python
-async def handle_conversation():
-    async for activity in client.start_conversation():
-        if activity.type == "message":
-            print(f"Message: {activity.text}")
-            
-            # Check for suggested actions
-            if activity.suggested_actions:
-                print("Available actions:")
-                for action in activity.suggested_actions.actions:
-                    print(f"  - {action.title}")
-                    
-        elif activity.type == "typing":
-            print("Agent is typing...")
-            
-        elif activity.type == "event":
-            print(f"Event: {activity.name}")
-```
-
-### Conversation Management
-
-```python
-class ConversationManager:
-    def __init__(self, client: CopilotClient):
-        self.client = client
-        self.conversation_id = None
-    
-    async def start_new_conversation(self):
-        async for activity in self.client.start_conversation():
-            if activity.conversation:
-                self.conversation_id = activity.conversation.id
-            yield activity
-    
-    async def send_message(self, text: str):
-        async for activity in self.client.ask_question(text, self.conversation_id):
-            yield activity
-```
-
-## Integration with Microsoft 365 Agents SDK
-
-```python
-from microsoft_agents.hosting.core import TurnContext, MessageFactory
-from microsoft_agents.authentication.msal import MsalAuth
-
-# In your agent handler
-async def handle_copilot_studio_query(context: TurnContext):
-    # Get OBO token
-    auth = MsalAuth(your_auth_config)
-    token = await auth.acquire_token_on_behalf_of(
-        scopes=["https://api.powerplatform.com/.default"],
-        user_assertion="user-token"
-    )
-    
-    # Create Copilot Studio client
-    client = CopilotClient(settings, token)
-    
-    # Forward user message to Copilot Studio
-    user_message = context.activity.text
-    async for activity in client.ask_question(user_message):
-        await context.send_activity(MessageFactory.text(activity.text))
-```
-
-## Console Chat Example
-
-```python
-async def console_chat():
-    # Start conversation
-    print("Starting conversation with Copilot Studio agent...")
-    async for activity in client.start_conversation():
-        if activity.type == "message":
-            print(f"Agent: {activity.text}")
-    
-    # Chat loop
-    while True:
-        user_input = input("You: ")
-        if user_input.lower() in ['quit', 'exit']:
-            break
-            
-        async for activity in client.ask_question(user_input):
-            if activity.type == "message":
-                print(f"Agent: {activity.text}")
-```
-
-## Key Classes
-
-- **`CopilotClient`** - Main client for communicating with Copilot Studio agents
-- **`ConnectionSettings`** - Configuration for connecting to your agent
-- **`PowerPlatformCloud`** - Enum for different Power Platform environments
-- **`AgentType`** - Enum for agent version types (published/prebuilt)
 
 ## Features
 
@@ -331,10 +134,12 @@ async def console_chat():
 
 # Sample Applications
 
-Explore working examples in the [Python samples repository](https://github.com/microsoft/Agents/tree/main/samples/python):
-- **Teams Agent**: Full-featured Microsoft Teams bot with SSO and adaptive cards
-- **Copilot Studio Integration**: Connect to Copilot Studio agents
-- **Multi-Channel Agent**: Deploy to Teams, webchat, and third-party platforms
-- **Authentication Flows**: OAuth, MSAL, and token management examples
-- **State Management**: Conversation and user state with Azure storage
-- **Streaming Responses**: Real-time agent responses with citations
+|Name|Description|README|
+|----|----|----|
+|Quickstart|Simplest agent|[Quickstart](https://github.com/microsoft/Agents/blob/main/samples/python/quickstart/README.md)|
+|Auto Sign In|Simple OAuth agent using Graph and GitHub|[auto-signin](https://github.com/microsoft/Agents/blob/main/samples/python/auto-signin/README.md)|
+|OBO Authorization|OBO flow to access a Copilot Studio Agent|[obo-authorization](https://github.com/microsoft/Agents/blob/main/samples/python/obo-authorization/README.md)|
+|Semantic Kernel Integration|A weather agent built with Semantic Kernel|[semantic-kernel-multiturn](https://github.com/microsoft/Agents/blob/main/samples/python/semantic-kernel-multiturn/README.md)|
+|Streaming Agent|Streams OpenAI responses|[azure-ai-streaming](https://github.com/microsoft/Agents/blob/main/samples/python/azureai-streaming/README.md)|
+|Copilot Studio Client|Console app to consume a Copilot Studio Agent|[copilotstudio-client](https://github.com/microsoft/Agents/blob/main/samples/python/copilotstudio-client/README.md)|
+|Cards Agent|Agent that uses rich cards to enhance conversation design |[cards](https://github.com/microsoft/Agents/blob/main/samples/python/cards/README.md)|

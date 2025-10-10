@@ -35,43 +35,31 @@ Additionally we provide a Copilot Studio Client, to interact with Agents created
 ```bash
 pip install microsoft-agents-hosting-core
 ```
-
-## Quick Start
-
-### Simple Echo Agent
+## Simple Echo Agent
+See the [Quickstart sample](https://github.com/microsoft/Agents/tree/main/samples/python/quickstart) for full working code.
 
 ```python
-from microsoft_agents.hosting.core import (
-    AgentApplication, 
-    TurnState, 
-    TurnContext, 
-    MemoryStorage
+agents_sdk_config = load_configuration_from_env(environ)
+
+STORAGE = MemoryStorage()
+CONNECTION_MANAGER = MsalConnectionManager(**agents_sdk_config)
+ADAPTER = CloudAdapter(connection_manager=CONNECTION_MANAGER)
+AUTHORIZATION = Authorization(STORAGE, CONNECTION_MANAGER, **agents_sdk_config)
+
+AGENT_APP = AgentApplication[TurnState](
+    storage=STORAGE, adapter=ADAPTER, authorization=AUTHORIZATION, **agents_sdk_config
 )
 
-# Create your agent application
-storage = MemoryStorage()
-agent_app = AgentApplication[TurnState](storage=storage)
-
-@agent_app.activity("message")
+@AGENT_APP.activity("message")
 async def on_message(context: TurnContext, state: TurnState):
     await context.send_activity(f"You said: {context.activity.text}")
 
-# Agent is ready to process messages!
-```
+...
 
-### Activity Handler Style
-
-```python
-from microsoft_agents.hosting.core import ActivityHandler, TurnContext
-
-class MyAgent(ActivityHandler):
-    async def on_message_activity(self, turn_context: TurnContext):
-        await turn_context.send_activity("Hello from ActivityHandler!")
-    
-    async def on_conversation_update_activity(self, turn_context: TurnContext):
-        await turn_context.send_activity("Welcome to the conversation!")
-
-agent = MyAgent()
+start_server(
+    agent_application=AGENT_APP,
+    auth_configuration=CONNECTION_MANAGER.get_default_connection_configuration(),
+)
 ```
 
 ## Core Concepts
@@ -89,465 +77,33 @@ agent = MyAgent()
 - More familiar to Bot Framework developers
 - Lower-level control over activity processing
 
-### Turn Context
-
-Every conversation "turn" (message exchange) gets a `TurnContext` containing:
-
-```python
-async def handle_message(context: TurnContext, state: TurnState):
-    # The incoming activity (message, event, etc.)
-    user_message = context.activity.text
-    
-    # Send responses
-    await context.send_activity("Simple text response")
-    
-    # Send rich content
-    from microsoft_agents.hosting.core import MessageFactory
-    card_activity = MessageFactory.attachment(hero_card)
-    await context.send_activity(card_activity)
-    
-    # Access conversation metadata
-    conversation_id = context.activity.conversation.id
-    user_id = context.activity.from_property.id
-```
-
-### State Management
-
-Agents need to remember information across conversation turns:
-
-```python
-from microsoft_agents.hosting.core import (
-    TurnState, 
-    ConversationState, 
-    UserState,
-    MemoryStorage
-)
-
-storage = MemoryStorage()
-agent_app = AgentApplication[TurnState](storage=storage)
-
-@agent_app.activity("message")
-async def on_message(context: TurnContext, state: TurnState):
-    # Conversation-scoped data (shared by all users in conversation)
-    conversation_data = state.conversation
-    conversation_data.set_value("topic", "weather")
-    
-    # User-scoped data (specific to this user across conversations)
-    user_data = state.user
-    user_data.set_value("name", "John")
-    
-    # Temporary data (only for this turn)
-    state.temp.set_value("processing_step", "validation")
-    
-    # State is automatically saved after the turn
-```
-
-#### Built-in State Scopes
-
-- **ConversationState** - Shared across all users in a conversation
-- **UserState** - Specific to individual users across all conversations  
-- **TempState** - Temporary data for the current turn only
-
-## Advanced Features
-
 ### Route-based Message Handling
 
 ```python
-# Handle all messages
-@agent_app.activity("message")
-async def handle_all_messages(context: TurnContext, state: TurnState):
-    await context.send_activity("Default handler")
+@AGENT_APP.message(re.compile(r"^hello$"))
+async def on_hello(context: TurnContext, _state: TurnState):
+    await context.send_activity("Hello!")
 
-# Handle specific patterns
-@agent_app.message(r"/weather (\w+)")
-async def handle_weather(context: TurnContext, state: TurnState):
-    city = context.matches[1]  # Extract from regex
-    await context.send_activity(f"Weather for {city}")
 
-# Handle conversation updates
-@agent_app.conversation_update("membersAdded")
-async def welcome_user(context: TurnContext, state: TurnState):
-    await context.send_activity("Welcome to the agent!")
-
-# Handle different activity types
-@agent_app.activity("event")
-async def handle_events(context: TurnContext, state: TurnState):
-    event_name = context.activity.name
-    await context.send_activity(f"Received event: {event_name}")
-```
-
-### Authentication & Authorization
-
-```python
-from microsoft_agents.hosting.core import Authorization
-from microsoft_agents.authentication.msal import MsalConnectionManager
-
-# Set up authentication
-connection_manager = MsalConnectionManager(**config)
-authorization = Authorization(storage, connection_manager, **config)
-
-agent_app = AgentApplication[TurnState](
-    storage=storage,
-    authorization=authorization,
-    **config
-)
-
-@agent_app.activity("message")
-async def authenticated_handler(context: TurnContext, state: TurnState):
-    # Check if user is authenticated
-    if not agent_app.auth.is_signed_in(context):
-        await agent_app.auth.sign_in(context)
-        return
-    
-    # Get user token for Microsoft Graph
-    token = await agent_app.auth.get_token(context, ["User.Read"])
-    # Use token to call Microsoft Graph APIs
-```
-
-### Middleware & Logging
-
-```python
-from microsoft_agents.hosting.core.storage import (
-    TranscriptLoggerMiddleware, 
-    ConsoleTranscriptLogger
-)
-
-# Add transcript logging
-adapter.use(TranscriptLoggerMiddleware(ConsoleTranscriptLogger()))
-
-# Custom middleware
-class CustomMiddleware:
-    async def on_turn(self, context: TurnContext, next_handler):
-        print(f"Before: {context.activity.text}")
-        await next_handler()
-        print("After: Turn completed")
-
-adapter.use(CustomMiddleware())
-```
-
-### File Handling
-
-```python
-from microsoft_agents.hosting.core import InputFile
-
-@agent_app.activity("message")
-async def handle_files(context: TurnContext, state: TurnState):
-    # Check for file attachments
-    files = state.temp.input_files
-    if files:
-        for file in files:
-            if file.content_type.startswith("image/"):
-                # Process image file
-                content = await file.download()
-                await context.send_activity(f"Received image: {file.name}")
+@AGENT_APP.activity("message")
+async def on_message(context: TurnContext, _state: TurnState):
+    await context.send_activity(f"you said: {context.activity.text}")
 ```
 
 ### Error Handling
 
 ```python
-@agent_app.error
+@AGENT_APP.error
 async def on_error(context: TurnContext, error: Exception):
-    print(f"Error occurred: {error}")
-    await context.send_activity("Sorry, something went wrong.")
+    # NOTE: In production environment, you should consider logging this to Azure
+    #       application insights.
+    print(f"\n [on_turn_error] unhandled error: {error}", file=sys.stderr)
+    traceback.print_exc()
 
-# Custom error types
-from microsoft_agents.hosting.core import ApplicationError
-
-async def risky_operation():
-    if something_wrong:
-        raise ApplicationError("Custom error message")
+    # Send a message to the user
+    await context.send_activity("The bot encountered an error or bug.")
 ```
 
-## Storage Options
-
-### Memory Storage (Development)
-
-```python
-from microsoft_agents.hosting.core import MemoryStorage
-
-storage = MemoryStorage()  # Data lost when app restarts
-```
-
-### Persistent Storage (Production)
-
-```python
-# Azure Blob Storage
-from microsoft_agents.storage.blob import BlobStorage
-storage = BlobStorage("connection_string", "container_name")
-
-# Azure Cosmos DB
-from microsoft_agents.storage.cosmos import CosmosDbStorage  
-storage = CosmosDbStorage("connection_string", "database", "container")
-```
-
-## Channel Communication
-
-### Agent-to-Agent Communication
-
-```python
-from microsoft_agents.hosting.core import (
-    HttpAgentChannelFactory,
-    ConfigurationChannelHost
-)
-
-# Set up agent communication
-channel_factory = HttpAgentChannelFactory()
-channel_host = ConfigurationChannelHost(
-    channel_factory, connection_manager, config, "HttpAgentClient"
-)
-
-# Send message to another agent
-await channel_host.send_to_agent(
-    agent_id="other-agent-id",
-    activity=message_activity
-)
-```
-
-### Teams Integration
-
-```python
-from microsoft_agents.hosting.teams import TeamsActivityHandler
-
-class TeamsAgent(TeamsActivityHandler):
-    async def on_teams_message_activity(self, turn_context: TurnContext):
-        # Teams-specific message handling
-        await turn_context.send_activity("Hello from Teams!")
-    
-    async def on_teams_members_added_activity(self, turn_context: TurnContext):
-        # Handle new team members
-        await turn_context.send_activity("Welcome to the team!")
-```
-
-## Rich Content Creation
-
-### Message Factory
-
-```python
-from microsoft_agents.hosting.core import MessageFactory
-
-# Simple text
-message = MessageFactory.text("Hello world!")
-
-# Text with suggested actions
-message = MessageFactory.suggested_actions(
-    ["Option 1", "Option 2", "Option 3"],
-    "Choose an option:"
-)
-
-# Attachment (cards, files, etc.)
-message = MessageFactory.attachment(hero_card_attachment)
-```
-
-### Card Factory
-
-```python
-from microsoft_agents.hosting.core import CardFactory
-
-# Hero card
-hero_card = CardFactory.hero_card(
-    title="Card Title",
-    subtitle="Card Subtitle", 
-    text="Card description text",
-    images=["https://example.com/image.jpg"],
-    buttons=[
-        {"type": "imBack", "title": "Click Me", "value": "button_clicked"}
-    ]
-)
-
-# Adaptive card
-adaptive_card = CardFactory.adaptive_card({
-    "type": "AdaptiveCard",
-    "version": "1.2",
-    "body": [
-        {
-            "type": "TextBlock",
-            "text": "Hello Adaptive Cards!"
-        }
-    ]
-})
-```
-
-## Configuration & Deployment
-
-### Environment Setup
-
-```python
-import os
-from microsoft_agents.activity import load_configuration_from_env
-from microsoft_agents.hosting.core import AgentApplication, TurnState
-
-# Load from environment variables
-config = load_configuration_from_env(os.environ)
-
-# Create fully configured agent
-agent_app = AgentApplication[TurnState](
-    storage=storage,
-    adapter=adapter,
-    authorization=authorization,
-    **config
-)
-```
-
-### Application Options
-
-```python
-from microsoft_agents.hosting.core import ApplicationOptions
-
-options = ApplicationOptions(
-    agent_id="my-agent",
-    storage=storage,
-    authentication=auth_config,
-    logging_level="DEBUG"
-)
-
-agent_app = AgentApplication[TurnState](options=options)
-```
-
-## Architecture Patterns
-
-### Layered Architecture
-
-```python
-# Domain layer - business logic
-class WeatherService:
-    async def get_weather(self, city: str) -> str:
-        return f"Weather in {city}: Sunny, 72°F"
-
-# Application layer - agent handlers
-@agent_app.message(r"/weather (\w+)")
-async def weather_handler(context: TurnContext, state: TurnState):
-    city = context.matches[1]
-    weather_service = WeatherService()
-    weather = await weather_service.get_weather(city)
-    await context.send_activity(weather)
-```
-
-### State Management Patterns
-
-```python
-# Custom state scope
-class OrderState(AgentState):
-    def get_storage_key(self, turn_context: TurnContext):
-        return f"order:{turn_context.activity.from_property.id}"
-
-# Use custom state
-custom_state = OrderState(storage, "OrderState")
-turn_state = TurnState.with_storage(storage, custom_state)
-```
-
-### Plugin Architecture
-
-```python
-# Create reusable components
-class GreetingPlugin:
-    @staticmethod
-    def register(app: AgentApplication):
-        @app.conversation_update("membersAdded")
-        async def greet(context: TurnContext, state: TurnState):
-            await context.send_activity("Welcome!")
-
-# Register plugins
-GreetingPlugin.register(agent_app)
-```
-
-## Testing Your Agents
-
-### Unit Testing
-
-```python
-import pytest
-from microsoft_agents.hosting.core import TurnContext, MemoryStorage
-from microsoft_agents.activity import Activity, ActivityTypes
-
-@pytest.mark.asyncio
-async def test_echo_handler():
-    # Create test activity
-    activity = Activity(
-        type=ActivityTypes.message,
-        text="test message",
-        conversation={"id": "test"},
-        from_property={"id": "user"}
-    )
-    
-    # Create test context
-    context = TurnContext(mock_adapter, activity)
-    state = TurnState.with_storage(MemoryStorage())
-    
-    # Test your handler
-    await echo_handler(context, state)
-    
-    # Verify response
-    assert len(context.responses) == 1
-    assert "test message" in context.responses[0].text
-```
-
-### Integration Testing
-
-```python
-# Test with real storage and authentication
-async def test_authenticated_flow():
-    storage = MemoryStorage()
-    agent_app = AgentApplication[TurnState](
-        storage=storage,
-        authorization=test_auth
-    )
-    
-    # Simulate authenticated conversation
-    context = create_test_context(authenticated_user_activity)
-    await agent_app.on_turn(context)
-```
-
-## Performance & Best Practices
-
-### Efficient State Management
-
-```python
-# Load only needed state scopes
-minimal_state = TurnState()
-minimal_state.add(ConversationState(storage))  # Only add what you need
-
-# Batch state operations
-async def batch_operations(context: TurnContext, state: TurnState):
-    state.conversation.set_value("key1", "value1")
-    state.conversation.set_value("key2", "value2")
-    state.user.set_value("preference", "dark_mode")
-    # All saved together at end of turn
-```
-
-### Async Best Practices
-
-```python
-@agent_app.activity("message")
-async def efficient_handler(context: TurnContext, state: TurnState):
-    # Good: Use async/await for I/O operations
-    api_result = await external_api_call()
-    
-    # Good: Process concurrently when possible
-    results = await asyncio.gather(
-        call_service_a(),
-        call_service_b(),
-        call_service_c()
-    )
-    
-    await context.send_activity(f"Results: {results}")
-```
-
-### Error Recovery
-
-```python
-@agent_app.activity("message")
-async def resilient_handler(context: TurnContext, state: TurnState):
-    try:
-        result = await unreliable_service()
-        await context.send_activity(f"Success: {result}")
-    except ServiceError:
-        # Graceful degradation
-        await context.send_activity("Service temporarily unavailable, try again later")
-    except Exception as e:
-        # Log and provide user-friendly message
-        logger.error(f"Unexpected error: {e}")
-        await context.send_activity("Something went wrong, please try again")
-```
 
 ## Key Classes Reference
 
@@ -572,18 +128,6 @@ async def resilient_handler(context: TurnContext, state: TurnState):
 - **`Authorization`** - Authentication and authorization manager
 - **`ClaimsIdentity`** - User identity and claims
 
-## Migration from Bot Framework
-
-| Bot Framework | Microsoft Agents Core |
-|---------------|----------------------|
-| `BotFrameworkAdapter` | `CloudAdapter` |
-| `ActivityHandler` | `ActivityHandler` or `AgentApplication` |
-| `TurnContext` | `TurnContext` |
-| `ConversationState` | `ConversationState` |
-| `UserState` | `UserState` |
-| `MemoryStorage` | `MemoryStorage` |
-| `MessageFactory` | `MessageFactory` |
-
 # Quick Links
 
 - 📦 [All SDK Packages on PyPI](https://pypi.org/search/?q=microsoft-agents)
@@ -593,10 +137,12 @@ async def resilient_handler(context: TurnContext, state: TurnState):
 
 # Sample Applications
 
-Explore working examples in the [Python samples repository](https://github.com/microsoft/Agents/tree/main/samples/python):
-- **Teams Agent**: Full-featured Microsoft Teams bot with SSO and adaptive cards
-- **Copilot Studio Integration**: Connect to Copilot Studio agents
-- **Multi-Channel Agent**: Deploy to Teams, webchat, and third-party platforms
-- **Authentication Flows**: OAuth, MSAL, and token management examples
-- **State Management**: Conversation and user state with Azure storage
-- **Streaming Responses**: Real-time agent responses with citations
+|Name|Description|README|
+|----|----|----|
+|Quickstart|Simplest agent|[Quickstart](https://github.com/microsoft/Agents/blob/main/samples/python/quickstart/README.md)|
+|Auto Sign In|Simple OAuth agent using Graph and GitHub|[auto-signin](https://github.com/microsoft/Agents/blob/main/samples/python/auto-signin/README.md)|
+|OBO Authorization|OBO flow to access a Copilot Studio Agent|[obo-authorization](https://github.com/microsoft/Agents/blob/main/samples/python/obo-authorization/README.md)|
+|Semantic Kernel Integration|A weather agent built with Semantic Kernel|[semantic-kernel-multiturn](https://github.com/microsoft/Agents/blob/main/samples/python/semantic-kernel-multiturn/README.md)|
+|Streaming Agent|Streams OpenAI responses|[azure-ai-streaming](https://github.com/microsoft/Agents/blob/main/samples/python/azureai-streaming/README.md)|
+|Copilot Studio Client|Console app to consume a Copilot Studio Agent|[copilotstudio-client](https://github.com/microsoft/Agents/blob/main/samples/python/copilotstudio-client/README.md)|
+|Cards Agent|Agent that uses rich cards to enhance conversation design |[cards](https://github.com/microsoft/Agents/blob/main/samples/python/cards/README.md)|

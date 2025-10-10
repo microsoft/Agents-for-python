@@ -44,74 +44,55 @@ pip install microsoft-agents-activity
 ```
 
 ## Quick Start
-
+Code below taken from the [Quick Start](https://github.com/microsoft/Agents/tree/main/samples/python/quickstart) sample.
 ```python
-from microsoft_agents.activity import Activity, ActivityTypes
+@AGENT_APP.conversation_update("membersAdded")
+async def on_members_added(context: TurnContext, _state: TurnState):
+    await context.send_activity(
+        "Welcome to the empty agent! "
+        "This agent is designed to be a starting point for your own agent development."
+    )
+    return True
 
-# Send a simple message
-activity = Activity(
-    type=ActivityTypes.message,
-    text="Hello! How can I help you today?"
-)
 
-# Create a reply
-reply = activity.create_reply("Thanks for reaching out!")
+@AGENT_APP.message(re.compile(r"^hello$"))
+async def on_hello(context: TurnContext, _state: TurnState):
+    await context.send_activity("Hello!")
 
-# Show typing indicator
-typing = Activity.create_typing_activity()
+
+@AGENT_APP.activity("message")
+async def on_message(context: TurnContext, _state: TurnState):
+    await context.send_activity(f"you said: {context.activity.text}")
 ```
 
 ## Common Use Cases
 
 ### Rich Messages with Cards
+Code below taken from the [Cards](https://github.com/microsoft/Agents/tree/main/samples/python/cards) sample.
+
 
 ```python
-from microsoft_agents.activity import HeroCard, CardAction, Attachment
+    @staticmethod
+    async def send_animation_card(context: TurnContext):
+        card = CardFactory.animation_card(
+            AnimationCard(
+                title="Microsoft Agents Framework",
+                image=ThumbnailUrl(
+                    url="https://i.giphy.com/Ki55RUbOV5njy.gif", alt="Cute Robot"
+                ),
+                media=[MediaUrl(url="https://i.giphy.com/Ki55RUbOV5njy.gif")],
+                subtitle="Animation Card",
+                text="This is an example of an animation card using a gif.",
+                aspect="16:9",
+                duration="PT2M",
+            )
+        )
+        await CardMessages.send_activity(context, card)
 
-# Create a welcome card
-card = HeroCard(
-    title="Welcome to our service!",
-    subtitle="Let's get you started",
-    text="Choose an option below to continue",
-    actions=[
-        CardAction(type="imBack", title="Get Help", value="help"),
-        CardAction(type="imBack", title="View Profile", value="profile")
-    ]
-)
-
-activity = Activity(
-    type=ActivityTypes.message,
-    text="Welcome!",
-    attachments=[Attachment(
-        content_type="application/vnd.microsoft.card.hero",
-        content=card
-    )]
-)
-```
-
-### Handle @Mentions
-
-```python
-from microsoft_agents.activity import Mention, ChannelAccount
-
-# Check for mentions in incoming messages
-mentions = activity.get_mentions()
-for mention in mentions:
-    mentioned_user = mention.mentioned
-    print(f"User {mentioned_user.name} was mentioned")
-```
-
-### Teams Integration
-
-```python
-from microsoft_agents.activity.teams import TeamsChannelAccount
-
-# Work with Teams-specific user info
-teams_user = TeamsChannelAccount(
-    id="user123",
-    name="John Doe",
-    user_principal_name="john.doe@company.com"
-)
+    @staticmethod
+    async def send_activity(context: TurnContext, card: Attachment):
+        activity = Activity(type=ActivityTypes.message, attachments=[card])
+        await context.send_activity(activity)
 ```
 
 ## Activity Types
@@ -141,11 +122,14 @@ The library supports different types of communication:
 - 🐛 [Report Issues](https://github.com/microsoft/Agents-for-python/issues)
 
 # Sample Applications
-
 Explore working examples in the [Python samples repository](https://github.com/microsoft/Agents/tree/main/samples/python):
-- **Teams Agent**: Full-featured Microsoft Teams bot with SSO and adaptive cards
-- **Copilot Studio Integration**: Connect to Copilot Studio agents
-- **Multi-Channel Agent**: Deploy to Teams, webchat, and third-party platforms
-- **Authentication Flows**: OAuth, MSAL, and token management examples
-- **State Management**: Conversation and user state with Azure storage
-- **Streaming Responses**: Real-time agent responses with citations
+
+|Name|Description|README|
+|----|----|----|
+|Quickstart|Simplest agent|[Quickstart](https://github.com/microsoft/Agents/blob/main/samples/python/quickstart/README.md)|
+|Auto Sign In|Simple OAuth agent using Graph and GitHub|[auto-signin](https://github.com/microsoft/Agents/blob/main/samples/python/auto-signin/README.md)|
+|OBO Authorization|OBO flow to access a Copilot Studio Agent|[obo-authorization](https://github.com/microsoft/Agents/blob/main/samples/python/obo-authorization/README.md)|
+|Semantic Kernel Integration|A weather agent built with Semantic Kernel|[semantic-kernel-multiturn](https://github.com/microsoft/Agents/blob/main/samples/python/semantic-kernel-multiturn/README.md)|
+|Streaming Agent|Streams OpenAI responses|[azure-ai-streaming](https://github.com/microsoft/Agents/blob/main/samples/python/azureai-streaming/README.md)|
+|Copilot Studio Client|Console app to consume a Copilot Studio Agent|[copilotstudio-client](https://github.com/microsoft/Agents/blob/main/samples/python/copilotstudio-client/README.md)|
+|Cards Agent|Agent that uses rich cards to enhance conversation design |[cards](https://github.com/microsoft/Agents/blob/main/samples/python/cards/README.md)|
