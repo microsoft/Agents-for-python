@@ -7,10 +7,11 @@ name = "microsoft-agents-hosting-core"
 dynamic = ["version", "dependencies"]
 description = "Core library for Microsoft Agents"
 authors = [{name = "Microsoft Corporation"}]
+license = "MIT"
+license-files = ["LICENSE"]
 requires-python = ">=3.9"
 classifiers = [
     "Programming Language :: Python :: 3",
-    "License :: OSI Approved :: MIT License",
     "Operating System :: OS Independent",
 ]
 

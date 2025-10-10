@@ -7,10 +7,11 @@ name = "microsoft-agents-hosting-teams"
 dynamic = ["version", "dependencies"]
 description = "Integration library for Microsoft Agents with Teams"
 authors = [{name = "Microsoft Corporation"}]
+license = "MIT"
+license-files = ["LICENSE"]
 requires-python = ">=3.9"
 classifiers = [
     "Programming Language :: Python :: 3",
-    "License :: OSI Approved :: MIT License",
     "Operating System :: OS Independent",
 ]
 
