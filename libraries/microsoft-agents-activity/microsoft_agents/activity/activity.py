@@ -1,10 +1,25 @@
 # Copyright (c) Microsoft Corporation. All rights reserved.
 # Licensed under the MIT License.
 
+from __future__ import annotations
+
+import logging
 from copy import copy
 from datetime import datetime, timezone
-from typing import Optional
-from pydantic import Field, SerializeAsAny
+from typing import Optional, Union, Any
+
+from pydantic import (
+    Field,
+    SerializeAsAny,
+    model_serializer,
+    model_validator,
+    SerializerFunctionWrapHandler,
+    ModelWrapValidatorHandler,
+    computed_field,
+    ValidationError,
+)
+from yaml import serialize
+
 from .activity_types import ActivityTypes
 from .channel_account import ChannelAccount
 from .conversation_account import ConversationAccount
@@ -14,9 +29,11 @@ from .suggested_actions import SuggestedActions
 from .attachment import Attachment
 from .entity import (
     Entity,
+    EntityTypes,
     Mention,
     AIEntity,
     ClientCitation,
+    ProductInfo,
     SensitivityUsageInfo,
 )
 from .conversation_reference import ConversationReference
@@ -24,12 +41,16 @@ from .text_highlight import TextHighlight
 from .semantic_action import SemanticAction
 from .agents_model import AgentsModel
 from .role_types import RoleTypes
+from ._channel_id_field_mixin import _ChannelIdFieldMixin
+from .channel_id import ChannelId
 from ._model_utils import pick_model, SkipNone
 from ._type_aliases import NonEmptyString
 
+logger = logging.getLogger(__name__)
+
 
 # TODO: A2A Agent 2 is responding with None as id, had to mark it as optional (investigate)
-class Activity(AgentsModel):
+class Activity(AgentsModel, _ChannelIdFieldMixin):
     """An Activity is the basic communication type for the protocol.
 
     :param type: Contains the activity type. Possible values include:
@@ -50,8 +71,8 @@ class Activity(AgentsModel):
     :type local_timezone: str
     :param service_url: Contains the URL that specifies the channel's service endpoint. Set by the channel.
     :type service_url: str
-    :param channel_id: Contains an ID that uniquely identifies the channel. Set by the channel.
-    :type channel_id: str
+    :param channel_id: Contains an ID that uniquely identifies the channel (and possibly the sub-channel). Set by the channel.
+    :type channel_id: ~microsoft_agents.activity.ChannelId
     :param from_property: Identifies the sender of the message.
     :type from_property: ~microsoft_agents.activity.ChannelAccount
     :param conversation: Identifies the conversation to which the activity belongs.
@@ -136,7 +157,6 @@ class Activity(AgentsModel):
     local_timestamp: datetime = None
     local_timezone: NonEmptyString = None
     service_url: NonEmptyString = None
-    channel_id: NonEmptyString = None
     from_property: ChannelAccount = Field(None, alias="from")
     conversation: ConversationAccount = None
     recipient: ChannelAccount = None
@@ -172,6 +192,83 @@ class Activity(AgentsModel):
     text_highlights: list[TextHighlight] = None
     semantic_action: SemanticAction = None
     caller_id: NonEmptyString = None
+
+    # annotated as Optional but cannot be set to None in practice
+    # _channel_id: Optional[ChannelId] = None # inherited from _ChannelIdFieldMixin
+
+    @model_validator(mode="wrap")
+    @classmethod
+    def _validate_channel_id(
+        cls, data: Any, handler: ModelWrapValidatorHandler[Activity]
+    ) -> Activity:
+        """Validate the Activity, ensuring consistency between channel_id.sub_channel and productInfo entity.
+
+        :param data: The input data to validate.
+        :param handler: The validation handler provided by Pydantic.
+        :return: The validated Activity instance.
+        """
+        try:
+            # run Pydantic's standard validation first
+            activity = handler(data)
+
+            # needed to assign to a computed field
+            # needed because we override the mixin validator
+            if "channelId" in data:
+                activity.channel_id = data["channelId"]
+            elif "channel_id" in data:
+                activity.channel_id = data["channel_id"]
+
+            # sync sub_channel with productInfo entity
+            product_info = activity.get_product_info_entity()
+            if product_info and activity.channel_id:
+                activity.channel_id = ChannelId(
+                    channel=activity.channel_id.channel,
+                    sub_channel=product_info.id,
+                )
+
+            return activity
+        except ValidationError:
+            logger.error("Validation error for Activity")
+            raise
+
+    @model_serializer(mode="wrap")
+    def _serialize_sub_channel_data(
+        self, handler: SerializerFunctionWrapHandler
+    ) -> dict[str, object]:
+        """Serialize the Activity, ensuring consistency between channel_id.sub_channel and productInfo entity.
+
+        :param handler: The serialization handler provided by Pydantic.
+        :return: A dictionary representing the serialized Activity.
+        """
+
+        # run Pydantic's standard serialization first
+        serialized = handler(self)
+
+        product_info = None
+        for i, entity in enumerate(serialized.get("entities") or []):
+            if entity.get("type", "") == EntityTypes.PRODUCT_INFO:
+                product_info = entity
+                break
+
+        if self.channel_id and self.channel_id.sub_channel:
+            # maintain consistency between productInfo entity and sub channel
+            if product_info:
+                product_info["id"] = self.channel_id.sub_channel
+            else:
+                if not serialized.get("entities"):
+                    serialized["entities"] = []
+                serialized["entities"].append(
+                    {
+                        "type": EntityTypes.PRODUCT_INFO,
+                        "id": self.channel_id.sub_channel,
+                    }
+                )
+        elif product_info:  # remove productInfo entity if sub_channel is not set
+            del serialized["entities"][i]
+            if not serialized["entities"]:  # after removal above, list may be empty
+                del serialized["entities"]
+
+        return serialized
 
     def apply_conversation_reference(
         self, reference: ConversationReference, is_incoming: bool = False
@@ -531,6 +628,12 @@ class Activity(AgentsModel):
             service_url=self.service_url,
         )
 
+    def get_product_info_entity(self) -> Optional[ProductInfo]:
+        if not self.entities:
+            return None
+        target = EntityTypes.PRODUCT_INFO.lower()
+        return next(filter(lambda e: e.type.lower() == target, self.entities), None)
+
     def get_mentions(self) -> list[Mention]:
         """
         Resolves the mentions from the entities of this activity.
@@ -543,7 +646,7 @@ class Activity(AgentsModel):
         """
         if not self.entities:
             return []
-        return [x for x in self.entities if x.type.lower() == "mention"]
+        return [x for x in self.entities if x.type.lower() == EntityTypes.MENTION]
 
     def get_reply_conversation_reference(
         self, reply: ResourceResponse

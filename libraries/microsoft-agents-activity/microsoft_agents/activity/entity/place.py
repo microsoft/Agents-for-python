@@ -1,8 +1,11 @@
 # Copyright (c) Microsoft Corporation. All rights reserved.
 # Licensed under the MIT License.
 
+from typing import Literal
+
 from ..agents_model import AgentsModel
 from .._type_aliases import NonEmptyString
+from .entity_types import EntityTypes
 
 
 class Place(AgentsModel):
@@ -26,5 +29,5 @@ class Place(AgentsModel):
     address: object = None
     geo: object = None
     has_map: object = None
-    type: NonEmptyString = None
+    type: Literal[EntityTypes.PLACE] = EntityTypes.PLACE
     name: NonEmptyString = None

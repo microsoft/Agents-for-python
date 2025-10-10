@@ -31,6 +31,8 @@ async def jwt_authorization_middleware(request: Request, handler):
                 {"error": "Authorization header not found"}, status=401
             )
 
+    c = await request.json()
+
     return await handler(request)
 
 

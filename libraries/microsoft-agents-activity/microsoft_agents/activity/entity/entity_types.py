@@ -1,0 +1,11 @@
+from strenum import StrEnum
+
+
+class EntityTypes(StrEnum):
+    """Well-known enumeration of entity types."""
+
+    GEO_COORDINATES = "GeoCoordinates"
+    MENTION = "mention"
+    PLACE = "Place"
+    THING = "Thing"
+    PRODUCT_INFO = "ProductInfo"

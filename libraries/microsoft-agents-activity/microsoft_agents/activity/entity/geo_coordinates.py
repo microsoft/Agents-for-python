@@ -1,8 +1,11 @@
 # Copyright (c) Microsoft Corporation. All rights reserved.
 # Licensed under the MIT License.
 
+from typing import Literal
+
 from ..agents_model import AgentsModel
 from .._type_aliases import NonEmptyString
+from .entity_types import EntityTypes
 
 
 class GeoCoordinates(AgentsModel):
@@ -26,5 +29,5 @@ class GeoCoordinates(AgentsModel):
     elevation: float = None
     latitude: float = None
     longitude: float = None
-    type: NonEmptyString = None
+    type: Literal[EntityTypes.GEO_COORDINATES] = EntityTypes.GEO_COORDINATES
     name: NonEmptyString = None
