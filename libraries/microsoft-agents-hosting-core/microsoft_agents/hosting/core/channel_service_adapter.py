@@ -44,12 +44,29 @@ class ChannelServiceAdapter(ChannelAdapter, ABC):
     _AGENT_CONNECTOR_CLIENT_KEY = "ConnectorClient"
 
     def __init__(self, channel_service_client_factory: ChannelServiceClientFactoryBase):
+        """
+        Initialize the ChannelServiceAdapter.
+
+        :param channel_service_client_factory: The factory for creating channel service clients.
+        :type channel_service_client_factory: :class:`microsoft_agents.hosting.core.channel_service_client_factory_base.ChannelServiceClientFactoryBase`
+        """
         super().__init__()
         self._channel_service_client_factory = channel_service_client_factory
 
     async def send_activities(
         self, context: TurnContext, activities: list[Activity]
     ) -> list[ResourceResponse]:
+        """
+        Send a list of activities to the conversation.
+
+        :param context: The turn context for this conversation turn.
+        :type context: :class:`microsoft_agents.hosting.core.turn_context.TurnContext`
+        :param activities: The list of activities to send.
+        :type activities: list[:class:`microsoft_agents.activity.Activity`]
+        :return: List of resource responses for the sent activities.
+        :rtype: list[:class:`microsoft_agents.activity.ResourceResponse`]
+        :raises TypeError: If context or activities are None/invalid.
+        """
         if not context:
             raise TypeError("Expected TurnContext but got None instead")
 
@@ -102,6 +119,17 @@ class ChannelServiceAdapter(ChannelAdapter, ABC):
         return responses
 
     async def update_activity(self, context: TurnContext, activity: Activity):
+        """
+        Update an existing activity in the conversation.
+
+        :param context: The turn context for this conversation turn.
+        :type context: :class:`microsoft_agents.hosting.core.turn_context.TurnContext`
+        :param activity: The activity to update.
+        :type activity: :class:`microsoft_agents.activity.Activity`
+        :return: Resource response for the updated activity.
+        :rtype: :class:`microsoft_agents.activity.ResourceResponse`
+        :raises TypeError: If context or activity are None/invalid.
+        """
         if not context:
             raise TypeError("Expected TurnContext but got None instead")
 
@@ -122,6 +150,15 @@ class ChannelServiceAdapter(ChannelAdapter, ABC):
     async def delete_activity(
         self, context: TurnContext, reference: ConversationReference
     ):
+        """
+        Delete an activity from the conversation.
+
+        :param context: The turn context for this conversation turn.
+        :type context: :class:`microsoft_agents.hosting.core.turn_context.TurnContext`
+        :param reference: Reference to the conversation and activity to delete.
+        :type reference: :class:`microsoft_agents.activity.ConversationReference`
+        :raises TypeError: If context or reference are None/invalid.
+        """
         if not context:
             raise TypeError("Expected TurnContext but got None instead")
 
@@ -155,9 +192,9 @@ class ChannelServiceAdapter(ChannelAdapter, ABC):
             and is generally found in the `MicrosoftAppId` parameter in `config.py`.
         :type agent_app_id: str
         :param continuation_activity: The activity to continue the conversation with.
-        :type continuation_activity: Activity
+        :type continuation_activity: :class:`microsoft_agents.activity.Activity`
         :param callback: The method to call for the resulting agent turn.
-        :type callback: Callable[[TurnContext], Awaitable]
+        :type callback: Callable[[:class:`microsoft_agents.hosting.core.turn_context.TurnContext`], Awaitable]
         """
         if not callable:
             raise TypeError(
@@ -182,6 +219,18 @@ class ChannelServiceAdapter(ChannelAdapter, ABC):
         callback: Callable[[TurnContext], Awaitable],
         audience: str = None,
     ):
+        """
+        Continue a conversation with the provided claims identity.
+
+        :param claims_identity: The claims identity for the conversation.
+        :type claims_identity: :class:`microsoft_agents.hosting.core.authorization.ClaimsIdentity`
+        :param continuation_activity: The activity to continue the conversation with.
+        :type continuation_activity: :class:`microsoft_agents.activity.Activity`
+        :param callback: The method to call for the resulting agent turn.
+        :type callback: Callable[[:class:`microsoft_agents.hosting.core.turn_context.TurnContext`], Awaitable]
+        :param audience: The audience for the conversation.
+        :type audience: Optional[str]
+        """
         return await self.process_proactive(
             claims_identity, continuation_activity, audience, callback
         )
@@ -299,14 +348,15 @@ class ChannelServiceAdapter(ChannelAdapter, ABC):
         """
         Creates a turn context and runs the middleware pipeline for an incoming activity.
 
-        :param auth_header: The HTTP authentication header of the request
-        :type auth_header: Union[str, AuthenticateRequestResult]
+        :param claims_identity: The claims identity of the agent.
+        :type claims_identity: :class:`microsoft_agents.hosting.core.authorization.ClaimsIdentity`
         :param activity: The incoming activity
-        :type activity: Activity
+        :type activity: :class:`microsoft_agents.activity.Activity`
         :param callback: The callback to execute at the end of the adapter's middleware pipeline.
-        :type callback: Callable[[TurnContext], Awaitable]
+        :type callback: Callable[[:class:`microsoft_agents.hosting.core.turn_context.TurnContext`], Awaitable]
 
         :return: A task that represents the work queued to execute.
+        :rtype: Optional[:class:`microsoft_agents.activity.InvokeResponse`]
 
         .. remarks::
             This class processes an activity received by the agents web server. This includes any messages
@@ -372,6 +422,14 @@ class ChannelServiceAdapter(ChannelAdapter, ABC):
         return self._process_turn_results(context)
 
     def create_claims_identity(self, agent_app_id: str = "") -> ClaimsIdentity:
+        """
+        Create a claims identity for the given agent app ID.
+
+        :param agent_app_id: The agent application ID.
+        :type agent_app_id: str
+        :return: A claims identity for the agent.
+        :rtype: :class:`microsoft_agents.hosting.core.authorization.ClaimsIdentity`
+        """
         return ClaimsIdentity(
             {
                 AuthenticationConstants.AUDIENCE_CLAIM: agent_app_id,

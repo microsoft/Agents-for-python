@@ -176,7 +176,7 @@ class ActivityHandler(Agent):
 
         :param members_added: A list of all the members added to the conversation, as described by the
         conversation update activity
-        :type members_added: list[ChannelAccount]
+        :type members_added: list[:class:`microsoft_agents.activity.ChannelAccount`]
         :param turn_context: The context object for this turn
         :type turn_context: :class:`microsoft_agents.activity.TurnContextProtocol`
         :returns: A task that represents the work queued to execute
@@ -195,9 +195,9 @@ class ActivityHandler(Agent):
         Override this method in a derived class to provide logic for when members other than the agent leave
         the conversation.  You can add your agent's good-bye logic.
 
-        :param members_added: A list of all the members removed from the conversation, as described by the
+        :param members_removed: A list of all the members removed from the conversation, as described by the
         conversation update activity
-        :type members_added: list[ChannelAccount]
+        :type members_removed: list[:class:`microsoft_agents.activity.ChannelAccount`]
         :param turn_context: The context object for this turn
         :type turn_context: :class:`microsoft_agents.activity.TurnContextProtocol`
         :returns: A task that represents the work queued to execute
@@ -260,7 +260,7 @@ class ActivityHandler(Agent):
         are added to the conversation.
 
         :param message_reactions: The list of reactions added
-        :type message_reactions: list[MessageReaction]
+        :type message_reactions: list[:class:`microsoft_agents.activity.MessageReaction`]
         :param turn_context: The context object for this turn
         :type turn_context: :class:`microsoft_agents.activity.TurnContextProtocol`
         :returns: A task that represents the work queued to execute
@@ -285,7 +285,7 @@ class ActivityHandler(Agent):
         are removed from the conversation.
 
         :param message_reactions: The list of reactions removed
-        :type message_reactions: list[MessageReaction]
+        :type message_reactions: list[:class:`microsoft_agents.activity.MessageReaction`]
         :param turn_context: The context object for this turn
         :type turn_context: :class:`microsoft_agents.activity.TurnContextProtocol`
 
@@ -459,6 +459,7 @@ class ActivityHandler(Agent):
         :type turn_context: :class:`microsoft_agents.activity.TurnContextProtocol`
 
         :returns: A task that represents the work queued to execute
+        :rtype: Optional[:class:`microsoft_agents.activity.InvokeResponse`]
         """
         try:
             if (
@@ -510,8 +511,9 @@ class ActivityHandler(Agent):
         :param turn_context: A context object for this turn.
         :type turn_context: :class:`microsoft_agents.activity.TurnContextProtocol`
         :param invoke_value: A string-typed object from the incoming activity's value.
-        :type invoke_value: :class:`microsoft_agents.activity.adaptive_card_invoke_value.AdaptiveCardInvokeValue`
+        :type invoke_value: :class:`microsoft_agents.activity.AdaptiveCardInvokeValue`
         :return: The HealthCheckResponse object
+        :rtype: :class:`microsoft_agents.activity.AdaptiveCardInvokeResponse`
         """
         raise _InvokeResponseException(HTTPStatus.NOT_IMPLEMENTED)
 

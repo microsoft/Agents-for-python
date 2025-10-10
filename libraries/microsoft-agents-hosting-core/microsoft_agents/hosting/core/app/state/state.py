@@ -97,9 +97,10 @@ class State(dict[str, StoreItem], ABC):
         """
         Saves The State to Storage
 
-        Args:
-            context (TurnContext): the turn context.
-            storage (Optional[Storage]): storage to save to.
+        :param _context: the turn context.
+        :type _context: :class:`microsoft_agents.hosting.core.turn_context.TurnContext`
+        :param storage: storage to save to.
+        :type storage: Optional[:class:`microsoft_agents.hosting.core.storage.Storage`]
         """
 
         if not storage or self.__key__ == "":
@@ -126,13 +127,24 @@ class State(dict[str, StoreItem], ABC):
         """
         Loads The State from Storage
 
-        Args:
-            context: (TurnContext): the turn context.
-            storage (Optional[Storage]): storage to read from.
+        :param context: the turn context.
+        :type context: :class:`microsoft_agents.hosting.core.turn_context.TurnContext`
+        :param storage: storage to read from.
+        :type storage: Optional[:class:`microsoft_agents.hosting.core.storage.Storage`]
+        :return: The loaded state instance.
+        :rtype: :class:`microsoft_agents.hosting.core.app.state.state.State`
         """
         return cls()
 
     def create_property(self, name: str) -> _StatePropertyAccessor:
+        """
+        Create a property accessor for the given name.
+
+        :param name: The name of the property.
+        :type name: str
+        :return: A state property accessor for the named property.
+        :rtype: :class:`microsoft_agents.hosting.core.state.state_property_accessor.StatePropertyAccessor`
+        """
         return StatePropertyAccessor(self, name)
 
     def __setitem__(self, key: str, item: Any) -> None:
@@ -180,6 +192,14 @@ class StatePropertyAccessor(_StatePropertyAccessor):
     _state: State
 
     def __init__(self, state: State, name: str) -> None:
+        """
+        Initialize the StatePropertyAccessor.
+
+        :param state: The state object to access properties from.
+        :type state: :class:`microsoft_agents.hosting.core.app.state.state.State`
+        :param name: The name of the property to access.
+        :type name: str
+        """
         self._name = name
         self._state = state
 
@@ -190,6 +210,16 @@ class StatePropertyAccessor(_StatePropertyAccessor):
             Union[Any, Callable[[], Optional[Any]]]
         ] = None,
     ) -> Optional[Any]:
+        """
+        Get the property value from the state.
+
+        :param turn_context: The turn context.
+        :type turn_context: :class:`microsoft_agents.hosting.core.turn_context.TurnContext`
+        :param default_value_or_factory: Default value or factory function to use if property doesn't exist.
+        :type default_value_or_factory: Optional[Union[Any, Callable[[], Optional[Any]]]]
+        :return: The property value or default value if not found.
+        :rtype: Optional[Any]
+        """
         value = self._state[self._name] if self._name in self._state else None
 
         if value is None and default_value_or_factory is not None:
@@ -201,7 +231,21 @@ class StatePropertyAccessor(_StatePropertyAccessor):
         return value
 
     async def delete(self, turn_context: TurnContext) -> None:
+        """
+        Delete the property from the state.
+
+        :param turn_context: The turn context.
+        :type turn_context: :class:`microsoft_agents.hosting.core.turn_context.TurnContext`
+        """
         del self._state[self._name]
 
     async def set(self, turn_context: TurnContext, value: Any) -> None:
+        """
+        Set the property value in the state.
+
+        :param turn_context: The turn context.
+        :type turn_context: :class:`microsoft_agents.hosting.core.turn_context.TurnContext`
+        :param value: The value to set for the property.
+        :type value: Any
+        """
         self._state[self._name] = value
