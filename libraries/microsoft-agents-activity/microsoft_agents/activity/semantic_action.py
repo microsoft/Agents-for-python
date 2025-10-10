@@ -13,7 +13,7 @@ class SemanticAction(AgentsModel):
     :param entities: Entities associated with this action
     :type entities: dict[str, :class:`microsoft_agents.activity.entity.Entity`]
     :param state: State of this action. Allowed values: `start`, `continue`, `done`
-    :type state: str or :class:`microsoft_agents.activity.semantic_action_states.SemanticActionStates`
+    :type state: str or :class:`microsoft_agents.activity.semantic_actions_states.SemanticActionsStates`
     """
 
     id: NonEmptyString
