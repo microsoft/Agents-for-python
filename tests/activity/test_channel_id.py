@@ -96,3 +96,8 @@ class TestChannelId:
     def test_channel_id_validation_error(self):
         with pytest.raises(ValidationError):
             ChannelId(channel="")
+
+    def test_multiple_colons(self):
+        a = ChannelId.model_validate("email:support:extra")
+        assert a.channel == "email"
+        assert a.sub_channel == "support:extra"

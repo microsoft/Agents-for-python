@@ -655,7 +655,7 @@ class Activity(AgentsModel):
         """
         if not self.entities:
             return []
-        return [x for x in self.entities if x.type.lower() == "mention"]
+        return [x for x in self.entities if x.type.lower() == EntityTypes.MENTION]
 
     def get_reply_conversation_reference(
         self, reply: ResourceResponse

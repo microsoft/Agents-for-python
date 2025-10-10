@@ -1,8 +1,11 @@
 # Copyright (c) Microsoft Corporation. All rights reserved.
 # Licensed under the MIT License.
 
+from typing import Literal
+
 from ..agents_model import AgentsModel
 from .._type_aliases import NonEmptyString
+from .entity_types import EntityTypes
 
 
 class Thing(AgentsModel):
@@ -14,5 +17,5 @@ class Thing(AgentsModel):
     :type name: str
     """
 
-    type: NonEmptyString = None
+    type: Literal[EntityTypes.THING] = EntityTypes.THING
     name: NonEmptyString = None

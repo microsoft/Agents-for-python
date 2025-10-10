@@ -75,9 +75,9 @@ class TestActivityIO:
                     "type": "message",
                     "channel_id": "msteams:subchannel",
                     "entities": [
-                        {"type": "productInfo", "id": "other"},
-                        {"type": "productInfo", "id": "other"},
-                        {"type": "productInfo", "id": "wow"},
+                        {"type": "ProductInfo", "id": "other"},
+                        {"type": "ProductInfo", "id": "other"},
+                        {"type": "ProductInfo", "id": "wow"},
                     ],
                 },
                 Activity(
