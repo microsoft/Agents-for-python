@@ -7,7 +7,15 @@ from uuid import uuid4 as uuid
 from typing import Optional, Any
 import logging
 
-from pydantic import Field, computed_field, model_validator, ModelWrapValidatorHandler, model_serializer, SerializerFunctionWrapHandler, ValidationError
+from pydantic import (
+    Field,
+    computed_field,
+    model_validator,
+    ModelWrapValidatorHandler,
+    model_serializer,
+    SerializerFunctionWrapHandler,
+    ValidationError,
+)
 
 from .channel_account import ChannelAccount
 from .channel_id import ChannelId
@@ -82,10 +90,11 @@ class ConversationReference(AgentsModel):
             # run Pydantic's standard validation first
             conversation_reference = handler(data)
 
-            # needed to assign to a computed field
-            data_channel_id = data.get("channel_id", data.get("channelId"))
-            if data_channel_id:
-                conversation_reference.channel_id = data_channel_id
+            if isinstance(data, dict):
+                # needed to assign to a computed field
+                data_channel_id = data.get("channel_id", data.get("channelId"))
+                if data_channel_id:
+                    conversation_reference.channel_id = data_channel_id
 
             return conversation_reference
         except ValidationError:
@@ -101,15 +110,17 @@ class ConversationReference(AgentsModel):
         :param handler: The serialization handler provided by Pydantic.
         :return: A dictionary representing the serialized ConversationReference.
         """
+
         # run Pydantic's standard serialization first
         serialized = handler(self)
 
-        # do not include unset value
-        if not self.channel_id:
-            if "channelId" in serialized:
-                del serialized["channelId"]
-            elif "channel_id" in serialized:
-                del serialized["channel_id"]
+        if serialized:
+            # do not include unset value
+            if not self.channel_id:
+                if "channelId" in serialized:
+                    del serialized["channelId"]
+                elif "channel_id" in serialized:
+                    del serialized["channel_id"]
 
         return serialized
 

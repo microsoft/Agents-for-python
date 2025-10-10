@@ -9,7 +9,7 @@ from microsoft_agents.activity import (
     EntityTypes,
     ProductInfo,
     ConversationReference,
-    ConversationAccount
+    ConversationAccount,
 )
 
 
@@ -123,7 +123,7 @@ class TestActivityIO:
                     "conversation_referenece": {
                         "channelId": "parent:misc",
                         "conversation": {"id": "conv1"},
-                    }
+                    },
                 },
                 {
                     "type": "message",
@@ -132,7 +132,7 @@ class TestActivityIO:
                     "conversation_referenece": {
                         "channelId": "parent:misc",
                         "conversation": {"id": "conv1"},
-                    }
+                    },
                 },
                 Activity(
                     type="message",
@@ -140,17 +140,20 @@ class TestActivityIO:
                     entities=[ProductInfo(id="sub_channel")],
                     conversation_reference=ConversationReference(
                         channel_id="parent:sub_channel",
-                        conversation=ConversationAccount(id="conv1")
-                    )
+                        conversation=ConversationAccount(id="conv1"),
+                    ),
                 ),
             ],
         ],
     )
-    def test_channel_id_sub_channel_changed_with_product_info(self, data, data_with_alias, expected):
+    def test_channel_id_sub_channel_changed_with_product_info(
+        self, data, data_with_alias, expected
+    ):
         activity = Activity(**data)
         activity_from_alias = Activity(**data_with_alias)
         assert activity == expected
         assert activity_from_alias == expected
+        assert activity.model_copy() == activity_from_alias.model_copy()
 
     def test_channel_id_unset_becomes_set_at_init(self):
         activity = Activity(type="message")
@@ -242,7 +245,7 @@ class TestActivityIO:
             [
                 Activity(type="message", entities=[ProductInfo(id="misc")]),
                 {"type": "message"},
-                {"type": "message"}
+                {"type": "message"},
             ],
         ],
     )

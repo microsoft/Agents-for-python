@@ -246,6 +246,9 @@ class Activity(AgentsModel):
         :param handler: The serialization handler provided by Pydantic.
         :return: A dictionary representing the serialized Activity.
         """
+        if self is None:
+            raise Exception("THIS SHOULD NEVER HAPPEN")
+
         # run Pydantic's standard serialization first
         serialized = handler(self)
 
@@ -270,7 +273,7 @@ class Activity(AgentsModel):
                 )
         elif product_info:  # remove productInfo entity if sub_channel is not set
             del serialized["entities"][i]
-            if not serialized["entities"]: # after removal above, list may be empty
+            if not serialized["entities"]:  # after removal above, list may be empty
                 del serialized["entities"]
 
         # do not include unset value
