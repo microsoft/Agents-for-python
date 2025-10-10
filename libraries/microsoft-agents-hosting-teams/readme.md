@@ -6,6 +6,8 @@ Integration library for building Microsoft Teams agents using the Microsoft 365 
 
 This library extends the core hosting capabilities with Teams-specific features. It handles Teams' unique interaction patterns like messaging extensions, tab applications, task modules, and meeting integrations. Think of it as the bridge that makes your agent "Teams-native" rather than just a generic chatbot.
 
+This library is still in flux, as the interfaces to Teams continue to evolve.
+
 # What is this?
 This library is part of the **Microsoft 365 Agents SDK for Python** - a comprehensive framework for building enterprise-grade conversational AI agents. The SDK enables developers to create intelligent agents that work across multiple platforms including Microsoft Teams, M365 Copilot, Copilot Studio, and web chat, with support for third-party integrations like Slack, Facebook Messenger, and Twilio.
 
