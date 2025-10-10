@@ -1,10 +1,13 @@
 # Copyright (c) Microsoft Corporation. All rights reserved.
 # Licensed under the MIT License.
 
-from uuid import uuid4 as uuid
-from typing import Optional
+from __future__ import annotations
 
-from pydantic import Field
+from uuid import uuid4 as uuid
+from typing import Optional, Any
+import logging
+
+from pydantic import Field, computed_field, model_validator, ModelWrapValidatorHandler, model_serializer, SerializerFunctionWrapHandler, ValidationError
 
 from .channel_account import ChannelAccount
 from .channel_id import ChannelId
@@ -13,6 +16,8 @@ from .agents_model import AgentsModel
 from ._type_aliases import NonEmptyString
 from .activity_types import ActivityTypes
 from .activity_event_names import ActivityEventNames
+
+logger = logging.getLogger(__name__)
 
 
 class ConversationReference(AgentsModel):
@@ -44,9 +49,69 @@ class ConversationReference(AgentsModel):
     user: Optional[ChannelAccount] = None
     agent: ChannelAccount = Field(None, alias="bot")
     conversation: ConversationAccount
-    channel_id: ChannelId
+    _channel_id: ChannelId = None
     locale: Optional[NonEmptyString] = None
     service_url: NonEmptyString = None
+
+    # required to define the setter below
+    @computed_field(return_type=Optional[ChannelId])
+    @property
+    def channel_id(self):
+        """Gets the _channel_id field"""
+        return self._channel_id
+
+    # necessary for backward compatibility
+    # previously, channel_id was directly assigned with strings
+    @channel_id.setter
+    def channel_id(self, value: Any):
+        """Sets the channel_id after validating it as a ChannelId model."""
+        self._channel_id = ChannelId.model_validate(value)
+
+    @model_validator(mode="wrap")
+    @classmethod
+    def _validate_sub_channel_data(
+        cls, data: Any, handler: ModelWrapValidatorHandler[ConversationReference]
+    ) -> ConversationReference:
+        """Validate the ConversationReference, ensuring consistency between channel_id.sub_channel and productInfo entity.
+
+        :param data: The input data to validate.
+        :param handler: The validation handler provided by Pydantic.
+        :return: The validated ConversationReference instance.
+        """
+        try:
+            # run Pydantic's standard validation first
+            conversation_reference = handler(data)
+
+            # needed to assign to a computed field
+            data_channel_id = data.get("channel_id", data.get("channelId"))
+            if data_channel_id:
+                conversation_reference.channel_id = data_channel_id
+
+            return conversation_reference
+        except ValidationError:
+            logger.error("Validation error for ConversationReference")
+            raise
+
+    @model_serializer(mode="wrap")
+    def _serialize_sub_channel_data(
+        self, handler: SerializerFunctionWrapHandler
+    ) -> dict[str, object]:
+        """Serialize the ConversationReference, ensuring consistency between channel_id.sub_channel and productInfo entity.
+
+        :param handler: The serialization handler provided by Pydantic.
+        :return: A dictionary representing the serialized ConversationReference.
+        """
+        # run Pydantic's standard serialization first
+        serialized = handler(self)
+
+        # do not include unset value
+        if not self.channel_id:
+            if "channelId" in serialized:
+                del serialized["channelId"]
+            elif "channel_id" in serialized:
+                del serialized["channel_id"]
+
+        return serialized
 
     def get_continuation_activity(self) -> "Activity":  # type: ignore
         from .activity import Activity

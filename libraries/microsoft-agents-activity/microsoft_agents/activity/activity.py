@@ -210,7 +210,7 @@ class Activity(AgentsModel):
     @model_validator(mode="wrap")
     @classmethod
     def _validate_sub_channel_data(
-        self, data: Any, handler: ModelWrapValidatorHandler[Activity]
+        cls, data: Any, handler: ModelWrapValidatorHandler[Activity]
     ) -> Activity:
         """Validate the Activity, ensuring consistency between channel_id.sub_channel and productInfo entity.
 
@@ -223,7 +223,7 @@ class Activity(AgentsModel):
             activity = handler(data)
 
             # needed to assign to a computed field
-            data_channel_id = data.get("channel_id", None)
+            data_channel_id = data.get("channel_id", data.get("channelId", None))
             if data_channel_id:
                 activity.channel_id = data_channel_id
 
@@ -270,12 +270,15 @@ class Activity(AgentsModel):
                 )
         elif product_info:  # remove productInfo entity if sub_channel is not set
             del serialized["entities"][i]
-            if not serialized["entities"]:
+            if not serialized["entities"]: # after removal above, list may be empty
                 del serialized["entities"]
 
         # do not include unset value
         if not self.channel_id:
-            del serialized["channelId"]
+            if "channelId" in serialized:
+                del serialized["channelId"]
+            elif "channel_id" in serialized:
+                del serialized["channel_id"]
 
         return serialized
 
