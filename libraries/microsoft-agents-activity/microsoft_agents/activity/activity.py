@@ -41,6 +41,7 @@ from .text_highlight import TextHighlight
 from .semantic_action import SemanticAction
 from .agents_model import AgentsModel
 from .role_types import RoleTypes
+from ._channel_id_field_mixin import _ChannelIdFieldMixin
 from .channel_id import ChannelId
 from ._model_utils import pick_model, SkipNone
 from ._type_aliases import NonEmptyString
@@ -49,7 +50,7 @@ logger = logging.getLogger(__name__)
 
 
 # TODO: A2A Agent 2 is responding with None as id, had to mark it as optional (investigate)
-class Activity(AgentsModel):
+class Activity(AgentsModel, _ChannelIdFieldMixin):
     """An Activity is the basic communication type for the protocol.
 
     :param type: Contains the activity type. Possible values include:
@@ -156,7 +157,6 @@ class Activity(AgentsModel):
     local_timestamp: datetime = None
     local_timezone: NonEmptyString = None
     service_url: NonEmptyString = None
-    _channel_id: ChannelId = None
     from_property: ChannelAccount = Field(None, alias="from")
     conversation: ConversationAccount = None
     recipient: ChannelAccount = None
@@ -193,23 +193,12 @@ class Activity(AgentsModel):
     semantic_action: SemanticAction = None
     caller_id: NonEmptyString = None
 
-    # required to define the setter below
-    @computed_field(return_type=Optional[ChannelId])
-    @property
-    def channel_id(self):
-        """Gets the _channel_id field"""
-        return self._channel_id
-
-    # necessary for backward compatibility
-    # previously, channel_id was directly assigned with strings
-    @channel_id.setter
-    def channel_id(self, value: Any):
-        """Sets the channel_id after validating it as a ChannelId model."""
-        self._channel_id = ChannelId.model_validate(value)
+    # annotated as Optional but cannot be set to None in practice
+    # _channel_id: Optional[ChannelId] = None # inherited from _ChannelIdFieldMixin
 
     @model_validator(mode="wrap")
     @classmethod
-    def _validate_sub_channel_data(
+    def _validate_channel_id(
         cls, data: Any, handler: ModelWrapValidatorHandler[Activity]
     ) -> Activity:
         """Validate the Activity, ensuring consistency between channel_id.sub_channel and productInfo entity.
@@ -223,14 +212,19 @@ class Activity(AgentsModel):
             activity = handler(data)
 
             # needed to assign to a computed field
-            data_channel_id = data.get("channel_id", data.get("channelId", None))
-            if data_channel_id:
-                activity.channel_id = data_channel_id
+            # needed because we override the mixin validator
+            if "channelId" in data:
+                activity.channel_id = data["channelId"]
+            elif "channel_id" in data:
+                activity.channel_id = data["channel_id"]
 
             # sync sub_channel with productInfo entity
             product_info = activity.get_product_info_entity()
             if product_info and activity.channel_id:
-                activity.channel_id.sub_channel = product_info.id
+                activity.channel_id = ChannelId(
+                    channel=activity.channel_id.channel,
+                    sub_channel=product_info.id,
+                )
 
             return activity
         except ValidationError:
@@ -246,8 +240,6 @@ class Activity(AgentsModel):
         :param handler: The serialization handler provided by Pydantic.
         :return: A dictionary representing the serialized Activity.
         """
-        if self is None:
-            raise Exception("THIS SHOULD NEVER HAPPEN")
 
         # run Pydantic's standard serialization first
         serialized = handler(self)
@@ -275,13 +267,6 @@ class Activity(AgentsModel):
             del serialized["entities"][i]
             if not serialized["entities"]:  # after removal above, list may be empty
                 del serialized["entities"]
-
-        # do not include unset value
-        if not self.channel_id:
-            if "channelId" in serialized:
-                del serialized["channelId"]
-            elif "channel_id" in serialized:
-                del serialized["channel_id"]
 
         return serialized
 

@@ -1,5 +1,4 @@
 import pytest
-from pydantic import ValidationError
 
 from microsoft_agents.activity import ChannelId
 
@@ -7,97 +6,54 @@ from tests._common.data import TEST_DEFAULTS
 
 DEFAULTS = TEST_DEFAULTS()
 
-
 class TestChannelId:
 
-    @pytest.mark.parametrize(
-        "data, expected",
-        [
-            ["email:support", ChannelId(channel="email", sub_channel="support")],
-            ["email", ChannelId(channel="email", sub_channel=None)],
-            [" email:support ", ChannelId(channel="email", sub_channel="support")],
-            [" email ", ChannelId(channel="email", sub_channel=None)],
-            [
-                "email:support:extra",
-                ChannelId(channel="email", sub_channel="support:extra"),
-            ],
-            [
-                {"channel": "email", "sub_channel": "support"},
-                ChannelId(channel="email", sub_channel="support"),
-            ],
-        ],
-    )
-    def test_validation_dict_form(self, data, expected):
-        channel_id = ChannelId.model_validate(data)
-        assert channel_id == expected
+    def test_init_from_str(self):
+        channel_id = ChannelId("email:support")
+        assert channel_id.channel == "email"
+        assert channel_id.sub_channel == "support"
+        assert str(channel_id) == "email:support"
+        assert channel_id == "email:support"
+        assert channel_id in [ "email:support", "other" ]
+        assert channel_id not in [ "email:other", "other" ]
+        assert channel_id != "email:other"
+        assert channel_id in [ "wow", ChannelId("email:support") ]
+        assert channel_id == ChannelId("email:support")
+    
+    def test_init_multiple_colons(self):
+        assert ChannelId("email:support:extra").channel == "email"
+        assert ChannelId("email:support:extra").sub_channel == "support:extra"
 
-    @pytest.mark.parametrize(
-        "channel_a, channel_b, expected",
-        [
-            [
-                ChannelId(channel="email", sub_channel="support"),
-                ChannelId(channel="email", sub_channel="support"),
-                True,
-            ],
-            [
-                ChannelId(channel="email", sub_channel="support"),
-                ChannelId(channel="word", sub_channel="support"),
-                False,
-            ],
-            [
-                ChannelId(channel="email", sub_channel="support"),
-                ChannelId(channel="email", sub_channel="info"),
-                False,
-            ],
-            [
-                ChannelId(channel="email", sub_channel=None),
-                ChannelId(channel="email", sub_channel=None),
-                True,
-            ],
-            [
-                ChannelId(channel="email", sub_channel=None),
-                ChannelId(channel="email", sub_channel="support"),
-                False,
-            ],
-            [
-                ChannelId(channel="email", sub_channel=None),
-                ChannelId(channel="sms", sub_channel=None),
-                False,
-            ],
-        ],
-    )
-    def test_eq(self, channel_a, channel_b, expected):
-        assert (channel_a == channel_b) == expected
-        assert (channel_a == channel_a) == True
-        assert (channel_b == channel_b) == True
+    def test_init_multiple_args(self):
+        assert ChannelId("email:support", channel="a", sub_channel="b") == "email:support"
 
-    def test_hash(self):
-        a = ChannelId(channel="email", sub_channel="SUPPORT")
-        assert hash(a) == hash(str(a))
+    def test_init_from_parts(self):
+        channel_id = ChannelId(channel="email", sub_channel="support")
+        assert channel_id.channel == "email"
+        assert channel_id.sub_channel == "support"
+        assert str(channel_id) == "email:support"
 
-    def test_str(self):
-        a = ChannelId(channel="email", sub_channel="support")
-        assert str(a) == "email:support"
-        b = ChannelId(channel="email", sub_channel=None)
-        assert str(b) == "email"
-        c = ChannelId(**{"channel": "agents", "sub_channel": "word"})
-        assert str(c) == "agents:word"
-        d = ChannelId.model_validate("agents:COPILOT")
-        assert str(d) == "agents:COPILOT"
+        channel_id2 = ChannelId(channel="email")
+        assert channel_id2.channel == "email"
+        assert channel_id2.sub_channel is None
+        assert str(channel_id2) == "email"
 
-    def test_round_trip(self):
-        a = ChannelId(channel="email", sub_channel="support")
-        b = ChannelId.model_validate(str(a))
-        assert a == b
-        c = ChannelId.model_validate(b.model_dump())
-        assert a == c
-        assert b == c
-
-    def test_channel_id_validation_error(self):
-        with pytest.raises(ValidationError):
-            ChannelId(channel="")
-
-    def test_multiple_colons(self):
-        a = ChannelId.model_validate("email:support:extra")
-        assert a.channel == "email"
-        assert a.sub_channel == "support:extra"
+    def test_init_errors(self):
+        with pytest.raises(Exception):
+            ChannelId(channel="email", sub_channel=123)
+        with pytest.raises(Exception):
+            ChannelId(channel="", sub_channel="support")
+        with pytest.raises(Exception):
+            ChannelId("")
+        with pytest.raises(Exception):
+            ChannelId()
+        with pytest.raises(Exception):
+            ChannelId(channel=None)
+        with pytest.raises(Exception):
+            ChannelId(sub_channel="sub_channel")
+        with pytest.raises(Exception):
+            ChannelId("   \t\n  ")
+        with pytest.raises(Exception):
+            ChannelId("", channel=" ", sub_channel="support")
+        with pytest.raises(Exception):
+            ChannelId(channel="a:b", sub_channel="support")

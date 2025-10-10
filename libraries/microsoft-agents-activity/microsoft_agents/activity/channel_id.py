@@ -3,54 +3,61 @@
 
 from __future__ import annotations
 
+from token import OP
 from typing import Optional, Any
 
-from pydantic import model_validator, model_serializer
+from pydantic_core import CoreSchema, core_schema
+from pydantic import GetCoreSchemaHandler, BaseModel
 
-from ._type_aliases import NonEmptyString
-from .agents_model import AgentsModel
+class ChannelId(str):
+    """A ChannelId represents a channel and optional sub-channel in the format 'channel:sub_channel'."""
 
-
-class ChannelId(AgentsModel):
-    """A class representing a channel identifier with optional sub-channel.
-
-    :param channel: The main channel identifier (e.g., "msteams").
-    :type channel: str
-    :param sub_channel: An optional sub-channel identifier (e.g., "subchannel").
-    :type sub_channel: Optional[str]
-    """
-
-    channel: NonEmptyString
-    sub_channel: Optional[str] = None
-
-    @model_validator(mode="before")
-    @classmethod
-    def _split_channel_ids(cls, data: Any) -> Any:
-        """Validator to split a string into channel and sub_channel if needed."""
-
-        if isinstance(data, str) and data:
-            split = data.strip().split(":", 1)
-            return {
-                "channel": split[0].strip(),
-                "sub_channel": split[1].strip() if len(split) == 2 else None,
-            }
-        elif isinstance(data, dict) and data:
-            # let Pydantic handle the dict case
-            return data
+    def __init__(self, value: Optional[str] = None, channel: Optional[str] = None, sub_channel: Optional[str] = None):
+        super().__init__()
+        if not channel:
+            split = self.strip().split(":", 1)
+            self._channel = split[0].strip()
+            self._sub_channel = split[1].strip() if len(split) == 2 else None
         else:
-            raise ValueError("Invalid data type for ChannelId")
+            self._channel = channel
+            self._sub_channel = sub_channel
 
-    @model_serializer(mode="plain")
-    def _serialize_plain(self) -> str:
-        return str(self)
+    def __new__(
+            cls,
+            value: Optional[str] = None,
+            channel: Optional[str] = None,
+            sub_channel: Optional[str] = None
+        ) -> ChannelId:
+        """Create a new ChannelId instance."""
+        if isinstance(value, str):
+            value = value.strip()
+            if value:
+                return str.__new__(cls, value)
+            raise TypeError("value must be a non empty string if provided")
+        else:
+            if not isinstance(channel, str) or len(channel.strip()) == 0 or ":" in channel:
+                raise TypeError("channel must be a non empty string, and must not contain the ':' character")
+            if sub_channel is not None and (not isinstance(sub_channel, str)):
+                raise TypeError("sub_channel must be a string if provided")
+            channel = channel.strip()
+            sub_channel = sub_channel.strip() if sub_channel else None
+            if sub_channel:
+                return str.__new__(cls, f"{channel}:{sub_channel}")
+            return str.__new__(cls, channel)
 
-    def __eq__(self, other: Any) -> bool:
-        return str(self) == str(other)
-
-    def __hash__(self) -> int:
-        return hash(str(self))
-
-    def __str__(self) -> str:
-        if self.sub_channel:
-            return f"{self.channel}:{self.sub_channel}"
-        return self.channel
+    @property
+    def channel(self) -> str:
+        """The main channel, e.g. 'email' in 'email:work'."""
+        return self._channel # type: ignore[return-value]
+    
+    @property
+    def sub_channel(self) -> Optional[str]:
+        """The sub-channel, e.g. 'work' in 'email:work'. May be None."""
+        return self._sub_channel
+    
+    # https://docs.pydantic.dev/dev/concepts/types/#customizing-validation-with-__get_pydantic_core_schema__
+    @classmethod
+    def __get_pydantic_core_schema__(
+        cls, source_type: Any, handler: GetCoreSchemaHandler
+    ) -> CoreSchema:
+        return core_schema.no_info_after_validator_function(cls, handler(str))
