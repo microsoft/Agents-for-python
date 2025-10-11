@@ -15,6 +15,8 @@ logger = logging.getLogger(__name__)
 class JwtTokenValidator:
     def __init__(self, configuration: AgentAuthConfiguration):
         self.configuration = configuration
+        self._default_jwks_client = None
+        self._tenant_jwks_client = None
 
     def validate_token(self, token: str) -> ClaimsIdentity:
 
@@ -38,17 +40,45 @@ class JwtTokenValidator:
     def get_anonymous_claims(self) -> ClaimsIdentity:
         logger.debug("Returning anonymous claims identity.")
         return ClaimsIdentity({}, False, authentication_type="Anonymous")
+    
+    def _get_client(self, issuer: str) -> PyJWKClient:
+        client = None
+        if issuer == "https://api.botframework.com":
+            client = self._default_jwks_client
+        else:
+            client = self._tenant_jwks_client
+        if not client:
+            raise RuntimeError("JWKS client is not initialized.")
+        return client
+    
+    def _init_jwks_client(self, issuer: str) -> None:
+
+        client_options = {
+            "cache_keys": True
+        }
+
+        if issuer == "https://api.botframework.com":
+            if self._default_jwks_client is None:
+                self._default_jwks_client = PyJWKClient(
+                    "https://login.botframework.com/v1/.well-known/keys",
+                    **client_options
+                )
+        else:
+            if self._tenant_jwks_client is None:
+                self._tenant_jwks_client = PyJWKClient(
+                    f"https://login.microsoftonline.com/{self.configuration.TENANT_ID}/discovery/v2.0/keys",
+                    **client_options
+                )
 
     def _get_public_key_or_secret(self, token: str) -> PyJWK:
+
         header = get_unverified_header(token)
         unverified_payload: dict = decode(token, options={"verify_signature": False})
 
-        jwksUri = (
-            "https://login.botframework.com/v1/.well-known/keys"
-            if unverified_payload.get("iss") == "https://api.botframework.com"
-            else f"https://login.microsoftonline.com/{self.configuration.TENANT_ID}/discovery/v2.0/keys"
-        )
-        jwks_client = PyJWKClient(jwksUri)
+        issuer = unverified_payload.get("iss")
+        if not issuer:
+            raise ValueError("Issuer (iss) claim is missing in the token.")
+        self._init_jwks_client(issuer)
 
-        key = jwks_client.get_signing_key(header["kid"])
+        key = self._get_client(issuer).get_signing_key(header["kid"])
         return key
