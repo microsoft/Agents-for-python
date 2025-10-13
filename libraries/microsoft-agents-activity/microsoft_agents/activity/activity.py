@@ -217,6 +217,13 @@ class Activity(AgentsModel, _ChannelIdFieldMixin):
             # sync sub_channel with productInfo entity
             product_info = activity.get_product_info_entity()
             if product_info and activity.channel_id:
+                if (
+                    activity.channel_id.sub_channel
+                    and activity.channel_id.sub_channel != product_info.id
+                ):
+                    raise Exception(
+                        "Conflict between channel_id.sub_channel and productInfo entity"
+                    )
                 activity.channel_id = ChannelId(
                     channel=activity.channel_id.channel,
                     sub_channel=product_info.id,
@@ -251,9 +258,11 @@ class Activity(AgentsModel, _ChannelIdFieldMixin):
 
         # maintain consistency between ProductInfo entity and sub channel
         if self.channel_id and self.channel_id.sub_channel:
-            if product_info:
-                product_info["id"] = self.channel_id.sub_channel
-            else:
+            if product_info and product_info.get("id") != self.channel_id.sub_channel:
+                raise Exception(
+                    "Conflict between channel_id.sub_channel and productInfo entity"
+                )
+            elif not product_info:
                 if not serialized.get("entities"):
                     serialized["entities"] = []
                 serialized["entities"].append(

@@ -69,35 +69,6 @@ class TestActivityIO:
             [
                 {
                     "type": "message",
-                    "channel_id": "msteams:subchannel",
-                    "entities": [
-                        {"type": "ProductInfo", "id": "other"},
-                        {"type": "ProductInfo", "id": "other"},
-                        {"type": "ProductInfo", "id": "wow"},
-                    ],
-                },
-                {
-                    "type": "message",
-                    "channelId": "msteams:subchannel",
-                    "entities": [
-                        {"type": "ProductInfo", "id": "other"},
-                        {"type": "ProductInfo", "id": "other"},
-                        {"type": "ProductInfo", "id": "wow"},
-                    ],
-                },
-                Activity(
-                    type="message",
-                    channel_id="msteams:subchannel",
-                    entities=[
-                        Entity(type=EntityTypes.PRODUCT_INFO, id="other"),
-                        Entity(type=EntityTypes.PRODUCT_INFO, id="other"),
-                        Entity(type=EntityTypes.PRODUCT_INFO, id="wow"),
-                    ],
-                ),
-            ],
-            [
-                {
-                    "type": "message",
                     "channel_id": "parent:misc",
                     "entities": [{"type": "some_entity"}],
                 },
@@ -115,30 +86,27 @@ class TestActivityIO:
             [
                 {
                     "type": "message",
-                    "channel_id": "parent:misc",
-                    "entities": [ProductInfo(id="sub_channel")],
-                    "conversation_referenece": {
-                        "channelId": "parent:misc",
-                        "conversation": {"id": "conv1"},
-                    },
+                    "channel_id": "parent",
+                    "entities": [
+                        {"type": "some_entity"},
+                        {"type": EntityTypes.PRODUCT_INFO, "id": "misc"},
+                    ],
                 },
                 {
                     "type": "message",
-                    "channelId": "parent:misc",
-                    "entities": [ProductInfo(id="sub_channel")],
-                    "conversation_referenece": {
-                        "channelId": "parent:misc",
-                        "conversation": {"id": "conv1"},
-                    },
+                    "channelId": "parent",
+                    "entities": [
+                        {"type": "some_entity"},
+                        {"type": EntityTypes.PRODUCT_INFO, "id": "misc"},
+                    ],
                 },
                 Activity(
                     type="message",
-                    channel_id="parent:sub_channel",
-                    entities=[ProductInfo(id="sub_channel")],
-                    conversation_reference=ConversationReference(
-                        channel_id="parent:sub_channel",
-                        conversation=ConversationAccount(id="conv1"),
-                    ),
+                    channel_id="parent:misc",
+                    entities=[
+                        Entity(type="some_entity"),
+                        Entity(type=EntityTypes.PRODUCT_INFO, id="misc"),
+                    ],
                 ),
             ],
         ],
@@ -151,6 +119,14 @@ class TestActivityIO:
         assert activity == expected
         assert activity_from_alias == expected
         assert activity.model_copy() == activity_from_alias.model_copy()
+
+    def test_channel_id_sub_channel_conflict_on_validation(self):
+        with pytest.raises(Exception):
+            activity = Activity(
+                type="message",
+                channel_id="parent:misc",
+                entities=[Entity(type="some_type"), ProductInfo(id="sub_channel")],
+            )
 
     def test_channel_id_unset_becomes_set_at_init(self):
         activity = Activity(type="message")
@@ -272,18 +248,13 @@ class TestActivityIO:
             ],
         }
 
-    def test_serialize_misconfiguration_wrong_sub_channel(self):
+    def test_serialize_sub_channel_conflict(self):
         activity = Activity(
-            type="message", channel_id="msteams:misc", entities=[{"type": "other"}]
+            type="message",
+            channel_id="msteams:subchannel",
+            entities=[{"type": "other"}],
         )
-        activity.entities.append(ProductInfo(id="sub_channel"))
+        activity.entities.append(ProductInfo(id="other_sub_channel"))
 
-        data = activity.model_dump(mode="json", exclude_unset=True, by_alias=True)
-        assert data == {
-            "type": "message",
-            "channelId": "msteams:misc",
-            "entities": [
-                {"type": "other"},
-                {"type": str(EntityTypes.PRODUCT_INFO), "id": "misc"},
-            ],
-        }
+        with pytest.raises(Exception):
+            activity.model_dump(mode="json", exclude_unset=True, by_alias=True)
