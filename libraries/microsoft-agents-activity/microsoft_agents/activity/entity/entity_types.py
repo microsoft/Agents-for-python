@@ -1,10 +1,10 @@
 # Copyright (c) Microsoft Corporation. All rights reserved.
 # Licensed under the MIT License.
 
-from strenum import StrEnum
+from enum import Enum
 
 
-class EntityTypes(StrEnum):
+class EntityTypes(str, Enum):
     """Well-known enumeration of entity types."""
 
     GEO_COORDINATES = "GeoCoordinates"

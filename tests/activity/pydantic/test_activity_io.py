@@ -158,14 +158,14 @@ class TestActivityIO:
                     "type": "message",
                     "channelId": "msteams:subchannel",
                     "entities": [
-                        {"type": str(EntityTypes.PRODUCT_INFO), "id": "subchannel"}
+                        {"type": EntityTypes.PRODUCT_INFO.value, "id": "subchannel"}
                     ],
                 },
                 {
                     "type": "message",
                     "channel_id": "msteams:subchannel",
                     "entities": [
-                        {"type": str(EntityTypes.PRODUCT_INFO), "id": "subchannel"}
+                        {"type": EntityTypes.PRODUCT_INFO.value, "id": "subchannel"}
                     ],
                 },
             ],
@@ -180,7 +180,7 @@ class TestActivityIO:
                     "channelId": "msteams:subchannel",
                     "entities": [
                         {"type": "other"},
-                        {"type": str(EntityTypes.PRODUCT_INFO), "id": "subchannel"},
+                        {"type": EntityTypes.PRODUCT_INFO.value, "id": "subchannel"},
                     ],
                 },
                 {
@@ -188,7 +188,7 @@ class TestActivityIO:
                     "channel_id": "msteams:subchannel",
                     "entities": [
                         {"type": "other"},
-                        {"type": str(EntityTypes.PRODUCT_INFO), "id": "subchannel"},
+                        {"type": EntityTypes.PRODUCT_INFO.value, "id": "subchannel"},
                     ],
                 },
             ],
@@ -203,7 +203,7 @@ class TestActivityIO:
                     "channelId": "msteams:misc",
                     "entities": [
                         {"type": "other"},
-                        {"type": str(EntityTypes.PRODUCT_INFO), "id": "misc"},
+                        {"type": EntityTypes.PRODUCT_INFO.value, "id": "misc"},
                     ],
                 },
                 {
@@ -211,7 +211,7 @@ class TestActivityIO:
                     "channel_id": "msteams:misc",
                     "entities": [
                         {"type": "other"},
-                        {"type": str(EntityTypes.PRODUCT_INFO), "id": "misc"},
+                        {"type": EntityTypes.PRODUCT_INFO.value, "id": "misc"},
                     ],
                 },
             ],
