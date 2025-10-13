@@ -6,11 +6,13 @@ build-backend = "setuptools.build_meta"
 name = "microsoft-agents-hosting-core"
 dynamic = ["version", "dependencies"]
 description = "Core library for Microsoft Agents"
+readme = {file = "readme.md", content-type = "text/markdown"}
 authors = [{name = "Microsoft Corporation"}]
+license = "MIT"
+license-files = ["LICENSE"]
 requires-python = ">=3.9"
 classifiers = [
     "Programming Language :: Python :: 3",
-    "License :: OSI Approved :: MIT License",
     "Operating System :: OS Independent",
 ]
 
