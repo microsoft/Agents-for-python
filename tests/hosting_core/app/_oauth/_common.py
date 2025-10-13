@@ -8,7 +8,7 @@ from tests._common.testing_objects import mock_UserTokenClient
 DEFAULTS = TEST_DEFAULTS()
 
 
-def testing_Activity():
+def create_testing_Activity():
     return Activity(
         type=ActivityTypes.message,
         channel_id=DEFAULTS.channel_id,
@@ -17,7 +17,7 @@ def testing_Activity():
     )
 
 
-def testing_TurnContext(
+def create_testing_TurnContext(
     mocker,
     channel_id=DEFAULTS.channel_id,
     user_id=DEFAULTS.user_id,
@@ -45,7 +45,7 @@ def testing_TurnContext(
     return turn_context
 
 
-def testing_TurnContext_magic(
+def create_testing_TurnContext_magic(
     mocker,
     channel_id=DEFAULTS.channel_id,
     user_id=DEFAULTS.user_id,

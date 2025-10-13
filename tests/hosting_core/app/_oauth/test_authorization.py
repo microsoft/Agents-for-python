@@ -44,7 +44,7 @@ from tests._common.testing_objects import (
     mock_class_Authorization,
 )
 
-from ._common import testing_TurnContext, testing_Activity
+from ._common import create_testing_TurnContext, create_testing_Activity
 
 DEFAULTS = TEST_DEFAULTS()
 FLOW_DATA = TEST_FLOW_DATA()
@@ -109,7 +109,7 @@ def copy_sign_in_state(state: _SignInState) -> _SignInState:
 
 class TestEnv(FlowStateFixtures):
     def setup_method(self):
-        self.TurnContext = testing_TurnContext
+        self.TurnContext = create_testing_TurnContext
         self.UserTokenClient = mock_UserTokenClient
         self.ConnectionManager = lambda mocker: MockConnectionManager()
 
@@ -119,7 +119,7 @@ class TestEnv(FlowStateFixtures):
 
     @pytest.fixture
     def activity(self):
-        return testing_Activity()
+        return create_testing_Activity()
 
     @pytest.fixture
     def baseline_storage(self):
@@ -191,7 +191,6 @@ class TestAuthorizationSetup(TestEnv):
 
 
 class TestAuthorizationUsage(TestEnv):
-
     @pytest.mark.asyncio
     @pytest.mark.parametrize(
         "initial_turn_state, final_turn_state, initial_sign_in_state, auth_handler_id",
