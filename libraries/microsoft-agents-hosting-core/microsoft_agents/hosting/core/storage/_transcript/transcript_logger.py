@@ -5,11 +5,10 @@ import random
 import string
 import json
 
-from typing import Any, Optional
 from abc import ABC, abstractmethod
 from datetime import datetime, timezone
 from queue import Queue
-from typing import Awaitable, Callable, List, Optional
+from typing import Awaitable, Callable, Optional, Generic, TypeVar
 from dataclasses import dataclass
 
 from microsoft_agents.activity import Activity, ChannelAccount
@@ -17,7 +16,6 @@ from microsoft_agents.activity.activity import ConversationReference
 from microsoft_agents.activity.activity_types import ActivityTypes
 from microsoft_agents.activity.conversation_reference import ActivityEventNames
 from microsoft_agents.hosting.core.middleware_set import Middleware, TurnContext
-from typing import Generic, TypeVar
 
 
 T = TypeVar("T")
@@ -25,7 +23,7 @@ T = TypeVar("T")
 
 @dataclass
 class PagedResult(Generic[T]):
-    items: List[T]
+    items: list[T]
     continuation_token: Optional[str] = None
 
 
@@ -140,7 +138,7 @@ class TranscriptLoggerMiddleware(Middleware):
         # pylint: disable=unused-argument
         async def send_activities_handler(
             ctx: TurnContext,
-            activities: List[Activity],
+            activities: list[Activity],
             next_send: Callable[[], Awaitable[None]],
         ):
             # Run full pipeline

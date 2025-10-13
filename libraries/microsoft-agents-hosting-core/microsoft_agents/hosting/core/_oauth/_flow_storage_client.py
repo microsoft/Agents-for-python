@@ -19,6 +19,11 @@ class _DummyCache(Storage):
         pass
 
 
+# class FlowStorageClient(StorageNamespace):
+#     def __init__(self, channel_id: str, user_id: str, storage: Storage):
+#         super().__init__(_FlowStorageClient(channel_id, user_id, storage))
+
+
 # this could be generalized. Ideas:
 # - CachedStorage class for two-tier storage
 # - Namespaced/PrefixedStorage class for namespacing keying
