@@ -49,7 +49,7 @@ class MyUserAuthorization(_UserAuthorization):
         pass
 
 
-def testing_TurnContext(
+def create_testing_TurnContext(
     mocker,
     channel_id=DEFAULTS.channel_id,
     user_id=DEFAULTS.user_id,
@@ -94,7 +94,7 @@ def mock_provider(mocker, exchange_token=None):
 
 class TestEnv(FlowStateFixtures):
     def setup_method(self):
-        self.TurnContext = testing_TurnContext
+        self.TurnContext = create_testing_TurnContext
 
     @pytest.fixture
     def context(self, mocker):
