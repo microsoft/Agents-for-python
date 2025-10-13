@@ -3,11 +3,10 @@
 
 from __future__ import annotations
 
-from token import OP
 from typing import Optional, Any
 
 from pydantic_core import CoreSchema, core_schema
-from pydantic import GetCoreSchemaHandler, BaseModel
+from pydantic import GetCoreSchemaHandler
 
 
 class ChannelId(str):
@@ -16,9 +15,17 @@ class ChannelId(str):
     def __init__(
         self,
         value: Optional[str] = None,
+        *,
         channel: Optional[str] = None,
         sub_channel: Optional[str] = None,
-    ):
+    ) -> None:
+        """Initialize a ChannelId instance.
+
+        :param value: The full channel ID string in the format 'channel:sub_channel'. Must be provided if channel is not provided.
+        :param channel: The main channel string. Must be provided if value is not provided.
+        :param sub_channel: The sub-channel string.
+        :raises ValueError: If the input parameters are invalid. value and channel cannot both be provided.
+        """
         super().__init__()
         if not channel:
             split = self.strip().split(":", 1)
@@ -31,11 +38,24 @@ class ChannelId(str):
     def __new__(
         cls,
         value: Optional[str] = None,
+        *,
         channel: Optional[str] = None,
         sub_channel: Optional[str] = None,
     ) -> ChannelId:
-        """Create a new ChannelId instance."""
+        """Create a new ChannelId instance.
+
+        :param value: The full channel ID string in the format 'channel:sub_channel'. Must be provided if channel is not provided.
+        :param channel: The main channel string. Must be provided if value is not provided.
+        :param sub_channel: The sub-channel string.
+        :return: A new ChannelId instance.
+        :raises ValueError: If the input parameters are invalid. value and channel cannot both be provided.
+        """
         if isinstance(value, str):
+            if channel or sub_channel:
+                raise ValueError(
+                    "If value is provided, channel and sub_channel must be None"
+                )
+
             value = value.strip()
             if value:
                 return str.__new__(cls, value)

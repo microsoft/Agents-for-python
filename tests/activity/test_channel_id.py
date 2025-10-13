@@ -26,9 +26,8 @@ class TestChannelId:
         assert ChannelId("email:support:extra").sub_channel == "support:extra"
 
     def test_init_multiple_args(self):
-        assert (
-            ChannelId("email:support", channel="a", sub_channel="b") == "email:support"
-        )
+        with pytest.raises(ValueError):
+            ChannelId("email:support", channel="a", sub_channel="b")
 
     def test_init_from_parts(self):
         channel_id = ChannelId(channel="email", sub_channel="support")

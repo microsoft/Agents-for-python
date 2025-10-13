@@ -6,7 +6,7 @@ from __future__ import annotations
 import logging
 from copy import copy
 from datetime import datetime, timezone
-from typing import Optional, Union, Any
+from typing import Optional, Any
 
 from pydantic import (
     Field,
@@ -18,7 +18,6 @@ from pydantic import (
     computed_field,
     ValidationError,
 )
-from yaml import serialize
 
 from .activity_types import ActivityTypes
 from .channel_account import ChannelAccount
@@ -224,8 +223,8 @@ class Activity(AgentsModel, _ChannelIdFieldMixin):
                 )
 
             return activity
-        except ValidationError:
-            logger.error("Validation error for Activity")
+        except ValidationError as exc:
+            logger.error("Validation error for Activity: %s", exc, exc_info=True)
             raise
 
     @model_serializer(mode="wrap")
@@ -635,6 +634,8 @@ class Activity(AgentsModel, _ChannelIdFieldMixin):
         if not self.entities:
             return None
         target = EntityTypes.PRODUCT_INFO.lower()
+        # validated entities can be Entity, and that prevents us from
+        # making assumptions about the casing of the 'type' attribute
         return next(filter(lambda e: e.type.lower() == target, self.entities), None)
 
     def get_mentions(self) -> list[Mention]:
