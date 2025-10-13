@@ -9,7 +9,7 @@ from ._transcript import (
     FileTranscriptLogger,
     PagedResult,
     TranscriptStore,
-    FileTranscriptStore
+    FileTranscriptStore,
 )
 
 __all__ = [

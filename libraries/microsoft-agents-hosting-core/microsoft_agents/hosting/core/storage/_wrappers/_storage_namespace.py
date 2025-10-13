@@ -7,6 +7,7 @@ from ..store_item import StoreItem
 
 StoreItemT = TypeVar("StoreItemT", bound=StoreItem)
 
+
 class _StorageNamespace(Storage):
     """Wrapper around Storage that manages sign-in state specific to each user and channel.
 
@@ -27,13 +28,13 @@ class _StorageNamespace(Storage):
                 This cache's lifetime is tied to the FlowStorageClient instance.
         """
 
-        _raise_if_falsey("StorageNamespace.__init__()", namespace=namespace, storage=storage)
+        _raise_if_falsey(
+            "StorageNamespace.__init__()", namespace=namespace, storage=storage
+        )
 
         if not namespace:
-            raise ValueError(
-                "StorageNamespace.__init__(): namespace must be set."
-            )
-        
+            raise ValueError("StorageNamespace.__init__(): namespace must be set.")
+
         self._base_key = namespace
         self._storage = storage
 
@@ -41,11 +42,11 @@ class _StorageNamespace(Storage):
     def base_key(self) -> str:
         """Returns the prefix used for flow state storage isolation."""
         return self._base_key
-    
+
     def key(self, vkey: str) -> str:
         """Creates a storage key for a specific sign-in handler."""
         return f"{self._base_key}:{vkey}"
-    
+
     async def read(
         self, keys: list[str], *, target_cls: type[StoreItemT] = None, **kwargs
     ) -> dict[str, StoreItemT]:

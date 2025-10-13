@@ -7,12 +7,13 @@ from ..storage import Storage
 
 StoreItemT = TypeVar("StoreItemT", bound=StoreItem)
 
+
 class _CachedStorage(Storage):
     """Wrapper around Storage that adds a caching layer."""
 
     def __init__(self, storage: Storage, cache: Storage):
         """Initialize CachedStorage with a storage and cache.
-        
+
         Args:
             storage: The backing storage.
             cache: The caching storage. This should ideally be faster or at least
@@ -34,7 +35,7 @@ class _CachedStorage(Storage):
             if storage_data:
                 await self._cache.write(storage_data)
                 data.update(storage_data)
-          
+
         return data
 
     async def write(self, changes: dict[str, StoreItemT]) -> None:

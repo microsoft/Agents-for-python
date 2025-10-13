@@ -6,10 +6,23 @@ from ..store_item import StoreItem
 
 StoreItemT = TypeVar("StoreItemT", bound=StoreItem)
 
+
+class _DummyCache(Storage):
+
+    async def read(self, keys: list[str], **kwargs) -> dict[str, _FlowState]:
+        return {}
+
+    async def write(self, changes: dict[str, _FlowState]) -> None:
+        pass
+
+    async def delete(self, keys: list[str]) -> None:
+        pass
+
+
 class _MemoryCache(MemoryStorage):
     def __init__(self, clear_interval: int = 300):
         """In-memory cache that clears itself every `clear_interval` seconds.
-        
+
         :param clear_interval: Time in seconds between automatic cache clears.
             Defaults to 5 minutes.
         :type clear_interval: int
@@ -20,7 +33,7 @@ class _MemoryCache(MemoryStorage):
         self._clear_interval = clear_interval
         self._last_cleared = datetime.now(timezone.utc).timestamp()
 
-    def clear(self):
+    async def clear(self):
         """Clears the cache if the clear interval has passed."""
         with self._lock:
             now = datetime.now(timezone.utc).timestamp()
@@ -33,7 +46,6 @@ class _MemoryCache(MemoryStorage):
     ) -> dict[str, StoreItemT]:
         self.clear()
         return await super().read(keys, target_cls=target_cls, **kwargs)
-        
 
     async def write(self, changes: dict[str, StoreItem]):
         self.clear()

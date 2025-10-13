@@ -6,5 +6,5 @@ __all__ = [
     "_CachedStorage",
     "_ClearableCachedStorage",
     "_ItemStorage",
-    "_StorageNamespace"
+    "_StorageNamespace",
 ]

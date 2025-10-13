@@ -233,5 +233,6 @@ def _get_ids(activity: Activity) -> tuple[str, str]:
         raise ValueError("Activity must include channel_id and conversation.id")
     return str(channel_id), str(conversation_id)
 
+
 def _utc_iso_now() -> str:
     return datetime.now(timezone.utc).isoformat()
