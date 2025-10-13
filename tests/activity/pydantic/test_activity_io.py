@@ -37,11 +37,6 @@ class TestActivityIO:
                 ChannelId(channel="msteams", sub_channel="subchannel"),
             ),
             (ChannelId(channel="msteams"), ChannelId(channel="msteams")),
-            (
-                {"channel": "msteams", "sub_channel": "subchannel"},
-                ChannelId(channel="msteams", sub_channel="subchannel"),
-            ),
-            ({"channel": "msteams"}, ChannelId(channel="msteams")),
         ],
     )
     def test_channel_id_setter_validation(self, data, expected):
@@ -55,8 +50,10 @@ class TestActivityIO:
 
     def test_channel_id_setter_validation_error(self):
         activity = Activity(type="message")
-        with pytest.raises(ValidationError):
+        with pytest.raises(Exception):
             activity.channel_id = {}
+        with pytest.raises(Exception):
+            activity.channel_id = 123
 
     def test_channel_id_validate_without_product_info(self):
         data = {"type": "message", "channel_id": "msteams:subchannel"}

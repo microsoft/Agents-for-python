@@ -213,10 +213,7 @@ class Activity(AgentsModel, _ChannelIdFieldMixin):
 
             # needed to assign to a computed field
             # needed because we override the mixin validator
-            if "channelId" in data:
-                activity.channel_id = data["channelId"]
-            elif "channel_id" in data:
-                activity.channel_id = data["channel_id"]
+            activity._set_validated_channel_id(data)
 
             # sync sub_channel with productInfo entity
             product_info = activity.get_product_info_entity()
@@ -243,15 +240,18 @@ class Activity(AgentsModel, _ChannelIdFieldMixin):
 
         # run Pydantic's standard serialization first
         serialized = handler(self)
+        if not self:  # serialization can be called with None
+            return serialized
 
+        # find the ProductInfo entity
         product_info = None
         for i, entity in enumerate(serialized.get("entities") or []):
             if entity.get("type", "") == EntityTypes.PRODUCT_INFO:
                 product_info = entity
                 break
 
+        # maintain consistency between ProductInfo entity and sub channel
         if self.channel_id and self.channel_id.sub_channel:
-            # maintain consistency between productInfo entity and sub channel
             if product_info:
                 product_info["id"] = self.channel_id.sub_channel
             else:
@@ -267,6 +267,9 @@ class Activity(AgentsModel, _ChannelIdFieldMixin):
             del serialized["entities"][i]
             if not serialized["entities"]:  # after removal above, list may be empty
                 del serialized["entities"]
+
+        # necessary due to computed_field serialization
+        self._remove_serialized_unset_channel_id(serialized)
 
         return serialized
 

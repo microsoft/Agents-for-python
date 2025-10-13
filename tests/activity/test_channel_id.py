@@ -6,6 +6,7 @@ from tests._common.data import TEST_DEFAULTS
 
 DEFAULTS = TEST_DEFAULTS()
 
+
 class TestChannelId:
 
     def test_init_from_str(self):
@@ -14,18 +15,20 @@ class TestChannelId:
         assert channel_id.sub_channel == "support"
         assert str(channel_id) == "email:support"
         assert channel_id == "email:support"
-        assert channel_id in [ "email:support", "other" ]
-        assert channel_id not in [ "email:other", "other" ]
+        assert channel_id in ["email:support", "other"]
+        assert channel_id not in ["email:other", "other"]
         assert channel_id != "email:other"
-        assert channel_id in [ "wow", ChannelId("email:support") ]
+        assert channel_id in ["wow", ChannelId("email:support")]
         assert channel_id == ChannelId("email:support")
-    
+
     def test_init_multiple_colons(self):
         assert ChannelId("email:support:extra").channel == "email"
         assert ChannelId("email:support:extra").sub_channel == "support:extra"
 
     def test_init_multiple_args(self):
-        assert ChannelId("email:support", channel="a", sub_channel="b") == "email:support"
+        assert (
+            ChannelId("email:support", channel="a", sub_channel="b") == "email:support"
+        )
 
     def test_init_from_parts(self):
         channel_id = ChannelId(channel="email", sub_channel="support")

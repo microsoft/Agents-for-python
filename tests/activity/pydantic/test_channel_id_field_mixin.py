@@ -5,11 +5,13 @@ from pydantic import BaseModel, ValidationError
 
 from microsoft_agents.activity import ChannelId, _ChannelIdFieldMixin
 
-class DummyModel(BaseModel, _ChannelIdFieldMixin):
-    ...
+
+class DummyModel(BaseModel, _ChannelIdFieldMixin): ...
+
 
 def channel_id_eq(a: Optional[ChannelId], b: Optional[ChannelId]) -> bool:
     return a.channel == b.channel and a.sub_channel == b.sub_channel and a == b
+
 
 class TestChannelIdFieldMixin:
 
@@ -58,9 +60,9 @@ class TestChannelIdFieldMixin:
     def test_serialize_none(self):
         model = DummyModel()
         assert model.model_dump() == {}
-        assert model.model_dump_json() == '{}'
+        assert model.model_dump_json() == "{}"
         assert model.model_dump(by_alias=True) == {}
-        assert model.model_dump_json(by_alias=True) == '{}'
+        assert model.model_dump_json(by_alias=True) == "{}"
         assert model.model_dump(exclude_unset=True) == {}
 
     def test_set(self):
