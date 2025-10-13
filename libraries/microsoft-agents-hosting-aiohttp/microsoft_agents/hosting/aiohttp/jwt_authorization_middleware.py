@@ -17,7 +17,7 @@ async def jwt_authorization_middleware(request: Request, handler):
         # Extract the token from the Authorization header
         token = auth_header.split(" ")[1]
         try:
-            claims = token_validator.validate_token(token)
+            claims = await token_validator.validate_token(token)
             request["claims_identity"] = claims
         except ValueError as e:
             print(f"JWT validation error: {e}")
@@ -44,7 +44,7 @@ def jwt_authorization_decorator(func):
             # Extract the token from the Authorization header
             token = auth_header.split(" ")[1]
             try:
-                claims = token_validator.validate_token(token)
+                claims = await token_validator.validate_token(token)
                 request["claims_identity"] = claims
             except ValueError as e:
                 print(f"JWT validation error: {e}")
