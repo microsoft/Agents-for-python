@@ -45,7 +45,7 @@ class ChannelId(str):
         """Create a new ChannelId instance.
 
         :param value: The full channel ID string in the format 'channel:sub_channel'. Must be provided if channel is not provided.
-        :param channel: The main channel string. Must be provided if value is not provided.
+        :param channel: The main channel string. Must be provided if value is not provided. Must not contain ':', as it delimits channels and sub channels.
         :param sub_channel: The sub-channel string.
         :return: A new ChannelId instance.
         :raises ValueError: If the input parameters are invalid. value and channel cannot both be provided.

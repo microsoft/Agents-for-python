@@ -3,12 +3,12 @@
 
 from typing import Literal
 
-from ..agents_model import AgentsModel
 from .._type_aliases import NonEmptyString
+from .entity import Entity
 from .entity_types import EntityTypes
 
 
-class Thing(AgentsModel):
+class Thing(Entity):
     """Thing (entity type: "https://schema.org/Thing").
 
     :param type: The type of the thing

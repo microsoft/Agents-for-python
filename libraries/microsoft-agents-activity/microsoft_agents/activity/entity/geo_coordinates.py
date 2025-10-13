@@ -3,12 +3,12 @@
 
 from typing import Literal
 
-from ..agents_model import AgentsModel
 from .._type_aliases import NonEmptyString
+from .entity import Entity
 from .entity_types import EntityTypes
 
 
-class GeoCoordinates(AgentsModel):
+class GeoCoordinates(Entity):
     """GeoCoordinates (entity type: "https://schema.org/GeoCoordinates").
 
     :param elevation: Elevation of the location [WGS
