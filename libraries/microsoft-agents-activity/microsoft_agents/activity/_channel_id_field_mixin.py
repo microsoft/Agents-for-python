@@ -1,8 +1,10 @@
 # Copyright (c) Microsoft Corporation. All rights reserved.
 # Licensed under the MIT License.
 
+from __future__ import annotations
+
 import logging
-from typing import Optional, Any, Self
+from typing import Optional, Any
 
 from pydantic import (
     ModelWrapValidatorHandler,
@@ -56,7 +58,7 @@ class _ChannelIdFieldMixin:
     @classmethod
     def _validate_channel_id(
         cls, data: Any, handler: ModelWrapValidatorHandler
-    ) -> Self:
+    ) -> _ChannelIdFieldMixin:
         """Validate the _channel_id field after model initialization.
 
         :return: The model instance itself.
