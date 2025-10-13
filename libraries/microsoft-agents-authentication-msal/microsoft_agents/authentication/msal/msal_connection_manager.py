@@ -28,7 +28,7 @@ class MsalConnectionManager(Connections):
         Initialize the MSAL connection manager.
 
         :arg connections_configurations: A dictionary of connection configurations.
-        :type connections_configurations: Dict[str, AgentAuthConfiguration]
+        :type connections_configurations: Dict[str, :class:`microsoft_agents.hosting.core.AgentAuthConfiguration`]
         :arg connections_map: A list of connection mappings.
         :type connections_map: List[Dict[str, str]]
         :raises ValueError: If no service connection configuration is provided.
@@ -64,9 +64,9 @@ class MsalConnectionManager(Connections):
         Get the OAuth connection for the agent.
 
         :arg connection_name: The name of the connection.
-        :type connection_name: str
+        :type connection_name: Optional[str]
         :return: The OAuth connection for the agent.
-        :rtype: AccessTokenProviderBase
+        :rtype: :class:`microsoft_agents.hosting.core.AccessTokenProviderBase`
         """
         # should never be None
         return self._connections.get(connection_name, None)
@@ -74,6 +74,9 @@ class MsalConnectionManager(Connections):
     def get_default_connection(self) -> AccessTokenProviderBase:
         """
         Get the default OAuth connection for the agent.
+
+        :return: The default OAuth connection for the agent.
+        :rtype: :class:`microsoft_agents.hosting.core.AccessTokenProviderBase`
         """
         # should never be None
         return self._connections.get("SERVICE_CONNECTION", None)
@@ -85,11 +88,11 @@ class MsalConnectionManager(Connections):
         Get the OAuth token provider for the agent.
 
         :arg claims_identity: The claims identity of the bot.
-        :type claims_identity: ClaimsIdentity
+        :type claims_identity: :class:`microsoft_agents.hosting.core.ClaimsIdentity`
         :arg service_url: The service URL of the bot.
         :type service_url: str
         :return: The OAuth token provider for the agent.
-        :rtype: AccessTokenProviderBase
+        :rtype: :class:`microsoft_agents.hosting.core.AccessTokenProviderBase`
         :raises ValueError: If no connection is found for the given audience and service URL.
         """
         if not claims_identity or not service_url:
@@ -130,5 +133,8 @@ class MsalConnectionManager(Connections):
     def get_default_connection_configuration(self) -> AgentAuthConfiguration:
         """
         Get the default connection configuration for the agent.
+
+        :return: The default connection configuration for the agent.
+        :rtype: :class:`microsoft_agents.hosting.core.AgentAuthConfiguration`
         """
         return self._service_connection_configuration
