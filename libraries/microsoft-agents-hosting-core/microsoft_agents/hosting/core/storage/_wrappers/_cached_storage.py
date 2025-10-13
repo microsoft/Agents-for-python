@@ -44,13 +44,3 @@ class _CachedStorage(Storage):
     async def delete(self, keys: list[str]) -> None:
         await self._cache.delete(keys)
         await self._storage.delete(keys)
-
-StorageT = TypeVar("StorageT", bound=Storage)
-class _ClearableCachedStorage(_CachedStorage):
-
-    def __init__(self, storage: Storage, cache_cls: type[Storage]):
-        super().__init__(storage, cache_cls())
-        self._cache_cls = cache_cls
-    
-    async def clear_cache(self):
-        self._cache = self._cache_cls()
