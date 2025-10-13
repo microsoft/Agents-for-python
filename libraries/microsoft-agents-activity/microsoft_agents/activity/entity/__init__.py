@@ -1,3 +1,6 @@
+# Copyright (c) Microsoft Corporation. All rights reserved.
+# Licensed under the MIT License.
+
 from .mention import Mention
 from .entity import Entity
 from .entity_types import EntityTypes
