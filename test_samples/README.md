@@ -78,7 +78,7 @@ To verify the Python version in your virtual environment:
 python --version
 ```
 
-Make sure it shows a version of at least 3.10 
+Make sure it shows a version of at least 3.10.
 
 ## Installing Test Packages
 
