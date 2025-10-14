@@ -14,4 +14,4 @@ name = "helper"
 dynamic = ["version"]
 description = "Helper project to calculate version"
 authors = [{name = "Microsoft Corporation"}]
-requires-python = ">=3.9"
+requires-python = ">=3.10"
