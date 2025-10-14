@@ -66,7 +66,7 @@ class _UserAuthorization(_AuthorizationHandler):
         ):
             raise ValueError("Channel ID and User ID are required")
 
-        channel_id = str(context.activity.channel_id)
+        channel_id = context.activity.channel_id
         user_id = context.activity.from_property.id
 
         ms_app_id = context.turn_state.get(context.adapter.AGENT_IDENTITY_KEY).claims[

@@ -192,9 +192,6 @@ class Activity(AgentsModel, _ChannelIdFieldMixin):
     semantic_action: SemanticAction = None
     caller_id: NonEmptyString = None
 
-    # annotated as Optional but cannot be set to None in practice
-    # _channel_id: Optional[ChannelId] = None # inherited from _ChannelIdFieldMixin
-
     @model_validator(mode="wrap")
     @classmethod
     def _validate_channel_id(
