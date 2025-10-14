@@ -29,7 +29,7 @@ def create_test_auth_handler(
     )
 
 
-class TEST_AUTH_DATA:
+class AUTH_TEST_DATA:
     def __init__(self):
 
         self.auth_handler: AuthHandler = create_test_auth_handler("graph")

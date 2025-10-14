@@ -16,13 +16,13 @@ from microsoft_agents.hosting.core._oauth import (
     _FlowResponse,
 )
 
-from tests._common.data import TEST_DEFAULTS, TEST_FLOW_DATA
-from tests._common.data.test_storage_data import FLOW_DATA
+from tests._common.data import DEFAULT_TEST_VALUES, FLOW_TEST_DATA
+from tests._common.data.storage_test_data import STORAGE_TEST_DATA
 from tests._common.fixtures import FlowStateFixtures
 from tests._common.testing_objects import mock_UserTokenClient
 
-DEFAULTS = TEST_DEFAULTS()
-FLOW_DATA = TEST_FLOW_DATA()
+DEFAULTS = DEFAULT_TEST_VALUES()
+FLOW_DATA = FLOW_TEST_DATA()
 
 
 def create_testing_Activity(

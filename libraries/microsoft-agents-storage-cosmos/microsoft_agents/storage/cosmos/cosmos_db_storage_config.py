@@ -42,7 +42,8 @@ class CosmosDBStorageConfig:
         """
         config_file: str = kwargs.get("filename", "")
         if config_file:
-            kwargs = json.load(open(config_file))
+            with open(config_file) as f:
+                kwargs = json.load(f)
         self.cosmos_db_endpoint: str = cosmos_db_endpoint or kwargs.get(
             "cosmos_db_endpoint", ""
         )

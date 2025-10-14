@@ -22,9 +22,9 @@ from microsoft_agents.activity import (
 
 from tests.activity._common.my_channel_data import MyChannelData
 from tests.activity._common.testing_activity import create_test_activity
-from tests._common.data import TEST_DEFAULTS
+from tests._common.data import DEFAULT_TEST_VALUES
 
-DEFAULTS = TEST_DEFAULTS()
+DEFAULTS = DEFAULT_TEST_VALUES()
 
 
 def helper_validate_recipient_and_from(
@@ -416,7 +416,6 @@ class TestActivityConversationOps:
 
 
 class TestActivityAgenticOps:
-
     @pytest.fixture(params=[RoleTypes.user, RoleTypes.skill, RoleTypes.agent])
     def non_agentic_role(self, request):
         return request.param

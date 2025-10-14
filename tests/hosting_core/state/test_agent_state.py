@@ -23,10 +23,10 @@ from microsoft_agents.activity import (
     ChannelAccount,
     ConversationAccount,
 )
-from tests._common.testing_objects import TestingAdapter, TestingCustomState
+from tests._common.testing_objects import MockTestingAdapter, MockTestingCustomState
 
 
-class TestDataItem(StoreItem):
+class _MockTestDataItem(StoreItem):
     """Test data item for testing state functionality."""
 
     def __init__(self, value: str = None):
@@ -36,8 +36,8 @@ class TestDataItem(StoreItem):
         return {"value": self.value}
 
     @staticmethod
-    def from_json_to_store_item(json_data: dict) -> "TestDataItem":
-        return TestDataItem(json_data.get("value", "default"))
+    def from_json_to_store_item(json_data: dict) -> "_MockTestDataItem":
+        return _MockTestDataItem(json_data.get("value", "default"))
 
 
 class TestAgentState:
@@ -52,10 +52,10 @@ class TestAgentState:
         self.storage = MemoryStorage()
         self.user_state = UserState(self.storage)
         self.conversation_state = ConversationState(self.storage)
-        self.custom_state = TestingCustomState(self.storage)
+        self.custom_state = MockTestingCustomState(self.storage)
 
         # Create a test context
-        self.adapter = TestingAdapter()
+        self.adapter = MockTestingAdapter()
         self.activity = Activity(
             type=ActivityTypes.message,
             channel_id="test-channel",
@@ -105,19 +105,19 @@ class TestAgentState:
     async def test_get_property_with_default_factory(self):
         """Test getting property with default factory function."""
         property_name = "test_property"
-        default_factory = lambda: TestDataItem("factory_value")
+        default_factory = lambda: _MockTestDataItem("factory_value")
         property_accessor = self.user_state.create_property(property_name)
 
         # Test getting with factory
         value = await property_accessor.get(self.context, default_factory)
-        assert isinstance(value, TestDataItem)
+        assert isinstance(value, _MockTestDataItem)
         assert value.value == "factory_value"
 
     @pytest.mark.asyncio
     async def test_set_property_works(self):
         """Test setting property values."""
         property_name = "test_property"
-        test_value = TestDataItem("test_value")
+        test_value = _MockTestDataItem("test_value")
         property_accessor = self.user_state.create_property(property_name)
 
         # Set the property
@@ -125,14 +125,14 @@ class TestAgentState:
 
         # Verify it was set
         retrieved_value = await property_accessor.get(self.context)
-        assert isinstance(retrieved_value, TestDataItem)
+        assert isinstance(retrieved_value, _MockTestDataItem)
         assert retrieved_value.value == "test_value"
 
     @pytest.mark.asyncio
     async def test_delete_property_works(self):
         """Test deleting property values."""
         property_name = "test_property"
-        test_value = TestDataItem("test_value")
+        test_value = _MockTestDataItem("test_value")
         property_accessor = self.user_state.create_property(property_name)
 
         # Set then delete the property
@@ -187,7 +187,7 @@ class TestAgentState:
 
         # Make a change
         property_accessor = self.user_state.create_property("test_property")
-        await property_accessor.set(self.context, TestDataItem("changed_value"))
+        await property_accessor.set(self.context, _MockTestDataItem("changed_value"))
 
         # Save changes
         await self.user_state.save(self.context)
@@ -196,9 +196,9 @@ class TestAgentState:
         fresh_context = TurnContext(self.adapter, self.activity)
         await self.user_state.load(fresh_context)
         fresh_accessor = self.user_state.create_property("test_property")
-        value = await fresh_accessor.get(fresh_context, target_cls=TestDataItem)
+        value = await fresh_accessor.get(fresh_context, target_cls=_MockTestDataItem)
 
-        assert isinstance(value, TestDataItem)
+        assert isinstance(value, _MockTestDataItem)
         assert value.value == "changed_value"
 
     @pytest.mark.asyncio
@@ -231,8 +231,8 @@ class TestAgentState:
         prop_1 = user_state_1.create_property("test_prop")
         prop_2 = user_state_2.create_property("test_prop")
 
-        await prop_1.set(self.context, TestDataItem("value1"))
-        await prop_2.set(self.context, TestDataItem("value2"))
+        await prop_1.set(self.context, _MockTestDataItem("value1"))
+        await prop_2.set(self.context, _MockTestDataItem("value2"))
 
         # Verify they are independent
         val_1 = await prop_1.get(self.context)
@@ -247,7 +247,7 @@ class TestAgentState:
         # Set a value in first context
         property_accessor = self.user_state.create_property("persistent_prop")
         await self.user_state.load(self.context)
-        await property_accessor.set(self.context, TestDataItem("persistent_value"))
+        await property_accessor.set(self.context, _MockTestDataItem("persistent_value"))
         await self.user_state.save(self.context)
 
         # Create a new context with same user
@@ -257,9 +257,11 @@ class TestAgentState:
 
         # Load state in new context
         await new_user_state.load(new_context)
-        value = await new_property_accessor.get(new_context, target_cls=TestDataItem)
+        value = await new_property_accessor.get(
+            new_context, target_cls=_MockTestDataItem
+        )
 
-        assert isinstance(value, TestDataItem)
+        assert isinstance(value, _MockTestDataItem)
         assert value.value == "persistent_value"
 
     @pytest.mark.asyncio
@@ -268,7 +270,7 @@ class TestAgentState:
         # Set some values
         await self.user_state.load(self.context)
         prop_accessor = self.user_state.create_property("test_prop")
-        await prop_accessor.set(self.context, TestDataItem("test_value"))
+        await prop_accessor.set(self.context, _MockTestDataItem("test_value"))
 
         # Clear state
         self.user_state.clear(self.context)
@@ -284,7 +286,7 @@ class TestAgentState:
         # Set and save a value
         await self.user_state.load(self.context)
         prop_accessor = self.user_state.create_property("test_prop")
-        await prop_accessor.set(self.context, TestDataItem("test_value"))
+        await prop_accessor.set(self.context, _MockTestDataItem("test_value"))
         await self.user_state.save(self.context)
 
         # Delete state
@@ -320,7 +322,7 @@ class TestAgentState:
         await self.custom_state.load(self.context)
         prop_accessor = self.custom_state.create_property("custom_prop")
 
-        await prop_accessor.set(self.context, TestDataItem("custom_value"))
+        await prop_accessor.set(self.context, _MockTestDataItem("custom_value"))
         await self.custom_state.save(self.context)
 
         # Verify storage key format
@@ -381,7 +383,7 @@ class TestAgentState:
 
         # Make a change
         prop_accessor = self.user_state.create_property("test_prop")
-        await prop_accessor.set(self.context, TestDataItem("test_value"))
+        await prop_accessor.set(self.context, _MockTestDataItem("test_value"))
 
         # State should now be changed
         assert cached_state.is_changed
@@ -397,7 +399,7 @@ class TestAgentState:
         # Set values concurrently
         await asyncio.gather(
             *[
-                accessor.set(self.context, TestDataItem(f"value_{i}"))
+                accessor.set(self.context, _MockTestDataItem(f"value_{i}"))
                 for i, accessor in enumerate(accessors)
             ]
         )
@@ -408,7 +410,7 @@ class TestAgentState:
         )
 
         for i, value in enumerate(values):
-            assert isinstance(value, TestDataItem)
+            assert isinstance(value, _MockTestDataItem)
             assert value.value == f"value_{i}"
 
     @pytest.mark.asyncio
@@ -422,8 +424,8 @@ class TestAgentState:
         user_prop = self.user_state.create_property("shared_prop")
         conv_prop = self.conversation_state.create_property("shared_prop")
 
-        await user_prop.set(self.context, TestDataItem("user_value"))
-        await conv_prop.set(self.context, TestDataItem("conversation_value"))
+        await user_prop.set(self.context, _MockTestDataItem("user_value"))
+        await conv_prop.set(self.context, _MockTestDataItem("conversation_value"))
 
         # Verify they are isolated
         user_value = await user_prop.get(self.context)
@@ -461,12 +463,14 @@ class TestAgentState:
         await user_state.load(self.context)
         prop_accessor = user_state.create_property("memory_test")
 
-        await prop_accessor.set(self.context, TestDataItem("memory_value"))
+        await prop_accessor.set(self.context, _MockTestDataItem("memory_value"))
         await user_state.save(self.context)
 
         # Verify data exists in memory storage
         storage_key = user_state.get_storage_key(self.context)
-        stored_data = await memory_storage.read([storage_key], target_cls=TestDataItem)
+        stored_data = await memory_storage.read(
+            [storage_key], target_cls=_MockTestDataItem
+        )
 
         assert storage_key in stored_data
         assert stored_data[storage_key] is not None
