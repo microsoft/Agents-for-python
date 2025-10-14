@@ -4,7 +4,7 @@ This folder contains helpful scripts for development.
 
 ## Development Setup Scripts
 
-Both of these scripts will create a Python environment based on the default version of `python` in your PATH. Ensure the version is at least 10 by running:
+Both of these scripts will create a Python environment based on the default version of `python` in your PATH. Ensure the version is at least 3.10 by running:
 
 ```bash
 python --version
