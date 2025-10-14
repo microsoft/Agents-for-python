@@ -16,7 +16,7 @@ classifiers = [
     "Operating System :: OS Independent",
 ]
 dependencies = [
-    "pydantic>=2.10.4",
+    "pydantic>=2.10.4"
 ]
 
 [project.urls]

@@ -18,6 +18,7 @@ from microsoft_agents.activity import (
     ResourceResponse,
     DeliveryModes,
 )
+from microsoft_agents.activity.entity.entity_types import EntityTypes
 from microsoft_agents.hosting.core.authorization.claims_identity import ClaimsIdentity
 
 
@@ -428,7 +429,7 @@ class TurnContext(TurnContextProtocol):
         result: list[Mention] = []
         if activity.entities is not None:
             for entity in activity.entities:
-                if entity.type.lower() == "mention":
+                if entity.type.lower() == EntityTypes.MENTION:
                     result.append(entity)
 
         return result

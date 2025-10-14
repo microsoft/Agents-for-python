@@ -1,11 +1,14 @@
 # Copyright (c) Microsoft Corporation. All rights reserved.
 # Licensed under the MIT License.
 
-from ..agents_model import AgentsModel
+from typing import Literal
+
 from .._type_aliases import NonEmptyString
+from .entity import Entity
+from .entity_types import EntityTypes
 
 
-class Thing(AgentsModel):
+class Thing(Entity):
     """Thing (entity type: "https://schema.org/Thing").
 
     :param type: The type of the thing
@@ -14,5 +17,5 @@ class Thing(AgentsModel):
     :type name: str
     """
 
-    type: NonEmptyString = None
+    type: Literal[EntityTypes.THING] = EntityTypes.THING
     name: NonEmptyString = None

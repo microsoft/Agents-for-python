@@ -33,10 +33,13 @@ def create_testing_Activity(
     text="a",
 ):
     # mock_conversation_ref = mocker.MagicMock(ConversationReference)
+    conversation_reference = ConversationReference(
+        conversation={"id": "conv1"},
+    )
     mocker.patch.object(
         Activity,
         "get_conversation_reference",
-        return_value=mocker.MagicMock(ConversationReference),
+        return_value=conversation_reference,
     )
     return Activity(
         type=type,
@@ -44,7 +47,7 @@ def create_testing_Activity(
         from_property=ChannelAccount(id=DEFAULTS.user_id),
         channel_id=DEFAULTS.channel_id,
         # get_conversation_reference=mocker.Mock(return_value=conv_ref),
-        relates_to=mocker.MagicMock(ConversationReference),
+        relates_to=conversation_reference,
         value=value,
         text=text,
     )
