@@ -39,7 +39,6 @@ class JwtTokenValidator:
         :rtype: ClaimsIdentity
         :raises ValueError: If the token is invalid or the audience does not match.
         """
-
         logger.debug("Validating JWT token.")
         key = await self._get_public_key_or_secret(token)
         decoded_token = jwt.decode(

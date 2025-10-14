@@ -170,7 +170,7 @@ class AgenticUserAuthorization(_AuthorizationHandler):
         """Attempts to get a refreshed token for the user with the given scopes
 
         :param context: The turn context for the current turn of conversation.
-        :type context: TurnContext
+        :type context: TurnContext 
         :param exchange_connection: Optional name of the connection to use for token exchange. If None, default connection will be used.
         :type exchange_connection: Optional[str], Optional
         :param exchange_scopes: Optional list of scopes to request during token exchange. If None, default scopes will be used.
