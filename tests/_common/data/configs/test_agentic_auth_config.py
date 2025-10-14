@@ -1,9 +1,9 @@
 from microsoft_agents.activity import load_configuration_from_env
 
 from ...create_env_var_dict import create_env_var_dict
-from ..test_defaults import TEST_DEFAULTS
+from ..default_test_values import DEFAULT_TEST_VALUES
 
-DEFAULTS = TEST_DEFAULTS()
+DEFAULTS = DEFAULT_TEST_VALUES()
 
 _TEST_AGENTIC_ENV_RAW = """
 CONNECTIONS__SERVICE_CONNECTION__SETTINGS__TENANTID=service-tenant-id
@@ -46,9 +46,9 @@ CONNECTIONSMAP__1__SERVICEURL=agentic
 )
 
 
-def TEST_AGENTIC_ENV():
+def AGENTIC_TEST_ENV():
     return create_env_var_dict(_TEST_AGENTIC_ENV_RAW)
 
 
-def TEST_AGENTIC_ENV_DICT():
-    return load_configuration_from_env(TEST_AGENTIC_ENV())
+def AGENTIC_TEST_ENV_DICT():
+    return load_configuration_from_env(AGENTIC_TEST_ENV())

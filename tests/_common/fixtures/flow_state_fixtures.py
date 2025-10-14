@@ -2,9 +2,9 @@ import pytest
 
 from microsoft_agents.hosting.core._oauth import _FlowStateTag
 
-from tests._common.data import TEST_FLOW_DATA
+from tests._common.data import FLOW_TEST_DATA
 
-FLOW_STATES = TEST_FLOW_DATA()
+FLOW_STATES = FLOW_TEST_DATA()
 
 
 class FlowStateFixtures:

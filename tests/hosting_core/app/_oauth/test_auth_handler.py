@@ -2,11 +2,15 @@ import pytest
 
 from microsoft_agents.hosting.core import AuthHandler
 
-from tests._common.data import TEST_DEFAULTS, TEST_ENV_DICT, TEST_AGENTIC_ENV_DICT
+from tests._common.data import (
+    DEFAULT_TEST_VALUES,
+    NON_AGENTIC_TEST_ENV_DICT,
+    AGENTIC_TEST_ENV_DICT,
+)
 
-DEFAULTS = TEST_DEFAULTS()
-ENV_DICT = TEST_ENV_DICT()
-AGENTIC_ENV_DICT = TEST_AGENTIC_ENV_DICT()
+DEFAULTS = DEFAULT_TEST_VALUES()
+ENV_DICT = NON_AGENTIC_TEST_ENV_DICT()
+AGENTIC_ENV_DICT = AGENTIC_TEST_ENV_DICT()
 
 
 class TestAuthHandler:

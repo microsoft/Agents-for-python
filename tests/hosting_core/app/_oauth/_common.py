@@ -2,10 +2,10 @@ from microsoft_agents.activity import Activity, ActivityTypes
 
 from microsoft_agents.hosting.core import TurnContext
 
-from tests._common.data import TEST_DEFAULTS
+from tests._common.data import DEFAULT_TEST_VALUES
 from tests._common.testing_objects import mock_UserTokenClient
 
-DEFAULTS = TEST_DEFAULTS()
+DEFAULTS = DEFAULT_TEST_VALUES()
 
 
 def create_testing_Activity():

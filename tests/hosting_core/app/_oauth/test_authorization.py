@@ -28,12 +28,12 @@ from tests._common.storage.utils import StorageBaseline
 
 # test constants
 from tests._common.data import (
-    TEST_FLOW_DATA,
-    TEST_AUTH_DATA,
-    TEST_STORAGE_DATA,
-    TEST_DEFAULTS,
-    TEST_ENV_DICT,
-    TEST_AGENTIC_ENV_DICT,
+    FLOW_TEST_DATA,
+    AUTH_TEST_DATA,
+    STORAGE_TEST_DATA,
+    DEFAULT_TEST_VALUES,
+    NON_AGENTIC_TEST_ENV_DICT,
+    AGENTIC_TEST_ENV_DICT,
 )
 from tests._common.fixtures import FlowStateFixtures
 from tests._common.testing_objects import (
@@ -46,11 +46,11 @@ from tests._common.testing_objects import (
 
 from ._common import create_testing_TurnContext, create_testing_Activity
 
-DEFAULTS = TEST_DEFAULTS()
-FLOW_DATA = TEST_FLOW_DATA()
-STORAGE_DATA = TEST_STORAGE_DATA()
-ENV_DICT = TEST_ENV_DICT()
-AGENTIC_ENV_DICT = TEST_AGENTIC_ENV_DICT()
+DEFAULTS = DEFAULT_TEST_VALUES()
+FLOW_DATA = FLOW_TEST_DATA()
+STORAGE_DATA = STORAGE_TEST_DATA()
+ENV_DICT = NON_AGENTIC_TEST_ENV_DICT()
+AGENTIC_ENV_DICT = AGENTIC_TEST_ENV_DICT()
 
 
 def make_jwt(token: str = DEFAULTS.token, aud="api://default"):
@@ -123,7 +123,7 @@ class TestEnv(FlowStateFixtures):
 
     @pytest.fixture
     def baseline_storage(self):
-        return StorageBaseline(TEST_STORAGE_DATA().dict)
+        return StorageBaseline(STORAGE_TEST_DATA().dict)
 
     @pytest.fixture
     def storage(self):
@@ -135,7 +135,7 @@ class TestEnv(FlowStateFixtures):
 
     @pytest.fixture
     def auth_handlers(self):
-        return TEST_AUTH_DATA().auth_handlers
+        return AUTH_TEST_DATA().auth_handlers
 
     @pytest.fixture
     def authorization(self, connection_manager, storage):
