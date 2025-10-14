@@ -27,7 +27,7 @@ from ..testing_user_token_client import TestingUserTokenClient
 AgentCallbackHandler = Callable[[TurnContext], Awaitable]
 
 
-class TestingAdapter(ChannelAdapter):
+class MockTestingAdapter(ChannelAdapter):
     """
     A mock adapter that can be used for unit testing of agent logic.
     """
