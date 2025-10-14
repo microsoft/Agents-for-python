@@ -25,7 +25,7 @@ DEFAULTS = TEST_DEFAULTS()
 FLOW_DATA = TEST_FLOW_DATA()
 
 
-def testing_Activity(
+def create_testing_Activity(
     mocker,
     type=ActivityTypes.message,
     name="a",
@@ -56,7 +56,7 @@ def testing_Activity(
 class TestUtils(FlowStateFixtures):
     def setup_method(self):
         self.UserTokenClient = mock_UserTokenClient
-        self.Activity = testing_Activity
+        self.Activity = create_testing_Activity
 
     @pytest.fixture
     def user_token_client(self, mocker):

@@ -18,7 +18,7 @@ from tests._common.data import TEST_DEFAULTS, TEST_AGENTIC_ENV_DICT
 from tests._common.mock_utils import mock_class
 
 from .._common import (
-    testing_TurnContext_magic,
+    create_testing_TurnContext_magic,
 )
 
 DEFAULTS = TEST_DEFAULTS()
@@ -27,7 +27,7 @@ AGENTIC_ENV_DICT = TEST_AGENTIC_ENV_DICT()
 
 class TestUtils:
     def setup_method(self, mocker):
-        self.TurnContext = testing_TurnContext_magic
+        self.TurnContext = create_testing_TurnContext_magic
 
     @pytest.fixture
     def storage(self):
@@ -78,7 +78,6 @@ class TestUtils:
 
 
 class TestAgenticUserAuthorization(TestUtils):
-
     @pytest.mark.asyncio
     async def test_get_agentic_instance_token_not_agentic(
         self, mocker, non_agentic_role, agentic_auth
