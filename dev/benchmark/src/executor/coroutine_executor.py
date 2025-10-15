@@ -16,4 +16,6 @@ class CoroutineExecutor(Executor):
         :param func: An asynchronous function to be executed.
         :param num_workers: The number of concurrent threads to use.
         """
-        return asyncio.run(asyncio.gather(*(self.run_func(i, func) for i in range(num_workers))))
+        return asyncio.run(asyncio.gather(
+            *[self.run_func(i, func) for i in range(num_workers)]
+        ))
