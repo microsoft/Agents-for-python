@@ -8,8 +8,6 @@ pool:
 
 strategy:
   matrix:
-    Python_3.9:
-      PYTHON_VERSION: '3.9'
     Python_3.10:
       PYTHON_VERSION: '3.10'
     Python_3.11:

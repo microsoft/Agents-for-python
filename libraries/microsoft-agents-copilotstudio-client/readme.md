@@ -120,7 +120,7 @@ CUSTOM_POWER_PLATFORM_CLOUD=your-custom-cloud.com
 
 ## Requirements
 
-- Python 3.9+
+- Python 3.10+
 - Valid Azure AD app registration
 - Access to Microsoft Power Platform environment
 - Published Copilot Studio agent

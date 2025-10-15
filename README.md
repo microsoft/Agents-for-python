@@ -7,7 +7,7 @@ The Microsoft 365 Agent SDK simplifies building full stack, multichannel, truste
 
 The M365 Agent SDK is a comprehensive framework for building enterprise-grade agents, enabling developers to integrate components from the Azure AI Foundry SDK, Semantic Kernel, as well as AI components from other vendors.
 
-For more information please see the parent project information here [Microsoft 365 Agents SDK](https://aka.ms/agents)
+For more information please see the parent project information here [Microsoft 365 Agents SDK](https://aka.ms/agents).
 
 ## Getting Started
 
@@ -67,7 +67,7 @@ Additionally we provide a Copilot Studio Client, to interact with Agents created
 
 ### Environment requirements
 
-The packages should target Python 3.9 or greater, and can be used with modern Python package managers like pip, poetry, or conda.
+The packages should target Python 3.10 or greater, and can be used with modern Python package managers like pip, poetry, or conda.
 
 > Note: We recommend using Python 3.11 or later for optimal performance and compatibility with all features.
 

@@ -92,7 +92,7 @@ async def on_error(context: TurnContext, error: Exception):
 
 ## Requirements
 
-- Python 3.9+
+- Python 3.10+
 - aiohttp 3.11.11+
 - Microsoft Agents hosting core library
 
