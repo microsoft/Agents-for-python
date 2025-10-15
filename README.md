@@ -7,7 +7,7 @@ The Microsoft 365 Agent SDK simplifies building full stack, multichannel, truste
 
 The M365 Agent SDK is a comprehensive framework for building enterprise-grade agents, enabling developers to integrate components from the Azure AI Foundry SDK, Semantic Kernel, as well as AI components from other vendors.
 
-For more information please see the parent project information here [Microsoft 365 Agents SDK](https://aka.ms/agents)
+For more information please see the parent project information here [Microsoft 365 Agents SDK](https://aka.ms/agents).
 
 ## Getting Started
 
