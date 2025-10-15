@@ -2,6 +2,27 @@
 
 This document serves as a quick guide to the utilities we provide internally to test this SDK. More information will come with work on integration testing.
 
+## Pytest Configuration
+
+The project uses a `pytest.ini` configuration file in the root directory that sets up the following testing standards:
+
+- **Warnings as Errors**: All warnings are treated as errors (`filterwarnings = error`) to ensure clean code and early detection of issues
+- **Strict Configuration**: Uses `--strict-markers` and `--strict-config` to catch configuration issues
+- **Test Discovery**: Automatically discovers tests in the `tests/` directory following standard naming conventions
+- **Verbose Output**: Shows detailed test results with short tracebacks and duration information
+
+To run tests locally:
+```bash
+# Run all tests
+python -m pytest
+
+# Run tests for a specific module
+python -m pytest tests/activity/
+
+# Run with custom options (these will be added to the configured defaults)
+python -m pytest -x --lf  # Stop on first failure, run last failed tests
+```
+
 ## Storage Tests
 
 More info soon. For now, there are flags defined in the code that dictate whether the Cosmos DB and the Blob storage tests are run, as these tests rely on local emulators.

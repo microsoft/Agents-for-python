@@ -16,16 +16,16 @@ from microsoft_agents.hosting.core._oauth import (
     _FlowResponse,
 )
 
-from tests._common.data import TEST_DEFAULTS, TEST_FLOW_DATA
-from tests._common.data.test_storage_data import FLOW_DATA
+from tests._common.data import DEFAULT_TEST_VALUES, FLOW_TEST_DATA
+from tests._common.data.storage_test_data import STORAGE_TEST_DATA
 from tests._common.fixtures import FlowStateFixtures
 from tests._common.testing_objects import mock_UserTokenClient
 
-DEFAULTS = TEST_DEFAULTS()
-FLOW_DATA = TEST_FLOW_DATA()
+DEFAULTS = DEFAULT_TEST_VALUES()
+FLOW_DATA = FLOW_TEST_DATA()
 
 
-def testing_Activity(
+def create_testing_Activity(
     mocker,
     type=ActivityTypes.message,
     name="a",
@@ -33,10 +33,13 @@ def testing_Activity(
     text="a",
 ):
     # mock_conversation_ref = mocker.MagicMock(ConversationReference)
+    conversation_reference = ConversationReference(
+        conversation={"id": "conv1"},
+    )
     mocker.patch.object(
         Activity,
         "get_conversation_reference",
-        return_value=mocker.MagicMock(ConversationReference),
+        return_value=conversation_reference,
     )
     return Activity(
         type=type,
@@ -44,7 +47,7 @@ def testing_Activity(
         from_property=ChannelAccount(id=DEFAULTS.user_id),
         channel_id=DEFAULTS.channel_id,
         # get_conversation_reference=mocker.Mock(return_value=conv_ref),
-        relates_to=mocker.MagicMock(ConversationReference),
+        relates_to=conversation_reference,
         value=value,
         text=text,
     )
@@ -53,7 +56,7 @@ def testing_Activity(
 class TestUtils(FlowStateFixtures):
     def setup_method(self):
         self.UserTokenClient = mock_UserTokenClient
-        self.Activity = testing_Activity
+        self.Activity = create_testing_Activity
 
     @pytest.fixture
     def user_token_client(self, mocker):

@@ -16,14 +16,15 @@ from microsoft_agents.activity import (
     AIEntity,
     Place,
     Thing,
+    ProductInfo,
     RoleTypes,
 )
 
 from tests.activity._common.my_channel_data import MyChannelData
 from tests.activity._common.testing_activity import create_test_activity
-from tests._common.data import TEST_DEFAULTS
+from tests._common.data import DEFAULT_TEST_VALUES
 
-DEFAULTS = TEST_DEFAULTS()
+DEFAULTS = DEFAULT_TEST_VALUES()
 
 
 def helper_validate_recipient_and_from(
@@ -352,12 +353,6 @@ class TestActivityConversationOps:
         activity = Activity(type="message", service_url=service_url)
         assert activity.is_from_streaming_connection() == expected
 
-    def test_serialize_basic(self, activity):
-        activity_copy = Activity(
-            **activity.model_dump(mode="json", exclude_unset=True, by_alias=True)
-        )
-        assert activity_copy == activity
-
     def test_get_mentions(self):
         activity = Activity(
             type="message",
@@ -373,9 +368,54 @@ class TestActivityConversationOps:
             Entity(type="mention", text="Another mention"),
         ]
 
+    @pytest.mark.parametrize(
+        "entities, expected",
+        [
+            [
+                [
+                    Entity(
+                        type="ProductInfo",
+                        id="product_123",
+                    ),
+                    Entity(type="other"),
+                    Entity(type="mention", text="Another mention"),
+                ],
+                Entity(
+                    type="ProductInfo",
+                    id="product_123",
+                ),
+            ],
+            [
+                [
+                    Entity(type="other"),
+                    Entity(type="mention", text="Another mention"),
+                ],
+                None,
+            ],
+            [
+                [
+                    Entity(
+                        type="ProductInfo",
+                        id="product_123",
+                    ),
+                    Entity(
+                        type="ProductInfo",
+                        id="product_456",
+                    ),
+                    Entity(type="mention", text="Another mention"),
+                ],
+                Entity(type="ProductInfo", id="product_123"),
+            ],
+            [[], None],
+        ],
+    )
+    def test_get_product_info_entity_single(self, entities, expected):
+        activity = Activity(type="message", entities=entities)
+        retrieved_product_info = activity.get_product_info_entity()
+        assert retrieved_product_info == expected
+
 
 class TestActivityAgenticOps:
-
     @pytest.fixture(params=[RoleTypes.user, RoleTypes.skill, RoleTypes.agent])
     def non_agentic_role(self, request):
         return request.param

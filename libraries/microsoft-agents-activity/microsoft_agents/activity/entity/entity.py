@@ -1,14 +1,12 @@
 # Copyright (c) Microsoft Corporation. All rights reserved.
 # Licensed under the MIT License.
 
-from typing import Any, Optional
-from enum import Enum
+from typing import Any
 
 from pydantic import model_serializer, model_validator
 from pydantic.alias_generators import to_camel, to_snake
 
 from ..agents_model import AgentsModel, ConfigDict
-from .._type_aliases import NonEmptyString
 
 
 class Entity(AgentsModel):

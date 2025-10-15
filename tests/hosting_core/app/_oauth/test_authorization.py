@@ -28,12 +28,12 @@ from tests._common.storage.utils import StorageBaseline
 
 # test constants
 from tests._common.data import (
-    TEST_FLOW_DATA,
-    TEST_AUTH_DATA,
-    TEST_STORAGE_DATA,
-    TEST_DEFAULTS,
-    TEST_ENV_DICT,
-    TEST_AGENTIC_ENV_DICT,
+    FLOW_TEST_DATA,
+    AUTH_TEST_DATA,
+    STORAGE_TEST_DATA,
+    DEFAULT_TEST_VALUES,
+    NON_AGENTIC_TEST_ENV_DICT,
+    AGENTIC_TEST_ENV_DICT,
 )
 from tests._common.fixtures import FlowStateFixtures
 from tests._common.testing_objects import (
@@ -44,13 +44,13 @@ from tests._common.testing_objects import (
     mock_class_Authorization,
 )
 
-from ._common import testing_TurnContext, testing_Activity
+from ._common import create_testing_TurnContext, create_testing_Activity
 
-DEFAULTS = TEST_DEFAULTS()
-FLOW_DATA = TEST_FLOW_DATA()
-STORAGE_DATA = TEST_STORAGE_DATA()
-ENV_DICT = TEST_ENV_DICT()
-AGENTIC_ENV_DICT = TEST_AGENTIC_ENV_DICT()
+DEFAULTS = DEFAULT_TEST_VALUES()
+FLOW_DATA = FLOW_TEST_DATA()
+STORAGE_DATA = STORAGE_TEST_DATA()
+ENV_DICT = NON_AGENTIC_TEST_ENV_DICT()
+AGENTIC_ENV_DICT = AGENTIC_TEST_ENV_DICT()
 
 
 def make_jwt(token: str = DEFAULTS.token, aud="api://default"):
@@ -109,7 +109,7 @@ def copy_sign_in_state(state: _SignInState) -> _SignInState:
 
 class TestEnv(FlowStateFixtures):
     def setup_method(self):
-        self.TurnContext = testing_TurnContext
+        self.TurnContext = create_testing_TurnContext
         self.UserTokenClient = mock_UserTokenClient
         self.ConnectionManager = lambda mocker: MockConnectionManager()
 
@@ -119,11 +119,11 @@ class TestEnv(FlowStateFixtures):
 
     @pytest.fixture
     def activity(self):
-        return testing_Activity()
+        return create_testing_Activity()
 
     @pytest.fixture
     def baseline_storage(self):
-        return StorageBaseline(TEST_STORAGE_DATA().dict)
+        return StorageBaseline(STORAGE_TEST_DATA().dict)
 
     @pytest.fixture
     def storage(self):
@@ -135,7 +135,7 @@ class TestEnv(FlowStateFixtures):
 
     @pytest.fixture
     def auth_handlers(self):
-        return TEST_AUTH_DATA().auth_handlers
+        return AUTH_TEST_DATA().auth_handlers
 
     @pytest.fixture
     def authorization(self, connection_manager, storage):
@@ -191,7 +191,6 @@ class TestAuthorizationSetup(TestEnv):
 
 
 class TestAuthorizationUsage(TestEnv):
-
     @pytest.mark.asyncio
     @pytest.mark.parametrize(
         "initial_turn_state, final_turn_state, initial_sign_in_state, auth_handler_id",
