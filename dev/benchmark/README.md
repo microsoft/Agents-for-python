@@ -1,6 +1,6 @@
 A simple benchmarking tool.
 
-## Benchmark Setup (Windows)
+## Benchmark Python Environment Setup (Windows)
 
 Traditionally, most Python versions have a global interpreter lock (GIL) which prevents
 more than 1 thread to run at the same time. With 3.13, there are free-threaded versions
@@ -41,6 +41,23 @@ To deactivate it, you may use:
 ```bash
 deactivate
 ```
+
+## Benchmark Configuration
+
+If you open the `env.template` file, you will see three environmental variables to define:
+
+```bash
+TENANT_ID=
+APP_ID=
+APP_SECRET=
+```
+
+For `APP_ID` use the app Id of your ABS resource. For `APP_SECRET` set it to a secret
+for the App Registration resource tied to your ABS resource. Finally, the `TENANT_ID`
+variable should be set to the tenant Id of your ABS resource.
+
+These settings are used to generate valid tokens that are sent and validated by the
+agent you are trying to run.
 
 ## Complete Setup
 
