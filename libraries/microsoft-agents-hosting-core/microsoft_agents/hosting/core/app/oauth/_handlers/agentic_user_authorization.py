@@ -118,20 +118,20 @@ class AgenticUserAuthorization(_AuthorizationHandler):
             connection = self._connection_manager.get_token_provider(
                 context.identity, "agentic"
             )
-        upn = context.activity.get_agentic_user()
+        agentic_user_id = context.activity.get_agentic_user()
         agentic_instance_id = context.activity.get_agentic_instance_id()
-        if not upn or not agentic_instance_id:
+        if not agentic_user_id or not agentic_instance_id:
             logger.error(
-                "Unable to retrieve agentic user token: missing UPN or agentic instance ID. UPN: %s, Agentic Instance ID: %s",
-                upn,
+                "Unable to retrieve agentic user token: missing agentic user Id or agentic instance Id. agentic_user_id: %s, Agentic Instance ID: %s",
+                agentic_user_id,
                 agentic_instance_id,
             )
             raise ValueError(
-                f"Unable to retrieve agentic user token: missing UPN or agentic instance ID. UPN: {upn}, Agentic Instance ID: {agentic_instance_id}"
+                f"Unable to retrieve agentic user token: missing agentic User Id or agentic instance Id. agentic_user_id: {agentic_user_id}, Agentic Instance ID: {agentic_instance_id}"
             )
 
         token = await connection.get_agentic_user_token(
-            agentic_instance_id, upn, scopes
+            agentic_instance_id, agentic_user_id, scopes
         )
         return TokenResponse(token=token) if token else TokenResponse()
 

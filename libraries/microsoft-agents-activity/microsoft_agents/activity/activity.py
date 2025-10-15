@@ -664,7 +664,7 @@ class Activity(AgentsModel):
         return self.recipient.agentic_app_id
 
     def get_agentic_user(self) -> Optional[str]:
-        """Gets the agentic user (UPN) from the context if it's an agentic request."""
+        """Gets the agentic user (agenticUserId) from the context if it's an agentic request."""
         if not self.is_agentic_request() or not self.recipient:
             return None
-        return self.recipient.id
+        return self.recipient.agentic_user_id
