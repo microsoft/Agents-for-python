@@ -2,26 +2,36 @@
 # Licensed under the MIT License.
 
 import os
-import json
 import requests
 from typing import Callable, Awaitable, Any
 
-def create_payload_sender(payload: dict[str, Any]) -> Callable[..., Awaitable[None]]:
+from .config import BenchmarkConfig
+from .generate_token import generate_token_from_env
 
-    JWT_TOKEN = os.environ.get("JWT_TOKEN")
-    ENDPOINT = "http://localhost:3978/api/messages"
-    HEADERS = {
-        "Authorization": f"Bearer {JWT_TOKEN}",
+def create_payload_sender(
+        payload: dict[str, Any],
+        timeout: int = 60
+    ) -> Callable[..., Awaitable[None]]:
+
+    token = generate_token_from_env()
+
+    endpoint = BenchmarkConfig.AGENT_URL
+
+    headers = {
+        "Authorization": f"Bearer {token}",
         "Content-Type": "application/json"
     }
 
     async def payload_sender() -> Any:
 
+        print(headers)
         response = requests.post(
-            ENDPOINT,
-            data=payload,
-            headers=HEADERS
+            endpoint,
+            headers=headers,
+            json=payload,
+            timeout=timeout
         )
+        print(response.content)
         return response.content
 
     return payload_sender

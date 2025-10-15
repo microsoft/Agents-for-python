@@ -3,13 +3,11 @@ import logging
 from datetime import datetime, timezone
 
 import click
-from dotenv import load_dotenv
 
 from .payload_sender import create_payload_sender
 from .executor import Executor, CoroutineExecutor, ThreadExecutor
 from .aggregated_results import AggregatedResults
-
-load_dotenv()
+from .config import BenchmarkConfig
 
 LOG_FORMAT = "%(asctime)s: %(message)s"
 logging.basicConfig(
@@ -17,6 +15,8 @@ logging.basicConfig(
     level=logging.INFO,
     datefmt="%H:%M:%S"
 )
+
+BenchmarkConfig.load_from_env()
 
 @click.command()
 @click.option("--payload_path", default="./payload.json", help="Path to the payload file.")
@@ -28,34 +28,20 @@ def main(
     async_mode: bool
 ):
     """Main function to run the benchmark."""
-    
-    with open(payload_path, "r") as f:
+
+    with open(payload_path, "r", encoding="utf-8") as f:
         payload = json.load(f)
 
     func = create_payload_sender(payload)
 
     executor: Executor = CoroutineExecutor() if async_mode else ThreadExecutor()
 
-    start_time = datetime.now(timezone.utc)
+    start_time = datetime.now(timezone.utc).timestamp()
     results = executor.run(func, num_workers=num_workers)
-    end_time = datetime.now(timezone.utc)
+    end_time = datetime.now(timezone.utc).timestamp()
 
     agg = AggregatedResults(results)
-
-    print()
-    print("---- Aggregated Results ----")
-    print()
-    print(f"Average Time: {agg.average:.4f} seconds")
-    print(f"Min Time:     {agg.min:.4f} seconds")
-    print(f"Max Time:     {agg.max:.4f} seconds")
-    print()
-    print(f"Success Rate: {agg.success_count} / {len(results)}")
-    print()
-    print(f"Total Time:   {end_time - start_time} seconds")
-    print("----------------------------")
-    print()
-
-    print(results[0])
+    agg.display(start_time, end_time)
 
 if __name__ == "__main__":
     main() # pylint: disable=no-value-for-parameter
