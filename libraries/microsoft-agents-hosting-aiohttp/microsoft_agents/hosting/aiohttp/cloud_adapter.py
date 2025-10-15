@@ -81,7 +81,6 @@ class CloudAdapter(ChannelServiceAdapter, AgentHttpAdapter):
             else:
                 raise HTTPUnsupportedMediaType()
 
-            breakpoint()
             activity: Activity = Activity.model_validate(body)
 
             # default to anonymous identity with no claims

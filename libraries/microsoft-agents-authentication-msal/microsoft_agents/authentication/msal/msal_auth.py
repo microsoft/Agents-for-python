@@ -134,7 +134,6 @@ class MsalAuth(AccessTokenProviderBase):
 
     def _create_client_application(self) -> None:
         
-        breakpoint()
         if self._msal_auth_client:
             return
 
