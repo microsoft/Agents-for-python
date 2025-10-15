@@ -87,6 +87,7 @@ class MsalAuth(AccessTokenProviderBase):
         if not res:
             logger.error("Failed to acquire token for resource %s", auth_result_payload)
             raise ValueError(f"Failed to acquire token. {str(auth_result_payload)}")
+
         return res
 
     async def acquire_token_on_behalf_of(
@@ -131,10 +132,9 @@ class MsalAuth(AccessTokenProviderBase):
             f"On-behalf-of flow is not supported with the current authentication type: {self._msal_auth_client.__class__.__name__}"
         )
 
-    def _create_client_application(
-        self,
-    ) -> None:
+    def _create_client_application(self) -> None:
         
+        breakpoint()
         if self._msal_auth_client:
             return
 

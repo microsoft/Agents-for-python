@@ -13,6 +13,7 @@ async def jwt_authorization_middleware(request: Request, handler):
     auth_config: AgentAuthConfiguration = request.app["agent_configuration"]
     token_validator = JwtTokenValidator(auth_config)
     auth_header = request.headers.get("Authorization")
+    breakpoint()
     if auth_header:
         # Extract the token from the Authorization header
         token = auth_header.split(" ")[1]
