@@ -1,7 +1,6 @@
 # Copyright (c) Microsoft Corporation. All rights reserved.
 # Licensed under the MIT License.
 
-import os
 import requests
 from typing import Callable, Awaitable, Any
 
@@ -24,14 +23,12 @@ def create_payload_sender(
 
     async def payload_sender() -> Any:
 
-        print(headers)
         response = requests.post(
             endpoint,
             headers=headers,
             json=payload,
             timeout=timeout
         )
-        print(response.content)
         return response.content
 
     return payload_sender
