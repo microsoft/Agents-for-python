@@ -124,7 +124,7 @@ class ConversationsOperations(ConversationsBase):
 
     def __init__(self, client: ClientSession, **kwargs):
         self.client = client
-        self._max_conversation_id_length = kwargs.get("max_conversation_id_length", 200)
+        self._max_conversation_id_length = kwargs.get("max_conversation_id_length", 325)
 
     def _normalize_conversation_id(self, conversation_id: str) -> str:
         return conversation_id[: self._max_conversation_id_length]
@@ -196,6 +196,18 @@ class ConversationsOperations(ConversationsBase):
                 stack_info=True,
             )
             raise ValueError("conversationId and activityId are required")
+        
+        from microsoft_agents.activity import Entity
+        body.entities = [
+            Entity(**{
+            "htmlBody": "\u003Cbody dir=\u0022ltr\u0022\u003E\n\u003Cdiv class=\u0022elementToProof\u0022 style=\u0022font-family: Aptos, Aptos_EmbeddedFont, Aptos_MSFontService, Calibri, Helvetica, sans-serif; font-size: 12pt; color: rgb(0, 0, 0);\u0022\u003E\nMessage 3\u003C/div\u003E\n\n\n\u003C/body\u003E",
+            "type": "emailResponse"
+        }),
+        Entity(**{
+            "id": "email",
+            "type": "ProductInfo"
+        })
+        ]
 
         conversation_id = self._normalize_conversation_id(conversation_id)
         url = f"v3/conversations/{conversation_id}/activities/{activity_id}"
@@ -203,6 +215,11 @@ class ConversationsOperations(ConversationsBase):
         logger.info(
             f"Replying to activity: {activity_id} in conversation: {conversation_id}. Activity type is {body.type}"
         )
+
+        body.conversation.id = conversation_id
+
+        # if body.type == "message":
+        #     breakpoint()
 
         async with self.client.post(
             url,

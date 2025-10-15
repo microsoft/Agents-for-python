@@ -366,7 +366,7 @@ class MsalAuth(AccessTokenProviderBase):
         auth_result_payload = instance_app.acquire_token_for_client(
             scopes,
             data={
-                "username": agentic_user_id,
+                "user_id": agentic_user_id,
                 "user_federated_identity_credential": instance_token,
                 "grant_type": "user_fic",
             },
