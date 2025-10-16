@@ -2,5 +2,5 @@ This directory contains tools to aid the developers of the Microsoft 365 Agents 
 
 ### `benchmark`
 
-This folder contains benchmarking utilities built in Python to send concurrent threads
+This folder contains benchmarking utilities built in Python to send concurrent requests
 to an agent.

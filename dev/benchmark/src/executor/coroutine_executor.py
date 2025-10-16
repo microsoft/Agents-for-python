@@ -14,11 +14,12 @@ class CoroutineExecutor(Executor):
     def run(
         self, func: Callable[[], Awaitable[Any]], num_workers: int = 1
     ) -> list[ExecutionResult]:
-        """Run the given asynchronous function using the specified number of threads.
+        # """Run the given asynchronous function using the specified number of threads.
 
-        :param func: An asynchronous function to be executed.
-        :param num_workers: The number of concurrent threads to use.
-        """
-        return asyncio.run(
-            asyncio.gather(*[self.run_func(i, func) for i in range(num_workers)])
-        )
+        # :param func: An asynchronous function to be executed.
+        # :param num_workers: The number of concurrent threads to use.
+        # """
+        # return asyncio.run(
+        #     asyncio.gather(*[self.run_func(i, func) for i in range(num_workers)])
+        # )
+        raise NotImplementedError("CoroutineExecutor.run is not implemented yet.")
