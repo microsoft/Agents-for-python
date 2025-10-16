@@ -6,15 +6,17 @@ build-backend = "setuptools.build_meta"
 name = "microsoft-agents-activity"
 dynamic = ["version"]
 description = "A protocol library for Microsoft Agents"
+readme = {file = "readme.md", content-type = "text/markdown"}
 authors = [{name = "Microsoft Corporation"}]
-requires-python = ">=3.9"
+license = "MIT"
+license-files = ["LICENSE"]
+requires-python = ">=3.10"
 classifiers = [
     "Programming Language :: Python :: 3",
-    "License :: OSI Approved :: MIT License",
     "Operating System :: OS Independent",
 ]
 dependencies = [
-    "pydantic>=2.10.4",
+    "pydantic>=2.10.4"
 ]
 
 [project.urls]

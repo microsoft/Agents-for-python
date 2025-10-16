@@ -134,8 +134,8 @@ async def test_get_transcript_activities_with_paging(temp_logger: FileTranscript
 async def test_get_transcript_activities_with_start_date_filter(
     temp_logger: FileTranscriptStore,
 ):
-    old_ts = (datetime.now(timezone.utc) - timedelta(days=2)).isoformat()
-    new_ts = datetime.now(timezone.utc).isoformat()
+    old_ts = datetime.now(timezone.utc) - timedelta(days=2)
+    new_ts = datetime.now(timezone.utc)
 
     activity1 = make_activity(conv="filtered", text="old")
     activity2 = make_activity(conv="filtered", text="new")

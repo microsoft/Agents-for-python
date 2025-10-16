@@ -3,9 +3,9 @@ from datetime import datetime, timezone
 from microsoft_agents.hosting.core._oauth import _FlowState, _FlowStateTag
 
 from tests._common.storage import MockStoreItem
-from tests._common.data.test_defaults import TEST_DEFAULTS
+from tests._common.data.default_test_values import DEFAULT_TEST_VALUES
 
-DEFAULTS = TEST_DEFAULTS()
+DEFAULTS = DEFAULT_TEST_VALUES()
 
 DEF_FLOW_ARGS = {
     "ms_app_id": DEFAULTS.ms_app_id,
@@ -15,7 +15,7 @@ DEF_FLOW_ARGS = {
 }
 
 
-class TEST_FLOW_DATA:
+class FLOW_TEST_DATA:
     def __init__(self):
 
         self.not_started = _FlowState(

@@ -1,4 +1,4 @@
-from .adapters import TestingAdapter
+from .adapters import MockTestingAdapter
 
 from .mocks import (
     MockMsalAuth,
@@ -14,7 +14,7 @@ from .mocks import (
 
 from .testing_authorization import TestingAuthorization
 from .testing_connection_manager import TestingConnectionManager
-from .testing_custom_state import TestingCustomState
+from .mock_testing_custom_state import MockTestingCustomState
 from .testing_token_provider import TestingTokenProvider
 from .testing_user_token_client import TestingUserTokenClient
 
@@ -26,10 +26,10 @@ __all__ = [
     "mock_class_UserTokenClient",
     "TestingAuthorization",
     "TestingConnectionManager",
-    "TestingCustomState",
+    "MockTestingCustomState",
     "TestingTokenProvider",
     "TestingUserTokenClient",
-    "TestingAdapter",
+    "MockTestingAdapter",
     "mock_class_UserAuthorization",
     "mock_class_AgenticUserAuthorization",
     "mock_class_Authorization",

@@ -55,11 +55,11 @@ class Authorization:
         only if auth_handlers is empty or None.
 
         :param storage: The storage system to use for state management.
-        :type storage: Storage
+        :type storage: :class:`microsoft_agents.hosting.core.storage.Storage`
         :param connection_manager: The connection manager for OAuth providers.
-        :type connection_manager: Connections
+        :type connection_manager: :class:`microsoft_agents.hosting.core.authorization.Connections`
         :param auth_handlers: Configuration for OAuth providers.
-        :type auth_handlers: dict[str, AuthHandler], Optional
+        :type auth_handlers: dict[str, :class:`microsoft_agents.hosting.core.app.oauth.auth_handler.AuthHandler`], Optional
         :raises ValueError: When storage is None or no auth handlers provided.
         """
         if not storage:
@@ -105,7 +105,7 @@ class Authorization:
         it initializes an instance of each variant that is referenced.
 
         :param auth_handlers: A dictionary of auth handler configurations.
-        :type auth_handlers: dict[str, AuthHandler]
+        :type auth_handlers: dict[str, :class:`microsoft_agents.hosting.core.app.oauth.auth_handler.AuthHandler`]
         """
         for name, auth_handler in self._handler_settings.items():
             auth_type = auth_handler.auth_type
@@ -126,26 +126,42 @@ class Authorization:
         can be used to inspect or manipulate the state directly if needed.
 
         :param context: The turn context for the current turn of conversation.
-        :type context: TurnContext
+        :type context: :class:`microsoft_agents.hosting.core.turn_context.TurnContext`
         :return: A unique (across other values of channel_id and user_id) key for the sign-in state.
         :rtype: str
         """
         return f"auth:_SignInState:{context.activity.channel_id}:{context.activity.from_property.id}"
 
     async def _load_sign_in_state(self, context: TurnContext) -> Optional[_SignInState]:
-        """Load the sign-in state from storage for the given context."""
+        """Load the sign-in state from storage for the given context.
+
+        :param context: The turn context for the current turn of conversation.
+        :type context: :class:`microsoft_agents.hosting.core.turn_context.TurnContext`
+        :return: The sign-in state if found, None otherwise.
+        :rtype: Optional[:class:`microsoft_agents.hosting.core.app.oauth._sign_in_state._SignInState`]
+        """
         key = self._sign_in_state_key(context)
         return (await self._storage.read([key], target_cls=_SignInState)).get(key)
 
     async def _save_sign_in_state(
         self, context: TurnContext, state: _SignInState
     ) -> None:
-        """Save the sign-in state to storage for the given context."""
+        """Save the sign-in state to storage for the given context.
+
+        :param context: The turn context for the current turn of conversation.
+        :type context: :class:`microsoft_agents.hosting.core.turn_context.TurnContext`
+        :param state: The sign-in state to save.
+        :type state: :class:`microsoft_agents.hosting.core.app.oauth._sign_in_state._SignInState`
+        """
         key = self._sign_in_state_key(context)
         await self._storage.write({key: state})
 
     async def _delete_sign_in_state(self, context: TurnContext) -> None:
-        """Delete the sign-in state from storage for the given context."""
+        """Delete the sign-in state from storage for the given context.
+
+        :param context: The turn context for the current turn of conversation.
+        :type context: :class:`microsoft_agents.hosting.core.turn_context.TurnContext`
+        """
         key = self._sign_in_state_key(context)
         await self._storage.delete([key])
 
@@ -179,7 +195,7 @@ class Authorization:
         :param handler_id: The ID of the auth handler to resolve.
         :type handler_id: str
         :return: The corresponding AuthorizationHandler instance.
-        :rtype: AuthorizationHandler
+        :rtype: :class:`microsoft_agents.hosting.core.app.oauth._handlers._AuthorizationHandler`
         :raises ValueError: If the handler ID is not recognized or not configured.
         """
         if handler_id not in self._handlers:
@@ -200,13 +216,13 @@ class Authorization:
         Storage is updated as needed with _SignInState data for caching purposes.
 
         :param context: The turn context for the current turn of conversation.
-        :type context: TurnContext
+        :type context: :class:`microsoft_agents.hosting.core.turn_context.TurnContext`
         :param state: The turn state for the current turn of conversation.
-        :type state: TurnState
+        :type state: :class:`microsoft_agents.hosting.core.app.state.turn_state.TurnState`
         :param auth_handler_id: The ID of the auth handler to use for sign-in. If None, the first handler will be used.
         :type auth_handler_id: str
         :return: A _SignInResponse indicating the result of the sign-in attempt.
-        :rtype: _SignInResponse
+        :rtype: :class:`microsoft_agents.hosting.core.app.oauth._sign_in_response._SignInResponse`
         """
 
         auth_handler_id = auth_handler_id or self._default_handler_id
@@ -250,7 +266,7 @@ class Authorization:
         """Attempts to sign out the user from a specified auth handler or the default handler.
 
         :param context: The turn context for the current turn of conversation.
-        :type context: TurnContext
+        :type context: :class:`microsoft_agents.hosting.core.turn_context.TurnContext`
         :param auth_handler_id: The ID of the auth handler to sign out from. If None, sign out from all handlers.
         :type auth_handler_id: Optional[str]
         :return: None
@@ -272,11 +288,11 @@ class Authorization:
         from the cached _SignInState.
 
         :param context: The context object for the current turn.
-        :type context: TurnContext
+        :type context: :class:`microsoft_agents.hosting.core.turn_context.TurnContext`
         :param state: The turn state for the current turn.
-        :type state: TurnState
+        :type state: :class:`microsoft_agents.hosting.core.app.state.turn_state.TurnState`
         :return: A tuple indicating whether the turn should be skipped and the continuation activity if applicable.
-        :rtype: tuple[bool, Optional[Activity]]
+        :rtype: tuple[bool, Optional[:class:`microsoft_agents.activity.Activity`]]
         """
         sign_in_state = await self._load_sign_in_state(context)
 
@@ -306,11 +322,11 @@ class Authorization:
         The token is taken from cache, so this does not initiate nor continue a sign-in flow.
 
         :param context: The context object for the current turn.
-        :type context: TurnContext
+        :type context: :class:`microsoft_agents.hosting.core.turn_context.TurnContext`
         :param auth_handler_id: The ID of the auth handler to get the token for.
         :type auth_handler_id: str
         :return: The token response from the OAuth provider.
-        :rtype: TokenResponse
+        :rtype: :class:`microsoft_agents.activity.TokenResponse`
         """
         return await self.exchange_token(context, auth_handler_id=auth_handler_id)
 
@@ -324,7 +340,7 @@ class Authorization:
         """Exchanges or refreshes the token for a specific auth handler or the default handler.
 
         :param context: The context object for the current turn.
-        :type context: TurnContext
+        :type context: :class:`microsoft_agents.hosting.core.turn_context.TurnContext`
         :param scopes: The scopes to request during the token exchange or refresh. Defaults
             to the list given in the AuthHandler configuration if None.
         :type scopes: Optional[list[str]]
@@ -335,7 +351,7 @@ class Authorization:
             the connection defined in the AuthHandler configuration will be used.
         :type exchange_connection: Optional[str]
         :return: The token response from the OAuth provider.
-        :rtype: TokenResponse
+        :rtype: :class:`microsoft_agents.activity.TokenResponse`
         :raises ValueError: If the specified auth handler ID is not recognized or not configured.
         """
 
@@ -376,6 +392,7 @@ class Authorization:
         Sets a handler to be called when sign-in is successfully completed.
 
         :param handler: The handler function to call on successful sign-in.
+        :type handler: Callable[[:class:`microsoft_agents.hosting.core.turn_context.TurnContext`, :class:`microsoft_agents.hosting.core.app.state.turn_state.TurnState`, Optional[str]], Awaitable[None]]
         """
         self._sign_in_success_handler = handler
 
@@ -387,5 +404,6 @@ class Authorization:
         Sets a handler to be called when sign-in fails.
 
         :param handler: The handler function to call on sign-in failure.
+        :type handler: Callable[[:class:`microsoft_agents.hosting.core.turn_context.TurnContext`, :class:`microsoft_agents.hosting.core.app.state.turn_state.TurnState`, Optional[str]], Awaitable[None]]
         """
         self._sign_in_failure_handler = handler
