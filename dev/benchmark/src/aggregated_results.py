@@ -1,5 +1,6 @@
 from .executor import ExecutionResult
 
+
 class AggregatedResults:
     """Class to analyze execution time results."""
 

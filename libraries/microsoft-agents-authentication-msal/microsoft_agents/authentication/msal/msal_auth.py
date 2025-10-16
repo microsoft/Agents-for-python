@@ -39,10 +39,15 @@ class _DeferredLogOfBlueprintId:
         agentic_blueprint_id = payload.get("xms_par_app_azp")
         return f"Agentic blueprint id: {agentic_blueprint_id}"
 
+
 async def _async_acquire_token_for_client(msal_auth_client, *args, **kwargs):
+    """MSAL in Python does not support async, so we use asyncio.to_thread to run it in
+    a separate thread and avoid blocking the event loop
+    """
     return await asyncio.to_thread(
         lambda: msal_auth_client.acquire_token_for_client(*args, **kwargs)
     )
+
 
 class MsalAuth(AccessTokenProviderBase):
 
@@ -71,14 +76,12 @@ class MsalAuth(AccessTokenProviderBase):
         if isinstance(self._msal_auth_client, ManagedIdentityClient):
             logger.info("Acquiring token using Managed Identity Client.")
             auth_result_payload = await _async_acquire_token_for_client(
-                self._msal_auth_client,
-                resource=resource_url
+                self._msal_auth_client, resource=resource_url
             )
         elif isinstance(self._msal_auth_client, ConfidentialClientApplication):
             logger.info("Acquiring token using Confidential Client Application.")
             auth_result_payload = await _async_acquire_token_for_client(
-                self._msal_auth_client,
-                scopes=local_scopes
+                self._msal_auth_client, scopes=local_scopes
             )
         else:
             auth_result_payload = None
@@ -110,11 +113,13 @@ class MsalAuth(AccessTokenProviderBase):
             )
         elif isinstance(self._msal_auth_client, ConfidentialClientApplication):
             # TODO: Handling token error / acquisition failed
-            
-            token = await _async_acquire_token_for_client(
-                self._msal_auth_client,
-                scopes=scopes,
-                user_assertion=user_assertion,
+
+            # MSAL in Python does not support async, so we use asyncio.to_thread to run it in
+            # a separate thread and avoid blocking the event loop
+            token = await asyncio.to_thread(
+                lambda: self._msal_auth_client.acquire_token_on_behalf_of(
+                    scopes=scopes, user_assertion=user_assertion
+                )
             )
 
             if "access_token" not in token:
@@ -133,7 +138,7 @@ class MsalAuth(AccessTokenProviderBase):
         )
 
     def _create_client_application(self) -> None:
-        
+
         if self._msal_auth_client:
             return
 
@@ -242,11 +247,10 @@ class MsalAuth(AccessTokenProviderBase):
         if isinstance(self._msal_auth_client, ConfidentialClientApplication):
 
             # https://github.dev/AzureAD/microsoft-authentication-library-for-dotnet
-            # MSAL in Python does not support async, so we use asyncio.to_thread to run it in
-            # a separate thread and avoid blocking the event loop
-            auth_result_payload = await _async_acquire_token_for_client(self._msal_auth_client,
+            auth_result_payload = await _async_acquire_token_for_client(
+                self._msal_auth_client,
                 ["api://AzureAdTokenExchange/.default"],
-                data={"fmi_path": agent_app_instance_id}
+                data={"fmi_path": agent_app_instance_id},
             )
 
             if auth_result_payload:
@@ -295,11 +299,8 @@ class MsalAuth(AccessTokenProviderBase):
             client_credential={"client_assertion": agent_token_result},
         )
 
-        # MSAL in Python does not support async, so we use asyncio.to_thread to run it in
-        # a separate thread and avoid blocking the event loop
         agentic_instance_token = await _async_acquire_token_for_client(
-            instance_app,
-            ["api://AzureAdTokenExchange/.default"]
+            instance_app, ["api://AzureAdTokenExchange/.default"]
         )
 
         if not agentic_instance_token:

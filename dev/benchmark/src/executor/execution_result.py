@@ -4,6 +4,7 @@
 from typing import Any, Optional
 from dataclasses import dataclass
 
+
 @dataclass
 class ExecutionResult:
     """Class to represent the result of an execution."""

@@ -52,9 +52,6 @@ class TestMsalAuth:
     @pytest.mark.asyncio
     async def test_acquire_token_on_behalf_of_confidential(self, mocker):
         mock_auth = MockMsalAuth(mocker, ConfidentialClientApplication)
-        mock_auth._create_client_application = mocker.Mock(
-            return_value=mock_auth.mock_client
-        )
 
         token = await mock_auth.acquire_token_on_behalf_of(
             scopes=["test-scope"], user_assertion="test-assertion"

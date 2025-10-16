@@ -7,15 +7,18 @@ from typing import Callable, Awaitable, Any
 from .executor import Executor
 from .execution_result import ExecutionResult
 
+
 class CoroutineExecutor(Executor):
     """An executor that runs asynchronous functions using asyncio."""
 
-    def run(self, func: Callable[[], Awaitable[Any]], num_workers: int = 1) -> list[ExecutionResult]:
+    def run(
+        self, func: Callable[[], Awaitable[Any]], num_workers: int = 1
+    ) -> list[ExecutionResult]:
         """Run the given asynchronous function using the specified number of threads.
-        
+
         :param func: An asynchronous function to be executed.
         :param num_workers: The number of concurrent threads to use.
         """
-        return asyncio.run(asyncio.gather(
-            *[self.run_func(i, func) for i in range(num_workers)]
-        ))
+        return asyncio.run(
+            asyncio.gather(*[self.run_func(i, func) for i in range(num_workers)])
+        )

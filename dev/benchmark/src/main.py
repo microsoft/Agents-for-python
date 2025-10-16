@@ -10,23 +10,22 @@ from .aggregated_results import AggregatedResults
 from .config import BenchmarkConfig
 
 LOG_FORMAT = "%(asctime)s: %(message)s"
-logging.basicConfig(
-    format=LOG_FORMAT,
-    level=logging.INFO,
-    datefmt="%H:%M:%S"
-)
+logging.basicConfig(format=LOG_FORMAT, level=logging.INFO, datefmt="%H:%M:%S")
 
 BenchmarkConfig.load_from_env()
 
+
 @click.command()
-@click.option("--payload_path", default="./payload.json", help="Path to the payload file.")
+@click.option(
+    "--payload_path", default="./payload.json", help="Path to the payload file."
+)
 @click.option("--num_workers", default=1, help="Number of workers to use.")
-@click.option("--async_mode", is_flag=True, help="Run coroutine workers rather than thread workers.")
-def main(
-    payload_path: str,
-    num_workers: int,
-    async_mode: bool
-):
+@click.option(
+    "--async_mode",
+    is_flag=True,
+    help="Run coroutine workers rather than thread workers.",
+)
+def main(payload_path: str, num_workers: int, async_mode: bool):
     """Main function to run the benchmark."""
 
     with open(payload_path, "r", encoding="utf-8") as f:
@@ -43,5 +42,6 @@ def main(
     agg = AggregatedResults(results)
     agg.display(start_time, end_time)
 
+
 if __name__ == "__main__":
-    main() # pylint: disable=no-value-for-parameter
+    main()  # pylint: disable=no-value-for-parameter
