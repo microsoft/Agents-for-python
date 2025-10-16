@@ -320,7 +320,7 @@ class StreamingResponse:
                 self._cancelled = True
             else:
                 logger.error(
-                    f"Error occurred when sending activity while streaming: {err}"
+                    f"Error occurred when sending activity while streaming: {type(err).__name__}"
                 )
                 raise
         finally:
