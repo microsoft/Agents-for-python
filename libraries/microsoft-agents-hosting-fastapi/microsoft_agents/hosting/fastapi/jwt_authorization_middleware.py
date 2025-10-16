@@ -2,7 +2,7 @@ import functools
 from typing import Callable
 from fastapi import Request, HTTPException, Depends
 from fastapi.responses import JSONResponse
-
+import logging
 from microsoft_agents.hosting.core.authorization import (
     AgentAuthConfiguration,
     JwtTokenValidator,
@@ -138,8 +138,8 @@ class JwtAuthorizationMiddleware:
                         claims = token_validator.validate_token(token)
                         request.state.claims_identity = claims
                     except ValueError as e:
-                        print(f"JWT validation error: {e}")
-                        return JSONResponse({"error": str(e)}, status_code=401)
+                        logging.warning(f"JWT validation error: {e}")
+                        return JSONResponse({"error": "Invalid token or authentication failed."}, status_code=401)
                 else:
                     return JSONResponse(
                         {"error": "Invalid authorization header format"},
