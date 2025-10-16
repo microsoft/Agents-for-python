@@ -20,7 +20,7 @@ BenchmarkConfig.load_from_env()
 
 @click.command()
 @click.option("--payload_path", default="./payload.json", help="Path to the payload file.")
-@click.option("--num-workers", default=1, help="Number of workers to use.")
+@click.option("--num_workers", default=1, help="Number of workers to use.")
 @click.option("--async_mode", is_flag=True, help="Run coroutine workers rather than thread workers.")
 def main(
     payload_path: str,
