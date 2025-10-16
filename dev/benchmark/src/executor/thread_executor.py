@@ -30,7 +30,7 @@ class ThreadExecutor(Executor):
         results: list[ExecutionResult] = []
 
         with ThreadPoolExecutor(max_workers=num_workers) as executor:
-            futures = [executor.submit(lambda: _func(i)) for i in range(num_workers)]
+            futures = [executor.submit(_func, i) for i in range(num_workers)]
             for future in futures:
                 results.append(future.result())
 

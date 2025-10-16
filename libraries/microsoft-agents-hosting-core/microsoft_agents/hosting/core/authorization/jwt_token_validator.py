@@ -119,9 +119,8 @@ class JwtTokenValidator:
             raise ValueError("Issuer (iss) claim is missing in the token.")
         self._init_jwks_client(issuer)
 
-        def func():
-            return self._get_client(issuer).get_signing_key(header["kid"])
-
-        key = await asyncio.to_thread(func)
+        key = await asyncio.to_thread(
+            self._get_client(issuer).get_signing_key, header["kid"]
+        )
 
         return key

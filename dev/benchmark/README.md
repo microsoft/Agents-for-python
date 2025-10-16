@@ -2,6 +2,35 @@ A simple benchmarking tool.
 
 ## Benchmark Python Environment Setup (Windows)
 
+Currently a version of this tool that spawns async workers/coroutines instead of
+concurrent threads is not supported, so if you use a "normal" (non free-threaded) version
+of Python, you will be running with the global interpreter lock (GIL).
+
+Note: This may or may not incur significant changes in performance over using
+free-threaded concurrent tests or async workers, depending on the test scenario.
+
+Install any Python version >= 3.9. Then, set up and activate the virtual environment with:
+
+```bash
+python -m venv venv
+. ./venv/Scripts/activate
+pip install -r requirements.txt
+```
+
+To activate the virtual environment, use:
+
+```bash
+. ./venv/Scripts/activate
+```
+
+To deactivate it, you may use:
+
+```bash
+deactivate
+```
+
+## Benchmark Python Environment Setup (Windows) - Free Threaded Python
+
 Traditionally, most Python versions have a global interpreter lock (GIL) which prevents
 more than 1 thread to run at the same time. With 3.13, there are free-threaded versions
 of Python which allow one to bypass this constraint. This section walks through how
@@ -59,7 +88,14 @@ variable should be set to the tenant Id of your ABS resource.
 These settings are used to generate valid tokens that are sent and validated by the
 agent you are trying to run.
 
-## Complete Setup
+## Usage
 
 Running these tests requires you to have the agent running in a separate process. You
 may open a separate PowerShell window or VSCode window and run your agent there.
+
+To run the basic payload sending stress test (our only implemented test so far), use:
+
+```bash
+. ./venv/Scripts/activate # activate the virtual environment if you haven't already
+python -m src.main --num_workers=...
+```

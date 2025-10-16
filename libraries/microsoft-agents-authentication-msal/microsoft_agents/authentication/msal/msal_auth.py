@@ -54,6 +54,13 @@ class MsalAuth(AccessTokenProviderBase):
     _client_credential_cache = None
 
     def __init__(self, msal_configuration: AgentAuthConfiguration):
+        """Initializes the MsalAuth class with the given configuration.
+
+        :param msal_configuration: The MSAL authentication configuration. Assumed to
+            not be mutated after being passed in.
+        :type msal_configuration: AgentAuthConfiguration
+        """
+
         self._msal_configuration = msal_configuration
         self._msal_auth_client = None
         logger.debug(

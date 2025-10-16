@@ -39,7 +39,7 @@ class Executor(ABC):
 
     @abstractmethod
     def run(
-        self, func: Callable[[], Awaitable[None]], num_workers: int = 1
+        self, func: Callable[[], Awaitable[Any]], num_workers: int = 1
     ) -> list[ExecutionResult]:
         """Run the given asynchronous function using the specified number of workers.
 
