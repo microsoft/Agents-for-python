@@ -132,7 +132,10 @@ class TestActivityIO:
         activity = Activity(type="message")
         activity.channel_id = "channel:sub_channel"
         data = activity.model_dump(mode="json", exclude_unset=True, by_alias=True)
-        assert data["channelId"] == "channel:sub_channel"
+        assert data["channelId"] == "channel"
+        assert data["entities"] == [
+            {"type": EntityTypes.PRODUCT_INFO.value, "id": "sub_channel"}
+        ]
 
     def test_channel_id_unset_at_init_not_included(self):
         activity = Activity(type="message")
@@ -156,14 +159,14 @@ class TestActivityIO:
                 Activity(type="message", channel_id="msteams:subchannel"),
                 {
                     "type": "message",
-                    "channelId": "msteams:subchannel",
+                    "channelId": "msteams",
                     "entities": [
                         {"type": EntityTypes.PRODUCT_INFO.value, "id": "subchannel"}
                     ],
                 },
                 {
                     "type": "message",
-                    "channel_id": "msteams:subchannel",
+                    "channel_id": "msteams",
                     "entities": [
                         {"type": EntityTypes.PRODUCT_INFO.value, "id": "subchannel"}
                     ],
@@ -177,7 +180,7 @@ class TestActivityIO:
                 ),
                 {
                     "type": "message",
-                    "channelId": "msteams:subchannel",
+                    "channelId": "msteams",
                     "entities": [
                         {"type": "other"},
                         {"type": EntityTypes.PRODUCT_INFO.value, "id": "subchannel"},
@@ -185,7 +188,7 @@ class TestActivityIO:
                 },
                 {
                     "type": "message",
-                    "channel_id": "msteams:subchannel",
+                    "channel_id": "msteams",
                     "entities": [
                         {"type": "other"},
                         {"type": EntityTypes.PRODUCT_INFO.value, "id": "subchannel"},
@@ -200,7 +203,7 @@ class TestActivityIO:
                 ),
                 {
                     "type": "message",
-                    "channelId": "msteams:misc",
+                    "channelId": "msteams",
                     "entities": [
                         {"type": "other"},
                         {"type": EntityTypes.PRODUCT_INFO.value, "id": "misc"},
@@ -208,7 +211,7 @@ class TestActivityIO:
                 },
                 {
                     "type": "message",
-                    "channel_id": "msteams:misc",
+                    "channel_id": "msteams",
                     "entities": [
                         {"type": "other"},
                         {"type": EntityTypes.PRODUCT_INFO.value, "id": "misc"},
