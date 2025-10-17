@@ -196,21 +196,6 @@ class ConversationsOperations(ConversationsBase):
                 stack_info=True,
             )
             raise ValueError("conversationId and activityId are required")
-        
-        from microsoft_agents.activity import Entity
-        # body.entities = [
-        #     Entity(**{
-        #     "htmlBody": "\u003Cbody dir=\u0022ltr\u0022\u003E\n\u003Cdiv class=\u0022elementToProof\u0022 style=\u0022font-family: Aptos, Aptos_EmbeddedFont, Aptos_MSFontService, Calibri, Helvetica, sans-serif; font-size: 12pt; color: rgb(0, 0, 0);\u0022\u003E\nMessage 3\u003C/div\u003E\n\n\n\u003C/body\u003E",
-        #     "type": "emailResponse"
-        # }),
-        # Entity(**{
-        #     "id": "email",
-        #     "type": "ProductInfo"
-        # })
-        # ]
-        from microsoft_agents.activity import ChannelId
-        # assert body.channel_id
-        # body.channel_id = ChannelId(channel=body.channel_id.channel, sub_channel="email")
 
         conversation_id = self._normalize_conversation_id(conversation_id)
         url = f"v3/conversations/{conversation_id}/activities/{activity_id}"
@@ -218,22 +203,12 @@ class ConversationsOperations(ConversationsBase):
         logger.info(
             f"Replying to activity: {activity_id} in conversation: {conversation_id}. Activity type is {body.type}"
         )
-        # body.entities = None
-        # body.channel_id = "agents"
-
-        # body.conversation.id = conversation_id
-        json = body.model_dump(
-                by_alias=True, exclude_unset=True, exclude_none=True, mode="json"
-            )
-        json["channelId"] = "agents"
-        if body.type == "message":
-            print()
-            print(self.client.headers)
-            # breakpoint()
 
         async with self.client.post(
             url,
-            json=json,
+            json=body.model_dump(
+                by_alias=True, exclude_unset=True, exclude_none=True, mode="json"
+            ),
         ) as response:
             result = await response.json() if response.content_length else {}
 

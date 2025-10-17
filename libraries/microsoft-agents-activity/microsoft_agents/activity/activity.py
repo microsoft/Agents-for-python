@@ -253,7 +253,7 @@ class Activity(AgentsModel, _ChannelIdFieldMixin):
                 product_info = entity
                 break
 
-        # maintain consistency between ProductInfo entity and sub channel
+        # self.channel_id is the source of truth for serialization
         if self.channel_id and self.channel_id.sub_channel:
             if product_info and product_info.get("id") != self.channel_id.sub_channel:
                 raise Exception(
@@ -268,6 +268,13 @@ class Activity(AgentsModel, _ChannelIdFieldMixin):
                         "id": self.channel_id.sub_channel,
                     }
                 )
+
+            # simply serialized channelId value in Activity and relatesTo
+            if "channelId" in serialized:
+                serialized["channelId"] = self.channel_id.channel
+            elif "channel_id" in serialized:
+                serialized["channel_id"] = self.channel_id.channel
+
         elif product_info:  # remove productInfo entity if sub_channel is not set
             del serialized["entities"][i]
             if not serialized["entities"]:  # after removal above, list may be empty
