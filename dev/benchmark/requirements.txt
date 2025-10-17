@@ -1,0 +1,4 @@
+microsoft-agents-activity
+microsoft-agents-hosting-core
+click
+azure-identity
