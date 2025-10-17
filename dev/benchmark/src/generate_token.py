@@ -6,7 +6,7 @@ URL = "https://login.microsoftonline.com/{tenant_id}/oauth2/v2.0/token"
 
 
 def generate_token(app_id: str, app_secret: str) -> str:
-    """Generate a Direct Line token using the provided client ID and Direct Line secret."""
+    """Generate a Direct Line token using the provided app credentials."""
 
     url = URL.format(tenant_id=BenchmarkConfig.TENANT_ID)
 
@@ -23,9 +23,6 @@ def generate_token(app_id: str, app_secret: str) -> str:
         },
         timeout=10,
     )
-    print(BenchmarkConfig.TENANT_ID)
-    print(res.json())
-    # print(res.json().get("access_token"))
     return res.json().get("access_token")
 
 

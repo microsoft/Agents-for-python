@@ -17,11 +17,12 @@ BenchmarkConfig.load_from_env()
 
 @click.command()
 @click.option(
-    "--payload_path", default="./payload.json", help="Path to the payload file."
+    "--payload_path", "-p", default="./payload.json", help="Path to the payload file."
 )
-@click.option("--num_workers", default=1, help="Number of workers to use.")
+@click.option("--num_workers", "-n", default=1, help="Number of workers to use.")
 @click.option(
     "--async_mode",
+    "-a",
     is_flag=True,
     help="Run coroutine workers rather than thread workers.",
 )
@@ -41,6 +42,7 @@ def main(payload_path: str, num_workers: int, async_mode: bool):
 
     agg = AggregatedResults(results)
     agg.display(start_time, end_time)
+    agg.display_timeline()
 
 
 if __name__ == "__main__":

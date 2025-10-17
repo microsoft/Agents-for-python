@@ -1,6 +1,6 @@
 A simple benchmarking tool.
 
-## Benchmark Python Environment Setup (Windows)
+## Benchmark Python Environment Manual Setup (Windows)
 
 Currently a version of this tool that spawns async workers/coroutines instead of
 concurrent threads is not supported, so if you use a "normal" (non free-threaded) version
@@ -9,7 +9,13 @@ of Python, you will be running with the global interpreter lock (GIL).
 Note: This may or may not incur significant changes in performance over using
 free-threaded concurrent tests or async workers, depending on the test scenario.
 
-Install any Python version >= 3.9. Then, set up and activate the virtual environment with:
+Install any Python version >= 3.9. Check with:
+
+```bash
+python --version
+```
+
+Then, set up and activate the virtual environment with:
 
 ```bash
 python -m venv venv

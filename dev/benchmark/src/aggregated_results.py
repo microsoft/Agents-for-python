@@ -28,3 +28,24 @@ class AggregatedResults:
         print(f"Total Time:   {end_time - start_time} seconds")
         print("----------------------------")
         print()
+
+    def display_timeline(self):
+        """Display timeline of individual execution results."""
+        print()
+        print("---- Execution Timeline ----")
+        print(
+            "Each '.' represents 1 second of successful execution. So a line like '...' is a success that took 3 seconds (rounded up), 'x' represents a failure."
+        )
+        print()
+        for result in sorted(self._results, key=lambda r: r.exe_id):
+            c = "." if result.success else "x"
+            if c == ".":
+                duration = int(round(result.duration))
+                for _ in range(1 + duration):
+                    print(c, end="")
+                print()
+            else:
+                print(c)
+
+        print("----------------------------")
+        print()
