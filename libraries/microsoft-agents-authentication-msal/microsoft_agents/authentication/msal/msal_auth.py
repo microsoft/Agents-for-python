@@ -313,7 +313,7 @@ class MsalAuth(AccessTokenProviderBase):
     async def get_agentic_user_token(
         self, agent_app_instance_id: str, agentic_user_id: str, scopes: list[str]
     ) -> Optional[str]:
-        """Gets the agentic user token for the given agent application instance ID and user principal name and the scopes.
+        """Gets the agentic user token for the given agent application instance ID and agentic user Id and the scopes.
 
         :param agent_app_instance_id: The agent application instance ID.
         :type agent_app_instance_id: str
@@ -326,7 +326,7 @@ class MsalAuth(AccessTokenProviderBase):
         """
         if not agent_app_instance_id or not agentic_user_id:
             raise ValueError(
-                "Agent application instance Id and user principal name must be provided."
+                "Agent application instance Id and agentic user Id must be provided."
             )
 
         logger.info(
