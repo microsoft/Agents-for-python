@@ -1,7 +1,6 @@
 import requests
 from .config import BenchmarkConfig
 
-# URL = "https://directline.botframework.com/v3/directline/tokens/generate"
 URL = "https://login.microsoftonline.com/{tenant_id}/oauth2/v2.0/token"
 
 
