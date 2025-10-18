@@ -1,6 +1,6 @@
 # Setting Up Virtual Environment and installing the SDK
 
-This guide explains how to create and activate a Python virtual environment using `venv` for Python versions 3.10 to 3.11.
+This guide explains how to create and activate a Python virtual environment using `venv` for Python versions 3.10 to 3.14.
 
 ## What is a Virtual Environment?
 
@@ -8,7 +8,7 @@ A virtual environment is an isolated Python environment that allows you to insta
 
 ## Prerequisites
 
-- Python 3.10, or 3.11 installed on your system
+- Python 3.10, 3.11, 3.12, 3.13, or 3.14 installed on your system
 - Basic knowledge of command line operations
 
 ## Creating a Virtual Environment
