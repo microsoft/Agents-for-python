@@ -311,28 +311,28 @@ class MsalAuth(AccessTokenProviderBase):
         return agentic_instance_token["access_token"], agent_token_result
 
     async def get_agentic_user_token(
-        self, agent_app_instance_id: str, upn: str, scopes: list[str]
+        self, agent_app_instance_id: str, agentic_user_id: str, scopes: list[str]
     ) -> Optional[str]:
-        """Gets the agentic user token for the given agent application instance ID and user principal name and the scopes.
+        """Gets the agentic user token for the given agent application instance ID and agentic user Id and the scopes.
 
         :param agent_app_instance_id: The agent application instance ID.
         :type agent_app_instance_id: str
-        :param upn: The user principal name.
-        :type upn: str
+        :param agentic_user_id: The agentic user ID.
+        :type agentic_user_id: str
         :param scopes: The scopes to request for the token.
         :type scopes: list[str]
         :return: The agentic user token, or None if not found.
         :rtype: Optional[str]
         """
-        if not agent_app_instance_id or not upn:
+        if not agent_app_instance_id or not agentic_user_id:
             raise ValueError(
-                "Agent application instance Id and user principal name must be provided."
+                "Agent application instance Id and agentic user Id must be provided."
             )
 
         logger.info(
-            "Attempting to get agentic user token from agent_app_instance_id %s and upn %s",
+            "Attempting to get agentic user token from agent_app_instance_id %s and agentic_user_id %s",
             agent_app_instance_id,
-            upn,
+            agentic_user_id,
         )
         instance_token, agent_token = await self.get_agentic_instance_token(
             agent_app_instance_id
@@ -340,12 +340,12 @@ class MsalAuth(AccessTokenProviderBase):
 
         if not instance_token or not agent_token:
             logger.error(
-                "Failed to acquire instance token or agent token for agent_app_instance_id %s and upn %s",
+                "Failed to acquire instance token or agent token for agent_app_instance_id %s and agentic_user_id %s",
                 agent_app_instance_id,
-                upn,
+                agentic_user_id,
             )
             raise Exception(
-                f"Failed to acquire instance token or agent token for agent_app_instance_id {agent_app_instance_id} and upn {upn}"
+                f"Failed to acquire instance token or agent token for agent_app_instance_id {agent_app_instance_id} and agentic_user_id {agentic_user_id}"
             )
 
         authority = (
@@ -359,14 +359,14 @@ class MsalAuth(AccessTokenProviderBase):
         )
 
         logger.info(
-            "Acquiring agentic user token for agent_app_instance_id %s and upn %s",
+            "Acquiring agentic user token for agent_app_instance_id %s and agentic_user_id %s",
             agent_app_instance_id,
-            upn,
+            agentic_user_id,
         )
         auth_result_payload = instance_app.acquire_token_for_client(
             scopes,
             data={
-                "username": upn,
+                "user_id": agentic_user_id,
                 "user_federated_identity_credential": instance_token,
                 "grant_type": "user_fic",
             },
@@ -374,9 +374,9 @@ class MsalAuth(AccessTokenProviderBase):
 
         if not auth_result_payload:
             logger.error(
-                "Failed to acquire agentic user token for agent_app_instance_id %s and upn %s, %s",
+                "Failed to acquire agentic user token for agent_app_instance_id %s and agentic_user_id %s, %s",
                 agent_app_instance_id,
-                upn,
+                agentic_user_id,
                 auth_result_payload,
             )
             return None
@@ -384,9 +384,9 @@ class MsalAuth(AccessTokenProviderBase):
         access_token = auth_result_payload.get("access_token")
         if not access_token:
             logger.error(
-                "Failed to acquire agentic user token for agent_app_instance_id %s and upn %s, %s",
+                "Failed to acquire agentic user token for agent_app_instance_id %s and agentic_user_id %s, %s",
                 agent_app_instance_id,
-                upn,
+                agentic_user_id,
                 auth_result_payload,
             )
             return None
