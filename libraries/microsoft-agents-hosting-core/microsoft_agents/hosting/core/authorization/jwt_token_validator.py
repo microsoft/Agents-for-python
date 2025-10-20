@@ -51,8 +51,6 @@ class JwtTokenValidator:
         )
         jwks_client = PyJWKClient(jwksUri)
 
-        key = await asyncio.to_thread(
-            jwks_client.get_signing_key, header["kid"]
-        )
+        key = await asyncio.to_thread(jwks_client.get_signing_key, header["kid"])
 
         return key
