@@ -436,7 +436,8 @@ class TestActivityAgenticOps:
     )
     def test_is_agentic_request(self, role, expected):
         activity = Activity(
-            type="message", recipient=ChannelAccount(id="bot", name="bot", role=role)
+            type="message",
+            recipient=ChannelAccount(agentic_user_id="bot", name="bot", role=role),
         )
         assert activity.is_agentic_request() == expected
 
@@ -444,7 +445,7 @@ class TestActivityAgenticOps:
         activity = Activity(
             type="message",
             recipient=ChannelAccount(
-                id="some_id",
+                agentic_user_id="some_id",
                 agentic_app_id=DEFAULTS.agentic_instance_id,
                 role=agentic_role,
             ),
@@ -455,7 +456,7 @@ class TestActivityAgenticOps:
         activity = Activity(
             type="message",
             recipient=ChannelAccount(
-                id="some_id",
+                agentic_user_id="some_id",
                 agentic_app_id=DEFAULTS.agentic_instance_id,
                 role=non_agentic_role,
             ),
@@ -466,7 +467,7 @@ class TestActivityAgenticOps:
         activity = Activity(
             type="message",
             recipient=ChannelAccount(
-                id=DEFAULTS.agentic_user_id,
+                agentic_user_id=DEFAULTS.agentic_user_id,
                 agentic_app_id=DEFAULTS.agentic_instance_id,
                 role=agentic_role,
             ),
@@ -477,7 +478,7 @@ class TestActivityAgenticOps:
         activity = Activity(
             type="message",
             recipient=ChannelAccount(
-                id=DEFAULTS.agentic_user_id,
+                agentic_user_id=DEFAULTS.agentic_user_id,
                 agentic_app_id=DEFAULTS.agentic_instance_id,
                 role=non_agentic_role,
             ),

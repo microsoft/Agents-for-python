@@ -12,6 +12,8 @@ python --version
 
 The virtual environment, by default, will created as a directory named `venv` that will be placed at the root of this project.
 
+> Note: The SDK supports Python 3.10, 3.11, 3.12, 3.13, and 3.14.
+
 ### Windows
 
 Powershell needs to be set to allow running of scripts. Do this by opening PowerShell in admin mode and running:

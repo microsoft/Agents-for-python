@@ -1,6 +1,7 @@
 # Copyright (c) Microsoft Corporation. All rights reserved.
 # Licensed under the MIT License.
 
+import asyncio
 import logging
 import jwt
 
@@ -16,10 +17,10 @@ class JwtTokenValidator:
     def __init__(self, configuration: AgentAuthConfiguration):
         self.configuration = configuration
 
-    def validate_token(self, token: str) -> ClaimsIdentity:
+    async def validate_token(self, token: str) -> ClaimsIdentity:
 
         logger.debug("Validating JWT token.")
-        key = self._get_public_key_or_secret(token)
+        key = await self._get_public_key_or_secret(token)
         decoded_token = jwt.decode(
             token,
             key=key,
@@ -39,7 +40,7 @@ class JwtTokenValidator:
         logger.debug("Returning anonymous claims identity.")
         return ClaimsIdentity({}, False, authentication_type="Anonymous")
 
-    def _get_public_key_or_secret(self, token: str) -> PyJWK:
+    async def _get_public_key_or_secret(self, token: str) -> PyJWK:
         header = get_unverified_header(token)
         unverified_payload: dict = decode(token, options={"verify_signature": False})
 
@@ -50,5 +51,6 @@ class JwtTokenValidator:
         )
         jwks_client = PyJWKClient(jwksUri)
 
-        key = jwks_client.get_signing_key(header["kid"])
+        key = await asyncio.to_thread(jwks_client.get_signing_key, header["kid"])
+
         return key

@@ -1,0 +1,6 @@
+# CODEOWNERS for Microsoft 365 Agents SDK for Python
+# This file defines who gets automatically requested for review when PRs are opened.
+# See: https://docs.github.com/en/repositories/managing-your-repositorys-settings-and-features/customizing-your-repository/about-code-owners
+
+# Global ownership - fallback for any files not covered by more specific rules
+* @microsoft/m365-agents-sdk-python-code-owners
