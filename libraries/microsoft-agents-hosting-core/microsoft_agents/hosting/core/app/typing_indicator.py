@@ -26,7 +26,7 @@ class TypingIndicator:
 
     def __init__(self, intervalSeconds=1) -> None:
         # Convert milliseconds to seconds for asyncio.sleep
-        self._intervalMs = intervalSeconds / 1000.0
+        self._intervalMs = intervalSeconds * 1000.0
 
     async def start(self, context: TurnContext) -> None:
         if self._running:
