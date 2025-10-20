@@ -67,4 +67,3 @@ class TypingIndicator:
         except asyncio.CancelledError:
             logger.debug("Typing indicator loop cancelled")
             raise
-            raise
