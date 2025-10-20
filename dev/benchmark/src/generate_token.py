@@ -5,7 +5,7 @@ URL = "https://login.microsoftonline.com/{tenant_id}/oauth2/v2.0/token"
 
 
 def generate_token(app_id: str, app_secret: str) -> str:
-    """Generate a Direct Line token using the provided app credentials."""
+    """Generate a token using the provided app credentials."""
 
     url = URL.format(tenant_id=BenchmarkConfig.TENANT_ID)
 
@@ -26,7 +26,7 @@ def generate_token(app_id: str, app_secret: str) -> str:
 
 
 def generate_token_from_env() -> str:
-    """Generates a Direct Line token using environment variables."""
+    """Generates a token using environment variables."""
     app_id = BenchmarkConfig.APP_ID
     app_secret = BenchmarkConfig.APP_SECRET
     if not app_id or not app_secret:
