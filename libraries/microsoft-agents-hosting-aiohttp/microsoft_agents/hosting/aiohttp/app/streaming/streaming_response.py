@@ -55,6 +55,7 @@ class StreamingResponse:
         # Queue for outgoing activities
         self._queue: List[Callable[[], Activity]] = []
         self._queue_sync: Optional[asyncio.Task] = None
+        self._queue_lock = asyncio.Lock()
         self._chunk_queued = False
 
         # Powered by AI feature flags
@@ -274,7 +275,6 @@ class StreamingResponse:
         self._chunk_queued = True
 
         def create_activity():
-            self._chunk_queued = False
             if self._ended:
                 # Send final message
                 activity = Activity(
@@ -303,8 +303,10 @@ class StreamingResponse:
                     ],
                 )
             else:
-                return
+                self._chunk_queued = False
+                return None
             self._sequence_number += 1
+            self._chunk_queued = False
             return activity
 
         self._queue_activity(create_activity)
@@ -316,8 +318,14 @@ class StreamingResponse:
         self._queue.append(factory)
 
         # If there's no sync in progress, start one
-        if not self._queue_sync:
-            self._queue_sync = asyncio.create_task(self._drain_queue())
+        # Use a lock to prevent race conditions when checking/starting the drain task
+        async def start_drain_if_needed():
+            async with self._queue_lock:
+                if not self._queue_sync or self._queue_sync.done():
+                    self._queue_sync = asyncio.create_task(self._drain_queue())
+
+        # Schedule the coroutine to run
+        asyncio.create_task(start_drain_if_needed())
 
     async def _drain_queue(self) -> None:
         """
@@ -326,7 +334,12 @@ class StreamingResponse:
         try:
             logger.debug(f"Draining queue with {len(self._queue)} activities.")
             while self._queue:
-                factory = self._queue.pop(0)
+                # Use lock to safely access the queue
+                async with self._queue_lock:
+                    if not self._queue:
+                        break
+                    factory = self._queue.pop(0)
+                
                 activity = factory()
                 if activity:
                     await self._send_activity(activity)
@@ -343,7 +356,8 @@ class StreamingResponse:
                 )
                 raise
         finally:
-            self._queue_sync = None
+            async with self._queue_lock:
+                self._queue_sync = None
 
     async def _send_activity(self, activity: Activity) -> None:
         """
