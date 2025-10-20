@@ -85,7 +85,7 @@ class TestAgenticUserAuthorization(TestUtils):
         activity = Activity(
             type="message",
             recipient=ChannelAccount(
-                id=DEFAULTS.agentic_user_id,
+                agentic_user_id=DEFAULTS.agentic_user_id,
                 agentic_app_id=DEFAULTS.agentic_instance_id,
                 role=non_agentic_role,
             ),
@@ -100,7 +100,7 @@ class TestAgenticUserAuthorization(TestUtils):
         activity = Activity(
             type="message",
             recipient=ChannelAccount(
-                id=DEFAULTS.agentic_user_id,
+                agentic_user_id=DEFAULTS.agentic_user_id,
                 agentic_app_id=DEFAULTS.agentic_instance_id,
                 role=non_agentic_role,
             ),
@@ -145,7 +145,7 @@ class TestAgenticUserAuthorization(TestUtils):
         activity = Activity(
             type="message",
             recipient=ChannelAccount(
-                id="some_id",
+                agentic_user_id="some_id",
                 agentic_app_id=DEFAULTS.agentic_instance_id,
                 role=agentic_role,
             ),
@@ -177,7 +177,7 @@ class TestAgenticUserAuthorization(TestUtils):
         activity = Activity(
             type="message",
             recipient=ChannelAccount(
-                id="some_id",
+                agentic_user_id="some_id",
                 agentic_app_id=DEFAULTS.agentic_instance_id,
                 role=agentic_role,
             ),
@@ -221,7 +221,7 @@ class TestAgenticUserAuthorization(TestUtils):
         activity = Activity(
             type="message",
             recipient=ChannelAccount(
-                id="some_id",
+                agentic_user_id="some_id",
                 agentic_app_id=DEFAULTS.agentic_instance_id,
                 role=agentic_role,
             ),
@@ -266,7 +266,7 @@ class TestAgenticUserAuthorization(TestUtils):
         activity = Activity(
             type="message",
             recipient=ChannelAccount(
-                id="some_id",
+                agentic_user_id="some_id",
                 agentic_app_id=DEFAULTS.agentic_instance_id,
                 role=agentic_role,
             ),
@@ -311,7 +311,7 @@ class TestAgenticUserAuthorization(TestUtils):
         activity = Activity(
             type="message",
             recipient=ChannelAccount(
-                id="some_id",
+                agentic_user_id="some_id",
                 agentic_app_id=DEFAULTS.agentic_instance_id,
                 role=agentic_role,
             ),
@@ -357,7 +357,7 @@ class TestAgenticUserAuthorization(TestUtils):
         activity = Activity(
             type="message",
             recipient=ChannelAccount(
-                id="some_id",
+                agentic_user_id="some_id",
                 agentic_app_id=DEFAULTS.agentic_instance_id,
                 role=agentic_role,
             ),
