@@ -33,6 +33,6 @@ class AnonymousTokenProvider(AccessTokenProviderBase):
         return "", ""
 
     async def get_agentic_user_token(
-        self, agent_app_instance_id: str, upn: str, scopes: list[str]
+        self, agent_app_instance_id: str, agentic_user_id: str, scopes: list[str]
     ) -> Optional[str]:
         return ""
