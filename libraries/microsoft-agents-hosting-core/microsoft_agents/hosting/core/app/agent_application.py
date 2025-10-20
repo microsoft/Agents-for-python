@@ -709,7 +709,7 @@ class AgentApplication(Agent, Generic[StateT]):
             )
             await self._on_error(context, err)
         finally:
-            self.typing.stop()
+            await self.typing.stop()
 
     async def _start_typing(self, context: TurnContext):
         if self._options.start_typing_timer:
