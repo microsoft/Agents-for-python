@@ -339,7 +339,7 @@ class StreamingResponse:
                     if not self._queue:
                         break
                     factory = self._queue.pop(0)
-                
+
                 activity = factory()
                 if activity:
                     await self._send_activity(activity)
