@@ -71,7 +71,6 @@ class TypingIndicator:
                     logger.error(f"Error sending typing activity: {e}")
                     async with self._lock:
                         self._running = False
-                        self._task = None
                     break
 
                 await asyncio.sleep(self._intervalSeconds)
