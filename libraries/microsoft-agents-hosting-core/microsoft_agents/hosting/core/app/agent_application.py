@@ -93,7 +93,6 @@ class AgentApplication(Agent, Generic[StateT]):
         :param kwargs: Additional configuration parameters.
         :type kwargs: Any
         """
-        self.typing = TypingIndicator()
         self._route_list = _RouteList[StateT]()
 
         configuration = kwargs
@@ -659,9 +658,12 @@ class AgentApplication(Agent, Generic[StateT]):
         await self._start_long_running_call(context, self._on_turn)
 
     async def _on_turn(self, context: TurnContext):
+        typing = None
         try:
             if context.activity.type != ActivityTypes.typing:
-                await self._start_typing(context)
+                if self._options.start_typing_timer:
+                    typing = TypingIndicator()
+                    await typing.start(context)
 
             self._remove_mentions(context)
 
@@ -709,11 +711,8 @@ class AgentApplication(Agent, Generic[StateT]):
             )
             await self._on_error(context, err)
         finally:
-            await self.typing.stop()
-
-    async def _start_typing(self, context: TurnContext):
-        if self._options.start_typing_timer:
-            await self.typing.start(context)
+            if typing:
+                await typing.stop()
 
     def _remove_mentions(self, context: TurnContext):
         if (
