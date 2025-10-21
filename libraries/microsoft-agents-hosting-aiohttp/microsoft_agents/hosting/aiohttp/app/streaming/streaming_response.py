@@ -3,6 +3,7 @@
 
 import asyncio
 import logging
+import threading
 from typing import List, Optional, Callable, Literal, TYPE_CHECKING
 from dataclasses import dataclass
 
@@ -53,9 +54,14 @@ class StreamingResponse:
         self._cancelled = False
 
         # Queue for outgoing activities
-        self._queue: List[Callable[[], Activity]] = []
-        self._queue_sync: Optional[asyncio.Task] = None
-        self._queue_lock = asyncio.Lock()
+        self._queue: asyncio.Queue[Callable[[], Activity]] = asyncio.Queue()
+        self._drain_task: Optional[asyncio.Task] = None
+        self._drain_task_lock = asyncio.Lock()
+        
+        # State lock to protect shared mutable state (for async operations)
+        self._state_lock = asyncio.Lock()
+        # Sync lock for message text updates (can be called from sync context)
+        self._message_lock = threading.Lock()
         self._chunk_queued = False
 
         # Powered by AI feature flags
@@ -76,17 +82,24 @@ class StreamingResponse:
         """
         Gets the stream ID of the current response.
         Assigned after the initial update is sent.
+        Note: Returns a snapshot; may be stale if called during concurrent updates.
         """
         return self._stream_id
 
     @property
     def citations(self) -> Optional[List[ClientCitation]]:
-        """Gets the citations of the current response."""
+        """
+        Gets the citations of the current response.
+        Note: Returns reference to internal list; do not modify directly.
+        """
         return self._citations
 
     @property
     def updates_sent(self) -> int:
-        """Gets the number of updates sent for the stream."""
+        """
+        Gets the number of updates sent for the stream.
+        Note: Returns a snapshot; may be stale if called during concurrent updates.
+        """
         return self._sequence_number - 1
 
     def queue_informative_update(self, text: str) -> None:
@@ -102,8 +115,12 @@ class StreamingResponse:
         if self._ended:
             raise RuntimeError("The stream has already ended.")
 
-        # Queue a typing activity
-        def create_activity():
+        # Queue a typing activity - capture sequence number atomically
+        async def create_activity_async():
+            async with self._state_lock:
+                seq_num = self._sequence_number
+                self._sequence_number += 1
+            
             activity = Activity(
                 type="typing",
                 text=text,
@@ -111,14 +128,13 @@ class StreamingResponse:
                     Entity(
                         type="streaminfo",
                         stream_type="informative",
-                        stream_sequence=self._sequence_number,
+                        stream_sequence=seq_num,
                     )
                 ],
             )
-            self._sequence_number += 1
             return activity
 
-        self._queue_activity(create_activity)
+        self._queue_activity(create_activity_async)
 
     def queue_text_chunk(
         self, text: str, citations: Optional[List[Citation]] = None
@@ -133,33 +149,38 @@ class StreamingResponse:
             text: Partial text of the message to send.
             citations: Citations to be included in the message.
         """
-        if self._cancelled:
-            return
-        if self._ended:
-            raise RuntimeError("The stream has already ended.")
+        # Update message text synchronously under thread lock
+        with self._message_lock:
+            if self._cancelled:
+                return
+            if self._ended:
+                raise RuntimeError("The stream has already ended.")
 
-        # Update full message text
-        self._message += text
+            # Update full message text atomically
+            self._message += text
+            # If there are citations, modify the content so that the sources are numbers instead of [doc1], [doc2], etc.
+            self._message = CitationUtil.format_citations_response(self._message)
 
-        # If there are citations, modify the content so that the sources are numbers instead of [doc1], [doc2], etc.
-        self._message = CitationUtil.format_citations_response(self._message)
-
-        # Queue the next chunk
-        self._queue_next_chunk()
+        # Schedule the async queueing work in background
+        asyncio.create_task(self._queue_next_chunk())
 
     async def end_stream(self) -> None:
         """
         Ends the stream by sending the final message to the client.
         """
-        if self._ended:
-            raise RuntimeError("The stream has already ended.")
-
-        # Queue final message
-        self._ended = True
-        self._queue_next_chunk()
+        async with self._state_lock:
+            if self._ended:
+                raise RuntimeError("The stream has already ended.")
+            # Queue final message
+            self._ended = True
+        
+        await self._queue_next_chunk()
 
         # Wait for the queue to drain
         await self.wait_for_queue()
+        
+        # Clean up any remaining tasks
+        await self.cleanup()
 
     def set_attachments(self, attachments: List[Attachment]) -> None:
         """
@@ -185,25 +206,35 @@ class StreamingResponse:
 
         Args:
             citations: Citations to be included in the message.
+        
+        Note: This method schedules the citation update atomically but does not block.
         """
-        if citations:
-            if not self._citations:
-                self._citations = []
+        if not citations:
+            return
+        
+        # Build new citations outside of lock
+        async def update_citations():
+            async with self._state_lock:
+                if not self._citations:
+                    self._citations = []
 
-            curr_pos = len(self._citations)
+                curr_pos = len(self._citations)
 
-            for citation in citations:
-                client_citation = ClientCitation(
-                    type="Claim",
-                    position=curr_pos + 1,
-                    appearance={
-                        "type": "DigitalDocument",
-                        "name": citation.title or f"Document #{curr_pos + 1}",
-                        "abstract": CitationUtil.snippet(citation.content, 477),
-                    },
-                )
-                curr_pos += 1
-                self._citations.append(client_citation)
+                for citation in citations:
+                    client_citation = ClientCitation(
+                        type="Claim",
+                        position=curr_pos + 1,
+                        appearance={
+                            "type": "DigitalDocument",
+                            "name": citation.title or f"Document #{curr_pos + 1}",
+                            "abstract": CitationUtil.snippet(citation.content, 477),
+                        },
+                    )
+                    curr_pos += 1
+                    self._citations.append(client_citation)
+        
+        # Schedule the update to run in the event loop
+        asyncio.create_task(update_citations())
 
     def set_feedback_loop(self, enable_feedback_loop: bool) -> None:
         """
@@ -241,14 +272,63 @@ class StreamingResponse:
         """
         Returns the most recently streamed message.
         """
-        return self._message
+        with self._message_lock:
+            return self._message
 
     async def wait_for_queue(self) -> None:
         """
         Waits for the outgoing activity queue to be empty.
         """
-        if self._queue_sync:
-            await self._queue_sync
+        await self._queue.join()
+        
+        async with self._drain_task_lock:
+            drain_task = self._drain_task
+        
+        if drain_task:
+            await drain_task
+
+    async def cleanup(self) -> None:
+        """
+        Cleans up resources and cancels any running tasks.
+        Should be called when the StreamingResponse is no longer needed.
+        """
+        async with self._drain_task_lock:
+            drain_task = self._drain_task
+            self._drain_task = None
+        
+        if drain_task and not drain_task.done():
+            drain_task.cancel()
+            try:
+                await drain_task
+            except asyncio.CancelledError:
+                logger.debug("Queue drain task was cancelled during cleanup.")
+            except Exception as err:
+                logger.warning(f"Error while cleaning up queue drain task: {err}")
+        
+        # Clear any remaining queue items to prevent memory leaks
+        while not self._queue.empty():
+            try:
+                self._queue.get_nowait()
+            except asyncio.QueueEmpty:
+                break
+            else:
+                self._queue.task_done()
+
+    async def cancel(self) -> None:
+        """
+        Cancels the streaming response and cleans up resources.
+        """
+        async with self._state_lock:
+            self._cancelled = True
+        await self.cleanup()
+
+    async def __aenter__(self):
+        """Async context manager entry."""
+        return self
+
+    async def __aexit__(self, exc_type, exc_val, exc_tb):
+        """Async context manager exit - ensures cleanup."""
+        await self.cleanup()
 
     def _set_defaults(self, context: "TurnContext"):
         if context.activity.channel_id == Channels.ms_teams:
@@ -263,51 +343,57 @@ class StreamingResponse:
 
         self._channel_id = context.activity.channel_id
 
-    def _queue_next_chunk(self) -> None:
+    async def _queue_next_chunk(self) -> None:
         """
         Queues the next chunk of text to be sent to the client.
         """
-        # Are we already waiting to send a chunk?
-        if self._chunk_queued:
-            return
+        # Are we already waiting to send a chunk? (check atomically)
+        async with self._state_lock:
+            if self._chunk_queued:
+                return
+            self._chunk_queued = True
 
-        # Queue a chunk of text to be sent
-        self._chunk_queued = True
-
-        def create_activity():
-            if self._ended:
-                # Send final message
-                activity = Activity(
-                    type="message",
-                    text=self._message or "end stream response",
-                    attachments=self._attachments or [],
-                    entities=[
-                        Entity(
-                            type="streaminfo",
-                            stream_type="final",
-                            stream_sequence=self._sequence_number,
-                        )
-                    ],
-                )
-            elif self._is_streaming_channel:
-                # Send typing activity
-                activity = Activity(
-                    type="typing",
-                    text=self._message,
-                    entities=[
-                        Entity(
-                            type="streaminfo",
-                            stream_type="streaming",
-                            stream_sequence=self._sequence_number,
-                        )
-                    ],
-                )
-            else:
+        # Create activity factory that captures current state
+        async def create_activity():
+            # Capture message text under thread lock
+            with self._message_lock:
+                message = self._message
+            
+            async with self._state_lock:
+                if self._ended:
+                    # Send final message
+                    activity = Activity(
+                        type="message",
+                        text=message or "end stream response",
+                        attachments=self._attachments or [],
+                        entities=[
+                            Entity(
+                                type="streaminfo",
+                                stream_type="final",
+                                stream_sequence=self._sequence_number,
+                            )
+                        ],
+                    )
+                elif self._is_streaming_channel:
+                    # Send typing activity
+                    activity = Activity(
+                        type="typing",
+                        text=message,
+                        entities=[
+                            Entity(
+                                type="streaminfo",
+                                stream_type="streaming",
+                                stream_sequence=self._sequence_number,
+                            )
+                        ],
+                    )
+                else:
+                    self._chunk_queued = False
+                    return None
+                
+                self._sequence_number += 1
                 self._chunk_queued = False
-                return None
-            self._sequence_number += 1
-            self._chunk_queued = False
-            return activity
+                return activity
 
         self._queue_activity(create_activity)
 
@@ -315,49 +401,67 @@ class StreamingResponse:
         """
         Queues an activity to be sent to the client.
         """
-        self._queue.append(factory)
+        self._queue.put_nowait(factory)
 
-        # If there's no sync in progress, start one
-        # Use a lock to prevent race conditions when checking/starting the drain task
-        async def start_drain_if_needed():
-            async with self._queue_lock:
-                if not self._queue_sync or self._queue_sync.done():
-                    self._queue_sync = asyncio.create_task(self._drain_queue())
+        # Ensure a drain task is running to process the queue
+        async def ensure_drain_task():
+            async with self._drain_task_lock:
+                if not self._drain_task or self._drain_task.done():
+                    try:
+                        self._drain_task = asyncio.create_task(self._drain_queue())
+                    except Exception as err:
+                        logger.error(f"Failed to create drain task: {err}")
+                        self._drain_task = None
+                        raise
 
-        # Schedule the coroutine to run
-        asyncio.create_task(start_drain_if_needed())
+        asyncio.create_task(ensure_drain_task())
 
     async def _drain_queue(self) -> None:
         """
         Sends any queued activities to the client until the queue is empty.
         """
         try:
-            logger.debug(f"Draining queue with {len(self._queue)} activities.")
-            while self._queue:
-                # Use lock to safely access the queue
-                async with self._queue_lock:
-                    if not self._queue:
+            logger.debug("Draining queue with %s activities.", self._queue.qsize())
+            while True:
+                # Check cancellation flag under lock
+                async with self._state_lock:
+                    if self._cancelled:
                         break
-                    factory = self._queue.pop(0)
+                
+                try:
+                    factory = self._queue.get_nowait()
+                except asyncio.QueueEmpty:
+                    break
 
-                activity = factory()
-                if activity:
-                    await self._send_activity(activity)
+                try:
+                    activity = await factory()
+                    # Check cancellation again before sending
+                    async with self._state_lock:
+                        cancelled = self._cancelled
+                    if activity and not cancelled:
+                        await self._send_activity(activity)
+                finally:
+                    self._queue.task_done()
+        except asyncio.CancelledError:
+            logger.debug("Queue drain task was cancelled.")
+            raise
         except Exception as err:
             if (
                 "403" in str(err)
                 and self._context.activity.channel_id == Channels.ms_teams
             ):
                 logger.warning("Teams channel stopped the stream.")
-                self._cancelled = True
+                async with self._state_lock:
+                    self._cancelled = True
             else:
                 logger.error(
                     f"Error occurred when sending activity while streaming: {err}"
                 )
                 raise
         finally:
-            async with self._queue_lock:
-                self._queue_sync = None
+            # Always clean up the task reference
+            async with self._drain_task_lock:
+                self._drain_task = None
 
     async def _send_activity(self, activity: Activity) -> None:
         """
@@ -366,6 +470,19 @@ class StreamingResponse:
         Args:
             activity: The activity to send.
         """
+        # Capture message under thread lock
+        with self._message_lock:
+            message = self._message
+        
+        # Capture other state snapshot under async lock
+        async with self._state_lock:
+            stream_id = self._stream_id
+            citations = self._citations
+            ended = self._ended
+            enable_feedback_loop = self._enable_feedback_loop
+            feedback_loop_type = self._feedback_loop_type
+            enable_generated_by_ai_label = self._enable_generated_by_ai_label
+            sensitivity_label = self._sensitivity_label
 
         streaminfo_entity = None
 
@@ -384,15 +501,13 @@ class StreamingResponse:
                 activity.entities.append(streaminfo_entity)
 
         # Set activity ID to the assigned stream ID
-        if self._stream_id:
-            activity.id = self._stream_id
-            streaminfo_entity.stream_id = self._stream_id
+        if stream_id:
+            activity.id = stream_id
+            streaminfo_entity.stream_id = stream_id
 
-        if self._citations and len(self._citations) > 0 and not self._ended:
+        if citations and len(citations) > 0 and not ended:
             # Filter out the citations unused in content.
-            curr_citations = CitationUtil.get_used_citations(
-                self._message, self._citations
-            )
+            curr_citations = CitationUtil.get_used_citations(message, citations)
             if curr_citations:
                 activity.entities.append(
                     Entity(
@@ -405,21 +520,22 @@ class StreamingResponse:
                 )
 
         # Add in Powered by AI feature flags
-        if self._ended:
-            if self._enable_feedback_loop and self._feedback_loop_type:
+        if ended:
+            if enable_feedback_loop and feedback_loop_type:
                 # Add feedback loop to streaminfo entity
-                streaminfo_entity.feedback_loop = {"type": self._feedback_loop_type}
+                streaminfo_entity.feedback_loop = {"type": feedback_loop_type}
             else:
                 # Add feedback loop enabled to streaminfo entity
-                streaminfo_entity.feedback_loop_enabled = self._enable_feedback_loop
+                streaminfo_entity.feedback_loop_enabled = enable_feedback_loop
         # Add in Generated by AI
-        if self._enable_generated_by_ai_label:
-            activity.add_ai_metadata(self._citations, self._sensitivity_label)
+        if enable_generated_by_ai_label:
+            activity.add_ai_metadata(citations, sensitivity_label)
 
         # Send activity
         response = await self._context.send_activity(activity)
         await asyncio.sleep(self._interval)
 
-        # Save assigned stream ID
-        if not self._stream_id and response:
-            self._stream_id = response.id
+        # Save assigned stream ID atomically
+        async with self._state_lock:
+            if not self._stream_id and response:
+                self._stream_id = response.id

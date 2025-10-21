@@ -76,13 +76,13 @@ async def on_message(context: TurnContext, state: TurnState):
 
     for i in range(5):
         print(f"Streaming chunk {i + 1}")
-        context.streaming_response.queue_text_chunk(f"part [{i + 1}] ")
+        await context.streaming_response.queue_text_chunk(f"part [{i + 1}] ")
         await asyncio.sleep(i * 0.5)
 
-    context.streaming_response.queue_text_chunk(
+    await context.streaming_response.queue_text_chunk(
         "This is the final message part. [doc1] and [doc2]"
     )
-    context.streaming_response.set_citations(
+    await context.streaming_response.set_citations(
         [
             Citation(title="Citation1", content="file", filepath="", url="file:////"),
             Citation(
