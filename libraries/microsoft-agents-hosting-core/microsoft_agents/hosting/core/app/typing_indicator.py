@@ -20,50 +20,60 @@ class TypingIndicator:
     Encapsulates the logic for sending "typing" activity to the user.
     """
 
-    _intervalMs: float
-    _task: Optional[asyncio.Task] = None
-    _running: bool = False
-
     def __init__(self, intervalSeconds=1) -> None:
-        # Convert milliseconds to seconds for asyncio.sleep
+        # Convert seconds to milliseconds for internal tracking
         self._intervalMs = intervalSeconds * 1000.0
+        self._task: Optional[asyncio.Task] = None
+        self._running: bool = False
+        self._lock = asyncio.Lock()
 
     async def start(self, context: TurnContext) -> None:
-        if self._running:
-            return
+        async with self._lock:
+            if self._running:
+                return
 
-        logger.debug(f"Starting typing indicator with interval: {self._intervalMs} ms")
-        self._running = True
-        self._task = asyncio.create_task(self._typing_loop(context))
+            logger.debug(f"Starting typing indicator with interval: {self._intervalMs} ms")
+            self._running = True
+            self._task = asyncio.create_task(self._typing_loop(context))
 
     async def stop(self) -> None:
-        if self._running:
+        async with self._lock:
+            if not self._running:
+                return
+                
             logger.debug("Stopping typing indicator")
             self._running = False
-            if self._task and not self._task.done():
-                self._task.cancel()
-                try:
-                    await self._task
-                except asyncio.CancelledError:
-                    pass
+            task = self._task
             self._task = None
+        
+        # Cancel outside the lock to avoid blocking
+        if task and not task.done():
+            task.cancel()
+            try:
+                await task
+            except asyncio.CancelledError:
+                pass
 
     async def _typing_loop(self, context: TurnContext):
         """Continuously send typing indicators at the specified interval."""
         try:
-            while self._running:
+            while True:
+                # Check running status under lock
+                async with self._lock:
+                    if not self._running:
+                        break
+                
                 try:
                     logger.debug("Sending typing activity")
                     await context.send_activity(Activity(type=ActivityTypes.typing))
                 except Exception as e:
                     logger.error(f"Error sending typing activity: {e}")
-                    self._running = False
+                    async with self._lock:
+                        self._running = False
                     break
 
-                # Check _running again before sleeping to ensure clean shutdown
-                if self._running:
-                    # Wait for the interval before sending the next typing indicator
-                    await asyncio.sleep(self._intervalMs)
+                # Convert milliseconds to seconds for asyncio.sleep
+                await asyncio.sleep(self._intervalMs / 1000.0)
         except asyncio.CancelledError:
             logger.debug("Typing indicator loop cancelled")
             raise
