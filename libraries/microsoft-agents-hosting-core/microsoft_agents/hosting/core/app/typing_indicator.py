@@ -21,8 +21,7 @@ class TypingIndicator:
     """
 
     def __init__(self, intervalSeconds=1) -> None:
-        # Convert seconds to milliseconds for internal tracking
-        self._intervalMs = intervalSeconds * 1000.0
+        self._intervalSeconds = intervalSeconds
         self._task: Optional[asyncio.Task] = None
         self._running: bool = False
         self._lock = asyncio.Lock()
@@ -32,7 +31,7 @@ class TypingIndicator:
             if self._running:
                 return
 
-            logger.debug(f"Starting typing indicator with interval: {self._intervalMs} ms")
+            logger.debug(f"Starting typing indicator with interval: {self._intervalSeconds} seconds")
             self._running = True
             self._task = asyncio.create_task(self._typing_loop(context))
 
@@ -71,9 +70,8 @@ class TypingIndicator:
                     async with self._lock:
                         self._running = False
                     break
-
-                # Convert milliseconds to seconds for asyncio.sleep
-                await asyncio.sleep(self._intervalMs / 1000.0)
+                                
+                await asyncio.sleep(self._intervalSeconds)
         except asyncio.CancelledError:
             logger.debug("Typing indicator loop cancelled")
             raise
