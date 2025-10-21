@@ -198,7 +198,8 @@ class TestQueueTextChunk:
         """Test queueing a simple text chunk."""
         response = StreamingResponse(streaming_context)
 
-        await response.queue_text_chunk("Hello ")
+        response.queue_text_chunk("Hello ")
+        await asyncio.sleep(0.01)  # Allow background task to start
         await response.wait_for_queue()
 
         assert len(streaming_context.adapter.sent_activities) == 1
@@ -211,9 +212,10 @@ class TestQueueTextChunk:
         """Test queueing multiple text chunks."""
         response = StreamingResponse(streaming_context)
 
-        await response.queue_text_chunk("Hello ")
-        await response.queue_text_chunk("World")
-        await response.queue_text_chunk("!")
+        response.queue_text_chunk("Hello ")
+        response.queue_text_chunk("World")
+        response.queue_text_chunk("!")
+        await asyncio.sleep(0.01)  # Allow background tasks to start
         await response.wait_for_queue()
 
         # Message should accumulate
@@ -227,28 +229,31 @@ class TestQueueTextChunk:
         await response.cancel()
 
         # Should not raise, just return silently
-        await response.queue_text_chunk("test")
+        response.queue_text_chunk("test")
         await asyncio.sleep(0.1)
 
     @pytest.mark.asyncio
     async def test_queue_text_chunk_raises_after_ended(self, streaming_context):
         """Test queueing text chunk after stream ended raises error."""
         response = StreamingResponse(streaming_context)
-        await response.queue_text_chunk("test")
+        response.queue_text_chunk("test")
+        await asyncio.sleep(0.01)  # Allow background task to start
         await response.end_stream()
 
         with pytest.raises(RuntimeError, match="stream has already ended"):
-            await response.queue_text_chunk("more")
+            response.queue_text_chunk("more")
 
     @pytest.mark.asyncio
     async def test_queue_text_chunk_updates_sequence(self, streaming_context):
         """Test that text chunks increment sequence number."""
         response = StreamingResponse(streaming_context)
 
-        await response.queue_text_chunk("chunk1")
+        response.queue_text_chunk("chunk1")
+        await asyncio.sleep(0.01)  # Allow background task to start
         await response.wait_for_queue()  # Wait for first chunk to be sent
         
-        await response.queue_text_chunk("chunk2")
+        response.queue_text_chunk("chunk2")
+        await asyncio.sleep(0.01)  # Allow background task to start
         await response.wait_for_queue()  # Wait for second chunk to be sent
 
         # Updates_sent should reflect the number of activities sent
@@ -264,7 +269,8 @@ class TestEndStream:
         """Test end_stream sends a final message activity."""
         response = StreamingResponse(streaming_context)
 
-        await response.queue_text_chunk("Hello World")
+        response.queue_text_chunk("Hello World")
+        await asyncio.sleep(0.01)  # Allow background task to start
         await response.end_stream()
 
         # Find the final message
@@ -348,7 +354,8 @@ class TestSetCitations:
             ),
         ]
 
-        await response.set_citations(citations)
+        response.set_citations(citations)
+        await asyncio.sleep(0.05)  # Allow async task to complete
 
         assert response.citations is not None
         assert len(response.citations) == 2
@@ -368,7 +375,8 @@ class TestSetCitations:
                 url="http://example.com/1",
             )
         ]
-        await response.set_citations(citations1)
+        response.set_citations(citations1)
+        await asyncio.sleep(0.05)  # Allow async task to complete
 
         citations2 = [
             Citation(
@@ -378,7 +386,8 @@ class TestSetCitations:
                 url="http://example.com/2",
             )
         ]
-        await response.set_citations(citations2)
+        response.set_citations(citations2)
+        await asyncio.sleep(0.05)  # Allow async task to complete
 
         assert len(response.citations) == 2
 
@@ -419,9 +428,10 @@ class TestGetMessage:
         """Test get_message returns accumulated text."""
         response = StreamingResponse(streaming_context)
 
-        await response.queue_text_chunk("Hello ")
-        await response.queue_text_chunk("World")
+        response.queue_text_chunk("Hello ")
+        response.queue_text_chunk("World")
 
+        # Message is updated synchronously, no need to wait
         assert response.get_message() == "Hello World"
 
 
@@ -439,13 +449,16 @@ class TestWaitForQueue:
         """Test wait_for_queue waits for all items to process."""
         response = StreamingResponse(streaming_context)
 
-        await response.queue_text_chunk("chunk1")
+        response.queue_text_chunk("chunk1")
+        await asyncio.sleep(0.01)  # Allow background task to start
         await response.wait_for_queue()  # Wait for chunk to be sent
 
-        await response.queue_text_chunk("chunk2")
+        response.queue_text_chunk("chunk2")
+        await asyncio.sleep(0.01)  # Allow background task to start
         await response.wait_for_queue()  # Wait for chunk to be sent
 
-        await response.queue_text_chunk("chunk3")
+        response.queue_text_chunk("chunk3")
+        await asyncio.sleep(0.01)  # Allow background task to start
         await response.wait_for_queue()  # Wait for chunk to be sent
         await response.wait_for_queue()
 
@@ -461,7 +474,8 @@ class TestCleanupAndCancel:
         """Test cleanup method."""
         response = StreamingResponse(streaming_context)
 
-        await response.queue_text_chunk("test")
+        response.queue_text_chunk("test")
+        await asyncio.sleep(0.01)  # Allow background task to start
         await response.cleanup()
 
         # Queue should be empty after cleanup
@@ -472,7 +486,8 @@ class TestCleanupAndCancel:
         """Test cancel method."""
         response = StreamingResponse(streaming_context)
 
-        await response.queue_text_chunk("test")
+        response.queue_text_chunk("test")
+        await asyncio.sleep(0.01)  # Allow background task to start
         await response.cancel()
 
         # Cancelled flag should be set
@@ -483,11 +498,12 @@ class TestCleanupAndCancel:
         """Test cancel stops further processing."""
         response = StreamingResponse(streaming_context)
 
-        await response.queue_text_chunk("chunk1")
+        response.queue_text_chunk("chunk1")
+        await asyncio.sleep(0.01)  # Allow background task to start
         await response.cancel()
 
         # Subsequent chunks should not raise, just be ignored
-        await response.queue_text_chunk("chunk2")
+        response.queue_text_chunk("chunk2")
         await asyncio.sleep(0.1)
 
 
@@ -498,7 +514,8 @@ class TestContextManager:
     async def test_context_manager_cleanup(self, streaming_context):
         """Test context manager calls cleanup on exit."""
         async with StreamingResponse(streaming_context) as response:
-            await response.queue_text_chunk("test")
+            response.queue_text_chunk("test")
+            await asyncio.sleep(0.01)  # Allow background task to start
 
         # After exiting context, cleanup should have been called
         assert response._queue.empty()
@@ -508,7 +525,8 @@ class TestContextManager:
         """Test context manager cleans up even with exception."""
         try:
             async with StreamingResponse(streaming_context) as response:
-                await response.queue_text_chunk("test")
+                response.queue_text_chunk("test")
+                await asyncio.sleep(0.01)  # Allow background task to start
                 raise ValueError("Test exception")
         except ValueError:
             pass
@@ -527,7 +545,8 @@ class TestStreamIdAssignment:
 
         assert response.stream_id is None
 
-        await response.queue_text_chunk("test")
+        response.queue_text_chunk("test")
+        await asyncio.sleep(0.01)  # Allow background task to start
         await response.wait_for_queue()
 
         # Stream ID should be assigned after sending
@@ -539,12 +558,14 @@ class TestStreamIdAssignment:
         """Test all activities in stream use same stream ID."""
         response = StreamingResponse(streaming_context)
 
-        await response.queue_text_chunk("chunk1")
+        response.queue_text_chunk("chunk1")
+        await asyncio.sleep(0.01)  # Allow background task to start
         await response.wait_for_queue()
 
         first_stream_id = response.stream_id
 
-        await response.queue_text_chunk("chunk2")
+        response.queue_text_chunk("chunk2")
+        await asyncio.sleep(0.01)  # Allow background task to start
         await response.wait_for_queue()
 
         assert response.stream_id == first_stream_id
@@ -559,8 +580,9 @@ class TestSequenceNumbers:
         response = StreamingResponse(streaming_context)
 
         response.queue_informative_update("info1")
-        await response.queue_text_chunk("chunk1")
-        await response.queue_text_chunk("chunk2")
+        response.queue_text_chunk("chunk1")
+        response.queue_text_chunk("chunk2")
+        await asyncio.sleep(0.01)  # Allow background tasks to start
         await response.wait_for_queue()
 
         # Each activity should have increasing sequence numbers
