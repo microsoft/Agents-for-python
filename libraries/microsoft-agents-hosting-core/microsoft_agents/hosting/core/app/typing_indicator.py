@@ -31,7 +31,9 @@ class TypingIndicator:
             if self._running:
                 return
 
-            logger.debug(f"Starting typing indicator with interval: {self._intervalSeconds} seconds")
+            logger.debug(
+                f"Starting typing indicator with interval: {self._intervalSeconds} seconds"
+            )
             self._running = True
             self._task = asyncio.create_task(self._typing_loop(context))
 
@@ -39,12 +41,12 @@ class TypingIndicator:
         async with self._lock:
             if not self._running:
                 return
-                
+
             logger.debug("Stopping typing indicator")
             self._running = False
             task = self._task
             self._task = None
-        
+
         # Cancel outside the lock to avoid blocking
         if task and not task.done():
             task.cancel()
@@ -61,7 +63,7 @@ class TypingIndicator:
                 async with self._lock:
                     if not self._running:
                         break
-                
+
                 try:
                     logger.debug("Sending typing activity")
                     await context.send_activity(Activity(type=ActivityTypes.typing))
