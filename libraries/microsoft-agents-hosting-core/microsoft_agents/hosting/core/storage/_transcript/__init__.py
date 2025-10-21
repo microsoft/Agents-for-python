@@ -8,6 +8,7 @@ from .transcript_logger import (
 )
 from .transcript_store import TranscriptStore
 from .transcript_file_store import FileTranscriptStore
+from .transcript_memory_store import TranscriptMemoryStore
 
 __all__ = [
     "TranscriptInfo",
@@ -17,5 +18,6 @@ __all__ = [
     "FileTranscriptLogger",
     "PagedResult",
     "TranscriptStore",
+    "TranscriptMemoryStore",
     "FileTranscriptStore",
 ]

@@ -10,9 +10,14 @@ from ._transcript import (
     PagedResult,
     TranscriptStore,
     FileTranscriptStore,
+    TranscriptMemoryStore,
+)
+from ._wrappers import (
+    _StorageNamespace
 )
 
 __all__ = [
+    "_StorageNamespace",
     "StoreItem",
     "Storage",
     "_AsyncStorageBase",
@@ -22,6 +27,7 @@ __all__ = [
     "ConsoleTranscriptLogger",
     "TranscriptLoggerMiddleware",
     "TranscriptStore",
+    "TranscriptMemoryStore",
     "FileTranscriptLogger",
     "FileTranscriptStore",
     "PagedResult",

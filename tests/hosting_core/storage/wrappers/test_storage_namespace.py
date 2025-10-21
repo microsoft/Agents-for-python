@@ -1,6 +1,6 @@
 import pytest
 
-from microsoft_agents.hosting.core.storage import MemoryStorage
+from microsoft_agents.hosting.core.storage import MemoryStorage, _StorageNamespace
 from microsoft_agents.hosting.core._oauth import _FlowState, _FlowStorageClient
 
 from tests._common.storage.utils import MockStoreItem
@@ -8,6 +8,7 @@ from tests._common.data import TEST_DEFAULTS
 
 DEFAULTS = TEST_DEFAULTS()
 
+NAMESPACE = "namespace"
 
 class TestStorageNamespace:
     @pytest.fixture
@@ -15,8 +16,8 @@ class TestStorageNamespace:
         return MemoryStorage()
 
     @pytest.fixture
-    def client(self, storage):
-        return _FlowStorageClient(DEFAULTS.channel_id, DEFAULTS.user_id, storage)
+    def client(self, storage) -> _StorageNamespace:
+        return _StorageNamespace(NAMESPACE, storage)
 
     @pytest.mark.asyncio
     @pytest.mark.parametrize(
@@ -28,28 +29,22 @@ class TestStorageNamespace:
         ],
     )
     async def test_init_base_key(self, mocker, channel_id, user_id):
-        client = _FlowStorageClient(channel_id, user_id, mocker.Mock())
+        prefix = f"auth/{channel_id}/{user_id}/"
+        client = _StorageNamespace(prefix, mocker.Mock())
         assert client.base_key == f"auth/{channel_id}/{user_id}/"
 
     @pytest.mark.asyncio
-    async def test_init_fails_without_user_id(self, storage):
+    async def test_init_failures(self, storage):
         with pytest.raises(ValueError):
-            _FlowStorageClient(DEFAULTS.channel_id, "", storage)
-
-    @pytest.mark.asyncio
-    async def test_init_fails_without_channel_id(self, storage):
+            _StorageNamespace("", storage)
         with pytest.raises(ValueError):
-            _FlowStorageClient("", DEFAULTS.user_id, storage)
+            _StorageNamespace(None, storage)
+        with pytest.raises(ValueError):
+            _StorageNamespace(None, None)
 
-    @pytest.mark.parametrize(
-        "auth_handler_id, expected",
-        [
-            ("handler", "auth/__channel_id/__user_id/handler"),
-            ("auth_handler", "auth/__channel_id/__user_id/auth_handler"),
-        ],
-    )
-    def test_key(self, client, auth_handler_id, expected):
-        assert client.key(auth_handler_id) == expected
+    def test_base_key_property(self):
+        storage = _StorageNamespace("base_key/", MemoryStorage())
+        assert storage.base_key == "base_key/"
 
     @pytest.mark.asyncio
     @pytest.mark.parametrize("auth_handler_id", ["handler", "auth_handler"])
