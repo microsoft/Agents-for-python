@@ -1,7 +1,7 @@
 from microsoft_agents.hosting.core import AgentState, Storage, StoreItem, TurnContext
 
 
-class TestingCustomState(AgentState):
+class MockTestingCustomState(AgentState):
     """Custom state implementation for testing."""
 
     def __init__(self, storage: Storage, namespace: str = ""):

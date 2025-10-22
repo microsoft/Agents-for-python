@@ -1,3 +1,3 @@
-from .testing_adapter import TestingAdapter
+from .mock_testing_adapter import MockTestingAdapter
 
-__all__ = ["TestingAdapter"]
+__all__ = ["MockTestingAdapter"]

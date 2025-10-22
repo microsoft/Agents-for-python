@@ -2,16 +2,16 @@ from microsoft_agents.hosting.core._oauth import _FlowState
 
 from tests._common.storage import MockStoreItem
 
-from .test_flow_data import (
-    TEST_FLOW_DATA,
+from .flow_test_data import (
+    FLOW_TEST_DATA,
     update_flow_state_handler,
     flow_key,
 )
 
-FLOW_DATA = TEST_FLOW_DATA()
+FLOW_DATA = FLOW_TEST_DATA()
 
 
-class TEST_STORAGE_DATA:
+class STORAGE_TEST_DATA:
     def __init__(self):
 
         self.dict = {

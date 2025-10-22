@@ -13,9 +13,9 @@ from microsoft_agents.hosting.core import Connections
 T = TypeVar("T")
 
 
-# currently unused (probably outdated)
-# but may be useful to bring up-to-date for future testing scenarios
-class TestClient:
+# This is a currently unused (probably outdated & deleted) test client that
+# may be useful to bring up-to-date for future testing scenarios.
+class ObsoleteTestClient:
     """
     A testing channel that connects directly to an adapter.
 

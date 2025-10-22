@@ -1,9 +1,9 @@
 from microsoft_agents.activity import TokenResponse
 from microsoft_agents.hosting.core._oauth import _OAuthFlow
 
-from tests._common.data import TEST_DEFAULTS
+from tests._common.data import DEFAULT_TEST_VALUES
 
-DEFAULTS = TEST_DEFAULTS()
+DEFAULTS = DEFAULT_TEST_VALUES()
 
 
 def mock_OAuthFlow(

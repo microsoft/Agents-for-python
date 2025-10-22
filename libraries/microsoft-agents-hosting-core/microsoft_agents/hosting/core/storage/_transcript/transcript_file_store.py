@@ -70,7 +70,7 @@ class FileTranscriptStore(TranscriptLogger):
         def _write() -> None:
             # Normalize to a dict to ensure json serializable content.
             if not activity.timestamp:
-                activity.timestamp = _utc_iso_now()
+                activity.timestamp = datetime.now(timezone.utc)
 
             with open(file_path, "a", encoding="utf-8", newline="\n") as f:
                 f.write(activity.model_dump_json(exclude_none=True, exclude_unset=True))

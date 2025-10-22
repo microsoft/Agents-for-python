@@ -15,9 +15,9 @@ from microsoft_agents.hosting.core.storage import (
 )
 import pytest
 
-from tests._common.testing_objects.adapters.testing_adapter import (
+from tests._common.testing_objects.adapters.mock_testing_adapter import (
     AgentCallbackHandler,
-    TestingAdapter,
+    MockTestingAdapter,
 )
 
 
@@ -28,7 +28,7 @@ async def test_should_round_trip_via_middleware():
     transcript_middleware = TranscriptLoggerMiddleware(transcript_store)
     channelName = "Channel1"
 
-    adapter = TestingAdapter(channelName)
+    adapter = MockTestingAdapter(channelName)
     adapter.use(transcript_middleware)
     id = ClaimsIdentity({}, True)
 
@@ -65,7 +65,7 @@ async def test_should_write_to_file():
     transcript_middleware = TranscriptLoggerMiddleware(file_store)
     channelName = "Channel1"
 
-    adapter = TestingAdapter(channelName)
+    adapter = MockTestingAdapter(channelName)
     adapter.use(transcript_middleware)
     id = ClaimsIdentity({}, True)
 
@@ -93,7 +93,7 @@ async def test_should_write_to_console():
     transcript_middleware = TranscriptLoggerMiddleware(store)
     channelName = "Channel1"
 
-    adapter = TestingAdapter(channelName)
+    adapter = MockTestingAdapter(channelName)
     adapter.use(transcript_middleware)
     id = ClaimsIdentity({}, True)
 

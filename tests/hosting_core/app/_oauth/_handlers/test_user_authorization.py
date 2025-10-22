@@ -17,12 +17,13 @@ from microsoft_agents.hosting.core._oauth import (
 
 # test constants
 from tests._common.data import (
-    TEST_FLOW_DATA,
-    TEST_AUTH_DATA,
-    TEST_STORAGE_DATA,
-    TEST_DEFAULTS,
-    TEST_AGENTIC_ENV_DICT,
+    FLOW_TEST_DATA,
+    AUTH_TEST_DATA,
+    STORAGE_TEST_DATA,
+    DEFAULT_TEST_VALUES,
+    AGENTIC_TEST_ENV_DICT,
 )
+from tests._common.data.storage_test_data import STORAGE_TEST_DATA
 from tests._common.mock_utils import mock_instance
 from tests._common.fixtures import FlowStateFixtures
 from tests._common.testing_objects import (
@@ -31,10 +32,10 @@ from tests._common.testing_objects import (
 )
 from tests.hosting_core._common import flow_state_eq
 
-DEFAULTS = TEST_DEFAULTS()
-FLOW_DATA = TEST_FLOW_DATA()
-STORAGE_DATA = TEST_STORAGE_DATA()
-AGENTIC_ENV_DICT = TEST_AGENTIC_ENV_DICT()
+DEFAULTS = DEFAULT_TEST_VALUES()
+FLOW_DATA = FLOW_TEST_DATA()
+STORAGE_DATA = STORAGE_TEST_DATA()
+AGENTIC_ENV_DICT = AGENTIC_TEST_ENV_DICT()
 
 
 def make_jwt(token: str = DEFAULTS.token, aud="api://default"):
@@ -49,7 +50,7 @@ class MyUserAuthorization(_UserAuthorization):
         pass
 
 
-def testing_TurnContext(
+def create_testing_TurnContext(
     mocker,
     channel_id=DEFAULTS.channel_id,
     user_id=DEFAULTS.user_id,
@@ -94,7 +95,7 @@ def mock_provider(mocker, exchange_token=None):
 
 class TestEnv(FlowStateFixtures):
     def setup_method(self):
-        self.TurnContext = testing_TurnContext
+        self.TurnContext = create_testing_TurnContext
 
     @pytest.fixture
     def context(self, mocker):
@@ -110,7 +111,7 @@ class TestEnv(FlowStateFixtures):
 
     @pytest.fixture
     def auth_handlers(self):
-        return TEST_AUTH_DATA().auth_handlers
+        return AUTH_TEST_DATA().auth_handlers
 
     @pytest.fixture
     def auth_handler_settings(self):

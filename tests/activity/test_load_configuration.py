@@ -1,9 +1,9 @@
 from microsoft_agents.activity import load_configuration_from_env
 
 from tests._common import create_env_var_dict
-from tests._common.data import TEST_DEFAULTS
+from tests._common.data import DEFAULT_TEST_VALUES
 
-DEFAULTS = TEST_DEFAULTS()
+DEFAULTS = DEFAULT_TEST_VALUES()
 
 ENV_DICT = {
     "CONNECTIONS": {

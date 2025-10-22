@@ -83,8 +83,16 @@ class AgentApplication(Agent, Generic[StateT]):
     ) -> None:
         """
         Creates a new AgentApplication instance.
+
+        :param options: Configuration options for the application.
+        :type options: Optional[:class:`microsoft_agents.hosting.core.app.app_options.ApplicationOptions`]
+        :param connection_manager: OAuth connection manager.
+        :type connection_manager: Optional[:class:`microsoft_agents.hosting.core.authorization.Connections`]
+        :param authorization: Authorization manager for handling authentication flows.
+        :type authorization: Optional[:class:`microsoft_agents.hosting.core.app.oauth.Authorization`]
+        :param kwargs: Additional configuration parameters.
+        :type kwargs: Any
         """
-        self.typing = TypingIndicator()
         self._route_list = _RouteList[StateT]()
 
         configuration = kwargs
@@ -161,6 +169,10 @@ class AgentApplication(Agent, Generic[StateT]):
     def adapter(self) -> ChannelServiceAdapter:
         """
         The bot's adapter.
+
+        :return: The channel service adapter for the bot.
+        :rtype: :class:`microsoft_agents.hosting.core.channel_service_adapter.ChannelServiceAdapter`
+        :raises ApplicationError: If the adapter is not configured.
         """
 
         if not self._adapter:
@@ -181,6 +193,10 @@ class AgentApplication(Agent, Generic[StateT]):
     def auth(self) -> Authorization:
         """
         The application's authentication manager
+
+        :return: The authentication manager for handling OAuth flows.
+        :rtype: :class:`microsoft_agents.hosting.core.app.oauth.Authorization`
+        :raises ApplicationError: If authentication is not configured.
         """
         if not self._auth:
             logger.error(
@@ -200,6 +216,9 @@ class AgentApplication(Agent, Generic[StateT]):
     def options(self) -> ApplicationOptions:
         """
         The application's configured options.
+
+        :return: The configuration options for the application.
+        :rtype: :class:`microsoft_agents.hosting.core.app.app_options.ApplicationOptions`
         """
         return self._options
 
@@ -217,16 +236,16 @@ class AgentApplication(Agent, Generic[StateT]):
         Routes are ordered by: is_agentic, is_invoke, rank (lower is higher priority), in that order.
 
         :param selector: A function that takes a TurnContext and returns a boolean indicating whether the route should be selected.
-        :type selector: RouteSelector
+        :type selector: :class:`microsoft_agents.hosting.core.app._type_defs.RouteSelector`
         :param handler: A function that takes a TurnContext and a TurnState and returns an Awaitable.
-        :type handler: RouteHandler[StateT]
+        :type handler: :class:`microsoft_agents.hosting.core.app._type_defs.RouteHandler`[StateT]
         :param is_invoke: Whether the route is for an invoke activity, defaults to False
         :type is_invoke: bool, Optional
         :param is_agentic: Whether the route is for an agentic request, defaults to False. For agentic requests
             the selector will include a new check for `context.activity.is_agentic_request()`.
         :type is_agentic: bool, Optional
         :param rank: The rank of the route, defaults to RouteRank.DEFAULT
-        :type rank: RouteRank, Optional
+        :type rank: :class:`microsoft_agents.hosting.core.app._routes.RouteRank`, Optional
         :param auth_handlers: A list of authentication handler IDs to use for this route, defaults to None
         :type auth_handlers: Optional[list[str]], Optional
         :raises ApplicationError: If the selector or handler are not valid.
@@ -639,9 +658,12 @@ class AgentApplication(Agent, Generic[StateT]):
         await self._start_long_running_call(context, self._on_turn)
 
     async def _on_turn(self, context: TurnContext):
+        typing = None
         try:
             if context.activity.type != ActivityTypes.typing:
-                await self._start_typing(context)
+                if self._options.start_typing_timer:
+                    typing = TypingIndicator()
+                    await typing.start(context)
 
             self._remove_mentions(context)
 
@@ -689,11 +711,8 @@ class AgentApplication(Agent, Generic[StateT]):
             )
             await self._on_error(context, err)
         finally:
-            self.typing.stop()
-
-    async def _start_typing(self, context: TurnContext):
-        if self._options.start_typing_timer:
-            await self.typing.start(context)
+            if typing:
+                await typing.stop()
 
     def _remove_mentions(self, context: TurnContext):
         if (
@@ -706,6 +725,11 @@ class AgentApplication(Agent, Generic[StateT]):
     def parse_env_vars_configuration(vars: dict[str, Any]) -> dict:
         """
         Parses environment variables and returns a dictionary with the relevant configuration.
+
+        :param vars: Dictionary of environment variable names and values.
+        :type vars: dict[str, Any]
+        :return: Parsed configuration dictionary with nested structure.
+        :rtype: dict
         """
         result = {}
         for key, value in vars.items():

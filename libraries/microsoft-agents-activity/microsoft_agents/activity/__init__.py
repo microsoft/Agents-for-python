@@ -1,3 +1,6 @@
+# Copyright (c) Microsoft Corporation. All rights reserved.
+# Licensed under the MIT License.
+
 from .agents_model import AgentsModel
 from .action_types import ActionTypes
 from .activity import Activity
@@ -17,6 +20,8 @@ from .card_action import CardAction
 from .card_image import CardImage
 from .channels import Channels
 from .channel_account import ChannelAccount
+from ._channel_id_field_mixin import _ChannelIdFieldMixin
+from .channel_id import ChannelId
 from .conversation_account import ConversationAccount
 from .conversation_members import ConversationMembers
 from .conversation_parameters import ConversationParameters
@@ -26,6 +31,7 @@ from .conversations_result import ConversationsResult
 from .expected_replies import ExpectedReplies
 from .entity import (
     Entity,
+    EntityTypes,
     AIEntity,
     ClientCitation,
     ClientCitationAppearance,
@@ -36,6 +42,7 @@ from .entity import (
     SensitivityPattern,
     GeoCoordinates,
     Place,
+    ProductInfo,
     Thing,
 )
 from .error import Error
@@ -115,6 +122,8 @@ __all__ = [
     "CardImage",
     "Channels",
     "ChannelAccount",
+    "ChannelId",
+    "_ChannelIdFieldMixin",
     "ConversationAccount",
     "ConversationMembers",
     "ConversationParameters",
@@ -145,6 +154,7 @@ __all__ = [
     "OAuthCard",
     "PagedMembersResult",
     "Place",
+    "ProductInfo",
     "ReceiptCard",
     "ReceiptItem",
     "ResourceResponse",

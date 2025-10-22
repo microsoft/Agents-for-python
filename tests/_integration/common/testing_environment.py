@@ -14,7 +14,7 @@ from microsoft_agents.hosting.core import (
 
 from tests._common.testing_objects import (
     TestingConnectionManager,
-    TestingAdapter,
+    MockTestingAdapter,
 )
 
 
@@ -62,7 +62,7 @@ class MockTestingEnvironment(TestingEnvironment):
 
         self.storage = MemoryStorage()
         self.connection_manager = TestingConnectionManager()
-        self.adapter = TestingAdapter()
+        self.adapter = MockTestingAdapter()
         self.authorization = Authorization(
             self.storage, self.connection_manager, **agents_sdk_config
         )

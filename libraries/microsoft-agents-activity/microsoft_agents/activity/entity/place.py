@@ -1,11 +1,14 @@
 # Copyright (c) Microsoft Corporation. All rights reserved.
 # Licensed under the MIT License.
 
-from ..agents_model import AgentsModel
+from typing import Literal
+
 from .._type_aliases import NonEmptyString
+from .entity import Entity
+from .entity_types import EntityTypes
 
 
-class Place(AgentsModel):
+class Place(Entity):
     """Place (entity type: "https://schema.org/Place").
 
     :param address: Address of the place (may be `string` or complex object of
@@ -26,5 +29,5 @@ class Place(AgentsModel):
     address: object = None
     geo: object = None
     has_map: object = None
-    type: NonEmptyString = None
+    type: Literal[EntityTypes.PLACE] = EntityTypes.PLACE
     name: NonEmptyString = None

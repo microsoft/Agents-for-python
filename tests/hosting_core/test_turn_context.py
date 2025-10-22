@@ -27,7 +27,7 @@ activity_data = {
 ACTIVITY = Activity(**activity_data)
 
 
-class TestingSimpleAdapter(ChannelAdapter):
+class _SimpleTestingAdapter(ChannelAdapter):
     async def send_activities(self, context, activities) -> list[ResourceResponse]:
         responses = []
         assert context is not None
@@ -54,11 +54,11 @@ class TestingSimpleAdapter(ChannelAdapter):
 
 class TestTurnContext:
     def test_should_create_context_with_request_and_adapter(self):
-        TurnContext(TestingSimpleAdapter(), ACTIVITY)
+        TurnContext(_SimpleTestingAdapter(), ACTIVITY)
 
     def test_should_not_create_context_without_request(self):
         try:
-            TurnContext(TestingSimpleAdapter(), None)
+            TurnContext(_SimpleTestingAdapter(), None)
         except TypeError:
             pass
         except Exception as error:
@@ -73,12 +73,12 @@ class TestTurnContext:
             raise error
 
     def test_should_create_context_with_older_context(self):
-        context = TurnContext(TestingSimpleAdapter(), ACTIVITY)
+        context = TurnContext(_SimpleTestingAdapter(), ACTIVITY)
         TurnContext(context)
 
     def test_copy_to_should_copy_all_references(self):
         # pylint: disable=protected-access
-        old_adapter = TestingSimpleAdapter()
+        old_adapter = _SimpleTestingAdapter()
         old_activity = Activity(id="2", type="message", text="test copy")
         old_context = TurnContext(old_adapter, old_activity)
         old_context.responded = True
@@ -105,7 +105,7 @@ class TestTurnContext:
         old_context.on_delete_activity(delete_activity_handler)
         old_context.on_update_activity(update_activity_handler)
 
-        adapter = TestingSimpleAdapter()
+        adapter = _SimpleTestingAdapter()
         new_context = TurnContext(adapter, ACTIVITY)
         assert not new_context._on_send_activities  # pylint: disable=protected-access
         assert not new_context._on_update_activity  # pylint: disable=protected-access
@@ -127,17 +127,17 @@ class TestTurnContext:
         )  # pylint: disable=protected-access
 
     def test_responded_should_be_automatically_set_to_false(self):
-        context = TurnContext(TestingSimpleAdapter(), ACTIVITY)
+        context = TurnContext(_SimpleTestingAdapter(), ACTIVITY)
         assert context.responded is False
 
     def test_should_be_able_to_set_responded_to_true(self):
-        context = TurnContext(TestingSimpleAdapter(), ACTIVITY)
+        context = TurnContext(_SimpleTestingAdapter(), ACTIVITY)
         assert context.responded is False
         context.responded = True
         assert context.responded
 
     def test_should_not_be_able_to_set_responded_to_false(self):
-        context = TurnContext(TestingSimpleAdapter(), ACTIVITY)
+        context = TurnContext(_SimpleTestingAdapter(), ACTIVITY)
         try:
             context.responded = False
         except ValueError:
@@ -147,7 +147,7 @@ class TestTurnContext:
 
     @pytest.mark.asyncio
     async def test_should_call_on_delete_activity_handlers_before_deletion(self):
-        context = TurnContext(TestingSimpleAdapter(), ACTIVITY)
+        context = TurnContext(_SimpleTestingAdapter(), ACTIVITY)
         called = False
 
         async def delete_handler(context, reference, next_handler_coroutine):
@@ -164,7 +164,7 @@ class TestTurnContext:
 
     @pytest.mark.asyncio
     async def test_should_call_multiple_on_delete_activity_handlers_in_order(self):
-        context = TurnContext(TestingSimpleAdapter(), ACTIVITY)
+        context = TurnContext(_SimpleTestingAdapter(), ACTIVITY)
         called_first = False
         called_second = False
 
@@ -202,7 +202,7 @@ class TestTurnContext:
 
     @pytest.mark.asyncio
     async def test_should_call_send_on_activities_handler_before_send(self):
-        context = TurnContext(TestingSimpleAdapter(), ACTIVITY)
+        context = TurnContext(_SimpleTestingAdapter(), ACTIVITY)
         called = False
 
         async def send_handler(context, activities, next_handler_coroutine):
@@ -219,7 +219,7 @@ class TestTurnContext:
 
     @pytest.mark.asyncio
     async def test_should_call_on_update_activity_handler_before_update(self):
-        context = TurnContext(TestingSimpleAdapter(), ACTIVITY)
+        context = TurnContext(_SimpleTestingAdapter(), ACTIVITY)
         called = False
 
         async def update_handler(context, activity, next_handler_coroutine):
@@ -237,7 +237,7 @@ class TestTurnContext:
     @pytest.mark.asyncio
     async def test_update_activity_should_apply_conversation_reference(self):
         activity_id = "activity ID"
-        context = TurnContext(TestingSimpleAdapter(), ACTIVITY)
+        context = TurnContext(_SimpleTestingAdapter(), ACTIVITY)
         called = False
 
         async def update_handler(context, activity, next_handler_coroutine):
@@ -300,7 +300,7 @@ class TestTurnContext:
     async def test_should_get_conversation_reference_using_get_reply_conversation_reference(
         self,
     ):
-        context = TurnContext(TestingSimpleAdapter(), ACTIVITY)
+        context = TurnContext(_SimpleTestingAdapter(), ACTIVITY)
         reply = await context.send_activity("test")
 
         assert reply is not None
@@ -398,7 +398,7 @@ class TestTurnContext:
 
     @pytest.mark.asyncio
     async def test_should_send_a_trace_activity(self):
-        context = TurnContext(TestingSimpleAdapter(), ACTIVITY)
+        context = TurnContext(_SimpleTestingAdapter(), ACTIVITY)
         called = False
 
         #  pylint: disable=unused-argument

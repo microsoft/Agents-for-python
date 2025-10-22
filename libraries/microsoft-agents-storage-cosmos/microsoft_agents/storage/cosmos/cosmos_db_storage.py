@@ -2,7 +2,7 @@
 # Licensed under the MIT License.
 
 from typing import TypeVar, Union
-from threading import Lock
+import asyncio
 
 from azure.cosmos import (
     documents,
@@ -49,7 +49,7 @@ class CosmosDBStorage(_AsyncStorageBase):
         self._container: ContainerProxy = None
         self._compatability_mode_partition_key: bool = False
         # Lock used for synchronizing container creation
-        self._lock: Lock = Lock()
+        self._lock: asyncio.Lock = asyncio.Lock()
 
     def _create_client(self) -> CosmosClient:
         if self._config.url:
@@ -164,8 +164,8 @@ class CosmosDBStorage(_AsyncStorageBase):
 
     async def initialize(self) -> None:
         if not self._container:
-            with self._lock:
-                # in case another thread attempted to initialize just before acquiring the lock
+            async with self._lock:
+                # in case another async task attempted to initialize just before acquiring the lock
                 if self._container:
                     return
 

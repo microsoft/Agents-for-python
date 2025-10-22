@@ -6,7 +6,7 @@ from microsoft_agents.hosting.core import (
 )
 
 
-class TEST_DEFAULTS:
+class DEFAULT_TEST_VALUES:
     def __init__(self):
 
         self.token = "__token"
