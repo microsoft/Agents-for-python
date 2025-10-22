@@ -1,6 +1,6 @@
 # Microsoft 365 Agents SDK for Python - Release Notes v0.5.0
 
-**Release Date:** October 20, 2025  
+**Release Date:** October 22, 2025  
 **Previous Version:** 0.4.0 (Released October 7, 2025)
 
 ## 🎉 What's New in 0.5.0

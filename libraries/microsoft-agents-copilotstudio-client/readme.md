@@ -9,6 +9,24 @@ This client library provides a direct connection to Copilot Studio agents, bypas
 # What is this?
 This library is part of the **Microsoft 365 Agents SDK for Python** - a comprehensive framework for building enterprise-grade conversational AI agents. The SDK enables developers to create intelligent agents that work across multiple platforms including Microsoft Teams, M365 Copilot, Copilot Studio, and web chat, with support for third-party integrations like Slack, Facebook Messenger, and Twilio.
 
+## Release Notes
+<table style="width:100%">
+  <tr>
+    <th style="width:20%">Version</th>
+    <th style="width:20%">Date</th>
+    <th style="width:60%">Release Notes</th>
+  </tr>
+  <tr>
+    <td>0.5.0</td>
+    <td>2025-10-22</td>
+    <td>
+      <a href="https://github.com/microsoft/Agents-for-python/blob/main/RELEASE_NOTES_0.5.0.md">
+        0.5.0 Release Notes
+      </a>
+    </td>
+  </tr>
+</table>
+
 ## Packages Overview
 
 We offer the following PyPI packages to create conversational experiences based on Agents:
