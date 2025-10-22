@@ -130,7 +130,7 @@ class Authorization:
         :return: A unique (across other values of channel_id and user_id) key for the sign-in state.
         :rtype: str
         """
-        return f"auth:_SignInState:{context.activity.channel_id}:{context.activity.from_property.id}"
+        return Namespaces.format(channel_id=context.activity.channel_id, from_property_id=context.activity.from_property.id)
 
     async def _load_sign_in_state(self, context: TurnContext) -> Optional[_SignInState]:
         """Load the sign-in state from storage for the given context.

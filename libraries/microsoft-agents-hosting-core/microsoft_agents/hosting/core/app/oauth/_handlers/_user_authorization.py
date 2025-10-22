@@ -27,6 +27,11 @@ from microsoft_agents.hosting.core._oauth import (
     _FlowStorageClient,
     _FlowStateTag,
 )
+from microsoft_agents.hosting.core.storage import (
+    _ItemNamespace,
+    Namespaces
+)
+
 from .._sign_in_response import _SignInResponse
 from ._authorization_handler import _AuthorizationHandler
 
@@ -41,7 +46,7 @@ class _UserAuthorization(_AuthorizationHandler):
 
     async def _load_flow(
         self, context: TurnContext
-    ) -> tuple[_OAuthFlow, _FlowStorageClient]:
+    ) -> tuple[_OAuthFlow, _ItemNamespace[_FlowState]]:
         """Loads the OAuth flow for a specific auth handler.
 
         A new flow is created in Storage if none exists for the channel, user, and handler
@@ -72,9 +77,13 @@ class _UserAuthorization(_AuthorizationHandler):
         ms_app_id = context.turn_state.get(context.adapter.AGENT_IDENTITY_KEY).claims[
             "aud"
         ]
+    
+        namespace = Namespaces.USER_AUTHORIZATION.format(
+            channel_id=channel_id,
+            user_id=user_id,
+        )
+        flow_storage_client = _ItemNamespace(namespace, self._storage, _FlowState)
 
-        # try to load existing state
-        flow_storage_client = _FlowStorageClient(channel_id, user_id, self._storage)
         logger.info("Loading OAuth flow state from storage")
         flow_state: _FlowState = await flow_storage_client.read(self._id)
         if not flow_state:
@@ -86,7 +95,6 @@ class _UserAuthorization(_AuthorizationHandler):
                 connection=self._handler.abs_oauth_connection_name,
                 ms_app_id=ms_app_id,
             )
-            # await flow_storage_client.write(flow_state)
 
         flow = _OAuthFlow(flow_state, user_token_client)
         return flow, flow_storage_client

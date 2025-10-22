@@ -1,6 +1,9 @@
+# Copyright (c) Microsoft Corporation. All rights reserved.
+# Licensed under the MIT License.
+
 from typing import TypeVar
 
-from microsoft_agents.activity._error_handling import _raise_if_falsey
+from microsoft_agents.activity import _raise_if_falsey
 
 from ..storage import Storage
 from ..store_item import StoreItem

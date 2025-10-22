@@ -101,7 +101,11 @@ from .message_update_types import MessageUpdateTypes
 
 from .channel_adapter_protocol import ChannelAdapterProtocol
 from .turn_context_protocol import TurnContextProtocol
-from ._load_configuration import load_configuration_from_env
+from ._utils import (
+    load_configuration_from_env,
+    _raise_if_falsey,
+    _raise_if_none
+)
 
 __all__ = [
     "AgentsModel",
@@ -194,6 +198,8 @@ __all__ = [
     "ConversationUpdateTypes",
     "MessageUpdateTypes",
     "load_configuration_from_env",
+    "_raise_if_falsey",
+    "_raise_if_none",
     "ChannelAdapterProtocol",
     "TurnContextProtocol",
     "TokenOrSignInResourceResponse",

@@ -3,6 +3,8 @@
 
 from typing import Optional
 
+from microsoft_agents.activity import _raise_if_falsey
+
 from ..storage import Storage
 from ._flow_state import _FlowState
 
@@ -28,6 +30,7 @@ class _DummyCache(Storage):
 # - CachedStorage class for two-tier storage
 # - Namespaced/PrefixedStorage class for namespacing keying
 # not generally thread or async safe (operations are not atomic)
+
 class _FlowStorageClient:
     """Wrapper around Storage that manages sign-in state specific to each user and channel.
 
@@ -38,28 +41,18 @@ class _FlowStorageClient:
         self,
         channel_id: str,
         user_id: str,
-        storage: Storage,
-        cache_class: Optional[type[Storage]] = None,
-    ):
-        """
-        Args:
-            channel_id: used to create the prefix
-            user_id: used to create the prefix
-            storage: the backing storage
-            cache_class: the cache class to use (defaults to DummyCache, which performs no caching).
-                This cache's lifetime is tied to the FlowStorageClient instance.
-        """
+        storage: Storage
+    ) -> None:
+        """Initializes the _FlowStorageClient.
 
-        if not user_id or not channel_id:
-            raise ValueError(
-                "FlowStorageClient.__init__(): channel_id and user_id must be set."
-            )
+        :param channel_id: The ID of the channel.
+        :param user_id: The ID of the user.
+        :param storage: The backing storage.
+        """
+        _raise_if_falsey("_FlowStorageClient.__init__", channel_id=channel_id, user_id=user_id, storage=storage)
 
         self._base_key = f"auth/{channel_id}/{user_id}/"
         self._storage = storage
-        if cache_class is None:
-            cache_class = _DummyCache
-        self._cache = cache_class()
 
     @property
     def base_key(self) -> str:
