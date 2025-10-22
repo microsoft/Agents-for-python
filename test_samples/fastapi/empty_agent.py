@@ -12,7 +12,7 @@ from microsoft_agents.hosting.core import (
 from microsoft_agents.hosting.fastapi import (
     CloudAdapter,
     start_agent_process,
-    jwt_authorization_dependency,
+    JwtAuthorizationMiddleware,
 )
 
 # Create the agent application
@@ -20,6 +20,7 @@ AGENT_APP = AgentApplication[TurnState](storage=MemoryStorage(), adapter=CloudAd
 
 # Create FastAPI app
 app = FastAPI(title="Empty Agent Sample", version="1.0.0")
+app.add_middleware(JwtAuthorizationMiddleware)
 
 
 # Agent handlers
@@ -43,11 +44,8 @@ async def on_message(context: TurnContext, _):
 @app.post("/api/messages")
 async def messages_handler(
     request: Request,
-    claims_identity=Depends(jwt_authorization_dependency),
 ):
     """Main endpoint for processing bot messages."""
-    # Store claims identity in request state for CloudAdapter to use
-    request.state.claims_identity = claims_identity
 
     return await start_agent_process(
         request,

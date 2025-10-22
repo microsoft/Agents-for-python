@@ -2,7 +2,6 @@
 # Licensed under the MIT License.
 from traceback import format_exc
 from typing import Optional
-import json
 
 from fastapi import Request, Response, HTTPException
 from fastapi.responses import JSONResponse
