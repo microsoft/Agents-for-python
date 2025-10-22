@@ -11,7 +11,11 @@ import jwt
 from microsoft_agents.activity import Activity, TokenResponse
 
 from ...turn_context import TurnContext
-from ...storage import Storage
+from ...storage import (
+    Storage,
+    _ItemNamespace,
+    _Namespaces
+)
 from ...authorization import Connections
 from ..._oauth import _FlowStateTag
 from ..state import TurnState
@@ -67,6 +71,11 @@ class Authorization:
 
         self._storage = storage
         self._connection_manager = connection_manager
+        self._sign_in_state_store = _ItemNamespace(
+            _Namespaces.AUTHORIZATION,
+            self._storage,
+            _SignInState,
+        )
 
         self._sign_in_success_handler: Optional[
             Callable[[TurnContext, TurnState, Optional[str]], Awaitable[None]]
@@ -117,20 +126,10 @@ class Authorization:
                 connection_manager=self._connection_manager,
                 auth_handler=auth_handler,
             )
-
+    
     @staticmethod
-    def _sign_in_state_key(context: TurnContext) -> str:
-        """Generate a unique storage key for the sign-in state based on the context.
-
-        This is the key used to store and retrieve the sign-in state from storage, and
-        can be used to inspect or manipulate the state directly if needed.
-
-        :param context: The turn context for the current turn of conversation.
-        :type context: :class:`microsoft_agents.hosting.core.turn_context.TurnContext`
-        :return: A unique (across other values of channel_id and user_id) key for the sign-in state.
-        :rtype: str
-        """
-        return Namespaces.format(channel_id=context.activity.channel_id, from_property_id=context.activity.from_property.id)
+    def _sign_in_state_vkey(context: TurnContext) -> str:
+        return f"{context.activity.channel_id}:{context.activity.from_property.id}"
 
     async def _load_sign_in_state(self, context: TurnContext) -> Optional[_SignInState]:
         """Load the sign-in state from storage for the given context.
@@ -228,7 +227,7 @@ class Authorization:
         auth_handler_id = auth_handler_id or self._default_handler_id
 
         # check cached sign in state
-        sign_in_state = await self._load_sign_in_state(context)
+        sign_in_state = await self._sign_in_state_store.read(self._sign_in_state_vkey(context))
         if not sign_in_state:
             # no existing sign-in state, create a new one
             sign_in_state = _SignInState(active_handler_id=auth_handler_id)
@@ -243,6 +242,7 @@ class Authorization:
         if sign_in_response.tag == _FlowStateTag.COMPLETE:
             if self._sign_in_success_handler:
                 await self._sign_in_success_handler(context, state, auth_handler_id)
+            await self._sign_in_state_store.delete(self._sign_in_state_vkey(context))
             await self._delete_sign_in_state(context)
             Authorization._cache_token(
                 context, auth_handler_id, sign_in_response.token_response
