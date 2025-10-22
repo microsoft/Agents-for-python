@@ -21,7 +21,7 @@ This library is part of the **Microsoft 365 Agents SDK for Python** - a comprehe
     <td>0.5.0</td>
     <td>2025-10-22</td>
     <td>
-      <a href="https://github.com/microsoft/Agents-for-python/blob/main/RELEASE_NOTES_0.5.0.md">
+      <a href="https://github.com/microsoft/Agents-for-python/blob/main/changelog.md">
         0.5.0 Release Notes
       </a>
     </td>
