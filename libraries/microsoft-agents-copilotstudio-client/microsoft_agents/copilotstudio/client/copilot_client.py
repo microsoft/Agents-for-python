@@ -40,7 +40,7 @@ class CopilotClient:
                 conversation_id_header = response.headers.get("x-ms-conversationid")
                 if conversation_id_header:
                     self._current_conversation_id = conversation_id_header
-                    
+
                 event_type = None
                 async for line in response.content:
                     if line.startswith(b"event:"):
