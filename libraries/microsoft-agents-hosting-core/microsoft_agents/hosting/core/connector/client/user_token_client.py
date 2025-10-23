@@ -58,7 +58,7 @@ class AgentSignIn(AgentSignInBase):
         async with self.client.get(
             "api/agentsignin/getSignInUrl", params=params
         ) as response:
-            if response.status >= 400:
+            if response.status >= 300:
                 logger.error(f"Error getting sign-in URL: {response.status}")
                 response.raise_for_status()
 
@@ -89,13 +89,14 @@ class AgentSignIn(AgentSignInBase):
             params["finalRedirect"] = final_redirect
 
         logger.info(
-            f"AgentSignIn.get_sign_in_resource(): Getting sign-in resource with params: {params}"
+            "AgentSignIn.get_sign_in_resource(): Getting sign-in resource with params: %s",
+            params,
         )
         async with self.client.get(
             "api/botsignin/getSignInResource", params=params
         ) as response:
-            if response.status >= 400:
-                logger.error(f"Error getting sign-in resource: {response.status}")
+            if response.status >= 300:
+                logger.error("Error getting sign-in resource: %s", response.status)
                 response.raise_for_status()
 
             data = await response.json()
@@ -122,12 +123,12 @@ class UserToken(UserTokenBase):
         if code:
             params["code"] = code
 
-        logger.info(f"User_token.get_token(): Getting token with params: {params}")
+        logger.info("User_token.get_token(): Getting token with params: %s", params)
         async with self.client.get("api/usertoken/GetToken", params=params) as response:
             if response.status == 404:
-                return TokenResponse(model_validate={})
-            if response.status >= 400:
-                logger.error(f"Error getting token: {response.status}")
+                return TokenResponse()
+            if response.status >= 300:
+                logger.error("Error getting token: %s", response.status)
                 response.raise_for_status()
 
             data = await response.json()
@@ -179,12 +180,12 @@ class UserToken(UserTokenBase):
         if channel_id:
             params["channelId"] = channel_id
 
-        logger.info(f"Getting AAD tokens with params: {params} and body: {body}")
+        logger.info("Getting AAD tokens with params: %s and body: %s", params, body)
         async with self.client.post(
             "api/usertoken/GetAadTokens", params=params, json=body
         ) as response:
-            if response.status >= 400:
-                logger.error(f"Error getting AAD tokens: {response.status}")
+            if response.status >= 300:
+                logger.error("Error getting AAD tokens: %s", response.status)
                 response.raise_for_status()
 
             data = await response.json()
@@ -203,12 +204,12 @@ class UserToken(UserTokenBase):
         if channel_id:
             params["channelId"] = channel_id
 
-        logger.info(f"Signing out user {user_id} with params: {params}")
+        logger.info("Signing out user %s with params: %s", user_id, params)
         async with self.client.delete(
             "api/usertoken/SignOut", params=params
         ) as response:
-            if response.status >= 400 and response.status != 204:
-                logger.error(f"Error signing out: {response.status}")
+            if response.status >= 300:
+                logger.error("Error signing out: %s", response.status)
                 response.raise_for_status()
 
     async def get_token_status(
@@ -224,12 +225,12 @@ class UserToken(UserTokenBase):
         if include:
             params["include"] = include
 
-        logger.info(f"Getting token status for user {user_id} with params: {params}")
+        logger.info("Getting token status for user %s with params: %s", user_id, params)
         async with self.client.get(
             "api/usertoken/GetTokenStatus", params=params
         ) as response:
-            if response.status >= 400:
-                logger.error(f"Error getting token status: {response.status}")
+            if response.status >= 300:
+                logger.error("Error getting token status: %s", response.status)
                 response.raise_for_status()
 
             data = await response.json()
@@ -248,12 +249,14 @@ class UserToken(UserTokenBase):
             "channelId": channel_id,
         }
 
-        logger.info(f"Exchanging token with params: {params} and body: {body}")
+        logger.info("Exchanging token with params: %s and body: %s", params, body)
         async with self.client.post(
             "api/usertoken/exchange", params=params, json=body
         ) as response:
-            if response.status >= 400 and response.status != 404:
-                logger.error(f"Error exchanging token: {response.status}")
+            if response.status == 404:
+                return TokenResponse()
+            if response.status >= 300:
+                logger.error("Error exchanging token: %s", response.status)
                 response.raise_for_status()
 
             data = await response.json()
@@ -289,7 +292,9 @@ class UserTokenClient(UserTokenClientBase):
             headers=headers,
         )
         logger.debug(
-            f"Creating UserTokenClient with endpoint: {endpoint} and headers: {headers}"
+            "Creating UserTokenClient with endpoint: %s and headers: %s",
+            endpoint,
+            headers,
         )
 
         if len(token) > 1:

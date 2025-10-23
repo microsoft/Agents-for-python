@@ -76,7 +76,7 @@ class AttachmentsOperations(AttachmentsBase):
 
         logger.info(f"Getting attachment info for ID: {attachment_id}")
         async with self.client.get(url) as response:
-            if response.status >= 400:
+            if response.status >= 300:
                 logger.error(
                     f"Error getting attachment info: {response.status}", stack_info=True
                 )
@@ -110,7 +110,7 @@ class AttachmentsOperations(AttachmentsBase):
 
         logger.info(f"Getting attachment for ID: {attachment_id}, View ID: {view_id}")
         async with self.client.get(url) as response:
-            if response.status >= 400:
+            if response.status >= 300:
                 logger.error(
                     f"Error getting attachment: {response.status}", stack_info=True
                 )
@@ -146,7 +146,7 @@ class ConversationsOperations(ConversationsBase):
             f"Getting conversations with continuation token: {continuation_token}"
         )
         async with self.client.get("v3/conversations", params=params) as response:
-            if response.status >= 400:
+            if response.status >= 300:
                 logger.error(
                     f"Error getting conversations: {response.status}", stack_info=True
                 )
@@ -170,7 +170,7 @@ class ConversationsOperations(ConversationsBase):
             "v3/conversations",
             json=body.model_dump(by_alias=True, exclude_unset=True, mode="json"),
         ) as response:
-            if response.status >= 400:
+            if response.status not in [200, 201, 202]:
                 logger.error(
                     f"Error creating conversation: {response.status}", stack_info=True
                 )
@@ -212,7 +212,7 @@ class ConversationsOperations(ConversationsBase):
         ) as response:
             result = await response.json() if response.content_length else {}
 
-            if response.status >= 400:
+            if response.status not in [200, 201, 202]:
                 logger.error(
                     f"Error replying to activity: {result or response.status}",
                     stack_info=True,
@@ -252,7 +252,7 @@ class ConversationsOperations(ConversationsBase):
             url,
             json=body.model_dump(by_alias=True, exclude_unset=True, mode="json"),
         ) as response:
-            if response.status >= 400:
+            if response.status not in [200, 201, 202]:
                 logger.error(
                     f"Error sending to conversation: {response.status}", stack_info=True
                 )
@@ -289,7 +289,7 @@ class ConversationsOperations(ConversationsBase):
             url,
             json=body.model_dump(by_alias=True, exclude_unset=True),
         ) as response:
-            if response.status >= 400:
+            if response.status not in [200, 201, 202]:
                 logger.error(
                     f"Error updating activity: {response.status}", stack_info=True
                 )
@@ -319,7 +319,7 @@ class ConversationsOperations(ConversationsBase):
             f"Deleting activity: {activity_id} from conversation: {conversation_id}"
         )
         async with self.client.delete(url) as response:
-            if response.status >= 400:
+            if response.status >= 300:
                 logger.error(
                     f"Error deleting activity: {response.status}", stack_info=True
                 )
@@ -354,12 +354,14 @@ class ConversationsOperations(ConversationsBase):
         }
 
         logger.info(
-            f"Uploading attachment to conversation: {conversation_id}, Attachment name: {body.name}"
+            "Uploading attachment to conversation: %s, Attachment name: %s",
+            conversation_id,
+            body.name,
         )
         async with self.client.post(url, json=attachment_dict) as response:
-            if response.status >= 400:
+            if response.status not in [200, 201, 202]:
                 logger.error(
-                    f"Error uploading attachment: {response.status}", stack_info=True
+                    "Error uploading attachment: %s", response.status, stack_info=True
                 )
                 response.raise_for_status()
 
@@ -385,11 +387,14 @@ class ConversationsOperations(ConversationsBase):
         conversation_id = self._normalize_conversation_id(conversation_id)
         url = f"v3/conversations/{conversation_id}/members"
 
-        logger.info(f"Getting conversation members for conversation: {conversation_id}")
+        logger.info(
+            "Getting conversation members for conversation: %s", conversation_id
+        )
         async with self.client.get(url) as response:
-            if response.status >= 400:
+            if response.status >= 300:
                 logger.error(
-                    f"Error getting conversation members: {response.status}",
+                    "Error getting conversation members: %s",
+                    response.status,
                     stack_info=True,
                 )
                 response.raise_for_status()
@@ -418,12 +423,15 @@ class ConversationsOperations(ConversationsBase):
         url = f"v3/conversations/{conversation_id}/members/{member_id}"
 
         logger.info(
-            f"Getting conversation member: {member_id} from conversation: {conversation_id}"
+            "Getting conversation member: %s from conversation: %s",
+            member_id,
+            conversation_id,
         )
         async with self.client.get(url) as response:
-            if response.status >= 400:
+            if response.status >= 300:
                 logger.error(
-                    f"Error getting conversation member: {response.status}",
+                    "Error getting conversation member: %s",
+                    response.status,
                     stack_info=True,
                 )
                 response.raise_for_status()
@@ -451,12 +459,15 @@ class ConversationsOperations(ConversationsBase):
         url = f"v3/conversations/{conversation_id}/members/{member_id}"
 
         logger.info(
-            f"Deleting conversation member: {member_id} from conversation: {conversation_id}"
+            "Deleting conversation member: %s from conversation: %s",
+            member_id,
+            conversation_id,
         )
         async with self.client.delete(url) as response:
-            if response.status >= 400 and response.status != 204:
+            if response.status not in [200, 204]:
                 logger.error(
-                    f"Error deleting conversation member: {response.status}",
+                    f"Error deleting conversation member: %s",
+                    response.status,
                     stack_info=True,
                 )
                 response.raise_for_status()
@@ -485,7 +496,7 @@ class ConversationsOperations(ConversationsBase):
             f"Getting activity members for conversation: {conversation_id}, Activity ID: {activity_id}"
         )
         async with self.client.get(url) as response:
-            if response.status >= 400:
+            if response.status >= 300:
                 logger.error(
                     f"Error getting activity members: {response.status}",
                     stack_info=True,
@@ -529,7 +540,7 @@ class ConversationsOperations(ConversationsBase):
             f"Getting paged members for conversation: {conversation_id}, Page Size: {page_size}, Continuation Token: {continuation_token}"
         )
         async with self.client.get(url, params=params) as response:
-            if response.status >= 400:
+            if response.status >= 300:
                 logger.error(
                     f"Error getting conversation paged members: {response.status}",
                     stack_info=True,
@@ -561,11 +572,7 @@ class ConversationsOperations(ConversationsBase):
 
         logger.info(f"Sending conversation history to conversation: {conversation_id}")
         async with self.client.post(url, json=body) as response:
-            if (
-                response.status >= 400
-                and response.status != 201
-                and response.status != 202
-            ):
+            if response.status not in [200, 201, 202]:
                 logger.error(
                     f"Error sending conversation history: {response.status}",
                     stack_info=True,
