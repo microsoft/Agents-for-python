@@ -124,7 +124,7 @@ class ConversationsOperations(ConversationsBase):
 
     def __init__(self, client: ClientSession, **kwargs):
         self.client = client
-        self._max_conversation_id_length = kwargs.get("max_conversation_id_length", 200)
+        self._max_conversation_id_length = kwargs.get("max_conversation_id_length", 150)
 
     def _normalize_conversation_id(self, conversation_id: str) -> str:
         return conversation_id[: self._max_conversation_id_length]
