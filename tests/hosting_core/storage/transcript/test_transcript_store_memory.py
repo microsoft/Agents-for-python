@@ -3,7 +3,7 @@
 
 from datetime import datetime, timezone
 import pytest
-from microsoft_agents.hosting.core.storage.transcript_memory_store import (
+from microsoft_agents.hosting.core.storage import (
     TranscriptMemoryStore,
     PagedResult,
 )

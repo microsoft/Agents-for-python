@@ -26,8 +26,8 @@ class MemoryStorage(Storage):
         if not target_cls:
             raise ValueError("Storage.read(): target_cls cannot be None.")
 
-        result: dict[str, StoreItem] = {}
         with self._lock:
+            result: dict[str, StoreItem] = {}
             for key in keys:
                 if key == "":
                     raise ValueError("MemoryStorage.read(): key cannot be empty")
