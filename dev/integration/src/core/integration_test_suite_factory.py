@@ -33,6 +33,11 @@ def integration_test_suite_factory(
             """Set up the test suite with the sample application."""
             self.sample = sample_cls(environment, mocker=mocker)
             await self.sample.init_app()
+            await self.sample.runner.start()
+
+        async def teardown_method(self):
+            """Tear down the test suite and clean up resources."""
+            await self.sample.runner.stop()
 
         @pytest.fixture
         def agent_application(self) -> AgentApplication:

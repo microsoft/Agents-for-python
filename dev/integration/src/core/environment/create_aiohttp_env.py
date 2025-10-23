@@ -14,6 +14,21 @@ from microsoft_agents.activity import load_configuration_from_env
 
 from .environment import Environment
 
+def start_server() -> None:
+    import asyncio
+    from threading import Thread
+    from contextlib import asynccontextmanager
+    from microsoft_agents.hosting.aiohttp import host_app
+
+@asynccontextmanager
+def aiohttp_runner(timeout=10.0) -> None:
+
+    thread = Thread(target=start_server)
+    thread.start()
+
+    yield
+
+    thread.join(timeout=timeout)
 
 def create_aiohttp_env(environ_dict: Optional[dict] = None) -> Environment:
 
