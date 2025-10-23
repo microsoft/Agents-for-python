@@ -1,3 +1,4 @@
+from typing import Awaitable, Callable
 from dataclasses import dataclass
 
 from microsoft_agents.hosting.core import (
@@ -20,3 +21,5 @@ class Environment:
     authorization: Authorization
 
     config: dict
+
+    driver: Callable[[], Awaitable[None]]
