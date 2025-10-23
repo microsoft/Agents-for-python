@@ -4,5 +4,5 @@
 class _Namespaces:
     """Storage key namespaces used by various components."""
 
-    USER_AUTHORIZATION = "auth/{channel_id}/{user_id}"
-    AUTHORIZATION = "auth/{channel_id}/{from_property_id}"
+    SIGN_IN_STATE = "auth.sign_in_state"
+    USER_AUTHORIZATION = "auth.user_authorization.{channel_id}:{from_property_id}"

@@ -24,12 +24,11 @@ from microsoft_agents.hosting.core._oauth import (
     _OAuthFlow,
     _FlowResponse,
     _FlowState,
-    _FlowStorageClient,
     _FlowStateTag,
 )
 from microsoft_agents.hosting.core.storage import (
     _ItemNamespace,
-    Namespaces
+    _Namespaces
 )
 
 from .._sign_in_response import _SignInResponse
@@ -78,7 +77,7 @@ class _UserAuthorization(_AuthorizationHandler):
             "aud"
         ]
     
-        namespace = Namespaces.USER_AUTHORIZATION.format(
+        namespace = _Namespaces._USER_AUTHORIZATION.format(
             channel_id=channel_id,
             user_id=user_id,
         )

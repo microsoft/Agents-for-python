@@ -1,3 +1,4 @@
+from ._namespaces import _Namespaces
 from .store_item import StoreItem
 from .storage import Storage, _AsyncStorageBase
 from .memory_storage import MemoryStorage
@@ -14,6 +15,8 @@ from ._transcript import (
 )
 from ._wrappers import (
     _StorageNamespace
+    _ItemNamespace,
+    _ItemStorage,
 )
 
 __all__ = [
@@ -31,4 +34,8 @@ __all__ = [
     "FileTranscriptLogger",
     "FileTranscriptStore",
     "PagedResult",
+    "_Namespaces",
+    "_StorageNamespace",
+    "_ItemNamespace",
+    "_ItemStorage",
 ]

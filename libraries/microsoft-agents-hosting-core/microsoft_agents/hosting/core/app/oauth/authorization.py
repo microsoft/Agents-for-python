@@ -14,6 +14,7 @@ from ...turn_context import TurnContext
 from ...storage import (
     Storage,
     _ItemNamespace,
+    _StorageNamespace,
     _Namespaces
 )
 from ...authorization import Connections
@@ -71,11 +72,7 @@ class Authorization:
 
         self._storage = storage
         self._connection_manager = connection_manager
-        self._sign_in_state_store = _ItemNamespace(
-            _Namespaces.AUTHORIZATION,
-            self._storage,
-            _SignInState,
-        )
+        self._sign_in_state_store = _ItemNamespace(_Namespaces.SIGN_IN_STATE, self._storage, _SignInState)
 
         self._sign_in_success_handler: Optional[
             Callable[[TurnContext, TurnState, Optional[str]], Awaitable[None]]
@@ -122,71 +119,10 @@ class Authorization:
                 raise ValueError(f"Auth type {auth_type} not recognized.")
 
             self._handlers[name] = AUTHORIZATION_TYPE_MAP[auth_type](
-                storage=self._storage,
+                storage=_StorageNamespace(name, self._storage),
                 connection_manager=self._connection_manager,
                 auth_handler=auth_handler,
             )
-    
-    @staticmethod
-    def _sign_in_state_vkey(context: TurnContext) -> str:
-        return f"{context.activity.channel_id}:{context.activity.from_property.id}"
-
-    async def _load_sign_in_state(self, context: TurnContext) -> Optional[_SignInState]:
-        """Load the sign-in state from storage for the given context.
-
-        :param context: The turn context for the current turn of conversation.
-        :type context: :class:`microsoft_agents.hosting.core.turn_context.TurnContext`
-        :return: The sign-in state if found, None otherwise.
-        :rtype: Optional[:class:`microsoft_agents.hosting.core.app.oauth._sign_in_state._SignInState`]
-        """
-        key = self._sign_in_state_key(context)
-        return (await self._storage.read([key], target_cls=_SignInState)).get(key)
-
-    async def _save_sign_in_state(
-        self, context: TurnContext, state: _SignInState
-    ) -> None:
-        """Save the sign-in state to storage for the given context.
-
-        :param context: The turn context for the current turn of conversation.
-        :type context: :class:`microsoft_agents.hosting.core.turn_context.TurnContext`
-        :param state: The sign-in state to save.
-        :type state: :class:`microsoft_agents.hosting.core.app.oauth._sign_in_state._SignInState`
-        """
-        key = self._sign_in_state_key(context)
-        await self._storage.write({key: state})
-
-    async def _delete_sign_in_state(self, context: TurnContext) -> None:
-        """Delete the sign-in state from storage for the given context.
-
-        :param context: The turn context for the current turn of conversation.
-        :type context: :class:`microsoft_agents.hosting.core.turn_context.TurnContext`
-        """
-        key = self._sign_in_state_key(context)
-        await self._storage.delete([key])
-
-    @staticmethod
-    def _cache_key(context: TurnContext, handler_id: str) -> str:
-        return f"{Authorization._sign_in_state_key(context)}:{handler_id}:token"
-
-    @staticmethod
-    def _get_cached_token(
-        context: TurnContext, handler_id: str
-    ) -> Optional[TokenResponse]:
-        key = Authorization._cache_key(context, handler_id)
-        return cast(Optional[TokenResponse], context.turn_state.get(key))
-
-    @staticmethod
-    def _cache_token(
-        context: TurnContext, handler_id: str, token_response: TokenResponse
-    ) -> None:
-        key = Authorization._cache_key(context, handler_id)
-        context.turn_state[key] = token_response
-
-    @staticmethod
-    def _delete_cached_token(context: TurnContext, handler_id: str) -> None:
-        key = Authorization._cache_key(context, handler_id)
-        if key in context.turn_state:
-            del context.turn_state[key]
 
     def _resolve_handler(self, handler_id: str) -> _AuthorizationHandler:
         """Resolve the auth handler by its ID.
@@ -227,7 +163,8 @@ class Authorization:
         auth_handler_id = auth_handler_id or self._default_handler_id
 
         # check cached sign in state
-        sign_in_state = await self._sign_in_state_store.read(self._sign_in_state_vkey(context))
+        sign_in_state_key = self._sign_in_state_key(context)
+        sign_in_state = await self._sign_in_state_store.read(sign_in_state_key)
         if not sign_in_state:
             # no existing sign-in state, create a new one
             sign_in_state = _SignInState(active_handler_id=auth_handler_id)
@@ -242,8 +179,7 @@ class Authorization:
         if sign_in_response.tag == _FlowStateTag.COMPLETE:
             if self._sign_in_success_handler:
                 await self._sign_in_success_handler(context, state, auth_handler_id)
-            await self._sign_in_state_store.delete(self._sign_in_state_vkey(context))
-            await self._delete_sign_in_state(context)
+            await self._sign_in_state_store.delete(sign_in_state_key)
             Authorization._cache_token(
                 context, auth_handler_id, sign_in_response.token_response
             )
@@ -251,12 +187,12 @@ class Authorization:
         elif sign_in_response.tag == _FlowStateTag.FAILURE:
             if self._sign_in_failure_handler:
                 await self._sign_in_failure_handler(context, state, auth_handler_id)
-            await self._delete_sign_in_state(context)
+            await self._sign_in_state_store.delete(sign_in_state_key)
 
         elif sign_in_response.tag in [_FlowStateTag.BEGIN, _FlowStateTag.CONTINUE]:
             # store continuation activity and wait for next turn
             sign_in_state.continuation_activity = context.activity
-            await self._save_sign_in_state(context, sign_in_state)
+            await self._sign_in_state_store.write(sign_in_state_key, sign_in_state)
 
         return sign_in_response
 
@@ -274,7 +210,7 @@ class Authorization:
         auth_handler_id = auth_handler_id or self._default_handler_id
         handler = self._resolve_handler(auth_handler_id)
         Authorization._delete_cached_token(context, auth_handler_id)
-        await self._delete_sign_in_state(context)
+        await self._sign_in_state_store.delete(self._sign_in_state_key(context))
         await handler._sign_out(context)
 
     async def _on_turn_auth_intercept(
@@ -294,7 +230,8 @@ class Authorization:
         :return: A tuple indicating whether the turn should be skipped and the continuation activity if applicable.
         :rtype: tuple[bool, Optional[:class:`microsoft_agents.activity.Activity`]]
         """
-        sign_in_state = await self._load_sign_in_state(context)
+        sign_in_state_key = self._sign_in_state_key(context)
+        sign_in_state = await self._sign_in_state_store.read(sign_in_state_key)
 
         if sign_in_state:
             auth_handler_id = sign_in_state.active_handler_id
@@ -407,3 +344,31 @@ class Authorization:
         :type handler: Callable[[:class:`microsoft_agents.hosting.core.turn_context.TurnContext`, :class:`microsoft_agents.hosting.core.app.state.turn_state.TurnState`, Optional[str]], Awaitable[None]]
         """
         self._sign_in_failure_handler = handler
+
+    @staticmethod
+    def _sign_in_state_key(context: TurnContext) -> str:
+        return f"{_Namespaces.SIGN_IN_STATE}.{context.activity.channel_id}:{context.activity.from_property.id}"
+
+    @staticmethod
+    def _cache_key(context: TurnContext, handler_id: str) -> str:
+        return f"{Authorization._sign_in_state_key(context)}:{handler_id}:token"
+
+    @staticmethod
+    def _get_cached_token(
+        context: TurnContext, handler_id: str
+    ) -> Optional[TokenResponse]:
+        key = Authorization._cache_key(context, handler_id)
+        return cast(Optional[TokenResponse], context.turn_state.get(key))
+
+    @staticmethod
+    def _cache_token(
+        context: TurnContext, handler_id: str, token_response: TokenResponse
+    ) -> None:
+        key = Authorization._cache_key(context, handler_id)
+        context.turn_state[key] = token_response
+
+    @staticmethod
+    def _delete_cached_token(context: TurnContext, handler_id: str) -> None:
+        key = Authorization._cache_key(context, handler_id)
+        if key in context.turn_state:
+            del context.turn_state[key]
