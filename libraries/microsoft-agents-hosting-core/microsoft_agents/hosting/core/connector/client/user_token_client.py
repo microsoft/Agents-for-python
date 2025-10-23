@@ -53,13 +53,14 @@ class AgentSignIn(AgentSignInBase):
             params["finalRedirect"] = final_redirect
 
         logger.info(
-            f"AgentSignIn.get_sign_in_url(): Getting sign-in URL with params: {params}"
+            "AgentSignIn.get_sign_in_url(): Getting sign-in URL with params: %s",
+            params,
         )
         async with self.client.get(
             "api/agentsignin/getSignInUrl", params=params
         ) as response:
             if response.status >= 300:
-                logger.error(f"Error getting sign-in URL: {response.status}")
+                logger.error("Error getting sign-in URL: %s", response.status)
                 response.raise_for_status()
 
             return await response.text()
