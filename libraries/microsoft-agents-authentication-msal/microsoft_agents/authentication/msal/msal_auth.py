@@ -19,7 +19,7 @@ from cryptography.x509 import load_pem_x509_certificate
 from cryptography.hazmat.backends import default_backend
 from cryptography.hazmat.primitives import hashes
 
-from microsoft_agents.activity._utils import DeferredString
+from microsoft_agents.activity._utils import _DeferredString
 
 from microsoft_agents.hosting.core import (
     AuthTypes,
