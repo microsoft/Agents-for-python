@@ -30,7 +30,9 @@ async def test_start_sends_typing_activity():
     await indicator.stop()
 
     assert len(context.sent_activities) >= 1
-    assert all(activity.type == ActivityTypes.typing for activity in context.sent_activities)
+    assert all(
+        activity.type == ActivityTypes.typing for activity in context.sent_activities
+    )
 
 
 @pytest.mark.asyncio

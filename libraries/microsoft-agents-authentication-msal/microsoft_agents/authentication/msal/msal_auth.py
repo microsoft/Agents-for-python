@@ -19,6 +19,8 @@ from cryptography.x509 import load_pem_x509_certificate
 from cryptography.hazmat.backends import default_backend
 from cryptography.hazmat.primitives import hashes
 
+from microsoft_agents.activity._utils import _DeferredString
+
 from microsoft_agents.hosting.core import (
     AuthTypes,
     AccessTokenProviderBase,
@@ -26,18 +28,6 @@ from microsoft_agents.hosting.core import (
 )
 
 logger = logging.getLogger(__name__)
-
-
-# this is deferred because jwt.decode is expensive and we don't want to do it unless we
-# have logging.DEBUG enabled
-class _DeferredLogOfBlueprintId:
-    def __init__(self, jwt_token: str):
-        self.jwt_token = jwt_token
-
-    def __str__(self):
-        payload = jwt.decode(self.jwt_token, options={"verify_signature": False})
-        agentic_blueprint_id = payload.get("xms_par_app_azp")
-        return f"Agentic blueprint id: {agentic_blueprint_id}"
 
 
 async def _async_acquire_token_for_client(msal_auth_client, *args, **kwargs):
@@ -328,7 +318,14 @@ class MsalAuth(AccessTokenProviderBase):
             )
             raise ValueError(f"Failed to acquire token. {str(agentic_instance_token)}")
 
-        logger.debug(_DeferredLogOfBlueprintId(token))
+        logger.debug(
+            "Agentic blueprint id: %s",
+            _DeferredString(
+                lambda: jwt.decode(token, options={"verify_signature": False}).get(
+                    "xms_par_app_azp"
+                )
+            ),
+        )
 
         return agentic_instance_token["access_token"], agent_token_result
 
