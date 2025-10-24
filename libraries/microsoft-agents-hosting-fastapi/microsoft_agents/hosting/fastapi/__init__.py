@@ -15,8 +15,6 @@ __all__ = [
     "start_agent_process",
     "AgentHttpAdapter",
     "CloudAdapter",
-    "jwt_authorization_dependency",
-    "jwt_authorization_decorator",
     "JwtAuthorizationMiddleware",
     "channel_service_route_table",
     "Citation",
