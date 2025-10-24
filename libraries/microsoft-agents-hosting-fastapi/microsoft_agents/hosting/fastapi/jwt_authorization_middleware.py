@@ -44,7 +44,7 @@ class JwtAuthorizationMiddleware:
             if len(parts) == 2 and parts[0].lower() == "bearer":
                 token = parts[1]
                 try:
-                    claims = token_validator.validate_token(token)
+                    claims = await token_validator.validate_token(token)
                     request.state.claims_identity = claims
                 except ValueError as e:
                     logger.warning("JWT validation error: %s", e)
@@ -63,7 +63,9 @@ class JwtAuthorizationMiddleware:
                 return
         else:
             if not auth_config or not auth_config.CLIENT_ID:
-                request.state.claims_identity = token_validator.get_anonymous_claims()
+                request.state.claims_identity = (
+                    await token_validator.get_anonymous_claims()
+                )
             else:
                 response = JSONResponse(
                     {"error": "Authorization header not found"},

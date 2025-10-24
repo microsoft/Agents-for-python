@@ -21,7 +21,7 @@ from microsoft_agents.activity import load_configuration_from_env, ActivityTypes
 from microsoft_agents.hosting.fastapi import (
     CloudAdapter,
     start_agent_process,
-    jwt_authorization_dependency,
+    JwtAuthorizationMiddleware,
 )
 from microsoft_agents.authentication.msal import MsalConnectionManager
 
@@ -41,9 +41,6 @@ AGENT_APP = AgentApplication[TurnState](
     storage=STORAGE, adapter=ADAPTER, authorization=AUTHORIZATION, **agents_sdk_config
 )
 
-# Create FastAPI app
-app = FastAPI(title="Authorization Agent Sample", version="1.0.0")
-
 
 @AGENT_APP.message(re.compile(r"^(status|auth status|check status)", re.IGNORECASE))
 async def status(context: TurnContext, state: TurnState) -> bool:
@@ -62,7 +59,7 @@ async def status(context: TurnContext, state: TurnState) -> bool:
         status_messages = []
         has_valid_token = False
 
-        for handler_id in AGENT_APP.auth._auth_handlers.keys():
+        for handler_id in AGENT_APP.auth._handlers.keys():
             try:
                 token_response = await AGENT_APP.auth.get_token(context, handler_id)
                 if token_response and token_response.token:
@@ -307,15 +304,20 @@ async def on_error(context: TurnContext, error: Exception):
     await context.send_activity("The bot encountered an error or bug.")
 
 
+# Create FastAPI app
+app = FastAPI(title="Authorization Agent Sample", version="1.0.0")
+app.state.agent_configuration = (
+    CONNECTION_MANAGER.get_default_connection_configuration()
+)
+app.add_middleware(JwtAuthorizationMiddleware)
+
+
 # FastAPI routes
 @app.post("/api/messages")
 async def messages_handler(
     request: Request,
-    claims_identity=Depends(jwt_authorization_dependency),
 ):
     """Main endpoint for processing bot messages."""
-    # Store claims identity in request state for CloudAdapter to use
-    request.state.claims_identity = claims_identity
 
     return await start_agent_process(
         request,
