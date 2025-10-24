@@ -3,4 +3,6 @@
 # See: https://docs.github.com/en/repositories/managing-your-repositorys-settings-and-features/customizing-your-repository/about-code-owners
 
 # Global ownership - fallback for any files not covered by more specific rules
-* @microsoft/m365-agents-sdk-python-code-owners
+* @microsoft/agents-sdk
+#   Team is found here:
+#   https://github.com/orgs/microsoft/teams/agents-sdk
