@@ -32,7 +32,8 @@ Any issues should be filed on the [Agents-for-python](https://github.com/microso
     pip install -e ./libraries/microsoft-agents-hosting-aiohttp/ --config-settings editable_mode=compat
     pip install -e ./libraries/microsoft-agents-hosting-teams/ --config-settings editable_mode=compat
     pip install -e ./libraries/microsoft-agents-storage-blob/ --config-settings editable_mode=compat
-    pip install -e ./libraries/microsoft-agents-storage-cosmos/ --config-settings editable_mode=compat    
+    pip install -e ./libraries/microsoft-agents-storage-cosmos/ --config-settings editable_mode=compat
+    pip install -e ./libraries/microsoft-agents-hosting-fastapi/ --config-settings editable_mode=compat
     ```
 1. Setup the dev dependencies for python. In the terminal, at the project root, run:
     ```
