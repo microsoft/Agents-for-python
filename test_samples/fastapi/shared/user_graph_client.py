@@ -1,31 +1,18 @@
-# Copyright (c) Microsoft Corporation. All rights reserved.
-# Licensed under the MIT License.
-
 import aiohttp
 
-
-class GraphClient:
+async def get_user_info(token):
     """
-    A simple Microsoft Graph client using aiohttp.
+    Get information about the current user from Microsoft Graph API.
     """
-
-    @staticmethod
-    async def get_me(token: str):
-        """
-        Get information about the current user.
-        """
-        async with aiohttp.ClientSession() as session:
-            headers = {
-                "Authorization": f"Bearer {token}",
-                "Content-Type": "application/json",
-            }
-            async with session.get(
-                f"https://graph.microsoft.com/v1.0/me", headers=headers
-            ) as response:
-                if response.status == 200:
-                    return await response.json()
-                else:
-                    error_text = await response.text()
-                    raise Exception(
-                        f"Error from Graph API: {response.status} - {error_text}"
-                    )
+    async with aiohttp.ClientSession() as session:
+        headers = {
+            "Authorization": f"Bearer {token}",
+            "Content-Type": "application/json",
+        }
+        async with session.get(
+            "https://graph.microsoft.com/v1.0/me", headers=headers
+        ) as response:
+            if response.status == 200:
+                return await response.json()
+            error_text = await response.text()
+            raise Exception(f"Error from Graph API: {response.status} - {error_text}")
