@@ -5,7 +5,7 @@ This folder contains FastAPI equivalents of the agent samples from the `app_styl
 ## Samples
 
 ### 1. empty_agent.py
-A simple echo agent that responds to messages and provides basic help functionality. This is the FastAPI equivalent of `emtpy_agent.py`.
+A simple echo agent that responds to messages and provides basic help functionality. This is the FastAPI equivalent of `empty_agent.py`.
 
 **Features:**
 - Basic message echoing
