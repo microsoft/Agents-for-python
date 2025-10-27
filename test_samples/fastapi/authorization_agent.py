@@ -80,7 +80,7 @@ async def logout(context: TurnContext, state: TurnState) -> None:
 )
 async def profile_request(context: TurnContext, state: TurnState) -> None:
     user_token_response = await AGENT_APP.auth.get_token(context, "GRAPH")
-    if user_token_response and user_token_response is not None:
+    if user_token_response:
         user_info = await get_user_info(user_token_response.token)
         activity = MessageFactory.attachment(create_profile_card(user_info))
         await context.send_activity(activity)
