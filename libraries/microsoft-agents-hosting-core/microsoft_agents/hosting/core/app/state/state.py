@@ -109,7 +109,7 @@ class State(dict[str, StoreItem], ABC):
         data = self.copy()
         del data["__key__"]
 
-        logger.info(f"Saving state {self.__key__}")
+        logger.info("Saving state %s", self.__key__)
         await storage.delete(self.__deleted__)
         await storage.write(
             {
