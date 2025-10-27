@@ -355,7 +355,7 @@ class StreamingResponse:
             activity.id = self._stream_id
             streaminfo_entity.stream_id = self._stream_id
 
-        if self._citations and len(self._citations) > 0 and not self._ended:
+        if self._citations and not self._ended:
             # Filter out the citations unused in content.
             curr_citations = CitationUtil.get_used_citations(
                 self._message, self._citations
