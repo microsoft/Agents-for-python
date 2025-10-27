@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import sys
 from io import StringIO
 from typing import Optional
@@ -32,7 +34,7 @@ class ResponseClient:
     def service_endpoint(self) -> str:
         return self._service_endpoint
 
-    def __aenter__(self):
+    def __aenter__(self) -> ResponseClient:
         self._prev_stdout = sys.stdout
         sys.stdout = StringIO()
         return self

@@ -1,17 +1,17 @@
-from typing import TypeVar, Any
+from typing import TypeVar, Any, AsyncGenerator, Callable
 import pytest
 
 from .environment import Environment
 from .sample import Sample
-from .client import AgentClient, AIAgentClient
-from .response_server import ResponseServer
+from .client import AgentClient, ResponseClient
     
 class IntegrationFixtures:
     """Provides integration test fixtures."""
 
     _environment: Environment
     _sample: Sample
-    _response_server: ResponseServer
+    _agent_client: AgentClient
+    _response_client: ResponseClient
 
     @pytest.fixture
     def environment(self) -> Environment:
@@ -25,12 +25,14 @@ class IntegrationFixtures:
     
     @pytest.fixture
     def agent_client(self) -> AgentClient:
-        ...
-    
-    @pytest.fixture
-    def ai_agent_client(self) -> AIAgentClient:
-        ...
+        return self._agent_client
 
     @pytest.fixture
-    def response_server(self) -> ResponseServer:
-        return self._response_server
+    async def response_client(self) -> AsyncGenerator[ResponseClient, None]:
+        """Provides the response client instance."""
+        async with ResponseClient() as response_client:
+            yield response_client
+
+    @pytest.fixture
+    def create_response_client(self) -> Callable[None, ResponseClient]:
+        return lambda: ResponseClient()
