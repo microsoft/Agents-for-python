@@ -364,7 +364,7 @@ class ChannelServiceAdapter(ChannelAdapter, ABC):
             agent *reactive messaging* flow.
             Call this method to reactively send a message to a conversation.
             If the task completes successfully, then an :class:`microsoft_agents.activity.InvokeResponse` is returned;
-            otherwise, `null` is returned.
+            otherwise, `None` is returned.
         """
         scopes: list[str] = None
         outgoing_audience: str = None
