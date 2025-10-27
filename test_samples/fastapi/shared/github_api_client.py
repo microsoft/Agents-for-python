@@ -55,7 +55,7 @@ async def get_pull_requests(owner: str, repo: str, token: str) -> List[PullReque
                     PullRequest(
                         id=pr.get("id"),
                         title=pr.get("title"),
-                        url=pr.get("htmlUrl"),
+                        url=pr.get("html_url"),
                     )
                     for pr in data[-5:]
                 ]
