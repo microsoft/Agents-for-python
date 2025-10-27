@@ -1,5 +1,6 @@
 import aiohttp
 
+
 async def get_user_info(token):
     """
     Get information about the current user from Microsoft Graph API.

@@ -1,12 +1,15 @@
 import aiohttp
 from typing import List, Dict, Any
 
+
 class PullRequest:
     """Represents a GitHub pull request."""
+
     def __init__(self, id: str, title: str, url: str):
         self.id = id
         self.title = title
         self.url = url
+
 
 async def get_current_profile(token: str) -> Dict[str, Any]:
     """Get information about the current authenticated user."""
@@ -31,7 +34,10 @@ async def get_current_profile(token: str) -> Dict[str, Any]:
                     "imageUri": data.get("avatar_url", ""),
                 }
             error_text = await response.text()
-            raise Exception(f"Error fetching user profile: {response.status} - {error_text}")
+            raise Exception(
+                f"Error fetching user profile: {response.status} - {error_text}"
+            )
+
 
 async def get_pull_requests(owner: str, repo: str, token: str) -> List[PullRequest]:
     """Get pull requests for a specific repository."""

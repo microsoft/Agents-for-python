@@ -26,7 +26,7 @@ app.add_middleware(JwtAuthorizationMiddleware)
 # Agent handlers
 async def _help(context: TurnContext, _state: TurnState):
     await context.send_activity(
-        "Welcome to the Echo Agent sample 🚀. "
+        "Welcome to the Empty Agent Sample 🚀. "
         "Type /help for help or send a message to see the echo feature in action."
     )
 

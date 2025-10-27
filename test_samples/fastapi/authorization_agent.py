@@ -2,10 +2,9 @@
 # Licensed under the MIT License.
 
 import logging
+import json
 from os import environ, path
 import re
-import sys
-import traceback
 
 import uvicorn
 from dotenv import load_dotenv
@@ -26,7 +25,13 @@ from microsoft_agents.hosting.fastapi import (
 )
 from microsoft_agents.authentication.msal import MsalConnectionManager
 
-from shared import get_current_profile, get_pull_requests, get_user_info, create_profile_card, create_pr_card
+from shared import (
+    get_current_profile,
+    get_pull_requests,
+    get_user_info,
+    create_profile_card,
+    create_pr_card,
+)
 
 logger = logging.getLogger(__name__)
 
