@@ -2,12 +2,21 @@ from .environment import (
     Environment,
     create_aiohttp_env
 )
-from .integration_test_suite_factory import integration_test_suite_factory
+from .client import (
+    AgentClient,
+    ResponseClient,
+)
+from .integration import integration
+from .integration_fixtures import IntegrationFixtures
 from .sample import Sample
 
+
 __all__ = [
+    "AgentClient",
+    "ResponseClient",
     "Environment",
     "create_aiohttp_env",
-    "integration_test_suite_factory",
+    "integration",
+    "IntegrationFixtures",
     "Sample",
 ]
