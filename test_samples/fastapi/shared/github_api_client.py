@@ -51,7 +51,7 @@ async def get_pull_requests(owner: str, repo: str, token: str) -> List[PullReque
                         title=pr.get("title"),
                         url=pr.get("htmlUrl"),
                     )
-                    for pr in data[-5:-1]
+                    for pr in data[-5:]
                 ]
             error_text = await response.text()
             raise Exception(
