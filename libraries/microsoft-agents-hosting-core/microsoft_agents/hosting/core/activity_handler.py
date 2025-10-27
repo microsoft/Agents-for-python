@@ -3,6 +3,7 @@
 
 from __future__ import annotations
 from http import HTTPStatus
+from typing import Awaitable
 from pydantic import BaseModel
 
 from microsoft_agents.activity import TurnContextProtocol
@@ -24,9 +25,9 @@ class ActivityHandler(Agent):
     """
     Handles activities and should be subclassed.
 
-    .. remarks::
+    .. note::
         Derive from this class to handle particular activity types.
-        Yon can add pre and post processing of activities by calling the base class
+        You can add pre and post processing of activities by calling the base class
         in the derived class.
     """
 
@@ -34,15 +35,16 @@ class ActivityHandler(Agent):
         self, turn_context: TurnContextProtocol
     ):  # pylint: disable=arguments-differ
         """
-        Called by the adapter (for example, :class:`ChannelAdapter`) at runtime
+        Called by the adapter (for example, :class:`microsoft_agents.hosting.core.channel_adapter.ChannelAdapter`) at runtime
         in order to process an inbound :class:`microsoft_agents.activity.Activity`.
 
         :param turn_context: The context object for this turn
         :type turn_context: :class:`microsoft_agents.activity.TurnContextProtocol`
 
         :returns: A task that represents the work queued to execute
+        :rtype: Awaitable[None]
 
-        .. remarks::
+        .. note::
             It calls other methods in this class based on the type of the activity to
             process, which allows a derived class to provide type-specific logic in a controlled way.
             In a derived class, override this method to add logic that applies to all activity types.
@@ -108,6 +110,7 @@ class ActivityHandler(Agent):
         :param turn_context: The context object for this turn
         :type turn_context: :class:`microsoft_agents.activity.TurnContextProtocol`
         :returns: A task that represents the work queued to execute
+        :rtype: Awaitable[None]
         """
         return
 
@@ -121,6 +124,7 @@ class ActivityHandler(Agent):
         :param turn_context: The context object for this turn
         :type turn_context: :class:`microsoft_agents.activity.TurnContextProtocol`
         :returns: A task that represents the work queued to execute
+        :rtype: Awaitable[None]
         """
         return
 
@@ -134,6 +138,7 @@ class ActivityHandler(Agent):
         :param turn_context: The context object for this turn
         :type turn_context: :class:`microsoft_agents.activity.TurnContextProtocol`
         :returns: A task that represents the work queued to execute
+        :rtype: Awaitable[None]
         """
         return
 
@@ -145,17 +150,18 @@ class ActivityHandler(Agent):
         :param turn_context: The context object for this turn
         :type turn_context: :class:`microsoft_agents.activity.TurnContextProtocol`
         :returns: A task that represents the work queued to execute
+        :rtype: Awaitable[None]
 
-        .. remarks::
+        .. note::
             When the :meth:`on_turn()` method receives a conversation update activity, it calls this
             method.
             Also
             - If the conversation update activity indicates that members other than the agent joined the conversation,
-            it calls the  :meth:`on_members_added_activity()` method.
+              it calls the :meth:`on_members_added_activity()` method.
             - If the conversation update activity indicates that members other than the agent left the conversation,
-            it calls the  :meth:`on_members_removed_activity()`  method.
+              it calls the :meth:`on_members_removed_activity()` method.
             - In a derived class, override this method to add logic that applies to all conversation update activities.
-            Add logic to apply before the member added or removed logic before the call to this base class method.
+              Add logic to apply before the member added or removed logic before the call to this base class method.
         """
         # TODO: confirm behavior of added and removed at the same time as C# doesn't support it
         if turn_context.activity.members_added:
@@ -175,13 +181,14 @@ class ActivityHandler(Agent):
         the conversation. You can add your agent's welcome logic.
 
         :param members_added: A list of all the members added to the conversation, as described by the
-        conversation update activity
+            conversation update activity
         :type members_added: list[:class:`microsoft_agents.activity.ChannelAccount`]
         :param turn_context: The context object for this turn
         :type turn_context: :class:`microsoft_agents.activity.TurnContextProtocol`
         :returns: A task that represents the work queued to execute
+        :rtype: Awaitable[None]
 
-        .. remarks::
+        .. note::
             When the :meth:`on_conversation_update_activity()` method receives a conversation
             update activity that indicates
             one or more users other than the agent are joining the conversation, it calls this method.
@@ -196,13 +203,14 @@ class ActivityHandler(Agent):
         the conversation.  You can add your agent's good-bye logic.
 
         :param members_removed: A list of all the members removed from the conversation, as described by the
-        conversation update activity
+            conversation update activity
         :type members_removed: list[:class:`microsoft_agents.activity.ChannelAccount`]
         :param turn_context: The context object for this turn
         :type turn_context: :class:`microsoft_agents.activity.TurnContextProtocol`
         :returns: A task that represents the work queued to execute
+        :rtype: Awaitable[None]
 
-        .. remarks::
+        .. note::
             When the :meth:`on_conversation_update_activity()` method receives a conversation
             update activity that indicates one or more users other than the agent are leaving the conversation,
             it calls this method.
@@ -219,8 +227,9 @@ class ActivityHandler(Agent):
         :type turn_context: :class:`microsoft_agents.activity.TurnContextProtocol`
 
         :returns: A task that represents the work queued to execute
+        :rtype: Awaitable[None]
 
-        .. remarks::
+        .. note::
             Message reactions correspond to the user adding a 'like' or 'sad' etc. (often an emoji) to a previously
             sent activity.
 
@@ -231,9 +240,9 @@ class ActivityHandler(Agent):
             method.
 
             - If the message reaction indicates that reactions were added to a message, it calls
-            :meth:`on_reaction_added()`.
+              :meth:`on_reactions_added()`.
             - If the message reaction indicates that reactions were removed from a message, it calls
-            :meth:`on_reaction_removed()`.
+              :meth:`on_reactions_removed()`.
 
             In a derived class, override this method to add logic that applies to all message reaction activities.
             Add logic to apply before the reactions added or removed logic before the call to the this base class
@@ -264,8 +273,9 @@ class ActivityHandler(Agent):
         :param turn_context: The context object for this turn
         :type turn_context: :class:`microsoft_agents.activity.TurnContextProtocol`
         :returns: A task that represents the work queued to execute
+        :rtype: Awaitable[None]
 
-        .. remarks::
+        .. note::
             Message reactions correspond to the user adding a 'like' or 'sad' etc. (often an emoji)
             to a previously sent message on the conversation.
             Message reactions are supported by only a few channels.
@@ -290,8 +300,9 @@ class ActivityHandler(Agent):
         :type turn_context: :class:`microsoft_agents.activity.TurnContextProtocol`
 
         :returns: A task that represents the work queued to execute
+        :rtype: Awaitable[None]
 
-        .. remarks::
+        .. note::
             Message reactions correspond to the user adding a 'like' or 'sad' etc. (often an emoji)
             to a previously sent message on the conversation. Message reactions are supported by only a few channels.
             The activity that the message is in reaction to is identified by the activity's reply to Id property.
@@ -308,8 +319,9 @@ class ActivityHandler(Agent):
         :param turn_context: The context object for this turn
         :type turn_context: :class:`microsoft_agents.activity.TurnContextProtocol`
         :returns: A task that represents the work queued to execute
+        :rtype: Awaitable[None]
 
-        .. remarks::
+        .. note::
             When the :meth:`on_turn()` method receives an event activity, it calls this method.
             If the activity name is `tokens/response`, it calls :meth:`on_token_response_event()`;
             otherwise, it calls :meth:`on_event()`.
@@ -338,8 +350,9 @@ class ActivityHandler(Agent):
         :param turn_context: The context object for this turn
         :type turn_context: :class:`microsoft_agents.activity.TurnContextProtocol`
         :returns: A task that represents the work queued to execute
+        :rtype: Awaitable[None]
 
-        .. remarks::
+        .. note::
             When the :meth:`on_event()` method receives an event with an activity name of
             `tokens/response`, it calls this method. If your agent uses an `oauth_prompt`, forward the incoming
             activity to the current dialog.
@@ -352,11 +365,13 @@ class ActivityHandler(Agent):
         """
         Invoked when an event other than `tokens/response` is received when the base behavior of
         :meth:`on_event_activity()` is used.
+
         :param turn_context: The context object for this turn
         :type turn_context: :class:`microsoft_agents.activity.TurnContextProtocol`
         :returns: A task that represents the work queued to execute
+        :rtype: Awaitable[None]
 
-        .. remarks::
+        .. note::
             When the :meth:`on_event_activity()` is used method receives an event with an
             activity name other than `tokens/response`, it calls this method.
             This method could optionally be overridden if the agent is meant to handle miscellaneous events.
@@ -368,9 +383,11 @@ class ActivityHandler(Agent):
     ):
         """
         Invoked when a conversation end activity is received from the channel.
+
         :param turn_context: The context object for this turn
         :type turn_context: :class:`microsoft_agents.activity.TurnContextProtocol`
         :returns: A task that represents the work queued to execute
+        :rtype: Awaitable[None]
         """
         return
 
@@ -384,6 +401,7 @@ class ActivityHandler(Agent):
         :param turn_context: The context object for this turn
         :type turn_context: :class:`microsoft_agents.activity.TurnContextProtocol`
         :returns: A task that represents the work queued to execute
+        :rtype: Awaitable[None]
         """
         return
 
@@ -397,6 +415,7 @@ class ActivityHandler(Agent):
         :param turn_context: The context object for this turn
         :type turn_context: :class:`microsoft_agents.activity.TurnContextProtocol`
         :returns: A task that represents the work queued to execute
+        :rtype: Awaitable[None]
         """
         if turn_context.activity.action in ("add", "add-upgrade"):
             return await self.on_installation_update_add(turn_context)
@@ -414,6 +433,7 @@ class ActivityHandler(Agent):
         :param turn_context: The context object for this turn
         :type turn_context: :class:`microsoft_agents.activity.TurnContextProtocol`
         :returns: A task that represents the work queued to execute
+        :rtype: Awaitable[None]
         """
         return
 
@@ -427,6 +447,7 @@ class ActivityHandler(Agent):
         :param turn_context: The context object for this turn
         :type turn_context: :class:`microsoft_agents.activity.TurnContextProtocol`
         :returns: A task that represents the work queued to execute
+        :rtype: Awaitable[None]
         """
         return
 
@@ -440,10 +461,10 @@ class ActivityHandler(Agent):
 
         :param turn_context: The context object for this turn
         :type turn_context: :class:`microsoft_agents.activity.TurnContextProtocol`
-
         :returns: A task that represents the work queued to execute
+        :rtype: Awaitable[None]
 
-        .. remarks::
+        .. note::
             When the :meth:`on_turn()` method receives an activity that is not a message,
             conversation update, message reaction, or event activity, it calls this method.
         """
@@ -494,8 +515,8 @@ class ActivityHandler(Agent):
 
         :param turn_context: The context object for this turn
         :type turn_context: :class:`microsoft_agents.activity.TurnContextProtocol`
-
         :returns: A task that represents the work queued to execute
+        :rtype: Awaitable[None]
         """
         raise _InvokeResponseException(HTTPStatus.NOT_IMPLEMENTED)
 
@@ -512,7 +533,7 @@ class ActivityHandler(Agent):
         :type turn_context: :class:`microsoft_agents.activity.TurnContextProtocol`
         :param invoke_value: A string-typed object from the incoming activity's value.
         :type invoke_value: :class:`microsoft_agents.activity.AdaptiveCardInvokeValue`
-        :return: The HealthCheckResponse object
+        :returns: The HealthCheckResponse object
         :rtype: :class:`microsoft_agents.activity.AdaptiveCardInvokeResponse`
         """
         raise _InvokeResponseException(HTTPStatus.NOT_IMPLEMENTED)

@@ -12,7 +12,7 @@ class ChannelAccount(AgentsModel):
     """Channel account information needed to route a message.
 
     :param id: Channel id for the user or agent on this channel (Example:
-     joe@smith.com, or @joesmith or 123456)
+     ``joe@smith.com``, or ``@joesmith`` or ``123456``)
     :type id: str
     :param name: Display friendly name
     :type name: str
