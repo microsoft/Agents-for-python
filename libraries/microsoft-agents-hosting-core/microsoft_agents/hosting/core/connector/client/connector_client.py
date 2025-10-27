@@ -174,7 +174,7 @@ class ConversationsOperations(ConversationsBase):
             "v3/conversations",
             json=body.model_dump(by_alias=True, exclude_unset=True, mode="json"),
         ) as response:
-            if response.status not in [200, 201, 202]:
+            if response.status >= 300:
                 logger.error(
                     "Error creating conversation: %s", response.status, stack_info=True
                 )
@@ -219,7 +219,7 @@ class ConversationsOperations(ConversationsBase):
         ) as response:
             result = await response.json() if response.content_length else {}
 
-            if response.status not in [200, 201, 202]:
+            if response.status >= 300:
                 logger.error(
                     "Error replying to activity: %s",
                     result or response.status,
@@ -228,7 +228,7 @@ class ConversationsOperations(ConversationsBase):
                 response.raise_for_status()
 
             logger.info(
-                f"Reply to conversation/activity: {result.get('id')}, {activity_id}"
+                "Reply to conversation/activity: %s, %s", result.get("id"), activity_id
             )
 
         return ResourceResponse.model_validate(result)
@@ -262,7 +262,7 @@ class ConversationsOperations(ConversationsBase):
             url,
             json=body.model_dump(by_alias=True, exclude_unset=True, mode="json"),
         ) as response:
-            if response.status not in [200, 201, 202]:
+            if response.status >= 300:
                 logger.error(
                     "Error sending to conversation: %s",
                     response.status,
@@ -304,7 +304,7 @@ class ConversationsOperations(ConversationsBase):
             url,
             json=body.model_dump(by_alias=True, exclude_unset=True),
         ) as response:
-            if response.status not in [200, 201, 202]:
+            if response.status >= 300:
                 logger.error(
                     "Error updating activity: %s", response.status, stack_info=True
                 )
@@ -376,7 +376,7 @@ class ConversationsOperations(ConversationsBase):
             body.name,
         )
         async with self.client.post(url, json=attachment_dict) as response:
-            if response.status not in [200, 201, 202]:
+            if response.status >= 300:
                 logger.error(
                     "Error uploading attachment: %s", response.status, stack_info=True
                 )
@@ -481,7 +481,7 @@ class ConversationsOperations(ConversationsBase):
             conversation_id,
         )
         async with self.client.delete(url) as response:
-            if response.status not in [200, 204]:
+            if response.status >= 300:
                 logger.error(
                     "Error deleting conversation member: %s",
                     response.status,
@@ -596,7 +596,7 @@ class ConversationsOperations(ConversationsBase):
 
         logger.info("Sending conversation history to conversation: %s", conversation_id)
         async with self.client.post(url, json=body) as response:
-            if response.status not in [200, 201, 202]:
+            if response.status >= 300:
                 logger.error(
                     "Error sending conversation history: %s",
                     response.status,

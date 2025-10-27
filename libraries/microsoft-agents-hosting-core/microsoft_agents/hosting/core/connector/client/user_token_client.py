@@ -127,6 +127,7 @@ class UserToken(UserTokenBase):
         logger.info("User_token.get_token(): Getting token with params: %s", params)
         async with self.client.get("api/usertoken/GetToken", params=params) as response:
             if response.status == 404:
+                logger.warning("Token not found for params: %s", params)
                 return TokenResponse()
             if response.status >= 300:
                 logger.error("Error getting token: %s", response.status)
@@ -255,6 +256,7 @@ class UserToken(UserTokenBase):
             "api/usertoken/exchange", params=params, json=body
         ) as response:
             if response.status == 404:
+                logger.warning("Token not found for params: %s", params)
                 return TokenResponse()
             if response.status >= 300:
                 logger.error("Error exchanging token: %s", response.status)

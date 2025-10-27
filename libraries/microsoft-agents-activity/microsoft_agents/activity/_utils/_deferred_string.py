@@ -9,7 +9,7 @@ logger = logging.getLogger(__name__)
 
 class _DeferredString:
     """A wrapper around a function to allow for deferred evaluation.
-    
+
     The result of the function is converted to a string with str().
     If an error occurs during evaluation, an error is logged and a default
     string is returned.
@@ -17,7 +17,7 @@ class _DeferredString:
 
     def __init__(self, func: Callable, *args, **kwargs):
         """Initializes a DeferredString instance.
-        
+
         :param func: The function to be called to get the string value.
         :param args: Positional arguments to pass to the function.
         :param kwargs: Keyword arguments to pass to the function.
