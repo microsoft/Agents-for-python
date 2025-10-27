@@ -85,7 +85,7 @@ def create_pr_card(pr):
                     "weight": "Bolder",
                     "size": "Medium",
                 },
-                {"type": "TextBlock", "text": pr.id},
+                {"type": "TextBlock", "text": str(pr.id)},
             ],
             "actions": [
                 {
