@@ -48,7 +48,7 @@ class MsalAuth(AccessTokenProviderBase):
 
         :param msal_configuration: The MSAL authentication configuration. Assumed to
             not be mutated after being passed in.
-        :type msal_configuration: AgentAuthConfiguration
+        :type msal_configuration: :class:`microsoft_agents.hosting.core.authorization.agent_auth_configuration.AgentAuthConfiguration`
         """
 
         self._msal_configuration = msal_configuration
