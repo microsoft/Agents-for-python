@@ -250,10 +250,10 @@ class StreamingResponse:
             await self._queue_sync
 
     def _set_defaults(self, context: "TurnContext"):
-        if Channels.ms_teams in context.activity.channel_id:
+        if Channels.ms_teams == context.activity.channel_id.channel:
             self._is_streaming_channel = True
             self._interval = 1.0
-        elif Channels.direct_line in context.activity.channel_id:
+        elif Channels.direct_line == context.activity.channel_id.channel:
             self._is_streaming_channel = True
             self._interval = 0.5
         elif context.activity.delivery_mode == DeliveryModes.stream:
