@@ -76,4 +76,3 @@ class TypingIndicator:
                 await asyncio.sleep(self._intervalSeconds)
         except asyncio.CancelledError:
             logger.debug("Typing indicator loop cancelled")
-            raise
