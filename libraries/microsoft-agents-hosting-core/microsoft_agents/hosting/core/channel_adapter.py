@@ -42,8 +42,9 @@ class ChannelAdapter(ABC, ChannelAdapterProtocol):
         :param context: The context object for the turn.
         :type context: :class:`microsoft_agents.hosting.core.turn_context.TurnContext`
         :param activities: The activities to send.
-        :type activities: list[Activity]
-        :return:
+        :type activities: list[microsoft_agents.activity.Activity]
+        :return: Channel responses produced by the adapter.
+        :rtype: list[microsoft_agents.activity.ResourceResponse]
         """
         raise NotImplementedError()
 
@@ -56,7 +57,8 @@ class ChannelAdapter(ABC, ChannelAdapterProtocol):
         :type context: :class:`microsoft_agents.hosting.core.turn_context.TurnContext`
         :param activity: New replacement activity.
         :type activity: :class:`microsoft_agents.activity.Activity`
-        :return:
+        :return: None
+        :rtype: None
         """
         raise NotImplementedError()
 
@@ -71,7 +73,8 @@ class ChannelAdapter(ABC, ChannelAdapterProtocol):
         :type context: :class:`microsoft_agents.hosting.core.turn_context.TurnContext`
         :param reference: Conversation reference for the activity to delete.
         :type reference: :class:`microsoft_agents.activity.ConversationReference`
-        :return:
+        :return: None
+        :rtype: None
         """
         raise NotImplementedError()
 
@@ -80,7 +83,9 @@ class ChannelAdapter(ABC, ChannelAdapterProtocol):
         Registers a middleware handler with the adapter.
 
         :param middleware: The middleware to register.
-        :return:
+        :type middleware: object
+        :return: The current adapter instance to support fluent calls.
+        :rtype: ChannelAdapter
         """
         self.middleware_set.use(middleware)
         return self
@@ -97,16 +102,14 @@ class ChannelAdapter(ABC, ChannelAdapterProtocol):
         to the user.
 
         :param agent_id: The application ID of the agent. This parameter is ignored in
-        single tenant the Adapters (Console, Test, etc) but is critical to the ChannelAdapter
-        which is multi-tenant aware.
+            single-tenant adapters (Console, Test, etc.) but is required for multi-tenant adapters.
+        :type agent_id: str
         :param reference: A reference to the conversation to continue.
         :type reference: :class:`microsoft_agents.activity.ConversationReference`
         :param callback: The method to call for the resulting agent turn.
         :type callback: Callable[[microsoft_agents.hosting.core.turn_context.TurnContext], Awaitable]
-        :param claims_identity: A :class:`microsoft_agents.hosting.core.ClaimsIdentity` for the conversation.
-        :type claims_identity: :class:`microsoft_agents.hosting.core.ClaimsIdentity`
-        :param audience:A value signifying the recipient of the proactive message.
-        :type audience: str
+        :return: Result produced by the adapter pipeline.
+        :rtype: typing.Any
         """
         context = TurnContext(self, reference.get_continuation_activity())
         return await self.run_pipeline(context, callback)
@@ -123,7 +126,7 @@ class ChannelAdapter(ABC, ChannelAdapterProtocol):
         Most channels require a user to initiate a conversation with an agent before the agent can send activities
         to the user.
 
-        :param claims_identity: A :class:`microsoft_agents.hosting.core.ClaimsIdentity` for the conversation.
+        :param claims_identity: A :class:`microsoft_agents.hosting.core.authorization.ClaimsIdentity` for the conversation.
         :type claims_identity: :class:`microsoft_agents.hosting.core.authorization.ClaimsIdentity`
         :param continuation_activity: The activity to send.
         :type continuation_activity: :class:`microsoft_agents.activity.Activity`
@@ -131,6 +134,8 @@ class ChannelAdapter(ABC, ChannelAdapterProtocol):
         :type callback: Callable[[microsoft_agents.hosting.core.turn_context.TurnContext], Awaitable]
         :param audience: A value signifying the recipient of the proactive message.
         :type audience: str
+        :return: Result produced by the adapter pipeline.
+        :rtype: typing.Any
         """
         raise NotImplementedError()
 
@@ -154,16 +159,17 @@ class ChannelAdapter(ABC, ChannelAdapterProtocol):
         :type service_url: str
         :param audience: A value signifying the recipient of the proactive message.
         :type audience: str
-        :param conversation_parameters: The information to use to create the conversation
+        :param conversation_parameters: The information to use to create the conversation.
         :type conversation_parameters: :class:`microsoft_agents.activity.ConversationParameters`
         :param callback: The method to call for the resulting agent turn.
         :type callback: Callable[[microsoft_agents.hosting.core.turn_context.TurnContext], Awaitable]
 
-        :raises: Exception - Not implemented or when the implementation fails.
+        :raises Exception: Not implemented or when the implementation fails.
 
         :return: A task representing the work queued to execute.
+        :rtype: typing.Any
 
-        .. remarks::
+        .. note::
             To start a conversation, your agent must know its account information and the user's
             account information on that channel.
             Most channels only support initiating a direct message (non-group) conversation.
@@ -225,7 +231,8 @@ class ChannelAdapter(ABC, ChannelAdapterProtocol):
         :type context: :class:`microsoft_agents.hosting.core.turn_context.TurnContext`
         :param callback: A callback method to run at the end of the pipeline.
         :type callback: Callable[[TurnContext], Awaitable]
-        :return:
+        :return: Result produced by the middleware pipeline.
+        :rtype: typing.Any
         """
         if context is None:
             raise TypeError(context.__class__.__name__)
