@@ -1,8 +1,7 @@
 import os
 import json
 import asyncio
-from re import A
-from typing import Any, Optional
+from typing import Any, Optional, cast
 
 from aiohttp import ClientSession
 
@@ -79,35 +78,19 @@ class AgentClient:
                 raise Exception(f"Failed to send activity: {response.status}")
             content = await response.text()
             return content
-        
-    async def send_activity(self, activity: Activity, timeout: Optional[float] = None) -> list[Activity]:
+
+    async def send_activity(self, activity_or_text: Activity | str, timeout: Optional[float] = None) -> str:
         timeout = timeout or self._default_timeout
 
-        content = await self.send_request(activity)
-        return content
-    
-    async def send_expect_replies_activity(self, activity: Activity) -> list[Activity]:
-        if activity.delivery_mode != DeliveryModes.expect_replies:
-            raise ValueError("Activity delivery_mode must be 'expectReplies' for this method.")
-
-        content = await self.send_request(activity)
-        if not content:
-            raise RuntimeError("Expected replies but received no content.")
-        
-        activities_content = json.loads(content)
-        activities = [
-            Activity.model_validate_json(json.dumps(act))
-            for act in activities_content
-        ]
-
-        return activities
-
-    async def send_stream_activity(self, activity: Activity) -> list[Activity]:
-        raise NotImplementedError("send_stream_activity is not implemented yet.")
-        
-    async def send_invoke(self, activity: Activity) -> str:
-        if activity.type != ActivityTypes.invoke:
-            raise ValueError("Activity type must be 'invoke' for send_invoke method.")
+        if isinstance(activity_or_text, str):
+            activity = Activity(
+                type=ActivityTypes.message,
+                # delivery_mode=DeliveryModes.expect_replies,
+                text=activity_or_text,
+                input_hint=input_hint or InputHints.accepting_input,
+            )
+        else:
+            activity = cast(Activity, activity_or_text)
 
         content = await self.send_request(activity)
         return content
