@@ -18,7 +18,7 @@ class Environment(ABC):
     agent_application: AgentApplication[TurnState]
     storage: Storage
     adapter: ChannelAdapter
-    connections: Connections
+    connection_manager: Connections
     authorization: Authorization
 
     config: dict
@@ -26,16 +26,11 @@ class Environment(ABC):
     driver: Callable[[], Awaitable[None]]
 
     @abstractmethod
-    async def init_env(self) -> None:
+    async def init_env(self, environ_config: dict) -> None:
         """Initialize the environment."""
         raise NotImplementedError()
 
     @abstractmethod
     def create_runner(self) -> ApplicationRunner:
         """Create an application runner for the environment."""
-        raise NotImplementedError()
-    
-    @abstractmethod
-    def create_app(self):
-        """Create the application for the environment."""
         raise NotImplementedError()

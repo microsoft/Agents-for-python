@@ -78,19 +78,30 @@ class AgentClient:
                 raise Exception(f"Failed to send activity: {response.status}")
             content = await response.text()
             return content
-
-    async def send_activity(self, activity_or_text: Activity | str, timeout: Optional[float] = None) -> str:
-        timeout = timeout or self._default_timeout
-
+        
+    def _to_activity(self, activity_or_text: Activity | str) -> Activity:
         if isinstance(activity_or_text, str):
             activity = Activity(
                 type=ActivityTypes.message,
-                # delivery_mode=DeliveryModes.expect_replies,
                 text=activity_or_text,
-                input_hint=input_hint or InputHints.accepting_input,
             )
+            return activity
         else:
-            activity = cast(Activity, activity_or_text)
+            return cast(Activity, activity_or_text)
 
+    async def send_activity(self, activity_or_text: Activity | str, timeout: Optional[float] = None) -> str:
+        timeout = timeout or self._default_timeout
+        activity = self._to_activity(activity_or_text)
         content = await self.send_request(activity)
         return content
+    
+    async def send_expect_replies(self, activity_or_text: Activity | str, timeout: Optional[float] = None) -> list[Activity]:
+        timeout = timeout or self._default_timeout
+        activity = self._to_activity(activity_or_text)
+        activity.delivery_mode = DeliveryModes.expect_replies
+
+        content = await self.send_request(activity)
+
+        activities_data = json.loads(content).get("activities", [])
+        activities = [Activity.model_validate(act) for act in activities_data]
+        return activities

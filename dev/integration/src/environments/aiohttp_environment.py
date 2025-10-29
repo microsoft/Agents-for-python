@@ -1,4 +1,5 @@
 
+from tkinter import E
 from aiohttp.web import Request, Response, Application, run_app
 
 from microsoft_agents.hosting.aiohttp import (
@@ -10,14 +11,15 @@ from microsoft_agents.hosting.core import (
     Authorization,
     AgentApplication,
     TurnState,
-    TurnContext,
     MemoryStorage,
 )
 from microsoft_agents.authentication.msal import MsalConnectionManager
 from microsoft_agents.activity import load_configuration_from_env
 
-from .application_runner import ApplicationRunner
-from .environment import Environment
+from ..core import (
+    ApplicationRunner,
+    Environment
+)
 
 class AiohttpRunner(ApplicationRunner):
     """A runner for aiohttp applications."""
@@ -33,22 +35,23 @@ class AiohttpRunner(ApplicationRunner):
         pass
 
 class AiohttpEnvironment(Environment):
+    """An environment for aiohttp-hosted agents."""
 
-    async def init_env(self, environ_dict: dict) -> None:
-        environ_dict = environ_dict or {}
+    async def init_env(self, environ_config: dict) -> None:
+        environ_config = environ_config or {}
 
-        agents_sdk_config = load_configuration_from_env(environ_dict)
+        self.config = load_configuration_from_env(environ_config)
 
-        storage = MemoryStorage()
-        connection_manager = MsalConnectionManager(**agents_sdk_config)
-        adapter = CloudAdapter(connection_manager=connection_manager)
-        authorization = Authorization(storage, connection_manager, **agents_sdk_config)
+        self.storage = MemoryStorage()
+        self.connection_manager = MsalConnectionManager(**self.config)
+        self.adapter = CloudAdapter(connection_manager=self.connection_manager)
+        self.authorization = Authorization(self.storage, self.connection_manager, **self.config)
 
-        agent_application = AgentApplication[TurnState](
-            storage=storage,
-            adapter=adapter,
-            authorization=authorization,
-            **agents_sdk_config
+        self.agent_application = AgentApplication[TurnState](
+            storage=self.storage,
+            adapter=self.adapter,
+            authorization=self.authorization,
+            **self.agents_sdk_config
         )
     
     def create_runner(self) -> ApplicationRunner:
@@ -64,8 +67,8 @@ class AiohttpEnvironment(Environment):
 
         APP = Application(middlewares=[jwt_authorization_middleware])
         APP.router.add_post("/api/messages", entry_point)
-        APP["agent_configuration"] = self.connections.get_default_connection()
+        APP["agent_configuration"] = self.connection_manager.get_default_connection()
         APP["agent_app"] = self.agent_application
         APP["adapter"] = self.adapter
 
-        return ApplicationRunner(APP)
+        return AiohttpRunner(APP)
