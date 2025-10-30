@@ -2,36 +2,33 @@ from typing import Optional, TypeVar, Union, Callable, Any
 
 import aiohttp.web
 
-from .runner import AppRunner
+from .application_runner import ApplicationRunner
 from .environment import Environment
-from .response_server import ResponseServer
+from .client import AgentClient, ResponseClient
 from .sample import Sample
 
 T = TypeVar("T", bound=type)
 AppT = TypeVar("AppT", bound=aiohttp.web.Application) # for future extension w/ Union
 
-async def start_response_server():
-    pass
-
 class _Integration:
 
     @staticmethod
-    def _with_response_server(target_cls: T, host_response: bool) -> T:
-        """Wraps the target class to include a response server if needed."""
+    def _with_response_client(target_cls: T, host_response: bool) -> T:
+        """Wraps the target class to include a response client if needed."""
 
         _prev_setup_method = getattr(target_cls, "setup_method", None)
         _prev_teardown_method = getattr(target_cls, "teardown_method", None)
 
         async def setup_method(self):
             if host_response:
-                self._response_server = ResponseServer()
-                await self._response_server.__aenter__()
+                self._response_client = ResponseClient()
+                await self._response_client.__aenter__()
             if _prev_setup_method:
                 await _prev_setup_method(self)
 
         async def teardown_method(self):
             if host_response:
-                await self._response_server.__aexit__(None, None, None)
+                await self._response_client.__aexit__(None, None, None)
             if _prev_teardown_method:
                 await _prev_teardown_method(self)
 
@@ -55,7 +52,7 @@ class _Integration:
             target_cls.setup_method = setup_method
             target_cls.teardown_method = teardown_method
 
-            target_cls = Integration._with_response_server(target_cls, host_response)
+            target_cls = _Integration._with_response_client(target_cls, host_response)
 
             return target_cls
         
@@ -72,43 +69,45 @@ class _Integration:
 
         def decorator(target_cls: T) -> T:
 
-            def setup_method(self):
+            async def setup_method(self):
                 self._environment = environment_cls(sample_cls.get_config())
                 await self._environment.__aenter__()
 
                 self._sample = sample_cls(self._environment)
                 await self._sample.__aenter__()
 
-            def teardown_method(self):
+            async def teardown_method(self):
                 await self._sample.__aexit__(None, None, None)
                 await self._environment.__aexit__(None, None, None)
 
-            target_cls = Integration._with_response_server(target_cls, host_response)
+            target_cls = _Integration._with_response_client(target_cls, host_response)
 
             return target_cls
         
         return decorator
     
-    @staticmethod
-    def from_app(app: Any, host_response: bool = True) -> Callable[[T], T]:
-        """Creates an Integration instance using an aiohttp application."""
+    # not supported yet
+    # @staticmethod
+    # def from_app(app: Any, host_response: bool = True) -> Callable[[T], T]:
+    #     """Creates an Integration instance using an aiohttp application."""
 
-        def decorator(target_cls: T) -> T:
+    #     def decorator(target_cls: T) -> T:
 
-            async def setup_method(self):
+    #         async def setup_method(self):
 
-                self._app = app
-                self._runner = AppRunner(self._app)
-                await self._runner.__aenter__()
+    #             self._app = app
 
-            async def teardown_method(self):
-                await self._runner.__aexit__(None, None, None)
+    #             self._runner = self._environment.create_runner()
+    #             await self._runner.__aenter__()
 
-            target_cls = Integration._with_response_server(target_cls, host_response)
+    #         async def teardown_method(self):
+    #             await self._runner.__aexit__(None, None, None)
 
-            return target_cls
+    #         target_cls = _Integration._with_response_client(target_cls, host_response)
+
+    #         return target_cls
         
-        return decorator
+    #     return decorator
     
 def integration(
     service_url: Optional[str] = None,
@@ -143,8 +142,8 @@ def integration(
         decorator = _Integration.from_service_url(service_url, host_response=host_response)
     elif sample_cls and environment_cls:
         decorator = _Integration.from_sample(sample_cls, environment_cls, host_agent=host_agent, host_response=host_response)
-    elif app:
-        decorator = _Integration.from_app(app, host_response=host_response)
+    # elif app:
+    #     decorator = _Integration.from_app(app, host_response=host_response)
     else:
         raise ValueError("Insufficient parameters to create Integration instance.")
         
