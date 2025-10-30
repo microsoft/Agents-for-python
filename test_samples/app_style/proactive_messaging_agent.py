@@ -170,16 +170,16 @@ class ProactiveMessenger:
         reference = ConversationReference(
             channel_id=self._settings.channel_id,
             service_url=self._settings.service_url,
-            agent=ChannelAccount(id=self._settings.agent_id),
+            agent=ChannelAccount(id="<<from conversation reference>>", name="<<from conversation reference>>"),
             conversation=ConversationAccount(
-                id=conversation_id, tenant_id=self._settings.tenant_id
+                id=conversation_id
             ),
-            user=ChannelAccount(id=self._settings.agent_id),
+            user=ChannelAccount(id="user_id", name="user_name"),
         )
         continuation_activity = reference.get_continuation_activity()
 
         # TODO: activity id as parameter requires library update
-        continuation_activity.id = conversation_id + "|0001022"
+        continuation_activity.id = conversation_id + "|0000001"
 
         async def _callback(turn_context: TurnContext) -> None:
             await turn_context.send_activity(MessageFactory.text(message))
@@ -187,20 +187,21 @@ class ProactiveMessenger:
         await self._adapter.continue_conversation_with_claims(
             self._create_identity(
                 self._settings.bot_id,
-                self._settings.agent_id,
+                self._settings.service_url,
+                "https://api.botframework.com",
             ),
             continuation_activity,
             _callback,
-            "https://api.botframework.com",
         )
 
     @staticmethod
-    def _create_identity(audience: str, app_id: str) -> ClaimsIdentity:
+    def _create_identity(audience: str, service_url: str, issuer: str) -> ClaimsIdentity:
         """Create a claims identity for proactive messaging."""
         return ClaimsIdentity(
             claims={
                 AuthenticationConstants.AUDIENCE_CLAIM: audience,
-                AuthenticationConstants.APP_ID_CLAIM: app_id,
+                AuthenticationConstants.SERVICE_URL_CLAIM: service_url,
+                AuthenticationConstants.ISSUER_CLAIM: issuer,
             },
             is_authenticated=True,
         )

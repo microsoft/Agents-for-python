@@ -232,7 +232,7 @@ class ChannelServiceAdapter(ChannelAdapter, ABC):
         :type audience: Optional[str]
         """
         return await self.process_proactive(
-            claims_identity, continuation_activity, audience, callback
+            claims_identity, continuation_activity, audience or claims_identity.get_token_audience(), callback
         )
 
     async def create_conversation(  # pylint: disable=arguments-differ

@@ -5,7 +5,7 @@ import logging
 from os import environ, path
 from dotenv import load_dotenv
 from microsoft_agents.activity import load_configuration_from_env
-from microsoft_agents.authentication.msal.msal_connection_manager import (
+from microsoft_agents.authentication.msal import (
     MsalConnectionManager,
 )
 from microsoft_agents.hosting.core import (
