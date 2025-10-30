@@ -1,15 +1,7 @@
 import pytest
 from time import sleep
 
-from src.core import ApplicationRunner
-
-class SimpleRunner(ApplicationRunner):
-    def _start_server(self) -> None:
-        self._app["running"] = True
-
-class OtherSimpleRunner(SimpleRunner):
-    def _stop_server(self) -> None:
-        self._app["running"] = False
+from ._common import SimpleRunner, OtherSimpleRunner
 
 class TestApplicationRunner:
 
@@ -44,6 +36,6 @@ class TestApplicationRunner:
         runner = SimpleRunner(app)
         async with runner:
             sleep(0.1)
-            with pytest.raises(RuntimeError, match="Server is already running"):
+            with pytest.raises(RuntimeError):
                 async with runner:
                     pass

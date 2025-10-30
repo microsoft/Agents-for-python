@@ -111,8 +111,8 @@ class _Integration:
     
 def integration(
     service_url: Optional[str] = None,
-    sample_cls: Optional[type[Sample]] = None,
-    environment_cls: Optional[type[Environment]] = None,
+    sample: Optional[type[Sample]] = None,
+    environment: Optional[type[Environment]] = None,
     app: Optional[AppT] = None,
     host_agent: bool = False,
     host_response: bool = True,
@@ -140,8 +140,8 @@ def integration(
 
     if service_url:
         decorator = _Integration.from_service_url(service_url, host_response=host_response)
-    elif sample_cls and environment_cls:
-        decorator = _Integration.from_sample(sample_cls, environment_cls, host_agent=host_agent, host_response=host_response)
+    elif sample and environment:
+        decorator = _Integration.from_sample(sample, environment, host_agent=host_agent, host_response=host_response)
     # elif app:
     #     decorator = _Integration.from_app(app, host_response=host_response)
     else:
