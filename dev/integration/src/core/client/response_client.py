@@ -64,6 +64,8 @@ class ResponseClient:
                         ) as resp:
                             resp_text = await resp.text()
                             return Response(status=resp.status, text=resp_text)
+        except Exception as e:
+            return Response(status=500, text=str(e))
 
     async def _handle_streamed_activity(self, activity: Activity, *args, **kwargs) -> bool:
         raise NotImplementedError("_handle_streamed_activity is not implemented yet.")
