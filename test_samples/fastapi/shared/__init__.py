@@ -11,5 +11,5 @@ __all__ = [
     "get_pull_requests",
     "get_user_info",
     "create_profile_card",
-    "create_pr_card"
+    "create_pr_card",
 ]

@@ -1,49 +1,65 @@
-# Copyright (c) Microsoft Corporation. All rights reserved.
-# Licensed under the MIT License.
+"""Echo skill sample that mirrors the Copilot Studio EchoSkill agent."""
 
 from __future__ import annotations
 
+import json
 import logging
 from dataclasses import dataclass
 from os import environ, path
-from typing import Any
+from typing import Any, Dict, Optional
 
+from aiohttp import web
 from dotenv import load_dotenv
 
 from microsoft_agents.activity import (
+    load_configuration_from_env,
     Activity,
-    ActivityTypes,
     ConversationReference,
     EndOfConversationCodes,
-    MessageFactory,
-    load_configuration_from_env,
 )
 from microsoft_agents.authentication.msal import MsalConnectionManager
-from microsoft_agents.hosting.aiohttp import CloudAdapter
+from microsoft_agents.hosting.aiohttp import CloudAdapter, start_agent_process
 from microsoft_agents.hosting.core import (
     AgentApplication,
     Authorization,
-    ConversationState,
     MemoryStorage,
+    MessageFactory,
     TurnContext,
     TurnState,
 )
-from microsoft_agents.hosting.core.app._routes import RouteRank
 from microsoft_agents.hosting.core.authorization import ClaimsIdentity
 from microsoft_agents.hosting.core.storage import StoreItem
 
-from shared import start_server
 
-logger = logging.getLogger(__name__)
+@dataclass
+class SendActivityRequest:
+    """Request payload used to resume conversations proactively."""
+
+    conversation_id: str
+    message: str
+
+    @classmethod
+    def from_dict(cls, payload: Dict[str, Any]) -> "SendActivityRequest":
+        conversation_id = payload.get("conversationId") or payload.get(
+            "conversation_id"
+        )
+        if not conversation_id:
+            raise ValueError("conversationId is required.")
+
+        message = payload.get("message")
+        if not message:
+            raise ValueError("message is required.")
+
+        return cls(conversation_id=conversation_id, message=message)
 
 
 @dataclass
 class ConversationReferenceRecord(StoreItem):
-    """Persistable envelope for a conversation reference and associated identity."""
+    """Persistent envelope for a conversation reference and associated identity."""
 
     claims: dict[str, str]
     is_authenticated: bool
-    authentication_type: str | None
+    authentication_type: Optional[str]
     reference: ConversationReference
 
     @staticmethod
@@ -72,7 +88,7 @@ class ConversationReferenceRecord(StoreItem):
             authentication_type=self.authentication_type,
         )
 
-    def store_item_to_json(self) -> dict[str, Any]:
+    def store_item_to_json(self) -> Dict[str, Any]:
         return {
             "claims": dict(self.claims),
             "is_authenticated": self.is_authenticated,
@@ -82,12 +98,15 @@ class ConversationReferenceRecord(StoreItem):
 
     @staticmethod
     def from_json_to_store_item(
-        json_data: dict[str, Any]
+        json_data: Dict[str, Any],
     ) -> "ConversationReferenceRecord":
-        reference_data = json_data.get("reference")
-        if not reference_data:
+        reference_payload = json_data.get("reference")
+        if not reference_payload:
             raise ValueError("Conversation reference payload is missing.")
-        reference = ConversationReference.model_validate(reference_data)
+
+        reference = ConversationReference.model_validate(
+            reference_payload, strict=False
+        )
         return ConversationReferenceRecord(
             claims=json_data.get("claims", {}),
             is_authenticated=json_data.get("is_authenticated", False),
@@ -96,95 +115,65 @@ class ConversationReferenceRecord(StoreItem):
         )
 
 
-class EchoSkill(AgentApplication[TurnState]):
-    """AgentApplication equivalent of the Copilot Studio Echo skill sample."""
+load_dotenv(path.join(path.dirname(__file__), ".env"))
+agents_sdk_config = load_configuration_from_env(environ)
 
-    def __init__(
-        self,
-        *,
-        storage: MemoryStorage,
-        adapter: CloudAdapter,
-        authorization: Authorization,
-        connection_manager: MsalConnectionManager,
-        **options: Any,
-    ) -> None:
-        super().__init__(
-            connection_manager=connection_manager,
-            storage=storage,
-            adapter=adapter,
-            authorization=authorization,
-            **options,
-        )
+storage = MemoryStorage()
+connection_manager = MsalConnectionManager(**agents_sdk_config)
+adapter = CloudAdapter(connection_manager=connection_manager)
+authorization = Authorization(storage, connection_manager, **agents_sdk_config)
+AGENT_APP = AgentApplication[TurnState](
+    storage=storage,
+    adapter=adapter,
+    authorization=authorization,
+    **agents_sdk_config.get("AGENTAPPLICATION", {}),
+)
 
-        self._storage = storage
-        self._conversation_state = ConversationState(storage)
 
-        self.conversation_update("membersAdded")(self._welcome_message)
-        self.activity(ActivityTypes.end_of_conversation)(
-            self._handle_end_of_conversation
-        )
-        self.activity(ActivityTypes.message, rank=RouteRank.LAST)(self._on_message)
-        self.error(self._handle_turn_error)
-
-    async def _welcome_message(
-        self, context: TurnContext, _: TurnState
-    ) -> None:  # pragma: no cover - sample behaviour
-        for member in context.activity.members_added or []:
-            recipient_id = context.activity.recipient.id if context.activity.recipient else None
-            if member.id != recipient_id:
-                await context.send_activity("Hi, This is EchoSkill")
-
-    async def _handle_end_of_conversation(
-        self, context: TurnContext, state: TurnState
-    ) -> None:
+@AGENT_APP.activity("message")
+async def on_message(context: TurnContext, state: TurnState) -> None:
+    text = context.activity.text or ""
+    if "end" == text:
+        await context.send_activity("(EchoSkill) Ending conversation...")
+        end_activity = Activity.create_end_of_conversation_activity()
+        end_activity.code = EndOfConversationCodes.completed_successfully
+        await context.send_activity(end_activity)
         await state.conversation.delete(context)
         conversation = context.activity.conversation
         if conversation and conversation.id:
-            await self._storage.delete([ConversationReferenceRecord.get_key(conversation.id)])
+            await state.conversation._storage.delete(
+                [ConversationReferenceRecord.get_key(conversation.id)]
+            )
+        return
 
-    async def _on_message(self, context: TurnContext, state: TurnState) -> None:
-        text = context.activity.text or ""
-        if "end" in text:
-            await context.send_activity("(EchoSkill) Ending conversation...")
-            end_activity = Activity.create_end_of_conversation_activity()
-            end_activity.code = EndOfConversationCodes.completed_successfully
-            await context.send_activity(end_activity)
-            await state.conversation.delete(context)
-            return
+    logging.info(
+        f"(EchoSkill) ConversationReference to save: {context.activity.get_conversation_reference().model_dump(mode='json', exclude_unset=True, by_alias=True)} with message: {text}"
+    )
+    record = ConversationReferenceRecord.from_context(context)
+    await state.conversation._storage.write({record.key: record})
 
-        record = ConversationReferenceRecord.from_context(context)
-        await self._storage.write({record.key: record})  # Keep reference for proactive sends.
+    await context.send_activity(MessageFactory.text(f"(EchoSkill): {text}"))
 
-        await context.send_activity(MessageFactory.text(f"(EchoSkill): {text}"))
-        await context.send_activity(
-            MessageFactory.text('(EchoSkill): Say "end" and I\'ll end the conversation.')
-        )
-        await state.save(context)
 
-    async def _handle_turn_error(
-        self, context: TurnContext, error: Exception
-    ) -> None:  # pragma: no cover - sample logging
-        logger.exception("Unhandled error during turn", exc_info=error)
-
-        await self._conversation_state.load(context)
-        await self._conversation_state.delete(context)
-
-        await context.send_activity(
-            MessageFactory.text(f"Error during turn, ending conversation ({error})")
-        )
-        end_activity = Activity.create_end_of_conversation_activity()
-        end_activity.code = EndOfConversationCodes.error
-        end_activity.text = str(error)
-        await context.send_activity(end_activity)
+class EchoSkillService:
+    def __init__(
+        self,
+        storage: MemoryStorage,
+        adapter: CloudAdapter,
+    ) -> None:
+        self._storage = storage
+        self._adapter = adapter
 
     async def send_activity_to_conversation(
-        self, conversation_id: str, activity: Activity
+        self, conversation_id: str, message: str
     ) -> bool:
-        if not conversation_id or not activity:
+        if not conversation_id:
             return False
 
         key = ConversationReferenceRecord.get_key(conversation_id)
-        items = await self._storage.read([key], target_cls=ConversationReferenceRecord)
+        items: Dict[str, ConversationReferenceRecord] = await self._storage.read(
+            [key], target_cls=ConversationReferenceRecord
+        )
         record = items.get(key)
         if not record:
             return False
@@ -192,61 +181,104 @@ class EchoSkill(AgentApplication[TurnState]):
         continuation_activity = record.reference.get_continuation_activity()
 
         async def _callback(turn_context: TurnContext) -> None:
-            await turn_context.send_activity(activity)
+            await turn_context.send_activity(message)
 
-        await self.adapter.continue_conversation_with_claims(
+        await self._adapter.continue_conversation_with_claims(
             record.to_identity(), continuation_activity, _callback
         )
         return True
 
 
-@dataclass
-class SendActivityRequest:
-    conversation_id: str
-    activity: Activity
-
-    @classmethod
-    def from_dict(cls, payload: dict[str, Any]) -> "SendActivityRequest":
-        conversation_id = payload.get("conversationId") or payload.get("conversation_id")
-        activity_payload = payload.get("activity")
-        if not conversation_id or not activity_payload:
-            raise ValueError("conversationId and activity are required.")
-        activity = Activity.model_validate(activity_payload)
-        return cls(conversation_id=conversation_id, activity=activity)
+async def _read_optional_json(request: web.Request) -> Dict[str, Any]:
+    if request.content_length in (0, None):
+        return {}
+    try:
+        return await request.json()
+    except json.JSONDecodeError:
+        return {}
 
 
-load_dotenv(path.join(path.dirname(__file__), ".env"))
+def create_app() -> web.Application:
+    """Create and configure the aiohttp application hosting the sample."""
 
-agents_sdk_config = load_configuration_from_env(environ)
+    load_dotenv(path.join(path.dirname(__file__), ".env"))
 
-STORAGE = MemoryStorage()
-CONNECTION_MANAGER = MsalConnectionManager(**agents_sdk_config)
-ADAPTER = CloudAdapter(connection_manager=CONNECTION_MANAGER)
-AUTHORIZATION = Authorization(STORAGE, CONNECTION_MANAGER, **agents_sdk_config)
+    echo_service = EchoSkillService(storage, adapter)
+    global SERVICE_INSTANCE
+    SERVICE_INSTANCE = echo_service
 
-ECHO_SKILL = EchoSkill(
-    storage=STORAGE,
-    adapter=ADAPTER,
-    authorization=AUTHORIZATION,
-    connection_manager=CONNECTION_MANAGER,
-    **agents_sdk_config.get("AGENTAPPLICATION", {}),
-)
+    app = web.Application()
+    app["adapter"] = adapter
+    app["agent_app"] = AGENT_APP
+    app["echo_service"] = echo_service
+    agent_config = connection_manager.get_default_connection_configuration()
+    if not agent_config:
+        raise ValueError("SERVICE_CONNECTION settings are missing.")
+    app["agent_configuration"] = agent_config
+
+    app.router.add_get("/", _handle_root)
+    app.router.add_post("/api/messages", _agent_entry_point)
+    app.router.add_post("/api/sendactivity", _handle_send_activity)
+
+    return app
 
 
-async def send_activity_to_conversation(
-    conversation_id: str, activity: Activity
-) -> bool:
-    """Module-level convenience wrapper matching the C# sample signature."""
+async def _handle_root(request: web.Request) -> web.Response:
+    return web.json_response({"status": "ready", "sample": "echo-skill"})
 
-    return await ECHO_SKILL.send_activity_to_conversation(conversation_id, activity)
+
+async def _agent_entry_point(request: web.Request) -> web.Response:
+    agent_app: AgentApplication = request.app["agent_app"]
+    adapter: CloudAdapter = request.app["adapter"]
+    response = await start_agent_process(request, agent_app, adapter)
+    return response or web.Response(status=202)
+
+
+async def _handle_send_activity(request: web.Request) -> web.Response:
+    service: EchoSkillService = request.app["echo_service"]
+    payload = await _read_optional_json(request)
+
+    try:
+        send_request = SendActivityRequest.from_dict(payload)
+    except ValueError as exc:
+        return web.json_response(
+            {
+                "status": "Error",
+                "error": {"code": "Validation", "message": str(exc)},
+            },
+            status=400,
+        )
+
+    success = await service.send_activity_to_conversation(
+        send_request.conversation_id, send_request.message
+    )
+
+    if not success:
+        return web.json_response(
+            {
+                "status": "Error",
+                "error": {
+                    "code": "NotFound",
+                    "message": "Conversation reference not found.",
+                },
+            },
+            status=404,
+        )
+
+    return web.json_response(
+        {"status": "Delivered", "conversationId": send_request.conversation_id},
+        status=202,
+    )
 
 
 def main() -> None:
     logging.basicConfig(level=logging.INFO)
-    start_server(
-        agent_application=ECHO_SKILL,
-        auth_configuration=CONNECTION_MANAGER.get_default_connection_configuration(),
-    )
+    app = create_app()
+
+    host = environ.get("HOST", "localhost")
+    port = int(environ.get("PORT", "3978"))
+
+    web.run_app(app, host=host, port=port)
 
 
 if __name__ == "__main__":

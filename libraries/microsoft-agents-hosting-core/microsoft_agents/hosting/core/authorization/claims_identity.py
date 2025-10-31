@@ -78,4 +78,8 @@ class ClaimsIdentity:
 
         :return: The token audience.
         """
-        return f"app://{self.get_outgoing_app_id()}" if self.is_agent_claim() else AuthenticationConstants.AGENTS_SDK_SCOPE
+        return (
+            f"app://{self.get_outgoing_app_id()}"
+            if self.is_agent_claim()
+            else AuthenticationConstants.AGENTS_SDK_SCOPE
+        )

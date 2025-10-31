@@ -31,11 +31,11 @@ class ConversationAccount(AgentsModel):
     :type properties: object
     """
 
-    is_group: bool = None
+    is_group: Optional[bool] = None
     conversation_type: NonEmptyString = None
     id: NonEmptyString
-    name: NonEmptyString = None
-    aad_object_id: NonEmptyString = None
-    role: NonEmptyString = None
+    name: Optional[NonEmptyString] = None
+    aad_object_id: Optional[NonEmptyString] = None
+    role: Optional[NonEmptyString] = None
     tenant_id: Optional[NonEmptyString] = None
     properties: object = None
