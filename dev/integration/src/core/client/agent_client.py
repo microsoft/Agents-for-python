@@ -18,56 +18,71 @@ class AgentClient:
     def __init__(
             self,
             messaging_endpoint: str,
-            service_endpoint: str,
             cid: str,
             client_id: str,
             tenant_id: str,
             client_secret: str,
+            service_url: Optional[str] = None,
             default_timeout: float = 5.0
         ):
         self._messaging_endpoint = messaging_endpoint
-        self.service_endpoint = service_endpoint
-        self.cid = cid
-        self.client_id = client_id
-        self.tenant_id = tenant_id
-        self.client_secret = client_secret
+        self._cid = cid
+        self._client_id = client_id
+        self._tenant_id = tenant_id
+        self._client_secret = client_secret
+        self._service_url = service_url
         self._headers = None
         self._default_timeout = default_timeout
 
-        self._client = ClientSession(
-            base_url=self._messaging_endpoint,
-            headers={"Content-Type": "application/json"}
-        )
+        self._client: Optional[ClientSession] = None
 
-        self._msal_app = ConfidentialClientApplication(
-            client_id=client_id,
-            client_credential=client_secret,
-            authority=f"https://login.microsoftonline.com/{tenant_id}"
-        )
+    @property
+    def messaging_endpoint(self) -> str:
+        return self._messaging_endpoint
+
+    @property
+    def service_url(self) -> Optional[str]:
+        return self._service_url
 
     async def get_access_token(self) -> str:
-        res = self._msal_app.acquire_token_for_client(
-            scopes=[f"{self.client_id}/.default"]
+
+        msal_app = ConfidentialClientApplication(
+            client_id=self._client_id,
+            client_credential=self._client_secret,
+            authority=f"https://login.microsoftonline.com/{self._tenant_id}"
+        )
+
+        res = msal_app.acquire_token_for_client(
+            scopes=[f"{self._client_id}/.default"]
         )
         token = res.get("access_token") if res else None
         if not token:
             raise Exception("Could not obtain access token")
         return token
-    
-    async def _set_headers(self) -> None:
-        if not self._headers:
+
+    async def _init_client(self) -> None:
+        if not self._client:
             token = await self.get_access_token()
             self._headers = {
                 "Authorization": f"Bearer {token}",
                 "Content-Type": "application/json"
             }
 
+            self._client = ClientSession(
+                base_url=self._messaging_endpoint,
+                headers=self._headers
+            )
+
     async def send_request(self, activity: Activity) -> str:
 
-        await self._set_headers()
+        await self._init_client()
+        assert self._client
 
         if activity.conversation:
-            activity.conversation.id = self.cid
+            activity.conversation.id = self._cid
+
+        if self.service_url:
+            activity.service_url = self.service_url
 
         async with self._client.post(
             self._messaging_endpoint,
@@ -105,3 +120,8 @@ class AgentClient:
         activities_data = json.loads(content).get("activities", [])
         activities = [Activity.model_validate(act) for act in activities_data]
         return activities
+    
+    async def close(self) -> None:
+        if self._client:
+            await self._client.close()
+            self._client = None

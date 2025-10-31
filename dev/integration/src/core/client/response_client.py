@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import sys
 from io import StringIO
-from typing import Optional
 from threading import Lock
 
 from aiohttp import ClientSession
@@ -23,7 +22,7 @@ class ResponseClient:
         self._prev_stdout = None
         self._service_endpoint = service_endpoint
         self._activities_list = []
-        self._activities_list_lock = []
+        self._activities_list_lock = Lock()
 
         self._app.router.add_post(
             "/v3/conversations/{path:.*}",
@@ -55,6 +54,7 @@ class ResponseClient:
 
             if any(map(lambda x: x.type == "streaminfo", activity.entities or [])):
                 await self._handle_streamed_activity(activity)
+                return Response(status=200, text="Stream info handled")
             else:
                 if activity.type != ActivityTypes.typing:
                     async with ClientSession() as session:
@@ -64,6 +64,7 @@ class ResponseClient:
                         ) as resp:
                             resp_text = await resp.text()
                             return Response(status=resp.status, text=resp_text)
+                return Response(status=200, text="Activity received")
         except Exception as e:
             return Response(status=500, text=str(e))
 
