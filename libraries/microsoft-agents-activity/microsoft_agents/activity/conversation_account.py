@@ -32,7 +32,7 @@ class ConversationAccount(AgentsModel):
     """
 
     is_group: Optional[bool] = None
-    conversation_type: NonEmptyString = None
+    conversation_type: Optional[NonEmptyString] = None
     id: NonEmptyString
     name: Optional[NonEmptyString] = None
     aad_object_id: Optional[NonEmptyString] = None
