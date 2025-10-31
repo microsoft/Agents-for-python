@@ -16,7 +16,7 @@ class ConversationAccount(AgentsModel):
      channels that distinguish between conversation types
     :type conversation_type: str
     :param id: Channel id for the user or agent on this channel (Example:
-     joe@smith.com, or @joesmith or 123456)
+     ``joe@smith.com``, or ``@joesmith`` or ``123456``)
     :type id: str
     :param name: Display friendly name
     :type name: str
@@ -31,11 +31,11 @@ class ConversationAccount(AgentsModel):
     :type properties: object
     """
 
-    is_group: bool = None
+    is_group: Optional[bool] = None
     conversation_type: NonEmptyString = None
     id: NonEmptyString
-    name: NonEmptyString = None
-    aad_object_id: NonEmptyString = None
-    role: NonEmptyString = None
+    name: Optional[NonEmptyString] = None
+    aad_object_id: Optional[NonEmptyString] = None
+    role: Optional[NonEmptyString] = None
     tenant_id: Optional[NonEmptyString] = None
     properties: object = None

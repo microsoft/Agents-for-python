@@ -9,7 +9,7 @@ from ..agents_model import AgentsModel
 class TeamsChannelAccount(AgentsModel):
     """Teams channel account detailing user Azure Active Directory details.
 
-    :param id: Channel id for the user or bot on this channel (Example: joe@smith.com, or @joesmith or 123456)
+    :param id: Channel id for the user or bot on this channel (Example: ``joe@smith.com``, or ``@joesmith`` or ``123456``)
     :type id: str
     :param name: Display friendly name
     :type name: str
