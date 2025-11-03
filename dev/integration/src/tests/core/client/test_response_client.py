@@ -1,4 +1,3 @@
-from re import A
 import pytest
 from aiohttp import ClientSession
 
