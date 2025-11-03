@@ -16,10 +16,8 @@ from microsoft_agents.hosting.core import (
 from microsoft_agents.authentication.msal import MsalConnectionManager
 from microsoft_agents.activity import load_configuration_from_env
 
-from . import (
-    ApplicationRunner,
-    Environment
-)
+from ..application_runner import ApplicationRunner
+from ..environment import Environment
 
 class AiohttpEnvironment(Environment):
     """An environment for aiohttp-hosted agents."""

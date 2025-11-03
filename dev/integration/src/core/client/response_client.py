@@ -6,9 +6,7 @@ from typing import Optional
 from threading import Lock, Thread, Event
 import asyncio
 
-from aiohttp import ClientSession
-from aiohttp.web import Application, Request, Response, run_app
-from aiohttp.web_runner import AppRunner, TCPSite
+from aiohttp.web import Application, Request, Response
 
 from microsoft_agents.activity import (
     Activity,
@@ -34,79 +32,35 @@ class ResponseClient:
         self._service_endpoint = service_endpoint
         self._activities_list = []
         self._activities_list_lock = Lock()
-        self._server_thread: Optional[Thread] = None
-        self._shutdown_event = Event()
-        self._runner: Optional[AppRunner] = None
-        self._site: Optional[TCPSite] = None
 
         self._app.router.add_post(
             "/v3/conversations/{path:.*}",
             self._handle_conversation
         )
 
-        self._app_runner = AiohttpRunner(self._app)
+        self._app_runner = AiohttpRunner(
+            self._app,
+            host,
+            port
+        )
 
     @property
     def service_endpoint(self) -> str:
         return self._service_endpoint
-    
-    def start(self) -> None:
-        """Start the server in the current thread"""
-        async def _run_server():
-            self._runner = AppRunner(self._app)
-            await self._runner.setup()
-            self._site = TCPSite(self._runner, self._host, self._port)
-            await self._site.start()
-            
-            # Wait for shutdown signal
-            while not self._shutdown_event.is_set():
-                await asyncio.sleep(0.1)
-            
-            # Cleanup
-            await self._site.stop()
-            await self._runner.cleanup()
-        
-        # Run the server
-        asyncio.run(_run_server())
-
-    async def _shutdown(self, request: Request) -> Response:
-        """Handle shutdown request by setting the shutdown event"""
-        self._shutdown_event.set()
-        return Response(status=200, text="Shutdown initiated")
 
     async def __aenter__(self) -> ResponseClient:
-        if self._server_thread:
-            raise RuntimeError("ResponseClient is already running.")
-        
         self._prev_stdout = sys.stdout
         sys.stdout = StringIO()
-        self._shutdown_event.clear()
-        self._server_thread = Thread(target=self.start)
-        self._server_thread.start()
-        
-        # Wait a bit for the server to start
-        await asyncio.sleep(0.2)
-        return self
+    
+        await self._app_runner.__aenter__()
 
-    async def _stop_server(self):
-        if not self._server_thread:
-            raise RuntimeError("ResponseClient is not running.")
+        return self
+    
+    async def __aexit__(self, exc_type, exc_val, exc_tb) -> None:
         if self._prev_stdout is not None:
             sys.stdout = self._prev_stdout
 
-        try:
-            async with ClientSession() as session:
-                async with session.get(f"http://{self._host}:{self._port}/shutdown") as response:
-                    pass  # Just trigger the shutdown
-        except Exception:
-            pass  # Ignore errors during shutdown request
-        
-        # Set shutdown event as fallback
-        self._shutdown_event.set()
-        
-        # Wait for the server thread to finish
-        self._server_thread.join(timeout=5.0)
-        self._server_thread = None
+        await self._app_runner.__aexit__(exc_type, exc_val, exc_tb)
 
     async def _handle_conversation(self, request: Request) -> Response:
         try:
