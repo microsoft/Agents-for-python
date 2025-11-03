@@ -14,6 +14,7 @@ from .application_runner import ApplicationRunner
 from .environment import Environment
 from .client import AgentClient, ResponseClient
 from .sample import Sample
+from .utils import get_host_and_port
 
 T = TypeVar("T", bound=type)
 AppT = TypeVar("AppT", bound=aiohttp.web.Application) # for future extension w/ Union
@@ -38,6 +39,14 @@ class IntegrationFixtures:
     _agent_client: AgentClient
     _response_client: ResponseClient
 
+    @property
+    def service_url(self) -> str:
+        return self._service_url or self._config.get("service_url", "")
+
+    @property
+    def messaging_endpoint(self) -> str:
+        return self._messaging_endpoint or self._config.get("messaging_endpoint", "")
+
     @pytest.fixture
     async def environment(self):
         """Provides the test environment instance."""
@@ -60,7 +69,7 @@ class IntegrationFixtures:
         if not self._config:
             self._config = {}
         agent_client = AgentClient(
-            messaging_endpoint=self._messaging_endpoint or self._config.get("messaging_endpoint", ""),
+            messaging_endpoint=self.messaging_endpoint,
             cid=self._cid or self._config.get("cid", ""),
             client_id=self._client_id or self._config.get("client_id", ""),
             tenant_id=self._tenant_id or self._config.get("tenant_id", ""),
@@ -75,7 +84,9 @@ class IntegrationFixtures:
         await agent_client.close()
 
     async def _create_response_client(self) -> ResponseClient:
-        return ResponseClient()
+        host, port = get_host_and_port(self.service_url)
+        assert host and port
+        return ResponseClient(host=host, port=port)
 
     @pytest.fixture
     async def response_client(self) -> AsyncGenerator[ResponseClient, None]:
@@ -84,7 +95,7 @@ class IntegrationFixtures:
             yield response_client
     
 def integration(
-    service_url: Optional[str] = None,
+    messaging_endpoint: Optional[str] = None,
     sample: Optional[type[Sample]] = None,
     environment: Optional[type[Environment]] = None,
     app: Optional[AppT] = None,
@@ -111,8 +122,8 @@ def integration(
 
     def decorator(target_cls: T) -> T:
 
-        if service_url:
-            target_cls._service_url = service_url
+        if messaging_endpoint:
+            target_cls._messaging_endpoint = messaging_endpoint
         elif sample and environment:
             target_cls._sample_cls = sample
             target_cls._environment_cls = environment

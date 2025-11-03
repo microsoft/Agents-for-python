@@ -62,11 +62,16 @@ class AgentClient:
 
     async def _init_client(self) -> None:
         if not self._client:
-            token = await self.get_access_token()
-            self._headers = {
-                "Authorization": f"Bearer {token}",
-                "Content-Type": "application/json"
-            }
+            if self._client_secret:
+                token = await self.get_access_token()
+                self._headers = {
+                    "Authorization": f"Bearer {token}",
+                    "Content-Type": "application/json"
+                }
+            else:
+                self._headers = {
+                    "Content-Type": "application/json"
+                }
 
             self._client = ClientSession(
                 base_url=self._messaging_endpoint,

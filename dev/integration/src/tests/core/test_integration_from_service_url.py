@@ -1,14 +1,15 @@
 import pytest
 import asyncio
+import requests
 from copy import copy
-from aioresponses import aioresponses
+from aioresponses import aioresponses, CallbackResult
 
 from src.core import (
     integration,
     IntegrationFixtures
 )
 
-@integration(service_url="http://localhost:8000/api/messages")
+@integration(messaging_endpoint="http://localhost:8000/api/messages/", service_url="http://localhost:8001/")
 class TestIntegrationFromServiceURL(IntegrationFixtures):
 
     @pytest.mark.asyncio
@@ -17,11 +18,10 @@ class TestIntegrationFromServiceURL(IntegrationFixtures):
 
         with aioresponses() as mocked:
 
-            mocked.post("http://localhost:8000/api/messages", status=200, body="Service response")
+            mocked.post(self.messaging_endpoint, status=200, body="Service response")
 
-            response = await agent_client.send_activity("Hello, service!")
-            assert response.status_code == 200
-            assert "service" in response.text.lower()
+            res = await agent_client.send_activity("Hello, service!")
+            assert res == "Service response"
 
     @pytest.mark.asyncio
     async def test_service_url_integration_with_response_side_effect(self, agent_client, response_client):
@@ -29,13 +29,18 @@ class TestIntegrationFromServiceURL(IntegrationFixtures):
 
         with aioresponses() as mocked:
 
-            mocked.post("http://localhost:8000/api/messages", status=200, body="Service response")
+            def callback(url, **kwargs):
+                a = requests.post(f"{self.service_url}/v3/conversations/test-conv", json=kwargs.get("json"))
+                return CallbackResult(status=200, body="Service response")
 
-            response = await agent_client.send_activity("Hello, service!")
-            assert response.status_code == 200
-            assert "service" in response.text.lower()
+            mocked.post(self.messaging_endpoint, callback=callback)
+
+            res = await agent_client.send_activity("Hello, service!")
+            assert res == "Service response"
 
             await asyncio.sleep(1)
 
-            res = await response_client.pop()
-            assert len(res) == 1
+            activities = await response_client.pop()
+            assert len(activities) == 1
+            assert activities[0].type == "message"
+            assert activities[0].text == "Hello, service!"
