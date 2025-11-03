@@ -17,6 +17,7 @@ from microsoft_agents.activity import load_configuration_from_env
 
 from ..application_runner import ApplicationRunner
 from ..environment import Environment
+from .aiohttp_runner import AiohttpRunner
 
 
 class AiohttpEnvironment(Environment):
