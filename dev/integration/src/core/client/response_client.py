@@ -3,6 +3,7 @@ from __future__ import annotations
 import sys
 from io import StringIO
 from threading import Lock
+import asyncio
 
 from aiohttp import ClientSession
 from aiohttp.web import Application, Request, Response
@@ -33,12 +34,12 @@ class ResponseClient:
     def service_endpoint(self) -> str:
         return self._service_endpoint
 
-    def __aenter__(self) -> ResponseClient:
+    async def __aenter__(self) -> ResponseClient:
         self._prev_stdout = sys.stdout
         sys.stdout = StringIO()
         return self
-    
-    def __aexit__(self, exc_type, exc, tb):
+
+    async def __aexit__(self, exc_type, exc, tb):
         if self._prev_stdout is not None:
             sys.stdout = self._prev_stdout
 
@@ -57,13 +58,7 @@ class ResponseClient:
                 return Response(status=200, text="Stream info handled")
             else:
                 if activity.type != ActivityTypes.typing:
-                    async with ClientSession() as session:
-                        async with session.post(
-                            f"{self._service_endpoint}/v3/conversations/{conversation_id}/activities",
-                            json=activity.model_dump()
-                        ) as resp:
-                            resp_text = await resp.text()
-                            return Response(status=resp.status, text=resp_text)
+                    await asyncio.sleep(0.1)  # Simulate processing delay
                 return Response(status=200, text="Activity received")
         except Exception as e:
             return Response(status=500, text=str(e))
