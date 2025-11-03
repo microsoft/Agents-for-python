@@ -3,6 +3,7 @@ from time import sleep
 
 from ._common import SimpleRunner, OtherSimpleRunner
 
+
 class TestApplicationRunner:
 
     @pytest.mark.asyncio
@@ -13,7 +14,7 @@ class TestApplicationRunner:
         async with runner:
             sleep(0.1)
             assert app["running"] is True
-        
+
         assert app["running"] is True
 
     @pytest.mark.asyncio
@@ -24,7 +25,7 @@ class TestApplicationRunner:
         async with runner:
             sleep(0.1)
             assert app["running"] is True
-        
+
         assert app["running"] is False
 
     @pytest.mark.asyncio

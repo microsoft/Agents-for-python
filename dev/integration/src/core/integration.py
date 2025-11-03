@@ -17,8 +17,9 @@ from .sample import Sample
 from .utils import get_host_and_port
 
 T = TypeVar("T", bound=type)
-AppT = TypeVar("AppT", bound=aiohttp.web.Application) # for future extension w/ Union
-    
+AppT = TypeVar("AppT", bound=aiohttp.web.Application)  # for future extension w/ Union
+
+
 class IntegrationFixtures:
     """Provides integration test fixtures."""
 
@@ -55,7 +56,7 @@ class IntegrationFixtures:
         environment = self._environment_cls()
         await environment.init_env(await self._sample_cls.get_config())
         yield environment
-    
+
     @pytest.fixture
     async def sample(self, environment):
         """Provides the sample instance."""
@@ -64,7 +65,7 @@ class IntegrationFixtures:
         sample = self._sample_cls(environment)
         await sample.init_app()
         yield sample
-    
+
     def create_agent_client(self) -> AgentClient:
         if not self._config:
             self._config = {}
@@ -93,7 +94,8 @@ class IntegrationFixtures:
         """Provides the response client instance."""
         async with await self._create_response_client() as response_client:
             yield response_client
-    
+
+
 def integration(
     messaging_endpoint: Optional[str] = None,
     sample: Optional[type[Sample]] = None,
@@ -110,7 +112,7 @@ def integration(
     If a service URL is provided, it creates the Integration using that.
     If both sample and environment are provided, it creates the Integration using them.
     If an aiohttp application is provided, it creates the Integration using that.
-    
+
     :param cls: The Integration class type.
     :param service_url: Optional service URL to connect to.
     :param sample: Optional Sample instance.
@@ -133,5 +135,5 @@ def integration(
         target_cls._config = kwargs
 
         return target_cls
-        
+
     return decorator

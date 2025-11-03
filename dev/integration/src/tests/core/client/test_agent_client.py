@@ -12,6 +12,7 @@ from src.core import AgentClient
 
 from ._common import DEFAULTS
 
+
 class TestAgentClient:
 
     @pytest.fixture
@@ -22,7 +23,7 @@ class TestAgentClient:
             client_id=DEFAULTS.client_id,
             tenant_id=DEFAULTS.tenant_id,
             client_secret=DEFAULTS.client_secret,
-            service_url=DEFAULTS.service_url
+            service_url=DEFAULTS.service_url,
         )
         yield client
         await client.close()
@@ -34,30 +35,51 @@ class TestAgentClient:
 
     @pytest.mark.asyncio
     async def test_send_activity(self, mocker, agent_client, aioresponses_mock):
-        mocker.patch.object(AgentClient, 'get_access_token', return_value="mocked_token")
-        mocker.patch.object(ConfidentialClientApplication, "__new__", return_value=mocker.Mock(spec=ConfidentialClientApplication))
+        mocker.patch.object(
+            AgentClient, "get_access_token", return_value="mocked_token"
+        )
+        mocker.patch.object(
+            ConfidentialClientApplication,
+            "__new__",
+            return_value=mocker.Mock(spec=ConfidentialClientApplication),
+        )
 
         assert agent_client.messaging_endpoint
-        aioresponses_mock.post(agent_client.messaging_endpoint, payload={"response": "Response from service"})
-        
+        aioresponses_mock.post(
+            agent_client.messaging_endpoint,
+            payload={"response": "Response from service"},
+        )
+
         response = await agent_client.send_activity("Hello, World!")
         data = json.loads(response)
         assert data == {"response": "Response from service"}
 
     @pytest.mark.asyncio
     async def test_send_expect_replies(self, mocker, agent_client, aioresponses_mock):
-        mocker.patch.object(AgentClient, 'get_access_token', return_value="mocked_token")
-        mocker.patch.object(ConfidentialClientApplication, "__new__", return_value=mocker.Mock(spec=ConfidentialClientApplication))
+        mocker.patch.object(
+            AgentClient, "get_access_token", return_value="mocked_token"
+        )
+        mocker.patch.object(
+            ConfidentialClientApplication,
+            "__new__",
+            return_value=mocker.Mock(spec=ConfidentialClientApplication),
+        )
 
         assert agent_client.messaging_endpoint
         activities = [
             Activity(type="message", text="Response from service"),
             Activity(type="message", text="Another response"),
         ]
-        aioresponses_mock.post(agent_client.messaging_endpoint, payload={
-            "activities": [activity.model_dump(by_alias=True, exclude_none=True) for activity in activities],
-        })
-        
+        aioresponses_mock.post(
+            agent_client.messaging_endpoint,
+            payload={
+                "activities": [
+                    activity.model_dump(by_alias=True, exclude_none=True)
+                    for activity in activities
+                ],
+            },
+        )
+
         replies = await agent_client.send_expect_replies("Hello, World!")
         assert len(replies) == 2
         assert replies[0].text == "Response from service"

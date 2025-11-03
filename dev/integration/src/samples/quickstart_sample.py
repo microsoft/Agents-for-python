@@ -4,14 +4,11 @@ import traceback
 
 from microsoft_agents.activity import ConversationUpdateTypes
 
-from microsoft_agents.hosting.core import (
-    AgentApplication,
-    TurnContext,
-    TurnState
-)
+from microsoft_agents.hosting.core import AgentApplication, TurnContext, TurnState
 
 from ..core.sample import Sample
-        
+
+
 class QuickstartSample(Sample):
     """A quickstart sample implementation."""
 
@@ -27,16 +24,13 @@ class QuickstartSample(Sample):
                 "This agent is designed to be a starting point for your own agent development."
             )
 
-
         @app.message(re.compile(r"^hello$"))
         async def on_hello(context: TurnContext, state: TurnState) -> None:
             await context.send_activity("Hello!")
 
-
         @app.activity("message")
         async def on_message(context: TurnContext, state: TurnState) -> None:
             await context.send_activity(f"you said: {context.activity.text}")
-
 
         @app.error
         async def on_error(context: TurnContext, error: Exception):

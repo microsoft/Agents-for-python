@@ -4,12 +4,13 @@ import requests
 from copy import copy
 from aioresponses import aioresponses, CallbackResult
 
-from src.core import (
-    integration,
-    IntegrationFixtures
-)
+from src.core import integration, IntegrationFixtures
 
-@integration(messaging_endpoint="http://localhost:8000/api/messages/", service_url="http://localhost:8001/")
+
+@integration(
+    messaging_endpoint="http://localhost:8000/api/messages/",
+    service_url="http://localhost:8001/",
+)
 class TestIntegrationFromServiceURL(IntegrationFixtures):
 
     @pytest.mark.asyncio
@@ -24,13 +25,18 @@ class TestIntegrationFromServiceURL(IntegrationFixtures):
             assert res == "Service response"
 
     @pytest.mark.asyncio
-    async def test_service_url_integration_with_response_side_effect(self, agent_client, response_client):
+    async def test_service_url_integration_with_response_side_effect(
+        self, agent_client, response_client
+    ):
         """Test the integration using a service URL."""
 
         with aioresponses() as mocked:
 
             def callback(url, **kwargs):
-                a = requests.post(f"{self.service_url}/v3/conversations/test-conv", json=kwargs.get("json"))
+                a = requests.post(
+                    f"{self.service_url}/v3/conversations/test-conv",
+                    json=kwargs.get("json"),
+                )
                 return CallbackResult(status=200, body="Service response")
 
             mocked.post(self.messaging_endpoint, callback=callback)

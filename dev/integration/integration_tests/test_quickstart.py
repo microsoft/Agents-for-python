@@ -14,8 +14,9 @@ class TestQuickstart:
         response = (await response_client.pop())[0]
         assert "hello" in response.text.lower()
 
+
 # class TestQuickstart(TestSuiteBase):
-    
+
 #     @pytest.mark.asyncio
 #     async def test_quickstart_functionality(self):
 #         pass
@@ -33,10 +34,10 @@ class TestQuickstart:
 
 # @integration(app=None) # (endpoint="alternative")
 # class TestQuickstartAlternative:
-    
+
 #     @pytest.mark.asyncio
 #     async def test_hello(self, agent_client, response_client):
-        
+
 #         agent_client.send("hi")
 #         await asyncio.sleep(10)
 

@@ -12,6 +12,7 @@ from microsoft_agents.hosting.core import (
 
 from .application_runner import ApplicationRunner
 
+
 class Environment(ABC):
     """A sample data object for integration tests."""
 

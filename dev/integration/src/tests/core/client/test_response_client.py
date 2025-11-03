@@ -7,11 +7,14 @@ from microsoft_agents.activity import Activity
 from src.core import ResponseClient
 from ._common import DEFAULTS
 
+
 class TestResponseClient:
-    
+
     @pytest.fixture
     async def response_client(self):
-        async with ResponseClient(host=DEFAULTS.host, port=DEFAULTS.response_port) as client:
+        async with ResponseClient(
+            host=DEFAULTS.host, port=DEFAULTS.response_port
+        ) as client:
             yield client
 
     @pytest.mark.asyncio
@@ -26,7 +29,7 @@ class TestResponseClient:
         async with ClientSession() as session:
             async with session.post(
                 f"{response_client.service_endpoint}/v3/conversations/test-conv",
-                json=activity.model_dump(by_alias=True, exclude_none=True)
+                json=activity.model_dump(by_alias=True, exclude_none=True),
             ) as resp:
                 assert resp.status == 200
                 text = await resp.text()

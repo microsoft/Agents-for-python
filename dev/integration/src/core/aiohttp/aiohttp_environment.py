@@ -1,11 +1,10 @@
-
 from tkinter import E
 from aiohttp.web import Request, Response, Application, run_app
 
 from microsoft_agents.hosting.aiohttp import (
     CloudAdapter,
     jwt_authorization_middleware,
-    start_agent_process
+    start_agent_process,
 )
 from microsoft_agents.hosting.core import (
     Authorization,
@@ -19,6 +18,7 @@ from microsoft_agents.activity import load_configuration_from_env
 from ..application_runner import ApplicationRunner
 from ..environment import Environment
 
+
 class AiohttpEnvironment(Environment):
     """An environment for aiohttp-hosted agents."""
 
@@ -30,7 +30,9 @@ class AiohttpEnvironment(Environment):
         self.storage = MemoryStorage()
         self.connection_manager = MsalConnectionManager(**self.config)
         self.adapter = CloudAdapter(connection_manager=self.connection_manager)
-        self.authorization = Authorization(self.storage, self.connection_manager, **self.config)
+        self.authorization = Authorization(
+            self.storage, self.connection_manager, **self.config
+        )
 
         self.agent_application = AgentApplication[TurnState](
             storage=self.storage,
@@ -38,17 +40,13 @@ class AiohttpEnvironment(Environment):
             authorization=self.authorization,
             **self.config
         )
-    
+
     def create_runner(self) -> ApplicationRunner:
-        
+
         async def entry_point(req: Request) -> Response:
             agent: AgentApplication = req.app["agent_app"]
             adapter: CloudAdapter = req.app["adapter"]
-            return await start_agent_process(
-                req,
-                agent,
-                adapter
-            )
+            return await start_agent_process(req, agent, adapter)
 
         APP = Application(middlewares=[jwt_authorization_middleware])
         APP.router.add_post("/api/messages", entry_point)

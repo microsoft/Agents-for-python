@@ -15,8 +15,9 @@ from microsoft_agents.activity import (
 
 from ..aiohttp import AiohttpRunner
 
+
 class ResponseClient:
-    
+
     def __init__(
         self,
         host: str = "localhost",
@@ -34,15 +35,10 @@ class ResponseClient:
         self._activities_list_lock = Lock()
 
         self._app.router.add_post(
-            "/v3/conversations/{path:.*}",
-            self._handle_conversation
+            "/v3/conversations/{path:.*}", self._handle_conversation
         )
 
-        self._app_runner = AiohttpRunner(
-            self._app,
-            host,
-            port
-        )
+        self._app_runner = AiohttpRunner(self._app, host, port)
 
     @property
     def service_endpoint(self) -> str:
@@ -51,11 +47,11 @@ class ResponseClient:
     async def __aenter__(self) -> ResponseClient:
         self._prev_stdout = sys.stdout
         sys.stdout = StringIO()
-    
+
         await self._app_runner.__aenter__()
 
         return self
-    
+
     async def __aexit__(self, exc_type, exc_val, exc_tb) -> None:
         if self._prev_stdout is not None:
             sys.stdout = self._prev_stdout
@@ -67,7 +63,9 @@ class ResponseClient:
             data = await request.json()
             activity = Activity.model_validate(data)
 
-            conversation_id = activity.conversation.id if activity.conversation else None
+            conversation_id = (
+                activity.conversation.id if activity.conversation else None
+            )
 
             with self._activities_list_lock:
                 self._activities_list.append(activity)
@@ -82,9 +80,11 @@ class ResponseClient:
         except Exception as e:
             return Response(status=500, text=str(e))
 
-    async def _handle_streamed_activity(self, activity: Activity, *args, **kwargs) -> bool:
+    async def _handle_streamed_activity(
+        self, activity: Activity, *args, **kwargs
+    ) -> bool:
         raise NotImplementedError("_handle_streamed_activity is not implemented yet.")
-    
+
     async def pop(self) -> list[Activity]:
         with self._activities_list_lock:
             activities = self._activities_list[:]
