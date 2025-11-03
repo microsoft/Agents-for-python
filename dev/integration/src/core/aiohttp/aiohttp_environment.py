@@ -36,7 +36,7 @@ class AiohttpEnvironment(Environment):
             storage=self.storage,
             adapter=self.adapter,
             authorization=self.authorization,
-            **self.agents_sdk_config
+            **self.config
         )
     
     def create_runner(self) -> ApplicationRunner:

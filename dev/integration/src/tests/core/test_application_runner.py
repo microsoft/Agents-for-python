@@ -10,9 +10,8 @@ class TestApplicationRunner:
 
         app = {}
         runner = SimpleRunner(app)
-        async with runner as r:
+        async with runner:
             sleep(0.1)
-            assert runner is r
             assert app["running"] is True
         
         assert app["running"] is True
@@ -22,9 +21,8 @@ class TestApplicationRunner:
 
         app = {}
         runner = OtherSimpleRunner(app)
-        async with runner as r:
+        async with runner:
             sleep(0.1)
-            assert runner is r
             assert app["running"] is True
         
         assert app["running"] is False

@@ -44,22 +44,20 @@ class AiohttpRunner(ApplicationRunner):
     async def _start_server(self) -> None:
         try:
             assert isinstance(self._app, Application)
-            async def _run_server():
-                self._runner = AppRunner(self._app)
-                await self._runner.setup()
-                self._site = TCPSite(self._runner, self._host, self._port)
-                await self._site.start()
-                
-                # Wait for shutdown signal
-                while not self._shutdown_event.is_set():
-                    await asyncio.sleep(0.1)
-                
-                # Cleanup
-                await self._site.stop()
-                await self._runner.cleanup()
+
+            self._runner = AppRunner(self._app)
+            await self._runner.setup()
+            self._site = TCPSite(self._runner, self._host, self._port)
+            await self._site.start()
             
-            # Run the server
-            asyncio.run(_run_server())
+            # Wait for shutdown signal
+            while not self._shutdown_event.is_set():
+                await asyncio.sleep(0.1)
+            
+            # Cleanup
+            await self._site.stop()
+            await self._runner.cleanup()
+            
         except Exception as error:
             raise error
         
