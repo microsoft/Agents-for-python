@@ -16,23 +16,10 @@ from microsoft_agents.hosting.core import (
 from microsoft_agents.authentication.msal import MsalConnectionManager
 from microsoft_agents.activity import load_configuration_from_env
 
-from ..core import (
+from . import (
     ApplicationRunner,
     Environment
 )
-
-class AiohttpRunner(ApplicationRunner):
-    """A runner for aiohttp applications."""
-
-    def _start_server(self) -> None:
-        try:
-            assert isinstance(self._app, Application)
-            run_app(self._app, host="localhost", port=3978)
-        except Exception as error:
-            raise error
-        
-    def _stop_server(self) -> None:
-        pass
 
 class AiohttpEnvironment(Environment):
     """An environment for aiohttp-hosted agents."""

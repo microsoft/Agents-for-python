@@ -1,12 +1,10 @@
 from __future__ import annotations
 
 import sys
-import requests
 from io import StringIO
 from typing import Optional
 from threading import Lock, Thread, Event
 import asyncio
-import weakref
 
 from aiohttp import ClientSession
 from aiohttp.web import Application, Request, Response, run_app
@@ -16,6 +14,8 @@ from microsoft_agents.activity import (
     Activity,
     ActivityTypes,
 )
+
+from ..aiohttp import AiohttpRunner
 
 class ResponseClient:
     
@@ -39,15 +39,12 @@ class ResponseClient:
         self._runner: Optional[AppRunner] = None
         self._site: Optional[TCPSite] = None
 
-        self._app.router.add_get(
-            "/shutdown",
-            self._shutdown
-        )
-
         self._app.router.add_post(
             "/v3/conversations/{path:.*}",
             self._handle_conversation
         )
+
+        self._app_runner = AiohttpRunner(self._app)
 
     @property
     def service_endpoint(self) -> str:
@@ -91,7 +88,7 @@ class ResponseClient:
         await asyncio.sleep(0.2)
         return self
 
-    async def __aexit__(self, exc_type, exc, tb):
+    async def _stop_server(self):
         if not self._server_thread:
             raise RuntimeError("ResponseClient is not running.")
         if self._prev_stdout is not None:
