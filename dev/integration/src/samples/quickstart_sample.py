@@ -1,6 +1,9 @@
 import re
+import os
 import sys
 import traceback
+
+from dotenv import load_dotenv
 
 from microsoft_agents.activity import ConversationUpdateTypes
 
@@ -11,6 +14,18 @@ from ..core.sample import Sample
 
 class QuickstartSample(Sample):
     """A quickstart sample implementation."""
+
+    @classmethod
+    async def get_config(cls) -> dict:
+        """Retrieve the configuration for the sample."""
+
+        load_dotenv()
+
+        return {
+            "CONNECTIONS__SERVICE_CONNECTION__SETTINGS__CLIENTID": os.getenv("CONNECTIONS__SERVICE_CONNECTION__SETTINGS__CLIENTID"),
+            "CONNECTIONS__SERVICE_CONNECTION__SETTINGS__CLIENTSECRET": os.getenv("CONNECTIONS__SERVICE_CONNECTION__SETTINGS__CLIENTSECRET"),
+            "CONNECTIONS__SERVICE_CONNECTION__SETTINGS__TENANTID": os.getenv("CONNECTIONS__SERVICE_CONNECTION__SETTINGS__TENANTID"),
+        }
 
     async def init_app(self):
         """Initialize the application for the quickstart sample."""

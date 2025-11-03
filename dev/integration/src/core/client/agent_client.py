@@ -70,7 +70,7 @@ class AgentClient:
                 base_url=self._messaging_endpoint, headers=self._headers
             )
 
-    async def send_request(self, activity: Activity) -> str:
+    async def send_request(self, activity: Activity, sleep: float = 0) -> str:
 
         await self._init_client()
         assert self._client
@@ -89,6 +89,7 @@ class AgentClient:
             if not response.ok:
                 raise Exception(f"Failed to send activity: {response.status}")
             content = await response.text()
+            await asyncio.sleep(sleep)
             return content
 
     def _to_activity(self, activity_or_text: Activity | str) -> Activity:
@@ -102,24 +103,25 @@ class AgentClient:
             return cast(Activity, activity_or_text)
 
     async def send_activity(
-        self, activity_or_text: Activity | str, timeout: Optional[float] = None
+        self, activity_or_text: Activity | str, sleep: float = 0, timeout: Optional[float] = None
     ) -> str:
         timeout = timeout or self._default_timeout
         activity = self._to_activity(activity_or_text)
-        content = await self.send_request(activity)
+        content = await self.send_request(activity, sleep=sleep)
         return content
 
     async def send_expect_replies(
-        self, activity_or_text: Activity | str, timeout: Optional[float] = None
+        self, activity_or_text: Activity | str, sleep: float = 0, timeout: Optional[float] = None
     ) -> list[Activity]:
         timeout = timeout or self._default_timeout
         activity = self._to_activity(activity_or_text)
         activity.delivery_mode = DeliveryModes.expect_replies
 
-        content = await self.send_request(activity)
+        content = await self.send_request(activity, sleep=sleep)
 
         activities_data = json.loads(content).get("activities", [])
         activities = [Activity.model_validate(act) for act in activities_data]
+
         return activities
 
     async def close(self) -> None:

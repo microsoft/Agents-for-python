@@ -1,5 +1,5 @@
 from .application_runner import ApplicationRunner
-from aiohttp import AiohttpEnvironment
+from .aiohttp import AiohttpEnvironment
 from .client import (
     AgentClient,
     ResponseClient,

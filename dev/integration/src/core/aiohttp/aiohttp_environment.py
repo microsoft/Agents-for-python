@@ -42,7 +42,7 @@ class AiohttpEnvironment(Environment):
             **self.config
         )
 
-    def create_runner(self) -> ApplicationRunner:
+    def create_runner(self, host: str, port: int) -> ApplicationRunner:
 
         async def entry_point(req: Request) -> Response:
             agent: AgentApplication = req.app["agent_app"]
@@ -55,4 +55,4 @@ class AiohttpEnvironment(Environment):
         APP["agent_app"] = self.agent_application
         APP["adapter"] = self.adapter
 
-        return AiohttpRunner(APP)
+        return AiohttpRunner(APP, host, port)

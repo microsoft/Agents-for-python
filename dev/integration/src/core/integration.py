@@ -1,4 +1,5 @@
 import pytest
+import asyncio
 from typing import (
     Optional,
     TypeVar,
@@ -51,20 +52,27 @@ class IntegrationFixtures:
     @pytest.fixture
     async def environment(self):
         """Provides the test environment instance."""
-        assert self._environment_cls
-        assert self._sample_cls
-        environment = self._environment_cls()
-        await environment.init_env(await self._sample_cls.get_config())
-        yield environment
+        if self._environment_cls:
+            assert self._sample_cls
+            environment = self._environment_cls()
+            await environment.init_env(await self._sample_cls.get_config())
+            yield environment
+        else:
+            yield None
 
     @pytest.fixture
     async def sample(self, environment):
         """Provides the sample instance."""
-        assert environment
-        assert self._sample_cls
-        sample = self._sample_cls(environment)
-        await sample.init_app()
-        yield sample
+        if environment:
+            assert self._sample_cls
+            sample = self._sample_cls(environment)
+            await sample.init_app()
+            host, port = get_host_and_port(self.messaging_endpoint)
+            async with environment.create_runner(host, port):
+                await asyncio.sleep(1)  # Give time for the app to start
+                yield sample
+        else:
+            yield None
 
     def create_agent_client(self) -> AgentClient:
         if not self._config:
@@ -79,7 +87,7 @@ class IntegrationFixtures:
         return agent_client
 
     @pytest.fixture
-    async def agent_client(self) -> AsyncGenerator[AgentClient, None]:
+    async def agent_client(self, sample, environment) -> AsyncGenerator[AgentClient, None]:
         agent_client = self.create_agent_client()
         yield agent_client
         await agent_client.close()
@@ -97,7 +105,7 @@ class IntegrationFixtures:
 
 
 def integration(
-    messaging_endpoint: Optional[str] = None,
+    messaging_endpoint: Optional[str] = "http://localhost:3978/api/messages/",
     sample: Optional[type[Sample]] = None,
     environment: Optional[type[Environment]] = None,
     app: Optional[AppT] = None,
@@ -126,11 +134,9 @@ def integration(
 
         if messaging_endpoint:
             target_cls._messaging_endpoint = messaging_endpoint
-        elif sample and environment:
+        if sample and environment:
             target_cls._sample_cls = sample
             target_cls._environment_cls = environment
-        else:
-            raise ValueError("Insufficient parameters to create Integration instance.")
 
         target_cls._config = kwargs
 
