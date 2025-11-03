@@ -4,8 +4,7 @@ from .client import (
     ResponseClient,
 )
 from .environment import Environment
-from .integration import integration
-from .integration_fixtures import IntegrationFixtures
+from .integration import integration, IntegrationFixtures
 from .sample import Sample
 
 
