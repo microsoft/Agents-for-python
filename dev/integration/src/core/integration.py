@@ -1,5 +1,7 @@
 import pytest
 import asyncio
+
+import os
 from typing import (
     Optional,
     TypeVar,
@@ -10,6 +12,7 @@ from typing import (
 )
 
 import aiohttp.web
+from dotenv import load_dotenv
 
 from .application_runner import ApplicationRunner
 from .environment import Environment
@@ -77,6 +80,16 @@ class IntegrationFixtures:
     def create_agent_client(self) -> AgentClient:
         if not self._config:
             self._config = {}
+
+            load_dotenv("./dev/integration/src/tests/.env")
+            self._config.update(
+                {
+                    "client_id": os.getenv("CONNECTIONS__SERVICE_CONNECTION__SETTINGS__CLIENTID", ""),
+                    "tenant_id": os.getenv("CONNECTIONS__SERVICE_CONNECTION__SETTINGS__TENANTID", ""),
+                    "client_secret": os.getenv("CONNECTIONS__SERVICE_CONNECTION__SETTINGS__CLIENTSECRET", ""),
+                }
+            )
+
         agent_client = AgentClient(
             messaging_endpoint=self.messaging_endpoint,
             cid=self._cid or self._config.get("cid", ""),

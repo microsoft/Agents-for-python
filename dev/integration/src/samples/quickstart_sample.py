@@ -19,7 +19,8 @@ class QuickstartSample(Sample):
     async def get_config(cls) -> dict:
         """Retrieve the configuration for the sample."""
 
-        load_dotenv()
+        load_dotenv("./dev/integration/src/tests/.env")
+
 
         return {
             "CONNECTIONS__SERVICE_CONNECTION__SETTINGS__CLIENTID": os.getenv("CONNECTIONS__SERVICE_CONNECTION__SETTINGS__CLIENTID"),

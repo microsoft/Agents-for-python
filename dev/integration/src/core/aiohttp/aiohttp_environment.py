@@ -51,7 +51,7 @@ class AiohttpEnvironment(Environment):
 
         APP = Application(middlewares=[jwt_authorization_middleware])
         APP.router.add_post("/api/messages", entry_point)
-        APP["agent_configuration"] = self.connection_manager.get_default_connection()
+        APP["agent_configuration"] = self.connection_manager.get_default_connection_configuration()
         APP["agent_app"] = self.agent_application
         APP["adapter"] = self.adapter
 
