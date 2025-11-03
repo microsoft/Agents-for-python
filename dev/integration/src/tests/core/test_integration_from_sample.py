@@ -10,7 +10,7 @@ from src.core import (
     Sample
 )
 
-from ._common import SimpleRunner, OtherSimpleRunner
+from ._common import SimpleRunner
 
 class SimpleEnvironment(Environment):
     """A simple implementation of the Environment for testing."""
@@ -54,4 +54,4 @@ class TestIntegrationFromSample(IntegrationFixtures):
         assert sample.other_data == 1
 
         runner = environment.create_runner()
-        assert runner.app == {"running": True}
+        assert runner.app == {"sample_key": "sample_value"}
