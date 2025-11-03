@@ -1,4 +1,4 @@
-from typing import TypeVar, Any, AsyncGenerator, Callable, Optional
+from typing import TypeVar, Any, AsyncGenerator, Callable, Optional, Generator
 import pytest
 
 from .environment import Environment
@@ -34,9 +34,22 @@ class IntegrationFixtures:
         await sample.init_app()
         yield sample
     
+    def create_agent_client(self) -> AgentClient:
+        agent_client = AgentClient(
+            messaging_endpoint="http://localhost:8000/api/messages",
+            cid="test-cid",
+            client_id="test-client-id",
+            tenant_id="test-tenant-id",
+            client_secret="test-client-secret",
+            service_url="http://localhost:8000/api/messages"
+        )
+        return agent_client
+
     @pytest.fixture
-    def agent_client(self) -> AgentClient:
-        return self._agent_client
+    async def agent_client(self) -> AsyncGenerator[AgentClient, None]:
+        agent_client = self.create_agent_client()
+        yield agent_client
+        await agent_client.close()
 
     async def _create_response_client(self) -> ResponseClient:
         return ResponseClient()
