@@ -81,7 +81,7 @@ class IntegrationFixtures:
         if not self._config:
             self._config = {}
 
-            load_dotenv("./dev/integration/src/tests/.env")
+            load_dotenv("./src/tests/.env")
             self._config.update(
                 {
                     "client_id": os.getenv("CONNECTIONS__SERVICE_CONNECTION__SETTINGS__CLIENTID", ""),

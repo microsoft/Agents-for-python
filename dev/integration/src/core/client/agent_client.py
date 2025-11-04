@@ -5,7 +5,7 @@ from typing import Any, Optional, cast
 
 from aiohttp import ClientSession
 
-from microsoft_agents.activity import Activity, ActivityTypes, DeliveryModes
+from microsoft_agents.activity import Activity, ActivityTypes, DeliveryModes, ConversationAccount
 
 from msal import ConfidentialClientApplication
 
@@ -77,6 +77,8 @@ class AgentClient:
 
         if activity.conversation:
             activity.conversation.id = self._cid
+        else:
+            activity.conversation = ConversationAccount(id=self._cid or "<conversation_id>")
 
         if self.service_url:
             activity.service_url = self.service_url
@@ -84,11 +86,12 @@ class AgentClient:
         async with self._client.post(
             "api/messages",
             headers=self._headers,
-            json=activity.model_dump(by_alias=True, exclude_none=True),
+            json=activity.model_dump(by_alias=True, exclude_unset=True, exclude_none=True, mode="json"),
         ) as response:
+            content = await response.text()
+            breakpoint()
             if not response.ok:
                 raise Exception(f"Failed to send activity: {response.status}")
-            content = await response.text()
             await asyncio.sleep(sleep)
             return content
 
@@ -116,6 +119,7 @@ class AgentClient:
         timeout = timeout or self._default_timeout
         activity = self._to_activity(activity_or_text)
         activity.delivery_mode = DeliveryModes.expect_replies
+        activity.service_url = activity.service_url or "http://localhost" # temporary fix
 
         content = await self.send_request(activity, sleep=sleep)
 

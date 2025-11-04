@@ -19,7 +19,7 @@ class QuickstartSample(Sample):
     async def get_config(cls) -> dict:
         """Retrieve the configuration for the sample."""
 
-        load_dotenv("./dev/integration/src/tests/.env")
+        load_dotenv("./src/tests/.env")
 
 
         return {

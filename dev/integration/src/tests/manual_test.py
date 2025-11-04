@@ -7,6 +7,11 @@ from src.samples import QuickstartSample
 
 from dotenv import load_dotenv
 
+import logging
+ms_agents_logger = logging.getLogger("microsoft_agents")
+ms_agents_logger.addHandler(logging.StreamHandler())
+ms_agents_logger.setLevel(logging.DEBUG)
+
 async def main():
 
     env = AiohttpEnvironment()
@@ -36,8 +41,6 @@ async def main():
         while True:
 
             res = await client.send_expect_replies("Hello, Agent!")
-
-            breakpoint()
 
             await asyncio.sleep(1)
 
