@@ -1,9 +1,9 @@
 # Copyright (c) Microsoft Corporation. All rights reserved.
 # Licensed under the MIT License.
 
-from microsoft_agents.hosting.core import error_resources
-
 from __future__ import annotations
+
+from microsoft_agents.hosting.core import error_resources
 
 from typing import Optional, Any
 
