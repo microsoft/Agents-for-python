@@ -2,6 +2,7 @@ import json
 from typing import Union
 
 from azure.core.credentials import TokenCredential
+from microsoft_agents.hosting.core import error_resources
 
 from .key_ops import sanitize_key
 
@@ -69,15 +70,15 @@ class CosmosDBStorageConfig:
 
         This is used prior to the creation of the CosmosDBStorage object."""
         if not config:
-            raise ValueError("CosmosDBStorage: CosmosDBConfig is required.")
+            raise ValueError(str(error_resources.CosmosDbConfigRequired))
         if not config.cosmos_db_endpoint:
-            raise ValueError("CosmosDBStorage: cosmos_db_endpoint is required.")
+            raise ValueError(str(error_resources.CosmosDbEndpointRequired))
         if not config.auth_key:
-            raise ValueError("CosmosDBStorage: auth_key is required.")
+            raise ValueError(str(error_resources.CosmosDbAuthKeyRequired))
         if not config.database_id:
-            raise ValueError("CosmosDBStorage: database_id is required.")
+            raise ValueError(str(error_resources.CosmosDbDatabaseIdRequired))
         if not config.container_id:
-            raise ValueError("CosmosDBStorage: container_id is required.")
+            raise ValueError(str(error_resources.CosmosDbContainerIdRequired))
 
         CosmosDBStorageConfig._validate_suffix(config)
 
@@ -86,10 +87,12 @@ class CosmosDBStorageConfig:
         if config.key_suffix:
             if config.compatibility_mode:
                 raise ValueError(
-                    "compatibilityMode cannot be true while using a keySuffix."
+                    error_resources.CosmosDbCompatibilityModeRequired.format()
                 )
             suffix_escaped: str = sanitize_key(config.key_suffix)
             if suffix_escaped != config.key_suffix:
                 raise ValueError(
-                    f"Cannot use invalid Row Key characters: {config.key_suffix} in keySuffix."
+                    error_resources.InvalidParameterValue.format(
+                        "keySuffix", config.key_suffix
+                    )
                 )
