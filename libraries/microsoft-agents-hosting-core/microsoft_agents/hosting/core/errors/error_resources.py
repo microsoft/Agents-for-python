@@ -151,6 +151,12 @@ class ErrorResources:
         "storage-configuration",
     )
 
+    CosmosDbInvalidKeySuffixCharacters = ErrorMessage(
+        "Cannot use invalid Row Key characters: {0} in keySuffix.",
+        -60111,
+        "storage-configuration",
+    )
+
     BlobStorageConfigRequired = ErrorMessage(
         "BlobStorage: BlobStorageConfig is required.",
         -60120,

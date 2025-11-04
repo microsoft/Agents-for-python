@@ -90,7 +90,7 @@ class CosmosDBStorageConfig:
             suffix_escaped: str = sanitize_key(config.key_suffix)
             if suffix_escaped != config.key_suffix:
                 raise ValueError(
-                    error_resources.InvalidParameterValue.format(
-                        "keySuffix", config.key_suffix
+                    error_resources.CosmosDbInvalidKeySuffixCharacters.format(
+                        config.key_suffix
                     )
                 )
