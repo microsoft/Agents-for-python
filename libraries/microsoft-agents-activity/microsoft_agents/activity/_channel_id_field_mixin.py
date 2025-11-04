@@ -42,9 +42,9 @@ class _ChannelIdFieldMixin:
         elif isinstance(value, str):
             self._channel_id = ChannelId(value)
         else:
-            from microsoft_agents.hosting.core import error_resources
+            from microsoft_agents.activity.errors import activity_errors
 
-            raise ValueError(error_resources.InvalidChannelIdType.format(type(value)))
+            raise ValueError(activity_errors.InvalidChannelIdType.format(type(value)))
 
     def _set_validated_channel_id(self, data: Any) -> None:
         """Sets the channel_id after validating it as a ChannelId model."""

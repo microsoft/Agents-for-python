@@ -1,33 +1,61 @@
-# Error Resources for Microsoft Agents SDK
+# Error Resources for Microsoft Agents SDK - Hosting Core
 
-This module provides centralized error messages with error codes and help URLs for the Microsoft Agents SDK, following the pattern established in the C# SDK.
+This module provides centralized error messages with error codes and help URLs for hosting operations in the Microsoft Agents SDK.
 
 ## Overview
 
-All error messages in the Microsoft Agents SDK are now centralized in the `error_resources` module. Each error includes:
+Error messages are organized by package, with each package maintaining its own error resources:
 
-1. **Formatted message string** - Can include placeholders for dynamic values
-2. **Error code** - A unique negative integer identifying the error
-3. **Help URL** - A link to documentation with hashtag anchor
+- **Authentication** (`microsoft-agents-authentication-msal`): -60000 to -60999
+- **Storage - Cosmos** (`microsoft-agents-storage-cosmos`): -61000 to -61999
+- **Storage - Blob** (`microsoft-agents-storage-blob`): -61100 to -61199
+- **Teams** (`microsoft-agents-hosting-teams`): -62000 to -62999
+- **Hosting** (`microsoft-agents-hosting-core`): -63000 to -63999
+- **Activity** (`microsoft-agents-activity`): -64000 to -64999
+- **Copilot Studio** (`microsoft-agents-copilotstudio-client`): -65000 to -65999
+- **General/Validation** (`microsoft-agents-hosting-core`): -66000 to -66999
 
 ## Usage
 
-### Basic Usage
+### Hosting Core Errors
 
 ```python
 from microsoft_agents.hosting.core import error_resources
 
 # Raise an error with a simple message
-raise ValueError(str(error_resources.CosmosDbConfigRequired))
+raise ValueError(str(error_resources.AdapterRequired))
 
 # Raise an error with formatted arguments
-raise ValueError(error_resources.FailedToAcquireToken.format(auth_payload))
-
-# Multiple arguments
-raise ValueError(error_resources.CosmosDbPartitionKeyInvalid.format(key1, key2))
+raise ValueError(error_resources.ChannelServiceRouteNotFound.format("route_name"))
 ```
 
-### Example Output
+### Package-Specific Errors
+
+Each package exports its own error resources:
+
+```python
+# Authentication errors
+from microsoft_agents.authentication.msal.errors import authentication_errors
+raise ValueError(authentication_errors.FailedToAcquireToken.format(payload))
+
+# Storage errors
+from microsoft_agents.storage.cosmos.errors import storage_errors
+raise ValueError(str(storage_errors.CosmosDbConfigRequired))
+
+# Teams errors
+from microsoft_agents.hosting.teams.errors import teams_errors
+raise ValueError(str(teams_errors.TeamsContextRequired))
+
+# Activity errors
+from microsoft_agents.activity.errors import activity_errors
+raise ValueError(activity_errors.InvalidChannelIdType.format(type(value)))
+
+# Copilot Studio errors
+from microsoft_agents.copilotstudio.client.errors import copilot_studio_errors
+raise ValueError(str(copilot_studio_errors.EnvironmentIdRequired))
+```
+
+## Example Output
 
 When an error is raised, it will look like:
 
@@ -40,147 +68,56 @@ Help URL: https://aka.ms/M365AgentsErrorCodes/#agentic-identity-with-the-m365-ag
 
 ## Error Code Ranges
 
-Error codes are organized by category in the following ranges:
-
-| Range | Category | Example |
-|-------|----------|---------|
-| -60000 to -60099 | Authentication | FailedToAcquireToken (-60012) |
-| -60100 to -60199 | Storage | CosmosDbConfigRequired (-60100) |
-| -60200 to -60299 | Teams | TeamsBadRequest (-60200) |
-| -60300 to -60399 | Hosting | AdapterRequired (-60300) |
-| -60400 to -60499 | Activity | InvalidChannelIdType (-60400) |
-| -60500 to -60599 | Copilot Studio | CloudBaseAddressRequired (-60500) |
-| -60600 to -60699 | General/Validation | InvalidConfiguration (-60600) |
-
-## Available Error Resources
-
-### Authentication Errors
-
-- `FailedToAcquireToken` - Failed to acquire authentication token
-- `InvalidInstanceUrl` - Invalid instance URL provided
-- `OnBehalfOfFlowNotSupportedManagedIdentity` - On-behalf-of flow not supported with managed identity
-- `OnBehalfOfFlowNotSupportedAuthType` - On-behalf-of flow not supported with current auth type
-- `AuthenticationTypeNotSupported` - Authentication type not supported
-- `AgentApplicationInstanceIdRequired` - Agent application instance ID required
-- `FailedToAcquireAgenticInstanceToken` - Failed to acquire agentic instance token
-- `AgentApplicationInstanceIdAndUserIdRequired` - Both agent app instance ID and user ID required
-- `FailedToAcquireInstanceOrAgentToken` - Failed to acquire instance or agent token
-
-### Storage Errors
-
-- `CosmosDbConfigRequired` - CosmosDB configuration required
-- `CosmosDbEndpointRequired` - CosmosDB endpoint required
-- `CosmosDbAuthKeyRequired` - CosmosDB auth key required
-- `CosmosDbDatabaseIdRequired` - CosmosDB database ID required
-- `CosmosDbContainerIdRequired` - CosmosDB container ID required
-- `CosmosDbKeyCannotBeEmpty` - CosmosDB key cannot be empty
-- `BlobStorageConfigRequired` - Blob storage configuration required
-- `BlobContainerNameRequired` - Blob container name required
-- `StorageKeyCannotBeEmpty` - Storage key cannot be empty
-
-### Teams Errors
-
-- `TeamsBadRequest` - Bad request
-- `TeamsNotImplemented` - Not implemented
-- `TeamsContextRequired` - Context required
-- `TeamsMeetingIdRequired` - Meeting ID required
-- `TeamsParticipantIdRequired` - Participant ID required
-- `TeamsTeamIdRequired` - Team ID required
-- `TeamsTurnContextRequired` - TurnContext required
-- `TeamsActivityRequired` - Activity required
-- `TeamsChannelIdRequired` - Teams channel ID required
-- `TeamsConversationIdRequired` - Conversation ID required
-
-### Hosting Errors
-
-- `AdapterRequired` - Adapter required
-- `AgentApplicationRequired` - Agent application required
-- `RequestRequired` - Request required
-- `AgentRequired` - Agent required
-- `StreamAlreadyEnded` - Stream already ended
-- `TurnContextRequired` - TurnContext required
-- `ActivityRequired` - Activity required
-
-### Activity Errors
-
-- `InvalidChannelIdType` - Invalid channel ID type
-- `ChannelIdProductInfoConflict` - Conflict between channel ID and product info
-- `ChannelIdValueConflict` - Value and channel cannot both be provided
-- `ChannelIdValueMustBeNonEmpty` - Channel ID value must be non-empty
-
-### Copilot Studio Errors
-
-- `CloudBaseAddressRequired` - Cloud base address required
-- `EnvironmentIdRequired` - Environment ID required
-- `AgentIdentifierRequired` - Agent identifier required
-- `CustomCloudOrBaseAddressRequired` - Custom cloud or base address required
-- `PowerPlatformEnvironmentRequired` - Power Platform environment required
-- `AccessTokenProviderRequired` - Access token provider required
-
-### General/Validation Errors
-
-- `InvalidConfiguration` - Invalid configuration
-- `RequiredParameterMissing` - Required parameter missing
-- `InvalidParameterValue` - Invalid parameter value
-- `OperationNotSupported` - Operation not supported
-- `ResourceNotFound` - Resource not found
-- `UnexpectedError` - Unexpected error occurred
+| Range | Package | Category | Example |
+|-------|---------|----------|---------|
+| -60000 to -60999 | microsoft-agents-authentication-msal | Authentication | FailedToAcquireToken (-60012) |
+| -61000 to -61999 | microsoft-agents-storage-cosmos | Storage (Cosmos) | CosmosDbConfigRequired (-61000) |
+| -61100 to -61199 | microsoft-agents-storage-blob | Storage (Blob) | BlobStorageConfigRequired (-61100) |
+| -62000 to -62999 | microsoft-agents-hosting-teams | Teams | TeamsBadRequest (-62000) |
+| -63000 to -63999 | microsoft-agents-hosting-core | Hosting | AdapterRequired (-63000) |
+| -64000 to -64999 | microsoft-agents-activity | Activity | InvalidChannelIdType (-64000) |
+| -65000 to -65999 | microsoft-agents-copilotstudio-client | Copilot Studio | CloudBaseAddressRequired (-65000) |
+| -66000 to -66999 | microsoft-agents-hosting-core | General/Validation | InvalidConfiguration (-66000) |
 
 ## Adding New Error Messages
 
-To add a new error message:
+To add a new error message to a package:
 
-1. Open `error_resources.py`
-2. Add a new `ErrorMessage` instance to the `ErrorResources` class
+1. Navigate to the package's `errors/error_resources.py` file
+2. Add a new `ErrorMessage` instance with an appropriate error code within the package's range
 3. Follow the naming convention: `PascalCaseErrorName`
-4. Assign an error code in the appropriate range
-5. Provide an appropriate help URL anchor
+4. Provide an appropriate help URL anchor
 
 Example:
 
 ```python
-NewErrorType = ErrorMessage(
+NewHostingError = ErrorMessage(
     "Description of the error with {0} placeholder",
-    -60XXX,  # Use appropriate range
+    -63XXX,  # Use next available code in hosting range
     "help-url-anchor",
 )
 ```
 
 ## Avoiding Circular Imports
 
-When using error_resources in modules that are imported by hosting-core's `__init__.py`, use lazy imports to avoid circular dependencies:
+When using error resources in modules that might cause circular dependencies, use lazy imports:
 
 ```python
-# Instead of module-level import:
-# from microsoft_agents.hosting.core import error_resources
-
-# Use lazy import where needed:
 def my_function():
-    from microsoft_agents.hosting.core import error_resources
-    raise ValueError(str(error_resources.SomeError))
+    from microsoft_agents.activity.errors import activity_errors
+    raise ValueError(str(activity_errors.SomeError))
 ```
 
 ## Testing
 
-Tests for error resources are located in `tests/hosting_core/errors/test_error_resources.py`.
-
-To run tests:
-```bash
-pytest tests/hosting_core/errors/test_error_resources.py -v
-```
+Tests for error resources are located in `tests/hosting_core/errors/test_error_resources.py` and package-specific test files.
 
 ## Contributing
 
 When refactoring existing error messages:
 
-1. Find the error message in the code
-2. Identify or create an appropriate error resource
-3. Replace the hardcoded string with `str(error_resources.ErrorName)` or `error_resources.ErrorName.format(args)`
-4. For errors with placeholders, use `.format()` with appropriate arguments
+1. Identify the package where the error belongs
+2. Find or create the appropriate error resource in that package
+3. Replace hardcoded strings with the error resource reference
+4. Format with Black
 5. Update tests if needed
-
-## Future Work
-
-- Help URLs will be updated with correct deep-link hashtags once documentation is available
-- Additional error messages can be added as needed
-- Error codes can be aligned with C# SDK as that evolves

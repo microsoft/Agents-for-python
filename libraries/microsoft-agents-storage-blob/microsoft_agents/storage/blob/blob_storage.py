@@ -14,7 +14,7 @@ from microsoft_agents.hosting.core.storage.error_handling import (
     ignore_error,
     is_status_code_error,
 )
-from microsoft_agents.hosting.core import error_resources
+from microsoft_agents.storage.blob.errors import blob_storage_errors
 
 from .blob_storage_config import BlobStorageConfig
 
@@ -26,7 +26,7 @@ class BlobStorage(AsyncStorageBase):
     def __init__(self, config: BlobStorageConfig):
 
         if not config.container_name:
-            raise ValueError(str(error_resources.BlobContainerNameRequired))
+            raise ValueError(str(blob_storage_errors.BlobContainerNameRequired))
 
         self.config = config
 
@@ -40,7 +40,7 @@ class BlobStorage(AsyncStorageBase):
         if self.config.url:  # connect with URL and credentials
             if not self.config.credential:
                 raise ValueError(
-                    error_resources.InvalidConfiguration.format(
+                    blob_storage_errors.InvalidConfiguration.format(
                         "Credential is required when using a custom service URL"
                     )
                 )

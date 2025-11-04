@@ -25,8 +25,8 @@ from microsoft_agents.hosting.core import (
     AuthTypes,
     AccessTokenProviderBase,
     AgentAuthConfiguration,
-    error_resources,
 )
+from microsoft_agents.authentication.msal.errors import authentication_errors
 
 logger = logging.getLogger(__name__)
 
@@ -66,7 +66,7 @@ class MsalAuth(AccessTokenProviderBase):
         )
         valid_uri, instance_uri = self._uri_validator(resource_url)
         if not valid_uri:
-            raise ValueError(str(error_resources.InvalidInstanceUrl))
+            raise ValueError(str(authentication_errors.InvalidInstanceUrl))
 
         local_scopes = self._resolve_scopes_list(instance_uri, scopes)
         self._create_client_application()
@@ -88,7 +88,9 @@ class MsalAuth(AccessTokenProviderBase):
         if not res:
             logger.error("Failed to acquire token for resource %s", auth_result_payload)
             raise ValueError(
-                error_resources.FailedToAcquireToken.format(str(auth_result_payload))
+                authentication_errors.FailedToAcquireToken.format(
+                    str(auth_result_payload)
+                )
             )
 
         return res
@@ -109,7 +111,7 @@ class MsalAuth(AccessTokenProviderBase):
                 "Attempted on-behalf-of flow with Managed Identity authentication."
             )
             raise NotImplementedError(
-                str(error_resources.OnBehalfOfFlowNotSupportedManagedIdentity)
+                str(authentication_errors.OnBehalfOfFlowNotSupportedManagedIdentity)
             )
         elif isinstance(self._msal_auth_client, ConfidentialClientApplication):
             # TODO: Handling token error / acquisition failed
@@ -127,7 +129,7 @@ class MsalAuth(AccessTokenProviderBase):
                     f"Failed to acquire token on behalf of user: {user_assertion}"
                 )
                 raise ValueError(
-                    error_resources.FailedToAcquireToken.format(str(token))
+                    authentication_errors.FailedToAcquireToken.format(str(token))
                 )
 
             return token["access_token"]
@@ -136,7 +138,7 @@ class MsalAuth(AccessTokenProviderBase):
             f"On-behalf-of flow is not supported with the current authentication type: {self._msal_auth_client.__class__.__name__}"
         )
         raise NotImplementedError(
-            error_resources.OnBehalfOfFlowNotSupportedAuthType.format(
+            authentication_errors.OnBehalfOfFlowNotSupportedAuthType.format(
                 self._msal_auth_client.__class__.__name__
             )
         )
@@ -195,7 +197,7 @@ class MsalAuth(AccessTokenProviderBase):
                     f"Unsupported authentication type: {self._msal_configuration.AUTH_TYPE}"
                 )
                 raise NotImplementedError(
-                    str(error_resources.AuthenticationTypeNotSupported)
+                    str(authentication_errors.AuthenticationTypeNotSupported)
                 )
 
             self._msal_auth_client = ConfidentialClientApplication(
@@ -242,7 +244,9 @@ class MsalAuth(AccessTokenProviderBase):
         """
 
         if not agent_app_instance_id:
-            raise ValueError(str(error_resources.AgentApplicationInstanceIdRequired))
+            raise ValueError(
+                str(authentication_errors.AgentApplicationInstanceIdRequired)
+            )
 
         logger.info(
             "Attempting to get agentic application token from agent_app_instance_id %s",
@@ -276,7 +280,9 @@ class MsalAuth(AccessTokenProviderBase):
         """
 
         if not agent_app_instance_id:
-            raise ValueError(str(error_resources.AgentApplicationInstanceIdRequired))
+            raise ValueError(
+                str(authentication_errors.AgentApplicationInstanceIdRequired)
+            )
 
         logger.info(
             "Attempting to get agentic instance token from agent_app_instance_id %s",
@@ -292,7 +298,7 @@ class MsalAuth(AccessTokenProviderBase):
                 agent_app_instance_id,
             )
             raise Exception(
-                error_resources.FailedToAcquireAgenticInstanceToken.format(
+                authentication_errors.FailedToAcquireAgenticInstanceToken.format(
                     agent_app_instance_id
                 )
             )
@@ -317,7 +323,7 @@ class MsalAuth(AccessTokenProviderBase):
                 agent_app_instance_id,
             )
             raise Exception(
-                error_resources.FailedToAcquireAgenticInstanceToken.format(
+                authentication_errors.FailedToAcquireAgenticInstanceToken.format(
                     agent_app_instance_id
                 )
             )
@@ -330,7 +336,9 @@ class MsalAuth(AccessTokenProviderBase):
                 "Failed to acquire agentic instance token, %s", agentic_instance_token
             )
             raise ValueError(
-                error_resources.FailedToAcquireToken.format(str(agentic_instance_token))
+                authentication_errors.FailedToAcquireToken.format(
+                    str(agentic_instance_token)
+                )
             )
 
         logger.debug(
@@ -360,7 +368,7 @@ class MsalAuth(AccessTokenProviderBase):
         """
         if not agent_app_instance_id or not agentic_user_id:
             raise ValueError(
-                str(error_resources.AgentApplicationInstanceIdAndUserIdRequired)
+                str(authentication_errors.AgentApplicationInstanceIdAndUserIdRequired)
             )
 
         logger.info(
@@ -379,7 +387,7 @@ class MsalAuth(AccessTokenProviderBase):
                 agentic_user_id,
             )
             raise Exception(
-                error_resources.FailedToAcquireInstanceOrAgentToken.format(
+                authentication_errors.FailedToAcquireInstanceOrAgentToken.format(
                     agent_app_instance_id, agentic_user_id
                 )
             )

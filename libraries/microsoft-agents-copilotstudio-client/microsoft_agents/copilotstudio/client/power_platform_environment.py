@@ -1,4 +1,4 @@
-from microsoft_agents.hosting.core import error_resources
+from microsoft_agents.copilotstudio.client.errors import copilot_studio_errors
 from urllib.parse import urlparse, urlunparse
 from typing import Optional
 from .connection_settings import ConnectionSettings
@@ -23,11 +23,11 @@ class PowerPlatformEnvironment:
         cloud_base_address: Optional[str] = None,
     ) -> str:
         if cloud == PowerPlatformCloud.OTHER and not cloud_base_address:
-            raise ValueError(str(error_resources.CloudBaseAddressRequired))
+            raise ValueError(str(copilot_studio_errors.CloudBaseAddressRequired))
         if not settings.environment_id:
-            raise ValueError(str(error_resources.EnvironmentIdRequired))
+            raise ValueError(str(copilot_studio_errors.EnvironmentIdRequired))
         if not settings.agent_identifier:
-            raise ValueError(str(error_resources.AgentIdentifierRequired))
+            raise ValueError(str(copilot_studio_errors.AgentIdentifierRequired))
         if settings.cloud and settings.cloud != PowerPlatformCloud.UNKNOWN:
             cloud = settings.cloud
         if cloud == PowerPlatformCloud.OTHER:
@@ -38,7 +38,9 @@ class PowerPlatformEnvironment:
             elif settings.custom_power_platform_cloud:
                 cloud_base_address = settings.custom_power_platform_cloud
             else:
-                raise ValueError(str(error_resources.CustomCloudOrBaseAddressRequired))
+                raise ValueError(
+                    str(copilot_studio_errors.CustomCloudOrBaseAddressRequired)
+                )
         if settings.copilot_agent_type:
             agent_type = settings.copilot_agent_type
 
@@ -57,7 +59,7 @@ class PowerPlatformEnvironment:
         cloud_base_address: Optional[str] = None,
     ) -> str:
         if cloud == PowerPlatformCloud.OTHER and not cloud_base_address:
-            raise ValueError(str(error_resources.CloudBaseAddressRequired))
+            raise ValueError(str(copilot_studio_errors.CloudBaseAddressRequired))
         if not settings and cloud == PowerPlatformCloud.UNKNOWN:
             raise ValueError("Either settings or cloud must be provided")
         if settings and settings.cloud and settings.cloud != PowerPlatformCloud.UNKNOWN:
@@ -73,7 +75,9 @@ class PowerPlatformEnvironment:
                 cloud = PowerPlatformCloud.OTHER
                 cloud_base_address = settings.custom_power_platform_cloud
             else:
-                raise ValueError(str(error_resources.CustomCloudOrBaseAddressRequired))
+                raise ValueError(
+                    str(copilot_studio_errors.CustomCloudOrBaseAddressRequired)
+                )
 
         cloud_base_address = cloud_base_address or "api.unknown.powerplatform.com"
         return f"https://{PowerPlatformEnvironment.get_endpoint_suffix(cloud, cloud_base_address)}/.default"
@@ -109,7 +113,7 @@ class PowerPlatformEnvironment:
         cloud_base_address: Optional[str] = None,
     ) -> str:
         if cloud == PowerPlatformCloud.OTHER and not cloud_base_address:
-            raise ValueError(str(error_resources.CloudBaseAddressRequired))
+            raise ValueError(str(copilot_studio_errors.CloudBaseAddressRequired))
         cloud_base_address = cloud_base_address or "api.unknown.powerplatform.com"
         normalized_resource_id = environment_id.lower().replace("-", "")
         id_suffix_length = PowerPlatformEnvironment.get_id_suffix_length(cloud)
