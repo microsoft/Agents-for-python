@@ -8,10 +8,10 @@ from src.core import integration, IntegrationFixtures
 
 
 @integration(
-    messaging_endpoint="http://localhost:8000/api/messages/",
+    agent_url="http://localhost:8000/",
     service_url="http://localhost:8001/",
 )
-class TestIntegrationFromServiceURL(IntegrationFixtures):
+class TestIntegrationFromURL(IntegrationFixtures):
 
     @pytest.mark.asyncio
     async def test_service_url_integration(self, agent_client):
@@ -19,7 +19,7 @@ class TestIntegrationFromServiceURL(IntegrationFixtures):
 
         with aioresponses() as mocked:
 
-            mocked.post(self.messaging_endpoint, status=200, body="Service response")
+            mocked.post(f"{self.agent_url}api/messages", status=200, body="Service response")
 
             res = await agent_client.send_activity("Hello, service!")
             assert res == "Service response"
@@ -39,7 +39,7 @@ class TestIntegrationFromServiceURL(IntegrationFixtures):
                 )
                 return CallbackResult(status=200, body="Service response")
 
-            mocked.post(self.messaging_endpoint, callback=callback)
+            mocked.post(f"{self.agent_url}api/messages", callback=callback)
 
             res = await agent_client.send_activity("Hello, service!")
             assert res == "Service response"

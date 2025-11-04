@@ -14,7 +14,7 @@ class AgentClient:
 
     def __init__(
         self,
-        messaging_endpoint: str,
+        agent_url: str,
         cid: str,
         client_id: str,
         tenant_id: str,
@@ -22,7 +22,7 @@ class AgentClient:
         service_url: Optional[str] = None,
         default_timeout: float = 5.0,
     ):
-        self._messaging_endpoint = messaging_endpoint
+        self._agent_url = agent_url
         self._cid = cid
         self._client_id = client_id
         self._tenant_id = tenant_id
@@ -34,8 +34,8 @@ class AgentClient:
         self._client: Optional[ClientSession] = None
 
     @property
-    def messaging_endpoint(self) -> str:
-        return self._messaging_endpoint
+    def agent_url(self) -> str:
+        return self._agent_url
 
     @property
     def service_url(self) -> Optional[str]:
@@ -67,7 +67,7 @@ class AgentClient:
                 self._headers = {"Content-Type": "application/json"}
 
             self._client = ClientSession(
-                base_url=self._messaging_endpoint, headers=self._headers
+                base_url=self._agent_url, headers=self._headers
             )
 
     async def send_request(self, activity: Activity, sleep: float = 0) -> str:
@@ -82,7 +82,7 @@ class AgentClient:
             activity.service_url = self.service_url
 
         async with self._client.post(
-            self._messaging_endpoint,
+            "api/messages",
             headers=self._headers,
             json=activity.model_dump(by_alias=True, exclude_none=True),
         ) as response:

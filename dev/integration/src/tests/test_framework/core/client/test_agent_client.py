@@ -18,7 +18,7 @@ class TestAgentClient:
     @pytest.fixture
     async def agent_client(self):
         client = AgentClient(
-            messaging_endpoint=DEFAULTS.messaging_endpoint,
+            agent_url=DEFAULTS.agent_url,
             cid=DEFAULTS.cid,
             client_id=DEFAULTS.client_id,
             tenant_id=DEFAULTS.tenant_id,
@@ -44,9 +44,9 @@ class TestAgentClient:
             return_value=mocker.Mock(spec=ConfidentialClientApplication),
         )
 
-        assert agent_client.messaging_endpoint
+        assert agent_client.agent_url
         aioresponses_mock.post(
-            agent_client.messaging_endpoint,
+            f"{agent_client.agent_url}api/messages",
             payload={"response": "Response from service"},
         )
 
@@ -65,13 +65,13 @@ class TestAgentClient:
             return_value=mocker.Mock(spec=ConfidentialClientApplication),
         )
 
-        assert agent_client.messaging_endpoint
+        assert agent_client.agent_url
         activities = [
             Activity(type="message", text="Response from service"),
             Activity(type="message", text="Another response"),
         ]
         aioresponses_mock.post(
-            agent_client.messaging_endpoint,
+            agent_client.agent_url + "api/messages",
             payload={
                 "activities": [
                     activity.model_dump(by_alias=True, exclude_none=True)

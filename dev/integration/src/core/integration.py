@@ -33,7 +33,7 @@ class IntegrationFixtures:
     _config: dict[str, Any] = {}
 
     _service_url: Optional[str] = None
-    _messaging_endpoint: Optional[str] = None
+    _agent_url: Optional[str] = None
     _cid: Optional[str] = None
     _client_id: Optional[str] = None
     _tenant_id: Optional[str] = None
@@ -49,8 +49,8 @@ class IntegrationFixtures:
         return self._service_url or self._config.get("service_url", "")
 
     @property
-    def messaging_endpoint(self) -> str:
-        return self._messaging_endpoint or self._config.get("messaging_endpoint", "")
+    def agent_url(self) -> str:
+        return self._agent_url or self._config.get("agent_url", "")
 
     @pytest.fixture
     async def environment(self):
@@ -70,7 +70,7 @@ class IntegrationFixtures:
             assert self._sample_cls
             sample = self._sample_cls(environment)
             await sample.init_app()
-            host, port = get_host_and_port(self.messaging_endpoint)
+            host, port = get_host_and_port(self.agent_url)
             async with environment.create_runner(host, port):
                 await asyncio.sleep(1)  # Give time for the app to start
                 yield sample
@@ -91,7 +91,7 @@ class IntegrationFixtures:
             )
 
         agent_client = AgentClient(
-            messaging_endpoint=self.messaging_endpoint,
+            agent_url=self.agent_url,
             cid=self._cid or self._config.get("cid", ""),
             client_id=self._client_id or self._config.get("client_id", ""),
             tenant_id=self._tenant_id or self._config.get("tenant_id", ""),
@@ -118,7 +118,7 @@ class IntegrationFixtures:
 
 
 def integration(
-    messaging_endpoint: Optional[str] = "http://localhost:3978/api/messages/",
+    agent_url: Optional[str] = "http://localhost:3978/",
     sample: Optional[type[Sample]] = None,
     environment: Optional[type[Environment]] = None,
     app: Optional[AppT] = None,
@@ -145,8 +145,8 @@ def integration(
 
     def decorator(target_cls: T) -> T:
 
-        if messaging_endpoint:
-            target_cls._messaging_endpoint = messaging_endpoint
+        if agent_url:
+            target_cls._agent_url = agent_url
         if sample and environment:
             target_cls._sample_cls = sample
             target_cls._environment_cls = environment

@@ -20,7 +20,7 @@ class SimpleEnvironment(Environment):
         self.config = environ_config
         # Initialize other components as needed
 
-    def create_runner(self) -> ApplicationRunner:
+    def create_runner(self, *args) -> ApplicationRunner:
         return SimpleRunner(copy(self.config))
 
 
