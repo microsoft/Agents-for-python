@@ -1,18 +1,12 @@
 # Copyright (c) Microsoft Corporation. All rights reserved.
 # Licensed under the MIT License.
 
-from abc import abstractmethod
-from typing import Optional, Protocol
+from typing import Protocol
 
-from aiohttp.web import (
-    Request,
-    Response,
-)
+from aiohttp.web import Request, Response
 
-from microsoft_agents.hosting.core import Agent
+from microsoft_agents.hosting.core import AgentHttpAdapterProtocol
 
 
-class AgentHttpAdapter(Protocol):
-    @abstractmethod
-    async def process(self, request: Request, agent: Agent) -> Optional[Response]:
-        raise NotImplementedError()
+class AgentHttpAdapter(AgentHttpAdapterProtocol[Request, Response], Protocol):
+    """Framework specific alias for the shared AgentHttpAdapter protocol."""

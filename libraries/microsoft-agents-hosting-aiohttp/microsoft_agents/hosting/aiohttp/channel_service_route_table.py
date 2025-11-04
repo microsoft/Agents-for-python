@@ -1,102 +1,80 @@
-# Copyright (c) Microsoft Corporation. All rights reserved.
-# Licensed under the MIT License.
 import json
-from typing import List, Union, Type
+from typing import Any
 
-from aiohttp.web import RouteTableDef, Request, Response
+from aiohttp.web import HTTPUnsupportedMediaType, Request, Response, RouteTableDef
 
-from microsoft_agents.activity import (
-    AgentsModel,
-    Activity,
-    AttachmentData,
-    ConversationParameters,
-    Transcript,
+from microsoft_agents.hosting.core import (
+    ChannelApiHandlerProtocol,
+    ChannelServiceOperations,
+    serialize_agents_model,
 )
-from microsoft_agents.hosting.core import ChannelApiHandlerProtocol
 
 
-async def deserialize_from_body(
-    request: Request, target_model: Type[AgentsModel]
-) -> Activity:
-    if "application/json" in request.headers["Content-Type"]:
-        body = await request.json()
-    else:
-        return Response(status=415)
-
-    return target_model.model_validate(body)
+async def _read_payload(request: Request) -> Any:
+    if "application/json" not in request.headers.get("Content-Type", ""):
+        raise HTTPUnsupportedMediaType()
+    return await request.json()
 
 
-def get_serialized_response(
-    model_or_list: Union[AgentsModel, List[AgentsModel]],
-) -> Response:
-    if isinstance(model_or_list, AgentsModel):
-        json_obj = model_or_list.model_dump(
-            mode="json", exclude_unset=True, by_alias=True
-        )
-    else:
-        json_obj = [
-            model.model_dump(mode="json", exclude_unset=True, by_alias=True)
-            for model in model_or_list
-        ]
+def _json_response(result: Any) -> Response:
+    if result is None:
+        return Response()
 
-    return Response(body=json.dumps(json_obj), content_type="application/json")
+    payload = serialize_agents_model(result)
+    return Response(body=json.dumps(payload), content_type="application/json")
 
 
 def channel_service_route_table(
     handler: ChannelApiHandlerProtocol, base_url: str = ""
 ) -> RouteTableDef:
-    # pylint: disable=unused-variable
     routes = RouteTableDef()
+    operations = ChannelServiceOperations(handler)
 
     @routes.post(base_url + "/v3/conversations/{conversation_id}/activities")
     async def send_to_conversation(request: Request):
-        activity = await deserialize_from_body(request, Activity)
-        result = await handler.on_send_to_conversation(
+        payload = await _read_payload(request)
+        result = await operations.send_to_conversation(
             request.get("claims_identity"),
             request.match_info["conversation_id"],
-            activity,
+            payload,
         )
-
-        return get_serialized_response(result)
+        return _json_response(result)
 
     @routes.post(
         base_url + "/v3/conversations/{conversation_id}/activities/{activity_id}"
     )
     async def reply_to_activity(request: Request):
-        activity = await deserialize_from_body(request, Activity)
-        result = await handler.on_reply_to_activity(
+        payload = await _read_payload(request)
+        result = await operations.reply_to_activity(
             request.get("claims_identity"),
             request.match_info["conversation_id"],
             request.match_info["activity_id"],
-            activity,
+            payload,
         )
-
-        return get_serialized_response(result)
+        return _json_response(result)
 
     @routes.put(
         base_url + "/v3/conversations/{conversation_id}/activities/{activity_id}"
     )
     async def update_activity(request: Request):
-        activity = await deserialize_from_body(request, Activity)
-        result = await handler.on_update_activity(
+        payload = await _read_payload(request)
+        result = await operations.update_activity(
             request.get("claims_identity"),
             request.match_info["conversation_id"],
             request.match_info["activity_id"],
-            activity,
+            payload,
         )
-
-        return get_serialized_response(result)
+        return _json_response(result)
 
     @routes.delete(
         base_url + "/v3/conversations/{conversation_id}/activities/{activity_id}"
     )
     async def delete_activity(request: Request):
-        await handler.on_delete_activity(
+        await operations.delete_activity(
             request.get("claims_identity"),
             request.match_info["conversation_id"],
             request.match_info["activity_id"],
         )
-
         return Response()
 
     @routes.get(
@@ -104,91 +82,82 @@ def channel_service_route_table(
         + "/v3/conversations/{conversation_id}/activities/{activity_id}/members"
     )
     async def get_activity_members(request: Request):
-        result = await handler.on_get_activity_members(
+        result = await operations.get_activity_members(
             request.get("claims_identity"),
             request.match_info["conversation_id"],
             request.match_info["activity_id"],
         )
-
-        return get_serialized_response(result)
+        return _json_response(result)
 
     @routes.post(base_url + "/")
     async def create_conversation(request: Request):
-        conversation_parameters = deserialize_from_body(request, ConversationParameters)
-        result = await handler.on_create_conversation(
-            request.get("claims_identity"), conversation_parameters
+        payload = await _read_payload(request)
+        result = await operations.create_conversation(
+            request.get("claims_identity"),
+            payload,
         )
-
-        return get_serialized_response(result)
+        return _json_response(result)
 
     @routes.get(base_url + "/")
     async def get_conversation(request: Request):
-        # TODO: continuation token? conversation_id?
-        result = await handler.on_get_conversations(
-            request.get("claims_identity"), None
+        result = await operations.get_conversations(
+            request.get("claims_identity"),
+            None,
         )
-
-        return get_serialized_response(result)
+        return _json_response(result)
 
     @routes.get(base_url + "/v3/conversations/{conversation_id}/members")
     async def get_conversation_members(request: Request):
-        result = await handler.on_get_conversation_members(
+        result = await operations.get_conversation_members(
             request.get("claims_identity"),
             request.match_info["conversation_id"],
         )
-
-        return get_serialized_response(result)
+        return _json_response(result)
 
     @routes.get(base_url + "/v3/conversations/{conversation_id}/members/{member_id}")
     async def get_conversation_member(request: Request):
-        result = await handler.on_get_conversation_member(
+        result = await operations.get_conversation_member(
             request.get("claims_identity"),
             request.match_info["member_id"],
             request.match_info["conversation_id"],
         )
-
-        return get_serialized_response(result)
+        return _json_response(result)
 
     @routes.get(base_url + "/v3/conversations/{conversation_id}/pagedmembers")
     async def get_conversation_paged_members(request: Request):
-        # TODO: continuation token? page size?
-        result = await handler.on_get_conversation_paged_members(
+        result = await operations.get_conversation_paged_members(
             request.get("claims_identity"),
             request.match_info["conversation_id"],
         )
-
-        return get_serialized_response(result)
+        return _json_response(result)
 
     @routes.delete(base_url + "/v3/conversations/{conversation_id}/members/{member_id}")
     async def delete_conversation_member(request: Request):
-        result = await handler.on_delete_conversation_member(
+        result = await operations.delete_conversation_member(
             request.get("claims_identity"),
             request.match_info["conversation_id"],
             request.match_info["member_id"],
         )
-
-        return get_serialized_response(result)
+        return _json_response(result)
 
     @routes.post(base_url + "/v3/conversations/{conversation_id}/activities/history")
     async def send_conversation_history(request: Request):
-        transcript = deserialize_from_body(request, Transcript)
-        result = await handler.on_send_conversation_history(
+        payload = await _read_payload(request)
+        result = await operations.send_conversation_history(
             request.get("claims_identity"),
             request.match_info["conversation_id"],
-            transcript,
+            payload,
         )
-
-        return get_serialized_response(result)
+        return _json_response(result)
 
     @routes.post(base_url + "/v3/conversations/{conversation_id}/attachments")
     async def upload_attachment(request: Request):
-        attachment_data = deserialize_from_body(request, AttachmentData)
-        result = await handler.on_upload_attachment(
+        payload = await _read_payload(request)
+        result = await operations.upload_attachment(
             request.get("claims_identity"),
             request.match_info["conversation_id"],
-            attachment_data,
+            payload,
         )
-
-        return get_serialized_response(result)
+        return _json_response(result)
 
     return routes
