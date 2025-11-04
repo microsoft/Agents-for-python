@@ -219,9 +219,8 @@ class Activity(AgentsModel, _ChannelIdFieldMixin):
                     and activity.channel_id.sub_channel != product_info.id
                 ):
                     from microsoft_agents.hosting.core import error_resources
-                    raise Exception(
-                        str(error_resources.ChannelIdProductInfoConflict)
-                    )
+
+                    raise Exception(str(error_resources.ChannelIdProductInfoConflict))
                 activity.channel_id = ChannelId(
                     channel=activity.channel_id.channel,
                     sub_channel=product_info.id,
@@ -258,9 +257,8 @@ class Activity(AgentsModel, _ChannelIdFieldMixin):
         if self.channel_id and self.channel_id.sub_channel:
             if product_info and product_info.get("id") != self.channel_id.sub_channel:
                 from microsoft_agents.hosting.core import error_resources
-                raise Exception(
-                    str(error_resources.ChannelIdProductInfoConflict)
-                )
+
+                raise Exception(str(error_resources.ChannelIdProductInfoConflict))
             elif not product_info:
                 if not serialized.get("entities"):
                     serialized["entities"] = []

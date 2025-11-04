@@ -9,7 +9,7 @@ ErrorMessage class for formatting error messages with error codes and help URLs.
 class ErrorMessage:
     """
     Represents a formatted error message with error code and help URL.
-    
+
     This class formats error messages according to the Microsoft Agents SDK pattern:
     - Original error message
     - Error Code: [negative number]
@@ -24,7 +24,7 @@ class ErrorMessage:
     ):
         """
         Initialize an ErrorMessage.
-        
+
         :param message_template: The error message template (may include format placeholders)
         :type message_template: str
         :param error_code: The error code (should be negative)
@@ -40,7 +40,7 @@ class ErrorMessage:
     def format(self, *args, **kwargs) -> str:
         """
         Format the error message with the provided arguments.
-        
+
         :param args: Positional arguments for string formatting
         :param kwargs: Keyword arguments for string formatting
         :return: Formatted error message with error code and help URL

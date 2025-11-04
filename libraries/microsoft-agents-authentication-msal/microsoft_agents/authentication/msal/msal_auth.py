@@ -87,7 +87,9 @@ class MsalAuth(AccessTokenProviderBase):
         res = auth_result_payload.get("access_token") if auth_result_payload else None
         if not res:
             logger.error("Failed to acquire token for resource %s", auth_result_payload)
-            raise ValueError(error_resources.FailedToAcquireToken.format(str(auth_result_payload)))
+            raise ValueError(
+                error_resources.FailedToAcquireToken.format(str(auth_result_payload))
+            )
 
         return res
 
@@ -124,7 +126,9 @@ class MsalAuth(AccessTokenProviderBase):
                 logger.error(
                     f"Failed to acquire token on behalf of user: {user_assertion}"
                 )
-                raise ValueError(error_resources.FailedToAcquireToken.format(str(token)))
+                raise ValueError(
+                    error_resources.FailedToAcquireToken.format(str(token))
+                )
 
             return token["access_token"]
 
@@ -190,7 +194,9 @@ class MsalAuth(AccessTokenProviderBase):
                 logger.error(
                     f"Unsupported authentication type: {self._msal_configuration.AUTH_TYPE}"
                 )
-                raise NotImplementedError(str(error_resources.AuthenticationTypeNotSupported))
+                raise NotImplementedError(
+                    str(error_resources.AuthenticationTypeNotSupported)
+                )
 
             self._msal_auth_client = ConfidentialClientApplication(
                 client_id=self._msal_configuration.CLIENT_ID,
@@ -286,7 +292,9 @@ class MsalAuth(AccessTokenProviderBase):
                 agent_app_instance_id,
             )
             raise Exception(
-                error_resources.FailedToAcquireAgenticInstanceToken.format(agent_app_instance_id)
+                error_resources.FailedToAcquireAgenticInstanceToken.format(
+                    agent_app_instance_id
+                )
             )
 
         authority = (
@@ -309,7 +317,9 @@ class MsalAuth(AccessTokenProviderBase):
                 agent_app_instance_id,
             )
             raise Exception(
-                error_resources.FailedToAcquireAgenticInstanceToken.format(agent_app_instance_id)
+                error_resources.FailedToAcquireAgenticInstanceToken.format(
+                    agent_app_instance_id
+                )
             )
 
         # future scenario where we don't know the blueprint id upfront
@@ -319,7 +329,9 @@ class MsalAuth(AccessTokenProviderBase):
             logger.error(
                 "Failed to acquire agentic instance token, %s", agentic_instance_token
             )
-            raise ValueError(error_resources.FailedToAcquireToken.format(str(agentic_instance_token)))
+            raise ValueError(
+                error_resources.FailedToAcquireToken.format(str(agentic_instance_token))
+            )
 
         logger.debug(
             "Agentic blueprint id: %s",

@@ -43,9 +43,8 @@ class _ChannelIdFieldMixin:
             self._channel_id = ChannelId(value)
         else:
             from microsoft_agents.hosting.core import error_resources
-            raise ValueError(
-                error_resources.InvalidChannelIdType.format(type(value))
-            )
+
+            raise ValueError(error_resources.InvalidChannelIdType.format(type(value)))
 
     def _set_validated_channel_id(self, data: Any) -> None:
         """Sets the channel_id after validating it as a ChannelId model."""

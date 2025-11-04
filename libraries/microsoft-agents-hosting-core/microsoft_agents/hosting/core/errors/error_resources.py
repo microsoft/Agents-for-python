@@ -18,7 +18,7 @@ from .error_message import ErrorMessage
 class ErrorResources:
     """
     Central repository of all error messages used in the Microsoft Agents SDK.
-    
+
     Error codes are organized by range:
     - -60000 to -60099: Authentication errors
     - -60100 to -60199: Storage errors

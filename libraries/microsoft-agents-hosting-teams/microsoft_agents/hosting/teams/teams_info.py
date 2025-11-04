@@ -23,7 +23,11 @@ from microsoft_agents.activity.teams import (
     ChannelInfo,
 )
 from microsoft_agents.hosting.core.connector.teams import TeamsConnectorClient
-from microsoft_agents.hosting.core import ChannelServiceAdapter, TurnContext, error_resources
+from microsoft_agents.hosting.core import (
+    ChannelServiceAdapter,
+    TurnContext,
+    error_resources,
+)
 
 
 class TeamsInfo:
@@ -440,7 +444,9 @@ class TeamsInfo:
         if not activity:
             raise ValueError(str(error_resources.ActivityRequired))
         if not tenant_id:
-            raise ValueError(error_resources.RequiredParameterMissing.format("tenant_id"))
+            raise ValueError(
+                error_resources.RequiredParameterMissing.format("tenant_id")
+            )
         if not members or len(members) == 0:
             raise ValueError("members list is required.")
 
@@ -470,7 +476,9 @@ class TeamsInfo:
         if not activity:
             raise ValueError(str(error_resources.ActivityRequired))
         if not tenant_id:
-            raise ValueError(error_resources.RequiredParameterMissing.format("tenant_id"))
+            raise ValueError(
+                error_resources.RequiredParameterMissing.format("tenant_id")
+            )
 
         rest_client = TeamsInfo._get_rest_client(context)
         return await rest_client.send_message_to_all_users_in_tenant(
@@ -499,7 +507,9 @@ class TeamsInfo:
         if not activity:
             raise ValueError(str(error_resources.ActivityRequired))
         if not tenant_id:
-            raise ValueError(error_resources.RequiredParameterMissing.format("tenant_id"))
+            raise ValueError(
+                error_resources.RequiredParameterMissing.format("tenant_id")
+            )
         if not team_id:
             raise ValueError(str(error_resources.TeamsTeamIdRequired))
 
@@ -533,7 +543,9 @@ class TeamsInfo:
         if not activity:
             raise ValueError(str(error_resources.ActivityRequired))
         if not tenant_id:
-            raise ValueError(error_resources.RequiredParameterMissing.format("tenant_id"))
+            raise ValueError(
+                error_resources.RequiredParameterMissing.format("tenant_id")
+            )
         if not members or len(members) == 0:
             raise ValueError("members list is required.")
 
