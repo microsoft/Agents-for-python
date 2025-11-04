@@ -6,7 +6,7 @@ Licensed under the MIT License.
 from http import HTTPStatus
 from typing import Any, List
 
-from microsoft_agents.hosting.core import ActivityHandler, TurnContext
+from microsoft_agents.hosting.core import ActivityHandler, TurnContext, error_resources
 from microsoft_agents.activity import (
     InvokeResponse,
     ChannelAccount,
@@ -155,9 +155,9 @@ class TeamsActivityHandler(ActivityHandler):
                 else:
                     return await super().on_invoke_activity(turn_context)
         except Exception as err:
-            if str(err) == "NotImplemented":
+            if str(err) == str(error_resources.TeamsNotImplemented):
                 return InvokeResponse(status=int(HTTPStatus.NOT_IMPLEMENTED))
-            elif str(err) == "BadRequest":
+            elif str(err) == str(error_resources.TeamsBadRequest):
                 return InvokeResponse(status=int(HTTPStatus.BAD_REQUEST))
             raise
 
@@ -170,7 +170,7 @@ class TeamsActivityHandler(ActivityHandler):
         :param turn_context: The context object for the turn.
         :return: An InvokeResponse.
         """
-        raise NotImplementedError("NotImplemented")
+        raise NotImplementedError(str(error_resources.TeamsNotImplemented))
 
     async def on_teams_config_fetch(
         self, turn_context: TurnContext, config_data: Any
@@ -182,7 +182,7 @@ class TeamsActivityHandler(ActivityHandler):
         :param config_data: The config data.
         :return: A ConfigResponse.
         """
-        raise NotImplementedError("NotImplemented")
+        raise NotImplementedError(str(error_resources.TeamsNotImplemented))
 
     async def on_teams_config_submit(
         self, turn_context: TurnContext, config_data: Any
@@ -194,7 +194,7 @@ class TeamsActivityHandler(ActivityHandler):
         :param config_data: The config data.
         :return: A ConfigResponse.
         """
-        raise NotImplementedError("NotImplemented")
+        raise NotImplementedError(str(error_resources.TeamsNotImplemented))
 
     async def on_teams_file_consent(
         self,
@@ -217,7 +217,7 @@ class TeamsActivityHandler(ActivityHandler):
                 turn_context, file_consent_card_response
             )
         else:
-            raise ValueError("BadRequest")
+            raise ValueError(str(error_resources.TeamsBadRequest))
 
     async def on_teams_file_consent_accept(
         self,
@@ -231,7 +231,7 @@ class TeamsActivityHandler(ActivityHandler):
         :param file_consent_card_response: The file consent card response.
         :return: None
         """
-        raise NotImplementedError("NotImplemented")
+        raise NotImplementedError(str(error_resources.TeamsNotImplemented))
 
     async def on_teams_file_consent_decline(
         self,
@@ -245,7 +245,7 @@ class TeamsActivityHandler(ActivityHandler):
         :param file_consent_card_response: The file consent card response.
         :return: None
         """
-        raise NotImplementedError("NotImplemented")
+        raise NotImplementedError(str(error_resources.TeamsNotImplemented))
 
     async def on_teams_o365_connector_card_action(
         self, turn_context: TurnContext, query: O365ConnectorCardActionQuery
@@ -257,7 +257,7 @@ class TeamsActivityHandler(ActivityHandler):
         :param query: The O365 connector card action query.
         :return: None
         """
-        raise NotImplementedError("NotImplemented")
+        raise NotImplementedError(str(error_resources.TeamsNotImplemented))
 
     async def on_teams_signin_verify_state(
         self, turn_context: TurnContext, query: SigninStateVerificationQuery
@@ -269,7 +269,7 @@ class TeamsActivityHandler(ActivityHandler):
         :param query: The sign-in state verification query.
         :return: None
         """
-        raise NotImplementedError("NotImplemented")
+        raise NotImplementedError(str(error_resources.TeamsNotImplemented))
 
     async def on_teams_signin_token_exchange(
         self, turn_context: TurnContext, query: SigninStateVerificationQuery
@@ -281,7 +281,7 @@ class TeamsActivityHandler(ActivityHandler):
         :param query: The sign-in state verification query.
         :return: None
         """
-        raise NotImplementedError("NotImplemented")
+        raise NotImplementedError(str(error_resources.TeamsNotImplemented))
 
     async def on_teams_app_based_link_query(
         self, turn_context: TurnContext, query: AppBasedLinkQuery
@@ -293,7 +293,7 @@ class TeamsActivityHandler(ActivityHandler):
         :param query: The app-based link query.
         :return: A MessagingExtensionResponse.
         """
-        raise NotImplementedError("NotImplemented")
+        raise NotImplementedError(str(error_resources.TeamsNotImplemented))
 
     async def on_teams_anonymous_app_based_link_query(
         self, turn_context: TurnContext, query: AppBasedLinkQuery
@@ -305,7 +305,7 @@ class TeamsActivityHandler(ActivityHandler):
         :param query: The app-based link query.
         :return: A MessagingExtensionResponse.
         """
-        raise NotImplementedError("NotImplemented")
+        raise NotImplementedError(str(error_resources.TeamsNotImplemented))
 
     async def on_teams_messaging_extension_query(
         self, turn_context: TurnContext, query: MessagingExtensionQuery
@@ -317,7 +317,7 @@ class TeamsActivityHandler(ActivityHandler):
         :param query: The messaging extension query.
         :return: A MessagingExtensionResponse.
         """
-        raise NotImplementedError("NotImplemented")
+        raise NotImplementedError(str(error_resources.TeamsNotImplemented))
 
     async def on_teams_messaging_extension_select_item(
         self, turn_context: TurnContext, query: Any
@@ -329,7 +329,7 @@ class TeamsActivityHandler(ActivityHandler):
         :param query: The query.
         :return: A MessagingExtensionResponse.
         """
-        raise NotImplementedError("NotImplemented")
+        raise NotImplementedError(str(error_resources.TeamsNotImplemented))
 
     async def on_teams_messaging_extension_submit_action_dispatch(
         self, turn_context: TurnContext, action: MessagingExtensionAction
@@ -351,7 +351,7 @@ class TeamsActivityHandler(ActivityHandler):
                     turn_context, action
                 )
             else:
-                raise ValueError("BadRequest")
+                raise ValueError(str(error_resources.TeamsBadRequest))
         else:
             return await self.on_teams_messaging_extension_submit_action(
                 turn_context, action
@@ -367,7 +367,7 @@ class TeamsActivityHandler(ActivityHandler):
         :param action: The messaging extension action.
         :return: A MessagingExtensionActionResponse.
         """
-        raise NotImplementedError("NotImplemented")
+        raise NotImplementedError(str(error_resources.TeamsNotImplemented))
 
     async def on_teams_messaging_extension_message_preview_edit(
         self, turn_context: TurnContext, action: MessagingExtensionAction
@@ -379,7 +379,7 @@ class TeamsActivityHandler(ActivityHandler):
         :param action: The messaging extension action.
         :return: A MessagingExtensionActionResponse.
         """
-        raise NotImplementedError("NotImplemented")
+        raise NotImplementedError(str(error_resources.TeamsNotImplemented))
 
     async def on_teams_messaging_extension_message_preview_send(
         self, turn_context: TurnContext, action: MessagingExtensionAction
@@ -391,7 +391,7 @@ class TeamsActivityHandler(ActivityHandler):
         :param action: The messaging extension action.
         :return: A MessagingExtensionActionResponse.
         """
-        raise NotImplementedError("NotImplemented")
+        raise NotImplementedError(str(error_resources.TeamsNotImplemented))
 
     async def on_teams_messaging_extension_fetch_task(
         self, turn_context: TurnContext, action: MessagingExtensionAction
@@ -403,7 +403,7 @@ class TeamsActivityHandler(ActivityHandler):
         :param action: The messaging extension action.
         :return: A MessagingExtensionActionResponse.
         """
-        raise NotImplementedError("NotImplemented")
+        raise NotImplementedError(str(error_resources.TeamsNotImplemented))
 
     async def on_teams_messaging_extension_configuration_query_setting_url(
         self, turn_context: TurnContext, query: MessagingExtensionQuery
@@ -415,7 +415,7 @@ class TeamsActivityHandler(ActivityHandler):
         :param query: The messaging extension query.
         :return: A MessagingExtensionResponse.
         """
-        raise NotImplementedError("NotImplemented")
+        raise NotImplementedError(str(error_resources.TeamsNotImplemented))
 
     async def on_teams_messaging_extension_configuration_setting(
         self, turn_context: TurnContext, settings: Any
@@ -427,7 +427,7 @@ class TeamsActivityHandler(ActivityHandler):
         :param settings: The settings.
         :return: None
         """
-        raise NotImplementedError("NotImplemented")
+        raise NotImplementedError(str(error_resources.TeamsNotImplemented))
 
     async def on_teams_messaging_extension_card_button_clicked(
         self, turn_context: TurnContext, card_data: Any
@@ -439,7 +439,7 @@ class TeamsActivityHandler(ActivityHandler):
         :param card_data: The card data.
         :return: None
         """
-        raise NotImplementedError("NotImplemented")
+        raise NotImplementedError(str(error_resources.TeamsNotImplemented))
 
     async def on_teams_task_module_fetch(
         self, turn_context: TurnContext, task_module_request: TaskModuleRequest
@@ -451,7 +451,7 @@ class TeamsActivityHandler(ActivityHandler):
         :param task_module_request: The task module request.
         :return: A TaskModuleResponse.
         """
-        raise NotImplementedError("NotImplemented")
+        raise NotImplementedError(str(error_resources.TeamsNotImplemented))
 
     async def on_teams_task_module_submit(
         self, turn_context: TurnContext, task_module_request: TaskModuleRequest
@@ -463,7 +463,7 @@ class TeamsActivityHandler(ActivityHandler):
         :param task_module_request: The task module request.
         :return: A TaskModuleResponse.
         """
-        raise NotImplementedError("NotImplemented")
+        raise NotImplementedError(str(error_resources.TeamsNotImplemented))
 
     async def on_teams_tab_fetch(
         self, turn_context: TurnContext, tab_request: TabRequest
@@ -475,7 +475,7 @@ class TeamsActivityHandler(ActivityHandler):
         :param tab_request: The tab request.
         :return: A TabResponse.
         """
-        raise NotImplementedError("NotImplemented")
+        raise NotImplementedError(str(error_resources.TeamsNotImplemented))
 
     async def on_teams_tab_submit(
         self, turn_context: TurnContext, tab_submit: TabSubmit
@@ -487,7 +487,7 @@ class TeamsActivityHandler(ActivityHandler):
         :param tab_submit: The tab submit.
         :return: A TabResponse.
         """
-        raise NotImplementedError("NotImplemented")
+        raise NotImplementedError(str(error_resources.TeamsNotImplemented))
 
     async def on_conversation_update_activity(self, turn_context: TurnContext):
         """
