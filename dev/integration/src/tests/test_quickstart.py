@@ -9,7 +9,12 @@ class TestQuickstart(IntegrationFixtures):
 
     @pytest.mark.asyncio
     async def test_welcome_message(self, agent_client, response_client):
-        await agent_client.send_expect_replies("hi")
-        # await asyncio.sleep(1)  # Wait for processing
-        # responses = await response_client.pop()
+        res = await agent_client.send_expect_replies("hi")
+        await asyncio.sleep(1)  # Wait for processing
+        responses = await response_client.pop()
 
+        assert len(responses) == 0
+
+        first_non_typing = next((r for r in res if r.type != "typing"), None)
+        assert first_non_typing is not None
+        assert first_non_typing.text == "you said: hi"

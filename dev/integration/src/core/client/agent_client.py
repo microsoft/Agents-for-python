@@ -1,13 +1,14 @@
 import os
 import json
 import asyncio
-from typing import Any, Optional, cast
+from typing import Optional, cast
 
 from aiohttp import ClientSession
+from msal import ConfidentialClientApplication
 
 from microsoft_agents.activity import Activity, ActivityTypes, DeliveryModes, ConversationAccount
 
-from msal import ConfidentialClientApplication
+from ..utils import _populate_incoming_activity
 
 
 class AgentClient:
@@ -83,13 +84,14 @@ class AgentClient:
         if self.service_url:
             activity.service_url = self.service_url
 
+        activity = _populate_incoming_activity(activity)
+
         async with self._client.post(
             "api/messages",
             headers=self._headers,
             json=activity.model_dump(by_alias=True, exclude_unset=True, exclude_none=True, mode="json"),
         ) as response:
             content = await response.text()
-            breakpoint()
             if not response.ok:
                 raise Exception(f"Failed to send activity: {response.status}")
             await asyncio.sleep(sleep)

@@ -45,8 +45,6 @@ class AiohttpEnvironment(Environment):
     def create_runner(self, host: str, port: int) -> ApplicationRunner:
 
         async def entry_point(req: Request) -> Response:
-            # text = await req.text()
-            # breakpoint()
             agent: AgentApplication = req.app["agent_app"]
             adapter: CloudAdapter = req.app["adapter"]
             return await start_agent_process(req, agent, adapter)
