@@ -1,8 +1,11 @@
+import os
 import pytest
 import asyncio
 
-from src.core import integration, IntegrationFixtures, AiohttpEnvironment, AiohttpEnvironment
+from src.core import integration, IntegrationFixtures, AiohttpEnvironment, AiohttpEnvironment, AgentClient
 from src.samples import QuickstartSample
+
+from dotenv import load_dotenv
 
 async def main():
 
@@ -13,9 +16,29 @@ async def main():
 
     host, port = "localhost", 3978
 
+    load_dotenv("./src/tests/.env")
+    config = {
+        "client_id": os.getenv("CONNECTIONS__SERVICE_CONNECTION__SETTINGS__CLIENTID", ""),
+        "tenant_id": os.getenv("CONNECTIONS__SERVICE_CONNECTION__SETTINGS__TENANTID", ""),
+        "client_secret": os.getenv("CONNECTIONS__SERVICE_CONNECTION__SETTINGS__CLIENTSECRET", ""),
+    }
+
+    client = AgentClient(
+        agent_url="http://localhost:3978/",
+        cid=config.get("cid", ""),
+        client_id=config.get("client_id", ""),
+        tenant_id=config.get("tenant_id", ""),
+        client_secret=config.get("client_secret", ""),
+    )
+
     async with env.create_runner(host, port):
         print(f"Server running at http://{host}:{port}/api/messages")
         while True:
+
+            res = await client.send_expect_replies("Hello, Agent!")
+
+            breakpoint()
+
             await asyncio.sleep(1)
 
 if __name__ == "__main__":
