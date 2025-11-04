@@ -54,11 +54,28 @@ class TestFoundation(IntegrationFixtures):
     @pytest.mark.asyncio
     async def test__send_invoke_sends_invoke_activity_to_ac_execute__returns_valid_adaptive_card_invoke_response(self, agent_client):
         activity = load_activity(DIRECTLINE, "ac_execute.json")
+        result = await agent_client.send_invoke(activity)
+
+        result = json.loads(result)
+
+        assert result.status == 200
+        assert result.value
+
+        assert "application/vnd.microsoft.card.adaptive" in result.type
+
+        activity_data = json.loads(activity.value)
+        assert activity_data.get("action")
+        user_text = activity_data.get("usertext")
+        assert user_text in result.value
+
+    @pytest.mark.asyncio
+    async def test__send_activity_sends_text__returns_poem(self, agent_client):
+        activity = self.load_activity("poem_request.json")
         result = await agent_client.send_activity(activity)
+
         assert result
-        data = json.loads(result)
-        message = data.get("message", {})
-        assert "Adaptive Card Invoke received." in message
-        assert "data" in data
-        assert "doStuff" in data["parameters"]
-        assert "hello" in data["value"]
+        assert result[0]
+
+        index = 0
+        if result[0].type == ActivityTypes.typing and not result[0].text:
+            index += 1
