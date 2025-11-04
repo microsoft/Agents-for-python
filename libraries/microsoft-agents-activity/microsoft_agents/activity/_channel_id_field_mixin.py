@@ -3,8 +3,6 @@
 
 from __future__ import annotations
 
-from microsoft_agents.hosting.core import error_resources
-
 import logging
 from typing import Optional, Any
 
@@ -44,9 +42,9 @@ class _ChannelIdFieldMixin:
         elif isinstance(value, str):
             self._channel_id = ChannelId(value)
         else:
+            from microsoft_agents.hosting.core import error_resources
             raise ValueError(
-                f"Invalid type for channel_id: {type(value)}. "
-                "Expected ChannelId or str."
+                error_resources.InvalidChannelIdType.format(type(value))
             )
 
     def _set_validated_channel_id(self, data: Any) -> None:

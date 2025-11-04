@@ -3,8 +3,6 @@
 
 from __future__ import annotations
 
-from microsoft_agents.hosting.core import error_resources
-
 from typing import Optional, Any
 
 from pydantic_core import CoreSchema, core_schema
@@ -54,6 +52,7 @@ class ChannelId(str):
         """
         if isinstance(value, str):
             if channel or sub_channel:
+                from microsoft_agents.hosting.core import error_resources
                 raise ValueError(
                     str(error_resources.ChannelIdValueConflict)
                 )
@@ -61,6 +60,7 @@ class ChannelId(str):
             value = value.strip()
             if value:
                 return str.__new__(cls, value)
+            from microsoft_agents.hosting.core import error_resources
             raise TypeError(str(error_resources.ChannelIdValueMustBeNonEmpty))
         else:
             if (

@@ -3,8 +3,6 @@
 
 from __future__ import annotations
 
-from microsoft_agents.hosting.core import error_resources
-
 import logging
 from copy import copy
 from datetime import datetime, timezone
@@ -220,6 +218,7 @@ class Activity(AgentsModel, _ChannelIdFieldMixin):
                     activity.channel_id.sub_channel
                     and activity.channel_id.sub_channel != product_info.id
                 ):
+                    from microsoft_agents.hosting.core import error_resources
                     raise Exception(
                         str(error_resources.ChannelIdProductInfoConflict)
                     )
@@ -258,6 +257,7 @@ class Activity(AgentsModel, _ChannelIdFieldMixin):
         # self.channel_id is the source of truth for serialization
         if self.channel_id and self.channel_id.sub_channel:
             if product_info and product_info.get("id") != self.channel_id.sub_channel:
+                from microsoft_agents.hosting.core import error_resources
                 raise Exception(
                     str(error_resources.ChannelIdProductInfoConflict)
                 )
