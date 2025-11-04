@@ -70,12 +70,72 @@ class TestFoundation(IntegrationFixtures):
 
     @pytest.mark.asyncio
     async def test__send_activity_sends_text__returns_poem(self, agent_client):
-        activity = self.load_activity("poem_request.json")
+        pass
+
+    @pytest.mark.asyncio
+    async def test__send_expected_replies_activity__sends_text__returns_poem(self, agent_client):
+        activity = self.load_activity("expected_replies.json")
+        result = await agent_client.send_expected_replies(activity)
+        last = result[-1]
+        assert last.type == ActivityTypes.message
+        assert "Apollo" in last.text
+        assert "\n" in last.text
+
+    @pytest.mark.asyncio
+    async def test__send_invoke__query_link__returns_text(self, agent_client):
+        activity = self.load_activity("query_link.json")
+        result = await agent_client.send_invoke(activity)
+        pass # TODO
+
+    @pytest.mark.asyncio
+    async def test__send_invoke__select_item__receive_item(self, agent_client):
+        activity = self.load_activity("select_item.json")
+        result = await agent_client.send_invoke(activity)
+        pass # TODO
+
+    @pytest.mark.asyncio
+    async def test__send_activity__conversation_update__returns_welcome_message(self, agent_client):
+        activity = self.load_activity("conversation_update.json")
         result = await agent_client.send_activity(activity)
+        last = result[-1]
+        assert "Hello and Welcome!" in last.text
 
-        assert result
-        assert result[0]
+    @pytest.mark.asyncio
+    async def test__send_activity__send_heart_message_reaction__returns_message_reaction_heart(self, agent_client):
+        activity = self.load_activity("message_reaction_heart.json")
+        result = await agent_client.send_activity(activity)
+        last = result[-1]
+        assert last.type == ActivityTypes.message
+        assert "Message Reaction Added: heart" in last.text
 
-        index = 0
-        if result[0].type == ActivityTypes.typing and not result[0].text:
-            index += 1
+    @pytest.mark.asyncio
+    async def test__send_activity__remove_heart_message_reaction__returns_message_reaction_heart(self, agent_client):
+        activity = self.load_activity
+        result = await agent_client.send_activity(activity)
+        last = result[-1]
+        assert last.type == ActivityTypes.message
+        assert "Message Reaction Removed: heart" in last.text
+
+    @pytest.mark.asyncio
+    async def test__send_expected_replies_activity__send_seattle_today_weather__returns_weather(self, agent_client):
+        activity = self.load_activity("expected_replies_seattle_weather.json")
+        result = await agent_client.send_expected_replies(activity)
+        last = result[-1]
+        assert last.type == ActivityTypes.message
+        assert last.attachments and len(last.attachments) > 0
+        
+        adaptive_card = last.attachments.first()
+        assert adaptive_card
+        assert "application/vnd.microsoft.card.adaptive" == adaptive_card.content_type
+        assert adaptive_card.content
+
+        assert \
+            "�" in adaptive_card.content or \
+            "\\u00B0" in adaptive_card.content or \
+            f"Missing temperature inside adaptive card: {adaptive_card.content}" in adaptive_card.content
+
+    @pytest.mark.asyncio
+    async def test__send_activity__simulate_message_loop__expect_question_about_time_and_returns_weather(self, agent_client):
+        activities = self.load_activity("message_loop_1.json")
+        fresult = await agent_client.send_activity(activities[0])
+        assert 
