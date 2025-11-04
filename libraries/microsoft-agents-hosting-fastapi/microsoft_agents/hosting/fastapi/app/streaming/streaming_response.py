@@ -16,8 +16,7 @@ from microsoft_agents.activity import (
     SensitivityUsageInfo,
 )
 
-if TYPE_CHECKING:
-    from microsoft_agents.hosting.core import error_resources
+from microsoft_agents.hosting.core import error_resources
 from microsoft_agents.hosting.core.turn_context import TurnContext
 
 from .citation import Citation

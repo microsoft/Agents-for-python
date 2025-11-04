@@ -87,7 +87,7 @@ class CosmosDBStorageConfig:
         if config.key_suffix:
             if config.compatibility_mode:
                 raise ValueError(
-                    error_resources.CosmosDbCompatibilityModeRequired.format()
+                    str(error_resources.CosmosDbCompatibilityModeRequired)
                 )
             suffix_escaped: str = sanitize_key(config.key_suffix)
             if suffix_escaped != config.key_suffix:
