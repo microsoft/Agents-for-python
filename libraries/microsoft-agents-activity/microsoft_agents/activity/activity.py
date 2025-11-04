@@ -1,6 +1,8 @@
 # Copyright (c) Microsoft Corporation. All rights reserved.
 # Licensed under the MIT License.
 
+from microsoft_agents.hosting.core import error_resources
+
 from __future__ import annotations
 
 import logging
@@ -219,7 +221,7 @@ class Activity(AgentsModel, _ChannelIdFieldMixin):
                     and activity.channel_id.sub_channel != product_info.id
                 ):
                     raise Exception(
-                        "Conflict between channel_id.sub_channel and productInfo entity"
+                        str(error_resources.ChannelIdProductInfoConflict)
                     )
                 activity.channel_id = ChannelId(
                     channel=activity.channel_id.channel,
@@ -257,7 +259,7 @@ class Activity(AgentsModel, _ChannelIdFieldMixin):
         if self.channel_id and self.channel_id.sub_channel:
             if product_info and product_info.get("id") != self.channel_id.sub_channel:
                 raise Exception(
-                    "Conflict between channel_id.sub_channel and productInfo entity"
+                    str(error_resources.ChannelIdProductInfoConflict)
                 )
             elif not product_info:
                 if not serialized.get("entities"):

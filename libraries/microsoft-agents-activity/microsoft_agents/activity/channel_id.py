@@ -1,6 +1,8 @@
 # Copyright (c) Microsoft Corporation. All rights reserved.
 # Licensed under the MIT License.
 
+from microsoft_agents.hosting.core import error_resources
+
 from __future__ import annotations
 
 from typing import Optional, Any
@@ -53,13 +55,13 @@ class ChannelId(str):
         if isinstance(value, str):
             if channel or sub_channel:
                 raise ValueError(
-                    "If value is provided, channel and sub_channel must be None"
+                    str(error_resources.ChannelIdValueConflict)
                 )
 
             value = value.strip()
             if value:
                 return str.__new__(cls, value)
-            raise TypeError("value must be a non empty string if provided")
+            raise TypeError(str(error_resources.ChannelIdValueMustBeNonEmpty))
         else:
             if (
                 not isinstance(channel, str)
