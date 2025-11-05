@@ -7,7 +7,7 @@ Teams error resources for Microsoft Agents SDK.
 Error codes are in the range -62000 to -62999.
 """
 
-from .error_message import ErrorMessage
+from microsoft_agents.hosting.core.errors import ErrorMessage
 
 
 class TeamsErrorResources:

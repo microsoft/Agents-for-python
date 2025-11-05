@@ -5,7 +5,8 @@
 Error resources for Microsoft Agents Authentication MSAL package.
 """
 
-from .error_message import ErrorMessage
+from microsoft_agents.hosting.core.errors import ErrorMessage
+
 from .error_resources import AuthenticationErrorResources
 
 # Singleton instance

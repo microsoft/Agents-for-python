@@ -7,7 +7,7 @@ Storage error resources for Microsoft Agents SDK (CosmosDB).
 Error codes are in the range -61000 to -61999.
 """
 
-from .error_message import ErrorMessage
+from microsoft_agents.hosting.core.errors import ErrorMessage
 
 
 class StorageErrorResources:

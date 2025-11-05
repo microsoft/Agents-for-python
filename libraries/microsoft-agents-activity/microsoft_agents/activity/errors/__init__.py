@@ -5,7 +5,8 @@
 Error resources for Microsoft Agents Activity package.
 """
 
-from .error_message import ErrorMessage
+from microsoft_agents.hosting.core.errors import ErrorMessage
+
 from .error_resources import ActivityErrorResources
 
 # Singleton instance
