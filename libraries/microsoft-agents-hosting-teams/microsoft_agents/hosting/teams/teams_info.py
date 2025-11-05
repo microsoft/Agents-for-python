@@ -443,7 +443,7 @@ class TeamsInfo:
             ValueError: If required parameters are missing.
         """
         if not activity:
-            raise ValueError(str(teams_errors.ActivityRequired))
+            raise ValueError(str(error_resources.ActivityRequired))
         if not tenant_id:
             raise ValueError(
                 error_resources.RequiredParameterMissing.format("tenant_id")
@@ -475,7 +475,7 @@ class TeamsInfo:
             ValueError: If required parameters are missing.
         """
         if not activity:
-            raise ValueError(str(teams_errors.ActivityRequired))
+            raise ValueError(str(error_resources.ActivityRequired))
         if not tenant_id:
             raise ValueError(
                 error_resources.RequiredParameterMissing.format("tenant_id")
@@ -506,7 +506,7 @@ class TeamsInfo:
             ValueError: If required parameters are missing.
         """
         if not activity:
-            raise ValueError(str(teams_errors.ActivityRequired))
+            raise ValueError(str(error_resources.ActivityRequired))
         if not tenant_id:
             raise ValueError(
                 error_resources.RequiredParameterMissing.format("tenant_id")
@@ -542,7 +542,7 @@ class TeamsInfo:
             ValueError: If required parameters are missing.
         """
         if not activity:
-            raise ValueError(str(teams_errors.ActivityRequired))
+            raise ValueError(str(error_resources.ActivityRequired))
         if not tenant_id:
             raise ValueError(
                 error_resources.RequiredParameterMissing.format("tenant_id")
