@@ -26,6 +26,7 @@ from microsoft_agents.hosting.core.connector.teams import TeamsConnectorClient
 from microsoft_agents.hosting.core import (
     ChannelServiceAdapter,
     TurnContext,
+    error_resources,
 )
 from microsoft_agents.hosting.teams.errors import teams_errors
 
@@ -444,7 +445,9 @@ class TeamsInfo:
         if not activity:
             raise ValueError(str(teams_errors.ActivityRequired))
         if not tenant_id:
-            raise ValueError(teams_errors.RequiredParameterMissing.format("tenant_id"))
+            raise ValueError(
+                error_resources.RequiredParameterMissing.format("tenant_id")
+            )
         if not members or len(members) == 0:
             raise ValueError("members list is required.")
 
@@ -474,7 +477,9 @@ class TeamsInfo:
         if not activity:
             raise ValueError(str(teams_errors.ActivityRequired))
         if not tenant_id:
-            raise ValueError(teams_errors.RequiredParameterMissing.format("tenant_id"))
+            raise ValueError(
+                error_resources.RequiredParameterMissing.format("tenant_id")
+            )
 
         rest_client = TeamsInfo._get_rest_client(context)
         return await rest_client.send_message_to_all_users_in_tenant(
@@ -503,7 +508,9 @@ class TeamsInfo:
         if not activity:
             raise ValueError(str(teams_errors.ActivityRequired))
         if not tenant_id:
-            raise ValueError(teams_errors.RequiredParameterMissing.format("tenant_id"))
+            raise ValueError(
+                error_resources.RequiredParameterMissing.format("tenant_id")
+            )
         if not team_id:
             raise ValueError(str(teams_errors.TeamsTeamIdRequired))
 
@@ -537,7 +544,9 @@ class TeamsInfo:
         if not activity:
             raise ValueError(str(teams_errors.ActivityRequired))
         if not tenant_id:
-            raise ValueError(teams_errors.RequiredParameterMissing.format("tenant_id"))
+            raise ValueError(
+                error_resources.RequiredParameterMissing.format("tenant_id")
+            )
         if not members or len(members) == 0:
             raise ValueError("members list is required.")
 

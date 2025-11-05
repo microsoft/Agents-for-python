@@ -8,6 +8,8 @@ from typing import Optional, Any
 from pydantic_core import CoreSchema, core_schema
 from pydantic import GetCoreSchemaHandler
 
+from microsoft_agents.activity.errors import activity_errors
+
 
 class ChannelId(str):
     """A ChannelId represents a channel and optional sub-channel in the format 'channel:sub_channel'."""
@@ -52,15 +54,11 @@ class ChannelId(str):
         """
         if isinstance(value, str):
             if channel or sub_channel:
-                from microsoft_agents.activity.errors import activity_errors
-
                 raise ValueError(str(activity_errors.ChannelIdValueConflict))
 
             value = value.strip()
             if value:
                 return str.__new__(cls, value)
-            from microsoft_agents.activity.errors import activity_errors
-
             raise TypeError(str(activity_errors.ChannelIdValueMustBeNonEmpty))
         else:
             if (

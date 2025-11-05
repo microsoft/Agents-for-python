@@ -14,6 +14,8 @@ from pydantic import (
     model_serializer,
 )
 
+from microsoft_agents.activity.errors import activity_errors
+
 from .channel_id import ChannelId
 
 logger = logging.getLogger(__name__)
@@ -42,8 +44,6 @@ class _ChannelIdFieldMixin:
         elif isinstance(value, str):
             self._channel_id = ChannelId(value)
         else:
-            from microsoft_agents.activity.errors import activity_errors
-
             raise ValueError(activity_errors.InvalidChannelIdType.format(type(value)))
 
     def _set_validated_channel_id(self, data: Any) -> None:
