@@ -12,6 +12,7 @@ from aiohttp.web import (
     HTTPUnauthorized,
     HTTPUnsupportedMediaType,
 )
+from microsoft_agents.hosting.core import error_resources
 from microsoft_agents.hosting.core.authorization import (
     ClaimsIdentity,
     Connections,
@@ -70,9 +71,9 @@ class CloudAdapter(ChannelServiceAdapter, AgentHttpAdapter):
 
     async def process(self, request: Request, agent: Agent) -> Optional[Response]:
         if not request:
-            raise TypeError("CloudAdapter.process: request can't be None")
+            raise TypeError(str(error_resources.RequestRequired))
         if not agent:
-            raise TypeError("CloudAdapter.process: agent can't be None")
+            raise TypeError(str(error_resources.AgentRequired))
 
         if request.method == "POST":
             # Deserialize the incoming Activity
