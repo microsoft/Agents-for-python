@@ -44,6 +44,7 @@ from ._channel_id_field_mixin import _ChannelIdFieldMixin
 from .channel_id import ChannelId
 from ._model_utils import pick_model, SkipNone
 from ._type_aliases import NonEmptyString
+from microsoft_agents.activity.errors import activity_errors
 
 logger = logging.getLogger(__name__)
 
@@ -218,9 +219,7 @@ class Activity(AgentsModel, _ChannelIdFieldMixin):
                     activity.channel_id.sub_channel
                     and activity.channel_id.sub_channel != product_info.id
                 ):
-                    raise Exception(
-                        "Conflict between channel_id.sub_channel and productInfo entity"
-                    )
+                    raise Exception(str(activity_errors.ChannelIdProductInfoConflict))
                 activity.channel_id = ChannelId(
                     channel=activity.channel_id.channel,
                     sub_channel=product_info.id,
@@ -256,9 +255,7 @@ class Activity(AgentsModel, _ChannelIdFieldMixin):
         # self.channel_id is the source of truth for serialization
         if self.channel_id and self.channel_id.sub_channel:
             if product_info and product_info.get("id") != self.channel_id.sub_channel:
-                raise Exception(
-                    "Conflict between channel_id.sub_channel and productInfo entity"
-                )
+                raise Exception(str(activity_errors.ChannelIdProductInfoConflict))
             elif not product_info:
                 if not serialized.get("entities"):
                     serialized["entities"] = []

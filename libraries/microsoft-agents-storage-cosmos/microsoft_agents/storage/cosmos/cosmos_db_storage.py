@@ -20,6 +20,7 @@ from azure.cosmos.partition_key import NonePartitionKeyValue
 from microsoft_agents.hosting.core.storage import AsyncStorageBase, StoreItem
 from microsoft_agents.hosting.core.storage._type_aliases import JSON
 from microsoft_agents.hosting.core.storage.error_handling import ignore_error
+from microsoft_agents.storage.cosmos.errors import storage_errors
 
 from .cosmos_db_storage_config import CosmosDBStorageConfig
 from .key_ops import sanitize_key
@@ -55,7 +56,9 @@ class CosmosDBStorage(AsyncStorageBase):
         if self._config.url:
             if not self._config.credential:
                 raise ValueError(
-                    "CosmosDBStorage: Credential is required when using a custom service URL."
+                    storage_errors.InvalidConfiguration.format(
+                        "Credential is required when using a custom service URL"
+                    )
                 )
             return CosmosClient(
                 account_url=self._config.url, credential=self._config.credential
@@ -89,7 +92,7 @@ class CosmosDBStorage(AsyncStorageBase):
     ) -> tuple[Union[str, None], Union[StoreItemT, None]]:
 
         if key == "":
-            raise ValueError("CosmosDBStorage: Key cannot be empty.")
+            raise ValueError(str(storage_errors.CosmosDbKeyCannotBeEmpty))
 
         escaped_key: str = self._sanitize(key)
         read_item_response: CosmosDict = await ignore_error(
@@ -106,7 +109,7 @@ class CosmosDBStorage(AsyncStorageBase):
 
     async def _write_item(self, key: str, item: StoreItem) -> None:
         if key == "":
-            raise ValueError("CosmosDBStorage: Key cannot be empty.")
+            raise ValueError(str(storage_errors.CosmosDbKeyCannotBeEmpty))
 
         escaped_key: str = self._sanitize(key)
 
@@ -119,7 +122,7 @@ class CosmosDBStorage(AsyncStorageBase):
 
     async def _delete_item(self, key: str) -> None:
         if key == "":
-            raise ValueError("CosmosDBStorage: Key cannot be empty.")
+            raise ValueError(str(storage_errors.CosmosDbKeyCannotBeEmpty))
 
         escaped_key: str = self._sanitize(key)
 
@@ -156,8 +159,9 @@ class CosmosDBStorage(AsyncStorageBase):
                     self._compatability_mode_partition_key = True
                 elif "/id" not in paths:
                     raise Exception(
-                        f"Custom Partition Key Paths are not supported. {self._config.container_id} "
-                        "has a custom Partition Key Path of {paths[0]}."
+                        storage_errors.InvalidConfiguration.format(
+                            f"Custom Partition Key Paths are not supported. {self._config.container_id} has a custom Partition Key Path of {paths[0]}."
+                        )
                     )
             else:
                 raise err
