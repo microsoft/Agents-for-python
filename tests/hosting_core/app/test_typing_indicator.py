@@ -66,10 +66,10 @@ async def test_typing_stops_on_send_error():
     indicator = TypingIndicator(interval=10)
 
     await indicator.start(context)
-    
+
     # Wait a bit to allow the error to occur and timer to be cancelled
     await asyncio.sleep(0.05)
-    
+
     # The timer should be cancelled due to the error
     assert indicator._timer is None  # noqa: SLF001
 
