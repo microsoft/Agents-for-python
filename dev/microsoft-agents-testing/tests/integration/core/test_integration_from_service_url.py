@@ -1,7 +1,6 @@
 import pytest
 import asyncio
 import requests
-from copy import copy
 from aioresponses import aioresponses, CallbackResult
 
 from microsoft_agents.testing import Integration
