@@ -26,7 +26,7 @@ class DataDrivenTestModule:
         self._input_activities: list[Activity] = []
         self._activity_assertions: list[dict] = []
 
-    async def run_test(self) -> bool:
+    async def assert(self) -> bool:
 
         for input_activity in self._input_activities:
             await self._agent_client.send_activity(input_activity)

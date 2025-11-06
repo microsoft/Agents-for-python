@@ -5,7 +5,7 @@ from .check_field import check_field
 from .type_defs import _UNSET_FIELD, FieldAssertionType
 
 
-def assert_activity(activity: Activity, baseline: Activity | dict) -> None:
+def check_activity(activity: Activity, baseline: Activity | dict) -> None:
     """Asserts that the given activity matches the baseline activity.
 
     :param activity: The activity to be tested.
