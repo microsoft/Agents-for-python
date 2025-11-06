@@ -1,5 +1,3 @@
-from email.policy import default
-import os
 import json
 import asyncio
 from typing import Optional, cast

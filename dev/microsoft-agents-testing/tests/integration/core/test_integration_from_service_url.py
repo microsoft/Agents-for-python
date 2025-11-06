@@ -33,7 +33,7 @@ class TestIntegrationFromURL(Integration):
         with aioresponses() as mocked:
 
             def callback(url, **kwargs):
-                a = requests.post(
+                requests.post(
                     f"{self.service_url}/v3/conversations/test-conv",
                     json=kwargs.get("json"),
                 )

@@ -2,8 +2,7 @@ from __future__ import annotations
 
 import sys
 from io import StringIO
-from typing import Optional
-from threading import Lock, Thread, Event
+from threading import Lock
 import asyncio
 
 from aiohttp.web import Application, Request, Response
@@ -63,9 +62,9 @@ class ResponseClient:
             data = await request.json()
             activity = Activity.model_validate(data)
 
-            conversation_id = (
-                activity.conversation.id if activity.conversation else None
-            )
+            # conversation_id = (
+            #     activity.conversation.id if activity.conversation else None
+            # )
 
             with self._activities_list_lock:
                 self._activities_list.append(activity)

@@ -1,5 +1,4 @@
-from tkinter import E
-from aiohttp.web import Request, Response, Application, run_app
+from aiohttp.web import Request, Response, Application
 
 from microsoft_agents.hosting.aiohttp import (
     CloudAdapter,

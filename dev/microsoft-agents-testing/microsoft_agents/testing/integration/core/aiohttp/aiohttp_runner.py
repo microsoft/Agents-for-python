@@ -1,5 +1,4 @@
 from typing import Optional
-from typing import Optional
 from threading import Thread, Event
 import asyncio
 
@@ -36,28 +35,24 @@ class AiohttpRunner(ApplicationRunner):
         return self._url
 
     async def _start_server(self) -> None:
-        try:
-            assert isinstance(self._app, Application)
+        assert isinstance(self._app, Application)
 
-            self._runner = AppRunner(self._app)
-            await self._runner.setup()
-            self._site = TCPSite(self._runner, self._host, self._port)
-            await self._site.start()
+        self._runner = AppRunner(self._app)
+        await self._runner.setup()
+        self._site = TCPSite(self._runner, self._host, self._port)
+        await self._site.start()
 
-            # Wait for shutdown signal
-            while not self._shutdown_event.is_set():
-                await asyncio.sleep(0.1)
+        # Wait for shutdown signal
+        while not self._shutdown_event.is_set():
+            await asyncio.sleep(0.1)
 
-            # Cleanup
-            await self._site.stop()
-            await self._runner.cleanup()
-
-        except Exception as error:
-            raise error
+        # Cleanup
+        await self._site.stop()
+        await self._runner.cleanup()
 
     async def __aenter__(self):
         if self._server_thread:
-            raise RuntimeError("ResponseClient is already running.")
+            raise RuntimeError("AiohttpRunner is already running.")
 
         self._shutdown_event.clear()
         self._server_thread = Thread(
@@ -72,7 +67,7 @@ class AiohttpRunner(ApplicationRunner):
 
     async def _stop_server(self):
         if not self._server_thread:
-            raise RuntimeError("ResponseClient is not running.")
+            raise RuntimeError("AiohttpRunner is not running.")
 
         try:
             async with ClientSession() as session:
@@ -97,7 +92,7 @@ class AiohttpRunner(ApplicationRunner):
 
     async def __aexit__(self, exc_type, exc, tb):
         if not self._server_thread:
-            raise RuntimeError("ResponseClient is not running.")
+            raise RuntimeError("AiohttpRunner is not running.")
         try:
             async with ClientSession() as session:
                 async with session.get(

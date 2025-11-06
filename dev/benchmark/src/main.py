@@ -1,8 +1,6 @@
-import json, sys
-from io import StringIO
+import json
 import logging
 from datetime import datetime, timezone
-from contextlib import contextmanager
 
 import click
 

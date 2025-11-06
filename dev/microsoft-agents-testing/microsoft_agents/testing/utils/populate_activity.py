@@ -4,7 +4,7 @@ from microsoft_agents.activity import Activity
 def populate_activity(original: Activity, defaults: Activity | dict) -> Activity:
 
     if isinstance(defaults, Activity):
-        defaults = Activity.model_dump(exclude_unset=True)
+        defaults = defaults.model_dump(exclude_unset=True)
 
     new_activity = original.model_copy()
 
