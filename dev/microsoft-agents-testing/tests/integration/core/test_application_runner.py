@@ -3,7 +3,6 @@ from time import sleep
 
 from ._common import SimpleRunner, OtherSimpleRunner
 
-
 class TestApplicationRunner:
 
     @pytest.mark.asyncio

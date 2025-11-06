@@ -1,9 +1,11 @@
 import os
-import pytest
 import asyncio
 
-from src.core import integration, IntegrationFixtures, AiohttpEnvironment, AiohttpEnvironment, AgentClient
-from src.samples import QuickstartSample
+from microsoft_agents.testing import (
+    AiohttpEnvironment,
+    AgentClient,
+)
+from ..samples import QuickstartSample
 
 from dotenv import load_dotenv
 
@@ -33,9 +35,12 @@ async def main():
 
     async with env.create_runner(host, port):
         print(f"Server running at http://{host}:{port}/api/messages")
-        while True:
-            await asyncio.sleep(1)
-            res = await client.send_expect_replies("Hello, Agent!")
+        await asyncio.sleep(1)
+        res = await client.send_expect_replies("Hello, Agent!")
+        print("\nReply from agent:")
+        print(res)
+
+    await client.close()
 
 if __name__ == "__main__":
     asyncio.run(main())

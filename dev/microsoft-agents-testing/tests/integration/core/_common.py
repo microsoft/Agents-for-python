@@ -1,4 +1,4 @@
-from src.core import ApplicationRunner
+from microsoft_agents.testing import ApplicationRunner
 
 
 class SimpleRunner(ApplicationRunner):

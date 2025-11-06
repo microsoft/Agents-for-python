@@ -7,8 +7,7 @@ from aioresponses import aioresponses
 from msal import ConfidentialClientApplication
 
 from microsoft_agents.activity import Activity
-
-from src.core import AgentClient
+from microsoft_agents.testing import AgentClient
 
 from ._common import DEFAULTS
 

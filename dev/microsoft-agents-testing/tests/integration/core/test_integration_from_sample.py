@@ -2,12 +2,11 @@ import pytest
 import asyncio
 from copy import copy
 
-from src.core import (
+from microsoft_agents.testing import (
     ApplicationRunner,
     Environment,
-    integration,
-    IntegrationFixtures,
-    Sample,
+    Integration,
+    Sample
 )
 
 from ._common import SimpleRunner
@@ -40,9 +39,13 @@ class SimpleSample(Sample):
         await asyncio.sleep(0.1)  # Simulate some initialization delay
         self.other_data = len(self.env.config)
 
+    @property
+    def app(self) -> None:
+        return None
 
-@integration(sample=SimpleSample, environment=SimpleEnvironment)
-class TestIntegrationFromSample(IntegrationFixtures):
+class TestIntegrationFromSample(Integration):
+    _sample_cls = SimpleSample
+    _environment_cls = SimpleEnvironment
 
     @pytest.mark.asyncio
     async def test_sample_integration(self, sample, environment):

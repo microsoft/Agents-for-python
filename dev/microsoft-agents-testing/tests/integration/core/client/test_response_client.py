@@ -3,8 +3,8 @@ import asyncio
 from aiohttp import ClientSession
 
 from microsoft_agents.activity import Activity
+from microsoft_agents.testing import ResponseClient
 
-from src.core import ResponseClient
 from ._common import DEFAULTS
 
 

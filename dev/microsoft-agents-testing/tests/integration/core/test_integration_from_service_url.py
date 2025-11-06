@@ -4,14 +4,11 @@ import requests
 from copy import copy
 from aioresponses import aioresponses, CallbackResult
 
-from src.core import integration, IntegrationFixtures
+from microsoft_agents.testing import Integration
 
-
-@integration(
-    agent_url="http://localhost:8000/",
-    service_url="http://localhost:8001/",
-)
-class TestIntegrationFromURL(IntegrationFixtures):
+class TestIntegrationFromURL(Integration):
+    _agent_url = "http://localhost:8000/"
+    _service_url = "http://localhost:8001/"
 
     @pytest.mark.asyncio
     async def test_service_url_integration(self, agent_client):
