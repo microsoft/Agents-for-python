@@ -19,25 +19,16 @@ from cryptography.x509 import load_pem_x509_certificate
 from cryptography.hazmat.backends import default_backend
 from cryptography.hazmat.primitives import hashes
 
+from microsoft_agents.activity._utils import _DeferredString
+
 from microsoft_agents.hosting.core import (
     AuthTypes,
     AccessTokenProviderBase,
     AgentAuthConfiguration,
 )
+from microsoft_agents.authentication.msal.errors import authentication_errors
 
 logger = logging.getLogger(__name__)
-
-
-# this is deferred because jwt.decode is expensive and we don't want to do it unless we
-# have logging.DEBUG enabled
-class _DeferredLogOfBlueprintId:
-    def __init__(self, jwt_token: str):
-        self.jwt_token = jwt_token
-
-    def __str__(self):
-        payload = jwt.decode(self.jwt_token, options={"verify_signature": False})
-        agentic_blueprint_id = payload.get("xms_par_app_azp")
-        return f"Agentic blueprint id: {agentic_blueprint_id}"
 
 
 async def _async_acquire_token_for_client(msal_auth_client, *args, **kwargs):
@@ -58,7 +49,7 @@ class MsalAuth(AccessTokenProviderBase):
 
         :param msal_configuration: The MSAL authentication configuration. Assumed to
             not be mutated after being passed in.
-        :type msal_configuration: AgentAuthConfiguration
+        :type msal_configuration: :class:`microsoft_agents.hosting.core.authorization.agent_auth_configuration.AgentAuthConfiguration`
         """
 
         self._msal_configuration = msal_configuration
@@ -75,7 +66,7 @@ class MsalAuth(AccessTokenProviderBase):
         )
         valid_uri, instance_uri = self._uri_validator(resource_url)
         if not valid_uri:
-            raise ValueError("Invalid instance URL")
+            raise ValueError(str(authentication_errors.InvalidInstanceUrl))
 
         local_scopes = self._resolve_scopes_list(instance_uri, scopes)
         self._create_client_application()
@@ -96,7 +87,11 @@ class MsalAuth(AccessTokenProviderBase):
         res = auth_result_payload.get("access_token") if auth_result_payload else None
         if not res:
             logger.error("Failed to acquire token for resource %s", auth_result_payload)
-            raise ValueError(f"Failed to acquire token. {str(auth_result_payload)}")
+            raise ValueError(
+                authentication_errors.FailedToAcquireToken.format(
+                    str(auth_result_payload)
+                )
+            )
 
         return res
 
@@ -116,7 +111,7 @@ class MsalAuth(AccessTokenProviderBase):
                 "Attempted on-behalf-of flow with Managed Identity authentication."
             )
             raise NotImplementedError(
-                "On-behalf-of flow is not supported with Managed Identity authentication."
+                str(authentication_errors.OnBehalfOfFlowNotSupportedManagedIdentity)
             )
         elif isinstance(self._msal_auth_client, ConfidentialClientApplication):
             # TODO: Handling token error / acquisition failed
@@ -133,7 +128,9 @@ class MsalAuth(AccessTokenProviderBase):
                 logger.error(
                     f"Failed to acquire token on behalf of user: {user_assertion}"
                 )
-                raise ValueError(f"Failed to acquire token. {str(token)}")
+                raise ValueError(
+                    authentication_errors.FailedToAcquireToken.format(str(token))
+                )
 
             return token["access_token"]
 
@@ -141,7 +138,9 @@ class MsalAuth(AccessTokenProviderBase):
             f"On-behalf-of flow is not supported with the current authentication type: {self._msal_auth_client.__class__.__name__}"
         )
         raise NotImplementedError(
-            f"On-behalf-of flow is not supported with the current authentication type: {self._msal_auth_client.__class__.__name__}"
+            authentication_errors.OnBehalfOfFlowNotSupportedAuthType.format(
+                self._msal_auth_client.__class__.__name__
+            )
         )
 
     def _create_client_application(self) -> None:
@@ -197,7 +196,9 @@ class MsalAuth(AccessTokenProviderBase):
                 logger.error(
                     f"Unsupported authentication type: {self._msal_configuration.AUTH_TYPE}"
                 )
-                raise NotImplementedError("Authentication type not supported")
+                raise NotImplementedError(
+                    str(authentication_errors.AuthenticationTypeNotSupported)
+                )
 
             self._msal_auth_client = ConfidentialClientApplication(
                 client_id=self._msal_configuration.CLIENT_ID,
@@ -243,7 +244,9 @@ class MsalAuth(AccessTokenProviderBase):
         """
 
         if not agent_app_instance_id:
-            raise ValueError("Agent application instance Id must be provided.")
+            raise ValueError(
+                str(authentication_errors.AgentApplicationInstanceIdRequired)
+            )
 
         logger.info(
             "Attempting to get agentic application token from agent_app_instance_id %s",
@@ -277,7 +280,9 @@ class MsalAuth(AccessTokenProviderBase):
         """
 
         if not agent_app_instance_id:
-            raise ValueError("Agent application instance Id must be provided.")
+            raise ValueError(
+                str(authentication_errors.AgentApplicationInstanceIdRequired)
+            )
 
         logger.info(
             "Attempting to get agentic instance token from agent_app_instance_id %s",
@@ -293,7 +298,9 @@ class MsalAuth(AccessTokenProviderBase):
                 agent_app_instance_id,
             )
             raise Exception(
-                f"Failed to acquire agentic instance token or agent token for agent_app_instance_id {agent_app_instance_id}"
+                authentication_errors.FailedToAcquireAgenticInstanceToken.format(
+                    agent_app_instance_id
+                )
             )
 
         authority = (
@@ -316,7 +323,9 @@ class MsalAuth(AccessTokenProviderBase):
                 agent_app_instance_id,
             )
             raise Exception(
-                f"Failed to acquire agentic instance token or agent token for agent_app_instance_id {agent_app_instance_id}"
+                authentication_errors.FailedToAcquireAgenticInstanceToken.format(
+                    agent_app_instance_id
+                )
             )
 
         # future scenario where we don't know the blueprint id upfront
@@ -326,9 +335,20 @@ class MsalAuth(AccessTokenProviderBase):
             logger.error(
                 "Failed to acquire agentic instance token, %s", agentic_instance_token
             )
-            raise ValueError(f"Failed to acquire token. {str(agentic_instance_token)}")
+            raise ValueError(
+                authentication_errors.FailedToAcquireToken.format(
+                    str(agentic_instance_token)
+                )
+            )
 
-        logger.debug(_DeferredLogOfBlueprintId(token))
+        logger.debug(
+            "Agentic blueprint id: %s",
+            _DeferredString(
+                lambda: jwt.decode(token, options={"verify_signature": False}).get(
+                    "xms_par_app_azp"
+                )
+            ),
+        )
 
         return agentic_instance_token["access_token"], agent_token_result
 
@@ -348,7 +368,7 @@ class MsalAuth(AccessTokenProviderBase):
         """
         if not agent_app_instance_id or not agentic_user_id:
             raise ValueError(
-                "Agent application instance Id and agentic user Id must be provided."
+                str(authentication_errors.AgentApplicationInstanceIdAndUserIdRequired)
             )
 
         logger.info(
@@ -367,7 +387,9 @@ class MsalAuth(AccessTokenProviderBase):
                 agentic_user_id,
             )
             raise Exception(
-                f"Failed to acquire instance token or agent token for agent_app_instance_id {agent_app_instance_id} and agentic_user_id {agentic_user_id}"
+                authentication_errors.FailedToAcquireInstanceOrAgentToken.format(
+                    agent_app_instance_id, agentic_user_id
+                )
             )
 
         authority = (

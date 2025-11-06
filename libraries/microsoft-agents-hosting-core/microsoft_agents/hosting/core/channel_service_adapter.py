@@ -232,7 +232,10 @@ class ChannelServiceAdapter(ChannelAdapter, ABC):
         :type audience: Optional[str]
         """
         return await self.process_proactive(
-            claims_identity, continuation_activity, audience, callback
+            claims_identity,
+            continuation_activity,
+            audience or claims_identity.get_token_audience(),
+            callback,
         )
 
     async def create_conversation(  # pylint: disable=arguments-differ
@@ -358,13 +361,13 @@ class ChannelServiceAdapter(ChannelAdapter, ABC):
         :return: A task that represents the work queued to execute.
         :rtype: Optional[:class:`microsoft_agents.activity.InvokeResponse`]
 
-        .. remarks::
+        .. note::
             This class processes an activity received by the agents web server. This includes any messages
             sent from a user and is the method that drives what's often referred to as the
             agent *reactive messaging* flow.
             Call this method to reactively send a message to a conversation.
-            If the task completes successfully, then an :class:`InvokeResponse` is returned;
-            otherwise, `null` is returned.
+            If the task completes successfully, then an :class:`microsoft_agents.activity.InvokeResponse` is returned;
+            otherwise, `None` is returned.
         """
         scopes: list[str] = None
         outgoing_audience: str = None
@@ -493,7 +496,14 @@ class ChannelServiceAdapter(ChannelAdapter, ABC):
 
         return context
 
-    def _process_turn_results(self, context: TurnContext) -> InvokeResponse:
+    def _process_turn_results(self, context: TurnContext) -> Optional[InvokeResponse]:
+        """Process the results of a turn and return the appropriate response.
+
+        :param context: The turn context
+        :type context: :class:`microsoft_agents.hosting.core.turn_context.TurnContext`
+        :return: The invoke response, if applicable
+        :rtype: Optional[:class:`microsoft_agents.activity.InvokeResponse`]
+        """
         # Handle ExpectedReplies scenarios where all activities have been
         # buffered and sent back at once in an invoke response.
         if context.activity.delivery_mode == DeliveryModes.expect_replies:

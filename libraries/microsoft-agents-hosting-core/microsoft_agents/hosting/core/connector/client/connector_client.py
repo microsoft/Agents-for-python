@@ -74,11 +74,13 @@ class AttachmentsOperations(AttachmentsBase):
 
         url = f"v3/attachments/{attachment_id}"
 
-        logger.info(f"Getting attachment info for ID: {attachment_id}")
+        logger.info("Getting attachment info for ID: %s", attachment_id)
         async with self.client.get(url) as response:
-            if response.status >= 400:
+            if response.status >= 300:
                 logger.error(
-                    f"Error getting attachment info: {response.status}", stack_info=True
+                    "Error getting attachment info: %s",
+                    response.status,
+                    stack_info=True,
                 )
                 response.raise_for_status()
 
@@ -108,11 +110,13 @@ class AttachmentsOperations(AttachmentsBase):
 
         url = f"v3/attachments/{attachment_id}/views/{view_id}"
 
-        logger.info(f"Getting attachment for ID: {attachment_id}, View ID: {view_id}")
+        logger.info(
+            "Getting attachment for ID: %s, View ID: %s", attachment_id, view_id
+        )
         async with self.client.get(url) as response:
-            if response.status >= 400:
+            if response.status >= 300:
                 logger.error(
-                    f"Error getting attachment: {response.status}", stack_info=True
+                    "Error getting attachment: %s", response.status, stack_info=True
                 )
                 response.raise_for_status()
 
@@ -124,7 +128,7 @@ class ConversationsOperations(ConversationsBase):
 
     def __init__(self, client: ClientSession, **kwargs):
         self.client = client
-        self._max_conversation_id_length = kwargs.get("max_conversation_id_length", 200)
+        self._max_conversation_id_length = kwargs.get("max_conversation_id_length", 150)
 
     def _normalize_conversation_id(self, conversation_id: str) -> str:
         return conversation_id[: self._max_conversation_id_length]
@@ -143,12 +147,12 @@ class ConversationsOperations(ConversationsBase):
         )
 
         logger.info(
-            f"Getting conversations with continuation token: {continuation_token}"
+            "Getting conversations with continuation token: %s", continuation_token
         )
         async with self.client.get("v3/conversations", params=params) as response:
-            if response.status >= 400:
+            if response.status >= 300:
                 logger.error(
-                    f"Error getting conversations: {response.status}", stack_info=True
+                    "Error getting conversations: %s", response.status, stack_info=True
                 )
                 response.raise_for_status()
 
@@ -170,9 +174,9 @@ class ConversationsOperations(ConversationsBase):
             "v3/conversations",
             json=body.model_dump(by_alias=True, exclude_unset=True, mode="json"),
         ) as response:
-            if response.status >= 400:
+            if response.status >= 300:
                 logger.error(
-                    f"Error creating conversation: {response.status}", stack_info=True
+                    "Error creating conversation: %s", response.status, stack_info=True
                 )
                 response.raise_for_status()
 
@@ -201,7 +205,10 @@ class ConversationsOperations(ConversationsBase):
         url = f"v3/conversations/{conversation_id}/activities/{activity_id}"
 
         logger.info(
-            f"Replying to activity: {activity_id} in conversation: {conversation_id}. Activity type is {body.type}"
+            "Replying to activity: %s in conversation: %s. Activity type is %s",
+            activity_id,
+            conversation_id,
+            body.type,
         )
 
         async with self.client.post(
@@ -212,15 +219,16 @@ class ConversationsOperations(ConversationsBase):
         ) as response:
             result = await response.json() if response.content_length else {}
 
-            if response.status >= 400:
+            if response.status >= 300:
                 logger.error(
-                    f"Error replying to activity: {result or response.status}",
+                    "Error replying to activity: %s",
+                    result or response.status,
                     stack_info=True,
                 )
                 response.raise_for_status()
 
             logger.info(
-                f"Reply to conversation/activity: {result.get('id')}, {activity_id}"
+                "Reply to conversation/activity: %s, %s", result.get("id"), activity_id
             )
 
         return ResourceResponse.model_validate(result)
@@ -246,15 +254,19 @@ class ConversationsOperations(ConversationsBase):
         url = f"v3/conversations/{conversation_id}/activities"
 
         logger.info(
-            f"Sending to conversation: {conversation_id}. Activity type is {body.type}"
+            "Sending to conversation: %s. Activity type is %s",
+            conversation_id,
+            body.type,
         )
         async with self.client.post(
             url,
             json=body.model_dump(by_alias=True, exclude_unset=True, mode="json"),
         ) as response:
-            if response.status >= 400:
+            if response.status >= 300:
                 logger.error(
-                    f"Error sending to conversation: {response.status}", stack_info=True
+                    "Error sending to conversation: %s",
+                    response.status,
+                    stack_info=True,
                 )
                 response.raise_for_status()
 
@@ -283,15 +295,18 @@ class ConversationsOperations(ConversationsBase):
         url = f"v3/conversations/{conversation_id}/activities/{activity_id}"
 
         logger.info(
-            f"Updating activity: {activity_id} in conversation: {conversation_id}. Activity type is {body.type}"
+            "Updating activity: %s in conversation: %s. Activity type is %s",
+            activity_id,
+            conversation_id,
+            body.type,
         )
         async with self.client.put(
             url,
             json=body.model_dump(by_alias=True, exclude_unset=True),
         ) as response:
-            if response.status >= 400:
+            if response.status >= 300:
                 logger.error(
-                    f"Error updating activity: {response.status}", stack_info=True
+                    "Error updating activity: %s", response.status, stack_info=True
                 )
                 response.raise_for_status()
 
@@ -316,12 +331,14 @@ class ConversationsOperations(ConversationsBase):
         url = f"v3/conversations/{conversation_id}/activities/{activity_id}"
 
         logger.info(
-            f"Deleting activity: {activity_id} from conversation: {conversation_id}"
+            "Deleting activity: %s from conversation: %s",
+            activity_id,
+            conversation_id,
         )
         async with self.client.delete(url) as response:
-            if response.status >= 400:
+            if response.status >= 300:
                 logger.error(
-                    f"Error deleting activity: {response.status}", stack_info=True
+                    "Error deleting activity: %s", response.status, stack_info=True
                 )
                 response.raise_for_status()
 
@@ -354,12 +371,14 @@ class ConversationsOperations(ConversationsBase):
         }
 
         logger.info(
-            f"Uploading attachment to conversation: {conversation_id}, Attachment name: {body.name}"
+            "Uploading attachment to conversation: %s, Attachment name: %s",
+            conversation_id,
+            body.name,
         )
         async with self.client.post(url, json=attachment_dict) as response:
-            if response.status >= 400:
+            if response.status >= 300:
                 logger.error(
-                    f"Error uploading attachment: {response.status}", stack_info=True
+                    "Error uploading attachment: %s", response.status, stack_info=True
                 )
                 response.raise_for_status()
 
@@ -385,11 +404,14 @@ class ConversationsOperations(ConversationsBase):
         conversation_id = self._normalize_conversation_id(conversation_id)
         url = f"v3/conversations/{conversation_id}/members"
 
-        logger.info(f"Getting conversation members for conversation: {conversation_id}")
+        logger.info(
+            "Getting conversation members for conversation: %s", conversation_id
+        )
         async with self.client.get(url) as response:
-            if response.status >= 400:
+            if response.status >= 300:
                 logger.error(
-                    f"Error getting conversation members: {response.status}",
+                    "Error getting conversation members: %s",
+                    response.status,
                     stack_info=True,
                 )
                 response.raise_for_status()
@@ -418,12 +440,15 @@ class ConversationsOperations(ConversationsBase):
         url = f"v3/conversations/{conversation_id}/members/{member_id}"
 
         logger.info(
-            f"Getting conversation member: {member_id} from conversation: {conversation_id}"
+            "Getting conversation member: %s from conversation: %s",
+            member_id,
+            conversation_id,
         )
         async with self.client.get(url) as response:
-            if response.status >= 400:
+            if response.status >= 300:
                 logger.error(
-                    f"Error getting conversation member: {response.status}",
+                    "Error getting conversation member: %s",
+                    response.status,
                     stack_info=True,
                 )
                 response.raise_for_status()
@@ -451,12 +476,15 @@ class ConversationsOperations(ConversationsBase):
         url = f"v3/conversations/{conversation_id}/members/{member_id}"
 
         logger.info(
-            f"Deleting conversation member: {member_id} from conversation: {conversation_id}"
+            "Deleting conversation member: %s from conversation: %s",
+            member_id,
+            conversation_id,
         )
         async with self.client.delete(url) as response:
-            if response.status >= 400 and response.status != 204:
+            if response.status >= 300:
                 logger.error(
-                    f"Error deleting conversation member: {response.status}",
+                    "Error deleting conversation member: %s",
+                    response.status,
                     stack_info=True,
                 )
                 response.raise_for_status()
@@ -482,12 +510,15 @@ class ConversationsOperations(ConversationsBase):
         url = f"v3/conversations/{conversation_id}/activities/{activity_id}/members"
 
         logger.info(
-            f"Getting activity members for conversation: {conversation_id}, Activity ID: {activity_id}"
+            "Getting activity members for conversation: %s, Activity ID: %s",
+            conversation_id,
+            activity_id,
         )
         async with self.client.get(url) as response:
-            if response.status >= 400:
+            if response.status >= 300:
                 logger.error(
-                    f"Error getting activity members: {response.status}",
+                    "Error getting activity members: %s",
+                    response.status,
                     stack_info=True,
                 )
                 response.raise_for_status()
@@ -526,12 +557,16 @@ class ConversationsOperations(ConversationsBase):
         url = f"v3/conversations/{conversation_id}/pagedmembers"
 
         logger.info(
-            f"Getting paged members for conversation: {conversation_id}, Page Size: {page_size}, Continuation Token: {continuation_token}"
+            "Getting paged members for conversation: %s, Page Size: %s, Continuation Token: %s",
+            conversation_id,
+            page_size,
+            continuation_token,
         )
         async with self.client.get(url, params=params) as response:
-            if response.status >= 400:
+            if response.status >= 300:
                 logger.error(
-                    f"Error getting conversation paged members: {response.status}",
+                    "Error getting conversation paged members: %s",
+                    response.status,
                     stack_info=True,
                 )
                 response.raise_for_status()
@@ -559,15 +594,12 @@ class ConversationsOperations(ConversationsBase):
         conversation_id = self._normalize_conversation_id(conversation_id)
         url = f"v3/conversations/{conversation_id}/activities/history"
 
-        logger.info(f"Sending conversation history to conversation: {conversation_id}")
+        logger.info("Sending conversation history to conversation: %s", conversation_id)
         async with self.client.post(url, json=body) as response:
-            if (
-                response.status >= 400
-                and response.status != 201
-                and response.status != 202
-            ):
+            if response.status >= 300:
                 logger.error(
-                    f"Error sending conversation history: {response.status}",
+                    "Error sending conversation history: %s",
+                    response.status,
                     stack_info=True,
                 )
                 response.raise_for_status()
@@ -602,7 +634,9 @@ class ConnectorClient(ConnectorClientBase):
             headers=headers,
         )
         logger.debug(
-            f"ConnectorClient initialized with endpoint: {endpoint} and headers: {headers}"
+            "ConnectorClient initialized with endpoint: %s and headers: %s",
+            endpoint,
+            headers,
         )
 
         if len(token) > 1:

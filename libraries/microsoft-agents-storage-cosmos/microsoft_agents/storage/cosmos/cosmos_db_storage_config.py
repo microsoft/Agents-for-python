@@ -2,6 +2,7 @@ import json
 from typing import Union
 
 from azure.core.credentials import TokenCredential
+from microsoft_agents.storage.cosmos.errors import storage_errors
 
 from .key_ops import sanitize_key
 
@@ -69,15 +70,15 @@ class CosmosDBStorageConfig:
 
         This is used prior to the creation of the CosmosDBStorage object."""
         if not config:
-            raise ValueError("CosmosDBStorage: CosmosDBConfig is required.")
+            raise ValueError(str(storage_errors.CosmosDbConfigRequired))
         if not config.cosmos_db_endpoint:
-            raise ValueError("CosmosDBStorage: cosmos_db_endpoint is required.")
+            raise ValueError(str(storage_errors.CosmosDbEndpointRequired))
         if not config.auth_key:
-            raise ValueError("CosmosDBStorage: auth_key is required.")
+            raise ValueError(str(storage_errors.CosmosDbAuthKeyRequired))
         if not config.database_id:
-            raise ValueError("CosmosDBStorage: database_id is required.")
+            raise ValueError(str(storage_errors.CosmosDbDatabaseIdRequired))
         if not config.container_id:
-            raise ValueError("CosmosDBStorage: container_id is required.")
+            raise ValueError(str(storage_errors.CosmosDbContainerIdRequired))
 
         CosmosDBStorageConfig._validate_suffix(config)
 
@@ -85,11 +86,11 @@ class CosmosDBStorageConfig:
     def _validate_suffix(config: "CosmosDBStorageConfig") -> None:
         if config.key_suffix:
             if config.compatibility_mode:
-                raise ValueError(
-                    "compatibilityMode cannot be true while using a keySuffix."
-                )
+                raise ValueError(str(storage_errors.CosmosDbCompatibilityModeRequired))
             suffix_escaped: str = sanitize_key(config.key_suffix)
             if suffix_escaped != config.key_suffix:
                 raise ValueError(
-                    f"Cannot use invalid Row Key characters: {config.key_suffix} in keySuffix."
+                    storage_errors.CosmosDbInvalidKeySuffixCharacters.format(
+                        config.key_suffix
+                    )
                 )

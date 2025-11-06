@@ -93,7 +93,6 @@ class AgentApplication(Agent, Generic[StateT]):
         :param kwargs: Additional configuration parameters.
         :type kwargs: Any
         """
-        self.typing = TypingIndicator()
         self._route_list = _RouteList[StateT]()
 
         configuration = kwargs
@@ -237,7 +236,7 @@ class AgentApplication(Agent, Generic[StateT]):
         Routes are ordered by: is_agentic, is_invoke, rank (lower is higher priority), in that order.
 
         :param selector: A function that takes a TurnContext and returns a boolean indicating whether the route should be selected.
-        :type selector: :class:`microsoft_agents.hosting.core.app._type_defs.RouteSelector`
+        :type selector: Callable[[:class:`microsoft_agents.hosting.core.turn_context.TurnContext`], bool]
         :param handler: A function that takes a TurnContext and a TurnState and returns an Awaitable.
         :type handler: :class:`microsoft_agents.hosting.core.app._type_defs.RouteHandler`[StateT]
         :param is_invoke: Whether the route is for an invoke activity, defaults to False
@@ -246,7 +245,7 @@ class AgentApplication(Agent, Generic[StateT]):
             the selector will include a new check for `context.activity.is_agentic_request()`.
         :type is_agentic: bool, Optional
         :param rank: The rank of the route, defaults to RouteRank.DEFAULT
-        :type rank: :class:`microsoft_agents.hosting.core.app._routes.RouteRank`, Optional
+        :type rank: :class:`microsoft_agents.hosting.core.app._routes.route_rank.RouteRank`, Optional
         :param auth_handlers: A list of authentication handler IDs to use for this route, defaults to None
         :type auth_handlers: Optional[list[str]], Optional
         :raises ApplicationError: If the selector or handler are not valid.
@@ -273,19 +272,21 @@ class AgentApplication(Agent, Generic[StateT]):
         **kwargs,
     ) -> Callable[[RouteHandler[StateT]], RouteHandler[StateT]]:
         """
-        Registers a new activity event listener. This method can be used as either
-        a decorator or a method.
+        Register a new activity event listener as either a decorator or a method.
 
-        ```python
-        # Use this method as a decorator
-        @app.activity("event")
-        async def on_event(context: TurnContext, state: TurnState):
-            print("hello world!")
-            return True
-        ```
+        Example:
+            .. code-block:: python
 
-        #### Args:
-        - `type`: The type of the activity
+                @app.activity("event")
+                async def on_event(context: TurnContext, state: TurnState):
+                    print("hello world!")
+                    return True
+
+        :param activity_type: Activity type or collection of types that should trigger the handler.
+        :type activity_type: Union[str, microsoft_agents.activity.ActivityTypes, list[Union[str, microsoft_agents.activity.ActivityTypes]]]
+        :param auth_handlers: Optional list of authorization handler IDs for the route.
+        :type auth_handlers: Optional[list[str]]
+        :param kwargs: Additional route configuration passed to :meth:`add_route`.
         """
 
         def __selector(context: TurnContext):
@@ -308,18 +309,21 @@ class AgentApplication(Agent, Generic[StateT]):
         **kwargs,
     ) -> Callable[[RouteHandler[StateT]], RouteHandler[StateT]]:
         """
-        Registers a new message activity event listener. This method can be used as either
-        a decorator or a method.
+        Register a new message activity event listener as either a decorator or a method.
 
-        ```python
-        # Use this method as a decorator
-        @app.message("hi")
-        async def on_hi_message(context: TurnContext, state: TurnState):
-            print("hello!")
-            return True
+        Example:
+            .. code-block:: python
 
-        #### Args:
-        - `select`: a string or regex pattern
+                @app.message("hi")
+                async def on_hi_message(context: TurnContext, state: TurnState):
+                    print("hello!")
+                    return True
+
+        :param select: Literal text, compiled regex, or list of either used to match the incoming message.
+        :type select: Union[str, Pattern[str], list[Union[str, Pattern[str]]]]
+        :param auth_handlers: Optional list of authorization handler IDs for the route.
+        :type auth_handlers: Optional[list[str]]
+        :param kwargs: Additional route configuration passed to :meth:`add_route`.
         """
 
         def __selector(context: TurnContext):
@@ -350,20 +354,21 @@ class AgentApplication(Agent, Generic[StateT]):
         **kwargs,
     ) -> Callable[[RouteHandler[StateT]], RouteHandler[StateT]]:
         """
-        Registers a new message activity event listener. This method can be used as either
-        a decorator or a method.
+        Register a handler for conversation update activities as either a decorator or a method.
 
-        ```python
-        # Use this method as a decorator
-        @app.conversation_update("channelCreated")
-        async def on_channel_created(context: TurnContext, state: TurnState):
-            print("a new channel was created!")
-            return True
+        Example:
+            .. code-block:: python
 
-        ```
+                @app.conversation_update("channelCreated")
+                async def on_channel_created(context: TurnContext, state: TurnState):
+                    print("a new channel was created!")
+                    return True
 
-        #### Args:
-        - `type`: a string or regex pattern
+        :param type: Conversation update category that must match the incoming activity.
+        :type type: microsoft_agents.activity.ConversationUpdateTypes
+        :param auth_handlers: Optional list of authorization handler IDs for the route.
+        :type auth_handlers: Optional[list[str]]
+        :param kwargs: Additional route configuration passed to :meth:`add_route`.
         """
 
         def __selector(context: TurnContext):
@@ -403,19 +408,21 @@ class AgentApplication(Agent, Generic[StateT]):
         **kwargs,
     ) -> Callable[[RouteHandler[StateT]], RouteHandler[StateT]]:
         """
-        Registers a new message activity event listener. This method can be used as either
-        a decorator or a method.
+        Register a handler for message reaction activities as either a decorator or a method.
 
-        ```python
-        # Use this method as a decorator
-        @app.message_reaction("reactionsAdded")
-        async def on_reactions_added(context: TurnContext, state: TurnState):
-            print("reactions was added!")
-            return True
-        ```
+        Example:
+            .. code-block:: python
 
-        #### Args:
-        - `type`: a string or regex pattern
+                @app.message_reaction("reactionsAdded")
+                async def on_reactions_added(context: TurnContext, state: TurnState):
+                    print("reaction was added!")
+                    return True
+
+        :param type: Reaction category that must match the incoming activity.
+        :type type: microsoft_agents.activity.MessageReactionTypes
+        :param auth_handlers: Optional list of authorization handler IDs for the route.
+        :type auth_handlers: Optional[list[str]]
+        :param kwargs: Additional route configuration passed to :meth:`add_route`.
         """
 
         def __selector(context: TurnContext):
@@ -451,19 +458,21 @@ class AgentApplication(Agent, Generic[StateT]):
         **kwargs,
     ) -> Callable[[RouteHandler[StateT]], RouteHandler[StateT]]:
         """
-        Registers a new message activity event listener. This method can be used as either
-        a decorator or a method.
+        Register a handler for message update activities as either a decorator or a method.
 
-        ```python
-        # Use this method as a decorator
-        @app.message_update("editMessage")
-        async def on_edit_message(context: TurnContext, state: TurnState):
-            print("message was edited!")
-            return True
-        ```
+        Example:
+            .. code-block:: python
 
-        #### Args:
-        - `type`: a string or regex pattern
+                @app.message_update("editMessage")
+                async def on_edit_message(context: TurnContext, state: TurnState):
+                    print("message was edited!")
+                    return True
+
+        :param type: Message update category that must match the incoming activity.
+        :type type: microsoft_agents.activity.MessageUpdateTypes
+        :param auth_handlers: Optional list of authorization handler IDs for the route.
+        :type auth_handlers: Optional[list[str]]
+        :param kwargs: Additional route configuration passed to :meth:`add_route`.
         """
 
         def __selector(context: TurnContext):
@@ -511,15 +520,18 @@ class AgentApplication(Agent, Generic[StateT]):
         Callable[[TurnContext, StateT, str], Awaitable[None]],
     ]:
         """
-        Registers a handler to handoff conversations from one copilot to another.
-         ```python
-        # Use this method as a decorator
-        @app.handoff
-        async def on_handoff(
-            context: TurnContext, state: TurnState, continuation: str
-        ):
-            print(query)
-        ```
+        Register a handler to hand off conversations from one copilot to another.
+
+        Example:
+            .. code-block:: python
+
+                @app.handoff
+                async def on_handoff(context: TurnContext, state: TurnState, continuation: str):
+                    print(continuation)
+
+        :param auth_handlers: Optional list of authorization handler IDs for the route.
+        :type auth_handlers: Optional[list[str]]
+        :param kwargs: Additional route configuration passed to :meth:`add_route`.
         """
 
         def __selector(context: TurnContext) -> bool:
@@ -556,15 +568,18 @@ class AgentApplication(Agent, Generic[StateT]):
         self, func: Callable[[TurnContext, StateT, Optional[str]], Awaitable[None]]
     ) -> Callable[[TurnContext, StateT, Optional[str]], Awaitable[None]]:
         """
-        Registers a new event listener that will be executed when a user successfully signs in.
+        Register a callback that executes when a user successfully signs in.
 
-        ```python
-        # Use this method as a decorator
-        @app.on_sign_in_success
-        async def sign_in_success(context: TurnContext, state: TurnState):
-            print("hello world!")
-            return True
-        ```
+        Example:
+            .. code-block:: python
+
+                @app.on_sign_in_success
+                async def sign_in_success(context: TurnContext, state: TurnState, connection_id: str | None):
+                    print("sign-in succeeded")
+
+        :param func: Callable that handles the sign-in success event.
+        :type func: Callable[[TurnContext, StateT, Optional[str]], Awaitable[None]]
+        :raises ApplicationError: If authorization services are not configured.
         """
 
         if self._auth:
@@ -589,15 +604,18 @@ class AgentApplication(Agent, Generic[StateT]):
         self, func: Callable[[TurnContext, StateT, Optional[str]], Awaitable[None]]
     ) -> Callable[[TurnContext, StateT, Optional[str]], Awaitable[None]]:
         """
-        Registers a new event listener that will be executed when a user fails to sign in.
+        Register a callback that executes when a user fails to sign in.
 
-        ```python
-        # Use this method as a decorator
-        @app.on_sign_in_failure
-        async def sign_in_failure(context: TurnContext, state: TurnState):
-            print("hello world!")
-            return True
-        ```
+        Example:
+            .. code-block:: python
+
+                @app.on_sign_in_failure
+                async def sign_in_failure(context: TurnContext, state: TurnState, connection_id: str | None):
+                    print("sign-in failed")
+
+        :param func: Callable that handles the sign-in failure event.
+        :type func: Callable[[TurnContext, StateT, Optional[str]], Awaitable[None]]
+        :raises ApplicationError: If authorization services are not configured.
         """
 
         if self._auth:
@@ -622,15 +640,17 @@ class AgentApplication(Agent, Generic[StateT]):
         self, func: Callable[[TurnContext, Exception], Awaitable[None]]
     ) -> Callable[[TurnContext, Exception], Awaitable[None]]:
         """
-        Registers an error handler that will be called anytime
-        the app throws an Exception
+        Register an error handler that is invoked whenever the application raises an exception.
 
-        ```python
-        # Use this method as a decorator
-        @app.error
-        async def on_error(context: TurnContext, err: Exception):
-            print(err.message)
-        ```
+        Example:
+            .. code-block:: python
+
+                @app.error
+                async def on_error(context: TurnContext, err: Exception):
+                    print(err)
+
+        :param func: Callable executed when an uncaught exception occurs during a turn.
+        :type func: Callable[[TurnContext, Exception], Awaitable[None]]
         """
 
         logger.debug(f"Registering the error handler {func.__name__} ")
@@ -659,9 +679,12 @@ class AgentApplication(Agent, Generic[StateT]):
         await self._start_long_running_call(context, self._on_turn)
 
     async def _on_turn(self, context: TurnContext):
+        typing = None
         try:
             if context.activity.type != ActivityTypes.typing:
-                await self._start_typing(context)
+                if self._options.start_typing_timer:
+                    typing = TypingIndicator()
+                    await typing.start(context)
 
             self._remove_mentions(context)
 
@@ -709,11 +732,8 @@ class AgentApplication(Agent, Generic[StateT]):
             )
             await self._on_error(context, err)
         finally:
-            self.typing.stop()
-
-    async def _start_typing(self, context: TurnContext):
-        if self._options.start_typing_timer:
-            await self.typing.start(context)
+            if typing:
+                await typing.stop()
 
     def _remove_mentions(self, context: TurnContext):
         if (
