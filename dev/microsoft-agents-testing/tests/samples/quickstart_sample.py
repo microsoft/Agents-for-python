@@ -9,6 +9,7 @@ from microsoft_agents.activity import ConversationUpdateTypes
 from microsoft_agents.hosting.core import AgentApplication, TurnContext, TurnState
 from microsoft_agents.testing.integration.core import Sample
 
+
 class QuickstartSample(Sample):
     """A quickstart sample implementation."""
 
@@ -18,11 +19,16 @@ class QuickstartSample(Sample):
 
         load_dotenv("./src/tests/.env")
 
-
         return {
-            "CONNECTIONS__SERVICE_CONNECTION__SETTINGS__CLIENTID": os.getenv("CONNECTIONS__SERVICE_CONNECTION__SETTINGS__CLIENTID"),
-            "CONNECTIONS__SERVICE_CONNECTION__SETTINGS__CLIENTSECRET": os.getenv("CONNECTIONS__SERVICE_CONNECTION__SETTINGS__CLIENTSECRET"),
-            "CONNECTIONS__SERVICE_CONNECTION__SETTINGS__TENANTID": os.getenv("CONNECTIONS__SERVICE_CONNECTION__SETTINGS__TENANTID"),
+            "CONNECTIONS__SERVICE_CONNECTION__SETTINGS__CLIENTID": os.getenv(
+                "CONNECTIONS__SERVICE_CONNECTION__SETTINGS__CLIENTID"
+            ),
+            "CONNECTIONS__SERVICE_CONNECTION__SETTINGS__CLIENTSECRET": os.getenv(
+                "CONNECTIONS__SERVICE_CONNECTION__SETTINGS__CLIENTSECRET"
+            ),
+            "CONNECTIONS__SERVICE_CONNECTION__SETTINGS__TENANTID": os.getenv(
+                "CONNECTIONS__SERVICE_CONNECTION__SETTINGS__TENANTID"
+            ),
         }
 
     async def init_app(self):

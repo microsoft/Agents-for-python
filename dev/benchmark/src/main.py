@@ -17,6 +17,7 @@ logging.basicConfig(format=LOG_FORMAT, level=logging.INFO, datefmt="%H:%M:%S")
 
 BenchmarkConfig.load_from_env()
 
+
 @click.command()
 @click.option(
     "--payload_path", "-p", default="./payload.json", help="Path to the payload file."
@@ -38,7 +39,7 @@ def main(payload_path: str, num_workers: int, verbose: bool, async_mode: bool):
     func = create_payload_sender(payload)
 
     executor: Executor = CoroutineExecutor() if async_mode else ThreadExecutor()
-    
+
     start_time = datetime.now(timezone.utc).timestamp()
     results = executor.run(func, num_workers=num_workers)
     end_time = datetime.now(timezone.utc).timestamp()

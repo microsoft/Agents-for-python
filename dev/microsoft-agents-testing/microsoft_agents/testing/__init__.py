@@ -1,14 +1,8 @@
 from .sdk_config import SDKConfig
 
-from .auth import (
-    generate_token,
-    generate_token_from_config
-)
+from .auth import generate_token, generate_token_from_config
 
-from .utils import (
-    populate_activity,
-    get_host_and_port
-)
+from .utils import populate_activity, get_host_and_port
 
 from .integration import (
     Sample,
@@ -17,7 +11,7 @@ from .integration import (
     AgentClient,
     ResponseClient,
     AiohttpEnvironment,
-    Integration
+    Integration,
 )
 
 __all__ = [
@@ -32,5 +26,5 @@ __all__ = [
     "AiohttpEnvironment",
     "Integration",
     "populate_activity",
-    "get_host_and_port"
+    "get_host_and_port",
 ]

@@ -2,12 +2,7 @@ import pytest
 import asyncio
 from copy import copy
 
-from microsoft_agents.testing import (
-    ApplicationRunner,
-    Environment,
-    Integration,
-    Sample
-)
+from microsoft_agents.testing import ApplicationRunner, Environment, Integration, Sample
 
 from ._common import SimpleRunner
 
@@ -42,6 +37,7 @@ class SimpleSample(Sample):
     @property
     def app(self) -> None:
         return None
+
 
 class TestIntegrationFromSample(Integration):
     _sample_cls = SimpleSample

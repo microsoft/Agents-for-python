@@ -80,9 +80,15 @@ class Integration:
             load_dotenv("./src/tests/.env")
             self._config.update(
                 {
-                    "client_id": os.getenv("CONNECTIONS__SERVICE_CONNECTION__SETTINGS__CLIENTID", ""),
-                    "tenant_id": os.getenv("CONNECTIONS__SERVICE_CONNECTION__SETTINGS__TENANTID", ""),
-                    "client_secret": os.getenv("CONNECTIONS__SERVICE_CONNECTION__SETTINGS__CLIENTSECRET", ""),
+                    "client_id": os.getenv(
+                        "CONNECTIONS__SERVICE_CONNECTION__SETTINGS__CLIENTID", ""
+                    ),
+                    "tenant_id": os.getenv(
+                        "CONNECTIONS__SERVICE_CONNECTION__SETTINGS__TENANTID", ""
+                    ),
+                    "client_secret": os.getenv(
+                        "CONNECTIONS__SERVICE_CONNECTION__SETTINGS__CLIENTSECRET", ""
+                    ),
                 }
             )
 
@@ -96,7 +102,9 @@ class Integration:
         return agent_client
 
     @pytest.fixture
-    async def agent_client(self, sample, environment) -> AsyncGenerator[AgentClient, None]:
+    async def agent_client(
+        self, sample, environment
+    ) -> AsyncGenerator[AgentClient, None]:
         agent_client = self.create_agent_client()
         yield agent_client
         await agent_client.close()

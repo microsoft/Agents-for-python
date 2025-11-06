@@ -1,5 +1,6 @@
 from urllib.parse import urlparse
 
+
 def get_host_and_port(url: str) -> tuple[str, int]:
     """Extract host and port from a URL."""
 

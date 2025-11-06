@@ -6,6 +6,7 @@ from aioresponses import aioresponses, CallbackResult
 
 from microsoft_agents.testing import Integration
 
+
 class TestIntegrationFromURL(Integration):
     _agent_url = "http://localhost:8000/"
     _service_url = "http://localhost:8001/"
@@ -16,7 +17,9 @@ class TestIntegrationFromURL(Integration):
 
         with aioresponses() as mocked:
 
-            mocked.post(f"{self.agent_url}api/messages", status=200, body="Service response")
+            mocked.post(
+                f"{self.agent_url}api/messages", status=200, body="Service response"
+            )
 
             res = await agent_client.send_activity("Hello, service!")
             assert res == "Service response"

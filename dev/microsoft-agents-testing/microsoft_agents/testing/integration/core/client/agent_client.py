@@ -12,7 +12,7 @@ from microsoft_agents.activity import (
     ActivityTypes,
     DeliveryModes,
     ChannelAccount,
-    ConversationAccount
+    ConversationAccount,
 )
 from microsoft_agents.testing.utils import populate_activity
 
@@ -23,6 +23,7 @@ _DEFAULT_ACTIVITY_VALUES = {
     "recipient": ChannelAccount(id="recipient"),
     "locale": "en-US",
 }
+
 
 class AgentClient:
 
@@ -48,7 +49,9 @@ class AgentClient:
 
         self._client: Optional[ClientSession] = None
 
-        self._default_activity_data: Activity | dict = default_activity_data or _DEFAULT_ACTIVITY_VALUES
+        self._default_activity_data: Activity | dict = (
+            default_activity_data or _DEFAULT_ACTIVITY_VALUES
+        )
 
     @property
     def agent_url(self) -> str:
@@ -95,7 +98,9 @@ class AgentClient:
         if activity.conversation:
             activity.conversation.id = self._cid
         else:
-            activity.conversation = ConversationAccount(id=self._cid or "<conversation_id>")
+            activity.conversation = ConversationAccount(
+                id=self._cid or "<conversation_id>"
+            )
 
         if self.service_url:
             activity.service_url = self.service_url
@@ -105,7 +110,9 @@ class AgentClient:
         async with self._client.post(
             "api/messages",
             headers=self._headers,
-            json=activity.model_dump(by_alias=True, exclude_unset=True, exclude_none=True, mode="json"),
+            json=activity.model_dump(
+                by_alias=True, exclude_unset=True, exclude_none=True, mode="json"
+            ),
         ) as response:
             content = await response.text()
             if not response.ok:
@@ -124,7 +131,10 @@ class AgentClient:
             return cast(Activity, activity_or_text)
 
     async def send_activity(
-        self, activity_or_text: Activity | str, sleep: float = 0, timeout: Optional[float] = None
+        self,
+        activity_or_text: Activity | str,
+        sleep: float = 0,
+        timeout: Optional[float] = None,
     ) -> str:
         timeout = timeout or self._default_timeout
         activity = self._to_activity(activity_or_text)
@@ -132,12 +142,17 @@ class AgentClient:
         return content
 
     async def send_expect_replies(
-        self, activity_or_text: Activity | str, sleep: float = 0, timeout: Optional[float] = None
+        self,
+        activity_or_text: Activity | str,
+        sleep: float = 0,
+        timeout: Optional[float] = None,
     ) -> list[Activity]:
         timeout = timeout or self._default_timeout
         activity = self._to_activity(activity_or_text)
         activity.delivery_mode = DeliveryModes.expect_replies
-        activity.service_url = activity.service_url or "http://localhost" # temporary fix
+        activity.service_url = (
+            activity.service_url or "http://localhost"
+        )  # temporary fix
 
         content = await self.send_request(activity, sleep=sleep)
 

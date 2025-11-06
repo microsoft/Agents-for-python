@@ -9,6 +9,7 @@ from ..samples import QuickstartSample
 
 from dotenv import load_dotenv
 
+
 async def main():
 
     env = AiohttpEnvironment()
@@ -20,9 +21,15 @@ async def main():
 
     load_dotenv("./src/tests/.env")
     config = {
-        "client_id": os.getenv("CONNECTIONS__SERVICE_CONNECTION__SETTINGS__CLIENTID", ""),
-        "tenant_id": os.getenv("CONNECTIONS__SERVICE_CONNECTION__SETTINGS__TENANTID", ""),
-        "client_secret": os.getenv("CONNECTIONS__SERVICE_CONNECTION__SETTINGS__CLIENTSECRET", ""),
+        "client_id": os.getenv(
+            "CONNECTIONS__SERVICE_CONNECTION__SETTINGS__CLIENTID", ""
+        ),
+        "tenant_id": os.getenv(
+            "CONNECTIONS__SERVICE_CONNECTION__SETTINGS__TENANTID", ""
+        ),
+        "client_secret": os.getenv(
+            "CONNECTIONS__SERVICE_CONNECTION__SETTINGS__CLIENTSECRET", ""
+        ),
     }
 
     client = AgentClient(
@@ -41,6 +48,7 @@ async def main():
         print(res)
 
     await client.close()
+
 
 if __name__ == "__main__":
     asyncio.run(main())

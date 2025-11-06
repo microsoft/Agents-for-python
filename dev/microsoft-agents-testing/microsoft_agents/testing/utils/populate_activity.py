@@ -1,10 +1,8 @@
 from microsoft_agents.activity import Activity
 
-def populate_activity(
-    original: Activity,
-    defaults: Activity | dict
-) -> Activity:
-    
+
+def populate_activity(original: Activity, defaults: Activity | dict) -> Activity:
+
     if isinstance(defaults, Activity):
         defaults = Activity.model_dump(exclude_unset=True)
 
