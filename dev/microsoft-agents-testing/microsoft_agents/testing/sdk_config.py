@@ -19,7 +19,7 @@ class SDKConfig:
         """Initializes the SDKConfig by loading configuration from a .env file or environment variables.
 
         :param env_path: Optional path to the .env file. If None, defaults to '.env' in the current directory.
-        :param load_into_environment: If True, loads the .env file directly into the configuration dictionary.
+        :param load_into_environment: If True, loads the .env file directly into the configuration dictionary (does NOT load into environment variables). If False, loads the .env file into environment variables first, then loads the configuration from those environment variables.
         """
         if load_into_environment:
             self._config = load_configuration_from_env(

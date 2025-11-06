@@ -32,6 +32,9 @@ class Environment(ABC):
         raise NotImplementedError()
 
     @abstractmethod
-    def create_runner(self) -> ApplicationRunner:
-        """Create an application runner for the environment."""
+    def create_runner(self, *args, **kwargs) -> ApplicationRunner:
+        """Create an application runner for the environment.
+        
+        Subclasses may accept additional arguments as needed.
+        """
         raise NotImplementedError()

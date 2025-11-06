@@ -36,7 +36,7 @@ def generate_token(app_id: str, app_secret: str, tenant_id: str) -> str:
 def generate_token_from_config(sdk_config: SDKConfig) -> str:
     """Generates a token using a provided config object.
 
-    :param config: Configuration dictionary containing connection settings.
+    :param sdk_config: Configuration dictionary containing connection settings.
     :return: Generated access token as a string.
     """
 
