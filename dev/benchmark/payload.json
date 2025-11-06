@@ -15,5 +15,6 @@
     "id": "user-id-0",
     "aadObjectId": "00000000-0000-0000-0000-0000000000020"
   },
-  "type": "message"
+  "type": "message",
+  "text": "Hello, Bot!"
 }
