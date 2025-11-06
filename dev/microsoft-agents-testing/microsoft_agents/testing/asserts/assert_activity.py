@@ -1,21 +1,22 @@
-from microsoft_agents.activity import (
-    Activity,
-)
-
-from microsoft_agents.testing.utils import (
-    normalize_activity_data
-)
+from microsoft_agents.activity import Activity
+from microsoft_agents.testing.utils import normalize_activity_data
 
 from .check_field import check_field
-from .type_defs import _UNSET_FIELD, FieldAssertionTypes
+from .type_defs import _UNSET_FIELD, FieldAssertionType
+
 
 def assert_activity(activity: Activity, baseline: Activity | dict) -> None:
-    
+    """Asserts that the given activity matches the baseline activity.
+
+    :param activity: The activity to be tested.
+    :param baseline: The baseline activity or a dictionary representing the expected activity data.
+    """
+
     baseline = normalize_activity_data(baseline)
 
     for key in baseline.keys():
 
-        assertion_type = FieldAssertionTypes.EQUALS
+        assertion_type = FieldAssertionType.EQUALS
         assertion_info = baseline[key]
         if isinstance(assertion_info, dict) and "assertion_type" in assertion_info:
             assertion_type = assertion_info["assertion_type"]
@@ -25,8 +26,4 @@ def assert_activity(activity: Activity, baseline: Activity | dict) -> None:
 
         target_value = getattr(activity, key, _UNSET_FIELD)
 
-        assert check_field(
-            baseline_value,
-            target_value,
-            assertion_type
-        )
+        assert check_field(baseline_value, target_value, assertion_type)
