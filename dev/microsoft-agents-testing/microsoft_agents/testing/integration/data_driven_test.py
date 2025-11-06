@@ -7,7 +7,7 @@ from microsoft_agents.testing.core import (
     ResponseClient
 )
 
-from microsoft_agents.testing.asserts import assert_activity
+from microsoft_agents.testing.asserts import check_activity
 
 class DataDrivenTestModule:
 
@@ -36,4 +36,4 @@ class DataDrivenTestModule:
         for activity_assertion in self._activity_assertions:
             # select first
             selected_activity = None
-            assert_activity(selected_activity, activity_assertion)
+            check_activity(selected_activity, activity_assertion)
