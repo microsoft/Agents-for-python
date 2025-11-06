@@ -21,10 +21,11 @@ class TypingIndicator:
     """
 
     _interval: int
-    _timer: Optional[Timer] = None
+    _timer: Optional[Timer]
 
     def __init__(self, interval=10) -> None:
         self._interval = interval
+        self._timer = None
 
     async def start(self, context: TurnContext) -> None:
         if self._timer is not None:

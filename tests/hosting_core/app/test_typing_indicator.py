@@ -23,11 +23,11 @@ class StubTurnContext:
 @pytest.mark.asyncio
 async def test_start_sends_typing_activity():
     context = StubTurnContext()
-    indicator = TypingIndicator(intervalSeconds=0.01)
+    indicator = TypingIndicator(interval=10)  # 10ms interval
 
     await indicator.start(context)
-    await asyncio.sleep(0.03)
-    await indicator.stop()
+    await asyncio.sleep(0.05)  # Wait 50ms to allow multiple typing activities
+    indicator.stop()
 
     assert len(context.sent_activities) >= 1
     assert all(
@@ -38,41 +38,39 @@ async def test_start_sends_typing_activity():
 @pytest.mark.asyncio
 async def test_start_is_idempotent():
     context = StubTurnContext()
-    indicator = TypingIndicator(intervalSeconds=0.01)
+    indicator = TypingIndicator(interval=10)
 
     await indicator.start(context)
-    first_task = indicator._task  # noqa: SLF001 - accessing for test verification
+    first_timer = indicator._timer  # noqa: SLF001 - accessing for test verification
 
     await indicator.start(context)
-    second_task = indicator._task  # noqa: SLF001
+    second_timer = indicator._timer  # noqa: SLF001
 
-    assert first_task is second_task
+    assert first_timer is second_timer
 
-    await indicator.stop()
+    indicator.stop()
 
 
 @pytest.mark.asyncio
 async def test_stop_without_start_is_noop():
     indicator = TypingIndicator()
 
-    await indicator.stop()
+    indicator.stop()  # stop() is now synchronous
 
-    assert indicator._task is None  # noqa: SLF001
-    assert indicator._running is False  # noqa: SLF001
+    assert indicator._timer is None  # noqa: SLF001
 
 
 @pytest.mark.asyncio
-async def test_typing_loop_stops_on_send_error():
+async def test_typing_stops_on_send_error():
     context = StubTurnContext(should_raise=True)
-    indicator = TypingIndicator(intervalSeconds=0.01)
+    indicator = TypingIndicator(interval=10)
 
     await indicator.start(context)
-    await asyncio.sleep(0.02)
+    
+    # Wait a bit to allow the error to occur and timer to be cancelled
+    await asyncio.sleep(0.05)
+    
+    # The timer should be cancelled due to the error
+    assert indicator._timer is None  # noqa: SLF001
 
-    assert indicator._task is not None  # noqa: SLF001
-    await asyncio.wait_for(indicator._task, timeout=0.1)  # Ensure loop exits
-
-    assert indicator._running is False  # noqa: SLF001
-    assert indicator._task.done()  # noqa: SLF001
-
-    await indicator.stop()
+    indicator.stop()  # Cleanup, should be safe even if already stopped
