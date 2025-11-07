@@ -101,6 +101,8 @@ class RestChannelServiceClientFactory(ChannelServiceClientFactoryBase):
                 "RestChannelServiceClientFactory.create_connector_client: audience can't be None or Empty"
             )
 
+        if context.activity.recipient and context.activity.recipient.role == RoleTypes.connector_user:
+            return MCSConnectorClient(turn_context.activity.service_url)
         if context.activity.is_agentic_request():
             token = await self._get_agentic_token(context, service_url)
         else:

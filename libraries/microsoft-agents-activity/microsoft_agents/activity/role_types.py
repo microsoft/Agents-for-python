@@ -10,3 +10,4 @@ class RoleTypes(str, Enum):
     skill = "skill"
     agentic_identity = "agenticAppInstance"
     agentic_user = "agenticUser"
+    connector_user = "connectoruser"
