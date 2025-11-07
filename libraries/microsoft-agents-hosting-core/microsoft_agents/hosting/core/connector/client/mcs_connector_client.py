@@ -20,7 +20,7 @@ from microsoft_agents.activity import (
 from microsoft_agents.hosting.core.connector import ConnectorClientBase
 from ..attachments_base import AttachmentsBase
 from ..conversations_base import ConversationsBase
-from .connector_client import AttachmentOperations
+from .connector_client import AttachmentsOperations
 from ..get_product_info import get_product_info
 
 
@@ -32,41 +32,71 @@ class MCSConversationsOperations(ConversationsBase):
     def __init__(self, client: ClientSession):
         self.client = client
 
-    # async def create_conversation(self, body: ConversationParameters) -> ConversationResourceResponse:
-    #     raise NotImplementedError()
+    async def create_conversation(self, body: ConversationParameters) -> ConversationResourceResponse:
+        raise NotImplementedError()
     
-    # async def delete_activity(self, conversation_id: str, activity_id: str) -> None:
-    #     raise NotImplementedError()
+    async def delete_activity(self, conversation_id: str, activity_id: str) -> None:
+        raise NotImplementedError()
     
-    # async def delete_conversation_member(self, conversation_id: str, member_id: str) -> None:
-    #     raise NotImplementedError()
+    async def delete_conversation_member(self, conversation_id: str, member_id: str) -> None:
+        raise NotImplementedError()
 
-    # async def get_activity_members(self, conversation_id: str, activity_id: str) -> list[ChannelAccount]:
-    #     raise NotImplementedError()
+    async def get_activity_members(self, conversation_id: str, activity_id: str) -> list[ChannelAccount]:
+        raise NotImplementedError()
     
-    # async def get_conversation_member(self, conversation_id: str, member_id: str) -> ChannelAccount:
-    #     raise NotImplementedError()
+    async def get_conversation_member(self, conversation_id: str, member_id: str) -> ChannelAccount:
+        raise NotImplementedError()
     
-    # async def get_conversation_members(self, conversation_id: str) -> list[ChannelAccount]:
-    #     raise NotImplementedError()
+    async def get_conversation_members(self, conversation_id: str) -> list[ChannelAccount]:
+        raise NotImplementedError()
     
-    # async def get_conversation_paged_members(
-    #     self,
-    #     conversation_id: str,
-    #     page_size: Optional[int] = None,
-    #     continuation_token: Optional[str] = None,
-    # ) -> PagedMembersResult:
-    #     raise NotImplementedError()
+    async def get_conversations(self, continuation_token: Optional[str] = None) -> ConversationsResult:
+        raise NotImplementedError()
     
-    async def send_to_conversation(self, conversation_id: str, activity: Activity) -> ResourceResponse:
-        if not activity:
-            raise ValueError("Activity cannot be None")
+    async def send_conversation_history(self, conversation_id: str, transcript: Transcript) -> ResourceResponse:
+        raise NotImplementedError()
+    
+    async def update_activity(self, conversation_id: str, activity_id: str, activity: Activity) -> ResourceResponse:
+        raise NotImplementedError()
+    
+    async def upload_attachment(self, conversation_id: str, attachment_upload: AttachmentData) -> ResourceResponse:
+        raise NotImplementedError()
+    
+    async def get_conversation_paged_members(
+        self,
+        conversation_id: str,
+        page_size: Optional[int] = None,
+        continuation_token: Optional[str] = None,
+    ) -> PagedMembersResult:
+        raise NotImplementedError()
+    
+    async def send_to_conversation(self, conversation_id: str, body: Activity) -> ResourceResponse:
+        if not conversation_id:
+            raise ValueError("conversation_id cannot be None or empty.")
+
+        async with self.client.post(
+            url="",
+            json=body.model_dump(by_alias=True, exclude_unset=True, mode="json"),
+        ) as response:
+            if response.status >= 300:
+                logger.error(
+                    "Error sending to conversation: %s",
+                    response.status,
+                    stack_info=True,
+                )
+                response.raise_for_status()
+
+            data = await response.json()
+            return ResourceResponse.model_validate(data)
+        
+    async def reply_to_activity(self, conversation_id: str, body: Activity) -> ResourceResponse:
+        return await self.send_to_conversation(conversation_id, body)
 
     # Implement conversation-related methods as needed
 
 class MCSConnectorClient(ConnectorClientBase):
 
-    def __init__(self, endpoint: str, token: str, *, session: ClientSession = None):
+    def __init__(self, endpoint: str, *, session: ClientSession = None):
         """
         Initialize a new instance of ConnectorClient.
 
@@ -92,11 +122,8 @@ class MCSConnectorClient(ConnectorClientBase):
             headers,
         )
 
-        if len(token) > 1:
-            session.headers.update({"Authorization": f"Bearer {token}"})
-
         self.client = session
-        self._attachments = AttachmentsOperations(
+        self._attachments = AttachmentOperations(
             self.client
         )  # Will implement if needed
         self._conversations = MCSConversationsOperations(
