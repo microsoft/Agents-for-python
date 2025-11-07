@@ -1,7 +1,5 @@
 # Microsoft 365 Agents SDK for Python - Testing Framework
 
-[![PyPI](https://img.shields.io/pypi/v/microsoft-agents-testing)](https://pypi.org/project/microsoft-agents-testing/)
-
 A comprehensive testing framework designed specifically for Microsoft 365 Agents SDK, providing essential utilities and abstractions to streamline integration testing, authentication, and end-to-end agent validation.
 
 ## Why This Package Exists
