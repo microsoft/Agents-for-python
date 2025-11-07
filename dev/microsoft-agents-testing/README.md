@@ -6,15 +6,7 @@ A comprehensive testing framework designed specifically for Microsoft 365 Agents
 
 ## Why This Package Exists
 
-Building and testing conversational agents presents unique challenges that standard testing frameworks don't address:
-
-1. **Complex Authentication Flows**: Agents require OAuth2 token generation, MSAL configuration, and credential management across multiple Azure services
-2. **Asynchronous Communication Patterns**: Agent interactions involve async request/response cycles with Activities, making traditional HTTP testing inadequate
-3. **Multi-Channel Testing**: Agents must work across Teams, Copilot Studio, webchat, and other channels - each with different requirements
-4. **Integration Test Complexity**: Full-stack agent testing requires coordinating local servers, external services, and state management
-5. **Repetitive Boilerplate**: Every agent test needs similar setup code for environments, runners, clients, and authentication
-
-This package eliminates these pain points by providing battle-tested abstractions specifically designed for agent testing scenarios.
+Building and testing conversational agents presents unique challenges that standard testing frameworks don't address. This package eliminates these pain points by providing useful abstractions specifically designed for agent testing scenarios.
 
 ## Key Features
 
@@ -108,98 +100,6 @@ host, port = get_host_and_port("http://localhost:3978/api/messages")
 - **DevOps Teams**: Automating agent validation in CI/CD pipelines
 - **Sample Authors**: Creating reproducible examples and documentation
 
-## Comparison: Before vs After
-
-### Without `microsoft-agents-testing`
-
-```python
-# Manually handle authentication
-import requests
-from msal import ConfidentialClientApplication
-
-# Generate token manually
-msal_app = ConfidentialClientApplication(
-    client_id=CLIENT_ID,
-    client_credential=CLIENT_SECRET,
-    authority=f"https://login.microsoftonline.com/{TENANT_ID}"
-)
-result = msal_app.acquire_token_for_client(scopes=[f"{CLIENT_ID}/.default"])
-token = result.get("access_token")
-
-# Manually construct and send Activity
-activity_json = {
-    "type": "message",
-    "text": "Hello",
-    "from": {"id": "user1"},
-    "recipient": {"id": "bot1"},
-    "conversation": {"id": "conv1"},
-    "channelId": "test",
-    "serviceUrl": "http://localhost"
-    # ... many more required fields
-}
-
-response = requests.post(
-    f"{AGENT_URL}/api/messages",
-    headers={"Authorization": f"Bearer {token}"},
-    json=activity_json
-)
-
-# Manually parse and validate response
-# ... (50+ lines of boilerplate)
-```
-
-### With `microsoft-agents-testing`
-
-```python
-from microsoft_agents.testing import AgentClient
-
-client = AgentClient(
-    agent_url=AGENT_URL,
-    cid="conv1",
-    client_id=CLIENT_ID,
-    tenant_id=TENANT_ID,
-    client_secret=CLIENT_SECRET
-)
-
-response = await client.send_activity("Hello")
-```
-
-**Result**: ~60 lines of code reduced to 8 lines, with better error handling and type safety.
-
-## Architecture
-
-The package is organized into focused modules:
-
-```
-microsoft_agents.testing/
-├── auth/                      # Authentication utilities
-│   └── generate_token.py      # OAuth2 token generation
-├── integration/               # Integration test framework
-│   └── core/
-│       ├── integration.py     # Pytest fixture provider
-│       ├── environment.py     # Test environment abstraction
-│       ├── sample.py          # Sample base class
-│       ├── application_runner.py  # Server lifecycle management
-│       ├── client/
-│       │   ├── agent_client.py    # Agent communication client
-│       │   └── response_client.py # Response handling
-│       └── aiohttp/
-│           ├── aiohttp_environment.py  # aiohttp-specific environment
-│           └── aiohttp_runner.py       # aiohttp server runner
-├── utils/                     # Common utilities
-│   ├── populate_activity.py   # Activity default value injection
-│   └── urls.py                # URL parsing helpers
-└── sdk_config.py              # Configuration management
-```
-
-## Environment Requirements
-
-- Python 3.10 or higher (3.11+ recommended)
-- Compatible with `pytest` for test execution
-- Works with `aiohttp`, `FastAPI`, and other async frameworks
-- Requires `microsoft-agents-activity` for Activity types
-- Uses `msal` for authentication
-
 ## Integration with CI/CD
 
 This package is designed for seamless integration into continuous integration pipelines:
@@ -214,21 +114,6 @@ This package is designed for seamless integration into continuous integration pi
     CLIENT_ID: ${{ secrets.AGENT_CLIENT_ID }}
     CLIENT_SECRET: ${{ secrets.AGENT_CLIENT_SECRET }}
     TENANT_ID: ${{ secrets.TENANT_ID }}
-```
-
-## Real-World Usage
-
-This testing framework is used across the Microsoft 365 Agents SDK ecosystem:
-
-- **SDK Validation**: All packages in `microsoft-agents-*` use this for integration tests
-- **Sample Testing**: Validates sample applications in the official repository
-- **Regression Testing**: Ensures backward compatibility across SDK versions
-- **Documentation**: Powers interactive examples and tutorials
-
-## Installation
-
-```bash
-pip install microsoft-agents-testing
 ```
 
 ## Quick Start Example
