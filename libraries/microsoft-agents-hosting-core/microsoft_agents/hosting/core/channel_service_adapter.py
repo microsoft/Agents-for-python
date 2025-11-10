@@ -262,28 +262,12 @@ class ChannelServiceAdapter(ChannelAdapter, ABC):
         claims_identity = self.create_claims_identity(agent_app_id)
         claims_identity.claims[AuthenticationConstants.SERVICE_URL_CLAIM] = service_url
 
-        # Create a turn context and run the pipeline.
-        context = self._create_turn_context(
-            claims_identity,
-            None,
-            callback,
-        )
-
-        # Create a UserTokenClient instance for the application to use. (For example, in the OAuthPrompt.)
-        user_token_client: UserTokenClient = (
-            await self._channel_service_client_factory.create_user_token_client(
-                context, claims_identity
-            )
-        )
-        context.turn_state[self.USER_TOKEN_CLIENT_KEY] = user_token_client
-
         # Create the connector client to use for outbound requests.
         connector_client: ConnectorClient = (
             await self._channel_service_client_factory.create_connector_client(
-                context, claims_identity, service_url, audience
+                None, claims_identity, service_url, audience
             )
         )
-        context.turn_state[self._AGENT_CONNECTOR_CLIENT_KEY] = connector_client
 
         # Make the actual create conversation call using the connector.
         create_conversation_result = (
@@ -297,7 +281,23 @@ class ChannelServiceAdapter(ChannelAdapter, ABC):
             create_conversation_result, channel_id, service_url, conversation_parameters
         )
 
-        context.activity = create_activity
+        # Create a turn context and run the pipeline.
+        context = self._create_turn_context(
+            claims_identity,
+            None,
+            callback,
+            create_activity,
+        )
+        context.turn_state[self._AGENT_CONNECTOR_CLIENT_KEY] = connector_client
+
+                # Create a UserTokenClient instance for the application to use. (For example, in the OAuthPrompt.)
+        user_token_client: UserTokenClient = (
+            await self._channel_service_client_factory.create_user_token_client(
+                context, claims_identity
+            )
+        )
+        context.turn_state[self.USER_TOKEN_CLIENT_KEY] = user_token_client
+
 
         # Run the pipeline
         await self.run_pipeline(context, callback)

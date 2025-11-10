@@ -83,15 +83,15 @@ class RestChannelServiceClientFactory(ChannelServiceClientFactoryBase):
 
     async def create_connector_client(
         self,
-        context: TurnContext,
+        context: TurnContext | None,
         claims_identity: ClaimsIdentity,
         service_url: str,
         audience: str,
         scopes: Optional[list[str]] = None,
         use_anonymous: bool = False,
     ) -> ConnectorClientBase:
-        if not context or not claims_identity:
-            raise TypeError("context and claims_identity are required")
+        if not claims_identity:
+            raise TypeError("claims_identity are required")
         if not service_url:
             raise TypeError(
                 "RestChannelServiceClientFactory.create_connector_client: service_url can't be None or Empty"
@@ -101,7 +101,7 @@ class RestChannelServiceClientFactory(ChannelServiceClientFactoryBase):
                 "RestChannelServiceClientFactory.create_connector_client: audience can't be None or Empty"
             )
 
-        if context.activity.is_agentic_request():
+        if context and context.activity.is_agentic_request():
             token = await self._get_agentic_token(context, service_url)
         else:
             token_provider: AccessTokenProviderBase = (
