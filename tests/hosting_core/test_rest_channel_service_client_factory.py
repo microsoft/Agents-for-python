@@ -14,6 +14,7 @@ from microsoft_agents.hosting.core.authorization import (
     ClaimsIdentity,
     Connections,
     AccessTokenProviderBase,
+    AnonymousTokenProvider
 )
 from microsoft_agents.hosting.core.connector.teams import TeamsConnectorClient
 from microsoft_agents.hosting.core.connector.client import UserTokenClient
@@ -25,7 +26,55 @@ DEFAULTS = DEFAULT_TEST_VALUES()
 
 class TestRestChannelServiceClientFactory:
 
+    @pytest.fixture
+    def activity(self):
+        return Activity(
+            type="message",
+            channel_id="msteams",
+            from_property=ChannelAccount(id="user1", role=RoleTypes.user),
+            recipient=ChannelAccount(id="bot1", role=RoleTypes.agent),
+            service_url="https://service.url/",
+            conversation={"id": "conv1"},
+            id="activity1",
+            text="Hello, World!",
+        )
     
+    @pytest.fixture(params=[True, False])
+    def context_flag(self, req):
+        return req.param
+
+    # @pytest.fixture
+    # def activity_agentic_user(self):
+    #     return Activity(
+    #         type="message",
+    #         channel_id="msteams",
+    #         from_property=ChannelAccount(id="agentic_user", role=RoleTypes.USER),
+    #         recipient=ChannelAccount(id="bot1", role=RoleTypes.BOT),
+    #         service_url="https://service.url/",
+    #         conversation={"id": "conv1"},
+    #         id="activity_agentic1",
+    #         text="Hello, World!",
+    #         properties={
+    #             "agenticRequest": True
+    #         }
+    #     )
+    
+    # @pytest.fixture
+    # def activity_agentic_identity(self):
+    #    return Activity(
+    #         type="message",
+    #         channel_id="msteams",
+    #         from_property=ChannelAccount(id="agentic_user", role=RoleTypes.USER),
+    #         recipient=ChannelAccount(id="bot1", role=RoleTypes.BOT),
+    #         service_url="https://service.url/",
+    #         conversation={"id": "conv1"},
+    #         id="activity_agentic1",
+    #         text="Hello, World!",
+    #         properties={
+    #             "agenticRequest": True
+    #         }
+    #     )
+
     @pytest.mark.parametrize(
         "token_service_endpoint, token_service_audience",
         [
@@ -37,6 +86,111 @@ class TestRestChannelServiceClientFactory:
     async def test_create_connector_client_anonymous(
         self, 
         mocker,
+        activity,
+        token_service_endpoint,
+        token_service_audience,
+        context_flag
+    ):
+        mock_connector_client = mocker.mock(spec=TeamsConnectorClient)
+        mocker.patch.object(TeamsConnectorClient, "__new__", return_value=mock_connector_client)
+
+        factory = RestChannelServiceClientFactory(
+            mocker.mock(spec=Connections),
+            token_service_endpoint,
+            token_service_audience
+        )
+
+        context = mocker.Mock(spec=TurnContext)
+        context.activity = activity
+        claims_identity = mocker.Mock(spec=ClaimsIdentity)
+        audience = []
+
+        res = await factory.create_connector_client(
+            context if context_flag else None,
+            claims_identity,
+            DEFAULTS.service_url,
+            audience,
+            scopes,
+            use_anynoymous=True,
+        )
+
+        #verify
+        TeamsConnectorClient.__new__.assert_called_once_with(
+            endpoint=DEFAULTS.service_url,
+            token=""
+        )
+        assert res == mock_connector_client
+    
+    @pytest.mark.parametrize(
+        "token_service_endpoint, token_service_audience",
+        [
+            (AuthenticationConstants.AGENTS_SDK_OAUTH_URL, AuthenticationConstants.AGENTS_SDK_SCOPE),
+            ("https://custom.token.endpoint", "https://custom.token.audience"),
+        ]
+    )
+    @pytest.mark.asyncio
+    async def test_create_connector_client_normal_no_scopes(
+        self, 
+        mocker,
+        activity,
+        token_service_endpoint,
+        token_service_audience,
+        context_flag
+    ):
+        # setup
+        token_provider = mocker.mock(spec=AccessTokenProviderBase)
+        token_provider.get_access_token = AsyncMock(return_value=DEFAULTS.token)
+
+        connection_manager = mocker.mock(spec=Connections)
+        connection_manager.get_token_provider = mocker.Mock(
+            return_value=token_provider
+        )
+
+        factory = RestChannelServiceClientFactory(
+            connection_manager,
+            token_service_endpoint,
+            token_service_audience
+        )
+        
+        claims_identity = mocker.mock(spec=ClaimsIdentity)
+        service_url = DEFAULTS.service_url
+        audience = "https://service.audience/"
+
+        context = mocker.mock(spec=TurnContext)
+        context.activity = activity
+
+        # test
+
+        res = await factory.create_connector_client(
+            context if context_flag else None,
+            claims_identity,
+            service_url,
+            audience,
+            None
+        )
+
+        # verify
+        assert connection_manager.get_token_provider.call_count == 1
+        connection_manager.get_token_provider.assert_called_once_with(
+            claims_identity, service_url
+        )
+        assert token_provider.get_access_token.call_count == 1
+        token_provider.get_access_token.assert_called_once_with(
+            audience,  [f"{audience}/.default"]
+        )
+
+    @pytest.mark.parametrize(
+        "token_service_endpoint, token_service_audience",
+        [
+            (AuthenticationConstants.AGENTS_SDK_OAUTH_URL, AuthenticationConstants.AGENTS_SDK_SCOPE),
+            ("https://custom.token.endpoint", "https://custom.token.audience"),
+        ]
+    )
+    @pytest.mark.asyncio
+    async def test_create_connector_client_normal(
+        self, 
+        mocker,
+        activity,
         token_service_endpoint,
         token_service_audience
     ):
@@ -54,27 +208,31 @@ class TestRestChannelServiceClientFactory:
             token_service_endpoint,
             token_service_audience
         )
-
-        activity = Activity(
-            type="message",
-        )
         
-        claims_identity = ClaimsIdentity(
-            {
+        claims_identity = mocker.mock(spec=ClaimsIdentity)
+        service_url = DEFAULTS.service_url
+        audience = "https://service.audience/"
+        scopes = ["scope1", "scope2"]
 
-            },
+        context = mocker.mock(spec=TurnContext)
+        context.activity = activity
 
-        )
-
-        context = TurnContext(
-
-        )
+        # test
 
         res = await factory.create_connector_client(
-            context,
+            context if context_flag else None,
             claims_identity,
             service_url,
             audience,
-            scopes,
-            use_anynoymous=True,
+            scopes
+        )
+
+        # verify
+        assert connection_manager.get_token_provider.call_count == 1
+        connection_manager.get_token_provider.assert_called_once_with(
+            claims_identity, service_url
+        )
+        assert token_provider.get_access_token.call_count == 1
+        token_provider.get_access_token.assert_called_once_with(
+            audience,  scopes
         )
