@@ -56,14 +56,8 @@ class TestChannelServiceAdapter:
 
 
     @pytest.mark.asyncio
-    async def test_create_conversation_basic(self, mocker, user_token_client, connector_client, factory, adapter):
+    async def test_create_conversation_basic(self, mocker, user_token_client, connector_client, adapter):
 
-
-# context = mocker.Mock(spec=TurnContext)
-#         context.activity = activity
-#         claims_identity = mocker.Mock(spec=ClaimsIdentity)
-#         scopes = ["scope1"]
-#         audience = "https://service.audience/"
         user_token_client.get_access_token = mocker.AsyncMock(return_value="user_token_value")
         adapter.run_pipeline = mocker.AsyncMock()
         
@@ -77,7 +71,7 @@ class TestChannelServiceAdapter:
         async def callback(context: TurnContext):
             return None
 
-        res = await adapter.create_conversation(
+        await adapter.create_conversation(
             "agent_app_id",
             "channel_id",
             "service_url",
@@ -86,4 +80,10 @@ class TestChannelServiceAdapter:
             callback
         )
 
-        assert adapter.run_pipeline.called
+        adapter.run_pipeline.assert_awaited_once()
+
+        context_arg, callback_arg = adapter.run_pipeline.call_args[0]
+        assert callback_arg == callback
+        assert context_arg.activity.conversation.id == "conversation123"
+        assert context_arg.activity.channel_id == "channel_id"
+        assert context_arg.activity.service_url == "service_url"
