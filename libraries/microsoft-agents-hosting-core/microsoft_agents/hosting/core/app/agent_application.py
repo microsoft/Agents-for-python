@@ -683,7 +683,7 @@ class AgentApplication(Agent, Generic[StateT]):
         try:
             if context.activity.type != ActivityTypes.typing:
                 if self._options.start_typing_timer:
-                    typing = TypingIndicator(context, 10.0)
+                    typing = TypingIndicator(context)
                     typing.start()
 
             self._remove_mentions(context)
