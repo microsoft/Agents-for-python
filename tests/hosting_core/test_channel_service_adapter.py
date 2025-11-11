@@ -7,6 +7,9 @@ from microsoft_agents.hosting.core import (
     ChannelServiceClientFactoryBase
 )
 
+class MyChannelServiceAdapter(ChannelServiceAdapter):
+    pass
+
 class TestChannelServiceAdapter:
 
     @pytest.mark.asyncio

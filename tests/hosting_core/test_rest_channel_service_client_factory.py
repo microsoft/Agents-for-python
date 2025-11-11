@@ -2,7 +2,6 @@
 # Licensed under the MIT License.
 
 import pytest
-from unittest.mock import AsyncMock, Mock, MagicMock
 
 from microsoft_agents.activity import Activity, RoleTypes, ChannelAccount
 from microsoft_agents.hosting.core import (
@@ -40,8 +39,8 @@ class TestRestChannelServiceClientFactory:
         )
     
     @pytest.fixture(params=[True, False])
-    def context_flag(self, req):
-        return req.param
+    def context_flag(self, request):
+        return request.param
 
     # @pytest.fixture
     # def activity_agentic_user(self):
@@ -91,11 +90,11 @@ class TestRestChannelServiceClientFactory:
         token_service_audience,
         context_flag
     ):
-        mock_connector_client = mocker.mock(spec=TeamsConnectorClient)
+        mock_connector_client = mocker.Mock(spec=TeamsConnectorClient)
         mocker.patch.object(TeamsConnectorClient, "__new__", return_value=mock_connector_client)
 
         factory = RestChannelServiceClientFactory(
-            mocker.mock(spec=Connections),
+            mocker.Mock(spec=Connections),
             token_service_endpoint,
             token_service_audience
         )
@@ -103,7 +102,8 @@ class TestRestChannelServiceClientFactory:
         context = mocker.Mock(spec=TurnContext)
         context.activity = activity
         claims_identity = mocker.Mock(spec=ClaimsIdentity)
-        audience = []
+        scopes = ["scope1"]
+        audience = "https://service.audience/"
 
         res = await factory.create_connector_client(
             context if context_flag else None,
@@ -111,11 +111,12 @@ class TestRestChannelServiceClientFactory:
             DEFAULTS.service_url,
             audience,
             scopes,
-            use_anynoymous=True,
+            use_anonymous=True,
         )
 
         #verify
         TeamsConnectorClient.__new__.assert_called_once_with(
+            TeamsConnectorClient,
             endpoint=DEFAULTS.service_url,
             token=""
         )
@@ -138,10 +139,13 @@ class TestRestChannelServiceClientFactory:
         context_flag
     ):
         # setup
-        token_provider = mocker.mock(spec=AccessTokenProviderBase)
-        token_provider.get_access_token = AsyncMock(return_value=DEFAULTS.token)
+        mock_connector_client = mocker.Mock(spec=TeamsConnectorClient)
+        mocker.patch.object(TeamsConnectorClient, "__new__", return_value=mock_connector_client)
+    
+        token_provider = mocker.Mock(spec=AccessTokenProviderBase)
+        token_provider.get_access_token = mocker.AsyncMock(return_value=DEFAULTS.token)
 
-        connection_manager = mocker.mock(spec=Connections)
+        connection_manager = mocker.Mock(spec=Connections)
         connection_manager.get_token_provider = mocker.Mock(
             return_value=token_provider
         )
@@ -152,11 +156,11 @@ class TestRestChannelServiceClientFactory:
             token_service_audience
         )
         
-        claims_identity = mocker.mock(spec=ClaimsIdentity)
+        claims_identity = mocker.Mock(spec=ClaimsIdentity)
         service_url = DEFAULTS.service_url
         audience = "https://service.audience/"
 
-        context = mocker.mock(spec=TurnContext)
+        context = mocker.Mock(spec=TurnContext)
         context.activity = activity
 
         # test
@@ -178,6 +182,11 @@ class TestRestChannelServiceClientFactory:
         token_provider.get_access_token.assert_called_once_with(
             audience,  [f"{audience}/.default"]
         )
+        TeamsConnectorClient.__new__.assert_called_once_with(
+            TeamsConnectorClient,
+            endpoint=DEFAULTS.service_url,
+            token=DEFAULTS.token
+        )
 
     @pytest.mark.parametrize(
         "token_service_endpoint, token_service_audience",
@@ -192,13 +201,17 @@ class TestRestChannelServiceClientFactory:
         mocker,
         activity,
         token_service_endpoint,
-        token_service_audience
+        token_service_audience,
+        context_flag
     ):
         # setup
-        token_provider = mocker.mock(spec=AccessTokenProviderBase)
-        token_provider.get_access_token = AsyncMock(return_value=DEFAULTS.token)
+        mock_connector_client = mocker.Mock(spec=TeamsConnectorClient)
+        mocker.patch.object(TeamsConnectorClient, "__new__", return_value=mock_connector_client)
 
-        connection_manager = mocker.mock(spec=Connections)
+        token_provider = mocker.Mock(spec=AccessTokenProviderBase)
+        token_provider.get_access_token = mocker.AsyncMock(return_value=DEFAULTS.token)
+
+        connection_manager = mocker.Mock(spec=Connections)
         connection_manager.get_token_provider = mocker.Mock(
             return_value=token_provider
         )
@@ -209,12 +222,12 @@ class TestRestChannelServiceClientFactory:
             token_service_audience
         )
         
-        claims_identity = mocker.mock(spec=ClaimsIdentity)
+        claims_identity = mocker.Mock(spec=ClaimsIdentity)
         service_url = DEFAULTS.service_url
         audience = "https://service.audience/"
         scopes = ["scope1", "scope2"]
 
-        context = mocker.mock(spec=TurnContext)
+        context = mocker.Mock(spec=TurnContext)
         context.activity = activity
 
         # test
@@ -235,4 +248,9 @@ class TestRestChannelServiceClientFactory:
         assert token_provider.get_access_token.call_count == 1
         token_provider.get_access_token.assert_called_once_with(
             audience,  scopes
+        )
+        TeamsConnectorClient.__new__.assert_called_once_with(
+            TeamsConnectorClient,
+            endpoint=DEFAULTS.service_url,
+            token=DEFAULTS.token
         )
