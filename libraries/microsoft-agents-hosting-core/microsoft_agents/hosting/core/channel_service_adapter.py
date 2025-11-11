@@ -290,14 +290,13 @@ class ChannelServiceAdapter(ChannelAdapter, ABC):
         )
         context.turn_state[self._AGENT_CONNECTOR_CLIENT_KEY] = connector_client
 
-                # Create a UserTokenClient instance for the application to use. (For example, in the OAuthPrompt.)
+        # Create a UserTokenClient instance for the application to use. (For example, in the OAuthPrompt.)
         user_token_client: UserTokenClient = (
             await self._channel_service_client_factory.create_user_token_client(
                 context, claims_identity
             )
         )
         context.turn_state[self.USER_TOKEN_CLIENT_KEY] = user_token_client
-
 
         # Run the pipeline
         await self.run_pipeline(context, callback)
