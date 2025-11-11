@@ -8,7 +8,6 @@ from __future__ import annotations
 import asyncio
 import logging
 from typing import Optional
-from datetime import datetime, timedelta
 
 from microsoft_agents.hosting.core import TurnContext
 from microsoft_agents.activity import Activity, ActivityTypes
