@@ -8,7 +8,6 @@ import asyncio
 import pytest
 
 from microsoft_agents.activity import Activity, ActivityTypes
-from microsoft_agents.hosting.core import TurnContext
 from microsoft_agents.hosting.core.app.typing_indicator import TypingIndicator
 
 
