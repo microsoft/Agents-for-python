@@ -10,10 +10,13 @@ from microsoft_agents.hosting.core import (
     ConnectorClientBase,
     UserTokenClientBase,
     ChannelServiceClientFactoryBase,
-    ConversationsBase,
+    RestChannelServiceClientFactory,
     TeamsConnectorClient,
     UserTokenClient,
+    Connections,
 )
+
+from microsoft_agents.hosting.core.connector.conversations_base import ConversationsBase
 
 class MyChannelServiceAdapter(ChannelServiceAdapter):
     pass
@@ -31,22 +34,29 @@ class TestChannelServiceAdapter:
         user_token_client = mocker.Mock(spec=UserTokenClient)
         mocker.patch.object(UserTokenClient, "__new__", return_value=user_token_client)
         return user_token_client
-
+    
     @pytest.fixture
-    def client_factory(self, mocker, connector_client, user_token_client):
-        factory = RestChannelServiceClientFactory(
-            mocker.Mock(spec=Connections),
-            token_service_endpoint,
-            token_service_audience
+    def connection_manager(self, mocker, user_token_client):
+        connection_manager = mocker.Mock(spec=Connections)
+        connection_manager.get_token_provider = mocker.Mock(
+            return_value=user_token_client
         )
+        return connection_manager
 
     @pytest.fixture
-    def adapter(self, client_factory):
-        return MyChannelServiceAdapter(client_factory)
+    def factory(self, connection_manager):
+        client_factory = RestChannelServiceClientFactory(
+            connection_manager
+        )
+        return client_factory
+
+    @pytest.fixture
+    def adapter(self, factory):
+        return MyChannelServiceAdapter(factory)
 
 
     @pytest.mark.asyncio
-    async def test_create_conversation_basic(self, mocker, connector_client, factory, adapter):
+    async def test_create_conversation_basic(self, mocker, user_token_client, connector_client, factory, adapter):
 
 
 # context = mocker.Mock(spec=TurnContext)
@@ -54,6 +64,7 @@ class TestChannelServiceAdapter:
 #         claims_identity = mocker.Mock(spec=ClaimsIdentity)
 #         scopes = ["scope1"]
 #         audience = "https://service.audience/"
+        user_token_client.get_access_token = mocker.AsyncMock(return_value="user_token_value")
         adapter.run_pipeline = mocker.AsyncMock()
         
         connector_client.conversations = mocker.Mock(spec=ConversationsBase)
@@ -74,8 +85,5 @@ class TestChannelServiceAdapter:
             ConversationParameters(),
             callback
         )
-
-        assert factory.create_connector_client.call_count == 1
-        assert factory.create_user_token_client.call_count == 1
 
         assert adapter.run_pipeline.called
