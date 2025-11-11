@@ -31,8 +31,10 @@ class TypingIndicator:
     async def _run(self) -> None:
         """Sends typing indicators at regular intervals."""
 
-        while self._context is not None:
-            await self._context.send_activity(Activity(type=ActivityTypes.TYPING))
+        running_task = self._task
+
+        while running_task is self._task:
+            await self._context.send_activity(Activity(type=ActivityTypes.typing))
             await asyncio.sleep(self._interval)
 
     def start(self) -> None:

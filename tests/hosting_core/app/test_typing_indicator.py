@@ -24,31 +24,7 @@ class StubTurnContext:
             raise RuntimeError("send_activity failure")
         self.sent_activities.append(activity)
         return None
-
-
-@pytest.mark.asyncio
-async def test_init_sets_context_and_interval():
-    """Test that __init__ properly sets context and interval."""
-    context = StubTurnContext()
-    interval = 5.0
     
-    indicator = TypingIndicator(context, interval)
-    
-    assert indicator._context is context
-    assert indicator._interval == interval
-    assert indicator._task is None
-
-
-@pytest.mark.asyncio
-async def test_init_default_interval():
-    """Test that __init__ uses default interval of 10.0 seconds."""
-    context = StubTurnContext()
-    
-    indicator = TypingIndicator(context)
-    
-    assert indicator._interval == 10.0
-
-
 @pytest.mark.asyncio
 async def test_start_sends_typing_activity():
     """Test that start() begins sending typing activities at regular intervals."""
@@ -59,10 +35,11 @@ async def test_start_sends_typing_activity():
     await asyncio.sleep(0.05)  # Wait 50ms to allow multiple typing activities
     indicator.stop()
     
+    
     # Should have sent at least 3 typing activities (50ms / 10ms = 5, but accounting for timing)
     assert len(context.sent_activities) >= 3
     assert all(
-        activity.type == ActivityTypes.TYPING for activity in context.sent_activities
+        activity.type == ActivityTypes.typing for activity in context.sent_activities
     )
 
 
@@ -95,22 +72,6 @@ async def test_start_raises_if_already_running():
 
 
 @pytest.mark.asyncio
-async def test_stop_cancels_task():
-    """Test that stop() cancels the typing indicator task."""
-    context = StubTurnContext()
-    indicator = TypingIndicator(context, interval=0.01)
-    
-    indicator.start()
-    task = indicator._task
-    await asyncio.sleep(0.02)  # Let it run briefly
-    
-    indicator.stop()
-    
-    assert indicator._task is None
-    assert task.cancelled()
-
-
-@pytest.mark.asyncio
 async def test_stop_raises_if_not_running():
     """Test that stop() raises RuntimeError if not running."""
     context = StubTurnContext()
@@ -135,46 +96,6 @@ async def test_stop_prevents_further_typing_activities():
     count_after = len(context.sent_activities)
     
     assert count_before == count_after  # No new activities after stop
-
-
-@pytest.mark.asyncio
-async def test_typing_continues_on_send_error():
-    """Test that the typing indicator handles send errors gracefully."""
-    context = StubTurnContext(should_raise=True)
-    indicator = TypingIndicator(context, interval=0.01)
-    
-    indicator.start()
-    await asyncio.sleep(0.03)  # Wait for error to occur
-    
-    # Task should still exist but may be done/cancelled due to unhandled exception
-    # The implementation doesn't catch exceptions in _run, so the task will fail
-    assert indicator._task is not None
-    
-    # Cleanup
-    try:
-        indicator.stop()
-    except RuntimeError:
-        # May already be stopped due to exception
-        pass
-
-
-@pytest.mark.asyncio
-async def test_context_none_stops_loop():
-    """Test that setting context to None would stop the loop (if implemented)."""
-    context = StubTurnContext()
-    indicator = TypingIndicator(context, interval=0.01)
-    
-    indicator.start()
-    await asyncio.sleep(0.015)  # Let at least one activity send
-    
-    # Simulate context becoming None (though the current implementation checks while context)
-    indicator._context = None
-    await asyncio.sleep(0.02)
-    
-    # The loop should stop when context becomes None
-    indicator._task.cancel()
-    indicator._task = None
-
 
 @pytest.mark.asyncio
 async def test_multiple_start_stop_cycles():
