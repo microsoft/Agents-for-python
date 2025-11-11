@@ -3,6 +3,20 @@
 
 import logging
 
+# in Python 3.11, we can move to using
+# logging.getLevelNamesMapping()
+_NAME_TO_LEVEL = {
+    "CRITICAL": logging.CRITICAL,
+    "FATAL": logging.FATAL,
+    "ERROR": logging.ERROR,
+    "WARN": logging.WARNING,
+    "WARNING": logging.WARNING,
+    "INFO": logging.INFO,
+    "INFORMATION": logging.INFO,  # .NET parity
+    "DEBUG": logging.DEBUG,
+    "NOTSET": logging.NOTSET,
+}
+
 
 def _configure_logging(logging_config: dict):
     """Configures logging based on the provided logging configuration dictionary.
@@ -11,15 +25,13 @@ def _configure_logging(logging_config: dict):
     :raises ValueError: If an invalid log level is provided in the configuration.
     """
 
-    levels_map = logging.getLevelNamesMapping()
-
     log_levels = logging_config.get("LOGLEVEL", {})
 
     for key in log_levels.keys():
         level_name = log_levels[key].upper()
         if level_name == "INFORMATION":  # .NET parity
             level_name = "INFO"
-        level = levels_map.get(level_name)
+        level = _NAME_TO_LEVEL.get(level_name)
         if not level:
             raise ValueError(f"Invalid configured log level: {level_name}")
 
