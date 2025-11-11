@@ -117,7 +117,6 @@ async def test_multiple_start_stop_cycles():
     
     assert count_second > count_first
 
-
 @pytest.mark.asyncio
 async def test_typing_activity_format():
     """Test that sent activities are properly formatted typing activities."""
