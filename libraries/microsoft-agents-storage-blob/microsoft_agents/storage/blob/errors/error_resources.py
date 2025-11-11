@@ -20,25 +20,21 @@ class BlobStorageErrorResources:
     BlobStorageConfigRequired = ErrorMessage(
         "BlobStorage: BlobStorageConfig is required.",
         -61100,
-        "storage-configuration",
     )
 
     BlobConnectionStringOrUrlRequired = ErrorMessage(
         "BlobStorage: either connection_string or container_url is required.",
         -61101,
-        "storage-configuration",
     )
 
     BlobContainerNameRequired = ErrorMessage(
         "BlobStorage: container_name is required.",
         -61102,
-        "storage-configuration",
     )
 
     InvalidConfiguration = ErrorMessage(
         "Invalid configuration: {0}",
         -61103,
-        "configuration",
     )
 
     def __init__(self):
