@@ -38,6 +38,7 @@ class TypingIndicator:
         except asyncio.CancelledError:
             # Task was cancelled, exit gracefully
             pass
+
     def start(self) -> None:
         """Starts sending typing indicators."""
 
