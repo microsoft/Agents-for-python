@@ -3,6 +3,8 @@
 
 from typing import Any
 
+from ._configure_logging import _configure_logging
+
 
 def load_configuration_from_env(env_vars: dict[str, Any]) -> dict:
     """
@@ -25,6 +27,8 @@ def load_configuration_from_env(env_vars: dict[str, Any]) -> dict:
         result["CONNECTIONSMAP"] = [
             conn for conn in result.get("CONNECTIONSMAP", {}).values()
         ]
+
+    _configure_logging(result.get("LOGGING", {}))
 
     return {
         "AGENTAPPLICATION": result.get("AGENTAPPLICATION", {}),

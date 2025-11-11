@@ -101,7 +101,7 @@ from .message_update_types import MessageUpdateTypes
 
 from .channel_adapter_protocol import ChannelAdapterProtocol
 from .turn_context_protocol import TurnContextProtocol
-from .config._load_configuration import load_configuration_from_env
+from .config import load_configuration_from_env
 
 __all__ = [
     "AgentsModel",
