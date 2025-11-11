@@ -29,10 +29,8 @@ def _configure_logging(logging_config: dict):
 
     for key in log_levels.keys():
         level_name = log_levels[key].upper()
-        if level_name == "INFORMATION":  # .NET parity
-            level_name = "INFO"
         level = _NAME_TO_LEVEL.get(level_name)
-        if not level:
+        if level is None:
             raise ValueError(f"Invalid configured log level: {level_name}")
 
         console_handler = logging.StreamHandler()
@@ -48,5 +46,6 @@ def _configure_logging(logging_config: dict):
         else:
             logger = logging.getLogger(namespace)
 
+        logger.handlers.clear()  # Remove existing handlers to prevent duplicates
         logger.addHandler(console_handler)
         logger.setLevel(level)
