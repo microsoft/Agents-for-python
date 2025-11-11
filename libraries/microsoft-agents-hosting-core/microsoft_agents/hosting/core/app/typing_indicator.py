@@ -31,11 +31,13 @@ class TypingIndicator:
         """Sends typing indicators at regular intervals."""
 
         running_task = self._task
-
-        while running_task is self._task:
-            await self._context.send_activity(Activity(type=ActivityTypes.typing))
-            await asyncio.sleep(self._interval)
-
+        try:
+            while running_task is self._task:
+                await self._context.send_activity(Activity(type=ActivityTypes.typing))
+                await asyncio.sleep(self._interval)
+        except asyncio.CancelledError:
+            # Task was cancelled, exit gracefully
+            pass
     def start(self) -> None:
         """Starts sending typing indicators."""
 
