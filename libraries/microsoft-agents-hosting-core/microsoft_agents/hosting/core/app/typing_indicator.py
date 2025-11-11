@@ -4,10 +4,11 @@ Licensed under the MIT License.
 """
 
 from __future__ import annotations
-import logging
 
-from threading import Timer
+import asyncio
+import logging
 from typing import Optional
+from datetime import datetime, timedelta
 
 from microsoft_agents.hosting.core import TurnContext
 from microsoft_agents.activity import Activity, ActivityTypes
@@ -18,39 +19,39 @@ logger = logging.getLogger(__name__)
 class TypingIndicator:
     """
     Encapsulates the logic for sending "typing" activity to the user.
+
+    Scoped to a single turn of conversation with the user.
     """
 
-    _interval: int
-    _timer: Optional[Timer]
+    def __init__(self, context: TurnContext, interval: float =10.0) -> None:
+        self._context: TurnContext = context
+        self._interval: float = interval
+        self._task: Optional[asyncio.Task[None]] = None
 
-    def __init__(self, interval=10) -> None:
-        self._interval = interval
-        self._timer = None
+    async def _run(self) -> None:
+        """Sends typing indicators at regular intervals."""
+        
+        while self._context is not None:
+            await self._context.send_activity(
+                Activity(type=ActivityTypes.TYPING)
+            )
+            await asyncio.sleep(self._interval)
 
-    async def start(self, context: TurnContext) -> None:
-        if self._timer is not None:
-            return
+    def start(self) -> None:
+        """Starts sending typing indicators."""
 
-        logger.debug(f"Starting typing indicator with interval: {self._interval} ms")
-        func = self._on_timer(context)
-        self._timer = Timer(self._interval, func)
-        self._timer.start()
-        await func()
+        if self._task is not None:
+            raise RuntimeError("Typing indicator is already running.")
+
+        logger.debug("Starting typing indicator with interval: %s seconds", self._interval)
+        self._task = asyncio.create_task(self._run())
 
     def stop(self) -> None:
-        if self._timer:
-            logger.debug("Stopping typing indicator")
-            self._timer.cancel()
-            self._timer = None
+        """Stops sending typing indicators."""
 
-    def _on_timer(self, context: TurnContext):
-        async def __call__():
-            try:
-                logger.debug("Sending typing activity")
-                await context.send_activity(Activity(type=ActivityTypes.typing))
-            except Exception as e:
-                # TODO: Improve when adding logging
-                logger.error(f"Error sending typing activity: {e}")
-                self.stop()
-
-        return __call__
+        if self._task is None:
+            raise RuntimeError("Typing indicator is not running.")
+        
+        logger.debug("Stopping typing indicator")
+        self._task.cancel()
+        self._task = None
