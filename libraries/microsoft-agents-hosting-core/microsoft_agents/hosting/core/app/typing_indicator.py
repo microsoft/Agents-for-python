@@ -54,6 +54,7 @@ class TypingIndicator:
                 "Typing indicator is already running for conversation %s",
                 self._context.activity.conversation.id,
             )
+            return
 
         logger.debug(
             "Starting typing indicator with interval: %s seconds in conversation %s",
