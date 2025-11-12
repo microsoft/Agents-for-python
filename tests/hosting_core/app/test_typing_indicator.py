@@ -17,6 +17,7 @@ class StubTurnContext:
     def __init__(self, should_raise: bool = False) -> None:
         self.sent_activities = []
         self.should_raise = should_raise
+        self.activity = Activity(type="text", conversation={"id": "test_convo"})
 
     async def send_activity(self, activity: Activity):
         if self.should_raise:
@@ -27,9 +28,9 @@ class StubTurnContext:
 
 @pytest.mark.asyncio
 async def test_start_sends_typing_activity():
-    """Test that start() begins sending typing activities at regular intervals."""
+    """Test that start() begins sending typing activities at regular interval_secondss."""
     context = StubTurnContext()
-    indicator = TypingIndicator(context, interval=0.01)  # 10ms interval
+    indicator = TypingIndicator(context, interval_seconds=0.01)  # 10ms interval_seconds
 
     indicator.start()
     await asyncio.sleep(0.05)  # Wait 50ms to allow multiple typing activities
@@ -57,34 +58,30 @@ async def test_start_creates_task():
 
 
 @pytest.mark.asyncio
-async def test_start_raises_if_already_running():
-    """Test that start() raises RuntimeError if already running."""
+async def test_start_if_already_running():
+    """Test that start() is idempotent if already running."""
     context = StubTurnContext()
     indicator = TypingIndicator(context)
 
     indicator.start()
-
-    with pytest.raises(RuntimeError, match="Typing indicator is already running"):
-        indicator.start()
+    indicator.start()
 
     indicator.stop()
 
 
 @pytest.mark.asyncio
-async def test_stop_raises_if_not_running():
-    """Test that stop() raises RuntimeError if not running."""
+async def test_stop_if_not_running():
+    """Test that stop() is idempotent if not running."""
     context = StubTurnContext()
     indicator = TypingIndicator(context)
-
-    with pytest.raises(RuntimeError, match="Typing indicator is not running"):
-        indicator.stop()
+    indicator.stop()
 
 
 @pytest.mark.asyncio
 async def test_stop_prevents_further_typing_activities():
     """Test that stop() prevents further typing activities from being sent."""
     context = StubTurnContext()
-    indicator = TypingIndicator(context, interval=0.01)
+    indicator = TypingIndicator(context, interval_seconds=0.01)
 
     indicator.start()
     await asyncio.sleep(0.025)  # Let it run briefly
@@ -101,7 +98,7 @@ async def test_stop_prevents_further_typing_activities():
 async def test_multiple_start_stop_cycles():
     """Test that the indicator can be started and stopped multiple times."""
     context = StubTurnContext()
-    indicator = TypingIndicator(context, interval=0.01)
+    indicator = TypingIndicator(context, interval_seconds=0.01)
 
     # First cycle
     indicator.start()
@@ -122,7 +119,7 @@ async def test_multiple_start_stop_cycles():
 async def test_typing_activity_format():
     """Test that sent activities are properly formatted typing activities."""
     context = StubTurnContext()
-    indicator = TypingIndicator(context, interval=0.01)
+    indicator = TypingIndicator(context, interval_seconds=0.01)
 
     indicator.start()
     await asyncio.sleep(0.015)  # Wait for at least one activity

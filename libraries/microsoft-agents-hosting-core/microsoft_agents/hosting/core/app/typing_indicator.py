@@ -22,9 +22,16 @@ class TypingIndicator:
     Scoped to a single turn of conversation with the user.
     """
 
-    def __init__(self, context: TurnContext, interval: float = 10.0) -> None:
+    def __init__(self, context: TurnContext, interval_seconds: float = 10.0) -> None:
+        """Initializes a new instance of the TypingIndicator class.
+
+        :param context: The turn context.
+        :param interval_seconds: The interval in seconds between typing indicators.
+        """
+        if interval_seconds <= 0:
+            raise ValueError("interval_seconds must be greater than 0")
         self._context: TurnContext = context
-        self._interval: float = interval
+        self._interval: float = interval_seconds
         self._task: Optional[asyncio.Task[None]] = None
 
     async def _run(self) -> None:
@@ -43,10 +50,15 @@ class TypingIndicator:
         """Starts sending typing indicators."""
 
         if self._task is not None:
-            raise RuntimeError("Typing indicator is already running.")
+            logger.warning(
+                "Typing indicator is already running for conversation %s",
+                self._context.activity.conversation.id,
+            )
 
         logger.debug(
-            "Starting typing indicator with interval: %s seconds", self._interval
+            "Starting typing indicator with interval: %s seconds in conversation %s",
+            self._interval,
+            self._context.activity.conversation.id,
         )
         self._task = asyncio.create_task(self._run())
 
@@ -54,8 +66,15 @@ class TypingIndicator:
         """Stops sending typing indicators."""
 
         if self._task is None:
-            raise RuntimeError("Typing indicator is not running.")
+            logger.warning(
+                "Typing indicator is not running for conversation %s",
+                self._context.activity.conversation.id,
+            )
+            return
 
-        logger.debug("Stopping typing indicator")
+        logger.debug(
+            "Stopping typing indicator for conversation %s",
+            self._context.activity.conversation.id,
+        )
         self._task.cancel()
         self._task = None
