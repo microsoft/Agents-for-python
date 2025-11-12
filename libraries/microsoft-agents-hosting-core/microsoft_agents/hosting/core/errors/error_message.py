@@ -13,14 +13,13 @@ class ErrorMessage:
     This class formats error messages according to the Microsoft Agents SDK pattern:
     - Original error message
     - Error Code: [negative number]
-    - Help URL: https://aka.ms/M365AgentsErrorCodes/#anchor
+    - Help URL: https://aka.ms/M365AgentsErrorCodes/#[error_code]
     """
 
     def __init__(
         self,
         message_template: str,
         error_code: int,
-        help_url_anchor: str = "agentic-identity-with-the-m365-agents-sdk",
     ):
         """
         Initialize an ErrorMessage.
@@ -29,12 +28,9 @@ class ErrorMessage:
         :type message_template: str
         :param error_code: The error code (should be negative)
         :type error_code: int
-        :param help_url_anchor: The anchor for the help URL (defaults to agentic identity)
-        :type help_url_anchor: str
         """
         self.message_template = message_template
         self.error_code = error_code
-        self.help_url_anchor = help_url_anchor
         self.base_url = "https://aka.ms/M365AgentsErrorCodes"
 
     def format(self, *args, **kwargs) -> str:
@@ -56,7 +52,7 @@ class ErrorMessage:
         return (
             f"{message}\n\n"
             f"Error Code: {self.error_code}\n"
-            f"Help URL: {self.base_url}/#{self.help_url_anchor}"
+            f"Help URL: {self.base_url}/#{self.error_code}"
         )
 
     def __str__(self) -> str:
