@@ -59,6 +59,7 @@ def _check(actual: Any, baseline: Any) -> bool:
                 new_baseline = baseline[key]
                 if not _check(new_actual, new_baseline):
                     return False
+            return True
                 
         elif isinstance(baseline, list):
             for index, item in enumerate(baseline):
@@ -66,14 +67,14 @@ def _check(actual: Any, baseline: Any) -> bool:
                 new_baseline = item
                 if not _check(new_actual, new_baseline):
                     return False
+            return True
         else:
             raise ValueError("Unsupported baseline type for complex assertion.")
     else:
         assert assertion_type
         assertion, assertion_type = _parse_assertion(baseline)
-        if not check_field(actual, assertion, assertion_type):
-            return False
-
+        return check_field(actual, assertion, assertion_type)
+        
 
 def check_activity(activity: Activity, baseline: Activity | dict) -> bool:
     """Asserts that the given activity matches the baseline activity.

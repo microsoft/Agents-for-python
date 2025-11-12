@@ -75,7 +75,7 @@ class TestCheckActivity:
         """Test that activity matches baseline with simple equal fields."""
         activity = Activity(type="message", text="Hello, World!")
         baseline = {"type": "message", "text": "Hello, World!"}
-        
+
         assert check_activity(activity, baseline) is True
 
     def test_check_activity_with_non_matching_fields(self):

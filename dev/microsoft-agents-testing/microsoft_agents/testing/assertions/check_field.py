@@ -1,11 +1,11 @@
 import re
 from typing import Any
 
-from .type_defs import FieldAssertionType
+from .type_defs import FieldAssertionType, UNSET_FIELD
 
 _OPERATIONS = {
-    FieldAssertionType.EQUALS: lambda a, b: a == b,
-    FieldAssertionType.NOT_EQUALS: lambda a, b: a != b,
+    FieldAssertionType.EQUALS: lambda a, b: a == b or (a is UNSET_FIELD and b is None),
+    FieldAssertionType.NOT_EQUALS: lambda a, b: a != b or (a is UNSET_FIELD and b is not None),
     FieldAssertionType.GREATER_THAN: lambda a, b: a > b,
     FieldAssertionType.LESS_THAN: lambda a, b: a < b,
     FieldAssertionType.CONTAINS: lambda a, b: b in a,
