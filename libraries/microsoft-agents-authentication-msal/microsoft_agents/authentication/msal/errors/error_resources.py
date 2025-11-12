@@ -7,7 +7,7 @@ Authentication error resources for Microsoft Agents SDK.
 Error codes are in the range -60000 to -60999.
 """
 
-from microsoft_agents.hosting.core.errors import ErrorMessage
+from microsoft_agents.activity.errors import ErrorMessage
 
 
 class AuthenticationErrorResources:

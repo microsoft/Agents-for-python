@@ -5,7 +5,7 @@
 Error resources for Microsoft Agents Authentication MSAL package.
 """
 
-from microsoft_agents.hosting.core.errors import ErrorMessage
+from microsoft_agents.activity.errors import ErrorMessage
 
 from .error_resources import AuthenticationErrorResources
 
