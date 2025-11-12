@@ -15,10 +15,10 @@ _OPERATIONS = {
 
 
 def check_field(
-    actual_value: Any, baseline_value: Any, assertion_type: FieldAssertionType
+    actual_value: Any, assertion: Any, assertion_type: FieldAssertionType
 ) -> bool:
     
     operation = _OPERATIONS.get(assertion_type)
     if not operation:
         return False  # missing operation for the assertion type
-    return operation(actual_value, baseline_value)
+    return operation(actual_value, assertion)

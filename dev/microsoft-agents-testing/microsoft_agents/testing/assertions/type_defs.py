@@ -3,13 +3,13 @@ from enum import Enum
 _UNSET_FIELD = object()
 
 
-class FieldAssertionType(Enum):
+class FieldAssertionType(str, Enum):
     """Defines the types of assertions that can be made on fields."""
 
-    EQUALS = "equals"
-    NOT_EQUALS = "not_equals"
-    GREATER_THAN = "greater_than"
-    LESS_THAN = "less_than"
-    CONTAINS = "contains"
-    NOT_CONTAINS = "not_contains"
-    RE_MATCH = "re_match"
+    EQUALS = "__EQ__"
+    NOT_EQUALS = "__NEQ__"
+    GREATER_THAN = "__GT__"
+    LESS_THAN = "__LT__"
+    CONTAINS = "__IN__"
+    NOT_CONTAINS = "__NIN__"
+    RE_MATCH = "__RE_MATCH__"
