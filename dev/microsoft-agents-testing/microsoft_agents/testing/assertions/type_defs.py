@@ -1,7 +1,9 @@
 from enum import Enum
 
-_UNSET_FIELD = object()
-
+class UNSET_FIELD:
+    @staticmethod
+    def get(*args, **kwargs):
+        return UNSET_FIELD
 
 class FieldAssertionType(str, Enum):
     """Defines the types of assertions that can be made on fields."""

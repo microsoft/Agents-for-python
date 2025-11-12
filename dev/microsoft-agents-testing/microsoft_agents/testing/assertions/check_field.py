@@ -17,6 +17,13 @@ _OPERATIONS = {
 def check_field(
     actual_value: Any, assertion: Any, assertion_type: FieldAssertionType
 ) -> bool:
+    """Checks if the actual value satisfies the given assertion based on the assertion type.
+    
+    :param actual_value: The value to be checked.
+    :param assertion: The expected value or pattern to check against.
+    :param assertion_type: The type of assertion to perform.
+    :return: True if the assertion is satisfied, False otherwise.
+    """
 
     operation = _OPERATIONS.get(assertion_type)
     if not operation:

@@ -16,5 +16,5 @@ def normalize_activity_data(source: Activity | dict) -> dict:
     """Normalize Activity data to a dictionary format."""
 
     if isinstance(source, Activity):
-        return source.model_dump(exclude_unset=True)
+        return source.model_dump(exclude_unset=True, mode="json")
     return source
