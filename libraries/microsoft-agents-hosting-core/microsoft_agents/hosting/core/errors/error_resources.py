@@ -9,7 +9,7 @@ Error codes are in the range -63000 to -63999 for hosting errors.
 General/validation errors are in the range -66000 to -66999.
 """
 
-from .error_message import ErrorMessage
+from microsoft_agents.activity.errors import ErrorMessage
 
 
 class ErrorResources:

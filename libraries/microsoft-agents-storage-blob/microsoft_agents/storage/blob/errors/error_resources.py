@@ -7,7 +7,7 @@ Blob storage error resources for Microsoft Agents SDK.
 Error codes are in the range -61100 to -61199.
 """
 
-from microsoft_agents.hosting.core.errors import ErrorMessage
+from microsoft_agents.activity.errors import ErrorMessage
 
 
 class BlobStorageErrorResources:

@@ -8,7 +8,8 @@ This module provides centralized error messages with error codes and help URLs
 following the pattern established in the C# SDK.
 """
 
-from .error_message import ErrorMessage
+from microsoft_agents.activity.errors import ErrorMessage
+
 from .error_resources import ErrorResources
 
 # Singleton instance

@@ -7,7 +7,7 @@ Activity error resources for Microsoft Agents SDK.
 Error codes are in the range -64000 to -64999.
 """
 
-from microsoft_agents.hosting.core.errors import ErrorMessage
+from .error_message import ErrorMessage
 
 
 class ActivityErrorResources:
