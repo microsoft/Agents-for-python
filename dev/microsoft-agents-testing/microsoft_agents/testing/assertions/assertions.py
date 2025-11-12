@@ -6,6 +6,7 @@ from .type_defs import FieldAssertionType
 from .check_activity import check_activity
 from .check_field import check_field
 
+
 def assert_activity(activity: Activity, baseline: Activity | dict) -> None:
     """Asserts that the given activity matches the baseline activity.
 
@@ -14,7 +15,10 @@ def assert_activity(activity: Activity, baseline: Activity | dict) -> None:
     """
     assert check_activity(activity, baseline)
 
-def assert_field(actual_value: Any, baseline_value: Any, assertion_type: FieldAssertionType) -> None:
+
+def assert_field(
+    actual_value: Any, baseline_value: Any, assertion_type: FieldAssertionType
+) -> None:
     """Asserts that a specific field in the target matches the baseline.
 
     :param key_in_baseline: The key of the field to be tested.

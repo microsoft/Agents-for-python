@@ -16,25 +16,32 @@ def _parse_assertion(assertion_info: Any) -> tuple[Any, FieldAssertionType]:
 
     assertion_type = FieldAssertionType.EQUALS
 
-    if isinstance(assertion_info, dict) and "assertion_type" in assertion_info:
+    if (
+        isinstance(assertion_info, dict)
+        and "assertion_type" in assertion_info
+        and "assertion" in assertion_info
+    ):
         # format:
         # {"assertion_type": "__EQ__", "assertion": "value"}
         assertion_type = assertion_info["assertion_type"]
         assertion = assertion_info.get("assertion")
 
-    elif isinstance(assertion_info, list) and \
-            len(assertion_info) >= 1 and \
-            isinstance(assertion_info[0], str) and \
-            assertion_info[0] in FieldAssertionType.__members__:
+    elif (
+        isinstance(assertion_info, list)
+        and len(assertion_info) >= 2
+        and isinstance(assertion_info[0], str)
+        and assertion_info[0] in FieldAssertionType.__members__
+    ):
         # format:
         # ["__EQ__", "assertion"]
         assertion_type = FieldAssertionType[assertion_info[0]]
-        assertion = assertion_info[1] if len(assertion_info) > 1 else None
+        assertion = assertion_info[1]
     else:
         # default format: direct value
         assertion = assertion_info
 
     return assertion, assertion_type
+
 
 def check_activity(activity: Activity, baseline: Activity | dict) -> bool:
     """Asserts that the given activity matches the baseline activity.
@@ -52,5 +59,5 @@ def check_activity(activity: Activity, baseline: Activity | dict) -> bool:
 
         if not check_field(target_value, assertion, assertion_type):
             return False
-        
+
     return True
