@@ -27,7 +27,7 @@ def _configure_logging(logging_config: dict):
 
     log_levels = logging_config.get("LOGLEVEL", {})
 
-    for key in log_levels.keys():
+    for key in log_levels:
         level_name = log_levels[key].upper()
         level = _NAME_TO_LEVEL.get(level_name)
         if level is None:
