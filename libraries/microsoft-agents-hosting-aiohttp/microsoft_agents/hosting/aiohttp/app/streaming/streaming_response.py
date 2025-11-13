@@ -251,8 +251,13 @@ class StreamingResponse:
 
     def _set_defaults(self, context: "TurnContext"):
         if Channels.ms_teams == context.activity.channel_id.channel:
-            self._is_streaming_channel = True
-            self._interval = 1.0
+            if context.activity.is_agentic_request():
+                # Agentic requests do not support streaming responses at this time.
+                # TODO : Enable streaming for agentic requests when supported.
+                self._is_streaming_channel = False
+            else:
+                self._is_streaming_channel = True
+                self._interval = 1.0
         elif Channels.direct_line == context.activity.channel_id.channel:
             self._is_streaming_channel = True
             self._interval = 0.5
