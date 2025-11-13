@@ -27,18 +27,18 @@ def _configure_logging(logging_config: dict):
 
     log_levels = logging_config.get("LOGLEVEL", {})
 
+    console_handler = logging.StreamHandler()
+    console_handler.setFormatter(
+        logging.Formatter(
+            "%(asctime)s - %(name)s - %(levelname)s - %(message)s (%(filename)s:%(lineno)d)"
+        )
+    )
+
     for key in log_levels:
         level_name = log_levels[key].upper()
         level = _NAME_TO_LEVEL.get(level_name)
         if level is None:
             raise ValueError(f"Invalid configured log level: {level_name}")
-
-        console_handler = logging.StreamHandler()
-        console_handler.setFormatter(
-            logging.Formatter(
-                "%(asctime)s - %(name)s - %(levelname)s - %(message)s (%(filename)s:%(lineno)d)"
-            )
-        )
 
         namespace = key.lower()
         if namespace == "default":
