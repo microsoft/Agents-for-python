@@ -53,38 +53,42 @@ def _parse_assertion(field: Any) -> tuple[Any, Optional[FieldAssertionType]]:
     return assertion, assertion_type
 
 def check_field(
-    actual_value: Any, assertion: Any, assertion_type: FieldAssertionType
+    actual_value: Any, assertion: Any, assertion_type: FieldAssertionType, invert: bool = False
 ) -> bool:
     """Checks if the actual value satisfies the given assertion based on the assertion type.
     
     :param actual_value: The value to be checked.
     :param assertion: The expected value or pattern to check against.
     :param assertion_type: The type of assertion to perform.
+    :param invert: Whether to invert the result of the assertion.
     :return: True if the assertion is satisfied, False otherwise.
     """
 
     operation = _OPERATIONS.get(assertion_type)
     if not operation:
-        return False  # missing operation for the assertion type
-    return operation(actual_value, assertion)
+        raise ValueError(f"Missing operation for assertion type: {assertion_type}")
+    return operation(actual_value, assertion) ^ invert
 
 def check_field_verbose(
-    actual_value: Any, assertion: Any, assertion_type: FieldAssertionType
+    actual_value: Any, assertion: Any, assertion_type: FieldAssertionType, invert: bool = False
 ) -> tuple[bool, Optional[str]]:
     """Checks if the actual value satisfies the given assertion based on the assertion type.
     
     :param actual_value: The value to be checked.
     :param assertion: The expected value or pattern to check against.
     :param assertion_type: The type of assertion to perform.
+    :param invert: Whether to invert the result of the assertion.
     :return: A tuple containing a boolean indicating if the assertion is satisfied and an optional error message.
     """
 
     operation = _OPERATIONS.get(assertion_type)
     if not operation:
-        return False, f"Missing operation for assertion type: {assertion_type}"
+        raise ValueError(f"Missing operation for assertion type: {assertion_type}")
     
-    result = operation(actual_value, assertion)
+    result = operation(actual_value, assertion) ^ invert
     if result:
         return True, None
     else:
+        if invert:
+            return False, f"INVERTED Assertion failed: actual value '{actual_value}' satisfies '{assertion_type.name}' with assertion '{assertion}'"
         return False, f"Assertion failed: actual value '{actual_value}' does not satisfy '{assertion_type.name}' with assertion '{assertion}'"

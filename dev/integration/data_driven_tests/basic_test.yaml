@@ -14,9 +14,10 @@ test:
     duration: 1
 
   - type: assertion
+    quantifier: ONE
     selector:
       index: -1
-      quantifier: ONE # implied
+      quantifier: ONE
       activity:
         type: message
     activity:
