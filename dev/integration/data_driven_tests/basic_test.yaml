@@ -15,8 +15,10 @@ test:
 
   - type: assertion
     selector:
-      activity_index: -1
-      type: message
+      index: -1
+      quantifier: ONE # implied
+      activity:
+        type: message
     activity:
       type: message
       text: "Hello, World!"

@@ -26,6 +26,20 @@ class FieldAssertionType(str, Enum):
     NOT_IN = "NOT_IN"
     RE_MATCH = "RE_MATCH"
 
+class SelectorQuantifier(str, Enum):
+    """Defines quantifiers for selecting activities."""
+    
+    ALL = "ALL"
+    ONE = "ONE"
+
+class AssertionQuantifier(str, Enum):
+    """Defines quantifiers for assertions on activities."""
+
+    ANY = "ANY"
+    ALL = "ALL"
+    ONE = "ONE"
+    NONE = "NONE"
+
 @dataclass
 class AssertionErrorData:
     """Data class to hold information about assertion errors."""
