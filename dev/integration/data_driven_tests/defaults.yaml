@@ -1,0 +1,10 @@
+defaults:
+  all:
+    channel_id: "test_channel"
+    service_url: "http://localhost:3978"
+    locale: "en-US"
+    conversation_id: "test_conversation"
+  input:
+    user_id: "test_user"
+  output:
+    user_id: "test_bot"

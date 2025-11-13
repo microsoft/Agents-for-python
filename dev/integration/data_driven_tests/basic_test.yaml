@@ -1,0 +1,22 @@
+parent: ./defaults.yaml
+description: A basic data driven test example
+defaults:
+  input:
+  sleep:
+  assertion:
+test:
+  - type: input
+    activity:
+      type: message
+      text: "Hello, World!"
+
+  - type: sleep
+    duration: 1
+
+  - type: assertion
+    selector:
+      activity_index: -1
+      type: message
+    activity:
+      type: message
+      text: "Hello, World!"
