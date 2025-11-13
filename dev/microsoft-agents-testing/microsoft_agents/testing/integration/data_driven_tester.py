@@ -1,3 +1,6 @@
+import pytest
+
+from .data_driven_test import DataDrivenTest
 # from typing import Callable, TypeVar
 
 # from .core import Integration
@@ -30,3 +33,23 @@
 #         return test_cls
 
 #     return decorator
+
+class DataDrivenTester:
+
+    _test_path: str
+
+    @pytest.mark.asyncio
+    async def test_data_driven(self, agent_client, response_client) -> None:
+        
+        ddt = DataDrivenTest(self._test_path)
+
+        responses = []
+
+        await for step in ddt:
+            if isinstance(step, Activity):
+                await agent_client.send_activity(step)
+            elif isinstance(step, dict):
+                # assertion
+                responses.extend(await response_client.pop())
+
+                
