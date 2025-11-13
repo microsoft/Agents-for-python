@@ -109,10 +109,15 @@ class TestCheckFieldNotContains:
     """Tests for NOT_CONTAINS assertion type."""
 
     def test_not_contains_substring_not_in_string(self):
-        assert check_field("hello world", "foo", FieldAssertionType.NOT_CONTAINS) is True
+        assert (
+            check_field("hello world", "foo", FieldAssertionType.NOT_CONTAINS) is True
+        )
 
     def test_not_contains_substring_in_string(self):
-        assert check_field("hello world", "world", FieldAssertionType.NOT_CONTAINS) is False
+        assert (
+            check_field("hello world", "world", FieldAssertionType.NOT_CONTAINS)
+            is False
+        )
 
     def test_not_contains_element_not_in_list(self):
         assert check_field([1, 2, 3, 4], 5, FieldAssertionType.NOT_CONTAINS) is True
@@ -132,12 +137,21 @@ class TestCheckFieldReMatch:
 
     def test_re_match_email_pattern(self):
         pattern = r"[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}"
-        assert check_field("test@example.com", pattern, FieldAssertionType.RE_MATCH) is True
-        assert check_field("invalid-email", pattern, FieldAssertionType.RE_MATCH) is False
+        assert (
+            check_field("test@example.com", pattern, FieldAssertionType.RE_MATCH)
+            is True
+        )
+        assert (
+            check_field("invalid-email", pattern, FieldAssertionType.RE_MATCH) is False
+        )
 
     def test_re_match_anchored_pattern(self):
-        assert check_field("hello world", r"^hello", FieldAssertionType.RE_MATCH) is True
-        assert check_field("hello world", r"^world", FieldAssertionType.RE_MATCH) is False
+        assert (
+            check_field("hello world", r"^hello", FieldAssertionType.RE_MATCH) is True
+        )
+        assert (
+            check_field("hello world", r"^world", FieldAssertionType.RE_MATCH) is False
+        )
 
     def test_re_match_full_string(self):
         assert check_field("abc", r"^abc$", FieldAssertionType.RE_MATCH) is True
@@ -211,4 +225,7 @@ class TestCheckFieldWithRealWorldScenarios:
     def test_validate_list_membership(self):
         allowed_roles = ["admin", "user", "guest"]
         assert check_field(allowed_roles, "admin", FieldAssertionType.CONTAINS) is True
-        assert check_field(allowed_roles, "superuser", FieldAssertionType.NOT_CONTAINS) is True
+        assert (
+            check_field(allowed_roles, "superuser", FieldAssertionType.NOT_CONTAINS)
+            is True
+        )

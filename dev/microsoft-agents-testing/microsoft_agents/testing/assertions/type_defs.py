@@ -5,6 +5,7 @@ from enum import Enum
 from dataclasses import dataclass
 from typing import Any
 
+
 class UNSET_FIELD:
     """Singleton to represent an unset field in activity comparisons."""
 
@@ -12,6 +13,7 @@ class UNSET_FIELD:
     def get(*args, **kwargs):
         """Returns the singleton instance."""
         return UNSET_FIELD
+
 
 class FieldAssertionType(str, Enum):
     """Defines the types of assertions that can be made on fields."""
@@ -26,11 +28,13 @@ class FieldAssertionType(str, Enum):
     NOT_IN = "NOT_IN"
     RE_MATCH = "RE_MATCH"
 
+
 class SelectorQuantifier(str, Enum):
     """Defines quantifiers for selecting activities."""
-    
+
     ALL = "ALL"
     ONE = "ONE"
+
 
 class AssertionQuantifier(str, Enum):
     """Defines quantifiers for assertions on activities."""
@@ -39,6 +43,7 @@ class AssertionQuantifier(str, Enum):
     ALL = "ALL"
     ONE = "ONE"
     NONE = "NONE"
+
 
 @dataclass
 class AssertionErrorData:

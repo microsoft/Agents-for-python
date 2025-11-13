@@ -13,7 +13,7 @@ class TestParseAssertion:
         params=[
             FieldAssertionType.EQUALS,
             FieldAssertionType.NOT_EQUALS,
-            FieldAssertionType.GREATER_THAN
+            FieldAssertionType.GREATER_THAN,
         ]
     )
     def assertion_type_str(self, request):
@@ -40,11 +40,7 @@ class TestParseAssertion:
 
     @pytest.mark.parametrize(
         "field",
-        [
-            "value",
-            123,
-            12.34
-        ],
+        ["value", 123, 12.34],
     )
     def test_parse_assertion_default(self, field):
         assertion, assertion_type = _parse_assertion(field)
@@ -59,12 +55,13 @@ class TestParseAssertion:
             [FieldAssertionType.RE_MATCH],
             [],
             {"assertion_type": "invalid", "assertion": "test"},
-        ]
+        ],
     )
     def test_parse_assertion_none(self, field):
         assertion, assertion_type = _parse_assertion(field)
         assert assertion is None
         assert assertion_type is None
+
 
 class TestAssertActivity:
     """Tests for assert_activity function."""
@@ -93,7 +90,7 @@ class TestAssertActivity:
             type="message",
             text="Hello",
             channel_id="test-channel",
-            conversation={"id": "conv123"}
+            conversation={"id": "conv123"},
         )
         baseline = {"type": "message", "text": "Hello"}
         assert_activity(activity, baseline)
@@ -121,17 +118,14 @@ class TestAssertActivity:
         activity = Activity(type="message", text="Hello, World!")
         baseline = {
             "type": "message",
-            "text": {"assertion_type": "CONTAINS", "assertion": "Hello"}
+            "text": {"assertion_type": "CONTAINS", "assertion": "Hello"},
         }
         assert_activity(activity, baseline)
 
     def test_assert_activity_with_list_assertion_format(self):
         """Test using list format for assertions."""
         activity = Activity(type="message", text="Hello, World!")
-        baseline = {
-            "type": "message",
-            "text": ["CONTAINS", "World"]
-        }
+        baseline = {"type": "message", "text": ["CONTAINS", "World"]}
         assert_activity(activity, baseline)
 
     def test_assert_activity_with_not_equals_assertion(self):
@@ -139,24 +133,20 @@ class TestAssertActivity:
         activity = Activity(type="message", text="Hello")
         baseline = {
             "type": "message",
-            "text": {"assertion_type": "NOT_EQUALS", "assertion": "Goodbye"}
+            "text": {"assertion_type": "NOT_EQUALS", "assertion": "Goodbye"},
         }
         assert_activity(activity, baseline)
 
     def test_assert_activity_with_contains_assertion(self):
         """Test CONTAINS assertion type."""
         activity = Activity(type="message", text="Hello, World!")
-        baseline = {
-            "text": {"assertion_type": "CONTAINS", "assertion": "World"}
-        }
+        baseline = {"text": {"assertion_type": "CONTAINS", "assertion": "World"}}
         assert_activity(activity, baseline)
 
     def test_assert_activity_with_not_contains_assertion(self):
         """Test NOT_CONTAINS assertion type."""
         activity = Activity(type="message", text="Hello")
-        baseline = {
-            "text": {"assertion_type": "NOT_CONTAINS", "assertion": "Goodbye"}
-        }
+        baseline = {"text": {"assertion_type": "NOT_CONTAINS", "assertion": "Goodbye"}}
         assert_activity(activity, baseline)
 
     def test_assert_activity_with_regex_assertion(self):
@@ -170,39 +160,26 @@ class TestAssertActivity:
     def test_assert_activity_with_multiple_fields_and_mixed_assertions(self):
         """Test multiple fields with different assertion types."""
         activity = Activity(
-            type="message",
-            text="Hello, World!",
-            channel_id="test-channel"
+            type="message", text="Hello, World!", channel_id="test-channel"
         )
         baseline = {
             "type": "message",
             "text": ["CONTAINS", "Hello"],
-            "channel_id": {"assertion_type": "NOT_EQUALS", "assertion": "prod-channel"}
+            "channel_id": {"assertion_type": "NOT_EQUALS", "assertion": "prod-channel"},
         }
         assert_activity(activity, baseline)
 
     def test_assert_activity_fails_on_any_field_mismatch(self):
         """Test that activity check fails if any field doesn't match."""
-        activity = Activity(
-            type="message",
-            text="Hello",
-            channel_id="test-channel"
-        )
-        baseline = {
-            "type": "message",
-            "text": "Hello",
-            "channel_id": "prod-channel"
-        }
+        activity = Activity(type="message", text="Hello", channel_id="test-channel")
+        baseline = {"type": "message", "text": "Hello", "channel_id": "prod-channel"}
         assert_activity(activity, baseline)
 
     def test_assert_activity_with_numeric_fields(self):
         """Test with numeric field values."""
         activity = Activity(type="message", locale="en-US")
         activity.channel_data = {"timestamp": 1234567890}
-        baseline = {
-            "type": "message",
-            "channel_data": {"timestamp": 1234567890}
-        }
+        baseline = {"type": "message", "channel_data": {"timestamp": 1234567890}}
         assert_activity(activity, baseline)
 
     def test_assert_activity_with_greater_than_assertion(self):
@@ -210,9 +187,11 @@ class TestAssertActivity:
         activity = Activity(type="message")
         activity.channel_data = {"count": 100}
         baseline = {
-            "channel_data": {"count": {"assertion_type": "GREATER_THAN", "assertion": 50}}
+            "channel_data": {
+                "count": {"assertion_type": "GREATER_THAN", "assertion": 50}
+            }
         }
-        
+
         # This test depends on how nested dicts are handled
         # If channel_data is compared as a whole dict, this might not work as expected
         # Keeping this test to illustrate the concept
@@ -221,12 +200,11 @@ class TestAssertActivity:
     def test_assert_activity_with_complex_nested_structures(self):
         """Test with complex nested structures in baseline."""
         activity = Activity(
-            type="message",
-            conversation={"id": "conv123", "name": "Test Conversation"}
+            type="message", conversation={"id": "conv123", "name": "Test Conversation"}
         )
         baseline = {
             "type": "message",
-            "conversation": {"id": "conv123", "name": "Test Conversation"}
+            "conversation": {"id": "conv123", "name": "Test Conversation"},
         }
         assert_activity(activity, baseline)
 
@@ -234,9 +212,7 @@ class TestAssertActivity:
         """Test with boolean field values."""
         activity = Activity(type="message")
         activity.channel_data = {"is_active": True}
-        baseline = {
-            "channel_data": {"is_active": True}
-        }
+        baseline = {"channel_data": {"is_active": True}}
         assert_activity(activity, baseline)
 
     def test_assert_activity_type_mismatch(self):
@@ -244,17 +220,18 @@ class TestAssertActivity:
         activity = Activity(type="message", text="Hello")
         baseline = {"type": "event", "text": "Hello"}
         assert_activity(activity, baseline)
-    
+
     def test_assert_activity_with_list_fields(self):
         """Test with list field values."""
         activity = Activity(type="message")
         activity.attachments = [Attachment(content_type="text/plain", content="test")]
         baseline = {
             "type": "message",
-            "attachments": [{"content_type": "text/plain", "content": "test"}]
+            "attachments": [{"content_type": "text/plain", "content": "test"}],
         }
         assert_activity(activity, baseline)
-    
+
+
 class TestAssertActivityRealWorldScenarios:
     """Tests simulating real-world usage scenarios."""
 
@@ -263,12 +240,12 @@ class TestAssertActivityRealWorldScenarios:
         activity = Activity(
             type="message",
             text="I found 3 results for your query.",
-            from_property={"id": "bot123", "name": "HelpBot"}
+            from_property={"id": "bot123", "name": "HelpBot"},
         )
         baseline = {
             "type": "message",
             "text": ["RE_MATCH", r"I found \d+ results"],
-            "from_property": {"id": "bot123"}
+            "from_property": {"id": "bot123"},
         }
         assert_activity(activity, baseline)
 
@@ -277,26 +254,21 @@ class TestAssertActivityRealWorldScenarios:
         activity = Activity(
             type="message",
             text="help me with something",
-            from_property={"id": "user456"}
+            from_property={"id": "user456"},
         )
         baseline = {
             "type": "message",
-            "text": {"assertion_type": "CONTAINS", "assertion": "help"}
+            "text": {"assertion_type": "CONTAINS", "assertion": "help"},
         }
         assert_activity(activity, baseline)
 
     def test_validate_event_activity(self):
         """Test validating an event activity."""
         activity = Activity(
-            type="event",
-            name="conversationUpdate",
-            value={"action": "add"}
+            type="event", name="conversationUpdate", value={"action": "add"}
         )
-        baseline = {
-            "type": "event",
-            "name": "conversationUpdate"
-        }
-        
+        baseline = {"type": "event", "name": "conversationUpdate"}
+
         assert assert_activity(activity, baseline) is True
 
     def test_partial_match_allows_extra_fields(self):
@@ -307,64 +279,41 @@ class TestAssertActivityRealWorldScenarios:
             channel_id="teams",
             conversation={"id": "conv123"},
             from_property={"id": "user123"},
-            timestamp="2025-01-12T10:00:00Z"
+            timestamp="2025-01-12T10:00:00Z",
         )
-        baseline = {
-            "type": "message",
-            "text": "Hello"
-        }
+        baseline = {"type": "message", "text": "Hello"}
         assert_activity(activity, baseline)
 
     def test_strict_match_with_multiple_fields(self):
         """Test strict matching with multiple fields specified."""
-        activity = Activity(
-            type="message",
-            text="Hello",
-            channel_id="teams"
-        )
-        baseline = {
-            "type": "message",
-            "text": "Hello",
-            "channel_id": "teams"
-        }
+        activity = Activity(type="message", text="Hello", channel_id="teams")
+        baseline = {"type": "message", "text": "Hello", "channel_id": "teams"}
         assert_activity(activity, baseline)
 
     def test_flexible_text_matching_with_regex(self):
         """Test flexible text matching using regex patterns."""
-        activity = Activity(
-            type="message",
-            text="Order #12345 has been confirmed"
-        )
-        baseline = {
-            "type": "message",
-            "text": ["RE_MATCH", r"Order #\d+ has been"]
-        }
+        activity = Activity(type="message", text="Order #12345 has been confirmed")
+        baseline = {"type": "message", "text": ["RE_MATCH", r"Order #\d+ has been"]}
         assert_activity(activity, baseline)
 
     def test_negative_assertions(self):
         """Test using negative assertions to ensure fields don't match."""
-        activity = Activity(
-            type="message",
-            text="Success",
-            channel_id="teams"
-        )
+        activity = Activity(type="message", text="Success", channel_id="teams")
         baseline = {
             "type": "message",
             "text": {"assertion_type": "NOT_CONTAINS", "assertion": "Error"},
-            "channel_id": {"assertion_type": "NOT_EQUALS", "assertion": "slack"}
+            "channel_id": {"assertion_type": "NOT_EQUALS", "assertion": "slack"},
         }
         assert_activity(activity, baseline)
 
     def test_combined_positive_and_negative_assertions(self):
         """Test combining positive and negative assertions."""
         activity = Activity(
-            type="message",
-            text="Operation completed successfully",
-            channel_id="teams"
+            type="message", text="Operation completed successfully", channel_id="teams"
         )
         baseline = {
             "type": "message",
             "text": ["CONTAINS", "completed"],
-            "channel_id": ["NOT_EQUALS", "slack"]
+            "channel_id": ["NOT_EQUALS", "slack"],
         }
         assert_activity(activity, baseline)

@@ -5,13 +5,15 @@ from .type_defs import FieldAssertionType, UNSET_FIELD
 
 _OPERATIONS = {
     FieldAssertionType.EQUALS: lambda a, b: a == b or (a is UNSET_FIELD and b is None),
-    FieldAssertionType.NOT_EQUALS: lambda a, b: a != b or (a is UNSET_FIELD and b is not None),
+    FieldAssertionType.NOT_EQUALS: lambda a, b: a != b
+    or (a is UNSET_FIELD and b is not None),
     FieldAssertionType.GREATER_THAN: lambda a, b: a > b,
     FieldAssertionType.LESS_THAN: lambda a, b: a < b,
     FieldAssertionType.CONTAINS: lambda a, b: b in a,
     FieldAssertionType.NOT_CONTAINS: lambda a, b: b not in a,
     FieldAssertionType.RE_MATCH: lambda a, b: re.match(b, a) is not None,
 }
+
 
 def _parse_assertion(field: Any) -> tuple[Any, Optional[FieldAssertionType]]:
     """Parses the assertion information and returns the assertion type and baseline value.
@@ -52,11 +54,12 @@ def _parse_assertion(field: Any) -> tuple[Any, Optional[FieldAssertionType]]:
 
     return assertion, assertion_type
 
+
 def check_field(
     actual_value: Any, assertion: Any, assertion_type: FieldAssertionType
 ) -> bool:
     """Checks if the actual value satisfies the given assertion based on the assertion type.
-    
+
     :param actual_value: The value to be checked.
     :param assertion: The expected value or pattern to check against.
     :param assertion_type: The type of assertion to perform.
@@ -68,11 +71,12 @@ def check_field(
         raise ValueError(f"Unsupported assertion type: {assertion_type}")
     return operation(actual_value, assertion)
 
+
 def check_field_verbose(
     actual_value: Any, assertion: Any, assertion_type: FieldAssertionType
 ) -> tuple[bool, Optional[str]]:
     """Checks if the actual value satisfies the given assertion based on the assertion type.
-    
+
     :param actual_value: The value to be checked.
     :param assertion: The expected value or pattern to check against.
     :param assertion_type: The type of assertion to perform.
@@ -82,9 +86,12 @@ def check_field_verbose(
     operation = _OPERATIONS.get(assertion_type)
     if not operation:
         raise ValueError(f"Unsupported assertion type: {assertion_type}")
-    
+
     result = operation(actual_value, assertion)
     if result:
         return True, None
     else:
-        return False, f"Assertion failed: actual value '{actual_value}' does not satisfy '{assertion_type.name}' with assertion '{assertion}'"
+        return (
+            False,
+            f"Assertion failed: actual value '{actual_value}' does not satisfy '{assertion_type.name}' with assertion '{assertion}'",
+        )
