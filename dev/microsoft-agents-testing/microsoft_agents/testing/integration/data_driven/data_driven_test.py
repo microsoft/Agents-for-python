@@ -3,6 +3,8 @@
 
 import asyncio
 
+import yaml
+
 from copy import deepcopy
 
 from microsoft_agents.activity import Activity
@@ -22,6 +24,18 @@ class DataDrivenTest:
         self._input_defaults = defaults.get("input", {})
         self._assertion_defaults = defaults.get("assertion", {})
         self._sleep_defaults = defaults.get("sleep", {})
+        
+        parent = test_flow.get("parent")
+        if parent:
+            with open(parent, "r", encoding="utf-8") as f:
+                parent_flow = yaml.safe_load(f)
+                input_defaults = parent_flow.get("defaults", {}).get("input", {})
+                sleep_defaults = parent_flow.get("defaults", {}).get("sleep", {})
+                assertion_defaults = parent_flow.get("defaults", {}).get("assertion", {})
+
+                self._input_defaults = {**input_defaults, **self._input_defaults}
+                self._sleep_defaults = {**sleep_defaults, **self._sleep_defaults}
+                self._assertion_defaults = {**assertion_defaults, **self._assertion_defaults}
 
         self._test = test_flow.get("test", [])
 
@@ -51,10 +65,13 @@ class DataDrivenTest:
 
             if step_type == "input":
                 input_activity = self._load_input(step)
+                populate_activity(input_activity, self._input_defaults)
                 await agent_client.send_activity(input_activity)
             elif step_type == "assertion":
 
                 responses.extend(await response_client.pop())
+
+                # populate defaults
 
                 activity_assertion = ActivityAssertion(step)
                 assert activity_assertion.check(responses)

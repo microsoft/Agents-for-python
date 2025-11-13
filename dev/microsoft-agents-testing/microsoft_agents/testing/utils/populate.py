@@ -3,6 +3,14 @@
 
 from microsoft_agents.activity import Activity
 
+def populate(original: dict, defaults: dict) -> None:
+    """Populate a dictionary with default values."""
+
+    for key in defaults.keys():
+        if key not in original:
+            original[key] = defaults[key]
+        elif isinstance(original[key], dict) and isinstance(defaults[key], dict):
+            populate(original[key], defaults[key])
 
 def populate_activity(original: Activity, defaults: Activity | dict) -> Activity:
     """Populate an Activity object with default values."""
