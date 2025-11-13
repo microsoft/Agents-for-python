@@ -91,7 +91,7 @@ class RestChannelServiceClientFactory(ChannelServiceClientFactoryBase):
         use_anonymous: bool = False,
     ) -> ConnectorClientBase:
         if not claims_identity:
-            raise TypeError("claims_identity are required")
+            raise TypeError("claims_identity is required")
         if not service_url:
             raise TypeError(
                 "RestChannelServiceClientFactory.create_connector_client: service_url can't be None or Empty"
