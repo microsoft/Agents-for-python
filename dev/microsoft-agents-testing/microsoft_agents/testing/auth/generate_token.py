@@ -1,3 +1,6 @@
+# Copyright (c) Microsoft Corporation. All rights reserved.
+# Licensed under the MIT License.
+
 import requests
 
 from microsoft_agents.hosting.core import AgentAuthConfiguration

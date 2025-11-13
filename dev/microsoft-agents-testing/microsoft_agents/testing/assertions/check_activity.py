@@ -1,6 +1,7 @@
-from typing import Any, TypeVar, Optional
+# Copyright (c) Microsoft Corporation. All rights reserved.
+# Licensed under the MIT License.
 
-from pydantic import BaseModel
+from typing import Any, Optional
 
 from microsoft_agents.activity import Activity
 from microsoft_agents.testing.utils import normalize_activity_data

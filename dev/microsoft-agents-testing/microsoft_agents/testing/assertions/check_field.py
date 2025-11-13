@@ -67,3 +67,24 @@ def check_field(
     if not operation:
         return False  # missing operation for the assertion type
     return operation(actual_value, assertion)
+
+def check_field_verbose(
+    actual_value: Any, assertion: Any, assertion_type: FieldAssertionType
+) -> tuple[bool, Optional[str]]:
+    """Checks if the actual value satisfies the given assertion based on the assertion type.
+    
+    :param actual_value: The value to be checked.
+    :param assertion: The expected value or pattern to check against.
+    :param assertion_type: The type of assertion to perform.
+    :return: A tuple containing a boolean indicating if the assertion is satisfied and an optional error message.
+    """
+
+    operation = _OPERATIONS.get(assertion_type)
+    if not operation:
+        return False, f"Missing operation for assertion type: {assertion_type}"
+    
+    result = operation(actual_value, assertion)
+    if result:
+        return True, None
+    else:
+        return False, f"Assertion failed: actual value '{actual_value}' does not satisfy '{assertion_type.name}' with assertion '{assertion}'"

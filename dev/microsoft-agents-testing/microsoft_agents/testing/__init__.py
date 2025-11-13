@@ -1,3 +1,6 @@
+# Copyright (c) Microsoft Corporation. All rights reserved.
+# Licensed under the MIT License.
+
 from .sdk_config import SDKConfig
 
 from .auth import generate_token, generate_token_from_config

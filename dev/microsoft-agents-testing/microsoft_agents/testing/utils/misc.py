@@ -1,3 +1,6 @@
+# Copyright (c) Microsoft Corporation. All rights reserved.
+# Licensed under the MIT License.
+
 from urllib.parse import urlparse
 
 from microsoft_agents.activity import Activity

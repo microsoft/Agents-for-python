@@ -1,10 +1,13 @@
+# Copyright (c) Microsoft Corporation. All rights reserved.
+# Licensed under the MIT License.
+
 from typing import Any
 
 from microsoft_agents.activity import Activity
 
 from .type_defs import FieldAssertionType
 from .check_activity import check_activity_verbose
-from .check_field import check_field
+from .check_field import check_field_verbose
 
 
 def assert_activity(activity: Activity, baseline: Activity | dict) -> None:
@@ -26,4 +29,5 @@ def assert_field(
     :param target: The target dictionary containing the actual values.
     :param baseline: The baseline dictionary containing the expected values.
     """
-    assert check_field(actual_value, baseline_value, assertion_type)
+    res, assertion_error_message = check_field_verbose(actual_value, baseline_value, assertion_type)
+    assert res, assertion_error_message
