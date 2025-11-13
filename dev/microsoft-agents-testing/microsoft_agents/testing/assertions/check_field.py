@@ -1,5 +1,5 @@
 import re
-from typing import Any
+from typing import Any, Optional
 
 from .type_defs import FieldAssertionType, UNSET_FIELD
 
@@ -13,6 +13,44 @@ _OPERATIONS = {
     FieldAssertionType.RE_MATCH: lambda a, b: re.match(b, a) is not None,
 }
 
+def _parse_assertion(field: Any) -> tuple[Any, Optional[FieldAssertionType]]:
+    """Parses the assertion information and returns the assertion type and baseline value.
+
+    :param assertion_info: The assertion information to be parsed.
+    :return: A tuple containing the assertion type and baseline value.
+    """
+
+    assertion_type = FieldAssertionType.EQUALS
+    assertion = None
+
+    if (
+        isinstance(field, dict)
+        and "assertion_type" in field
+        and "assertion" in field
+        and field["assertion_type"] in FieldAssertionType.__members__
+    ):
+        # format:
+        # {"assertion_type": "__EQ__", "assertion": "value"}
+        assertion_type = FieldAssertionType[field["assertion_type"]]
+        assertion = field.get("assertion")
+
+    elif (
+        isinstance(field, list)
+        and len(field) >= 2
+        and isinstance(field[0], str)
+        and field[0] in FieldAssertionType.__members__
+    ):
+        # format:
+        # ["__EQ__", "assertion"]
+        assertion_type = FieldAssertionType[field[0]]
+        assertion = field[1]
+    elif isinstance(field, list) or isinstance(field, dict):
+        assertion_type = None
+    else:
+        # default format: direct value
+        assertion = field
+
+    return assertion, assertion_type
 
 def check_field(
     actual_value: Any, assertion: Any, assertion_type: FieldAssertionType

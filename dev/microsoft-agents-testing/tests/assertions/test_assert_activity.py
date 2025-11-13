@@ -4,10 +4,7 @@ from microsoft_agents.activity import Activity, Attachment
 
 from microsoft_agents.testing.assertions.type_defs import FieldAssertionType
 from microsoft_agents.testing.assertions.assertions import assert_activity
-from microsoft_agents.testing.assertions.check_activity import (
-    _parse_assertion,
-    check_activity
-)
+from microsoft_agents.testing.assertions.check_field import _parse_assertion
 
 
 class TestParseAssertion:
@@ -69,28 +66,28 @@ class TestParseAssertion:
         assert assertion is None
         assert assertion_type is None
 
-class TestCheckActivity:
-    """Tests for check_activity function."""
+class TestAssertActivity:
+    """Tests for assert_activity function."""
 
-    def test_check_activity_with_matching_simple_fields(self):
+    def test_assert_activity_with_matching_simple_fields(self):
         """Test that activity matches baseline with simple equal fields."""
         activity = Activity(type="message", text="Hello, World!")
         baseline = {"type": "message", "text": "Hello, World!"}
         assert_activity(activity, baseline)
 
-    def test_check_activity_with_non_matching_fields(self):
+    def test_assert_activity_with_non_matching_fields(self):
         """Test that activity doesn't match baseline with different field values."""
         activity = Activity(type="message", text="Hello")
         baseline = {"type": "message", "text": "Goodbye"}
         assert_activity(activity, baseline)
 
-    def test_check_activity_with_activity_baseline(self):
+    def test_assert_activity_with_activity_baseline(self):
         """Test that baseline can be an Activity object."""
         activity = Activity(type="message", text="Hello")
         baseline = Activity(type="message", text="Hello")
         assert_activity(activity, baseline)
 
-    def test_check_activity_with_partial_baseline(self):
+    def test_assert_activity_with_partial_baseline(self):
         """Test that only fields in baseline are checked."""
         activity = Activity(
             type="message",
@@ -101,25 +98,25 @@ class TestCheckActivity:
         baseline = {"type": "message", "text": "Hello"}
         assert_activity(activity, baseline)
 
-    def test_check_activity_with_missing_field(self):
+    def test_assert_activity_with_missing_field(self):
         """Test that activity with missing field doesn't match baseline."""
         activity = Activity(type="message")
         baseline = {"type": "message", "text": "Hello"}
         assert_activity(activity, baseline)
 
-    def test_check_activity_with_none_values(self):
+    def test_assert_activity_with_none_values(self):
         """Test that None values are handled correctly."""
         activity = Activity(type="message")
         baseline = {"type": "message", "text": None}
         assert_activity(activity, baseline)
 
-    def test_check_activity_with_empty_baseline(self):
+    def test_assert_activity_with_empty_baseline(self):
         """Test that empty baseline always matches."""
         activity = Activity(type="message", text="Hello")
         baseline = {}
         assert_activity(activity, baseline)
 
-    def test_check_activity_with_dict_assertion_format(self):
+    def test_assert_activity_with_dict_assertion_format(self):
         """Test using dict format for assertions."""
         activity = Activity(type="message", text="Hello, World!")
         baseline = {
@@ -128,7 +125,7 @@ class TestCheckActivity:
         }
         assert_activity(activity, baseline)
 
-    def test_check_activity_with_list_assertion_format(self):
+    def test_assert_activity_with_list_assertion_format(self):
         """Test using list format for assertions."""
         activity = Activity(type="message", text="Hello, World!")
         baseline = {
@@ -137,7 +134,7 @@ class TestCheckActivity:
         }
         assert_activity(activity, baseline)
 
-    def test_check_activity_with_not_equals_assertion(self):
+    def test_assert_activity_with_not_equals_assertion(self):
         """Test NOT_EQUALS assertion type."""
         activity = Activity(type="message", text="Hello")
         baseline = {
@@ -146,7 +143,7 @@ class TestCheckActivity:
         }
         assert_activity(activity, baseline)
 
-    def test_check_activity_with_contains_assertion(self):
+    def test_assert_activity_with_contains_assertion(self):
         """Test CONTAINS assertion type."""
         activity = Activity(type="message", text="Hello, World!")
         baseline = {
@@ -154,7 +151,7 @@ class TestCheckActivity:
         }
         assert_activity(activity, baseline)
 
-    def test_check_activity_with_not_contains_assertion(self):
+    def test_assert_activity_with_not_contains_assertion(self):
         """Test NOT_CONTAINS assertion type."""
         activity = Activity(type="message", text="Hello")
         baseline = {
@@ -162,7 +159,7 @@ class TestCheckActivity:
         }
         assert_activity(activity, baseline)
 
-    def test_check_activity_with_regex_assertion(self):
+    def test_assert_activity_with_regex_assertion(self):
         """Test RE_MATCH assertion type."""
         activity = Activity(type="message", text="msg_20250112_001")
         baseline = {
@@ -170,7 +167,7 @@ class TestCheckActivity:
         }
         assert_activity(activity, baseline)
 
-    def test_check_activity_with_multiple_fields_and_mixed_assertions(self):
+    def test_assert_activity_with_multiple_fields_and_mixed_assertions(self):
         """Test multiple fields with different assertion types."""
         activity = Activity(
             type="message",
@@ -184,7 +181,7 @@ class TestCheckActivity:
         }
         assert_activity(activity, baseline)
 
-    def test_check_activity_fails_on_any_field_mismatch(self):
+    def test_assert_activity_fails_on_any_field_mismatch(self):
         """Test that activity check fails if any field doesn't match."""
         activity = Activity(
             type="message",
@@ -198,7 +195,7 @@ class TestCheckActivity:
         }
         assert_activity(activity, baseline)
 
-    def test_check_activity_with_numeric_fields(self):
+    def test_assert_activity_with_numeric_fields(self):
         """Test with numeric field values."""
         activity = Activity(type="message", locale="en-US")
         activity.channel_data = {"timestamp": 1234567890}
@@ -208,7 +205,7 @@ class TestCheckActivity:
         }
         assert_activity(activity, baseline)
 
-    def test_check_activity_with_greater_than_assertion(self):
+    def test_assert_activity_with_greater_than_assertion(self):
         """Test GREATER_THAN assertion on numeric fields."""
         activity = Activity(type="message")
         activity.channel_data = {"count": 100}
@@ -221,7 +218,7 @@ class TestCheckActivity:
         # Keeping this test to illustrate the concept
         assert_activity(activity, baseline)
 
-    def test_check_activity_with_complex_nested_structures(self):
+    def test_assert_activity_with_complex_nested_structures(self):
         """Test with complex nested structures in baseline."""
         activity = Activity(
             type="message",
@@ -233,7 +230,7 @@ class TestCheckActivity:
         }
         assert_activity(activity, baseline)
 
-    def test_check_activity_with_boolean_fields(self):
+    def test_assert_activity_with_boolean_fields(self):
         """Test with boolean field values."""
         activity = Activity(type="message")
         activity.channel_data = {"is_active": True}
@@ -242,13 +239,13 @@ class TestCheckActivity:
         }
         assert_activity(activity, baseline)
 
-    def test_check_activity_type_mismatch(self):
+    def test_assert_activity_type_mismatch(self):
         """Test that different activity types don't match."""
         activity = Activity(type="message", text="Hello")
         baseline = {"type": "event", "text": "Hello"}
         assert_activity(activity, baseline)
     
-    def test_check_activity_with_list_fields(self):
+    def test_assert_activity_with_list_fields(self):
         """Test with list field values."""
         activity = Activity(type="message")
         activity.attachments = [Attachment(content_type="text/plain", content="test")]
@@ -258,7 +255,7 @@ class TestCheckActivity:
         }
         assert_activity(activity, baseline)
     
-class TestCheckActivityRealWorldScenarios:
+class TestAssertActivityRealWorldScenarios:
     """Tests simulating real-world usage scenarios."""
 
     def test_validate_bot_response_message(self):
@@ -300,7 +297,7 @@ class TestCheckActivityRealWorldScenarios:
             "name": "conversationUpdate"
         }
         
-        assert check_activity(activity, baseline) is True
+        assert assert_activity(activity, baseline) is True
 
     def test_partial_match_allows_extra_fields(self):
         """Test that extra fields in activity don't cause failure."""
