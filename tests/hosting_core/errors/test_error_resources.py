@@ -18,43 +18,42 @@ class TestErrorMessage:
 
     def test_error_message_basic(self):
         """Test basic error message creation."""
-        error = ErrorMessage("Test error message", -60000, "test-anchor")
+        error = ErrorMessage("Test error message", -60000)
         assert error.message_template == "Test error message"
         assert error.error_code == -60000
-        assert error.help_url_anchor == "test-anchor"
 
     def test_error_message_format_no_args(self):
         """Test formatting error message without arguments."""
-        error = ErrorMessage("Simple error", -60001, "test")
+        error = ErrorMessage("Simple error", -60001)
         formatted = error.format()
         assert "Simple error" in formatted
         assert "Error Code: -60001" in formatted
-        assert "Help URL: https://aka.ms/M365AgentsErrorCodes/#test" in formatted
+        assert "Help URL: https://aka.ms/M365AgentsErrorCodes/#-60001" in formatted
 
     def test_error_message_format_with_positional_args(self):
         """Test formatting error message with positional arguments."""
-        error = ErrorMessage("Error with {0} and {1}", -60002, "test")
+        error = ErrorMessage("Error with {0} and {1}", -60002)
         formatted = error.format("arg1", "arg2")
         assert "Error with arg1 and arg2" in formatted
         assert "Error Code: -60002" in formatted
 
     def test_error_message_format_with_keyword_args(self):
         """Test formatting error message with keyword arguments."""
-        error = ErrorMessage("Error with {name} and {value}", -60003, "test")
+        error = ErrorMessage("Error with {name} and {value}", -60003)
         formatted = error.format(name="test_name", value="test_value")
         assert "Error with test_name and test_value" in formatted
         assert "Error Code: -60003" in formatted
 
     def test_error_message_str(self):
         """Test string representation of error message."""
-        error = ErrorMessage("Test error", -60004, "test")
+        error = ErrorMessage("Test error", -60004)
         str_repr = str(error)
         assert "Test error" in str_repr
         assert "Error Code: -60004" in str_repr
 
     def test_error_message_repr(self):
         """Test repr of error message."""
-        error = ErrorMessage("Test error message", -60005, "test")
+        error = ErrorMessage("Test error message", -60005)
         repr_str = repr(error)
         assert "ErrorMessage" in repr_str
         assert "-60005" in repr_str
@@ -218,7 +217,7 @@ class TestDistributedErrorResources:
             formatted = error.format("test_payload")
             assert "Failed to acquire token. test_payload" in formatted
             assert "Error Code: -60012" in formatted
-            assert "agentic-identity-with-the-m365-agents-sdk" in formatted
+            assert "#-60012" in formatted
         except ImportError:
             pytest.skip("Authentication package not available")
 

@@ -7,7 +7,7 @@ Storage error resources for Microsoft Agents SDK (CosmosDB).
 Error codes are in the range -61000 to -61999.
 """
 
-from microsoft_agents.hosting.core.errors import ErrorMessage
+from microsoft_agents.activity.errors import ErrorMessage
 
 
 class StorageErrorResources:
@@ -20,79 +20,66 @@ class StorageErrorResources:
     CosmosDbConfigRequired = ErrorMessage(
         "CosmosDBStorage: CosmosDBConfig is required.",
         -61000,
-        "storage-configuration",
     )
 
     CosmosDbEndpointRequired = ErrorMessage(
         "CosmosDBStorage: cosmos_db_endpoint is required.",
         -61001,
-        "storage-configuration",
     )
 
     CosmosDbAuthKeyRequired = ErrorMessage(
         "CosmosDBStorage: auth_key is required.",
         -61002,
-        "storage-configuration",
     )
 
     CosmosDbDatabaseIdRequired = ErrorMessage(
         "CosmosDBStorage: database_id is required.",
         -61003,
-        "storage-configuration",
     )
 
     CosmosDbContainerIdRequired = ErrorMessage(
         "CosmosDBStorage: container_id is required.",
         -61004,
-        "storage-configuration",
     )
 
     CosmosDbKeyCannotBeEmpty = ErrorMessage(
         "CosmosDBStorage: Key cannot be empty.",
         -61005,
-        "storage-configuration",
     )
 
     CosmosDbPartitionKeyInvalid = ErrorMessage(
         "CosmosDBStorage: PartitionKey of {0} cannot be used with a CosmosDbPartitionedStorageOptions.PartitionKey of {1}.",
         -61006,
-        "storage-configuration",
     )
 
     CosmosDbPartitionKeyPathInvalid = ErrorMessage(
         "CosmosDBStorage: PartitionKeyPath must match cosmosDbPartitionedStorageOptions value of {0}",
         -61007,
-        "storage-configuration",
     )
 
     CosmosDbCompatibilityModeRequired = ErrorMessage(
         "CosmosDBStorage: compatibilityMode cannot be set when using partitionKey options.",
         -61008,
-        "storage-configuration",
     )
 
     CosmosDbPartitionKeyNotFound = ErrorMessage(
         "CosmosDBStorage: Partition key '{0}' missing from state, you may be missing custom state implementation.",
         -61009,
-        "storage-configuration",
     )
 
     CosmosDbInvalidPartitionKeyValue = ErrorMessage(
         "CosmosDBStorage: Invalid PartitionKey property on item with id {0}",
         -61010,
-        "storage-configuration",
     )
 
     CosmosDbInvalidKeySuffixCharacters = ErrorMessage(
         "Cannot use invalid Row Key characters: {0} in keySuffix.",
         -61011,
-        "storage-configuration",
     )
 
     InvalidConfiguration = ErrorMessage(
         "Invalid configuration: {0}",
         -61012,
-        "configuration",
     )
 
     def __init__(self):
