@@ -9,7 +9,7 @@ from .assertions import (
 from .check_activity import check_activity, check_activity_verbose
 from .check_field import check_field, check_field_verbose
 from .type_defs import FieldAssertionType, AssertionQuantifier, UNSET_FIELD
-from .selector import Selector, SelectorQuantifier
+from .selector import Selector
 
 __all__ = [
     "ActivityAssertion",
@@ -21,7 +21,6 @@ __all__ = [
     "check_field_verbose",
     "FieldAssertionType",
     "Selector",
-    "SelectorQuantifier",
     "AssertionQuantifier",
     "UNSET_FIELD",
 ]

@@ -232,7 +232,7 @@ class TestCheckFieldEdgeCases:
     def test_invalid_assertion_type(self):
         # Passing an unsupported assertion type should return False
         with pytest.raises(ValueError):
-           assert check_field("test", "test", "INVALID_TYPE")
+            assert check_field("test", "test", "INVALID_TYPE")
 
     def test_none_actual_value_with_equals(self):
         assert check_field(None, "test", FieldAssertionType.EQUALS) is False

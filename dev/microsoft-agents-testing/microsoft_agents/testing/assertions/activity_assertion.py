@@ -8,7 +8,7 @@ from typing import Optional
 from microsoft_agents.activity import Activity
 
 from .check_activity import check_activity_verbose
-from .selector import Selector, SelectorQuantifier
+from .selector import Selector
 from .type_defs import AssertionQuantifier, AssertionErrorData
 
 
@@ -31,7 +31,7 @@ class ActivityAssertion:
         """
 
         self._assertion = assertion or {}
-        self._selector = selector or Selector(quantifier=SelectorQuantifier.ALL)
+        self._selector = selector or Selector()
         self._quantifier = quantifier
 
     @staticmethod
@@ -67,7 +67,8 @@ class ActivityAssertion:
                     False,
                     f"Activity matched the assertion when none were expected: {activity}",
                 )
-            count += 1
+            if res:
+                count += 1
 
         passes = True
         if self._quantifier == AssertionQuantifier.ONE and count != 1:

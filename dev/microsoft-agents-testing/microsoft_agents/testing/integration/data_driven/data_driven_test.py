@@ -74,12 +74,11 @@ class DataDrivenTest:
                 await agent_client.send_activity(input_activity)
             elif step_type == "assertion":
 
+                activity_assertion = ActivityAssertion.from_config(step)
+
                 responses.extend(await response_client.pop())
 
-                # populate defaults
-
-                activity_assertion = ActivityAssertion(step)
-                assert activity_assertion.check(responses)
+                assert activity_assertion(responses)
 
             elif step_type == "sleep":
                 await self._sleep(step)
