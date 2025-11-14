@@ -222,6 +222,7 @@ class TestActivityAssertionCheckWithQuantifierAny:
         assert passes is True
         assert error is None
 
+
 class TestActivityAssertionFromConfig:
     """Tests for from_config static method."""
 
