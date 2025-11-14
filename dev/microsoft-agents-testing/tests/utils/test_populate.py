@@ -256,7 +256,9 @@ class TestPopulateActivity:
             type="message",
             from_property=ChannelAccount(id="user456", name="User"),
         )
-        defaults = Activity(type="invoke", from_property=ChannelAccount(id="bot123", name="Bot"))
+        defaults = Activity(
+            type="invoke", from_property=ChannelAccount(id="bot123", name="Bot")
+        )
         result = populate_activity(original, defaults)
         assert result.from_property.id == "user456"
 
@@ -343,7 +345,10 @@ class TestPopulateActivity:
     def test_populate_activity_preserves_empty_lists(self):
         """Test that empty lists in original are preserved."""
         original = Activity(type="message", attachments=[], entities=[])
-        defaults = {"attachments": [{"type": "card"}], "entities": [{"type": "mention"}]}
+        defaults = {
+            "attachments": [{"type": "card"}],
+            "entities": [{"type": "mention"}],
+        }
         result = populate_activity(original, defaults)
         # Empty lists are not None, so they should be preserved
         assert result.attachments == []

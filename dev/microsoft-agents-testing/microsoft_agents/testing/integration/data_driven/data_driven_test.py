@@ -24,18 +24,23 @@ class DataDrivenTest:
         self._input_defaults = defaults.get("input", {})
         self._assertion_defaults = defaults.get("assertion", {})
         self._sleep_defaults = defaults.get("sleep", {})
-        
+
         parent = test_flow.get("parent")
         if parent:
             with open(parent, "r", encoding="utf-8") as f:
                 parent_flow = yaml.safe_load(f)
                 input_defaults = parent_flow.get("defaults", {}).get("input", {})
                 sleep_defaults = parent_flow.get("defaults", {}).get("sleep", {})
-                assertion_defaults = parent_flow.get("defaults", {}).get("assertion", {})
+                assertion_defaults = parent_flow.get("defaults", {}).get(
+                    "assertion", {}
+                )
 
                 self._input_defaults = {**input_defaults, **self._input_defaults}
                 self._sleep_defaults = {**sleep_defaults, **self._sleep_defaults}
-                self._assertion_defaults = {**assertion_defaults, **self._assertion_defaults}
+                self._assertion_defaults = {
+                    **assertion_defaults,
+                    **self._assertion_defaults,
+                }
 
         self._test = test_flow.get("test", [])
 

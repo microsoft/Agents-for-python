@@ -1,66 +1,8 @@
-import pytest
+# Copyright (c) Microsoft Corporation. All rights reserved.
+# Licensed under the MIT License.
 
 from microsoft_agents.activity import Activity, Attachment
-
-from microsoft_agents.testing.assertions.type_defs import FieldAssertionType
 from microsoft_agents.testing.assertions.assertions import assert_activity
-from microsoft_agents.testing.assertions.check_field import _parse_assertion
-
-
-class TestParseAssertion:
-
-    @pytest.fixture(
-        params=[
-            FieldAssertionType.EQUALS,
-            FieldAssertionType.NOT_EQUALS,
-            FieldAssertionType.GREATER_THAN,
-        ]
-    )
-    def assertion_type_str(self, request):
-        return request.param
-
-    @pytest.fixture(params=["simple_value", {"key": "value"}, 42])
-    def assertion_value(self, request):
-        return request.param
-
-    def test_parse_assertion_dict(self, assertion_value, assertion_type_str):
-
-        assertion, assertion_type = _parse_assertion(
-            {"assertion_type": assertion_type_str, "assertion": assertion_value}
-        )
-        assert assertion == assertion_value
-        assert assertion_type == FieldAssertionType(assertion_type_str)
-
-    def test_parse_assertion_list(self, assertion_value, assertion_type_str):
-        assertion, assertion_type = _parse_assertion(
-            [assertion_type_str, assertion_value]
-        )
-        assert assertion == assertion_value
-        assert assertion_type.value == assertion_type_str
-
-    @pytest.mark.parametrize(
-        "field",
-        ["value", 123, 12.34],
-    )
-    def test_parse_assertion_default(self, field):
-        assertion, assertion_type = _parse_assertion(field)
-        assert assertion == field
-        assert assertion_type == FieldAssertionType.EQUALS
-
-    @pytest.mark.parametrize(
-        "field",
-        [
-            {"assertion_type": FieldAssertionType.IN},
-            {"assertion_type": FieldAssertionType.IN, "key": "value"},
-            [FieldAssertionType.RE_MATCH],
-            [],
-            {"assertion_type": "invalid", "assertion": "test"},
-        ],
-    )
-    def test_parse_assertion_none(self, field):
-        assertion, assertion_type = _parse_assertion(field)
-        assert assertion is None
-        assert assertion_type is None
 
 
 class TestAssertActivity:

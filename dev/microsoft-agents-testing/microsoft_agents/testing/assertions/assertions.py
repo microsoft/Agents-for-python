@@ -33,20 +33,3 @@ def assert_activity(activity: Activity, assertion: Activity | dict) -> None:
     """
     res, assertion_error_data = check_activity_verbose(activity, assertion)
     assert res, str(assertion_error_data)
-
-
-def assert_activities(activities: list[Activity], assertion_config: dict) -> None:
-    """Asserts that the given list of activities matches the baseline activities.
-
-    :param activities: The list of activities to be tested.
-    :param assertion: The baseline dictionary representing the expected activities data.
-    """
-
-    quantifier = assertion_config.get(
-        "quantifier",
-    )
-    selector = assertion_config.get("selector", {})
-
-    for activity in activities:
-        res, assertion_error_data = check_activity_verbose(activity, assertion)
-        assert res, str(assertion_error_data)

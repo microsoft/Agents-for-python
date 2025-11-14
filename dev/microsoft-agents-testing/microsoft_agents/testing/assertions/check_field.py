@@ -3,6 +3,7 @@ from typing import Any, Optional
 
 from .type_defs import FieldAssertionType, UNSET_FIELD
 
+
 _OPERATIONS = {
     FieldAssertionType.EQUALS: lambda a, b: a == b or (a is UNSET_FIELD and b is None),
     FieldAssertionType.NOT_EQUALS: lambda a, b: a != b

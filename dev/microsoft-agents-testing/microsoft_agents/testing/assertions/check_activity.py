@@ -1,7 +1,7 @@
 # Copyright (c) Microsoft Corporation. All rights reserved.
 # Licensed under the MIT License.
 
-from typing import Any, TypeVar, Optional
+from typing import Any, Optional
 
 from microsoft_agents.activity import Activity
 from microsoft_agents.testing.utils import normalize_activity_data
@@ -13,6 +13,13 @@ from .type_defs import UNSET_FIELD, FieldAssertionType, AssertionErrorData
 def _check(
     actual: Any, baseline: Any, field_path: str = ""
 ) -> tuple[bool, Optional[AssertionErrorData]]:
+    """Recursively checks the actual data against the baseline data.
+
+    :param actual: The actual data to be tested.
+    :param baseline: The baseline data to compare against.
+    :param field_path: The current field path being checked (for error reporting).
+    :return: A tuple containing a boolean indicating success and optional assertion error data.
+    """
 
     assertion, assertion_type = _parse_assertion(baseline)
 

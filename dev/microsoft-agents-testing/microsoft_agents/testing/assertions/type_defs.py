@@ -1,6 +1,8 @@
 # Copyright (c) Microsoft Corporation. All rights reserved.
 # Licensed under the MIT License.
 
+from __future__ import annotations
+
 from enum import Enum
 from dataclasses import dataclass
 from typing import Any
@@ -29,13 +31,6 @@ class FieldAssertionType(str, Enum):
     RE_MATCH = "RE_MATCH"
 
 
-class SelectorQuantifier(str, Enum):
-    """Defines quantifiers for selecting activities."""
-
-    ALL = "ALL"
-    ONE = "ONE"
-
-
 class AssertionQuantifier(str, Enum):
     """Defines quantifiers for assertions on activities."""
 
@@ -43,6 +38,18 @@ class AssertionQuantifier(str, Enum):
     ALL = "ALL"
     ONE = "ONE"
     NONE = "NONE"
+
+    @staticmethod
+    def from_config(value: str) -> AssertionQuantifier:
+        """Creates an AssertionQuantifier from a configuration string.
+
+        :param value: The configuration string.
+        :return: The corresponding AssertionQuantifier.
+        """
+        value = value.upper()
+        if value not in AssertionQuantifier:
+            raise ValueError(f"Invalid AssertionQuantifier value: {value}")
+        return AssertionQuantifier(value)
 
 
 @dataclass
