@@ -2,7 +2,7 @@
 # Licensed under the MIT License.
 
 from microsoft_agents.activity import Activity, Attachment
-from microsoft_agents.testing.assertions.assertions import assert_activity
+from microsoft_agents.testing.assertions import assert_activity, check_activity
 
 
 class TestAssertActivity:
@@ -18,7 +18,7 @@ class TestAssertActivity:
         """Test that activity doesn't match baseline with different field values."""
         activity = Activity(type="message", text="Hello")
         baseline = {"type": "message", "text": "Goodbye"}
-        assert_activity(activity, baseline)
+        assert not check_activity(activity, baseline)
 
     def test_assert_activity_with_activity_baseline(self):
         """Test that baseline can be an Activity object."""
@@ -41,7 +41,7 @@ class TestAssertActivity:
         """Test that activity with missing field doesn't match baseline."""
         activity = Activity(type="message")
         baseline = {"type": "message", "text": "Hello"}
-        assert_activity(activity, baseline)
+        assert not check_activity(activity, baseline)
 
     def test_assert_activity_with_none_values(self):
         """Test that None values are handled correctly."""
@@ -115,7 +115,7 @@ class TestAssertActivity:
         """Test that activity check fails if any field doesn't match."""
         activity = Activity(type="message", text="Hello", channel_id="test-channel")
         baseline = {"type": "message", "text": "Hello", "channel_id": "prod-channel"}
-        assert_activity(activity, baseline)
+        assert not check_activity(activity, baseline)
 
     def test_assert_activity_with_numeric_fields(self):
         """Test with numeric field values."""
@@ -161,7 +161,7 @@ class TestAssertActivity:
         """Test that different activity types don't match."""
         activity = Activity(type="message", text="Hello")
         baseline = {"type": "event", "text": "Hello"}
-        assert_activity(activity, baseline)
+        assert not check_activity(activity, baseline)
 
     def test_assert_activity_with_list_fields(self):
         """Test with list field values."""
@@ -211,7 +211,7 @@ class TestAssertActivityRealWorldScenarios:
         )
         baseline = {"type": "event", "name": "conversationUpdate"}
 
-        assert assert_activity(activity, baseline) is True
+        assert_activity(activity, baseline)
 
     def test_partial_match_allows_extra_fields(self):
         """Test that extra fields in activity don't cause failure."""

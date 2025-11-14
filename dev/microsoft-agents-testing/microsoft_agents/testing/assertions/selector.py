@@ -38,7 +38,7 @@ class Selector:
         When quantifier is ONE, index defaults to 0 if not provided.
         """
 
-        if not quantifier and not index:
+        if not quantifier and index is None:
             raise ValueError("Either quantifier or index must be provided.")
 
         if selector is None:
@@ -62,6 +62,7 @@ class Selector:
         else:
             if quantifier == SelectorQuantifier.ALL:
                 raise ValueError("Index should not be set when quantifier is ALL.")
+            quantifier = SelectorQuantifier.ONE
 
         assert isinstance(quantifier, SelectorQuantifier)  # linter hint
 
