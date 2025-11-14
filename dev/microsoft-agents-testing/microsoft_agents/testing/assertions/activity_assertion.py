@@ -79,13 +79,14 @@ class ActivityAssertion:
 
         return passes, None
 
-    def __call__(self, activities: list[Activity]) -> tuple[bool, Optional[str]]:
+    def __call__(self, activities: list[Activity]) -> None:
         """Allows the ActivityAssertion instance to be called directly.
 
         :param activities: The list of activities to be tested.
         :return: A tuple containing a boolean indicating if the assertion passed and an optional error message.
         """
-        return self.check(activities)
+        passes, error = self.check(activities)
+        assert passes, error
 
     @staticmethod
     def from_config(config: dict) -> ActivityAssertion:
@@ -94,7 +95,7 @@ class ActivityAssertion:
         :param config: The configuration dictionary containing quantifier, selector, and assertion.
         :return: An ActivityAssertion instance.
         """
-        assertion = config.get("assertion", {})
+        assertion = config.get("activity", {})
         selector = Selector.from_config(config.get("selector", {}))
         quantifier = AssertionQuantifier.from_config(config.get("quantifier", "all"))
 

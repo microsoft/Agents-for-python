@@ -21,7 +21,7 @@
 #     setattr(test_cls, test_case_name, func)
 
 # def ddt(test_path: str) -> Callable[[Integration], Integration]:
-    
+
 #     def decorator(test_cls: Integration) -> Integration:
 
 #         test_case_name = f"test_data_driven__{test_path.replace('/', '_').replace('.', '_')}"

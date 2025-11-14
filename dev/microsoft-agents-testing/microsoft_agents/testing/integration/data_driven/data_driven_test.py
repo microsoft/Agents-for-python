@@ -17,6 +17,7 @@ from microsoft_agents.testing.utils import (
 
 from ..core import AgentClient, ResponseClient
 
+
 class DataDrivenTest:
     """Data driven test runner."""
 
@@ -48,14 +49,14 @@ class DataDrivenTest:
         self._test = test_flow.get("test", [])
 
     def _load_input(self, input_data: dict) -> Activity:
-        data = deepcopy(self._input_defaults)
-        data.update(input_data)
-        return Activity.model_validate(data)
+        defaults = deepcopy(self._input_defaults)
+        update_with_defaults(input_data, defaults)
+        return Activity.model_validate(input_data.get("activity", {}))
 
-    def _load_assertion(self, assertion_data: dict) -> dict:
-        data = deepcopy(self._assertion_defaults)
-        data.update(assertion_data)
-        return data
+    def _load_assertion(self, assertion_data: dict) -> ActivityAssertion:
+        defaults = deepcopy(self._assertion_defaults)
+        update_with_defaults(assertion_data, defaults)
+        return ActivityAssertion.from_config(assertion_data)
 
     async def _sleep(self, sleep_data: dict) -> None:
         duration = sleep_data.get("duration")
@@ -63,9 +64,11 @@ class DataDrivenTest:
             duration = self._sleep_defaults.get("duration", 0)
         await asyncio.sleep(duration)
 
-    async def run(self, agent_client: AgentClient, response_client: ResponseClient) -> None:
+    async def run(
+        self, agent_client: AgentClient, response_client: ResponseClient
+    ) -> None:
         """Run the data driven test.
-        
+
         :param agent_client: The agent client to send activities to.
         """
 
@@ -77,18 +80,12 @@ class DataDrivenTest:
 
             if step_type == "input":
                 input_activity = self._load_input(step)
-                populate_activity(input_activity, self._input_defaults)
                 await agent_client.send_activity(input_activity)
+
             elif step_type == "assertion":
-
-                assertion = self._load_assertion(step)
-                update_with_defaults(assertion, self._assertion_defaults)
-                
-                activity_assertion = ActivityAssertion.from_config(assertion)
-
+                activity_assertion = self._load_assertion(step)
                 responses.extend(await response_client.pop())
-
-                assert activity_assertion(responses)
+                activity_assertion(responses)
 
             elif step_type == "sleep":
                 await self._sleep(step)

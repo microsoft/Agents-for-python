@@ -90,7 +90,7 @@ class Selector:
         :param config: The configuration dictionary containing selector, quantifier, and index.
         :return: A Selector instance.
         """
-        selector = config.get("selector", {})
+        selector = config.get("activity", {})
         index = config.get("index", None)
 
         return Selector(

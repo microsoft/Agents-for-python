@@ -222,40 +222,6 @@ class TestActivityAssertionCheckWithQuantifierAny:
         assert passes is True
         assert error is None
 
-
-class TestActivityAssertionCallable:
-    """Tests for __call__ method."""
-
-    @pytest.fixture
-    def activities(self):
-        """Create a list of test activities."""
-        return [
-            Activity(type="message", text="Hello"),
-            Activity(type="event", name="test_event"),
-        ]
-
-    def test_call_invokes_check(self, activities):
-        """Test that calling assertion instance invokes check()."""
-        assertion = ActivityAssertion(
-            assertion={"type": "message"}, quantifier=AssertionQuantifier.ALL
-        )
-        result = assertion(activities)
-        assert isinstance(result, tuple)
-        assert len(result) == 2
-        assert isinstance(result[0], bool)
-
-    def test_call_returns_same_as_check(self, activities):
-        """Test that __call__ returns same result as check()."""
-        assertion = ActivityAssertion(
-            assertion={"type": "message"},
-            selector=Selector(selector={"type": "message"}),
-            quantifier=AssertionQuantifier.ALL,
-        )
-        call_result = assertion(activities)
-        check_result = assertion.check(activities)
-        assert call_result == check_result
-
-
 class TestActivityAssertionFromConfig:
     """Tests for from_config static method."""
 
@@ -268,9 +234,9 @@ class TestActivityAssertionFromConfig:
 
     def test_from_config_with_assertion(self):
         """Test creating assertion from config with assertion field."""
-        config = {"assertion": {"type": "message", "text": "Hello"}}
+        config = {"activity": {"type": "message", "text": "Hello"}}
         assertion = ActivityAssertion.from_config(config)
-        assert assertion._assertion == config["assertion"]
+        assert assertion._assertion == config["activity"]
 
     def test_from_config_with_selector(self):
         """Test creating assertion from config with selector field."""
@@ -287,7 +253,7 @@ class TestActivityAssertionFromConfig:
     def test_from_config_with_all_fields(self):
         """Test creating assertion from config with all fields."""
         config = {
-            "assertion": {"type": "message"},
+            "activity": {"type": "message"},
             "selector": {
                 "selector": {"text": "Hello"},
                 "quantifier": "ONE",
@@ -309,7 +275,7 @@ class TestActivityAssertionFromConfig:
     def test_from_config_with_complex_assertion(self):
         """Test creating assertion from config with complex nested assertion."""
         config = {
-            "assertion": {"type": "message", "channelData": {"nested": {"value": 123}}},
+            "activity": {"type": "message", "channelData": {"nested": {"value": 123}}},
             "quantifier": "all",
         }
         assertion = ActivityAssertion.from_config(config)

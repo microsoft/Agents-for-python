@@ -4,7 +4,10 @@
 import pytest
 from microsoft_agents.activity import Activity, ChannelAccount, ConversationAccount
 
-from microsoft_agents.testing.utils.populate import update_with_defaults, populate_activity
+from microsoft_agents.testing.utils.populate import (
+    update_with_defaults,
+    populate_activity,
+)
 
 
 class TestUpdateWithDefaults:
