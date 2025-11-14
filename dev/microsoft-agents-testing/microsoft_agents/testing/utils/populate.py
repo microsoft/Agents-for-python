@@ -4,7 +4,7 @@
 from microsoft_agents.activity import Activity
 
 
-def default_update(original: dict, defaults: dict) -> None:
+def update_with_defaults(original: dict, defaults: dict) -> None:
     """Populate a dictionary with default values.
 
     :param original: The original dictionary to populate.
@@ -15,7 +15,7 @@ def default_update(original: dict, defaults: dict) -> None:
         if key not in original:
             original[key] = defaults[key]
         elif isinstance(original[key], dict) and isinstance(defaults[key], dict):
-            default_update(original[key], defaults[key])
+            update_with_defaults(original[key], defaults[key])
 
 
 def populate_activity(original: Activity, defaults: Activity | dict) -> Activity:

@@ -9,13 +9,16 @@ from copy import deepcopy
 
 from microsoft_agents.activity import Activity
 
-from microsoft_agents.testing.assertions import (
-    ActivityAssertion,
-    assert_activity,
+from microsoft_agents.testing.assertions import ActivityAssertion
+from microsoft_agents.testing.utils import (
+    populate_activity,
+    update_with_defaults,
 )
 
+from ..core import AgentClient, ResponseClient
 
 class DataDrivenTest:
+    """Data driven test runner."""
 
     def __init__(self, test_flow: dict) -> None:
         self._description = test_flow.get("description", "")
@@ -60,7 +63,11 @@ class DataDrivenTest:
             duration = self._sleep_defaults.get("duration", 0)
         await asyncio.sleep(duration)
 
-    async def run(self, agent_client, response_client) -> None:
+    async def run(self, agent_client: AgentClient, response_client: ResponseClient) -> None:
+        """Run the data driven test.
+        
+        :param agent_client: The agent client to send activities to.
+        """
 
         responses = []
         for step in self._test:
@@ -74,7 +81,10 @@ class DataDrivenTest:
                 await agent_client.send_activity(input_activity)
             elif step_type == "assertion":
 
-                activity_assertion = ActivityAssertion.from_config(step)
+                assertion = self._load_assertion(step)
+                update_with_defaults(assertion, self._assertion_defaults)
+                
+                activity_assertion = ActivityAssertion.from_config(assertion)
 
                 responses.extend(await response_client.pop())
 

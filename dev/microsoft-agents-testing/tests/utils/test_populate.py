@@ -4,52 +4,52 @@
 import pytest
 from microsoft_agents.activity import Activity, ChannelAccount, ConversationAccount
 
-from microsoft_agents.testing.utils.populate import default_update, populate_activity
+from microsoft_agents.testing.utils.populate import update_with_defaults, populate_activity
 
 
-class TestDefaultUpdate:
-    """Tests for the default_update function."""
+class TestUpdateWithDefaults:
+    """Tests for the update_with_defaults function."""
 
-    def test_default_update_with_empty_original(self):
+    def test_update_with_defaults_with_empty_original(self):
         """Test that defaults are added to an empty dictionary."""
         original = {}
         defaults = {"key1": "value1", "key2": "value2"}
-        default_update(original, defaults)
+        update_with_defaults(original, defaults)
         assert original == {"key1": "value1", "key2": "value2"}
 
-    def test_default_update_with_empty_defaults(self):
+    def test_update_with_defaults_with_empty_defaults(self):
         """Test that original dictionary is unchanged when defaults is empty."""
         original = {"key1": "value1"}
         defaults = {}
-        default_update(original, defaults)
+        update_with_defaults(original, defaults)
         assert original == {"key1": "value1"}
 
-    def test_default_update_with_non_overlapping_keys(self):
+    def test_update_with_defaults_with_non_overlapping_keys(self):
         """Test that defaults are added when keys don't overlap."""
         original = {"key1": "value1"}
         defaults = {"key2": "value2", "key3": "value3"}
-        default_update(original, defaults)
+        update_with_defaults(original, defaults)
         assert original == {"key1": "value1", "key2": "value2", "key3": "value3"}
 
-    def test_default_update_preserves_existing_values(self):
+    def test_update_with_defaults_preserves_existing_values(self):
         """Test that existing values in original are not overwritten."""
         original = {"key1": "original_value", "key2": "value2"}
         defaults = {"key1": "default_value", "key3": "value3"}
-        default_update(original, defaults)
+        update_with_defaults(original, defaults)
         assert original == {
             "key1": "original_value",
             "key2": "value2",
             "key3": "value3",
         }
 
-    def test_default_update_with_nested_dicts(self):
+    def test_update_with_defaults_with_nested_dicts(self):
         """Test that nested dictionaries are recursively updated."""
         original = {"nested": {"key1": "original"}}
         defaults = {"nested": {"key1": "default", "key2": "value2"}}
-        default_update(original, defaults)
+        update_with_defaults(original, defaults)
         assert original == {"nested": {"key1": "original", "key2": "value2"}}
 
-    def test_default_update_with_deeply_nested_dicts(self):
+    def test_update_with_defaults_with_deeply_nested_dicts(self):
         """Test recursive update with deeply nested structures."""
         original = {"level1": {"level2": {"key1": "original"}}}
         defaults = {
@@ -58,7 +58,7 @@ class TestDefaultUpdate:
                 "level2b": {"key3": "value3"},
             }
         }
-        default_update(original, defaults)
+        update_with_defaults(original, defaults)
         assert original == {
             "level1": {
                 "level2": {"key1": "original", "key2": "value2"},
@@ -66,14 +66,14 @@ class TestDefaultUpdate:
             }
         }
 
-    def test_default_update_adds_nested_dict_when_missing(self):
+    def test_update_with_defaults_adds_nested_dict_when_missing(self):
         """Test that nested dicts are added when they don't exist in original."""
         original = {"key1": "value1"}
         defaults = {"nested": {"key2": "value2"}}
-        default_update(original, defaults)
+        update_with_defaults(original, defaults)
         assert original == {"key1": "value1", "nested": {"key2": "value2"}}
 
-    def test_default_update_with_mixed_types(self):
+    def test_update_with_defaults_with_mixed_types(self):
         """Test with various value types: strings, numbers, booleans, lists."""
         original = {"str": "text", "num": 42}
         defaults = {
@@ -82,7 +82,7 @@ class TestDefaultUpdate:
             "list": [1, 2, 3],
             "none": None,
         }
-        default_update(original, defaults)
+        update_with_defaults(original, defaults)
         assert original == {
             "str": "text",
             "num": 42,
@@ -91,51 +91,51 @@ class TestDefaultUpdate:
             "none": None,
         }
 
-    def test_default_update_with_none_values(self):
+    def test_update_with_defaults_with_none_values(self):
         """Test that None values in defaults are added."""
         original = {"key1": "value1"}
         defaults = {"key2": None}
-        default_update(original, defaults)
+        update_with_defaults(original, defaults)
         assert original == {"key1": "value1", "key2": None}
 
-    def test_default_update_preserves_none_in_original(self):
+    def test_update_with_defaults_preserves_none_in_original(self):
         """Test that None values in original are preserved."""
         original = {"key1": None}
         defaults = {"key1": "default_value"}
-        default_update(original, defaults)
+        update_with_defaults(original, defaults)
         assert original == {"key1": None}
 
-    def test_default_update_with_list_values(self):
+    def test_update_with_defaults_with_list_values(self):
         """Test that list values are not merged, only added if missing."""
         original = {"list1": [1, 2]}
         defaults = {"list1": [3, 4], "list2": [5, 6]}
-        default_update(original, defaults)
+        update_with_defaults(original, defaults)
         assert original == {"list1": [1, 2], "list2": [5, 6]}
 
-    def test_default_update_type_mismatch_original_wins(self):
+    def test_update_with_defaults_type_mismatch_original_wins(self):
         """Test that when types differ, original value is preserved."""
         original = {"key1": "string_value"}
         defaults = {"key1": {"nested": "dict"}}
-        default_update(original, defaults)
+        update_with_defaults(original, defaults)
         assert original == {"key1": "string_value"}
 
-    def test_default_update_type_mismatch_defaults_dict(self):
+    def test_update_with_defaults_type_mismatch_defaults_dict(self):
         """Test that when original is dict and default is not, original is preserved."""
         original = {"key1": {"nested": "dict"}}
         defaults = {"key1": "string_value"}
-        default_update(original, defaults)
+        update_with_defaults(original, defaults)
         assert original == {"key1": {"nested": "dict"}}
 
-    def test_default_update_modifies_in_place(self):
+    def test_update_with_defaults_modifies_in_place(self):
         """Test that the function modifies the original dict in place."""
         original = {"key1": "value1"}
         original_id = id(original)
         defaults = {"key2": "value2"}
-        default_update(original, defaults)
+        update_with_defaults(original, defaults)
         assert id(original) == original_id
         assert original == {"key1": "value1", "key2": "value2"}
 
-    def test_default_update_with_complex_nested_structure(self):
+    def test_update_with_defaults_with_complex_nested_structure(self):
         """Test with complex real-world-like nested structure."""
         original = {
             "user": {"name": "Alice", "settings": {"theme": "dark"}},
@@ -149,7 +149,7 @@ class TestDefaultUpdate:
             },
             "channel": "default-channel",
         }
-        default_update(original, defaults)
+        update_with_defaults(original, defaults)
         assert original == {
             "user": {
                 "name": "Alice",
