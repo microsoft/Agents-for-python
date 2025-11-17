@@ -22,6 +22,9 @@ class DataDrivenTest:
     """Data driven test runner."""
 
     def __init__(self, test_flow: dict) -> None:
+        self._name = test_flow.get("name")
+        if not self._name:
+            raise ValueError("Test flow must have a 'name' field.")
         self._description = test_flow.get("description", "")
 
         defaults = test_flow.get("defaults", {})
@@ -31,20 +34,18 @@ class DataDrivenTest:
 
         parent = test_flow.get("parent")
         if parent:
-            with open(parent, "r", encoding="utf-8") as f:
-                parent_flow = yaml.safe_load(f)
-                input_defaults = parent_flow.get("defaults", {}).get("input", {})
-                sleep_defaults = parent_flow.get("defaults", {}).get("sleep", {})
-                assertion_defaults = parent_flow.get("defaults", {}).get(
-                    "assertion", {}
-                )
+            input_defaults = parent.get("defaults", {}).get("input", {})
+            sleep_defaults = parent.get("defaults", {}).get("sleep", {})
+            assertion_defaults = parent.get("defaults", {}).get(
+                "assertion", {}
+            )
 
-                self._input_defaults = {**input_defaults, **self._input_defaults}
-                self._sleep_defaults = {**sleep_defaults, **self._sleep_defaults}
-                self._assertion_defaults = {
-                    **assertion_defaults,
-                    **self._assertion_defaults,
-                }
+            self._input_defaults = {**input_defaults, **self._input_defaults}
+            self._sleep_defaults = {**sleep_defaults, **self._sleep_defaults}
+            self._assertion_defaults = {
+                **assertion_defaults,
+                **self._assertion_defaults,
+            }
 
         self._test = test_flow.get("test", [])
 
