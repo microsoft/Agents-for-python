@@ -10,6 +10,15 @@ from .middleware_set import Middleware
 from .rest_channel_service_client_factory import RestChannelServiceClientFactory
 from .turn_context import TurnContext
 
+# HTTP abstractions
+from .http import (
+    HttpRequestProtocol,
+    HttpResponse,
+    HttpResponseFactory,
+    HttpAdapterBase,
+    ChannelServiceRoutes,
+)
+
 # Application Style
 from .app._type_defs import RouteHandler, RouteSelector, StateT
 from .app.agent_application import AgentApplication
@@ -19,6 +28,13 @@ from .app.input_file import InputFile, InputFileDownloader
 from .app.query import Query
 from .app._routes import _Route, _RouteList, RouteRank
 from .app.typing_indicator import TypingIndicator
+
+# App Streaming
+from .app.streaming import (
+    Citation,
+    CitationUtil,
+    StreamingResponse,
+)
 
 # App Auth
 from .app.oauth import (
@@ -96,6 +112,11 @@ __all__ = [
     "Middleware",
     "RestChannelServiceClientFactory",
     "TurnContext",
+    "HttpRequestProtocol",
+    "HttpResponse",
+    "HttpResponseFactory",
+    "HttpAdapterBase",
+    "ChannelServiceRoutes",
     "AgentApplication",
     "ApplicationError",
     "ApplicationOptions",
@@ -105,6 +126,9 @@ __all__ = [
     "Route",
     "RouteHandler",
     "TypingIndicator",
+    "Citation",
+    "CitationUtil",
+    "StreamingResponse",
     "ConversationState",
     "state",
     "State",

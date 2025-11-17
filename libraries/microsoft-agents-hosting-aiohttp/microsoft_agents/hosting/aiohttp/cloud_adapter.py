@@ -1,38 +1,48 @@
 # Copyright (c) Microsoft Corporation. All rights reserved.
 # Licensed under the MIT License.
-from traceback import format_exc
 from typing import Optional
 
-from aiohttp.web import (
-    Request,
-    Response,
-    json_response,
-    HTTPBadRequest,
-    HTTPMethodNotAllowed,
-    HTTPUnauthorized,
-    HTTPUnsupportedMediaType,
+from aiohttp.web import Request, Response, json_response
+
+from microsoft_agents.hosting.core import Agent
+from microsoft_agents.hosting.core.authorization import Connections
+from microsoft_agents.hosting.core.http import (
+    HttpAdapterBase,
+    HttpRequestProtocol,
+    HttpResponse,
 )
-from microsoft_agents.hosting.core.authorization import (
-    ClaimsIdentity,
-    Connections,
-)
-from microsoft_agents.activity import (
-    Activity,
-    DeliveryModes,
-)
-from microsoft_agents.hosting.core import (
-    Agent,
-    ChannelServiceAdapter,
-    ChannelServiceClientFactoryBase,
-    MessageFactory,
-    RestChannelServiceClientFactory,
-    TurnContext,
-)
+from microsoft_agents.hosting.core import ChannelServiceClientFactoryBase
 
 from .agent_http_adapter import AgentHttpAdapter
 
 
-class CloudAdapter(ChannelServiceAdapter, AgentHttpAdapter):
+class AiohttpRequestAdapter:
+    """Adapter to make aiohttp Request compatible with HttpRequestProtocol."""
+
+    def __init__(self, request: Request):
+        self._request = request
+
+    @property
+    def method(self) -> str:
+        return self._request.method
+
+    @property
+    def headers(self):
+        return self._request.headers
+
+    async def json(self):
+        return await self._request.json()
+
+    def get_claims_identity(self):
+        return self._request.get("claims_identity")
+
+    def get_path_param(self, name: str) -> str:
+        return self._request.match_info[name]
+
+
+class CloudAdapter(HttpAdapterBase, AgentHttpAdapter):
+    """CloudAdapter for aiohttp web framework."""
+
     def __init__(
         self,
         *,
@@ -42,77 +52,43 @@ class CloudAdapter(ChannelServiceAdapter, AgentHttpAdapter):
         """
         Initializes a new instance of the CloudAdapter class.
 
+        :param connection_manager: Optional connection manager for OAuth.
         :param channel_service_client_factory: The factory to use to create the channel service client.
         """
-
-        async def on_turn_error(context: TurnContext, error: Exception):
-            error_message = f"Exception caught : {error}"
-            print(format_exc())
-
-            await context.send_activity(MessageFactory.text(error_message))
-
-            # Send a trace activity
-            await context.send_trace_activity(
-                "OnTurnError Trace",
-                error_message,
-                "https://www.botframework.com/schemas/error",
-                "TurnError",
-            )
-
-        self.on_turn_error = on_turn_error
-
-        channel_service_client_factory = (
-            channel_service_client_factory
-            or RestChannelServiceClientFactory(connection_manager)
+        super().__init__(
+            connection_manager=connection_manager,
+            channel_service_client_factory=channel_service_client_factory,
         )
 
-        super().__init__(channel_service_client_factory)
-
     async def process(self, request: Request, agent: Agent) -> Optional[Response]:
-        if not request:
-            raise TypeError("CloudAdapter.process: request can't be None")
-        if not agent:
-            raise TypeError("CloudAdapter.process: agent can't be None")
+        """Process an aiohttp request.
 
-        if request.method == "POST":
-            # Deserialize the incoming Activity
-            if "application/json" in request.headers["Content-Type"]:
-                body = await request.json()
-            else:
-                raise HTTPUnsupportedMediaType()
+        Args:
+            request: The aiohttp request.
+            agent: The agent to handle the request.
 
-            activity: Activity = Activity.model_validate(body)
+        Returns:
+            aiohttp Response object.
+        """
+        # Adapt request to protocol
+        adapted_request = AiohttpRequestAdapter(request)
 
-            # default to anonymous identity with no claims
-            claims_identity: ClaimsIdentity = request.get(
-                "claims_identity", ClaimsIdentity({}, False)
+        # Process using base implementation
+        http_response: HttpResponse = await self.process_request(adapted_request, agent)
+
+        # Convert HttpResponse to aiohttp Response
+        return self._to_aiohttp_response(http_response)
+
+    @staticmethod
+    def _to_aiohttp_response(http_response: HttpResponse) -> Response:
+        """Convert HttpResponse to aiohttp Response."""
+        if http_response.body is not None:
+            return json_response(
+                data=http_response.body,
+                status=http_response.status_code,
+                headers=http_response.headers,
             )
-
-            # A POST request must contain an Activity
-            if (
-                not activity.type
-                or not activity.conversation
-                or not activity.conversation.id
-            ):
-                raise HTTPBadRequest
-
-            try:
-                # Process the inbound activity with the agent
-                invoke_response = await self.process_activity(
-                    claims_identity, activity, agent.on_turn
-                )
-
-                if (
-                    activity.type == "invoke"
-                    or activity.delivery_mode == DeliveryModes.expect_replies
-                ):
-                    # Invoke and ExpectReplies cannot be performed async, the response must be written before the calling thread is released.
-                    return json_response(
-                        data=invoke_response.body, status=invoke_response.status
-                    )
-
-                return Response(status=202)
-            except PermissionError:
-                raise HTTPUnauthorized
-        else:
-            raise HTTPMethodNotAllowed
+        return Response(
+            status=http_response.status_code,
+            headers=http_response.headers,
+        )
