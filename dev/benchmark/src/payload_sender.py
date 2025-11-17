@@ -21,7 +21,10 @@ def create_payload_sender(
 
     token = generate_token_from_env()
     endpoint = BenchmarkConfig.AGENT_URL
-    headers = {"Authorization": f"Bearer {token}", "Content-Type": "application/json"}
+    if token:
+        headers = {"Authorization": f"Bearer {token}", "Content-Type": "application/json"}
+    else:
+        headers = {"Content-Type": "application/json"}
 
     async def payload_sender() -> Any:
         response = await asyncio.to_thread(
