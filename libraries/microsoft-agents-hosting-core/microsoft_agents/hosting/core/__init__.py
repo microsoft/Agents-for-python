@@ -9,14 +9,6 @@ from .message_factory import MessageFactory
 from .middleware_set import Middleware
 from .rest_channel_service_client_factory import RestChannelServiceClientFactory
 from .turn_context import TurnContext
-from .http import (
-    AgentHttpAdapterProtocol,
-    ChannelServiceOperations,
-    CloudAdapterBase,
-    parse_agents_model,
-    serialize_agents_model,
-    start_agent_process,
-)
 
 # Application Style
 from .app._type_defs import RouteHandler, RouteSelector, StateT
@@ -104,12 +96,6 @@ __all__ = [
     "Middleware",
     "RestChannelServiceClientFactory",
     "TurnContext",
-    "AgentHttpAdapterProtocol",
-    "ChannelServiceOperations",
-    "CloudAdapterBase",
-    "parse_agents_model",
-    "serialize_agents_model",
-    "start_agent_process",
     "AgentApplication",
     "ApplicationError",
     "ApplicationOptions",

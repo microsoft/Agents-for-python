@@ -1,62 +1,112 @@
-from typing import Any, Optional
+# Copyright (c) Microsoft Corporation. All rights reserved.
+# Licensed under the MIT License.
+from traceback import format_exc
+from typing import Optional
 
-from fastapi import HTTPException, Request, Response
+from fastapi import Request, Response, HTTPException
 from fastapi.responses import JSONResponse
-
-from microsoft_agents.hosting.core import (
-    ChannelServiceClientFactoryBase,
-    CloudAdapterBase,
+from microsoft_agents.hosting.core.authorization import (
+    ClaimsIdentity,
     Connections,
 )
-from microsoft_agents.hosting.core.authorization import ClaimsIdentity
+from microsoft_agents.activity import (
+    Activity,
+    DeliveryModes,
+)
+from microsoft_agents.hosting.core import (
+    Agent,
+    ChannelServiceAdapter,
+    ChannelServiceClientFactoryBase,
+    MessageFactory,
+    RestChannelServiceClientFactory,
+    TurnContext,
+)
 
 from .agent_http_adapter import AgentHttpAdapter
 
 
-class CloudAdapter(CloudAdapterBase[Request, Response], AgentHttpAdapter):
+class CloudAdapter(ChannelServiceAdapter, AgentHttpAdapter):
     def __init__(
         self,
         *,
-        connection_manager: Connections | None = None,
-        channel_service_client_factory: ChannelServiceClientFactoryBase | None = None,
-    ) -> None:
-        super().__init__(
-            connection_manager=connection_manager,
-            channel_service_client_factory=channel_service_client_factory,
+        connection_manager: Connections = None,
+        channel_service_client_factory: ChannelServiceClientFactoryBase = None,
+    ):
+        """
+        Initializes a new instance of the CloudAdapter class.
+
+        :param channel_service_client_factory: The factory to use to create the channel service client.
+        """
+
+        async def on_turn_error(context: TurnContext, error: Exception):
+            error_message = f"Exception caught : {error}"
+            print(format_exc())
+
+            await context.send_activity(MessageFactory.text(error_message))
+
+            # Send a trace activity
+            await context.send_trace_activity(
+                "OnTurnError Trace",
+                error_message,
+                "https://www.botframework.com/schemas/error",
+                "TurnError",
+            )
+
+        self.on_turn_error = on_turn_error
+
+        channel_service_client_factory = (
+            channel_service_client_factory
+            or RestChannelServiceClientFactory(connection_manager)
         )
 
-    def _get_method(self, request: Request) -> str:
-        return request.method
+        super().__init__(channel_service_client_factory)
 
-    async def _read_json_body(self, request: Request) -> Any:
-        if "application/json" not in request.headers.get("Content-Type", ""):
-            raise self._unsupported_media_type_error(request)
-        return await request.json()
+    async def process(self, request: Request, agent: Agent) -> Optional[Response]:
+        if not request:
+            raise TypeError("CloudAdapter.process: request can't be None")
+        if not agent:
+            raise TypeError("CloudAdapter.process: agent can't be None")
 
-    def _get_claims_identity(self, request: Request) -> ClaimsIdentity | None:
-        return getattr(
-            request.state, "claims_identity", self._default_claims_identity()
-        )
+        if request.method == "POST":
+            # Deserialize the incoming Activity
+            content_type = request.headers.get("Content-Type", "")
+            if "application/json" in content_type:
+                body = await request.json()
+            else:
+                raise HTTPException(status_code=415, detail="Unsupported Media Type")
 
-    def _method_not_allowed_error(self, request: Request) -> Exception:
-        return HTTPException(status_code=405, detail="Method Not Allowed")
+            activity: Activity = Activity.model_validate(body)
 
-    def _unsupported_media_type_error(self, request: Request) -> Exception:
-        return HTTPException(status_code=415, detail="Unsupported Media Type")
+            # default to anonymous identity with no claims
+            claims_identity: ClaimsIdentity = getattr(
+                request.state, "claims_identity", ClaimsIdentity({}, False)
+            )
 
-    def _bad_request_error(self, request: Request) -> Exception:
-        return HTTPException(status_code=400, detail="Bad Request")
+            # A POST request must contain an Activity
+            if (
+                not activity.type
+                or not activity.conversation
+                or not activity.conversation.id
+            ):
+                raise HTTPException(status_code=400, detail="Bad Request")
 
-    def _unauthorized_error(self, request: Request) -> Exception:
-        return HTTPException(status_code=401, detail="Unauthorized")
+            try:
+                # Process the inbound activity with the agent
+                invoke_response = await self.process_activity(
+                    claims_identity, activity, agent.on_turn
+                )
 
-    def _create_invoke_response(
-        self, request: Request, invoke_response: Any
-    ) -> Response:
-        return JSONResponse(
-            content=invoke_response.body,
-            status_code=invoke_response.status,
-        )
+                if (
+                    activity.type == "invoke"
+                    or activity.delivery_mode == DeliveryModes.expect_replies
+                ):
+                    # Invoke and ExpectReplies cannot be performed async, the response must be written before the calling thread is released.
+                    return JSONResponse(
+                        content=invoke_response.body, status_code=invoke_response.status
+                    )
 
-    def _create_accepted_response(self, request: Request) -> Response:
-        return Response(status_code=202)
+                return Response(status_code=202)
+            except PermissionError:
+                raise HTTPException(status_code=401, detail="Unauthorized")
+        else:
+            raise HTTPException(status_code=405, detail="Method Not Allowed")
