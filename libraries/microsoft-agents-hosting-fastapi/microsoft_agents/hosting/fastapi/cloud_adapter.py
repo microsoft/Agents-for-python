@@ -9,7 +9,6 @@ from microsoft_agents.hosting.core import Agent
 from microsoft_agents.hosting.core.authorization import Connections
 from microsoft_agents.hosting.core.http import (
     HttpAdapterBase,
-    HttpRequestProtocol,
     HttpResponse,
 )
 from microsoft_agents.hosting.core import ChannelServiceClientFactoryBase
