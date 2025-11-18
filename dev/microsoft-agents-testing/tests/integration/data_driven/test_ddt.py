@@ -8,7 +8,11 @@ from pathlib import Path
 from unittest.mock import Mock, AsyncMock, patch, MagicMock
 
 from microsoft_agents.activity import Activity
-from microsoft_agents.testing.integration.core import Integration, AgentClient, ResponseClient
+from microsoft_agents.testing.integration.core import (
+    Integration,
+    AgentClient,
+    ResponseClient,
+)
 from microsoft_agents.testing.integration.data_driven import DataDrivenTest, ddt
 from microsoft_agents.testing.integration.data_driven.ddt import _add_test_method
 
@@ -18,6 +22,7 @@ class TestAddTestMethod:
 
     def test_add_test_method_creates_method(self):
         """Test that _add_test_method creates a new test method on the class."""
+
         class TestClass(Integration):
             pass
 
@@ -33,6 +38,7 @@ class TestAddTestMethod:
 
     def test_add_test_method_replaces_slashes_in_name(self):
         """Test that slashes in test name are replaced with underscores."""
+
         class TestClass(Integration):
             pass
 
@@ -47,6 +53,7 @@ class TestAddTestMethod:
 
     def test_add_test_method_replaces_dots_in_name(self):
         """Test that dots in test name are replaced with underscores."""
+
         class TestClass(Integration):
             pass
 
@@ -60,6 +67,7 @@ class TestAddTestMethod:
 
     def test_add_test_method_replaces_multiple_special_chars(self):
         """Test that multiple special characters are replaced."""
+
         class TestClass(Integration):
             pass
 
@@ -74,6 +82,7 @@ class TestAddTestMethod:
     @pytest.mark.asyncio
     async def test_add_test_method_runs_data_driven_test(self):
         """Test that the added method runs the data driven test."""
+
         class TestClass(Integration):
             pass
 
@@ -87,13 +96,16 @@ class TestAddTestMethod:
         mock_agent_client = AsyncMock(spec=AgentClient)
         mock_response_client = AsyncMock(spec=ResponseClient)
 
-        await test_instance.test_data_driven__test_case(mock_agent_client, mock_response_client)
+        await test_instance.test_data_driven__test_case(
+            mock_agent_client, mock_response_client
+        )
 
         mock_ddt.run.assert_called_once_with(mock_agent_client, mock_response_client)
 
     @pytest.mark.asyncio
     async def test_add_test_method_has_pytest_asyncio_mark(self):
         """Test that the added method has pytest.mark.asyncio decorator."""
+
         class TestClass(Integration):
             pass
 
@@ -109,6 +121,7 @@ class TestAddTestMethod:
 
     def test_add_test_method_multiple_tests(self):
         """Test adding multiple test methods to the same class."""
+
         class TestClass(Integration):
             pass
 
@@ -129,6 +142,7 @@ class TestAddTestMethod:
     @pytest.mark.asyncio
     async def test_add_test_method_preserves_test_scope(self):
         """Test that each added method maintains its own test scope."""
+
         class TestClass(Integration):
             pass
 
@@ -147,8 +161,12 @@ class TestAddTestMethod:
         mock_agent_client = AsyncMock(spec=AgentClient)
         mock_response_client = AsyncMock(spec=ResponseClient)
 
-        await test_instance.test_data_driven__test_1(mock_agent_client, mock_response_client)
-        await test_instance.test_data_driven__test_2(mock_agent_client, mock_response_client)
+        await test_instance.test_data_driven__test_1(
+            mock_agent_client, mock_response_client
+        )
+        await test_instance.test_data_driven__test_2(
+            mock_agent_client, mock_response_client
+        )
 
         # Each test should call its own run method
         mock_ddt1.run.assert_called_once()
@@ -156,6 +174,7 @@ class TestAddTestMethod:
 
     def test_add_test_method_empty_name(self):
         """Test adding method with empty test name."""
+
         class TestClass(Integration):
             pass
 
@@ -169,6 +188,7 @@ class TestAddTestMethod:
 
     def test_add_test_method_name_with_spaces(self):
         """Test that spaces in names are preserved (converted to underscores by replace)."""
+
         class TestClass(Integration):
             pass
 
@@ -335,7 +355,7 @@ class TestDdtDecoratorIntegration:
                 "name": "real_test",
                 "test": [
                     {"type": "input", "activity": {"type": "message", "text": "Hello"}}
-                ]
+                ],
             }
             test_file = Path(temp_dir) / "test.json"
             with open(test_file, "w", encoding="utf-8") as f:
@@ -440,7 +460,7 @@ test:
                 "name": "runnable_test",
                 "test": [
                     {"type": "input", "activity": {"type": "message", "text": "Hello"}}
-                ]
+                ],
             }
             test_file = Path(temp_dir) / "test.json"
             with open(test_file, "w", encoding="utf-8") as f:
@@ -454,7 +474,9 @@ test:
             mock_agent_client = AsyncMock(spec=AgentClient)
             mock_response_client = AsyncMock(spec=ResponseClient)
 
-            await test_instance.test_data_driven__runnable_test(mock_agent_client, mock_response_client)
+            await test_instance.test_data_driven__runnable_test(
+                mock_agent_client, mock_response_client
+            )
 
             # Verify the test ran
             mock_agent_client.send_activity.assert_called_once()
@@ -469,6 +491,7 @@ class TestDdtDecoratorEdgeCases:
         mock_load_ddts.side_effect = FileNotFoundError("Test files not found")
 
         with pytest.raises(FileNotFoundError):
+
             @ddt("nonexistent_path")
             class TestClass(Integration):
                 pass
@@ -527,6 +550,7 @@ class TestDdtDecoratorEdgeCases:
         @ddt("test_path")
         class TestClass(Integration):
             """This is a test class docstring."""
+
             pass
 
         assert TestClass.__doc__ == "This is a test class docstring."
@@ -595,10 +619,11 @@ class TestDdtDecoratorWithRealIntegrationClass:
 
         # The generated method should accept agent_client and response_client parameters
         import inspect
+
         method = getattr(MyIntegrationTest, "test_data_driven__fixture_test")
         sig = inspect.signature(method)
         params = list(sig.parameters.keys())
-        
+
         assert "self" in params
         assert "agent_client" in params
         assert "response_client" in params
@@ -629,9 +654,10 @@ class TestDdtDecoratorWithRealIntegrationClass:
         from typing import get_type_hints
 
         decorator = ddt("test_path")
-        
+
         # Verify decorator signature
         import inspect
+
         sig = inspect.signature(decorator)
         assert "test_cls" in sig.parameters
 
@@ -644,7 +670,7 @@ class TestDdtDecoratorWithRealIntegrationClass:
             pass
 
         decorated = ddt("test_path")(TestClass)
-        
+
         assert isinstance(decorated, type)
         assert issubclass(decorated, Integration)
 

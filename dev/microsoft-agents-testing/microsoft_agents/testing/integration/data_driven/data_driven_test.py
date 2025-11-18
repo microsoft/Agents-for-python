@@ -36,15 +36,11 @@ class DataDrivenTest:
         if parent:
             parent_input_defaults = parent.get("defaults", {}).get("input", {})
             parent_sleep_defaults = parent.get("defaults", {}).get("sleep", {})
-            parent_assertion_defaults = parent.get("defaults", {}).get(
-                "assertion", {}
-            )
+            parent_assertion_defaults = parent.get("defaults", {}).get("assertion", {})
 
             update_with_defaults(self._input_defaults, parent_input_defaults)
             update_with_defaults(self._sleep_defaults, parent_sleep_defaults)
-            update_with_defaults(
-                self._assertion_defaults, parent_assertion_defaults
-            )
+            update_with_defaults(self._assertion_defaults, parent_assertion_defaults)
 
         self._test = test_flow.get("test", [])
 
