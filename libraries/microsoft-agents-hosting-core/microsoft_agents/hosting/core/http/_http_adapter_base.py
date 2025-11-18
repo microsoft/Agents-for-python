@@ -5,7 +5,6 @@
 
 from abc import ABC
 from traceback import format_exc
-from typing import Optional
 
 from microsoft_agents.activity import Activity, DeliveryModes
 from microsoft_agents.hosting.core.authorization import ClaimsIdentity, Connections
