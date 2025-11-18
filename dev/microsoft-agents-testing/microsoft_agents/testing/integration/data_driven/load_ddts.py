@@ -40,17 +40,22 @@ def load_ddts(path: str | Path | None = None, recursive: bool = False) -> list[D
     if not path:
         path = Path.cwd()
 
-    json_file_paths = glob(f"{path}/**/*.json", recursive=recursive)
-    yaml_file_paths = glob(f"{path}/**/*.yaml", recursive=recursive)
+    if recursive:
+        json_file_paths = glob(f"{path}/**/*.json", recursive=True)
+        yaml_file_paths = glob(f"{path}/**/*.yaml", recursive=True)
+    else:
+        json_file_paths = glob(f"{path}/*.json")
+        yaml_file_paths = glob(f"{path}/*.yaml")
 
-    tests_json = {
-        str(Path(file_path).absolute()): json.load(open(file_path, "r", encoding="utf-8"))
-        for file_path in json_file_paths
-    }
-    tests_yaml = {
-        str(Path(file_path).absolute()): safe_load(open(file_path, "r", encoding="utf-8"))
-        for file_path in yaml_file_paths
-    }
+    tests_json = dict()
+    for json_file_path in json_file_paths:
+        with open(json_file_path, "r", encoding="utf-8") as f:
+            tests_json[str(Path(json_file_path).absolute())] = json.load(f)
+
+    tests_yaml = dict()
+    for yaml_file_path in yaml_file_paths:
+        with open(yaml_file_path, "r", encoding="utf-8") as f:
+            tests_yaml[str(Path(yaml_file_path).absolute())] = yaml.safe_load(f)
 
     tests = {
         **tests_json,
