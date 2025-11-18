@@ -4,7 +4,6 @@
 import asyncio
 import logging
 from typing import List, Optional, Callable, Literal, TYPE_CHECKING
-from dataclasses import dataclass
 
 from microsoft_agents.activity import (
     Activity,
