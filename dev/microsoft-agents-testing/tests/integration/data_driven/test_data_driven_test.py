@@ -172,15 +172,15 @@ class TestDataDrivenTestLoadInput:
         assert activity.type == "event"
         assert activity.locale == "fr-FR"
 
-    def test_load_input_empty_activity(self):
+    def test_load_input_empty_activity_fails(self):
         """Test loading input with empty activity."""
         test_flow = {"name": "test1"}
         ddt = DataDrivenTest(test_flow)
         
         input_data = {"activity": {}}
-        activity = ddt._load_input(input_data)
-        
-        assert isinstance(activity, Activity)
+
+        with pytest.raises(Exception):
+            ddt._load_input(input_data)
 
     def test_load_input_nested_defaults(self):
         """Test loading input with nested default values."""
@@ -196,22 +196,21 @@ class TestDataDrivenTestLoadInput:
         }
         ddt = DataDrivenTest(test_flow)
         
-        input_data = {"activity": {"text": "Hello"}}
+        input_data = {"activity": {"type": "message", "text": "Hello"}}
         activity = ddt._load_input(input_data)
         
         assert activity.text == "Hello"
         assert activity.channel_data == {"nested": {"value": 123}}
 
-    def test_load_input_no_activity_key(self):
+    def test_load_input_no_activity_key_raises(self):
         """Test loading input when activity key is missing."""
         test_flow = {"name": "test1"}
         ddt = DataDrivenTest(test_flow)
         
         input_data = {}
-        activity = ddt._load_input(input_data)
-        
-        assert isinstance(activity, Activity)
 
+        with pytest.raises(Exception):
+            ddt._load_input(input_data)
 
 class TestDataDrivenTestLoadAssertion:
     """Tests for _load_assertion method."""
@@ -385,7 +384,7 @@ class TestDataDrivenTestRun:
         test_flow = {
             "name": "test1",
             "test": [
-                {"type": "input", "activity": {"text": "Hello"}}
+                {"type": "input", "activity": {"type": "message", "text": "Hello"}}
             ]
         }
         ddt = DataDrivenTest(test_flow)
@@ -407,7 +406,7 @@ class TestDataDrivenTestRun:
         test_flow = {
             "name": "test1",
             "test": [
-                {"type": "input", "activity": {"text": "Hello"}},
+                {"type": "input", "activity": {"type": "message", "text": "Hello"}},
                 {"type": "assertion", "activity": {"type": "message"}}
             ]
         }
@@ -468,10 +467,10 @@ class TestDataDrivenTestRun:
         test_flow = {
             "name": "test1",
             "test": [
-                {"type": "input", "activity": {"text": "Hello"}},
+                {"type": "input", "activity": {"type": "message", "text": "Hello"}},
                 {"type": "sleep", "duration": 0.01},
                 {"type": "assertion", "activity": {"type": "message"}},
-                {"type": "input", "activity": {"text": "Goodbye"}},
+                {"type": "input", "activity": {"type": "message", "text": "Goodbye"}},
             ]
         }
         ddt = DataDrivenTest(test_flow)
@@ -492,7 +491,7 @@ class TestDataDrivenTestRun:
         test_flow = {
             "name": "test1",
             "test": [
-                {"type": "input", "activity": {"text": "Hello"}},
+                {"type": "input", "activity": {"type": "message", "text": "Hello"}},
                 {"type": "assertion", "activity": {"type": "message"}, "quantifier": "all"}
             ]
         }
@@ -518,7 +517,7 @@ class TestDataDrivenTestRun:
         test_flow = {
             "name": "test1",
             "test": [
-                {"type": "input", "activity": {"text": "Hello"}},
+                {"type": "input", "activity": {"type": "message", "text": "Hello"}},
                 {"type": "assertion", "activity": {"text": "Expected text"}}
             ]
         }
@@ -563,9 +562,9 @@ class TestDataDrivenTestRun:
         test_flow = {
             "name": "test1",
             "test": [
-                {"type": "input", "activity": {"text": "Hello"}},
+                {"type": "input", "activity": {"type": "message", "text": "Hello"}},
                 {"type": "assertion", "activity": {"type": "message"}},
-                {"type": "input", "activity": {"text": "World"}},
+                {"type": "input", "activity": {"type": "message", "text": "World"}},
                 {"type": "assertion", "activity": {"type": "message"}}
             ]
         }
@@ -632,11 +631,11 @@ class TestDataDrivenTestIntegration:
         test_flow = {
             "name": "multi_turn_test",
             "test": [
-                {"type": "input", "activity": {"text": "What's the weather?"}},
+                {"type": "input", "activity": {"type": "message", "text": "What's the weather?"}},
                 {"type": "assertion", "activity": {"type": "message"}},
                 {"type": "sleep", "duration": 0.01},
-                {"type": "input", "activity": {"text": "Thank you"}},
-                {"type": "assertion", "activity": {"type": "message"}, "quantifier": "one"},
+                {"type": "input", "activity": {"type": "message", "text": "Thank you"}},
+                {"type": "assertion", "activity": {"type": "message"}, "quantifier": "any"},
             ]
         }
         ddt = DataDrivenTest(test_flow)

@@ -1,7 +1,6 @@
-import json
+import json, yaml
 from glob import glob
 from pathlib import Path
-from pyyaml import safe_load
 from typing import Optional
 
 from .data_driven_test import DataDrivenTest
@@ -25,7 +24,7 @@ def _resolve_parent(data: dict, tests: dict) -> None:
                     if abs_path.suffix == ".json":
                         parent_data = json.load(f)
                     else:
-                        parent_data = safe_load(f)
+                        parent_data = yaml.safe_load(f)
                     tests[str(abs_path)] = parent_data
                     if parent_data.get("parent") and isinstance(parent_data.get("parent"), str):
                         _resolve_parent(parent_data, tests)
