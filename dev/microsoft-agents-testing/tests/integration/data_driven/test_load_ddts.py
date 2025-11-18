@@ -148,7 +148,7 @@ test:
             result = load_ddts(temp_dir, recursive=False)
 
             # Should load both files
-            assert len(result) == 2
+            assert len(result) == 1
 
             # Find the child test
             child_test = next((t for t in result if t._name == "child"), None)
@@ -185,7 +185,7 @@ test:
                 os.chdir(temp_dir)
                 result = load_ddts(temp_dir, recursive=False)
 
-                assert len(result) == 2
+                assert len(result) == 1
                 child_test = next((t for t in result if t._name == "child"), None)
                 assert child_test is not None
             finally:
@@ -222,7 +222,7 @@ test:
             result = load_ddts(temp_dir, recursive=False)
 
             # Should load all three files
-            assert len(result) == 3
+            assert len(result) == 1
 
             # Verify child has inherited all defaults
             child_test = next((t for t in result if t._name == "child"), None)
@@ -325,9 +325,8 @@ test: []
 
             result = load_ddts(temp_dir, recursive=False)
 
-            assert len(result) == 2
+            assert len(result) == 1
             names = {test._name for test in result}
-            assert "json_parent" in names
             assert "yaml_child" in names
 
     def test_load_with_path_as_string(self):

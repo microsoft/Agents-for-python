@@ -31,7 +31,7 @@ def _resolve_parent(original_path: str, data: dict, tests: dict) -> None:
                     if parent_data.get("parent") and isinstance(
                         parent_data.get("parent"), str
                     ):
-                        _resolve_parent(parent_data, tests)
+                        _resolve_parent(str(abs_path), parent_data, tests)
 
 
 def load_ddts(

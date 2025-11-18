@@ -90,6 +90,8 @@ class AiohttpRunner(ApplicationRunner):
         if not self._server_thread:
             raise RuntimeError("AiohttpRunner is not running.")
 
+        await self._stop_server()
+
         # Wait for the server thread to finish
         self._server_thread.join(timeout=5.0)
         self._server_thread = None
