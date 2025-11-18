@@ -1,7 +1,9 @@
+# Copyright (c) Microsoft Corporation. All rights reserved.
+# Licensed under the MIT License.
+
 import json, yaml
 from glob import glob
 from pathlib import Path
-from typing import Optional
 
 from .data_driven_test import DataDrivenTest
 

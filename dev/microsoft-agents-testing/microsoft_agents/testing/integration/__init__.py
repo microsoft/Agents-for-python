@@ -10,6 +10,11 @@ from .core import (
     Integration,
     Sample,
 )
+from .data_driven import (
+    DataDrivenTest,
+    ddt,
+    load_ddts,
+)
 
 __all__ = [
     "AgentClient",
@@ -19,4 +24,7 @@ __all__ = [
     "Environment",
     "Integration",
     "Sample",
+    "DataDrivenTest",
+    "ddt",
+    "load_ddts",
 ]

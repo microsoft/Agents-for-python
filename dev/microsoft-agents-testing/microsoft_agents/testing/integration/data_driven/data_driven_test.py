@@ -22,7 +22,7 @@ class DataDrivenTest:
     """Data driven test runner."""
 
     def __init__(self, test_flow: dict) -> None:
-        self._name = test_flow.get("name")
+        self._name: str = test_flow.get("name", "")
         if not self._name:
             raise ValueError("Test flow must have a 'name' field.")
         self._description = test_flow.get("description", "")
@@ -47,6 +47,11 @@ class DataDrivenTest:
             )
 
         self._test = test_flow.get("test", [])
+
+    @property
+    def name(self) -> str:
+        """Get the name of the data driven test."""
+        return self._name
 
     def _load_input(self, input_data: dict) -> Activity:
         defaults = deepcopy(self._input_defaults)

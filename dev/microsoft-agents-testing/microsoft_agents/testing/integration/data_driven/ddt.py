@@ -10,33 +10,35 @@ from microsoft_agents.testing.integration.core import Integration
 from .data_driven_test import DataDrivenTest
 from .load_ddts import load_ddts
 
-def _add_test_method(test_cls: Integration, test_path: str, base_dir: str) -> None:
+def _add_test_method(test_cls: Integration, data_driven_test: DataDrivenTest) -> None:
+    """Add a test method to the test class for the given data driven test.
+    
+    :param test_cls: The test class to add the test method to.
+    :param data_driven_test: The data driven test to add as a method.
+    """
 
-    test_case_name = f"test_data_driven__{test_path.replace('/', '_').replace('.', '_')}"
+    test_case_name = f"test_data_driven__{data_driven_test.name.replace('/', '_').replace('.', '_')}"
 
     @pytest.mark.asyncio
     async def _func(self, agent_client, response_client) -> None:
-        ddt = DataDrivenTest(f"{base_dir}/{test_path}")
-        await ddt.run(agent_client, response_client)
+        await data_driven_test.run(agent_client, response_client)
 
-    setattr(test_cls, test_case_name, func)
+    setattr(test_cls, test_case_name, _func)
 
-def ddt(test_path: str) -> Callable[[Integration], Integration]:
+def ddt(test_path: str, recursive: bool=True) -> Callable[[Integration], Integration]:
+    """Decorator to add data driven tests to an integration test class.
+    
+    :param test_path: The path to the data driven test files.
+    :param recursive: Whether to load data driven tests recursively from subdirectories.
+    :return: The decorated test class.
+    """
+
+    ddts = load_ddts(test_path, recursive=recursive)
 
     def decorator(test_cls: Integration) -> Integration:
-
-        test_case_name = f"test_data_driven__{test_path.replace('/', '_').replace('.', '_')}"
-
-        async def func(self, agent_client, response_client) -> None:
-            ddt = DataDrivenTest(test_path)
-
-            responses = []
-
-            await for step in ddt:
-                if isinstance(step, Activity):
-                    await agent_client.send_activity(step)
-                elif isinstance(step, dict):
-                    # assertion
-                    responses.extend(await response_client.pop())
-
+        for data_driven_test in ddts:
+            # scope data_driven_test to avoid late binding in loop
+            _add_test_method(test_cls, data_driven_test)
+        return test_cls
+    
     return decorator
