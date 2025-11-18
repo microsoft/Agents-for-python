@@ -1,5 +1,0 @@
-parent: parent.yaml
-test:
-  input:
-    type: message
-    text: end

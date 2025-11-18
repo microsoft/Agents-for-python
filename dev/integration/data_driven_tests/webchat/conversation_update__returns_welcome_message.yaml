@@ -1,0 +1,8 @@
+parent: parent.yaml
+test:
+  input:
+    activity:
+      type: conversationUpdate
+      membersAdded:
+        - id: user1
+          name: User

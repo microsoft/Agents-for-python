@@ -1,0 +1,31 @@
+parent: parent.yaml
+test:
+  - type: input
+    activity:
+      reactionsAdded:
+        - type: heart
+      type: messageReaction
+      timestamp: 2025-07-10T02:25:04.6012043Z
+      id: 12345
+      from:
+        id: user-id
+        aadObjectId: user-aad-object-id
+      conversation:
+        conversationType: personal
+        tenantId: tenant-id
+        id: conversation-id
+      recipient:
+        id: bot-id
+        name: bot-name
+      channelData:
+        tenant:
+          id: tenant-id
+        legacy:
+          replyToId: 54321
+      replyToId: 12345
+  - type: assertion
+    selector:
+      index: -1
+    activity:
+      type: message
+      text: ["CONTAINS", "Message Reaction Added: heart"]

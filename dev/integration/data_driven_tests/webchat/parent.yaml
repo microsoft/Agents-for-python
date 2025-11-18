@@ -1,8 +1,8 @@
-name: directline
+name: webchat
 defaults:
   input:
     activity:
-      channelId: directline
+      channelId: webchat
       locale: en-US
       serviceUrl: http://localhost:56150
       deliveryMode: expectReplies
@@ -14,6 +14,3 @@ defaults:
       recipient:
         id: bot
         name: Bot
-  assertion:
-    activity:
-      channelId: directline

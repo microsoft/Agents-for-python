@@ -1,0 +1,16 @@
+parent: parent.yaml
+test:
+  - type: input
+    activity:
+      type: messageReaction
+      reactionsRemoved:
+        - type: heart
+      timestamp: 2025-07-10T02:30:00.0000000Z
+      id: 1752114287789
+      replyToId: 1752114287789
+  - type: assertion
+    selector:
+      index: -1
+    activity:
+      type: message
+      text: ["CONTAINS", "Message Reaction Removed: heart"]
