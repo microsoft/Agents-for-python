@@ -1,0 +1,15 @@
+defaults:
+  input:
+    activity:
+      channelId: directline
+      locale: en-US
+      serviceUrl: http://localhost:56150
+      deliveryMode: expectReplies
+      conversation:
+        id: conv1
+      from:
+        id: user1 
+        name: User
+      recipient:
+        id: bot
+        name: Bot

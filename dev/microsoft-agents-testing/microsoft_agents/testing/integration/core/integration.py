@@ -31,8 +31,8 @@ class Integration:
 
     _config: dict[str, Any] = {}
 
-    _service_url: Optional[str] = None
-    _agent_url: Optional[str] = None
+    _service_url: Optional[str] = "http://localhost:9378"
+    _agent_url: Optional[str] = "http://localhost:3978"
     _cid: Optional[str] = None
     _client_id: Optional[str] = None
     _tenant_id: Optional[str] = None
@@ -69,8 +69,8 @@ class Integration:
             assert self._sample_cls
             sample = self._sample_cls(environment)
             await sample.init_app()
-            # host, port = get_host_and_port(self.agent_url)
-            app_runner = environment.create_runner(sample.app)
+            host, port = get_host_and_port(self.agent_url)
+            app_runner = environment.create_runner(host, port)
             async with app_runner:
                 yield sample
         else:

@@ -27,6 +27,8 @@ from .integration import (
     ResponseClient,
     AiohttpEnvironment,
     Integration,
+    ddt,
+    DataDrivenTest
 )
 
 __all__ = [
@@ -52,4 +54,6 @@ __all__ = [
     "check_field",
     "check_field_verbose",
     "FieldAssertionType",
+    "ddt",
+    "DataDrivenTest"
 ]

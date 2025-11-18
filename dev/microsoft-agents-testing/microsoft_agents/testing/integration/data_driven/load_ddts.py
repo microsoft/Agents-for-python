@@ -4,11 +4,10 @@
 import json, yaml
 from glob import glob
 from pathlib import Path
-
 from .data_driven_test import DataDrivenTest
 
 
-def _resolve_parent(data: dict, tests: dict) -> None:
+def _resolve_parent(original_path: str, data: dict, tests: dict) -> None:
     """Resolve the parent test flow for a given test flow data.
 
     :param data: The test flow data.
@@ -18,7 +17,7 @@ def _resolve_parent(data: dict, tests: dict) -> None:
     parent = data.get("parent")
     if parent and isinstance(parent, str):
 
-        path = Path(parent)
+        path = Path(original_path).parent / parent
         abs_path = path.absolute()
         data["parent"] = str(abs_path)
         if abs_path not in tests:
@@ -68,7 +67,7 @@ def load_ddts(
     tests = {**tests_json, **tests_yaml}
 
     for file_path, data in tests.items():
-        _resolve_parent(data, tests)
+        _resolve_parent(file_path, data, tests)
 
     for file_path, data in tests.items():
         # resolve parent data references
@@ -84,4 +83,4 @@ def load_ddts(
         if "name" not in data or not data["name"]:
             data["name"] = Path(file_path).stem
 
-    return [DataDrivenTest(test_flow=data) for data in tests.values()]
+    return [DataDrivenTest(test_flow=data) for data in tests.values() if "test" in data]
