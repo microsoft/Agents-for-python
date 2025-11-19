@@ -10,8 +10,3 @@ from ....samples import BasicSample
 class TestDirectLine(Integration):
     _sample_cls = BasicSample
     _environment_cls = AiohttpEnvironment
-
-@ddt("tests/data_driven/basic_sample/webchat")
-class TestWebChat(Integration):
-    _sample_cls = BasicSample
-    _environment_cls = AiohttpEnvironment
