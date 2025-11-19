@@ -18,21 +18,24 @@ def _resolve_parent(original_path: str, data: dict, tests: dict) -> None:
     if parent and isinstance(parent, str):
 
         path = Path(original_path).parent / parent
-        abs_path = path.absolute()
-        data["parent"] = str(abs_path)
-        if abs_path not in tests:
-            if abs_path.suffix in [".json", ".yaml"]:
-                with open(abs_path, "r", encoding="utf-8") as f:
-                    if abs_path.suffix == ".json":
+        parent_path = path.absolute()
+        parent_path_str = str(parent_path)
+        data["parent"] = str(parent_path)
+        if parent_path_str not in tests:
+            if parent_path.suffix in [".json", ".yaml"]:
+                with open(parent_path, "r", encoding="utf-8") as f:
+                    if parent_path.suffix == ".json":
                         parent_data = json.load(f)
                     else:
                         parent_data = yaml.safe_load(f)
-                    tests[str(abs_path)] = parent_data
+                    tests[parent_path_str] = parent_data
                     if parent_data.get("parent") and isinstance(
                         parent_data.get("parent"), str
                     ):
-                        _resolve_parent(str(abs_path), parent_data, tests)
+                        _resolve_parent(parent_path_str, parent_data, tests)
 
+        if tests[parent_path_str].get("name"):
+            data["name"] = f"{tests[parent_path_str].get('name', '')}__{data.get('name', '')}"
 
 def load_ddts(
     path: str | Path | None = None, recursive: bool = False

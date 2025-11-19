@@ -1,4 +1,4 @@
-parent: parent.yaml
+parent: _parent.yaml
 test:
   - type: input
     activity:
