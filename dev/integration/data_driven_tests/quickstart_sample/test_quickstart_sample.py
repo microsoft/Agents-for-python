@@ -4,9 +4,9 @@ from microsoft_agents.testing import (
     AiohttpEnvironment,
 )
 
-from .quickstart_sample import QuickstartSample
+from ...samples.quickstart_sample import QuickstartSample
 
-@ddt("./data_driven_tests/directline")
+@ddt("./tests")
 class TestDirectLine(Integration):
     _sample_cls = QuickstartSample
     _environment_cls = AiohttpEnvironment
