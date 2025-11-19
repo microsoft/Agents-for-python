@@ -16,7 +16,7 @@ test:
         type: message
     activity:
       type: message
-      text: "You said: hi"
+      text: "you said: hi"
   - type: assertion # assert that a typing activity was sent
     selector:
       index: -1

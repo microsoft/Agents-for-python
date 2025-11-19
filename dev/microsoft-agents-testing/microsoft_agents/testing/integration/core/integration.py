@@ -101,6 +101,7 @@ class Integration:
             client_id=self._client_id or self._config.get("client_id", ""),
             tenant_id=self._tenant_id or self._config.get("tenant_id", ""),
             client_secret=self._client_secret or self._config.get("client_secret", ""),
+            service_url=self.service_url,
         )
         return agent_client
 

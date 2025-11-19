@@ -3,7 +3,7 @@ test:
   - type: input
     activity:
       type: message
-      text: Hello world!
+      text: hello
   - type: sleep
     duration: .5
   - type: assertion # assert that a typing activity was sent

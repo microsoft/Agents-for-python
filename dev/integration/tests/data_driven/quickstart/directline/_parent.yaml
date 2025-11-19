@@ -4,8 +4,8 @@ defaults:
     activity:
       channelId: webchat
       locale: en-US
-      serviceUrl: http://localhost:56150
-      deliveryMode: expectReplies
+      # serviceUrl: http://localhost:56150
+      # deliveryMode: expectReplies
       conversation:
         id: conv1
       from:

@@ -39,6 +39,8 @@ def ddt(test_path: str, recursive: bool = True) -> Callable[[IntegrationT], Inte
     """
 
     ddts = load_ddts(test_path, recursive=recursive)
+    if not ddts:
+        raise RuntimeError(f"No data driven tests found in path: {test_path}")
 
     def decorator(test_cls: IntegrationT) -> IntegrationT:
         for data_driven_test in ddts:

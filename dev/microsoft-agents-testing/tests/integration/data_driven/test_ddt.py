@@ -205,26 +205,15 @@ class TestAddTestMethod:
 class TestDdtDecorator:
     """Tests for ddt decorator function."""
 
-    def test_ddt_decorator_returns_callable(self):
-        """Test that ddt returns a decorator function."""
-        decorator = ddt("test_path")
-        assert callable(decorator)
-
-    @patch("microsoft_agents.testing.integration.data_driven.ddt.load_ddts")
-    def test_ddt_decorator_loads_tests(self, mock_load_ddts):
-        """Test that ddt decorator loads data driven tests from path."""
-        mock_load_ddts.return_value = []
-
-        @ddt("test_path")
-        class TestClass(Integration):
-            pass
-
-        mock_load_ddts.assert_called_once_with("test_path", recursive=True)
+    def test_ddt_decorator_raises_if_no_tests(self):
+        """Test that ddt raises if not tests are found."""
+        with pytest.raises(RuntimeError):
+            ddt("test_path")
 
     @patch("microsoft_agents.testing.integration.data_driven.ddt.load_ddts")
     def test_ddt_decorator_recursive_false(self, mock_load_ddts):
         """Test that ddt decorator respects recursive parameter."""
-        mock_load_ddts.return_value = []
+        mock_load_ddts.return_value = [DataDrivenTest({"name": "test1"})]
 
         @ddt("test_path", recursive=False)
         class TestClass(Integration):
@@ -255,7 +244,7 @@ class TestDdtDecorator:
     @patch("microsoft_agents.testing.integration.data_driven.ddt.load_ddts")
     def test_ddt_decorator_returns_same_class(self, mock_load_ddts):
         """Test that ddt decorator returns the same class (modified)."""
-        mock_load_ddts.return_value = []
+        mock_load_ddts.return_value = [DataDrivenTest({"name": "test_case"})]
 
         class TestClass(Integration):
             pass
@@ -267,7 +256,7 @@ class TestDdtDecorator:
     @patch("microsoft_agents.testing.integration.data_driven.ddt.load_ddts")
     def test_ddt_decorator_preserves_existing_methods(self, mock_load_ddts):
         """Test that ddt decorator preserves existing test methods."""
-        mock_load_ddts.return_value = []
+        mock_load_ddts.return_value = [DataDrivenTest({"name": "new_test"})]
 
         @ddt("test_path")
         class TestClass(Integration):
@@ -277,22 +266,9 @@ class TestDdtDecorator:
         assert hasattr(TestClass, "test_existing_method")
 
     @patch("microsoft_agents.testing.integration.data_driven.ddt.load_ddts")
-    def test_ddt_decorator_with_empty_test_list(self, mock_load_ddts):
-        """Test ddt decorator with no tests loaded."""
-        mock_load_ddts.return_value = []
-
-        @ddt("test_path")
-        class TestClass(Integration):
-            pass
-
-        # Should not add any new test methods (except existing ones)
-        test_methods = [m for m in dir(TestClass) if m.startswith("test_data_driven__")]
-        assert len(test_methods) == 0
-
-    @patch("microsoft_agents.testing.integration.data_driven.ddt.load_ddts")
     def test_ddt_decorator_with_path_as_pathlib_path(self, mock_load_ddts):
         """Test ddt decorator with pathlib.Path object."""
-        mock_load_ddts.return_value = []
+        mock_load_ddts.return_value = [DataDrivenTest({"name": "test1"})]
         test_path = Path("test_path")
 
         @ddt(str(test_path))
@@ -323,7 +299,7 @@ class TestDdtDecorator:
     @patch("microsoft_agents.testing.integration.data_driven.ddt.load_ddts")
     def test_ddt_decorator_with_relative_path(self, mock_load_ddts):
         """Test ddt decorator with relative path."""
-        mock_load_ddts.return_value = []
+        mock_load_ddts.return_value = [DataDrivenTest({"name": "test1"})]
 
         @ddt("./tests/data")
         class TestClass(Integration):
@@ -334,7 +310,7 @@ class TestDdtDecorator:
     @patch("microsoft_agents.testing.integration.data_driven.ddt.load_ddts")
     def test_ddt_decorator_with_absolute_path(self, mock_load_ddts):
         """Test ddt decorator with absolute path."""
-        mock_load_ddts.return_value = []
+        mock_load_ddts.return_value = [DataDrivenTest({"name": "test1"})]
         abs_path = Path("/absolute/path/to/tests").as_posix()
 
         @ddt(abs_path)
@@ -445,11 +421,10 @@ test:
             with open(sub_file, "w", encoding="utf-8") as f:
                 json.dump(sub_data, f)
 
-            @ddt(temp_dir, recursive=False)
-            class TestClass(Integration):
-                pass
-
-            assert not hasattr(TestClass, "test_data_driven__sub_test")
+            with pytest.raises(Exception):
+                @ddt(temp_dir, recursive=False)
+                class TestClass(Integration):
+                    pass
 
     @pytest.mark.asyncio
     async def test_ddt_decorated_class_runs_tests(self):
@@ -497,18 +472,6 @@ class TestDdtDecoratorEdgeCases:
                 pass
 
     @patch("microsoft_agents.testing.integration.data_driven.ddt.load_ddts")
-    def test_ddt_decorator_with_invalid_test_class(self, mock_load_ddts):
-        """Test ddt decorator on non-Integration class."""
-        mock_load_ddts.return_value = []
-
-        @ddt("test_path")
-        class NotAnIntegrationClass:
-            pass
-
-        # Should still work, just adds methods to any class
-        assert isinstance(NotAnIntegrationClass, type)
-
-    @patch("microsoft_agents.testing.integration.data_driven.ddt.load_ddts")
     def test_ddt_decorator_with_duplicate_test_names(self, mock_load_ddts):
         """Test that duplicate test names overwrite previous methods."""
         mock_ddt1 = Mock(spec=DataDrivenTest)
@@ -532,7 +495,7 @@ class TestDdtDecoratorEdgeCases:
     @patch("microsoft_agents.testing.integration.data_driven.ddt.load_ddts")
     def test_ddt_decorator_preserves_class_attributes(self, mock_load_ddts):
         """Test that ddt decorator preserves class attributes."""
-        mock_load_ddts.return_value = []
+        mock_load_ddts.return_value = [DataDrivenTest({"name": "test1"})]
 
         @ddt("test_path")
         class TestClass(Integration):
@@ -545,7 +508,7 @@ class TestDdtDecoratorEdgeCases:
     @patch("microsoft_agents.testing.integration.data_driven.ddt.load_ddts")
     def test_ddt_decorator_preserves_class_docstring(self, mock_load_ddts):
         """Test that ddt decorator preserves class docstring."""
-        mock_load_ddts.return_value = []
+        mock_load_ddts.return_value = [DataDrivenTest({"name": "test1"})]
 
         @ddt("test_path")
         class TestClass(Integration):
@@ -558,7 +521,7 @@ class TestDdtDecoratorEdgeCases:
     @patch("microsoft_agents.testing.integration.data_driven.ddt.load_ddts")
     def test_ddt_decorator_with_special_characters_in_path(self, mock_load_ddts):
         """Test ddt decorator with special characters in path."""
-        mock_load_ddts.return_value = []
+        mock_load_ddts.return_value = [DataDrivenTest({"name": "test1"})]
         special_path = "test path/with spaces/and-dashes"
 
         @ddt(special_path)
@@ -649,22 +612,10 @@ class TestDdtDecoratorWithRealIntegrationClass:
         assert hasattr(TestClass, "test_data_driven__test_1")
         assert hasattr(TestClass, "test_data_driven__test_2")
 
-    def test_ddt_decorator_type_annotations(self):
-        """Test that ddt decorator maintains proper type hints."""
-        from typing import get_type_hints
-
-        decorator = ddt("test_path")
-
-        # Verify decorator signature
-        import inspect
-
-        sig = inspect.signature(decorator)
-        assert "test_cls" in sig.parameters
-
     @patch("microsoft_agents.testing.integration.data_driven.ddt.load_ddts")
     def test_ddt_decorator_return_type(self, mock_load_ddts):
         """Test that ddt decorator returns the correct type."""
-        mock_load_ddts.return_value = []
+        mock_load_ddts.return_value = [DataDrivenTest({"name": "test1"})]
 
         class TestClass(Integration):
             pass

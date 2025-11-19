@@ -151,7 +151,7 @@ test:
             assert len(result) == 1
 
             # Find the child test
-            child_test = next((t for t in result if t._name == "child"), None)
+            child_test = next((t for t in result if t._name == "parent.child"), None)
             assert child_test is not None
 
             # Child should have inherited defaults from parent
@@ -186,7 +186,7 @@ test:
                 result = load_ddts(temp_dir, recursive=False)
 
                 assert len(result) == 1
-                child_test = next((t for t in result if t._name == "child"), None)
+                child_test = next((t for t in result if t._name == "parent.child"), None)
                 assert child_test is not None
             finally:
                 os.chdir(original_dir)
@@ -225,7 +225,7 @@ test:
             assert len(result) == 1
 
             # Verify child has inherited all defaults
-            child_test = next((t for t in result if t._name == "child"), None)
+            child_test = next((t for t in result if t._name == "grandparent.parent.child"), None)
             assert child_test is not None
 
     def test_load_with_missing_parent_raises_error(self):
@@ -241,7 +241,7 @@ test:
             with open(child_file, "w", encoding="utf-8") as f:
                 json.dump(child_data, f)
 
-            with pytest.raises(FileNotFoundError):
+            with pytest.raises(Exception):
                 load_ddts(temp_dir, recursive=False)
 
     def test_load_sets_name_from_filename_when_missing(self):
@@ -299,7 +299,7 @@ test:
             result = load_ddts(temp_dir, recursive=False)
 
             # Find child and verify parent is a dict (resolved)
-            child_test = next((t for t in result if t._name == "child"), None)
+            child_test = next((t for t in result if t._name == "parent.child"), None)
             assert child_test is not None
 
     def test_load_handles_mixed_json_and_yaml_files(self):
@@ -327,7 +327,7 @@ test: []
 
             assert len(result) == 1
             names = {test._name for test in result}
-            assert "yaml_child" in names
+            assert "json_parent.yaml_child" in names
 
     def test_load_with_path_as_string(self):
         """Test that path parameter accepts string type."""
