@@ -1,7 +1,7 @@
 # Copyright (c) Microsoft Corporation. All rights reserved.
 # Licensed under the MIT License.
 
-from typing import Callable
+from typing import Callable, TypeVar
 
 import pytest
 
@@ -10,8 +10,9 @@ from microsoft_agents.testing.integration.core import Integration
 from .data_driven_test import DataDrivenTest
 from .load_ddts import load_ddts
 
+IntegrationT = TypeVar("IntegrationT", bound=type[Integration])
 
-def _add_test_method(test_cls: Integration, data_driven_test: DataDrivenTest) -> None:
+def _add_test_method(test_cls: type[Integration], data_driven_test: DataDrivenTest) -> None:
     """Add a test method to the test class for the given data driven test.
 
     :param test_cls: The test class to add the test method to.
@@ -29,7 +30,7 @@ def _add_test_method(test_cls: Integration, data_driven_test: DataDrivenTest) ->
     setattr(test_cls, test_case_name, _func)
 
 
-def ddt(test_path: str, recursive: bool = True) -> Callable[[Integration], Integration]:
+def ddt(test_path: str, recursive: bool = True) -> Callable[[IntegrationT], IntegrationT]:
     """Decorator to add data driven tests to an integration test class.
 
     :param test_path: The path to the data driven test files.
@@ -39,7 +40,7 @@ def ddt(test_path: str, recursive: bool = True) -> Callable[[Integration], Integ
 
     ddts = load_ddts(test_path, recursive=recursive)
 
-    def decorator(test_cls: Integration) -> Integration:
+    def decorator(test_cls: IntegrationT) -> IntegrationT:
         for data_driven_test in ddts:
             # scope data_driven_test to avoid late binding in loop
             _add_test_method(test_cls, data_driven_test)
