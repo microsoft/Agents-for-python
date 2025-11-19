@@ -1,45 +1,20 @@
 {
-  "type": "message",
-  "text": "hi, what can you do",
-  "id": "17152ca3-e58e-4cd1-85ad-1918dbfb5ca3",
   "channelId": "msteams",
-  "deliveryMode": "expectReplies",
+  "serviceUrl": "http://localhost:49231/_connector",
+  "delivery_mode": "expectReplies",
+  "recipient": {
+    "id": "00000000-0000-0000-0000-00000000000011",
+    "name": "Test Bot"
+  },
+  "conversation": {
+    "id": "personal-chat-id",
+    "conversationType": "personal",
+    "tenantId": "00000000-0000-0000-0000-0000000000001"
+  },
   "from": {
     "id": "user-id-0",
-    "name": "Alex Wilber",
-    "aadObjectId": "a92962f3-9ed4-4bcd-9ae0-ad0002b6ca76"
+    "aadObjectId": "00000000-0000-0000-0000-0000000000020"
   },
-  "timestamp": "2025-10-03T16:33:10.550Z",
-  "localTimestamp": "2025-10-03T09:33:10.550-07:00",
-  "localTimezone": "America/Los_Angeles",
-  "serviceUrl": "http://localhost:56150/_connector",
-  "conversation": {
-    "conversationType": "personal",
-    "tenantId": "00000000-0000-0000-0000-0000000000001",
-    "id": "__PERSONAL_CHAT_ID__"
-  },
-    "recipient": { 
-    "id": "deliveryAgent@a365preview004.onmicrosoft.com",
-    "name": "Delivery Agent",
-    "agenticUserId": "9091c64d-3947-4a1f-8b76-8941a928b8ab",
-    "agenticAppId": "d3d5bff9-db73-4474-b607-326fabbe3a65",
-    "tenantId": "65725666-3554-401a-86e7-0d84b1b89b30",
-    "role": "agenticUser"
-  },
-  "textFormat": "plain",
-  "locale": "en-US",
-  "entities": [
-    {
-      "type": "clientInfo",
-      "locale": "en-US",
-      "country": "US",
-      "platform": "Web",
-      "timezone": "America/Los_Angeles"
-    }
-  ],
-  "channelData": {
-    "tenant": {
-      "id": "00000000-0000-0000-0000-0000000000001"
-    }
-  }
+  "type": "message",
+  "text": "Hello, Bot!"
 }
