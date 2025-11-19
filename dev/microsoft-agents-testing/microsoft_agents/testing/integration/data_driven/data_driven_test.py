@@ -81,7 +81,11 @@ class DataDrivenTest:
 
             if step_type == "input":
                 input_activity = self._load_input(step)
-                await agent_client.send_activity(input_activity)
+                if input_activity.delivery_mode == "expectReplies":
+                    replies = await agent_client.send_expect_replies(input_activity)
+                    responses.extend(replies)
+                else:
+                    await agent_client.send_activity(input_activity)
 
             elif step_type == "assertion":
                 activity_assertion = self._load_assertion(step)
@@ -90,3 +94,6 @@ class DataDrivenTest:
 
             elif step_type == "sleep":
                 await self._sleep(step)
+
+            elif step_type == "breakpoint":
+                breakpoint()

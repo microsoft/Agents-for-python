@@ -4,14 +4,14 @@ from microsoft_agents.testing import (
     AiohttpEnvironment,
 )
 
-from ...samples.basic_sample import BasicSample
+from ....samples import BasicSample
 
-@ddt("./directline")
+@ddt("tests/data_driven/basic_sample/directline")
 class TestDirectLine(Integration):
     _sample_cls = BasicSample
     _environment_cls = AiohttpEnvironment
 
-@ddt("./webchat")
+@ddt("tests/data_driven/basic_sample/webchat")
 class TestWebChat(Integration):
     _sample_cls = BasicSample
     _environment_cls = AiohttpEnvironment

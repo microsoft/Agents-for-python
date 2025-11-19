@@ -1,6 +1,6 @@
 parent: parent.yaml
 test:
-  input:
+  - type: input
     activity:
       type: conversationUpdate
       membersAdded:

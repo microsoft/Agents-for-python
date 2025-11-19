@@ -6,7 +6,7 @@ test:
         - type: heart
       type: messageReaction
       timestamp: 2025-07-10T02:25:04.6012043Z
-      id: 12345
+      id: "12345"
       from:
         id: user-id
         aadObjectId: user-aad-object-id
@@ -21,11 +21,12 @@ test:
         tenant:
           id: tenant-id
         legacy:
-          replyToId: 54321
-      replyToId: 12345
+          replyToId: "54321"
+      replyToId: "12345"
   - type: assertion
     selector:
-      index: -1
+      activity:
+        type: message
     activity:
       type: message
       text: ["CONTAINS", "Message Reaction Added: heart"]

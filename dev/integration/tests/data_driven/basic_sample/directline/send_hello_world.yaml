@@ -1,0 +1,25 @@
+parent: parent.yaml
+test:
+  - type: input
+    activity:
+      type: message
+      text: hello world
+  - type: assertion
+    selector:
+      activity:
+        type: message
+    activity:
+      type: message
+      text: "[0] You said: hello world"
+  - type: input
+    activity:
+      type: message
+      text: hello again
+  - type: assertion
+    selector:
+      index: -1
+      activity:
+        type: message
+    activity:
+      type: message
+      text: "[1] You said: hello again"

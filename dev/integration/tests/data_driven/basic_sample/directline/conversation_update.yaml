@@ -3,7 +3,7 @@ test:
   - type: input
     activity:
       type: conversationUpdate
-      id: 123
+      id: "123"
       timestamp: 2025-07-30T23:01:11.0447215Z
       localTimestamp: 2025-07-30T15:59:55.595-07:00
       localTimezone: America/Los_Angeles
@@ -26,7 +26,9 @@ test:
       channelData:
         clientActivityId: 123
   - type: assertion
-    index: -1
+    selector:
+      activity:
+        type: message
     activity:
       type: message
       text: ["CONTAINS", "Hello and Welcome!"]

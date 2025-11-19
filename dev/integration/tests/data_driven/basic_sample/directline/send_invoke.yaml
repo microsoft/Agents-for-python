@@ -1,0 +1,24 @@
+parent: parent.yaml
+test:
+  - type: input
+    activity:
+      type: invoke
+      name: helloWorld
+      value: "data from invoke"
+  - type: assertion
+    quantifier: none
+    activity:
+      type: invokeResponse
+      value:
+        status: 400
+  - type: assertion
+    selector:
+      activity:
+        type: invokeResponse
+    activity:
+      type: invokeResponse
+      value:
+        status: 200
+        body: 
+          message: "Invoke received."
+          data: "data from invoke"
