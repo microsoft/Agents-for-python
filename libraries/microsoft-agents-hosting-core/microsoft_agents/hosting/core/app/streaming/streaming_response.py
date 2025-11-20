@@ -3,7 +3,7 @@
 
 import asyncio
 import logging
-from typing import List, Optional, Callable, Literal
+from typing import List, Optional, Callable, Literal, TYPE_CHECKING
 
 from microsoft_agents.activity import (
     Activity,
@@ -15,8 +15,8 @@ from microsoft_agents.activity import (
     SensitivityUsageInfo,
 )
 
-from microsoft_agents.hosting.core import error_resources
-from microsoft_agents.hosting.core.turn_context import TurnContext
+if TYPE_CHECKING:
+    from microsoft_agents.hosting.core.turn_context import TurnContext
 
 from .citation import Citation
 from .citation_util import CitationUtil
@@ -98,7 +98,7 @@ class StreamingResponse:
             return
 
         if self._ended:
-            raise RuntimeError(str(error_resources.StreamAlreadyEnded))
+            raise RuntimeError("The stream has already ended.")
 
         # Queue a typing activity
         def create_activity():
@@ -134,7 +134,7 @@ class StreamingResponse:
         if self._cancelled:
             return
         if self._ended:
-            raise RuntimeError(str(error_resources.StreamAlreadyEnded))
+            raise RuntimeError("The stream has already ended.")
 
         # Update full message text
         self._message += text
@@ -150,7 +150,7 @@ class StreamingResponse:
         Ends the stream by sending the final message to the client.
         """
         if self._ended:
-            raise RuntimeError(str(error_resources.StreamAlreadyEnded))
+            raise RuntimeError("The stream has already ended.")
 
         # Queue final message
         self._ended = True
@@ -250,13 +250,8 @@ class StreamingResponse:
 
     def _set_defaults(self, context: "TurnContext"):
         if Channels.ms_teams == context.activity.channel_id.channel:
-            if context.activity.is_agentic_request():
-                # Agentic requests do not support streaming responses at this time.
-                # TODO : Enable streaming for agentic requests when supported.
-                self._is_streaming_channel = False
-            else:
-                self._is_streaming_channel = True
-                self._interval = 1.0
+            self._is_streaming_channel = True
+            self._interval = 1.0
         elif Channels.direct_line == context.activity.channel_id.channel:
             self._is_streaming_channel = True
             self._interval = 0.5
