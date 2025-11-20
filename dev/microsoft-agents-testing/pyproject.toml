@@ -3,7 +3,7 @@ requires = ["setuptools"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "microsoft-agents-hosting-core"
+name = "microsoft-agents-testing"
 dynamic = ["version", "dependencies"]
 description = "Core library for Microsoft Agents"
 readme = {file = "README.md", content-type = "text/markdown"}

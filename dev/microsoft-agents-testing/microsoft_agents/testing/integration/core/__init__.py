@@ -1,3 +1,6 @@
+# Copyright (c) Microsoft Corporation. All rights reserved.
+# Licensed under the MIT License.
+
 from .application_runner import ApplicationRunner
 from .aiohttp import AiohttpEnvironment
 from .client import (

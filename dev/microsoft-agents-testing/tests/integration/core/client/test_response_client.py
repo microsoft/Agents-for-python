@@ -33,7 +33,7 @@ class TestResponseClient:
             ) as resp:
                 assert resp.status == 200
                 text = await resp.text()
-                assert text == "Activity received"
+                assert text == '{"message": "Activity received"}'
 
         await asyncio.sleep(0.1)  # Give some time for the server to process
 

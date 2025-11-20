@@ -1,0 +1,36 @@
+parent: _parent.yaml
+test:
+  - type: input
+    activity:
+      type: conversationUpdate
+      id: "123"
+      timestamp: 2025-07-30T23:01:11.0447215Z
+      localTimestamp: 2025-07-30T15:59:55.595-07:00
+      localTimezone: America/Los_Angeles
+      from:
+        id: user
+      recipient:
+        id: bot-id
+        name: bot
+      membersAdded:
+        - id: bot-id
+          name: bot
+        - id: user
+      textFormat: plain
+      attachments: []
+      entities:
+        - type: ClientCapabilities
+          requiresBotState: true
+          supportsListening: true
+          supportsTts: true
+      channelData:
+        clientActivityId: 123
+  - type: sleep
+    duration: .5
+  - type: assertion
+    selector:
+      activity:
+        type: message
+    activity:
+      type: message
+      text: ["CONTAINS", "Welcome to the empty agent!"]

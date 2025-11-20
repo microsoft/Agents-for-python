@@ -1,0 +1,23 @@
+# Copyright (c) Microsoft Corporation. All rights reserved.
+# Licensed under the MIT License.
+
+from urllib.parse import urlparse
+
+from microsoft_agents.activity import Activity
+
+
+def get_host_and_port(url: str) -> tuple[str, int]:
+    """Extract host and port from a URL."""
+
+    parsed_url = urlparse(url)
+    host = parsed_url.hostname
+    port = parsed_url.port
+    return host, port
+
+
+def normalize_activity_data(source: Activity | dict) -> dict:
+    """Normalize Activity data to a dictionary format."""
+
+    if isinstance(source, Activity):
+        return source.model_dump(exclude_unset=True, mode="json")
+    return source
