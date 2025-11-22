@@ -67,6 +67,9 @@ class Channels(str, Enum):
     webchat = "webchat"
     """WebChat channel."""
 
+    copilot_studio = "pva-studio"
+    """Microsoft Copilot Studio channel."""
+
     # TODO: validate the need of Self annotations in the following methods
     @staticmethod
     def supports_suggested_actions(channel_id: Self, button_cnt: int = 100) -> bool:
