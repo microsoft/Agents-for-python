@@ -11,10 +11,12 @@ class ClaimsIdentity:
         claims: dict[str, str],
         is_authenticated: bool,
         authentication_type: Optional[str] = None,
+        security_token: Optional[str] = None,
     ):
         self.claims = claims
         self.is_authenticated = is_authenticated
         self.authentication_type = authentication_type
+        self.security_token = security_token
 
     def get_claim_value(self, claim_type: str) -> Optional[str]:
         return self.claims.get(claim_type)

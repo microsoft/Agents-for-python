@@ -20,6 +20,7 @@ from ._sign_in_state import _SignInState
 from ._sign_in_response import _SignInResponse
 from ._handlers import (
     AgenticUserAuthorization,
+    ConnectorUserAuthorization,
     _UserAuthorization,
     _AuthorizationHandler,
 )
@@ -29,6 +30,7 @@ logger = logging.getLogger(__name__)
 AUTHORIZATION_TYPE_MAP = {
     "userauthorization": _UserAuthorization,
     "agenticuserauthorization": AgenticUserAuthorization,
+    "connectoruserauthorization": ConnectorUserAuthorization,
 }
 
 

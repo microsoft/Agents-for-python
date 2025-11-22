@@ -15,6 +15,7 @@ from microsoft_agents.hosting.core.authorization import AccessTokenProviderBase
 from microsoft_agents.hosting.core.connector import ConnectorClientBase
 from microsoft_agents.hosting.core.connector.client import UserTokenClient
 from microsoft_agents.hosting.core.connector.teams import TeamsConnectorClient
+from microsoft_agents.hosting.core.connector.mcs import MCSConnectorClient
 
 from .channel_service_client_factory_base import ChannelServiceClientFactoryBase
 from .turn_context import TurnContext
@@ -114,6 +115,17 @@ class RestChannelServiceClientFactory(ChannelServiceClientFactoryBase):
 
             token = await token_provider.get_access_token(
                 audience, scopes or [f"{audience}/.default"]
+            )
+
+        # Check if this is a connector request (e.g., from Copilot Studio)
+        if (
+            context
+            and context.activity.recipient
+            and context.activity.recipient.role == RoleTypes.connector_user
+        ):
+            return MCSConnectorClient(
+                endpoint=service_url,
+                token=token,
             )
 
         return TeamsConnectorClient(
