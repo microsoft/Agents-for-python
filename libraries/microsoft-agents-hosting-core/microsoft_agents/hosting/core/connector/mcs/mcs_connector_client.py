@@ -8,9 +8,9 @@ from typing import Optional
 from aiohttp import ClientSession
 
 from microsoft_agents.activity import Activity, ResourceResponse
-from .connector_client_base import ConnectorClientBase
-from .attachments_base import AttachmentsBase
-from .conversations_base import ConversationsBase
+from ..connector_client_base import ConnectorClientBase
+from ..attachments_base import AttachmentsBase
+from ..conversations_base import ConversationsBase
 
 
 logger = logging.getLogger(__name__)
