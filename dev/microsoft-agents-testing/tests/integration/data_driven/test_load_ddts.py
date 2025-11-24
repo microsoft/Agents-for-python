@@ -186,7 +186,9 @@ test:
                 result = load_ddts(temp_dir, recursive=False)
 
                 assert len(result) == 1
-                child_test = next((t for t in result if t._name == "parent.child"), None)
+                child_test = next(
+                    (t for t in result if t._name == "parent.child"), None
+                )
                 assert child_test is not None
             finally:
                 os.chdir(original_dir)
@@ -225,7 +227,9 @@ test:
             assert len(result) == 1
 
             # Verify child has inherited all defaults
-            child_test = next((t for t in result if t._name == "grandparent.parent.child"), None)
+            child_test = next(
+                (t for t in result if t._name == "grandparent.parent.child"), None
+            )
             assert child_test is not None
 
     def test_load_with_missing_parent_raises_error(self):

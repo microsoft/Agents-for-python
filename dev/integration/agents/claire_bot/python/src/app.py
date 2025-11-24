@@ -21,7 +21,11 @@ from microsoft_agents.hosting.core import (
     MemoryStorage,
 )
 from microsoft_agents.authentication.msal import MsalConnectionManager
-from microsoft_agents.activity import load_configuration_from_env, ConversationUpdateTypes, ActivityTypes
+from microsoft_agents.activity import (
+    load_configuration_from_env,
+    ConversationUpdateTypes,
+    ActivityTypes,
+)
 import re
 
 from .agent import Agent
@@ -45,7 +49,7 @@ chat_completion = AzureChatCompletion(
     deployment_name=environ.get("AZURE_OPENAI_DEPLOYMENT_NAME", "gpt-4o"),
     base_url=environ.get("AZURE_OPENAI_ENDPOINT"),
     api_key=environ.get("AZURE_OPENAI_API_KEY"),
-    service_id="adaptive_card_service"
+    service_id="adaptive_card_service",
 )
 
 kernel.add_service(chat_completion)
@@ -68,15 +72,17 @@ logger = logging.getLogger(__name__)
 AGENT = Agent(client)
 AGENT.register_handlers(AGENT_APP_INSTANCE)
 
+
 # Listen for incoming requests on /api/messages
 async def messages(req: Request) -> Response:
     agent: AgentApplication = req.app["agent_app"]
-    adapter: CloudAdapter = req.app["adapter"]    
+    adapter: CloudAdapter = req.app["adapter"]
     return await start_agent_process(
         req,
         agent,
         adapter,
     )
+
 
 # Create the application
 APP = Application(middlewares=[jwt_authorization_middleware])

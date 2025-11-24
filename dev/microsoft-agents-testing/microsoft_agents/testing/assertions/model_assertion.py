@@ -11,6 +11,7 @@ from .check_model import check_model_verbose
 from .selector import Selector
 from .type_defs import AssertionQuantifier, AssertionErrorData
 
+
 class ModelAssertion:
     """Class for asserting activities based on a selector and assertion criteria."""
 
@@ -53,9 +54,7 @@ class ModelAssertion:
 
         count = 0
         for item in items:
-            res, assertion_error_data = check_model_verbose(
-                item, self._assertion
-            )
+            res, assertion_error_data = check_model_verbose(item, self._assertion)
             if self._quantifier == AssertionQuantifier.ALL and not res:
                 return (
                     False,

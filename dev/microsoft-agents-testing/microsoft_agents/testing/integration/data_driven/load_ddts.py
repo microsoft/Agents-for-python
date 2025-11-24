@@ -6,6 +6,7 @@ from glob import glob
 from pathlib import Path
 from .data_driven_test import DataDrivenTest
 
+
 def _resolve_parent(path: str, test_modules: dict) -> None:
     """Resolve the parent test flow for a given test flow data.
 
@@ -23,7 +24,9 @@ def _resolve_parent(path: str, test_modules: dict) -> None:
             raise RuntimeError("Parent module not found in tests collection.")
         module["parent"] = test_modules[parent_path_str]
 
+
 _resolve_name_seen_set = set()
+
 
 def _resolve_name(module: dict) -> str:
     """Resolve the name for a given test flow data.
@@ -42,6 +45,7 @@ def _resolve_name(module: dict) -> str:
         return f"{_resolve_name(parent)}.{module.get('name', module['path'])}"
     else:
         return module.get("name", module["path"])
+
 
 def load_ddts(
     path: str | Path | None = None, recursive: bool = False, prefix: str = ""
@@ -85,4 +89,8 @@ def load_ddts(
         if prefix:
             module["name"] = f"{prefix}.{module['name']}"
 
-    return [DataDrivenTest(test_flow=data) for data in test_modules.values() if "test" in data]
+    return [
+        DataDrivenTest(test_flow=data)
+        for data in test_modules.values()
+        if "test" in data
+    ]

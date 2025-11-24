@@ -422,6 +422,7 @@ test:
                 json.dump(sub_data, f)
 
             with pytest.raises(Exception):
+
                 @ddt(temp_dir, recursive=False)
                 class TestClass(Integration):
                     pass

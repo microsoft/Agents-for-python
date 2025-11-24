@@ -111,7 +111,7 @@ class DataDrivenTest:
                 responses.extend(await response_client.pop())
 
                 res, err = activity_assertion.check(responses)
-                
+
                 if not res:
                     err = "Assertion failed: {}\n\n{}".format(step, err)
                     assert res, err

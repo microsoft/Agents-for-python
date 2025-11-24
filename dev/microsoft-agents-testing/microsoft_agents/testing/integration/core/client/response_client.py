@@ -78,10 +78,11 @@ class ResponseClient:
             else:
                 if activity.type != ActivityTypes.typing:
                     await asyncio.sleep(0.1)  # Simulate processing delay
-                return Response(status=200,
-                            content_type="application/json",
-                            text='{"message": "Activity received"}'
-                        )
+                return Response(
+                    status=200,
+                    content_type="application/json",
+                    text='{"message": "Activity received"}',
+                )
         except Exception as e:
             return Response(status=500, text=str(e))
 

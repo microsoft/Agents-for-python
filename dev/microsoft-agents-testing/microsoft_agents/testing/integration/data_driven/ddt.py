@@ -12,7 +12,10 @@ from .load_ddts import load_ddts
 
 IntegrationT = TypeVar("IntegrationT", bound=type[Integration])
 
-def _add_test_method(test_cls: type[Integration], data_driven_test: DataDrivenTest) -> None:
+
+def _add_test_method(
+    test_cls: type[Integration], data_driven_test: DataDrivenTest
+) -> None:
     """Add a test method to the test class for the given data driven test.
 
     :param test_cls: The test class to add the test method to.
@@ -30,7 +33,9 @@ def _add_test_method(test_cls: type[Integration], data_driven_test: DataDrivenTe
     setattr(test_cls, test_case_name, _func)
 
 
-def ddt(test_path: str, recursive: bool = True, prefix: str = "") -> Callable[[IntegrationT], IntegrationT]:
+def ddt(
+    test_path: str, recursive: bool = True, prefix: str = ""
+) -> Callable[[IntegrationT], IntegrationT]:
     """Decorator to add data driven tests to an integration test class.
 
     :param test_path: The path to the data driven test files.

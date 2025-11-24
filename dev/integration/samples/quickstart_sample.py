@@ -6,7 +6,12 @@ import traceback
 from dotenv import load_dotenv
 
 from microsoft_agents.activity import ConversationUpdateTypes
-from microsoft_agents.hosting.core import AgentApplication, TurnContext, TurnState, RouteRank
+from microsoft_agents.hosting.core import (
+    AgentApplication,
+    TurnContext,
+    TurnState,
+    RouteRank,
+)
 from microsoft_agents.testing.integration.core import Sample
 
 

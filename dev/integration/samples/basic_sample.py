@@ -14,6 +14,7 @@ from microsoft_agents.activity import (
 from microsoft_agents.hosting.core import AgentApplication, TurnContext, TurnState
 from microsoft_agents.testing.integration.core import Sample
 
+
 class BasicSample(Sample):
     """A quickstart sample implementation."""
 
@@ -46,8 +47,14 @@ class BasicSample(Sample):
 
         @app.activity(ActivityTypes.message)
         async def on_message(context: TurnContext, state: TurnState) -> None:
-            counter = state.get_value("ConversationState.counter", default_value_factory=(lambda: 0), target_cls=int)
-            await context.send_activity(f"[{counter}] You said: {context.activity.text}")
+            counter = state.get_value(
+                "ConversationState.counter",
+                default_value_factory=(lambda: 0),
+                target_cls=int,
+            )
+            await context.send_activity(
+                f"[{counter}] You said: {context.activity.text}"
+            )
             counter += 1
             state.set_value("ConversationState.counter", counter)
             await state.save(context)
@@ -73,11 +80,16 @@ class BasicSample(Sample):
 
         @app.message_reaction(MessageReactionTypes.REACTIONS_ADDED)
         async def on_reactions_added(context: TurnContext, state: TurnState) -> None:
-            await context.send_activity("Message Reaction Added: " + context.activity.reactions_added[0].type)
+            await context.send_activity(
+                "Message Reaction Added: " + context.activity.reactions_added[0].type
+            )
 
         @app.message_reaction(MessageReactionTypes.REACTIONS_REMOVED)
         async def on_reactions_removed(context: TurnContext, state: TurnState) -> None:
-            await context.send_activity("Message Reaction Removed: " + context.activity.reactions_removed[0].type)
+            await context.send_activity(
+                "Message Reaction Removed: "
+                + context.activity.reactions_removed[0].type
+            )
 
         @app.error
         async def on_error(context: TurnContext, error: Exception):

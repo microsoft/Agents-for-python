@@ -49,7 +49,9 @@ class WeatherForecastAgent:
                 api_version=os.environ["AZURE_OPENAI_API_VERSION"],
                 endpoint=os.environ["AZURE_OPENAI_ENDPOINT"],
                 api_key=os.environ["AZURE_OPENAI_API_KEY"],
-                deployment_name=os.environ.get("AZURE_OPENAI_DEPLOYMENT_NAME", "gpt-4o"),
+                deployment_name=os.environ.get(
+                    "AZURE_OPENAI_DEPLOYMENT_NAME", "gpt-4o"
+                ),
             )
 
         self.client = client

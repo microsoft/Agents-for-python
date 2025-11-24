@@ -5,6 +5,7 @@ from __future__ import annotations
 
 from .check_model import check_model
 
+
 class Selector:
     """Class for selecting activities based on a selector and quantifier."""
 

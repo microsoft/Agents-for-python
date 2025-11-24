@@ -51,7 +51,7 @@ class Integration:
     @property
     def agent_url(self) -> str:
         return self._agent_url or self._config.get("agent_url", "")
-    
+
     def setup_method(self):
         if not self._config:
             self._config = {}
