@@ -356,15 +356,15 @@ await test.run(agent_client, response_client)
 
 Powerful assertion system for validating agent responses with flexible matching criteria.
 
-#### ActivityAssertion
+#### ModelAssertion
 
 Create assertions for validating lists of activities:
 
 ```python
-from microsoft_agents.testing import ActivityAssertion, Selector, AssertionQuantifier
+from microsoft_agents.testing import ModelAssertion, Selector, AssertionQuantifier
 
 # Create an assertion
-assertion = ActivityAssertion(
+assertion = ModelAssertion(
     assertion={"type": "message", "text": "Hello"},
     selector=Selector(selector={"type": "message"}),
     quantifier=AssertionQuantifier.ALL
@@ -386,7 +386,7 @@ config = {
     "selector": {"activity": {"type": "message"}},
     "quantifier": "all"
 }
-assertion = ActivityAssertion.from_config(config)
+assertion = ModelAssertion.from_config(config)
 ```
 
 #### Selectors
@@ -501,7 +501,7 @@ if not passes:
 Check entire activities:
 
 ```python
-from microsoft_agents.testing import check_activity, assert_activity
+from microsoft_agents.testing import check_model, assert_model
 
 activity = Activity(type="message", text="Hello", locale="en-US")
 
@@ -513,7 +513,7 @@ result = check_activity(activity, assertion)  # True
 passes, error_data = check_activity_verbose(activity, assertion)
 
 # Assert with exception on failure
-assert_activity(activity, assertion)  # Raises AssertionError if fails
+assert_model(activity, assertion)  # Raises AssertionError if fails
 ```
 
 Nested field checking:
@@ -527,7 +527,7 @@ assertion = {
         }
     }
 }
-assert_activity(activity, assertion)
+assert_model(activity, assertion)
 ```
 
 ### 🛠️ Testing Utilities
@@ -1015,11 +1015,11 @@ class DataDrivenTest:
     ) -> None: ...
 ```
 
-#### ActivityAssertion
+#### ModelAssertion
 Assertion engine for validating activities.
 
 ```python
-class ActivityAssertion:
+class ModelAssertion:
     def __init__(
         self,
         assertion: dict | Activity | None = None,
@@ -1032,7 +1032,7 @@ class ActivityAssertion:
     def __call__(self, activities: list[Activity]) -> None: ...
     
     @staticmethod
-    def from_config(config: dict) -> ActivityAssertion: ...
+    def from_config(config: dict) -> ModelAssertion: ...
 ```
 
 #### Selector
@@ -1179,11 +1179,11 @@ def check_field_verbose(
 ) -> tuple[bool, Optional[AssertionErrorData]]: ...
 ```
 
-#### assert_activity
+#### assert_model
 Assert activity matches, raise on failure.
 
 ```python
-def assert_activity(activity: Activity, assertion: dict | Activity) -> None: ...
+def assert_model(activity: Activity, assertion: dict | Activity) -> None: ...
 ```
 
 #### assert_field

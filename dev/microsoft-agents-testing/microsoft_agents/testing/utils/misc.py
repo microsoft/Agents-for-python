@@ -3,7 +3,7 @@
 
 from urllib.parse import urlparse
 
-from microsoft_agents.activity import Activity
+from microsoft_agents.activity import AgentsModel
 
 
 def get_host_and_port(url: str) -> tuple[str, int]:
@@ -12,12 +12,14 @@ def get_host_and_port(url: str) -> tuple[str, int]:
     parsed_url = urlparse(url)
     host = parsed_url.hostname
     port = parsed_url.port
+    if not host or not port:
+        raise ValueError(f"Invalid URL: {url}")
     return host, port
 
 
-def normalize_activity_data(source: Activity | dict) -> dict:
-    """Normalize Activity data to a dictionary format."""
+def normalize_model_data(source: AgentsModel | dict) -> dict:
+    """Normalize AgentsModel data to a dictionary format."""
 
-    if isinstance(source, Activity):
+    if isinstance(source, AgentsModel):
         return source.model_dump(exclude_unset=True, mode="json")
     return source

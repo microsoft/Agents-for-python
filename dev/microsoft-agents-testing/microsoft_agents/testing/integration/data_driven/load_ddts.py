@@ -44,7 +44,7 @@ def _resolve_name(module: dict) -> str:
         return module.get("name", module["path"])
 
 def load_ddts(
-    path: str | Path | None = None, recursive: bool = False
+    path: str | Path | None = None, recursive: bool = False, prefix: str = ""
 ) -> list[DataDrivenTest]:
     """Load data driven tests from JSON and YAML files in a given path.
 
@@ -82,5 +82,7 @@ def load_ddts(
         module["path"] = Path(file_path).stem  # store path for name resolution
     for file_path, module in test_modules.items():
         module["name"] = _resolve_name(module)
+        if prefix:
+            module["name"] = f"{prefix}.{module['name']}"
 
     return [DataDrivenTest(test_flow=data) for data in test_modules.values() if "test" in data]

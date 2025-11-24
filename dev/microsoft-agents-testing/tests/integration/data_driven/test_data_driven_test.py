@@ -7,7 +7,7 @@ from unittest.mock import AsyncMock, MagicMock, patch, call
 from copy import deepcopy
 
 from microsoft_agents.activity import Activity
-from microsoft_agents.testing.assertions import ActivityAssertion
+from microsoft_agents.testing.assertions import ModelAssertion
 from microsoft_agents.testing.integration.core import AgentClient, ResponseClient
 from microsoft_agents.testing.integration.data_driven import DataDrivenTest
 
@@ -215,7 +215,7 @@ class TestDataDrivenTestLoadAssertion:
         assertion_data = {"activity": {"type": "message", "text": "Hello"}}
         assertion = ddt._load_assertion(assertion_data)
 
-        assert isinstance(assertion, ActivityAssertion)
+        assert isinstance(assertion, ModelAssertion)
 
     def test_load_assertion_with_defaults(self):
         """Test loading assertion with defaults applied."""
@@ -225,7 +225,7 @@ class TestDataDrivenTestLoadAssertion:
         assertion_data = {"activity": {"text": "Hello"}}
         assertion = ddt._load_assertion(assertion_data)
 
-        assert isinstance(assertion, ActivityAssertion)
+        assert isinstance(assertion, ModelAssertion)
 
     def test_load_assertion_override_defaults(self):
         """Test that explicit assertion values override defaults."""
@@ -235,7 +235,7 @@ class TestDataDrivenTestLoadAssertion:
         assertion_data = {"quantifier": "all", "activity": {"text": "Hello"}}
         assertion = ddt._load_assertion(assertion_data)
 
-        assert isinstance(assertion, ActivityAssertion)
+        assert isinstance(assertion, ModelAssertion)
 
     def test_load_assertion_with_selector(self):
         """Test loading assertion with selector."""
@@ -248,7 +248,7 @@ class TestDataDrivenTestLoadAssertion:
         }
         assertion = ddt._load_assertion(assertion_data)
 
-        assert isinstance(assertion, ActivityAssertion)
+        assert isinstance(assertion, ModelAssertion)
 
     def test_load_assertion_empty(self):
         """Test loading empty assertion."""
@@ -258,7 +258,7 @@ class TestDataDrivenTestLoadAssertion:
         assertion_data = {}
         assertion = ddt._load_assertion(assertion_data)
 
-        assert isinstance(assertion, ActivityAssertion)
+        assert isinstance(assertion, ModelAssertion)
 
 
 class TestDataDrivenTestSleep:

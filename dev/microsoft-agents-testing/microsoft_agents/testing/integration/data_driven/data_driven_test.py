@@ -1,6 +1,7 @@
 # Copyright (c) Microsoft Corporation. All rights reserved.
 # Licensed under the MIT License.s
 
+import pytest
 import asyncio
 
 import yaml
@@ -9,7 +10,7 @@ from copy import deepcopy
 
 from microsoft_agents.activity import Activity
 
-from microsoft_agents.testing.assertions import ActivityAssertion
+from microsoft_agents.testing.assertions import ModelAssertion
 from microsoft_agents.testing.utils import (
     populate_activity,
     update_with_defaults,
@@ -54,16 +55,32 @@ class DataDrivenTest:
         update_with_defaults(input_data, defaults)
         return Activity.model_validate(input_data.get("activity", {}))
 
-    def _load_assertion(self, assertion_data: dict) -> ActivityAssertion:
+    def _load_assertion(self, assertion_data: dict) -> ModelAssertion:
         defaults = deepcopy(self._assertion_defaults)
         update_with_defaults(assertion_data, defaults)
-        return ActivityAssertion.from_config(assertion_data)
+        return ModelAssertion.from_config(assertion_data)
 
     async def _sleep(self, sleep_data: dict) -> None:
         duration = sleep_data.get("duration")
         if duration is None:
             duration = self._sleep_defaults.get("duration", 0)
         await asyncio.sleep(duration)
+
+    def _pre_process(self) -> None:
+        """Compile the data driven test to ensure all steps are valid."""
+        for step in self._test:
+            if step.get("type") == "assertion":
+                if "assertion" not in step:
+                    if "activity" in step:
+                        step["assertion"] = step["activity"]
+                selector = step.get("selector")
+                if selector is not None:
+                    if isinstance(selector, int):
+                        step["selector"] = {"index": selector}
+                    elif isinstance(selector, dict):
+                        if "selector" not in selector:
+                            if "activity" in selector:
+                                selector["selector"] = selector["activity"]
 
     async def run(
         self, agent_client: AgentClient, response_client: ResponseClient
@@ -72,6 +89,8 @@ class DataDrivenTest:
 
         :param agent_client: The agent client to send activities to.
         """
+
+        self._pre_process()
 
         responses = []
         for step in self._test:
@@ -90,10 +109,18 @@ class DataDrivenTest:
             elif step_type == "assertion":
                 activity_assertion = self._load_assertion(step)
                 responses.extend(await response_client.pop())
-                activity_assertion(responses)
+
+                res, err = activity_assertion.check(responses)
+                
+                if not res:
+                    err = "Assertion failed: {}\n\n{}".format(step, err)
+                    assert res, err
 
             elif step_type == "sleep":
                 await self._sleep(step)
 
             elif step_type == "breakpoint":
                 breakpoint()
+
+            elif step_type == "skip":
+                pytest.skip("Skipping step as per test definition.")

@@ -5,27 +5,26 @@ from __future__ import annotations
 
 from typing import Optional
 
-from microsoft_agents.activity import Activity
+from microsoft_agents.activity import AgentsModel
 
-from .check_activity import check_activity_verbose
+from .check_model import check_model_verbose
 from .selector import Selector
 from .type_defs import AssertionQuantifier, AssertionErrorData
 
-
-class ActivityAssertion:
+class ModelAssertion:
     """Class for asserting activities based on a selector and assertion criteria."""
 
     _selector: Selector
     _quantifier: AssertionQuantifier
-    _assertion: dict | Activity
+    _assertion: dict | AgentsModel
 
     def __init__(
         self,
-        assertion: dict | Activity | None = None,
+        assertion: dict | None = None,
         selector: Selector | None = None,
         quantifier: AssertionQuantifier = AssertionQuantifier.ALL,
     ) -> None:
-        """Initializes the ActivityAssertion with the given configuration.
+        """Initializes the ModelAssertion with the given configuration.
 
         :param config: The configuration dictionary containing quantifier, selector, and assertion.
         """
@@ -43,29 +42,29 @@ class ActivityAssertion:
         """
         return "\n".join(str(error) for error in errors)
 
-    def check(self, activities: list[Activity]) -> tuple[bool, Optional[str]]:
-        """Asserts that the given activities match the assertion criteria.
+    def check(self, items: list[dict]) -> tuple[bool, Optional[str]]:
+        """Asserts that the given items match the assertion criteria.
 
-        :param activities: The list of activities to be tested.
+        :param items: The list of items to be tested.
         :return: A tuple containing a boolean indicating if the assertion passed and an optional error message.
         """
 
-        activities = self._selector(activities)
+        items = self._selector(items)
 
         count = 0
-        for activity in activities:
-            res, assertion_error_data = check_activity_verbose(
-                activity, self._assertion
+        for item in items:
+            res, assertion_error_data = check_model_verbose(
+                item, self._assertion
             )
             if self._quantifier == AssertionQuantifier.ALL and not res:
                 return (
                     False,
-                    f"Activity did not match the assertion: {activity}\nError: {assertion_error_data}",
+                    f"Item did not match the assertion: {item}\nError: {assertion_error_data}",
                 )
             if self._quantifier == AssertionQuantifier.NONE and res:
                 return (
                     False,
-                    f"Activity matched the assertion when none were expected: {activity}",
+                    f"Item matched the assertion when none were expected: {item}",
                 )
             if res:
                 count += 1
@@ -74,32 +73,32 @@ class ActivityAssertion:
         if self._quantifier == AssertionQuantifier.ONE and count != 1:
             return (
                 False,
-                f"Expected exactly one activity to match the assertion, but found {count}.",
+                f"Expected exactly one item to match the assertion, but found {count}.",
             )
 
         return passes, None
 
-    def __call__(self, activities: list[Activity]) -> None:
-        """Allows the ActivityAssertion instance to be called directly.
+    def __call__(self, items: list[dict]) -> None:
+        """Allows the ModelAssertion instance to be called directly.
 
-        :param activities: The list of activities to be tested.
+        :param items: The list of items to be tested.
         :return: A tuple containing a boolean indicating if the assertion passed and an optional error message.
         """
-        passes, error = self.check(activities)
+        passes, error = self.check(items)
         assert passes, error
 
     @staticmethod
-    def from_config(config: dict) -> ActivityAssertion:
-        """Creates an ActivityAssertion instance from a configuration dictionary.
+    def from_config(config: dict) -> ModelAssertion:
+        """Creates a ModelAssertion instance from a configuration dictionary.
 
         :param config: The configuration dictionary containing quantifier, selector, and assertion.
-        :return: An ActivityAssertion instance.
+        :return: A ModelAssertion instance.
         """
-        assertion = config.get("activity", {})
+        assertion = config.get("assertion", {})
         selector = Selector.from_config(config.get("selector", {}))
         quantifier = AssertionQuantifier.from_config(config.get("quantifier", "all"))
 
-        return ActivityAssertion(
+        return ModelAssertion(
             assertion=assertion,
             selector=selector,
             quantifier=quantifier,

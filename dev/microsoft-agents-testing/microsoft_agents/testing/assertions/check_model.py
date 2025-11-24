@@ -3,8 +3,8 @@
 
 from typing import Any, Optional
 
-from microsoft_agents.activity import Activity
-from microsoft_agents.testing.utils import normalize_activity_data
+from microsoft_agents.activity import AgentsModel
+from microsoft_agents.testing.utils import normalize_model_data
 
 from .check_field import check_field, _parse_assertion
 from .type_defs import UNSET_FIELD, FieldAssertionType, AssertionErrorData
@@ -68,23 +68,23 @@ def _check(
             return False, assertion_error_data
 
 
-def check_activity(activity: Activity, baseline: Activity | dict) -> bool:
+def check_model(actual: dict | AgentsModel, baseline: dict | AgentsModel) -> bool:
     """Asserts that the given activity matches the baseline activity.
 
     :param activity: The activity to be tested.
     :param baseline: The baseline activity or a dictionary representing the expected activity data.
     """
-    return check_activity_verbose(activity, baseline)[0]
+    return check_model_verbose(actual, baseline)[0]
 
 
-def check_activity_verbose(
-    activity: Activity, baseline: Activity | dict
+def check_model_verbose(
+    actual: dict | AgentsModel, baseline: dict | AgentsModel
 ) -> tuple[bool, Optional[AssertionErrorData]]:
     """Asserts that the given activity matches the baseline activity.
 
-    :param activity: The activity to be tested.
-    :param baseline: The baseline activity or a dictionary representing the expected activity data.
+    :param actual: The actual data to be tested.
+    :param baseline: The baseline data or a dictionary representing the expected data.
     """
-    actual_activity = normalize_activity_data(activity)
-    baseline = normalize_activity_data(baseline)
-    return _check(actual_activity, baseline, "activity")
+    actual = normalize_model_data(actual)
+    baseline = normalize_model_data(baseline)
+    return _check(actual, baseline, "model")

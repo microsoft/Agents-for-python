@@ -3,10 +3,7 @@
 
 from __future__ import annotations
 
-from microsoft_agents.activity import Activity
-
-from .check_activity import check_activity
-
+from .check_model import check_model
 
 class Selector:
     """Class for selecting activities based on a selector and quantifier."""
@@ -16,7 +13,7 @@ class Selector:
 
     def __init__(
         self,
-        selector: dict | Activity | None = None,
+        selector: dict | None = None,
         index: int | None = None,
     ) -> None:
         """Initializes the Selector with the given configuration.
@@ -32,41 +29,39 @@ class Selector:
 
         if selector is None:
             selector = {}
-        elif isinstance(selector, Activity):
-            selector = selector.model_dump(exclude_unset=True)
 
         self._selector = selector
         self._index = index
 
-    def select_first(self, activities: list[Activity]) -> Activity | None:
+    def select_first(self, items: list[dict]) -> dict | None:
         """Selects the first activity from the list of activities.
 
-        :param activities: The list of activities to select from.
-        :return: A list containing the first activity, or an empty list if none exist.
+        :param items: The list of items to select from.
+        :return: A list containing the first item, or an empty list if none exist.
         """
-        res = self.select(activities)
+        res = self.select(items)
         if res:
             return res[0]
         return None
 
-    def select(self, activities: list[Activity]) -> list[Activity]:
+    def select(self, items: list[dict]) -> list[dict]:
         """Selects activities based on the selector configuration.
 
-        :param activities: The list of activities to select from.
-        :return: A list of selected activities.
+        :param items: The list of items to select from.
+        :return: A list of selected items.
         """
         if self._index is None:
             return list(
                 filter(
-                    lambda activity: check_activity(activity, self._selector),
-                    activities,
+                    lambda item: check_model(item, self._selector),
+                    items,
                 )
             )
         else:
             filtered_list = []
-            for activity in activities:
-                if check_activity(activity, self._selector):
-                    filtered_list.append(activity)
+            for item in items:
+                if check_model(item, self._selector):
+                    filtered_list.append(item)
 
             if self._index < 0 and abs(self._index) <= len(filtered_list):
                 return [filtered_list[self._index]]
@@ -75,13 +70,13 @@ class Selector:
             else:
                 return []
 
-    def __call__(self, activities: list[Activity]) -> list[Activity]:
+    def __call__(self, items: list[dict]) -> list[dict]:
         """Allows the Selector instance to be called as a function.
 
-        :param activities: The list of activities to select from.
-        :return: A list of selected activities.
+        :param items: The list of items to select from.
+        :return: A list of selected items.
         """
-        return self.select(activities)
+        return self.select(items)
 
     @staticmethod
     def from_config(config: dict) -> Selector:
@@ -90,7 +85,7 @@ class Selector:
         :param config: The configuration dictionary containing selector, quantifier, and index.
         :return: A Selector instance.
         """
-        selector = config.get("activity", {})
+        selector = config.get("selector", {})
         index = config.get("index", None)
 
         return Selector(

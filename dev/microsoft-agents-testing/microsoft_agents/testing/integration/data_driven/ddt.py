@@ -30,7 +30,7 @@ def _add_test_method(test_cls: type[Integration], data_driven_test: DataDrivenTe
     setattr(test_cls, test_case_name, _func)
 
 
-def ddt(test_path: str, recursive: bool = True) -> Callable[[IntegrationT], IntegrationT]:
+def ddt(test_path: str, recursive: bool = True, prefix: str = "") -> Callable[[IntegrationT], IntegrationT]:
     """Decorator to add data driven tests to an integration test class.
 
     :param test_path: The path to the data driven test files.
@@ -38,7 +38,7 @@ def ddt(test_path: str, recursive: bool = True) -> Callable[[IntegrationT], Inte
     :return: The decorated test class.
     """
 
-    ddts = load_ddts(test_path, recursive=recursive)
+    ddts = load_ddts(test_path, recursive=recursive, prefix=prefix)
     if not ddts:
         raise RuntimeError(f"No data driven tests found in path: {test_path}")
 

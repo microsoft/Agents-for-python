@@ -1,4 +1,4 @@
-import pytest_lazyfixture
+import pytest
 
 from microsoft_agents.testing import (
     ddt,

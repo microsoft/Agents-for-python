@@ -1,22 +1,22 @@
 # Copyright (c) Microsoft Corporation. All rights reserved.
 # Licensed under the MIT License.
 
-from .activity_assertion import ActivityAssertion
+from .model_assertion import ModelAssertion
 from .assertions import (
-    assert_activity,
+    assert_model,
     assert_field,
 )
-from .check_activity import check_activity, check_activity_verbose
+from .check_model import check_model, check_model_verbose
 from .check_field import check_field, check_field_verbose
 from .type_defs import FieldAssertionType, AssertionQuantifier, UNSET_FIELD
 from .selector import Selector
 
 __all__ = [
-    "ActivityAssertion",
-    "assert_activity",
+    "ModelAssertion",
+    "assert_model",
     "assert_field",
-    "check_activity",
-    "check_activity_verbose",
+    "check_model",
+    "check_model_verbose",
     "check_field",
     "check_field_verbose",
     "FieldAssertionType",

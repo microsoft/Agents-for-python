@@ -33,6 +33,7 @@ class Integration:
 
     _service_url: Optional[str] = "http://localhost:9378"
     _agent_url: Optional[str] = "http://localhost:3978"
+    _config_path: Optional[str] = "./src/tests/.env"
     _cid: Optional[str] = None
     _client_id: Optional[str] = None
     _tenant_id: Optional[str] = None
@@ -50,6 +51,25 @@ class Integration:
     @property
     def agent_url(self) -> str:
         return self._agent_url or self._config.get("agent_url", "")
+    
+    def setup_method(self):
+        if not self._config:
+            self._config = {}
+
+            load_dotenv(self._config_path)
+            self._config.update(
+                {
+                    "client_id": os.getenv(
+                        "CONNECTIONS__SERVICE_CONNECTION__SETTINGS__CLIENTID", ""
+                    ),
+                    "tenant_id": os.getenv(
+                        "CONNECTIONS__SERVICE_CONNECTION__SETTINGS__TENANTID", ""
+                    ),
+                    "client_secret": os.getenv(
+                        "CONNECTIONS__SERVICE_CONNECTION__SETTINGS__CLIENTSECRET", ""
+                    ),
+                }
+            )
 
     @pytest.fixture
     async def environment(self):
@@ -77,23 +97,6 @@ class Integration:
             yield None
 
     def create_agent_client(self) -> AgentClient:
-        if not self._config:
-            self._config = {}
-
-            load_dotenv("./src/tests/.env")
-            self._config.update(
-                {
-                    "client_id": os.getenv(
-                        "CONNECTIONS__SERVICE_CONNECTION__SETTINGS__CLIENTID", ""
-                    ),
-                    "tenant_id": os.getenv(
-                        "CONNECTIONS__SERVICE_CONNECTION__SETTINGS__TENANTID", ""
-                    ),
-                    "client_secret": os.getenv(
-                        "CONNECTIONS__SERVICE_CONNECTION__SETTINGS__CLIENTSECRET", ""
-                    ),
-                }
-            )
 
         agent_client = AgentClient(
             agent_url=self.agent_url,

@@ -3,10 +3,10 @@
 
 from typing import Any
 
-from microsoft_agents.activity import Activity
+from microsoft_agents.activity import AgentsModel
 
-from .type_defs import FieldAssertionType, AssertionQuantifier
-from .check_activity import check_activity_verbose
+from .type_defs import FieldAssertionType
+from .check_model import check_model_verbose
 from .check_field import check_field_verbose
 
 
@@ -25,11 +25,11 @@ def assert_field(
     assert res, assertion_error_message
 
 
-def assert_activity(activity: Activity, assertion: Activity | dict) -> None:
-    """Asserts that the given activity matches the baseline activity.
+def assert_model(model: AgentsModel | dict, assertion: AgentsModel | dict) -> None:
+    """Asserts that the given model matches the baseline model.
 
-    :param activity: The activity to be tested.
-    :param assertion: The baseline activity or a dictionary representing the expected activity data.
+    :param model: The model to be tested.
+    :param assertion: The baseline model or a dictionary representing the expected model data.
     """
-    res, assertion_error_data = check_activity_verbose(activity, assertion)
+    res, assertion_error_data = check_model_verbose(model, assertion)
     assert res, str(assertion_error_data)
