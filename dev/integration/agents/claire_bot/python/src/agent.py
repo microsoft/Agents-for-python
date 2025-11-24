@@ -72,7 +72,7 @@ class Agent:
 
         chat_history = state.get_value(
             "ConversationState.chatHistory",
-            lambda: ChatHistory(),
+            ChatHistory,
             target_cls=ChatHistory,
         )
 
