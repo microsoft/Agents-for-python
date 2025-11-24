@@ -8,7 +8,7 @@ import re
 
 import uvicorn
 from dotenv import load_dotenv
-from fastapi import FastAPI, Request, Depends
+from fastapi import FastAPI, Request
 from microsoft_agents.hosting.core import (
     Authorization,
     AgentApplication,
