@@ -1,0 +1,78 @@
+test:
+- type: input
+  activity:
+    type: message
+    id: activity989
+    channelId: msteams
+    from:
+      id: user-id-0
+      name: Alex Wilber
+      aadObjectId: aad-user-alex
+    timestamp: '2025-07-07T21:24:15.930Z'
+    localTimestamp: '2025-07-07T14:24:15.930-07:00'
+    localTimezone: America/Los_Angeles
+    serviceUrl: http://localhost:60209/_connector
+    conversation:
+      conversationType: personal
+      tenantId: tenant-001
+      id: personal-chat-id
+    recipient:
+      id: bot-001
+      name: Test Bot
+    textFormat: plain
+    locale: en-US
+    entities:
+    - type: clientInfo
+      locale: en-US
+      country: US
+      platform: Web
+      timezone: America/Los_Angeles
+    text: Hello
+    channelData:
+      tenant:
+        id: tenant-001
+- type: assertion
+  selector:
+    index: -1
+  activity:
+    type: message
+    text: ["CONTAINS", "Hello"]
+- type: input
+  activity:
+    type: messageUpdate
+    id: activity989
+    channelId: msteams
+    from:
+      id: user-id-0
+      name: Alex Wilber
+      aadObjectId: aad-user-alex
+    timestamp: '2025-07-07T21:24:15.930Z'
+    localTimestamp: '2025-07-07T14:24:15.930-07:00'
+    localTimezone: America/Los_Angeles
+    serviceUrl: http://localhost:60209/_connector
+    conversation:
+      conversationType: personal
+      tenantId: tenant-001
+      id: personal-chat-id
+    recipient:
+      id: bot-001
+      name: Test Bot
+    textFormat: plain
+    locale: en-US
+    entities:
+    - type: clientInfo
+      locale: en-US
+      country: US
+      platform: Web
+      timezone: America/Los_Angeles
+    text: This is the updated message content.
+    channelData:
+      eventType: editMessage
+      tenant:
+        id: tenant-001
+- type: assertion
+  selector:
+    index: -1
+  activity:
+    type: message
+    text: ["CONTAINS", "Message Edited: activity989"]

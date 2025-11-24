@@ -1,0 +1,59 @@
+test:
+- type: input
+  activity:
+    type: message
+    id: activity123
+    channelId: msteams
+    from:
+      id: from29ed
+      name: Claire Cho
+      aadObjectId: aad-user1
+    timestamp: '2025-06-27T17:24:16.000Z'
+    localTimestamp: '2025-06-27T17:24:16.000Z'
+    localTimezone: America/Los_Angeles
+    serviceUrl: https://smba.trafficmanager.net/amer/
+    conversation:
+      conversationType: personal
+      tenantId: tenant6d4
+      id: cpersonal-chat-id
+    recipient:
+      id: claire-bot@sometext
+      name: claire-bot
+    locale: en-US
+    entities:
+    - type: clientInfo
+      locale: en-US
+      country: US
+      platform: Web
+      timezone: America/Los_Angeles
+    channelData:
+      tenant:
+        id: tenant6d4
+      source:
+        name: message
+      legacy:
+        replyToId: legacy_id
+    replyToId: activity123
+    value:
+      verb: doStuff
+      id: doStuff
+      type: Action.Submit
+      test: test
+      data:
+        name: test
+      usertext: hello
+- type: assertion
+  selector: -1
+  activity:
+    type: message
+    text: ["CONTAINS", "doStuff"]
+- type: assertion
+  selector: -1
+  activity:
+    type: message
+    text: ["CONTAINS", "Action.Submit"]
+- type: assertion
+  selector: -1
+  activity:
+    type: message
+    text: ["CONTAINS", "hello"]

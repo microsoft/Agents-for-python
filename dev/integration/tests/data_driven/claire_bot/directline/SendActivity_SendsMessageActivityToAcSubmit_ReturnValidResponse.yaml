@@ -1,0 +1,55 @@
+test:
+- type: input
+  activity:
+    type: message
+    id: activityY1F
+    timestamp: '2025-07-30T23:06:37.000Z'
+    localTimestamp: '2025-07-30T16:06:37.000-07:00'
+    localTimezone: America/Los_Angeles
+    serviceUrl: https://webchat.botframework.com/
+    channelId: directline
+    from:
+      id: fromid
+      name: ''
+    conversation:
+      id: conv-id
+    recipient:
+      id: claire-bot@sometext
+      name: claire-bot
+    locale: en-US
+    attachments: []
+    channelData:
+      postBack: true
+      clientActivityID: client-act-id
+    value:
+      verb: doStuff
+      id: doStuff
+      type: Action.Submit
+      test: test
+      data:
+        name: test
+      usertext: hello
+- type: assertion
+  selector:
+    index: -1
+    activity:
+      type: message
+  activity:
+    type: message
+    text: ["CONTAINS", "doStuff"]
+- type: assertion
+  selector:
+    index: -1
+    activity:
+      type: message
+  activity:
+    type: message
+    text: ["CONTAINS", "Action.Submit"]
+- type: assertion
+  selector:
+    index: -1
+    activity:
+      type: message
+  activity:
+    type: message
+    text: ["CONTAINS", "hello"]
