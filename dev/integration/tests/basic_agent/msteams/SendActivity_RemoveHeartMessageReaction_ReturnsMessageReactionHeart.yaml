@@ -15,8 +15,8 @@ test:
       tenantId: tenant6d4
       id: cpersonal-chat-id
     recipient:
-      id: claire-bot@sometext
-      name: claire-bot
+      id: basic-agent@sometext
+      name: basic-agent
     channelData:
       tenant:
         id: tenant6d4

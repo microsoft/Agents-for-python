@@ -10,7 +10,6 @@ from microsoft_agents.hosting.core import (
     AgentApplication,
     TurnContext,
     TurnState,
-    RouteRank,
 )
 from microsoft_agents.testing.integration.core import Sample
 
@@ -21,20 +20,8 @@ class QuickstartSample(Sample):
     @classmethod
     async def get_config(cls) -> dict:
         """Retrieve the configuration for the sample."""
-
         load_dotenv("./src/tests/.env")
-
-        return {
-            "CONNECTIONS__SERVICE_CONNECTION__SETTINGS__CLIENTID": os.getenv(
-                "CONNECTIONS__SERVICE_CONNECTION__SETTINGS__CLIENTID"
-            ),
-            "CONNECTIONS__SERVICE_CONNECTION__SETTINGS__CLIENTSECRET": os.getenv(
-                "CONNECTIONS__SERVICE_CONNECTION__SETTINGS__CLIENTSECRET"
-            ),
-            "CONNECTIONS__SERVICE_CONNECTION__SETTINGS__TENANTID": os.getenv(
-                "CONNECTIONS__SERVICE_CONNECTION__SETTINGS__TENANTID"
-            ),
-        }
+        return dict(os.environ)
 
     async def init_app(self):
         """Initialize the application for the quickstart sample."""

@@ -1,12 +1,12 @@
 test:
 - type: input
   activity:
-    reactionsAdded:
+    reactionsRemoved:
     - type: heart
     type: messageReaction
-    timestamp: '2025-07-10T02:25:04.000Z'
+    timestamp: '2025-07-10T02:30:00.000Z'
     id: '1752114287789'
-    channelId: webchat
+    channelId: directline
     from:
       id: from29ed
       aadObjectId: aad-user1
@@ -15,18 +15,17 @@ test:
       tenantId: tenant6d4
       id: cpersonal-chat-id
     recipient:
-      id: claire-bot@sometext
-      name: claire-bot
+      id: basic-agent@sometext
+      name: basic-agent
     channelData:
       tenant:
         id: tenant6d4
       legacy:
         replyToId: legacy_id
     replyToId: '1752114287789'
-    locale: en-US
 - type: assertion
   selector:
     index: -1
   activity:
     type: message
-    text: ["CONTAINS", "Message Reaction Added: heart"]
+    text: ["CONTAINS", "Message Reaction Removed: heart"]

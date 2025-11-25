@@ -10,11 +10,11 @@ test:
     conversation:
       id: conversation-001
     recipient:
-      id: claire-bot@sometext
-      name: claire-bot
+      id: basic-agent@sometext
+      name: basic-agent
     membersAdded:
-    - id: claire-bot@sometext
-      name: claire-bot
+    - id: basic-agent@sometext
+      name: basic-agent
     - id: user1
     localTimestamp: '2025-07-30T15:59:55.000-07:00'
     localTimezone: America/Los_Angeles

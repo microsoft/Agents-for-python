@@ -48,7 +48,7 @@ def _resolve_name(module: dict) -> str:
 
 
 def load_ddts(
-    path: str | Path | None = None, recursive: bool = False, prefix: str = ""
+    path: str | Path | None = None, recursive: bool = True, prefix: str = ""
 ) -> list[DataDrivenTest]:
     """Load data driven tests from JSON and YAML files in a given path.
 

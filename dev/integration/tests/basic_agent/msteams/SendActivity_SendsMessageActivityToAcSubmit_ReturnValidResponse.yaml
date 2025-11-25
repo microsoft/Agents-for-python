@@ -6,7 +6,7 @@ test:
     channelId: msteams
     from:
       id: from29ed
-      name: Claire Cho
+      name: Basic User
       aadObjectId: aad-user1
     timestamp: '2025-06-27T17:24:16.000Z'
     localTimestamp: '2025-06-27T17:24:16.000Z'
@@ -17,8 +17,8 @@ test:
       tenantId: tenant6d4
       id: cpersonal-chat-id
     recipient:
-      id: claire-bot@sometext
-      name: claire-bot
+      id: basic-agent@sometext
+      name: basic-agent
     locale: en-US
     entities:
     - type: clientInfo

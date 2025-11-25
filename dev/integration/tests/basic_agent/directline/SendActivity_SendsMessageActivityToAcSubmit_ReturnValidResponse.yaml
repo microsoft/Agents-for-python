@@ -14,8 +14,8 @@ test:
     conversation:
       id: conv-id
     recipient:
-      id: claire-bot@sometext
-      name: claire-bot
+      id: basic-agent@sometext
+      name: basic-agent
     locale: en-US
     attachments: []
     channelData:

@@ -5,40 +5,35 @@ from __future__ import annotations
 
 from .check_model import check_model
 
+class ModelSelector:
+    """Class for selecting activities based on a model and an index."""
 
-class Selector:
-    """Class for selecting activities based on a selector and quantifier."""
-
-    _selector: dict
+    _model: dict
     _index: int | None
 
     def __init__(
         self,
-        selector: dict | None = None,
+        model: dict | None = None,
         index: int | None = None,
     ) -> None:
-        """Initializes the Selector with the given configuration.
+        """Initializes the ModelSelector with the given configuration.
 
-        :param selector: The selector to use for selecting activities.
-            The selector is an object holding the activity fields to match.
-        :param quantifier: The quantifier to use for selecting activities.
-        :param index: The index of the activity to select when quantifier is ONE.
-
-        When quantifier is ALL, index should be None.
-        When quantifier is ONE, index defaults to 0 if not provided.
+        :param model: The model to use for selecting activities.
+            The model is an object holding the fields to match and assertions to pass.
+        :param index: The index of the item to select when quantifier is ONE.
         """
 
-        if selector is None:
-            selector = {}
+        if model is None:
+            model = {}
 
-        self._selector = selector
+        self._model = model
         self._index = index
 
     def select_first(self, items: list[dict]) -> dict | None:
-        """Selects the first activity from the list of activities.
+        """Selects the first item from the list of items.
 
         :param items: The list of items to select from.
-        :return: A list containing the first item, or an empty list if none exist.
+        :return: The first item, or None if no items exist.
         """
         res = self.select(items)
         if res:
@@ -46,7 +41,7 @@ class Selector:
         return None
 
     def select(self, items: list[dict]) -> list[dict]:
-        """Selects activities based on the selector configuration.
+        """Selects items based on the selector configuration.
 
         :param items: The list of items to select from.
         :return: A list of selected items.
@@ -54,14 +49,14 @@ class Selector:
         if self._index is None:
             return list(
                 filter(
-                    lambda item: check_model(item, self._selector),
+                    lambda item: check_model(item, self._model),
                     items,
                 )
             )
         else:
             filtered_list = []
             for item in items:
-                if check_model(item, self._selector):
+                if check_model(item, self._model):
                     filtered_list.append(item)
 
             if self._index < 0 and abs(self._index) <= len(filtered_list):
@@ -80,16 +75,16 @@ class Selector:
         return self.select(items)
 
     @staticmethod
-    def from_config(config: dict) -> Selector:
-        """Creates a Selector instance from a configuration dictionary.
+    def from_config(config: dict) -> ModelSelector:
+        """Creates a ModelSelector instance from a configuration dictionary.
 
-        :param config: The configuration dictionary containing selector, quantifier, and index.
+        :param config: The configuration dictionary containing selector, and index.
         :return: A Selector instance.
         """
-        selector = config.get("selector", {})
+        model = config.get("model", {})
         index = config.get("index", None)
 
-        return Selector(
-            selector=selector,
+        return ModelSelector(
+            model=model,
             index=index,
         )

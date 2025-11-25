@@ -9,7 +9,7 @@ from .assertions import (
 from .check_model import check_model, check_model_verbose
 from .check_field import check_field, check_field_verbose
 from .type_defs import FieldAssertionType, AssertionQuantifier, UNSET_FIELD
-from .selector import Selector
+from .model_selector import ModelSelector
 
 __all__ = [
     "ModelAssertion",
@@ -20,7 +20,7 @@ __all__ = [
     "check_field",
     "check_field_verbose",
     "FieldAssertionType",
-    "Selector",
+    "ModelSelector",
     "AssertionQuantifier",
     "UNSET_FIELD",
 ]

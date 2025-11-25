@@ -45,10 +45,10 @@ def generate_token_from_config(sdk_config: SDKConfig) -> str:
 
     settings: AgentAuthConfiguration = sdk_config.get_connection()
 
-    app_id = settings.CLIENT_ID
-    app_secret = settings.CLIENT_SECRET
+    client_id = settings.CLIENT_ID
+    client_secret = settings.CLIENT_SECRET
     tenant_id = settings.TENANT_ID
 
-    if not app_id or not app_secret or not tenant_id:
+    if not client_id or not client_secret or not tenant_id:
         raise ValueError("Incorrect configuration provided for token generation.")
-    return generate_token(app_id, app_secret, tenant_id)
+    return generate_token(client_id, client_secret, tenant_id)

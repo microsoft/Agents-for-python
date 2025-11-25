@@ -2,19 +2,19 @@ test:
 - type: input
   activity:
     type: message
-    id: activitiyA37
+    id: activity-hello-webchat-001
     timestamp: '2025-07-30T22:59:55.000Z'
     localTimestamp: '2025-07-30T15:59:55.000-07:00'
     localTimezone: America/Los_Angeles
-    channelId: directline
+    channelId: webchat
     from:
-      id: fromid
+      id: user1
       name: ''
     conversation:
-      id: coversation-id
+      id: conversation-hello-webchat-001
     recipient:
-      id: claire-bot@sometext
-      name: claire-bot
+      id: basic-agent@sometext
+      name: basic-agent
     textFormat: plain
     locale: en-US
     text: hello world
@@ -25,10 +25,12 @@ test:
       supportsListening: true
       supportsTts: true
     channelData:
-      clientActivityID: client-act-id
+      clientActivityID: client-activity-hello-webchat-001
 - type: assertion
   selector:
     index: -1
+    activity:
+      type: message
   activity:
     type: message
     text: ["CONTAINS", "You said: hello world"]

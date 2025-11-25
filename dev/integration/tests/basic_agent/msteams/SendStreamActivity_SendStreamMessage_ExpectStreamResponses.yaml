@@ -2,7 +2,7 @@ test:
 - type: input
   activity:
     type: message
-    id: activity-hello-msteams-001
+    id: activityEvS8
     timestamp: '2025-06-18T18:47:46.000Z'
     localTimestamp: '2025-06-18T11:47:46.000-07:00'
     localTimezone: America/Los_Angeles
@@ -11,13 +11,13 @@ test:
       id: user1
       name: ''
     conversation:
-      id: conversation-hello-msteams-001
+      id: conv1
     recipient:
-      id: claire-bot@sometext
-      name: claire-bot
+      id: basic-agent@sometext
+      name: basic-agent
     textFormat: plain
     locale: en-US
-    text: hello world
+    text: stream
     attachments: []
     entities:
     - type: ClientCapabilities
@@ -25,9 +25,5 @@ test:
       supportsListening: true
       supportsTts: true
     channelData:
-      clientActivityID: client-activity-hello-msteams-001
-- type: assertion
-  selector: -1
-  activity:
-    type: message
-    text: ["CONTAINS", "You said: hello world"]
+      clientActivityID: activityAZ8
+- type: skip

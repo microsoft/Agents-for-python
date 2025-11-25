@@ -8,21 +8,21 @@ from typing import Optional
 from microsoft_agents.activity import AgentsModel
 
 from .check_model import check_model_verbose
-from .selector import Selector
+from .model_selector import ModelSelector
 from .type_defs import AssertionQuantifier, AssertionErrorData
 
 
 class ModelAssertion:
     """Class for asserting activities based on a selector and assertion criteria."""
 
-    _selector: Selector
+    _selector: ModelSelector
     _quantifier: AssertionQuantifier
     _assertion: dict | AgentsModel
 
     def __init__(
         self,
         assertion: dict | None = None,
-        selector: Selector | None = None,
+        selector: ModelSelector | None = None,
         quantifier: AssertionQuantifier = AssertionQuantifier.ALL,
     ) -> None:
         """Initializes the ModelAssertion with the given configuration.
@@ -31,7 +31,7 @@ class ModelAssertion:
         """
 
         self._assertion = assertion or {}
-        self._selector = selector or Selector()
+        self._selector = selector or ModelSelector()
         self._quantifier = quantifier
 
     @staticmethod
@@ -94,7 +94,7 @@ class ModelAssertion:
         :return: A ModelAssertion instance.
         """
         assertion = config.get("assertion", {})
-        selector = Selector.from_config(config.get("selector", {}))
+        selector = ModelSelector.from_config(config.get("selector", {}))
         quantifier = AssertionQuantifier.from_config(config.get("quantifier", "all"))
 
         return ModelAssertion(

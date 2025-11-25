@@ -4,7 +4,7 @@
 import pytest
 
 from microsoft_agents.activity import Activity
-from microsoft_agents.testing.assertions.selector import Selector
+from microsoft_agents.testing.assertions.model_selector import Selector
 
 
 class TestSelectorSelectWithQuantifierAll:
