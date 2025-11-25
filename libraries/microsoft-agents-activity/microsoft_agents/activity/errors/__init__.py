@@ -6,9 +6,16 @@ Error resources for Microsoft Agents Activity package.
 """
 
 from .error_message import ErrorMessage
-from .error_resources import ActivityErrorResources
+from .error_resources import ActivityErrorResources, ConfigurationErrorResources
 
 # Singleton instance
 activity_errors = ActivityErrorResources()
+configuration_errors = ConfigurationErrorResources()
 
-__all__ = ["ErrorMessage", "ActivityErrorResources", "activity_errors"]
+__all__ = [
+    "ErrorMessage",
+    "ActivityErrorResources",
+    "ConfigurationErrorResources",
+    "activity_errors",
+    "configuration_errors"
+]

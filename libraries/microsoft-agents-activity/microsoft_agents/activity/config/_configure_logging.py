@@ -3,6 +3,8 @@
 
 import logging
 
+from ..errors import configuration_errors
+
 # in Python 3.11, we can move to using
 # logging.getLevelNamesMapping()
 _NAME_TO_LEVEL = {
@@ -39,8 +41,10 @@ def _configure_logging(logging_config: dict):
         level = _NAME_TO_LEVEL.get(level_name)
         if level is None:
             raise ValueError(
-                f"Invalid configured log level: {level_name}. Valid levels are: {', '.join(_NAME_TO_LEVEL.keys())}"
-            )
+                configuration_errors.InvalidLoggingConfiguration.format(
+                        key, level_name
+                    )
+                )
 
         namespace = key.lower()
         if namespace == "default":
