@@ -6,7 +6,6 @@ from microsoft_agents.testing import (
 )
 
 
-
 @ddt("tests/basic_agent/directline", prefix="directline")
 @ddt("tests/basic_agent/webchat", prefix="webchat")
 @ddt("tests/basic_agent/msteams", prefix="msteams")

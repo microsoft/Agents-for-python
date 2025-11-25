@@ -11,6 +11,7 @@ from microsoft_agents.testing import (
 
 from ..samples import BasicSample
 
+
 class BasicSampleWithLogging(BasicSample):
 
     async def init_app(self):
@@ -25,20 +26,22 @@ class TestBasicDirectline(Integration):
     _environment_cls = AiohttpEnvironment
 
     @pytest.mark.asyncio
-    async def test_expect_replies_without_service_url(self, agent_client, response_client):
+    async def test_expect_replies_without_service_url(
+        self, agent_client, response_client
+    ):
 
         activity = Activity(
             type="message",
             text="hi",
-            conversation={"id":"conv-id"},
+            conversation={"id": "conv-id"},
             channel_id="test",
-            from_property={"id":"from-id"},
-            to={"id":"to-id"},
+            from_property={"id": "from-id"},
+            to={"id": "to-id"},
             delivery_mode="expectReplies",
             locale="en-US",
         )
 
         res = await agent_client.send_expect_replies(activity)
-        
+
         breakpoint()
         res = Activity.model_validate(res)
