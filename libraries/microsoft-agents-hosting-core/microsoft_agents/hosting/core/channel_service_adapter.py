@@ -341,6 +341,17 @@ class ChannelServiceAdapter(ChannelAdapter, ABC):
         await connector_client.close()
         await user_token_client.close()
 
+    def _resolve_if_connector_client_is_needed(self, activity: Activity) -> bool:
+        """Determine if a connector client is needed based on the activity's delivery mode and service URL.
+        
+        :param activity: The activity to evaluate.
+        :type activity: :class:`microsoft_agents.activity.Activity`
+        """
+        if activity.delivery_mode in [DeliveryModes.expect_replies, DeliveryModes.stream]:
+            if not activity.service_url:
+                return False
+        return True
+
     async def process_activity(
         self,
         claims_identity: ClaimsIdentity,
@@ -403,21 +414,24 @@ class ChannelServiceAdapter(ChannelAdapter, ABC):
         context.turn_state[self.USER_TOKEN_CLIENT_KEY] = user_token_client
 
         # Create the connector client to use for outbound requests.
-        connector_client: ConnectorClient = (
-            await self._channel_service_client_factory.create_connector_client(
-                context,
-                claims_identity,
-                activity.service_url,
-                outgoing_audience,
-                scopes,
-                use_anonymous_auth_callback,
+        connector_client: Optional[ConnectorClient] = None
+        if self._resolve_if_connector_client_is_needed(activity):
+            connector_client = (
+                await self._channel_service_client_factory.create_connector_client(
+                    context,
+                    claims_identity,
+                    activity.service_url,
+                    outgoing_audience,
+                    scopes,
+                    use_anonymous_auth_callback,
+                )
             )
-        )
-        context.turn_state[self._AGENT_CONNECTOR_CLIENT_KEY] = connector_client
+            context.turn_state[self._AGENT_CONNECTOR_CLIENT_KEY] = connector_client
 
         await self.run_pipeline(context, callback)
 
-        await connector_client.close()
+        if connector_client:
+            await connector_client.close()
         await user_token_client.close()
 
         # If there are any results they will have been left on the TurnContext.
