@@ -343,12 +343,15 @@ class ChannelServiceAdapter(ChannelAdapter, ABC):
 
     def _resolve_if_connector_client_is_needed(self, activity: Activity) -> bool:
         """Determine if a connector client is needed based on the activity's delivery mode and service URL.
-        
+
         :param activity: The activity to evaluate.
         :type activity: :class:`microsoft_agents.activity.Activity`
         """
-        if activity.delivery_mode in [DeliveryModes.expect_replies, DeliveryModes.stream]:
-            if not activity.service_url:
+        if activity.delivery_mode in [
+            DeliveryModes.expect_replies,
+            DeliveryModes.stream,
+        ]:
+            if not activity.service_url: # this is breaking...
                 return False
         return True
 
