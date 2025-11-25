@@ -51,6 +51,7 @@ class ActivityErrorResources:
         """Initialize ActivityErrorResources."""
         pass
 
+
 class ConfigurationErrorResources:
     """
     Error messages for environment configuration operations.

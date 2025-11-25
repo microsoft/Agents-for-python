@@ -17,5 +17,5 @@ __all__ = [
     "ActivityErrorResources",
     "ConfigurationErrorResources",
     "activity_errors",
-    "configuration_errors"
+    "configuration_errors",
 ]

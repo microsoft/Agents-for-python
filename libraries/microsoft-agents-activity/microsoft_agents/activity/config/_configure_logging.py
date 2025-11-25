@@ -41,10 +41,8 @@ def _configure_logging(logging_config: dict):
         level = _NAME_TO_LEVEL.get(level_name)
         if level is None:
             raise ValueError(
-                configuration_errors.InvalidLoggingConfiguration.format(
-                        key, level_name
-                    )
-                )
+                configuration_errors.InvalidLoggingConfiguration.format(key, level_name)
+            )
 
         namespace = key.lower()
         if namespace == "default":
