@@ -6,7 +6,9 @@ from .jwt_authorization_middleware import (
     jwt_authorization_middleware,
     jwt_authorization_decorator,
 )
-from .app.streaming import (
+
+# Import streaming utilities from core for backward compatibility
+from microsoft_agents.hosting.core.app.streaming import (
     Citation,
     CitationUtil,
     StreamingResponse,
