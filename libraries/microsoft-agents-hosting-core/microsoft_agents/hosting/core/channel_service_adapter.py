@@ -351,7 +351,7 @@ class ChannelServiceAdapter(ChannelAdapter, ABC):
             DeliveryModes.expect_replies,
             DeliveryModes.stream,
         ]:
-            if not activity.service_url: # this is breaking...
+            if not activity.service_url:  # this is breaking...
                 return False
         return True
 

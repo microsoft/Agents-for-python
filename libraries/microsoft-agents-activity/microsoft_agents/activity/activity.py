@@ -525,7 +525,7 @@ class Activity(AgentsModel, _ChannelIdFieldMixin):
                 or self.channel_id not in ["directline", "webchat"]
                 else None
             ),
-            service_url=SkipNone(self.service_url),
+            service_url=self.service_url,
             channel_id=self.channel_id,
             conversation=SkipNone(
                 ConversationAccount.pick_properties(
