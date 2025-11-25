@@ -16,7 +16,7 @@ class ChannelServiceClientFactoryBase(Protocol):
     @abstractmethod
     async def create_connector_client(
         self,
-        context: TurnContext,
+        context: TurnContext | None,
         claims_identity: ClaimsIdentity,
         service_url: str,
         audience: str,

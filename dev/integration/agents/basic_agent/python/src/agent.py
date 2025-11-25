@@ -72,7 +72,7 @@ class Agent:
 
         chat_history = state.get_value(
             "ConversationState.chatHistory",
-            lambda: ChatHistory(),
+            ChatHistory,
             target_cls=ChatHistory,
         )
 
@@ -81,7 +81,7 @@ class Agent:
         forecast_response = await weather_agent.invoke_agent(
             context.activity.text, chat_history
         )
-        if forecast_response == None:
+        if forecast_response is None:
             context.streaming_response.queue_text_chunk(
                 "Sorry, I couldn't get the weather forecast at the moment."
             )

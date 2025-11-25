@@ -5,7 +5,9 @@ from .cloud_adapter import CloudAdapter
 from .jwt_authorization_middleware import (
     JwtAuthorizationMiddleware,
 )
-from .app.streaming import (
+
+# Import streaming utilities from core for backward compatibility
+from microsoft_agents.hosting.core.app.streaming import (
     Citation,
     CitationUtil,
     StreamingResponse,
