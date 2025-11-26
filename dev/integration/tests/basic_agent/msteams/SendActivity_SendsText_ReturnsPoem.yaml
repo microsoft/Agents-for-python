@@ -1,0 +1,42 @@
+test:
+- type: input
+  activity:
+    type: message
+    channelId: msteams
+    from:
+      id: user1
+      name: User
+    conversation:
+      id: conversation-abc123
+    recipient:
+      id: bot1
+      name: Bot
+    text: poem
+    id: activity989
+    timestamp: '2025-07-07T21:24:15.000Z'
+    localTimestamp: '2025-07-07T14:24:15.000-07:00'
+    localTimezone: America/Los_Angeles
+    textFormat: plain
+    locale: en-US
+    entities:
+    - type: clientInfo
+      locale: en-US
+      country: US
+      platform: Web
+      timezone: America/Los_Angeles
+    channelData:
+      tenant:
+        id: tenant-001
+- type: skip
+- type: assertion
+  selector:
+    activity:
+      type: typing
+  activity:
+    text: ["CONTAINS", "Hold on for an awesome poem about Apollo"]
+- type: assertion
+  selector:
+    index: -1
+  activity:
+    text: ["CONTAINS", "Apollo"]
+- type: breakpoint

@@ -1,0 +1,24 @@
+test:
+- type: input
+  activity:
+    type: message
+    channelId: directline
+    from:
+      id: user1
+      name: User
+    conversation:
+      id: conversation-abc123
+    recipient:
+      id: bot1
+      name: Bot
+    text: 'w: What''s the weather in Seattle today?'
+    locale: en-US
+- type: skip
+- type: assertion
+  selector:
+    index: -1
+  activity:
+    type: message
+    attachments:
+    - contentType: application/vnd.microsoft.card.adaptive
+      content: ["RE_MATCH", "(�|\\u00B0|Missing temperature inside adaptive card:)"]

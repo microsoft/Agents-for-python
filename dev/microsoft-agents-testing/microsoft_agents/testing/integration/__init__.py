@@ -1,3 +1,6 @@
+# Copyright (c) Microsoft Corporation. All rights reserved.
+# Licensed under the MIT License.
+
 from .core import (
     AgentClient,
     ApplicationRunner,
@@ -6,6 +9,11 @@ from .core import (
     Environment,
     Integration,
     Sample,
+)
+from .data_driven import (
+    DataDrivenTest,
+    ddt,
+    load_ddts,
 )
 
 __all__ = [
@@ -16,4 +24,7 @@ __all__ = [
     "Environment",
     "Integration",
     "Sample",
+    "DataDrivenTest",
+    "ddt",
+    "load_ddts",
 ]
