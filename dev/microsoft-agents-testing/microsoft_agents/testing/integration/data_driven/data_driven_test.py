@@ -12,7 +12,6 @@ from microsoft_agents.activity import Activity
 
 from microsoft_agents.testing.assertions import ModelAssertion
 from microsoft_agents.testing.utils import (
-    populate_activity,
     update_with_defaults,
 )
 
