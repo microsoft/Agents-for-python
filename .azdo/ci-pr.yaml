@@ -31,7 +31,7 @@ steps:
 
 - script: |
     python -m pip install --upgrade pip
-    python -m pip install flake8 pytest pytest-mock black pytest-asyncio build setuptools-git-versioning
+    python -m pip install flake8 pytest pytest-mock black pytest-asyncio build setuptools-git-versioning setuptools-scm[simple]
     if [ -f dev_dependencies.txt ]; then pip install -r dev_dependencies.txt; fi
   displayName: 'Install dependencies'
 
@@ -52,6 +52,11 @@ steps:
 
 - script: |
     mkdir -p dist
+    for dir in libraries/*; do
+      if [ -f "$dir/pyproject.toml" ]; then
+        echo $(PackageVersion) > "$dir/VERSION.txt"
+      fi
+    done
     for dir in libraries/*; do
       if [ -f "$dir/pyproject.toml" ]; then
         (cd "$dir" && python -m build --outdir ../../dist)
