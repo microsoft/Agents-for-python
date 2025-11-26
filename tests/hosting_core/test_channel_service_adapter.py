@@ -100,11 +100,16 @@ class TestChannelServiceAdapter:
 
     @pytest.mark.asyncio
     @pytest.mark.parametrize(
-        "delivery_mode",
-        [DeliveryModes.expect_replies, DeliveryModes.stream],
+        "delivery_mode, service_url",
+        [
+            [DeliveryModes.expect_replies, None],
+            [DeliveryModes.stream, None],
+            [DeliveryModes.expect_replies, "https://service.url"],
+            [DeliveryModes.stream, "https://service.url"],
+        ],
     )
-    async def test_process_activity_expect_replies_and_stream_without_service_url(
-        self, mocker, user_token_client, adapter, delivery_mode
+    async def test_process_activity_expect_replies_and_stream(
+        self, mocker, user_token_client, adapter, delivery_mode, service_url
     ):
         user_token_client.get_access_token = mocker.AsyncMock(
             return_value="user_token_value"
@@ -120,6 +125,7 @@ class TestChannelServiceAdapter:
             channel_id="channel_id",
             delivery_mode=delivery_mode,
         )
+        activity.service_url = service_url
 
         claims_identity = ClaimsIdentity(
             {
@@ -144,7 +150,7 @@ class TestChannelServiceAdapter:
 
         assert context_arg.activity.conversation.id == "conversation123"
         assert context_arg.activity.channel_id == "channel_id"
-        assert context_arg.activity.service_url is None
+        assert context_arg.activity.service_url == service_url
         assert (
             context_arg.turn_state[ChannelServiceAdapter.USER_TOKEN_CLIENT_KEY]
             is user_token_client
@@ -152,63 +158,6 @@ class TestChannelServiceAdapter:
         assert (
             ChannelServiceAdapter._AGENT_CONNECTOR_CLIENT_KEY
             not in context_arg.turn_state
-        )
-
-    @pytest.mark.asyncio
-    @pytest.mark.parametrize(
-        "delivery_mode",
-        [DeliveryModes.expect_replies, DeliveryModes.stream],
-    )
-    async def test_process_activity_expect_replies_and_stream_with_service_url(
-        self, mocker, user_token_client, connector_client, adapter, delivery_mode
-    ):
-        user_token_client.get_access_token = mocker.AsyncMock(
-            return_value="user_token_value"
-        )
-        adapter.run_pipeline = mocker.AsyncMock()
-
-        async def callback(context: TurnContext):
-            return None
-
-        activity = Activity(  # type: ignore
-            type="message",
-            conversation={"id": "conversation123"},
-            channel_id="channel_id",
-            delivery_mode=delivery_mode,
-            service_url="service_url",
-        )
-
-        claims_identity = ClaimsIdentity(
-            {
-                "aud": "agent_app_id",
-                "ver": "2.0",
-                "azp": "outgoing_app_id",
-            },
-            is_authenticated=True,
-        )
-
-        await adapter.process_activity(
-            claims_identity,
-            activity,
-            callback,
-        )
-
-        adapter.run_pipeline.assert_awaited_once()
-
-        context_arg, callback_arg = adapter.run_pipeline.call_args[0]
-        assert callback_arg == callback
-        assert context_arg.activity == activity
-
-        assert context_arg.activity.conversation.id == "conversation123"
-        assert context_arg.activity.channel_id == "channel_id"
-        assert context_arg.activity.service_url == "service_url"
-        assert (
-            context_arg.turn_state[ChannelServiceAdapter.USER_TOKEN_CLIENT_KEY]
-            is user_token_client
-        )
-        assert (
-            context_arg.turn_state[ChannelServiceAdapter._AGENT_CONNECTOR_CLIENT_KEY]
-            is connector_client
         )
 
     @pytest.mark.asyncio

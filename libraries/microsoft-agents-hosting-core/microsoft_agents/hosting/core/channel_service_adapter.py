@@ -351,8 +351,7 @@ class ChannelServiceAdapter(ChannelAdapter, ABC):
             DeliveryModes.expect_replies,
             DeliveryModes.stream,
         ]:
-            if not activity.service_url:  # this is breaking...
-                return False
+            return False
         return True
 
     async def process_activity(
