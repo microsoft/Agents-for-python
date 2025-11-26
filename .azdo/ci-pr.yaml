@@ -31,7 +31,7 @@ steps:
 
 - script: |
     python -m pip install --upgrade pip
-    python -m pip install flake8 pytest pytest-mock black pytest-asyncio build setuptools-git-versioning setuptools-scm[simple]
+    python -m pip install flake8 pytest pytest-mock black pytest-asyncio build setuptools-git-versioning
     if [ -f dev_dependencies.txt ]; then pip install -r dev_dependencies.txt; fi
   displayName: 'Install dependencies'
 
