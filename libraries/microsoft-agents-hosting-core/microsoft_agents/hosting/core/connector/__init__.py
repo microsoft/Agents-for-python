@@ -9,11 +9,15 @@ from .client.user_token_client import UserTokenClient
 # Teams API
 from .teams.teams_connector_client import TeamsConnectorClient
 
+# MCS API
+from .mcs.mcs_connector_client import MCSConnectorClient
+
 __all__ = [
     "ConnectorClient",
     "UserTokenClient",
     "UserTokenClientBase",
     "TeamsConnectorClient",
+    "MCSConnectorClient",
     "ConnectorClientBase",
     "get_product_info",
 ]

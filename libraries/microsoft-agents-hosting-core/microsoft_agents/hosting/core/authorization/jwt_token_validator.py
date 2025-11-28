@@ -34,7 +34,7 @@ class JwtTokenValidator:
 
         # This probably should return a ClaimsIdentity
         logger.debug("JWT token validated successfully.")
-        return ClaimsIdentity(decoded_token, True)
+        return ClaimsIdentity(decoded_token, True, security_token=token)
 
     def get_anonymous_claims(self) -> ClaimsIdentity:
         logger.debug("Returning anonymous claims identity.")

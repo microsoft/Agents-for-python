@@ -112,6 +112,16 @@ class ErrorResources:
         -63017,
     )
 
+    UnexpectedConnectorRequestToken = ErrorMessage(
+        "Connector request did not contain a valid security token for handler: {0}",
+        -63018,
+    )
+
+    UnexpectedConnectorTokenExpiration = ErrorMessage(
+        "Connector token has expired for handler: {0}",
+        -63019,
+    )
+
     # General/Validation Errors (-66000 to -66999)
     InvalidConfiguration = ErrorMessage(
         "Invalid configuration: {0}",
