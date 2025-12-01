@@ -3,7 +3,6 @@ import json
 from microsoft_agents.activity import Activity
 from microsoft_agents.hosting.core.app.oauth._sign_in_state import _SignInState
 
-EMULATOR_RUNNING = False
 
 def test_sign_in_state_serialization_deserialization(tmp_path):
     original_state = _SignInState(
@@ -17,8 +16,8 @@ def test_sign_in_state_serialization_deserialization(tmp_path):
             from_property={"id": "user_1"},
             conversation={"id": "conv_1"},
             recipient={"id": "bot_1"},
-            text="Hello, World!"
-        )
+            text="Hello, World!",
+        ),
     )
 
     # Serialize to JSON
@@ -29,7 +28,9 @@ def test_sign_in_state_serialization_deserialization(tmp_path):
 
     # Assert equality
     assert deserialized_state.active_handler_id == original_state.active_handler_id
-    assert deserialized_state.continuation_activity == original_state.continuation_activity
+    assert (
+        deserialized_state.continuation_activity == original_state.continuation_activity
+    )
 
     with open(tmp_path / "sign_in_state.json", "w") as f:
         json.dump(json_data, f)
@@ -40,4 +41,3 @@ def test_sign_in_state_serialization_deserialization(tmp_path):
     loaded_state = _SignInState.from_json_to_store_item(loaded_json_data)
     assert loaded_state.active_handler_id == original_state.active_handler_id
     assert loaded_state.continuation_activity == original_state.continuation_activity
-

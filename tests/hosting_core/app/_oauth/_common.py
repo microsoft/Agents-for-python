@@ -29,7 +29,11 @@ def create_testing_TurnContext(
 
     turn_context = mocker.Mock()
     if not activity:
-        turn_context.activity = Activity(type=ActivityTypes.message, channel_id=channel_id, from_property={"id": user_id})
+        turn_context.activity = Activity(
+            type=ActivityTypes.message,
+            channel_id=channel_id,
+            from_property={"id": user_id},
+        )
     else:
         turn_context.activity = activity
     turn_context.adapter.USER_TOKEN_CLIENT_KEY = "__user_token_client"
