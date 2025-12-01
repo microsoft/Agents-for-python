@@ -8,7 +8,11 @@ import yaml
 
 from copy import deepcopy
 
-from microsoft_agents.activity import Activity
+from microsoft_agents.activity import (
+    Activity,
+    DeliveryModes,
+    InvokeResponse
+)
 
 from microsoft_agents.testing.assertions import ModelAssertion
 from microsoft_agents.testing.utils import (
@@ -81,6 +85,55 @@ class DataDrivenTest:
                             if "activity" in selector:
                                 selector["selector"] = selector["activity"]
 
+    async def _run_input(
+        self,
+        step: dict,
+        responses: list[Activity],
+        invoke_responses: list[InvokeResponse],
+        agent_client: AgentClient,
+        response_client: ResponseClient
+    ) -> None:
+        input_activity = self._load_input(step)
+
+        if input_activity.delivery_mode == DeliveryModes.expect_replies:
+            replies = await agent_client.send_expect_replies(input_activity)
+            responses.extend(replies)
+        elif input_activity.delivery_mode == DeliveryModes.stream:
+            # async for reply in agent_client.send_stream_activity(input_activity):
+            #     responses.append(reply)
+            raise NotImplementedError("Stream delivery mode is not implemented yet.")
+        elif input_activity.type == "invoke":
+            invoke_response = await agent_client.send_invoke_activity(input_activity)
+            invoke_responses.append(invoke_response)
+        else:
+            await agent_client.send_activity(input_activity)
+
+    async def _run_assertion(
+        self,
+        step: dict,
+        responses: list[Activity],
+        invoke_responses: list[InvokeResponse],
+        agent_client: AgentClient,
+        response_client: ResponseClient
+    ) -> None:
+        
+            assertion = self._load_assertion(step)
+            responses.extend(await response_client.pop())
+
+            model_list: list
+
+            if "activity" in step:
+                model_list = responses
+
+            if "invokeResponse" in step or "invoke_response" in step:
+                model_list = invoke_responses
+
+            res, err = assertion.check(model_list)
+
+            if not res:
+                err = "Assertion failed: {}\n\n{}".format(step, err)
+                assert res, err
+
     async def run(
         self, agent_client: AgentClient, response_client: ResponseClient
     ) -> None:
@@ -91,38 +144,30 @@ class DataDrivenTest:
 
         self._pre_process()
 
-        responses = []
-        invoke_responses = []
+        responses: list[Activity] = []
+        invoke_responses: list[InvokeResponse] = []
         for step in self._test:
             step_type = step.get("type")
             if not step_type:
                 raise ValueError("Each step must have a 'type' field.")
 
             if step_type == "input":
-                input_activity = self._load_input(step)
-                if input_activity.delivery_mode == "expectReplies":
-                    replies = await agent_client.send_expect_replies(input_activity)
-                    responses.extend(replies)
-                else:
-                    await agent_client.send_activity(input_activity)
+                await self._run_input(
+                    step,
+                    responses,
+                    invoke_responses,
+                    agent_client,
+                    response_client
+                )
 
             elif step_type == "assertion":
-                assertion = self._load_assertion(step)
-                responses.extend(await response_client.pop())
-
-                model_list: list
-
-                if "activity" in step:
-                    model_list = responses
-
-                if "invokeResponse" in step or "invoke_response" in step:
-                    model_list = invoke_responses
-
-                res, err = assertion.check(model_list)
-
-                if not res:
-                    err = "Assertion failed: {}\n\n{}".format(step, err)
-                    assert res, err
+                await self._run_assertion(
+                    step,
+                    responses,
+                    invoke_responses,
+                    agent_client,
+                    response_client
+                )
 
             elif step_type == "sleep":
                 await self._sleep(step)
