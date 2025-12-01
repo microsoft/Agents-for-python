@@ -31,6 +31,8 @@ from .integration import (
     DataDrivenTest,
 )
 
+from .cli import cli
+
 __all__ = [
     "SDKConfig",
     "generate_token",
@@ -56,4 +58,5 @@ __all__ = [
     "FieldAssertionType",
     "ddt",
     "DataDrivenTest",
+    "cli",
 ]
