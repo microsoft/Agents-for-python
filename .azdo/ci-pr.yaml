@@ -54,6 +54,11 @@ steps:
     mkdir -p dist
     for dir in libraries/*; do
       if [ -f "$dir/pyproject.toml" ]; then
+        echo $(PackageVersion) > "$dir/VERSION.txt"
+      fi
+    done
+    for dir in libraries/*; do
+      if [ -f "$dir/pyproject.toml" ]; then
         (cd "$dir" && python -m build --outdir ../../dist)
       fi
     done
