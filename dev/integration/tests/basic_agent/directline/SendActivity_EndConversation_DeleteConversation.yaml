@@ -1,0 +1,26 @@
+test:
+- type: input
+  activity:
+    type: message
+    channelId: directline
+    from:
+      id: user1
+      name: User
+    conversation:
+      id: conversation-abc123
+    recipient:
+      id: bot1
+      name: Bot
+    text: end
+    locale: en-US
+- type: assertion
+  selector:
+    index: -2
+  activity:
+    type: message
+    text: ["CONTAINS", "Ending conversation..."]
+- type: assertion
+  selector:
+    index: -1
+  activity:
+    type: endOfConversation

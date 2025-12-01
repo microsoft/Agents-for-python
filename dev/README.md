@@ -1,5 +1,7 @@
 # Development Tools
 
+DISCLAIMER: the content of this directory is experimental and not meant for production use.
+
 Development utilities for the Microsoft Agents for Python project.
 
 ## Contents
@@ -11,7 +13,7 @@ Development utilities for the Microsoft Agents for Python project.
 ## Quick Setup
 
 ```bash
-./install.sh
+pip install -e ./microsoft-agents-testing/ --config-settings editable_mode=compat
 ```
 
 ## Benchmarking

@@ -1,0 +1,41 @@
+test:
+- type: input
+  activity:
+    type: message
+    id: activity989
+    channelId: msteams
+    from:
+      id: user-id-0
+      name: Alex Wilber
+      aadObjectId: aad-user-alex
+    timestamp: '2025-07-07T21:24:15.000Z'
+    localTimestamp: '2025-07-07T14:24:15.000-07:00'
+    localTimezone: America/Los_Angeles
+    serviceUrl: http://localhost:60209/_connector
+    conversation:
+      conversationType: personal
+      tenantId: tenant-001
+      id: personal-chat-id
+    recipient:
+      id: bot-001
+      name: Test Bot
+    textFormat: plain
+    locale: en-US
+    entities:
+    - type: clientInfo
+      locale: en-US
+      country: US
+      platform: Web
+      timezone: America/Los_Angeles
+    text: 'w: What''s the weather in Seattle today?'
+    channelData:
+      tenant:
+        id: tenant-001
+- type: skip
+# - type: assertion
+#   selector: -1
+#   activity:
+#     type: message
+#     attachments:
+#     - contentType: application/vnd.microsoft.card.adaptive
+#       content: ["RE_MATCH", "(�|\\u00B0|Missing temperature inside adaptive card:)"]
