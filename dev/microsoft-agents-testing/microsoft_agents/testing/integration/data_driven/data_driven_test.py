@@ -92,6 +92,7 @@ class DataDrivenTest:
         self._pre_process()
 
         responses = []
+        invoke_responses = []
         for step in self._test:
             step_type = step.get("type")
             if not step_type:
@@ -106,10 +107,18 @@ class DataDrivenTest:
                     await agent_client.send_activity(input_activity)
 
             elif step_type == "assertion":
-                activity_assertion = self._load_assertion(step)
+                assertion = self._load_assertion(step)
                 responses.extend(await response_client.pop())
 
-                res, err = activity_assertion.check(responses)
+                model_list: list
+
+                if "activity" in step:
+                    model_list = responses
+
+                if "invokeResponse" in step or "invoke_response" in step:
+                    model_list = invoke_responses
+
+                res, err = assertion.check(model_list)
 
                 if not res:
                     err = "Assertion failed: {}\n\n{}".format(step, err)

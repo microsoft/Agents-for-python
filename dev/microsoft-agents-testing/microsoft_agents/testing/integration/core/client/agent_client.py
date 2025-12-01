@@ -14,6 +14,7 @@ from microsoft_agents.activity import (
     DeliveryModes,
     ChannelAccount,
     ConversationAccount,
+    InvokeResponse,
 )
 from microsoft_agents.testing.utils import populate_activity
 
@@ -154,6 +155,24 @@ class AgentClient:
         activities = [Activity.model_validate(act) for act in activities_data]
 
         return activities
+    
+    async def send_invoke(
+        self,
+        activity: Activity,
+        sleep: float = 0,
+        timeout: Optional[float] = None,
+    ) -> InvokeResponse | None:
+        if not activity.type == ActivityTypes.invoke:
+            raise ValueError("Activity type must be 'invoke' for send_invoke method.")
+        
+        content = await self.send_request(activity, sleep=sleep)
+
+        try:
+            response_data = json.loads(content)
+            invoke_response = InvokeResponse.model_validate(response_data)
+            return invoke_response
+        except pydantic.ValidationError:
+            raise ValueError("Error when sending invoke activity: InvokeResponse not returned or invalid format.")
 
     async def close(self) -> None:
         if self._client:
