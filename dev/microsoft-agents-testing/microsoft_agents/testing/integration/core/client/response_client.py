@@ -13,6 +13,7 @@ from aiohttp.web import Application, Request, Response
 from microsoft_agents.activity import (
     Activity,
     ActivityTypes,
+    Entity
 )
 
 from ..aiohttp import AiohttpRunner
@@ -60,6 +61,10 @@ class ResponseClient:
 
         await self._app_runner.__aexit__(exc_type, exc_val, exc_tb)
 
+    async def _add(self, activity: Activity) -> None:
+        with self._activities_list_lock:
+            self._activities_list.append(activity)
+
     async def _handle_conversation(self, request: Request) -> Response:
         try:
             data = await request.json()
@@ -69,13 +74,13 @@ class ResponseClient:
             #     activity.conversation.id if activity.conversation else None
             # )
 
-            with self._activities_list_lock:
-                self._activities_list.append(activity)
-
             if any(map(lambda x: x.type == "streaminfo", activity.entities or [])):
-                await self._handle_streamed_activity(activity)
+                handled = await self._handle_streamed_activity(activity)
+                if handled:
+                    await self._add(activity)
                 return Response(status=200, text="Stream info handled")
             else:
+                await self._add(activity)
                 if activity.type != ActivityTypes.typing:
                     await asyncio.sleep(0.1)  # Simulate processing delay
                 return Response(
@@ -83,13 +88,27 @@ class ResponseClient:
                     content_type="application/json",
                     text='{"message": "Activity received"}',
                 )
+
         except Exception as e:
             return Response(status=500, text=str(e))
 
     async def _handle_streamed_activity(
-        self, activity: Activity, *args, **kwargs
+        self, activity: Activity, stream_info: Entity, cid: str
     ) -> bool:
-        raise NotImplementedError("_handle_streamed_activity is not implemented yet.")
+        
+        assert hasattr(stream_info, "stream_type"), "Stream info entity must have a stream_type attribute."
+        assert hasattr(stream_info, "stream_sequence"), "Stream info entity must have a stream_sequence attribute."
+        
+        if stream_info.stream_type == "final":
+            if activity.type == ActivityTypes.message:
+                return True
+            else:
+                raise ValueError("Final stream info must be associated with a message activity.")
+        elif stream_info.stream_type == "streaming":
+            if stream_info.stream_sequence <= 0 and activity.type == ActivityTypes.typing:
+                raise ValueError("Streamed activity's stream sequence should be a positive number.")
+            
+        return False
 
     async def pop(self) -> list[Activity]:
         with self._activities_list_lock:
