@@ -1,0 +1,38 @@
+test:
+- type: input
+  activity:
+    type: invoke
+    id: invoke456
+    channelId: directline
+    from:
+      id: user-id-0
+      name: Alex Wilber
+      aadObjectId: aad-user-alex
+    timestamp: '2025-07-22T19:21:03.000Z'
+    localTimestamp: '2025-07-22T12:21:03.000-07:00'
+    localTimezone: America/Los_Angeles
+    serviceUrl: http://localhost:63676/_connector
+    conversation:
+      conversationType: personal
+      tenantId: tenant-001
+      id: personal-chat-id
+    recipient:
+      id: bot-001
+      name: Test Bot
+    locale: en-US
+    entities:
+    - type: clientInfo
+      locale: en-US
+      country: US
+      platform: Web
+      timezone: America/Los_Angeles
+    value:
+      parameters:
+      - value: hi`
+- type: assertion
+  invokeResponse:
+    message: ["EQUALS", "Invoke received."]
+    status: 200
+    data:
+      parameters:
+      - value: ["CONTAINS", "hi"]

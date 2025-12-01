@@ -1,3 +1,6 @@
+# Copyright (c) Microsoft Corporation. All rights reserved.
+# Licensed under the MIT License.
+
 from aiohttp.web import Request, Response, Application
 
 from microsoft_agents.hosting.aiohttp import (

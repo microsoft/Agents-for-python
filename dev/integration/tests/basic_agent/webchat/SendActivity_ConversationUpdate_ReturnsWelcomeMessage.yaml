@@ -1,0 +1,25 @@
+test:
+- type: input
+  activity:
+    type: conversationUpdate
+    channelId: webchat
+    from:
+      id: user1
+      name: User
+    conversation:
+      id: conversation123
+    recipient:
+      id: bot1
+      name: Bot
+    membersAdded:
+    - id: user1
+      name: User
+    locale: en-US
+- type: assertion
+  selector:
+    index: -1
+    activity:
+      type: message
+  activity:
+    type: message
+    text: ["CONTAINS", "Hello and Welcome!"]

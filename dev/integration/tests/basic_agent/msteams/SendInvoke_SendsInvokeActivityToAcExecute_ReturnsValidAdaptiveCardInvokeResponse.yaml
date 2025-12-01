@@ -1,0 +1,23 @@
+test:
+- type: input
+  activity:
+    type: invoke
+    channelId: msteams
+    from:
+      id: user1
+      name: User
+    conversation:
+      id: conversation-abc123
+    recipient:
+      id: bot1
+      name: Bot
+    name: adaptiveCard/action
+    value:
+      action:
+        type: Action.Execute
+        title: Execute doStuff
+        verb: doStuff
+        data:
+          usertext: hi
+      trigger: manual
+- type: skip

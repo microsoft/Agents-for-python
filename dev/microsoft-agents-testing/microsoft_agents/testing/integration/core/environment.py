@@ -1,3 +1,6 @@
+# Copyright (c) Microsoft Corporation. All rights reserved.
+# Licensed under the MIT License.
+
 from abc import ABC, abstractmethod
 from typing import Awaitable, Callable
 
@@ -34,7 +37,7 @@ class Environment(ABC):
     @abstractmethod
     def create_runner(self, *args, **kwargs) -> ApplicationRunner:
         """Create an application runner for the environment.
-        
+
         Subclasses may accept additional arguments as needed.
         """
         raise NotImplementedError()

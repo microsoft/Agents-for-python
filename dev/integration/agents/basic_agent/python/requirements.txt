@@ -1,0 +1,9 @@
+openai
+openai-agents
+semantic-kernel
+microsoft-agents-hosting-aiohttp
+microsoft-agents-authentication-msal
+microsoft-agents-hosting-teams
+microsoft-agents-copilotstudio-client
+microsoft-agents-storage-blob
+microsoft-agents-storage-cosmos
