@@ -70,6 +70,12 @@ class DataDrivenTest:
                 if "assertion" not in step:
                     if "activity" in step:
                         step["assertion"] = step["activity"]
+                        step["assertion_type"] = "activity"
+                    if "invokeResponse" in step:
+                        step["invoke_response"] = step["invokeResponse"]
+                    if "invoke_response" in step:
+                        step["assertion"] = step["invoke_response"]
+                        step["assertion_type"] = "invoke_response"
                 selector = step.get("selector")
                 if selector is not None:
                     if isinstance(selector, int):
@@ -77,7 +83,11 @@ class DataDrivenTest:
                     elif isinstance(selector, dict):
                         if "selector" not in selector:
                             if "activity" in selector:
-                                selector["selector"] = selector["activity"]
+                                selector["model"] = selector["activity"]
+                            if "invokeResponse" in selector:
+                                selector["model"] = selector["invokeResponse"]
+                            if "invoke_response" in selector:
+                                selector["model"] = selector["invoke_response"]
 
     async def _run_input(
         self,
@@ -116,10 +126,10 @@ class DataDrivenTest:
 
         model_list: list
 
-        if "activity" in step:
+        if step.get("assertion_type") == "activity":
             model_list = responses
 
-        if "invokeResponse" in step or "invoke_response" in step:
+        if step.get("assertion_type") == "invoke_response":
             model_list = invoke_responses
 
         res, err = assertion.check(model_list)

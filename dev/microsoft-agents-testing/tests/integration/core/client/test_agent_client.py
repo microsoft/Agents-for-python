@@ -4,7 +4,7 @@ import pytest
 from aioresponses import aioresponses
 from msal import ConfidentialClientApplication
 
-from microsoft_agents.activity import Activity
+from microsoft_agents.activity import Activity, InvokeResponse
 from microsoft_agents.testing import AgentClient
 
 from ._common import DEFAULTS
@@ -82,3 +82,36 @@ class TestAgentClient:
         assert replies[0].text == "Response from service"
         assert replies[1].text == "Another response"
         assert replies[0].type == replies[1].type == "message"
+
+    @pytest.mark.asyncio
+    async def test_send_invoke_activity(
+        self, mocker, agent_client, aioresponses_mock
+    ):
+        mocker.patch.object(
+            AgentClient, "get_access_token", return_value="mocked_token"
+        )
+        mocker.patch.object(
+            ConfidentialClientApplication,
+            "__new__",
+            return_value=mocker.Mock(spec=ConfidentialClientApplication),
+        )
+
+        res = InvokeResponse(status=200, body={"status": "Invoke processed"})
+
+        assert agent_client.agent_url
+        aioresponses_mock.post(
+            f"{agent_client.agent_url}api/messages",
+            payload=res.model_dump(by_alias=True, exclude_none=True)
+        )
+
+        response = await agent_client.send_invoke_activity(
+            Activity(
+                type="invoke",
+                name="test_invoke",
+                value={"key": "value"},
+            )
+        )
+        assert response is not None
+        assert isinstance(response, InvokeResponse)
+        assert response.status == 200
+        assert response.body == {"status": "Invoke processed"}

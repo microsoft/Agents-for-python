@@ -6,7 +6,7 @@ import asyncio
 from unittest.mock import AsyncMock, MagicMock, patch, call
 from copy import deepcopy
 
-from microsoft_agents.activity import Activity
+from microsoft_agents.activity import Activity, InvokeResponse
 from microsoft_agents.testing.assertions import ModelAssertion
 from microsoft_agents.testing.integration.core import AgentClient, ResponseClient
 from microsoft_agents.testing.integration.data_driven import DataDrivenTest
@@ -663,6 +663,69 @@ class TestDataDrivenTestIntegration:
         assert call_args.type == "message"
         assert call_args.locale == "en-US"
         assert call_args.channel_id == "test-channel"
+
+    async def test_with_invoke_response_assertion(self):
+        """Test assertion on invoke response activity."""
+        test_flow = {
+            "name": "invoke_test",
+            "test": [
+                {
+                    "type": "input",
+                    "activity": {
+                        "type": "invoke",
+                        "name": "test_invoke",
+                        "value": {"key": "value"},
+                    },
+                },
+                {
+                    "type": "assertion",
+                    "invokeResponse": {"status": 202, "body": {"result": "ok"}},
+                },
+            ],
+        }
+        ddt = DataDrivenTest(test_flow)
+
+        agent_client = AsyncMock(spec=AgentClient)
+        response_client = AsyncMock(spec=ResponseClient)
+        agent_client.send_invoke_activity.return_value = InvokeResponse(status=202, body={"result": "ok"})
+        response_client.pop = AsyncMock(return_value=[])
+
+        await ddt.run(agent_client, response_client)
+
+        agent_client.send_invoke_activity.assert_called_once()
+        response_client.pop.assert_called_once()
+
+    async def test_with_invoke_response_assertion_none(self):
+        """Test assertion on invoke response activity."""
+        test_flow = {
+            "name": "invoke_test",
+            "test": [
+                {
+                    "type": "input",
+                    "activity": {
+                        "type": "invoke",
+                        "name": "test_invoke",
+                        "value": {"key": "value"},
+                    },
+                },
+                {
+                    "type": "assertion",
+                    "quantifier": "none",
+                    "invokeResponse": {"status": 200},
+                },
+            ],
+        }
+        ddt = DataDrivenTest(test_flow)
+
+        agent_client = AsyncMock(spec=AgentClient)
+        response_client = AsyncMock(spec=ResponseClient)
+        agent_client.send_invoke_activity.return_value = InvokeResponse(status=300, body={})
+        response_client.pop = AsyncMock(return_value=[])
+
+        await ddt.run(agent_client, response_client)
+
+        agent_client.send_invoke_activity.assert_called_once()
+        response_client.pop.assert_called_once()
 
 
 class TestDataDrivenTestEdgeCases:
