@@ -10,5 +10,5 @@ __all__ = [
     "populate_activity",
     "get_host_and_port",
     "normalize_model_data",
-    "resolve_env"
+    "resolve_env",
 ]

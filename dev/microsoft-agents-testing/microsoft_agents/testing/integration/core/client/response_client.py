@@ -10,11 +10,7 @@ import asyncio
 
 from aiohttp.web import Application, Request, Response
 
-from microsoft_agents.activity import (
-    Activity,
-    ActivityTypes,
-    Entity
-)
+from microsoft_agents.activity import Activity, ActivityTypes, Entity
 
 from ..aiohttp import AiohttpRunner
 
@@ -95,19 +91,30 @@ class ResponseClient:
     async def _handle_streamed_activity(
         self, activity: Activity, stream_info: Entity, cid: str
     ) -> bool:
-        
-        assert hasattr(stream_info, "stream_type"), "Stream info entity must have a stream_type attribute."
-        assert hasattr(stream_info, "stream_sequence"), "Stream info entity must have a stream_sequence attribute."
-        
+
+        assert hasattr(
+            stream_info, "stream_type"
+        ), "Stream info entity must have a stream_type attribute."
+        assert hasattr(
+            stream_info, "stream_sequence"
+        ), "Stream info entity must have a stream_sequence attribute."
+
         if stream_info.stream_type == "final":
             if activity.type == ActivityTypes.message:
                 return True
             else:
-                raise ValueError("Final stream info must be associated with a message activity.")
+                raise ValueError(
+                    "Final stream info must be associated with a message activity."
+                )
         elif stream_info.stream_type == "streaming":
-            if stream_info.stream_sequence <= 0 and activity.type == ActivityTypes.typing:
-                raise ValueError("Streamed activity's stream sequence should be a positive number.")
-            
+            if (
+                stream_info.stream_sequence <= 0
+                and activity.type == ActivityTypes.typing
+            ):
+                raise ValueError(
+                    "Streamed activity's stream sequence should be a positive number."
+                )
+
         return False
 
     async def pop(self) -> list[Activity]:

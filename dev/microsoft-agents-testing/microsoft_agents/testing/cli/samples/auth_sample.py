@@ -2,13 +2,10 @@ import os
 
 from dotenv import load_dotenv
 
-from microsoft_agents.hosting.core import (
-    AgentApplication,
-    TurnContext,
-    TurnState
-)
+from microsoft_agents.hosting.core import AgentApplication, TurnContext, TurnState
 
 from microsoft_agents.testing.integration.core.sample import Sample
+
 
 def create_auth_route(auth_handler_id: str, agent: AgentApplication):
     def dynamic_function(context: TurnContext, state: TurnState):
@@ -18,6 +15,7 @@ def create_auth_route(auth_handler_id: str, agent: AgentApplication):
 
     dynamic_function.__name__ = f"auth_route_{auth_handler_id}".lower()
     return dynamic_function
+
 
 class QuickstartSample(Sample):
     """A quickstart sample implementation."""
@@ -34,4 +32,8 @@ class QuickstartSample(Sample):
         app: AgentApplication[TurnState] = self.env.agent_application
 
         for auth_handler in app.config.authentication_handlers:
-            app.message(auth_handler.name.lower(), create_auth_route(auth_handler.name), auth_handlers=[auth_handler.name])
+            app.message(
+                auth_handler.name.lower(),
+                create_auth_route(auth_handler.name),
+                auth_handlers=[auth_handler.name],
+            )

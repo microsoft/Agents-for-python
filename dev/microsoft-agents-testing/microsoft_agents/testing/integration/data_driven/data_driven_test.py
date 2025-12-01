@@ -4,15 +4,9 @@
 import pytest
 import asyncio
 
-import yaml
-
 from copy import deepcopy
 
-from microsoft_agents.activity import (
-    Activity,
-    DeliveryModes,
-    InvokeResponse
-)
+from microsoft_agents.activity import Activity, DeliveryModes, InvokeResponse
 
 from microsoft_agents.testing.assertions import ModelAssertion
 from microsoft_agents.testing.utils import (
@@ -91,7 +85,7 @@ class DataDrivenTest:
         responses: list[Activity],
         invoke_responses: list[InvokeResponse],
         agent_client: AgentClient,
-        response_client: ResponseClient
+        response_client: ResponseClient,
     ) -> None:
         input_activity = self._load_input(step)
 
@@ -114,25 +108,25 @@ class DataDrivenTest:
         responses: list[Activity],
         invoke_responses: list[InvokeResponse],
         agent_client: AgentClient,
-        response_client: ResponseClient
+        response_client: ResponseClient,
     ) -> None:
-        
-            assertion = self._load_assertion(step)
-            responses.extend(await response_client.pop())
 
-            model_list: list
+        assertion = self._load_assertion(step)
+        responses.extend(await response_client.pop())
 
-            if "activity" in step:
-                model_list = responses
+        model_list: list
 
-            if "invokeResponse" in step or "invoke_response" in step:
-                model_list = invoke_responses
+        if "activity" in step:
+            model_list = responses
 
-            res, err = assertion.check(model_list)
+        if "invokeResponse" in step or "invoke_response" in step:
+            model_list = invoke_responses
 
-            if not res:
-                err = "Assertion failed: {}\n\n{}".format(step, err)
-                assert res, err
+        res, err = assertion.check(model_list)
+
+        if not res:
+            err = "Assertion failed: {}\n\n{}".format(step, err)
+            assert res, err
 
     async def run(
         self, agent_client: AgentClient, response_client: ResponseClient
@@ -153,20 +147,12 @@ class DataDrivenTest:
 
             if step_type == "input":
                 await self._run_input(
-                    step,
-                    responses,
-                    invoke_responses,
-                    agent_client,
-                    response_client
+                    step, responses, invoke_responses, agent_client, response_client
                 )
 
             elif step_type == "assertion":
                 await self._run_assertion(
-                    step,
-                    responses,
-                    invoke_responses,
-                    agent_client,
-                    response_client
+                    step, responses, invoke_responses, agent_client, response_client
                 )
 
             elif step_type == "sleep":

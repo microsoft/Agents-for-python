@@ -39,7 +39,7 @@ class AgentClient:
         client_secret: str,
         service_url: Optional[str] = None,
         default_activity_data: Optional[Activity | dict] = None,
-        default_sleep: float = 0.1
+        default_sleep: float = 0.1,
     ):
         self._agent_url = agent_url
         self._cid = cid
@@ -94,10 +94,10 @@ class AgentClient:
             )
 
     async def _send(
-            self,
-            activity: Activity,
-            sleep: float | None = None,
-        ) -> str:
+        self,
+        activity: Activity,
+        sleep: float | None = None,
+    ) -> str:
 
         if sleep is None:
             sleep = self._default_sleep
@@ -133,53 +133,62 @@ class AgentClient:
         else:
             return cast(Activity, activity_or_text)
 
-    async def send_activity(self, activity_or_text: Activity | str, sleep: float | None = None) -> str:
+    async def send_activity(
+        self, activity_or_text: Activity | str, sleep: float | None = None
+    ) -> str:
         activity = self._to_activity(activity_or_text)
         content = await self._send(activity, sleep=sleep)
         return content
-    
+
     # async def send_stream_activity(
     #     self, activity_or_text: Activity | str, sleep: float | None = None
     # ) -> list[Activity]:
-        
+
     #     activity = self._to_activity(activity_or_text)
     #     if isinstance(activity, str):
     #         activity.delivery_mode = DeliveryModes.stream
 
     #     if not activity.delivery_mode == DeliveryModes.stream:
     #         raise ValueError("Activity delivery_mode must be 'stream' for send_stream_activity method.")
-        
+
     #     content = await self._send(activity, sleep=sleep)
 
-    async def send_expect_replies(self, activity_or_text: Activity | str, sleep: float | None = None) -> list[Activity]:
-        
+    async def send_expect_replies(
+        self, activity_or_text: Activity | str, sleep: float | None = None
+    ) -> list[Activity]:
+
         activity = self._to_activity(activity_or_text)
-        if isinstance(activity, str):
+        if isinstance(activity_or_text, str):
             activity.delivery_mode = DeliveryModes.expect_replies
-        
+
         if not activity.delivery_mode == DeliveryModes.expect_replies:
-            raise ValueError("Activity delivery_mode must be 'expect_replies' for send_expect_replies method.")
-        
+            raise ValueError(
+                "Activity delivery_mode must be 'expect_replies' for send_expect_replies method."
+            )
+
         content = await self._send(activity, sleep=sleep)
 
         activities_data = json.loads(content).get("activities", [])
         activities = [Activity.model_validate(act) for act in activities_data]
 
         return activities
-    
-    async def send_invoke_activity(self, activity: Activity, sleep: float | None = None) -> InvokeResponse:
-        
+
+    async def send_invoke_activity(
+        self, activity: Activity, sleep: float | None = None
+    ) -> InvokeResponse:
 
         if not activity.type == ActivityTypes.invoke:
             raise ValueError("Activity type must be 'invoke' for send_invoke method.")
-        
+
         content = await self._send(activity, sleep=sleep)
 
         try:
             response_data = json.loads(content)
             return InvokeResponse.model_validate(response_data)
         except ValidationError:
-            raise ValueError("Error when sending invoke activity: InvokeResponse not returned or invalid format.")
+            raise ValueError(
+                "Error when sending invoke activity: InvokeResponse not returned or invalid format."
+            )
 
     async def close(self) -> None:
         if self._client:
