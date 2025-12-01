@@ -7,6 +7,7 @@ from typing import Optional, cast
 
 from aiohttp import ClientSession
 from msal import ConfidentialClientApplication
+from pydantic import ValidationError
 
 from microsoft_agents.activity import (
     Activity,
@@ -37,8 +38,8 @@ class AgentClient:
         tenant_id: str,
         client_secret: str,
         service_url: Optional[str] = None,
-        default_timeout: float = 5.0,
         default_activity_data: Optional[Activity | dict] = None,
+        default_sleep: float = 0.1
     ):
         self._agent_url = agent_url
         self._cid = cid
@@ -47,13 +48,13 @@ class AgentClient:
         self._client_secret = client_secret
         self._service_url = service_url
         self._headers = None
-        self._default_timeout = default_timeout
 
         self._client: Optional[ClientSession] = None
 
         self._default_activity_data: Activity | dict = (
             default_activity_data or _DEFAULT_ACTIVITY_VALUES
         )
+        self._default_sleep = default_sleep
 
     @property
     def agent_url(self) -> str:
@@ -92,7 +93,14 @@ class AgentClient:
                 base_url=self._agent_url, headers=self._headers
             )
 
-    async def send_request(self, activity: Activity, sleep: float = 0) -> str:
+    async def _send(
+            self,
+            activity: Activity,
+            sleep: float | None = None,
+        ) -> str:
+
+        if sleep is None:
+            sleep = self._default_sleep
 
         await self._init_client()
         assert self._client
@@ -125,53 +133,52 @@ class AgentClient:
         else:
             return cast(Activity, activity_or_text)
 
-    async def send_activity(
-        self,
-        activity_or_text: Activity | str,
-        sleep: float = 0,
-        timeout: Optional[float] = None,
-    ) -> str:
-        timeout = timeout or self._default_timeout
+    async def send_activity(self, activity_or_text: Activity | str, sleep: float | None = None) -> str:
         activity = self._to_activity(activity_or_text)
-        content = await self.send_request(activity, sleep=sleep)
+        content = await self._send(activity, sleep=sleep)
         return content
+    
+    # async def send_stream_activity(
+    #     self, activity_or_text: Activity | str, sleep: float | None = None
+    # ) -> list[Activity]:
+        
+    #     activity = self._to_activity(activity_or_text)
+    #     if isinstance(activity, str):
+    #         activity.delivery_mode = DeliveryModes.stream
 
-    async def send_expect_replies(
-        self,
-        activity_or_text: Activity | str,
-        sleep: float = 0,
-        timeout: Optional[float] = None,
-    ) -> list[Activity]:
-        timeout = timeout or self._default_timeout
+    #     if not activity.delivery_mode == DeliveryModes.stream:
+    #         raise ValueError("Activity delivery_mode must be 'stream' for send_stream_activity method.")
+        
+    #     content = await self._send(activity, sleep=sleep)
+
+    async def send_expect_replies(self, activity_or_text: Activity | str, sleep: float | None = None) -> list[Activity]:
+        
         activity = self._to_activity(activity_or_text)
-        activity.delivery_mode = DeliveryModes.expect_replies
-        activity.service_url = (
-            activity.service_url or "http://localhost"
-        )  # temporary fix
-
-        content = await self.send_request(activity, sleep=sleep)
+        if isinstance(activity, str):
+            activity.delivery_mode = DeliveryModes.expect_replies
+        
+        if not activity.delivery_mode == DeliveryModes.expect_replies:
+            raise ValueError("Activity delivery_mode must be 'expect_replies' for send_expect_replies method.")
+        
+        content = await self._send(activity, sleep=sleep)
 
         activities_data = json.loads(content).get("activities", [])
         activities = [Activity.model_validate(act) for act in activities_data]
 
         return activities
     
-    async def send_invoke(
-        self,
-        activity: Activity,
-        sleep: float = 0,
-        timeout: Optional[float] = None,
-    ) -> InvokeResponse | None:
+    async def send_invoke_activity(self, activity: Activity, sleep: float | None = None) -> InvokeResponse:
+        
+
         if not activity.type == ActivityTypes.invoke:
             raise ValueError("Activity type must be 'invoke' for send_invoke method.")
         
-        content = await self.send_request(activity, sleep=sleep)
+        content = await self._send(activity, sleep=sleep)
 
         try:
             response_data = json.loads(content)
-            invoke_response = InvokeResponse.model_validate(response_data)
-            return invoke_response
-        except pydantic.ValidationError:
+            return InvokeResponse.model_validate(response_data)
+        except ValidationError:
             raise ValueError("Error when sending invoke activity: InvokeResponse not returned or invalid format.")
 
     async def close(self) -> None:
