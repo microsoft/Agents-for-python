@@ -17,10 +17,28 @@ This library is part of the **Microsoft 365 Agents SDK for Python** - a comprehe
     <th style="width:60%">Release Notes</th>
   </tr>
   <tr>
+    <td>0.6.1</td>
+    <td>2025-12-01</td>
+    <td>
+      <a href="https://github.com/microsoft/Agents-for-python/blob/main/changelog.md#microsoft-365-agents-sdk-for-python---release-notes-v061">
+        0.6.1 Release Notes
+      </a>
+    </td>
+  </tr>
+  <tr>
+    <td>0.6.0</td>
+    <td>2025-11-18</td>
+    <td>
+      <a href="https://github.com/microsoft/Agents-for-python/blob/main/changelog.md#microsoft-365-agents-sdk-for-python---release-notes-v060">
+        0.6.0 Release Notes
+      </a>
+    </td>
+  </tr>
+  <tr>
     <td>0.5.0</td>
     <td>2025-10-22</td>
     <td>
-      <a href="https://github.com/microsoft/Agents-for-python/blob/main/changelog.md">
+      <a href="https://github.com/microsoft/Agents-for-python/blob/main/changelog.md#microsoft-365-agents-sdk-for-python---release-notes-v050">
         0.5.0 Release Notes
       </a>
     </td>
