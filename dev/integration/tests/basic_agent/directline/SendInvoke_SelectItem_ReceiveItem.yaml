@@ -22,11 +22,12 @@ test:
     name: composeExtension/selectItem
     locale: en-US
 - type: assertion
-  invokeResponse:
-    body:
-      composeExtension:
-        type: result
-        text: ["CONTAINS", "Newtonsoft.Json"]
-        attachments:
-          contentType: application/vnd.microsoft.card.thumbnail
-- type: skip
+  activity:
+    type: invoke_response
+    value:
+      body:
+        composeExtension:
+          type: result
+          text: ["CONTAINS", "Newtonsoft.Json"]
+          attachments:
+            contentType: application/vnd.microsoft.card.thumbnail

@@ -10,6 +10,7 @@ from microsoft_agents.activity import Activity, DeliveryModes, InvokeResponse
 
 from microsoft_agents.testing.assertions import ModelAssertion
 from microsoft_agents.testing.utils import (
+    pdb_breakpoint,
     update_with_defaults,
 )
 
@@ -155,12 +156,12 @@ class DataDrivenTest:
 
         :param agent_client: The agent client to send activities to.
         """
-
         self._pre_process()
 
         responses: list[Activity] = []
         invoke_responses: list[InvokeResponse] = []
         for step in self._test:
+
             step_type = step.get("type")
             if not step_type:
                 raise ValueError("Each step must have a 'type' field.")

@@ -25,4 +25,3 @@ test:
     index: -1
   activity:
     text: ["CONTAINS", "Apollo"]
-- type: breakpoint
