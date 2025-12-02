@@ -84,9 +84,7 @@ class TestAgentClient:
         assert replies[0].type == replies[1].type == "message"
 
     @pytest.mark.asyncio
-    async def test_send_invoke_activity(
-        self, mocker, agent_client, aioresponses_mock
-    ):
+    async def test_send_invoke_activity(self, mocker, agent_client, aioresponses_mock):
         mocker.patch.object(
             AgentClient, "get_access_token", return_value="mocked_token"
         )
@@ -101,7 +99,7 @@ class TestAgentClient:
         assert agent_client.agent_url
         aioresponses_mock.post(
             f"{agent_client.agent_url}api/messages",
-            payload=res.model_dump(by_alias=True, exclude_none=True)
+            payload=res.model_dump(by_alias=True, exclude_none=True),
         )
 
         response = await agent_client.send_invoke_activity(

@@ -588,6 +588,57 @@ class TestDataDrivenTestIntegration:
         assert response_client.pop.call_count == 1
 
     @pytest.mark.asyncio
+    async def test_full_conversation_flow_expect_replies(self):
+        """Test a complete conversation flow."""
+        test_flow = {
+            "name": "greeting_test",
+            "description": "Test greeting conversation",
+            "defaults": {
+                "input": {
+                    "activity": {
+                        "type": "message",
+                        "locale": "en-US",
+                        "delivery_mode": "expectReplies",
+                    }
+                },
+                "assertion": {"quantifier": "all"},
+            },
+            "test": [
+                {"type": "input", "activity": {"text": "Hello"}},
+                {"type": "sleep", "duration": 0.05},
+                {
+                    "type": "assertion",
+                    "selector": {"model": {"type": "message"}},
+                    "activity": {"type": "message", "text": ["CONTAINS", "!"]},
+                },
+                {
+                    "type": "assertion",
+                    "activity": {"type": "message", "text": "Hi! How can I help you?"},
+                    "selector": 1,
+                },
+            ],
+        }
+        ddt = DataDrivenTest(test_flow)
+
+        agent_client = AsyncMock(spec=AgentClient)
+        agent_client.send_expect_replies = AsyncMock(
+            return_value=[
+                Activity(type="message", text="Hello!"),
+                Activity(type="message", text="Hi! How can I help you?"),
+            ]
+        )
+        response_client = AsyncMock(spec=ResponseClient)
+        response_client.pop = AsyncMock(return_value=[])
+
+        await ddt.run(agent_client, response_client)
+
+        # Verify input was sent
+        assert agent_client.send_expect_replies.call_count == 1
+
+        # Verify assertion was checked
+        assert response_client.pop.call_count == 2
+
+    @pytest.mark.asyncio
     async def test_complex_multi_turn_conversation(self):
         """Test multi-turn conversation with multiple inputs and assertions."""
         test_flow = {
@@ -687,7 +738,9 @@ class TestDataDrivenTestIntegration:
 
         agent_client = AsyncMock(spec=AgentClient)
         response_client = AsyncMock(spec=ResponseClient)
-        agent_client.send_invoke_activity.return_value = InvokeResponse(status=202, body={"result": "ok"})
+        agent_client.send_invoke_activity.return_value = InvokeResponse(
+            status=202, body={"result": "ok"}
+        )
         response_client.pop = AsyncMock(return_value=[])
 
         await ddt.run(agent_client, response_client)
@@ -719,7 +772,9 @@ class TestDataDrivenTestIntegration:
 
         agent_client = AsyncMock(spec=AgentClient)
         response_client = AsyncMock(spec=ResponseClient)
-        agent_client.send_invoke_activity.return_value = InvokeResponse(status=300, body={})
+        agent_client.send_invoke_activity.return_value = InvokeResponse(
+            status=300, body={}
+        )
         response_client.pop = AsyncMock(return_value=[])
 
         await ddt.run(agent_client, response_client)
