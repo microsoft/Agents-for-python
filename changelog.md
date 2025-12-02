@@ -1,7 +1,9 @@
 # Microsoft 365 Agents SDK for Python - Release Notes v0.6.1
 
 **Release Date:** December 1, 2025  
-**Previous Version:** 0.6.0 (Released November 18, 2025)## Changes Documented
+**Previous Version:** 0.6.0 (Released November 18, 2025)
+
+## Changes Documented
 
 - **Build & Packaging**: Version file support via `VERSION.txt` with `MANIFEST.in` inclusion (#261, #263)
 - **Bug Fix**: OAuth `_SignInState` serialization refactored to use Pydantic `BaseModel` (#264)
