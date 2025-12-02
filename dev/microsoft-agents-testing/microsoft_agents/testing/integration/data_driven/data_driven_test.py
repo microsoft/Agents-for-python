@@ -65,14 +65,19 @@ class DataDrivenTest:
 
     def _pre_process(self) -> None:
         """Compile the data driven test to ensure all steps are valid."""
-        for step in self._test:
+        for i, step in enumerate(self._test):
+            
+            if isinstance(step, str):
+                self._test[i] = {"type": step}
+                continue
+
             if step.get("type") == "assertion":
                 if "assertion" not in step:
                     if "activity" in step:
                         step["assertion"] = step["activity"]
                         step["assertion_type"] = "activity"
                     elif "invokeResponse" in step:
-                        step["assertion"] = step["invoke_response"]
+                        step["assertion"] = step["invokeResponse"]
                         step["assertion_type"] = "invoke_response"
                     elif "invoke_response" in step:
                         step["assertion"] = step["invoke_response"]
@@ -89,9 +94,9 @@ class DataDrivenTest:
                         if "selector" not in selector:
                             if "activity" in selector:
                                 selector["model"] = selector["activity"]
-                            if "invokeResponse" in selector:
+                            elif "invokeResponse" in selector:
                                 selector["model"] = selector["invokeResponse"]
-                            if "invoke_response" in selector:
+                            elif "invoke_response" in selector:
                                 selector["model"] = selector["invoke_response"]
 
     async def _run_input(

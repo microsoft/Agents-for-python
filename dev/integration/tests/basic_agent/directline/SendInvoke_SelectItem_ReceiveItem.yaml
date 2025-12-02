@@ -23,9 +23,10 @@ test:
     locale: en-US
 - type: assertion
   invokeResponse:
-    composeExtension:
-      type: result
-      text: ["CONTAINS", "Newtonsoft.Json"]
-      attachments:
-        contentType: application/vnd.microsoft.card.thumbnail
+    body:
+      composeExtension:
+        type: result
+        text: ["CONTAINS", "Newtonsoft.Json"]
+        attachments:
+          contentType: application/vnd.microsoft.card.thumbnail
 - type: skip

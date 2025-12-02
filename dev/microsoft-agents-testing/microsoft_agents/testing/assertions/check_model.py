@@ -24,7 +24,12 @@ def _check(
     assertion, assertion_type = _parse_assertion(baseline)
 
     if assertion_type is None:
+
         if isinstance(baseline, dict):
+
+            if actual is UNSET_FIELD:
+                actual = {}
+
             for key in baseline:
                 new_field_path = f"{field_path}.{key}" if field_path else key
                 new_actual = actual.get(key, UNSET_FIELD)
@@ -38,6 +43,10 @@ def _check(
             return True, None
 
         elif isinstance(baseline, list):
+            
+            if actual is UNSET_FIELD:
+                actual = []
+
             for index, item in enumerate(baseline):
                 new_field_path = (
                     f"{field_path}[{index}]" if field_path else f"[{index}]"

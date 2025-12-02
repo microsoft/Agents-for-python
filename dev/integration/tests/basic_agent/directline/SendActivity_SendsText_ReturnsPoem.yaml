@@ -13,16 +13,16 @@ test:
       name: Bot
     text: poem
     locale: en-US
-- type: skip
-# - type: assertion
-#   selector:
-#     activity:
-#       type: typing
-#   activity:
-#     text: ["CONTAINS", "Hold on for an awesome poem about Apollo"]
-# - type: assertion
-#   selector:
-#     index: -1
-#   activity:
-#     text: ["CONTAINS", "Apollo"]
-# - type: breakpoint
+- type: assertion
+  selector:
+    activity:
+      type: typing
+  quantifier: any
+  activity:
+    text: ["CONTAINS", "Hold on for an awesome poem about Apollo"]
+- type: assertion
+  selector:
+    index: -1
+  activity:
+    text: ["CONTAINS", "Apollo"]
+- type: breakpoint

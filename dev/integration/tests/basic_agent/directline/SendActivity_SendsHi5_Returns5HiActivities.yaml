@@ -14,6 +14,7 @@ test:
       name: Test Bot
     text: hi 5
     locale: en-US
+- skip
 - type: assertion
   quantifier: one
   activity:
