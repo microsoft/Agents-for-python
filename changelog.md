@@ -1,3 +1,41 @@
+# Microsoft 365 Agents SDK for Python - Release Notes v0.6.1
+
+**Release Date:** December 1, 2025  
+**Previous Version:** 0.6.0 (Released November 18, 2025)## Changes Documented
+
+- **Build & Packaging**: Version file support via `VERSION.txt` with `MANIFEST.in` inclusion (#261, #263)
+- **Bug Fix**: OAuth `_SignInState` serialization refactored to use Pydantic `BaseModel` (#264)
+
+---
+
+# Microsoft 365 Agents SDK for Python - Release Notes v0.6.0
+
+**Release Date:** November 18, 2025  
+**Previous Version:** 0.5.0 (Released October 22, 2025)
+
+## Major Features
+
+- **FastAPI Integration Package** (#176) - New `microsoft-agents-hosting-fastapi` hosting option
+- **Distributed Error Resources** (#223, #237, #240) - Standardized error codes (-60000 to -66999 ranges) with help URLs across all packages
+- **TypingIndicator Simplification** (#212) - Explicit `start()`/`stop()` API, removed async locking complexity
+
+## Bug Fixes
+
+- ChannelServiceAdapter.create_conversation flow (#233)
+- Streaming disabled for agentic requests on Teams (#243)
+- HTTP client error handling with precise status code checks (#202)
+- M365Copilot channel detection (#208, #210)
+- Copilot Studio client conversation ID persistence (#195)
+- Default max conversation ID length reduced to 150 (#196)
+
+## Documentation
+
+- Contributing guidelines for internal/external developers (#234)
+- Type hints and docstring improvements (#207, #214)
+- CODEOWNERS unified to agents-sdk team (#199)
+
+---
+
 # Microsoft 365 Agents SDK for Python - Release Notes v0.5.0
 
 **Release Date:** October 22, 2025  
