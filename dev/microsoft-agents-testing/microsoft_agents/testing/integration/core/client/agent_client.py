@@ -139,19 +139,28 @@ class AgentClient:
         activity = self._to_activity(activity_or_text)
         content = await self._send(activity, sleep=sleep)
         return content
-
-    # async def send_stream_activity(
+    
+    # async def send_stream(
     #     self, activity_or_text: Activity | str, sleep: float | None = None
     # ) -> list[Activity]:
-
+        
     #     activity = self._to_activity(activity_or_text)
-    #     if isinstance(activity, str):
+    #     if isinstance(activity_or_text, str):
     #         activity.delivery_mode = DeliveryModes.stream
 
     #     if not activity.delivery_mode == DeliveryModes.stream:
-    #         raise ValueError("Activity delivery_mode must be 'stream' for send_stream_activity method.")
+    #         raise ValueError(
+    #             "Activity delivery_mode must be 'stream' for send_stream method."
+    #         )
 
     #     content = await self._send(activity, sleep=sleep)
+
+    #     await asyncio.sleep(5)  # Allow time for all activities to be processed
+
+    #     activities_data = json.loads(content).get("activities", [])
+    #     activities = [Activity.model_validate(act) for act in activities_data]
+
+    #     return activities
 
     async def send_expect_replies(
         self, activity_or_text: Activity | str, sleep: float | None = None

@@ -71,11 +71,16 @@ class DataDrivenTest:
                     if "activity" in step:
                         step["assertion"] = step["activity"]
                         step["assertion_type"] = "activity"
-                    if "invokeResponse" in step:
-                        step["invoke_response"] = step["invokeResponse"]
-                    if "invoke_response" in step:
+                    elif "invokeResponse" in step:
                         step["assertion"] = step["invoke_response"]
                         step["assertion_type"] = "invoke_response"
+                    elif "invoke_response" in step:
+                        step["assertion"] = step["invoke_response"]
+                        step["assertion_type"] = "invoke_response"
+                    else:
+                        step["assertion"] = {}
+                        step["assertion_type"] = "activity"
+                        
                 selector = step.get("selector")
                 if selector is not None:
                     if isinstance(selector, int):

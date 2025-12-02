@@ -1,5 +1,4 @@
 import pytest
-import logging
 
 from microsoft_agents.activity import Activity
 
@@ -9,20 +8,11 @@ from microsoft_agents.testing import (
     AiohttpEnvironment,
 )
 
-from ..samples import BasicSample
+from ..samples import QuickstartSample
 
 
-class BasicSampleWithLogging(BasicSample):
-
-    async def init_app(self):
-
-        logging.getLogger("microsoft_agents").setLevel(logging.DEBUG)
-
-        await super().init_app()
-
-
-class TestBasicDirectline(Integration):
-    _sample_cls = BasicSampleWithLogging
+class TestExpectReplies(Integration):
+    _sample_cls = QuickstartSample
     _environment_cls = AiohttpEnvironment
 
     @pytest.mark.asyncio
@@ -36,12 +26,12 @@ class TestBasicDirectline(Integration):
             conversation={"id": "conv-id"},
             channel_id="test",
             from_property={"id": "from-id"},
-            to={"id": "to-id"},
+            recipient={"id": "to-id"},
             delivery_mode="expectReplies",
             locale="en-US",
         )
 
         res = await agent_client.send_expect_replies(activity)
 
-        breakpoint()
-        res = Activity.model_validate(res)
+        assert len(res) > 0
+        assert isinstance(res[0], Activity)

@@ -33,7 +33,7 @@ class Integration:
 
     _service_url: Optional[str] = "http://localhost:9378"
     _agent_url: Optional[str] = "http://localhost:3978"
-    _config_path: Optional[str] = "./src/tests/.env"
+    _config_path: Optional[str] = ".env"
     _cid: Optional[str] = None
     _client_id: Optional[str] = None
     _tenant_id: Optional[str] = None
