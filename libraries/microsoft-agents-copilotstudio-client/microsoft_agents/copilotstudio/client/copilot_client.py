@@ -28,7 +28,9 @@ class CopilotClient:
     async def post_request(
         self, url: str, data: dict, headers: dict
     ) -> AsyncIterable[Activity]:
-        async with aiohttp.ClientSession(**self.settings.client_session_defaults) as session:
+        async with aiohttp.ClientSession(
+            **self.settings.client_session_defaults
+        ) as session:
             async with session.post(url, json=data, headers=headers) as response:
                 if response.status != 200:
                     # self.logger(f"Error sending request: {response.status}")
