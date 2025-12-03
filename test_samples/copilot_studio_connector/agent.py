@@ -9,9 +9,13 @@ import logging
 import aiohttp
 from typing import Optional
 
-from microsoft_agents.hosting.core import AgentApplication, TurnState
-from microsoft_agents.activity import Activity, ActivityTypes, RoleTypes
-from microsoft_agents.hosting.core import TurnContext
+from microsoft_agents.hosting.core import (
+    AgentApplication,
+    ApplicationOptions,
+    TurnState,
+    TurnContext,
+)
+from microsoft_agents.activity import ActivityTypes, RoleTypes
 
 logger = logging.getLogger(__name__)
 
@@ -27,7 +31,7 @@ class MyAgent(AgentApplication):
     - Responds with a personalized greeting
     """
 
-    def __init__(self, options):
+    def __init__(self, options: ApplicationOptions):
         super().__init__(options)
 
         # Register handler for connector messages
