@@ -9,6 +9,7 @@ from ._sign_in_response import _SignInResponse
 from ._handlers import (
     _UserAuthorization,
     AgenticUserAuthorization,
+    ConnectorUserAuthorization,
     _AuthorizationHandler,
 )
 
@@ -20,4 +21,5 @@ __all__ = [
     "_SignInResponse",
     "_UserAuthorization",
     "AgenticUserAuthorization",
+    "ConnectorUserAuthorization",
 ]
