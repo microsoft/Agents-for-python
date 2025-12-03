@@ -18,6 +18,7 @@ class ConnectionSettings(DirectToEngineConnectionSettingsProtocol):
         cloud: Optional[PowerPlatformCloud],
         copilot_agent_type: Optional[AgentType],
         custom_power_platform_cloud: Optional[str],
+        client_session_defaults: Optional[dict] = None,
     ) -> None:
         self.environment_id = environment_id
         self.agent_identifier = agent_identifier
@@ -30,3 +31,4 @@ class ConnectionSettings(DirectToEngineConnectionSettingsProtocol):
         self.cloud = cloud or PowerPlatformCloud.PROD
         self.copilot_agent_type = copilot_agent_type or AgentType.PUBLISHED
         self.custom_power_platform_cloud = custom_power_platform_cloud
+        self.client_session_defaults = client_session_defaults or {}
