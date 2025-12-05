@@ -1,5 +1,6 @@
 from microsoft_agents.testing.cli.common import ExecutionResult
 
+
 def output_results(results: list[ExecutionResult]) -> None:
     """Output the results of the benchmark to the console."""
 

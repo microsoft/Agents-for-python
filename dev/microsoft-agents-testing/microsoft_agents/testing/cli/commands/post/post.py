@@ -6,8 +6,9 @@ from microsoft_agents.testing.cli.common import (
     Executor,
     CoroutineExecutor,
     ThreadExecutor,
-    create_payload_sender
+    create_payload_sender,
 )
+
 
 @click.command()
 @click.option(
@@ -20,8 +21,8 @@ from microsoft_agents.testing.cli.common import (
     is_flag=True,
     help="Run coroutine workers rather than thread workers.",
 )
-def benchmark(payload_path: str, async_mode: bool):
-    """Main function to run the benchmark."""
+def post(payload_path: str, async_mode: bool):
+    """Command to send a payload."""
 
     with open(payload_path, "r", encoding="utf-8") as f:
         payload = json.load(f)
@@ -37,4 +38,3 @@ def benchmark(payload_path: str, async_mode: bool):
         f"Execution ID: {result.exe_id}, Duration: {result.duration:.4f} seconds, Status: {status}"
     )
     print(result.result)
-

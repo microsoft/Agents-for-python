@@ -12,7 +12,7 @@ from aiohttp.web import Application, Request, Response
 
 from microsoft_agents.activity import Activity, ActivityTypes, Entity
 
-from ..aiohttp import AiohttpAsyncRunner as AiohttpRunner
+from ..aiohttp import AiohttpRunner
 
 
 class ResponseClient:

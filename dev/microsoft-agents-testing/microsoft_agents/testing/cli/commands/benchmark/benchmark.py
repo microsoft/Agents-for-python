@@ -8,7 +8,7 @@ from microsoft_agents.testing.cli.common import (
     Executor,
     CoroutineExecutor,
     ThreadExecutor,
-    create_payload_sender
+    create_payload_sender,
 )
 
 from .aggregated_results import AggregatedResults
@@ -16,6 +16,7 @@ from .output import output_results
 
 LOG_FORMAT = "%(asctime)s: %(message)s"
 logging.basicConfig(format=LOG_FORMAT, level=logging.INFO, datefmt="%H:%M:%S")
+
 
 @click.command()
 @click.option(
@@ -30,7 +31,7 @@ logging.basicConfig(format=LOG_FORMAT, level=logging.INFO, datefmt="%H:%M:%S")
     help="Run coroutine workers rather than thread workers.",
 )
 def benchmark(payload_path: str, num_workers: int, verbose: bool, async_mode: bool):
-    """Main function to run the benchmark."""
+    """Command to run the benchmark."""
 
     with open(payload_path, "r", encoding="utf-8") as f:
         payload = json.load(f)

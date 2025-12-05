@@ -15,3 +15,10 @@
 
 #     sample = AuthSample()
 #     sample.run(resolve_env)
+
+import click
+
+@click.command()
+def test_auth():
+    """Run authentication sample test."""
+    pass

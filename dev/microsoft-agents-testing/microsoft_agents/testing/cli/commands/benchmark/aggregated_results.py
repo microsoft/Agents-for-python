@@ -1,5 +1,6 @@
 from microsoft_agents.testing.cli.common import ExecutionResult
 
+
 class AggregatedResults:
     """Class to analyze execution time results."""
 
