@@ -1,3 +1,6 @@
+# Copyright (c) Microsoft Corporation. All rights reserved.
+# Licensed under the MIT License.
+
 import aiohttp
 from typing import AsyncIterable, Callable, Optional
 
@@ -9,6 +12,8 @@ from .power_platform_environment import PowerPlatformEnvironment
 
 
 class CopilotClient:
+    """A client for interacting with the Copilot service."""
+
     EVENT_STREAM_TYPE = "text/event-stream"
     APPLICATION_JSON_TYPE = "application/json"
 
@@ -37,9 +42,10 @@ class CopilotClient:
         """
 
         async with aiohttp.ClientSession(
-            **self.settings.client_session_kwargs
+            **self.settings.client_session_settings
         ) as session:
             async with session.post(url, json=data, headers=headers) as response:
+
                 if response.status != 200:
                     # self.logger(f"Error sending request: {response.status}")
                     raise aiohttp.ClientError(

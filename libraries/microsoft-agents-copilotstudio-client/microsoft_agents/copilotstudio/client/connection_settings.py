@@ -1,3 +1,6 @@
+# Copyright (c) Microsoft Corporation. All rights reserved.
+# Licensed under the MIT License.
+
 from typing import Optional
 from .direct_to_engine_connection_settings_protocol import (
     DirectToEngineConnectionSettingsProtocol,
@@ -18,7 +21,7 @@ class ConnectionSettings(DirectToEngineConnectionSettingsProtocol):
         cloud: Optional[PowerPlatformCloud] = None,
         copilot_agent_type: Optional[AgentType] = None,
         custom_power_platform_cloud: Optional[str] = None,
-        client_session_kwargs: Optional[dict] = None,
+        client_session_settings: Optional[dict] = None,
     ) -> None:
         """Initialize connection settings.
 
@@ -27,7 +30,7 @@ class ConnectionSettings(DirectToEngineConnectionSettingsProtocol):
         :param cloud: The PowerPlatformCloud to use for the connection.
         :param copilot_agent_type: The AgentType to use for the Copilot.
         :param custom_power_platform_cloud: The custom PowerPlatformCloud URL.
-        :param client_session_kwargs: Additional keyword arguments for initialization
+        :param client_session_settings: Additional arguments for initialization
             of the underlying Aiohttp ClientSession.
         """
 
@@ -42,4 +45,4 @@ class ConnectionSettings(DirectToEngineConnectionSettingsProtocol):
         self.cloud = cloud or PowerPlatformCloud.PROD
         self.copilot_agent_type = copilot_agent_type or AgentType.PUBLISHED
         self.custom_power_platform_cloud = custom_power_platform_cloud
-        self.client_session_kwargs = client_session_kwargs or {}
+        self.client_session_settings = client_session_settings or {}
