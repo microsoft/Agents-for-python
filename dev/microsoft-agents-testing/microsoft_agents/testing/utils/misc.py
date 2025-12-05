@@ -5,10 +5,13 @@ from urllib.parse import urlparse
 
 from microsoft_agents.activity import AgentsModel
 
+
 def pdb_breakpoint() -> None:
     """Set a breakpoint using pdb."""
     import pdb
+
     pdb.set_trace()
+
 
 def get_host_and_port(url: str) -> tuple[str, int]:
     """Extract host and port from a URL."""

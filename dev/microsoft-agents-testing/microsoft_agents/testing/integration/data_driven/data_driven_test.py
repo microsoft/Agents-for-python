@@ -67,7 +67,7 @@ class DataDrivenTest:
     def _pre_process(self) -> None:
         """Compile the data driven test to ensure all steps are valid."""
         for i, step in enumerate(self._test):
-            
+
             if isinstance(step, str):
                 self._test[i] = {"type": step}
                 continue
@@ -86,7 +86,7 @@ class DataDrivenTest:
                     else:
                         step["assertion"] = {}
                         step["assertion_type"] = "activity"
-                        
+
                 selector = step.get("selector")
                 if selector is not None:
                     if isinstance(selector, int):

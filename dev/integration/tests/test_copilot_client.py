@@ -9,47 +9,49 @@ from microsoft_agents.activity import Activity
 from microsoft_agents.copilotstudio.client import (
     CopilotClient,
     ConnectionSettings,
-    PowerPlatformEnvironment
+    PowerPlatformEnvironment,
 )
 
-from microsoft_agents.testing.integration.core import (
-    AiohttpRunner
-)
+from microsoft_agents.testing.integration.core import AiohttpRunner
+
 
 def mock_mcs_handler(activity: Activity) -> Callable[[Request], Awaitable[Response]]:
     """Creates a mock handler for MCS endpoint returning the given activity."""
+
     async def handler(request: Request) -> Response:
         activity_data = activity.model_dump_json(exclude_unset=True)
-        return Response(
-            body=activity_data
-        )
+        return Response(body=activity_data)
+
     return handler
 
-def mock_mcs_handler(activities: Iterable[Activity]) -> Callable[[Request], Awaitable[StreamResponse]]:
+
+def mock_mcs_handler(
+    activities: Iterable[Activity],
+) -> Callable[[Request], Awaitable[StreamResponse]]:
     """Creates a mock handler for MCS endpoint returning SSE-formatted activity."""
+
     async def handler(request: Request) -> StreamResponse:
         response = StreamResponse(status=200)
-        response.headers['Content-Type'] = 'text/event-stream'
-        response.headers['x-ms-conversationid'] = 'test-conv-id'
+        response.headers["Content-Type"] = "text/event-stream"
+        response.headers["x-ms-conversationid"] = "test-conv-id"
         # response.headers['Content-Length'] = str(len(activity_data))
         await response.prepare(request)
-        
+
         # Proper SSE format
         for activity in activities:
             activity_data = activity.model_dump_json(exclude_unset=True)
-            await response.write(b'event: activity\n')
-            await response.write(f'data: {activity_data}\n\n'.encode('utf-8'))
-        
+            await response.write(b"event: activity\n")
+            await response.write(f"data: {activity_data}\n\n".encode("utf-8"))
+
         await response.write_eof()
         return response
+
     return handler
 
+
 def mock_mcs_endpoint(
-        mocker,
-        activities: Iterable[Activity],
-        path: str,
-        port: int
-    ) -> AiohttpRunner:
+    mocker, activities: Iterable[Activity], path: str, port: int
+) -> AiohttpRunner:
     """Mock MCS responses for testing."""
 
     PowerPlatformEnvironment.get_copilot_studio_connection_url = mocker.MagicMock(
@@ -63,11 +65,10 @@ def mock_mcs_endpoint(
 
 
 @pytest.mark.asyncio
-async def test_start_conversation_and_ask_question(mocker):
+async def test_start_conversation_and_ask_question_large_message(mocker):
 
     activity = Activity(
-        type="message",
-        text="*"*1_000_000
+        type="message", text="*" * 1_000_000, conversation={"id": "conv-id"}
     )
 
     runner = mock_mcs_endpoint(mocker, [activity], "/mcs-endpoint", port=8081)
@@ -84,9 +85,11 @@ async def test_start_conversation_and_ask_question(mocker):
         #     async for question_activity in client.ask_question("Hello!", "conv-id"):
         #         assert question_activity.type == "message"
 
+
 def activity_generator(activity: Activity, n: int) -> Iterable[Activity]:
     for i in range(n):
         yield activity
+
 
 @pytest.mark.asyncio
 async def test_start_conversation_many(mocker):

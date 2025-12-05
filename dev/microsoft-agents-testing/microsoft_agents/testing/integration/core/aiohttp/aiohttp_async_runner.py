@@ -56,7 +56,7 @@ class AiohttpAsyncRunner(ApplicationRunner):
             raise RuntimeError("AiohttpRunner is already running.")
 
         self._shutdown_event.clear()
-        
+
         # Create a background task instead of a thread
         self._server_task = asyncio.create_task(self._start_server())
 
@@ -98,5 +98,5 @@ class AiohttpAsyncRunner(ApplicationRunner):
                 await self._server_task
             except asyncio.CancelledError:
                 pass
-        
+
         self._server_task = None

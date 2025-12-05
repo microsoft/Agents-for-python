@@ -139,11 +139,11 @@ class AgentClient:
         activity = self._to_activity(activity_or_text)
         content = await self._send(activity, sleep=sleep)
         return content
-    
+
     # async def send_stream(
     #     self, activity_or_text: Activity | str, sleep: float | None = None
     # ) -> list[Activity]:
-        
+
     #     activity = self._to_activity(activity_or_text)
     #     if isinstance(activity_or_text, str):
     #         activity.delivery_mode = DeliveryModes.stream

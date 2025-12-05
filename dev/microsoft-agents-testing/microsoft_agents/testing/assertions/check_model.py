@@ -43,7 +43,7 @@ def _check(
             return True, None
 
         elif isinstance(baseline, list):
-            
+
             if actual is UNSET_FIELD:
                 actual = []
 

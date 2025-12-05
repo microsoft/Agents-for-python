@@ -69,7 +69,7 @@ class ResponseClient:
             await self._add(activity)
             if activity.type != ActivityTypes.typing:
                 await asyncio.sleep(0.05)  # Simulate processing delay
-                
+
             return Response(
                 status=200,
                 content_type="application/json",

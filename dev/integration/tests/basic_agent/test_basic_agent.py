@@ -7,10 +7,13 @@ from microsoft_agents.testing import (
 
 TEST_BASIC_AGENT = False
 
+
 @ddt("tests/basic_agent/directline", prefix="directline")
 # @ddt("tests/basic_agent/webchat", prefix="webchat")
 # @ddt("tests/basic_agent/msteams", prefix="msteams")
-@pytest.mark.skipif(not TEST_BASIC_AGENT, reason="Skipping external agent tests for now.")
+@pytest.mark.skipif(
+    not TEST_BASIC_AGENT, reason="Skipping external agent tests for now."
+)
 class TestBasicAgentExternal(Integration):
     _agent_url = "http://localhost:3978/"
     _service_url = "http://localhost:8001/"
