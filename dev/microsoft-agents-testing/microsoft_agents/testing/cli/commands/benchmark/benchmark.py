@@ -4,17 +4,18 @@ from datetime import datetime, timezone
 
 import click
 
-from .payload_sender import create_payload_sender
-from .executor import Executor, CoroutineExecutor, ThreadExecutor
+from microsoft_agents.testing.cli.common import (
+    Executor,
+    CoroutineExecutor,
+    ThreadExecutor,
+    create_payload_sender
+)
+
 from .aggregated_results import AggregatedResults
-from .config import BenchmarkConfig
 from .output import output_results
 
 LOG_FORMAT = "%(asctime)s: %(message)s"
 logging.basicConfig(format=LOG_FORMAT, level=logging.INFO, datefmt="%H:%M:%S")
-
-BenchmarkConfig.load_from_env()
-
 
 @click.command()
 @click.option(
@@ -28,18 +29,18 @@ BenchmarkConfig.load_from_env()
     is_flag=True,
     help="Run coroutine workers rather than thread workers.",
 )
-def main(payload_path: str, num_workers: int, verbose: bool, async_mode: bool):
+def benchmark(payload_path: str, num_workers: int, verbose: bool, async_mode: bool):
     """Main function to run the benchmark."""
 
     with open(payload_path, "r", encoding="utf-8") as f:
         payload = json.load(f)
 
-    func = create_payload_sender(payload)
+    payload_sender = create_payload_sender(payload)
 
     executor: Executor = CoroutineExecutor() if async_mode else ThreadExecutor()
 
     start_time = datetime.now(timezone.utc).timestamp()
-    results = executor.run(func, num_workers=num_workers)
+    results = executor.run(payload_sender, num_workers=num_workers)
     end_time = datetime.now(timezone.utc).timestamp()
     if verbose:
         output_results(results)
@@ -47,7 +48,3 @@ def main(payload_path: str, num_workers: int, verbose: bool, async_mode: bool):
     agg = AggregatedResults(results)
     agg.display(start_time, end_time)
     agg.display_timeline()
-
-
-if __name__ == "__main__":
-    main()  # pylint: disable=no-value-for-parameter

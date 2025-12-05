@@ -5,9 +5,9 @@ import asyncio
 import requests
 from typing import Callable, Awaitable, Any
 
-from .config import BenchmarkConfig
-from .generate_token import generate_token_from_env
+from microsoft_agents.testing.auth import generate_token
 
+from microsoft_agents.testing.cli.cli_config import cli_config
 
 def create_payload_sender(
     payload: dict[str, Any], timeout: int = 60
@@ -19,13 +19,16 @@ def create_payload_sender(
     :return: A callable that sends the payload when invoked.
     """
 
-    token = generate_token_from_env()
-    endpoint = BenchmarkConfig.AGENT_URL
+    token = generate_token(
+        cli_config.app_id,
+        cli_config.app_secret,
+        cli_config.tenant_id,
+    )
     headers = {"Authorization": f"Bearer {token}", "Content-Type": "application/json"}
 
     async def payload_sender() -> Any:
         response = await asyncio.to_thread(
-            requests.post, endpoint, headers=headers, json=payload, timeout=timeout
+            requests.post, cli_config.agent_endpoint, headers=headers, json=payload, timeout=timeout
         )
         return response.content
 
