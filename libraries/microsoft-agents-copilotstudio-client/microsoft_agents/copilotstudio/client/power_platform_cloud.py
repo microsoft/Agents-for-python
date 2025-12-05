@@ -3,6 +3,7 @@
 
 from enum import Enum
 
+
 class PowerPlatformCloud(str, Enum):
     """
     Enum representing different Power Platform Clouds.

@@ -7,10 +7,11 @@ from microsoft_agents.activity import Activity
 from microsoft_agents.copilotstudio.client import (
     ConnectionSettings,
     CopilotClient,
-    PowerPlatformEnvironment
+    PowerPlatformEnvironment,
 )
 
 from aiohttp import ClientSession, ClientError
+
 
 @pytest.mark.asyncio
 async def test_copilot_client_error(mocker):
@@ -18,7 +19,7 @@ async def test_copilot_client_error(mocker):
     connection_settings = ConnectionSettings(
         "environment-id",
         "agent-id",
-        client_session_settings={"base_url": "https://api.copilotstudio.com"}
+        client_session_settings={"base_url": "https://api.copilotstudio.com"},
     )
 
     mock_session = mocker.MagicMock(spec=ClientSession)
@@ -42,13 +43,14 @@ async def test_copilot_client_error(mocker):
             # Process the message received from the conversation
             print(message)
 
+
 @pytest.mark.asyncio
 async def test_copilot_client_basic(mocker):
     # Define the connection settings
     connection_settings = ConnectionSettings(
         "environment-id",
         "agent-id",
-        client_session_settings={"base_url": "https://api.copilotstudio.com"}
+        client_session_settings={"base_url": "https://api.copilotstudio.com"},
     )
 
     mock_session = mocker.MagicMock(spec=ClientSession)
@@ -59,7 +61,9 @@ async def test_copilot_client_basic(mocker):
         mock_response = mocker.Mock()
         mock_response.status = 200
 
-        activity = Activity(type="message", text="Hello, world!", conversation={"id": "1234567890"})
+        activity = Activity(
+            type="message", text="Hello, world!", conversation={"id": "1234567890"}
+        )
         activity_json = activity.model_dump_json(exclude_unset=True)
 
         async def content():
