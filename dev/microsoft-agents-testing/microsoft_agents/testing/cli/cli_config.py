@@ -11,7 +11,13 @@ class _CLIConfig:
     tenant_id: str = ""
     app_id: str = ""
     app_secret: str = ""
-    agent_endpoint: str = "http://localhost:3978/api/messages"
+    agent_url: str = "http://localhost:3978/"
+    service_url: str = "http://localhost:8001/"
+
+    @property
+    def agent_endpoint(self) -> str:
+        """Return the agent messaging endpoint"""
+        return f"{self.agent_url}api/messages/"
 
     def load_from_config(self, config: dict | None = None) -> None:
         """Load configuration from a dictionary"""
@@ -21,7 +27,7 @@ class _CLIConfig:
         self.tenant_id = config.get("tenant_id", self.tenant_id)
         self.app_id = config.get("app_id", self.app_id)
         self.app_secret = config.get("app_secret", self.app_secret)
-        self.agent_endpoint = config.get("agent_endpoint", self.agent_endpoint)
+        self.agent_url = config.get("agent_url", self.agent_url)
 
     def load_from_connection(
         self, connection_name: str = "SERVICE_CONNECTION", config: dict | None = None

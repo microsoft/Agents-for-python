@@ -7,8 +7,12 @@ from .commands import COMMAND_LIST
 @click.group()
 @click.option("--env_path", help="Environment file path")
 @click.option("--connection_name", default=None, help="Connection name")
-def cli(env_path, connection_name):
+@click.pass_context
+def cli(ctx, env_path, connection_name):
     """A simple CLI tool for managing tasks."""
+
+    ctx.ensure_object(dict)
+    ctx.obj["env_path"] = env_path or ".env"
 
     load_dotenv()
 

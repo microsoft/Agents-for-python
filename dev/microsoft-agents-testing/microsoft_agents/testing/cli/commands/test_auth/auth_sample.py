@@ -4,12 +4,17 @@
 
 # from microsoft_agents.hosting.core import AgentApplication, TurnContext, TurnState
 
-# from microsoft_agents.testing.integration.core.sample import Sample
+# from microsoft_agents.testing.integration.core.sample import (
+#     Environment,
+#     Sample
+# )
 
 
 # def create_auth_route(auth_handler_id: str, agent: AgentApplication):
-#     def dynamic_function(context: TurnContext, state: TurnState):
-#         token = await agent.auth.get_token(context, state, auth_handler_id)
+#     """Create a dynamic function to handle authentication routes."""
+
+#     async def dynamic_function(context: TurnContext, state: TurnState):
+#         token = await agent.auth.get_token(context, auth_handler_id)
 
 #         return f"Hello from {auth_handler_id}! Token: {token}"
 
@@ -17,15 +22,18 @@
 #     return dynamic_function
 
 
-# class QuickstartSample(Sample):
+# class AuthSample(Sample):
 #     """A quickstart sample implementation."""
+
+#     def __init__(self, environment: Environment, config: dict):
+#         super().__init__(environment)
+#         self._config = config
 
 #     @classmethod
 #     async def get_config(cls) -> dict:
 #         """Retrieve the configuration for the sample."""
-#         load_dotenv("./src/tests/.env")
-#         return dict(os.environ)
-
+#         return self._config
+    
 #     async def init_app(self):
 #         """Initialize the application for the quickstart sample."""
 

@@ -18,7 +18,21 @@
 
 import click
 
+# from .auth_sample import auth_sample
+
 @click.command()
 def test_auth():
-    """Run authentication sample test."""
-    pass
+    """Run the authentication testing sample from a configuration file."""
+
+    # # Load the configuration file
+    # config = load_config_file()
+
+    # # Initialize the environment
+    # environment = AiohttpEnvironment(config)
+
+    # # Set up the environment
+    # environment.setup()
+
+    # # Run the authentication sample test
+    # sample = auth_sample()
+    # sample.run(resolve_env)

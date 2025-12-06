@@ -5,7 +5,7 @@ from microsoft_agents.testing import (
     Integration,
 )
 
-TEST_BASIC_AGENT = False
+TEST_BASIC_AGENT = True
 
 
 @ddt("tests/basic_agent/directline", prefix="directline")

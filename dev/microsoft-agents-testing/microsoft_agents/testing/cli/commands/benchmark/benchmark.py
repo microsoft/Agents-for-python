@@ -31,7 +31,7 @@ logging.basicConfig(format=LOG_FORMAT, level=logging.INFO, datefmt="%H:%M:%S")
     help="Run coroutine workers rather than thread workers.",
 )
 def benchmark(payload_path: str, num_workers: int, verbose: bool, async_mode: bool):
-    """Command to run the benchmark."""
+    """Run a benchmark against an agent with a custom payload."""
 
     with open(payload_path, "r", encoding="utf-8") as f:
         payload = json.load(f)

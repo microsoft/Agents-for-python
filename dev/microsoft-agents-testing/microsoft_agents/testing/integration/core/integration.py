@@ -56,7 +56,7 @@ class Integration:
         if not self._config:
             self._config = {}
 
-            load_dotenv(self._config_path)
+            load_dotenv(self._config_path, override=True)
             self._config.update(
                 {
                     "client_id": os.getenv(

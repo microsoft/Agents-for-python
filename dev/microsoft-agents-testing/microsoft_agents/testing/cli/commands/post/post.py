@@ -22,7 +22,7 @@ from microsoft_agents.testing.cli.common import (
     help="Run coroutine workers rather than thread workers.",
 )
 def post(payload_path: str, async_mode: bool):
-    """Command to send a payload."""
+    """Send an activity to an agent."""
 
     with open(payload_path, "r", encoding="utf-8") as f:
         payload = json.load(f)
