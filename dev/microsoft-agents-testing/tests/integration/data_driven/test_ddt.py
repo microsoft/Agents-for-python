@@ -219,7 +219,7 @@ class TestDdtDecorator:
         class TestClass(Integration):
             pass
 
-        mock_load_ddts.assert_called_once_with("test_path", recursive=False)
+        mock_load_ddts.assert_called_once_with("test_path", recursive=False, prefix="")
 
     @patch("microsoft_agents.testing.integration.data_driven.ddt.load_ddts")
     def test_ddt_decorator_adds_test_methods(self, mock_load_ddts):
@@ -275,7 +275,9 @@ class TestDdtDecorator:
         class TestClass(Integration):
             pass
 
-        mock_load_ddts.assert_called_once_with(str(test_path), recursive=True)
+        mock_load_ddts.assert_called_once_with(
+            str(test_path), recursive=True, prefix=""
+        )
 
     @patch("microsoft_agents.testing.integration.data_driven.ddt.load_ddts")
     def test_ddt_decorator_multiple_classes(self, mock_load_ddts):
@@ -305,7 +307,9 @@ class TestDdtDecorator:
         class TestClass(Integration):
             pass
 
-        mock_load_ddts.assert_called_once_with("./tests/data", recursive=True)
+        mock_load_ddts.assert_called_once_with(
+            "./tests/data", recursive=True, prefix=""
+        )
 
     @patch("microsoft_agents.testing.integration.data_driven.ddt.load_ddts")
     def test_ddt_decorator_with_absolute_path(self, mock_load_ddts):
@@ -317,7 +321,7 @@ class TestDdtDecorator:
         class TestClass(Integration):
             pass
 
-        mock_load_ddts.assert_called_once_with(abs_path, recursive=True)
+        mock_load_ddts.assert_called_once_with(abs_path, recursive=True, prefix="")
 
 
 class TestDdtDecoratorIntegration:
@@ -529,7 +533,7 @@ class TestDdtDecoratorEdgeCases:
         class TestClass(Integration):
             pass
 
-        mock_load_ddts.assert_called_once_with(special_path, recursive=True)
+        mock_load_ddts.assert_called_once_with(special_path, recursive=True, prefix="")
 
     def test_ddt_decorator_with_test_name_collision(self):
         """Test that generated test names don't collide with existing methods."""

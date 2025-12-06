@@ -5,7 +5,7 @@ from .sdk_config import SDKConfig
 
 from .assertions import (
     ModelAssertion,
-    Selector,
+    ModelSelector,
     AssertionQuantifier,
     assert_model,
     assert_field,
@@ -31,6 +31,8 @@ from .integration import (
     DataDrivenTest,
 )
 
+from .cli import cli
+
 __all__ = [
     "SDKConfig",
     "generate_token",
@@ -45,7 +47,7 @@ __all__ = [
     "populate_activity",
     "get_host_and_port",
     "ModelAssertion",
-    "Selector",
+    "ModelSelector",
     "AssertionQuantifier",
     "assert_model",
     "assert_field",
@@ -56,4 +58,5 @@ __all__ = [
     "FieldAssertionType",
     "ddt",
     "DataDrivenTest",
+    "cli",
 ]

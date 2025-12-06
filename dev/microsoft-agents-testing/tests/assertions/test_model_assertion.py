@@ -6,7 +6,7 @@ import pytest
 from microsoft_agents.activity import Activity
 from microsoft_agents.testing import (
     ModelAssertion,
-    Selector,
+    ModelSelector,
     AssertionQuantifier,
     FieldAssertionType,
 )
@@ -29,7 +29,7 @@ class TestModelAssertionCheckWithQuantifierAll:
         """Test that all matching activities pass the assertion."""
         assertion = ModelAssertion(
             assertion={"type": "message"},
-            selector=Selector(selector={"type": "message"}),
+            selector=ModelSelector(model={"type": "message"}),
             quantifier=AssertionQuantifier.ALL,
         )
         passes, error = assertion.check(activities)
@@ -40,7 +40,7 @@ class TestModelAssertionCheckWithQuantifierAll:
         """Test that one failing activity causes ALL assertion to fail."""
         assertion = ModelAssertion(
             assertion={"text": "Hello"},
-            selector=Selector(selector={"type": "message"}),
+            selector=ModelSelector(model={"type": "message"}),
             quantifier=AssertionQuantifier.ALL,
         )
         passes, error = assertion.check(activities)
@@ -52,7 +52,7 @@ class TestModelAssertionCheckWithQuantifierAll:
         """Test ALL quantifier with empty selector (matches all activities)."""
         assertion = ModelAssertion(
             assertion={"type": "message"},
-            selector=Selector(selector={}),
+            selector=ModelSelector(model={}),
             quantifier=AssertionQuantifier.ALL,
         )
         passes, error = assertion.check(activities)
@@ -76,7 +76,7 @@ class TestModelAssertionCheckWithQuantifierAll:
         ]
         assertion = ModelAssertion(
             assertion={"type": "message"},
-            selector=Selector(selector={"type": "message"}),
+            selector=ModelSelector(model={"type": "message"}),
             quantifier=AssertionQuantifier.ALL,
         )
         passes, error = assertion.check(complex_activities)
@@ -99,7 +99,7 @@ class TestModelAssertionCheckWithQuantifierNone:
         """Test NONE quantifier when no activities match."""
         assertion = ModelAssertion(
             assertion={"text": "Nonexistent"},
-            selector=Selector(selector={"type": "message"}),
+            selector=ModelSelector(model={"type": "message"}),
             quantifier=AssertionQuantifier.NONE,
         )
         passes, error = assertion.check(activities)
@@ -110,7 +110,7 @@ class TestModelAssertionCheckWithQuantifierNone:
         """Test NONE quantifier fails when one activity matches."""
         assertion = ModelAssertion(
             assertion={"text": "Hello"},
-            selector=Selector(selector={"type": "message"}),
+            selector=ModelSelector(model={"type": "message"}),
             quantifier=AssertionQuantifier.NONE,
         )
         passes, error = assertion.check(activities)
@@ -122,7 +122,7 @@ class TestModelAssertionCheckWithQuantifierNone:
         """Test NONE quantifier fails when all activities match."""
         assertion = ModelAssertion(
             assertion={"type": "message"},
-            selector=Selector(selector={"type": "message"}),
+            selector=ModelSelector(model={"type": "message"}),
             quantifier=AssertionQuantifier.NONE,
         )
         passes, error = assertion.check(activities)
@@ -155,7 +155,7 @@ class TestModelAssertionCheckWithQuantifierOne:
         """Test ONE quantifier passes when exactly one activity matches."""
         assertion = ModelAssertion(
             assertion={"text": "First"},
-            selector=Selector(selector={"type": "message"}),
+            selector=ModelSelector(model={"type": "message"}),
             quantifier=AssertionQuantifier.ONE,
         )
         passes, error = assertion.check(activities)
@@ -166,7 +166,7 @@ class TestModelAssertionCheckWithQuantifierOne:
         """Test ONE quantifier fails when no activities match."""
         assertion = ModelAssertion(
             assertion={"text": "Nonexistent"},
-            selector=Selector(selector={"type": "message"}),
+            selector=ModelSelector(model={"type": "message"}),
             quantifier=AssertionQuantifier.ONE,
         )
         passes, error = assertion.check(activities)
@@ -179,7 +179,7 @@ class TestModelAssertionCheckWithQuantifierOne:
         """Test ONE quantifier fails when multiple activities match."""
         assertion = ModelAssertion(
             assertion={"type": "message"},
-            selector=Selector(selector={"type": "message"}),
+            selector=ModelSelector(model={"type": "message"}),
             quantifier=AssertionQuantifier.ONE,
         )
         passes, error = assertion.check(activities)
@@ -360,8 +360,8 @@ class TestModelAssertionIntegration:
         """Test that all user messages have a from_property."""
         assertion = ModelAssertion(
             assertion={"from_property": {"id": "user1"}},
-            selector=Selector(
-                selector={"type": "message", "from_property": {"id": "user1"}},
+            selector=ModelSelector(
+                model={"type": "message", "from_property": {"id": "user1"}},
             ),
             quantifier=AssertionQuantifier.ALL,
         )
@@ -372,7 +372,7 @@ class TestModelAssertionIntegration:
         """Test that there are no error messages in the conversation."""
         assertion = ModelAssertion(
             assertion={"type": "error"},
-            selector=Selector(selector={}),
+            selector=ModelSelector(model={}),
             quantifier=AssertionQuantifier.NONE,
         )
         passes, error = assertion.check(conversation_activities)
@@ -382,7 +382,7 @@ class TestModelAssertionIntegration:
         """Test that there's exactly one conversation update."""
         assertion = ModelAssertion(
             assertion={"type": "conversationUpdate"},
-            selector=Selector(selector={"type": "conversationUpdate"}),
+            selector=ModelSelector(model={"type": "conversationUpdate"}),
             quantifier=AssertionQuantifier.ONE,
         )
         passes, error = assertion.check(conversation_activities)
@@ -392,7 +392,7 @@ class TestModelAssertionIntegration:
         """Test that the first message contains a greeting."""
         assertion = ModelAssertion(
             assertion={"text": {"assertion_type": "CONTAINS", "assertion": "Hello"}},
-            selector=Selector(selector={"type": "message"}, index=0),
+            selector=ModelSelector(model={"type": "message"}, index=0),
             quantifier=AssertionQuantifier.ALL,
         )
         passes, error = assertion.check(conversation_activities)
@@ -402,8 +402,8 @@ class TestModelAssertionIntegration:
         """Test complex assertion with multiple fields."""
         assertion = ModelAssertion(
             assertion={"type": "message", "from_property": {"id": "bot"}},
-            selector=Selector(
-                selector={"type": "message", "from_property": {"id": "bot"}},
+            selector=ModelSelector(
+                model={"type": "message", "from_property": {"id": "bot"}},
             ),
             quantifier=AssertionQuantifier.ALL,
         )
@@ -441,10 +441,10 @@ class TestModelAssertionEdgeCases:
             Activity(type="event", name="test"),
             Activity(type="message", text="World"),
         ]
-        # Selector gets only messages, assertion checks for specific text
+        # ModelSelector gets only messages, assertion checks for specific text
         assertion = ModelAssertion(
             assertion={"text": "Hello"},
-            selector=Selector(selector={"type": "message"}, index=0),
+            selector=ModelSelector(model={"type": "message"}, index=0),
             quantifier=AssertionQuantifier.ALL,
         )
         passes, error = assertion.check(activities)
@@ -539,7 +539,7 @@ class TestModelAssertionRealWorldScenarios:
                 "type": "message",
                 "text": {"assertion_type": "CONTAINS", "assertion": "Welcome"},
             },
-            selector=Selector(selector={"type": "message"}),
+            selector=ModelSelector(model={"type": "message"}),
             quantifier=AssertionQuantifier.ALL,
         )
         passes, error = assertion.check(activities)
@@ -556,7 +556,7 @@ class TestModelAssertionRealWorldScenarios:
         for response_text in ["Response 1", "Response 2", "Response 3"]:
             assertion = ModelAssertion(
                 assertion={"text": response_text},
-                selector=Selector(selector={"type": "message"}),
+                selector=ModelSelector(model={"type": "message"}),
                 quantifier=AssertionQuantifier.ONE,
             )
             passes, error = assertion.check(activities)
@@ -575,7 +575,7 @@ class TestModelAssertionRealWorldScenarios:
                     "assertion": "sorry|understand|help",
                 }
             },
-            selector=Selector(selector={"type": "message"}, index=-1),  # Last message
+            selector=ModelSelector(model={"type": "message"}, index=-1),  # Last message
             quantifier=AssertionQuantifier.ALL,
         )
         passes, error = assertion.check(activities)
@@ -593,7 +593,7 @@ class TestModelAssertionRealWorldScenarios:
         # Verify typing indicator exists
         typing_assertion = ModelAssertion(
             assertion={"type": "typing"},
-            selector=Selector(selector={"type": "typing"}),
+            selector=ModelSelector(model={"type": "typing"}),
             quantifier=AssertionQuantifier.ONE,
         )
         passes, error = typing_assertion.check(activities)
@@ -619,7 +619,7 @@ class TestModelAssertionRealWorldScenarios:
         for assertion_dict, expected_index in steps:
             assertion = ModelAssertion(
                 assertion=assertion_dict,
-                selector=Selector(selector={}, index=expected_index),
+                selector=ModelSelector(model={}, index=expected_index),
                 quantifier=AssertionQuantifier.ALL,
             )
             passes, error = assertion.check(activities)

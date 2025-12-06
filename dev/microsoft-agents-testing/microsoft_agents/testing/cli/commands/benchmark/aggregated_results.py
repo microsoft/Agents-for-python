@@ -1,4 +1,4 @@
-from .executor import ExecutionResult
+from microsoft_agents.testing.cli.common import ExecutionResult
 
 
 class AggregatedResults:

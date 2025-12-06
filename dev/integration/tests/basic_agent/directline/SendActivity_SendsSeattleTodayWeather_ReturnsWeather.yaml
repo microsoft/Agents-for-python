@@ -13,12 +13,12 @@ test:
       name: Bot
     text: 'w: What''s the weather in Seattle today?'
     locale: en-US
-- type: skip
 - type: assertion
   selector:
-    index: -1
+    activity:
+      attachments:
+        - contentType: application/vnd.microsoft.card.adaptive
   activity:
     type: message
     attachments:
-    - contentType: application/vnd.microsoft.card.adaptive
-      content: ["RE_MATCH", "(�|\\u00B0|Missing temperature inside adaptive card:)"]
+    - content: ["RE_MATCH", "(�|\\u00B0|Missing temperature inside adaptive card:)"]

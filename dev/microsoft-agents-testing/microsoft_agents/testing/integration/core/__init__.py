@@ -2,7 +2,7 @@
 # Licensed under the MIT License.
 
 from .application_runner import ApplicationRunner
-from .aiohttp import AiohttpEnvironment
+from .aiohttp import AiohttpEnvironment, AiohttpRunner
 from .client import (
     AgentClient,
     ResponseClient,
@@ -16,6 +16,7 @@ __all__ = [
     "AgentClient",
     "ApplicationRunner",
     "AiohttpEnvironment",
+    "AiohttpRunner",
     "ResponseClient",
     "Environment",
     "Integration",

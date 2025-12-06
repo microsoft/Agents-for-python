@@ -59,14 +59,25 @@ def load_ddts(
 
     if not path:
         path = Path.cwd()
+    path = Path(path)
 
     # collect test file paths
-    if recursive:
-        json_file_paths = glob(f"{path}/**/*.json", recursive=True)
-        yaml_file_paths = glob(f"{path}/**/*.yaml", recursive=True)
+    if not path.is_dir():
+        if path.suffix.lower() == ".json":
+            json_file_paths = [str(path)]
+            yaml_file_paths = []
+        elif path.suffix.lower() == ".yaml":
+            json_file_paths = []
+            yaml_file_paths = [str(path)]
+        else:
+            raise RuntimeError("Unsupported file format for data-driven test")
     else:
-        json_file_paths = glob(f"{path}/*.json")
-        yaml_file_paths = glob(f"{path}/*.yaml")
+        if recursive:
+            json_file_paths = glob(f"{path}/**/*.json", recursive=True)
+            yaml_file_paths = glob(f"{path}/**/*.yaml", recursive=True)
+        else:
+            json_file_paths = glob(f"{path}/*.json")
+            yaml_file_paths = glob(f"{path}/*.yaml")
 
     # load files
     tests_json = dict()

@@ -23,3 +23,6 @@ classifiers = [
 
 [project.urls]
 "Homepage" = "https://github.com/microsoft/Agents"
+
+[project.scripts]
+agents-cli = "microsoft_agents.testing.cli:cli"

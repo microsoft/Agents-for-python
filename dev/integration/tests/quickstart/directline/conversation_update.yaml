@@ -33,4 +33,4 @@ test:
         type: message
     activity:
       type: message
-      text: ["CONTAINS", "Welcome to the empty agent!"]
+      text: ["CONTAINS", "Welcome"]

@@ -4,14 +4,13 @@
 import pytest
 import asyncio
 
-import yaml
-
 from copy import deepcopy
 
-from microsoft_agents.activity import Activity
+from microsoft_agents.activity import Activity, DeliveryModes, InvokeResponse
 
 from microsoft_agents.testing.assertions import ModelAssertion
 from microsoft_agents.testing.utils import (
+    pdb_breakpoint,
     update_with_defaults,
 )
 
@@ -67,11 +66,27 @@ class DataDrivenTest:
 
     def _pre_process(self) -> None:
         """Compile the data driven test to ensure all steps are valid."""
-        for step in self._test:
+        for i, step in enumerate(self._test):
+
+            if isinstance(step, str):
+                self._test[i] = {"type": step}
+                continue
+
             if step.get("type") == "assertion":
                 if "assertion" not in step:
                     if "activity" in step:
                         step["assertion"] = step["activity"]
+                        step["assertion_type"] = "activity"
+                    elif "invokeResponse" in step:
+                        step["assertion"] = step["invokeResponse"]
+                        step["assertion_type"] = "invoke_response"
+                    elif "invoke_response" in step:
+                        step["assertion"] = step["invoke_response"]
+                        step["assertion_type"] = "invoke_response"
+                    else:
+                        step["assertion"] = {}
+                        step["assertion_type"] = "activity"
+
                 selector = step.get("selector")
                 if selector is not None:
                     if isinstance(selector, int):
@@ -79,7 +94,60 @@ class DataDrivenTest:
                     elif isinstance(selector, dict):
                         if "selector" not in selector:
                             if "activity" in selector:
-                                selector["selector"] = selector["activity"]
+                                selector["model"] = selector["activity"]
+                            elif "invokeResponse" in selector:
+                                selector["model"] = selector["invokeResponse"]
+                            elif "invoke_response" in selector:
+                                selector["model"] = selector["invoke_response"]
+
+    async def _run_input(
+        self,
+        step: dict,
+        responses: list[Activity],
+        invoke_responses: list[InvokeResponse],
+        agent_client: AgentClient,
+        response_client: ResponseClient,
+    ) -> None:
+        input_activity = self._load_input(step)
+
+        if input_activity.delivery_mode == DeliveryModes.expect_replies:
+            replies = await agent_client.send_expect_replies(input_activity)
+            responses.extend(replies)
+        elif input_activity.delivery_mode == DeliveryModes.stream:
+            # async for reply in agent_client.send_stream_activity(input_activity):
+            #     responses.append(reply)
+            raise NotImplementedError("Stream delivery mode is not implemented yet.")
+        elif input_activity.type == "invoke":
+            invoke_response = await agent_client.send_invoke_activity(input_activity)
+            invoke_responses.append(invoke_response)
+        else:
+            await agent_client.send_activity(input_activity)
+
+    async def _run_assertion(
+        self,
+        step: dict,
+        responses: list[Activity],
+        invoke_responses: list[InvokeResponse],
+        agent_client: AgentClient,
+        response_client: ResponseClient,
+    ) -> None:
+
+        assertion = self._load_assertion(step)
+        responses.extend(await response_client.pop())
+
+        model_list: list
+
+        if step.get("assertion_type") == "activity":
+            model_list = responses
+
+        if step.get("assertion_type") == "invoke_response":
+            model_list = invoke_responses
+
+        res, err = assertion.check(model_list)
+
+        if not res:
+            err = "Assertion failed: {}\n\n{}".format(step, err)
+            assert res, err
 
     async def run(
         self, agent_client: AgentClient, response_client: ResponseClient
@@ -88,32 +156,25 @@ class DataDrivenTest:
 
         :param agent_client: The agent client to send activities to.
         """
-
         self._pre_process()
 
-        responses = []
+        responses: list[Activity] = []
+        invoke_responses: list[InvokeResponse] = []
         for step in self._test:
+
             step_type = step.get("type")
             if not step_type:
                 raise ValueError("Each step must have a 'type' field.")
 
             if step_type == "input":
-                input_activity = self._load_input(step)
-                if input_activity.delivery_mode == "expectReplies":
-                    replies = await agent_client.send_expect_replies(input_activity)
-                    responses.extend(replies)
-                else:
-                    await agent_client.send_activity(input_activity)
+                await self._run_input(
+                    step, responses, invoke_responses, agent_client, response_client
+                )
 
             elif step_type == "assertion":
-                activity_assertion = self._load_assertion(step)
-                responses.extend(await response_client.pop())
-
-                res, err = activity_assertion.check(responses)
-
-                if not res:
-                    err = "Assertion failed: {}\n\n{}".format(step, err)
-                    assert res, err
+                await self._run_assertion(
+                    step, responses, invoke_responses, agent_client, response_client
+                )
 
             elif step_type == "sleep":
                 await self._sleep(step)

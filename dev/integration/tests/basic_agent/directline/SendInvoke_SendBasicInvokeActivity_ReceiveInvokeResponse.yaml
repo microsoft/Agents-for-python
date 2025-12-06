@@ -30,9 +30,12 @@ test:
       parameters:
       - value: hi`
 - type: assertion
-  invokeResponse:
-    message: ["EQUALS", "Invoke received."]
-    status: 200
-    data:
-      parameters:
-      - value: ["CONTAINS", "hi"]
+  activity:
+    value:
+      body:
+        composeExtension:
+          message: ["EQUALS", "Invoke received."]
+          status: 200
+          data:
+            parameters:
+            - value: ["CONTAINS", "hi"]
