@@ -5,7 +5,7 @@ from microsoft_agents.testing.integration import AiohttpEnvironment
 
 from .auth_sample import AuthSample
 
-async def _test_auth(port: int):
+async def _auth(port: int):
     # Initialize the environment
     environment = AiohttpEnvironment()
     config = await AuthSample.get_config()
@@ -16,13 +16,13 @@ async def _test_auth(port: int):
 
     host = "localhost"
     async with environment.create_runner(host, port):
-        print(f"Server running at http://{host}:{port}/api/messages")
+        click.echo(f"\nServer running at http://{host}:{port}/api/messages\n")
         while True:
             await asyncio.sleep(10)
 
 
 @click.command()
 @click.option("--port", type=int, default=3978, help="Port to run the bot on.")
-async def test_auth(port: int):
+def auth(port: int):
     """Run the authentication testing sample from a configuration file."""
-    asyncio.run(_test_auth(port))
+    asyncio.run(_auth(port))

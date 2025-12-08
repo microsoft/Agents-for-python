@@ -25,6 +25,10 @@ from .aiohttp_runner import AiohttpRunner
 class AiohttpEnvironment(Environment):
     """An environment for aiohttp-hosted agents."""
 
+    def __init__(self, use_jwt_middleware: bool = True) -> None:
+        super().__init__()
+        self._use_jwt_middleware = use_jwt_middleware
+
     async def init_env(self, environ_config: dict) -> None:
         environ_config = environ_config or {}
 
@@ -51,7 +55,11 @@ class AiohttpEnvironment(Environment):
             adapter: CloudAdapter = req.app["adapter"]
             return await start_agent_process(req, agent, adapter)
 
-        APP = Application(middlewares=[jwt_authorization_middleware])
+        middlewares = []
+        if self._use_jwt_middleware:
+            middlewares.append(jwt_authorization_middleware)
+
+        APP = Application(middlewares=middlewares)
         APP.router.add_post("/api/messages", entry_point)
         APP["agent_configuration"] = (
             self.connection_manager.get_default_connection_configuration()
