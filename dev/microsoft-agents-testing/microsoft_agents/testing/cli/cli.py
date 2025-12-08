@@ -1,3 +1,5 @@
+from pathlib import Path
+
 import click
 from dotenv import load_dotenv
 
@@ -12,13 +14,10 @@ def cli(ctx, env_path, connection_name):
     """A simple CLI tool for managing tasks."""
 
     ctx.ensure_object(dict)
-    ctx.obj["env_path"] = env_path or ".env"
+    ctx.obj["env_path"] = str(Path(env_path or ".env").absolute())
 
-    load_dotenv()
-
-    if env_path:
-        load_dotenv(env_path)
-        cli_config.load_from_config(connection_name)
+    load_dotenv(ctx.obj["env_path"], override=True)
+    cli_config.load_from_config(connection_name)
 
 
 for command in COMMAND_LIST:

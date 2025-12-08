@@ -1,47 +1,43 @@
-# import os
+import os
 
-# from dotenv import load_dotenv
+from dotenv import load_dotenv
 
-# from microsoft_agents.hosting.core import AgentApplication, TurnContext, TurnState
+from microsoft_agents.hosting.core import AgentApplication, TurnContext, TurnState
 
-# from microsoft_agents.testing.integration.core.sample import (
-#     Environment,
-#     Sample
-# )
-
-
-# def create_auth_route(auth_handler_id: str, agent: AgentApplication):
-#     """Create a dynamic function to handle authentication routes."""
-
-#     async def dynamic_function(context: TurnContext, state: TurnState):
-#         token = await agent.auth.get_token(context, auth_handler_id)
-
-#         return f"Hello from {auth_handler_id}! Token: {token}"
-
-#     dynamic_function.__name__ = f"auth_route_{auth_handler_id}".lower()
-#     return dynamic_function
+from microsoft_agents.testing.integration.core.sample import (
+    Environment,
+    Sample
+)
 
 
-# class AuthSample(Sample):
-#     """A quickstart sample implementation."""
+def create_auth_route(auth_handler_id: str, agent: AgentApplication):
+    """Create a dynamic function to handle authentication routes."""
 
-#     def __init__(self, environment: Environment, config: dict):
-#         super().__init__(environment)
-#         self._config = config
+    async def dynamic_function(context: TurnContext, state: TurnState):
+        token = await agent.auth.get_token(context, auth_handler_id)
 
-#     @classmethod
-#     async def get_config(cls) -> dict:
-#         """Retrieve the configuration for the sample."""
-#         return self._config
+        return f"Hello from {auth_handler_id}! Token: {token}"
+
+    dynamic_function.__name__ = f"auth_route_{auth_handler_id}".lower()
+    return dynamic_function
+
+
+class AuthSample(Sample):
+    """A quickstart sample implementation."""
+
+    @classmethod
+    async def get_config(cls) -> dict:
+        """Retrieve the configuration for the sample."""
+        return dict(os.environ)
     
-#     async def init_app(self):
-#         """Initialize the application for the quickstart sample."""
+    async def init_app(self):
+        """Initialize the application for the quickstart sample."""
 
-#         app: AgentApplication[TurnState] = self.env.agent_application
+        app: AgentApplication[TurnState] = self.env.agent_application
 
-#         for auth_handler in app.config.authentication_handlers:
-#             app.message(
-#                 auth_handler.name.lower(),
-#                 create_auth_route(auth_handler.name),
-#                 auth_handlers=[auth_handler.name],
-#             )
+        for auth_handler in app.config.authentication_handlers:
+            app.message(
+                auth_handler.name.lower(),
+                create_auth_route(auth_handler.name),
+                auth_handlers=[auth_handler.name],
+            )

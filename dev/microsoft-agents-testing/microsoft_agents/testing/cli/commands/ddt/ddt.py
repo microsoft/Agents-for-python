@@ -58,7 +58,6 @@ def log_context():
 def ddt(ctx, test_path: str, service_url: str, pytest_args: str):
 
     env_path = ctx.obj["env_path"]
-    env_path = str(Path(env_path).absolute())
 
     test_path = str(Path(test_path).absolute())
 

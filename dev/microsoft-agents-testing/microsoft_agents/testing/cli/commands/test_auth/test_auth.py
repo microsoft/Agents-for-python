@@ -1,38 +1,28 @@
-# import click
-
-# from .auth_sample import AuthSample
-
-# from microsoft_agents.testing.utils import resolve_env
-# from microsoft_agents.testing.core import AiohttpEnvironment
-
-
-# @click.command()
-# def auth_test():
-#     """Run authentication sample test."""
-
-#     environment = AiohttpEnvironment()
-#     environment.setup()
-
-#     sample = AuthSample()
-#     sample.run(resolve_env)
-
+import asyncio
 import click
 
-# from .auth_sample import auth_sample
+from microsoft_agents.testing.integration import AiohttpEnvironment
+
+from .auth_sample import AuthSample
+
+async def _test_auth(port: int):
+    # Initialize the environment
+    environment = AiohttpEnvironment()
+    config = await AuthSample.get_config()
+    await environment.init_env(config)
+
+    sample = AuthSample(environment)
+    await sample.init_app()
+
+    host = "localhost"
+    async with environment.create_runner(host, port):
+        print(f"Server running at http://{host}:{port}/api/messages")
+        while True:
+            await asyncio.sleep(10)
+
 
 @click.command()
-def test_auth():
+@click.option("--port", type=int, default=3978, help="Port to run the bot on.")
+async def test_auth(port: int):
     """Run the authentication testing sample from a configuration file."""
-
-    # # Load the configuration file
-    # config = load_config_file()
-
-    # # Initialize the environment
-    # environment = AiohttpEnvironment(config)
-
-    # # Set up the environment
-    # environment.setup()
-
-    # # Run the authentication sample test
-    # sample = auth_sample()
-    # sample.run(resolve_env)
+    asyncio.run(_test_auth(port))
