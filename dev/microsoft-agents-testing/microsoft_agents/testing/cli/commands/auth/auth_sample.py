@@ -1,16 +1,11 @@
 import os
 import click
 
-from dotenv import load_dotenv
-
 from microsoft_agents.activity import ActivityTypes
 
 from microsoft_agents.hosting.core import AgentApplication, TurnContext, TurnState
 
-from microsoft_agents.testing.integration.core.sample import (
-    Environment,
-    Sample
-)
+from microsoft_agents.testing.integration import Sample
 
 
 def create_auth_route(auth_handler_id: str, agent: AgentApplication):

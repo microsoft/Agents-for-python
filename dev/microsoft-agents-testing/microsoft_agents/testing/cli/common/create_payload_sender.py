@@ -5,7 +5,7 @@ import asyncio
 import requests
 from typing import Callable, Awaitable, Any
 
-from microsoft_agents.testing.auth import generate_token
+from microsoft_agents.testing.utils import generate_token
 
 from microsoft_agents.testing.cli.cli_config import cli_config
 

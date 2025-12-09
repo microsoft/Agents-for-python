@@ -30,11 +30,11 @@ from .unset import Unset
 #             return curr
 #         return func
 
-def first(selector_args, func = evaluate):
-    selector = Selector(*selector_args)
+# def first(selector_args, func = evaluate):
+#     selector = Selector(*selector_args)
 
-    def inner(data):
-        val = selector.first(data)
-        if val is Unset:
-            return Unset
-        return func(val)
+#     def inner(data):
+#         val = selector.first(data)
+#         if val is Unset:
+#             return Unset
+#         return func(val)

@@ -14,10 +14,8 @@ from microsoft_agents.activity import (
     ActivityTypes,
     DeliveryModes,
     ChannelAccount,
-    ConversationAccount,
     InvokeResponse,
 )
-from microsoft_agents.testing.utils import populate_activity
 
 _DEFAULT_ACTIVITY_VALUES = {
     "service_url": "http://localhost",
