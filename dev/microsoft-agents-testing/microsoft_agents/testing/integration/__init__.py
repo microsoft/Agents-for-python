@@ -1,21 +1,16 @@
 # Copyright (c) Microsoft Corporation. All rights reserved.
 # Licensed under the MIT License.
 
-from .core import (
+from .application_runner import ApplicationRunner
+from .aiohttp import AiohttpEnvironment, AiohttpRunner
+from .client import (
     AgentClient,
-    ApplicationRunner,
-    AiohttpEnvironment,
-    AiohttpRunner,
     ResponseClient,
-    Environment,
-    Integration,
-    Sample,
 )
-from .data_driven import (
-    DataDrivenTest,
-    ddt,
-    load_ddts,
-)
+from .environment import Environment
+from .integration import Integration
+from .sample import Sample
+
 
 __all__ = [
     "AgentClient",
@@ -26,7 +21,4 @@ __all__ = [
     "Environment",
     "Integration",
     "Sample",
-    "DataDrivenTest",
-    "ddt",
-    "load_ddts",
 ]
