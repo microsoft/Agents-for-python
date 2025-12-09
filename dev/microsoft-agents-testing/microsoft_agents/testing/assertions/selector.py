@@ -1,4 +1,4 @@
-from typing import Protocol, TypeVar, overload, Iterable
+from typing import Protocol, TypeVar, overload, Iterable, Callable
 from pydantic import BaseModel
 
 from .engine import evaluate, expand
@@ -8,28 +8,35 @@ class Predicate(Protocol):
     def __call__(self, item: dict) -> bool:
         ...
 
-BaseModelT = TypeVar("BaseModelT", bound=BaseModelT)
+BaseModelT = TypeVar("BaseModelT", bound=BaseModel)
+
+def create_base(model: dict | BaseModel | Callable | None = None, **kwargs) -> dict:
+    if model is None:
+        return {**kwargs}
+    elif isinstance(model, dict):
+        return dict(expand(model), **kwargs)
+    elif isinstance(model, BaseModel):
+        return {
+            **model.model_dump(exclude_unset=True),
+            **kwargs
+        }
+    elif isinstance(model, Callable):
+        return {
+            "__callable": model,
+            **kwargs
+        }
+    else:
+        raise TypeError("model must be a dict, BaseModel, or Callable")
 
 class Selector:
 
-    def __init__(self, _selector: dict | Predicate | None = None, **kwargs):
+    def __init__(self, _selector: dict | BaseModel | Callable | None = None, **kwargs):
+        self._selector = create_base(_selector, **kwargs)
 
-        if _selector is None:
-            _selector = {**kwargs}
-        elif isinstance(_selector, dict):
-            _selector = dict(expand(_selector), **kwargs)
-        else:
-            _selector = {
-                "__predicate": _selector,
-                **kwargs
-            }
-
-        self._selector = _selector
-
-    def check(self, actual: dict | BaseModelT) -> bool:
+    def check(self, actual: dict | BaseModel) -> bool:
         return evaluate(actual, self._selector)
 
-    def __call__(self, actual: dict | BaseModelT) -> bool:
+    def __call__(self, actual: dict | BaseModel) -> bool:
         return self.check(actual)
 
     @overload
@@ -37,7 +44,11 @@ class Selector:
     @overload
     def select(self, lst: list[BaseModelT]) -> list[BaseModelT]: ...
     def select(self, lst: list[dict] | list[BaseModelT]) -> list[dict] | list[BaseModelT]:
-        return [item for item in lst if self.check(item)]
+        res = []
+        for item in lst:
+            if self.check(item):
+                res.append(item)
+        return res
     
     @overload
     def first(self, lst: Iterable[dict]) -> dict | None: ...
@@ -54,5 +65,8 @@ class Selector:
     @overload
     def last(self, lst: Iterable[BaseModelT]) -> BaseModelT | None: ...
     def last(self, lst: Iterable[dict] | Iterable[BaseModelT]) -> dict | BaseModelT | None:
-        return self.first(reversed(lst))
-    
+        last = None
+        for item in lst:
+            if self.check(item):
+                last = item
+        return last

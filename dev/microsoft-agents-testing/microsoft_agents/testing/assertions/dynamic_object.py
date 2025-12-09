@@ -4,7 +4,6 @@ from .unset import Unset
 
 T = TypeVar("T")
 
-
 class DynamicObject(Generic[T]):
 
     def __init__(self, value):

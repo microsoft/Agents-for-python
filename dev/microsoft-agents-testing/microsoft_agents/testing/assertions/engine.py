@@ -1,8 +1,6 @@
 from typing import Any, Callable, TypeVar
 import inspect
 
-from azure.core import rest
-
 from .dynamic_object import DynamicObject
 from .unset import Unset
 
@@ -15,15 +13,6 @@ def ref(key: str) -> Callable[[], Any]:
     def inner(actual: Any) -> Any:
         return evaluate(actual, key)
     return inner
-
-def resolve(data: dict, key: str) -> Any:
-    path = key.split(".")
-    curr = data
-    for part in path:
-        curr = curr.get(part, Unset)
-        if curr is Unset:
-            return Unset
-    return curr
 
 def expand(data: dict) -> dict:
 
@@ -60,12 +49,12 @@ def expand(data: dict) -> dict:
 
     return new_data
 
-def evaluate(actual: Any, word: Any) -> Any:
-    if callable(word):
-        sig = inspect.signature(word)
+# def evaluate(actual: Any, word: Any) -> Any:
+#     if callable(word):
+#         sig = inspect.signature(word)
 
-        num_args = len(sig.parameters)
+#         num_args = len(sig.parameters)
 
-        return word()
-    else:
-        return word
+#         return word()
+#     else:
+#         return word
