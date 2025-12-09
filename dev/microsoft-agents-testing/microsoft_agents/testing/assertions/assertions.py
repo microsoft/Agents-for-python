@@ -1,18 +1,13 @@
 from __future__ import annotations
 
-from typing import Any
+from typing import Any, Callable
 
-from .types import DynamicObject
+from .types import SafeObject
 
 class AssertionContext:
     
-    def __init__(self, path: str):
+    def __init__(self, path: str = ""):
         self.path = path
-        self._results = []
-
-    @property
-    def results(self) -> list:
-        return self._results
 
     def next(self, key: str) -> AssertionContext:
         next_path = f"{self.path}.{key}" if self.path else key
@@ -70,9 +65,7 @@ class Assertions:
     @staticmethod
     def _evaluate_verbose(actual: Any, baseline: Any, context: AssertionContext) -> tuple[bool, str]:
 
-        actual = DynamicObject(actual)
-
-        results = context.results
+        results = []
 
         if isinstance(baseline, dict):
             for key, value in baseline.items():
@@ -83,101 +76,32 @@ class Assertions:
                 check, msg = Assertions._evaluate_verbose(actual[i], value, context.next(str(i)))
                 results.append((check, msg))
         elif callable(baseline):
-            # sig = inspect.signature(baseline)
-
-            # num_args = len(sig.parameters)
-
-            results.append(Assertions.invoke(actual, baseline, context.next(key)))
+            results.append(Assertions.invoke(actual.resolve(), baseline, context))
         else:
-            results.append(actual == baseline, f"Values do not match: {actual} != {baseline}")
+            check = actual.resolve() == baseline
+            msg = f"Values do not match: {actual} != {baseline}" if not check else ""
+            results.append((check, msg))
+        
+        return (all(check for check, msg in results), "\n".join(msg for check, msg in results if not check))
 
     @staticmethod
+    def evaluate_verbose(actual: Any, baseline: Any) -> tuple[bool, str]:
+        actual = SafeObject(actual)
+        return Assertions._evaluate_verbose(actual, baseline, AssertionContext())
+    
+    @staticmethod
     def evaluate(actual: Any, baseline: Any) -> bool:
-
-        actual = DynamicObject(actual)
-
-        if isinstance(baseline, dict):
-            for key, value in baseline.items():
-                Assertions.evaluate(actual[key], value)
-        elif isinstance(baseline, list):
-            for i, value in enumerate(baseline):
-                Assertions.evaluate(actual[i], value)
-        elif callable(baseline):
-            sig = inspect.signature(baseline)
-
-            num_args = len(sig.parameters)
-
-            return baseline()
-        else:
-            return actual == baseline
-
-        for key, value in baseline.items():
-            
-            if isinstance(value, dict):
-                Assertions.evaluate(actual[key], value)
-            elif isinstance(value, list):
-                Assertions.evaluate()
-            
-
-            if isinstance(value, dict):
-                if key not in actual or not isinstance(actual[key], dict):
-                    return False
-                if not Assertions.evaluate(actual[key], value):
-                    return False
-            elif isinstance(value, list):
-                if key not in actual or not isinstance(actual[key], list):
-                    return False
-                if len(actual[key]) != len(value):
-                    return False
-                for i in range(len(value)):
-                    if not Assertions.evaluate(actual[key][i], value[i]):
-                        return False
-            else:
-                if key not in actual or actual[key] != value:
-                    return False
-
-        if 
-        return actual == baseline
-        # if callable(word):
-        #     sig = inspect.signature(word)
-
-        #     num_args = len(sig.parameters)
-
-        #     return word()
-        # else:
-        #     return word
-
-    # @staticmethod
-    # def evaluate_verbose(actual: Any, baseline: Any) -> str:
-    #     if isinstance(actual, dict) and isinstance(baseline, dict):
-    #         for key in actual:
-    #             if key not in baseline:
-    #                 return f"Missing key in baseline: {key}"
-
-    #         for key in baseline:
-    #             if key not in actual:
-    #                 return f"Missing key in actual: {key}"
-
-    #         for key in actual:
-    #             result = Assertions.evaluate_verbose(actual[key], baseline[key])
-    #             if result:
-    #                 return result
-
-    #         return ""
-
-    #     elif isinstance(actual, list) and isinstance(baseline, list):
-    #         if len(actual) != len(baseline):
-    #             return f"List lengths do not match: {len(actual)} != {len(baseline)}"
-
-    #         for i in range(len(actual)):
-    #             result = Assertions.evaluate_verbose(actual[i], baseline[i])
-    #             if result:
-    #                 return result
-
-    #         return ""
-
-    #     else:
-    #         if actual != baseline:
-    #             return f"Values do not match: {actual} != {baseline}"
-
-    #         return ""
+        return Assertions.evaluate_verbose(actual, baseline)[0]
+    
+    @staticmethod
+    def validate(actual: Any, baseline: Any) -> None:
+        check, msg = Assertions.evaluate_verbose(actual, baseline)
+        assert check, msg
+    
+    @staticmethod
+    def invoke(actual: Any, baseline: Callable, context: AssertionContext) -> tuple[bool, str]:
+        try:
+            result = baseline(actual)
+            return (result, "")
+        except Exception as e:
+            return (False, f"Error in evaluation at {context.path}: {e}")

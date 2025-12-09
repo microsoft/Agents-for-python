@@ -167,7 +167,7 @@ class TestAssertionsEvaluate:
         """Test that equal dicts return True"""
         dict1 = {"key": "value", "num": 42}
         dict2 = {"key": "value", "num": 42}
-        assert Assertions.evaluate(dict1, dict2) is True
+        Assertions.validate(dict1, dict2)
 
     def test_evaluate_unequal_dicts(self):
         """Test that unequal dicts return False"""
