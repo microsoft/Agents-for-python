@@ -17,7 +17,7 @@ def create_base(model: dict | BaseModel | Callable | None = None, **kwargs) -> d
         }
     elif isinstance(model, Callable):
         return {
-            "__callable": model,
+            Assertions._EVAL_META_FIELD: model,
             **kwargs
         }
     else:
@@ -30,6 +30,13 @@ class Checker:
 
     def check(self, actual: dict | BaseModel) -> bool:
         return Assertions.evaluate(actual, self._selector)
+    
+    # def check_verbose(self, actual: dict | BaseModel) -> tuple[bool, str]:
+    #     return Assertions.evaluate_verbose(actual, self._selector)
+    
+    # def assert_check(self, actual: dict | BaseModel) -> None:
+    #     res, msg = self.check_verbose(actual)
+    #     assert res, msg
 
     def __call__(self, actual: dict | BaseModel) -> bool:
         return self.check(actual)

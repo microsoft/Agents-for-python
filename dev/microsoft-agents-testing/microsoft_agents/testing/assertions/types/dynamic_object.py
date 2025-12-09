@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from typing import Any, Generic, TypeVar
 
 from ._readonly import _Readonly
@@ -17,6 +19,8 @@ class DynamicObject(Generic[T], _Readonly):
         if isinstance(value, PRIMITIVE_TYPES):
             return value
         elif value in PRIMITIVES:
+            return value
+        elif isinstance(value, DynamicObject):
             return value
         return super().__new__(cls)
 
@@ -52,3 +56,8 @@ class DynamicObject(Generic[T], _Readonly):
     
     def __repr__(self):
         return f"DynamicObject({self._value!r})"
+    
+    def __len__(self):
+        if hasattr(self._value, "__len__"):
+            return len(self._value)
+        raise TypeError(f"{type(self._value)} object has no length")
