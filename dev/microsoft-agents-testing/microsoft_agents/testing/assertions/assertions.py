@@ -1,17 +1,11 @@
 from __future__ import annotations
 
+import inspect
+from pathlib import PurePath
 from typing import Any, Callable
 
-from .types import SafeObject
-
-class AssertionContext:
-    
-    def __init__(self, path: str = ""):
-        self.path = path
-
-    def next(self, key: str) -> AssertionContext:
-        next_path = f"{self.path}.{key}" if self.path else key
-        return AssertionContext(next_path)
+from .types import SafeObject, DynamicObject
+from .assertion_context import AssertionContext
 
 class Assertions:
 
@@ -61,22 +55,36 @@ class Assertions:
             return f"{path}.{key}"
         else:
             return key
+        
+    @staticmethod
+    def invoke(
+            actual: SafeObject[Any],
+            query_function: Callable,
+            context: AssertionContext
+    ) -> tuple[bool, str]:
+
+        res = context.resolve_args(query_function)()
+    
+        if isinstance(res, tuple) and len(res) == 2:
+            return res
+        else:
+            return bool(res), f"Assertion failed for query function: '{query_function.__name__}'"
     
     @staticmethod
-    def _evaluate_verbose(actual: Any, baseline: Any, context: AssertionContext) -> tuple[bool, str]:
+    def _check_verbose(actual: SafeObject[Any], baseline: Any, context: AssertionContext) -> tuple[bool, str]:
 
         results = []
 
         if isinstance(baseline, dict):
             for key, value in baseline.items():
-                check, msg = Assertions._evaluate_verbose(actual[key], value, context.next(key))
+                check, msg = Assertions._check_verbose(actual[key], value, context.next(key))
                 results.append((check, msg))
         elif isinstance(baseline, list):
             for i, value in enumerate(baseline):
-                check, msg = Assertions._evaluate_verbose(actual[i], value, context.next(str(i)))
+                check, msg = Assertions._check_verbose(actual[i], value, context.next(str(i)))
                 results.append((check, msg))
         elif callable(baseline):
-            results.append(Assertions.invoke(actual.resolve(), baseline, context))
+            results.append(Assertions.invoke(actual, baseline, context))
         else:
             check = actual.resolve() == baseline
             msg = f"Values do not match: {actual} != {baseline}" if not check else ""
@@ -85,23 +93,16 @@ class Assertions:
         return (all(check for check, msg in results), "\n".join(msg for check, msg in results if not check))
 
     @staticmethod
-    def evaluate_verbose(actual: Any, baseline: Any) -> tuple[bool, str]:
+    def check_verbose(actual: Any, baseline: Any) -> tuple[bool, str]:
         actual = SafeObject(actual)
-        return Assertions._evaluate_verbose(actual, baseline, AssertionContext())
+        context = AssertionContext(actual, baseline)
+        return Assertions._check_verbose(actual, baseline, context)
     
     @staticmethod
-    def evaluate(actual: Any, baseline: Any) -> bool:
-        return Assertions.evaluate_verbose(actual, baseline)[0]
+    def check(actual: Any, baseline: Any) -> bool:
+        return Assertions.check_verbose(actual, baseline)[0]
     
     @staticmethod
     def validate(actual: Any, baseline: Any) -> None:
-        check, msg = Assertions.evaluate_verbose(actual, baseline)
+        check, msg = Assertions.check_verbose(actual, baseline)
         assert check, msg
-    
-    @staticmethod
-    def invoke(actual: Any, baseline: Callable, context: AssertionContext) -> tuple[bool, str]:
-        try:
-            result = baseline(actual)
-            return (result, "")
-        except Exception as e:
-            return (False, f"Error in evaluation at {context.path}: {e}")

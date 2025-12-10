@@ -1,6 +1,6 @@
 import pytest
 from pydantic import BaseModel
-from microsoft_agents.testing.assertions.checker import Checker, create_base
+from microsoft_agents.testing.assertions.model_query import Checker, create_base
 
 
 # Test models for BaseModel testing

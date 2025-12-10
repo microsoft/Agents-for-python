@@ -1,4 +1,4 @@
-from .checker import Checker
+from .model_query import Checker
 from .types import DynamicObject, Unset
 
 __all__ = [

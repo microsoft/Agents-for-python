@@ -1,7 +1,7 @@
 from typing import TypeVar, Any, Callable
 
 from .dynamic_object import DynamicObject
-from .checker import Selector
+from .model_query import Selector
 from .unset import Unset
 
 # T = TypeVar("T")

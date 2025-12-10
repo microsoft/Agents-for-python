@@ -23,23 +23,22 @@ def create_base(model: dict | BaseModel | Callable | None = None, **kwargs) -> d
     else:
         raise TypeError("model must be a dict, BaseModel, or Callable")
 
-class Checker:
+class ModelQuery:
 
-    def __init__(self, _selector: dict | BaseModel | Callable | None = None, **kwargs):
-        self._selector = create_base(_selector, **kwargs)
+    def __init__(self, _query: dict | BaseModel | Callable | None = None, **kwargs):
+        self._query = create_base(_query, **kwargs)
 
     def check(self, actual: dict | BaseModel) -> bool:
-        return Assertions.evaluate(actual, self._selector)
+        return Assertions.check(actual, self._query)
     
-    # def check_verbose(self, actual: dict | BaseModel) -> tuple[bool, str]:
-    #     return Assertions.evaluate_verbose(actual, self._selector)
-    
-    # def assert_check(self, actual: dict | BaseModel) -> None:
-    #     res, msg = self.check_verbose(actual)
-    #     assert res, msg
-
     def __call__(self, actual: dict | BaseModel) -> bool:
         return self.check(actual)
+    
+    def check_verbose(self, actual: dict | BaseModel) -> tuple[bool, str]:
+        return Assertions.check_verbose(actual, self._query)
+    
+    def validate(self, actual: dict | BaseModel) -> None:
+        Assertions.validate(actual, self._query)
 
     @overload
     def select(self, lst: list[dict]) -> list[dict]: ...
