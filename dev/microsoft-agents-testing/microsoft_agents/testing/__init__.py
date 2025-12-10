@@ -12,6 +12,7 @@ from .assertions import (
 
 from .utils import (
     generate_token,
+    update_with_defaults,
     populate_activity,
     get_host_and_port
 )
@@ -38,6 +39,7 @@ __all__ = [
     "ResponseClient",
     "AiohttpEnvironment",
     "Integration",
+    "update_with_defaults",
     "populate_activity",
     "get_host_and_port",
     "cli",
