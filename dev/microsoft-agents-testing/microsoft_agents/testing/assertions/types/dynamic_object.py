@@ -11,32 +11,27 @@ PRIMITIVE_TYPES = (int, float, str, bool)
 PRIMITIVES = (None, Unset)
 
 class DynamicObject(SafeObject[T]):
+    """A wrapper around an object that provides dynamic access to its attributes
+    and items, while maintaining a reference to its parent object."""
+    
 
-    def __new__(cls, value):
+    def __new__(cls, value: Any, parent: SafeObject | None = None) -> Any:
+        """Create a new DynamicObject or return the value directly if it's a primitive type."""
         if isinstance(value, PRIMITIVE_TYPES):
             return value
         elif value in PRIMITIVES:
             return value
-        return super().__new__(cls, value)
-
-    def __getattr__(self, name: str) -> Any:
-        value = resolve(self)
-        if isinstance(value, dict):
-            return DynamicObject(value.get(name, Unset))
-        attr = getattr(value, name, Unset)
-        return DynamicObject(attr)
-    
-    def __getitem__(self, key) -> Any:
-        value = resolve(self)
-        return DynamicObject(value.get(key, Unset))
+        return super().__new__(cls, value, parent)
     
     def __contains__(self, key):
+        """Check if the wrapped object contains the given key."""
         value = resolve(self)
         if hasattr(value, "__contains__"):
             return key in value
         raise TypeError(f"{type(value)} object is not iterable")
 
     def __eq__(self, other) -> bool:
+        """Check if the wrapped object is equal to another object."""
         value = resolve(self)
         other_value = other
         if isinstance(other, SafeObject):
@@ -44,6 +39,7 @@ class DynamicObject(SafeObject[T]):
         return value == other_value
     
     def __in__(self, other) -> bool:
+        """Check if the wrapped object is in another object."""
         value = resolve(self)
         other_value = other
         if isinstance(other, SafeObject):
@@ -51,9 +47,11 @@ class DynamicObject(SafeObject[T]):
         return value in other_value
     
     def __bool__(self) -> bool:
+        """Get the boolean value of the wrapped object."""
         return bool(resolve(self))
     
     def __len__(self) -> int:
+        """Get the length of the wrapped object."""
         value = resolve(self)
         if isinstance(value, Sized):
             return len(value)

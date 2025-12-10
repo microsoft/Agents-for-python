@@ -13,6 +13,11 @@ class Assertions:
 
     @staticmethod
     def expand(data: dict) -> dict:
+        """Expand a flattened dictionary into a nested dictionary.
+        
+        :param data: The flattened dictionary to expand.
+        :return: The expanded nested dictionary.
+        """
 
         if not isinstance(data, dict):
             return data
@@ -48,13 +53,6 @@ class Assertions:
             new_data[key] = Assertions.expand(value)
 
         return new_data
-
-    @staticmethod
-    def _next_path(path: str, key: str) -> str:
-        if path:
-            return f"{path}.{key}"
-        else:
-            return key
         
     @staticmethod
     def invoke(
@@ -62,6 +60,13 @@ class Assertions:
             query_function: Callable,
             context: AssertionContext
     ) -> tuple[bool, str]:
+        """Invoke a query function with resolved arguments.
+        
+        :param actual: The actual data to pass to the query function.
+        :param query_function: The query function to invoke.
+        :param context: The current assertion context.
+        :return: A tuple containing the result of the query function and a message.
+        """
 
         res = context.resolve_args(query_function)()
     
@@ -72,6 +77,13 @@ class Assertions:
     
     @staticmethod
     def _check_verbose(actual: SafeObject[Any], baseline: Any, context: AssertionContext) -> tuple[bool, str]:
+        """Recursively check the actual data against the baseline data with verbose output.
+        
+        :param actual: The actual data to check.
+        :param baseline: The baseline data to check against.
+        :param context: The current assertion context.
+        :return: A tuple containing the overall result and a detailed message.
+        """
 
         results = []
 
@@ -86,7 +98,7 @@ class Assertions:
         elif callable(baseline):
             results.append(Assertions.invoke(actual, baseline, context))
         else:
-            check = actual.resolve() == baseline
+            check = resolve(actual) == baseline
             msg = f"Values do not match: {actual} != {baseline}" if not check else ""
             results.append((check, msg))
         
@@ -94,15 +106,32 @@ class Assertions:
 
     @staticmethod
     def check_verbose(actual: Any, baseline: Any) -> tuple[bool, str]:
+        """Check the actual data against the baseline data with verbose output.
+        
+        :param actual: The actual data to check.
+        :param baseline: The baseline data to check against.
+        :return: A tuple containing the overall result and a detailed message.
+        """
         actual = SafeObject(actual)
         context = AssertionContext(actual, baseline)
         return Assertions._check_verbose(actual, baseline, context)
     
     @staticmethod
     def check(actual: Any, baseline: Any) -> bool:
+        """Check the actual data against the baseline data.
+        
+        :param actual: The actual data to check.
+        :param baseline: The baseline data to check against.
+        :return: True if the actual data matches the baseline data, False otherwise.
+        """
         return Assertions.check_verbose(actual, baseline)[0]
     
     @staticmethod
     def validate(actual: Any, baseline: Any) -> None:
+        """Validate the actual data against the baseline data, raising an assertion error if they do not match.
+        
+        :param actual: The actual data to validate.
+        :param baseline: The baseline data to validate against."
+        """
         check, msg = Assertions.check_verbose(actual, baseline)
         assert check, msg

@@ -3,7 +3,7 @@ from __future__ import annotations
 from ._readonly import _Readonly
 
 class _Unset(_Readonly):
-    """Singleton to represent an unset field in activity comparisons."""
+    """A class representing an unset value."""
     
     def get(self, *args, **kwargs):
         """Returns the singleton instance when accessed as a method."""
