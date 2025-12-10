@@ -1,10 +1,8 @@
 from __future__ import annotations
 
-import inspect
-from pathlib import PurePath
 from typing import Any, Callable
 
-from .types import SafeObject, DynamicObject
+from .types import SafeObject, DynamicObject, resolve, parent
 from .assertion_context import AssertionContext
 
 class Assertions:
@@ -93,7 +91,7 @@ class Assertions:
                 results.append((check, msg))
         elif isinstance(baseline, list):
             for i, value in enumerate(baseline):
-                check, msg = Assertions._check_verbose(actual[i], value, context.next(str(i)))
+                check, msg = Assertions._check_verbose(actual[i], value, context.next(i))
                 results.append((check, msg))
         elif callable(baseline):
             results.append(Assertions.invoke(actual, baseline, context))

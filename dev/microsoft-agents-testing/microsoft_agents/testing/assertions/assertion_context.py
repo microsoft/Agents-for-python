@@ -3,7 +3,7 @@ from __future__ import annotations
 import inspect
 from typing import Callable, Any
 
-from .types.safe_object import (
+from .types import (
     SafeObject,
     resolve,
     parent
@@ -54,13 +54,13 @@ class AssertionContext:
 
         self._path = path
 
-    def next(self, key: str) -> AssertionContext:
+    def next(self, key: Any) -> AssertionContext:
         """Create a new AssertionContext for the next level in the data structure.
         
         :param key: The key for the next level.
         :return: A new AssertionContext for the next level.
         """
-        next_path = f"{self._path}.{key}" if self._path else key
+        next_path = f"{self._path}.{key}" if self._path else str(key)
         assert self._baseline is not None
         return AssertionContext(
             self._actual_source,

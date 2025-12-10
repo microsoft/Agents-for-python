@@ -1,13 +1,17 @@
-# class Fixtures:
+from typing import Any
 
-#     @staticmethod
-#     def exists():
+from .assertion_context import AssertionContext
 
-#         def func(*args, **kwargs):
-#             pass
+from .types import DynamicObject, Unset
 
-#     @staticmethod
-#     def not_exists():
-#         pass
+class Fixtures:
+
+    @staticmethod
+    def exists():
+        return lambda actual: actual is not Unset
+
+    @staticmethod
+    def not_exists():
+        return lambda actual: actual is Unset
 
     
