@@ -1,8 +1,13 @@
-from .model_query import Checker
-from .types import DynamicObject, Unset
+from .model_query import ModelQuery
+from .types import (
+    DynamicObject,
+    SafeObject,
+    Unset
+)
 
 __all__ = [
-    "Checker",
+    "ModelQuery",
     "DynamicObject",
+    "SafeObject",
     "Unset"
 ]

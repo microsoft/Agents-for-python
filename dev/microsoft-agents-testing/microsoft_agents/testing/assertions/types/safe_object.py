@@ -15,30 +15,38 @@ def resolve(obj: P) -> P: ...
 def resolve(obj: SafeObject[T] | P) -> T | P:
     """Resolve the value of a SafeObject or return the object itself if it's not a SafeObject."""
     if isinstance(obj, SafeObject):
-        return obj.__value__
+        return object.__getattribute__(obj, "__value__")
     return obj
 
 def parent(obj: SafeObject[T]) -> SafeObject | None:
     """Get the parent SafeObject of the given SafeObject, or None if there is no parent."""
-    return obj.__parent__
+    return object.__getattribute__(obj, "__parent__")
 
 class SafeObject(Generic[T], _Readonly):
     """A wrapper around an object that provides safe access to its attributes
     and items, while maintaining a reference to its parent object."""
 
-    def __init__(self, value: Any, parent: SafeObject | None = None):
+    def __init__(self, value: Any, parent_object: SafeObject | None = None):
         """Initialize a SafeObject with a value and an optional parent SafeObject.
         
         :param value: The value to wrap.
         :param parent: The parent SafeObject, if any.
         """
-        object.__setattr__(self, "__value__", value)
-        if parent and parent._value is not Unset and parent._value is not None:
-            object.__setattr__(self, "__parent__", parent)
-        else:
-            object.__setattr__(self, "__parent__", None)
 
-    def __new__(cls, value: Any, parent: SafeObject | None = None):
+        if isinstance(value, SafeObject):
+            return
+
+        object.__setattr__(self, "__value__", value)
+        if parent_object is not None:
+            parent_value = resolve(parent_object)
+            if parent_value is Unset or parent_value is None:
+                parent_object = None
+        else:
+            parent_object = None
+        object.__setattr__(self, "__parent__", parent_object)
+
+
+    def __new__(cls, value: Any, parent_object: SafeObject | None = None):
         """Create a new SafeObject or return the value directly if it's already a SafeObject.
         
         :param value: The value to wrap.
@@ -46,6 +54,7 @@ class SafeObject(Generic[T], _Readonly):
 
         :return: A SafeObject instance or the original value.
         """
+        # breakpoint()f
         if isinstance(value, SafeObject):
             return value
         return super().__new__(cls)
@@ -56,12 +65,14 @@ class SafeObject(Generic[T], _Readonly):
         :param name: The name of the attribute to access.
         :return: The attribute value wrapped in a SafeObject.
         """
+        # breakpoint()
 
         value = resolve(self)
+        cls = object.__getattribute__(self, "__class__")
         if isinstance(value, dict):
-            return SafeObject(value.get(name, Unset), self)
+            return cls(value.get(name, Unset), self)
         attr = getattr(value, name, Unset)
-        return SafeObject(attr, self)
+        return cls(attr, self)
     
     def __getitem__(self, key) -> Any:
         """Get an item of the wrapped object safely.
@@ -69,18 +80,31 @@ class SafeObject(Generic[T], _Readonly):
         :param key: The key or index of the item to access.
         :return: The item value wrapped in a SafeObject.
         """
+        # breakpoint()
 
         value = resolve(self)
         value = cast(dict, value)
         if isinstance(value, list):
-            return self.__class__(value[key], self)
+            cls = object.__getattribute__(self, "__class__")
+            return cls(value[key], self)
         return type(self)(value.get(key, Unset), self)
 
     def __str__(self) -> str:
         """Get the string representation of the wrapped object."""
+        # breakpoint()
         return str(resolve(self))
     
     def __repr__(self) -> str:
         """Get the detailed string representation of the SafeObject."""
         value = resolve(self)
-        return f"{self.__class__.__name__}({value!r})"
+        # breakpoint()
+        cls = object.__getattribute__(self, "__class__")
+        return f"{cls.__name__}({value!r})"
+    
+    def __eq__(self, other) -> bool:
+        """Check if the wrapped object is equal to another object."""
+        value = resolve(self)
+        other_value = other
+        if isinstance(other, SafeObject):
+            other_value = resolve(other)
+        return value == other_value

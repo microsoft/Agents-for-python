@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from typing import Any, TypeVar, Sized
 
-from .safe_object import SafeObject, resolve
+from .safe_object import SafeObject, resolve, parent
 from .unset import Unset
 
 T = TypeVar("T")
@@ -13,15 +13,35 @@ PRIMITIVES = (None, Unset)
 class DynamicObject(SafeObject[T]):
     """A wrapper around an object that provides dynamic access to its attributes
     and items, while maintaining a reference to its parent object."""
-    
 
-    def __new__(cls, value: Any, parent: SafeObject | None = None) -> Any:
+    def __init__(self, value: Any, parent_object: SafeObject | None = None):
+        """Initialize a SafeObject with a value and an optional parent SafeObject.
+        
+        :param value: The value to wrap.
+        :param parent: The parent SafeObject, if any.
+        """
+
+        object.__setattr__(self, "__value__", value)
+        if parent_object is not None:
+            parent_value = resolve(parent_object)
+            if parent_value is Unset or parent_value is None:
+                parent_object = None
+        else:
+            parent_object = None
+        object.__setattr__(self, "__parent__", parent_object)
+
+    def __new__(cls, value: Any, parent_object: SafeObject | None = None) -> Any:
         """Create a new DynamicObject or return the value directly if it's a primitive type."""
         if isinstance(value, PRIMITIVE_TYPES):
             return value
         elif value in PRIMITIVES:
             return value
-        return super().__new__(cls, value, parent)
+        elif isinstance(value, SafeObject) and not isinstance(value, DynamicObject):
+            resolved_value = resolve(value)
+            parent_object = parent(value)
+            return cls.__new__(cls, resolved_value, parent_object)
+        return super().__new__(cls, value, parent_object)
+    
     
     def __contains__(self, key):
         """Check if the wrapped object contains the given key."""
@@ -29,14 +49,6 @@ class DynamicObject(SafeObject[T]):
         if hasattr(value, "__contains__"):
             return key in value
         raise TypeError(f"{type(value)} object is not iterable")
-
-    def __eq__(self, other) -> bool:
-        """Check if the wrapped object is equal to another object."""
-        value = resolve(self)
-        other_value = other
-        if isinstance(other, SafeObject):
-            other_value = resolve(other)
-        return value == other_value
     
     def __in__(self, other) -> bool:
         """Check if the wrapped object is in another object."""

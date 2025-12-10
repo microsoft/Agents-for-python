@@ -4,7 +4,9 @@
 from .sdk_config import SDKConfig
 
 from .assertions import (
+    ModelQuery,
     DynamicObject,
+    SafeObject,
     Unset
 )
 
@@ -39,6 +41,8 @@ __all__ = [
     "populate_activity",
     "get_host_and_port",
     "cli",
+    "ModelQuery",
     "DynamicObject",
+    "SafeObject",
     "Unset"
 ]

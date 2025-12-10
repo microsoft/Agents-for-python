@@ -64,8 +64,8 @@ class AssertionContext:
         assert self._baseline is not None
         return AssertionContext(
             self._actual_source,
-            self._actual[key],
             self._baseline_source,
+            self._actual[key],
             self._baseline[key],
             self._context,
             next_path
