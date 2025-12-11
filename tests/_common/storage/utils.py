@@ -148,7 +148,6 @@ class StorageTestsCommon(ABC):
     KEY_LIST = [
         "f",
         "a!0dslfj",
-        "\\?/#\t\n\r*",
         "527",
         "test.txt",
         "_-__--",

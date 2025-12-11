@@ -66,7 +66,7 @@ class BlobStorage(AsyncStorageBase):
         self, key: str, *, target_cls: StoreItemT = None, **kwargs
     ) -> tuple[Union[str, None], Union[StoreItemT, None]]:
         item = await ignore_error(
-            self._container_client.download_blob(blob=key),
+            self._container_client.download_blob(blob=key, timeout=5),
             is_status_code_error(404),
         )
         if not item:

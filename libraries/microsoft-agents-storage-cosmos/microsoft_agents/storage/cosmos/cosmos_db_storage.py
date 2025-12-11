@@ -144,7 +144,7 @@ class CosmosDBStorage(AsyncStorageBase):
                 partition_key,
                 offer_throughput=self._config.container_throughput,
             )
-        except cosmos_exceptions.CosmosHttpResponseError as err:
+        except Exception as err:
             if err.status_code == http_constants.StatusCodes.CONFLICT:
                 self._container = self._database.get_container_client(
                     self._config.container_id

@@ -41,6 +41,18 @@ def create_config(compat_mode):
 def config():
     return create_config(compat_mode=False)
 
+async def reset_container(container_client):
+
+    try:
+        items = []
+        async for item in container_client.read_all_items():
+            items.append(item)
+        for item in items:
+            await container_client.delete_item(
+                item, partition_key=item.get("id")
+            )
+    except CosmosResourceNotFoundError:
+        pass
 
 async def create_cosmos_env(config, compat_mode=False, existing=False):
     """Creates the Cosmos DB environment for testing.
@@ -62,7 +74,9 @@ async def create_cosmos_env(config, compat_mode=False, existing=False):
         database = await cosmos_client.create_database(id=config.database_id)
 
         try:
-            await database.delete_container(config.container_id)
+            await reset_container(
+                    database.get_container_client(config.container_id
+                ))
         except Exception:
             pass
 
@@ -101,7 +115,8 @@ async def cosmos_db_storage():
 
 @pytest.mark.asyncio
 @pytest.mark.parametrize("test_require_compat", [True, False])
-@pytest.mark.skipif(not EMULATOR_RUNNING, reason="Needs the emulator to run.")
+# @pytest.mark.skipif(not EMULATOR_RUNNING, reason="Needs the emulator to run.")
+@pytest.mark.cosmos
 async def test_cosmos_db_storage_flow_existing_container_and_persistence(
     test_require_compat,
 ):
@@ -172,7 +187,8 @@ async def test_cosmos_db_storage_flow_existing_container_and_persistence(
     assert MockStoreItemB.from_json_to_store_item(item) == initial_data["1230"]
 
 
-@pytest.mark.skipif(not EMULATOR_RUNNING, reason="Needs the emulator to run.")
+# @pytest.mark.skipif(not EMULATOR_RUNNING, reason="Needs the emulator to run.")
+@pytest.mark.cosmos
 class TestCosmosDBStorage(QuickCRUDStorageTests):
 
     def get_compat_mode(self):
@@ -227,13 +243,15 @@ class TestCosmosDBStorage(QuickCRUDStorageTests):
         ] == MockStoreItem({"id": "key2", "value": "new_val"})
 
 
-@pytest.mark.skipif(not EMULATOR_RUNNING, reason="Needs the emulator to run.")
+# @pytest.mark.skipif(not EMULATOR_RUNNING, reason="Needs the emulator to run.")
+@pytest.mark.cosmos
 class TestCosmosDBStorageWithCompat(TestCosmosDBStorage):
     def get_compat_mode(self):
         return True
 
 
-@pytest.mark.skipif(not EMULATOR_RUNNING, reason="Needs the emulator to run.")
+# @pytest.mark.skipif(not EMULATOR_RUNNING, reason="Needs the emulator to run.")
+@pytest.mark.cosmos
 class TestCosmosDBStorageInit:
 
     def test_raises_error_when_no_endpoint_provided(self, config):

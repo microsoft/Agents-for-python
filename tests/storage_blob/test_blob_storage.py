@@ -5,6 +5,7 @@ from io import BytesIO
 
 import pytest
 import pytest_asyncio
+from dotenv import load_dotenv
 
 from microsoft_agents.storage.blob import BlobStorage, BlobStorageConfig
 from azure.storage.blob.aio import BlobServiceClient
@@ -17,35 +18,41 @@ from tests._common.storage.utils import (
     MockStoreItemB,
 )
 
-EMULATOR_RUNNING = False
+async def reset_container(container_client):
 
+    try:
+        # blobs = []
+
+        async for blob in container_client.list_blobs(timeout=5):
+            await container_client.delete_blob(blob, timeout=5)
+    except ResourceNotFoundError:
+        pass
+    # except Exception as e:
+    #     breakpoint()
 
 async def blob_storage_instance(existing=False):
-
     # Default Azure Storage Emulator connection string
-    connection_string = (
-        "AccountName=devstoreaccount1;AccountKey=Eby8vdM02xNOcqFlqUwJPLlmEtlCDXJ1OUzFT50uSRZ6IFsuFq"
-        + "2UVErCz4I6tq/K1SZFPTOtr/KBHBeksoGMGw==;DefaultEndpointsProtocol=http;BlobEndpoint="
-        + "http://127.0.0.1:10000/devstoreaccount1;QueueEndpoint=http://127.0.0.1:10001/devstoreaccount1;"
-        + "TableEndpoint=http://127.0.0.1:10002/devstoreaccount1;"
-    )
+    load_dotenv()
+    connection_string = os.environ.get("TEST_BLOB_STORAGE_CONNECTION_STRING")
+    # connection_string = (
+    #     "AccountName=devstoreaccount1;AccountKey=Eby8vdM02xNOcqFlqUwJPLlmEtlCDXJ1OUzFT50uSRZ6IFsuFq"
+    #     + "2UVErCz4I6tq/K1SZFPTOtr/KBHBeksoGMGw==;DefaultEndpointsProtocol=http;BlobEndpoint="
+    #     + "http://127.0.0.1:10000/devstoreaccount1;QueueEndpoint=http://127.0.0.1:10001/devstoreaccount1;"
+    #     + "TableEndpoint=http://127.0.0.1:10002/devstoreaccount1;"
+    # )
 
     blob_service_client = BlobServiceClient.from_connection_string(connection_string)
 
     container_name = "asdkunittest"
 
-    if not existing:
-
-        # reset state of test container
-        try:
-            container_client = blob_service_client.get_container_client(container_name)
-            await container_client.delete_container()
-        except ResourceNotFoundError:
-            pass
-
-        container_client = await blob_service_client.create_container(container_name)
-    else:
+    try:
         container_client = blob_service_client.get_container_client(container_name)
+        if not existing:
+            await reset_container(container_client)
+    except ResourceNotFoundError:
+        container_client = await blob_service_client.create_container(container_name)
+
+    await reset_container(container_client)
 
     blob_storage_config = BlobStorageConfig(
         container_name=container_name,
@@ -53,22 +60,22 @@ async def blob_storage_instance(existing=False):
     )
 
     storage = BlobStorage(blob_storage_config)
+
     return storage, container_client
 
+@pytest_asyncio.fixture
+async def container_client():
+    _, client = await blob_storage_instance()
+    return client
 
 @pytest_asyncio.fixture
-async def blob_storage():
-
-    # setup
-    storage, container_client = await blob_storage_instance()
-
-    yield storage
-
-    # teardown
-    await container_client.delete_container()
+async def blob_storage(container_client):
+    storage, _ = await blob_storage_instance()
+    return storage
 
 
-@pytest.mark.skipif(not EMULATOR_RUNNING, reason="Needs the emulator to run.")
+# @pytest.mark.skipif(not EMULATOR_RUNNING, reason="Needs the emulator to run.")
+@pytest.mark.blob
 class TestBlobStorage(CRUDStorageTests):
 
     async def storage(self, initial_data=None, existing=False):
@@ -95,8 +102,7 @@ class TestBlobStorage(CRUDStorageTests):
         }
 
     @pytest.mark.asyncio
-    async def test_external_change_is_visible(self):
-        blob_storage, container_client = await blob_storage_instance()
+    async def test_external_change_is_visible(self, blob_storage, container_client):
         assert (await blob_storage.read(["key"], target_cls=MockStoreItem)) == {}
         assert (await blob_storage.read(["key2"], target_cls=MockStoreItem)) == {}
         await container_client.upload_blob(
@@ -129,12 +135,7 @@ class TestBlobStorage(CRUDStorageTests):
         container_name = "asdkunittestpopulated"
         container_client = blob_service_client.get_container_client(container_name)
 
-        # reset state of test container
-        try:
-            await container_client.delete_container()
-        except ResourceNotFoundError:
-            pass
-        await container_client.create_container()
+        await reset_container(container_client)
 
         initial_data = {
             "item1": MockStoreItem({"id": "item1", "value": "data1"}),
