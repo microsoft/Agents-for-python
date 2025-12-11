@@ -61,7 +61,7 @@ class CosmosDBStorage(AsyncStorageBase):
                     )
                 )
             return CosmosClient(
-                account_url=self._config.url, credential=self._config.credential
+                url=self._config.url, credential=self._config.credential
             )
 
         connection_policy = self._config.cosmos_client_options.get(

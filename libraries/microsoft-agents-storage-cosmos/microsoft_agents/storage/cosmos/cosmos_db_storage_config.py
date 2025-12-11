@@ -1,7 +1,7 @@
 import json
 from typing import Union
 
-from azure.core.credentials import TokenCredential
+from azure.core.credentials_async import AsyncTokenCredential
 from microsoft_agents.storage.cosmos.errors import storage_errors
 
 from .key_ops import sanitize_key
@@ -21,7 +21,7 @@ class CosmosDBStorageConfig:
         key_suffix: str = "",
         compatibility_mode: bool = False,
         url: str = "",
-        credential: Union[TokenCredential, None] = None,
+        credential: Union[AsyncTokenCredential, None] = None,
         **kwargs,
     ):
         """Create the Config object.
@@ -62,7 +62,7 @@ class CosmosDBStorageConfig:
             "compatibility_mode", False
         )
         self.url = url or kwargs.get("url", "")
-        self.credential: Union[TokenCredential, None] = credential
+        self.credential: Union[AsyncTokenCredential, None] = credential
 
     @staticmethod
     def validate_cosmos_db_config(config: "CosmosDBStorageConfig") -> None:
