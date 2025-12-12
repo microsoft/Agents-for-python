@@ -139,10 +139,13 @@ class CosmosDBStorage(AsyncStorageBase):
             "kind": documents.PartitionKind.Hash,
         }
         try:
+            kwargs = {}
+            if self._config.container_throughput:
+                kwargs["offer_throughput"] = self._config.container_throughput
             self._container = await self._database.create_container(
                 self._config.container_id,
                 partition_key,
-                offer_throughput=self._config.container_throughput,
+                **kwargs
             )
         except Exception as err:
             if err.status_code == http_constants.StatusCodes.CONFLICT:
@@ -182,3 +185,6 @@ class CosmosDBStorage(AsyncStorageBase):
 
     def _get_partition_key(self, key: str):
         return NonePartitionKeyValue if self._compatability_mode_partition_key else key
+
+    async def _close(self) -> None:
+        await self._client.close()

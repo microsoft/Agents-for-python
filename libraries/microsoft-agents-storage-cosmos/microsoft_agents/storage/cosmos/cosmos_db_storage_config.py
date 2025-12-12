@@ -17,7 +17,7 @@ class CosmosDBStorageConfig:
         database_id: str = "",
         container_id: str = "",
         cosmos_client_options: dict = None,
-        container_throughput: int = 0,
+        container_throughput: int | None = None,
         key_suffix: str = "",
         compatibility_mode: bool = False,
         url: str = "",
@@ -55,7 +55,7 @@ class CosmosDBStorageConfig:
             "cosmos_client_options", {}
         )
         self.container_throughput: int = container_throughput or kwargs.get(
-            "container_throughput", 400
+            "container_throughput"
         )
         self.key_suffix: str = key_suffix or kwargs.get("key_suffix", "")
         self.compatibility_mode: bool = compatibility_mode or kwargs.get(
