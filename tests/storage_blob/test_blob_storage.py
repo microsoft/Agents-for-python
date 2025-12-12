@@ -11,6 +11,7 @@ from dotenv import load_dotenv
 from microsoft_agents.storage.blob import BlobStorage, BlobStorageConfig
 from azure.storage.blob.aio import BlobServiceClient
 from azure.core.exceptions import ResourceNotFoundError
+from azure.identity.aio import DefaultAzureCredential
 
 from tests._common.storage.utils import (
     CRUDStorageTests,
@@ -37,22 +38,37 @@ async def blob_storage_instance(existing=False):
     # Default Azure Storage Emulator connection string
     load_dotenv()
     connection_string = os.environ.get("TEST_BLOB_STORAGE_CONNECTION_STRING")
+    if not connection_string:
+        cred = DefaultAzureCredential()
+        account_url = os.environ.get("TEST_BLOB_STORAGE_ACCOUNT_URL")
 
-    blob_service_client = BlobServiceClient.from_connection_string(connection_string)
+        blob_service_client = BlobServiceClient(account_url, credential=cred)
+    else:
+        blob_service_client = BlobServiceClient.from_connection_string(connection_string)
 
     container_name = "asdkunittest"
 
     try:
         container_client = blob_service_client.get_container_client(container_name)
         if not existing:
-            await reset_container(container_client)
+            try:
+                await reset_container(container_client)
+            except Exception:
+                pass
     except ResourceNotFoundError:
         container_client = await blob_service_client.create_container(container_name)
 
-    blob_storage_config = BlobStorageConfig(
-        container_name=container_name,
-        connection_string=connection_string,
-    )
+    if connection_string:
+        blob_storage_config = BlobStorageConfig(
+            container_name=container_name,
+            connection_string=connection_string,
+        )
+    else:
+        blob_storage_config = BlobStorageConfig(
+            container_name=container_name,
+            url=account_url,
+            credential=cred,
+        )
 
     storage = BlobStorage(blob_storage_config)
 

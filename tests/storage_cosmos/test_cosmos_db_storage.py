@@ -12,6 +12,7 @@ from dotenv import load_dotenv
 from azure.cosmos import documents
 from azure.cosmos.aio import CosmosClient
 from azure.cosmos.exceptions import CosmosResourceNotFoundError
+from azure.identity.aio import DefaultAzureCredential
 
 from microsoft_agents.storage.cosmos import CosmosDBStorage, CosmosDBStorageConfig
 from microsoft_agents.storage.cosmos.key_ops import sanitize_key
@@ -31,6 +32,16 @@ def create_config(compat_mode):
     load_dotenv()
     cosmos_db_endpoint = os.environ.get("TEST_COSMOS_DB_ENDPOINT")
     auth_key = os.environ.get("TEST_COSMOS_DB_AUTH_KEY")
+    if not auth_key:
+        cred = DefaultAzureCredential()
+
+        return CosmosDBStorageConfig(
+            url=cosmos_db_endpoint,
+            cred=cred,
+            database_id="test-db",
+            container_id="bot-storage",
+            compatibility_mode=compat_mode
+        )
 
     return CosmosDBStorageConfig(
         cosmos_db_endpoint=cosmos_db_endpoint,
