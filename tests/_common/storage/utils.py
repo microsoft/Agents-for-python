@@ -427,12 +427,12 @@ class CRUDStorageTests(StorageTestsCommon):
                 await storage.read(["key_a", "key_c"], target_cls=MockStoreItemB)
             ) == baseline_storage.read(["key_a", "key_c"])
 
-            item_parent_class = (await storage.read(["key_c"], target_cls=MockStoreItem))[
-                "key_c"
-            ]
-            item_child_class = (await storage.read(["key_c"], target_cls=MockStoreItemB))[
-                "key_c"
-            ]
+            item_parent_class = (
+                await storage.read(["key_c"], target_cls=MockStoreItem)
+            )["key_c"]
+            item_child_class = (
+                await storage.read(["key_c"], target_cls=MockStoreItemB)
+            )["key_c"]
             assert item_parent_class.data[0] == item_child_class.data
             assert item_child_class.other_field == True
 

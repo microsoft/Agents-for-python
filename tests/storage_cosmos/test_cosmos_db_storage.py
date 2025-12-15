@@ -24,7 +24,11 @@ from tests._common.storage.utils import (
     StorageBaseline,
 )
 
-EMULATOR_RUNNING = False
+# to enable Cosmos DB tests, run with --run-cosmos
+# also, make sure that .env has the following set:
+#
+# TEST_COSMOS_DB_ENDPOINT
+# TEST_COSMOS_DB_AUTH_KEY
 
 
 def create_config(compat_mode):
@@ -32,29 +36,19 @@ def create_config(compat_mode):
     load_dotenv()
     cosmos_db_endpoint = os.environ.get("TEST_COSMOS_DB_ENDPOINT")
     auth_key = os.environ.get("TEST_COSMOS_DB_AUTH_KEY")
-    if not auth_key:
-        cred = DefaultAzureCredential()
-
-        return CosmosDBStorageConfig(
-            url=cosmos_db_endpoint,
-            cred=cred,
-            database_id="test-db",
-            container_id="bot-storage",
-            compatibility_mode=compat_mode
-        )
-
     return CosmosDBStorageConfig(
         cosmos_db_endpoint=cosmos_db_endpoint,
         auth_key=auth_key,
         database_id="test-db",
         container_id="bot-storage",
-        compatibility_mode=compat_mode
+        compatibility_mode=compat_mode,
     )
 
 
 @pytest.fixture
 def config():
     return create_config(compat_mode=False)
+
 
 async def reset_container(container_client):
 
@@ -63,11 +57,10 @@ async def reset_container(container_client):
         async for item in container_client.read_all_items():
             items.append(item)
         for item in items:
-            await container_client.delete_item(
-                item, partition_key=item.get("id")
-            )
+            await container_client.delete_item(item, partition_key=item.get("id"))
     except CosmosResourceNotFoundError:
         pass
+
 
 @asynccontextmanager
 async def create_cosmos_env(config, compat_mode=False, existing=False):
@@ -90,9 +83,7 @@ async def create_cosmos_env(config, compat_mode=False, existing=False):
         database = await cosmos_client.create_database(id=config.database_id)
 
         try:
-            await reset_container(
-                    database.get_container_client(config.container_id
-                ))
+            await reset_container(database.get_container_client(config.container_id))
         except Exception:
             pass
 
@@ -115,10 +106,13 @@ async def create_cosmos_env(config, compat_mode=False, existing=False):
 
     await cosmos_client.close()
 
+
 @asynccontextmanager
 async def cosmos_db_storage_instance(compat_mode=False, existing=False):
     config = create_config(compat_mode)
-    async with create_cosmos_env(config, compat_mode=compat_mode, existing=existing) as container_client:
+    async with create_cosmos_env(
+        config, compat_mode=compat_mode, existing=existing
+    ) as container_client:
         storage = CosmosDBStorage(config)
         yield storage, container_client
         await storage._close()
@@ -203,7 +197,7 @@ class TestCosmosDBStorage(QuickCRUDStorageTests):
 
     def get_compat_mode(self):
         return False
-    
+
     @asynccontextmanager
     async def storage(self, initial_data=None, existing=False):
         async with cosmos_db_storage_instance(
@@ -254,6 +248,27 @@ class TestCosmosDBStorage(QuickCRUDStorageTests):
                 "key2"
             ] == MockStoreItem({"id": "key2", "value": "new_val"})
 
+    @pytest.mark.asyncio
+    async def test_cosmos_db_from_azure_cred(self):
+        load_dotenv()
+
+        cred = DefaultAzureCredential()
+        url = os.environ.get("TEST_COSMOS_DB_ENDPOINT")
+        config = CosmosDBStorageConfig(
+            url=url,
+            credential=cred,
+            database_id="test-db",
+            container_id="bot-storage",
+            compatibility_mode=False,
+        )
+
+        storage = CosmosDBStorage(config)
+
+        await storage.write({"some_Key": MockStoreItem({"id": "123", "data": "value"})})
+
+        res = await storage.read(["some_Key"], target_cls=MockStoreItem)
+        assert res == {"some_Key": MockStoreItem({"id": "123", "data": "value"})}
+
 
 # @pytest.mark.skipif(not EMULATOR_RUNNING, reason="Needs the emulator to run.")
 @pytest.mark.cosmos
@@ -261,24 +276,19 @@ class TestCosmosDBStorageWithCompat(TestCosmosDBStorage):
     def get_compat_mode(self):
         return True
 
+    @pytest.mark.asyncio
+    async def test_cosmos_db_from_azure_cred(self):
+        pass
+
 
 # @pytest.mark.skipif(not EMULATOR_RUNNING, reason="Needs the emulator to run.")
 @pytest.mark.cosmos
 class TestCosmosDBStorageInit:
 
-    def test_raises_error_when_no_endpoint_provided(self, config):
-        config.cosmos_db_endpoint = None
-        with pytest.raises(ValueError):
-            CosmosDBStorage(config)
-
-    def test_raises_error_when_no_auth_key_provided(self, config):
-        config.auth_key = None
-        with pytest.raises(ValueError):
-            CosmosDBStorage(config)
-
     def test_raises_error_when_suffix_provided_but_compat(self, config):
         config.auth_key = None
         config.compatibility_mode = True
+        config.key_suffix = "_test"
         with pytest.raises(ValueError):
             CosmosDBStorage(config)
 
@@ -296,7 +306,9 @@ class TestCosmosDBStorageInit:
     @pytest.mark.parametrize("compat_mode", [True, False])
     async def test_raises_error_different_partition_key(self, compat_mode):
         config = create_config(compat_mode=compat_mode)
-        async with create_cosmos_env(config, compat_mode=compat_mode) as container_client:
+        async with create_cosmos_env(
+            config, compat_mode=compat_mode
+        ) as container_client:
             storage = CosmosDBStorage(config)
 
             with pytest.raises(Exception):

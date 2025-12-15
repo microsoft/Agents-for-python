@@ -143,31 +143,26 @@ class CosmosDBStorage(AsyncStorageBase):
             if self._config.container_throughput:
                 kwargs["offer_throughput"] = self._config.container_throughput
             self._container = await self._database.create_container(
-                self._config.container_id,
-                partition_key,
-                **kwargs
+                self._config.container_id, partition_key, **kwargs
             )
         except Exception as err:
-            if err.status_code == http_constants.StatusCodes.CONFLICT:
-                self._container = self._database.get_container_client(
-                    self._config.container_id
-                )
-                properties = await self._container.read()
-                # if "partitionKey" not in properties:
-                #     self._compatability_mode_partition_key = True
-                # else:
-                # containers created had no partition key, so the default was "/_partitionKey"
-                paths = properties["partitionKey"]["paths"]
-                if "/_partitionKey" in paths:
-                    self._compatability_mode_partition_key = True
-                elif "/id" not in paths:
-                    raise Exception(
-                        storage_errors.InvalidConfiguration.format(
-                            f"Custom Partition Key Paths are not supported. {self._config.container_id} has a custom Partition Key Path of {paths[0]}."
-                        )
+            self._container = self._database.get_container_client(
+                self._config.container_id
+            )
+            properties = await self._container.read()
+            # if "partitionKey" not in properties:
+            #     self._compatability_mode_partition_key = True
+            # else:
+            # containers created had no partition key, so the default was "/_partitionKey"
+            paths = properties["partitionKey"]["paths"]
+            if "/_partitionKey" in paths:
+                self._compatability_mode_partition_key = True
+            elif "/id" not in paths:
+                raise Exception(
+                    storage_errors.InvalidConfiguration.format(
+                        f"Custom Partition Key Paths are not supported. {self._config.container_id} has a custom Partition Key Path of {paths[0]}."
                     )
-            else:
-                raise err
+                )
 
     async def initialize(self) -> None:
         if not self._container:

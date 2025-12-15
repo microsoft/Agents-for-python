@@ -101,7 +101,9 @@ class TestRestChannelServiceClientFactory:
     ):
         mock_connector_client = mocker.Mock(spec=TeamsConnectorClient)
         mocker.patch.object(
-            TeamsConnectorClient, "__new__", return_value=mock_connector_client
+            TeamsConnectorClient,
+            "__new__",
+            side_effect=lambda cls, *args, **kwargs: mock_connector_client,
         )
 
         factory = RestChannelServiceClientFactory(
@@ -153,7 +155,9 @@ class TestRestChannelServiceClientFactory:
         # setup
         mock_connector_client = mocker.Mock(spec=TeamsConnectorClient)
         mocker.patch.object(
-            TeamsConnectorClient, "__new__", return_value=mock_connector_client
+            TeamsConnectorClient,
+            "__new__",
+            side_effect=lambda cls, *args, **kwargs: mock_connector_client,
         )
 
         token_provider = mocker.Mock(spec=AccessTokenProviderBase)
@@ -218,7 +222,9 @@ class TestRestChannelServiceClientFactory:
         # setup
         mock_connector_client = mocker.Mock(spec=TeamsConnectorClient)
         mocker.patch.object(
-            TeamsConnectorClient, "__new__", return_value=mock_connector_client
+            TeamsConnectorClient,
+            "__new__",
+            side_effect=lambda cls, *args, **kwargs: mock_connector_client,
         )
 
         token_provider = mocker.Mock(spec=AccessTokenProviderBase)
@@ -268,7 +274,9 @@ class TestRestChannelServiceClientFactory:
         # setup
         mock_connector_client = mocker.Mock(spec=TeamsConnectorClient)
         mocker.patch.object(
-            TeamsConnectorClient, "__new__", return_value=mock_connector_client
+            TeamsConnectorClient,
+            "__new__",
+            side_effect=lambda cls, *args, **kwargs: mock_connector_client,
         )
 
         token_provider = mocker.Mock(spec=AccessTokenProviderBase)
@@ -330,7 +338,9 @@ class TestRestChannelServiceClientFactory:
         # setup
         mock_connector_client = mocker.Mock(spec=TeamsConnectorClient)
         mocker.patch.object(
-            TeamsConnectorClient, "__new__", return_value=mock_connector_client
+            TeamsConnectorClient,
+            "__new__",
+            side_effect=lambda cls, *args, **kwargs: mock_connector_client,
         )
 
         token_provider = mocker.Mock(spec=AccessTokenProviderBase)

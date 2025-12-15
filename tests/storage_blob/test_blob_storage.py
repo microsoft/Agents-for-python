@@ -9,7 +9,7 @@ import pytest_asyncio
 from dotenv import load_dotenv
 
 from microsoft_agents.storage.blob import BlobStorage, BlobStorageConfig
-from azure.storage.blob.aio import BlobServiceClient
+from azure.storage.blob.aio import BlobServiceClient, ContainerClient
 from azure.core.exceptions import ResourceNotFoundError
 from azure.identity.aio import DefaultAzureCredential
 
@@ -21,17 +21,21 @@ from tests._common.storage.utils import (
     MockStoreItemB,
 )
 
-async def reset_container(container_client):
+# to enable blob tests, run with --run-blob
+# also, make sure that .env has:
+# TEST_BLOB_STORAGE_ACCOUNT_URL set
 
-    try:
-        # blobs = []
 
-        async for blob in container_client.list_blobs(timeout=5):
-            await container_client.delete_blob(blob.name, timeout=5)
-    except ResourceNotFoundError:
-        pass
-    # except Exception as e:
-    #     breakpoint()
+async def reset_container(container_client: ContainerClient):
+
+    blobs = container_client.list_blobs(timeout=5)
+    to_delete = []
+    async for blob in blobs:
+        to_delete.append(blob.name)
+
+    for blob_name in to_delete:
+        await container_client.delete_blob(blob_name, timeout=5)
+
 
 @asynccontextmanager
 async def blob_storage_instance(existing=False):
@@ -44,7 +48,9 @@ async def blob_storage_instance(existing=False):
 
         blob_service_client = BlobServiceClient(account_url, credential=cred)
     else:
-        blob_service_client = BlobServiceClient.from_connection_string(connection_string)
+        blob_service_client = BlobServiceClient.from_connection_string(
+            connection_string
+        )
 
     container_name = "asdkunittest"
 
@@ -79,6 +85,7 @@ async def blob_storage_instance(existing=False):
     await container_client.close()
     await blob_service_client.close()
 
+
 # @pytest.mark.skipif(not EMULATOR_RUNNING, reason="Needs the emulator to run.")
 @pytest.mark.blob
 class TestBlobStorage(QuickCRUDStorageTests):
@@ -93,8 +100,11 @@ class TestBlobStorage(QuickCRUDStorageTests):
 
             for key, value in initial_data.items():
                 value_rep = json.dumps(value.store_item_to_json())
-                await client.upload_blob(name=key, data=value_rep, overwrite=True)
-                
+                blob_client = await client.upload_blob(
+                    name=key, data=value_rep, overwrite=True
+                )
+                await blob_client.close()
+
             yield storage
 
     @pytest.mark.asyncio
@@ -115,14 +125,18 @@ class TestBlobStorage(QuickCRUDStorageTests):
         async with blob_storage_instance() as (blob_storage, container_client):
             assert (await blob_storage.read(["key"], target_cls=MockStoreItem)) == {}
             assert (await blob_storage.read(["key2"], target_cls=MockStoreItem)) == {}
-            await container_client.upload_blob(
-                name="key", data=json.dumps({"id": "item", "value": "data"}), overwrite=True
+            blob_client = await container_client.upload_blob(
+                name="key",
+                data=json.dumps({"id": "item", "value": "data"}),
+                overwrite=True,
             )
-            await container_client.upload_blob(
+            await blob_client.close()
+            blob_client = await container_client.upload_blob(
                 name="key2",
                 data=json.dumps({"id": "another_item", "value": "new_val"}),
                 overwrite=True,
             )
+            await blob_client.close()
             assert (await blob_storage.read(["key"], target_cls=MockStoreItem))[
                 "key"
             ] == MockStoreItem({"id": "item", "value": "data"})
@@ -166,7 +180,6 @@ class TestBlobStorage(QuickCRUDStorageTests):
 
             baseline_storage.write(changes)
             await storage.write(changes)
-
 
             baseline_storage.delete(["another_key!", "item1"])
             await storage.delete(["another_key!", "item1"])

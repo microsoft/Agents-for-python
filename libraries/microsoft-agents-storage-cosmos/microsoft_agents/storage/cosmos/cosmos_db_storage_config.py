@@ -71,10 +71,6 @@ class CosmosDBStorageConfig:
         This is used prior to the creation of the CosmosDBStorage object."""
         if not config:
             raise ValueError(str(storage_errors.CosmosDbConfigRequired))
-        if not config.cosmos_db_endpoint:
-            raise ValueError(str(storage_errors.CosmosDbEndpointRequired))
-        if not config.auth_key:
-            raise ValueError(str(storage_errors.CosmosDbAuthKeyRequired))
         if not config.database_id:
             raise ValueError(str(storage_errors.CosmosDbDatabaseIdRequired))
         if not config.container_id:

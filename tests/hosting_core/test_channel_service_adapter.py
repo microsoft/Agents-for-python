@@ -32,14 +32,20 @@ class TestChannelServiceAdapter:
     def connector_client(self, mocker):
         connector_client = mocker.Mock(spec=TeamsConnectorClient)
         mocker.patch.object(
-            TeamsConnectorClient, "__new__", return_value=connector_client
+            TeamsConnectorClient,
+            "__new__",
+            side_effect=lambda cls, *args, **kwargs: connector_client,
         )
         return connector_client
 
     @pytest.fixture
     def user_token_client(self, mocker):
         user_token_client = mocker.Mock(spec=UserTokenClient)
-        mocker.patch.object(UserTokenClient, "__new__", return_value=user_token_client)
+        mocker.patch.object(
+            UserTokenClient,
+            "__new__",
+            side_effect=lambda cls, *args, **kwargs: user_token_client,
+        )
         return user_token_client
 
     @pytest.fixture
