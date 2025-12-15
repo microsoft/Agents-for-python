@@ -15,5 +15,6 @@ setup(
         f"microsoft-agents-hosting-core=={package_version}",
         "azure-core",
         "azure-storage-blob",
+        "azure-identity",
     ],
 )
