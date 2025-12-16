@@ -1,3 +1,6 @@
+# Copyright (c) Microsoft Corporation. All rights reserved.
+# Licensed under the MIT License.
+
 from .agent_type import AgentType
 from .connection_settings import ConnectionSettings
 from .copilot_client import CopilotClient
