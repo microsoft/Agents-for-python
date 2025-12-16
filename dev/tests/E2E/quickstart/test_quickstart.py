@@ -59,7 +59,7 @@ class TestQuickstartBase(Integration):
 
         responses = await response_client.pop()
 
-        activity = ModelQuery(type="activity").first(responses)
+        activity = ModelQuery(type="message").first(responses)
 
         assert activity is not None
         assert "Welcome" in activity.text
