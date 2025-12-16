@@ -11,7 +11,7 @@ from microsoft_agents.hosting.core import (
     TurnContext,
     TurnState,
 )
-from microsoft_agents.testing.integration.core import Sample
+from microsoft_agents.testing.integration import Sample
 
 
 class QuickstartSample(Sample):
