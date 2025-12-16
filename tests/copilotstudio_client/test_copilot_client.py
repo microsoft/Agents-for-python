@@ -33,7 +33,7 @@ async def test_copilot_client_error(mocker):
 
     mock_session.post.return_value = response()
 
-    mocker.patch("aiohttp.ClientSession.__new__", return_value=mock_session)
+    mocker.patch("aiohttp.ClientSession", return_value=mock_session)
 
     # Create a CopilotClient instance
     copilot_client = CopilotClient(connection_settings, "token")
@@ -76,7 +76,7 @@ async def test_copilot_client_basic(mocker):
 
     mock_session.post.return_value = response()
 
-    mocker.patch("aiohttp.ClientSession.__new__", return_value=mock_session)
+    mocker.patch("aiohttp.ClientSession", return_value=mock_session)
 
     # Create a CopilotClient instance
     copilot_client = CopilotClient(connection_settings, "token")

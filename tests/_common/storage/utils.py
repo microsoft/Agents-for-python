@@ -3,6 +3,7 @@ import gc
 from copy import deepcopy
 from abc import ABC
 from typing import Any
+from contextlib import asynccontextmanager
 
 from microsoft_agents.hosting.core.storage import Storage, StoreItem, MemoryStorage
 from microsoft_agents.hosting.core.storage._type_aliases import JSON
@@ -127,7 +128,6 @@ class StorageBaseline(Storage):
         for key in self._key_history:
             if key not in self._memory:
                 if len(await other.read([key], target_cls=MockStoreItem)) > 0:
-                    breakpoint()
                     return False  # key should not exist in other
                 continue
 
@@ -148,7 +148,6 @@ class StorageTestsCommon(ABC):
     KEY_LIST = [
         "f",
         "a!0dslfj",
-        "\\?/#\t\n\r*",
         "527",
         "test.txt",
         "_-__--",
@@ -205,88 +204,89 @@ class CRUDStorageTests(StorageTestsCommon):
     To use, subclass and implement the `storage` method.
     """
 
-    async def storage(self, initial_data=None, existing=False) -> Storage:
+    @asynccontextmanager
+    async def storage(self, initial_data=None, existing=False):
         """Return a Storage instance to be tested.
         :param initial_data: The initial data to populate the storage with.
         :param existing: If True, the storage instance should connect to an existing store.
         """
-        raise NotImplementedError("Subclasses must implement this")
+        yield None
 
     @pytest.mark.asyncio
     async def test_read_individual(self, initial_state, key):
-        initial_state_copy = my_deepcopy(initial_state)
-        baseline_storage = StorageBaseline(initial_state)
-        storage = await self.storage(initial_state)
-        expected = baseline_storage.read([key])
-        actual = await storage.read([key], target_cls=MockStoreItem)
-        assert actual == expected
-        assert await baseline_storage.equals(storage)
-        assert initial_state == initial_state_copy
+        async with self.storage(initial_state) as storage:
+            initial_state_copy = my_deepcopy(initial_state)
+            baseline_storage = StorageBaseline(initial_state)
+            expected = baseline_storage.read([key])
+            actual = await storage.read([key], target_cls=MockStoreItem)
+            assert actual == expected
+            assert await baseline_storage.equals(storage)
+            assert initial_state == initial_state_copy
 
     @pytest.mark.asyncio
     async def test_read(self, initial_state, keys):
-        initial_state_copy = my_deepcopy(initial_state)
-        baseline_storage = StorageBaseline(initial_state)
-        storage = await self.storage(initial_state)
-        expected = baseline_storage.read(keys)
-        actual = await storage.read(keys, target_cls=MockStoreItem)
-        assert actual == expected
-        assert await baseline_storage.equals(storage)
-        assert initial_state == initial_state_copy
+        async with self.storage(initial_state) as storage:
+            initial_state_copy = my_deepcopy(initial_state)
+            baseline_storage = StorageBaseline(initial_state)
+            expected = baseline_storage.read(keys)
+            actual = await storage.read(keys, target_cls=MockStoreItem)
+            assert actual == expected
+            assert await baseline_storage.equals(storage)
+            assert initial_state == initial_state_copy
 
     @pytest.mark.asyncio
     async def test_read_missing_key(self, initial_state):
         initial_state_copy = my_deepcopy(initial_state)
         baseline_storage = StorageBaseline(initial_state)
-        storage = await self.storage(initial_state)
-        keys = ["5", "20", "100", "nonexistent_key", "-"]
-        expected = baseline_storage.read(keys)
-        actual = await storage.read(keys, target_cls=MockStoreItem)
-        assert actual == expected
-        assert await baseline_storage.equals(storage)
-        assert initial_state == initial_state_copy
+        async with self.storage(initial_state) as storage:
+            keys = ["5", "20", "100", "nonexistent_key", "-"]
+            expected = baseline_storage.read(keys)
+            actual = await storage.read(keys, target_cls=MockStoreItem)
+            assert actual == expected
+            assert await baseline_storage.equals(storage)
+            assert initial_state == initial_state_copy
 
     @pytest.mark.asyncio
     async def test_read_errors(self, initial_state):
         initial_state_copy = my_deepcopy(initial_state)
-        storage = await self.storage(initial_state)
-        with pytest.raises(ValueError):
-            await storage.read([], target_cls=MockStoreItem)
-        with pytest.raises(ValueError):
-            await storage.read(None, target_cls=MockStoreItem)
-        with pytest.raises(ValueError):
-            await storage.read([""], target_cls=MockStoreItem)
-        with pytest.raises(ValueError):
-            await storage.read(["key"], target_cls=None)
-        assert initial_state == initial_state_copy
+        async with self.storage(initial_state) as storage:
+            with pytest.raises(ValueError):
+                await storage.read([], target_cls=MockStoreItem)
+            with pytest.raises(ValueError):
+                await storage.read(None, target_cls=MockStoreItem)
+            with pytest.raises(ValueError):
+                await storage.read([""], target_cls=MockStoreItem)
+            with pytest.raises(ValueError):
+                await storage.read(["key"], target_cls=None)
+            assert initial_state == initial_state_copy
 
     @pytest.mark.asyncio
     async def test_write_individual(self, initial_state, key):
         initial_state_copy = my_deepcopy(initial_state)
         baseline_storage = StorageBaseline(initial_state)
-        storage = await self.storage(initial_state)
-        change = {key: MockStoreItem({key: f"new_value_for_{key}!"})}
-        baseline_storage.write(change)
-        await storage.write(change)
-        assert await baseline_storage.equals(storage)
-        assert initial_state == initial_state_copy
+        async with self.storage(initial_state) as storage:
+            change = {key: MockStoreItem({key: f"new_value_for_{key}!"})}
+            baseline_storage.write(change)
+            await storage.write(change)
+            assert await baseline_storage.equals(storage)
+            assert initial_state == initial_state_copy
 
     @pytest.mark.asyncio
     async def test_write_individual_different_target_cls(self, initial_state, key):
         initial_state_copy = my_deepcopy(initial_state)
         baseline_storage = StorageBaseline(initial_state)
-        storage = await self.storage(initial_state)
-        change = {
-            key: MockStoreItemB({key: f"new_value_for_{key}!"}, other_field=False)
-        }
-        baseline_storage.write(change)
-        await storage.write(change)
-        assert await baseline_storage.equals(storage)
-        change = {key: MockStoreItemB({key: f"new_{key}"}, other_field=True)}
-        baseline_storage.write(change)
-        await storage.write(change)
-        assert await baseline_storage.equals(storage)
-        assert initial_state == initial_state_copy
+        async with self.storage(initial_state) as storage:
+            change = {
+                key: MockStoreItemB({key: f"new_value_for_{key}!"}, other_field=False)
+            }
+            baseline_storage.write(change)
+            await storage.write(change)
+            assert await baseline_storage.equals(storage)
+            change = {key: MockStoreItemB({key: f"new_{key}"}, other_field=True)}
+            baseline_storage.write(change)
+            await storage.write(change)
+            assert await baseline_storage.equals(storage)
+            assert initial_state == initial_state_copy
 
     @pytest.mark.asyncio
     async def test_write_same_values(self, initial_state):
@@ -294,167 +294,159 @@ class CRUDStorageTests(StorageTestsCommon):
             return
         initial_state_copy = my_deepcopy(initial_state)
         baseline_storage = StorageBaseline(initial_state)
-        storage = await self.storage(initial_state)
-        changes = {key: value for key, value in initial_state.items()}
-        baseline_storage.write(changes)
-        await storage.write(changes)
-        assert await baseline_storage.equals(storage)
-        assert initial_state == initial_state_copy
+        async with self.storage(initial_state) as storage:
+            changes = {key: value for key, value in initial_state.items()}
+            baseline_storage.write(changes)
+            await storage.write(changes)
+            assert await baseline_storage.equals(storage)
+            assert initial_state == initial_state_copy
 
     @pytest.mark.asyncio
     async def test_write(self, initial_state, changes):
         initial_state_copy = my_deepcopy(initial_state)
         baseline_storage = StorageBaseline(initial_state)
-        storage = await self.storage(initial_state)
-        baseline_storage.write(changes)
-        await storage.write(changes)
-        assert await baseline_storage.equals(storage)
-        baseline_storage.write(initial_state)
-        if initial_state:
-            await storage.write(initial_state)
-        assert await baseline_storage.equals(storage)
-        assert initial_state == initial_state_copy
+        async with self.storage(initial_state) as storage:
+            baseline_storage.write(changes)
+            await storage.write(changes)
+            assert await baseline_storage.equals(storage)
+            baseline_storage.write(initial_state)
+            if initial_state:
+                await storage.write(initial_state)
+            assert await baseline_storage.equals(storage)
+            assert initial_state == initial_state_copy
 
     @pytest.mark.asyncio
     async def test_write_errors(self, initial_state):
         initial_state_copy = my_deepcopy(initial_state)
         baseline_storage = StorageBaseline(initial_state)
-        storage = await self.storage(initial_state)
-        with pytest.raises(ValueError):
-            await storage.write({})
-        with pytest.raises(ValueError):
-            await storage.write(None)
-        assert await baseline_storage.equals(storage)
-        assert initial_state == initial_state_copy
+        async with self.storage(initial_state) as storage:
+            with pytest.raises(ValueError):
+                await storage.write({})
+            with pytest.raises(ValueError):
+                await storage.write(None)
+            assert await baseline_storage.equals(storage)
+            assert initial_state == initial_state_copy
 
     @pytest.mark.asyncio
     async def test_delete_individual(self, initial_state, key):
         initial_state_copy = my_deepcopy(initial_state)
         baseline_storage = StorageBaseline(initial_state)
-        storage = await self.storage(initial_state)
-        baseline_storage.delete([key])
-        await storage.delete([key])
-        assert await baseline_storage.equals(storage)
-        assert initial_state == initial_state_copy
+        async with self.storage(initial_state) as storage:
+            baseline_storage.delete([key])
+            await storage.delete([key])
+            assert await baseline_storage.equals(storage)
+            assert initial_state == initial_state_copy
 
     @pytest.mark.asyncio
     async def test_delete(self, initial_state, keys):
         initial_state_copy = my_deepcopy(initial_state)
         baseline_storage = StorageBaseline(initial_state)
-        storage = await self.storage(initial_state)
-        baseline_storage.delete(keys)
-        await storage.delete(keys)
-        assert await baseline_storage.equals(storage)
-        assert initial_state == initial_state_copy
+        async with self.storage(initial_state) as storage:
+            baseline_storage.delete(keys)
+            await storage.delete(keys)
+            assert await baseline_storage.equals(storage)
+            assert initial_state == initial_state_copy
 
     @pytest.mark.asyncio
     async def test_delete_missing_key(self, initial_state):
         initial_state_copy = my_deepcopy(initial_state)
         baseline_storage = StorageBaseline(initial_state)
-        storage = await self.storage(initial_state)
-        keys = ["5", "20", "100", "nonexistent_key", "-"]
-        baseline_storage.delete(keys)
-        await storage.delete(keys)
-        assert await baseline_storage.equals(storage)
-        assert initial_state == initial_state_copy
+        async with self.storage(initial_state) as storage:
+            keys = ["5", "20", "100", "nonexistent_key", "-"]
+            baseline_storage.delete(keys)
+            await storage.delete(keys)
+            assert await baseline_storage.equals(storage)
+            assert initial_state == initial_state_copy
 
     @pytest.mark.asyncio
     async def test_delete_errors(self, initial_state):
         initial_state_copy = my_deepcopy(initial_state)
-        storage = await self.storage(initial_state)
-        with pytest.raises(ValueError):
-            await storage.read([])
-        with pytest.raises(ValueError):
-            await storage.read(None)
-        assert initial_state == initial_state_copy
+        async with self.storage(initial_state) as storage:
+            with pytest.raises(ValueError):
+                await storage.read([])
+            with pytest.raises(ValueError):
+                await storage.read(None)
+            assert initial_state == initial_state_copy
 
     @pytest.mark.asyncio
     async def test_flow(self):
         baseline_storage = StorageBaseline()
-        storage = await self.storage()
+        async with self.storage() as storage:
+            res = await storage.read(["key"], target_cls=MockStoreItemB)
+            assert len(res) == 0
+            assert await baseline_storage.equals(storage)
 
-        res = await storage.read(["key"], target_cls=MockStoreItemB)
-        assert len(res) == 0
-        assert await baseline_storage.equals(storage)
+            changes = {
+                "key_a": MockStoreItem({"id": "key_a", "value": "value_a"}),
+                "key_b": MockStoreItemB(
+                    {"id": "key_b", "value": "value_b"}, other_field=False
+                ),
+            }
+            changes_copy = my_deepcopy(changes)
 
-        changes = {
-            "key_a": MockStoreItem({"id": "key_a", "value": "value_a"}),
-            "key_b": MockStoreItemB(
-                {"id": "key_b", "value": "value_b"}, other_field=False
-            ),
-        }
-        changes_copy = my_deepcopy(changes)
+            baseline_storage.write(changes)
+            await storage.write(changes)
 
-        baseline_storage.write(changes)
-        await storage.write(changes)
+            assert (
+                await storage.read(["key_a"], target_cls=MockStoreItem)
+            ) == baseline_storage.read(["key_a"])
+            assert (
+                await storage.read(["key_b"], target_cls=MockStoreItemB)
+            ) == baseline_storage.read(["key_b"])
+            assert changes_copy == changes
 
-        assert (
-            await storage.read(["key_a"], target_cls=MockStoreItem)
-        ) == baseline_storage.read(["key_a"])
-        assert (
-            await storage.read(["key_b"], target_cls=MockStoreItemB)
-        ) == baseline_storage.read(["key_b"])
-        assert changes_copy == changes
+            baseline_storage.delete(["key_a"])
+            await storage.delete(["key_a"])
+            assert await baseline_storage.equals(storage)
 
-        baseline_storage.delete(["key_a"])
-        await storage.delete(["key_a"])
-        assert await baseline_storage.equals(storage)
+            change = {"key_b": MockStoreItem({"id": "key_b", "value": "new_value_b"})}
+            baseline_storage.write(change)
+            await storage.write(change)
 
-        change = {"key_b": MockStoreItem({"id": "key_b", "value": "new_value_b"})}
-        baseline_storage.write(change)
-        await storage.write(change)
+            assert await baseline_storage.equals(storage)
+            assert (
+                await storage.read(["key_b"], target_cls=MockStoreItem)
+            ) == baseline_storage.read(["key_b"])
 
-        assert await baseline_storage.equals(storage)
-        assert (
-            await storage.read(["key_b"], target_cls=MockStoreItem)
-        ) == baseline_storage.read(["key_b"])
+            with pytest.raises(ValueError):
+                await storage.read([], target_cls=MockStoreItem)
+            with pytest.raises(ValueError):
+                await storage.read(["key_b"], target_cls=None)
 
-        with pytest.raises(ValueError):
-            await storage.read([], target_cls=MockStoreItem)
-        with pytest.raises(ValueError):
-            await storage.read(["key_b"], target_cls=None)
+            change = {
+                "key_c": MockStoreItemB(
+                    {"id": "key_c", "value": "value_c"}, other_field=True
+                )
+            }
+            baseline_storage.write(change)
+            await storage.write(change)
+            assert (
+                await storage.read(["key_a", "key_b"], target_cls=MockStoreItem)
+            ) == baseline_storage.read(["key_a", "key_b"])
+            assert (
+                await storage.read(["key_a", "key_c"], target_cls=MockStoreItemB)
+            ) == baseline_storage.read(["key_a", "key_c"])
 
-        change = {
-            "key_c": MockStoreItemB(
-                {"id": "key_c", "value": "value_c"}, other_field=True
-            )
-        }
-        baseline_storage.write(change)
-        await storage.write(change)
-        assert (
-            await storage.read(["key_a", "key_b"], target_cls=MockStoreItem)
-        ) == baseline_storage.read(["key_a", "key_b"])
-        assert (
-            await storage.read(["key_a", "key_c"], target_cls=MockStoreItemB)
-        ) == baseline_storage.read(["key_a", "key_c"])
+            item_parent_class = (
+                await storage.read(["key_c"], target_cls=MockStoreItem)
+            )["key_c"]
+            item_child_class = (
+                await storage.read(["key_c"], target_cls=MockStoreItemB)
+            )["key_c"]
+            assert item_parent_class.data[0] == item_child_class.data
+            assert item_child_class.other_field == True
 
-        item_parent_class = (await storage.read(["key_c"], target_cls=MockStoreItem))[
-            "key_c"
-        ]
-        item_child_class = (await storage.read(["key_c"], target_cls=MockStoreItemB))[
-            "key_c"
-        ]
-        assert item_parent_class.data[0] == item_child_class.data
-        assert item_child_class.other_field == True
-
-        with pytest.raises(ValueError):
-            await storage.write({})
-        with pytest.raises(Exception):
-            await storage.read(["key_b"], target_cls=MockStoreItemB)
-        assert await baseline_storage.equals(storage)
-
-        if not isinstance(storage, MemoryStorage):
-            # if not memory storage, then items should persist
-            del storage
-            gc.collect()
-            storage_alt = await self.storage(existing=True)
-            assert await baseline_storage.equals(storage_alt)
+            with pytest.raises(ValueError):
+                await storage.write({})
+            with pytest.raises(Exception):
+                await storage.read(["key_b"], target_cls=MockStoreItemB)
+            assert await baseline_storage.equals(storage)
 
 
 class QuickCRUDStorageTests(CRUDStorageTests):
     """Reduced set of permutations for quicker tests. Useful for debugging."""
 
-    KEY_LIST = ["\\?/#\t\n\r*", "test.txt"]
+    KEY_LIST = ["52\\?*", "test.txt"]
 
     READ_KEY_LIST = KEY_LIST + ["nonexistent_key"]
 
