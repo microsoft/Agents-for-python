@@ -12,18 +12,7 @@ from microsoft_agents.copilotstudio.client import (
     PowerPlatformEnvironment,
 )
 
-from microsoft_agents.testing.integration.core import AiohttpRunner
-
-
-def mock_mcs_handler(activity: Activity) -> Callable[[Request], Awaitable[Response]]:
-    """Creates a mock handler for MCS endpoint returning the given activity."""
-
-    async def handler(request: Request) -> Response:
-        activity_data = activity.model_dump_json(exclude_unset=True)
-        return Response(body=activity_data)
-
-    return handler
-
+from microsoft_agents.testing.integration import AiohttpRunner
 
 def mock_mcs_handler(
     activities: Iterable[Activity],
@@ -81,9 +70,22 @@ async def test_start_conversation_and_ask_question_large_message(mocker):
             async for conv_activity in client.start_conversation():
                 assert conv_activity.type == "message"
 
-        # with pytest.raises(Exception, match="Chunk too big"):
-        #     async for question_activity in client.ask_question("Hello!", "conv-id"):
-        #         assert question_activity.type == "message"
+@pytest.mark.asyncio
+async def test_start_conversation_and_ask_question_no_error(mocker):
+
+    activity = Activity(
+        type="message", text="*" * 1_000_000, conversation={"id": "conv-id"}
+    )
+
+    runner = mock_mcs_endpoint(mocker, [activity], "/mcs-endpoint", port=8081)
+
+    async with runner:
+        settings = ConnectionSettings("environment-id", "agent-id",
+                                      client_session_settings={"read_bufsize": 2**25})
+        client = CopilotClient(settings=settings, token="test-token")
+
+        async for conv_activity in client.start_conversation():
+            assert conv_activity.type == "message"
 
 
 def activity_generator(activity: Activity, n: int) -> Iterable[Activity]:
@@ -104,12 +106,5 @@ async def test_start_conversation_many(mocker):
         client = CopilotClient(settings=settings, token="test-token")
 
         for i in range(100):
-            # try:
             async for conv_activity in client.start_conversation():
                 assert conv_activity.type == "message"
-            # except Exception as e:
-            #     assert str(e) == "Chunk too big"
-
-        # with pytest.raises(Exception, match="Chunk too big"):
-        #     async for question_activity in client.ask_question("Hello!", "conv-id"):
-        #         assert question_activity.type == "message"
