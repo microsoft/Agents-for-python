@@ -86,6 +86,7 @@ class AssertionContext:
             "value": self._actual,
             "parent": parent(self._actual),
             "context": self._context,
+            "ctx": self._context
         }
 
         for arg in sig.args:

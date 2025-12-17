@@ -6,6 +6,8 @@ from .sdk_config import SDKConfig
 from .assertions import (
     ModelQuery,
     DynamicObject,
+    Assertions,
+    Fixtures,
     SafeObject,
     Unset
 )
@@ -46,5 +48,7 @@ __all__ = [
     "ModelQuery",
     "DynamicObject",
     "SafeObject",
+    "Assertions",
+    "Fixtures",
     "Unset"
 ]

@@ -2,6 +2,8 @@ from __future__ import annotations
 
 from typing import Any, Callable
 
+from pydantic import BaseModel
+
 from .types import SafeObject, DynamicObject, resolve, parent
 from .assertion_context import AssertionContext
 
@@ -110,6 +112,12 @@ class Assertions:
         :param baseline: The baseline data to check against.
         :return: A tuple containing the overall result and a detailed message.
         """
+        if isinstance(actual, BaseModel):
+            actual = actual.model_dump(exclude_unset=True)
+        if isinstance(baseline, BaseModel):
+            baseline = baseline.model_dump(exclude_unset=True)
+
+
         actual = SafeObject(actual)
         context = AssertionContext(actual, baseline)
         return Assertions._check_verbose(actual, baseline, context)

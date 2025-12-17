@@ -1,6 +1,9 @@
-from .types import Unset
+from .types import Unset, FutureVar
 
 class Fixtures:
+
+    actual = FutureVar("actual")
+    expected = FutureVar("expected")
 
     @staticmethod
     def exists(actual):

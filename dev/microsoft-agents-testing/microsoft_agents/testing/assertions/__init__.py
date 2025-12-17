@@ -1,3 +1,5 @@
+from .assertions import Assertions
+from .fixtures import Fixtures
 from .model_query import ModelQuery
 from .types import (
     DynamicObject,
@@ -6,6 +8,8 @@ from .types import (
 )
 
 __all__ = [
+    "Assertions",
+    "Fixtures",
     "ModelQuery",
     "DynamicObject",
     "SafeObject",
