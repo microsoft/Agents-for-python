@@ -82,16 +82,16 @@ Make sure it shows a version of at least 3.10.
 
 ## Installing Test Packages
 
-After activating your virtual environment, you can install packages from pypi test (the test index will be replaced with the regular index before going out of preview):
+After activating your virtual environment, you can install packages from pypi:
 
 ```bash
-pip install -i https://test.pypi.org/simple/ --extra-index-url https://pypi.org/simple/ microsoft-agents-activity
-pip install -i https://test.pypi.org/simple/ --extra-index-url https://pypi.org/simple/ microsoft-agents-authorization
-pip install -i https://test.pypi.org/simple/ --extra-index-url https://pypi.org/simple/ microsoft-agents-connector
-pip install -i https://test.pypi.org/simple/ --extra-index-url https://pypi.org/simple/ microsoft-agents-client
-pip install -i https://test.pypi.org/simple/ --extra-index-url https://pypi.org/simple/ microsoft-agents-hosting-core
-pip install -i https://test.pypi.org/simple/ --extra-index-url https://pypi.org/simple/ microsoft-agents-authentication-msal
-pip install -i https://test.pypi.org/simple/ --extra-index-url https://pypi.org/simple/ microsoft-agents-copilotstudio-client
-pip install -i https://test.pypi.org/simple/ --extra-index-url https://pypi.org/simple/ microsoft-agents-hosting-core-aiohttp
-pip install -i https://test.pypi.org/simple/ --extra-index-url https://pypi.org/simple/ microsoft-agents-storage-core
+pip install microsoft-agents-activity
+pip install microsoft-agents-authorization
+pip install microsoft-agents-connector
+pip install microsoft-agents-client
+pip install microsoft-agents-hosting-core
+pip install microsoft-agents-authentication-msal
+pip install microsoft-agents-copilotstudio-client
+pip install microsoft-agents-hosting-core-aiohttp
+pip install microsoft-agents-storage-core
 ```

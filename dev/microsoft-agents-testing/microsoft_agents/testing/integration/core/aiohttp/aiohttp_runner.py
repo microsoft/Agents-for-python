@@ -1,3 +1,6 @@
+# Copyright (c) Microsoft Corporation. All rights reserved.
+# Licensed under the MIT License.
+
 from typing import Optional
 from threading import Thread, Event
 import asyncio
@@ -66,9 +69,6 @@ class AiohttpRunner(ApplicationRunner):
         return self
 
     async def _stop_server(self):
-        if not self._server_thread:
-            raise RuntimeError("AiohttpRunner is not running.")
-
         try:
             async with ClientSession() as session:
                 async with session.get(
@@ -80,10 +80,6 @@ class AiohttpRunner(ApplicationRunner):
 
         # Set shutdown event as fallback
         self._shutdown_event.set()
-
-        # Wait for the server thread to finish
-        self._server_thread.join(timeout=5.0)
-        self._server_thread = None
 
     async def _shutdown_route(self, request: Request) -> Response:
         """Handle shutdown request by setting the shutdown event"""
@@ -93,17 +89,8 @@ class AiohttpRunner(ApplicationRunner):
     async def __aexit__(self, exc_type, exc, tb):
         if not self._server_thread:
             raise RuntimeError("AiohttpRunner is not running.")
-        try:
-            async with ClientSession() as session:
-                async with session.get(
-                    f"http://{self._host}:{self._port}/shutdown"
-                ) as response:
-                    pass  # Just trigger the shutdown
-        except Exception:
-            pass  # Ignore errors during shutdown request
 
-        # Set shutdown event as fallback
-        self._shutdown_event.set()
+        await self._stop_server()
 
         # Wait for the server thread to finish
         self._server_thread.join(timeout=5.0)

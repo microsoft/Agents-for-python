@@ -1,3 +1,6 @@
+# Copyright (c) Microsoft Corporation. All rights reserved.
+# Licensed under the MIT License.
+
 import json
 import asyncio
 from typing import Optional, cast
@@ -93,17 +96,10 @@ class AgentClient:
         await self._init_client()
         assert self._client
 
-        if activity.conversation:
-            activity.conversation.id = self._cid
-        else:
-            activity.conversation = ConversationAccount(
-                id=self._cid or "<conversation_id>"
-            )
-
         if self.service_url:
             activity.service_url = self.service_url
 
-        activity = populate_activity(activity, self._default_activity_data)
+        # activity = populate_activity(activity, self._default_activity_data)
 
         async with self._client.post(
             "api/messages",

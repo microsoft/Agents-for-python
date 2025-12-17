@@ -50,3 +50,16 @@ class ActivityErrorResources:
     def __init__(self):
         """Initialize ActivityErrorResources."""
         pass
+
+
+class ConfigurationErrorResources:
+    """
+    Error messages for environment configuration operations.
+
+    Error codes are organized in the range -66000 to -66999.
+    """
+
+    InvalidLoggingConfiguration = ErrorMessage(
+        "Invalid logging level configured: {0} = {1}",
+        -66011,
+    )

@@ -1,0 +1,29 @@
+test:
+- type: input
+  activity:
+    type: message
+    id: activity-stream-webchat-001
+    timestamp: '2025-06-18T18:47:46.000Z'
+    localTimestamp: '2025-06-18T11:47:46.000-07:00'
+    localTimezone: America/Los_Angeles
+    channelId: webchat
+    from:
+      id: user1
+      name: ''
+    conversation:
+      id: conversation-stream-webchat-001
+    recipient:
+      id: basic-agent@sometext
+      name: basic-agent
+    textFormat: plain
+    locale: en-US
+    text: stream
+    attachments: []
+    entities:
+    - type: ClientCapabilities
+      requiresBotState: true
+      supportsListening: true
+      supportsTts: true
+    channelData:
+      clientActivityID: client-activity-stream-webchat-001
+- type: skip

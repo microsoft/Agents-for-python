@@ -1,7 +1,7 @@
 import json
 from typing import Union
 
-from azure.core.credentials import TokenCredential
+from azure.core.credentials_async import AsyncTokenCredential
 from microsoft_agents.storage.cosmos.errors import storage_errors
 
 from .key_ops import sanitize_key
@@ -17,11 +17,11 @@ class CosmosDBStorageConfig:
         database_id: str = "",
         container_id: str = "",
         cosmos_client_options: dict = None,
-        container_throughput: int = 0,
+        container_throughput: int | None = None,
         key_suffix: str = "",
         compatibility_mode: bool = False,
         url: str = "",
-        credential: Union[TokenCredential, None] = None,
+        credential: Union[AsyncTokenCredential, None] = None,
         **kwargs,
     ):
         """Create the Config object.
@@ -55,14 +55,14 @@ class CosmosDBStorageConfig:
             "cosmos_client_options", {}
         )
         self.container_throughput: int = container_throughput or kwargs.get(
-            "container_throughput", 400
+            "container_throughput"
         )
         self.key_suffix: str = key_suffix or kwargs.get("key_suffix", "")
         self.compatibility_mode: bool = compatibility_mode or kwargs.get(
             "compatibility_mode", False
         )
         self.url = url or kwargs.get("url", "")
-        self.credential: Union[TokenCredential, None] = credential
+        self.credential: Union[AsyncTokenCredential, None] = credential
 
     @staticmethod
     def validate_cosmos_db_config(config: "CosmosDBStorageConfig") -> None:
@@ -71,10 +71,6 @@ class CosmosDBStorageConfig:
         This is used prior to the creation of the CosmosDBStorage object."""
         if not config:
             raise ValueError(str(storage_errors.CosmosDbConfigRequired))
-        if not config.cosmos_db_endpoint:
-            raise ValueError(str(storage_errors.CosmosDbEndpointRequired))
-        if not config.auth_key:
-            raise ValueError(str(storage_errors.CosmosDbAuthKeyRequired))
         if not config.database_id:
             raise ValueError(str(storage_errors.CosmosDbDatabaseIdRequired))
         if not config.container_id:
