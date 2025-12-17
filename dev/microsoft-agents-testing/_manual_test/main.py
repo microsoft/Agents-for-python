@@ -1,13 +1,13 @@
 import os
 import asyncio
 
+from dotenv import load_dotenv
+
 from microsoft_agents.testing import (
     AiohttpEnvironment,
     AgentClient,
 )
-from ..samples import QuickstartSample
-
-from dotenv import load_dotenv
+from .quickstart_sample import QuickstartSample
 
 
 async def main():

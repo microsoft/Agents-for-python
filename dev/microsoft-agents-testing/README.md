@@ -1,1311 +1,738 @@
-# Microsoft 365 Agents SDK for Python - Testing Framework
+# microsoft-agents-testing
 
-A comprehensive testing framework designed specifically for Microsoft 365 Agents SDK, providing essential utilities and abstractions to streamline integration testing, authentication, data-driven testing, and end-to-end agent validation.
+A comprehensive testing framework for Microsoft Agents in Python. This package provides powerful tools for integration testing, data-driven testing, assertion helpers, authentication utilities, and performance benchmarking for agents built with the Microsoft Agents SDK.
 
 ## Table of Contents
 
-- [Why This Package Exists](#why-this-package-exists)
-- [Key Features](#key-features)
-  - [Authentication Utilities](#authentication-utilities)
-  - [Integration Test Framework](#integration-test-framework)
-  - [Agent Communication Clients](#agent-communication-clients)
-  - [Data-Driven Testing](#data-driven-testing)
-  - [Advanced Assertions Framework](#advanced-assertions-framework)
-  - [Testing Utilities](#testing-utilities)
 - [Installation](#installation)
+- [Features](#features)
 - [Quick Start](#quick-start)
-- [Usage Guide](#usage-guide)
-- [Advanced Examples](#advanced-examples)
+- [Core Components](#core-components)
+  - [Integration Testing](#integration-testing)
+  - [Data-Driven Testing (DDT)](#data-driven-testing-ddt)
+  - [Assertions](#assertions)
+  - [Authentication](#authentication)
+  - [SDK Configuration](#sdk-configuration)
+- [CLI Tools](#cli-tools)
+- [Usage Examples](#usage-examples)
 - [API Reference](#api-reference)
-- [CI/CD Integration](#cicd-integration)
+- [Future Goals](#future-goals)
 - [Contributing](#contributing)
 
-## Why This Package Exists
-
-Building and testing conversational agents presents unique challenges that standard testing frameworks don't address. This package eliminates these pain points by providing powerful abstractions specifically designed for agent testing scenarios, including support for data-driven testing with YAML/JSON configurations.
-
-**Key Benefits:**
-- Write tests once in YAML/JSON, run them everywhere
-- Reduce boilerplate code with pre-built fixtures and clients
-- Validate complex conversation flows with declarative assertions
-- Maintain test suites that are easy to read and maintain
-- Integrate seamlessly with pytest and CI/CD pipelines
-
-## Key Features
-
-### 🔐 Authentication Utilities
-
-Generate OAuth2 access tokens for testing secured agents with Microsoft Authentication Library (MSAL) integration.
-
-**Features:**
-- Client credentials flow support
-- Environment variable configuration
-- SDK config integration
-
-**Example:**
-
-```python
-from microsoft_agents.testing import generate_token, generate_token_from_config
-
-# Generate token directly
-token = generate_token(
-    app_id="your-app-id",
-    app_secret="your-secret",
-    tenant_id="your-tenant"
-)
-
-# Or from SDK config
-token = generate_token_from_config(sdk_config)
-```
-
-### 🧪 Integration Test Framework
-
-Pre-built pytest fixtures and abstractions for agent integration testing.
-
-**Features:**
-- Pytest fixture integration
-- Environment abstraction for different hosting configurations
-- Sample management for test organization
-- Application lifecycle management
-- Automatic setup and teardown
-
-**Example:**
-
-```python
-from microsoft_agents.testing import Integration, AiohttpEnvironment, Sample
-
-class MyAgentSample(Sample):
-    async def init_app(self):
-        self.app = create_my_agent_app(self.env)
-    
-    @classmethod
-    async def get_config(cls):
-        return {"service_url": "http://localhost:3978"}
-
-class MyAgentTests(Integration):
-    _sample_cls = MyAgentSample
-    _environment_cls = AiohttpEnvironment
-    
-    @pytest.mark.asyncio
-    async def test_conversation_flow(self, agent_client, sample):
-        # Client and sample are automatically set up via fixtures
-        response = await agent_client.send_activity("Hello")
-        assert response is not None
-```
-
-### 🤖 Agent Communication Clients
-
-High-level clients for sending and receiving activities from agents under test.
-
-**Features:**
-- Simple text message sending
-- Full Activity object support
-- Automatic token management
-- Support for `expectReplies` delivery mode
-- Response collection and management
-
-**AgentClient Example:**
-
-```python
-from microsoft_agents.testing import AgentClient
-from microsoft_agents.activity import Activity, ActivityTypes
-
-client = AgentClient(
-    agent_url="http://localhost:3978",
-    cid="conversation-id",
-    client_id="your-client-id",
-    tenant_id="your-tenant-id",
-    client_secret="your-secret"
-)
-
-# Send simple text message
-response = await client.send_activity("What's the weather?")
-
-# Send full Activity object
-activity = Activity(type=ActivityTypes.message, text="Hello")
-response = await client.send_activity(activity)
-
-# Send with expectReplies delivery mode
-replies = await client.send_expect_replies("What can you do?")
-for reply in replies:
-    print(reply.text)
-```
-
-**ResponseClient Example:**
-
-```python
-from microsoft_agents.testing import ResponseClient
-
-# Create response client to collect agent responses
-async with ResponseClient(host="localhost", port=9873) as response_client:
-    # ... send activities with agent_client ...
-    
-    # Collect all responses
-    responses = await response_client.pop()
-    assert len(responses) > 0
-```
-
-### 📋 Data-Driven Testing
-
-Write test scenarios in YAML or JSON files and execute them automatically. Perfect for creating reusable test suites, regression tests, and living documentation.
-
-**Features:**
-- Declarative test definition in YAML/JSON
-- Parent/child file inheritance for shared defaults
-- Multiple step types (input, assertion, sleep, breakpoint)
-- Flexible assertions with selectors and quantifiers
-- Automatic test discovery and generation
-- Field-level assertion operators
-
-#### Using the @ddt Decorator
-
-The @ddt (data-driven tests) decorator automatically loads test files and generates pytest test methods:
-
-```python
-from microsoft_agents.testing import Integration, AiohttpEnvironment, ddt
-
-@ddt("tests/my_agent/test_cases", recursive=True)
-class TestMyAgent(Integration):
-    _sample_cls = MyAgentSample
-    _environment_cls = AiohttpEnvironment
-    _agent_url = "http://localhost:3978"
-    _cid = "test-conversation"
-```
-
-This will:
-1. Load all `.yaml` and `.json` files from `tests/my_agent/test_cases` (and subdirectories if `recursive=True`)
-2. Create a pytest test method for each file (e.g., `test_data_driven__greeting_test`)
-3. Execute the test flow defined in each file
-
-#### Test File Format
-
-**Shared Defaults (parent.yaml):**
-
-```yaml
-name: directline
-defaults:
-  input:
-    activity:
-      channelId: directline
-      locale: en-US
-      serviceUrl: http://localhost:56150
-      deliveryMode: expectReplies
-      conversation:
-        id: conv1
-      from:
-        id: user1
-        name: User
-      recipient:
-        id: bot
-        name: Bot
-```
-
-**Test File (greeting_test.yaml):**
-
-```yaml
-parent: parent.yaml
-name: greeting_test
-description: Test basic greeting conversation
-test:
-  - type: input
-    activity:
-      type: message
-      text: hello world
-  
-  - type: assertion
-    selector:
-      activity:
-        type: message
-    activity:
-      type: message
-      text: "[0] You said: hello world"
-  
-  - type: input
-    activity:
-      type: message
-      text: hello again
-  
-  - type: assertion
-    selector:
-      index: -1  # Select the last matching activity
-      activity:
-        type: message
-    activity:
-      type: message
-      text: "[1] You said: hello again"
-```
-
-#### Test Step Types
-
-##### Input Steps
-
-Send activities to the agent under test:
-
-```yaml
-- type: input
-  activity:
-    type: message
-    text: "What's the weather?"
-```
-
-With overrides:
-
-```yaml
-- type: input
-  activity:
-    type: message
-    text: "Hello"
-    locale: "fr-FR"  # Override default locale
-    channelData:
-      custom: "value"
-```
-
-##### Assertion Steps
-
-Verify agent responses with flexible matching:
-
-```yaml
-- type: assertion
-  quantifier: all  # Options: all, any, one, none
-  selector:
-    index: 0  # Optional: select by index (0, -1, etc.)
-    activity:
-      type: message  # Filter by activity fields
-  activity:
-    type: message
-    text: ["CONTAINS", "sunny"]  # Use operators for flexible matching
-```
-
-**Quantifiers:**
-- `all` (default): Every selected activity must match
-- `any`: At least one activity must match
-- `one`: Exactly one activity must match
-- `none`: No activities should match
-
-**Selectors:**
-- `activity`: Filter activities by field values
-- `index`: Select specific activity by index (supports negative indices)
-
-**Field Assertion Operators:**
-- `["CONTAINS", "substring"]`: Check if string contains substring
-- `["NOT_CONTAINS", "substring"]`: Check if string doesn't contain substring
-- `["RE_MATCH", "pattern"]`: Check if string matches regex pattern
-- `["IN", [list]]`: Check if value is in list
-- `["NOT_IN", [list]]`: Check if value is not in list
-- `["EQUALS", value]`: Explicit equality check
-- `["NOT_EQUALS", value]`: Explicit inequality check
-- `["GREATER_THAN", number]`: Numeric comparison
-- `["LESS_THAN", number]`: Numeric comparison
-- Direct value: Implicit equality check
-
-##### Sleep Steps
-
-Add delays between operations:
-
-```yaml
-- type: sleep
-  duration: 0.5  # seconds
-```
-
-With default duration:
-
-```yaml
-defaults:
-  sleep:
-    duration: 0.2
-
-test:
-  - type: sleep  # Uses default duration
-```
-
-##### Breakpoint Steps
-
-Pause execution for debugging:
-
-```yaml
-- type: breakpoint
-```
-
-When the test reaches this step, it will trigger a Python breakpoint, allowing you to inspect state in a debugger.
-
-#### Loading Tests Programmatically
-
-Load and run tests manually without the decorator:
-
-```python
-from microsoft_agents.testing import load_ddts, DataDrivenTest
-
-# Load all test files from a directory
-tests = load_ddts("tests/my_agent", recursive=True)
-
-# Run specific tests
-for test in tests:
-    print(f"Running: {test.name}")
-    await test.run(agent_client, response_client)
-```
-
-Load from specific file:
-
-```python
-tests = load_ddts("tests/greeting_test.yaml", recursive=False)
-test = tests[0]
-await test.run(agent_client, response_client)
-```
-
-### ✅ Advanced Assertions Framework
-
-Powerful assertion system for validating agent responses with flexible matching criteria.
-
-#### ModelAssertion
-
-Create assertions for validating lists of activities:
-
-```python
-from microsoft_agents.testing import ModelAssertion, Selector, AssertionQuantifier
-
-# Create an assertion
-assertion = ModelAssertion(
-    assertion={"type": "message", "text": "Hello"},
-    selector=Selector(selector={"type": "message"}),
-    quantifier=AssertionQuantifier.ALL
-)
-
-# Test activities
-activities = [...]  # List of Activity objects
-passes, error = assertion.check(activities)
-
-# Or use as callable (raises AssertionError on failure)
-assertion(activities)
-```
-
-From configuration dictionary:
-
-```python
-config = {
-    "activity": {"type": "message", "text": "Hello"},
-    "selector": {"activity": {"type": "message"}},
-    "quantifier": "all"
-}
-assertion = ModelAssertion.from_config(config)
-```
-
-#### Selectors
-
-Filter activities before validation:
-
-```python
-from microsoft_agents.testing import Selector
-
-# Select all message activities
-selector = Selector(selector={"type": "message"})
-messages = selector(activities)
-
-# Select the first message activity
-selector = Selector(selector={"type": "message"}, index=0)
-first_message = selector.select_first(activities)
-
-# Select the last message activity
-selector = Selector(selector={"type": "message"}, index=-1)
-last_message = selector(activities)[0]
-
-# Select by multiple fields
-selector = Selector(selector={
-    "type": "message",
-    "locale": "en-US",
-    "channelId": "directline"
-})
-```
-
-From configuration:
-
-```python
-config = {
-    "activity": {"type": "message"},
-    "index": -1
-}
-selector = Selector.from_config(config)
-```
-
-#### Quantifiers
-
-Control how many activities must match the assertion:
-
-```python
-from microsoft_agents.testing import AssertionQuantifier
-
-# ALL: Every selected activity must match (default)
-quantifier = AssertionQuantifier.ALL
-
-# ANY: At least one activity must match
-quantifier = AssertionQuantifier.ANY
-
-# ONE: Exactly one activity must match
-quantifier = AssertionQuantifier.ONE
-
-# NONE: No activities should match
-quantifier = AssertionQuantifier.NONE
-
-# From string
-quantifier = AssertionQuantifier.from_config("all")
-```
-
-#### Field Assertions
-
-Test individual fields with operators:
-
-```python
-from microsoft_agents.testing import check_field, FieldAssertionType
-
-# String contains
-result = check_field("Hello world", ["CONTAINS", "world"])  # True
-
-# Regex match
-result = check_field("ID-12345", ["RE_MATCH", r"ID-\d+"])  # True
-
-# Value in list
-result = check_field(5, ["IN", [1, 3, 5, 7]])  # True
-
-# Value not in list
-result = check_field(2, ["NOT_IN", [1, 3, 5, 7]])  # True
-
-# Numeric comparisons
-result = check_field(10, ["GREATER_THAN", 5])  # True
-result = check_field(3, ["LESS_THAN", 10])  # True
-
-# String doesn't contain
-result = check_field("Hello", ["NOT_CONTAINS", "world"])  # True
-
-# Exact equality
-result = check_field("test", "test")  # True
-result = check_field(42, ["EQUALS", 42])  # True
-
-# Inequality
-result = check_field("foo", ["NOT_EQUALS", "bar"])  # True
-```
-
-Verbose checking with error details:
-
-```python
-from microsoft_agents.testing import check_field_verbose
-
-passes, error_data = check_field_verbose("Hello", ["CONTAINS", "world"])
-if not passes:
-    print(f"Field: {error_data.field_path}")
-    print(f"Actual: {error_data.actual_value}")
-    print(f"Expected: {error_data.assertion}")
-    print(f"Type: {error_data.assertion_type}")
-```
-
-#### Activity Assertions
-
-Check entire activities:
-
-```python
-from microsoft_agents.testing import check_model, assert_model
-
-activity = Activity(type="message", text="Hello", locale="en-US")
-
-# Check without raising exception
-assertion = {"type": "message", "text": ["CONTAINS", "Hello"]}
-result = check_activity(activity, assertion)  # True
-
-# Check with detailed error information
-passes, error_data = check_activity_verbose(activity, assertion)
-
-# Assert with exception on failure
-assert_model(activity, assertion)  # Raises AssertionError if fails
-```
-
-Nested field checking:
-
-```python
-assertion = {
-    "type": "message",
-    "channelData": {
-        "user": {
-            "id": ["RE_MATCH", r"user-\d+"]
-        }
-    }
-}
-assert_model(activity, assertion)
-```
-
-### 🛠️ Testing Utilities
-
-Helper functions for common testing operations.
-
-#### populate_activity
-
-Fill activity objects with default values:
-
-```python
-from microsoft_agents.testing import populate_activity
-from microsoft_agents.activity import Activity
-
-defaults = {
-    "service_url": "http://localhost",
-    "channel_id": "test",
-    "locale": "en-US"
-}
-
-activity = Activity(type="message", text="Hello")
-activity = populate_activity(activity, defaults)
-
-# activity now has service_url, channel_id, and locale set
-```
-
-#### get_host_and_port
-
-Parse URLs to extract host and port:
-
-```python
-from microsoft_agents.testing import get_host_and_port
-
-host, port = get_host_and_port("http://localhost:3978/api/messages")
-# Returns: ("localhost", 3978)
-
-host, port = get_host_and_port("https://myagent.azurewebsites.net")
-# Returns: ("myagent.azurewebsites.net", 443)
-```
-
 ## Installation
+
+### Standard Installation
 
 ```bash
 pip install microsoft-agents-testing
 ```
 
-For development:
+### Development Installation (Editable Mode)
+
+For active development:
 
 ```bash
-pip install microsoft-agents-testing[dev]
+pip install -e ./microsoft-agents-testing/ --config-settings editable_mode=compat
 ```
+
+### Requirements
+
+- Python >= 3.10
+- Dependencies:
+  - `microsoft-agents-activity`
+  - `microsoft-agents-hosting-core`
+  - `microsoft-agents-authentication-msal`
+  - `microsoft-agents-hosting-aiohttp`
+  - `pyjwt>=2.10.1`
+  - `isodate>=0.6.1`
+  - `azure-core>=1.30.0`
+  - `python-dotenv>=1.1.1`
+
+## Features
+
+✅ **Integration Testing Framework** - Full-featured integration testing with pytest support  
+✅ **Data-Driven Testing** - YAML-based test definitions for declarative testing  
+✅ **Flexible Assertions** - Advanced model and field assertion capabilities  
+✅ **Authentication Helpers** - OAuth token generation for Azure Bot Service  
+✅ **CLI Tools** - Command-line interface for testing and benchmarking  
+✅ **Performance Benchmarking** - Load testing with concurrent workers  
+✅ **Response Mocking** - Built-in mock service for testing agent responses  
+✅ **Activity Utilities** - Helper functions for activity manipulation
 
 ## Quick Start
 
-### Traditional Integration Testing
+### 1. Set Up Environment
+
+Create a `.env` file with your Azure Bot Service credentials:
+
+```env
+CONNECTIONS__SERVICE_CONNECTION__SETTINGS__CLIENTID=your-client-id
+CONNECTIONS__SERVICE_CONNECTION__SETTINGS__TENANTID=your-tenant-id
+CONNECTIONS__SERVICE_CONNECTION__SETTINGS__CLIENTSECRET=your-client-secret
+```
+
+### 2. Basic Integration Test
 
 ```python
 import pytest
-from microsoft_agents.testing import Integration, AiohttpEnvironment, Sample
-from microsoft_agents.activity import Activity
+from microsoft_agents.testing import Integration, ddt
 
-class MyAgentSample(Sample):
-    async def init_app(self):
-        # Initialize your agent application
-        from my_agent import create_app
-        self.app = create_app(self.env)
-    
-    @classmethod
-    async def get_config(cls):
-        return {
-            "service_url": "http://localhost:3978",
-            "app_id": "test-app-id",
-        }
-
+@ddt("tests/my_agent/directline")
 class TestMyAgent(Integration):
-    _sample_cls = MyAgentSample
-    _environment_cls = AiohttpEnvironment
-    
-    _agent_url = "http://localhost:3978"
-    _cid = "test-conversation"
-    
-    @pytest.mark.asyncio
-    async def test_greeting(self, agent_client):
-        response = await agent_client.send_activity("Hello")
-        assert "Hi there" in response
-    
-    @pytest.mark.asyncio
-    async def test_conversation(self, agent_client):
-        replies = await agent_client.send_expect_replies("What can you do?")
-        assert len(replies) > 0
-        assert replies[0].type == "message"
+    _agent_url = "http://localhost:3978/"
+    _service_url = "http://localhost:8001/"
+    _config_path = ".env"
 ```
 
-### Data-Driven Testing
-
-**Step 1:** Create test YAML files in `tests` directory
-
-```yaml
-# tests/greeting.yaml
-name: greeting_test
-description: Test basic greeting functionality
-defaults:
-  input:
-    activity:
-      type: message
-      locale: en-US
-      channelId: directline
-test:
-  - type: input
-    activity:
-      text: Hello
-  
-  - type: assertion
-    activity:
-      type: message
-      text: ["CONTAINS", "Hi"]
-```
-
-**Step 2:** Add the @ddt decorator to your test class
-
-```python
-from microsoft_agents.testing import Integration, AiohttpEnvironment, ddt
-
-@ddt("tests", recursive=True)
-class TestMyAgent(Integration):
-    _sample_cls = MyAgentSample
-    _environment_cls = AiohttpEnvironment
-    _agent_url = "http://localhost:3978"
-```
-
-**Step 3:** Run tests with pytest
+### 3. Run Data-Driven Tests via CLI
 
 ```bash
-pytest tests/ -v
+aclip --env_path .env ddt ./tests/my_test.yaml
 ```
 
-Output:
-```
-tests/test_my_agent.py::TestMyAgent::test_data_driven__greeting_test PASSED
-```
-
-## Usage Guide
-
-### Setting Up Authentication
-
-#### From Environment Variables
+### 4. Generate Authentication Token
 
 ```python
-import os
 from microsoft_agents.testing import generate_token
 
 token = generate_token(
-    app_id=os.getenv("CLIENT_ID"),
-    app_secret=os.getenv("CLIENT_SECRET"),
-    tenant_id=os.getenv("TENANT_ID")
+    app_id="your-app-id",
+    app_secret="your-secret",
+    tenant_id="your-tenant-id"
 )
 ```
 
-#### From SDK Config
+## Core Components
+
+### Integration Testing
+
+The `Integration` class provides a complete pytest-based integration testing framework with fixtures for environment setup, agent clients, and response handling.
+
+#### Key Features:
+- Automatic environment initialization
+- Agent client management with authentication
+- Response client for mocking service endpoints
+- Configurable service and agent URLs
+- Support for multiple test environments
+
+#### Example:
 
 ```python
-from microsoft_agents.testing import SDKConfig, generate_token_from_config
+import pytest
+from microsoft_agents.testing import Integration, ddt
 
-config = SDKConfig()
-# config loads from environment or config file
-token = generate_token_from_config(config)
-```
-
-### Creating Custom Environments
-
-```python
-from microsoft_agents.testing import Environment
-from aiohttp import web
-
-class MyCustomEnvironment(Environment):
-    async def init_env(self, config: dict):
-        # Custom initialization
-        self.config = config
-        # Set up any required services, databases, etc.
+@ddt("tests/basic_agent/directline", prefix="directline")
+class TestBasicAgent(Integration):
+    _agent_url = "http://localhost:3978/"
+    _service_url = "http://localhost:8001/"
+    _config_path = "agents/basic_agent/.env"
     
-    def create_runner(self, host: str, port: int):
-        # Return application runner
-        from my_agent import create_app
-        app = create_app(self)
-        return MyAppRunner(app, host, port)
+    # Tests are automatically generated from YAML files
 ```
 
-### Writing Complex Assertions
+### Data-Driven Testing (DDT)
+
+Data-driven testing allows you to define test scenarios in YAML files, making tests declarative, maintainable, and easy to understand.
+
+#### YAML Test Structure:
 
 ```yaml
-test:
-  - type: input
-    activity:
-      type: message
-      text: "Get user profile for user123"
-  
-  - type: assertion
-    quantifier: one
-    selector:
-      activity:
-        type: message
-    activity:
-      type: message
-      text: ["RE_MATCH", ".*user123.*"]
-      attachments:
-        - contentType: "application/vnd.microsoft.card.adaptive"
-      channelData:
-        userId: "user123"
-```
+name: SendActivity_ConversationUpdate_ReturnsWelcomeMessage
+description: Tests that a conversation update activity triggers a welcome message
 
-## Advanced Examples
-
-### Complex Weather Conversation
-
-```yaml
-name: weather_conversation
-description: Test multi-turn weather conversation flow
 defaults:
   input:
     activity:
-      type: message
       channelId: directline
       locale: en-US
-      conversation:
-        id: weather-conv-1
   assertion:
     quantifier: all
-test:
-  # Initial weather query
-  - type: input
-    activity:
-      text: "What's the weather in Seattle?"
-  
-  - type: assertion
-    selector:
-      activity:
-        type: message
-    activity:
-      type: message
-      text: ["CONTAINS", "Seattle"]
-  
-  # Wait for async processing
-  - type: sleep
-    duration: 0.2
-  
-  # Follow-up question
-  - type: input
-    activity:
-      text: "What about tomorrow?"
-  
-  - type: assertion
-    selector:
-      activity:
-        type: message
-    activity:
-      type: message
-      text: ["RE_MATCH", "tomorrow.*forecast"]
-  
-  # Verify we got exactly one final response
-  - type: assertion
-    quantifier: one
-    selector:
-      index: -1
-      activity:
-        type: message
-    activity:
-      type: message
-```
 
-### Testing Invoke Activities
-
-```yaml
-parent: parent.yaml
-name: test_invoke_profile
-test:
-  - type: input
-    activity:
-      type: invoke
-      name: getUserProfile
-      value:
-        userId: "12345"
-  
-  # Ensure we don't get error responses
-  - type: assertion
-    quantifier: none
-    activity:
-      type: invokeResponse
-      value:
-        status: ["IN", [400, 404, 500]]
-  
-  # Verify successful response
-  - type: assertion
-    selector:
-      activity:
-        type: invokeResponse
-    activity:
-      type: invokeResponse
-      value:
-        status: 200
-        body:
-          userId: "12345"
-          name: ["CONTAINS", "John"]
-          email: ["RE_MATCH", ".*@example\\.com"]
-```
-
-### Testing Conversation Update
-
-```yaml
-parent: parent.yaml
-name: conversation_update_test
 test:
   - type: input
     activity:
       type: conversationUpdate
-      membersAdded:
-        - id: bot-id
-          name: bot
-        - id: user
       from:
-        id: user
-      recipient:
-        id: bot-id
-        name: bot
-      channelData:
-        clientActivityId: "123"
+        id: user1
+      conversation:
+        id: conversation-001
+      membersAdded:
+        - id: bot@serviceurl
+          name: bot
+        - id: user1
   
   - type: assertion
     selector:
-      activity:
-        type: message
+      index: -1
     activity:
       type: message
       text: ["CONTAINS", "Hello and Welcome!"]
 ```
 
-### Conditional Responses
+#### Test Step Types:
+
+- **`input`** - Send an activity to the agent
+- **`assertion`** - Assert expected responses
+- **`sleep`** - Wait for a specified duration
+- **`breakpoint`** - Trigger a debugger breakpoint
+- **`skip`** - Skip the current step
+
+#### Defaults System:
+
+You can define defaults for inputs, assertions, and sleep durations to reduce repetition:
 
 ```yaml
-test:
-  - type: input
+defaults:
+  input:
     activity:
-      text: "Show me options"
-  
-  # Verify at least one message was sent
-  - type: assertion
-    quantifier: any
-    selector:
-      activity:
-        type: message
-    activity:
-      type: message
-  
-  # Verify adaptive card was included
-  - type: assertion
-    quantifier: one
-    selector:
-      activity:
-        attachments:
-          - contentType: "application/vnd.microsoft.card.adaptive"
-    activity:
-      type: message
+      channelId: directline
+      locale: en-US
+      textFormat: plain
+  assertion:
+    quantifier: all
+  sleep:
+    duration: 0.5
 ```
 
-### Testing with Message Reactions
+#### Parent/Child Test Inheritance:
+
+Tests can inherit defaults from parent test files:
 
 ```yaml
-parent: parent.yaml
+parent: _parent.yaml
+
+name: ChildTest
 test:
-  # Send initial message
   - type: input
     activity:
-      type: message
-      text: "Great job!"
-      id: "msg-123"
-  
-  # Add a reaction
-  - type: input
-    activity:
-      type: messageReaction
-      reactionsAdded:
-        - type: like
-      replyToId: "msg-123"
-  
-  - type: assertion
-    selector:
-      activity:
-        type: message
-    activity:
-      type: message
-      text: ["CONTAINS", "Thanks for the reaction"]
+      text: "Hello"
+```
+
+### Assertions
+
+Powerful assertion system for validating agent responses with support for nested object validation and flexible matching.
+
+#### Field Assertions
+
+```python
+from microsoft_agents.testing import assert_field, FieldAssertionType
+
+# Exact match
+assert_field(activity.text, "Hello", FieldAssertionType.EQUALS)
+
+# Contains check
+assert_field(activity.text, "Hello", FieldAssertionType.CONTAINS)
+
+# Exists check
+assert_field(activity.text, None, FieldAssertionType.EXISTS)
+```
+
+#### Model Assertions
+
+```python
+from microsoft_agents.testing import assert_model, ModelAssertion
+from microsoft_agents.activity import Activity
+
+# Simple assertion
+expected = Activity(type="message", text="Hello")
+assert_model(actual_activity, expected)
+
+# Advanced assertion with selector
+assertion = ModelAssertion(
+    assertion={"type": "message", "text": ["CONTAINS", "Hello"]},
+    selector=ModelSelector(index=-1),
+    quantifier=AssertionQuantifier.ALL
+)
+
+# Check multiple activities
+passes, error = assertion.check(activity_list)
+assert passes, error
+```
+
+#### Assertion Quantifiers:
+
+- **`ALL`** - All selected items must match
+- **`ONE`** - Exactly one item must match
+- **`NONE`** - No items should match
+
+#### Model Selector:
+
+```python
+from microsoft_agents.testing import ModelSelector
+
+# Select by index
+selector = ModelSelector(index=-1)  # Last item
+
+# Select by model properties
+selector = ModelSelector(model={"type": "message"})
+
+# Select first match
+first_match = selector.select_first(activities)
+```
+
+### Authentication
+
+Generate OAuth tokens for testing against Azure Bot Service.
+
+```python
+from microsoft_agents.testing import generate_token, generate_token_from_config
+from microsoft_agents.testing import SDKConfig
+
+# Direct token generation
+token = generate_token(
+    app_id="your-app-id",
+    app_secret="your-secret",
+    tenant_id="your-tenant-id"
+)
+
+# Token from configuration
+config = SDKConfig(env_path=".env")
+token = generate_token_from_config(config)
+```
+
+### SDK Configuration
+
+The `SDKConfig` class loads and provides access to SDK configuration from `.env` files or environment variables.
+
+```python
+from microsoft_agents.testing import SDKConfig
+
+# Load configuration
+config = SDKConfig(env_path=".env")
+
+# Get connection settings
+connection = config.get_connection("SERVICE_CONNECTION")
+
+# Access configuration dictionary
+config_dict = config.config
+```
+
+## CLI Tools
+
+The package includes a powerful CLI tool accessible via the `aclip` command.
+
+### Available Commands
+
+#### 1. Data-Driven Testing
+
+Run data-driven tests from YAML files:
+
+```bash
+aclip --env_path .env ddt ./tests/my_test.yaml --service_url http://localhost:8001/
+```
+
+Options:
+- `--env_path` - Path to environment file (default: `.env`)
+- `--service_url` - Service URL for responses (default: `http://localhost:8001/`)
+- `--pytest-args` - Arguments to pass to pytest (default: `-v -s`)
+
+#### 2. Authentication Test Server
+
+Run a test authentication server:
+
+```bash
+aclip --env_path .env auth --port 3978
+```
+
+Options:
+- `--port` - Port to run the server on (default: `3978`)
+
+#### 3. Post Activity
+
+Send a single activity to an agent:
+
+```bash
+aclip --env_path .env post --payload_path ./payload.json
+```
+
+Options:
+- `--payload_path` / `-p` - Path to payload JSON file (default: `./payload.json`)
+- `--verbose` / `-v` - Enable verbose logging
+- `--async_mode` / `-a` - Run with coroutine workers
+
+#### 4. Benchmarking
+
+Run performance benchmarks against your agent:
+
+```bash
+aclip --env_path .env benchmark --payload_path ./payload.json --num_workers 10
+```
+
+Options:
+- `--payload_path` / `-p` - Path to payload JSON file
+- `--num_workers` / `-n` - Number of concurrent workers (default: `1`)
+- `--verbose` / `-v` - Enable verbose logging
+- `--async_mode` / `-a` - Use coroutine workers instead of threads
+
+The benchmark command provides:
+- Aggregated results with min/max/mean/median duration
+- Success/failure rates
+- Timeline visualization
+- Throughput metrics
+
+## Usage Examples
+
+### Complete Integration Test Example
+
+```python
+import pytest
+from microsoft_agents.testing import (
+    Integration,
+    AgentClient,
+    ResponseClient,
+    ddt,
+)
+
+@ddt("tests/my_agent/directline")
+class TestMyAgentIntegration(Integration):
+    _agent_url = "http://localhost:3978/"
+    _service_url = "http://localhost:8001/"
+    _config_path = ".env"
+
+    @pytest.mark.asyncio
+    async def test_custom_scenario(
+        self,
+        agent_client: AgentClient,
+        response_client: ResponseClient
+    ):
+        # Send activity
+        await agent_client.send_activity("Hello")
+        
+        # Get responses
+        responses = await response_client.pop()
+        
+        # Assert
+        assert len(responses) > 0
+        assert responses[0].text == "Hello! How can I help you?"
+```
+
+### Manual Agent Client Usage
+
+```python
+import asyncio
+from microsoft_agents.testing import AgentClient
+from microsoft_agents.activity import Activity
+
+async def test_agent():
+    client = AgentClient(
+        agent_url="http://localhost:3978/",
+        cid="conversation-id",
+        client_id="your-client-id",
+        tenant_id="your-tenant-id",
+        client_secret="your-secret",
+        service_url="http://localhost:8001/"
+    )
+    
+    try:
+        # Send expect-replies activity
+        replies = await client.send_expect_replies(
+            Activity(text="Hello", type="message")
+        )
+        
+        for reply in replies:
+            print(f"Reply: {reply.text}")
+    
+    finally:
+        await client.close()
+
+asyncio.run(test_agent())
+```
+
+### Custom Sample and Environment
+
+```python
+from microsoft_agents.testing import (
+    Sample,
+    Environment,
+    AiohttpEnvironment,
+)
+from aiohttp import web
+
+class MySample(Sample):
+    async def init_app(self):
+        # Initialize your application
+        self.app = web.Application()
+        # Configure routes, etc.
+        return self.app
+    
+    @classmethod
+    async def get_config(cls) -> dict:
+        return {
+            "CLIENT_ID": "your-client-id",
+            "TENANT_ID": "your-tenant-id",
+            "CLIENT_SECRET": "your-secret",
+        }
+
+# Use in tests
+class TestMySample(Integration):
+    _sample_cls = MySample
+    _environment_cls = AiohttpEnvironment
+    _agent_url = "http://localhost:3978/"
+    _service_url = "http://localhost:8001/"
+```
+
+### Utility Functions
+
+```python
+from microsoft_agents.testing import populate_activity, get_host_and_port
+from microsoft_agents.activity import Activity
+
+# Populate activity with defaults
+defaults = Activity(channelId="directline", locale="en-US")
+activity = Activity(type="message", text="Hello")
+populated = populate_activity(activity, defaults)
+
+# Parse URL
+host, port = get_host_and_port("http://localhost:3978/")
+# host = "localhost", port = 3978
 ```
 
 ## API Reference
 
 ### Classes
 
-#### Integration
+#### `Integration`
 Base class for integration tests with pytest fixtures.
 
-```python
-class Integration:
-    _sample_cls: type[Sample]
-    _environment_cls: type[Environment]
-    _agent_url: str
-    _service_url: str
-    _cid: str
-    _client_id: str
-    _tenant_id: str
-    _client_secret: str
-    
-    @pytest.fixture
-    async def environment(self) -> Environment: ...
-    
-    @pytest.fixture
-    async def sample(self, environment) -> Sample: ...
-    
-    @pytest.fixture
-    async def agent_client(self, sample, environment) -> AgentClient: ...
-    
-    @pytest.fixture
-    async def response_client(self) -> ResponseClient: ...
-```
+**Properties:**
+- `service_url` - Service URL for responses
+- `agent_url` - Agent URL for sending activities
 
-#### AgentClient
-Client for sending activities to agents.
+**Fixtures:**
+- `environment()` - Test environment instance
+- `sample()` - Sample application instance
+- `agent_client()` - Agent client for sending activities
+- `response_client()` - Response client for receiving activities
 
-```python
-class AgentClient:
-    def __init__(
-        self,
-        agent_url: str,
-        cid: str,
-        client_id: str,
-        tenant_id: str,
-        client_secret: str,
-        service_url: Optional[str] = None,
-        default_timeout: float = 5.0,
-        default_activity_data: Optional[Activity | dict] = None
-    ): ...
-    
-    async def send_activity(
-        self,
-        activity_or_text: Activity | str,
-        sleep: float = 0,
-        timeout: Optional[float] = None
-    ) -> str: ...
-    
-    async def send_expect_replies(
-        self,
-        activity_or_text: Activity | str,
-        sleep: float = 0,
-        timeout: Optional[float] = None
-    ) -> list[Activity]: ...
-    
-    async def close(self) -> None: ...
-```
+**Methods:**
+- `setup_method()` - Initialize test configuration
+- `create_agent_client()` - Create agent client instance
 
-#### ResponseClient
-Client for receiving activities from agents.
+#### `AgentClient`
+Client for sending activities to an agent.
 
-```python
-class ResponseClient:
-    def __init__(self, host: str = "localhost", port: int = 9873): ...
-    
-    async def pop(self) -> list[Activity]: ...
-    
-    async def __aenter__(self) -> ResponseClient: ...
-    async def __aexit__(self, exc_type, exc_val, exc_tb) -> None: ...
-```
+**Constructor Parameters:**
+- `agent_url` - Agent endpoint URL
+- `cid` - Conversation ID
+- `client_id` - Azure AD client ID
+- `tenant_id` - Azure AD tenant ID
+- `client_secret` - Azure AD client secret
+- `service_url` - Service URL for callbacks
+- `default_activity_data` - Default activity values
+- `default_sleep` - Default sleep duration after sending
 
-#### DataDrivenTest
-Runner for YAML/JSON test definitions.
+**Methods:**
+- `send_activity(activity_or_text, sleep)` - Send an activity
+- `send_expect_replies(activity, sleep)` - Send and expect replies
+- `send_invoke_activity(activity, sleep)` - Send invoke activity
+- `close()` - Close the client session
 
-```python
-class DataDrivenTest:
-    def __init__(self, test_flow: dict) -> None: ...
-    
-    @property
-    def name(self) -> str: ...
-    
-    async def run(
-        self,
-        agent_client: AgentClient,
-        response_client: ResponseClient
-    ) -> None: ...
-```
+#### `ResponseClient`
+Mock service for receiving agent responses.
 
-#### ModelAssertion
-Assertion engine for validating activities.
+**Constructor Parameters:**
+- `host` - Host address (default: `localhost`)
+- `port` - Port number (default: `9873`)
 
-```python
-class ModelAssertion:
-    def __init__(
-        self,
-        assertion: dict | Activity | None = None,
-        selector: Selector | None = None,
-        quantifier: AssertionQuantifier = AssertionQuantifier.ALL
-    ): ...
-    
-    def check(self, activities: list[Activity]) -> tuple[bool, Optional[str]]: ...
-    
-    def __call__(self, activities: list[Activity]) -> None: ...
-    
-    @staticmethod
-    def from_config(config: dict) -> ModelAssertion: ...
-```
+**Methods:**
+- `pop()` - Retrieve and clear received activities
+- `__aenter__()` / `__aexit__()` - Async context manager support
 
-#### Selector
-Filter activities based on criteria.
+#### `DataDrivenTest`
+Runner for YAML-based data-driven tests.
 
-```python
-class Selector:
-    def __init__(
-        self,
-        selector: dict | Activity | None = None,
-        index: int | None = None
-    ): ...
-    
-    def select(self, activities: list[Activity]) -> list[Activity]: ...
-    
-    def select_first(self, activities: list[Activity]) -> Activity | None: ...
-    
-    def __call__(self, activities: list[Activity]) -> list[Activity]: ...
-    
-    @staticmethod
-    def from_config(config: dict) -> Selector: ...
-```
+**Constructor Parameters:**
+- `test_flow` - Dictionary containing test configuration
 
-#### AssertionQuantifier
-Quantifiers for assertions.
+**Properties:**
+- `name` - Test name
 
-```python
-class AssertionQuantifier(str, Enum):
-    ALL = "ALL"
-    ANY = "ANY"
-    ONE = "ONE"
-    NONE = "NONE"
-    
-    @staticmethod
-    def from_config(value: str) -> AssertionQuantifier: ...
-```
+**Methods:**
+- `run(agent_client, response_client)` - Execute the test
 
-#### FieldAssertionType
-Types of field assertions.
+#### `ModelAssertion`
+Advanced assertion for model validation.
 
-```python
-class FieldAssertionType(str, Enum):
-    EQUALS = "EQUALS"
-    NOT_EQUALS = "NOT_EQUALS"
-    GREATER_THAN = "GREATER_THAN"
-    LESS_THAN = "LESS_THAN"
-    CONTAINS = "CONTAINS"
-    NOT_CONTAINS = "NOT_CONTAINS"
-    IN = "IN"
-    NOT_IN = "NOT_IN"
-    RE_MATCH = "RE_MATCH"
-```
+**Constructor Parameters:**
+- `assertion` - Expected model or dict
+- `selector` - Model selector for filtering
+- `quantifier` - Assertion quantifier (ALL, ONE, NONE)
 
-### Decorators
+**Methods:**
+- `check(items)` - Check items against assertion
+- `from_config(config)` - Create from configuration dict
 
-#### @ddt
-Load and execute data-driven tests.
+#### `ModelSelector`
+Selector for filtering models.
 
-```python
-def ddt(test_path: str, recursive: bool = True) -> Callable:
-    """
-    Decorator to add data-driven tests to an integration test class.
-    
-    :param test_path: Path to test files directory
-    :param recursive: Load tests from subdirectories
-    """
-```
+**Constructor Parameters:**
+- `model` - Model pattern to match
+- `index` - Index to select
+
+**Methods:**
+- `select(items)` - Select matching items
+- `select_first(items)` - Select first match
+
+#### `SDKConfig`
+Configuration loader for SDK settings.
+
+**Constructor Parameters:**
+- `env_path` - Path to .env file
+- `load_into_environment` - Load into environment variables
+
+**Properties:**
+- `config` - Configuration dictionary (read-only copy)
+
+**Methods:**
+- `get_connection(connection_name)` - Get connection settings
 
 ### Functions
 
-#### generate_token
-Generate OAuth2 access token.
+#### `generate_token(app_id, app_secret, tenant_id)`
+Generate OAuth token for Azure Bot Service.
 
-```python
-def generate_token(app_id: str, app_secret: str, tenant_id: str) -> str: ...
-```
+#### `generate_token_from_config(sdk_config)`
+Generate token from SDK configuration.
 
-#### generate_token_from_config
-Generate token from SDK config.
+#### `assert_field(actual_value, assertion, assertion_type)`
+Assert a specific field value.
 
-```python
-def generate_token_from_config(sdk_config: SDKConfig) -> str: ...
-```
+#### `assert_model(model, assertion)`
+Assert an entire model matches expected structure.
 
-#### load_ddts
-Load data-driven test files.
+#### `check_field(actual_value, assertion, assertion_type)`
+Check field value without asserting.
 
-```python
-def load_ddts(
-    path: str | Path | None = None,
-    recursive: bool = False
-) -> list[DataDrivenTest]: ...
-```
+#### `check_model(model, assertion)`
+Check model without asserting.
 
-#### populate_activity
-Fill activity with default values.
+#### `populate_activity(original, defaults)`
+Populate activity with default values.
 
-```python
-def populate_activity(
-    activity: Activity,
-    defaults: dict | Activity
-) -> Activity: ...
-```
-
-#### get_host_and_port
+#### `get_host_and_port(url)`
 Parse host and port from URL.
 
-```python
-def get_host_and_port(url: str) -> tuple[str, int]: ...
-```
+#### `ddt(path, prefix="")`
+Decorator for data-driven test classes.
 
-#### check_activity
-Check if activity matches assertion.
+### Enums
 
-```python
-def check_activity(activity: Activity, assertion: dict | Activity) -> bool: ...
-```
+#### `FieldAssertionType`
+- `EQUALS` - Exact match
+- `CONTAINS` - Contains value
+- `EXISTS` - Field exists
+- `NOT_EXISTS` - Field does not exist
+- `GREATER_THAN` - Greater than value
+- `LESS_THAN` - Less than value
 
-#### check_activity_verbose
-Check activity with detailed error information.
+#### `AssertionQuantifier`
+- `ALL` - All items must match
+- `ONE` - Exactly one item must match
+- `NONE` - No items should match
 
-```python
-def check_activity_verbose(
-    activity: Activity,
-    assertion: dict | Activity
-) -> tuple[bool, Optional[AssertionErrorData]]: ...
-```
+## Future Goals
 
-#### check_field
-Check if field value matches assertion.
+The following features and improvements are planned to enhance the usability and power of the microsoft-agents-testing package:
 
-```python
-def check_field(value: Any, assertion: Any) -> bool: ...
-```
+### 1. Enhanced Test Recording and Playback
+- **Interactive Test Recorder**: Capture live agent interactions and automatically generate YAML test definitions
+- **Conversation Replay**: Record entire conversations and replay them for regression testing
+- **Smart Diff Tools**: Detect changes between recorded and actual responses with intelligent comparison
 
-#### check_field_verbose
-Check field with detailed error information.
+### 2. Advanced Mocking Capabilities
+- **External Service Mocking**: Built-in support for mocking external APIs and services that agents depend on
+- **Channel Simulators**: More realistic channel-specific behavior simulation (Teams, Slack, etc.)
+- **Network Condition Simulation**: Test agents under various network conditions (latency, packet loss)
 
-```python
-def check_field_verbose(
-    value: Any,
-    assertion: Any,
-    field_path: str = ""
-) -> tuple[bool, Optional[AssertionErrorData]]: ...
-```
+### 3. Improved Assertion Framework
+- **Visual Assertions**: Assert on rich content like Adaptive Cards with visual diff tools
+- **Fuzzy Matching**: Support for approximate string matching and similarity scores
+- **Custom Assertion Plugins**: Allow users to define custom assertion types
+- **Assertion Templates**: Pre-built assertion patterns for common scenarios
 
-#### assert_model
-Assert activity matches, raise on failure.
+### 4. Performance and Scalability
+- **Distributed Load Testing**: Run benchmarks across multiple machines
+- **Real-time Metrics Dashboard**: Live visualization of benchmark results
+- **Memory Profiling**: Built-in memory usage tracking during tests
+- **Async/Await Optimization**: Better support for free-threaded Python and async workloads
 
-```python
-def assert_model(activity: Activity, assertion: dict | Activity) -> None: ...
-```
+### 5. Better Developer Experience
+- **VS Code Extension**: Integrated test runner and YAML editor with IntelliSense
+- **Test Generation Wizard**: Interactive CLI tool to scaffold new test suites
+- **Enhanced Error Messages**: More detailed and actionable error messages with suggested fixes
+- **Auto-completion**: Schema-based auto-completion for YAML test files
 
-#### assert_field
-Assert field matches, raise on failure.
+### 6. CI/CD Integration
+- **Test Report Formats**: Support for JUnit XML, TAP, and other standard formats
+- **GitHub Actions Integration**: Pre-built actions for running agent tests
+- **Azure DevOps Tasks**: Custom pipeline tasks for Azure Pipelines
+- **Test Result Analytics**: Track test performance over time with trend analysis
 
-```python
-def assert_field(value: Any, assertion: Any, field_path: str = "") -> None: ...
-```
+### 7. Multi-Agent Testing
+- **Agent-to-Agent Testing**: Test communication between multiple agents
+- **Orchestration Testing**: Test complex multi-agent workflows
+- **State Management**: Better support for testing stateful conversations across agents
 
-## CI/CD Integration
+### 8. Security Testing
+- **Authentication Flow Testing**: Comprehensive OAuth and SSO flow validation
+- **Permission Testing**: Verify proper authorization checks
+- **Security Scan Integration**: Integrate with security scanning tools
+- **PII Detection**: Automatically detect and flag potential PII leaks
 
-### GitHub Actions
+### 9. Documentation and Learning
+- **Interactive Tutorial**: Step-by-step guide with executable examples
+- **Best Practices Guide**: Comprehensive testing patterns and anti-patterns
+- **Video Tutorials**: Video content for common testing scenarios
+- **Sample Test Repository**: Curated collection of example tests
 
-```yaml
-name: Agent Tests
+### 10. Advanced DDT Features
+- **Parameterized Tests**: Support for test parameters and matrix testing
+- **Conditional Execution**: Execute test steps based on conditions
+- **Dynamic Test Generation**: Generate tests programmatically from schemas
+- **Test Composition**: Compose larger tests from reusable test fragments
 
-on: [push, pull_request]
+### 11. Telemetry and Observability
+- **OpenTelemetry Integration**: Export test traces to observability platforms
+- **Test Coverage Metrics**: Track which agent capabilities are tested
+- **Flaky Test Detection**: Identify and mark unstable tests
+- **Performance Regression Detection**: Automatically detect performance degradation
 
-jobs:
-  test:
-    runs-on: ubuntu-latest
-    
-    steps:
-    - uses: actions/checkout@v3
-    
-    - name: Set up Python
-      uses: actions/setup-python@v4
-      with:
-        python-version: '3.11'
-    
-    - name: Install dependencies
-      run: |
-        pip install -r requirements.txt
-        pip install microsoft-agents-testing pytest pytest-asyncio
-    
-    - name: Run integration tests
-      run: pytest tests/integration/ -v
-      env:
-        CLIENT_ID: ${{ secrets.AGENT_CLIENT_ID }}
-        CLIENT_SECRET: ${{ secrets.AGENT_CLIENT_SECRET }}
-        TENANT_ID: ${{ secrets.TENANT_ID }}
-    
-    - name: Run data-driven tests
-      run: pytest tests/data_driven/ -v
-```
-
-### Azure DevOps
-
-```yaml
-trigger:
-- main
-
-pool:
-  vmImage: 'ubuntu-latest'
-
-steps:
-- task: UsePythonVersion@0
-  inputs:
-    versionSpec: '3.11'
-
-- script: |
-    pip install -r requirements.txt
-    pip install microsoft-agents-testing pytest pytest-asyncio
-  displayName: 'Install dependencies'
-
-- script: |
-    pytest tests/ -v --junitxml=test-results.xml
-  displayName: 'Run tests'
-  env:
-    CLIENT_ID: $(CLIENT_ID)
-    CLIENT_SECRET: $(CLIENT_SECRET)
-    TENANT_ID: $(TENANT_ID)
-
-- task: PublishTestResults@2
-  inputs:
-    testResultsFiles: 'test-results.xml'
-    testRunTitle: 'Agent Integration Tests'
-```
-
-## Who Should Use This Package
-
-- **Agent Developers**: Testing agents built with `microsoft-agents-hosting-core` and related packages
-- **QA Engineers**: Writing integration, E2E, and regression tests for conversational AI systems
-- **DevOps Teams**: Automating agent validation in CI/CD pipelines
-- **Sample Authors**: Creating reproducible examples and living documentation
-- **Test Engineers**: Building comprehensive test suites with data-driven testing
-- **Product Managers**: Writing human-readable test specifications in YAML
-
-## Related Packages
-
-This package complements the Microsoft 365 Agents SDK ecosystem:
-
-- **`microsoft-agents-activity`**: Activity types and protocols
-- **`microsoft-agents-hosting-core`**: Core hosting framework
-- **`microsoft-agents-hosting-aiohttp`**: aiohttp hosting integration
-- **`microsoft-agents-hosting-fastapi`**: FastAPI hosting integration
-- **`microsoft-agents-hosting-teams`**: Teams-specific hosting features
-- **`microsoft-agents-authentication-msal`**: MSAL authentication
-- **`microsoft-agents-storage-blob`**: Azure Blob storage for agent state
-- **`microsoft-agents-storage-cosmos`**: Azure Cosmos DB storage for agent state
+### 12. Cross-Platform Support
+- **Browser-based Testing**: Test web-based bot interfaces
+- **Mobile Emulation**: Test agents in mobile contexts
+- **Multi-Language Support**: Better support for testing agents in different languages and locales
 
 ## Contributing
 
-This project welcomes contributions and suggestions. Most contributions require you to agree to a Contributor License Agreement (CLA) declaring that you have the right to, and actually do, grant us the rights to use your contribution. For details, visit [https://cla.opensource.microsoft.com](https://cla.opensource.microsoft.com).
+Contributions are welcome! This is an experimental development package designed to improve testing workflows for Microsoft Agents.
 
-When you submit a pull request, a CLA bot will automatically determine whether you need to provide a CLA and decorate the PR appropriately (e.g., status check, comment). Simply follow the instructions provided by the bot. You will only need to do this once across all repos using our CLA.
+### Development Setup
 
-This project has adopted the [Microsoft Open Source Code of Conduct](https://opensource.microsoft.com/codeofconduct/). For more information see the [Code of Conduct FAQ](https://opensource.microsoft.com/codeofconduct/faq/) or contact [opencode@microsoft.com](mailto:opencode@microsoft.com) with any additional questions or comments.
+1. Clone the repository
+2. Install in editable mode:
+   ```bash
+   pip install -e ./microsoft-agents-testing/ --config-settings editable_mode=compat
+   ```
+3. Run tests:
+   ```bash
+   pytest tests/
+   ```
+
+### Guidelines
+
+- Follow existing code style and patterns
+- Add tests for new features
+- Update documentation for API changes
+- Use type hints for better IDE support
 
 ## License
 
-MIT License
-
-Copyright (c) Microsoft Corporation.
+MIT License - see [LICENSE](LICENSE) file for details.
 
 ## Support
 
-For issues, questions, or contributions:
-- **GitHub Issues**: [https://github.com/microsoft/Agents-for-python/issues](https://github.com/microsoft/Agents-for-python/issues)
-- **Documentation**: [https://github.com/microsoft/Agents-for-python](https://github.com/microsoft/Agents-for-python)
-- **Stack Overflow**: Tag your questions with `microsoft-agents-sdk`
+For issues, questions, or contributions, please visit the [GitHub repository](https://github.com/microsoft/Agents).
 
-## Changelog
+---
 
-See CHANGELOG.md for version history and release notes.
+**Note**: This package is part of the Microsoft Agents SDK development tools and is intended for testing and development purposes. For production agent hosting, use the core Microsoft Agents packages.
