@@ -5,7 +5,7 @@ import json
 import asyncio
 from typing import Optional, cast
 
-from aiohttp import ClientSession
+from aiohttp import ClientSession, ClientResponse
 from msal import ConfidentialClientApplication
 from pydantic import ValidationError
 
@@ -95,7 +95,7 @@ class AgentClient:
         self,
         activity: Activity,
         sleep: float | None = None,
-    ) -> str:
+    ) -> tuple[int, str]:
 
         if sleep is None:
             sleep = self._default_sleep
@@ -119,7 +119,7 @@ class AgentClient:
             if not response.ok:
                 raise Exception(f"Failed to send activity: {response.status}")
             await asyncio.sleep(sleep)
-            return content
+            return response.status, content
 
     def _to_activity(self, activity_or_text: Activity | str) -> Activity:
         if isinstance(activity_or_text, str):
@@ -135,7 +135,7 @@ class AgentClient:
         self, activity_or_text: Activity | str, sleep: float | None = None
     ) -> str:
         activity = self._to_activity(activity_or_text)
-        content = await self._send(activity, sleep=sleep)
+        _, content = await self._send(activity, sleep=sleep)
         return content
 
     # async def send_stream(
@@ -173,7 +173,7 @@ class AgentClient:
                 "Activity delivery_mode must be 'expect_replies' for send_expect_replies method."
             )
 
-        content = await self._send(activity, sleep=sleep)
+        _, content = await self._send(activity, sleep=sleep)
 
         activities_data = json.loads(content).get("activities", [])
         activities = [Activity.model_validate(act) for act in activities_data]
@@ -187,11 +187,11 @@ class AgentClient:
         if not activity.type == ActivityTypes.invoke:
             raise ValueError("Activity type must be 'invoke' for send_invoke method.")
 
-        content = await self._send(activity, sleep=sleep)
+        status, content = await self._send(activity, sleep=sleep)
 
         try:
             response_data = json.loads(content)
-            return InvokeResponse.model_validate(response_data)
+            return InvokeResponse(status=status, body=response_data)
         except ValidationError:
             raise ValueError(
                 "Error when sending invoke activity: InvokeResponse not returned or invalid format."

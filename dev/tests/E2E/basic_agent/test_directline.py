@@ -409,8 +409,8 @@ class TestBasicAgentDirectLine(TestBasicAgent):
 
         assert response is not None, "No invoke response received"
         assert response.status == 200, f"Unexpected status: {response.status}"
-        if response.value:
-            assert "Newtonsoft.Json" in str(response.value), "Package name not in response"
+        if response.body:
+            assert "Newtonsoft.Json" in str(response.body), "Package name not in response"
 
     @pytest.mark.asyncio
     async def test__send_invoke__adaptive_card_submit__returns_response(
@@ -426,7 +426,7 @@ class TestBasicAgentDirectLine(TestBasicAgent):
                 "action": {
                     "type": "Action.Submit",
                     "id": "submit-action",
-                    "data": {"test": "data"},
+                    "data": {"usertext": "hi"},
                 }
             },
         )

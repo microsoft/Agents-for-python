@@ -179,7 +179,7 @@ class Agent:
         action = context.activity.value.get("action", {})
         data = action.get("data", {})
         user_text = data.get("usertext", "")
-
+        
         if not user_text:
             await context.send_activity("No user text provided in the action execute.")
             return
