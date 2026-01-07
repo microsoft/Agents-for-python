@@ -66,14 +66,17 @@ async def on_connector_message(
     :param state: The turn state
     :param cancellation_token: Cancellation token
     """
-    if (context.activity.recipient
-        and context.activity.recipient.role == RoleTypes.connector_user):
+    if (
+        context.activity.recipient
+        and context.activity.recipient.role == RoleTypes.connector_user
+    ):
         try:
             # Get the user's OAuth token. Since OBO was configured,
             # it has already been exchanged for a Graph API token.
             if not AGENT_APP.auth:
                 await context.send_activity(
-                    "Authentication not configured", cancellation_token=cancellation_token
+                    "Authentication not configured",
+                    cancellation_token=cancellation_token,
                 )
                 return
 
@@ -162,7 +165,9 @@ if __name__ == "__main__":
     APP = Application(middlewares=[jwt_authorization_middleware])
     APP.router.add_post("/api/messages", entry_point)
     APP.router.add_get("/api/messages", lambda _: Response(status=200))
-    APP["agent_configuration"] = CONNECTION_MANAGER.get_default_connection_configuration()
+    APP["agent_configuration"] = (
+        CONNECTION_MANAGER.get_default_connection_configuration()
+    )
     APP["agent_app"] = AGENT_APP
     APP["adapter"] = AGENT_APP.adapter
 

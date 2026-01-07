@@ -89,8 +89,8 @@ class HttpAdapterBase(ChannelServiceAdapter, ABC):
 
         # Deserialize the incoming Activity
         content_type = request.headers.get("Content-Type", "")
-        if "application/json" not in content_type:
-            return HttpResponseFactory.unsupported_media_type()
+        # if "application/json" not in content_type:
+        # return HttpResponseFactory.unsupported_media_type()
 
         try:
             body = await request.json()

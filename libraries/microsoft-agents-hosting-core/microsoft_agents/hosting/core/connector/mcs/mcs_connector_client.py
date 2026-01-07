@@ -43,11 +43,15 @@ class MCSConversations(ConversationsBase):
         if activity is None:
             raise ValueError("activity is required")
 
-        logger.info("MCS Connector: Sending activity to conversation")
+        logger.info(
+            "MCS Connector: Sending activity to conversation: %s. Activity type is %s",
+            conversation_id,
+            activity.type,
+        )
 
         async with self._client.post(
             self._endpoint,
-            json=activity.serialize(),
+            json=activity.model_dump(by_alias=True, exclude_unset=True, mode="json"),
             headers={"Accept": "application/json", "Content-Type": "application/json"},
         ) as response:
             if response.status >= 300:
@@ -92,7 +96,7 @@ class MCSConversations(ConversationsBase):
         **kwargs,
     ) -> ResourceResponse:
         """Not supported for MCS Connector."""
-        raise NotImplementedError(
+        raise RuntimeError(
             "UpdateActivity is not supported for Microsoft Copilot Studio Connector"
         )
 
@@ -102,6 +106,12 @@ class MCSConversations(ConversationsBase):
         """Not supported for MCS Connector."""
         raise NotImplementedError(
             "DeleteActivity is not supported for Microsoft Copilot Studio Connector"
+        )
+
+    async def get_conversation_member(self, conversation_id: str, **kwargs) -> list:
+        """Not supported for MCS Connector."""
+        raise NotImplementedError(
+            "GetConversationMembers is not supported for Microsoft Copilot Studio Connector"
         )
 
     async def get_conversation_members(self, conversation_id: str, **kwargs) -> list:
