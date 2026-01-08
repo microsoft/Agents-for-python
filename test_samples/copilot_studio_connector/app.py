@@ -56,9 +56,7 @@ AGENT_APP = AgentApplication[TurnState](
 
 
 @AGENT_APP.activity(ActivityTypes.message)
-async def on_connector_message(
-    context: TurnContext, state: TurnState, cancellation_token=None
-) -> None:
+async def on_connector_message(context: TurnContext, state: TurnState) -> None:
     """
     Handle messages from Microsoft Copilot Studio connector.
 
@@ -76,16 +74,14 @@ async def on_connector_message(
             if not AGENT_APP.auth:
                 await context.send_activity(
                     "Authentication not configured",
-                    cancellation_token=cancellation_token,
                 )
                 return
 
-            access_token = await AGENT_APP.auth.get_token(context, state, "connector")
+            access_token = await AGENT_APP.auth.get_token(context)
 
             if not access_token or not access_token.token:
                 await context.send_activity(
                     "Unable to retrieve access token",
-                    cancellation_token=cancellation_token,
                 )
                 return
 
@@ -94,14 +90,13 @@ async def on_connector_message(
 
             # Send personalized greeting
             await context.send_activity(
-                f"Hi, {display_name}!", cancellation_token=cancellation_token
+                f"Hi, {display_name}!",
             )
 
         except Exception as ex:
             logger.error(f"Error handling connector message: {ex}", exc_info=True)
             await context.send_activity(
                 "Sorry, an error occurred while processing your request.",
-                cancellation_token=cancellation_token,
             )
 
 
