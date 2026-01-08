@@ -132,7 +132,7 @@ class AgentClient:
             return cast(Activity, activity_or_text)
 
     async def send_activity(
-        self, activity_or_text: Activity | str, sleep: float | None = None
+        self, activity: Activity, sleep: float | None = None
     ) -> str:
         activity = self._to_activity(activity_or_text)
         _, content = await self._send(activity, sleep=sleep)

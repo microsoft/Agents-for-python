@@ -1,0 +1,12 @@
+{
+  "type": "message",
+  "text": "Hello",
+  "from": {
+    "id": "user123",
+    "name": "Test User"
+  },
+  "conversation": {
+    "id": "conv123"
+  },
+  "channelId": "directline"
+}

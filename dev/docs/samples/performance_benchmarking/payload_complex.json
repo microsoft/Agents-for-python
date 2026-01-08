@@ -1,0 +1,17 @@
+{
+  "type": "message",
+  "text": "This is a more complex message with additional details and information that might be processed by the agent",
+  "from": {
+    "id": "user123",
+    "name": "Test User",
+    "aadObjectId": "aad-123"
+  },
+  "conversation": {
+    "id": "conv123",
+    "name": "Test Conversation"
+  },
+  "channelId": "directline",
+  "locale": "en-US",
+  "localTimestamp": "2024-01-07T10:00:00Z",
+  "timestamp": "2024-01-07T10:00:00Z"
+}

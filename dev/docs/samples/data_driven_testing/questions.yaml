@@ -1,0 +1,67 @@
+name: "Question & Answer Scenarios"
+description: "Test agent QA capabilities"
+
+scenarios:
+  - name: "Math Question - Addition"
+    send:
+      type: "message"
+      text: "What is 2 + 2?"
+    assert:
+      - type: "exists"
+        path: "text"
+  
+  - name: "Math Question - Subtraction"
+    send:
+      type: "message"
+      text: "What is 10 - 3?"
+    assert:
+      - type: "exists"
+        path: "text"
+  
+  - name: "Geography Question"
+    send:
+      type: "message"
+      text: "What is the capital of France?"
+    assert:
+      - type: "exists"
+        path: "text"
+  
+  - name: "Historical Question"
+    send:
+      type: "message"
+      text: "When was the Declaration of Independence signed?"
+    assert:
+      - type: "exists"
+        path: "text"
+  
+  - name: "Factual Question"
+    send:
+      type: "message"
+      text: "How many planets are in our solar system?"
+    assert:
+      - type: "exists"
+        path: "text"
+  
+  - name: "Open-ended Question"
+    send:
+      type: "message"
+      text: "Tell me about yourself"
+    assert:
+      - type: "exists"
+        path: "text"
+  
+  - name: "Follow-up Question"
+    send:
+      type: "message"
+      text: "Can you explain that in more detail?"
+    assert:
+      - type: "exists"
+        path: "text"
+  
+  - name: "Clarification Question"
+    send:
+      type: "message"
+      text: "What do you mean by that?"
+    assert:
+      - type: "exists"
+        path: "text"

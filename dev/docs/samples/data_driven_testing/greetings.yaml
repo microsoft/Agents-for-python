@@ -1,0 +1,35 @@
+name: "Greeting Scenarios"
+description: "Test agent greeting responses"
+
+scenarios:
+  - name: "Greeting - Hello"
+    send:
+      type: "message"
+      text: "Hello"
+    assert:
+      - type: "exists"
+        path: "text"
+  
+  - name: "Greeting - Hi"
+    send:
+      type: "message"
+      text: "Hi"
+    assert:
+      - type: "exists"
+        path: "text"
+  
+  - name: "Greeting - Good morning"
+    send:
+      type: "message"
+      text: "Good morning"
+    assert:
+      - type: "exists"
+        path: "text"
+  
+  - name: "Greeting - Formal"
+    send:
+      type: "message"
+      text: "Greetings"
+    assert:
+      - type: "exists"
+        path: "text"
