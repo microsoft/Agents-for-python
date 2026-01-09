@@ -1,0 +1,59 @@
+name: "Error Handling Scenarios"
+description: "Test agent error handling and edge cases"
+
+scenarios:
+  - name: "Empty Message"
+    send:
+      type: "message"
+      text: ""
+    assert:
+      - type: "exists"
+        path: "text"
+  
+  - name: "Very Long Message"
+    send:
+      type: "message"
+      text: "This is a very long message that contains many words and is designed to test how the agent handles long input. Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua."
+    assert:
+      - type: "exists"
+        path: "text"
+  
+  - name: "Special Characters"
+    send:
+      type: "message"
+      text: "!@#$%^&*()_+-=[]{}|;:',.<>?/"
+    assert:
+      - type: "exists"
+        path: "text"
+  
+  - name: "Unicode Characters"
+    send:
+      type: "message"
+      text: "你好 مرحبا Здравствуйте 🚀🎉"
+    assert:
+      - type: "exists"
+        path: "text"
+  
+  - name: "Whitespace Only"
+    send:
+      type: "message"
+      text: "     "
+    assert:
+      - type: "exists"
+        path: "text"
+  
+  - name: "Numbers Only"
+    send:
+      type: "message"
+      text: "12345678901234567890"
+    assert:
+      - type: "exists"
+        path: "text"
+  
+  - name: "Newlines and Tabs"
+    send:
+      type: "message"
+      text: "Line 1\nLine 2\tTabbed"
+    assert:
+      - type: "exists"
+        path: "text"

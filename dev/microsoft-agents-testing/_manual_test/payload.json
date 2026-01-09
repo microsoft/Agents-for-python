@@ -1,0 +1,20 @@
+{
+  "channelId": "msteams",
+  "serviceUrl": "http://localhost:49231/_connector",
+  "delivery_mode": "expectReplies",
+  "recipient": {
+    "id": "00000000-0000-0000-0000-00000000000011",
+    "name": "Test Bot"
+  },
+  "conversation": {
+    "id": "personal-chat-id",
+    "conversationType": "personal",
+    "tenantId": "00000000-0000-0000-0000-0000000000001"
+  },
+  "from": {
+    "id": "user-id-0",
+    "aadObjectId": "00000000-0000-0000-0000-0000000000020"
+  },
+  "type": "message",
+  "text": "Hello, Bot!"
+}

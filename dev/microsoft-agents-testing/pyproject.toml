@@ -23,3 +23,6 @@ classifiers = [
 
 [project.urls]
 "Homepage" = "https://github.com/microsoft/Agents"
+
+[project.scripts]
+aclip = "microsoft_agents.testing.cli:cli"
