@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from typing import Any, Generic, TypeVar, overload, cast
 
-from .readonly import _Readonly
+from .readonly import Readonly
 from .unset import Unset
 
 T = TypeVar("T")
@@ -22,7 +22,7 @@ def parent(obj: SafeObject[T]) -> SafeObject | None:
     """Get the parent SafeObject of the given SafeObject, or None if there is no parent."""
     return object.__getattribute__(obj, "__parent__")
 
-class SafeObject(Generic[T], _Readonly):
+class SafeObject(Generic[T], Readonly):
     """A wrapper around an object that provides safe access to its attributes
     and items, while maintaining a reference to its parent object."""
 

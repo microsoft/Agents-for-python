@@ -1,8 +1,8 @@
 from __future__ import annotations
 
-from ._readonly import _Readonly
+from .readonly import Readonly
 
-class _Unset(_Readonly):
+class _Unset(Readonly):
     """A class representing an unset value."""
     
     def get(self, *args, **kwargs):

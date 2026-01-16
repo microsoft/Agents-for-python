@@ -1,6 +1,6 @@
 import pytest
 
-from microsoft_agents.testing.check import (
+from microsoft_agents.testing import (
     SafeObject,
     resolve,
     parent,

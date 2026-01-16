@@ -4,7 +4,6 @@ from typing import Any, Callable, Protocol
 from pydantic import BaseModel
 
 from .check_context import CheckContext
-from .assertion_info import AssertionInfo
 from .types import (
     SafeObject,
     resolve,
@@ -28,18 +27,19 @@ class CheckEngine:
     def __init__(self, fixtures: dict[str, Callable[[CheckContext], Any]] | None = None):
         self._fixtures = fixtures or DEFAULT_FIXTURES
 
-    def resolve_args(self, query_function: Callable) -> Callable:
+    def resolve_args(self, query_function: Callable, context: CheckContext) -> Callable:
         """Resolve the arguments for a query function based on the current context.\
             
         :param query_function: The query function to resolve arguments for.
+        :param context: The current assertion context. 
         :return: A callable with the resolved arguments.
         """
         sig = inspect.getfullargspec(query_function)
         args = {}
 
         for arg in sig.args:
-            if arg in self._fixture_map:
-                args[arg] = self._fixture_map[arg](self)
+            if arg in self._fixtures:
+                args[arg] = self._fixtures[arg](context)
             else:
                 raise RuntimeError(f"Unknown argument '{arg}' in query function")
             
@@ -47,9 +47,18 @@ class CheckEngine:
         output_func.__name__ = query_function.__name__
         return output_func
     
-    def invoke(self, query_function: Callable) -> Any:
-        res = self.resolve_args(query_function)()
+    def invoke(self, query_function: Callable, context: CheckContext) -> Any:
 
+        sig = inspect.getfullargspec(query_function)
+        args = {}
+
+        for arg in sig.args:
+            if arg in self._fixtures:
+                args[arg] = self._fixtures[arg](context)
+            else:
+                raise RuntimeError(f"Unknown argument '{arg}' in query function")
+
+        res = query_function(**args)
         if isinstance(res, tuple) and len(res) == 2:
             return res[0], res[1]
         else:
@@ -75,7 +84,7 @@ class CheckEngine:
                 check, msg = self._check_verbose(actual[i], value, context.child(i))
                 results.append((check, msg))
         elif callable(baseline):
-            results.append(self.invoke(actual, baseline, context))
+            results.append(self.invoke(baseline, context))
         else:
             check = resolve(actual) == baseline
             msg = f"Values do not match: {actual} != {baseline}" if not check else ""
