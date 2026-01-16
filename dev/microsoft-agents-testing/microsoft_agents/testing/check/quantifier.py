@@ -1,24 +1,24 @@
-from typing import TypeVar, Iterable, Protocol, Callable
+from typing import Protocol
 
-S = TypeVar("S")
+class Quantifier(Protocol):
+    
+    @staticmethod
+    def __call__(items: list[bool]) -> bool:
+        ...
 
-class Quantifier(Protocol[S]):
-    def __call__(self, items: Iterable[S], predicate: Callable[[S], bool]) -> bool:
-        ... 
+def for_all(items: list[bool]) -> bool:
+    return all(items)
 
-def for_all(items: Iterable[S], predicate: Callable[[S], bool]) -> bool:
-    return all(predicate(item) for item in items)
+def for_any(items: list[bool]) -> bool:
+    return any(items)
 
-def for_any(items: Iterable[S], predicate: Callable[[S], bool]) -> bool:
-    return any(predicate(item) for item in items)
+def for_none(items: list[bool]) -> bool:
+    return all(not item for item in items)
 
-def for_none(items: Iterable[S], predicate: Callable[[S], bool]) -> bool:
-    return all(not predicate(item) for item in items)
+def for_one(items: list[bool]) -> bool:
+    return sum(1 for item in items if item) == 1
 
-def for_exactly(n: int) -> Quantifier[S]:
-    def quantifier(items: Iterable[S], predicate: Callable[[S], bool]) -> bool:
-        return sum(1 for item in items if predicate(item)) == n
-    return quantifier
-
-def for_one(items: Iterable[S], predicate: Callable[[S], bool]) -> bool:
-    return for_exactly(1)(items, predicate)
+def for_n(n: int) -> Quantifier:
+    def _for_n(items: list[bool]) -> bool:
+        return sum(1 for item in items if item) == n
+    return _for_n

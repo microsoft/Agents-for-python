@@ -12,7 +12,7 @@ from .types import (
 )
 
 DEFAULT_FIXTURES = {
-    "actual": lambda ctx: ctx.actual,
+    "actual": lambda ctx: resolve(ctx.actual),
     "baseline": lambda ctx: ctx.baseline,
     "path": lambda ctx: ctx.path,
     "root_actual": lambda ctx: ctx.root_actual,
@@ -20,34 +20,14 @@ DEFAULT_FIXTURES = {
 }
 
 class QueryFunction(Protocol):
-    def __call__(self, *args: Any, **kwargs: Any) -> bool | tuple[bool, str]: ...
+    def __call__(*args: Any, **kwargs: Any) -> bool | tuple[bool, str]: ...
 
 class CheckEngine:
 
     def __init__(self, fixtures: dict[str, Callable[[CheckContext], Any]] | None = None):
         self._fixtures = fixtures or DEFAULT_FIXTURES
-
-    def resolve_args(self, query_function: Callable, context: CheckContext) -> Callable:
-        """Resolve the arguments for a query function based on the current context.\
-            
-        :param query_function: The query function to resolve arguments for.
-        :param context: The current assertion context. 
-        :return: A callable with the resolved arguments.
-        """
-        sig = inspect.getfullargspec(query_function)
-        args = {}
-
-        for arg in sig.args:
-            if arg in self._fixtures:
-                args[arg] = self._fixtures[arg](context)
-            else:
-                raise RuntimeError(f"Unknown argument '{arg}' in query function")
-            
-        output_func = query_function(**args)
-        output_func.__name__ = query_function.__name__
-        return output_func
     
-    def invoke(self, query_function: Callable, context: CheckContext) -> Any:
+    def _invoke(self, query_function: Callable, context: CheckContext) -> Any:
 
         sig = inspect.getfullargspec(query_function)
         args = {}
@@ -84,7 +64,7 @@ class CheckEngine:
                 check, msg = self._check_verbose(actual[i], value, context.child(i))
                 results.append((check, msg))
         elif callable(baseline):
-            results.append(self.invoke(baseline, context))
+            results.append(self._invoke(baseline, context))
         else:
             check = resolve(actual) == baseline
             msg = f"Values do not match: {actual} != {baseline}" if not check else ""
