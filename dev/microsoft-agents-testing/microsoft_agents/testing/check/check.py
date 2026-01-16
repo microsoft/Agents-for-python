@@ -2,7 +2,6 @@ from __future__ import annotations
 
 from typing import Protocol, TypeVar, Iterable, overload, Callable
 from pydantic import BaseModel
-from strenum import StrEnum
 
 from .quantifier import (
     Quantifier,
@@ -109,6 +108,10 @@ class Check:
     def one(self) -> Check:
         """Set selector to 'one'."""
         return Check(self._items, for_one)
+    
+    def for_exactly(self, n: int) -> Check:
+        """Set selector to 'exactly n'."""
+        return Check(self._items, for_exactly(n))
     
     ###
     ### Assertion
