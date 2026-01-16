@@ -5,15 +5,7 @@ from .engine import (
     resolve,
     Unset,
 )
-from .quantifier import (
-    Quantifier,
-    for_all,
-    for_any,
-    for_none,
-    for_exactly,
-    for_one,
-)
-
+from .quantifier import Quantifier
 __all__ = [
     "Check",
     "SafeObject",
@@ -21,9 +13,4 @@ __all__ = [
     "resolve",
     "Unset",
     "Quantifier",
-    "for_all",
-    "for_any",
-    "for_none",
-    "for_exactly",
-    "for_one",
 ]

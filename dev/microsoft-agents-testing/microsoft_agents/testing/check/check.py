@@ -1,15 +1,15 @@
 from __future__ import annotations
 
-from typing import Protocol, TypeVar, Iterable, overload, Callable
+from typing import TypeVar, Iterable, Callable
 from pydantic import BaseModel
 
 from .quantifier import (
     Quantifier,
     for_all,
     for_any,
-    for_one,
     for_none,
-    for_exactly,
+    for_one,
+    for_n,
 )
 
 from .engine import (
@@ -33,7 +33,7 @@ class Check:
         Check(responses).where(type="message").that(text="~Hello") # all messages contain "Hello"
 
         # Assert any matches
-        Check(responses).any().that(type="typing")
+        Check(responses).for_any().that(type="typing")
 
         # Complex assertions
         Check(responses).where(type="message").last().that(
@@ -42,10 +42,20 @@ class Check:
         )
     """
 
-    def __init__(self, items: Iterable[dict | BaseModel], quantifier: Quantifier = for_all) -> None:
+    def __init__(
+            self,
+            items: Iterable[dict | BaseModel],
+            quantifier: Quantifier = for_all,
+        ) -> None:
         self._items = list(items)
         self._quantifier: Quantifier = quantifier
         self._engine = CheckEngine()
+
+    def _child(self, items: Iterable[dict | BaseModel], quantifier: Quantifier | None = None) -> Check:
+        """Create a child Check with new items, inheriting selector and quantifier."""
+        child = Check(items, quantifier or self._quantifier)
+        child._engine = self._engine
+        return child
 
     ###
     ### Selectors
@@ -53,65 +63,66 @@ class Check:
 
     def where(self, _filter: dict | Callable | None = None, **kwargs) -> Check:
         """Filter items by criteria. Chainable."""
-
-        if not isinstance(_filter, (dict, Callable, type(None))): # TODO -> checking callable
-            raise TypeError("Filter must be a dict, callable, or None.")
-
-        query = {**(_filter if isinstance(_filter, dict) else {}), **kwargs}
-        predicate = _filter if callable(_filter) else None
-
-        filtered = []
-        for item in self._selected:
-            if self._matches(item, query, predicate):
-                filtered.append(item)
-        
-        self._selected = filtered
-        return self
+        res, msgs = zip(*self._check(_filter, **kwargs))
+        return self._child(
+            [item for item, match in zip(self._items, res) if match],
+            self._quantifier
+        )
+    
+    def where_not(self, _filter: dict | Callable | None = None, **kwargs) -> Check:
+        """Exclude items by criteria. Chainable."""
+        res, msgs = zip(*self._check(_filter, **kwargs))
+        return self._child(
+            [item for item, match in zip(self._items, res) if not match],
+            self._quantifier
+        )
+    
+    def merge(self, other: Check) -> Check:
+        """Merge with another Check's items."""
+        return self._child(self._items + other._items, self._quantifier)
+    
+    def _bool_list(self) -> list[bool]:
+        return [ True for _ in self._items ]
     
     def first(self) -> Check:
         """Select the first item."""
-        if not self._items:
-            raise ValueError("No items to select from.")
-        return Check(self._items[:1], self._selector)
+        return self._child(self._items[:1])
     
     def last(self) -> Check:
         """Select the last item."""
-        if not self._items:
-            raise ValueError("No items to select from.")
-        return Check(self._items[-1:], self._selector)
+        return self._child(self._items[-1:])
     
     def at(self, n: int) -> Check:
         """Set selector to 'exactly n'."""
-        new_n = n
-        if n < 0:
-            new_n = len(self._items) + n
-        if new_n >= len(self._items):
-            raise ValueError(f"Index {n} out of range for items of length {len(self._items)}.")
-        return Check(self._items[new_n:new_n+1], self._quantifier)
+        return self._child(self._items[n:n+1])
+    
+    def cap(self, n: int) -> Check:
+        """Limit selection to first n items."""
+        return self._child(self._items[:n])
     
     ###
     ### Quantifiers
     ###
     
-    def any(self) -> Check:
+    def for_any(self) -> Check:
         """Set selector to 'any'."""
-        return Check(self._items, for_any)
+        return self._child(self._items, for_any)
 
-    def all(self) -> Check:
+    def for_all(self) -> Check:
         """Set selector to 'all'."""
-        return Check(self._items, for_all)
+        return self._child(self._items, for_all)
 
-    def none(self) -> Check:
+    def for_none(self) -> Check:
         """Set selector to 'none'."""
-        return Check(self._items, for_none)
+        return self._child(self._items, for_none)
     
-    def one(self) -> Check:
+    def for_one(self) -> Check:
         """Set selector to 'one'."""
-        return Check(self._items, for_one)
+        return self._child(self._items, for_one)
     
     def for_exactly(self, n: int) -> Check:
         """Set selector to 'exactly n'."""
-        return Check(self._items, for_exactly(n))
+        return self._child(self._items, for_n(n))
     
     ###
     ### Assertion
@@ -119,21 +130,12 @@ class Check:
     
     def that(self, _assert: dict | Callable | None = None, **kwargs) -> bool:
         """Assert that selected items match criteria."""
-
-        if not isinstance(_assert, (dict, Callable, type(None))): # TODO -> checking callable
-            raise TypeError("Assert must be a dict, callable, or None.")
-
-        query = {**(_assert if isinstance(_assert, dict) else {}), **kwargs}
-        predicate = _assert if callable(_assert) else None
-
-        def item_predicate(item: dict | BaseModel) -> bool:
-            return self._matches(item, query, predicate)
-
-        return self._selector(self._selected, item_predicate)
+        res, msgs = zip(*self._check(_assert, **kwargs))
+        assert self._quantifier(res), msgs
     
     def count_is(self, n: int) -> bool:
         """Check if the count of selected items is exactly n."""
-        return len(self._selected) == n
+        return len(self._items) == n
     
     ###
     ### TERMINAL OPERATIONS
@@ -141,24 +143,31 @@ class Check:
 
     def get(self) -> list[dict | BaseModel]:
         """Get the selected items as a list."""
-        return self._selected
+        return self._items
     
     def get_one(self) -> dict | BaseModel:
         """Get a single selected item. Raises if not exactly one."""
-        if len(self._selected) != 1:
-            raise ValueError(f"Expected exactly one item, found {len(self._selected)}.")
-        return self._selected[0]
+        if len(self._items) != 1:
+            raise ValueError(f"Expected exactly one item, found {len(self._items)}.")
+        return self._items[0]
     
     def count(self) -> int:
         """Get the count of selected items."""
-        return len(self._selected)
+        return len(self._items)
     
     def exists(self) -> bool:
         """Check if any selected items exist."""
-        return len(self._selected) > 0
+        return len(self._items) > 0
     
     ###
     ### INTERNAL HELPERS
     ###
 
-    
+    def _check(self, _assert: dict | Callable | None = None, **kwargs) -> list[[str, tuple]]:
+        baseline = {**(_assert if isinstance(_assert, dict) else {}), **kwargs}
+        if callable(_assert):
+            # TODO
+            baseline["__Check__predicate__"] = _assert
+
+        return [self._engine.check_verbose(item, baseline) for item in self._items]
+        

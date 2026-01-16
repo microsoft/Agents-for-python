@@ -80,7 +80,6 @@ class SafeObject(Generic[T], Readonly):
         :param key: The key or index of the item to access.
         :return: The item value wrapped in a SafeObject.
         """
-        # breakpoint()
 
         value = resolve(self)
         value = cast(dict, value)
@@ -108,3 +107,12 @@ class SafeObject(Generic[T], Readonly):
         if isinstance(other, SafeObject):
             other_value = resolve(other)
         return value == other_value
+    
+    def __call__(self, *args, **kwargs) -> Any:
+        """Call the wrapped object if it is callable."""
+        value = resolve(self)
+        if callable(value):
+            result = value(*args, **kwargs)
+            cls = object.__getattribute__(self, "__class__")
+            return cls(result, self)
+        raise TypeError(f"'{type(value).__name__}' object is not callable")
