@@ -13,6 +13,10 @@ from .quantifier import (
     for_exactly,
 )
 
+from .engine import (
+    CheckEngine,
+)
+
 T = TypeVar("T", bound=BaseModel)
 
 class Check:
@@ -33,7 +37,7 @@ class Check:
         Check(responses).any().that(type="typing")
 
         # Complex assertions
-        Check(responses).where(type="message").last.that(
+        Check(responses).where(type="message").last().that(
             text="~confirmed",
             attachments=lambda a: len(a) > 0,
         )
@@ -42,6 +46,7 @@ class Check:
     def __init__(self, items: Iterable[dict | BaseModel], quantifier: Quantifier = for_all) -> None:
         self._items = list(items)
         self._quantifier: Quantifier = quantifier
+        self._engine = CheckEngine()
 
     ###
     ### Selectors

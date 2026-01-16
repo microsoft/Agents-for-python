@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from typing import Any, Generic, TypeVar, overload, cast
 
-from ._readonly import _Readonly
+from .readonly import _Readonly
 from .unset import Unset
 
 T = TypeVar("T")
