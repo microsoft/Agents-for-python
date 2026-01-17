@@ -113,7 +113,7 @@ class RestChannelServiceClientFactory(ChannelServiceClientFactoryBase):
             )
 
             token = await token_provider.get_access_token(
-                audience, scopes or [f"{audience}/.default"]
+                audience, scopes or claims_identity.get_token_scope()
             )
 
         return TeamsConnectorClient(
@@ -142,7 +142,7 @@ class RestChannelServiceClientFactory(ChannelServiceClientFactoryBase):
         if context.activity.is_agentic_request():
             token = await self._get_agentic_token(context, self._token_service_endpoint)
         else:
-            scopes = [f"{self._token_service_audience}/.default"]
+            scopes = claims_identity.get_token_scope()
 
             token_provider = self._connection_manager.get_token_provider(
                 claims_identity, self._token_service_endpoint
