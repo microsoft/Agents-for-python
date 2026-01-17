@@ -84,7 +84,7 @@ class ClaimsIdentity:
             else AuthenticationConstants.AGENTS_SDK_SCOPE
         )
 
-    def get_token_scope(self) -> str:
+    def get_token_scope(self) -> list[str]:
         """
         Gets the token scope from current claims.
 
