@@ -8,7 +8,6 @@ from ._type_aliases import JSON
 from .storage import Storage
 from .store_item import StoreItem
 
-
 StoreItemT = TypeVar("StoreItemT", bound=StoreItem)
 
 

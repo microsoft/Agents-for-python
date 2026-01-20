@@ -8,7 +8,6 @@ from asyncio import gather
 from ._type_aliases import JSON
 from .store_item import StoreItem
 
-
 StoreItemT = TypeVar("StoreItemT", bound=StoreItem)
 
 

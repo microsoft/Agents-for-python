@@ -18,7 +18,6 @@ from ..get_product_info import get_product_info
 from ..user_token_base import UserTokenBase
 from ..agent_sign_in_base import AgentSignInBase
 
-
 logger = logging.getLogger(__name__)
 
 
