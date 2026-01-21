@@ -20,7 +20,10 @@ class TestClient:
 
     @asynccontextmanager
     async def conversation(self, listen: bool = False):
-        
+        pass
 
     async def pop(self):
+        pass
+    
+    async def state(self):
         pass
