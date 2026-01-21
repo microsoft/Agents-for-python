@@ -22,7 +22,6 @@ from ..attachments_base import AttachmentsBase
 from ..conversations_base import ConversationsBase
 from ..get_product_info import get_product_info
 
-
 logger = logging.getLogger(__name__)
 
 

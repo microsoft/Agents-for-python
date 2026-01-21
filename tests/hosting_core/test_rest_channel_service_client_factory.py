@@ -173,6 +173,9 @@ class TestRestChannelServiceClientFactory:
         claims_identity = mocker.Mock(spec=ClaimsIdentity)
         service_url = DEFAULTS.service_url
         audience = "https://service.audience/"
+        claims_identity.get_token_scope = mocker.Mock(
+            return_value=[f"{audience}/.default"]
+        )
 
         context = mocker.Mock(spec=TurnContext)
         context.activity = activity

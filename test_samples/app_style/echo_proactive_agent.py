@@ -18,7 +18,11 @@ from microsoft_agents.activity import (
     EndOfConversationCodes,
 )
 from microsoft_agents.authentication.msal import MsalConnectionManager
-from microsoft_agents.hosting.aiohttp import CloudAdapter, start_agent_process
+from microsoft_agents.hosting.aiohttp import (
+    CloudAdapter,
+    start_agent_process,
+    jwt_authorization_middleware,
+)
 from microsoft_agents.hosting.core import (
     AgentApplication,
     Authorization,
@@ -207,7 +211,7 @@ def create_app() -> web.Application:
     global SERVICE_INSTANCE
     SERVICE_INSTANCE = echo_service
 
-    app = web.Application()
+    app = web.Application(middlewares=[jwt_authorization_middleware])
     app["adapter"] = adapter
     app["agent_app"] = AGENT_APP
     app["echo_service"] = echo_service

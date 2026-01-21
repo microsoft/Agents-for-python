@@ -19,7 +19,6 @@ from microsoft_agents.activity.conversation_reference import ActivityEventNames
 from microsoft_agents.hosting.core.middleware_set import Middleware, TurnContext
 from typing import Generic, TypeVar
 
-
 T = TypeVar("T")
 
 

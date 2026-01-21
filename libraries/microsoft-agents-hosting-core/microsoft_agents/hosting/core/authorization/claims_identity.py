@@ -83,3 +83,17 @@ class ClaimsIdentity:
             if self.is_agent_claim()
             else AuthenticationConstants.AGENTS_SDK_SCOPE
         )
+
+    def get_token_scope(self) -> list[str]:
+        """
+        Gets the token scope from current claims.
+
+        :return: The token scope.
+        """
+        return [
+            (
+                f"{self.get_outgoing_app_id()}/.default"
+                if self.is_agent_claim()
+                else AuthenticationConstants.AGENTS_SDK_SCOPE + "/.default"
+            )
+        ]

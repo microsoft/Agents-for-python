@@ -7,7 +7,6 @@ from microsoft_agents.hosting.core import (
     JwtTokenValidator,
 )
 
-
 logger = logging.getLogger(__name__)
 
 
