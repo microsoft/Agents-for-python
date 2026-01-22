@@ -21,7 +21,11 @@ from microsoft_agents.hosting.aiohttp import (
 )
 from microsoft_agents.hosting.msal_authentication import MsalConnectionManager
 
-from .agent_client import AgentClient
+from .agent_client import (
+    AgentClient,
+    SenderClient,
+    ResponseServer,
+)
 from .agent_scenario import AgentScenario
 from .config import AgentScenarioConfig
 
@@ -88,11 +92,13 @@ class AiohttpAgentScenario(AgentScenario):
         )
         
         self._init_agent_func(self._env)
-    async def create_client(self) -> AgentClient:
+    
+    @asynccontextmanager
+    async def client(self) -> AgentClient:
 
         self._application.router.add_post(
             "/api/messages", 
-            functools.partial(start_agent_process, 
+            functools.partial(start_agent_process,
                 agent_application=self._env.agent_application, 
                 adapter=self._env.adapter
             )
@@ -105,5 +111,11 @@ class AiohttpAgentScenario(AgentScenario):
         self._application["adapter"] = self._env.adapter
 
         async with TestServer(self._application) as server:
-            client = AgentClient(server.url)
-            yield client
+            response_server = ResponseServer(server.url)
+            async with response_server.listen() as collector:
+                client = AgentClient(
+                    SenderClient(server.url, self._config),
+                    collector,
+                    agent_client_config=self._config
+                )
+                yield client

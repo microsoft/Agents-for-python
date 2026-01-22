@@ -4,7 +4,12 @@ from abc import ABC, abstractmethod
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
 
-from .agent_client import AgentClient
+from .agent_client import (
+    AgentClient,
+    ResponseServer,
+    SenderClient
+)
+
 from .agent_scenario_config import AgentScenarioConfig
 
 class AgentScenario(ABC):
@@ -14,7 +19,7 @@ class AgentScenario(ABC):
 
     @abstractmethod
     @asynccontextmanager
-    async def create_client(self) -> AsyncIterator[AgentClient]:
+    async def client(self) -> AsyncIterator[AgentClient]:
         raise NotImplementedError()
     
 class ExternalAgentScenario(AgentScenario):
@@ -24,5 +29,12 @@ class ExternalAgentScenario(AgentScenario):
         self._endpoint = endpoint
 
     @asynccontextmanager
-    async def run(self) -> AsyncIterator[AgentClient]:
-        yield AgentClient(self._endpoint)
+    async def client(self) -> AsyncIterator[AgentClient]:
+        response_server = ResponseServer(self._endpoint)
+        async with response_server.listen() as collector:
+            client = AgentClient(
+                SenderClient(self._endpoint, self._config),
+                collector,
+                agent_client_config=self._config
+            )
+        yield client

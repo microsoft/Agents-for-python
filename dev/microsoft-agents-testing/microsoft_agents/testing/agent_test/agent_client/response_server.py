@@ -1,6 +1,5 @@
-from threading import Lock
 from contextlib import asynccontextmanager
-from typing import AsyncContextManager
+from collections.abc import AsyncIterator
 
 from aiohttp.web import Application, Request, Response
 from aiohttp.test_utils import TestServer
@@ -10,45 +9,44 @@ from microsoft_agents.activity import (
     ActivityTypes,
 )
 
+from .response_collector import ResponseCollector
+
 class ResponseServer:
 
-    def __init__(self, host: str = "localhost", port: int = 9873):
+    def __init__(self, port: int = 9873):
 
         super().__init__(Application())
 
-        service_endpoint = f"{host}:{port}/"
-        if "http" not in service_endpoint:
-            service_endpoint = "http://" + service_endpoint
+        self._service_endpoint = f"http://localhost:{port}/"
+        self._port = port
 
-        self._service_endpoint = service_endpoint
-
-        self._responses = []
-        self._lock = Lock()
+        self._collector: ResponseCollector | None = None
 
         self._app.router.add_post("/v3/conversations/{path:.*}", self._handle_request)
 
     @asynccontextmanager
-    async def run(self) -> AsyncContextManager[TestServer]:
-        async with TestServer(self._app, host="localhost", port=9873) as server:
-            yield server
+    async def listen(self) -> AsyncIterator[ResponseCollector]:
 
-    def _handle_request(self, request: Request) -> Response:
-        return Response(text="OK")
+        if self._collector:
+            raise RuntimeError("Response server is already listening for responses.")
+        
+        self._collector = ResponseCollector(filter)
+
+        async with TestServer(self._app, host="localhost", port=self._port):
+            yield self._collector
+
+        self._collector = None
     
     @property
     def service_endpoint(self) -> str:
         return self._service_endpoint
-    
-    def _add(self, activity: Activity) -> None:
-        with self._lock:
-            self._responses.append(activity)
     
     async def _handle_request(self, request: Request) -> Response:
         try:
             data = await request.json()
             activity = Activity.model_validate(data)
 
-            self._add(activity)
+            if self._collector: self._collector.add(activity)
             if activity.type != ActivityTypes.typing:
                 pass
 
@@ -62,9 +60,3 @@ class ResponseServer:
                 status=500,
                 text=str(e)
             )
-
-    def pop(self) -> list[Activity]:
-        with self._lock:
-            activities = self._responses
-            self._responses = []
-        return activities
