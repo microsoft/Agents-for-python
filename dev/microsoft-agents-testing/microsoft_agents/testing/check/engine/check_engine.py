@@ -29,6 +29,7 @@ class CheckEngine:
     
     def _invoke(self, query_function: Callable, context: CheckContext) -> Any:
 
+        # replaceable with functools.partial
         sig = inspect.getfullargspec(query_function)
         args = {}
 
