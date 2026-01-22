@@ -1,16 +1,16 @@
+from agent_test import (
+    agent_test,
+    AgentClient,
+    AgentScenario,
+    AiohttpAgentScenario,
+    ExternalAgentScenario,
+)
 from .check import (
     Check,
     SafeObject,
     parent,
     resolve,
     Unset,
-)
-from .integration import (
-    TestClient,
-    ApplicationRunner,
-    AgentScenario,
-    TestClient,
-    TestClientOptions,
 )
 from .utils import (
     update_with_defaults,

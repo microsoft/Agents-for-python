@@ -16,31 +16,17 @@ from microsoft_agents.hosting.core import (
 from .agent_client import AgentClient
 from .agent_environment import AgentEnvironment
 from .agent_scenario import AgentScenario, ExternalAgentScenario
-
-class AgentTestConfig:
-    
-    pass
-
-class AgentTestsConfigBuilder:
-
-    def __init__(self):
-        pass
-
-    def service_url(self, url: str) -> AgentTestsConfigBuilder:
-        return self
-
-    def build(self) -> AgentTestConfig:
-        return AgentTestConfig()
+from .config import AgentTestConfig, AgentScenarioConfig
 
 def _create_fixtures(scenario: AgentScenario) -> list[Callable]:
     """Create pytest fixtures for the given agent scenario."""
-
-    fixtures = []
 
     @pytest.fixture
     async def agent_client(self) -> AsyncIterator[AgentClient]:
         async with scenario.run() as client:
             yield client
+
+    fixtures = [agent_client]
 
     if hasattr(scenario, "agent_environment"): # not super clean...
 
@@ -84,7 +70,7 @@ def _create_fixtures(scenario: AgentScenario) -> list[Callable]:
     
 def agent_test(
     arg: str | AgentScenario,
-    config: AgentTestConfig | None = None
+    config: AgentTestConfig | AgentScenarioConfig | None = None
 ) -> Callable[[type], type]:
     """Class decorator to set up pytest fixtures that allow for the testing of agents
     based on the provided scenario.
@@ -99,8 +85,11 @@ def agent_test(
 
     :return: A class decorator that adds the necessary pytest fixtures to the test class.
     """
-    
-    config = config or AgentTestConfig()
+
+    if isinstance(config, AgentScenarioConfig):
+        config = AgentTestConfig(scenario_config=config)
+    else:
+        config = cast(AgentTestConfig, config or AgentTestConfig())
 
     fixtures = []
 
