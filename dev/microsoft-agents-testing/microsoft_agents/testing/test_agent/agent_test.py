@@ -1,7 +1,9 @@
-import pytest
+from __future__ import annotations
 
 from typing import Callable, cast
 from collections.abc import AsyncIterator
+
+import pytest
 
 from microsoft_agents.hosting.core import (
     AgentApplication,
@@ -14,7 +16,21 @@ from microsoft_agents.hosting.core import (
 from .agent_client import AgentClient
 from .agent_environment import AgentEnvironment
 from .agent_scenario import AgentScenario, ExternalAgentScenario
-from .agent_test_config import AgentTestConfig
+
+class AgentTestConfig:
+    
+    pass
+
+class AgentTestsConfigBuilder:
+
+    def __init__(self):
+        pass
+
+    def service_url(self, url: str) -> AgentTestsConfigBuilder:
+        return self
+
+    def build(self) -> AgentTestConfig:
+        return AgentTestConfig()
 
 def _create_fixtures(scenario: AgentScenario) -> list[Callable]:
     """Create pytest fixtures for the given agent scenario."""
@@ -66,7 +82,7 @@ def _create_fixtures(scenario: AgentScenario) -> list[Callable]:
     return fixtures
 
     
-def test_agent(
+def agent_test(
     arg: str | AgentScenario,
     config: AgentTestConfig | None = None
 ) -> Callable[[type], type]:
