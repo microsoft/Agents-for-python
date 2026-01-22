@@ -78,6 +78,7 @@ async def on_connector_message(context: TurnContext, state: TurnState) -> None:
                 return
 
             access_token = await AGENT_APP.auth.get_token(context)
+            exchanged_token = await AGENT_APP.auth.exchange_token(context)
 
             if not access_token or not access_token.token:
                 await context.send_activity(
