@@ -12,7 +12,6 @@ from ..connector_client_base import ConnectorClientBase
 from ..attachments_base import AttachmentsBase
 from ..conversations_base import ConversationsBase
 
-
 logger = logging.getLogger(__name__)
 
 

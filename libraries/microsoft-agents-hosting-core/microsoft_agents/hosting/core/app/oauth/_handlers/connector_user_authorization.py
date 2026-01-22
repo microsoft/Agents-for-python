@@ -5,11 +5,12 @@ Licensed under the MIT License.
 
 import logging
 import jwt
-from datetime import datetime, timezone, timedelta
+from datetime import datetime, timezone
 from typing import Optional
 
 from microsoft_agents.activity import TokenResponse
 
+from ...._oauth._flow_state import _FlowStateTag
 from ....turn_context import TurnContext
 from ....storage import Storage
 from ....authorization import Connections
@@ -76,7 +77,7 @@ class ConnectorUserAuthorization(_AuthorizationHandler):
         # Connector auth uses the token from the request, not a separate sign-in flow
         token_response = await self.get_refreshed_token(context)
         return _SignInResponse(
-            token_response=token_response, success=bool(token_response)
+            token_response=token_response, tag=_FlowStateTag.COMPLETE
         )
 
     async def get_refreshed_token(

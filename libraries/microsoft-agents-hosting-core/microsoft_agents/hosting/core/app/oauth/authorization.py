@@ -88,7 +88,9 @@ class Authorization:
             if not auth_handlers and handlers_config:
                 auth_handlers = {
                     handler_name: AuthHandler(
-                        name=handler_name, **config.get("SETTINGS", {})
+                        name=handler_name,
+                        auth_type=config.get("TYPE", None),
+                        **config.get("SETTINGS", {}),
                     )
                     for handler_name, config in handlers_config.items()
                 }
@@ -308,6 +310,9 @@ class Authorization:
                     context, state, auth_handler_id
                 )
                 if sign_in_response.tag == _FlowStateTag.COMPLETE:
+                    if not sign_in_state:
+                        # flow just completed, no continuation activity
+                        return False, None
                     assert sign_in_state.continuation_activity is not None
                     continuation_activity = (
                         sign_in_state.continuation_activity.model_copy()
