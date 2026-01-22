@@ -25,6 +25,7 @@ class ResponseCollector:
         return True
 
     def get_activities(self) -> list[Activity]:
+        self._pop_index = len(self._activities)
         return list(self._activities)
     
     def get_invoke_responses(self) -> list[InvokeResponse]:

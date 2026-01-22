@@ -33,7 +33,6 @@ class SenderClient:
 
     async def send(self, activity: Activity) -> str:
         """Send an activity and return the response content as a string."""
-        
         _, content = await self._send(activity)
         return content
     
@@ -64,10 +63,3 @@ class SenderClient:
             return InvokeResponse(status=status, body=response_data)
         except pydantic.ValidationError:
             raise ValueError("Invalid InvokeResponse format")
-        
-
-    async def submit_card_action(self):
-        pass
-
-    async def send_with_attachment(self):
-        pass

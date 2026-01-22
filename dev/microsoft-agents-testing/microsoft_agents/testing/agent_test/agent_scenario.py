@@ -4,6 +4,8 @@ from abc import ABC, abstractmethod
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
 
+from aiohttp import ClientSession
+
 from .agent_client import (
     AgentClient,
     ResponseServer,
@@ -32,9 +34,10 @@ class ExternalAgentScenario(AgentScenario):
     async def client(self) -> AsyncIterator[AgentClient]:
         response_server = ResponseServer(self._endpoint)
         async with response_server.listen() as collector:
-            client = AgentClient(
-                SenderClient(self._endpoint, self._config),
-                collector,
-                agent_client_config=self._config
-            )
-        yield client
+            async with ClientSession(base_url=self._endpoint) as session:
+                client = AgentClient(
+                    SenderClient(session),
+                    collector,
+                    agent_client_config=self._config
+                )
+                yield client

@@ -34,7 +34,7 @@ class ModelTemplate(Generic[T]):
     def __init__(self, defaults: T | dict) -> None:
         self._defaults = normalize_model_data(defaults)
 
-    def populate(self, original: T | dict) -> T:
+    def create(self, original: T | dict) -> T:
 
         original_norm = normalize_model_data(deep_model_copy(original))
 
@@ -42,9 +42,3 @@ class ModelTemplate(Generic[T]):
         return type(T).model_validate(populated_dict)
     
 ActivityTemplate = ModelTemplate[Activity]
-
-def populate_model(original: T | dict, defaults: T | dict) -> T:
-    template = ModelTemplate[T](defaults)
-    return template.populate(original)
-
-populate_activity = populate_model[Activity]
