@@ -1,9 +1,7 @@
 from __future__ import annotations
 
 import asyncio
-from contextlib import contextmanager
-from collections.abc import AsyncIterator
-from typing import Callable, cast, Awaitable
+from typing import cast
 
 from microsoft_agents.activity import (
     Activity,
@@ -41,7 +39,7 @@ class AgentClient(ResponseCollector):
     def set_activity_template(self, activity_template: ActivityTemplate) -> None:
         self._activity_template = activity_template
 
-    def _create_activity(self, activity_or_str: Activity | str) -> Activity:
+    def activity(self, activity_or_str: Activity | str) -> Activity:
         if isinstance(activity_or_str, Activity):
             base = cast(Activity, activity_or_str)
         else:
@@ -58,27 +56,15 @@ class AgentClient(ResponseCollector):
     def get_invoke_responses(self) -> list[InvokeResponse]:
         return self._collector.get_invoke_responses()
     
-    def _fork(self, agent_client_config: AgentClientConfig | None = None) -> AgentClient:
-        client = AgentClient(
-            self._sender,
-            self._collector,
-            agent_client_config or self._config
-        )
-        return client
-
-    async def conversation(self) -> AgentClient:
-        pass
-    
     async def send(self,
                    activity_or_text: Activity | str,
                    wait_for_responses: float = 0.0,
                    ) -> list[Activity | InvokeResponse]:
 
         self._collector.pop()
-    
         received_activities = []
 
-        activity_to_send = self._create_activity(activity_or_text)
+        activity_to_send = self.activity(activity_or_text)
 
         if activity_to_send.type == ActivityTypes.invoke:
             invoke_response = await self._sender.send_invoke(activity_to_send)
@@ -103,7 +89,7 @@ class AgentClient(ResponseCollector):
         activity_or_text: Activity | str,
     ) -> list[Activity]:
         
-        activity_to_send = self._create_activity(activity_or_text)
+        activity_to_send = self.activity(activity_or_text)
         activity_to_send.delivery_mode = DeliveryModes.expect_replies
 
         activities = await self._sender.send_expect_replies(activity_to_send)
