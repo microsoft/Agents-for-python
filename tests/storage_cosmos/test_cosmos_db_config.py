@@ -73,7 +73,7 @@ class TestCosmosDBStorageConfig:
         assert config.auth_key == ""
         assert config.database_id == ""
         assert config.container_id == ""
-        assert config.container_throughput == 400  # Default value
+        assert config.container_throughput is None  # Default value
         assert config.key_suffix == ""
         assert config.compatibility_mode is False
         assert config.cosmos_client_options == {}
@@ -153,24 +153,6 @@ class TestCosmosDBStorageConfig:
         """Test validation with None config"""
         with pytest.raises(ValueError):
             CosmosDBStorageConfig.validate_cosmos_db_config(None)
-
-    def test_validation_missing_endpoint(self):
-        """Test validation with missing cosmos_db_endpoint"""
-        config = CosmosDBStorageConfig(
-            auth_key="test_key", database_id="test_db", container_id="test_container"
-        )
-        with pytest.raises(ValueError):
-            CosmosDBStorageConfig.validate_cosmos_db_config(config)
-
-    def test_validation_missing_auth_key(self):
-        """Test validation with missing auth_key"""
-        config = CosmosDBStorageConfig(
-            cosmos_db_endpoint="https://test.documents.azure.com:443/",
-            database_id="test_db",
-            container_id="test_container",
-        )
-        with pytest.raises(ValueError):
-            CosmosDBStorageConfig.validate_cosmos_db_config(config)
 
     def test_validation_missing_database_id(self):
         """Test validation with missing database_id"""

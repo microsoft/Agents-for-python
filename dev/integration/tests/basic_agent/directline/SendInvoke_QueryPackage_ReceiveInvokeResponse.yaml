@@ -1,0 +1,28 @@
+test:
+- type: input
+  activity:
+    type: invoke
+    channelId: directline
+    from:
+      id: user1
+      name: User
+    conversation:
+      id: conversation123
+    recipient:
+      id: bot1
+      name: Bot
+    name: composeExtension/query
+    value:
+      commandId: findNuGetPackage
+      parameters:
+      - name: NuGetPackageName
+        value: Newtonsoft.Json
+      queryOptions:
+        skip: 0
+        count: 10
+    locale: en-US
+  assertion:
+    invokeResponse:
+      composeExtension:
+        text: ["CONTAINS", "result"]
+        attachments: ["LEN_GREATER_THAN", 0]

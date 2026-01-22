@@ -1,0 +1,49 @@
+test:
+- type: input
+  activity:
+    type: invoke
+    id: invoke123
+    channelId: msteams
+    from:
+      id: user-id-0
+      name: Alex Wilber
+      aadObjectId: aad-user-alex
+    timestamp: '2025-07-08T22:53:24.000Z'
+    localTimestamp: '2025-07-08T15:53:24.000-07:00'
+    localTimezone: America/Los_Angeles
+    serviceUrl: http://localhost:52065/_connector
+    conversation:
+      conversationType: personal
+      tenantId: tenant-001
+      id: personal-chat-id
+    recipient:
+      id: bot-001
+      name: Test Bot
+    locale: en-US
+    entities:
+    - type: clientInfo
+      locale: en-US
+      country: US
+      platform: Web
+      timezone: America/Los_Angeles
+    channelData:
+      source:
+        name: compose
+      tenant:
+        id: tenant-001
+    value:
+      '@id': https://www.nuget.org/packages/Newtonsoft.Json/13.0.1
+      id: Newtonsoft.Json
+      version: 13.0.1
+      description: Json.NET is a popular high-performance JSON framework for .NET
+      projectUrl: https://www.newtonsoft.com/json
+      iconUrl: https://www.newtonsoft.com/favicon.ico
+    name: composeExtension/selectItem
+- type: skip
+- type: assertion
+  invokeResponse:
+    composeExtension:
+      type: result
+      text: ["CONTAINS", "Newtonsoft.Json"]
+      attachments:
+        contentType: application/vnd.microsoft.card.thumbnail

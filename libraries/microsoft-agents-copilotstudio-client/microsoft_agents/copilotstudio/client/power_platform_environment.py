@@ -1,3 +1,6 @@
+# Copyright (c) Microsoft Corporation. All rights reserved.
+# Licensed under the MIT License.
+
 from microsoft_agents.copilotstudio.client.errors import copilot_studio_errors
 from urllib.parse import urlparse, urlunparse
 from typing import Optional

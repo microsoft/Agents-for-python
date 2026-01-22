@@ -1,0 +1,25 @@
+parent: _parent.yaml
+test:
+  - type: input
+    activity:
+      type: message
+      text: hi
+  - type: input
+    activity:
+      type: message
+      text: hi
+  - type: sleep
+    duration: .5
+  - type: assertion
+    selector:
+      activity:
+        type: message
+    activity:
+      type: message
+      text: "you said: hi"
+  - type: assertion # assert that a typing activity was sent
+    selector:
+      index: -1
+      activity:
+        type: typing
+    quantifier: one

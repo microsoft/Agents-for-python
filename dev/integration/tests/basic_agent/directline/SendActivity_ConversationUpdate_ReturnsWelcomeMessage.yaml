@@ -1,0 +1,36 @@
+test:
+- type: input
+  activity:
+    type: conversationUpdate
+    id: activity-conv-update-001
+    timestamp: '2025-07-30T23:01:11.000Z'
+    channelId: directline
+    from:
+      id: user1
+    conversation:
+      id: conversation-001
+    recipient:
+      id: basic-agent@sometext
+      name: basic-agent
+    membersAdded:
+    - id: basic-agent@sometext
+      name: basic-agent
+    - id: user1
+    localTimestamp: '2025-07-30T15:59:55.000-07:00'
+    localTimezone: America/Los_Angeles
+    textFormat: plain
+    locale: en-US
+    attachments: []
+    entities:
+    - type: ClientCapabilities
+      requiresBotState: true
+      supportsListening: true
+      supportsTts: true
+    channelData:
+      clientActivityID: client-activity-001
+- type: assertion
+  selector:
+    index: -1
+  activity:
+    type: message
+    text: ["CONTAINS", "Hello and Welcome!"]

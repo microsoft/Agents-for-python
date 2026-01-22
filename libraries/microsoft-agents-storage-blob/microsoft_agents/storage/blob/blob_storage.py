@@ -30,9 +30,9 @@ class BlobStorage(AsyncStorageBase):
 
         self.config = config
 
-        blob_service_client: BlobServiceClient = self._create_client()
+        self._blob_service_client: BlobServiceClient = self._create_client()
         self._container_client: ContainerClient = (
-            blob_service_client.get_container_client(config.container_name)
+            self._blob_service_client.get_container_client(config.container_name)
         )
         self._initialized: bool = False
 
@@ -66,7 +66,7 @@ class BlobStorage(AsyncStorageBase):
         self, key: str, *, target_cls: StoreItemT = None, **kwargs
     ) -> tuple[Union[str, None], Union[StoreItemT, None]]:
         item = await ignore_error(
-            self._container_client.download_blob(blob=key),
+            self._container_client.download_blob(blob=key, timeout=5),
             is_status_code_error(404),
         )
         if not item:
@@ -101,3 +101,8 @@ class BlobStorage(AsyncStorageBase):
         await ignore_error(
             self._container_client.delete_blob(blob=key), is_status_code_error(404)
         )
+
+    async def _close(self) -> None:
+        """Cleans up the storage resources."""
+        await self._container_client.close()
+        await self._blob_service_client.close()
