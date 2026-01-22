@@ -2,6 +2,7 @@ import functools
 from dataclasses import dataclass
 from typing import Callable, Awaitable
 
+from aiohttp import ClientSession
 from aiohttp.web import Application
 from aiohttp.test_utils import TestServer
 
@@ -113,9 +114,10 @@ class AiohttpAgentScenario(AgentScenario):
         async with TestServer(self._application) as server:
             response_server = ResponseServer(server.url)
             async with response_server.listen() as collector:
-                client = AgentClient(
-                    SenderClient(server.url, self._config),
-                    collector,
-                    agent_client_config=self._config
-                )
-                yield client
+                async with ClientSession(base_url=server.url) as session:
+                    client = AgentClient(
+                        SenderClient(session),
+                        collector,
+                        agent_client_config=self._config
+                    )
+                    yield client
