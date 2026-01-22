@@ -22,7 +22,8 @@ from microsoft_agents.hosting.aiohttp import (
 from microsoft_agents.hosting.msal_authentication import MsalConnectionManager
 
 from .agent_client import AgentClient
-from .agent_scenario import AgentScenario, AgentScenarioConfig
+from .agent_scenario import AgentScenario
+from .config import AgentScenarioConfig
 
 @dataclass
 class AgentEnvironment:
@@ -34,7 +35,6 @@ class AgentEnvironment:
     adapter: ChannelServiceAdapter
     storage: Storage
     connections: Connections
-
 
 class AiohttpAgentScenario(AgentScenario):
 
