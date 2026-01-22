@@ -17,8 +17,6 @@ class TestClientOptions:
     sender_sleep: float = 0.1
     receiver_sleep: float = 0.1
 
-
-
     connections: Connections | None = None
 
 class TestClientOptionsBuilder:

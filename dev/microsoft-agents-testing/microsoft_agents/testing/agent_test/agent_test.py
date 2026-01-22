@@ -23,7 +23,7 @@ def _create_fixtures(scenario: AgentScenario) -> list[Callable]:
 
     @pytest.fixture
     async def agent_client(self) -> AsyncIterator[AgentClient]:
-        async with scenario.run() as client:
+        async with scenario.client() as client:
             yield client
 
     fixtures = [agent_client]
