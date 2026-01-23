@@ -1,7 +1,5 @@
 from agent_test import (
     agent_test,
-    AgentClient,
-    AgentScenario,
     AiohttpAgentScenario,
     ExternalAgentScenario,
 )
@@ -13,12 +11,15 @@ from .check import (
     Unset,
 )
 from .utils import (
-    update_with_defaults,
-    populate_activity,
+    ModelTemplate,
+    ActivityTemplate,
     normalize_model_data,
 )
 
 __all__ = [
+    "agent_test",
+    "AiohttpAgentScenario",
+    "ExternalAgentScenario",
     "Check",
     "SafeObject",
     "parent",
@@ -30,11 +31,7 @@ __all__ = [
     "for_none",
     "for_exactly",
     "for_one",
-    "TestClient",
-    "ApplicationRunner",
-    "AgentScenario",
-    "TestClientOptions",
-    "update_with_defaults",
-    "populate_activity",
+    "ModelTemplate",
+    "ActivityTemplate",
     "normalize_model_data",
 ]
