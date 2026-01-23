@@ -4,8 +4,13 @@ from .engine import (
     parent,
     resolve,
     Unset,
+    _actual,
+    _parent,
+    _root,
+    _,
 )
 from .quantifier import Quantifier
+
 __all__ = [
     "Check",
     "SafeObject",
@@ -13,4 +18,8 @@ __all__ = [
     "resolve",
     "Unset",
     "Quantifier",
+    "_",
+    "_actual",
+    "_parent",
+    "_root",
 ]

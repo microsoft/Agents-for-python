@@ -13,10 +13,8 @@ from .types import (
 
 DEFAULT_FIXTURES = {
     "actual": lambda ctx: resolve(ctx.actual),
-    "baseline": lambda ctx: ctx.baseline,
-    "path": lambda ctx: ctx.path,
-    "root_actual": lambda ctx: ctx.root_actual,
-    "root_baseline": lambda ctx: ctx.root_baseline,
+    "root": lambda ctx: ctx.baseline,
+    "parent": lambda ctx: ctx.parent,
 }
 
 class QueryFunction(Protocol):
@@ -29,7 +27,11 @@ class CheckEngine:
     
     def _invoke(self, query_function: Callable, context: CheckContext) -> Any:
 
-        # replaceable with functools.partial
+        if hasattr(query_function, "_arity"): # TODO -> more robust handling of fn.py functions
+            arity = query_function._arity
+            res = query_function(*[self._fixtures for i in range(arity)])
+            return bool(res), f"Assertion failed for query function: '{query_function}'"
+        
         sig = inspect.getfullargspec(query_function)
         args = {}
 
@@ -38,8 +40,8 @@ class CheckEngine:
                 args[arg] = self._fixtures[arg](context)
             else:
                 raise RuntimeError(f"Unknown argument '{arg}' in query function")
-
         res = query_function(**args)
+
         if isinstance(res, tuple) and len(res) == 2:
             return res[0], res[1]
         else:
