@@ -7,7 +7,6 @@ from typing import Callable, Awaitable
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
 
-from aiohttp import ClientSession
 from aiohttp.web import Application
 from aiohttp.test_utils import TestServer
 
@@ -33,6 +32,10 @@ from .agent_scenario_config import AgentScenarioConfig
 
 @dataclass
 class AgentEnvironment:
+    """Environment for an agent hosted within an aiohttp application.
+    
+    Means to access the components required to initialize and run the agent.
+    """
 
     config: dict
 
@@ -43,13 +46,23 @@ class AgentEnvironment:
     connections: Connections
 
 class AiohttpAgentScenario(_HostedAgentScenario):
+    """Agent test scenario for an agent hosted within an aiohttp application."""
 
     def __init__(
         self,
         init_agent: Callable[[AgentEnvironment], Awaitable[None]],
-        config: AgentScenarioConfig,
+        config: AgentScenarioConfig | None = None,
         use_jwt_middleware: bool = True,
     ) -> None:
+        """Initialize the aiohttp agent scenario with the given configuration.
+        
+        :param init_agent: A callable to initialize the agent within the given environment.
+        :param config: The configuration for the agent scenario.
+        :param use_jwt_middleware: Whether to use JWT authorization middleware.
+        """
+
+        if not init_agent:
+            raise ValueError("init_agent must be provided.")
         
         super().__init__(config)
         
@@ -64,11 +77,13 @@ class AiohttpAgentScenario(_HostedAgentScenario):
 
     @property
     def agent_environment(self) -> AgentEnvironment:
+        """Get the agent environment."""
         if not self._env:
             raise ValueError("Agent environment has not been set up yet.")
         return self._env
 
     async def _init_components(self) -> None:
+        """Initialize the components required for the agent environment."""
 
         storage = MemoryStorage()
         connection_manager = MsalConnectionManager(**self._sdk_config)
@@ -96,6 +111,7 @@ class AiohttpAgentScenario(_HostedAgentScenario):
     
     @asynccontextmanager
     async def client(self) -> AsyncIterator[AgentClient]:
+        """Get an asynchronous context manager for the aiohttp agent client."""
 
         await self._init_components()
 
