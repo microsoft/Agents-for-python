@@ -1,165 +1,11 @@
-"""
-Underscore Placeholder Implementation
-======================================
-
-A modern, lightweight implementation of a placeholder object for building
-deferred function expressions. Inspired by fn.py's underscore but with its 
-own design choices.
-
-Usage Examples:
-    >>> from microsoft_agents.testing.check.engine.underscore.f import _, _0, _1, _2, _var
-    
-    # Basic arithmetic - single argument
-    >>> add_one = _ + 1
-    >>> add_one(5)  # Returns 6
-    
-    # Multiple placeholders - each _ consumes the next argument
-    >>> add = _ + _
-    >>> add(2, 5)  # Returns 7
-    
-    # Indexed placeholders - reuse the same argument
-    >>> square = _0 * _0
-    >>> square(5)  # Returns 25
-    
-    # Create placeholders dynamically with _var
-    >>> _var[0] * _var[0]   # Same as _0 * _0
-    >>> _var["name"]        # Named placeholder
-    >>> _var.x              # Also creates named placeholder "x"
-    
-    # Item access on results (not placeholder creation)
-    >>> get_first = _[0]
-    >>> get_first([1, 2, 3])  # Returns 1
-    
-    >>> get_key = _["key"]
-    >>> get_key({"key": "value"})  # Returns "value"
-    
-    # Mixed indexed placeholders
-    >>> expr = _0 + _1 * _0
-    >>> expr(2, 3)  # Returns 2 + 3 * 2 = 8
-    
-    # Partial application - provide fewer args than needed
-    >>> add = _ + _
-    >>> add2 = add(2)   # Returns a partial, waiting for one more arg
-    >>> add2(5)         # Returns 7
-    
-    # Composing partials preserves grouping
-    >>> f = _0 + _0 - _1
-    >>> g = f(2) * -1   # This is (_0 + _0 - _1) * -1, not _0 + _0 - _1 * -1
-    >>> g(3)            # Returns (2 + 2 - 3) * -1 = -1
-    
-    # Named placeholders via _var
-    >>> greet = "Hello, " + _var["name"]
-    >>> greet(name="World")  # Returns "Hello, World"
-    
-    # Or using attribute syntax
-    >>> greet = "Hello, " + _var.name
-    >>> greet(name="World")  # Returns "Hello, World"
-    
-    # Introspect placeholders in an expression
-    >>> expr = _0 + _1 * _var["scale"]
-    >>> get_indexed_placeholders(expr)   # Returns {0, 1}
-    >>> get_named_placeholders(expr)     # Returns {'scale'}
-    >>> get_anonymous_count(expr)        # Returns 0
-    
-    # Comparisons  
-    >>> is_positive = _ > 0
-    >>> is_positive(5)  # Returns True
-    
-    # Method chaining
-    >>> get_upper = _.upper()
-    >>> get_upper("hello")  # Returns "HELLO"
-    
-    # Complex multi-argument expressions
-    >>> expr = (_ + _) * _
-    >>> expr(1, 2, 3)  # Returns (1 + 2) * 3 = 9
-
-Design Choices:
----------------
-1. IMMUTABILITY: Each operation returns a NEW Underscore instance. The original
-   placeholder is never mutated. This makes it safe to reuse and compose.
-
-2. OPERATION CHAIN: Operations are stored as a list of (operation_type, args, kwargs)
-   tuples. This is simpler than building an AST and sufficient for most use cases.
-   
-3. RESOLUTION CONTEXT: A context object is passed through the entire expression
-   during resolution, tracking consumed positional args and providing access to
-   all args/kwargs. This enables indexed (_0, _1) and named placeholders.
-
-4. POSITIONAL PLACEHOLDERS: Each bare `_` in an expression consumes the next 
-   positional argument. Indexed `_0`, `_1`, etc. refer to specific positions.
-
-5. AUTOMATIC PARTIAL APPLICATION: If you provide fewer arguments than there are
-   placeholders, you get back a new Underscore with those args "baked in".
-
-6. EXPRESSION ISOLATION: When composing expressions (e.g., `f(2) * -1`), the
-   original expression is treated as an atomic unit, preserving grouping.
-
-7. ATTRIBUTE vs METHOD: `_.foo` returns a new placeholder that will access `.foo`.
-   `_.foo()` returns one that will call `.foo()`. These are distinct operations.
-
-8. _var FOR PLACEHOLDER CREATION: Use `_var[0]`, `_var["name"]`, or `_var.name`
-   to create placeholders. `_[0]` and `_["key"]` are item access operations.
-
-Possible Extensions:
---------------------
-- Short-circuit evaluation for boolean operations  
-- Debug/trace mode to see the operation chain
-- Async method support
-"""
-
 from __future__ import annotations
-from typing import Any, Callable, List, Tuple, Dict, Set, Optional
-from enum import Enum, auto
-from dataclasses import dataclass
+from typing import Any
 
-
-class OperationType(Enum):
-    """Types of operations in the chain."""
-    BINARY_OP = auto()      # e.g., _ + 1, _ > 0
-    UNARY_OP = auto()       # e.g., -_, abs(_)
-    GETATTR = auto()        # e.g., _.foo
-    GETITEM = auto()        # e.g., _[0]
-    CALL = auto()           # e.g., _.method(arg1, arg2)
-    RBINARY_OP = auto()     # e.g., 1 + _, 5 - _ (reverse binary ops)
-
-
-class PlaceholderType(Enum):
-    """Types of placeholder references."""
-    ANONYMOUS = auto()      # _ - consumes next positional arg
-    INDEXED = auto()        # _0, _1, _2 - refers to specific positional arg
-    NAMED = auto()          # _var['name'] or _var.name - refers to named arg
-    EXPR = auto()           # A sub-expression (used for composition)
-
-
-@dataclass
-class PlaceholderInfo:
-    """Information about placeholders in an expression."""
-    anonymous_count: int
-    indexed: Set[int]
-    named: Set[str]
-    
-    @property
-    def total_positional_needed(self) -> int:
-        """
-        Minimum number of positional args needed.
-        
-        This is the max of:
-        - The number of anonymous placeholders
-        - The highest indexed placeholder + 1
-        """
-        max_indexed = max(self.indexed) + 1 if self.indexed else 0
-        return max(self.anonymous_count, max_indexed)
-    
-    def __repr__(self) -> str:
-        parts = []
-        if self.anonymous_count:
-            parts.append(f"anonymous={self.anonymous_count}")
-        if self.indexed:
-            parts.append(f"indexed={self.indexed}")
-        if self.named:
-            parts.append(f"named={self.named}")
-        return f"PlaceholderInfo({', '.join(parts)})"
-
+from .models import (
+    OperationType,
+    PlaceholderInfo,
+    PlaceholderType,
+)
 
 class ResolutionContext:
     """
@@ -170,7 +16,7 @@ class ResolutionContext:
     same args and kwargs.
     """
     
-    def __init__(self, args: tuple, kwargs: Dict[str, Any]):
+    def __init__(self, args: tuple, kwargs: dict[str, Any]):
         self._args = args
         self._kwargs = kwargs
         self._next_anonymous_index = 0
@@ -208,7 +54,7 @@ class ResolutionContext:
         return self._args
     
     @property
-    def kwargs(self) -> Dict[str, Any]:
+    def kwargs(self) -> dict[str, Any]:
         return self._kwargs
 
 
@@ -244,11 +90,11 @@ class Underscore:
     
     def __init__(
         self, 
-        operations: List[Tuple[OperationType, tuple, dict]] | None = None,
+        operations: list[tuple[OperationType, tuple, dict]] | None = None,
         placeholder_type: PlaceholderType = PlaceholderType.ANONYMOUS,
         placeholder_id: Any = None,  # index for INDEXED, name for NAMED
         bound_args: tuple = (),
-        bound_kwargs: Dict[str, Any] | None = None,
+        bound_kwargs: dict[str, Any] | None = None,
         inner_expr: 'Underscore | None' = None,  # For EXPR type
     ):
         """
@@ -296,7 +142,7 @@ class Underscore:
     
     def _copy_with(
         self, 
-        operation: Tuple[OperationType, tuple, dict] | None = None,
+        operation: tuple[OperationType, tuple, dict] | None = None,
         **overrides
     ) -> Underscore:
         """Create a new Underscore, optionally with an additional operation."""
@@ -491,169 +337,6 @@ class Underscore:
         return result
 
 
-class _VarFactory:
-    """
-    Factory for creating indexed and named placeholders.
-    
-    Usage:
-        _var[0]      -> indexed placeholder for arg 0
-        _var[1]      -> indexed placeholder for arg 1
-        _var["name"] -> named placeholder for kwarg "name"
-        _var.name    -> named placeholder for kwarg "name" (attribute syntax)
-    """
-    
-    def __getitem__(self, key: Any) -> Underscore:
-        """Create a placeholder via indexing."""
-        if isinstance(key, int):
-            return Underscore(
-                placeholder_type=PlaceholderType.INDEXED,
-                placeholder_id=key,
-            )
-        elif isinstance(key, str):
-            return Underscore(
-                placeholder_type=PlaceholderType.NAMED,
-                placeholder_id=key,
-            )
-        else:
-            raise TypeError(
-                f"_var key must be int (for indexed) or str (for named), "
-                f"got {type(key).__name__}"
-            )
-    
-    def __getattr__(self, name: str) -> Underscore:
-        """Create a named placeholder via attribute access."""
-        if name.startswith('_'):
-            raise AttributeError(f"Cannot create placeholder with name '{name}'")
-        return Underscore(
-            placeholder_type=PlaceholderType.NAMED,
-            placeholder_id=name,
-        )
-    
-    def __repr__(self) -> str:
-        return "_var"
-
-
-# =============================================================================
-# Introspection Functions
-# =============================================================================
-
-def _collect_placeholders(expr: Any, info: PlaceholderInfo) -> None:
-    """
-    Recursively collect placeholder information from an expression.
-    
-    This walks the entire expression tree and records all placeholders found.
-    """
-    if not isinstance(expr, Underscore):
-        return
-    
-    # Record this placeholder's type
-    if expr._placeholder_type == PlaceholderType.ANONYMOUS:
-        info.anonymous_count += 1
-    elif expr._placeholder_type == PlaceholderType.INDEXED:
-        info.indexed.add(expr._placeholder_id)
-    elif expr._placeholder_type == PlaceholderType.NAMED:
-        info.named.add(expr._placeholder_id)
-    elif expr._placeholder_type == PlaceholderType.EXPR:
-        # Recurse into inner expression
-        _collect_placeholders(expr._inner_expr, info)
-    
-    # Check all operations for nested Underscores
-    for op_type, args, kwargs in expr._operations:
-        for arg in args:
-            _collect_placeholders(arg, info)
-        for value in kwargs.values():
-            _collect_placeholders(value, info)
-
-
-def get_placeholder_info(expr: Underscore) -> PlaceholderInfo:
-    """
-    Get complete information about all placeholders in an expression.
-    
-    Args:
-        expr: An Underscore expression to analyze.
-        
-    Returns:
-        PlaceholderInfo with counts and sets of all placeholder types.
-        
-    Example:
-        >>> expr = _0 + _1 * _var["scale"] + _
-        >>> info = get_placeholder_info(expr)
-        >>> info.anonymous_count
-        1
-        >>> info.indexed
-        {0, 1}
-        >>> info.named
-        {'scale'}
-        >>> info.total_positional_needed
-        2
-    """
-    info = PlaceholderInfo(anonymous_count=0, indexed=set(), named=set())
-    _collect_placeholders(expr, info)
-    return info
-
-
-def get_anonymous_count(expr: Underscore) -> int:
-    """
-    Count the number of anonymous placeholders (_) in an expression.
-    
-    Example:
-        >>> get_anonymous_count(_ + _ * _)
-        3
-        >>> get_anonymous_count(_0 + _1)
-        0
-    """
-    return get_placeholder_info(expr).anonymous_count
-
-
-def get_indexed_placeholders(expr: Underscore) -> Set[int]:
-    """
-    Get the set of indexed placeholder positions used in an expression.
-    
-    Example:
-        >>> get_indexed_placeholders(_0 + _1 * _0)
-        {0, 1}
-        >>> get_indexed_placeholders(_ + _)
-        set()
-    """
-    return get_placeholder_info(expr).indexed
-
-
-def get_named_placeholders(expr: Underscore) -> Set[str]:
-    """
-    Get the set of named placeholders used in an expression.
-    
-    Example:
-        >>> get_named_placeholders(_var["x"] + _var["y"] * _var["x"])
-        {'x', 'y'}
-        >>> get_named_placeholders(_ + _0)
-        set()
-    """
-    return get_placeholder_info(expr).named
-
-
-def get_required_args(expr: Underscore) -> Tuple[int, Set[str]]:
-    """
-    Get the minimum positional args and required named args for an expression.
-    
-    Returns:
-        A tuple of (min_positional_count, set_of_required_names).
-        
-    Example:
-        >>> pos, named = get_required_args(_0 + _1 * _var["scale"])
-        >>> pos
-        2
-        >>> named
-        {'scale'}
-    """
-    info = get_placeholder_info(expr)
-    return info.total_positional_needed, info.named
-
-
-def is_placeholder(value: Any) -> bool:
-    """Check if a value is an Underscore placeholder."""
-    return isinstance(value, Underscore)
-
-
 # =============================================================================
 # Operator Definitions
 # =============================================================================
@@ -758,45 +441,3 @@ Underscore.__rrshift__ = _make_rbinop('__rshift__')
 Underscore.__neg__ = _make_unop('__neg__')
 Underscore.__pos__ = _make_unop('__pos__')
 Underscore.__invert__ = _make_unop('__invert__')
-
-
-# =============================================================================
-# Placeholder instances
-# =============================================================================
-
-# Anonymous placeholder - consumes args in order
-_ = Underscore()
-
-# Indexed placeholders - refer to specific positional args
-_0 = Underscore(placeholder_type=PlaceholderType.INDEXED, placeholder_id=0)
-_1 = Underscore(placeholder_type=PlaceholderType.INDEXED, placeholder_id=1)
-_2 = Underscore(placeholder_type=PlaceholderType.INDEXED, placeholder_id=2)
-_3 = Underscore(placeholder_type=PlaceholderType.INDEXED, placeholder_id=3)
-_4 = Underscore(placeholder_type=PlaceholderType.INDEXED, placeholder_id=4)
-
-# Factory for creating placeholders dynamically
-_var = _VarFactory()
-
-
-def _n(index: int) -> Underscore:
-    """Create an indexed placeholder for any position."""
-    return Underscore(placeholder_type=PlaceholderType.INDEXED, placeholder_id=index)
-
-
-# =============================================================================
-# Helper for functional composition
-# =============================================================================
-
-def pipe(*funcs: Callable) -> Callable:
-    """
-    Compose functions left-to-right (pipeline style).
-    
-    Example:
-        >>> process = pipe(_ + 1, _ * 2, str)
-        >>> process(5)  # (5 + 1) * 2 = 12, then str -> "12"
-    """
-    def composed(value):
-        for f in funcs:
-            value = f(value)
-        return value
-    return composed
