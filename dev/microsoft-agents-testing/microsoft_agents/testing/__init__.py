@@ -8,6 +8,7 @@ from .check import (
     Check,
     Unset,
 )
+
 from .utils import (
     ModelTemplate,
     ActivityTemplate,
