@@ -1,320 +1,416 @@
 import pytest
-from typing import Any
 from pydantic import BaseModel
+from typing import Any
 
-from microsoft_agents.testing.check.engine.check_engine import (
-    CheckEngine,
-    DEFAULT_FIXTURES,
-)
+from microsoft_agents.testing.check.engine import CheckEngine
+from microsoft_agents.testing.check.engine.types import SafeObject, resolve, Unset
 from microsoft_agents.testing.check.engine.check_context import CheckContext
-from microsoft_agents.testing.check.engine.types import SafeObject, resolve
 
 
-# ============== Fixtures ==============
-
-@pytest.fixture
-def engine() -> CheckEngine:
-    """Create a default CheckEngine instance."""
-    return CheckEngine()
-
-
-# ============== Test Models ==============
-
-class SimpleModel(BaseModel):
+class SampleModel(BaseModel):
     name: str
-    value: int
+    age: int
+    email: str | None = None
 
 
 class NestedModel(BaseModel):
-    id: int
-    details: SimpleModel
+    user: SampleModel
+    active: bool
 
-
-# ============== Tests for __init__ ==============
 
 class TestCheckEngineInit:
-    
-    def test_init_with_default_fixtures(self):
-        """Test that CheckEngine initializes with default fixtures."""
-        engine = CheckEngine()
-        assert engine._fixtures == DEFAULT_FIXTURES
+    """Test CheckEngine initialization."""
 
-    def test_init_with_custom_fixtures(self):
-        """Test that CheckEngine accepts custom fixtures."""
-        custom_fixtures = {"custom": lambda ctx: "custom_value"}
+    def test_default_fixtures(self):
+        engine = CheckEngine()
+        assert engine._fixtures is not None
+        assert "actual" in engine._fixtures
+        assert "root" in engine._fixtures
+        assert "parent" in engine._fixtures
+
+    def test_custom_fixtures(self):
+        custom_fixtures = {
+            "custom": lambda ctx: "custom_value",
+            "actual": lambda ctx: resolve(ctx.actual),
+        }
         engine = CheckEngine(fixtures=custom_fixtures)
         assert engine._fixtures == custom_fixtures
-
-    def test_init_with_none_fixtures_uses_defaults(self):
-        """Test that passing None uses default fixtures."""
-        engine = CheckEngine(fixtures=None)
-        assert engine._fixtures == DEFAULT_FIXTURES
+        assert "custom" in engine._fixtures
 
 
-# ============== Tests for check() ==============
+class TestCheckEngineCheckPrimitives:
+    """Test CheckEngine.check with primitive values."""
 
-class TestCheckEngineCheck:
-    
-    def test_check_equal_primitives(self, engine: CheckEngine):
-        """Test checking equal primitive values."""
+    def test_equal_integers(self):
+        engine = CheckEngine()
         assert engine.check(42, 42) is True
-        assert engine.check("hello", "hello") is True
-        assert engine.check(3.14, 3.14) is True
-        assert engine.check(True, True) is True
 
-    def test_check_unequal_primitives(self, engine: CheckEngine):
-        """Test checking unequal primitive values."""
-        assert engine.check(42, 43) is False
+    def test_unequal_integers(self):
+        engine = CheckEngine()
+        assert engine.check(42, 100) is False
+
+    def test_equal_strings(self):
+        engine = CheckEngine()
+        assert engine.check("hello", "hello") is True
+
+    def test_unequal_strings(self):
+        engine = CheckEngine()
         assert engine.check("hello", "world") is False
-        assert engine.check(3.14, 2.71) is False
+
+    def test_equal_floats(self):
+        engine = CheckEngine()
+        assert engine.check(3.14, 3.14) is True
+
+    def test_equal_booleans(self):
+        engine = CheckEngine()
+        assert engine.check(True, True) is True
+        assert engine.check(False, False) is True
+
+    def test_unequal_booleans(self):
+        engine = CheckEngine()
         assert engine.check(True, False) is False
 
-    def test_check_equal_dicts(self, engine: CheckEngine):
-        """Test checking equal dictionaries."""
-        actual = {"name": "test", "value": 123}
-        baseline = {"name": "test", "value": 123}
+    def test_none_values(self):
+        engine = CheckEngine()
+        assert engine.check(None, None) is True
+
+
+class TestCheckEngineCheckDict:
+    """Test CheckEngine.check with dictionary values."""
+
+    def test_equal_flat_dicts(self):
+        engine = CheckEngine()
+        actual = {"name": "John", "age": 30}
+        baseline = {"name": "John", "age": 30}
         assert engine.check(actual, baseline) is True
 
-    def test_check_unequal_dicts(self, engine: CheckEngine):
-        """Test checking unequal dictionaries."""
-        actual = {"name": "test", "value": 123}
-        baseline = {"name": "test", "value": 456}
+    def test_unequal_flat_dicts(self):
+        engine = CheckEngine()
+        actual = {"name": "John", "age": 30}
+        baseline = {"name": "Jane", "age": 30}
         assert engine.check(actual, baseline) is False
 
-    def test_check_equal_lists(self, engine: CheckEngine):
-        """Test checking equal lists."""
+    def test_nested_dicts(self):
+        engine = CheckEngine()
+        actual = {"user": {"name": "John", "profile": {"age": 30}}}
+        baseline = {"user": {"name": "John", "profile": {"age": 30}}}
+        assert engine.check(actual, baseline) is True
+
+    def test_nested_dicts_mismatch(self):
+        engine = CheckEngine()
+        actual = {"user": {"name": "John", "profile": {"age": 30}}}
+        baseline = {"user": {"name": "John", "profile": {"age": 25}}}
+        assert engine.check(actual, baseline) is False
+
+    def test_partial_baseline_match(self):
+        engine = CheckEngine()
+        actual = {"name": "John", "age": 30, "email": "john@example.com"}
+        baseline = {"name": "John"}  # Only check name
+        assert engine.check(actual, baseline) is True
+
+
+class TestCheckEngineCheckList:
+    """Test CheckEngine.check with list values."""
+
+    def test_equal_lists(self):
+        engine = CheckEngine()
         actual = [1, 2, 3]
         baseline = [1, 2, 3]
         assert engine.check(actual, baseline) is True
 
-    def test_check_unequal_lists(self, engine: CheckEngine):
-        """Test checking unequal lists."""
+    def test_unequal_lists(self):
+        engine = CheckEngine()
         actual = [1, 2, 3]
         baseline = [1, 2, 4]
         assert engine.check(actual, baseline) is False
 
-    def test_check_nested_structures(self, engine: CheckEngine):
-        """Test checking nested dictionaries and lists."""
-        actual = {"items": [{"id": 1}, {"id": 2}], "count": 2}
-        baseline = {"items": [{"id": 1}, {"id": 2}], "count": 2}
+    def test_list_of_dicts(self):
+        engine = CheckEngine()
+        actual = [{"name": "John"}, {"name": "Jane"}]
+        baseline = [{"name": "John"}, {"name": "Jane"}]
         assert engine.check(actual, baseline) is True
 
-    def test_check_nested_structures_mismatch(self, engine: CheckEngine):
-        """Test checking nested structures with mismatches."""
-        actual = {"items": [{"id": 1}, {"id": 3}], "count": 2}
-        baseline = {"items": [{"id": 1}, {"id": 2}], "count": 2}
+    def test_list_of_dicts_mismatch(self):
+        engine = CheckEngine()
+        actual = [{"name": "John"}, {"name": "Jane"}]
+        baseline = [{"name": "John"}, {"name": "Bob"}]
         assert engine.check(actual, baseline) is False
 
-    def test_check_partial_baseline(self, engine: CheckEngine):
-        """Test that only baseline keys are checked (actual can have extra keys)."""
-        actual = {"name": "test", "value": 123, "extra": "ignored"}
-        baseline = {"name": "test", "value": 123}
+    def test_nested_lists(self):
+        engine = CheckEngine()
+        actual = [[1, 2], [3, 4]]
+        baseline = [[1, 2], [3, 4]]
         assert engine.check(actual, baseline) is True
 
 
-# ============== Tests for check_verbose() ==============
+class TestCheckEngineCallableBaseline:
+    """Test CheckEngine.check with callable baselines."""
+
+    def test_callable_returns_true(self):
+        engine = CheckEngine()
+        actual = {"value": 42}
+        baseline = {"value": lambda actual: actual > 0}
+        assert engine.check(actual, baseline) is True
+
+    def test_callable_returns_false(self):
+        engine = CheckEngine()
+        actual = {"value": -5}
+        baseline = {"value": lambda actual: actual > 0}
+        assert engine.check(actual, baseline) is False
+
+    def test_callable_with_tuple_result_pass(self):
+        engine = CheckEngine()
+        actual = {"value": 42}
+        baseline = {"value": lambda actual: (actual > 0, "Value must be positive")}
+        assert engine.check(actual, baseline) is True
+
+    def test_callable_with_tuple_result_fail(self):
+        engine = CheckEngine()
+        actual = {"value": -5}
+        baseline = {"value": lambda actual: (actual > 0, "Value must be positive")}
+        assert engine.check(actual, baseline) is False
+
+    def test_callable_at_root(self):
+        engine = CheckEngine()
+        actual = 42
+        baseline = lambda actual: actual == 42
+        assert engine.check(actual, baseline) is True
+
+    def test_callable_with_root_fixture(self):
+        engine = CheckEngine()
+        actual = {"items": [1, 2, 3], "count": 3}
+        baseline = {"count": lambda actual, root: actual == len(root["items"])}
+        assert engine.check(actual, baseline) is True
+
+    def test_callable_type_check(self):
+        engine = CheckEngine()
+        actual = {"name": "John", "age": 30}
+        baseline = {
+            "name": lambda actual: isinstance(actual, str),
+            "age": lambda actual: isinstance(actual, int) and actual > 0,
+        }
+        assert engine.check(actual, baseline) is True
+
 
 class TestCheckEngineCheckVerbose:
-    
-    def test_check_verbose_success_returns_true_and_empty_message(self, engine: CheckEngine):
-        """Test that successful check returns True and empty message."""
-        result, message = engine.check_verbose({"key": "value"}, {"key": "value"})
+    """Test CheckEngine.check_verbose method."""
+
+    def test_verbose_pass_returns_empty_message(self):
+        engine = CheckEngine()
+        result, msg = engine.check_verbose({"name": "John"}, {"name": "John"})
         assert result is True
-        assert message == ""
+        assert msg == ""
 
-    def test_check_verbose_failure_returns_false_and_error_message(self, engine: CheckEngine):
-        """Test that failed check returns False and error message."""
-        result, message = engine.check_verbose({"key": "wrong"}, {"key": "value"})
+    def test_verbose_fail_returns_message(self):
+        engine = CheckEngine()
+        result, msg = engine.check_verbose({"name": "John"}, {"name": "Jane"})
         assert result is False
-        assert "wrong" in message or "value" in message
+        assert "John" in msg or "Jane" in msg
 
-    def test_check_verbose_multiple_failures(self, engine: CheckEngine):
-        """Test that multiple failures are reported."""
-        actual = {"a": 1, "b": 2}
-        baseline = {"a": 10, "b": 20}
-        result, message = engine.check_verbose(actual, baseline)
+    def test_verbose_multiple_failures(self):
+        engine = CheckEngine()
+        actual = {"name": "John", "age": 30}
+        baseline = {"name": "Jane", "age": 25}
+        result, msg = engine.check_verbose(actual, baseline)
         assert result is False
-        # Both mismatches should be in the message
-        assert message != ""
+        # Should contain info about both failures
+        assert len(msg) > 0
 
-    def test_check_verbose_nested_failure_message(self, engine: CheckEngine):
-        """Test that nested failures produce meaningful messages."""
-        actual = {"outer": {"inner": "wrong"}}
-        baseline = {"outer": {"inner": "correct"}}
-        result, message = engine.check_verbose(actual, baseline)
-        assert result is False
-        assert "wrong" in message or "correct" in message
-
-
-# ============== Tests for Pydantic Model Support ==============
-
-class TestCheckEnginePydanticModels:
-    
-    def test_check_pydantic_model_as_actual(self, engine: CheckEngine):
-        """Test checking with Pydantic model as actual value."""
-        actual = SimpleModel(name="test", value=42)
-        baseline = {"name": "test", "value": 42}
-        assert engine.check(actual, baseline) is True
-
-    def test_check_pydantic_model_as_baseline(self, engine: CheckEngine):
-        """Test checking with Pydantic model as baseline."""
-        actual = {"name": "test", "value": 42}
-        baseline = SimpleModel(name="test", value=42)
-        assert engine.check(actual, baseline) is True
-
-    def test_check_both_pydantic_models(self, engine: CheckEngine):
-        """Test checking with both Pydantic models."""
-        actual = SimpleModel(name="test", value=42)
-        baseline = SimpleModel(name="test", value=42)
-        assert engine.check(actual, baseline) is True
-
-    def test_check_nested_pydantic_model(self, engine: CheckEngine):
-        """Test checking with nested Pydantic models."""
-        actual = NestedModel(id=1, details=SimpleModel(name="nested", value=100))
-        baseline = {"id": 1, "details": {"name": "nested", "value": 100}}
-        assert engine.check(actual, baseline) is True
-
-    def test_check_pydantic_model_mismatch(self, engine: CheckEngine):
-        """Test checking Pydantic model with mismatched values."""
-        actual = SimpleModel(name="test", value=42)
-        baseline = {"name": "test", "value": 99}
-        assert engine.check(actual, baseline) is False
-
-
-# ============== Tests for Callable Baselines ==============
-
-class TestCheckEngineCallableBaselines:
-    
-    def test_check_with_callable_baseline_returning_true(self, engine: CheckEngine):
-        """Test checking with a callable baseline that returns True."""
-        actual = {"value": 42}
-        baseline = {"value": lambda actual: True}
-        assert engine.check(actual, baseline) is True
-
-    def test_check_with_callable_baseline_returning_false(self, engine: CheckEngine):
-        """Test checking with a callable baseline that returns False."""
-        actual = {"value": 42}
-        baseline = {"value": lambda actual: False}
-        assert engine.check(actual, baseline) is False
-
-    def test_check_with_callable_returning_tuple(self, engine: CheckEngine):
-        """Test checking with a callable that returns (bool, message) tuple."""
-        actual = {"value": 42}
-        baseline = {"value": lambda actual: (True, "Custom success message")}
-        assert engine.check(actual, baseline) is True
-
-    def test_check_with_callable_returning_failure_tuple(self, engine: CheckEngine):
-        """Test checking with a callable that returns failure tuple."""
-        actual = {"value": 42}
-        baseline = {"value": lambda actual: (False, "Custom failure message")}
-        result, message = engine.check_verbose(actual, baseline)
+    def test_verbose_nested_failure(self):
+        engine = CheckEngine()
+        actual = {"user": {"name": "John"}}
+        baseline = {"user": {"name": "Jane"}}
+        result, msg = engine.check_verbose(actual, baseline)
         assert result is False
 
+    def test_verbose_callable_failure_message(self):
+        engine = CheckEngine()
+        actual = {"value": -5}
+        baseline = {"value": lambda actual: (actual > 0, "Value must be positive")}
+        result, msg = engine.check_verbose(actual, baseline)
+        assert result is False
+        assert "Value must be positive" in msg
 
-# ============== Tests for validate() ==============
 
 class TestCheckEngineValidate:
-    
-    def test_validate_success_does_not_raise(self, engine: CheckEngine):
-        """Test that validate does not raise on success."""
-        engine.validate({"key": "value"}, {"key": "value"})  # Should not raise
+    """Test CheckEngine.validate method."""
 
-    def test_validate_failure_raises_assertion_error(self, engine: CheckEngine):
-        """Test that validate raises AssertionError on failure."""
-        with pytest.raises(AssertionError) as exc_info:
-            engine.validate({"key": "wrong"}, {"key": "expected"})
-        assert "wrong" in str(exc_info.value) or "expected" in str(exc_info.value)
+    def test_validate_pass(self):
+        engine = CheckEngine()
+        # Should not raise
+        engine.validate({"name": "John"}, {"name": "John"})
 
-    def test_validate_with_pydantic_model(self, engine: CheckEngine):
-        """Test validate with Pydantic model."""
-        actual = SimpleModel(name="test", value=42)
-        baseline = {"name": "test", "value": 42}
-        engine.validate(actual, baseline)  # Should not raise
-
-    def test_validate_nested_failure(self, engine: CheckEngine):
-        """Test validate with nested structure failure."""
-        actual = {"outer": {"inner": [1, 2, 3]}}
-        baseline = {"outer": {"inner": [1, 2, 99]}}
+    def test_validate_fail_raises_assertion(self):
+        engine = CheckEngine()
         with pytest.raises(AssertionError):
-            engine.validate(actual, baseline)
+            engine.validate({"name": "John"}, {"name": "Jane"})
+
+    def test_validate_fail_message_in_assertion(self):
+        engine = CheckEngine()
+        with pytest.raises(AssertionError) as exc_info:
+            engine.validate({"name": "John"}, {"name": "Jane"})
+        assert "John" in str(exc_info.value) or "Jane" in str(exc_info.value)
 
 
-# ============== Tests for Edge Cases ==============
+class TestCheckEnginePydanticModels:
+    """Test CheckEngine with Pydantic models."""
+
+    def test_pydantic_model_as_actual(self):
+        engine = CheckEngine()
+        actual = SampleModel(name="John", age=30)
+        baseline = {"name": "John", "age": 30}
+        assert engine.check(actual, baseline) is True
+
+    def test_pydantic_model_as_baseline(self):
+        engine = CheckEngine()
+        actual = {"name": "John", "age": 30}
+        baseline = SampleModel(name="John", age=30)
+        assert engine.check(actual, baseline) is True
+
+    def test_pydantic_model_both(self):
+        engine = CheckEngine()
+        actual = SampleModel(name="John", age=30)
+        baseline = SampleModel(name="John", age=30)
+        assert engine.check(actual, baseline) is True
+
+    def test_pydantic_model_mismatch(self):
+        engine = CheckEngine()
+        actual = SampleModel(name="John", age=30)
+        baseline = {"name": "Jane", "age": 30}
+        assert engine.check(actual, baseline) is False
+
+    def test_nested_pydantic_model(self):
+        engine = CheckEngine()
+        actual = NestedModel(user=SampleModel(name="John", age=30), active=True)
+        baseline = {"user": {"name": "John", "age": 30}, "active": True}
+        assert engine.check(actual, baseline) is True
+
+
+class TestCheckEngineInvoke:
+    """Test CheckEngine._invoke method."""
+
+    def test_invoke_with_actual_arg(self):
+        engine = CheckEngine()
+        actual = SafeObject({"value": 42})
+        context = CheckContext(actual["value"], 42)
+        
+        def query_fn(actual):
+            return actual == 42
+        
+        result, msg = engine._invoke(query_fn, context)
+        assert result is True
+
+    def test_invoke_with_root_arg(self):
+        engine = CheckEngine()
+        actual = SafeObject({"items": [1, 2, 3], "count": 3})
+        context = CheckContext(actual["count"], 3)
+        context.root_actual = {"items": [1, 2, 3], "count": 3}
+        
+        def query_fn(root):
+            return root == {"items": [1, 2, 3], "count": 3}
+        
+        result, msg = engine._invoke(query_fn, context)
+        assert result is True
+
+    def test_invoke_unknown_arg_raises(self):
+        engine = CheckEngine()
+        actual = SafeObject({"value": 42})
+        context = CheckContext(actual, {"value": 42})
+        
+        def query_fn(unknown_arg):
+            return True
+        
+        with pytest.raises(RuntimeError) as exc_info:
+            engine._invoke(query_fn, context)
+        assert "Unknown argument 'unknown_arg'" in str(exc_info.value)
+
+    def test_invoke_returns_tuple(self):
+        engine = CheckEngine()
+        actual = SafeObject(42)
+        context = CheckContext(actual, 42)
+        
+        def query_fn(actual):
+            return (actual == 42, "Custom message")
+        
+        result, msg = engine._invoke(query_fn, context)
+        assert result is True
+        assert msg == "Custom message"
+
+    def test_invoke_returns_bool_with_default_message(self):
+        engine = CheckEngine()
+        actual = SafeObject(42)
+        context = CheckContext(actual, 42)
+        
+        def query_fn(actual):
+            return False
+        
+        result, msg = engine._invoke(query_fn, context)
+        assert result is False
+        assert "query_fn" in msg
+
 
 class TestCheckEngineEdgeCases:
-    
-    def test_check_empty_dict(self, engine: CheckEngine):
-        """Test checking empty dictionaries."""
+    """Test edge cases and special scenarios."""
+
+    def test_empty_dict(self):
+        engine = CheckEngine()
         assert engine.check({}, {}) is True
 
-    def test_check_empty_list(self, engine: CheckEngine):
-        """Test checking empty lists."""
+    def test_empty_list(self):
+        engine = CheckEngine()
         assert engine.check([], []) is True
 
-    def test_check_none_values(self, engine: CheckEngine):
-        """Test checking None values."""
-        assert engine.check(None, None) is True
-        assert engine.check({"key": None}, {"key": None}) is True
+    def test_mixed_types_in_list(self):
+        engine = CheckEngine()
+        actual = [1, "two", {"three": 3}, [4]]
+        baseline = [1, "two", {"three": 3}, [4]]
+        assert engine.check(actual, baseline) is True
 
-    def test_check_none_vs_value(self, engine: CheckEngine):
-        """Test checking None against a value."""
-        assert engine.check(None, "value") is False
-        assert engine.check("value", None) is False
-
-    def test_check_deeply_nested_structure(self, engine: CheckEngine):
-        """Test checking deeply nested structures."""
+    def test_deeply_nested_structure(self):
+        engine = CheckEngine()
         actual = {"a": {"b": {"c": {"d": {"e": 42}}}}}
         baseline = {"a": {"b": {"c": {"d": {"e": 42}}}}}
         assert engine.check(actual, baseline) is True
 
-    def test_check_list_of_dicts(self, engine: CheckEngine):
-        """Test checking list of dictionaries."""
-        actual = [{"id": 1, "name": "first"}, {"id": 2, "name": "second"}]
-        baseline = [{"id": 1, "name": "first"}, {"id": 2, "name": "second"}]
+    def test_deeply_nested_failure(self):
+        engine = CheckEngine()
+        actual = {"a": {"b": {"c": {"d": {"e": 42}}}}}
+        baseline = {"a": {"b": {"c": {"d": {"e": 0}}}}}
+        assert engine.check(actual, baseline) is False
+
+    def test_callable_in_nested_list(self):
+        engine = CheckEngine()
+        actual = {"items": [{"value": 10}, {"value": 20}]}
+        baseline = {"items": [{"value": lambda actual: actual > 0}, {"value": lambda actual: actual > 0}]}
         assert engine.check(actual, baseline) is True
 
-    def test_check_mixed_types_in_list(self, engine: CheckEngine):
-        """Test checking lists with mixed types."""
-        actual = [1, "two", {"three": 3}, [4, 5]]
-        baseline = [1, "two", {"three": 3}, [4, 5]]
+    def test_unset_value_handling(self):
+        engine = CheckEngine()
+        actual = {"name": "John"}
+        baseline = {"missing_key": Unset}
+        # Accessing missing key in actual should result in Unset
+        result = engine.check(actual, baseline)
+        assert result is True
+
+
+class TestCheckEngineCustomFixtures:
+    """Test CheckEngine with custom fixtures."""
+
+    def test_custom_fixture_in_callable(self):
+        custom_fixtures = {
+            "actual": lambda ctx: resolve(ctx.actual),
+            "multiplier": lambda ctx: 2,
+        }
+        engine = CheckEngine(fixtures=custom_fixtures)
+        actual = {"value": 10}
+        baseline = {"value": lambda actual, multiplier: actual * multiplier == 20}
         assert engine.check(actual, baseline) is True
 
-
-# ============== Tests for DEFAULT_FIXTURES ==============
-
-class TestDefaultFixtures:
-    
-    def test_default_fixtures_actual(self):
-        """Test that 'actual' fixture returns context.actual."""
-        actual = SafeObject({"test": "value"})
-        baseline = {"test": "value"}
-        ctx = CheckContext(actual, baseline)
-        assert DEFAULT_FIXTURES["actual"](ctx) == actual
-
-    def test_default_fixtures_baseline(self):
-        """Test that 'baseline' fixture returns context.baseline."""
-        actual = SafeObject({"test": "value"})
-        baseline = {"test": "value"}
-        ctx = CheckContext(actual, baseline)
-        assert DEFAULT_FIXTURES["baseline"](ctx) == baseline
-
-    def test_default_fixtures_path(self):
-        """Test that 'path' fixture returns context.path."""
-        actual = SafeObject({"test": "value"})
-        baseline = {"test": "value"}
-        ctx = CheckContext(actual, baseline)
-        assert DEFAULT_FIXTURES["path"](ctx) == []
-
-    def test_default_fixtures_root_actual(self):
-        """Test that 'root_actual' fixture returns context.root_actual."""
-        actual = SafeObject({"test": "value"})
-        baseline = {"test": "value"}
-        ctx = CheckContext(actual, baseline)
-        assert DEFAULT_FIXTURES["root_actual"](ctx) == actual
-
-    def test_default_fixtures_root_baseline(self):
-        """Test that 'root_baseline' fixture returns context.root_baseline."""
-        actual = SafeObject({"test": "value"})
-        baseline = {"test": "value"}
-        ctx = CheckContext(actual, baseline)
-        assert DEFAULT_FIXTURES["root_baseline"](ctx) == baseline
+    def test_custom_fixture_overrides_default(self):
+        custom_fixtures = {
+            "actual": lambda ctx: resolve(ctx.actual) * 10,  # Modified actual
+        }
+        engine = CheckEngine(fixtures=custom_fixtures)
+        actual = {"value": 5}
+        baseline = {"value": lambda actual: actual == 50}  # 5 * 10
+        assert engine.check(actual, baseline) is True

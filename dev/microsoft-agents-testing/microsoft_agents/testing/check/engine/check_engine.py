@@ -8,13 +8,12 @@ from .types import (
     SafeObject,
     resolve,
     parent,
-    Unset,
 )
 
 DEFAULT_FIXTURES = {
     "actual": lambda ctx: resolve(ctx.actual),
-    "root": lambda ctx: ctx.baseline,
-    "parent": lambda ctx: ctx.parent,
+    "root": lambda ctx: resolve(ctx.root_actual),
+    "parent": lambda ctx: resolve(parent(ctx.actual)),
 }
 
 class QueryFunction(Protocol):
@@ -26,11 +25,6 @@ class CheckEngine:
         self._fixtures = fixtures or DEFAULT_FIXTURES
     
     def _invoke(self, query_function: Callable, context: CheckContext) -> Any:
-
-        if hasattr(query_function, "_arity"): # TODO -> more robust handling of fn.py functions
-            arity = query_function._arity
-            res = query_function(*[self._fixtures for i in range(arity)])
-            return bool(res), f"Assertion failed for query function: '{query_function}'"
         
         sig = inspect.getfullargspec(query_function)
         args = {}
@@ -40,6 +34,7 @@ class CheckEngine:
                 args[arg] = self._fixtures[arg](context)
             else:
                 raise RuntimeError(f"Unknown argument '{arg}' in query function")
+            
         res = query_function(**args)
 
         if isinstance(res, tuple) and len(res) == 2:
