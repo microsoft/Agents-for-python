@@ -1,6 +1,8 @@
 import functools
 from dataclasses import dataclass
 from typing import Callable, Awaitable
+from collections.abc import AsyncIterator
+from contextlib import asynccontextmanager
 
 from aiohttp import ClientSession
 from aiohttp.web import Application
@@ -27,7 +29,7 @@ from .agent_client import (
     SenderClient,
     ResponseServer,
 )
-from .agent_scenario import AgentScenario
+from .agent_scenario import _HostedAgentScenario
 from .config import AgentScenarioConfig
 
 @dataclass
@@ -41,7 +43,7 @@ class AgentEnvironment:
     storage: Storage
     connections: Connections
 
-class AiohttpAgentScenario(AgentScenario):
+class AiohttpAgentScenario(_HostedAgentScenario):
 
     def __init__(
         self,
@@ -67,7 +69,7 @@ class AiohttpAgentScenario(AgentScenario):
             raise ValueError("Agent environment has not been set up yet.")
         return self._env
 
-    async def setup_structure(self) -> None:
+    async def _init_components(self) -> None:
 
         config = {}
         storage = MemoryStorage()
@@ -92,10 +94,12 @@ class AiohttpAgentScenario(AgentScenario):
             connections=connection_manager
         )
         
-        self._init_agent_func(self._env)
+        await self._init_agent(self._env)
     
     @asynccontextmanager
-    async def client(self) -> AgentClient:
+    async def client(self) -> AsyncIterator[AgentClient]:
+
+        await self._init_components()
 
         self._application.router.add_post(
             "/api/messages", 
@@ -111,13 +115,7 @@ class AiohttpAgentScenario(AgentScenario):
         self._application["agent_app"] = self._env.agent_application
         self._application["adapter"] = self._env.adapter
 
+
         async with TestServer(self._application) as server:
-            response_server = ResponseServer(server.url)
-            async with response_server.listen() as collector:
-                async with ClientSession(base_url=server.url) as session:
-                    client = AgentClient(
-                        SenderClient(session),
-                        collector,
-                        agent_client_config=self._config
-                    )
-                    yield client
+            async with self._create_client(server.url) as client:
+                yield client

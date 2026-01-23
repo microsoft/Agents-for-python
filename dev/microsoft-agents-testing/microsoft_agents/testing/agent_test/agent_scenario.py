@@ -24,7 +24,31 @@ class AgentScenario(ABC):
     async def client(self) -> AsyncIterator[AgentClient]:
         raise NotImplementedError()
     
-class ExternalAgentScenario(AgentScenario):
+class _HostedAgentScenario(AgentScenario):
+
+    def __init__(self, config: AgentScenarioConfig) -> None:
+        super().__init__(config)
+
+    @asynccontextmanager
+    async def _create_client(self, agent_endpoint: str) -> AsyncIterator[AgentClient]:
+
+        response_server = ResponseServer(self._config.response_server_port)
+        async with response_server.listen() as collector:
+            async with ClientSession(base_url=agent_endpoint) as session:
+
+                activity_template = self._config.activity_template.with_updates(
+                    service_url=response_server.service_endpoint,
+                )
+
+                client = AgentClient(
+                    SenderClient(session),
+                    collector,
+                    activity_template=activity_template,
+                )
+
+                yield client
+    
+class ExternalAgentScenario(_HostedAgentScenario):
 
     def __init__(self, endpoint: str, config: AgentScenarioConfig) -> None:
         super().__init__(config)
@@ -32,12 +56,5 @@ class ExternalAgentScenario(AgentScenario):
 
     @asynccontextmanager
     async def client(self) -> AsyncIterator[AgentClient]:
-        response_server = ResponseServer(self._endpoint)
-        async with response_server.listen() as collector:
-            async with ClientSession(base_url=self._endpoint) as session:
-                client = AgentClient(
-                    SenderClient(session),
-                    collector,
-                    agent_client_config=self._config
-                )
-                yield client
+        async with self._create_client(self._endpoint) as client:
+            yield client

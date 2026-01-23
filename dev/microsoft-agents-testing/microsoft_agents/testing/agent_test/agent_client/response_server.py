@@ -17,7 +17,6 @@ class ResponseServer:
 
         super().__init__(Application())
 
-        self._service_endpoint = f"http://localhost:{port}/"
         self._port = port
 
         self._collector: ResponseCollector | None = None
@@ -39,7 +38,7 @@ class ResponseServer:
     
     @property
     def service_endpoint(self) -> str:
-        return self._service_endpoint
+        return f"http://localhost:{self._port}/v3/conversations/"
     
     async def _handle_request(self, request: Request) -> Response:
         try:

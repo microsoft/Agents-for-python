@@ -16,7 +16,6 @@ from microsoft_agents.hosting.core import (
 from .agent_client import AgentClient
 from .agent_environment import AgentEnvironment
 from .agent_scenario import AgentScenario, ExternalAgentScenario
-from .config import AgentTestConfig, AgentScenarioConfig
 
 def _create_fixtures(scenario: AgentScenario) -> list[Callable]:
     """Create pytest fixtures for the given agent scenario."""
@@ -70,32 +69,13 @@ def _create_fixtures(scenario: AgentScenario) -> list[Callable]:
     
 def agent_test(
     arg: str | AgentScenario,
-    config: AgentTestConfig | AgentScenarioConfig | None = None
 ) -> Callable[[type], type]:
-    """Class decorator to set up pytest fixtures that allow for the testing of agents
-    based on the provided scenario.
-
-    If a non-external scenario is provided, a new instance of the scenario will be created
-    for each test case. A test case must use the `agent_client` fixture or one of the other
-    fixtures provided by this decorator in order to interact with the agent.
-
-    :param arg: Either a string representing the path to an external agent scenario
-                or an AgentScenario instance to run.
-    :param config: Optional configuration for the agent test.
-
-    :return: A class decorator that adds the necessary pytest fixtures to the test class.
-    """
-
-    if isinstance(config, AgentScenarioConfig):
-        config = AgentTestConfig(scenario_config=config)
-    else:
-        config = cast(AgentTestConfig, config or AgentTestConfig())
 
     fixtures = []
 
     scenario: AgentScenario
     if isinstance(arg, str):
-        scenario = ExternalAgentScenario(arg, config)
+        scenario = ExternalAgentScenario(arg)
     else:
         scenario = cast(AgentScenario, arg)
 
