@@ -48,15 +48,13 @@ class Check:
     def __init__(
             self,
             items: Iterable[dict | BaseModel],
-            quantifier: Quantifier = for_all,
         ) -> None:
         self._items = list(items)
-        self._quantifier: Quantifier = quantifier
         self._engine = CheckEngine()
 
     def _child(self, items: Iterable[dict | BaseModel], quantifier: Quantifier | None = None) -> Check:
         """Create a child Check with new items, inheriting selector and quantifier."""
-        child = Check(items, quantifier or self._quantifier)
+        child = Check(items)
         child._engine = self._engine
         return child
 
@@ -69,7 +67,6 @@ class Check:
         res, msgs = zip(*self._check(_filter, **kwargs))
         return self._child(
             [item for item, match in zip(self._items, res) if match],
-            self._quantifier
         )
     
     def where_not(self, _filter: dict | Callable | None = None, **kwargs) -> Check:
@@ -77,12 +74,11 @@ class Check:
         res, msgs = zip(*self._check(_filter, **kwargs))
         return self._child(
             [item for item, match in zip(self._items, res) if not match],
-            self._quantifier
         )
     
     def merge(self, other: Check) -> Check:
         """Merge with another Check's items."""
-        return self._child(self._items + other._items, self._quantifier)
+        return self._child(self._items + other._items)
     
     def _bool_list(self) -> list[bool]:
         return [ True for _ in self._items ]
@@ -106,40 +102,39 @@ class Check:
     ###
     ### Quantifiers
     ###
-
-    @property
-    def for_any(self) -> Check:
-        """Set selector to 'any'."""
-        return self._child(self._items, for_any)
-
-    @property
-    def for_all(self) -> Check:
-        """Set selector to 'all'."""
-        return self._child(self._items, for_all)
-
-    @property
-    def for_none(self) -> Check:
-        """Set selector to 'none'."""
-        return self._child(self._items, for_none)
-
-    @property
-    def for_one(self) -> Check:
-        """Set selector to 'one'."""
-        return self._child(self._items, for_one)
-    
-    @property
-    def for_exactly(self, n: int) -> Check:
-        """Set selector to 'exactly n'."""
-        return self._child(self._items, for_n(n))
     
     ###
     ### Assertion
     ###
-    
-    def that(self, _assert: dict | Callable | None = None, **kwargs) -> bool:
+
+    def _that(self, _quantifier: Quantifier, _assert: dict | Callable | None = None, **kwargs) -> bool:
         """Assert that selected items match criteria."""
         res, msgs = zip(*self._check(_assert, **kwargs))
-        assert self._quantifier(res), msgs
+        assert _quantifier(res)
+    
+    def that(self, _assert: dict | Callable | None = None, **kwargs) -> None:
+        """Assert that selected items match criteria."""
+        self._that(for_all, _assert, **kwargs)
+
+    def that_for_any(self, _assert: dict | Callable | None = None, **kwargs) -> None:
+        """Assert that any selected items match criteria."""
+        self._that(for_any, _assert, **kwargs)
+
+    def that_for_all(self, _assert: dict | Callable | None = None, **kwargs) -> None:
+        """Assert that all selected items match criteria."""
+        self._that(for_all, _assert, **kwargs)
+
+    def that_for_none(self, _assert: dict | Callable | None = None, **kwargs) -> None:
+        """Assert that no selected items match criteria."""
+        self._that(for_none, _assert, **kwargs)
+
+    def that_for_one(self, _assert: dict | Callable | None = None, **kwargs) -> None:
+        """Assert that exactly one selected item matches criteria."""
+        self._that(for_one, _assert, **kwargs)
+    
+    def that_for_exactly(self, _n: int, _assert: dict | Callable | None = None, **kwargs) -> None:
+        """Assert that exactly n selected items match criteria."""
+        self._that(for_n(_n), _assert, **kwargs)
     
     ###
     ### TERMINAL OPERATIONS
