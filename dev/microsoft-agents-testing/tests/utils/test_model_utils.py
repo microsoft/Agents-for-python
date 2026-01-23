@@ -100,36 +100,36 @@ class TestModelTemplate:
 
     def test_init_with_dict_defaults(self):
         """Test initialization with a dictionary."""
-        template = ModelTemplate[SimpleModel]({"name": "template_name", "value": 100})
+        template = ModelTemplate(SimpleModel, {"name": "template_name", "value": 100})
         assert template._defaults == {"name": "template_name", "value": 100}
 
     def test_init_with_model_defaults(self):
         """Test initialization with a BaseModel."""
         model = SimpleModel(name="model_name", value=200)
-        template = ModelTemplate[SimpleModel](model)
+        template = ModelTemplate(SimpleModel, model)
         assert "name" in template._defaults
         assert "value" in template._defaults
 
     def test_init_with_kwargs(self):
         """Test initialization with keyword arguments."""
-        template = ModelTemplate[SimpleModel]({}, name="kwarg_name", value=300)
+        template = ModelTemplate(SimpleModel, {}, name="kwarg_name", value=300)
         assert template._defaults["name"] == "kwarg_name"
         assert template._defaults["value"] == 300
 
     def test_init_with_dict_and_kwargs(self):
         """Test initialization with both dict and kwargs."""
-        template = ModelTemplate[SimpleModel]({"name": "dict_name"}, value=400)
+        template = ModelTemplate(SimpleModel, {"name": "dict_name"}, value=400)
         assert template._defaults["name"] == "dict_name"
         assert template._defaults["value"] == 400
 
     def test_init_with_dot_notation(self):
         """Test initialization with dot notation in keys."""
-        template = ModelTemplate[NestedModel]({"simple.name": "nested_name"})
+        template = ModelTemplate(NestedModel, {"simple.name": "nested_name"})
         assert template._defaults == {"simple": {"name": "nested_name"}}
 
     def test_with_defaults_creates_new_template(self):
         """Test that with_defaults creates a new template."""
-        original = ModelTemplate[SimpleModel]({"name": "original"})
+        original = ModelTemplate(SimpleModel, {"name": "original"})
         new_template = original.with_defaults({"value": 500})
         
         # Original should be unchanged
@@ -140,21 +140,21 @@ class TestModelTemplate:
 
     def test_with_defaults_kwargs(self):
         """Test with_defaults with keyword arguments."""
-        original = ModelTemplate[SimpleModel]({"name": "original"})
+        original = ModelTemplate(SimpleModel, {"name": "original"})
         new_template = original.with_defaults(value=600)
         
         assert new_template._defaults["value"] == 600
 
     def test_with_defaults_none_input(self):
         """Test with_defaults with None as defaults."""
-        original = ModelTemplate[SimpleModel]({"name": "original"})
+        original = ModelTemplate(SimpleModel, {"name": "original"})
         new_template = original.with_defaults(None, value=700)
         
         assert new_template._defaults["value"] == 700
 
     def test_with_updates_creates_new_template(self):
         """Test that with_updates creates a new template."""
-        original = ModelTemplate[SimpleModel]({"name": "original", "value": 100})
+        original = ModelTemplate(SimpleModel, {"name": "original", "value": 100})
         new_template = original.with_updates({"name": "updated"})
         
         # Original should be unchanged
@@ -165,35 +165,42 @@ class TestModelTemplate:
 
     def test_with_updates_kwargs(self):
         """Test with_updates with keyword arguments."""
-        original = ModelTemplate[SimpleModel]({"name": "original"})
+        original = ModelTemplate(SimpleModel, {"name": "original"})
         new_template = original.with_updates(name="updated_via_kwargs")
         
         assert new_template._defaults["name"] == "updated_via_kwargs"
 
     def test_with_updates_none_input(self):
         """Test with_updates with None as updates."""
-        original = ModelTemplate[SimpleModel]({"name": "original"})
+        original = ModelTemplate(SimpleModel, {"name": "original"})
         new_template = original.with_updates(None, value=800)
         
         assert new_template._defaults["value"] == 800
 
     def test_equality_same_defaults(self):
         """Test equality between templates with same defaults."""
-        template1 = ModelTemplate[SimpleModel]({"name": "test", "value": 100})
-        template2 = ModelTemplate[SimpleModel]({"name": "test", "value": 100})
+        template1 = ModelTemplate(SimpleModel, {"name": "test", "value": 100})
+        template2 = ModelTemplate(SimpleModel, {"name": "test", "value": 100})
         
         assert template1 == template2
 
     def test_equality_different_defaults(self):
         """Test inequality between templates with different defaults."""
-        template1 = ModelTemplate[SimpleModel]({"name": "test1"})
-        template2 = ModelTemplate[SimpleModel]({"name": "test2"})
+        template1 = ModelTemplate(SimpleModel, {"name": "test1"})
+        template2 = ModelTemplate(SimpleModel, {"name": "test2"})
+        
+        assert template1 != template2
+
+    def test_equality_different_model_class(self):
+        """Test inequality between templates with different model classes."""
+        template1 = ModelTemplate(SimpleModel, {"name": "test"})
+        template2 = ModelTemplate(NestedModel, {"title": "test"})
         
         assert template1 != template2
 
     def test_equality_non_template(self):
         """Test inequality with non-ModelTemplate objects."""
-        template = ModelTemplate[SimpleModel]({"name": "test"})
+        template = ModelTemplate(SimpleModel, {"name": "test"})
         
         assert template != {"name": "test"}
         assert template != "not a template"
@@ -203,7 +210,7 @@ class TestModelTemplate:
     def test_deep_copy_isolation(self):
         """Test that templates are properly isolated via deep copy."""
         original_data = {"name": "original", "nested": {"key": "value"}}
-        template = ModelTemplate[SimpleModel](original_data)
+        template = ModelTemplate(SimpleModel, original_data)
         
         # Modify original data
         original_data["name"] = "modified"
@@ -215,7 +222,7 @@ class TestModelTemplate:
     def test_chaining_with_defaults(self):
         """Test chaining multiple with_defaults calls."""
         template = (
-            ModelTemplate[SimpleModel]({})
+            ModelTemplate(SimpleModel, {})
             .with_defaults({"name": "first"})
             .with_defaults({"value": 100})
         )
@@ -226,7 +233,7 @@ class TestModelTemplate:
     def test_chaining_with_updates(self):
         """Test chaining multiple with_updates calls."""
         template = (
-            ModelTemplate[SimpleModel]({"name": "initial", "value": 0})
+            ModelTemplate(SimpleModel, {"name": "initial", "value": 0})
             .with_updates({"name": "second"})
             .with_updates({"value": 200})
         )
@@ -237,10 +244,10 @@ class TestModelTemplate:
     def test_chaining_mixed_operations(self):
         """Test chaining with_defaults and with_updates together."""
         template = (
-            ModelTemplate[SimpleModel]({})
+            ModelTemplate(SimpleModel, {})
             .with_defaults({"name": "default_name"})
             .with_updates({"value": 300})
-            .with_defaults({"extra": "field"})
+            .with_defaults(extra="field")
         )
         
         assert template._defaults["name"] == "default_name"
@@ -252,30 +259,73 @@ class TestModelTemplateCreate:
 
     def test_create_with_none(self):
         """Test creating a model with None input."""
-        template = ModelTemplate[SimpleModel]({"name": "default_name", "value": 42})
-        # Note: The create method has a bug - type(T) returns TypeVar, not the actual type
-        # This test documents the expected behavior if the bug were fixed
-        # result = template.create(None)
-        # In actual usage, this would need the type passed differently
+        template = ModelTemplate(SimpleModel, {"name": "default_name", "value": 42})
+        result = template.create(None)
+        
+        assert isinstance(result, SimpleModel)
+        assert result.name == "default_name"
+        assert result.value == 42
 
     def test_create_with_empty_dict(self):
         """Test creating a model with an empty dict."""
-        template = ModelTemplate[SimpleModel]({"name": "default_name"})
-        # Same as above - the create method needs fixing for actual model creation
+        template = ModelTemplate(SimpleModel, {"name": "default_name", "value": 100})
+        result = template.create({})
+        
+        assert isinstance(result, SimpleModel)
+        assert result.name == "default_name"
+        assert result.value == 100
 
     def test_create_with_dict_override(self):
         """Test creating a model with dict that overrides defaults."""
-        template = ModelTemplate[SimpleModel]({"name": "default_name", "value": 100})
-        # The create method applies defaults to the original, not vice versa
+        template = ModelTemplate(SimpleModel, {"name": "default_name", "value": 100})
+        result = template.create({"name": "overridden_name"})
+        
+        assert isinstance(result, SimpleModel)
+        assert result.name == "overridden_name"
+        assert result.value == 100
+
+    def test_create_with_model_override(self):
+        """Test creating a model with another model as override."""
+        template = ModelTemplate(SimpleModel, {"name": "default_name", "value": 100})
+        override = SimpleModel(name="model_override")
+        result = template.create(override)
+        
+        assert isinstance(result, SimpleModel)
+        assert result.name == "model_override"
+        assert result.value == 100
+
+    def test_create_nested_model(self):
+        """Test creating a nested model."""
+        template = ModelTemplate(NestedModel, {
+            "title": "Default Title",
+            "simple": {"name": "nested_default", "value": 50}
+        })
+        result = template.create({"title": "Custom Title"})
+        
+        assert isinstance(result, NestedModel)
+        assert result.title == "Custom Title"
+        assert result.simple.name == "nested_default"
+        assert result.simple.value == 50
+
+    def test_create_applies_defaults_not_overrides(self):
+        """Test that create applies defaults to original, not vice versa."""
+        template = ModelTemplate(SimpleModel, {"name": "default", "value": 100})
+        result = template.create({"name": "original"})
+        
+        # Original name should be preserved, default value should be applied
+        assert result.name == "original"
+        assert result.value == 100
+
+    def test_create_with_dot_notation_in_original(self):
+        """Test creating with dot notation in the original dict."""
+        template = ModelTemplate(NestedModel, {"title": "Default"})
+        result = template.create({"simple.name": "dotted_name"})
+        
+        assert result.simple.name == "dotted_name"
 
 
 class TestActivityTemplate:
-    """Test the ActivityTemplate type alias."""
-
-    def test_activity_template_is_model_template(self):
-        """Test that ActivityTemplate is a ModelTemplate for Activity."""
-        # ActivityTemplate is defined as ModelTemplate[Activity]
-        assert ActivityTemplate == ModelTemplate[Activity]
+    """Test the ActivityTemplate partial."""
 
     def test_activity_template_creation(self):
         """Test creating an ActivityTemplate instance."""
@@ -287,12 +337,12 @@ class TestActivityTemplate:
         """Test ActivityTemplate with dot notation for nested properties."""
         template = ActivityTemplate({
             "type": "message",
-            "from.id": "user123",
-            "from.name": "Test User"
+            "from_property.id": "user123",
+            "from_property.name": "Test User"
         })
         assert template._defaults["type"] == "message"
-        assert template._defaults["from"]["id"] == "user123"
-        assert template._defaults["from"]["name"] == "Test User"
+        assert template._defaults["from_property"]["id"] == "user123"
+        assert template._defaults["from_property"]["name"] == "Test User"
 
     def test_activity_template_with_defaults(self):
         """Test ActivityTemplate.with_defaults."""
@@ -309,18 +359,36 @@ class TestActivityTemplate:
         
         assert updated._defaults["text"] == "Updated"
 
+    def test_activity_template_create(self):
+        """Test ActivityTemplate.create produces an Activity."""
+        template = ActivityTemplate({"type": "message", "text": "Hello World"})
+        result = template.create()
+        
+        assert isinstance(result, Activity)
+        assert result.type == "message"
+        assert result.text == "Hello World"
+
+    def test_activity_template_create_with_override(self):
+        """Test ActivityTemplate.create with override."""
+        template = ActivityTemplate({"type": "message", "text": "Default"})
+        result = template.create({"text": "Override"})
+        
+        assert isinstance(result, Activity)
+        assert result.type == "message"
+        assert result.text == "Override"
+
 
 class TestModelTemplateEdgeCases:
     """Test edge cases for ModelTemplate."""
 
     def test_empty_template(self):
         """Test creating an empty template."""
-        template = ModelTemplate[SimpleModel]({})
+        template = ModelTemplate(SimpleModel, {})
         assert template._defaults == {}
 
     def test_deeply_nested_defaults(self):
         """Test with deeply nested default values."""
-        template = ModelTemplate[NestedModel]({
+        template = ModelTemplate(NestedModel, {
             "simple.name": "deep",
             "title": "Test"
         })
@@ -329,7 +397,7 @@ class TestModelTemplateEdgeCases:
 
     def test_with_defaults_preserves_nested_structure(self):
         """Test that with_defaults preserves nested structures."""
-        template = ModelTemplate[NestedModel]({"simple": {"name": "original"}})
+        template = ModelTemplate(NestedModel, {"simple": {"name": "original"}})
         new_template = template.with_defaults({"title": "New Title"})
         
         assert new_template._defaults["simple"]["name"] == "original"
@@ -337,7 +405,7 @@ class TestModelTemplateEdgeCases:
 
     def test_with_updates_deep_merge(self):
         """Test that with_updates performs deep merge."""
-        template = ModelTemplate[NestedModel]({
+        template = ModelTemplate(NestedModel, {
             "simple": {"name": "original", "value": 100}
         })
         new_template = template.with_updates({"simple": {"name": "updated"}})
@@ -348,16 +416,32 @@ class TestModelTemplateEdgeCases:
 
     def test_list_values_in_defaults(self):
         """Test handling of list values in defaults."""
-        template = ModelTemplate[SimpleModel]({"items": [1, 2, 3]})
+        template = ModelTemplate(SimpleModel, {"items": [1, 2, 3]})
         assert template._defaults["items"] == [1, 2, 3]
 
     def test_none_values_in_defaults(self):
         """Test handling of None values in defaults."""
-        template = ModelTemplate[SimpleModel]({"nullable_field": None})
+        template = ModelTemplate(SimpleModel, {"nullable_field": None})
         assert template._defaults["nullable_field"] is None
 
     def test_boolean_values_in_defaults(self):
         """Test handling of boolean values in defaults."""
-        template = ModelTemplate[SimpleModel]({"active": True, "disabled": False})
+        template = ModelTemplate(SimpleModel, {"active": True, "disabled": False})
         assert template._defaults["active"] is True
         assert template._defaults["disabled"] is False
+
+    def test_create_uses_model_defaults_when_template_empty(self):
+        """Test that model defaults are used when template has no defaults."""
+        template = ModelTemplate(SimpleModel, {})
+        result = template.create()
+        
+        assert isinstance(result, SimpleModel)
+        assert result.name == "default"  # Model's default
+        assert result.value == 0  # Model's default
+
+    def test_template_preserves_model_class(self):
+        """Test that the model class is preserved through operations."""
+        template = ModelTemplate(SimpleModel, {"name": "test"})
+        new_template = template.with_defaults({"value": 100})
+        
+        assert new_template._model_class == SimpleModel

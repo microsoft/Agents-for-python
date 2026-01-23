@@ -3,8 +3,9 @@
 
 from __future__ import annotations
 
+import functools
 from copy import deepcopy
-from typing import Generic, TypeVar, cast
+from typing import Generic, TypeVar, cast, T
 
 from pydantic import BaseModel
 from microsoft_agents.activity import Activity
@@ -35,15 +36,19 @@ def normalize_model_data(source: BaseModel | dict) -> dict:
 class ModelTemplate(Generic[T]):
     """A template for creating BaseModel instances with default values."""
 
-    def __init__(self, defaults: T | dict, **kwargs) -> None:
+    def __init__(self, model_class: Type[T], defaults: T | dict | None = None, **kwargs) -> None:
         """Initialize the ModelTemplate with default values.
         
         :param defaults: A dictionary or BaseModel containing default values.
         :param kwargs: Additional default values as keyword arguments.
         """
-        self._defaults: dict = {}
         
+        self._model_class: Type[T] = model_class
+
+        defaults = defaults or {}
         normalized_defaults = normalize_model_data(defaults)
+
+        self._defaults: dict = {}
         set_defaults(self._defaults, normalized_defaults, **kwargs)
 
     def create(self, original: T | dict | None = None) -> T:
@@ -55,8 +60,8 @@ class ModelTemplate(Generic[T]):
         if original is None:
             original = {}
         data = normalize_model_data(original)
-        deep_update(data, self._defaults)
-        return type(T).model_validate(data)
+        set_defaults(data, self._defaults)
+        return self._model_class.model_validate(data)
     
     def with_defaults(self, defaults: dict | None = None, **kwargs) -> ModelTemplate[T]:
         """Create a new ModelTemplate with additional default values.
@@ -67,7 +72,7 @@ class ModelTemplate(Generic[T]):
         """
         new_template = deepcopy(self._defaults)
         set_defaults(new_template, defaults, **kwargs)
-        return ModelTemplate[T](new_template)
+        return ModelTemplate[T](self._model_class, new_template)
     
     def with_updates(self, updates: dict | None = None, **kwargs) -> ModelTemplate[T]:
         """Create a new ModelTemplate with updated default values.
@@ -78,12 +83,13 @@ class ModelTemplate(Generic[T]):
         """
         new_template = deepcopy(self._defaults)
         deep_update(new_template, updates, **kwargs)
-        return ModelTemplate[T](new_template)
+        return ModelTemplate[T](self._model_class, new_template)
     
     def __eq__(self, other: object) -> bool:
         """Check equality between two ModelTemplate instances."""
         if not isinstance(other, ModelTemplate):
             return False
-        return self._defaults == other._defaults
+        return self._defaults == other._defaults and \
+            self._model_class == other._model_class
     
-ActivityTemplate = ModelTemplate[Activity]
+ActivityTemplate = functools.partial(ModelTemplate, Activity)
