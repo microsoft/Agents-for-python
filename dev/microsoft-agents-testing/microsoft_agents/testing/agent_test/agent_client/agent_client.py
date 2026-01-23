@@ -11,7 +11,6 @@ from microsoft_agents.activity import (
 )
 from microsoft_agents.testing.utils import ActivityTemplate
 
-from .agent_client_config import AgentClientConfig
 from .response_collector import ResponseCollector
 from .sender_client import SenderClient
 
@@ -20,16 +19,15 @@ class AgentClient(ResponseCollector):
     def __init__(self,
                  sender: SenderClient,
                  collector: ResponseCollector,
-                 agent_client_config: AgentClientConfig | None = None):
+                 activity_template: ActivityTemplate | None = None) -> None:
         
         if not sender or not collector:
             raise ValueError("Sender and collector must be provided.")
         
         self._sender: SenderClient = sender
         self._collector: ResponseCollector = collector
-        self._activity_template = agent_client_config.activity_template
 
-        self._config = agent_client_config or AgentClientConfig()
+        self._activity_template = activity_template or ActivityTemplate()
 
     @property
     def activity_template(self) -> ActivityTemplate:
