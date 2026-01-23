@@ -5,6 +5,12 @@ from .types import (
     resolve,
     Unset,
 )
+from .variable import (
+    _,
+    _actual,
+    _parent,
+    _root,
+)
 
 __all__ = [
     "CheckEngine",
@@ -12,4 +18,8 @@ __all__ = [
     "parent",
     "resolve",
     "Unset",
+    "_",
+    "_actual",
+    "_parent",
+    "_root",
 ]
