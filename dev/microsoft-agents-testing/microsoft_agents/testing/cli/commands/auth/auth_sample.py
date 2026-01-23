@@ -1,11 +1,14 @@
-import os
 import click
 
 from microsoft_agents.activity import ActivityTypes
 
 from microsoft_agents.hosting.core import AgentApplication, TurnContext, TurnState
 
-from microsoft_agents.testing.integration import Sample
+from microsoft_agents.testing.agent_test import (
+    AgentScenarioConfig,
+    AiohttpAgentScenario,
+    AgentEnvironment,
+)
 
 
 def create_auth_route(auth_handler_id: str, agent: AgentApplication):
@@ -19,31 +22,37 @@ def create_auth_route(auth_handler_id: str, agent: AgentApplication):
     click.echo(f"Creating route: {dynamic_function.__name__} for handler {auth_handler_id}")
     return dynamic_function
 
+async def init_app(env: AgentEnvironment):
 
-class AuthSample(Sample):
-    """A quickstart sample implementation."""
+    """Initialize the application for the auth sample."""
 
-    @classmethod
-    async def get_config(cls) -> dict:
-        """Retrieve the configuration for the sample."""
-        return dict(os.environ)
-    
-    async def init_app(self):
-        """Initialize the application for the quickstart sample."""
+    app: AgentApplication[TurnState] = env.agent_application
 
-        app: AgentApplication[TurnState] = self.env.agent_application
+    assert app._auth
+    assert app._auth._handlers
 
-        assert app._auth
-        assert app._auth._handlers
+    for authorization_handler in app._auth._handlers.values():
+        auth_handler = authorization_handler._handler
+        app.message(
+            auth_handler.name.lower(),
+            auth_handlers=[auth_handler.name],
+        )(create_auth_route(auth_handler.name, app))
 
-        for authorization_handler in app._auth._handlers.values():
-            auth_handler = authorization_handler._handler
-            app.message(
-                auth_handler.name.lower(),
-                auth_handlers=[auth_handler.name],
-            )(create_auth_route(auth_handler.name, app))
+    async def handle_message(context: TurnContext, state: TurnState):
+        await context.send_activity("Hello from the auth testing sample! Enter the name of an auth handler to test it.")
 
-        async def handle_message(context: TurnContext, state: TurnState):
-            await context.send_activity("Hello from the auth testing sample! Enter the name of an auth handler to test it.")
+    app.activity(ActivityTypes.message)(handle_message)
 
-        app.activity(ActivityTypes.message)(handle_message)
+class AuthScenario(AiohttpAgentScenario):
+    """Agent scenario for the auth sample."""
+
+    def __init__(
+            self,
+            config: AgentScenarioConfig | None = None
+            
+            ) -> None:
+        super().__init__(self._init_agent, config)
+
+    async def _init_agent(self, env: AgentEnvironment) -> None:
+        """Initialize the agent with the auth sample application."""
+        await init_app(env)

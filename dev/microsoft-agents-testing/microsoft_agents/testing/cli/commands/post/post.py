@@ -9,6 +9,11 @@ from microsoft_agents.testing.cli.common import (
     create_payload_sender,
 )
 
+from microsoft_agents.testing.agent_test import (
+    AgentScenarioConfig,
+    ExternalAgentScenario,
+)
+
 
 @click.command()
 @click.option(
@@ -26,6 +31,10 @@ def post(payload_path: str, async_mode: bool):
 
     with open(payload_path, "r", encoding="utf-8") as f:
         payload = json.load(f)
+
+    template = ActivityTemplate(payload)
+
+    scenario = ExternalAgentScenario()
 
     payload_sender = create_payload_sender(payload)
 

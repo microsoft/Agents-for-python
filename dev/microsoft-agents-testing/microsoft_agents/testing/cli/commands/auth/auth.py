@@ -3,9 +3,17 @@ import click
 
 from microsoft_agents.testing.integration import AiohttpEnvironment
 
-from .auth_sample import AuthSample
+from .auth_sample import AuthScenario
 
 async def _auth(port: int):
+
+    scenario = AuthScenario()
+
+    async with scenario.client() as client:
+        click.echo("Auth scenario client initialized.")
+        asyncio.sleep() # indefinitely?
+
+
     # Initialize the environment
     environment = AiohttpEnvironment()
     config = await AuthSample.get_config()
