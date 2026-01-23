@@ -7,5 +7,7 @@ from .unset import Unset
 
 __all__ = [
     "SafeObject",
+    "resolve",
+    "parent",
     "Unset",
 ]

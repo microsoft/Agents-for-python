@@ -1,6 +1,6 @@
 import pytest
 
-from microsoft_agents.testing import (
+from microsoft_agents.testing.check.engine.types import (
     SafeObject,
     resolve,
     parent,
