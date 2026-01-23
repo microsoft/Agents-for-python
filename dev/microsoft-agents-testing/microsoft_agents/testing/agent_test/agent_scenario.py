@@ -1,3 +1,6 @@
+# Copyright (c) Microsoft Corporation. All rights reserved.
+# Licensed under the MIT License.
+
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
@@ -9,6 +12,8 @@ from dotenv import dotenv_values
 
 from microsoft_agents.activity import load_configuration_from_env
 
+from microsoft_agents.testing.utils import generate_token_from_config
+
 from .agent_client import (
     AgentClient,
     ResponseServer,
@@ -16,6 +21,7 @@ from .agent_client import (
 )
 
 from .agent_scenario_config import AgentScenarioConfig
+
 
 class AgentScenario(ABC):
 
@@ -40,7 +46,18 @@ class _HostedAgentScenario(AgentScenario):
 
         response_server = ResponseServer(self._config.response_server_port)
         async with response_server.listen() as collector:
-            async with ClientSession(base_url=agent_endpoint) as session:
+
+            headers = {
+                "Content-Type": "application/json",
+            }
+
+            try:
+                token = generate_token_from_config(self._sdk_config)
+                headers["Authorization"] = f"Bearer {token}"
+            except Exception as e:
+                pass
+
+            async with ClientSession(base_url=agent_endpoint, headers=headers) as session:
 
                 activity_template = self._config.activity_template.with_updates(
                     service_url=response_server.service_endpoint,

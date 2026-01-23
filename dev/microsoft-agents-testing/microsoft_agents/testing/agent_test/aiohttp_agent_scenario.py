@@ -1,3 +1,6 @@
+# Copyright (c) Microsoft Corporation. All rights reserved.
+# Licensed under the MIT License.
+
 import functools
 from dataclasses import dataclass
 from typing import Callable, Awaitable
@@ -22,15 +25,11 @@ from microsoft_agents.hosting.aiohttp import (
     start_agent_process,
     jwt_authorization_middleware,
 )
-from microsoft_agents.hosting.msal_authentication import MsalConnectionManager
+from microsoft_agents.authentication.msal import MsalConnectionManager
 
-from .agent_client import (
-    AgentClient,
-    SenderClient,
-    ResponseServer,
-)
+from .agent_client import AgentClient
 from .agent_scenario import _HostedAgentScenario
-from .config import AgentScenarioConfig
+from .agent_scenario_config import AgentScenarioConfig
 
 @dataclass
 class AgentEnvironment:

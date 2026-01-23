@@ -1,4 +1,5 @@
-from dataclasses import dataclass
+# Copyright (c) Microsoft Corporation. All rights reserved.
+# Licensed under the MIT License.
 
 from microsoft_agents.testing.utils import ActivityTemplate
 
@@ -14,7 +15,6 @@ DEFAULT_ACTIVITY_TEMPLATE = ActivityTemplate({
     "text": "",
 })
 
-@dataclass
 class AgentScenarioConfig:
 
     env_file_path: str = ".env"

@@ -1,3 +1,6 @@
+# Copyright (c) Microsoft Corporation. All rights reserved.
+# Licensed under the MIT License.
+
 from __future__ import annotations
 
 from typing import Callable, cast
@@ -14,7 +17,7 @@ from microsoft_agents.hosting.core import (
 )
 
 from .agent_client import AgentClient
-from .agent_environment import AgentEnvironment
+from .aiohttp_agent_scenario import AgentEnvironment
 from .agent_scenario import AgentScenario, ExternalAgentScenario
 
 def _create_fixtures(scenario: AgentScenario) -> list[Callable]:

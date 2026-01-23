@@ -1,8 +1,8 @@
-# from agent_test import (
-#     agent_test,
-#     AiohttpAgentScenario,
-#     ExternalAgentScenario,
-# )
+from .agent_test import (
+    agent_test,
+    AiohttpAgentScenario,
+    ExternalAgentScenario,
+)
 
 from .check import (
     Check,
@@ -15,9 +15,9 @@ from .utils import (
 )
 
 __all__ = [
-    # "agent_test",
-    # "AiohttpAgentScenario",
-    # "ExternalAgentScenario",
+    "agent_test",
+    "AiohttpAgentScenario",
+    "ExternalAgentScenario",
     "Check",
     "Unset",
     "ModelTemplate",
