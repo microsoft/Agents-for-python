@@ -130,6 +130,7 @@ class AiohttpAgentScenario(_HostedAgentScenario):
         self._application["adapter"] = self._env.adapter
 
 
-        async with TestServer(self._application) as server:
-            async with self._create_client(server.url) as client:
+        async with TestServer(self._application, port=3978) as server:
+            agent_url = f"http://{server.host}:{server.port}/"
+            async with self._create_client(agent_url) as client:
                 yield client
