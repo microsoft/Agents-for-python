@@ -1,7 +1,8 @@
 # Copyright (c) Microsoft Corporation. All rights reserved.
 # Licensed under the MIT License.
 
-from microsoft_agents.testing.utils import ActivityTemplate
+from microsoft_agents.activity import Activity
+from microsoft_agents.testing.utils import ModelTemplate, ActivityTemplate
 
 DEFAULT_ACTIVITY_TEMPLATE = ActivityTemplate({
     "type": "message",
@@ -16,8 +17,9 @@ DEFAULT_ACTIVITY_TEMPLATE = ActivityTemplate({
 })
 
 class AgentScenarioConfig:
+    """Configuration for an agent test scenario."""
 
     env_file_path: str = ".env"
     response_server_port: int = 9378
 
-    activity_template: ActivityTemplate = DEFAULT_ACTIVITY_TEMPLATE
+    activity_template: ModelTemplate[Activity] = DEFAULT_ACTIVITY_TEMPLATE
