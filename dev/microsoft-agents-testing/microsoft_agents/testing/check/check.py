@@ -103,23 +103,28 @@ class Check:
     ###
     ### Quantifiers
     ###
-    
+
+    @property
     def for_any(self) -> Check:
         """Set selector to 'any'."""
         return self._child(self._items, for_any)
 
+    @property
     def for_all(self) -> Check:
         """Set selector to 'all'."""
         return self._child(self._items, for_all)
 
+    @property
     def for_none(self) -> Check:
         """Set selector to 'none'."""
         return self._child(self._items, for_none)
-    
+
+    @property
     def for_one(self) -> Check:
         """Set selector to 'one'."""
         return self._child(self._items, for_one)
     
+    @property
     def for_exactly(self, n: int) -> Check:
         """Set selector to 'exactly n'."""
         return self._child(self._items, for_n(n))
@@ -132,10 +137,6 @@ class Check:
         """Assert that selected items match criteria."""
         res, msgs = zip(*self._check(_assert, **kwargs))
         assert self._quantifier(res), msgs
-    
-    def count_is(self, n: int) -> bool:
-        """Check if the count of selected items is exactly n."""
-        return len(self._items) == n
     
     ###
     ### TERMINAL OPERATIONS
