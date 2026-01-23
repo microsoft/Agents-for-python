@@ -71,22 +71,21 @@ class AiohttpAgentScenario(_HostedAgentScenario):
 
     async def _init_components(self) -> None:
 
-        config = {}
         storage = MemoryStorage()
-        connection_manager = MsalConnectionManager(**config)
+        connection_manager = MsalConnectionManager(**self._sdk_config)
         adapter = CloudAdapter(connection_manager=connection_manager)
         authorization = Authorization(
-            storage, connection_manager, **config
+            storage, connection_manager, **self._sdk_config
         )
         agent_application = AgentApplication[TurnState](
             storage=storage,
             adapter=adapter,
             authorization=authorization,
-            **config
+            **self._sdk_config
         )
 
         self._env = AgentEnvironment(
-            config=config,
+            config=self._sdk_config,
             agent_application=agent_application,
             authorization=authorization,
             adapter=adapter,

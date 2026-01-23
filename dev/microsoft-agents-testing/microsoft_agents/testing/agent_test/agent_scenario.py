@@ -5,6 +5,9 @@ from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
 
 from aiohttp import ClientSession
+from dotenv import dotenv_values
+
+from microsoft_agents.activity import load_configuration_from_env
 
 from .agent_client import (
     AgentClient,
@@ -18,6 +21,9 @@ class AgentScenario(ABC):
 
     def __init__(self, config: AgentScenarioConfig) -> None:
         self._config = config
+
+        env_vars = dotenv_values(self._config.env_file_path)
+        self._sdk_config = load_configuration_from_env(env_vars)
 
     @abstractmethod
     @asynccontextmanager

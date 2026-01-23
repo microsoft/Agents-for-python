@@ -1,22 +1,27 @@
+from .config import (
+    generate_token,
+    generate_token_from_config,
+)
+
 from .data_utils import (
-    update_with_defaults,
-    copy_with_defaults,
+    expand,
+    set_defaults,
+    deep_update,
 )
 
 from .model_utils import (
     normalize_model_data,
-    populate_model,
-    populate_activity,
     ModelTemplate,
     ActivityTemplate,
 )
 
 __all__ = [
-    "update_with_defaults",
-    "copy_with_defaults",
+    "generate_token",
+    "generate_token_from_config",
+    "expand",
+    "set_defaults",
+    "deep_update",
     "normalize_model_data",
-    "populate_model",
-    "populate_activity",
     "ModelTemplate",
     "ActivityTemplate",
 ]
