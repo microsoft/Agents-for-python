@@ -23,10 +23,10 @@ def expand(data: dict, level_sep: str = ".") -> dict:
             root = key[:index]
             path = key[index + 1 :]
 
-            if root in new_data and path in new_data[root]:
-                raise RuntimeError()
-            elif root in new_data and not isinstance(new_data[root], (dict, list)):
-                raise RuntimeError()
+            if root in new_data and not isinstance(new_data[root], (dict, list)):
+                raise RuntimeError("Conflicting key found during expansion.")
+            elif root in new_data and path in new_data[root]:
+                raise RuntimeError("Conflicting key found during expansion.")
 
             if root not in new_data:
                 new_data[root] = {}
@@ -36,7 +36,7 @@ def expand(data: dict, level_sep: str = ".") -> dict:
         else:
             root = key
             if root in new_data:
-                raise RuntimeError()
+                raise RuntimeError("Conflicting key found during expansion.")
 
             new_data[root] = value
 
@@ -50,8 +50,8 @@ def _merge(original: dict, other: dict, overwrite_leaves: bool = True) -> None:
 
     """Merge two dictionaries recursively.
 
-    :param a: The first dictionary.
-    :param b: The second dictionary.
+    :param original: The first dictionary.
+    :param other: The second dictionary.
     :param overwrite_leaves: Whether to overwrite leaf values in the first dictionary with those from the second.
     :return: The merged dictionary. If false, only missing keys in the first dictionary are added from the second.
     """
@@ -60,13 +60,16 @@ def _merge(original: dict, other: dict, overwrite_leaves: bool = True) -> None:
         if key not in original:
             original[key] = other[key]
         elif isinstance(original[key], dict) and isinstance(other[key], dict):
-            merge(original[key], other[key], overwrite_leaves=overwrite_leaves)
+            _merge(original[key], other[key], overwrite_leaves=overwrite_leaves)
         elif not isinstance(original[key], dict) and overwrite_leaves:
             original[key] = other[key]
 
 def _resolve_kwargs(data: dict | None = None, **kwargs) -> dict:
 
     """Combine a dictionary and keyword arguments into a single dictionary.
+
+    The new dictionary is created by deep copying the input dictionary (if provided)
+    and then merging it with the keyword arguments.
 
     :param data: An optional dictionary.
     :param kwargs: Additional keyword arguments.
@@ -83,6 +86,8 @@ def deep_update(original: dict, updates: dict | None = None, **kwargs) -> None:
 
     :param original: The original dictionary to update.
     :param updates: The dictionary containing new values.
+    :param kwargs: Additional keyword arguments to update the original dictionary.
+    :return: None
     """
 
     updates = _resolve_kwargs(updates, **kwargs)
@@ -93,6 +98,8 @@ def set_defaults(original: dict, defaults: dict | None = None, **kwargs) -> None
 
     :param original: The original dictionary to populate.
     :param defaults: The dictionary containing default values.
+    :param kwargs: Additional keyword arguments to set as defaults.
+    :return: None
     """
     defaults = _resolve_kwargs(defaults, **kwargs)
     _merge(original, defaults, overwrite_leaves=False)
