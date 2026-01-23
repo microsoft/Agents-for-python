@@ -16,6 +16,8 @@ from microsoft_agents.hosting.core import (
     Storage,
 )
 
+from microsoft_agents.testing.check import Unset
+
 from .agent_client import AgentClient
 from .aiohttp_agent_scenario import AgentEnvironment
 from .agent_scenario import AgentScenario, ExternalAgentScenario
@@ -87,7 +89,7 @@ def agent_test(
     def decorator(cls: type) -> type:
 
         for fixture in fixtures:
-            if getattr(cls, fixture.__name__, None) is not None:
+            if getattr(cls, fixture.__name__, Unset) is not Unset:
                 raise ValueError(f"The class {cls.__name__} already has an attribute named {fixture.__name__}, cannot decorate.")
             setattr(cls, fixture.__name__, fixture)
         
