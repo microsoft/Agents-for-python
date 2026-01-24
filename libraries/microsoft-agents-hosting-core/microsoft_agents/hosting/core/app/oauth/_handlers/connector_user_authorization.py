@@ -9,6 +9,7 @@ from datetime import datetime, timezone
 from typing import Optional
 
 from microsoft_agents.activity import TokenResponse
+from microsoft_agents.hosting.core.errors import ErrorResources
 
 from ...._oauth._flow_state import _FlowStateTag
 from ....turn_context import TurnContext
@@ -61,7 +62,10 @@ class ConnectorUserAuthorization(_AuthorizationHandler):
         )
 
     async def _sign_in(
-        self, context: TurnContext, scopes: Optional[list[str]] = None
+        self,
+        context: TurnContext,
+        exchange_connection: Optional[str] = None,
+        exchange_scopes: Optional[list[str]] = None,
     ) -> _SignInResponse:
         """
         For connector requests, there is no separate sign-in flow.
@@ -170,14 +174,20 @@ class ConnectorUserAuthorization(_AuthorizationHandler):
 
         # Check if token is exchangeable
         if not input_token_response.is_exchangeable():
-            # TODO: (connector) Should raise an error instead of just returning
-            return input_token_response
+            raise ValueError(
+                str(ErrorResources.OboNotExchangeableToken.format(self._id))
+            )
 
         # Get the connection that supports OBO
         token_provider = self._connection_manager.get_connection(connection_name)
         if not token_provider:
-            # TODO: (connector) use resource errors
-            raise ValueError(f"Connection '{connection_name}' not found")
+            raise ValueError(
+                str(
+                    ErrorResources.ResourceNotFound.format(
+                        f"Connection '{connection_name}'"
+                    )
+                )
+            )
 
         # Perform the OBO exchange
         # Note: In Python, the acquire_token_on_behalf_of method is on the AccessTokenProviderBase

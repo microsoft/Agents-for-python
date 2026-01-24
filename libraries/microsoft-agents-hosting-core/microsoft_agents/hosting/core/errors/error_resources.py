@@ -122,6 +122,11 @@ class ErrorResources:
         -63019,
     )
 
+    OboNotExchangeableToken = ErrorMessage(
+        "The provided token is not exchangeable for handler: {0}",
+        -63020,
+    )
+
     # General/Validation Errors (-66000 to -66999)
     InvalidConfiguration = ErrorMessage(
         "Invalid configuration: {0}",
