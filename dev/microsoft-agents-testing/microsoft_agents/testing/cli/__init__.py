@@ -13,12 +13,6 @@ Structure:
     - main.py: CLI entry point
 """
 
-from .main import cli, main
-from .config import CLIConfig, cli_config
+from .main import main
 
-__all__ = [
-    "cli",
-    "main",
-    "CLIConfig",
-    "cli_config",
-]
+__all__ = [ "main" ]

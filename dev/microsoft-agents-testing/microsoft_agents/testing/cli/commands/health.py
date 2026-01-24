@@ -4,8 +4,6 @@
 """Health command - checks agent connectivity."""
 
 import click
-import asyncio
-import requests
 
 from ..config import CLIConfig
 from ..core import Output, async_command
@@ -16,7 +14,6 @@ from microsoft_agents.testing.agent_scenario import (
     AgentScenarioConfig,
     ExternalAgentScenario,
 )
-
 
 @click.command()
 @click.option(

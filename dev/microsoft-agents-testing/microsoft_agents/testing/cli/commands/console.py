@@ -13,7 +13,6 @@ from microsoft_agents.testing.agent_scenario import (
     ExternalAgentScenario,
 )
 
-
 @click.command()
 @click.option(
     "--url", "-u",
