@@ -15,7 +15,8 @@ from microsoft_agents.activity import (
 )
 
 from microsoft_agents.testing.utils import ModelTemplate, ActivityTemplate
-from microsoft_agents.agent_client import AgentClient
+
+from .agent_client import AgentClient
 
 DEFAULT_ACTIVITY_TEMPLATE = ActivityTemplate({
     "type": "message",

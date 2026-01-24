@@ -27,8 +27,8 @@ from microsoft_agents.hosting.aiohttp import (
 from microsoft_agents.authentication.msal import MsalConnectionManager
 
 from .agent_client import AgentClient
-from .agent_scenario import _HostedAgentScenario
-from .agent_scenario_config import AgentScenarioConfig
+from ._hosted_agent_scenario import _HostedAgentScenario
+from .agent_scenario import AgentScenarioConfig
 
 @dataclass
 class AgentEnvironment:

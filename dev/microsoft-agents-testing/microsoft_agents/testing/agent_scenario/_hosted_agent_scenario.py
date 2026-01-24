@@ -4,7 +4,8 @@ from collections.abc import AsyncIterator
 from aiohttp import ClientSession
 
 from microsoft_agents.testing.utils import generate_token_from_config
-from microsoft_agents.testing.agent_client import (
+
+from .agent_client import (
     AgentClient,
     ResponseServer,
     SenderClient
