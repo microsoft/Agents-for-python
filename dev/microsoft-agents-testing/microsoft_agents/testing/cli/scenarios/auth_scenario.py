@@ -4,7 +4,7 @@ from microsoft_agents.activity import ActivityTypes
 
 from microsoft_agents.hosting.core import AgentApplication, TurnContext, TurnState
 
-from microsoft_agents.testing.agent_test import (
+from microsoft_agents.testing.agent_scenario import (
     AgentScenarioConfig,
     AiohttpAgentScenario,
     AgentEnvironment,
@@ -22,7 +22,7 @@ def create_auth_route(auth_handler_id: str, agent: AgentApplication):
     click.echo(f"Creating route: {dynamic_function.__name__} for handler {auth_handler_id}")
     return dynamic_function
 
-async def init_app(env: AgentEnvironment):
+async def init_agent(env: AgentEnvironment):
 
     """Initialize the application for the auth sample."""
 
@@ -43,16 +43,4 @@ async def init_app(env: AgentEnvironment):
 
     app.activity(ActivityTypes.message)(handle_message)
 
-class AuthScenario(AiohttpAgentScenario):
-    """Agent scenario for the auth sample."""
-
-    def __init__(
-            self,
-            config: AgentScenarioConfig | None = None
-            
-            ) -> None:
-        super().__init__(self._init_agent, config)
-
-    async def _init_agent(self, env: AgentEnvironment) -> None:
-        """Initialize the agent with the auth sample application."""
-        await init_app(env)
+auth_scenario = AiohttpAgentScenario(init_agent)

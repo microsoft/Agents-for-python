@@ -1,7 +1,11 @@
-from .agent_test import (
-    agent_test,
-    AiohttpAgentScenario,
+from .agent_test import  agent_test
+from .agent_scenario import (
+    AgentClient,
+    AgentScenario,
+    AgentScenarioConfig,
     ExternalAgentScenario,
+    AiohttpAgentScenario,
+    AgentEnvironment,
 )
 
 from .check import (
