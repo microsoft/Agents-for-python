@@ -9,6 +9,7 @@ class OperationType(Enum):
     GETITEM = auto()        # e.g., _[0]
     CALL = auto()           # e.g., _.method(arg1, arg2)
     RBINARY_OP = auto()     # e.g., 1 + _, 5 - _ (reverse binary ops)
+    APPLY_BUILTIN = auto()  # e.g., _len(_), _str(_)
 
 
 class PlaceholderType(Enum):
