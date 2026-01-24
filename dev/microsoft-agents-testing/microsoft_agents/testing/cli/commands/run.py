@@ -8,7 +8,6 @@ from ..core import Output, async_command
 
 from ..scenarios import SCENARIOS
 
-
 @click.command()
 @click.option(
     "--scenario", "-s",

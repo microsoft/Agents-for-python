@@ -7,8 +7,6 @@ This module defines the root command group and handles initialization
 such as loading environment variables and configuration.
 """
 
-from pathlib import Path
-
 import click
 
 from .config import CLIConfig
