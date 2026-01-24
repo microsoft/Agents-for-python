@@ -1,6 +1,7 @@
 # Copyright (c) Microsoft Corporation. All rights reserved.
 # Licensed under the MIT License.
 
+import os
 import aiohttp
 from typing import AsyncIterable, Callable, Optional
 
@@ -16,6 +17,8 @@ class CopilotClient:
 
     EVENT_STREAM_TYPE = "text/event-stream"
     APPLICATION_JSON_TYPE = "application/json"
+    HTTP_PROXY = os.getenv("HTTP_PROXY")
+    HTTPS_PROXY = os.getenv("HTTPS_PROXY")
 
     _current_conversation_id = ""
 
@@ -29,6 +32,15 @@ class CopilotClient:
         # TODO: Add logger
         # self.logger = logger
         self.conversation_id = ""
+        self.proxy = {
+            "http": self.HTTP_PROXY,
+            "https": self.HTTPS_PROXY,
+        }
+
+    def _get_proxy(self) -> Optional[str]:
+        if self.proxy.get("https"):
+            return self.proxy["https"]
+        return self.proxy.get("http")
 
     async def post_request(
         self, url: str, data: dict, headers: dict
@@ -44,8 +56,11 @@ class CopilotClient:
         async with aiohttp.ClientSession(
             **self.settings.client_session_settings
         ) as session:
-            async with session.post(url, json=data, headers=headers) as response:
-
+            request_kwargs = {}
+            proxy = self._get_proxy()
+            if proxy:
+                request_kwargs["proxy"] = proxy
+            async with session.post(url, json=data, headers=headers, **request_kwargs) as response:
                 if response.status != 200:
                     # self.logger(f"Error sending request: {response.status}")
                     raise aiohttp.ClientError(
