@@ -18,7 +18,7 @@ from microsoft_agents.hosting.core import (
 
 from .check import Unset
 
-from .agent_scenario import (
+from .scenario import (
     ExternalAgentScenario,
     AgentScenario,
     AgentClient,

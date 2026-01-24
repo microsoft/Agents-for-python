@@ -1,10 +1,8 @@
 from aiohttp import ClientSession
-
-
 from microsoft_agents.activity import Activity
 
 from .sender import Sender
-from ..models import SRNode
+from ..sr_node import SRNode
 
 
 class AiohttpSender(Sender):
