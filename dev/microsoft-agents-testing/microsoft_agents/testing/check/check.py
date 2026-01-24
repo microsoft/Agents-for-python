@@ -3,7 +3,8 @@
 
 from __future__ import annotations
 
-from typing import TypeVar, Iterable, Callable
+import random
+from typing import TypeVar, Iterable, Callable, Any, Self
 from pydantic import BaseModel
 
 from .quantifier import (
@@ -52,7 +53,7 @@ class Check:
         self._items = list(items)
         self._engine = CheckEngine()
 
-    def _child(self, items: Iterable[dict | BaseModel], quantifier: Quantifier | None = None) -> Check:
+    def _child(self, items: Iterable[dict | BaseModel]) -> Check:
         """Create a child Check with new items, inheriting selector and quantifier."""
         child = Check(items)
         child._engine = self._engine
@@ -76,6 +77,22 @@ class Check:
             [item for item, match in zip(self._items, res) if not match],
         )
     
+    def order_by(self, key: str | Callable, reverse: bool = False, **kwargs) -> Check:
+
+        """Order items by a specific key or callable. Chainable."""
+        if callable(key):
+            sort_key = key
+        else:
+            sort_key = lambda item: item[key] if isinstance(item, dict) else getattr(item, key, None)
+        
+        return self._child(
+            sorted(
+                self._items,
+                key=sort_key,
+                reverse=reverse,
+            )
+        )
+    
     def merge(self, other: Check) -> Check:
         """Merge with another Check's items."""
         return self._child(self._items + other._items)
@@ -83,21 +100,25 @@ class Check:
     def _bool_list(self) -> list[bool]:
         return [ True for _ in self._items ]
     
-    def first(self) -> Check:
-        """Select the first item."""
-        return self._child(self._items[:1])
+    def first(self, n: int = 1) -> Check:
+        """Select the first n items."""
+        return self._child(self._items[:n])
     
-    def last(self) -> Check:
-        """Select the last item."""
-        return self._child(self._items[-1:])
+    def last(self, n: int = 1) -> Check:
+        """Select the last n items."""
+        return self._child(self._items[-n:])
     
     def at(self, n: int) -> Check:
         """Set selector to 'exactly n'."""
         return self._child(self._items[n:n+1])
     
-    def cap(self, n: int) -> Check:
-        """Limit selection to first n items."""
-        return self._child(self._items[:n])
+    def sample(self, n: int) -> Check:
+        """Randomly sample n items."""
+        if n < 0:
+            raise ValueError("Sample size n must be non-negative.")
+        
+        n = min(n, len(self._items))
+        return self._child(random.sample(self._items, n))
     
     ###
     ### Quantifiers
@@ -135,6 +156,14 @@ class Check:
     def that_for_exactly(self, _n: int, _assert: dict | Callable | None = None, **kwargs) -> None:
         """Assert that exactly n selected items match criteria."""
         self._that(for_n(_n), _assert, **kwargs)
+
+    def is_empty(self) -> None:
+        """Assert that no items are selected."""
+        assert len(self._items) == 0, f"Expected no items, found {len(self._items)}."
+    
+    def is_not_empty(self) -> None:
+        """Assert that some items are selected."""
+        assert len(self._items) > 0, "Expected some items, found none."
     
     ###
     ### TERMINAL OPERATIONS
@@ -144,20 +173,14 @@ class Check:
         """Get the selected items as a list."""
         return self._items
     
-    def get_one(self) -> dict | BaseModel:
-        """Get a single selected item. Raises if not exactly one."""
-        if len(self._items) != 1:
-            raise ValueError(f"Expected exactly one item, found {len(self._items)}.")
-        return self._items[0]
-    
     def count(self) -> int:
         """Get the count of selected items."""
         return len(self._items)
     
-    def exists(self) -> bool:
-        """Check if any selected items exist."""
-        return len(self._items) > 0
-    
+    def empty(self) -> bool:
+        """Check if no items are selected."""
+        return len(self._items) == 0
+
     ###
     ### INTERNAL HELPERS
     ###
@@ -169,4 +192,3 @@ class Check:
             baseline["__Check__predicate__"] = _assert
 
         return [self._engine.check_verbose(item, baseline) for item in self._items]
-        

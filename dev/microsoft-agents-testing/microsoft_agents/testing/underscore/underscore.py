@@ -228,6 +228,11 @@ class Underscore:
                     for k, v in kwargs.items()
                 }
                 result = result(*resolved_args, **resolved_kwargs)
+            elif op_type == OperationType.APPLY_BUILTIN:
+                func = args[0]
+                extra_args = tuple(self._resolve_value(a, ctx) for a in args[1:])
+                resolved_kwargs = {k: self._resolve_value(v, ctx) for k, v in kwargs.items()}
+                result = func(result, *extra_args, **resolved_kwargs)
         
         return result
     
@@ -335,6 +340,107 @@ class Underscore:
             result = f"({result}).partial({', '.join(bound_parts)})"
         
         return result
+    
+    def _in(self, container: Any) -> Underscore:
+        """
+        Check if the resolved value is in the container.
+        
+        Usage:
+            _._in(["a", "b", "c"])      # _ in ["a", "b", "c"]
+            _0._in(_.allowed)           # _0 in _.allowed
+            _.name._in(valid_names)     # _.name in valid_names
+        """
+        wrapped = self._wrap_if_compound()
+        return wrapped._copy_with((
+            OperationType.APPLY_BUILTIN,
+            (lambda x, c: x in c, container),
+            {}
+        ))
+    
+    def _contains(self, item: Any) -> Underscore:
+        """
+        Check if the resolved value contains the item.
+        
+        Usage:
+            _._contains("@")            # "@" in _
+            _.text._contains("error")   # "error" in _.text
+        """
+        wrapped = self._wrap_if_compound()
+        return wrapped._copy_with((
+            OperationType.APPLY_BUILTIN,
+            (lambda x, i: i in x, item),
+            {}
+        ))
+
+    def _is(self, other: Any) -> Underscore:
+        """
+        Identity check (is operator).
+        
+        Usage:
+            _._is(None)                 # _ is None
+        """
+        wrapped = self._wrap_if_compound()
+        return wrapped._copy_with((
+            OperationType.APPLY_BUILTIN,
+            (lambda x, o: x is o, other),
+            {}
+        ))
+
+    def _is_not(self, other: Any) -> Underscore:
+        """
+        Negated identity check (is not operator).
+        
+        Usage:
+            _._is_not(None)             # _ is not None
+        """
+        wrapped = self._wrap_if_compound()
+        return wrapped._copy_with((
+            OperationType.APPLY_BUILTIN,
+            (lambda x, o: x is not o, other),
+            {}
+        ))
+
+    def _not(self) -> Underscore:
+        """
+        Logical not.
+        
+        Usage:
+            _._not()                    # not _
+        """
+        wrapped = self._wrap_if_compound()
+        return wrapped._copy_with((
+            OperationType.APPLY_BUILTIN,
+            (lambda x: not x,),
+            {}
+        ))
+
+    def _and(self, other: Any) -> Underscore:
+        """
+        Logical and.
+        
+        Usage:
+            _._and(_.is_valid)          # _ and _.is_valid
+        """
+        wrapped = self._wrap_if_compound()
+        return wrapped._copy_with((
+            OperationType.APPLY_BUILTIN,
+            (lambda x, o: x and o, other),
+            {}
+        ))
+
+    def _or(self, other: Any) -> Underscore:
+        """
+        Logical or.
+        
+        Usage:
+            _.name._or("unknown")       # _.name or "unknown"
+        """
+        wrapped = self._wrap_if_compound()
+        return wrapped._copy_with((
+            OperationType.APPLY_BUILTIN,
+            (lambda x, o: x or o, other),
+            {}
+        ))
 
 
 # =============================================================================

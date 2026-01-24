@@ -29,9 +29,14 @@ def _create_fixtures(scenario: AgentScenario) -> list[Callable]:
     """Create pytest fixtures for the given agent scenario."""
 
     @pytest.fixture
-    async def agent_client(self) -> AsyncIterator[AgentClient]:
+    async def agent_client(self, request) -> AsyncIterator[AgentClient]:
         async with scenario.client() as client:
             yield client
+
+            # After test completes, attach conversation to the test item
+            # This makes it available to pytest's reporting hooks
+            request.node._agent_conversation = client.get_activities()
+            
 
     fixtures = [agent_client]
 

@@ -128,6 +128,24 @@ from .underscore import (
     PlaceholderInfo,
 )
 
+from .builtin_wrappers import (
+      _len,
+      _str,
+      _int,
+      _float,
+      _bool,
+      _list,
+      _tuple,
+      _set,
+      _sorted,
+      _reversed,
+      _sum,
+      _min,
+      _max,
+      _abs,
+      _type,
+)
+
 __all__ = [
     "_", "_0", "_1", "_2", "_3", "_4", "_n", "_var",
     "Underscore",
@@ -139,4 +157,20 @@ __all__ = [
     "get_named_placeholders",
     "get_required_args",
     "is_placeholder",
+
+    "_len",
+    "_str",
+   "_int",
+   "_float",
+   "_bool",
+   "_list",
+   "_tuple",
+   "_set",
+   "_sorted",
+   "_reversed",
+   "_sum",
+   "_min",
+   "_max",
+   "_abs",
+   "_type",
 ]
