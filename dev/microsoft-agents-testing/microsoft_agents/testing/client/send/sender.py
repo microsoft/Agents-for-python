@@ -2,15 +2,9 @@
 # Licensed under the MIT License.
 
 from abc import ABC, abstractmethod
+from microsoft_agents.activity import Activity
 
-from microsoft_agents.activity import (
-    Activity,
-    ActivityTypes,
-    DeliveryModes,
-    InvokeResponse,
-)
-
-from ..models import SRNode
+from ..sr_node import SRNode
 
 class Sender(ABC):
     """Client for sending activities to an agent endpoint."""

@@ -15,7 +15,7 @@ from microsoft_agents.testing.utils import ModelTemplate
 
 from .send import Sender
 from .receive import ResponseReceiver
-from ..models import SRNode
+from .sr_node import SRNode
 
 class AgentClient:
     """Client for sending activities to an agent and collecting responses."""

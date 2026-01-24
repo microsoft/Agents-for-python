@@ -1,11 +1,11 @@
 from .agent_test import  agent_test
-from .agent_scenario import (
+from .client import (
     AgentClient,
-    AgentScenario,
-    AgentScenarioConfig,
-    ExternalAgentScenario,
-    AiohttpAgentScenario,
-    AgentEnvironment,
+    AiohttpSender,
+    ResponseServer,
+    ResponseReceiver,
+    Sender,
+    SRNode,
 )
 
 from .check import (
@@ -21,6 +21,12 @@ from .utils import (
 
 __all__ = [
     "agent_test",
+    "AgentClient",
+    "AiohttpSender",
+    "ResponseServer",
+    "ResponseReceiver",
+    "Sender",
+    "SRNode",
     "AiohttpAgentScenario",
     "ExternalAgentScenario",
     "Check",
