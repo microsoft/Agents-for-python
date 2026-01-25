@@ -13,6 +13,13 @@ from microsoft_agents.testing.client.receiver.aiohttp_server import AiohttpRespo
 from .aiohttp import AiohttpClientFactory
 from .base import Scenario, ScenarioConfig
 
+from microsoft_agents.testing.client import (
+    AiohttpSender,
+    AiohttpCallbackServer,
+    Transcript,
+    AgentClient,
+)
+
 
 class ExternalScenario(Scenario):
     """Scenario for testing an externally-hosted agent."""
@@ -25,16 +32,22 @@ class ExternalScenario(Scenario):
 
     @asynccontextmanager
     async def run(self) -> AsyncIterator[AiohttpClientFactory]:
-        """Start response server and yield a client factory."""
+        """Start callback server and yield a client factory."""
         from dotenv import dotenv_values
         from microsoft_agents.activity import load_configuration_from_env
         
         env_vars = dotenv_values(self._config.env_file_path)
         sdk_config = load_configuration_from_env(env_vars)
         
-        response_server = AiohttpResponseServer(self._config.response_server_port)
-        ``
-        async with response_server.start() as receiver:
+        callback_server = AiohttpCallbackServer(self._config.response_server_port)
+
+        async with callback_server.listen() as transcript:
+
+            sender = AiohttpActivitySender(
+                endpoint=self._endpoint,
+                transcript=transcript,
+            )
+
             factory = AiohttpClientFactory(
                 agent_endpoint=self._endpoint,
                 response_endpoint=response_server.service_endpoint,

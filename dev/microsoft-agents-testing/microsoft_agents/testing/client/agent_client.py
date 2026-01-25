@@ -13,9 +13,7 @@ from microsoft_agents.activity import (
 )
 from microsoft_agents.testing.utils import ModelTemplate
 
-from .send import Sender
-from .receive import ResponseReceiver
-from .sr_node import SRNode
+from .exchange import Sender, Transcript
 
 class AgentClient:
     """Client for sending activities to an agent and collecting responses."""
@@ -23,17 +21,17 @@ class AgentClient:
     def __init__(
         self,
         sender: Sender,
-        receiver: ResponseReceiver,
+        transcript: Transcript,
         activity_template: ModelTemplate[Activity] | None = None
     ) -> None:
-        """Initializes the AgentClient with a sender, collector, and optional activity template.
+        """Initializes the AgentClient with a sender, transcript, and optional activity template.
         
-        :param sender: The SenderClient to send activities.
-        :param collector: The ResponseCollector to collect responses.
-        :param activity_template: Optional ActivityTemplate for creating activities.
+        :param sender: The Sender to send activities.
+        :param transcript: The Transcript to collect exchanges.
+        :param activity_template: Optional ModelTemplate for creating activities.
         """
         self._sender = sender
-        self._receiver = receiver
+        self._transcript = transcript
         self._template = activity_template or ModelTemplate[Activity]()
         
     @property
@@ -52,19 +50,6 @@ class AgentClient:
             base = Activity(type=ActivityTypes.message, text=base)
         return self._template.create(base)
     
-    async def _send(
-        self,
-        activity: Activity
-    ) -> SRNode:
-        """Sends an activity using the sender and returns the SRNode response.
-        
-        :param activity: The Activity to send.
-        :return: The SRNode response from the sender.
-        """
-        sr_node = await self._sender.send(activity)
-        self._receiver.add(sr_node)
-        return sr_node
-    
     async def send(
         self,
         activity_or_text: Activity | str,
@@ -81,14 +66,14 @@ class AgentClient:
 
         self._receiver.get_new()
 
-        sr_node = await self._send(activity)
+        exchange = await self._sender.send(activity)
 
         if max(0.0, wait) != 0.0: # ignore negative waits, I guess
             await asyncio.sleep(wait)
             new_activities = self._receiver.get_new()
-            return sr_node.received + new_activities
+            return exchange.responses + new_activities
 
-        return sr_node.received
+        return exchange.responses
     
     async def send_expect_replies(
         self,
@@ -116,17 +101,33 @@ class AgentClient:
         if activity.type != ActivityTypes.invoke:
             raise ValueError("AgentClient.invoke(): Activity type must be 'invoke'")
         
-        sr_node = await self._sender._send(activity)
-        if not sr_node.invoke_response:
-            if sr_node.exception:
-                raise sr_node.exception
-            raise RuntimeError("AgentClient.invoke(): No InvokeResponse received")
+        exchange = await self._sender.send(activity)
         
-        return sr_node.invoke_response
+        if not exchange.invoke_response:
+            # in order to not violate the contract,
+            # we raise the exception if there is no InvokeResponse
+            if not exchange.exception:
+                raise RuntimeError("AgentClient.invoke(): No InvokeResponse received")
+            raise exchange.exception
+        
+        return exchange.invoke_response
     
     def get_all(self) -> list[Activity]:
         """Gets all received activities from the receiver.
         
         :return: A list of all received Activities.
         """
-        return self._receiver.get_all()
+        lst = []
+        for exchange in self._transcript.get_all():
+            lst.extend(exchange.responses)
+        return lst
+    
+    def get_new(self) -> list[Activity]:
+        """Gets new received activities from the receiver since the last call.
+        
+        :return: A list of new received Activities.
+        """
+        lst = []
+        for exchange in self._transcript.get_new():
+            lst.extend(exchange.responses)
+        return lst

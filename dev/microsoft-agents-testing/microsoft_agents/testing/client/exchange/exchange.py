@@ -1,30 +1,40 @@
+# Copyright (c) Microsoft Corporation. All rights reserved.
+# Licensed under the MIT License.
+
 from __future__ import annotations
 
 import json
 from typing import cast
 
-from pydantic import BaseModel, Field
 import aiohttp
+from pydantic import BaseModel, Field
 
-from microsoft_agents.hosting.activity import (
+from microsoft_agents.activity import (
     Activity,
     ActivityTypes,
     DeliveryModes,
     InvokeResponse,
 )
 
-class SRNode(BaseModel):
-
-    # from outgoing activities
-    request_activity: Activity | None = None
-    response_status: int | None = None
-    response_content: str | None = None
+class Exchange(BaseModel):
+    """A complete send-receive exchange with an agent.
+    
+    Captures the outgoing activity, the HTTP response, and any
+    activities received (inline replies or async callbacks).
+    """
+    # The activity that was sent
+    request: Activity | None = None
+    
+    # HTTP response metadata
+    status_code: int | None = None
+    response_body: str | None = None
     invoke_response: InvokeResponse | None = None
-    exception: Exception | None = None
-
-
-    # from incoming activities, through replies or post post
-    received: list[Activity] = Field(default_factory=list)
+    
+    # Error if the request failed
+    error: Exception | None = None
+    
+    # Activities received (from expect_replies or callbacks)
+    responses: list[Activity] = Field(default_factory=list)
 
     @property
     def is_reply(self) -> bool:
@@ -38,13 +48,13 @@ class SRNode(BaseModel):
     async def from_request(
         request_activity: Activity,
         response_or_exception
-    ) -> SRNode:
+    ) -> Exchange:
         
         if isinstance(response_or_exception, Exception):
-            if not SRNode.is_allowed_exception(response_or_exception):
+            if not Exchange.is_allowed_exception(response_or_exception):
                 raise response_or_exception
             
-            return SRNode(
+            return Exchange(
                 request_activity=request_activity,
                 exception=response_or_exception,
             )
@@ -69,7 +79,7 @@ class SRNode(BaseModel):
             else:
                 content = await response.text()
 
-            return SRNode(
+            return Exchange(
                 request_activity=request_activity,
                 response_status=response.status,
                 response_content=content,
@@ -78,4 +88,4 @@ class SRNode(BaseModel):
             )
             
         else:
-            raise ValueError("response_or_exception must be an Exception or aiohttp.ClientResponse")
+            raise ValueError("response_or_exception must be an Exception or aiohttp.ClientResponse")``
