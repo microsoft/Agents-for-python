@@ -14,6 +14,7 @@ from .types import (
 )
 
 DEFAULT_FIXTURES = {
+    "x": lambda ctx: resolve(ctx.actual),
     "actual": lambda ctx: resolve(ctx.actual),
     "root": lambda ctx: resolve(ctx.root_actual),
     "parent": lambda ctx: resolve(parent(ctx.actual)),
@@ -28,16 +29,19 @@ class CheckEngine:
         self._fixtures = fixtures or DEFAULT_FIXTURES
     
     def _invoke(self, query_function: Callable, context: CheckContext) -> Any:
+
+        args = {}
         
         sig = inspect.getfullargspec(query_function)
-        args = {}
+        func_args = sig.args
 
-        for arg in sig.args:
+        for arg in func_args:
             if arg in self._fixtures:
                 args[arg] = self._fixtures[arg](context)
             else:
                 raise RuntimeError(f"Unknown argument '{arg}' in query function")
-            
+
+        breakpoint()            
         res = query_function(**args)
 
         if isinstance(res, tuple) and len(res) == 2:
@@ -58,6 +62,9 @@ class CheckEngine:
 
         if isinstance(baseline, dict):
             for key, value in baseline.items():
+                if key == "__check_predicate" and callable(value):
+                    results.append(self._invoke(value, context))
+                    continue
                 check, msg = self._check_verbose(actual[key], value, context.child(key))
                 results.append((check, msg))
         elif isinstance(baseline, list):

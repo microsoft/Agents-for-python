@@ -5,7 +5,6 @@ from typing import Callable, Awaitable
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
 
-from aiohttp import ClientSession
 from aiohttp.web import Application
 from aiohttp.test_utils import TestServer
 
@@ -18,13 +17,10 @@ from microsoft_agents.hosting.aiohttp import (
 )
 from microsoft_agents.authentication.msal import MsalConnectionManager
 
-from microsoft_agents.testing.utils import ActivityTemplate, generate_token_from_config
-from microsoft_agents.testing.client import AgentClient
-from microsoft_agents.testing.client.client_config import ClientConfig
-from microsoft_agents.testing.client.transport.aiohttp_sender import AiohttpActivitySender
-from microsoft_agents.testing.client.receiver.aiohttp_server import AiohttpResponseServer
+from microsoft_agents.testing.client import AiohttpCallbackServer
 
-from .base import AgentScenario, ScenarioConfig
+from .aiohttp_client_factory import AiohttpClientFactory
+from .scenario import Scenario, ScenarioConfig
 
 
 @dataclass
@@ -37,7 +33,7 @@ class AgentEnvironment:
     storage: Storage
     connections: Connections
 
-class AiohttpAgentScenario(AgentScenario):
+class AiohttpScenario(Scenario):
     """Agent test scenario for an agent hosted within an aiohttp application."""
 
     def __init__(
@@ -62,7 +58,7 @@ class AiohttpAgentScenario(AgentScenario):
             raise RuntimeError("Agent environment not available. Is the scenario running?")
         return self._env
 
-    async def _init_components(self) -> dict:
+    async def _init_agent_environment(self) -> dict:
         """Initialize agent components, return SDK config."""
         from dotenv import dotenv_values
         from microsoft_agents.activity import load_configuration_from_env
@@ -89,12 +85,9 @@ class AiohttpAgentScenario(AgentScenario):
         
         await self._init_agent(self._env)
         return sdk_config
-
-    @asynccontextmanager
-    async def run(self) -> AsyncIterator[AiohttpClientFactory]:
-        """Start the scenario and yield a client factory."""
-        
-        sdk_config = await self._init_components()
+    
+    def _create_application(self) -> Application:
+        """Initialize and return the aiohttp application."""
         
         # Create aiohttp app
         middlewares = [jwt_authorization_middleware] if self._use_jwt_middleware else []
@@ -107,21 +100,30 @@ class AiohttpAgentScenario(AgentScenario):
                 adapter=self._env.adapter,
             ),
         )
+
+        return app
+
+    @asynccontextmanager
+    async def run(self) -> AsyncIterator[AiohttpClientFactory]:
+        """Start the scenario and yield a client factory."""
+        
+        sdk_config = await self._init_agent_environment()
+        app = self._create_application()
         
         # Start response server
-        response_server = AiohttpResponseServer(self._config.response_server_port)
-        
-        async with response_server.start() as receiver:
+        callback_server = AiohttpCallbackServer(self._config.callback_server_port)
+
+        async with callback_server.listen() as transcript:
             async with TestServer(app, port=3978) as server:
                 agent_url = f"http://{server.host}:{server.port}/"
                 
                 factory = AiohttpClientFactory(
                     agent_url=agent_url,
-                    response_endpoint=response_server.service_endpoint,
+                    response_endpoint=callback_server.service_endpoint,
                     sdk_config=sdk_config,
-                    default_template=self._config.default_activity_template,
-                    default_config=self._config.default_client_config,
-                    response_receiver=receiver,
+                    default_template=self._config.activity_template,
+                    default_config=self._config.client_config,
+                    transcript=transcript,
                 )
                 
                 try:

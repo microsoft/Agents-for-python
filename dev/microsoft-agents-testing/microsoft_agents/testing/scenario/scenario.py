@@ -11,13 +11,37 @@ from microsoft_agents.testing.client import AgentClient
 
 from .client_config import ClientConfig
 
+
+def _default_activity_template() -> ActivityTemplate:
+    """Create a default activity template with all required fields."""
+    return ActivityTemplate({
+        "type": "message",
+        "channel_id": "test",
+        "conversation.id": "test-conversation",
+        "locale": "en-US",
+        "from.id": "user-id",
+        "from.name": "User",
+        "recipient.id": "agent-id",
+        "recipient.name": "Agent",
+    })
+
+
 @dataclass
 class ScenarioConfig:
     """Configuration for agent test scenarios."""
     env_file_path: str = ".env"
-    response_server_port: int = 9378
-    activity_template: ActivityTemplate = field(default_factory=ActivityTemplate)
+    callback_server_port: int = 9378
+    activity_template: ActivityTemplate = field(default_factory=_default_activity_template)
     client_config: ClientConfig = field(default_factory=ClientConfig)
+
+# ...existing code...
+
+class ClientFactory(Protocol):
+    """Protocol for creating clients within a running scenario."""
+    
+    async def create_client(self, config: ClientConfig | None = None) -> AgentClient:
+        """Create a new client with the given configuration."""
+        ...
 
 class Scenario(ABC):
     """Base class for agent test scenarios."""
@@ -47,10 +71,3 @@ class Scenario(ABC):
         async with self.run() as factory:
             client = await factory.create_client(config)
             yield client
-
-class ClientFactory(Protocol):
-    """Protocol for creating clients within a running scenario."""
-    
-    async def create_client(self, config: ClientConfig | None = None) -> AgentClient:
-        """Create a new client with the given configuration."""
-        ...
