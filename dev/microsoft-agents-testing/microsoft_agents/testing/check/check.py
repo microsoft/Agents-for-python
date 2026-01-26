@@ -121,10 +121,6 @@ class Check:
         return self._child(random.sample(self._items, n))
     
     ###
-    ### Quantifiers
-    ###
-    
-    ###
     ### Assertion
     ###
 
@@ -189,6 +185,6 @@ class Check:
         baseline = {**(_assert if isinstance(_assert, dict) else {}), **kwargs}
         if callable(_assert):
             # TODO
-            baseline["__Check__predicate__"] = _assert
+            baseline["__check_predicate"] = _assert
 
         return [self._engine.check_verbose(item, baseline) for item in self._items]

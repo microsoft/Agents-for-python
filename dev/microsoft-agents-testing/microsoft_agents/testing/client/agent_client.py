@@ -11,7 +11,7 @@ from microsoft_agents.activity import (
     DeliveryModes,
     InvokeResponse,
 )
-from microsoft_agents.testing.utils import ModelTemplate
+from microsoft_agents.testing.utils import ActivityTemplate
 
 from .exchange import Sender, Transcript
 
@@ -22,25 +22,25 @@ class AgentClient:
         self,
         sender: Sender,
         transcript: Transcript,
-        activity_template: ModelTemplate[Activity] | None = None
+        activity_template: ActivityTemplate | None = None
     ) -> None:
         """Initializes the AgentClient with a sender, transcript, and optional activity template.
         
         :param sender: The Sender to send activities.
         :param transcript: The Transcript to collect exchanges.
-        :param activity_template: Optional ModelTemplate for creating activities.
+        :param activity_template: Optional ActivityTemplate for creating activities.
         """
         self._sender = sender
         self._transcript = transcript
-        self._template = activity_template or ModelTemplate[Activity]()
+        self._template = activity_template or ActivityTemplate()
         
     @property
-    def template(self) -> ModelTemplate[Activity]:
+    def template(self) -> ActivityTemplate:
         """Gets the current ActivityTemplate."""
         return self._template
     
     @template.setter
-    def template(self, activity_template: ModelTemplate[Activity]) -> None:
+    def template(self, activity_template: ActivityTemplate) -> None:
         """Sets a new ActivityTemplate."""
         self._template = activity_template
 
@@ -53,6 +53,7 @@ class AgentClient:
     async def send(
         self,
         activity_or_text: Activity | str,
+        *,
         wait: float = 0.0,
     ) -> list[Activity]:
         """Sends an activity and collects responses.
@@ -64,13 +65,13 @@ class AgentClient:
 
         activity = self._build_activity(activity_or_text)
 
-        self._receiver.get_new()
+        self._transcript.get_new()
 
         exchange = await self._sender.send(activity)
 
         if max(0.0, wait) != 0.0: # ignore negative waits, I guess
             await asyncio.sleep(wait)
-            new_activities = self._receiver.get_new()
+            new_activities = [activity for e in self._transcript.get_new() for activity in e.responses]
             return exchange.responses + new_activities
 
         return exchange.responses
@@ -106,14 +107,14 @@ class AgentClient:
         if not exchange.invoke_response:
             # in order to not violate the contract,
             # we raise the exception if there is no InvokeResponse
-            if not exchange.exception:
+            if not exchange.error:
                 raise RuntimeError("AgentClient.invoke(): No InvokeResponse received")
-            raise exchange.exception
+            raise Exception(exchange.error)
         
         return exchange.invoke_response
     
     def get_all(self) -> list[Activity]:
-        """Gets all received activities from the receiver.
+        """Gets all received activities from the transcript.
         
         :return: A list of all received Activities.
         """
@@ -123,7 +124,7 @@ class AgentClient:
         return lst
     
     def get_new(self) -> list[Activity]:
-        """Gets new received activities from the receiver since the last call.
+        """Gets new received activities from the transcript since the last call.
         
         :return: A list of new received Activities.
         """

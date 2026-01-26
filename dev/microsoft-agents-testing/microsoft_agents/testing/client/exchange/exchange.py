@@ -27,11 +27,11 @@ class Exchange(BaseModel):
     
     # HTTP response metadata
     status_code: int | None = None
-    response_body: str | None = None
+    body: str | None = None
     invoke_response: InvokeResponse | None = None
     
     # Error if the request failed
-    error: Exception | None = None
+    error: str | None = None
     
     # Activities received (from expect_replies or callbacks)
     responses: list[Activity] = Field(default_factory=list)
@@ -55,37 +55,37 @@ class Exchange(BaseModel):
                 raise response_or_exception
             
             return Exchange(
-                request_activity=request_activity,
-                exception=response_or_exception,
+                request=request_activity,
+                error=str(response_or_exception),
             )
         
         if isinstance(response_or_exception, aiohttp.ClientResponse):
             
             response = cast(aiohttp.ClientResponse, response_or_exception)
 
-            content = await response.json()
+            body = await response.text()
 
 
             activities = []
             invoke_response = None
 
             if request_activity.delivery_mode == DeliveryModes.expect_replies:
-                body = json.loads(content)
-                activities = [ Activity.model_validate(activity) for activity in body ]
+                body_json = json.loads(body)
+                activities = [ Activity.model_validate(activity) for activity in body_json ]
                 
             elif request_activity.type == ActivityTypes.invoke:
-                body = await response.json()
-                invoke_response = InvokeResponse.model_validate(status=response.status, body=body)
-            else:
-                content = await response.text()
+                body_json = json.loads(body)
+                invoke_response = InvokeResponse.model_validate({"status": response.status, "body": body_json})
+            # else:
+            #     content = await response.text()
 
             return Exchange(
-                request_activity=request_activity,
-                response_status=response.status,
-                response_content=content,
-                received=activities,
+                request=request_activity,
+                status_code=response.status,
+                body=body,
+                responses=activities,
                 invoke_response=invoke_response
             )
             
         else:
-            raise ValueError("response_or_exception must be an Exception or aiohttp.ClientResponse")``
+            raise ValueError("response_or_exception must be an Exception or aiohttp.ClientResponse")

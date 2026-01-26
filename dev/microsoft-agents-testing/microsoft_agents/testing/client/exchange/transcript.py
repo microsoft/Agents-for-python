@@ -3,8 +3,11 @@
 
 from __future__ import annotations
 
+from dataclasses import dataclass
+
 from .exchange import Exchange
 
+@dataclass
 class ExchangeNode:
     
     exchange: Exchange

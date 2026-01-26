@@ -15,7 +15,7 @@ class ClientConfig:
     auth_token: str | None = None
     
     # Activity defaults
-    activity_template: ActivityTemplate[Activity] | None = None
+    activity_template: ActivityTemplate | None = None
     
     # Identity (for multi-user scenarios)
     user_id: str = "user-id"

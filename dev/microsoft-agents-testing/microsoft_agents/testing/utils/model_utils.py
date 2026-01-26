@@ -75,15 +75,18 @@ class ModelTemplate(Generic[T]):
         return ModelTemplate[T](self._model_class, new_template)
     
     def with_updates(self, updates: dict | None = None, **kwargs) -> ModelTemplate[T]:
-        """Create a new ModelTemplate with updated default values.
-
-        :param updates: An optional dictionary of values to update.
-        :param kwargs: Additional values to update as keyword arguments.
-        :return: A new ModelTemplate instance.
-        """
+        """Create a new ModelTemplate with updated default values."""
         new_template = deepcopy(self._defaults)
-        deep_update(new_template, updates, **kwargs)
-        return ModelTemplate[T](self._model_class, new_template)
+        # Expand the updates first so they merge correctly with nested structure
+        expanded_updates = expand(updates or {})
+        expanded_kwargs = expand(kwargs)
+        deep_update(new_template, expanded_updates)
+        deep_update(new_template, expanded_kwargs)
+        # Pass already-expanded data, avoid re-expansion
+        result = ModelTemplate[T].__new__(ModelTemplate)
+        result._model_class = self._model_class
+        result._defaults = new_template
+        return result
     
     def __eq__(self, other: object) -> bool:
         """Check equality between two ModelTemplate instances."""
@@ -92,4 +95,13 @@ class ModelTemplate(Generic[T]):
         return self._defaults == other._defaults and \
             self._model_class == other._model_class
     
-ActivityTemplate = functools.partial(ModelTemplate, Activity)
+class ActivityTemplate(ModelTemplate[Activity]):
+    """A template for creating Activity instances with default values."""
+    
+    def __init__(self, defaults: Activity | dict | None = None, **kwargs) -> None:
+        """Initialize the ActivityTemplate with default values.
+        
+        :param defaults: A dictionary or Activity containing default values.
+        :param kwargs: Additional default values as keyword arguments.
+        """
+        super().__init__(Activity, defaults, **kwargs)

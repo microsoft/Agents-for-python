@@ -89,6 +89,7 @@ class SafeObject(Generic[T], Readonly):
         if isinstance(value, list):
             cls = object.__getattribute__(self, "__class__")
             return cls(value[key], self)
+        breakpoint()
         return type(self)(value.get(key, Unset), self)
 
     def __str__(self) -> str:

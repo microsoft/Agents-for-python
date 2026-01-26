@@ -5,7 +5,7 @@ from __future__ import annotations
 
 from .readonly import Readonly
 
-class _Unset(Readonly):
+class Unset(Readonly):
     """A class representing an unset value."""
     
     def get(self, *args, **kwargs):
@@ -31,5 +31,5 @@ class _Unset(Readonly):
     def __str__(self):
         """Returns 'Unset' when converted to a string."""
         return repr(self)
-    
-Unset = _Unset()
+        
+Unset = Unset()

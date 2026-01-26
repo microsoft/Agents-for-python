@@ -1,5 +1,3 @@
-from ..client_config import ClientConfig
-
 from aiohttp import ClientSession
 
 from microsoft_agents.testing.utils import (
@@ -8,8 +6,11 @@ from microsoft_agents.testing.utils import (
 )
 from microsoft_agents.testing.client import (
     AgentClient,
-    AiohttpSender
+    AiohttpSender,
+    Transcript,
 )
+
+from .client_config import ClientConfig
 
 class AiohttpClientFactory:
     """Factory for creating clients within an aiohttp scenario."""
@@ -21,14 +22,14 @@ class AiohttpClientFactory:
         sdk_config: dict,
         default_template: ActivityTemplate,
         default_config: ClientConfig,
-        response_receiver,  # shared receiver
+        transcript: Transcript,
     ):
         self._agent_url = agent_url
         self._response_endpoint = response_endpoint
         self._sdk_config = sdk_config
         self._default_template = default_template
         self._default_config = default_config
-        self._receiver = response_receiver
+        self._transcript = transcript
         self._sessions: list[ClientSession] = []  # track for cleanup
     
     async def create_client(self, config: ClientConfig | None = None) -> AgentClient:
@@ -61,8 +62,8 @@ class AiohttpClientFactory:
         )
         
         # Create sender and client
-        sender = AiohttpSender(session)
-        return AgentClient(sender, self._receiver, activity_template=template)
+        sender = AiohttpSender(session, transcript=self._transcript)
+        return AgentClient(sender, self._transcript, activity_template=template)
     
     async def cleanup(self):
         """Close all created sessions."""

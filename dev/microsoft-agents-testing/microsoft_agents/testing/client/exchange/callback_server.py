@@ -101,7 +101,7 @@ class AiohttpCallbackServer(CallbackServer):
             if not Exchange.is_allowed_exception(e):
                 raise e
             
-            exchange = Exchange(error=e)
+            exchange = Exchange(error=str(e))
             response = Response(
                 status=500,
                 text=str(e)
