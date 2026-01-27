@@ -3,9 +3,8 @@
 
 from __future__ import annotations
 
-import functools
 from copy import deepcopy
-from typing import Generic, TypeVar, cast, T
+from typing import Generic, TypeVar, cast, Type
 
 from pydantic import BaseModel
 from microsoft_agents.activity import Activity
@@ -14,6 +13,7 @@ from .data_utils import (
     expand,
     set_defaults,
     deep_update,
+    _resolve_kwargs_expanded,
 )
 
 T = TypeVar("T", bound=BaseModel)
@@ -38,7 +38,10 @@ class ModelTemplate(Generic[T]):
 
     def __init__(self, model_class: Type[T], defaults: T | dict | None = None, **kwargs) -> None:
         """Initialize the ModelTemplate with default values.
-        
+
+        Keys with dots (.) are treated as paths representing nested dictionaries.
+
+        :param model_class: The BaseModel class to create instances of.
         :param defaults: A dictionary or BaseModel containing default values.
         :param kwargs: Additional default values as keyword arguments.
         """

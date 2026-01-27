@@ -57,7 +57,6 @@ class SafeObject(Generic[T], Readonly):
 
         :return: A SafeObject instance or the original value.
         """
-        # breakpoint()f
         if isinstance(value, SafeObject):
             return value
         return super().__new__(cls)
@@ -68,7 +67,6 @@ class SafeObject(Generic[T], Readonly):
         :param name: The name of the attribute to access.
         :return: The attribute value wrapped in a SafeObject.
         """
-        # breakpoint()
 
         value = resolve(self)
         cls = object.__getattribute__(self, "__class__")
@@ -89,18 +87,15 @@ class SafeObject(Generic[T], Readonly):
         if isinstance(value, list):
             cls = object.__getattribute__(self, "__class__")
             return cls(value[key], self)
-        breakpoint()
         return type(self)(value.get(key, Unset), self)
 
     def __str__(self) -> str:
         """Get the string representation of the wrapped object."""
-        # breakpoint()
         return str(resolve(self))
     
     def __repr__(self) -> str:
         """Get the detailed string representation of the SafeObject."""
         value = resolve(self)
-        # breakpoint()
         cls = object.__getattribute__(self, "__class__")
         return f"{cls.__name__}({value!r})"
     

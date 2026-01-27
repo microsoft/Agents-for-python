@@ -41,7 +41,6 @@ class CheckEngine:
             else:
                 raise RuntimeError(f"Unknown argument '{arg}' in query function")
 
-        breakpoint()            
         res = query_function(**args)
 
         if isinstance(res, tuple) and len(res) == 2:

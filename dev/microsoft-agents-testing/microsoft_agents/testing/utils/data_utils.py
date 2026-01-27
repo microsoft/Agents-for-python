@@ -61,7 +61,8 @@ def _merge(original: dict, other: dict, overwrite_leaves: bool = True) -> None:
             original[key] = other[key]
         elif isinstance(original[key], dict) and isinstance(other[key], dict):
             _merge(original[key], other[key], overwrite_leaves=overwrite_leaves)
-        elif not isinstance(original[key], dict) and overwrite_leaves:
+        elif overwrite_leaves:
+            # since they're not both dicts, just overwrite
             original[key] = other[key]
 
 def _resolve_kwargs(data: dict | None = None, **kwargs) -> dict:
@@ -78,6 +79,23 @@ def _resolve_kwargs(data: dict | None = None, **kwargs) -> dict:
 
     new_data = deepcopy(data or {})
     kdict = {**kwargs}
+    _merge(new_data, kdict, overwrite_leaves=True)
+    return new_data
+
+def _resolve_kwargs_expanded(data: dict | None = None, **kwargs) -> dict:
+
+    """Combine a dictionary and keyword arguments into a single dictionary.
+
+    The new dictionary is created by deep copying the input dictionary (if provided)
+    and then merging it with the keyword arguments.
+
+    :param data: An optional dictionary.
+    :param kwargs: Additional keyword arguments.
+    :return: A combined dictionary.
+    """
+
+    new_data = expand(deepcopy(data or {}))
+    kdict = expand({**kwargs})
     _merge(new_data, kdict, overwrite_leaves=True)
     return new_data
 
