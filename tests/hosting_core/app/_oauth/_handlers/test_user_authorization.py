@@ -38,9 +38,9 @@ STORAGE_DATA = STORAGE_TEST_DATA()
 AGENTIC_ENV_DICT = AGENTIC_TEST_ENV_DICT()
 
 
-def make_jwt(token: str = DEFAULTS.token, aud="api://default"):
+def make_jwt(token: str = DEFAULTS.token, aud="123", app_id="123"):
     if aud:
-        return jwt.encode({"aud": aud}, token, algorithm="HS256")
+        return jwt.encode({"aud": aud, "appid": app_id}, token, algorithm="HS256")
     else:
         return jwt.encode({}, token, algorithm="HS256")
 
