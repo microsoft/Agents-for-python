@@ -62,7 +62,7 @@ class AiohttpClientFactory:
         )
         
         # Create sender and client
-        sender = AiohttpSender(session, transcript=self._transcript)
+        sender = AiohttpSender(session)
         return AgentClient(sender, self._transcript, activity_template=template)
     
     async def cleanup(self):

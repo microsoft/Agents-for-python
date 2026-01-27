@@ -8,7 +8,7 @@ from .exchange import (
     Transcript,
 )
 from .agent_client import AgentClient
-# from .conversation_client import ConversationClient
+from .conversation_client import ConversationClient
 
 __all__ = [
     "CallbackServer",
@@ -19,5 +19,5 @@ __all__ = [
     "ExchangeNode",
     "Transcript",
     "AgentClient",
-    # "ConversationClient",
+    "ConversationClient",
 ]

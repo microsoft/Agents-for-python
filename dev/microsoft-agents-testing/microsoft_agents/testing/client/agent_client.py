@@ -13,7 +13,7 @@ from microsoft_agents.activity import (
 )
 from microsoft_agents.testing.utils import ActivityTemplate
 
-from .exchange import Sender, Transcript
+from .exchange import Transcript, Sender
 
 class AgentClient:
     """Client for sending activities to an agent and collecting responses."""
@@ -21,7 +21,7 @@ class AgentClient:
     def __init__(
         self,
         sender: Sender,
-        transcript: Transcript,
+        transcript: Transcript | None = None,
         activity_template: ActivityTemplate | None = None
     ) -> None:
         """Initializes the AgentClient with a sender, transcript, and optional activity template.
@@ -30,8 +30,12 @@ class AgentClient:
         :param transcript: The Transcript to collect exchanges.
         :param activity_template: Optional ActivityTemplate for creating activities.
         """
+        
         self._sender = sender
+
+        transcript = transcript or Transcript()
         self._transcript = transcript
+
         self._template = activity_template or ActivityTemplate()
         
     @property
@@ -44,6 +48,11 @@ class AgentClient:
         """Sets a new ActivityTemplate."""
         self._template = activity_template
 
+    @property
+    def transcript(self) -> Transcript:
+        """Get the Transcript associated with this AgentClient."""
+        return self._transcript
+
     def _build_activity(self, base: Activity | str) -> Activity:
         """Build an activity from string or Activity, applying template."""
         if isinstance(base, str):
@@ -55,11 +64,13 @@ class AgentClient:
         activity_or_text: Activity | str,
         *,
         wait: float = 0.0,
+        **kwargs,
     ) -> list[Activity]:
         """Sends an activity and collects responses.
         
         :param activity_or_text: An Activity or string to send.
         :param wait: Time in seconds to wait for additional responses after sending.
+        :param kwargs: Additional arguments to pass to the sender.
         :return: A list of received Activities.
         """
 
@@ -67,42 +78,45 @@ class AgentClient:
 
         self._transcript.get_new()
 
-        exchange = await self._sender.send(activity)
+        exchange = await self._sender.send(activity, transcript=self._transcript, **kwargs)
 
         if max(0.0, wait) != 0.0: # ignore negative waits, I guess
             await asyncio.sleep(wait)
-            new_activities = [activity for e in self._transcript.get_new() for activity in e.responses]
-            return exchange.responses + new_activities
+            return [activity for e in self._transcript.get_new() for activity in e.responses]
 
         return exchange.responses
     
     async def send_expect_replies(
         self,
         activity_or_text: Activity | str,
+        **kwargs,
     ) -> list[Activity]:
         """Sends an activity with expect_replies delivery mode and collects replies.
         
         :param activity_or_text: An Activity or string to send.
+        :param kwargs: Additional arguments to pass to the sender.
         :return: A list of reply Activities.
         """
         activity = self._build_activity(activity_or_text)
         activity.delivery_mode = DeliveryModes.expect_replies
-        return await self.send(activity)
+        return await self.send(activity, wait=0.0, **kwargs)
     
     async def invoke(
         self, 
-        activity: Activity
+        activity: Activity,
+        **kwargs,
     ) -> InvokeResponse:
         """Sends an invoke activity and returns the InvokeResponse.
         
         :param activity: The invoke Activity to send.
+        :param kwargs: Additional arguments to pass to the sender.
         :return: The InvokeResponse received.
         """
         activity = self._build_activity(activity)
         if activity.type != ActivityTypes.invoke:
             raise ValueError("AgentClient.invoke(): Activity type must be 'invoke'")
         
-        exchange = await self._sender.send(activity)
+        exchange = await self._sender.send(activity, transcript=self._transcript, **kwargs)
         
         if not exchange.invoke_response:
             # in order to not violate the contract,
@@ -132,3 +146,9 @@ class AgentClient:
         for exchange in self._transcript.get_new():
             lst.extend(exchange.responses)
         return lst
+    
+    def child(self) -> AgentClient:
+        return AgentClient(
+            self._sender,
+            transcript=self._transcript.child(),
+            activity_template=self._template)

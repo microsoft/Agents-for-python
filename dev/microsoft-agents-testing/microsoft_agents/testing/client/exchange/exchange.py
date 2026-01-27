@@ -4,7 +4,8 @@
 from __future__ import annotations
 
 import json
-from typing import cast
+from typing import cast, TypeVar
+from datetime import datetime
 
 import aiohttp
 from pydantic import BaseModel, Field
@@ -16,6 +17,9 @@ from microsoft_agents.activity import (
     InvokeResponse,
 )
 
+# supported Response types, currently only aiohttp.ClientResponse
+ResponseT = TypeVar("ResponseT", bound=aiohttp.ClientResponse)
+
 class Exchange(BaseModel):
     """A complete send-receive exchange with an agent.
     
@@ -24,6 +28,7 @@ class Exchange(BaseModel):
     """
     # The activity that was sent
     request: Activity | None = None
+    request_at: datetime | None = None
     
     # HTTP response metadata
     status_code: int | None = None
@@ -35,10 +40,24 @@ class Exchange(BaseModel):
     
     # Activities received (from expect_replies or callbacks)
     responses: list[Activity] = Field(default_factory=list)
+    response_at: datetime | None = None
 
     @property
     def is_reply(self) -> bool:
         return self.request_activity is not None
+    
+    @property
+    def latency(self) -> datetime | None:
+        if self.request_at is not None and self.response_at is not None:
+            return self.response_at - self.request_at
+        return None
+    
+    @property
+    def latency_ms(self) -> float | None:
+        delta = self.latency
+        if delta is not None:
+            return delta.total_seconds() * 1000.0
+        return None
     
     @staticmethod
     def is_allowed_exception(exception: Exception) -> bool:
@@ -47,7 +66,8 @@ class Exchange(BaseModel):
     @staticmethod
     async def from_request(
         request_activity: Activity,
-        response_or_exception
+        response_or_exception: Exception | ResponseT,
+        **kwargs
     ) -> Exchange:
         
         if isinstance(response_or_exception, Exception):
@@ -57,6 +77,7 @@ class Exchange(BaseModel):
             return Exchange(
                 request=request_activity,
                 error=str(response_or_exception),
+                **kwargs,
             )
         
         if isinstance(response_or_exception, aiohttp.ClientResponse):
@@ -64,7 +85,6 @@ class Exchange(BaseModel):
             response = cast(aiohttp.ClientResponse, response_or_exception)
 
             body = await response.text()
-
 
             activities = []
             invoke_response = None
@@ -84,7 +104,8 @@ class Exchange(BaseModel):
                 status_code=response.status,
                 body=body,
                 responses=activities,
-                invoke_response=invoke_response
+                invoke_response=invoke_response,
+                **kwargs
             )
             
         else:

@@ -4,6 +4,7 @@
 from contextlib import asynccontextmanager
 from collections.abc import AsyncIterator
 from abc import ABC, abstractmethod
+from datetime import datetime, timezone
 from typing import Callable, Awaitable, AsyncContextManager
 
 from aiohttp.web import Application, Request, Response
@@ -83,11 +84,13 @@ class AiohttpCallbackServer(CallbackServer):
         :raises: Exception if the request cannot be processed.
         """
 
+        response_at = datetime.now(timezone.utc)
         try:
+
             data = await request.json()
             activity = Activity.model_validate(data)
 
-            exchange = Exchange(responses=[activity])
+            exchange = Exchange(responses=[activity], response_at=response_at)
 
             if activity.type != ActivityTypes.typing:
                 pass
@@ -101,7 +104,7 @@ class AiohttpCallbackServer(CallbackServer):
             if not Exchange.is_allowed_exception(e):
                 raise e
             
-            exchange = Exchange(error=str(e))
+            exchange = Exchange(error=str(e), response_at=response_at)
             response = Response(
                 status=500,
                 text=str(e)

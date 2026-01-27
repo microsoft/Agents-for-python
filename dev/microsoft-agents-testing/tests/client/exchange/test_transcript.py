@@ -265,3 +265,118 @@ class TestExchangeNode:
         node = transcript._nodes[0]
         assert node.exchange is exchange
         assert node.source is transcript
+# =============================================================================
+# Additional Edge Case Tests
+# =============================================================================
+
+class TestTranscriptEdgeCases:
+    """Test edge cases and additional scenarios."""
+    
+    def test_sibling_children_have_independent_nodes(self):
+        """Two children of the same parent should have independent node lists."""
+        parent = Transcript()
+        child1 = parent.child()
+        child2 = parent.child()
+        
+        exchange1 = create_test_exchange("from_child1")
+        exchange2 = create_test_exchange("from_child2")
+        
+        child1.record(exchange1)
+        child2.record(exchange2)
+        
+        # Parent has both
+        assert len(parent.get_all()) == 2
+        # Each child only has its own
+        assert len(child1.get_all()) == 1
+        assert child1.get_all()[0] is exchange1
+        assert len(child2.get_all()) == 1
+        assert child2.get_all()[0] is exchange2
+    
+    def test_get_new_after_multiple_records(self):
+        """Test cursor behavior with interleaved record and get_new calls."""
+        transcript = Transcript()
+        
+        transcript.record(create_test_exchange("a"))
+        assert len(transcript.get_new()) == 1
+        
+        transcript.record(create_test_exchange("b"))
+        transcript.record(create_test_exchange("c"))
+        assert len(transcript.get_new()) == 2
+        
+        assert len(transcript.get_new()) == 0
+        
+        transcript.record(create_test_exchange("d"))
+        new = transcript.get_new()
+        assert len(new) == 1
+        assert new[0].responses[0].text == "d"
+    
+    def test_get_all_returns_copy_of_exchanges(self):
+        """Verify get_all returns exchange objects, not the internal list."""
+        transcript = Transcript()
+        exchange = create_test_exchange("test")
+        transcript.record(exchange)
+        
+        all1 = transcript.get_all()
+        all2 = transcript.get_all()
+        
+        # Should be different list instances
+        assert all1 is not all2
+        # But contain the same exchange
+        assert all1[0] is all2[0]
+    
+    def test_child_node_tracks_correct_source(self):
+        """Verify ExchangeNode.source correctly identifies originating transcript."""
+        parent = Transcript()
+        child = parent.child()
+        
+        exchange = create_test_exchange("test")
+        child.record(exchange)
+        
+        # Both have the node, but source should point to child
+        parent_node = parent._nodes[0]
+        child_node = child._nodes[0]
+        
+        assert parent_node.source is child
+        assert child_node.source is child
+    
+    def test_empty_transcript_get_new(self):
+        """Test get_new on empty transcript."""
+        transcript = Transcript()
+        assert transcript.get_new() == []
+        assert transcript._cursor == 0
+
+
+class TestExchangeNodeDataclass:
+    """Test ExchangeNode dataclass behavior."""
+    
+    def test_node_equality(self):
+        """ExchangeNodes with same exchange and source should be equal."""
+        transcript = Transcript()
+        exchange = create_test_exchange("test")
+        
+        node1 = ExchangeNode(exchange=exchange, source=transcript)
+        node2 = ExchangeNode(exchange=exchange, source=transcript)
+        
+        assert node1 == node2
+    
+    def test_node_inequality_different_exchange(self):
+        """ExchangeNodes with different exchanges should not be equal."""
+        transcript = Transcript()
+        exchange1 = create_test_exchange("test1")
+        exchange2 = create_test_exchange("test2")
+        
+        node1 = ExchangeNode(exchange=exchange1, source=transcript)
+        node2 = ExchangeNode(exchange=exchange2, source=transcript)
+        
+        assert node1 != node2
+    
+    def test_node_inequality_different_source(self):
+        """ExchangeNodes with different sources should not be equal."""
+        transcript1 = Transcript()
+        transcript2 = Transcript()
+        exchange = create_test_exchange("test")
+        
+        node1 = ExchangeNode(exchange=exchange, source=transcript1)
+        node2 = ExchangeNode(exchange=exchange, source=transcript2)
+        
+        assert node1 != node2
