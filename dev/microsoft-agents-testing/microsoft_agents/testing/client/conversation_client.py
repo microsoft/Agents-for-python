@@ -8,6 +8,7 @@ from microsoft_agents.activity import Activity
 from microsoft_agents.testing.check import Check
 
 from .agent_client import AgentClient
+from .exchange import Transcript
 
 class ConversationClient:
 
