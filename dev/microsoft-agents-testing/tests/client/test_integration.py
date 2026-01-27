@@ -232,7 +232,7 @@ class TestBasicIntegration:
         session, server, base_url = agent_session
         
         transcript = Transcript()
-        sender = AiohttpSender(session=session, transcript=transcript)
+        sender = AiohttpSender(session=session)
         
         activity = Activity(
             type=ActivityTypes.message,
@@ -240,7 +240,7 @@ class TestBasicIntegration:
             from_property=ChannelAccount(id="user", name="User"),
         )
         
-        exchange = await sender.send(activity)
+        exchange = await sender.send(activity, transcript=transcript)
         
         # Verify server received the activity
         assert len(server.received_activities) == 1
@@ -250,12 +250,33 @@ class TestBasicIntegration:
         assert len(transcript.get_all()) == 1
     
     @pytest.mark.asyncio
+    async def test_sender_without_transcript(self, agent_session):
+        """Test that AiohttpSender works without a transcript."""
+        session, server, base_url = agent_session
+        
+        sender = AiohttpSender(session=session)
+        
+        activity = Activity(
+            type=ActivityTypes.message,
+            text="No transcript test",
+        )
+        
+        exchange = await sender.send(activity)
+        
+        # Verify server received the activity
+        assert len(server.received_activities) == 1
+        assert server.received_activities[0].text == "No transcript test"
+        
+        # Verify exchange was returned
+        assert exchange.status_code == 200
+    
+    @pytest.mark.asyncio
     async def test_agent_client_full_flow(self, agent_session):
         """Test AgentClient with sender and transcript."""
         session, server, base_url = agent_session
         
         transcript = Transcript()
-        sender = AiohttpSender(session=session, transcript=transcript)
+        sender = AiohttpSender(session=session)
         
         agent_client = AgentClient(
             sender=sender,
@@ -269,18 +290,38 @@ class TestBasicIntegration:
         assert activity.text == "Hello!"
     
     @pytest.mark.asyncio
+    async def test_agent_client_send(self, agent_session):
+        """Test AgentClient.send() method."""
+        session, server, base_url = agent_session
+        
+        transcript = Transcript()
+        sender = AiohttpSender(session=session)
+        
+        agent_client = AgentClient(
+            sender=sender,
+            transcript=transcript,
+        )
+        
+        # Send using AgentClient
+        responses = await agent_client.send("Hello from AgentClient!")
+        
+        # Verify server received the activity
+        assert len(server.received_activities) == 1
+        assert server.received_activities[0].text == "Hello from AgentClient!"
+    
+    @pytest.mark.asyncio
     async def test_multiple_sends_recorded_in_order(self, agent_session):
         """Test that multiple sends are recorded in order."""
         session, server, base_url = agent_session
         
         transcript = Transcript()
-        sender = AiohttpSender(session=session, transcript=transcript)
+        sender = AiohttpSender(session=session)
         
         messages = ["First", "Second", "Third"]
         
         for msg in messages:
             activity = Activity(type=ActivityTypes.message, text=msg)
-            await sender.send(activity)
+            await sender.send(activity, transcript=transcript)
         
         # Verify order
         assert len(server.received_activities) == 3
@@ -307,12 +348,12 @@ class TestTranscriptIntegration:
         # Shared transcript
         transcript = Transcript()
         
-        # Create sender with shared transcript
-        sender = AiohttpSender(session=session, transcript=transcript)
+        # Create sender
+        sender = AiohttpSender(session=session)
         
-        # Send activities
-        await sender.send(Activity(type=ActivityTypes.message, text="msg1"))
-        await sender.send(Activity(type=ActivityTypes.message, text="msg2"))
+        # Send activities with shared transcript
+        await sender.send(Activity(type=ActivityTypes.message, text="msg1"), transcript=transcript)
+        await sender.send(Activity(type=ActivityTypes.message, text="msg2"), transcript=transcript)
         
         # All should be in shared transcript
         all_exchanges = transcript.get_all()
@@ -324,18 +365,18 @@ class TestTranscriptIntegration:
         session, server, base_url = agent_session
         
         transcript = Transcript()
-        sender = AiohttpSender(session=session, transcript=transcript)
+        sender = AiohttpSender(session=session)
         
         # Send first batch
-        await sender.send(Activity(type=ActivityTypes.message, text="first"))
+        await sender.send(Activity(type=ActivityTypes.message, text="first"), transcript=transcript)
         
         # Get new - should return first
         new1 = transcript.get_new()
         assert len(new1) == 1
         
         # Send second batch
-        await sender.send(Activity(type=ActivityTypes.message, text="second"))
-        await sender.send(Activity(type=ActivityTypes.message, text="third"))
+        await sender.send(Activity(type=ActivityTypes.message, text="second"), transcript=transcript)
+        await sender.send(Activity(type=ActivityTypes.message, text="third"), transcript=transcript)
         
         # Get new - should only return second and third
         new2 = transcript.get_new()
@@ -353,13 +394,32 @@ class TestTranscriptIntegration:
         parent_transcript = Transcript()
         child_transcript = parent_transcript.child()
         
-        sender = AiohttpSender(session=session, transcript=child_transcript)
+        sender = AiohttpSender(session=session)
         
-        await sender.send(Activity(type=ActivityTypes.message, text="test"))
+        await sender.send(Activity(type=ActivityTypes.message, text="test"), transcript=child_transcript)
         
         # Both should have the exchange
         assert len(child_transcript.get_all()) == 1
         assert len(parent_transcript.get_all()) == 1
+    
+    @pytest.mark.asyncio
+    async def test_agent_client_transcript_integration(self, agent_session):
+        """Test AgentClient manages transcript internally."""
+        session, server, base_url = agent_session
+        
+        transcript = Transcript()
+        sender = AiohttpSender(session=session)
+        
+        agent_client = AgentClient(
+            sender=sender,
+            transcript=transcript,
+        )
+        
+        await agent_client.send("Message 1")
+        await agent_client.send("Message 2")
+        
+        # Verify transcript via agent_client
+        assert len(agent_client.transcript.get_all()) == 2
 
 
 # =============================================================================
@@ -375,7 +435,7 @@ class TestActivityTemplateIntegration:
         session, server, base_url = agent_session
         
         transcript = Transcript()
-        sender = AiohttpSender(session=session, transcript=transcript)
+        sender = AiohttpSender(session=session)
         
         # Create template with default values
         template = ActivityTemplate(
@@ -395,6 +455,23 @@ class TestActivityTemplateIntegration:
         assert activity.channel_id == "test-channel"
         assert activity.from_property.id == "test-user"
         assert activity.conversation.id == "conv-123"
+    
+    @pytest.mark.asyncio
+    async def test_template_setter(self, agent_session):
+        """Test that template can be updated via setter."""
+        session, server, base_url = agent_session
+        
+        sender = AiohttpSender(session=session)
+        agent_client = AgentClient(sender=sender)
+        
+        # Update template
+        new_template = ActivityTemplate(
+            channel_id="new-channel",
+        )
+        agent_client.template = new_template
+        
+        activity = agent_client._build_activity("Test")
+        assert activity.channel_id == "new-channel"
 
 
 # =============================================================================
@@ -410,7 +487,7 @@ class TestErrorHandlingIntegration:
         session, server, base_url = agent_session
         
         transcript = Transcript()
-        sender = AiohttpSender(session=session, transcript=transcript)
+        sender = AiohttpSender(session=session)
         agent_client = AgentClient(sender=sender, transcript=transcript)
         
         message_activity = Activity(type=ActivityTypes.message, text="not invoke")
@@ -432,7 +509,7 @@ class TestConcurrentOperations:
         session, server, base_url = agent_session
         
         transcript = Transcript()
-        sender = AiohttpSender(session=session, transcript=transcript)
+        sender = AiohttpSender(session=session)
         
         # Send 5 messages concurrently
         activities = [
@@ -440,7 +517,7 @@ class TestConcurrentOperations:
             for i in range(5)
         ]
         
-        await asyncio.gather(*[sender.send(a) for a in activities])
+        await asyncio.gather(*[sender.send(a, transcript=transcript) for a in activities])
         
         # All should be received (order may vary due to concurrency)
         assert len(server.received_activities) == 5
@@ -460,7 +537,7 @@ class TestFullConversationFlow:
         session, server, base_url = agent_session
         
         transcript = Transcript()
-        sender = AiohttpSender(session=session, transcript=transcript)
+        sender = AiohttpSender(session=session)
         agent_client = AgentClient(sender=sender, transcript=transcript)
         
         # Simulate multi-turn conversation
@@ -471,8 +548,7 @@ class TestFullConversationFlow:
         ]
         
         for turn_text in turns:
-            activity = agent_client._build_activity(turn_text)
-            await sender.send(activity)
+            await agent_client.send(turn_text)
         
         # Verify all turns were sent
         assert len(server.received_activities) == 3
@@ -483,6 +559,28 @@ class TestFullConversationFlow:
         # Verify transcript
         all_exchanges = transcript.get_all()
         assert len(all_exchanges) == 3
+    
+    @pytest.mark.asyncio
+    async def test_agent_client_get_all_responses(self, agent_session):
+        """Test AgentClient.get_all() collects all responses."""
+        session, server, base_url = agent_session
+        
+        # Set up server to return responses in expect_replies mode
+        server.set_response_generator(lambda a: [
+            Activity(type=ActivityTypes.message, text=f"Reply to: {a.text}")
+        ])
+        
+        transcript = Transcript()
+        sender = AiohttpSender(session=session)
+        agent_client = AgentClient(sender=sender, transcript=transcript)
+        
+        # Send with expect_replies
+        await agent_client.send_expect_replies("Message 1")
+        await agent_client.send_expect_replies("Message 2")
+        
+        # Get all responses
+        all_responses = agent_client.get_all()
+        assert len(all_responses) == 2
 
 
 # =============================================================================
@@ -498,7 +596,7 @@ class TestExpectRepliesMode:
         session, server, base_url = agent_session
         
         transcript = Transcript()
-        sender = AiohttpSender(session=session, transcript=transcript)
+        sender = AiohttpSender(session=session)
         
         activity = Activity(
             type=ActivityTypes.message,
@@ -506,7 +604,7 @@ class TestExpectRepliesMode:
             delivery_mode=DeliveryModes.expect_replies,
         )
         
-        exchange = await sender.send(activity)
+        exchange = await sender.send(activity, transcript=transcript)
         
         # Verify server received with expect_replies
         assert len(server.received_activities) == 1
@@ -538,7 +636,7 @@ class TestExpectRepliesMode:
         server.set_response_generator(custom_responses)
         
         transcript = Transcript()
-        sender = AiohttpSender(session=session, transcript=transcript)
+        sender = AiohttpSender(session=session)
         
         activity = Activity(
             type=ActivityTypes.message,
@@ -546,7 +644,7 @@ class TestExpectRepliesMode:
             delivery_mode=DeliveryModes.expect_replies,
         )
         
-        exchange = await sender.send(activity)
+        exchange = await sender.send(activity, transcript=transcript)
         
         # Verify exchange captured the responses
         assert exchange.status_code == 200
@@ -563,7 +661,7 @@ class TestExpectRepliesMode:
         server.set_response_generator(lambda a: [])
         
         transcript = Transcript()
-        sender = AiohttpSender(session=session, transcript=transcript)
+        sender = AiohttpSender(session=session)
         
         activity = Activity(
             type=ActivityTypes.message,
@@ -571,10 +669,35 @@ class TestExpectRepliesMode:
             delivery_mode=DeliveryModes.expect_replies,
         )
         
-        exchange = await sender.send(activity)
+        exchange = await sender.send(activity, transcript=transcript)
         
         assert exchange.status_code == 200
         assert len(exchange.responses) == 0
+    
+    @pytest.mark.asyncio
+    async def test_agent_client_send_expect_replies(self, agent_session):
+        """Test AgentClient.send_expect_replies() method."""
+        session, server, base_url = agent_session
+        
+        # Set up server to return responses
+        server.set_response_generator(lambda a: [
+            Activity(type=ActivityTypes.message, text="Bot response")
+        ])
+        
+        transcript = Transcript()
+        sender = AiohttpSender(session=session)
+        agent_client = AgentClient(sender=sender, transcript=transcript)
+        
+        responses = await agent_client.send_expect_replies("Hello!")
+        
+        # Verify server received with expect_replies mode
+        assert len(server.received_activities) == 1
+        received = server.received_activities[0]
+        assert received.delivery_mode == DeliveryModes.expect_replies
+        
+        # Verify responses
+        assert len(responses) == 1
+        assert responses[0].text == "Bot response"
 
 
 # =============================================================================
@@ -590,11 +713,11 @@ class TestTypingActivities:
         session, server, base_url = agent_session
         
         transcript = Transcript()
-        sender = AiohttpSender(session=session, transcript=transcript)
+        sender = AiohttpSender(session=session)
         
         typing_activity = Activity(type=ActivityTypes.typing)
         
-        await sender.send(typing_activity)
+        await sender.send(typing_activity, transcript=transcript)
         
         assert len(server.received_activities) == 1
         assert server.received_activities[0].type == ActivityTypes.typing
@@ -613,7 +736,7 @@ class TestComplexScenarios:
         session, server, base_url = agent_session
         
         transcript = Transcript()
-        sender = AiohttpSender(session=session, transcript=transcript)
+        sender = AiohttpSender(session=session)
         
         activity = Activity(
             type=ActivityTypes.message,
@@ -624,7 +747,7 @@ class TestComplexScenarios:
             from_property=ChannelAccount(id="user-1"),
         )
         
-        await sender.send(activity)
+        await sender.send(activity, transcript=transcript)
         
         # Verify server stored callback URL
         assert server._callback_url == "http://localhost:9873/v3/conversations/"
@@ -635,7 +758,7 @@ class TestComplexScenarios:
         session, server, base_url = agent_session
         
         transcript = Transcript()
-        sender = AiohttpSender(session=session, transcript=transcript)
+        sender = AiohttpSender(session=session)
         
         activities = [
             Activity(type=ActivityTypes.typing),
@@ -645,7 +768,7 @@ class TestComplexScenarios:
         ]
         
         for activity in activities:
-            await sender.send(activity)
+            await sender.send(activity, transcript=transcript)
         
         received_types = [a.type for a in server.received_activities]
         assert received_types == [
@@ -672,14 +795,14 @@ class TestWithManualSession:
         
         async with create_test_session(app) as (session, base_url):
             transcript = Transcript()
-            sender = AiohttpSender(session=session, transcript=transcript)
+            sender = AiohttpSender(session=session)
             
             activity = Activity(
                 type=ActivityTypes.message,
                 text="Integration test message",
             )
             
-            exchange = await sender.send(activity)
+            exchange = await sender.send(activity, transcript=transcript)
             
             assert len(mock_server.received_activities) == 1
             assert mock_server.received_activities[0].text == "Integration test message"
@@ -693,7 +816,7 @@ class TestWithManualSession:
         
         async with create_test_session(app) as (session, base_url):
             transcript = Transcript()
-            sender = AiohttpSender(session=session, transcript=transcript)
+            sender = AiohttpSender(session=session)
             
             template = ActivityTemplate(
                 channel_id="integration-test",
@@ -707,9 +830,8 @@ class TestWithManualSession:
                 activity_template=template,
             )
             
-            # Build and send
-            activity = agent_client._build_activity("Hello from integration test!")
-            await sender.send(activity)
+            # Use AgentClient.send() method
+            await agent_client.send("Hello from integration test!")
             
             # Verify
             assert len(mock_server.received_activities) == 1
@@ -733,13 +855,43 @@ class TestExchangeResponseHandling:
         session, server, base_url = agent_session
         
         transcript = Transcript()
-        sender = AiohttpSender(session=session, transcript=transcript)
+        sender = AiohttpSender(session=session)
+        
+        activity = Activity(type=ActivityTypes.message, text="test")
+        exchange = await sender.send(activity, transcript=transcript)
+        
+        # Exchange should have status code
+        assert exchange.status_code == 200
+    
+    @pytest.mark.asyncio
+    async def test_exchange_captures_body(self, agent_session):
+        """Test that Exchange captures the response body."""
+        session, server, base_url = agent_session
+        
+        sender = AiohttpSender(session=session)
         
         activity = Activity(type=ActivityTypes.message, text="test")
         exchange = await sender.send(activity)
         
-        # Exchange should have status code
-        assert exchange.status_code == 200
+        # Exchange should have body
+        assert exchange.body is not None
+    
+    @pytest.mark.asyncio
+    async def test_exchange_latency_tracking(self, agent_session):
+        """Test that Exchange tracks request/response latency."""
+        session, server, base_url = agent_session
+        
+        sender = AiohttpSender(session=session)
+        
+        activity = Activity(type=ActivityTypes.message, text="test")
+        exchange = await sender.send(activity)
+        
+        # Exchange should have timing information
+        assert exchange.request_at is not None
+        assert exchange.response_at is not None
+        assert exchange.latency is not None
+        assert exchange.latency_ms is not None
+        assert exchange.latency_ms >= 0
     
     @pytest.mark.asyncio
     async def test_invoke_response_captured(self, agent_session):
@@ -753,19 +905,23 @@ class TestExchangeResponseHandling:
         })
         
         transcript = Transcript()
-        sender = AiohttpSender(session=session, transcript=transcript)
+        sender = AiohttpSender(session=session)
         
         activity = Activity(
             type=ActivityTypes.invoke,
             name="test/action",
         )
         
-        exchange = await sender.send(activity)
+        exchange = await sender.send(activity, transcript=transcript)
         
         # Verify server received invoke
         assert len(server.received_activities) == 1
         assert server.received_activities[0].type == ActivityTypes.invoke
         assert server.received_activities[0].name == "test/action"
+        
+        # Verify invoke response was captured
+        assert exchange.invoke_response is not None
+        assert exchange.invoke_response.status == 200
     
     @pytest.mark.asyncio
     async def test_invoke_with_value(self, agent_session):
@@ -779,7 +935,7 @@ class TestExchangeResponseHandling:
         })
         
         transcript = Transcript()
-        sender = AiohttpSender(session=session, transcript=transcript)
+        sender = AiohttpSender(session=session)
         
         activity = Activity(
             type=ActivityTypes.invoke,
@@ -787,10 +943,35 @@ class TestExchangeResponseHandling:
             value={"key": "test-value", "number": 123},
         )
         
-        exchange = await sender.send(activity)
+        exchange = await sender.send(activity, transcript=transcript)
         
         # Verify server received the value
         assert server.received_activities[0].value == {"key": "test-value", "number": 123}
+    
+    @pytest.mark.asyncio
+    async def test_agent_client_invoke(self, agent_session):
+        """Test AgentClient.invoke() method."""
+        session, server, base_url = agent_session
+        
+        server.set_invoke_handler(lambda a: {
+            "status": 200,
+            "body": {"result": "success", "data": 42}
+        })
+        
+        transcript = Transcript()
+        sender = AiohttpSender(session=session)
+        agent_client = AgentClient(sender=sender, transcript=transcript)
+        
+        activity = Activity(
+            type=ActivityTypes.invoke,
+            name="test/invoke",
+            value={"input": "test"},
+        )
+        
+        invoke_response = await agent_client.invoke(activity)
+        
+        assert invoke_response.status == 200
+        assert invoke_response.body["result"] == "success"
 
 
 # =============================================================================
@@ -806,11 +987,11 @@ class TestErrorSimulation:
         session, server, base_url = agent_session
         
         transcript = Transcript()
-        sender = AiohttpSender(session=session, transcript=transcript)
+        sender = AiohttpSender(session=session)
         
         # Send some activities
-        await sender.send(Activity(type=ActivityTypes.message, text="msg1"))
-        await sender.send(Activity(type=ActivityTypes.message, text="msg2"))
+        await sender.send(Activity(type=ActivityTypes.message, text="msg1"), transcript=transcript)
+        await sender.send(Activity(type=ActivityTypes.message, text="msg2"), transcript=transcript)
         
         assert len(server.received_activities) == 2
         
@@ -819,7 +1000,7 @@ class TestErrorSimulation:
         assert len(server.received_activities) == 0
         
         # Send more
-        await sender.send(Activity(type=ActivityTypes.message, text="msg3"))
+        await sender.send(Activity(type=ActivityTypes.message, text="msg3"), transcript=transcript)
         assert len(server.received_activities) == 1
         assert server.received_activities[0].text == "msg3"
 
@@ -847,12 +1028,12 @@ class TestMultiServerScenarios:
                 transcript1 = Transcript()
                 transcript2 = Transcript()
                 
-                sender1 = AiohttpSender(session=session1, transcript=transcript1)
-                sender2 = AiohttpSender(session=session2, transcript=transcript2)
+                sender1 = AiohttpSender(session=session1)
+                sender2 = AiohttpSender(session=session2)
                 
                 # Send to both servers
-                await sender1.send(Activity(type=ActivityTypes.message, text="Hello Server 1"))
-                await sender2.send(Activity(type=ActivityTypes.message, text="Hello Server 2"))
+                await sender1.send(Activity(type=ActivityTypes.message, text="Hello Server 1"), transcript=transcript1)
+                await sender2.send(Activity(type=ActivityTypes.message, text="Hello Server 2"), transcript=transcript2)
                 
                 # Verify each server received its message
                 assert len(server1.received_activities) == 1
@@ -864,3 +1045,107 @@ class TestMultiServerScenarios:
                 # Verify transcripts are separate
                 assert len(transcript1.get_all()) == 1
                 assert len(transcript2.get_all()) == 1
+
+
+# =============================================================================
+# AgentClient Child Tests
+# =============================================================================
+
+class TestAgentClientChild:
+    """Test AgentClient.child() functionality."""
+    
+    @pytest.mark.asyncio
+    async def test_child_client_shares_sender(self, agent_session):
+        """Test that child client shares the same sender."""
+        session, server, base_url = agent_session
+        
+        transcript = Transcript()
+        sender = AiohttpSender(session=session)
+        
+        parent_client = AgentClient(sender=sender, transcript=transcript)
+        child_client = parent_client.child()
+        
+        # Send from both clients
+        await parent_client.send("From parent")
+        await child_client.send("From child")
+        
+        # Both should go to the same server
+        assert len(server.received_activities) == 2
+        assert server.received_activities[0].text == "From parent"
+        assert server.received_activities[1].text == "From child"
+    
+    @pytest.mark.asyncio
+    async def test_child_transcript_propagates_to_parent(self, agent_session):
+        """Test that child transcript propagates exchanges to parent."""
+        session, server, base_url = agent_session
+        
+        transcript = Transcript()
+        sender = AiohttpSender(session=session)
+        
+        parent_client = AgentClient(sender=sender, transcript=transcript)
+        child_client = parent_client.child()
+        
+        # Send from child
+        await child_client.send("From child only")
+        
+        # Parent transcript should have the exchange
+        assert len(parent_client.transcript.get_all()) == 1
+        assert len(child_client.transcript.get_all()) == 1
+    
+    @pytest.mark.asyncio
+    async def test_child_inherits_template(self, agent_session):
+        """Test that child client inherits the activity template."""
+        session, server, base_url = agent_session
+        
+        template = ActivityTemplate(
+            channel_id="parent-channel",
+            from_property=ChannelAccount(id="parent-user"),
+        )
+        
+        sender = AiohttpSender(session=session)
+        parent_client = AgentClient(sender=sender, activity_template=template)
+        child_client = parent_client.child()
+        
+        # Send from child
+        await child_client.send("From child")
+        
+        # Should have parent's template values
+        received = server.received_activities[0]
+        assert received.channel_id == "parent-channel"
+        assert received.from_property.id == "parent-user"
+
+
+# =============================================================================
+# Wait Feature Tests
+# =============================================================================
+
+class TestWaitFeature:
+    """Test AgentClient.send() with wait parameter."""
+    
+    @pytest.mark.asyncio
+    async def test_send_with_wait(self, agent_session):
+        """Test that send() waits for additional responses."""
+        session, server, base_url = agent_session
+        
+        transcript = Transcript()
+        sender = AiohttpSender(session=session)
+        agent_client = AgentClient(sender=sender, transcript=transcript)
+        
+        # Send with a small wait (won't receive additional responses in this test)
+        responses = await agent_client.send("Hello", wait=0.1)
+        
+        # Should complete without error
+        assert len(server.received_activities) == 1
+    
+    @pytest.mark.asyncio
+    async def test_send_without_wait(self, agent_session):
+        """Test that send() without wait returns immediately."""
+        session, server, base_url = agent_session
+        
+        transcript = Transcript()
+        sender = AiohttpSender(session=session)
+        agent_client = AgentClient(sender=sender, transcript=transcript)
+        
+        responses = await agent_client.send("Hello", wait=0.0)
+        
+        assert len(server.received_activities) == 1

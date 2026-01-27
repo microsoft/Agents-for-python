@@ -1,57 +1,76 @@
-# from typing import Callable
-# from .agent_client import AgentClient
+from __future__ import annotations
 
-# class ConversationClient:
+import asyncio
+from typing import Callable
 
-#     def __init__(
-#         self,
-#         agent_client: AgentClient,
-#         force_expect_replies: bool = False,
-#         default_wait: float = 1.0,
-#         default_timeout: float | None = None,
-#     ):
-#         self._client = agent_client
-#         self._force_expect_replies = force_expect_replies
-#         self._default_wait = default_wait
-#         self._default_timeout = default_timeout
+from microsoft_agents.activity import Activity
 
-#     async def say(
-#         self,
-#         message: str,
-#         expect_replies: bool = False,
-#         wait: bool = False
-#         timeout: float | None = None
-#     ) -> None:
-#         """Send a message without waiting for a response."""
-#         await self._client.send(message, wait=0.0)
+from microsoft_agents.testing.check import Check
 
-#     async def prompt(self, message: str, response_wait: float = 1.0) -> list[Activity]:
-#         """Send a message and wait for responses."""
-#         responses = await self._client.send(message, wait=response_wait)
-#         return responses
+from .agent_client import AgentClient
 
-#     # async def expect(self)
+class ConversationClient:
 
-#     # async def turn(
-#     #     self,
-#     #     message: str,
-#     #     expect: str | Underscore | Callable | list = None,
-#     #     response_wait: float | None = None
-#     # ) -> list[Activity]:
-#     #     """Send a message, wait for response, optionally assert.
+    def __init__(
+        self,
+        agent_client: AgentClient,
+        expect_replies: bool = False,
+        timeout: float | None = None,
+    ):
+        self._client = agent_client.child()
+        self._transcript = self._client.transcript
+        self._expect_replies = expect_replies
+        self._timeout = timeout
 
-#     #     Args:
-#     #         message: The message to send.
-#     #         expect: Optional assertion (string, underscore, callable, or list).
-#     #         response_wait: Time to wait for responses.
-#     #                     Defaults to 1.0s if expect is set, 0.0s otherwise.
-#     #     """
-#     #     if response_wait is None:
-#     #         response_wait = 1.0 if expect is not None else 0.0
+    @property
+    def timeout(self) -> float | None:
+        """Get the default timeout value."""
+        return self._timeout
+    
+    @timeout.setter
+    def timeout(self, value: float | None) -> None:
+        """Set the default timeout value."""
+        self._timeout = value
 
-#     #     responses = await self._client.send(message, wait=response_wait)
+    @property
+    def transcript(self) -> Transcript:
+        """Get the Transcript associated with this ConversationClient."""
+        return self._transcript
 
-#     #     if expect is not None:
-#     #         self._assert(responses, expect)
+    async def say(self, message: str, *, wait: float | None = None) -> list[Activity]:
+        """Send a message without waiting for a response."""
 
-#     #     return responses
+        if self._expect_replies:
+            return await self._client.send_expect_replies(message, timeout=self._timeout)
+        else:
+            return await self._client.send(message, wait=wait, timeout=self._timeout)
+        
+    async def wait_for(self, _filter: str | dict | Callable | None = None, **kwargs) -> list[Activity]:
+        """Wait for activities matching criteria.
+        
+        Uses the ConversationClient.timeout as the wait limit.
+
+        :param _filter: Optional filter criteria (dict or callable).
+        :param kwargs: Additional keyword arguments for filtering.
+        """
+
+        check = lambda responses: Check(responses).where(_filter, **kwargs).count() > 0
+
+        all_activities = []
+
+        async with asyncio.timeout(self._timeout):
+            while True:
+                activities = self._client.get_new()
+                all_activities.extend(activities)
+                if activities and check(activities):
+                    break
+                await asyncio.sleep(0.1)
+        return all_activities
+    
+    async def expect(self, _filter: dict | Callable | None = None, **kwargs) -> list[Activity]:
+        """Wait for activities matching criteria within timeout."""
+
+        try:
+            await self.wait_for(_filter, **kwargs)
+        except asyncio.TimeoutError:
+            raise AssertionError("ConversationClient.expect(): Timeout waiting for expected activities.")
