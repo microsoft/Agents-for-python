@@ -130,3 +130,15 @@ class AiohttpScenario(Scenario):
                     yield factory
                 finally:
                     await factory.cleanup()
+
+    @classmethod
+    def create(cls, config: ScenarioConfig | None = None, use_jwt_middleware: bool = True):
+        def decorator(
+            init_agent: Callable[[AgentEnvironment], Awaitable[None]]
+        ) -> AiohttpScenario:
+            return cls(
+                init_agent=init_agent,
+                config=config,
+                use_jwt_middleware=use_jwt_middleware,
+            )
+        return decorator
