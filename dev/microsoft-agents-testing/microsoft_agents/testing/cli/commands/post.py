@@ -115,7 +115,7 @@ async def post(
             out.debug("Payload:")
             out.activity(activity)
 
-        responses = await client.send(activity, wait_for=listen_duration)
+        responses = await client.send(activity, wait=listen_duration)
 
         out.info("Activity sent successfully.")
         out.info("Received {} response(s).".format(len(responses)))

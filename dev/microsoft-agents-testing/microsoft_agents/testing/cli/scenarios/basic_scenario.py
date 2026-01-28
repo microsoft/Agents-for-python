@@ -3,11 +3,11 @@ from microsoft_agents.activity import ActivityTypes
 from microsoft_agents.hosting.core import AgentApplication, TurnContext, TurnState
 
 from microsoft_agents.testing.agent_scenario import (
-    AiohttpAgentScenario,
+    AiohttpScenario,
     AgentEnvironment,
 )
 
-async def init_agent(env: AgentEnvironment):
+async def basic_scenario_init(env: AgentEnvironment):
 
     """Initialize the application for the basic sample."""
 
@@ -17,4 +17,4 @@ async def init_agent(env: AgentEnvironment):
     async def handler(context: TurnContext, state: TurnState):
         await context.send_activity("Echo: " + context.activity.text)
 
-basic_scenario = AiohttpAgentScenario(init_agent)
+basic_scenario = AiohttpScenario(basic_scenario_init)

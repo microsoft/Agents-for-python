@@ -9,18 +9,16 @@ if TYPE_CHECKING:
     from click import Command
 
 # Import commands
-from .health import health
 from .post import post
 from .validate import validate
-from .console import console
+from .chat import chat
 from .run import run
 
 # Add commands to this list to register them with the CLI
 COMMANDS: list["Command"] = [
-    health,
     post,
     validate,
-    console,
+    chat,
     run,
 ]
 
