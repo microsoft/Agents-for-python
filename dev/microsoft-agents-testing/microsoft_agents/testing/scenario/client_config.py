@@ -1,8 +1,5 @@
 from __future__ import annotations
 from dataclasses import dataclass, field
-from typing import Callable, Awaitable
-
-from microsoft_agents.activity import Activity
 
 from microsoft_agents.testing.utils import ActivityTemplate
 

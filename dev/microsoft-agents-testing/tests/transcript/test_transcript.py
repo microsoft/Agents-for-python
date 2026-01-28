@@ -9,9 +9,7 @@ This module tests:
 - child() transcript propagation
 """
 
-import pytest
-from microsoft_agents.testing.client.exchange.transcript import Transcript, ExchangeNode
-from microsoft_agents.testing.client.exchange.exchange import Exchange
+from microsoft_agents.testing.transcript import Transcript, ExchangeNode, Exchange
 from microsoft_agents.activity import Activity, ActivityTypes
 
 

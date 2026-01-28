@@ -4,11 +4,7 @@ from contextlib import asynccontextmanager
 
 from dotenv import dotenv_values
 
-from microsoft_agents.testing.client import (
-    AgentClient,
-    AiohttpCallbackServer,
-)
-
+from microsoft_agents.testing.client import AiohttpCallbackServer
 
 from .aiohttp_client_factory import AiohttpClientFactory
 from .scenario import Scenario, ScenarioConfig

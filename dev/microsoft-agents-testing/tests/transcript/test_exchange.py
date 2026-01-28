@@ -14,7 +14,7 @@ from datetime import datetime, timezone, timedelta
 from unittest.mock import AsyncMock, MagicMock, patch
 import aiohttp
 
-from microsoft_agents.testing.client.exchange.exchange import Exchange
+from microsoft_agents.testing.transcript import Exchange
 from microsoft_agents.activity import Activity, ActivityTypes, DeliveryModes, InvokeResponse
 
 

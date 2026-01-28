@@ -1,4 +1,4 @@
-from .exchange import Transcript
+from .transcript import Transcript
 
 def print_messages(transcript: Transcript) -> None:
 

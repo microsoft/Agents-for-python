@@ -8,8 +8,7 @@ from datetime import datetime, timezone
 from aiohttp import ClientSession
 from microsoft_agents.activity import Activity
 
-from .exchange import Exchange 
-from .transcript import Transcript
+from microsoft_agents.testing.transcript import Transcript, Exchange
 
 class Sender(ABC):
     """Client for sending activities to an agent endpoint."""

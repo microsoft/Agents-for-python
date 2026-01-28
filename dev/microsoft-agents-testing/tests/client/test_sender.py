@@ -14,9 +14,8 @@ from datetime import datetime, timezone
 from unittest.mock import AsyncMock, MagicMock, patch
 import aiohttp
 
-from microsoft_agents.testing.client.exchange.sender import Sender, AiohttpSender
-from microsoft_agents.testing.client.exchange.exchange import Exchange
-from microsoft_agents.testing.client.exchange.transcript import Transcript
+from microsoft_agents.testing.transcript import Exchange, Transcript
+from microsoft_agents.testing.client import Sender, AiohttpSender
 from microsoft_agents.activity import Activity, ActivityTypes
 
 
