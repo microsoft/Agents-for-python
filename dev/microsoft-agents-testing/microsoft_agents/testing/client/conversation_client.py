@@ -18,7 +18,7 @@ class ConversationClient:
         expect_replies: bool = False,
         timeout: float | None = None,
     ):
-        self._client = agent_client.child()
+        self._client = agent_client
         self._transcript = self._client.transcript
         self._expect_replies = expect_replies
         self._timeout = timeout
