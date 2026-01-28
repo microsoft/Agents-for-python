@@ -42,11 +42,11 @@ def _create_fixtures(scenario: AgentScenario) -> list[Callable]:
             request.node._agent_conversation = client.get_activities()
 
     @pytest.fixture
-    def convo(self, agent_client) -> ConversationClient:
+    def conv(self, agent_client) -> ConversationClient:
         return ConversationClient(agent_client)
             
 
-    fixtures = [agent_client]
+    fixtures = [agent_client, conv]
 
     if hasattr(scenario, "agent_environment"): # not super clean...
 

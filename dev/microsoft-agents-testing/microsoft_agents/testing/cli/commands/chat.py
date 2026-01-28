@@ -8,12 +8,11 @@ import click
 from ..config import CLIConfig
 from ..core import Output, async_command
 
-from microsoft_agents.activity import Activity
-
 from microsoft_agents.testing.agent_scenario import (
     AgentScenarioConfig,
     ExternalAgentScenario,
 )
+from microft_agents.testing.client import ConversationClient
 
 @click.command()
 @click.option(
@@ -21,15 +20,9 @@ from microsoft_agents.testing.agent_scenario import (
     default=None,
     help="Override the agent URL to check.",
 )
-@click.option(
-    "--timeout", "-t",
-    default=10,
-    help="Request timeout in seconds.",
-    type=int,
-)
 @click.pass_context
 @async_command
-async def health(ctx: click.Context, url: str | None, timeout: int) -> None:
+async def chat(ctx: click.Context, url: str | None) -> None:
     """Check if the agent endpoint is reachable.
     
     Sends a simple request to verify the agent is online and responding.
@@ -44,12 +37,24 @@ async def health(ctx: click.Context, url: str | None, timeout: int) -> None:
             env_file_path = config.env_path,
         )
     )
+
     async with scenario.client() as client:
 
-        activity = Activity(
-            type="message",
-            text="Health check",
-        )
-        
-        await client.send(activity)
-        out.success(f"Agent is reachable at {client.base_url}")
+        conv = ConversationClient(client, expect_replies=True)
+
+        while True:
+
+            out.info("Enter a message to send to the agent (or 'exit' to quit):")
+            user_input = out.prompt()
+            if user_input.lower() == "exit":
+                break
+            out.newline()
+
+            replies = await conv.send(user_input)
+
+            replies = await client.send_expect_replies(user_input)
+            for reply in replies:
+                out.echo(f"agent: {reply.text}")
+                out.newline()
+            
+        out.success("Exiting console.")
