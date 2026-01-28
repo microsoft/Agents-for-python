@@ -20,6 +20,19 @@ classifiers = [
     "Programming Language :: Python :: 3.14",
     "Operating System :: OS Independent",
 ]
+dependencies = [
+    "aiohttp",
+    "click",
+    "microsoft-agents-activity",
+    "microsoft-agents-hosting-core",
+    "pydantic",
+    "pytest",
+    "pytest-aiohttp",
+    "pytest-asyncio",
+    "python-dotenv",
+    "pytest-mock",
+    "requests",
+]
 
 [project.urls]
 "Homepage" = "https://github.com/microsoft/Agents"
