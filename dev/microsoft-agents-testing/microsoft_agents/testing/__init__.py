@@ -4,13 +4,27 @@ from .client import (
     AiohttpSender,
     Sender,
     CallbackServer,
-    Exchange,
-    Transcript,
 )
 
 from .check import (
     Check,
     Unset,
+)
+
+from .scenario import (
+    Scenario,
+    ScenarioConfig,
+    ClientConfig,
+    ExternalScenario,
+    AiohttpScenario,
+    AgentEnvironment,
+    aiohttp_scenario
+)
+
+from .transcript import (
+    Transcript,
+    Exchange,
+    print_messages,
 )
 
 from .utils import (
@@ -32,4 +46,12 @@ __all__ = [
     "CallbackServer",
     "Exchange",
     "Transcript",
+    "print_messages",
+    "Scenario",
+    "ScenarioConfig",
+    "ClientConfig",
+    "ExternalScenario",
+    "AiohttpScenario",
+    "AgentEnvironment",
+    "aiohttp_scenario",
 ]

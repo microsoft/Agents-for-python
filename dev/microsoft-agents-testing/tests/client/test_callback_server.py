@@ -7,16 +7,10 @@ This module tests:
 """
 
 import pytest
-from unittest.mock import AsyncMock, MagicMock, patch
-import json
+from unittest.mock import AsyncMock, patch
 
-from microsoft_agents.testing.client.exchange.callback_server import (
-    CallbackServer,
-    AiohttpCallbackServer,
-)
-from microsoft_agents.testing.client.exchange.transcript import Transcript
-from microsoft_agents.testing.client.exchange.exchange import Exchange
-from microsoft_agents.activity import Activity, ActivityTypes
+from microsoft_agents.testing.client import AiohttpCallbackServer
+from microsoft_agents.testing.transcript import Transcript, Exchange
 
 
 # =============================================================================
@@ -70,7 +64,7 @@ class TestAiohttpCallbackServerListen:
     async def test_listen_creates_transcript_if_none(self):
         server = AiohttpCallbackServer()
         
-        with patch('microsoft_agents.testing.client.exchange.callback_server.TestServer') as MockTestServer:
+        with patch('microsoft_agents.testing.client.callback_server.TestServer') as MockTestServer:
             mock_test_server = AsyncMock()
             mock_test_server.__aenter__ = AsyncMock(return_value=mock_test_server)
             mock_test_server.__aexit__ = AsyncMock(return_value=None)
@@ -85,7 +79,7 @@ class TestAiohttpCallbackServerListen:
         server = AiohttpCallbackServer()
         custom_transcript = Transcript()
         
-        with patch('microsoft_agents.testing.client.exchange.callback_server.TestServer') as MockTestServer:
+        with patch('microsoft_agents.testing.client.callback_server.TestServer') as MockTestServer:
             mock_test_server = AsyncMock()
             mock_test_server.__aenter__ = AsyncMock(return_value=mock_test_server)
             mock_test_server.__aexit__ = AsyncMock(return_value=None)
@@ -98,7 +92,7 @@ class TestAiohttpCallbackServerListen:
     async def test_listen_clears_transcript_after_exit(self):
         server = AiohttpCallbackServer()
         
-        with patch('microsoft_agents.testing.client.exchange.callback_server.TestServer') as MockTestServer:
+        with patch('microsoft_agents.testing.client.callback_server.TestServer') as MockTestServer:
             mock_test_server = AsyncMock()
             mock_test_server.__aenter__ = AsyncMock(return_value=mock_test_server)
             mock_test_server.__aexit__ = AsyncMock(return_value=None)
@@ -113,7 +107,7 @@ class TestAiohttpCallbackServerListen:
     async def test_listen_raises_if_already_listening(self):
         server = AiohttpCallbackServer()
         
-        with patch('microsoft_agents.testing.client.exchange.callback_server.TestServer') as MockTestServer:
+        with patch('microsoft_agents.testing.client.callback_server.TestServer') as MockTestServer:
             mock_test_server = AsyncMock()
             mock_test_server.__aenter__ = AsyncMock(return_value=mock_test_server)
             mock_test_server.__aexit__ = AsyncMock(return_value=None)

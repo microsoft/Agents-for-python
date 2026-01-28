@@ -7,8 +7,8 @@ from microsoft_agents.testing.utils import (
 from microsoft_agents.testing.client import (
     AgentClient,
     AiohttpSender,
-    Transcript,
 )
+from microsoft_agents.testing.transcript import Transcript
 
 from .client_config import ClientConfig
 

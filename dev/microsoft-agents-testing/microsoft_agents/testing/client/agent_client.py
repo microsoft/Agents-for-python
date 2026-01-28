@@ -13,11 +13,8 @@ from microsoft_agents.activity import (
 )
 from microsoft_agents.testing.utils import ActivityTemplate
 
-from .exchange import (
-    Transcript,
-    Sender,
-    Exchange
-)
+from microsoft_agents.testing.transcript import Transcript, Exchange
+from .sender import Sender
 
 class AgentClient:
     """Client for sending activities to an agent and collecting responses."""
@@ -87,7 +84,7 @@ class AgentClient:
 
         if max(0.0, wait) != 0.0: # ignore negative waits, I guess
             await asyncio.sleep(wait)
-            return [exchange] + self._transcript.get_new()
+            return self._transcript.get_new()
 
         return [exchange]
     
@@ -158,9 +155,7 @@ class AgentClient:
         if activity.type != ActivityTypes.invoke:
             raise ValueError("AgentClient.invoke(): Activity type must be 'invoke'")
         
-        exchanges = await self._sender.send(activity, transcript=self._transcript, **kwargs)
-        assert len(exchanges) == 1
-        exchange = exchanges[0]
+        exchange = await self._sender.send(activity, transcript=self._transcript, **kwargs)
         
         if not exchange.invoke_response:
             # in order to not violate the contract,

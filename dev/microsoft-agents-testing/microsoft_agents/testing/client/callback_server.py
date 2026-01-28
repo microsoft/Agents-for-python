@@ -5,7 +5,6 @@ from contextlib import asynccontextmanager
 from collections.abc import AsyncIterator
 from abc import ABC, abstractmethod
 from datetime import datetime, timezone
-from typing import Callable, Awaitable, AsyncContextManager
 
 from aiohttp.web import Application, Request, Response
 from aiohttp.test_utils import TestServer
@@ -15,8 +14,7 @@ from microsoft_agents.activity import (
     ActivityTypes,
 )
 
-from .exchange import Exchange
-from .transcript import Transcript
+from microsoft_agents.testing.transcript import Transcript, Exchange
 
 class CallbackServer(ABC):
     """A test server that collects Activities sent to it."""

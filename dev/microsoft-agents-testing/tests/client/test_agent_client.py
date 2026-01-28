@@ -15,7 +15,7 @@ This module tests:
 """
 
 import pytest
-from unittest.mock import AsyncMock, MagicMock, patch
+from unittest.mock import AsyncMock, MagicMock
 import asyncio
 
 from microsoft_agents.activity import (
@@ -24,8 +24,8 @@ from microsoft_agents.activity import (
     DeliveryModes,
     InvokeResponse,
 )
-from microsoft_agents.testing.client.agent_client import AgentClient
-from microsoft_agents.testing.client.exchange import Sender, Exchange, Transcript
+from microsoft_agents.testing.client import AgentClient
+from microsoft_agents.testing.transcript import Exchange, Transcript
 from microsoft_agents.testing.utils import ActivityTemplate
 
 

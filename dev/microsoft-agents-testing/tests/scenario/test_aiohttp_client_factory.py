@@ -16,7 +16,7 @@ from aiohttp import ClientSession
 
 from microsoft_agents.testing.scenario.aiohttp_client_factory import AiohttpClientFactory
 from microsoft_agents.testing.scenario.client_config import ClientConfig
-from microsoft_agents.testing.client.exchange.transcript import Transcript
+from microsoft_agents.testing.transcript import Transcript
 from microsoft_agents.testing.utils import ActivityTemplate
 
 

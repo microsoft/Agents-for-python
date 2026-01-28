@@ -4,9 +4,12 @@ from .scenario import (
     ScenarioConfig,
 )
 from .aiohttp_client_factory import AiohttpClientFactory
-from .aiohttp_scenario import AiohttpScenario
+from .aiohttp_scenario import AiohttpScenario, AgentEnvironment
 from .client_config import ClientConfig
 from .external_scenario import ExternalScenario
+from .utils import (
+    aiohttp_scenario
+)
 
 __all__ = [
     "ClientFactory",
@@ -16,4 +19,6 @@ __all__ = [
     "AiohttpScenario",
     "ClientConfig",
     "ExternalScenario",
+    "aiohttp_scenario",
+    "AgentEnvironment",
 ]

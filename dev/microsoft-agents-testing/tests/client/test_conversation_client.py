@@ -11,13 +11,12 @@ This module tests:
 """
 
 import pytest
-from unittest.mock import AsyncMock, MagicMock, patch, PropertyMock
+from unittest.mock import AsyncMock, MagicMock
 import asyncio
 
 from microsoft_agents.activity import Activity, ActivityTypes
-from microsoft_agents.testing.client.conversation_client import ConversationClient
-from microsoft_agents.testing.client.agent_client import AgentClient
-from microsoft_agents.testing.client.exchange import Transcript
+from microsoft_agents.testing.client import ConversationClient, AgentClient
+from microsoft_agents.testing.transcript import Transcript
 
 
 # =============================================================================
