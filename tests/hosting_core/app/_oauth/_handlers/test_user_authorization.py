@@ -315,13 +315,13 @@ class TestUserAuthorization(TestEnv):
                 TokenResponse(token=make_jwt(aud=None)),
             ],
             [
-                TokenResponse(token=make_jwt(token="some_value", aud="other")),
+                TokenResponse(token=make_jwt(token="some_value_bGoa+V7g/yqDXvKRqq+JTFn4uQZbPiQJo4pf9RzJV0E=", aud="other")),
                 False,
                 DEFAULTS.token,
-                TokenResponse(token=make_jwt("some_value", aud="other")),
+                TokenResponse(token=make_jwt("some_value_bGoa+V7g/yqDXvKRqq+JTFn4uQZbPiQJo4pf9RzJV0E=", aud="other")),
             ],
             [
-                TokenResponse(token=make_jwt(token="some_value")),
+                TokenResponse(token=make_jwt(token="some_value_bGoa+V7g/yqDXvKRqq+JTFn4uQZbPiQJo4pf9RzJV0E=")),
                 True,
                 None,
                 TokenResponse(),
