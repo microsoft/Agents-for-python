@@ -25,7 +25,6 @@ from microsoft_agents.hosting.core import (
     MemoryStorage,
     TurnContext,
     TurnState,
-    turn_context,
 )
 
 # Configure logging

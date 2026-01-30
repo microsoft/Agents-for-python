@@ -91,7 +91,7 @@ class MCSConversations(ConversationsBase):
         **kwargs,
     ) -> ResourceResponse:
         """Not supported for MCS Connector."""
-        raise RuntimeError(
+        raise NotImplementedError(
             "UpdateActivity is not supported for Microsoft Copilot Studio Connector"
         )
 
@@ -103,10 +103,12 @@ class MCSConversations(ConversationsBase):
             "DeleteActivity is not supported for Microsoft Copilot Studio Connector"
         )
 
-    async def get_conversation_member(self, conversation_id: str, **kwargs) -> list:
+    async def get_conversation_member(
+        self, conversation_id: str, member_id: str, **kwargs
+    ) -> list:
         """Not supported for MCS Connector."""
         raise NotImplementedError(
-            "GetConversationMembers is not supported for Microsoft Copilot Studio Connector"
+            "GetConversationMember is not supported for Microsoft Copilot Studio Connector"
         )
 
     async def get_conversation_members(self, conversation_id: str, **kwargs) -> list:
@@ -187,7 +189,7 @@ class MCSAttachments(AttachmentsBase):
             "GetAttachmentInfo is not supported for Microsoft Copilot Studio Connector"
         )
 
-    async def get_attachment(self, attachment_id: str, view_id: str, **kwargs) -> bytes:
+    async def get_attachment(self, attachment_id: str, **kwargs) -> bytes:
         """Not supported for MCS Connector."""
         raise NotImplementedError(
             "GetAttachment is not supported for Microsoft Copilot Studio Connector"

@@ -234,6 +234,5 @@ class ConnectorUserAuthorization(_AuthorizationHandler):
         except Exception as ex:
             logger.warning(f"Failed to parse JWT token for handler {self._id}: {ex}")
             raise ex
-            # If we can't parse the token, we'll still return it without expiration info
 
         return token_response
