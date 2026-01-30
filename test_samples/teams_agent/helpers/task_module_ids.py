@@ -3,7 +3,6 @@
 
 """Task Module ID constants."""
 
-
 from enum import Enum
 
 

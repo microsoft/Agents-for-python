@@ -1,6 +1,7 @@
 # Copyright (c) Microsoft Corporation. All rights reserved.
 # Licensed under the MIT License.
 
+from typing import Optional
 import jwt
 
 from .agents_model import AgentsModel
@@ -31,7 +32,7 @@ class TokenResponse(AgentsModel):
 
     def is_exchangeable(self) -> bool:
         """
-        Checks if a token is exchangeable (has api:// audience).
+        Checks if a token is exchangeable.
 
         :param token: The token to check.
         :type token: str
@@ -40,7 +41,33 @@ class TokenResponse(AgentsModel):
         try:
             # Decode without verification to check the audience
             payload = jwt.decode(self.token, options={"verify_signature": False})
+
+            idtyp = payload.get("idtyp")
+            if idtyp == "user":
+                return False
+
             aud = payload.get("aud")
-            return isinstance(aud, str) and aud.startswith("api://")
+            app_id = self._get_app_id_from_token_payload(payload)
+            return isinstance(aud, str) and app_id in aud
         except Exception:
             return False
+
+    @staticmethod
+    def _get_app_id_from_token_payload(token_payload: dict) -> Optional[str]:
+        """
+        Extracts the appId from the token's claims.
+
+        :return: The appId if found, otherwise None.
+        """
+        try:
+            token_version = token_payload.get("ver", None)
+            app_id = None
+
+            if not token_version or token_version == "1.0":
+                app_id = token_payload.get("appid", None)
+            elif token_version == "2.0":
+                app_id = token_payload.get("azp", None)
+
+            return app_id
+        except Exception:
+            return None
