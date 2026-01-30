@@ -189,7 +189,7 @@ class MCSAttachments(AttachmentsBase):
             "GetAttachmentInfo is not supported for Microsoft Copilot Studio Connector"
         )
 
-    async def get_attachment(self, attachment_id: str, **kwargs) -> bytes:
+    async def get_attachment(self, attachment_id: str, *args, **kwargs) -> bytes:
         """Not supported for MCS Connector."""
         raise NotImplementedError(
             "GetAttachment is not supported for Microsoft Copilot Studio Connector"

@@ -6,7 +6,7 @@ from microsoft_agents.hosting.core import (
 class DEFAULT_TEST_VALUES:
     def __init__(self):
 
-        self.token = "bGoa+V7g/yqDXvKRqq+JTFn4uQZbPiQJo4pf9RzJV0E="
+        self.token = "__test_token__bGoa+V7g/yqDXvKRqq+JTFn4uQZbPiQJo4pf9RzJV0E="
         self.channel_id = "__channel_id"
         self.user_id = "__user_id"
         self.bot_url = "https://botframework.com"

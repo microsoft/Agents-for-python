@@ -73,8 +73,10 @@ class ConnectorUserAuthorization(_AuthorizationHandler):
 
         :param context: The turn context for the current turn of conversation.
         :type context: TurnContext
-        :param scopes: Optional list of scopes (unused for connector auth).
-        :type scopes: Optional[list[str]], Optional
+        :param exchange_connection: Optional connection name for token exchange.
+        :type exchange_connection: Optional[str]
+        :param exchange_scopes: Optional list of scopes (unused for connector auth).
+        :type exchange_scopes: Optional[list[str]]
         :return: A SignInResponse with the extracted token.
         :rtype: _SignInResponse
         """
