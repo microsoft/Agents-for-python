@@ -139,7 +139,6 @@ class ConnectorUserAuthorization(_AuthorizationHandler):
         """
         # No concept of sign-out with ConnectorAuth
         logger.debug("Sign-out called for ConnectorUserAuthorization (no-op)")
-        pass
 
     async def _handle_obo(
         self,

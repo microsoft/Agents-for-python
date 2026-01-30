@@ -55,18 +55,14 @@ class MCSConversations(ConversationsBase):
         ) as response:
             if response.status >= 300:
                 logger.error(
-                    "MCS Connector: Error sending activity: %s", response.status
+                    "MCS Connector: Error sending activity: %s",
+                    response.status,
+                    stack_info=True,
                 )
                 response.raise_for_status()
 
-            # Check if there's a response body
-            content = await response.text()
-            if content:
-                data = await response.json()
-                # TODO: (connector) Validate response structure
-                return ResourceResponse(**data)
-
-            return ResourceResponse(id="")
+            data = await response.json()
+            return ResourceResponse.model_validate(data)
 
     async def reply_to_activity(
         self,

@@ -24,14 +24,12 @@ async def jwt_authorization_middleware(request: Request, handler):
             print(f"JWT validation error: {e}")
             return json_response({"error": str(e)}, status=401)
     else:
-        """if not auth_config or not auth_config.CLIENT_ID:
-            # TODO: Refine anonymous strategy
+        if auth_config.ANONYMOUS_ALLOWED:
             request["claims_identity"] = token_validator.get_anonymous_claims()
         else:
             return json_response(
                 {"error": "Authorization header not found"}, status=401
-            )"""
-        request["claims_identity"] = token_validator.get_anonymous_claims()
+            )
 
     return await handler(request)
 

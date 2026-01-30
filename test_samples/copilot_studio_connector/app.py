@@ -62,7 +62,6 @@ async def on_connector_message(context: TurnContext, state: TurnState) -> None:
 
     :param context: The turn context for this turn
     :param state: The turn state
-    :param cancellation_token: Cancellation token
     """
     if (
         context.activity.recipient

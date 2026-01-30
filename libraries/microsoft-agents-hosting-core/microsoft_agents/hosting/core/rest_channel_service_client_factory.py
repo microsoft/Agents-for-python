@@ -122,8 +122,7 @@ class RestChannelServiceClientFactory(ChannelServiceClientFactoryBase):
             context
             and context.activity.recipient
             and context.activity.recipient.role == RoleTypes.connector_user
-            or service_url.startswith("https://pvaruntime")
-        ):
+        ) or service_url.startswith("https://pvaruntime"):
             return MCSConnectorClient(
                 endpoint=service_url,
             )

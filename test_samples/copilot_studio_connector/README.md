@@ -26,57 +26,42 @@ Create or use an existing App Registration in Azure:
 - Note the Directory (tenant) ID
 - Create a client secret
 
-### 2. Configure appsettings.json
+### 2. Configure Environment Variables
 
-```json
-{
-  "TokenValidation": {
-    "Enabled": true,
-    "Audiences": [
-      "{{ClientId}}"
-    ],
-    "TenantId": "{{TenantId}}"
-  },
-  "Connections": {
-    "ServiceConnection": {
-      "Settings": {
-        "AuthType": "ClientSecret",
-        "AuthorityEndpoint": "https://login.microsoftonline.com/{{TenantId}}",
-        "ClientId": "{{ClientId}}",
-        "ClientSecret": "{{ClientSecret}}"
-      }
-    },
-    "GraphConnection": {
-      "Settings": {
-        "AuthType": "ClientSecret",
-        "AuthorityEndpoint": "https://login.microsoftonline.com/{{TenantId}}",
-        "ClientId": "{{ClientId}}",
-        "ClientSecret": "{{ClientSecret}}",
-        "Scopes": ["https://graph.microsoft.com/.default"]
-      }
-    }
-  },
-  "AgentApplication": {
-    "UserAuthorization": {
-      "Handlers": {
-        "connector": {
-          "Type": "ConnectorUserAuthorization",
-          "Settings": {
-            "Name": "connector",
-            "OBOConnectionName": "GraphConnection",
-            "Scopes": ["https://graph.microsoft.com/.default"]
-          }
-        }
-      }
-    }
-  }
-}
+Copy `env.TEMPLATE` to `.env` and update the values:
+
+```bash
+# Service Connection Settings
+CONNECTIONS__SERVICE_CONNECTION__SETTINGS__CLIENTID=your-client-id
+CONNECTIONS__SERVICE_CONNECTION__SETTINGS__CLIENTSECRET=your-client-secret
+CONNECTIONS__SERVICE_CONNECTION__SETTINGS__TENANTID=your-tenant-id
+
+# Graph Connection Settings (for OBO token exchange)
+CONNECTIONS__GRAPHCONNECTION__SETTINGS__CLIENTID=your-client-id
+CONNECTIONS__GRAPHCONNECTION__SETTINGS__CLIENTSECRET=your-client-secret
+CONNECTIONS__GRAPHCONNECTION__SETTINGS__TENANTID=your-tenant-id
+CONNECTIONS__GRAPHCONNECTION__SETTINGS__SCOPES=https://graph.microsoft.com/.default
+
+# Token Validation Settings
+TOKENVALIDATION__ENABLED=true
+TOKENVALIDATION__AUDIENCES=your-client-id
+TOKENVALIDATION__TENANTID=your-tenant-id
+
+# User Authorization Handler for Connector
+AGENTAPPLICATION__USERAUTHORIZATION__HANDLERS__CONNECTOR__TYPE=ConnectorUserAuthorization
+AGENTAPPLICATION__USERAUTHORIZATION__HANDLERS__CONNECTOR__SETTINGS__NAME=connector
+AGENTAPPLICATION__USERAUTHORIZATION__HANDLERS__CONNECTOR__SETTINGS__OBOCONNECTIONNAME=GraphConnection
+AGENTAPPLICATION__USERAUTHORIZATION__HANDLERS__CONNECTOR__SETTINGS__SCOPES=https://graph.microsoft.com/.default
+
+# Server Settings (optional)
+HOST=localhost
+PORT=3978
 ```
 
 Replace:
-- `{{ClientId}}` - Your App Registration client ID
-- `{{TenantId}}` - Your Azure AD tenant ID  
-- `{{ClientSecret}}` - Your App Registration client secret
+- `your-client-id` - Your App Registration client ID
+- `your-tenant-id` - Your Azure AD tenant ID  
+- `your-client-secret` - Your App Registration client secret
 
 ### 3. Copilot Studio Configuration
 
@@ -135,14 +120,15 @@ The ConnectorUserAuthorization handler:
 
 1. Copilot Studio sends message to agent with recipient.role = "connectoruser"
 2. Agent receives message and detects connector_user role
-3. Agent calls `UserAuthorization.GetTurnTokenAsync()` to get the exchanged Graph token
+3. Agent calls `auth.get_token(context)` to get the exchanged Graph token
 4. Agent uses token to call Microsoft Graph
 5. Agent sends response back to Copilot Studio
 
 ## Security Notes
 
-- Never store secrets in source code or appsettings.json in production
-- Use Azure Key Vault or environment variables for sensitive values
+- Never store secrets in source code or `.env` files in production
+- Use Azure Key Vault or secure environment variables for sensitive values
+- The `.env` file should be added to `.gitignore` and never committed to source control
 - Ensure proper token validation is enabled
 - Use secure communication (HTTPS) in production
 

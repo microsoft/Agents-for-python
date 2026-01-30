@@ -7,12 +7,10 @@ from microsoft_agents.activity import ActivityTypes, TokenResponse
 from microsoft_agents.authentication.msal import MsalAuth, MsalConnectionManager
 
 from microsoft_agents.hosting.core import MemoryStorage
-from microsoft_agents.hosting.core.app.oauth import ConnectorUserAuthorization, _SignInResponse
-from microsoft_agents.hosting.core._oauth import _FlowStateTag
+from microsoft_agents.hosting.core.app.oauth import ConnectorUserAuthorization
 
 # test constants
 from tests._common.data import (
-    AUTH_TEST_DATA,
     STORAGE_TEST_DATA,
     DEFAULT_TEST_VALUES,
     AGENTIC_TEST_ENV_DICT,
@@ -220,7 +218,6 @@ class TestConnectorUserAuthorization(TestEnv):
         """Test that get_refreshed_token handles OBO exchange failure."""
         security_token = make_jwt()
         context = self.TurnContext(mocker, security_token=security_token)
-        provider = mock_provider(mocker, exchange_token=None)  # OBO returns None
         
         token_response = await connector_authorization.get_refreshed_token(
             context, "some_connection", ["scope1"]
@@ -259,7 +256,7 @@ class TestConnectorUserAuthorization(TestEnv):
         
         with pytest.raises(ValueError, match="Unable to get authority configuration"):
             # Call with no connection or scopes (OBO not configured)
-            result = await connector_authorization._handle_obo(
+            await connector_authorization._handle_obo(
                 context, token_response, None, []
             )
 

@@ -32,7 +32,7 @@ class TokenResponse(AgentsModel):
 
     def is_exchangeable(self) -> bool:
         """
-        Checks if a token is exchangeable (has api:// audience).
+        Checks if a token is exchangeable.
 
         :param token: The token to check.
         :type token: str
