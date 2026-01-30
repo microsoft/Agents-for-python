@@ -1,5 +1,3 @@
-from mimetypes import init
-from re import A
 import pytest
 import jwt
 
