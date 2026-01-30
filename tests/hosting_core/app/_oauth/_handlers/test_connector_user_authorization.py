@@ -218,6 +218,7 @@ class TestConnectorUserAuthorization(TestEnv):
         """Test that get_refreshed_token handles OBO exchange failure."""
         security_token = make_jwt()
         context = self.TurnContext(mocker, security_token=security_token)
+        mock_provider(mocker, exchange_token=None)  # OBO returns None
         
         token_response = await connector_authorization.get_refreshed_token(
             context, "some_connection", ["scope1"]
