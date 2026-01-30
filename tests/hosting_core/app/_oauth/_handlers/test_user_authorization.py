@@ -194,7 +194,7 @@ class TestUserAuthorization(TestEnv):
             [
                 _FlowResponse(
                     token_response=TokenResponse(
-                        token=make_jwt(token="some_value", aud="other")
+                        token=make_jwt(token="some_value_bGoa+V7g/yqDXvKRqq+JTFn4uQZbPiQJo4pf9RzJV0E=", aud="other")
                     ),
                     flow_state=_FlowState(
                         tag=_FlowStateTag.COMPLETE,
@@ -205,14 +205,14 @@ class TestUserAuthorization(TestEnv):
                 DEFAULTS.token,
                 _SignInResponse(
                     token_response=TokenResponse(
-                        token=make_jwt("some_value", aud="other")
+                        token=make_jwt("some_value_bGoa+V7g/yqDXvKRqq+JTFn4uQZbPiQJo4pf9RzJV0E=", aud="other")
                     ),
                     tag=_FlowStateTag.COMPLETE,
                 ),
             ],
             [
                 _FlowResponse(
-                    token_response=TokenResponse(token=make_jwt(token="some_value")),
+                    token_response=TokenResponse(token=make_jwt(token="some_value_bGoa+V7g/yqDXvKRqq+JTFn4uQZbPiQJo4pf9RzJV0E=")),
                     flow_state=_FlowState(
                         tag=_FlowStateTag.COMPLETE,
                         auth_handler_id=DEFAULTS.auth_handler_id,
