@@ -17,6 +17,7 @@ from .backend import (
     expand,
     deep_update,
     set_defaults,
+    Unset,
 )
 
 from .activity import (
@@ -39,14 +40,8 @@ __all__ = [
     "for_none",
     "for_one",
     "for_n",
-    "ActivityExpect",
     "ActivityTemplate",
-    "Check",
     "Expect",
-    "ExpectAny",
-    "ExpectAll",
-    "ExpectOne",
-    "ExpectNone",
     "Select",
     "ModelTemplate",
     "flatten",
@@ -54,4 +49,5 @@ __all__ = [
     "deep_update",
     "set_defaults",
     "normalize_model_data",
+    "Unset",
 ]

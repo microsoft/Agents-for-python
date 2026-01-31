@@ -1,4 +1,5 @@
 from __future__ import annotations
+
 import functools
 from dataclasses import dataclass
 from typing import Callable, Awaitable
@@ -17,10 +18,12 @@ from microsoft_agents.hosting.aiohttp import (
 )
 from microsoft_agents.authentication.msal import MsalConnectionManager
 
-from microsoft_agents.testing.client import AiohttpCallbackServer
-
-from .aiohttp_client_factory import AiohttpClientFactory
-from .scenario import Scenario, ScenarioConfig
+from .core import (
+    AiohttpCallbackServer,
+    AiohttpClientFactory,
+    Scenario,
+    ScenarioConfig,
+)
 
 
 @dataclass

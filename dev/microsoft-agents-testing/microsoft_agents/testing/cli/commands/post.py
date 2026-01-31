@@ -12,12 +12,7 @@ from ..config import CLIConfig
 from ..core import Output, async_command
 
 from microsoft_agents.activity import Activity
-
-from microsoft_agents.testing.agent_scenario import (
-    AgentScenarioConfig,
-    ExternalAgentScenario,
-)
-from microsoft_agents.testing.utils import ActivityTemplate
+from microsoft_agents.testing.utils import ex_send
 
 def get_payload(out: Output, payload_path: str) -> dict:
     """Load JSON payload from a file."""
@@ -99,30 +94,38 @@ async def post(
         out.info("Provide a payload file or use --message option.")
         raise click.Abort()
     
-    scenario = ExternalAgentScenario(
-        url or config.agent_url,
-        AgentScenarioConfig(
-            env_file_path = config.env_path,
-            activity_template = ActivityTemplate(),
-        )
-    )
+    ex = await ex_send(activity_json, url or config.agent_url, listen_duration)
 
-    async with scenario.client() as client:
+    if verbose:
+        out.debug("Payload:")
+        out.activity(ex[0].request)
+    
+    # responses = 
 
-        activity = Activity.model_validate(activity_json)
+    # scenario = ExternalAgentScenario(
+    #     url or config.agent_url,
+    #     AgentScenarioConfig(
+    #         env_file_path = config.env_path,
+    #         activity_template = ActivityTemplate(),
+    #     )
+    # )
 
-        if verbose:
-            out.debug("Payload:")
-            out.activity(activity)
+    # async with scenario.client() as client:
 
-        responses = await client.send(activity, wait=listen_duration)
+    #     activity = Activity.model_validate(activity_json)
 
-        out.info("Activity sent successfully.")
-        out.info("Received {} response(s).".format(len(responses)))
-        out.newline()
+    #     if verbose:
+    #         out.debug("Payload:")
+    #         out.activity(activity)
 
-        for response in responses:
-            out.info(f"Received response activity: {response.type} - {response.id}")
-            if verbose:
-                out.json(response.model_dump())
-            out.newline()
+    #     responses = await client.send(activity, wait=listen_duration)
+
+    #     out.info("Activity sent successfully.")
+    #     out.info("Received {} response(s).".format(len(responses)))
+    #     out.newline()
+
+    #     for response in responses:
+    #         out.info(f"Received response activity: {response.type} - {response.id}")
+    #         if verbose:
+    #             out.json(response.model_dump())
+    #         out.newline()
