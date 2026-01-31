@@ -5,6 +5,7 @@ from .fluent import (
     ActivityTemplate,
     ModelTransform,
     Quantifier,
+    Unset,
 )
 
 from .transport import (
@@ -18,7 +19,8 @@ from .transport import (
 
 from .agent_client import AgentClient
 from .aiohttp_client_factory import AiohttpClientFactory
-from .scenario import Scenario
+from .scenario import Scenario, ScenarioConfig
+from .client_config import ClientConfig
 from .external_scenario import ExternalScenario
 
 __all__ = [
@@ -37,4 +39,8 @@ __all__ = [
     "AgentClient",
     "Scenario",
     "ExternalScenario",
+    "Unset",
+    "AiohttpClientFactory",
+    "ScenarioConfig",
+    "ClientConfig",
 ]

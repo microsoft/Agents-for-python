@@ -24,6 +24,7 @@ from .utils import (
     set_defaults,
     flatten,
 )
+from .types import Unset
 
 __all__ = [
     "Describe",
@@ -41,4 +42,5 @@ __all__ = [
     "flatten",
     "ModelTransform",
     "ModelPredicateResult",
+    "Unset",
 ]

@@ -12,7 +12,6 @@ from microsoft_agents.activity import Activity, ActivityTypes
 from .expect import Expect
 from .model_template import ModelTemplate
 
-
 # class ActivityExpect(Expect):
 #     """
 #     Specialized Expect class for asserting on Activity objects.

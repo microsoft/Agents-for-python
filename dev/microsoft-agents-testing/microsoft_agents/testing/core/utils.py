@@ -3,7 +3,17 @@
 
 import requests
 
+from microsoft_agents.activity import Activity
 from microsoft_agents.hosting.core import AgentAuthConfiguration
+
+from .transport import Exchange
+
+def activities_from_ex(exchanges: list[Exchange]) -> list[Activity]:
+    """Extracts all response activities from a list of exchanges."""
+    activities: list[Activity] = []
+    for exchange in exchanges:
+        activities.extend(exchange.responses)
+    return activities
 
 def sdk_config_connection(
     sdk_config: dict, connection_name: str = "SERVICE_CONNECTION"

@@ -1,4 +1,4 @@
-from microsoft_agents.testing.activity.activity_template import ActivityTemplate
+from .core import ActivityTemplate
 
 class ActivityBuilder:
     def __init__(self, template: dict | ActivityTemplate | None = None):
@@ -14,8 +14,6 @@ class ActivityBuilder:
         pass
 
     def build_template(self) -> ActivityTemplate
-        pass
-
 
     def start_conversation(self) -> Activity:
         ...

@@ -22,13 +22,7 @@ from .transport import (
     Exchange,
     Sender
 )
-
-def activities_from_ex(exchanges: list[Exchange]) -> list[Activity]:
-    """Extracts all response activities from a list of exchanges."""
-    activities: list[Activity] = []
-    for exchange in exchanges:
-        activities.extend(exchange.responses)
-    return activities
+from .utils import activities_from_ex
 
 class AgentClient:
     """Client for sending activities to an agent and collecting responses."""
