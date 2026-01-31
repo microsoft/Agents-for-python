@@ -3,7 +3,7 @@
 
 from __future__ import annotations
 
-from typing import Callable, TypeVar
+from typing import Callable, cast
 from dataclasses import dataclass
 
 from pydantic import BaseModel
@@ -13,8 +13,6 @@ from .quantifier import (
     Quantifier,
     for_all,
 )
-
-ModelT = TypeVar("ModelT", bound=dict | BaseModel)
 
 @dataclass
 class ModelPredicateResult:
@@ -40,19 +38,20 @@ class ModelPredicateResult:
 
 class ModelPredicate:
 
-    def __init__(self, dict_transform: DictionaryTransform, quantifier: Quantifier = for_all) -> None:
+    def __init__(self, dict_transform: DictionaryTransform) -> None:
         self._transform = ModelTransform(dict_transform)
-        self._quantifier = quantifier
     
-    def eval(self, source:  ModelT | list[ModelT]) -> ModelPredicateResult:
+    def eval(self, source:  dict | BaseModel | list[dict] | list[BaseModel]) -> ModelPredicateResult:
+        if not isinstance(source, list):
+            source = cast(list[dict] | list[BaseModel], [source])
         mpr = self._transform.eval(source)
         return ModelPredicateResult(mpr)
         
     @staticmethod
-    def from_args(arg: dict | Callable | None | ModelPredicate, _quantifier: Quantifier, **kwargs) -> ModelPredicate:
+    def from_args(arg: dict | Callable | None | ModelPredicate, **kwargs) -> ModelPredicate:
         if isinstance(arg, ModelPredicate):
             return arg
         
         return ModelPredicate(
-            DictionaryTransform.from_args(arg, **kwargs), _quantifier
+            DictionaryTransform.from_args(arg, **kwargs)
         )

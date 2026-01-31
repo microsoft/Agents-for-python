@@ -9,7 +9,6 @@ from .transform import (
 from .model_predicate import (
     ModelPredicate,
     ModelPredicateResult,
-    ModelT
 )
 from .quantifier import (
     Quantifier,
@@ -30,7 +29,6 @@ __all__ = [
     "Describe",
     "DictionaryTransform",
     "ModelPredicate",
-    "ModelT",
     "Quantifier",
     "for_all",
     "for_any",

@@ -13,7 +13,6 @@ from microsoft_agents.activity import (
 )
 
 from .fluent import (
-    ActivityExpect,
     ActivityTemplate,
     Expect,
     Select,
@@ -107,19 +106,19 @@ class AgentClient:
     ### Utilities
     ###
 
-    def ex_select(self, recent: bool = False) -> Select:
-        return Select(self._ex_collect(recent=recent))
+    def ex_select(self, history: bool = False) -> Select:
+        return Select(self._ex_collect(history=history))
 
     def select(self, recent: bool = False) -> Select:
         """"""
-        return Select(self._collect(recent=recent))
+        return Select(self._collect(history=recent))
     
-    def expect_ex(self, recent: bool = True) -> Expect:
+    def expect_ex(self, history: bool = True) -> Expect:
         """"""
-        return Expect(self._ex_collect(recent=recent))
+        return Expect(self._ex_collect(history=history))
 
-    def expect(self, recent: bool = True) -> ActivityExpect:
-        return ActivityExpect(self._collect(recent=recent))
+    def expect(self, history: bool = True) -> Expect:
+        return Expect(self._collect(history=history))
         
     ###
     ### Sending API
@@ -148,13 +147,12 @@ class AgentClient:
 
         activity = self._build_activity(activity_or_text)
 
-        self._transcript.get_new()
 
         exchange = await self._sender.send(activity, transcript=self._transcript, **kwargs)
 
         if max(0.0, wait) != 0.0: # ignore negative waits, I guess
             await asyncio.sleep(wait)
-            return self._transcript.get_new()
+            return self.ex_recent()
 
         return [exchange]
     
@@ -236,7 +234,7 @@ class AgentClient:
         self,
         activity: Activity,
         **kwargs,
-    ) -> InvokeResponse:
+    ) -> InvokeResponse | None:
         """Sends an invoke activity and returns the InvokeResponse.
         
         :param activity: The invoke Activity to send.
@@ -250,4 +248,4 @@ class AgentClient:
         return AgentClient(
             self._sender,
             transcript=self._transcript.child(),
-            activity_template=self._template)
+            template=self._template)

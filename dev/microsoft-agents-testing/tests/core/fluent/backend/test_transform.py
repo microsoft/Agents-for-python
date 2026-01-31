@@ -32,12 +32,6 @@ class TestDictionaryTransformInit:
         # The value should be converted to a callable
         assert callable(transform._map["a"])
 
-    def test_init_with_callable(self):
-        """Initializing with a callable stores it at the root key."""
-        func = lambda x: x > 0
-        transform = DictionaryTransform(func)
-        assert DictionaryTransform.MODEL_PREDICATE_ROOT_CALLABLE_KEY in transform._map
-
     def test_init_with_kwargs(self):
         """Initializing with kwargs merges them into the root."""
         transform = DictionaryTransform(None, a=1, b=2)

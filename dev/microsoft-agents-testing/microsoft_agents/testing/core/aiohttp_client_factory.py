@@ -61,7 +61,7 @@ class AiohttpClientFactory:
         
         # Create sender and client
         sender = AiohttpSender(session)
-        return AgentClient(sender, self._transcript, activity_template=template)
+        return AgentClient(sender, self._transcript, template=template)
     
     async def cleanup(self):
         """Close all created sessions."""

@@ -3,7 +3,6 @@
 
 """Tests for the fluent utils module."""
 
-import pytest
 from pydantic import BaseModel
 
 from microsoft_agents.testing.core.fluent.utils import normalize_model_data

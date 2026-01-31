@@ -3,7 +3,8 @@
 
 from __future__ import annotations
 
-from typing import Generic, TypeVar, Self
+from copy import deepcopy
+from typing import Generic, TypeVar, Self, cast
 
 from pydantic import BaseModel
 
@@ -48,32 +49,33 @@ class ModelTemplate(Generic[ModelT]):
             original = {}
         data = normalize_model_data(original)
         set_defaults(data, self._defaults)
-        return self._model_class.model_validate(data)
+        if issubclass(self._model_class, BaseModel):
+            return self._model_class.model_validate(data)
+        return cast(ModelT, data)
     
-    # def with_defaults(self, defaults: dict | None = None, **kwargs) -> Self:
-    #     """Create a new ModelTemplate with additional default values.
+    def with_defaults(self, defaults: dict | None = None, **kwargs) -> ModelTemplate[ModelT]:
+        """Create a new ModelTemplate with additional default values.
         
-    #     :param defaults: An optional dictionary of default values.
-    #     :param kwargs: Additional default values as keyword arguments.
-    #     :return: A new ModelTemplate instance.
-    #     """
-    #     new_template = deepcopy(self._defaults)
-    #     set_defaults(new_template, defaults, **kwargs)
-    #     return Self(self._model_class, new_template)
+        :param defaults: An optional dictionary of default values.
+        :param kwargs: Additional default values as keyword arguments.
+        :return: A new ModelTemplate instance.
+        """
+        new_template = deepcopy(self._defaults)
+        set_defaults(new_template, defaults, **kwargs)
+        return ModelTemplate[ModelT](self._model_class, new_template)
     
-    # def with_updates(self, updates: dict | None = None, **kwargs) -> Self:
-    #     """Create a new ModelTemplate with updated default values."""
-    #     new_template = deepcopy(self._defaults)
-    #     # Expand the updates first so they merge correctly with nested structure
-    #     expanded_updates = expand(updates or {})
-    #     expanded_kwargs = expand(kwargs)
-    #     deep_update(new_template, expanded_updates)
-    #     deep_update(new_template, expanded_kwargs)
-    #     # Pass already-expanded data, avoid re-expansion
-    #     result = ModelTemplate[T].__new__(ModelTemplate)
-    #     result._model_class = self._model_class
-    #     result._defaults = new_template
-    #     return result
+    def with_updates(self, updates: dict | None = None, **kwargs) -> ModelTemplate[ModelT]:
+        """Create a new ModelTemplate with updated default values."""
+        new_template = deepcopy(self._defaults)
+        # Expand the updates first so they merge correctly with nested structure
+        expanded_updates = expand(updates or {})
+        expanded_kwargs = expand(kwargs)
+        deep_update(new_template, expanded_updates)
+        deep_update(new_template, expanded_kwargs)
+        # Pass already-expanded data, avoid re-expansion
+        result = ModelTemplate[ModelT](self._model_class, {})
+        result._defaults = new_template
+        return result
     
     def __eq__(self, other: object) -> bool:
         """Check equality between two ModelTemplate instances."""

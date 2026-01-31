@@ -129,7 +129,7 @@ class Expect:
         :raises AssertionError: If the assertion fails.
         :return: Self for chaining.
         """
-        mp = ModelPredicate.from_args(_assert, quantifier, **kwargs)
+        mp = ModelPredicate.from_args(_assert, **kwargs)
         result = mp.eval(self._items)
         passed = quantifier(result.result_bools)
 

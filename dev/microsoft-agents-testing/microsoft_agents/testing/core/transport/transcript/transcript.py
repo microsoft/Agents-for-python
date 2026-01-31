@@ -61,4 +61,6 @@ class Transcript:
     
     def child(self) -> Transcript:
         """Create a child transcript."""
-        return Transcript(parent=self)
+        c = Transcript(parent=self)
+        self._children.append(c)
+        return c
