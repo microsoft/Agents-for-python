@@ -4,7 +4,7 @@
 from __future__ import annotations
 
 import random
-from typing import TypeVar, Iterable, Callable
+from typing import TypeVar, Iterable, Callable, cast
 from pydantic import BaseModel
 
 from .backend import (
@@ -42,15 +42,15 @@ class Select:
 
     def __init__(
             self,
-            items: Iterable[dict | BaseModel],
+            items: Iterable[dict] | Iterable[BaseModel],
         ) -> None:
-        self._items = list(items)
+        self._items = cast(list[dict] | list[BaseModel], list(items))
 
     def expect(self) -> Expect:
         """Get an Expect instance for assertions on the current selection."""
         return Expect(self._items)
 
-    def _child(self, items: Iterable[dict | BaseModel]) -> Select:
+    def _child(self, items: Iterable[dict] | Iterable[BaseModel]) -> Select:
         """Create a child Select with new items, inheriting selector and quantifier."""
         child = Select(items)
         return child
@@ -61,20 +61,19 @@ class Select:
 
     def _where(self, _filter: dict | Callable | None = None, _reverse: bool=False, **kwargs) -> Select:
         """Filter items by criteria. Chainable."""
-        mp = ModelPredicate.from_args(_filter, for_all, **kwargs)
+        mp = ModelPredicate.from_args(_filter, **kwargs)
 
-        results = mp.eval(self._items).result_bools
-
-        map = zip(self._items, results)
-        filtered_items = [item for item, keep in map if keep != _reverse] # keep if not _reverse else not keep
+        mpr = mp.eval(self._items)
+        results = mpr.result_bools
+        
+        mapping = zip(self._items, results)
+        filtered_items = [item for item, keep in mapping if keep != _reverse] # keep if not _reverse else not keep
 
         return self._child(filtered_items)
-    
 
-    def where(self, _filter: dict | Callable | None, **kwargs) -> Select:
+    def where(self, _filter: dict | Callable | None = None, **kwargs) -> Select:
         return self._where(_filter, **kwargs)
 
-    
     def where_not(self, _filter: dict | Callable | None = None, **kwargs) -> Select:
         """Exclude items by criteria. Chainable."""
         return self._where(_filter, _reverse=True, **kwargs)

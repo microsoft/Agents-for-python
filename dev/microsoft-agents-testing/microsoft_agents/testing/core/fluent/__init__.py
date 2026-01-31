@@ -20,7 +20,6 @@ from .backend import (
 )
 
 from .activity import (
-    ActivityExpect,
     ActivityTemplate,
 )
 from .expect import Expect

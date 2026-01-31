@@ -4,18 +4,18 @@
 from __future__ import annotations
 
 import inspect
-from typing import Any, Callable, overload, TypeVar
+from typing import Any, Callable, overload, TypeVar, cast
 
 from pydantic import BaseModel
 
-from .types import Unset
+from .types import Unset, SafeObject, resolve, parent
 from .utils import expand, flatten
 
 T = TypeVar("T")
 
 class DictionaryTransform:
 
-    MODEL_PREDICATE_ROOT_CALLABLE_KEY = '__ModelPredicate_root_callable_key__'
+    DT_ROOT_CALLABLE_KEY = '__DT_ROOT_CALLABLE_KEY'
     
     def __init__(self, arg: dict | Callable | None, **kwargs) -> None:
 
@@ -28,7 +28,7 @@ class DictionaryTransform:
             temp = {}
 
         if callable(arg):
-            temp[self.MODEL_PREDICATE_ROOT_CALLABLE_KEY] = arg
+            temp[self.DT_ROOT_CALLABLE_KEY] = arg
 
         flat_root = flatten(temp)
         flat_kwargs = flatten(kwargs)
@@ -46,12 +46,10 @@ class DictionaryTransform:
     @staticmethod
     def _get(actual: dict, key: str) -> Any:
         keys = key.split(".")
-        current = actual
+        current = SafeObject(actual)
         for k in keys:
-            if not isinstance(current, dict) or k not in current:
-                return Unset
             current = current[k]
-        return current
+        return resolve(current)
 
     def _invoke(
             self,
@@ -72,13 +70,19 @@ class DictionaryTransform:
             
         return func(**args)
         
-    def eval(self, actual: dict) -> dict:        
+    def eval(self, actual: dict, root_callable_arg: Any=None) -> dict:        
         result = {}
+
+        if root_callable_arg is not None:
+            actual[DictionaryTransform.DT_ROOT_CALLABLE_KEY] = root_callable_arg 
+        else:
+            actual[DictionaryTransform.DT_ROOT_CALLABLE_KEY] = actual
         for key, func in self._map.items():
             if not callable(func):
                 raise RuntimeError(f"Predicate value for key '{key}' is not callable")
             result[key] = self._invoke(actual, key, func)
 
+        del actual[DictionaryTransform.DT_ROOT_CALLABLE_KEY]
         return expand(result)
 
     @staticmethod
@@ -104,21 +108,24 @@ class ModelTransform:
     @overload
     def eval(self, source: dict | BaseModel) -> dict: ...
     @overload
-    def eval(self, source: list[dict | BaseModel]) -> list[dict]: ...
-    def eval(self, source: dict | BaseModel | list[dict | BaseModel]) -> list[dict] | dict:
+    def eval(self, source: list[dict] | list[BaseModel]) -> list[dict]: ...
+    def eval(self, source: dict | BaseModel | list[dict] | list[BaseModel]) -> list[dict] | dict:
         if not isinstance(source, list):
-            items = [source]
-        else:
+            source = cast(list[dict] | list[BaseModel], [source])
             items = source
+        else:
+            items = cast(list[dict] | list[BaseModel], source)
 
         if len(items) > 0 and isinstance(items[0], BaseModel):
+            items = cast(list[BaseModel], items)
             items = [
                 item.model_dump(exclude_unset=True, exclude_none=True, by_alias=True)
                 for item in items
             ]
+        items = cast(list[dict], items)
 
         results = []
-        for item in items:
-            results.append(self._dict_transform.eval(item))
+        for i, item in enumerate(items):
+            results.append(self._dict_transform.eval(item, source[i]))
         
         return results
