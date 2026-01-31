@@ -39,6 +39,3 @@ dependencies = [
 
 [project.scripts]
 agt = "microsoft_agents.testing.cli:main"
-
-[project.entry-points.pytest11]
-agent_test = "microsoft_agents.testing.pytest_plugin"
