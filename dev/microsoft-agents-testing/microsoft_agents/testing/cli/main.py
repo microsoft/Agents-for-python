@@ -17,6 +17,7 @@ from .core import Output
 @click.group()
 @click.option(
     "--env", "-e",
+    "env_path",
     default=".env", 
     help="Path to environment file.",
     type=click.Path(),

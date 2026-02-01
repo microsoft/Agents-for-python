@@ -381,6 +381,154 @@ Select(responses) \
     .get()
 ```
 
+### Transcript Logging
+
+Format and display conversation transcripts with customizable detail levels:
+
+```python
+from microsoft_agents.testing import (
+    ActivityLogger, 
+    ConversationLogger, 
+    DetailLevel, 
+    TimeFormat,
+)
+
+# ConversationLogger - Human-readable conversation view
+ConversationLogger(
+    user_label="User",
+    agent_label="Bot",
+    detail=DetailLevel.DETAILED,
+    time_format=TimeFormat.ELAPSED,
+).print(client.transcript)
+
+# ActivityLogger - Technical view with selectable fields
+ActivityLogger(
+    fields=["type", "text", "from_property"],
+    detail=DetailLevel.STANDARD,
+).print(client.transcript)
+```
+
+**Detail Levels:**
+
+| Level | Description |
+|-------|-------------|
+| `MINIMAL` | Just message text, no timestamps |
+| `STANDARD` | Text with labels (default) |
+| `DETAILED` | Adds timestamps and latency |
+| `FULL` | Header, footer, and summary stats |
+
+**Time Formats:**
+
+| Format | Example | Description |
+|--------|---------|-------------|
+| `CLOCK` | `[19:42:07.995]` | Absolute wall clock time (default) |
+| `RELATIVE` | `[+1.064s]` | Seconds from start with `+` prefix |
+| `ELAPSED` | `[1.064s]` | Seconds from start |
+
+**ConversationLogger** shows only message activities in a chat-like format:
+
+```
+[0.000s] User: Hello!
+  (1065ms)
+[1.064s] Bot: Hi there! How can I help?
+```
+
+**ActivityLogger** shows all activities with customizable field selection:
+
+```
+=== Exchange [1.064s] ===
+  RECV:
+    type: message
+    text: Hi there! How can I help?
+    from_property: id=agent-id
+  Status: 202
+  Latency: 1065.3ms
+```
+
+---
+
+## CLI Tool
+
+The `agents-testing` CLI provides commands for interacting with agents from the command line.
+
+### Installation
+
+The CLI is included when you install the package:
+
+```bash
+pip install microsoft-agents-testing
+```
+
+### Commands
+
+#### `chat` - Interactive Chat Session
+
+Start an interactive conversation with an agent:
+
+```bash
+# Chat with a local agent
+agents-testing chat http://localhost:3978/api/messages
+
+# With authentication
+agents-testing chat http://localhost:3978/api/messages \
+    --app-id YOUR_APP_ID \
+    --app-secret YOUR_SECRET \
+    --tenant-id YOUR_TENANT
+```
+
+#### `post` - Send a Single Message
+
+Send one message and display the response:
+
+```bash
+# Send a message
+agents-testing post http://localhost:3978/api/messages "Hello, agent!"
+
+# With custom timeout
+agents-testing post http://localhost:3978/api/messages "Hello!" --timeout 30
+```
+
+#### `run` - Execute Test Scenarios
+
+Run predefined test scenarios against an agent:
+
+```bash
+# Run a scenario file
+agents-testing run http://localhost:3978/api/messages --scenario my_tests.py
+
+# List available scenarios
+agents-testing run --list-scenarios
+```
+
+#### `validate` - Validate Configuration
+
+Check that your agent configuration is correct:
+
+```bash
+# Validate endpoint and auth
+agents-testing validate http://localhost:3978/api/messages \
+    --app-id YOUR_APP_ID \
+    --app-secret YOUR_SECRET
+```
+
+### Environment Configuration
+
+Configure defaults using environment variables or a `.env` file:
+
+```bash
+# .env file
+AGENT_ENDPOINT=http://localhost:3978/api/messages
+AZURE_CLIENT_ID=your-app-id
+AZURE_CLIENT_SECRET=your-secret
+AZURE_TENANT_ID=your-tenant
+```
+
+Then run commands without specifying credentials:
+
+```bash
+agents-testing chat  # Uses AGENT_ENDPOINT from .env
+```
+
 ---
 
 ## Test Scenarios Comparison
@@ -423,6 +571,19 @@ async def test_hello():
 | `Select` | Filter and query response collections |
 | `Transcript` | Complete conversation history |
 | `ActivityTemplate` | Create activities with defaults |
+| `ActivityLogger` | Format transcript showing all activities with selectable fields |
+| `ConversationLogger` | Format transcript as human-readable conversation |
+| `DetailLevel` | Control output verbosity (MINIMAL, STANDARD, DETAILED, FULL) |
+| `TimeFormat` | Control timestamp format (CLOCK, RELATIVE, ELAPSED) |
+
+### CLI Commands
+
+| Command | Purpose |
+|---------|---------|
+| `agents-testing chat` | Interactive chat session with an agent |
+| `agents-testing post` | Send a single message and display response |
+| `agents-testing run` | Execute test scenarios against an agent |
+| `agents-testing validate` | Validate agent configuration and connectivity |
 
 ---
 

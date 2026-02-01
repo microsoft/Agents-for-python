@@ -57,6 +57,13 @@ from .aiohttp_scenario import (
     AiohttpScenario,
 )
 
+from .transcript_logger import (
+    DetailLevel,
+    ConversationLogger,
+    ActivityLogger,
+    TranscriptFormatter,
+)
+
 from .utils import (
     send,
     ex_send,
@@ -82,4 +89,8 @@ __all__ = [
     "AiohttpScenario",
     "send",
     "ex_send",
+    "DetailLevel",
+    "ConversationLogger",
+    "ActivityLogger",
+    "TranscriptFormatter",
 ]

@@ -12,9 +12,6 @@ from pathlib import Path
 
 from dotenv import dotenv_values
 
-# TODO: This import path is incorrect - set_defaults is in core.fluent.backend.utils
-# Should be: from microsoft_agents.testing.core.fluent.backend.utils import set_defaults
-from microsoft_agents.testing.utils import set_defaults
 
 def load_environment(
     env_path: str | None = None,
@@ -74,9 +71,6 @@ class CLIConfig:
         # environment set before process
         self._process_env = _upper(dict(os.environ))
         self._connection = connection.upper()
-
-        # TODO: _env_defaults is not defined - this will raise AttributeError
-        set_defaults(self._env, self._env_defaults)
 
         self._app_id: str | None = None
         self._app_secret: str | None = None
