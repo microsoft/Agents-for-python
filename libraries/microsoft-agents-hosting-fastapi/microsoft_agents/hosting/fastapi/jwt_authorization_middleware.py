@@ -63,7 +63,7 @@ class JwtAuthorizationMiddleware:
         else:
             if not auth_config or not auth_config.CLIENT_ID:
                 request.state.claims_identity = (
-                    await token_validator.get_anonymous_claims()
+                    token_validator.get_anonymous_claims()
                 )
             else:
                 response = JSONResponse(
