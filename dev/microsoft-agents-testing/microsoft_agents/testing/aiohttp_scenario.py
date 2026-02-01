@@ -1,14 +1,15 @@
 from __future__ import annotations
 
-import functools
 from dataclasses import dataclass
-from typing import Callable, Awaitable
+from typing import Callable, Awaitable, cast
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
 
-from aiohttp.web import Application
+from aiohttp.web import Application, Request, Response
 from aiohttp.test_utils import TestServer
+from dotenv import dotenv_values
 
+from microsoft_agents.activity import load_configuration_from_env
 from microsoft_agents.hosting.core import (
     AgentApplication, Authorization, ChannelServiceAdapter,
     Connections, MemoryStorage, Storage, TurnState,
@@ -20,7 +21,8 @@ from microsoft_agents.authentication.msal import MsalConnectionManager
 
 from .core import (
     AiohttpCallbackServer,
-    AiohttpClientFactory,
+    _AiohttpClientFactory,
+    ClientFactory,
     Scenario,
     ScenarioConfig,
 )
@@ -63,8 +65,6 @@ class AiohttpScenario(Scenario):
 
     async def _init_agent_environment(self) -> dict:
         """Initialize agent components, return SDK config."""
-        from dotenv import dotenv_values
-        from microsoft_agents.activity import load_configuration_from_env
         
         env_vars = dotenv_values(self._config.env_file_path)
         sdk_config = load_configuration_from_env(env_vars)
@@ -91,23 +91,27 @@ class AiohttpScenario(Scenario):
     
     def _create_application(self) -> Application:
         """Initialize and return the aiohttp application."""
+        assert self._env is not None
         
         # Create aiohttp app
         middlewares = [jwt_authorization_middleware] if self._use_jwt_middleware else []
         app = Application(middlewares=middlewares)
+        adapter = cast(CloudAdapter, self._env.adapter)
+        async def entry_point(request: Request) -> Response:
+            return await start_agent_process(
+                request,
+                agent_application=self._env.agent_application,
+                adapter=adapter,
+            )
         app.router.add_post(
             "/api/messages",
-            functools.partial(
-                start_agent_process,
-                agent_application=self._env.agent_application,
-                adapter=self._env.adapter,
-            ),
+            entry_point,
         )
 
         return app
 
     @asynccontextmanager
-    async def run(self) -> AsyncIterator[AiohttpClientFactory]:
+    async def run(self) -> AsyncIterator[ClientFactory]:
         """Start the scenario and yield a client factory."""
         
         sdk_config = await self._init_agent_environment()
@@ -120,11 +124,10 @@ class AiohttpScenario(Scenario):
             async with TestServer(app, port=3978) as server:
                 agent_url = f"http://{server.host}:{server.port}/"
                 
-                factory = AiohttpClientFactory(
+                factory = _AiohttpClientFactory(
                     agent_url=agent_url,
                     response_endpoint=callback_server.service_endpoint,
                     sdk_config=sdk_config,
-                    default_template=self._config.activity_template,
                     default_config=self._config.client_config,
                     transcript=transcript,
                 )

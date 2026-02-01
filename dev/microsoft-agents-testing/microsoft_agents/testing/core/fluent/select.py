@@ -7,11 +7,7 @@ import random
 from typing import TypeVar, Iterable, Callable, cast
 from pydantic import BaseModel
 
-from .backend import (
-    for_all,
-    ModelPredicate
-)
-
+from .backend import ModelPredicate
 from .expect import Expect
 
 T = TypeVar("T", bound=BaseModel)

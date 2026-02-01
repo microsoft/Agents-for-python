@@ -4,7 +4,7 @@
 from aiohttp import ClientSession
 
 from .agent_client import AgentClient
-from .client_config import ClientConfig
+from .config import ClientConfig
 from .fluent import ActivityTemplate
 from .transport import (
     Transcript,
@@ -12,8 +12,7 @@ from .transport import (
 )
 from .utils import generate_token_from_config
 
-
-class AiohttpClientFactory:
+class _AiohttpClientFactory:
     """Factory for creating clients within an aiohttp scenario."""
     
     def __init__(
@@ -21,19 +20,19 @@ class AiohttpClientFactory:
         agent_url: str,
         response_endpoint: str,
         sdk_config: dict,
-        default_template: ActivityTemplate,
-        default_config: ClientConfig,
-        transcript: Transcript,
+        default_template: ActivityTemplate | None = None,
+        default_config: ClientConfig | None = None,
+        transcript: Transcript | None = None,
     ):
         self._agent_url = agent_url
         self._response_endpoint = response_endpoint
         self._sdk_config = sdk_config
-        self._default_template = default_template
-        self._default_config = default_config
+        self._default_template = default_template or ActivityTemplate()
+        self._default_config = default_config or ClientConfig()
         self._transcript = transcript
         self._sessions: list[ClientSession] = []  # track for cleanup
     
-    async def create_client(self, config: ClientConfig | None = None) -> AgentClient:
+    async def __call__(self, config: ClientConfig | None = None) -> AgentClient:
         """Create a new client with the given configuration."""
         config = config or self._default_config
         
@@ -59,7 +58,6 @@ class AiohttpClientFactory:
         template = config.activity_template or self._default_template
         template = template.with_updates(
             service_url=self._response_endpoint,
-            **{"from.id": config.user_id, "from.name": config.user_name},
         )
         
         # Create sender and client

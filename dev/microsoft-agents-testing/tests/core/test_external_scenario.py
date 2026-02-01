@@ -4,12 +4,12 @@
 """Tests for the ExternalScenario class."""
 
 import pytest
-from unittest.mock import patch, MagicMock, AsyncMock
+from unittest.mock import AsyncMock, MagicMock, patch, mock_open
 
 from microsoft_agents.testing.core.external_scenario import ExternalScenario
-from microsoft_agents.testing.core.scenario import ScenarioConfig
-from microsoft_agents.testing.core.client_config import ClientConfig
-from microsoft_agents.testing.core.fluent import ActivityTemplate
+from microsoft_agents.testing.core.scenario import Scenario, ScenarioConfig
+from microsoft_agents.testing.core.config import ClientConfig
+from microsoft_agents.testing.core._aiohttp_client_factory import _AiohttpClientFactory
 
 
 # ============================================================================
@@ -19,56 +19,44 @@ from microsoft_agents.testing.core.fluent import ActivityTemplate
 class TestExternalScenarioInitialization:
     """Tests for ExternalScenario initialization."""
 
-    def test_requires_endpoint(self):
-        """ExternalScenario requires a non-empty endpoint."""
-        with pytest.raises(ValueError, match="endpoint must be provided"):
-            ExternalScenario(endpoint="")
-
-    def test_requires_endpoint_not_none(self):
-        """ExternalScenario raises for None endpoint."""
-        with pytest.raises(ValueError, match="endpoint must be provided"):
-            ExternalScenario(endpoint=None)
-
-    def test_stores_endpoint(self):
-        """ExternalScenario stores the provided endpoint."""
-        scenario = ExternalScenario(endpoint="http://localhost:3978")
-        
-        assert scenario._endpoint == "http://localhost:3978"
-
-    def test_stores_endpoint_with_path(self):
-        """ExternalScenario stores endpoint with path."""
+    def test_initialization_with_endpoint(self):
+        """ExternalScenario initializes with endpoint."""
         scenario = ExternalScenario(endpoint="http://localhost:3978/api/messages")
         
         assert scenario._endpoint == "http://localhost:3978/api/messages"
 
-    def test_uses_default_config(self):
+    def test_initialization_with_endpoint_and_config(self):
+        """ExternalScenario initializes with endpoint and config."""
+        config = ScenarioConfig(callback_server_port=9000)
+        scenario = ExternalScenario(
+            endpoint="http://localhost:3978/api/messages",
+            config=config,
+        )
+        
+        assert scenario._endpoint == "http://localhost:3978/api/messages"
+        assert scenario._config is config
+        assert scenario._config.callback_server_port == 9000
+
+    def test_initialization_with_default_config(self):
         """ExternalScenario uses default config when none provided."""
-        scenario = ExternalScenario(endpoint="http://localhost:3978")
+        scenario = ExternalScenario(endpoint="http://localhost:3978/api/messages")
         
         assert isinstance(scenario._config, ScenarioConfig)
-        assert scenario._config.env_file_path == ".env"
-        assert scenario._config.callback_server_port == 9378
+        assert scenario._config.callback_server_port == 9378  # Default port
 
-    def test_accepts_custom_config(self):
-        """ExternalScenario accepts custom ScenarioConfig."""
-        custom_config = ScenarioConfig(
-            env_file_path=".env.test",
-            callback_server_port=8080,
-        )
-        scenario = ExternalScenario(
-            endpoint="http://localhost:3978",
-            config=custom_config
-        )
-        
-        assert scenario._config is custom_config
-        assert scenario._config.env_file_path == ".env.test"
-        assert scenario._config.callback_server_port == 8080
+    def test_initialization_raises_on_empty_endpoint(self):
+        """ExternalScenario raises ValueError for empty endpoint."""
+        with pytest.raises(ValueError, match="endpoint must be provided"):
+            ExternalScenario(endpoint="")
+
+    def test_initialization_raises_on_none_endpoint(self):
+        """ExternalScenario raises ValueError for None endpoint."""
+        with pytest.raises(ValueError, match="endpoint must be provided"):
+            ExternalScenario(endpoint=None)
 
     def test_inherits_from_scenario(self):
-        """ExternalScenario inherits from Scenario base class."""
-        from microsoft_agents.testing.core.scenario import Scenario
-        
-        scenario = ExternalScenario(endpoint="http://localhost:3978")
+        """ExternalScenario inherits from Scenario."""
+        scenario = ExternalScenario(endpoint="http://localhost:3978/api/messages")
         
         assert isinstance(scenario, Scenario)
 
@@ -78,191 +66,491 @@ class TestExternalScenarioInitialization:
 # ============================================================================
 
 class TestExternalScenarioConfiguration:
-    """Tests for ExternalScenario with various configurations."""
+    """Tests for ExternalScenario configuration handling."""
 
-    def test_with_custom_env_file(self):
-        """ExternalScenario with custom env file path."""
-        config = ScenarioConfig(env_file_path="/path/to/custom/.env")
+    def test_config_with_env_file_path(self):
+        """ExternalScenario accepts config with env_file_path."""
+        config = ScenarioConfig(env_file_path="/path/to/.env")
         scenario = ExternalScenario(
-            endpoint="http://agent.example.com",
-            config=config
+            endpoint="http://localhost:3978/api/messages",
+            config=config,
         )
         
-        assert scenario._config.env_file_path == "/path/to/custom/.env"
+        assert scenario._config.env_file_path == "/path/to/.env"
 
-    def test_with_custom_port(self):
-        """ExternalScenario with custom callback server port."""
-        config = ScenarioConfig(callback_server_port=9999)
-        scenario = ExternalScenario(
-            endpoint="http://agent.example.com",
-            config=config
-        )
-        
-        assert scenario._config.callback_server_port == 9999
-
-    def test_with_custom_activity_template(self):
-        """ExternalScenario with custom activity template."""
-        template = ActivityTemplate(
-            channel_id="custom-channel",
-            locale="de-DE",
-        )
-        config = ScenarioConfig(activity_template=template)
-        scenario = ExternalScenario(
-            endpoint="http://agent.example.com",
-            config=config
-        )
-        
-        assert scenario._config.activity_template is template
-
-    def test_with_custom_client_config(self):
-        """ExternalScenario with custom client config."""
+    def test_config_with_client_config(self):
+        """ExternalScenario accepts config with client_config."""
         client_config = ClientConfig(
-            user_id="custom-user",
-            user_name="Custom User",
+            headers={"X-Custom": "value"},
             auth_token="test-token",
         )
         config = ScenarioConfig(client_config=client_config)
         scenario = ExternalScenario(
-            endpoint="http://agent.example.com",
-            config=config
+            endpoint="http://localhost:3978/api/messages",
+            config=config,
         )
         
-        assert scenario._config.client_config is client_config
+        assert scenario._config.client_config.auth_token == "test-token"
+        assert scenario._config.client_config.headers == {"X-Custom": "value"}
 
-    def test_with_all_custom_settings(self):
-        """ExternalScenario with all custom configuration."""
-        template = ActivityTemplate(channel_id="full-custom")
-        client_config = ClientConfig(user_id="full-custom-user")
-        
-        config = ScenarioConfig(
-            env_file_path=".env.production",
-            callback_server_port=5000,
-            activity_template=template,
-            client_config=client_config,
-        )
+    def test_config_with_custom_port(self):
+        """ExternalScenario uses custom callback_server_port from config."""
+        config = ScenarioConfig(callback_server_port=8080)
         scenario = ExternalScenario(
-            endpoint="https://production-agent.example.com",
-            config=config
+            endpoint="http://localhost:3978/api/messages",
+            config=config,
         )
         
-        assert scenario._endpoint == "https://production-agent.example.com"
-        assert scenario._config.env_file_path == ".env.production"
-        assert scenario._config.callback_server_port == 5000
-        assert scenario._config.activity_template is template
-        assert scenario._config.client_config is client_config
+        assert scenario._config.callback_server_port == 8080
 
 
 # ============================================================================
-# ExternalScenario Endpoint Validation Tests
-# ============================================================================
-
-class TestExternalScenarioEndpointValidation:
-    """Tests for endpoint validation in ExternalScenario."""
-
-    def test_accepts_http_endpoint(self):
-        """ExternalScenario accepts http:// endpoint."""
-        scenario = ExternalScenario(endpoint="http://localhost:3978")
-        assert scenario._endpoint == "http://localhost:3978"
-
-    def test_accepts_https_endpoint(self):
-        """ExternalScenario accepts https:// endpoint."""
-        scenario = ExternalScenario(endpoint="https://secure-agent.example.com")
-        assert scenario._endpoint == "https://secure-agent.example.com"
-
-    def test_accepts_endpoint_with_port(self):
-        """ExternalScenario accepts endpoint with port."""
-        scenario = ExternalScenario(endpoint="http://localhost:8080")
-        assert scenario._endpoint == "http://localhost:8080"
-
-    def test_accepts_endpoint_with_path(self):
-        """ExternalScenario accepts endpoint with path."""
-        scenario = ExternalScenario(endpoint="http://localhost:3978/api/v1")
-        assert scenario._endpoint == "http://localhost:3978/api/v1"
-
-    def test_accepts_ip_address_endpoint(self):
-        """ExternalScenario accepts IP address endpoint."""
-        scenario = ExternalScenario(endpoint="http://192.168.1.100:3978")
-        assert scenario._endpoint == "http://192.168.1.100:3978"
-
-    def test_rejects_empty_string(self):
-        """ExternalScenario rejects empty string endpoint."""
-        with pytest.raises(ValueError, match="endpoint must be provided"):
-            ExternalScenario(endpoint="")
-
-
-# ============================================================================
-# ExternalScenario Run Method Tests (with mocking)
+# ExternalScenario.run Tests
 # ============================================================================
 
 class TestExternalScenarioRun:
-    """Tests for ExternalScenario.run() method behavior."""
+    """Tests for ExternalScenario.run method."""
 
-    def test_has_run_method(self):
-        """ExternalScenario has run method."""
-        scenario = ExternalScenario(endpoint="http://localhost:3978")
+    @pytest.mark.asyncio
+    async def test_run_yields_factory(self):
+        """run() yields a client factory."""
+        scenario = ExternalScenario(endpoint="http://localhost:3978/api/messages")
         
-        assert hasattr(scenario, 'run')
-        assert callable(scenario.run)
+        with patch("microsoft_agents.testing.core.external_scenario.dotenv_values") as mock_dotenv, \
+             patch("microsoft_agents.testing.core.external_scenario.load_configuration_from_env") as mock_load_config, \
+             patch("microsoft_agents.testing.core.external_scenario.AiohttpCallbackServer") as mock_server_class:
+            
+            mock_dotenv.return_value = {}
+            mock_load_config.return_value = {}
+            
+            # Setup mock callback server
+            mock_server = MagicMock()
+            mock_server.service_endpoint = "http://localhost:9378/v3/conversations/"
+            mock_transcript = MagicMock()
+            
+            # Create async context manager mock
+            mock_listen_cm = AsyncMock()
+            mock_listen_cm.__aenter__.return_value = mock_transcript
+            mock_listen_cm.__aexit__.return_value = None
+            mock_server.listen.return_value = mock_listen_cm
+            
+            mock_server_class.return_value = mock_server
+            
+            async with scenario.run() as factory:
+                assert isinstance(factory, _AiohttpClientFactory)
 
-    def test_has_client_method(self):
-        """ExternalScenario inherits client convenience method."""
-        scenario = ExternalScenario(endpoint="http://localhost:3978")
+    @pytest.mark.asyncio
+    async def test_run_loads_env_from_config_path(self):
+        """run() loads environment from config.env_file_path."""
+        config = ScenarioConfig(env_file_path="/path/to/.env")
+        scenario = ExternalScenario(
+            endpoint="http://localhost:3978/api/messages",
+            config=config,
+        )
         
-        assert hasattr(scenario, 'client')
-        assert callable(scenario.client)
+        with patch("microsoft_agents.testing.core.external_scenario.dotenv_values") as mock_dotenv, \
+             patch("microsoft_agents.testing.core.external_scenario.load_configuration_from_env") as mock_load_config, \
+             patch("microsoft_agents.testing.core.external_scenario.AiohttpCallbackServer") as mock_server_class:
+            
+            mock_dotenv.return_value = {"KEY": "value"}
+            mock_load_config.return_value = {}
+            
+            # Setup mock callback server
+            mock_server = MagicMock()
+            mock_server.service_endpoint = "http://localhost:9378/v3/conversations/"
+            mock_transcript = MagicMock()
+            
+            mock_listen_cm = AsyncMock()
+            mock_listen_cm.__aenter__.return_value = mock_transcript
+            mock_listen_cm.__aexit__.return_value = None
+            mock_server.listen.return_value = mock_listen_cm
+            
+            mock_server_class.return_value = mock_server
+            
+            async with scenario.run() as factory:
+                mock_dotenv.assert_called_once_with("/path/to/.env")
+
+    @pytest.mark.asyncio
+    async def test_run_creates_callback_server_with_config_port(self):
+        """run() creates callback server with configured port."""
+        config = ScenarioConfig(callback_server_port=8080)
+        scenario = ExternalScenario(
+            endpoint="http://localhost:3978/api/messages",
+            config=config,
+        )
+        
+        with patch("microsoft_agents.testing.core.external_scenario.dotenv_values") as mock_dotenv, \
+             patch("microsoft_agents.testing.core.external_scenario.load_configuration_from_env") as mock_load_config, \
+             patch("microsoft_agents.testing.core.external_scenario.AiohttpCallbackServer") as mock_server_class:
+            
+            mock_dotenv.return_value = {}
+            mock_load_config.return_value = {}
+            
+            # Setup mock callback server
+            mock_server = MagicMock()
+            mock_server.service_endpoint = "http://localhost:8080/v3/conversations/"
+            mock_transcript = MagicMock()
+            
+            mock_listen_cm = AsyncMock()
+            mock_listen_cm.__aenter__.return_value = mock_transcript
+            mock_listen_cm.__aexit__.return_value = None
+            mock_server.listen.return_value = mock_listen_cm
+            
+            mock_server_class.return_value = mock_server
+            
+            async with scenario.run() as factory:
+                mock_server_class.assert_called_once_with(8080)
+
+    @pytest.mark.asyncio
+    async def test_run_passes_endpoint_to_factory(self):
+        """run() passes endpoint to the client factory."""
+        scenario = ExternalScenario(endpoint="http://my-agent:3978/api/messages")
+        
+        with patch("microsoft_agents.testing.core.external_scenario.dotenv_values") as mock_dotenv, \
+             patch("microsoft_agents.testing.core.external_scenario.load_configuration_from_env") as mock_load_config, \
+             patch("microsoft_agents.testing.core.external_scenario.AiohttpCallbackServer") as mock_server_class:
+            
+            mock_dotenv.return_value = {}
+            mock_load_config.return_value = {}
+            
+            # Setup mock callback server
+            mock_server = MagicMock()
+            mock_server.service_endpoint = "http://localhost:9378/v3/conversations/"
+            mock_transcript = MagicMock()
+            
+            mock_listen_cm = AsyncMock()
+            mock_listen_cm.__aenter__.return_value = mock_transcript
+            mock_listen_cm.__aexit__.return_value = None
+            mock_server.listen.return_value = mock_listen_cm
+            
+            mock_server_class.return_value = mock_server
+            
+            async with scenario.run() as factory:
+                assert factory._agent_url == "http://my-agent:3978/api/messages"
+
+    @pytest.mark.asyncio
+    async def test_run_passes_service_endpoint_to_factory(self):
+        """run() passes callback server's service_endpoint to factory."""
+        scenario = ExternalScenario(endpoint="http://localhost:3978/api/messages")
+        
+        with patch("microsoft_agents.testing.core.external_scenario.dotenv_values") as mock_dotenv, \
+             patch("microsoft_agents.testing.core.external_scenario.load_configuration_from_env") as mock_load_config, \
+             patch("microsoft_agents.testing.core.external_scenario.AiohttpCallbackServer") as mock_server_class:
+            
+            mock_dotenv.return_value = {}
+            mock_load_config.return_value = {}
+            
+            # Setup mock callback server
+            mock_server = MagicMock()
+            mock_server.service_endpoint = "http://localhost:9378/v3/conversations/"
+            mock_transcript = MagicMock()
+            
+            mock_listen_cm = AsyncMock()
+            mock_listen_cm.__aenter__.return_value = mock_transcript
+            mock_listen_cm.__aexit__.return_value = None
+            mock_server.listen.return_value = mock_listen_cm
+            
+            mock_server_class.return_value = mock_server
+            
+            async with scenario.run() as factory:
+                assert factory._response_endpoint == "http://localhost:9378/v3/conversations/"
+
+    @pytest.mark.asyncio
+    async def test_run_passes_sdk_config_to_factory(self):
+        """run() passes loaded sdk_config to factory."""
+        scenario = ExternalScenario(endpoint="http://localhost:3978/api/messages")
+        
+        with patch("microsoft_agents.testing.core.external_scenario.dotenv_values") as mock_dotenv, \
+             patch("microsoft_agents.testing.core.external_scenario.load_configuration_from_env") as mock_load_config, \
+             patch("microsoft_agents.testing.core.external_scenario.AiohttpCallbackServer") as mock_server_class:
+            
+            expected_sdk_config = {"CONNECTIONS": {"SERVICE_CONNECTION": {"SETTINGS": {}}}}
+            mock_dotenv.return_value = {}
+            mock_load_config.return_value = expected_sdk_config
+            
+            # Setup mock callback server
+            mock_server = MagicMock()
+            mock_server.service_endpoint = "http://localhost:9378/v3/conversations/"
+            mock_transcript = MagicMock()
+            
+            mock_listen_cm = AsyncMock()
+            mock_listen_cm.__aenter__.return_value = mock_transcript
+            mock_listen_cm.__aexit__.return_value = None
+            mock_server.listen.return_value = mock_listen_cm
+            
+            mock_server_class.return_value = mock_server
+            
+            async with scenario.run() as factory:
+                assert factory._sdk_config is expected_sdk_config
+
+    @pytest.mark.asyncio
+    async def test_run_passes_client_config_to_factory(self):
+        """run() passes client_config from scenario config to factory."""
+        client_config = ClientConfig(auth_token="test-token")
+        config = ScenarioConfig(client_config=client_config)
+        scenario = ExternalScenario(
+            endpoint="http://localhost:3978/api/messages",
+            config=config,
+        )
+        
+        with patch("microsoft_agents.testing.core.external_scenario.dotenv_values") as mock_dotenv, \
+             patch("microsoft_agents.testing.core.external_scenario.load_configuration_from_env") as mock_load_config, \
+             patch("microsoft_agents.testing.core.external_scenario.AiohttpCallbackServer") as mock_server_class:
+            
+            mock_dotenv.return_value = {}
+            mock_load_config.return_value = {}
+            
+            # Setup mock callback server
+            mock_server = MagicMock()
+            mock_server.service_endpoint = "http://localhost:9378/v3/conversations/"
+            mock_transcript = MagicMock()
+            
+            mock_listen_cm = AsyncMock()
+            mock_listen_cm.__aenter__.return_value = mock_transcript
+            mock_listen_cm.__aexit__.return_value = None
+            mock_server.listen.return_value = mock_listen_cm
+            
+            mock_server_class.return_value = mock_server
+            
+            async with scenario.run() as factory:
+                assert factory._default_config is client_config
 
 
 # ============================================================================
-# ExternalScenario Multiple Instances Tests
+# ExternalScenario.run Cleanup Tests
 # ============================================================================
 
-class TestExternalScenarioMultipleInstances:
-    """Tests for multiple ExternalScenario instances."""
+class TestExternalScenarioRunCleanup:
+    """Tests for ExternalScenario.run cleanup behavior."""
 
-    def test_independent_instances(self):
-        """Multiple ExternalScenario instances are independent."""
-        scenario1 = ExternalScenario(endpoint="http://agent1.example.com")
-        scenario2 = ExternalScenario(endpoint="http://agent2.example.com")
+    @pytest.mark.asyncio
+    async def test_run_cleans_up_factory_on_exit(self):
+        """run() calls factory.cleanup() on context exit."""
+        scenario = ExternalScenario(endpoint="http://localhost:3978/api/messages")
         
-        assert scenario1._endpoint != scenario2._endpoint
-        assert scenario1._config is not scenario2._config
+        with patch("microsoft_agents.testing.core.external_scenario.dotenv_values") as mock_dotenv, \
+             patch("microsoft_agents.testing.core.external_scenario.load_configuration_from_env") as mock_load_config, \
+             patch("microsoft_agents.testing.core.external_scenario.AiohttpCallbackServer") as mock_server_class, \
+             patch("microsoft_agents.testing.core.external_scenario._AiohttpClientFactory") as mock_factory_class:
+            
+            mock_dotenv.return_value = {}
+            mock_load_config.return_value = {}
+            
+            # Setup mock callback server
+            mock_server = MagicMock()
+            mock_server.service_endpoint = "http://localhost:9378/v3/conversations/"
+            mock_transcript = MagicMock()
+            
+            mock_listen_cm = AsyncMock()
+            mock_listen_cm.__aenter__.return_value = mock_transcript
+            mock_listen_cm.__aexit__.return_value = None
+            mock_server.listen.return_value = mock_listen_cm
+            
+            mock_server_class.return_value = mock_server
+            
+            # Setup mock factory
+            mock_factory = MagicMock()
+            mock_factory.cleanup = AsyncMock()
+            mock_factory_class.return_value = mock_factory
+            
+            async with scenario.run() as factory:
+                pass  # Just enter and exit
+            
+            mock_factory.cleanup.assert_awaited_once()
 
-    def test_instances_with_different_configs(self):
-        """Multiple instances can have different configs."""
-        config1 = ScenarioConfig(callback_server_port=9001)
-        config2 = ScenarioConfig(callback_server_port=9002)
+    @pytest.mark.asyncio
+    async def test_run_cleans_up_factory_on_exception(self):
+        """run() calls factory.cleanup() even when exception occurs."""
+        scenario = ExternalScenario(endpoint="http://localhost:3978/api/messages")
         
-        scenario1 = ExternalScenario(endpoint="http://agent1.example.com", config=config1)
-        scenario2 = ExternalScenario(endpoint="http://agent2.example.com", config=config2)
-        
-        assert scenario1._config.callback_server_port == 9001
-        assert scenario2._config.callback_server_port == 9002
-
-    def test_instances_share_config_reference_if_same(self):
-        """Instances can share config if explicitly provided."""
-        shared_config = ScenarioConfig(callback_server_port=7777)
-        
-        scenario1 = ExternalScenario(endpoint="http://agent1.example.com", config=shared_config)
-        scenario2 = ExternalScenario(endpoint="http://agent2.example.com", config=shared_config)
-        
-        assert scenario1._config is scenario2._config
+        with patch("microsoft_agents.testing.core.external_scenario.dotenv_values") as mock_dotenv, \
+             patch("microsoft_agents.testing.core.external_scenario.load_configuration_from_env") as mock_load_config, \
+             patch("microsoft_agents.testing.core.external_scenario.AiohttpCallbackServer") as mock_server_class, \
+             patch("microsoft_agents.testing.core.external_scenario._AiohttpClientFactory") as mock_factory_class:
+            
+            mock_dotenv.return_value = {}
+            mock_load_config.return_value = {}
+            
+            # Setup mock callback server
+            mock_server = MagicMock()
+            mock_server.service_endpoint = "http://localhost:9378/v3/conversations/"
+            mock_transcript = MagicMock()
+            
+            mock_listen_cm = AsyncMock()
+            mock_listen_cm.__aenter__.return_value = mock_transcript
+            mock_listen_cm.__aexit__.return_value = None
+            mock_server.listen.return_value = mock_listen_cm
+            
+            mock_server_class.return_value = mock_server
+            
+            # Setup mock factory
+            mock_factory = MagicMock()
+            mock_factory.cleanup = AsyncMock()
+            mock_factory_class.return_value = mock_factory
+            
+            with pytest.raises(RuntimeError):
+                async with scenario.run() as factory:
+                    raise RuntimeError("Test exception")
+            
+            mock_factory.cleanup.assert_awaited_once()
 
 
 # ============================================================================
-# ExternalScenario Type Checking Tests
+# ExternalScenario.client Convenience Method Tests
 # ============================================================================
 
-class TestExternalScenarioTypeChecking:
-    """Tests for ExternalScenario type annotations and protocol compliance."""
+class TestExternalScenarioClient:
+    """Tests for ExternalScenario.client convenience method (inherited from Scenario)."""
 
-    def test_config_type(self):
-        """_config is ScenarioConfig."""
-        scenario = ExternalScenario(endpoint="http://localhost:3978")
+    @pytest.mark.asyncio
+    async def test_client_yields_agent_client(self):
+        """client() convenience method yields an AgentClient."""
+        scenario = ExternalScenario(endpoint="http://localhost:3978/api/messages")
         
-        assert isinstance(scenario._config, ScenarioConfig)
+        with patch("microsoft_agents.testing.core.external_scenario.dotenv_values") as mock_dotenv, \
+             patch("microsoft_agents.testing.core.external_scenario.load_configuration_from_env") as mock_load_config, \
+             patch("microsoft_agents.testing.core.external_scenario.AiohttpCallbackServer") as mock_server_class, \
+             patch("microsoft_agents.testing.core.external_scenario._AiohttpClientFactory") as mock_factory_class:
+            
+            mock_dotenv.return_value = {}
+            mock_load_config.return_value = {}
+            
+            # Setup mock callback server
+            mock_server = MagicMock()
+            mock_server.service_endpoint = "http://localhost:9378/v3/conversations/"
+            mock_transcript = MagicMock()
+            
+            mock_listen_cm = AsyncMock()
+            mock_listen_cm.__aenter__.return_value = mock_transcript
+            mock_listen_cm.__aexit__.return_value = None
+            mock_server.listen.return_value = mock_listen_cm
+            
+            mock_server_class.return_value = mock_server
+            
+            # Setup mock factory
+            mock_client = MagicMock()
+            mock_factory = AsyncMock(return_value=mock_client)
+            mock_factory.cleanup = AsyncMock()
+            mock_factory_class.return_value = mock_factory
+            
+            async with scenario.client() as client:
+                assert client is mock_client
+                mock_factory.assert_awaited_once_with(None)
 
-    def test_endpoint_type(self):
-        """_endpoint is a string."""
-        scenario = ExternalScenario(endpoint="http://localhost:3978")
+    @pytest.mark.asyncio
+    async def test_client_passes_config_to_factory(self):
+        """client() passes config to factory.__call__."""
+        scenario = ExternalScenario(endpoint="http://localhost:3978/api/messages")
+        custom_config = ClientConfig(auth_token="custom-token")
         
-        assert isinstance(scenario._endpoint, str)
+        with patch("microsoft_agents.testing.core.external_scenario.dotenv_values") as mock_dotenv, \
+             patch("microsoft_agents.testing.core.external_scenario.load_configuration_from_env") as mock_load_config, \
+             patch("microsoft_agents.testing.core.external_scenario.AiohttpCallbackServer") as mock_server_class, \
+             patch("microsoft_agents.testing.core.external_scenario._AiohttpClientFactory") as mock_factory_class:
+            
+            mock_dotenv.return_value = {}
+            mock_load_config.return_value = {}
+            
+            # Setup mock callback server
+            mock_server = MagicMock()
+            mock_server.service_endpoint = "http://localhost:9378/v3/conversations/"
+            mock_transcript = MagicMock()
+            
+            mock_listen_cm = AsyncMock()
+            mock_listen_cm.__aenter__.return_value = mock_transcript
+            mock_listen_cm.__aexit__.return_value = None
+            mock_server.listen.return_value = mock_listen_cm
+            
+            mock_server_class.return_value = mock_server
+            
+            # Setup mock factory
+            mock_client = MagicMock()
+            mock_factory = AsyncMock(return_value=mock_client)
+            mock_factory.cleanup = AsyncMock()
+            mock_factory_class.return_value = mock_factory
+            
+            async with scenario.client(config=custom_config) as client:
+                mock_factory.assert_awaited_once_with(custom_config)
+
+
+# ============================================================================
+# ExternalScenario Edge Cases Tests
+# ============================================================================
+
+class TestExternalScenarioEdgeCases:
+    """Tests for ExternalScenario edge cases."""
+
+    def test_endpoint_with_trailing_slash(self):
+        """ExternalScenario accepts endpoint with trailing slash."""
+        scenario = ExternalScenario(endpoint="http://localhost:3978/api/messages/")
+        
+        assert scenario._endpoint == "http://localhost:3978/api/messages/"
+
+    def test_endpoint_with_https(self):
+        """ExternalScenario accepts https endpoint."""
+        scenario = ExternalScenario(endpoint="https://my-agent.azurewebsites.net/api/messages")
+        
+        assert scenario._endpoint == "https://my-agent.azurewebsites.net/api/messages"
+
+    def test_endpoint_with_port(self):
+        """ExternalScenario accepts endpoint with explicit port."""
+        scenario = ExternalScenario(endpoint="http://localhost:8080/api/messages")
+        
+        assert scenario._endpoint == "http://localhost:8080/api/messages"
+
+    @pytest.mark.asyncio
+    async def test_run_with_none_env_file_path(self):
+        """run() handles None env_file_path."""
+        config = ScenarioConfig(env_file_path=None)
+        scenario = ExternalScenario(
+            endpoint="http://localhost:3978/api/messages",
+            config=config,
+        )
+        
+        with patch("microsoft_agents.testing.core.external_scenario.dotenv_values") as mock_dotenv, \
+             patch("microsoft_agents.testing.core.external_scenario.load_configuration_from_env") as mock_load_config, \
+             patch("microsoft_agents.testing.core.external_scenario.AiohttpCallbackServer") as mock_server_class:
+            
+            mock_dotenv.return_value = {}
+            mock_load_config.return_value = {}
+            
+            # Setup mock callback server
+            mock_server = MagicMock()
+            mock_server.service_endpoint = "http://localhost:9378/v3/conversations/"
+            mock_transcript = MagicMock()
+            
+            mock_listen_cm = AsyncMock()
+            mock_listen_cm.__aenter__.return_value = mock_transcript
+            mock_listen_cm.__aexit__.return_value = None
+            mock_server.listen.return_value = mock_listen_cm
+            
+            mock_server_class.return_value = mock_server
+            
+            async with scenario.run() as factory:
+                mock_dotenv.assert_called_once_with(None)
+
+
+# ============================================================================
+# ExternalScenario Dataclass/Attribute Tests  
+# ============================================================================
+
+class TestExternalScenarioAttributes:
+    """Tests for ExternalScenario attributes and properties."""
+
+    def test_endpoint_stored_as_private_attribute(self):
+        """Endpoint is stored as _endpoint."""
+        scenario = ExternalScenario(endpoint="http://localhost:3978/api/messages")
+        
+        assert hasattr(scenario, "_endpoint")
+        assert scenario._endpoint == "http://localhost:3978/api/messages"
+
+    def test_config_stored_as_private_attribute(self):
+        """Config is stored as _config."""
+        config = ScenarioConfig()
+        scenario = ExternalScenario(
+            endpoint="http://localhost:3978/api/messages",
+            config=config,
+        )
+        
+        assert hasattr(scenario, "_config")
+        assert scenario._config is config

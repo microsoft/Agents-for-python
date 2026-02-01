@@ -20,12 +20,9 @@ from .backend import (
     Unset,
 )
 
-from .activity import (
-    ActivityTemplate,
-)
 from .expect import Expect
 from .select import Select
-from .model_template import ModelTemplate
+from .model_template import ModelTemplate, ActivityTemplate
 from .utils import normalize_model_data
 
 __all__ = [

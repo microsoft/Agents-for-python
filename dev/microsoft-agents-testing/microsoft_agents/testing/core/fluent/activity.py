@@ -391,14 +391,3 @@ from .model_template import ModelTemplate
 #             return activity.semantic_action is not None
         
 #         return self.that_for_any(has_action)
-
-class ActivityTemplate(ModelTemplate[Activity]):
-    """A template for creating Activity instances with default values."""
-    
-    def __init__(self, defaults: Activity | dict | None = None, **kwargs) -> None:
-        """Initialize the ActivityTemplate with default values.
-        
-        :param defaults: A dictionary or Activity containing default values.
-        :param kwargs: Additional default values as keyword arguments.
-        """
-        super().__init__(Activity, defaults, **kwargs)

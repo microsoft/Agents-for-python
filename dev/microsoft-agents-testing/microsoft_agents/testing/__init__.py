@@ -5,7 +5,6 @@ from .core import (
     ActivityTemplate,
     Scenario,
     ExternalScenario,
-    AiohttpClientFactory,
     AiohttpCallbackServer,
     AiohttpSender,
     CallbackServer,
@@ -17,6 +16,11 @@ from .core import (
     Unset,
 )
 
+from .aiohttp_scenario import (
+    AgentEnvironment,
+    AiohttpScenario,
+)
+
 __all__ = [
     "AgentClient",
     "ScenarioConfig",
@@ -24,7 +28,6 @@ __all__ = [
     "ActivityTemplate",
     "Scenario",
     "ExternalScenario",
-    "AiohttpClientFactory",
     "AiohttpCallbackServer",
     "AiohttpSender",
     "CallbackServer",
@@ -34,4 +37,6 @@ __all__ = [
     "Expect",
     "Select",
     "Unset",
+    "AgentEnvironment",
+    "AiohttpScenario",
 ]

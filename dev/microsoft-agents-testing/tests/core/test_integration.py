@@ -2,11 +2,11 @@
 # Licensed under the MIT License.
 
 """
-Integration tests for ExternalScenario, AiohttpClientFactory, and related components.
+Integration tests for ExternalScenario, _AiohttpClientFactory, and related components.
 
 These tests demonstrate the full HTTP-based testing infrastructure using:
 - ExternalScenario
-- AiohttpClientFactory
+- _AiohttpClientFactory
 - AiohttpCallbackServer
 - AiohttpSender
 - AgentClient
@@ -33,8 +33,8 @@ from microsoft_agents.activity import (
 )
 
 from microsoft_agents.testing.core.agent_client import AgentClient
-from microsoft_agents.testing.core.aiohttp_client_factory import AiohttpClientFactory
-from microsoft_agents.testing.core.client_config import ClientConfig
+from microsoft_agents.testing.core._aiohttp_client_factory import _AiohttpClientFactory
+from microsoft_agents.testing.core.config import ClientConfig
 from microsoft_agents.testing.core.external_scenario import ExternalScenario
 from microsoft_agents.testing.core.scenario import ScenarioConfig
 from microsoft_agents.testing.core.fluent import (
@@ -395,11 +395,11 @@ class TestAiohttpCallbackServerIntegration:
 
 
 # ============================================================================
-# AiohttpClientFactory Integration Tests
+# _AiohttpClientFactory Integration Tests
 # ============================================================================
 
-class TestAiohttpClientFactoryIntegration:
-    """Integration tests for AiohttpClientFactory."""
+class Test_AiohttpClientFactoryIntegration:
+    """Integration tests for _AiohttpClientFactory."""
 
     @pytest.mark.asyncio
     async def test_factory_creates_working_client(self):
@@ -409,7 +409,7 @@ class TestAiohttpClientFactoryIntegration:
         
         async with mock_server.run():
             transcript = Transcript()
-            factory = AiohttpClientFactory(
+            factory = _AiohttpClientFactory(
                 agent_url=mock_server.endpoint,
                 response_endpoint="http://localhost:9999/callback",
                 sdk_config={},
@@ -419,7 +419,7 @@ class TestAiohttpClientFactoryIntegration:
             )
             
             try:
-                client = await factory.create_client()
+                client = await factory()
                 responses = await client.send_expect_replies("Test message")
                 
                 assert len(responses) == 1
@@ -441,7 +441,7 @@ class TestAiohttpClientFactoryIntegration:
         
         async with mock_server.run():
             transcript = Transcript()
-            factory = AiohttpClientFactory(
+            factory = _AiohttpClientFactory(
                 agent_url=mock_server.endpoint,
                 response_endpoint="http://localhost:9999/callback",
                 sdk_config={},
@@ -451,7 +451,7 @@ class TestAiohttpClientFactoryIntegration:
             )
             
             try:
-                client = await factory.create_client()
+                client = await factory()
                 await client.send_expect_replies("Test")
                 
                 received = mock_server.received_activities[0]
@@ -468,7 +468,7 @@ class TestAiohttpClientFactoryIntegration:
         
         async with mock_server.run():
             transcript = Transcript()
-            factory = AiohttpClientFactory(
+            factory = _AiohttpClientFactory(
                 agent_url=mock_server.endpoint,
                 response_endpoint="http://localhost:9999/callback",
                 sdk_config={},
@@ -478,11 +478,11 @@ class TestAiohttpClientFactoryIntegration:
             )
             
             try:
-                client1 = await factory.create_client(
-                    ClientConfig().with_user("user-1", "Alice")
+                client1 = await factory(
+                    ClientConfig()
                 )
-                client2 = await factory.create_client(
-                    ClientConfig().with_user("user-2", "Bob")
+                client2 = await factory(
+                    ClientConfig()
                 )
                 
                 await client1.send_expect_replies("From Alice")
@@ -500,7 +500,7 @@ class TestAiohttpClientFactoryIntegration:
         mock_server = MockAgentServer(port=9914)
         
         async with mock_server.run():
-            factory = AiohttpClientFactory(
+            factory = _AiohttpClientFactory(
                 agent_url=mock_server.endpoint,
                 response_endpoint="http://localhost:9999/callback",
                 sdk_config={},
@@ -509,8 +509,8 @@ class TestAiohttpClientFactoryIntegration:
                 transcript=Transcript(),
             )
             
-            await factory.create_client()
-            await factory.create_client()
+            await factory()
+            await factory()
             
             assert len(factory._sessions) == 2
             
@@ -581,7 +581,7 @@ class TestEndToEndIntegration:
         async with mock_server.run():
             # Setup infrastructure
             transcript = Transcript()
-            factory = AiohttpClientFactory(
+            factory = _AiohttpClientFactory(
                 agent_url=mock_server.endpoint,
                 response_endpoint="http://localhost:9999/callback",
                 sdk_config={},
@@ -599,7 +599,7 @@ class TestEndToEndIntegration:
             )
             
             try:
-                client = await factory.create_client()
+                client = await factory()
                 
                 # Start conversation
                 responses = await client.send_expect_replies("start")
@@ -636,7 +636,7 @@ class TestEndToEndIntegration:
         
         async with mock_server.run():
             transcript = Transcript()
-            factory = AiohttpClientFactory(
+            factory = _AiohttpClientFactory(
                 agent_url=mock_server.endpoint,
                 response_endpoint="http://localhost:9999/callback",
                 sdk_config={},
@@ -647,11 +647,15 @@ class TestEndToEndIntegration:
             
             try:
                 # Create clients for different users
-                alice = await factory.create_client(
-                    ClientConfig().with_user("alice", "Alice")
+                alice = await factory(
+                    ClientConfig(
+                        activity_template=ActivityTemplate({"from.id": "alice"})
+                    )
                 )
-                bob = await factory.create_client(
-                    ClientConfig().with_user("bob", "Bob")
+                bob = await factory(
+                    ClientConfig(
+                        activity_template=ActivityTemplate({"from.id": "bob"})
+                    )
                 )
                 
                 # Both users send messages

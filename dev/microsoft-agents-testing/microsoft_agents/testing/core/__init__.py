@@ -1,3 +1,6 @@
+# Copyright (c) Microsoft Corporation. All rights reserved.
+# Licensed under the MIT License.
+
 from .fluent import (
     Expect,
     Select,
@@ -18,9 +21,9 @@ from .transport import (
 )
 
 from .agent_client import AgentClient
-from .aiohttp_client_factory import AiohttpClientFactory
-from .scenario import Scenario, ScenarioConfig
-from .client_config import ClientConfig
+from ._aiohttp_client_factory import _AiohttpClientFactory
+from .scenario import Scenario, ScenarioConfig, ClientFactory
+from .config import ClientConfig
 from .external_scenario import ExternalScenario
 
 __all__ = [
@@ -38,9 +41,10 @@ __all__ = [
     "Sender",
     "AgentClient",
     "Scenario",
+    "ClientFactory",
     "ExternalScenario",
     "Unset",
-    "AiohttpClientFactory",
+    "_AiohttpClientFactory",
     "ScenarioConfig",
     "ClientConfig",
 ]

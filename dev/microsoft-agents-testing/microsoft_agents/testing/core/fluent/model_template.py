@@ -4,9 +4,11 @@
 from __future__ import annotations
 
 from copy import deepcopy
-from typing import Generic, TypeVar, Self, cast
+from typing import Generic, TypeVar, cast, Self
 
 from pydantic import BaseModel
+
+from microsoft_agents.activity import Activity
 
 from .backend import (
     deep_update,
@@ -73,8 +75,7 @@ class ModelTemplate(Generic[ModelT]):
         deep_update(new_template, expanded_updates)
         deep_update(new_template, expanded_kwargs)
         # Pass already-expanded data, avoid re-expansion
-        result = ModelTemplate[ModelT](self._model_class, {})
-        result._defaults = new_template
+        result = ModelTemplate[ModelT](self._model_class, new_template)
         return result
     
     def __eq__(self, other: object) -> bool:
@@ -83,3 +84,37 @@ class ModelTemplate(Generic[ModelT]):
             return False
         return self._defaults == other._defaults and \
             self._model_class == other._model_class
+    
+
+class ActivityTemplate(ModelTemplate[Activity]):
+    """A template for creating Activity instances with default values."""
+    
+    def __init__(self, defaults: Activity | dict | None = None, **kwargs) -> None:
+        """Initialize the ActivityTemplate with default values.
+        
+        :param defaults: A dictionary or Activity containing default values.
+        :param kwargs: Additional default values as keyword arguments.
+        """
+        super().__init__(Activity, defaults, **kwargs)
+    
+    def with_defaults(self, defaults: dict | None = None, **kwargs) -> ActivityTemplate:
+        """Create a new ModelTemplate with additional default values.
+        
+        :param defaults: An optional dictionary of default values.
+        :param kwargs: Additional default values as keyword arguments.
+        :return: A new ModelTemplate instance.
+        """
+        new_template = deepcopy(self._defaults)
+        set_defaults(new_template, defaults, **kwargs)
+        return ActivityTemplate(new_template)
+    
+    def with_updates(self, updates: dict | None = None, **kwargs) -> ActivityTemplate:
+        """Create a new ModelTemplate with updated default values."""
+        new_template = deepcopy(self._defaults)
+        # Expand the updates first so they merge correctly with nested structure
+        expanded_updates = expand(updates or {})
+        expanded_kwargs = expand(kwargs)
+        deep_update(new_template, expanded_updates)
+        deep_update(new_template, expanded_kwargs)
+        # Pass already-expanded data, avoid re-expansion
+        return ActivityTemplate(new_template)
