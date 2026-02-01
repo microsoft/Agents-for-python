@@ -87,15 +87,12 @@ class HttpAdapterBase(ChannelServiceAdapter, ABC):
         if request.method != "POST":
             return HttpResponseFactory.method_not_allowed()
 
-        # Deserialize the incoming Activity
-        content_type = request.headers.get("Content-Type", "")
-        if "application/json" not in content_type:
-            return HttpResponseFactory.unsupported_media_type()
-
         try:
             body = await request.json()
         except Exception:
-            return HttpResponseFactory.bad_request("Invalid JSON")
+            return HttpResponseFactory.bad_request(
+                "Invalid JSON or unsupported Content-Type"
+            )
 
         activity: Activity = Activity.model_validate(body)
 

@@ -32,6 +32,7 @@ class AgentAuthConfiguration:
     SCOPES: Optional[list[str]]
     AUTHORITY: Optional[str]
     ALT_BLUEPRINT_ID: Optional[str]
+    ANONYMOUS_ALLOWED: bool = False
 
     def __init__(
         self,
@@ -44,6 +45,7 @@ class AgentAuthConfiguration:
         connection_name: Optional[str] = None,
         authority: Optional[str] = None,
         scopes: Optional[list[str]] = None,
+        anonymous_allowed: bool = False,
         **kwargs: Optional[dict[str, str]],
     ):
 
@@ -57,6 +59,9 @@ class AgentAuthConfiguration:
         self.CONNECTION_NAME = connection_name or kwargs.get("CONNECTIONNAME", None)
         self.SCOPES = scopes or kwargs.get("SCOPES", None)
         self.ALT_BLUEPRINT_ID = kwargs.get("ALT_BLUEPRINT_NAME", None)
+        self.ANONYMOUS_ALLOWED = anonymous_allowed or kwargs.get(
+            "ANONYMOUS_ALLOWED", False
+        )
 
     @property
     def ISSUERS(self) -> list[str]:
