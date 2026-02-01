@@ -1,6 +1,12 @@
 # Copyright (c) Microsoft Corporation. All rights reserved.
 # Licensed under the MIT License.
 
+"""AgentClient - The primary interface for interacting with agents in tests.
+
+This module provides the AgentClient class, which is the main entry point
+for sending activities to agents and making assertions on responses.
+"""
+
 from __future__ import annotations
 
 import asyncio
@@ -24,8 +30,41 @@ from .transport import (
 )
 from .utils import activities_from_ex
 
+# Default field values applied to all outgoing activities
+_DEFAULT_ACTIVITY_FIELDS = {
+    "type": "message",
+    "channel_id": "test",
+    "conversation.id": "test-conversation",
+    "locale": "en-US",
+    "from.id": "user-id",
+    "from.name": "User",
+    "recipient.id": "agent-id",
+    "recipient.name": "Agent",
+}
+
+
 class AgentClient:
-    """Client for sending activities to an agent and collecting responses."""
+    """Client for sending activities to an agent and collecting responses.
+    
+    AgentClient provides a high-level API for:
+    - Sending messages and activities to an agent
+    - Collecting and inspecting response activities
+    - Making fluent assertions on responses using Expect/Select
+    - Managing conversation transcripts
+    
+    Example::
+    
+        async with scenario.client() as client:
+            # Send a message and get replies
+            replies = await client.send("Hello!")
+            
+            # Assert on responses
+            client.expect().that_for_any(text="~Hello")
+            
+            # Access full transcript
+            for exchange in client.ex_history():
+                print(exchange.request.text)
+    """
     
     def __init__(
         self,
@@ -45,7 +84,7 @@ class AgentClient:
         transcript = transcript or Transcript()
         self._transcript = transcript
 
-        self._template = template or ActivityTemplate()
+        self._template = (template or ActivityTemplate()).with_defaults(_DEFAULT_ACTIVITY_FIELDS)
         
     @property
     def template(self) -> ActivityTemplate:
@@ -101,17 +140,35 @@ class AgentClient:
     ###
 
     def ex_select(self, history: bool = False) -> Select:
+        """Create a Select instance for filtering exchanges.
+        
+        :param history: If True, includes full history; otherwise, recent only.
+        :return: A Select instance for fluent filtering.
+        """
         return Select(self._ex_collect(history=history))
 
-    def select(self, recent: bool = False) -> Select:
-        """"""
-        return Select(self._collect(history=recent))
+    def select(self, history: bool = False) -> Select:
+        """Create a Select instance for filtering activities.
+        
+        :param history: If True, includes full history; otherwise, recent only.
+        :return: A Select instance for fluent filtering.
+        """
+        return Select(self._collect(history=history))
     
     def expect_ex(self, history: bool = True) -> Expect:
-        """"""
+        """Create an Expect instance for asserting on exchanges.
+        
+        :param history: If True, includes full history; otherwise, recent only.
+        :return: An Expect instance for fluent assertions.
+        """
         return Expect(self._ex_collect(history=history))
 
     def expect(self, history: bool = True) -> Expect:
+        """Create an Expect instance for asserting on activities.
+        
+        :param history: If True, includes full history; otherwise, recent only.
+        :return: An Expect instance for fluent assertions.
+        """
         return Expect(self._collect(history=history))
         
     ###

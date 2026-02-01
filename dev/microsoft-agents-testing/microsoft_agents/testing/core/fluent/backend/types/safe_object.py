@@ -26,8 +26,13 @@ def parent(obj: SafeObject[T]) -> SafeObject | None:
     return object.__getattribute__(obj, "__parent__")
 
 class SafeObject(Generic[T], Readonly):
-    """A wrapper around an object that provides safe access to its attributes
-    and items, while maintaining a reference to its parent object."""
+    """A wrapper that provides safe access to object attributes and items.
+    
+    SafeObject allows accessing nested attributes and items without raising
+    exceptions for missing keys. Instead, it returns Unset for missing values,
+    enabling safe chained access like `obj.user.profile.name` even when
+    intermediate values don't exist.
+    """
 
     def __init__(self, value: Any, parent_object: SafeObject | None = None):
         """Initialize a SafeObject with a value and an optional parent SafeObject.

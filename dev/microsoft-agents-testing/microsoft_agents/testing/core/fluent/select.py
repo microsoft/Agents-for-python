@@ -1,13 +1,19 @@
 # Copyright (c) Microsoft Corporation. All rights reserved.
 # Licensed under the MIT License.
 
+"""Select - Fluent filtering and selection for model collections.
+
+Provides a chainable API for filtering, ordering, and sampling items
+from collections, with integration to Expect for assertions.
+"""
+
 from __future__ import annotations
 
 import random
 from typing import TypeVar, Iterable, Callable, cast
 from pydantic import BaseModel
 
-from .backend import ModelPredicate
+from .backend import ModelPredicate, DictionaryTransform  # TODO: DictionaryTransform should be imported at module level
 from .expect import Expect
 
 T = TypeVar("T", bound=BaseModel)

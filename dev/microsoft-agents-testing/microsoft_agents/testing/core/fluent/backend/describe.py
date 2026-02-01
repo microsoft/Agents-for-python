@@ -1,6 +1,15 @@
 # Copyright (c) Microsoft Corporation. All rights reserved.
 # Licensed under the MIT License.
 
+"""Describe - Generate human-readable descriptions of assertion results.
+
+Provides utilities for creating meaningful error messages when assertions
+fail, including details about which items failed and why.
+"""
+
+import inspect
+from typing import Any, Callable
+
 from .model_predicate import ModelPredicateResult
 from .quantifier import (
     Quantifier,
@@ -115,7 +124,90 @@ class Describe:
             if not result_bool:
                 failed_keys = [k for k, v in flatten(result_dict).items() if not v]
                 if failed_keys:
-                    failures.append(f"Item {i}: failed on keys {failed_keys}")
+                    key_details = []
+                    # Get the source for this specific item
+                    item_source = mpr.source[i] if i < len(mpr.source) else {}
+                    for key in failed_keys:
+                        func = mpr.dict_transform.get(key)
+                        
+                        # Get actual value from source
+                        actual_value = self._get_nested_value(item_source, key)
+                        
+                        if func and callable(func):
+                            # Try to get the expected value from lambda defaults (_v=val)
+                            expected_value = self._get_expected_value(func)
+                            
+                            try:
+                                source_code = inspect.getsource(func)
+                                if expected_value is not None:
+                                    key_details.append(
+                                        f"  {key}:\n"
+                                        f"    source: {source_code.strip()}\n"
+                                        f"    expected: {expected_value!r}\n"
+                                        f"    actual: {actual_value!r}"
+                                    )
+                                else:
+                                    key_details.append(
+                                        f"  {key}:\n"
+                                        f"    source: {source_code.strip()}\n"
+                                        f"    actual: {actual_value!r}"
+                                    )
+                            except (OSError, TypeError):
+                                if expected_value is not None:
+                                    key_details.append(
+                                        f"  {key}:\n"
+                                        f"    source: <source unavailable>\n"
+                                        f"    expected: {expected_value!r}\n"
+                                        f"    actual: {actual_value!r}"
+                                    )
+                                else:
+                                    key_details.append(
+                                        f"  {key}:\n"
+                                        f"    source: <source unavailable>\n"
+                                        f"    actual: {actual_value!r}"
+                                    )
+                        else:
+                            key_details.append(
+                                f"  {key}:\n"
+                                f"    source: <no function>\n"
+                                f"    actual: {actual_value!r}"
+                            )
+                    failures.append(f"Item {i}: failed on keys {failed_keys}\n" + "\n".join(key_details))
                 else:
                     failures.append(f"Item {i}: failed")
         return failures
+
+    def _get_expected_value(self, func: Callable) -> Any:
+        """Extract the expected value (_v) from a lambda's defaults.
+        
+        :param func: The callable function to inspect.
+        :return: The expected value if found, None otherwise.
+        """
+        try:
+            # Check function defaults for _v parameter
+            if hasattr(func, '__defaults__') and func.__defaults__:
+                # The _v=val pattern stores val in __defaults__
+                return func.__defaults__[0]
+        except (AttributeError, IndexError):
+            pass
+        return None
+
+    def _get_nested_value(self, source: dict | list, key: str) -> Any:
+        """Get a nested value from source using dot-notation key.
+        
+        :param source: The source dictionary or list.
+        :param key: The dot-notation key (e.g., 'user.profile.name').
+        :return: The value at the key path, or '<missing>' if not found.
+        """
+        if isinstance(source, list):
+            # For lists, we can't use dot notation directly
+            return source
+        
+        keys = key.split(".")
+        current = source
+        for k in keys:
+            if isinstance(current, dict) and k in current:
+                current = current[k]
+            else:
+                return "<missing>"
+        return current

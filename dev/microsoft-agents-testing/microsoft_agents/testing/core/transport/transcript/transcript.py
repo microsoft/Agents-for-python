@@ -1,12 +1,24 @@
 # Copyright (c) Microsoft Corporation. All rights reserved.
 # Licensed under the MIT License.
 
+"""Transcript - A hierarchical record of agent interactions.
+
+Provides a tree-structured collection of Exchanges that supports
+parent-child relationships for organizing complex test scenarios.
+"""
+
 from __future__ import annotations
 
 from .exchange import Exchange
 
+
 class Transcript:
-    """A transcript of exchanges."""
+    """A hierarchical transcript of exchanges with an agent.
+    
+    Transcripts support parent-child relationships, allowing exchanges
+    to be recorded at multiple levels. Exchanges propagate up to parents
+    and down to children, enabling both isolated and shared views.
+    """
 
     def __init__(self, parent: Transcript | None = None):
         """Initialize the transcript."""

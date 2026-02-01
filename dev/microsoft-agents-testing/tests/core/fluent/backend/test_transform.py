@@ -69,6 +69,61 @@ class TestDictionaryTransformInit:
             DictionaryTransform(123)
 
 
+class TestDictionaryTransformMapProperty:
+    """Tests for the map property of DictionaryTransform."""
+
+    def test_map_property_returns_internal_map(self):
+        """map property returns the internal _map dictionary."""
+        transform = DictionaryTransform({"a": 1})
+        assert transform.map is transform._map
+
+    def test_map_property_contains_callables(self):
+        """map property contains callable values."""
+        transform = DictionaryTransform({"a": 1, "b": 2})
+        assert callable(transform.map["a"])
+        assert callable(transform.map["b"])
+
+    def test_map_property_preserves_custom_callables(self):
+        """map property preserves custom callable functions."""
+        def custom_func(x):
+            return x > 0
+        
+        transform = DictionaryTransform({"check": custom_func})
+        assert transform.map["check"] is custom_func
+
+    def test_map_property_flattens_nested_keys(self):
+        """map property contains flattened keys from nested dict."""
+        transform = DictionaryTransform({"a": {"b": {"c": 1}}})
+        assert "a.b.c" in transform.map
+        assert "a" not in transform.map
+        assert "a.b" not in transform.map
+
+    def test_map_property_empty_for_none(self):
+        """map property is empty when initialized with None."""
+        transform = DictionaryTransform(None)
+        assert transform.map == {}
+
+    def test_map_property_includes_kwargs(self):
+        """map property includes values from kwargs."""
+        transform = DictionaryTransform(None, x=1, y=2)
+        assert "x" in transform.map
+        assert "y" in transform.map
+
+    def test_map_property_value_equality_predicates(self):
+        """map property converts values to equality predicates."""
+        transform = DictionaryTransform({"value": 42})
+        predicate = transform.map["value"]
+        assert predicate(42) is True
+        assert predicate(0) is False
+
+    def test_map_property_with_root_callable(self):
+        """map property includes root callable under special key."""
+        root_func = lambda x: x.get("valid", False)
+        transform = DictionaryTransform(root_func)
+        assert DictionaryTransform.DT_ROOT_CALLABLE_KEY in transform.map
+        assert transform.map[DictionaryTransform.DT_ROOT_CALLABLE_KEY] is root_func
+
+
 class TestDictionaryTransformGet:
     """Tests for DictionaryTransform._get method."""
 

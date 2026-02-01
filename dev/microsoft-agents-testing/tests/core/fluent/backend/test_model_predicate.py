@@ -29,28 +29,28 @@ class TestModelPredicateResult:
 
     def test_init_with_empty_list(self):
         """Initializing with empty list creates empty result_bools."""
-        result = ModelPredicateResult([])
+        result = ModelPredicateResult({}, {}, [])
         assert result.result_dicts == []
         assert result.result_bools == []
 
     def test_init_with_all_true(self):
         """Initializing with all True values produces True bools."""
-        result = ModelPredicateResult([{"a": True, "b": True}])
+        result = ModelPredicateResult({}, {}, [{"a": True, "b": True}])
         assert result.result_bools == [True]
 
     def test_init_with_all_false(self):
         """Initializing with all False values produces False bools."""
-        result = ModelPredicateResult([{"a": False, "b": False}])
+        result = ModelPredicateResult({}, {}, [{"a": False, "b": False}])
         assert result.result_bools == [False]
 
     def test_init_with_mixed_values(self):
         """Initializing with mixed values produces False bool."""
-        result = ModelPredicateResult([{"a": True, "b": False}])
+        result = ModelPredicateResult({}, {}, [{"a": True, "b": False}])
         assert result.result_bools == [False]
 
     def test_init_with_multiple_dicts(self):
         """Initializing with multiple dicts produces multiple bools."""
-        result = ModelPredicateResult([
+        result = ModelPredicateResult({}, {}, [
             {"a": True},
             {"a": False},
             {"a": True, "b": True},
@@ -59,34 +59,124 @@ class TestModelPredicateResult:
 
     def test_init_with_nested_dict_all_true(self):
         """Initializing with nested dict all True produces True."""
-        result = ModelPredicateResult([{"a": {"b": {"c": True}}}])
+        result = ModelPredicateResult({}, {}, [{"a": {"b": {"c": True}}}])
         assert result.result_bools == [True]
 
     def test_init_with_nested_dict_some_false(self):
         """Initializing with nested dict containing False produces False."""
-        result = ModelPredicateResult([{"a": {"b": True, "c": False}}])
+        result = ModelPredicateResult({}, {}, [{"a": {"b": True, "c": False}}])
         assert result.result_bools == [False]
 
     def test_stores_result_dicts(self):
         """Result stores the original result_dicts."""
         dicts = [{"a": True}, {"b": False}]
-        result = ModelPredicateResult(dicts)
+        result = ModelPredicateResult({}, {}, dicts)
         assert result.result_dicts == dicts
 
     def test_truthy_with_empty_dict(self):
         """Empty dict is truthy (vacuous truth)."""
-        result = ModelPredicateResult([{}])
+        result = ModelPredicateResult({}, {}, [{}])
         assert result.result_bools == [True]
 
     def test_truthy_with_truthy_values(self):
         """Non-boolean truthy values are converted."""
-        result = ModelPredicateResult([{"a": 1, "b": "hello"}])
+        result = ModelPredicateResult({}, {}, [{"a": 1, "b": "hello"}])
         assert result.result_bools == [True]
 
     def test_truthy_with_falsy_values(self):
         """Non-boolean falsy values are converted."""
-        result = ModelPredicateResult([{"a": 0, "b": ""}])
+        result = ModelPredicateResult({}, {}, [{"a": 0, "b": ""}])
         assert result.result_bools == [False]
+
+
+class TestModelPredicateResultDictTransform:
+    """Tests for the dict_transform property of ModelPredicateResult."""
+
+    def test_dict_transform_stores_transform_map(self):
+        """dict_transform stores the transform map from DictionaryTransform."""
+        dict_transform = {"name": lambda x: x == "test", "value": lambda x: x > 0}
+        result = ModelPredicateResult({}, dict_transform, [{"name": True, "value": True}])
+        assert result.dict_transform == dict_transform
+
+    def test_dict_transform_is_accessible(self):
+        """dict_transform is accessible after initialization."""
+        func = lambda x: x > 0
+        dict_transform = {"key": func}
+        result = ModelPredicateResult({}, dict_transform, [{"key": True}])
+        assert "key" in result.dict_transform
+        assert result.dict_transform["key"] is func
+
+    def test_dict_transform_empty(self):
+        """dict_transform can be empty."""
+        result = ModelPredicateResult({}, {}, [])
+        assert result.dict_transform == {}
+
+    def test_dict_transform_with_nested_keys(self):
+        """dict_transform stores flattened keys."""
+        func = lambda x: x == "value"
+        dict_transform = {"user.profile.name": func}
+        result = ModelPredicateResult({}, dict_transform, [{"user": {"profile": {"name": True}}}])
+        assert "user.profile.name" in result.dict_transform
+        assert result.dict_transform["user.profile.name"] is func
+
+    def test_dict_transform_from_model_predicate(self):
+        """ModelPredicate.eval stores dict_transform in result."""
+        predicate = ModelPredicate.from_args({"name": "test", "value": lambda x: x > 0})
+        result = predicate.eval({"name": "test", "value": 10})
+        
+        assert "name" in result.dict_transform
+        assert "value" in result.dict_transform
+        assert callable(result.dict_transform["name"])
+        assert callable(result.dict_transform["value"])
+
+    def test_dict_transform_preserves_callables(self):
+        """dict_transform preserves original callable functions."""
+        def custom_check(x):
+            return x == "expected"
+        
+        dict_transform = {"key": custom_check}
+        result = ModelPredicateResult([], dict_transform, [{"key": True}])
+        
+        assert result.dict_transform["key"] is custom_check
+        assert result.dict_transform["key"]("expected") is True
+        assert result.dict_transform["key"]("other") is False
+
+
+class TestModelPredicateResultSource:
+    """Tests for the source property of ModelPredicateResult."""
+
+    def test_source_stores_source_list(self):
+        """source stores the original source list."""
+        source = [{"name": "test", "value": 42}]
+        result = ModelPredicateResult(source, {}, [{"name": True}])
+        assert result.source == source
+
+    def test_source_from_pydantic_models(self):
+        """source converts Pydantic models to dicts."""
+        from pydantic import BaseModel
+        
+        class TestModel(BaseModel):
+            name: str
+            value: int
+        
+        models = [TestModel(name="test", value=42)]
+        result = ModelPredicateResult(models, {}, [{"name": True}])
+        assert result.source == [{"name": "test", "value": 42}]
+
+    def test_source_from_model_predicate(self):
+        """ModelPredicate.eval stores source in result."""
+        predicate = ModelPredicate.from_args({"name": "test"})
+        source = {"name": "test", "value": 10}
+        result = predicate.eval(source)
+        
+        assert result.source == [source]
+
+    def test_source_multiple_items(self):
+        """source stores multiple source items."""
+        source = [{"name": "first"}, {"name": "second"}]
+        result = ModelPredicateResult(source, {}, [{"name": True}, {"name": True}])
+        assert result.source == source
+        assert len(result.source) == 2
 
 
 # ============================================================================

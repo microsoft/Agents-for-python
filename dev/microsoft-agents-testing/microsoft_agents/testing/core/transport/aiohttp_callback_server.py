@@ -1,6 +1,12 @@
 # Copyright (c) Microsoft Corporation. All rights reserved.
 # Licensed under the MIT License.
 
+"""AiohttpCallbackServer - CallbackServer implementation using aiohttp.
+
+Provides an HTTP server using aiohttp that receives agent responses
+and records them in a Transcript.
+"""
+
 from datetime import datetime, timezone
 from contextlib import asynccontextmanager
 from typing import AsyncIterator
@@ -15,7 +21,19 @@ from .transcript import Transcript, Exchange
 
 
 class AiohttpCallbackServer(CallbackServer):
-    """A test server that collects Activities sent to it."""
+    """CallbackServer implementation using aiohttp TestServer.
+    
+    Starts a local HTTP server that agents can post responses to.
+    Use as an async context manager via the `listen()` method.
+    
+    Example::
+    
+        server = AiohttpCallbackServer(port=9378)
+        async with server.listen() as transcript:
+            # Send activities to agent with service_url = server.service_endpoint
+            # Agent responses will be collected in transcript
+            pass
+    """
 
     def __init__(self, port: int = 9873):
         """Initializes the response server.

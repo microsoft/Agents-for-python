@@ -1,8 +1,13 @@
+# Copyright (c) Microsoft Corporation. All rights reserved.
+# Licensed under the MIT License.
+
+"""Basic echo scenario for testing simple agent interactions."""
+
 from microsoft_agents.activity import ActivityTypes
 
 from microsoft_agents.hosting.core import AgentApplication, TurnContext, TurnState
 
-from microsoft_agents.testing.agent_scenario import (
+from microsoft_agents.testing.aiohttp_scenario import (
     AiohttpScenario,
     AgentEnvironment,
 )

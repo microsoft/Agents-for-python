@@ -1,6 +1,12 @@
 # Copyright (c) Microsoft Corporation. All rights reserved.
 # Licensed under the MIT License.
 
+"""Transform classes for converting and evaluating model data.
+
+Provides DictionaryTransform and ModelTransform for applying callable
+transformations to dictionary and model data structures.
+"""
+
 from __future__ import annotations
 
 import inspect
@@ -14,6 +20,17 @@ from .utils import expand, flatten
 T = TypeVar("T")
 
 class DictionaryTransform:
+    """Transform that applies callable predicates to dictionary values.
+    
+    Supports dot-notation keys for nested access (e.g., 'user.profile.name').
+    String values starting with '~' are converted to substring match predicates.
+    
+    Example::
+    
+        dt = DictionaryTransform({"type": "message", "text": "~hello"})
+        result = dt.eval({"type": "message", "text": "hello world"})
+        # result == {"type": True, "text": True}
+    """
 
     DT_ROOT_CALLABLE_KEY = '__DT_ROOT_CALLABLE_KEY'
     
@@ -38,10 +55,18 @@ class DictionaryTransform:
             if isinstance(val, Callable):
                 flat_root[key] = val
             else:
-                # TODO, does this capture the right data?
-                flat_root[key] = lambda x, _v=val: x == _v
+                if isinstance(val, str) and val.startswith("~"):
+                    _substring = val[1:]
+                    flat_root[key] = lambda x, _sub=_substring: _sub in x
+                else:
+                    _expected = val
+                    flat_root[key] = lambda x, _exp=_expected: x == _exp
 
         self._map = flat_root
+
+    @property
+    def map(self) -> dict[str, Callable[..., Any]]:
+        return self._map 
 
     @staticmethod
     def _get(actual: dict, key: str) -> Any:
@@ -73,16 +98,22 @@ class DictionaryTransform:
     def eval(self, actual: dict, root_callable_arg: Any=None) -> dict:        
         result = {}
 
-        if root_callable_arg is not None:
-            actual[DictionaryTransform.DT_ROOT_CALLABLE_KEY] = root_callable_arg 
+        # Create a wrapper dict to avoid modifying the original object
+        # This handles cases where actual is not a mutable dict (e.g., Pydantic models, custom objects)
+        if isinstance(actual, dict):
+            eval_context = dict(actual)
         else:
-            actual[DictionaryTransform.DT_ROOT_CALLABLE_KEY] = actual
+            eval_context = {}
+        
+        if root_callable_arg is not None:
+            eval_context[DictionaryTransform.DT_ROOT_CALLABLE_KEY] = root_callable_arg 
+        else:
+            eval_context[DictionaryTransform.DT_ROOT_CALLABLE_KEY] = actual
         for key, func in self._map.items():
             if not callable(func):
                 raise RuntimeError(f"Predicate value for key '{key}' is not callable")
-            result[key] = self._invoke(actual, key, func)
+            result[key] = self._invoke(eval_context, key, func)
 
-        del actual[DictionaryTransform.DT_ROOT_CALLABLE_KEY]
         return expand(result)
 
     @staticmethod
@@ -101,6 +132,11 @@ class DictionaryTransform:
             return DictionaryTransform(arg, **kwargs)
 
 class ModelTransform:
+    """Apply a DictionaryTransform to BaseModel or dict instances.
+    
+    Handles conversion of Pydantic models to dictionaries before
+    applying the underlying DictionaryTransform.
+    """
 
     def __init__(self, dict_transform: DictionaryTransform) -> None:
         self._dict_transform = dict_transform

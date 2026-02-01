@@ -1,6 +1,12 @@
 # Copyright (c) Microsoft Corporation. All rights reserved.
 # Licensed under the MIT License.
 
+"""Sender - Abstract interface for sending activities to agents.
+
+Defines the protocol for sending activities and receiving responses,
+which can be implemented for different HTTP clients or protocols.
+"""
+
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
@@ -8,8 +14,13 @@ from microsoft_agents.activity import Activity
 
 from .transcript import Transcript, Exchange
 
+
 class Sender(ABC):
-    """Client for sending activities to an agent endpoint."""
+    """Abstract client for sending activities to an agent endpoint.
+    
+    Implementations handle the HTTP communication and response parsing,
+    returning Exchange objects that capture the full request-response cycle.
+    """
 
     @abstractmethod
     async def send(self, activity: Activity, transcript: Transcript | None = None, **kwargs) -> Exchange:

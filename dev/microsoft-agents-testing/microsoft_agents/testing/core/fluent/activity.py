@@ -1,16 +1,24 @@
 # Copyright (c) Microsoft Corporation. All rights reserved.
 # Licensed under the MIT License.
 
+\"\"\"Activity-specific fluent utilities (currently commented out).
+
+This module contains specialized assertion classes for Activity objects.
+The ActivityExpect class is commented out pending finalization.
+\"\"\"
+
 from __future__ import annotations
 
 from microsoft_agents.activity import Activity
 
 from typing import Iterable, Self
 
-from microsoft_agents.activity import Activity, ActivityTypes
+from microsoft_agents.activity import Activity, ActivityTypes  # TODO: Duplicate import of Activity
 
 from .expect import Expect
 from .model_template import ModelTemplate
+
+# TODO: ActivityExpect is commented out - determine if it should be removed or completed
 
 # class ActivityExpect(Expect):
 #     """

@@ -1,11 +1,19 @@
 # Copyright (c) Microsoft Corporation. All rights reserved.
 # Licensed under the MIT License.
 
+\"\"\"CLI configuration loading and management.
+
+Handles loading environment variables from .env files and providing
+access to authentication credentials and service URLs.
+\"\"\"
+
 import os
 from pathlib import Path
 
 from dotenv import dotenv_values
 
+# TODO: This import path is incorrect - set_defaults is in core.fluent.backend.utils
+# Should be: from microsoft_agents.testing.core.fluent.backend.utils import set_defaults
 from microsoft_agents.testing.utils import set_defaults
 
 def load_environment(
@@ -38,7 +46,23 @@ def _upper(d: dict) -> dict:
     """Convert all keys in the dictionary to uppercase."""
     return { key.upper(): value for key, value in d.items() }
 
+
 class CLIConfig:
+    """Configuration manager for the CLI.
+    
+    Loads and manages configuration from environment files and process
+    environment variables, providing access to authentication credentials
+    and service URLs.
+    
+    Attributes:
+        env_path: Path to the loaded .env file, if any.
+        env: Dictionary of loaded environment variables.
+        app_id: Azure AD application (client) ID.
+        app_secret: Azure AD application secret.
+        tenant_id: Azure AD tenant ID.
+        agent_url: URL of the agent service endpoint.
+        service_url: Callback service URL for receiving responses.
+    """
 
     def __init__(self, env_path: str | None, connection: str) -> None:
 
@@ -51,6 +75,7 @@ class CLIConfig:
         self._process_env = _upper(dict(os.environ))
         self._connection = connection.upper()
 
+        # TODO: _env_defaults is not defined - this will raise AttributeError
         set_defaults(self._env, self._env_defaults)
 
         self._app_id: str | None = None

@@ -1,6 +1,12 @@
 # Copyright (c) Microsoft Corporation. All rights reserved.
 # Licensed under the MIT License.
 
+"""Core utility functions for the testing framework.
+
+Provides helper functions for token generation, configuration handling,
+and activity manipulation.
+"""
+
 import requests
 
 from microsoft_agents.activity import Activity

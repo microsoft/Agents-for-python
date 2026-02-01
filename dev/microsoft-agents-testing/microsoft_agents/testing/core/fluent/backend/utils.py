@@ -1,6 +1,12 @@
 # Copyright (c) Microsoft Corporation. All rights reserved.
 # Licensed under the MIT License.
 
+"""Utility functions for dictionary manipulation.
+
+Provides functions for flattening, expanding, and merging nested dictionaries,
+using dot-notation for nested key access.
+"""
+
 from copy import deepcopy
 
 def flatten(data: dict, parent_key: str = "", level_sep: str = ".") -> dict:

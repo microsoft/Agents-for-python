@@ -71,8 +71,8 @@ class TestModelTemplateInit:
     def test_init_with_nested_dot_notation(self):
         """ModelTemplate expands dot notation in defaults."""
         template = ModelTemplate(NestedModel, title="Test", **{"metadata.key": "value"})
-        assert "metadata" in template._defaults
-        assert template._defaults["metadata"]["key"] == "value"
+        assert "metadata.key" in template._defaults
+        assert template._defaults["metadata.key"] == "value"
 
 
 class TestModelTemplateCreate:

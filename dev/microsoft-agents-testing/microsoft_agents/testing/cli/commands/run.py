@@ -1,6 +1,11 @@
 # Copyright (c) Microsoft Corporation. All rights reserved.
 # Licensed under the MIT License.
 
+"""Run command - Execute predefined test scenarios.
+
+Allows running named test scenarios defined in the scenarios module.
+"""
+
 import click
 
 from ..config import CLIConfig

@@ -1,18 +1,22 @@
 # Copyright (c) Microsoft Corporation. All rights reserved.
 # Licensed under the MIT License.
 
-"""Health command - checks agent connectivity."""
+"""Chat command - Interactive conversation with an agent.
+
+Provides a REPL-style interface for sending messages to an agent
+and viewing responses in real-time.
+"""
 
 import click
 
+from microsoft_agents.testing.core import (
+    ScenarioConfig,
+    ExternalScenario,
+)
+from microsoft_agents.testing.transcript_logger import _print_messages
+
 from ..config import CLIConfig
 from ..core import Output, async_command
-
-from microsoft_agents.testing.agent_scenario import (
-    AgentScenarioConfig,
-    ExternalAgentScenario,
-)
-from microft_agents.testing.client import ConversationClient
 
 @click.command()
 @click.option(
@@ -31,16 +35,18 @@ async def chat(ctx: click.Context, url: str | None) -> None:
     verbose: bool = ctx.obj.get("verbose", False)
     out = Output(verbose=verbose)
 
-    scenario = ExternalAgentScenario(
+    scenario = ExternalScenario(
         url or config.agent_url,
-        AgentScenarioConfig(
+        ScenarioConfig(
             env_file_path = config.env_path,
         )
     )
 
     async with scenario.client() as client:
 
-        conv = ConversationClient(client, expect_replies=True)
+        # client.template = client.template.with_defaults({
+        #     "delivery_mode": "expect_replies",
+        # })
 
         while True:
 
@@ -50,11 +56,12 @@ async def chat(ctx: click.Context, url: str | None) -> None:
                 break
             out.newline()
 
-            replies = await conv.send(user_input)
-
             replies = await client.send_expect_replies(user_input)
             for reply in replies:
-                out.echo(f"agent: {reply.text}")
+                out.info(f"agent: {reply.text}")
                 out.newline()
             
         out.success("Exiting console.")
+
+        transcript = client.transcript
+        _print_messages(transcript)

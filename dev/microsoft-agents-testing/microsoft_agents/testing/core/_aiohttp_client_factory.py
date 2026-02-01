@@ -1,6 +1,12 @@
 # Copyright (c) Microsoft Corporation. All rights reserved.
 # Licensed under the MIT License.
 
+"""Internal factory for creating aiohttp-based AgentClient instances.
+
+This module provides the factory implementation used by scenarios to create
+configured AgentClient instances with proper HTTP session management.
+"""
+
 from aiohttp import ClientSession
 
 from .agent_client import AgentClient
@@ -12,8 +18,17 @@ from .transport import (
 )
 from .utils import generate_token_from_config
 
+
 class _AiohttpClientFactory:
-    """Factory for creating clients within an aiohttp scenario."""
+    """Internal factory for creating AgentClient instances using aiohttp.
+    
+    This factory manages HTTP session lifecycle and handles authentication
+    token generation. It is used internally by scenario implementations.
+    
+    Note:
+        This is an internal class. Use Scenario.run() or Scenario.client()
+        instead of instantiating this directly.
+    """
     
     def __init__(
         self,

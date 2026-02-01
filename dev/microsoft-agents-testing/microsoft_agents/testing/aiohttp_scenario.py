@@ -1,3 +1,12 @@
+# Copyright (c) Microsoft Corporation. All rights reserved.
+# Licensed under the MIT License.
+
+"""AiohttpScenario - In-process agent testing scenario.
+
+Provides a scenario that hosts the agent within the test process using
+aiohttp, enabling true integration testing without external dependencies.
+"""
+
 from __future__ import annotations
 
 from dataclasses import dataclass
@@ -30,7 +39,19 @@ from .core import (
 
 @dataclass
 class AgentEnvironment:
-    """Components available when the agent is running."""
+    """Components available when an in-process agent is running.
+    
+    Provides access to the agent's infrastructure components for
+    configuration and inspection during tests.
+    
+    Attributes:
+        config: SDK configuration dictionary.
+        agent_application: The running AgentApplication instance.
+        authorization: Authorization handler for the agent.
+        adapter: Channel service adapter.
+        storage: State storage instance (typically MemoryStorage).
+        connections: Connection manager for external services.
+    """
     config: dict
     agent_application: AgentApplication
     authorization: Authorization
@@ -39,7 +60,27 @@ class AgentEnvironment:
     connections: Connections
 
 class AiohttpScenario(Scenario):
-    """Agent test scenario for an agent hosted within an aiohttp application."""
+    """Test scenario that hosts an agent in-process using aiohttp.
+    
+    Use this scenario for integration testing where you want to test the
+    full agent stack without external dependencies. The agent runs within
+    the test process, allowing direct access to its components.
+    
+    Example::
+    
+        async def init_agent(env: AgentEnvironment):
+            @env.agent_application.activity(ActivityTypes.message)
+            async def handler(context, state):
+                await context.send_activity(f"Echo: {context.activity.text}")
+        
+        scenario = AiohttpScenario(init_agent)
+        async with scenario.client() as client:
+            replies = await client.send("Hello!")
+    
+    :param init_agent: Async function to initialize the agent with handlers.
+    :param config: Optional scenario configuration.
+    :param use_jwt_middleware: Whether to use JWT auth middleware.
+    """
 
     def __init__(
         self,

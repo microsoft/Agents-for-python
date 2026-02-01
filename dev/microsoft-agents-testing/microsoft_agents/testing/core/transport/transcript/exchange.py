@@ -1,6 +1,12 @@
 # Copyright (c) Microsoft Corporation. All rights reserved.
 # Licensed under the MIT License.
 
+"""Exchange - A single request-response interaction with an agent.
+
+Captures the complete lifecycle of sending an activity and receiving
+responses, including timing, status codes, and any errors.
+"""
+
 from __future__ import annotations
 
 import json

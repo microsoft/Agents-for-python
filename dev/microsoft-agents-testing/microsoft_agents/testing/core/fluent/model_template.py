@@ -1,6 +1,12 @@
 # Copyright (c) Microsoft Corporation. All rights reserved.
 # Licensed under the MIT License.
 
+"""ModelTemplate and ActivityTemplate - Template classes for model creation.
+
+Provides reusable templates for creating model instances (particularly Activities)
+with consistent default values and easy customization.
+"""
+
 from __future__ import annotations
 
 from copy import deepcopy
@@ -14,13 +20,24 @@ from .backend import (
     deep_update,
     expand,
     set_defaults,
+    flatten,
 )
-from .utils import normalize_model_data
+from .utils import flatten_model_data
 
 ModelT = TypeVar("ModelT", bound=BaseModel | dict)
 
 class ModelTemplate(Generic[ModelT]):
-    """A template for creating BaseModel instances with default values."""
+    """A template for creating BaseModel instances with default values.
+    
+    Templates provide a way to define reusable defaults for model creation.
+    Supports dot-notation keys for nested field access (e.g., 'from.id').
+    
+    Example::
+    
+        template = ActivityTemplate(type="message", **{"from.name": "Test User"})
+        activity = template.create(Activity(text="Hello"))
+        # activity.type == "message", activity.from_.name == "Test User"
+    """
 
     def __init__(self, model_class: type[ModelT], defaults: ModelT | dict | None = None, **kwargs) -> None:
         """Initialize the ModelTemplate with default values.
@@ -35,11 +52,11 @@ class ModelTemplate(Generic[ModelT]):
         self._model_class: type[ModelT] = model_class
 
         defaults = defaults or {}
-        defaults = normalize_model_data(defaults)
+        defaults = flatten_model_data(defaults)
 
         new_defaults: dict = {}
-        set_defaults(new_defaults, defaults, **kwargs)
-        self._defaults = expand(new_defaults)
+        set_defaults(new_defaults, defaults, **flatten(kwargs))
+        self._defaults = new_defaults
 
     def create(self, original: BaseModel | dict | None = None) -> ModelT:
         """Create a new BaseModel instance based on the template.
@@ -49,8 +66,9 @@ class ModelTemplate(Generic[ModelT]):
         """
         if original is None:
             original = {}
-        data = normalize_model_data(original)
+        data = flatten_model_data(original)
         set_defaults(data, self._defaults)
+        data = expand(data)
         if issubclass(self._model_class, BaseModel):
             return self._model_class.model_validate(data)
         return cast(ModelT, data)
@@ -70,10 +88,10 @@ class ModelTemplate(Generic[ModelT]):
         """Create a new ModelTemplate with updated default values."""
         new_template = deepcopy(self._defaults)
         # Expand the updates first so they merge correctly with nested structure
-        expanded_updates = expand(updates or {})
-        expanded_kwargs = expand(kwargs)
-        deep_update(new_template, expanded_updates)
-        deep_update(new_template, expanded_kwargs)
+        flat_updates = flatten(updates or {})
+        flat_kwargs = flatten(kwargs)
+        deep_update(new_template, flat_updates)
+        deep_update(new_template, flat_kwargs)
         # Pass already-expanded data, avoid re-expansion
         result = ModelTemplate[ModelT](self._model_class, new_template)
         return result
@@ -87,7 +105,20 @@ class ModelTemplate(Generic[ModelT]):
     
 
 class ActivityTemplate(ModelTemplate[Activity]):
-    """A template for creating Activity instances with default values."""
+    """A template for creating Activity instances with default values.
+    
+    Specialized template for the Activity model, commonly used to set
+    consistent conversation context, user identity, and channel information
+    across multiple test activities.
+    
+    Example::
+    
+        template = ActivityTemplate(
+            channel_id="test",
+            **{"from.id": "user-1", "conversation.id": "conv-1"}
+        )
+        activity = template.create("Hello!")  # Creates message activity
+    """
     
     def __init__(self, defaults: Activity | dict | None = None, **kwargs) -> None:
         """Initialize the ActivityTemplate with default values.
@@ -112,9 +143,9 @@ class ActivityTemplate(ModelTemplate[Activity]):
         """Create a new ModelTemplate with updated default values."""
         new_template = deepcopy(self._defaults)
         # Expand the updates first so they merge correctly with nested structure
-        expanded_updates = expand(updates or {})
-        expanded_kwargs = expand(kwargs)
-        deep_update(new_template, expanded_updates)
-        deep_update(new_template, expanded_kwargs)
+        flat_updates = flatten(updates or {})
+        flat_kwargs = flatten(kwargs)
+        deep_update(new_template, flat_updates)
+        deep_update(new_template, flat_kwargs)
         # Pass already-expanded data, avoid re-expansion
         return ActivityTemplate(new_template)

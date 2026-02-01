@@ -1,6 +1,12 @@
 # Copyright (c) Microsoft Corporation. All rights reserved.
 # Licensed under the MIT License.
 
+"""Expect - Fluent assertion class for validating model collections.
+
+Provides a chainable API for making assertions on collections with
+various quantifiers (all, any, none, exactly one, exactly n).
+"""
+
 from __future__ import annotations
 
 from typing import Callable, Iterable, Self, TypeVar

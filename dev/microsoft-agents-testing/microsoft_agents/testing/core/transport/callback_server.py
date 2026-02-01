@@ -1,14 +1,25 @@
 # Copyright (c) Microsoft Corporation. All rights reserved.
 # Licensed under the MIT License.
 
+"""CallbackServer - Abstract interface for receiving agent responses.
+
+Defines the protocol for servers that receive asynchronous activity
+responses from agents (e.g., when using callback URLs).
+"""
+
 from contextlib import asynccontextmanager
 from collections.abc import AsyncIterator
 from abc import ABC, abstractmethod
 
 from .transcript import Transcript
 
+
 class CallbackServer(ABC):
-    """A test server that collects Activities sent to it."""
+    """Abstract server that receives Activities sent by agents.
+    
+    Implementations start an HTTP server that agents can post responses to,
+    collecting them into a Transcript for later assertion.
+    """
     
     @abstractmethod
     @asynccontextmanager

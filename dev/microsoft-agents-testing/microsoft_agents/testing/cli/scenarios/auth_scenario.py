@@ -1,10 +1,18 @@
+# Copyright (c) Microsoft Corporation. All rights reserved.
+# Licensed under the MIT License.
+
+"""Authentication testing scenario.
+
+Provides a scenario for testing OAuth/authentication flows with agents.
+"""
+
 import click
 
 from microsoft_agents.activity import ActivityTypes
 
 from microsoft_agents.hosting.core import AgentApplication, TurnContext, TurnState
 
-from microsoft_agents.testing.scenario import (
+from microsoft_agents.testing.aiohttp_scenario import (
     AgentEnvironment,
     AiohttpScenario,
 )

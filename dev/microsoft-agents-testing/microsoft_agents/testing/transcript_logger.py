@@ -1,3 +1,12 @@
+# Copyright (c) Microsoft Corporation. All rights reserved.
+# Licensed under the MIT License.
+
+"""Transcript formatting and logging utilities.
+
+Provides formatters for converting Transcript objects into human-readable
+text representations for debugging and logging purposes.
+"""
+
 from abc import ABC, abstractmethod
 from datetime import datetime
 
@@ -12,8 +21,23 @@ def _exchange_node_dt_sort_key(exchange: Exchange) -> datetime:
         dt = exchange.response_at
     return dt
 
+def _print_messages(transcript: Transcript) -> None:
+
+    exchanges = transcript.history()
+
+    for exchange in exchanges:
+        if exchange.request is not None and exchange.request.type == "message":
+            print(f"User: {exchange.request.text}")
+        for response in exchange.responses:
+            if response.type == "message":
+                print(f"Agent: {response.text}")
+
 class TranscriptFormatter(ABC):
-    """Formatter for Transcript objects."""
+    """Abstract formatter for converting Transcripts to string output.
+    
+    Subclasses implement specific formatting strategies for different
+    use cases (e.g., conversation view, debug view, JSON export).
+    """
 
     @abstractmethod
     def _select(self, transcript: Transcript) -> list[Exchange]:

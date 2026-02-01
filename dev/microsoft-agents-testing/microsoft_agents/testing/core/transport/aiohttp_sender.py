@@ -1,6 +1,11 @@
 # Copyright (c) Microsoft Corporation. All rights reserved.
 # Licensed under the MIT License.
 
+"""AiohttpSender - Sender implementation using aiohttp.
+
+Provides HTTP-based activity sending using the aiohttp client library.
+"""
+
 from datetime import datetime, timezone
 
 from aiohttp import ClientSession
@@ -10,7 +15,13 @@ from microsoft_agents.activity import Activity
 from .sender import Sender
 from .transcript import Transcript, Exchange
 
+
 class AiohttpSender(Sender):
+    """Sender implementation using aiohttp ClientSession.
+    
+    Posts activities to the agent's /api/messages endpoint and captures
+    the response in an Exchange object.
+    """
     
     def __init__(self, session: ClientSession):
         self._session = session
