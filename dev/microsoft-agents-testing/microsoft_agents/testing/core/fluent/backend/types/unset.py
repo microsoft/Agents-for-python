@@ -1,11 +1,11 @@
 # Copyright (c) Microsoft Corporation. All rights reserved.
 # Licensed under the MIT License.
 
-\"\"\"Unset - Sentinel value for representing missing/unset values.
+"""Unset - Sentinel value for representing missing/unset values.
 
 Provides a singleton that represents the absence of a value, distinct from None.
 Useful for distinguishing between \"not set\" and \"explicitly set to None\".
-\"\"\"
+"""
 
 from __future__ import annotations
 
@@ -13,13 +13,13 @@ from .readonly import Readonly
 
 
 class Unset(Readonly):
-    \"\"\"Singleton representing an unset/missing value.
+    """Singleton representing an unset/missing value.
     
     All attribute access, item access, and method calls return the Unset
     instance itself, allowing safe chained access on potentially missing data.
     
     Note: The class is instantiated as a singleton at module load time.
-    \"\"\"
+    """
     
     def get(self, *args, **kwargs):
         """Returns the singleton instance when accessed as a method."""

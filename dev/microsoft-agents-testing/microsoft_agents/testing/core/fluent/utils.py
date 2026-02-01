@@ -1,11 +1,11 @@
 # Copyright (c) Microsoft Corporation. All rights reserved.
 # Licensed under the MIT License.
 
-\"\"\"Utility functions for normalizing model data.
+"""Utility functions for normalizing model data.
 
 Provides functions for converting between BaseModel and dictionary
 representations with proper flattening/expansion of nested structures.
-\"\"\"
+"""
 
 from typing import cast
 from pydantic import BaseModel

@@ -1,11 +1,11 @@
 # Copyright (c) Microsoft Corporation. All rights reserved.
 # Licensed under the MIT License.
 
-\"\"\"CLI configuration loading and management.
+"""CLI configuration loading and management.
 
 Handles loading environment variables from .env files and providing
 access to authentication credentials and service URLs.
-\"\"\"
+"""
 
 import os
 from pathlib import Path

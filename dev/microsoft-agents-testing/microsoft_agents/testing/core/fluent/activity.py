@@ -1,11 +1,11 @@
 # Copyright (c) Microsoft Corporation. All rights reserved.
 # Licensed under the MIT License.
 
-\"\"\"Activity-specific fluent utilities (currently commented out).
+"""Activity-specific fluent utilities (currently commented out).
 
 This module contains specialized assertion classes for Activity objects.
 The ActivityExpect class is commented out pending finalization.
-\"\"\"
+"""
 
 from __future__ import annotations
 

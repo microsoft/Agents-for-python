@@ -1,20 +1,20 @@
 # Copyright (c) Microsoft Corporation. All rights reserved.
 # Licensed under the MIT License.
 
-\"\"\"Readonly - Mixin for creating immutable objects.
+"""Readonly - Mixin for creating immutable objects.
 
 Provides a base class that prevents attribute and item modification,
 useful for creating singleton or constant objects.
-\"\"\"
+"""
 
 from typing import Any
 
 
 class Readonly:
-    \"\"\"Mixin that makes all attributes and items read-only.
+    """Mixin that makes all attributes and items read-only.
     
     Any attempt to set or delete attributes/items will raise AttributeError.
-    \"\"\"
+    """
     
     def __setattr__(self, name: str, value: Any):
         """Prevent setting attributes on the readonly object."""
