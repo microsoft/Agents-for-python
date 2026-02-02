@@ -5,7 +5,7 @@
 
 import json
 from datetime import datetime, timedelta
-from unittest.mock import AsyncMock
+from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 import aiohttp
@@ -169,6 +169,32 @@ class TestExchangeIsAllowedException:
 class TestExchangeFromRequest:
     """Tests for the from_request async static method."""
 
+    class _AsyncBytesIterator:
+        def __init__(self, chunks: list[bytes]):
+            self._chunks = chunks
+            self._idx = 0
+
+        def __aiter__(self):
+            return self
+
+        async def __anext__(self) -> bytes:
+            if self._idx >= len(self._chunks):
+                raise StopAsyncIteration
+            chunk = self._chunks[self._idx]
+            self._idx += 1
+            return chunk
+
+    @staticmethod
+    def _create_mock_response(status: int = 200, text: str = "OK", content=None):
+        """Create a mock response that passes isinstance check without spec side effects."""
+        mock_response = MagicMock()
+        mock_response.status = status
+        mock_response.text = AsyncMock(return_value=text)
+        mock_response.content = content
+        # Make it pass isinstance check for aiohttp.ClientResponse
+        mock_response.__class__ = aiohttp.ClientResponse
+        return mock_response
+
     @pytest.mark.asyncio
     async def test_from_request_with_allowed_exception(self):
         """from_request should handle allowed exceptions."""
@@ -221,12 +247,13 @@ class TestExchangeFromRequest:
         )
         
         # Mock aiohttp response
-        mock_response = AsyncMock(spec=aiohttp.ClientResponse)
-        mock_response.status = 200
-        mock_response.text = AsyncMock(return_value=json.dumps([
-            {"type": "message", "text": "Reply 1"},
-            {"type": "message", "text": "Reply 2"}
-        ]))
+        mock_response = self._create_mock_response(
+            status=200,
+            text=json.dumps([
+                {"type": "message", "text": "Reply 1"},
+                {"type": "message", "text": "Reply 2"}
+            ])
+        )
         
         exchange = await Exchange.from_request(
             request_activity=activity,
@@ -240,6 +267,35 @@ class TestExchangeFromRequest:
         assert exchange.responses[1].text == "Reply 2"
 
     @pytest.mark.asyncio
+    async def test_from_request_with_stream_delivery_parses_activity_events(self):
+        """from_request should parse stream delivery mode SSE events."""
+        activity = Activity(
+            type=ActivityTypes.message,
+            text="Hello",
+            delivery_mode=DeliveryModes.stream,
+        )
+
+        # Mock aiohttp response with SSE-like payload (event: activity + data: <activity json>)
+        mock_response = self._create_mock_response(
+            status=200,
+            content=self._AsyncBytesIterator([
+                b"event: activity\n",
+                b"data: {\"type\": \"message\", \"text\": \"Stream reply 1\"}\n",
+                b"event: activity\n",
+                b"data: {\"type\": \"message\", \"text\": \"Stream reply 2\"}\n",
+            ])
+        )
+
+        exchange = await Exchange.from_request(
+            request_activity=activity,
+            response_or_exception=mock_response,
+        )
+
+        assert exchange.request == activity
+        assert exchange.status_code == 200
+        assert [a.text for a in exchange.responses] == ["Stream reply 1", "Stream reply 2"]
+
+    @pytest.mark.asyncio
     async def test_from_request_with_invoke_response(self):
         """from_request should parse invoke response."""
         activity = Activity(
@@ -248,9 +304,10 @@ class TestExchangeFromRequest:
         )
         
         # Mock aiohttp response
-        mock_response = AsyncMock(spec=aiohttp.ClientResponse)
-        mock_response.status = 200
-        mock_response.text = AsyncMock(return_value=json.dumps({"result": "success"}))
+        mock_response = self._create_mock_response(
+            status=200,
+            text=json.dumps({"result": "success"})
+        )
         
         exchange = await Exchange.from_request(
             request_activity=activity,
@@ -269,9 +326,7 @@ class TestExchangeFromRequest:
         activity = Activity(type=ActivityTypes.message, text="Hello")
         
         # Mock aiohttp response
-        mock_response = AsyncMock(spec=aiohttp.ClientResponse)
-        mock_response.status = 200
-        mock_response.text = AsyncMock(return_value="OK")
+        mock_response = self._create_mock_response(status=200, text="OK")
         
         exchange = await Exchange.from_request(
             request_activity=activity,
@@ -290,9 +345,7 @@ class TestExchangeFromRequest:
         activity = Activity(type=ActivityTypes.message, text="Hello")
         request_time = datetime(2026, 1, 30, 10, 0, 0)
         
-        mock_response = AsyncMock(spec=aiohttp.ClientResponse)
-        mock_response.status = 200
-        mock_response.text = AsyncMock(return_value="OK")
+        mock_response = self._create_mock_response(status=200, text="OK")
         
         exchange = await Exchange.from_request(
             request_activity=activity,

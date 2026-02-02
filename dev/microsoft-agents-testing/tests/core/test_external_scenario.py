@@ -118,7 +118,8 @@ class TestExternalScenarioRun:
         
         with patch("microsoft_agents.testing.core.external_scenario.dotenv_values") as mock_dotenv, \
              patch("microsoft_agents.testing.core.external_scenario.load_configuration_from_env") as mock_load_config, \
-             patch("microsoft_agents.testing.core.external_scenario.AiohttpCallbackServer") as mock_server_class:
+             patch("microsoft_agents.testing.core.external_scenario.AiohttpCallbackServer") as mock_server_class, \
+             patch("microsoft_agents.testing.core.external_scenario._AiohttpClientFactory") as mock_factory_class:
             
             mock_dotenv.return_value = {}
             mock_load_config.return_value = {}
@@ -136,8 +137,13 @@ class TestExternalScenarioRun:
             
             mock_server_class.return_value = mock_server
             
+            # Setup mock factory
+            mock_factory = MagicMock()
+            mock_factory.cleanup = AsyncMock()
+            mock_factory_class.return_value = mock_factory
+            
             async with scenario.run() as factory:
-                assert isinstance(factory, _AiohttpClientFactory)
+                assert factory is mock_factory
 
     @pytest.mark.asyncio
     async def test_run_loads_env_from_config_path(self):
@@ -150,7 +156,8 @@ class TestExternalScenarioRun:
         
         with patch("microsoft_agents.testing.core.external_scenario.dotenv_values") as mock_dotenv, \
              patch("microsoft_agents.testing.core.external_scenario.load_configuration_from_env") as mock_load_config, \
-             patch("microsoft_agents.testing.core.external_scenario.AiohttpCallbackServer") as mock_server_class:
+             patch("microsoft_agents.testing.core.external_scenario.AiohttpCallbackServer") as mock_server_class, \
+             patch("microsoft_agents.testing.core.external_scenario._AiohttpClientFactory") as mock_factory_class:
             
             mock_dotenv.return_value = {"KEY": "value"}
             mock_load_config.return_value = {}
@@ -166,6 +173,11 @@ class TestExternalScenarioRun:
             mock_server.listen.return_value = mock_listen_cm
             
             mock_server_class.return_value = mock_server
+            
+            # Setup mock factory
+            mock_factory = MagicMock()
+            mock_factory.cleanup = AsyncMock()
+            mock_factory_class.return_value = mock_factory
             
             async with scenario.run() as factory:
                 mock_dotenv.assert_called_once_with("/path/to/.env")

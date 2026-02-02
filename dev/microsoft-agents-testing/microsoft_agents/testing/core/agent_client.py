@@ -255,6 +255,36 @@ class AgentClient:
             await self.ex_send_expect_replies(activity_or_text, **kwargs)
         )
     
+    async def ex_send_stream(
+        self,
+        activity_or_text: Activity | str,
+        **kwargs,
+    ) -> list[Exchange]:
+        """Sends an activity with stream delivery mode and collects replies.
+        
+        :param activity_or_text: An Activity or string to send.
+        :param kwargs: Additional arguments to pass to the sender.
+        :return: A list of reply Activities.
+        """
+        activity = self._build_activity(activity_or_text)
+        activity.delivery_mode = DeliveryModes.stream
+        return await self.ex_send(activity, wait=1.0, **kwargs)
+    
+    async def send_stream(
+        self,
+        activity_or_text: Activity | str,
+        **kwargs,
+    ) -> list[Activity]:
+        """Sends an activity with stream delivery mode and collects replies.
+        
+        :param activity_or_text: An Activity or string to send.
+        :param kwargs: Additional arguments to pass to the sender.
+        :return: A list of reply Activities.
+        """ 
+        return activities_from_ex(
+            await self.ex_send_stream(activity_or_text, **kwargs)
+        )
+    
     async def ex_invoke(
         self, 
         activity: Activity,

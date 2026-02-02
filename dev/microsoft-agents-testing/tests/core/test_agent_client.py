@@ -387,6 +387,51 @@ class TestAgentClientSendExpectReplies:
 
 
 # ============================================================================
+# AgentClient Send Stream Tests
+# ============================================================================
+
+class TestAgentClientSendStream:
+    """Tests for AgentClient.send_stream method."""
+
+    @pytest.mark.asyncio
+    async def test_send_stream_sets_delivery_mode(self):
+        """send_stream() sets the delivery_mode to stream."""
+        sender = StubSender()
+        sender.with_responses(Activity(type=ActivityTypes.message, text="Reply"))
+
+        client = AgentClient(sender=sender)
+        await client.send_stream("Hello")
+
+        assert sender.sent_activities[0].delivery_mode == DeliveryModes.stream
+
+    @pytest.mark.asyncio
+    async def test_send_stream_returns_activities(self):
+        """send_stream() returns response activities."""
+        response1 = Activity(type=ActivityTypes.message, text="Stream reply 1")
+        response2 = Activity(type=ActivityTypes.message, text="Stream reply 2")
+        sender = StubSender().with_responses(response1, response2)
+
+        client = AgentClient(sender=sender)
+        result = await client.send_stream("Hello")
+
+        assert [a.text for a in result] == ["Stream reply 1", "Stream reply 2"]
+
+    @pytest.mark.asyncio
+    async def test_ex_send_stream_returns_exchanges(self):
+        """ex_send_stream() returns Exchange objects."""
+        response = Activity(type=ActivityTypes.message, text="Reply")
+        sender = StubSender().with_responses(response)
+
+        client = AgentClient(sender=sender)
+        result = await client.ex_send_stream("Hello")
+
+        assert len(result) == 1
+        assert isinstance(result[0], Exchange)
+        assert result[0].request is not None
+        assert result[0].request.delivery_mode == DeliveryModes.stream
+
+
+# ============================================================================
 # AgentClient Invoke Tests
 # ============================================================================
 

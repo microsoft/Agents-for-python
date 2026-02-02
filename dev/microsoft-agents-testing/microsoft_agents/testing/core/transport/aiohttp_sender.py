@@ -7,6 +7,7 @@ Provides HTTP-based activity sending using the aiohttp client library.
 """
 
 from datetime import datetime, timezone
+from typing import AsyncContextManager
 
 from aiohttp import ClientSession
 
@@ -56,7 +57,6 @@ class AiohttpSender(Sender):
                     response_at=response_at,
                     **kwargs
                 )
-                
         
         except Exception as e:
             response_at = datetime.now(timezone.utc)

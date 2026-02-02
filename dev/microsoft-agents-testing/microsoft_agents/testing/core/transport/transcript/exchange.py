@@ -86,20 +86,32 @@ class Exchange(BaseModel):
             
             response = cast(aiohttp.ClientResponse, response_or_exception)
 
-            body = await response.text()
-
-            activities = []
-            invoke_response = None
+            body: str | None = None
+            activities: list[Activity] = []
+            invoke_response: InvokeResponse | None = None
 
             if request_activity.delivery_mode == DeliveryModes.expect_replies:
+                body = await response.text()
                 body_json = json.loads(body)
                 activities = [ Activity.model_validate(activity) for activity in body_json ]
                 
             elif request_activity.type == ActivityTypes.invoke:
+                body = await response.text()
                 body_json = json.loads(body)
                 invoke_response = InvokeResponse.model_validate({"status": response.status, "body": body_json})
-            # else:
-            #     content = await response.text()
+
+            elif request_activity.delivery_mode == DeliveryModes.stream:
+                event_type = None
+                body = ""
+                async for line in response.content:
+                    body += line.decode("utf-8")
+                    if line.startswith(b"event:"):
+                        event_type = line[6:].decode("utf-8").strip()
+                    if line.startswith(b"data:") and event_type == "activity":
+                        activity_data = line[5:].decode("utf-8").strip()
+                        activities.append(Activity.model_validate_json(activity_data))
+            else:
+                body = await response.text()
 
             return Exchange(
                 request=request_activity,

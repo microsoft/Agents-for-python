@@ -15,6 +15,7 @@ JWT middleware is disabled for simplicity in these tests.
 """
 
 import pytest
+import asyncio
 
 from microsoft_agents.activity import Activity, ActivityTypes, EndOfConversationCodes
 from microsoft_agents.hosting.core import TurnContext, TurnState
@@ -93,7 +94,6 @@ class TestEchoAgent:
             await client.send("")
 
             client.expect().that_for_any(text="Echo: ")
-
 
 # ============================================================================
 # Multi-Response Agent Tests
@@ -471,7 +471,7 @@ class TestMultipleClients:
             @env.agent_application.activity("message")
             async def on_message(context: TurnContext, state: TurnState):
                 messages_received.append(context.activity.text)
-                user_id = context.activity.from_property.id if context.activity.from_ else "unknown"
+                user_id = context.activity.from_property.id if context.activity.from_property else "unknown"
                 await context.send_activity(f"Hello, {user_id}!")
 
         scenario = AiohttpScenario(

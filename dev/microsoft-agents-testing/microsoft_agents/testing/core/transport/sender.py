@@ -10,6 +10,9 @@ which can be implemented for different HTTP clients or protocols.
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
+from contextlib import asynccontextmanager
+from collections.abc import AsyncGenerator
+
 from microsoft_agents.activity import Activity
 
 from .transcript import Transcript, Exchange
