@@ -74,7 +74,7 @@ class MsalAuth(AccessTokenProviderBase):
         valid_uri, instance_uri = self._uri_validator(resource_url)
         if not valid_uri:
             raise ValueError(str(authentication_errors.InvalidInstanceUrl))
-        assert instance_uri is not None # for mypy
+        assert instance_uri is not None  # for mypy
 
         local_scopes = self._resolve_scopes_list(instance_uri, scopes)
         msal_auth_client = self._get_client()
