@@ -75,7 +75,7 @@ class AgenticUserAuthorization(_AuthorizationHandler):
         agentic_instance_id = context.activity.get_agentic_instance_id()
         assert agentic_instance_id
         instance_token, _ = await connection.get_agentic_instance_token(
-            agentic_instance_id
+            context.activity.get_agentic_tenant_id(), agentic_instance_id
         )
         return (
             TokenResponse(token=instance_token) if instance_token else TokenResponse()
@@ -131,7 +131,10 @@ class AgenticUserAuthorization(_AuthorizationHandler):
             )
 
         token = await connection.get_agentic_user_token(
-            agentic_instance_id, agentic_user_id, scopes
+            context.activity.get_agentic_tenant_id(),
+            agentic_instance_id,
+            agentic_user_id,
+            scopes,
         )
         return TokenResponse(token=token) if token else TokenResponse()
 
