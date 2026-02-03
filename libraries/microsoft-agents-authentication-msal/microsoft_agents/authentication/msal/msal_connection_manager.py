@@ -3,7 +3,6 @@
 
 import re
 from typing import Dict, List, Optional
-from collections.abc import Iterator
 from microsoft_agents.hosting.core import (
     AgentAuthConfiguration,
     AccessTokenProviderBase,

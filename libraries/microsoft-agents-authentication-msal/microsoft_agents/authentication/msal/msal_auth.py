@@ -7,7 +7,7 @@ import re
 import asyncio
 import logging
 import jwt
-from typing import Optional, cast
+from typing import Optional
 from urllib.parse import urlparse, ParseResult as URI
 from msal import (
     ConfidentialClientApplication,
@@ -77,7 +77,6 @@ class MsalAuth(AccessTokenProviderBase):
         local_scopes = self._resolve_scopes_list(instance_uri, scopes)
         msal_auth_client = self._get_client()
 
-        # msal_auth_client = self._client()
         if isinstance(msal_auth_client, ManagedIdentityClient):
             logger.info("Acquiring token using Managed Identity Client.")
             auth_result_payload = await _async_acquire_token_for_client(
@@ -113,7 +112,6 @@ class MsalAuth(AccessTokenProviderBase):
         """
 
         msal_auth_client = self._get_client()
-        # msal_auth_client = self._client()
         if isinstance(msal_auth_client, ManagedIdentityClient):
             logger.error(
                 "Attempted on-behalf-of flow with Managed Identity authentication."
@@ -169,10 +167,10 @@ class MsalAuth(AccessTokenProviderBase):
     @staticmethod
     def _resolve_tenant_id(
         config: AgentAuthConfiguration, tenant_id: str | None = None
-    ) -> str | None:
+    ) -> str:
 
         if not config.TENANT_ID:
-            return None
+            raise ValueError("TENANT_ID is not set in the configuration.")
 
         if tenant_id and config.TENANT_ID.lower() == "common":
             return tenant_id

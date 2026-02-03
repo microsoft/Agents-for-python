@@ -37,6 +37,9 @@ class AgentAuthConfiguration:
 
     # JWT-patch: for internal use only
     # patch needed to support multiple connections
+    #
+    # existing flow was to only pass in one AgentAuthConfiguration to JWTTokenValidator,
+    # this addition avoids breaking changes
     _connections: dict[str, AgentAuthConfiguration]
 
     def __init__(

@@ -25,7 +25,7 @@ class MockMsalAuth(MsalAuth):
         )
         self.mock_client = mock_client
 
-    def _get_client(self, tenant_id: str | None = None) -> None:
+    def _get_client(self, tenant_id: str | None = None, *args):
         return self.mock_client
 
 
