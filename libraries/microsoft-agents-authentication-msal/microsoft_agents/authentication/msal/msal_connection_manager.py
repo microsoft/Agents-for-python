@@ -59,9 +59,6 @@ class MsalConnectionManager(Connections):
 
         if not self._connections.get("SERVICE_CONNECTION", None):
             raise ValueError("No service connection configuration provided.")
-        
-    def __iter__(self) -> Iterator[AgentAuthConfiguration]:
-        return iter(self._config_map.values())
 
     def get_connection(self, connection_name: Optional[str]) -> AccessTokenProviderBase:
         """
@@ -150,12 +147,3 @@ class MsalConnectionManager(Connections):
         if not config:
             raise ValueError("No default service connection configuration found. Expected 'SERVICE_CONNECTION'.")
         return config
-
-    def _get_all_configurations(self) -> List[AgentAuthConfiguration]:
-        """
-        Get all connection configurations for the agent.
-
-        :return: A list of all connection configurations for the agent.
-        :rtype: List[:class:`microsoft_agents.hosting.core.AgentAuthConfiguration`]
-        """
-        return list(self._config_map.values())
