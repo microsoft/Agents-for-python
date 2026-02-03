@@ -43,6 +43,10 @@ class AccessTokenProviderBase(Protocol):
         raise NotImplementedError()
 
     async def get_agentic_user_token(
-        self, tenant_id: str, agent_app_instance_id: str, agentic_user_id: str, scopes: list[str]
+        self,
+        tenant_id: str,
+        agent_app_instance_id: str,
+        agentic_user_id: str,
+        scopes: list[str],
     ) -> Optional[str]:
         raise NotImplementedError()

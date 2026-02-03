@@ -32,7 +32,9 @@ class TestUtils:
             context.activity.recipient.tenant_id = DEFAULTS.tenant_id
             return context
 
-        self.TurnContext = lambda *args, **kwargs: my_func(create_testing_TurnContext_magic(*args, **kwargs))
+        self.TurnContext = lambda *args, **kwargs: my_func(
+            create_testing_TurnContext_magic(*args, **kwargs)
+        )
 
     @pytest.fixture
     def storage(self):
@@ -237,7 +239,10 @@ class TestAgenticUserAuthorization(TestUtils):
         assert res.tag == _FlowStateTag.COMPLETE
 
         mock_provider.get_agentic_user_token.assert_called_once_with(
-            DEFAULTS.tenant_id, DEFAULTS.agentic_instance_id, "some_id", expected_scopes_list
+            DEFAULTS.tenant_id,
+            DEFAULTS.agentic_instance_id,
+            "some_id",
+            expected_scopes_list,
         )
 
     @pytest.mark.asyncio
@@ -282,7 +287,10 @@ class TestAgenticUserAuthorization(TestUtils):
         assert res.tag == _FlowStateTag.FAILURE
 
         mock_provider.get_agentic_user_token.assert_called_once_with(
-            DEFAULTS.tenant_id, DEFAULTS.agentic_instance_id, "some_id", expected_scopes_list
+            DEFAULTS.tenant_id,
+            DEFAULTS.agentic_instance_id,
+            "some_id",
+            expected_scopes_list,
         )
 
     @pytest.mark.asyncio
@@ -328,7 +336,10 @@ class TestAgenticUserAuthorization(TestUtils):
         assert res == TokenResponse(token="my_token")
 
         mock_provider.get_agentic_user_token.assert_called_once_with(
-            DEFAULTS.tenant_id, DEFAULTS.agentic_instance_id, "some_id", expected_scopes_list
+            DEFAULTS.tenant_id,
+            DEFAULTS.agentic_instance_id,
+            "some_id",
+            expected_scopes_list,
         )
 
     @pytest.mark.asyncio
@@ -373,5 +384,8 @@ class TestAgenticUserAuthorization(TestUtils):
         )
         assert res == TokenResponse()
         mock_provider.get_agentic_user_token.assert_called_once_with(
-            DEFAULTS.tenant_id, DEFAULTS.agentic_instance_id, "some_id", expected_scopes_list
+            DEFAULTS.tenant_id,
+            DEFAULTS.agentic_instance_id,
+            "some_id",
+            expected_scopes_list,
         )

@@ -44,9 +44,7 @@ class MsalConnectionManager(Connections):
                 connection_name,
                 agent_auth_config,
             ) in connections_configurations.items():
-                self._connections[connection_name] = MsalAuth(
-                    agent_auth_config
-                )
+                self._connections[connection_name] = MsalAuth(agent_auth_config)
                 self._config_map[connection_name] = agent_auth_config
         else:
             raw_configurations: Dict[str, Dict] = kwargs.get("CONNECTIONS", {})
@@ -88,7 +86,9 @@ class MsalConnectionManager(Connections):
         """
         connection = self._connections.get("SERVICE_CONNECTION", None)
         if not connection:
-            raise ValueError("No default service connection found. Expected 'SERVICE_CONNECTION'.")
+            raise ValueError(
+                "No default service connection found. Expected 'SERVICE_CONNECTION'."
+            )
         return connection
 
     def get_token_provider(
@@ -149,5 +149,7 @@ class MsalConnectionManager(Connections):
         """
         config = self._config_map.get("SERVICE_CONNECTION")
         if not config:
-            raise ValueError("No default service connection configuration found. Expected 'SERVICE_CONNECTION'.")
+            raise ValueError(
+                "No default service connection configuration found. Expected 'SERVICE_CONNECTION'."
+            )
         return config

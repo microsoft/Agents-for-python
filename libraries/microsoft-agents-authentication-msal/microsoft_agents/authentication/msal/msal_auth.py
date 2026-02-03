@@ -55,7 +55,9 @@ class MsalAuth(AccessTokenProviderBase):
         """
 
         self._msal_configuration = msal_configuration
-        self._msal_auth_client_map: dict[str, ConfidentialClientApplication | ManagedIdentityClient] = {}
+        self._msal_auth_client_map: dict[
+            str, ConfidentialClientApplication | ManagedIdentityClient
+        ] = {}
         self._token_cache = TokenCache()
         logger.debug(
             f"Initializing MsalAuth with configuration: {self._msal_configuration}"
@@ -70,7 +72,7 @@ class MsalAuth(AccessTokenProviderBase):
         valid_uri, instance_uri = self._uri_validator(resource_url)
         if not valid_uri:
             raise ValueError(str(authentication_errors.InvalidInstanceUrl))
-        
+
         assert instance_uri is not None
         local_scopes = self._resolve_scopes_list(instance_uri, scopes)
         msal_auth_client = self._get_client()
@@ -148,32 +150,41 @@ class MsalAuth(AccessTokenProviderBase):
                 msal_auth_client.__class__.__name__
             )
         )
-    
+
     @staticmethod
-    def _resolve_authority(config: AgentAuthConfiguration, tenant_id: str | None = None) -> str:
+    def _resolve_authority(
+        config: AgentAuthConfiguration, tenant_id: str | None = None
+    ) -> str:
         if not tenant_id:
-            return config.AUTHORITY or f"https://login.microsoftonline.com/{config.TENANT_ID}"
-        
+            return (
+                config.AUTHORITY
+                or f"https://login.microsoftonline.com/{config.TENANT_ID}"
+            )
+
         if config.AUTHORITY:
             return re.sub(r"/common(?=/|$)", f"/{tenant_id}", config.AUTHORITY)
-        
+
         return f"https://login.microsoftonline.com/{tenant_id}"
 
     @staticmethod
-    def _resolve_tenant_id(config: AgentAuthConfiguration, tenant_id: str | None = None) -> str | None:
+    def _resolve_tenant_id(
+        config: AgentAuthConfiguration, tenant_id: str | None = None
+    ) -> str | None:
 
         if not config.TENANT_ID:
             return None
-        
+
         if tenant_id and config.TENANT_ID.lower() == "common":
             return tenant_id
-        
+
         return config.TENANT_ID
 
-    def _create_client_application(self, tenant_id: str | None = None) -> ConfidentialClientApplication | ManagedIdentityClient:
+    def _create_client_application(
+        self, tenant_id: str | None = None
+    ) -> ConfidentialClientApplication | ManagedIdentityClient:
 
         tenant_id = MsalAuth._resolve_tenant_id(self._msal_configuration, tenant_id)
-        
+
         if self._msal_configuration.AUTH_TYPE == AuthTypes.user_managed_identity:
             return ManagedIdentityClient(
                 UserAssignedManagedIdentity(
@@ -189,7 +200,9 @@ class MsalAuth(AccessTokenProviderBase):
             )
         else:
             if self._msal_configuration.AUTHORITY:
-                authority = MsalAuth._resolve_authority(self._msal_configuration, tenant_id)
+                authority = MsalAuth._resolve_authority(
+                    self._msal_configuration, tenant_id
+                )
             else:
                 authority = f"https://login.microsoftonline.com/{MsalAuth._resolve_tenant_id(self._msal_configuration, tenant_id)}"
 
@@ -227,18 +240,22 @@ class MsalAuth(AccessTokenProviderBase):
                 raise NotImplementedError(
                     str(authentication_errors.AuthenticationTypeNotSupported)
                 )
-            
+
             return ConfidentialClientApplication(
                 client_id=self._msal_configuration.CLIENT_ID,
                 authority=authority,
                 client_credential=self._client_credential_cache,
             )
-    
-    def _client_rep(self, tenant_id: str | None = None, instance_id: str | None = None) -> str:
+
+    def _client_rep(
+        self, tenant_id: str | None = None, instance_id: str | None = None
+    ) -> str:
         tenant_id = tenant_id or self._msal_configuration.TENANT_ID
-        return f"tenant:{tenant_id}.instance:{instance_id}" # might add more later
-    
-    def _get_client(self, tenant_id: str | None = None, instance_id: str | None = None) -> ConfidentialClientApplication | ManagedIdentityClient:
+        return f"tenant:{tenant_id}.instance:{instance_id}"  # might add more later
+
+    def _get_client(
+        self, tenant_id: str | None = None, instance_id: str | None = None
+    ) -> ConfidentialClientApplication | ManagedIdentityClient:
         rep = self._client_rep(tenant_id, instance_id)
         if rep in self._msal_auth_client_map:
             return self._msal_auth_client_map[rep]
@@ -331,8 +348,7 @@ class MsalAuth(AccessTokenProviderBase):
             agent_app_instance_id,
         )
         agent_token_result = await self.get_agentic_application_token(
-            tenant_id,
-            agent_app_instance_id
+            tenant_id, agent_app_instance_id
         )
 
         if not agent_token_result:
@@ -345,7 +361,7 @@ class MsalAuth(AccessTokenProviderBase):
                     agent_app_instance_id
                 )
             )
-        
+
         authority = MsalAuth._resolve_authority(self._msal_configuration, tenant_id)
 
         instance_app = ConfidentialClientApplication(
@@ -395,7 +411,11 @@ class MsalAuth(AccessTokenProviderBase):
         return agentic_instance_token["access_token"], agent_token_result
 
     async def get_agentic_user_token(
-        self, tenant_id: str, agent_app_instance_id: str, agentic_user_id: str, scopes: list[str]
+        self,
+        tenant_id: str,
+        agent_app_instance_id: str,
+        agentic_user_id: str,
+        scopes: list[str],
     ) -> Optional[str]:
         """Gets the agentic user token for the given agent application instance ID and agentic user Id and the scopes.
 
@@ -419,7 +439,7 @@ class MsalAuth(AccessTokenProviderBase):
             agentic_user_id,
         )
         instance_token, agent_token = await self.get_agentic_instance_token(
-           tenant_id, agent_app_instance_id
+            tenant_id, agent_app_instance_id
         )
 
         if not instance_token or not agent_token:
@@ -433,7 +453,7 @@ class MsalAuth(AccessTokenProviderBase):
                     agent_app_instance_id, agentic_user_id
                 )
             )
-        
+
         authority = MsalAuth._resolve_authority(self._msal_configuration, tenant_id)
 
         instance_app = ConfidentialClientApplication(
