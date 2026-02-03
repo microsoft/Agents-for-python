@@ -1,6 +1,7 @@
 # Copyright (c) Microsoft Corporation. All rights reserved.
 # Licensed under the MIT License.
 
+from __future__ import annotations
 from typing import Optional
 
 from microsoft_agents.hosting.core.authorization.auth_types import AuthTypes
@@ -34,6 +35,10 @@ class AgentAuthConfiguration:
     ALT_BLUEPRINT_ID: Optional[str]
     ANONYMOUS_ALLOWED: bool = False
 
+    # JWT-patch: for internal use only
+    # patch needed to support multiple connections
+    _connections: dict[str, AgentAuthConfiguration]
+
     def __init__(
         self,
         auth_type: AuthTypes = None,
@@ -63,6 +68,9 @@ class AgentAuthConfiguration:
             "ANONYMOUS_ALLOWED", False
         )
 
+        # JWT-patch: always at least include self for backward compat
+        self._connections = {str(self.CONNECTION_NAME): self}
+
     @property
     def ISSUERS(self) -> list[str]:
         """
@@ -73,3 +81,14 @@ class AgentAuthConfiguration:
             f"https://sts.windows.net/{self.TENANT_ID}/",
             f"https://login.microsoftonline.com/{self.TENANT_ID}/v2.0",
         ]
+
+    def _jwt_patch_is_valid_aud(self, aud: str) -> bool:
+        """
+        JWT-patch: Checks if the given audience is valid for any of the connections.
+        """
+        for conn in self._connections.values():
+            if not conn.CLIENT_ID:
+                continue
+            if aud.lower() == conn.CLIENT_ID.lower():
+                return True
+        return False

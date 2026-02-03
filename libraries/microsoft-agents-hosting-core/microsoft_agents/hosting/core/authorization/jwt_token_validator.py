@@ -28,7 +28,7 @@ class JwtTokenValidator:
             leeway=300.0,
             options={"verify_aud": False},
         )
-        if decoded_token["aud"] != self.configuration.CLIENT_ID:
+        if not self.configuration._jwt_patch_is_valid_aud(decoded_token["aud"]):
             logger.error(f"Invalid audience: {decoded_token['aud']}", stack_info=True)
             raise ValueError("Invalid audience.")
 

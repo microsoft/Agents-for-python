@@ -57,6 +57,10 @@ class MsalConnectionManager(Connections):
                 self._connections[connection_name] = MsalAuth(parsed_configuration)
                 self._config_map[connection_name] = parsed_configuration
 
+        # JWT-patch
+        for connection_name, config in self._config_map.items():
+            config._connections = self._config_map
+
         if not self._connections.get("SERVICE_CONNECTION", None):
             raise ValueError("No service connection configuration provided.")
 
