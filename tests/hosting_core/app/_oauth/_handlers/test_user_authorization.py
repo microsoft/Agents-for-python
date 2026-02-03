@@ -38,9 +38,9 @@ STORAGE_DATA = STORAGE_TEST_DATA()
 AGENTIC_ENV_DICT = AGENTIC_TEST_ENV_DICT()
 
 
-def make_jwt(token: str = DEFAULTS.token, aud="api://default"):
+def make_jwt(token: str = DEFAULTS.token, aud="123", app_id="123"):
     if aud:
-        return jwt.encode({"aud": aud}, token, algorithm="HS256")
+        return jwt.encode({"aud": aud, "appid": app_id}, token, algorithm="HS256")
     else:
         return jwt.encode({}, token, algorithm="HS256")
 
@@ -194,7 +194,7 @@ class TestUserAuthorization(TestEnv):
             [
                 _FlowResponse(
                     token_response=TokenResponse(
-                        token=make_jwt(token="some_value", aud="other")
+                        token=make_jwt(token="some_value_bGoa+V7g/yqDXvKRqq+JTFn4uQZbPiQJo4pf9RzJV0E=", aud="other")
                     ),
                     flow_state=_FlowState(
                         tag=_FlowStateTag.COMPLETE,
@@ -205,14 +205,14 @@ class TestUserAuthorization(TestEnv):
                 DEFAULTS.token,
                 _SignInResponse(
                     token_response=TokenResponse(
-                        token=make_jwt("some_value", aud="other")
+                        token=make_jwt("some_value_bGoa+V7g/yqDXvKRqq+JTFn4uQZbPiQJo4pf9RzJV0E=", aud="other")
                     ),
                     tag=_FlowStateTag.COMPLETE,
                 ),
             ],
             [
                 _FlowResponse(
-                    token_response=TokenResponse(token=make_jwt(token="some_value")),
+                    token_response=TokenResponse(token=make_jwt(token="some_value_bGoa+V7g/yqDXvKRqq+JTFn4uQZbPiQJo4pf9RzJV0E=")),
                     flow_state=_FlowState(
                         tag=_FlowStateTag.COMPLETE,
                         auth_handler_id=DEFAULTS.auth_handler_id,
@@ -315,13 +315,13 @@ class TestUserAuthorization(TestEnv):
                 TokenResponse(token=make_jwt(aud=None)),
             ],
             [
-                TokenResponse(token=make_jwt(token="some_value", aud="other")),
+                TokenResponse(token=make_jwt(token="some_value_bGoa+V7g/yqDXvKRqq+JTFn4uQZbPiQJo4pf9RzJV0E=", aud="other")),
                 False,
                 DEFAULTS.token,
-                TokenResponse(token=make_jwt("some_value", aud="other")),
+                TokenResponse(token=make_jwt("some_value_bGoa+V7g/yqDXvKRqq+JTFn4uQZbPiQJo4pf9RzJV0E=", aud="other")),
             ],
             [
-                TokenResponse(token=make_jwt(token="some_value")),
+                TokenResponse(token=make_jwt(token="some_value_bGoa+V7g/yqDXvKRqq+JTFn4uQZbPiQJo4pf9RzJV0E=")),
                 True,
                 None,
                 TokenResponse(),

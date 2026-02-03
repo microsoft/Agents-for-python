@@ -11,10 +11,12 @@ class ClaimsIdentity:
         claims: dict[str, str],
         is_authenticated: bool,
         authentication_type: Optional[str] = None,
+        security_token: Optional[str] = None,
     ):
         self.claims = claims
         self.is_authenticated = is_authenticated
         self.authentication_type = authentication_type
+        self.security_token = security_token
 
     def get_claim_value(self, claim_type: str) -> Optional[str]:
         return self.claims.get(claim_type)
@@ -83,3 +85,17 @@ class ClaimsIdentity:
             if self.is_agent_claim()
             else AuthenticationConstants.AGENTS_SDK_SCOPE
         )
+
+    def get_token_scope(self) -> list[str]:
+        """
+        Gets the token scope from current claims.
+
+        :return: The token scope.
+        """
+        return [
+            (
+                f"{self.get_outgoing_app_id()}/.default"
+                if self.is_agent_claim()
+                else AuthenticationConstants.AGENTS_SDK_SCOPE + "/.default"
+            )
+        ]
