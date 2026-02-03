@@ -788,8 +788,9 @@ class Activity(AgentsModel, _ChannelIdFieldMixin):
 
     def get_agentic_tenant_id(self) -> Optional[str]:
         """Gets the agentic tenant ID from the context if it's an agentic request."""
-        if self.recipient and self.recipient.tenant_id:
-            return self.recipient.tenant_id
-        if self.conversation and self.conversation.tenant_id:
-            return self.conversation.tenant_id
+        if self.is_agentic_request():
+            if self.recipient and self.recipient.tenant_id:
+                return self.recipient.tenant_id
+            if self.conversation and self.conversation.tenant_id:
+                return self.conversation.tenant_id
         return None

@@ -70,10 +70,16 @@ class MsalConnectionManager(Connections):
         :return: The OAuth connection for the agent.
         :rtype: :class:`microsoft_agents.hosting.core.AccessTokenProviderBase`
         """
+        original_name = connection_name
         connection_name = connection_name or "SERVICE_CONNECTION"
         connection = self._connections.get(connection_name, None)
         if not connection:
-            raise ValueError(f"No connection found for '{connection_name}'.")
+            if original_name:
+                raise ValueError(f"No connection found for '{original_name}'.")
+            else:
+                raise ValueError(
+                    "No default service connection found. Expected 'SERVICE_CONNECTION'."
+                )
         return connection
 
     def get_default_connection(self) -> AccessTokenProviderBase:

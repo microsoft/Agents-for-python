@@ -70,10 +70,9 @@ class MsalAuth(AccessTokenProviderBase):
             f"Requesting access token for resource: {resource_url}, scopes: {scopes}"
         )
         valid_uri, instance_uri = self._uri_validator(resource_url)
-        if not valid_uri:
+        if not valid_uri or instance_uri is None:
             raise ValueError(str(authentication_errors.InvalidInstanceUrl))
 
-        assert instance_uri is not None
         local_scopes = self._resolve_scopes_list(instance_uri, scopes)
         msal_auth_client = self._get_client()
 
@@ -153,6 +152,7 @@ class MsalAuth(AccessTokenProviderBase):
     def _resolve_authority(
         config: AgentAuthConfiguration, tenant_id: str | None = None
     ) -> str:
+        tenant_id = MsalAuth._resolve_tenant_id(config, tenant_id)
         if not tenant_id:
             return (
                 config.AUTHORITY
@@ -181,8 +181,6 @@ class MsalAuth(AccessTokenProviderBase):
         self, tenant_id: str | None = None
     ) -> ConfidentialClientApplication | ManagedIdentityClient:
 
-        tenant_id = MsalAuth._resolve_tenant_id(self._msal_configuration, tenant_id)
-
         if self._msal_configuration.AUTH_TYPE == AuthTypes.user_managed_identity:
             return ManagedIdentityClient(
                 UserAssignedManagedIdentity(
@@ -197,12 +195,7 @@ class MsalAuth(AccessTokenProviderBase):
                 http_client=Session(),
             )
         else:
-            if self._msal_configuration.AUTHORITY:
-                authority = MsalAuth._resolve_authority(
-                    self._msal_configuration, tenant_id
-                )
-            else:
-                authority = f"https://login.microsoftonline.com/{MsalAuth._resolve_tenant_id(self._msal_configuration, tenant_id)}"
+            authority = MsalAuth._resolve_authority(self._msal_configuration, tenant_id)
 
             if self._client_credential_cache:
                 logger.info("Using cached client credentials for MSAL authentication.")
