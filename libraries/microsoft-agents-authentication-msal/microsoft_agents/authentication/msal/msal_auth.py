@@ -88,9 +88,7 @@ class MsalAuth(AccessTokenProviderBase):
         if not res:
             logger.error("Failed to acquire token for resource %s", auth_result_payload)
             raise ValueError(
-                authentication_errors.FailedToAcquireToken.format(
-                    str(auth_result_payload)
-                )
+                authentication_errors.FailedToAcquireToken.format(resource_url)
             )
 
         return res
@@ -125,12 +123,8 @@ class MsalAuth(AccessTokenProviderBase):
             )
 
             if "access_token" not in token:
-                logger.error(
-                    f"Failed to acquire token on behalf of user: {user_assertion}"
-                )
-                raise ValueError(
-                    authentication_errors.FailedToAcquireToken.format(str(token))
-                )
+                logger.error(f"Failed to acquire token on behalf of user")
+                raise ValueError(authentication_errors.FailedToAcquireToken.format(""))
 
             return token["access_token"]
 
@@ -333,11 +327,11 @@ class MsalAuth(AccessTokenProviderBase):
         token = agentic_instance_token.get("access_token")
         if not token:
             logger.error(
-                "Failed to acquire agentic instance token, %s", agentic_instance_token
+                "Failed to acquire agentic instance token, %s", agent_app_instance_id
             )
             raise ValueError(
                 authentication_errors.FailedToAcquireToken.format(
-                    str(agentic_instance_token)
+                    str(agent_app_instance_id)
                 )
             )
 
@@ -421,20 +415,18 @@ class MsalAuth(AccessTokenProviderBase):
 
         if not auth_result_payload:
             logger.error(
-                "Failed to acquire agentic user token for agent_app_instance_id %s and agentic_user_id %s, %s",
+                "Failed to acquire agentic user token for agent_app_instance_id %s and agentic_user_id %s",
                 agent_app_instance_id,
                 agentic_user_id,
-                auth_result_payload,
             )
             return None
 
         access_token = auth_result_payload.get("access_token")
         if not access_token:
             logger.error(
-                "Failed to acquire agentic user token for agent_app_instance_id %s and agentic_user_id %s, %s",
+                "Failed to acquire agentic user token for agent_app_instance_id %s and agentic_user_id %s",
                 agent_app_instance_id,
                 agentic_user_id,
-                auth_result_payload,
             )
             return None
 
