@@ -10,8 +10,15 @@ from microsoft_agents.hosting.core.authorization import (
 @middleware
 async def jwt_authorization_middleware(request: Request, handler):
 
+    # if "agent_configuration" in request.app:
     auth_config: AgentAuthConfiguration = request.app["agent_configuration"]
     token_validator = JwtTokenValidator(auth_config)
+    # elif "connections" in request.app:
+    #     connections = request.app["connections"]
+    #     service_connection_config = connections._get_default_connection_configuration()
+    #     token_validator = JwtTokenValidator(service_connection_config)
+
+
     auth_header = request.headers.get("Authorization")
 
     if auth_header:

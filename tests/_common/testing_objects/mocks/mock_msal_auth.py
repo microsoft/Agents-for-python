@@ -25,9 +25,8 @@ class MockMsalAuth(MsalAuth):
         )
         self.mock_client = mock_client
 
-    def _create_client_application(self) -> None:
-        rep = self._client_rep()
-        self._msal_auth_client_map[rep] = self.mock_client
+    def _get_client(self, tenant_id: str  | None = None) -> None:
+        return self.mock_client
 
 
 def agentic_mock_class_MsalAuth(

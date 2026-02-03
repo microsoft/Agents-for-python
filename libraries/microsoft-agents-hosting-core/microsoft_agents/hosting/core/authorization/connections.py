@@ -40,3 +40,9 @@ class Connections(Protocol):
         Get the default connection configuration for the agent.
         """
         raise NotImplementedError()
+    
+    def _get_all_configurations(self) -> list[AgentAuthConfiguration]:
+        """
+        Get all connection configurations for the agent.
+        """
+        raise NotImplementedError()

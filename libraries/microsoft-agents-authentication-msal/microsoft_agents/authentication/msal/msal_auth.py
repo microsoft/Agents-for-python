@@ -14,6 +14,7 @@ from msal import (
     ManagedIdentityClient,
     UserAssignedManagedIdentity,
     SystemAssignedManagedIdentity,
+    TokenCache,
 )
 from requests import Session
 from cryptography.x509 import load_pem_x509_certificate
@@ -55,17 +56,10 @@ class MsalAuth(AccessTokenProviderBase):
 
         self._msal_configuration = msal_configuration
         self._msal_auth_client_map: dict[str, ConfidentialClientApplication | ManagedIdentityClient] = {}
+        self._token_cache = TokenCache()
         logger.debug(
             f"Initializing MsalAuth with configuration: {self._msal_configuration}"
         )
-
-    def _client_rep(self, tenant_id: str | None = None, instance_id: str | None = None) -> str:
-        return f"{tenant_id}-{instance_id}"
-    
-    def _client(self, tenant_id: str | None = None, instance_id: str | None = None) -> ConfidentialClientApplication | ManagedIdentityClient:
-        tenant_id = tenant_id or self._msal_configuration.TENANT_ID
-        rep = self._client_rep(tenant_id, instance_id)
-        return cast(ConfidentialClientApplication | ManagedIdentityClient, self._msal_auth_client_map.get(rep))
 
     async def get_access_token(
         self, resource_url: str, scopes: list[str], force_refresh: bool = False
@@ -76,11 +70,12 @@ class MsalAuth(AccessTokenProviderBase):
         valid_uri, instance_uri = self._uri_validator(resource_url)
         if not valid_uri:
             raise ValueError(str(authentication_errors.InvalidInstanceUrl))
-
+        
+        assert instance_uri is not None
         local_scopes = self._resolve_scopes_list(instance_uri, scopes)
-        self._create_client_application()
+        msal_auth_client = self._get_client()
 
-        msal_auth_client = self._client()
+        # msal_auth_client = self._client()
         if isinstance(msal_auth_client, ManagedIdentityClient):
             logger.info("Acquiring token using Managed Identity Client.")
             auth_result_payload = await _async_acquire_token_for_client(
@@ -115,8 +110,8 @@ class MsalAuth(AccessTokenProviderBase):
         :return: The access token as a string.
         """
 
-        self._create_client_application()
-        msal_auth_client = self._client()
+        msal_auth_client = self._get_client()
+        # msal_auth_client = self._client()
         if isinstance(msal_auth_client, ManagedIdentityClient):
             logger.error(
                 "Attempted on-behalf-of flow with Managed Identity authentication."
@@ -175,18 +170,12 @@ class MsalAuth(AccessTokenProviderBase):
         
         return config.TENANT_ID
 
-    def _create_client_application(self, tenant_id: str | None = None, instance_id: str | None = None) -> None:
+    def _create_client_application(self, tenant_id: str | None = None) -> ConfidentialClientApplication | ManagedIdentityClient:
 
-        tenant_id = tenant_id or self._msal_configuration.TENANT_ID
-
-        if self._client(tenant_id, instance_id):
-            return
+        tenant_id = MsalAuth._resolve_tenant_id(self._msal_configuration, tenant_id)
         
-        msal_auth_client = None
-        client_rep = self._client_rep(tenant_id, instance_id)
-
         if self._msal_configuration.AUTH_TYPE == AuthTypes.user_managed_identity:
-            msal_auth_client = ManagedIdentityClient(
+            return ManagedIdentityClient(
                 UserAssignedManagedIdentity(
                     client_id=self._msal_configuration.CLIENT_ID
                 ),
@@ -194,7 +183,7 @@ class MsalAuth(AccessTokenProviderBase):
             )
 
         elif self._msal_configuration.AUTH_TYPE == AuthTypes.system_managed_identity:
-            msal_auth_client = ManagedIdentityClient(
+            return ManagedIdentityClient(
                 SystemAssignedManagedIdentity(),
                 http_client=Session(),
             )
@@ -242,13 +231,24 @@ class MsalAuth(AccessTokenProviderBase):
                     str(authentication_errors.AuthenticationTypeNotSupported)
                 )
             
-            msal_auth_client = ConfidentialClientApplication(
+            return ConfidentialClientApplication(
                 client_id=self._msal_configuration.CLIENT_ID,
                 authority=authority,
                 client_credential=self._client_credential_cache,
             )
-        
-        self._msal_auth_client_map[client_rep] = msal_auth_client
+    
+    def _client_rep(self, tenant_id: str | None = None) -> str:
+        tenant_id = tenant_id or self._msal_configuration.TENANT_ID
+        return f"tenant:{tenant_id}" # might add more later
+    
+    def _get_client(self, tenant_id: str | None = None) -> ConfidentialClientApplication | ManagedIdentityClient:
+        rep = self._client_rep(tenant_id)
+        if rep in self._msal_auth_client_map:
+            return self._msal_auth_client_map[rep]
+        else:
+            client = self._create_client_application(tenant_id)
+            self._msal_auth_client_map[rep] = client
+            return client
 
     @staticmethod
     def _uri_validator(url_str: str) -> tuple[bool, Optional[URI]]:
@@ -264,7 +264,8 @@ class MsalAuth(AccessTokenProviderBase):
             return scopes
 
         temp_list: list[str] = []
-        for scope in self._msal_configuration.SCOPES:
+        lst = self._msal_configuration.SCOPES or []
+        for scope in lst:
             scope_placeholder = scope
             if "{instance}" in scope_placeholder.lower():
                 scope_placeholder = scope_placeholder.replace(
@@ -277,7 +278,7 @@ class MsalAuth(AccessTokenProviderBase):
     # the call to MSAL is blocking, but in the future we want to create an asyncio task
     # to avoid this
     async def get_agentic_application_token(
-        self, agent_app_instance_id: str
+        self, tenant_id: str, agent_app_instance_id: str
     ) -> Optional[str]:
         """Gets the agentic application token for the given agent application instance ID.
 
@@ -296,9 +297,8 @@ class MsalAuth(AccessTokenProviderBase):
             "Attempting to get agentic application token from agent_app_instance_id %s",
             agent_app_instance_id,
         )
-        self._create_client_application()
+        msal_auth_client = self._get_client(tenant_id)
 
-        msal_auth_client = self._client()
         if isinstance(msal_auth_client, ConfidentialClientApplication):
 
             # https://github.dev/AzureAD/microsoft-authentication-library-for-dotnet
@@ -335,6 +335,7 @@ class MsalAuth(AccessTokenProviderBase):
             agent_app_instance_id,
         )
         agent_token_result = await self.get_agentic_application_token(
+            tenant_id,
             agent_app_instance_id
         )
 
@@ -355,6 +356,7 @@ class MsalAuth(AccessTokenProviderBase):
             client_id=agent_app_instance_id,
             authority=authority,
             client_credential={"client_assertion": agent_token_result},
+            token_cache=self._token_cache,
         )
 
         agentic_instance_token = await _async_acquire_token_for_client(
@@ -442,6 +444,7 @@ class MsalAuth(AccessTokenProviderBase):
             client_id=agent_app_instance_id,
             authority=authority,
             client_credential={"client_assertion": agent_token},
+            token_cache=self._token_cache,
         )
 
         logger.info(

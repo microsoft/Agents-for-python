@@ -23,7 +23,7 @@ class AnonymousTokenProvider(AccessTokenProviderBase):
         return ""
 
     async def get_agentic_application_token(
-        self, agent_app_instance_id: str
+        self, tenant_id: str, agent_app_instance_id: str
     ) -> Optional[str]:
         return ""
 
