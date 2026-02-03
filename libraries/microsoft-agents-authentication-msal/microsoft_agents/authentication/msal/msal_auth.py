@@ -58,6 +58,8 @@ class MsalAuth(AccessTokenProviderBase):
         self._msal_auth_client_map: dict[
             str, ConfidentialClientApplication | ManagedIdentityClient
         ] = {}
+
+        # TokenCache is thread-safe and async-safe per MSAL documentation
         self._token_cache = TokenCache()
         logger.debug(
             f"Initializing MsalAuth with configuration: {self._msal_configuration}"
@@ -70,8 +72,9 @@ class MsalAuth(AccessTokenProviderBase):
             f"Requesting access token for resource: {resource_url}, scopes: {scopes}"
         )
         valid_uri, instance_uri = self._uri_validator(resource_url)
-        if not valid_uri or instance_uri is None:
+        if not valid_uri:
             raise ValueError(str(authentication_errors.InvalidInstanceUrl))
+        assert instance_uri is not None # for mypy
 
         local_scopes = self._resolve_scopes_list(instance_uri, scopes)
         msal_auth_client = self._get_client()
@@ -170,6 +173,8 @@ class MsalAuth(AccessTokenProviderBase):
     ) -> str:
 
         if not config.TENANT_ID:
+            if tenant_id:
+                return tenant_id
             raise ValueError("TENANT_ID is not set in the configuration.")
 
         if tenant_id and config.TENANT_ID.lower() == "common":
@@ -241,8 +246,10 @@ class MsalAuth(AccessTokenProviderBase):
     def _client_rep(
         self, tenant_id: str | None = None, instance_id: str | None = None
     ) -> str:
+        # Create a unique representation for the client based on tenant_id and instance_id
+        # instance_id None is for when no agentic instance is associated with the request.
         tenant_id = tenant_id or self._msal_configuration.TENANT_ID
-        return f"tenant:{tenant_id}.instance:{instance_id}"  # might add more later
+        return f"tenant:{tenant_id}.instance:{instance_id}"
 
     def _get_client(
         self, tenant_id: str | None = None, instance_id: str | None = None

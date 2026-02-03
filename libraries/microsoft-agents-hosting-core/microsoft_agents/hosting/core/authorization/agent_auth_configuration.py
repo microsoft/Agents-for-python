@@ -35,11 +35,13 @@ class AgentAuthConfiguration:
     ALT_BLUEPRINT_ID: Optional[str]
     ANONYMOUS_ALLOWED: bool = False
 
-    # JWT-patch: for internal use only
-    # patch needed to support multiple connections
+    # Multi-connection support: Maintains a map of all configured connections
+    # to enable JWT validation across connections. This allows tokens issued
+    # for any configured connection to be validated, supporting multi-tenant
+    # scenarios where connections share a security boundary.
     #
-    # existing flow was to only pass in one AgentAuthConfiguration to JWTTokenValidator,
-    # this addition avoids breaking changes
+    # Note: This is an internal implementation detail. External code should
+    # not directly access _connections.
     _connections: dict[str, AgentAuthConfiguration]
 
     def __init__(
