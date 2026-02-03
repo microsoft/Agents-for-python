@@ -4,11 +4,11 @@ Licensed under the MIT License.
 """
 
 from __future__ import annotations
+import re
 import logging
 from copy import copy
 from functools import partial
 
-import re
 from typing import (
     Any,
     Awaitable,
