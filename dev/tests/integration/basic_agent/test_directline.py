@@ -1,4 +1,7 @@
 import pytest
+import asyncio
+
+from typing import cast
 
 from microsoft_agents.activity import (
     Activity,
@@ -8,36 +11,20 @@ from microsoft_agents.activity import (
     DeliveryModes,
     Entity,
 )
+from microsoft_agents.testing import AgentClient, Expect
 
-from microsoft_agents.testing import update_with_defaults
+from .test_basic_agent_base import TestBasicAgentBase
 
-from .test_basic_agent import TestBasicAgent
 
-class TestBasicAgentDirectLine(TestBasicAgent):
+class TestBasicAgentDirectLine(TestBasicAgentBase):
     """Test DirectLine channel for basic agent."""
-
-    OUTGOING_PARENT = {
-        "channel_id": "directline",
-        "locale": "en-US",
-        "conversation": {"id": "conv1"},
-        "from": {"id": "user1", "name": "User"},
-        "recipient": {"id": "bot", "name": "Bot"},
-    }
-
-    def populate(self, input_data: dict | None = None, **kwargs) -> Activity:
-        """Helper to create Activity with defaults applied."""
-        if not input_data:
-            input_data = {}
-        input_data.update(kwargs)
-        update_with_defaults(input_data, self.OUTGOING_PARENT)
-        return Activity.model_validate(input_data)
 
     @pytest.mark.asyncio
     async def test__send_activity__conversation_update__returns_welcome_message(
-        self, agent_client, response_client
+        self, agent_client: AgentClient
     ):
         """Test that ConversationUpdate activity returns welcome message."""
-        activity = self.populate(
+        activity = agent_client.template.create(dict(
             type=ActivityTypes.conversation_update,
             id="activity-conv-update-001",
             timestamp="2025-07-30T23:01:11.000Z",
@@ -60,24 +47,21 @@ class TestBasicAgentDirectLine(TestBasicAgent):
                 })
             ],
             channel_data={"clientActivityID": "client-activity-001"},
+        ))
+
+        await agent_client.send(activity, wait=1.0)
+
+        agent_client.expect().that_for_one(
+            type="message",
+            text="~Hello and Welcome!"
         )
-
-        await agent_client.send_activity(activity)
-        responses = await response_client.pop()
-
-        # Find the welcome message
-        message_responses = [r for r in responses if r.type == ActivityTypes.message]
-        assert len(message_responses) > 0, "No message response received"
-        assert any(
-            "Hello and Welcome!" in (r.text or "") for r in message_responses
-        ), "Welcome message not found in responses"
 
     @pytest.mark.asyncio
     async def test__send_activity__sends_hello_world__returns_hello_world(
         self, agent_client, response_client
     ):
         """Test that sending 'hello world' returns echo response."""
-        activity = self.populate(
+        activity = agent_client.template.create(dict(
             type=ActivityTypes.message,
             id="activityA37",
             timestamp="2025-07-30T22:59:55.000Z",
@@ -93,72 +77,59 @@ class TestBasicAgentDirectLine(TestBasicAgent):
                 })
             ],
             channel_data={"clientActivityID": "client-act-id"},
+        ))
+
+        await agent_client.send(activity, wait=1.0)
+
+        agent_client.expect().that_for_one(
+            type="message",
+            text="~You said: hello world"
         )
-
-        await agent_client.send_activity(activity)
-        responses = await response_client.pop()
-
-        message_responses = [r for r in responses if r.type == ActivityTypes.message]
-        assert len(message_responses) > 0, "No message response received"
-        assert any(
-            "You said: hello world" in (r.text or "") for r in message_responses
-        ), "Echo response not found"
 
     @pytest.mark.asyncio
     async def test__send_activity__sends_poem__returns_apollo_poem(
-        self, agent_client, response_client
+        self, agent_client: AgentClient
     ):
         """Test that sending 'poem' returns poem about Apollo."""
-        activity = self.populate(
+        activity = agent_client.template.create(dict(
             type=ActivityTypes.message,
             delivery_mode=DeliveryModes.expect_replies,
             text="poem",
             text_format="plain",
             attachments=[],
-        )
+        ))
 
-        # assert activity == Activity(type="message")
         responses = await agent_client.send_expect_replies(activity)
-        popped_responses = await response_client.pop()
-        assert len(popped_responses) == 0, "No responses should be in response client for expect_replies"
 
-        message_responses = [r for r in responses if r.type == ActivityTypes.message]
-        assert len(message_responses) > 0, "No message response received"
+        await asyncio.sleep(1.0)  # Allow time for responses to be processed
 
-        # Check for typing indicator and poem content
-        has_typing = any(r.type == ActivityTypes.typing for r in responses)
-        has_apollo = any(
-            "Apollo" in (r.text or "") for r in message_responses
-        )
-        has_poem_intro = any(
-            "Hold on for an awesome poem" in (r.text or "") for r in message_responses
-        )
+        assert len(agent_client.history()) == len(responses), "History length mismatch with expect_replies responses"
 
-        assert has_poem_intro or has_apollo, "Poem response not found"
+        Expect(responses).that_for_one(type=ActivityTypes.typing)
+        Expect(responses).that_for_one(text="~Apollo")
+        Expect(responses).that_for_one(text="~Hold on for an awesome poem")
 
     @pytest.mark.asyncio
     async def test__send_activity__sends_seattle_weather__returns_weather(
-        self, agent_client, response_client
+        self, agent_client: AgentClient
     ):
         """Test that sending 'w: Seattle for today' returns weather data."""
-        activity = self.populate(
+        activity = agent_client.template.create(dict(
             type=ActivityTypes.message,
             text="w: Seattle for today",
             mode=DeliveryModes.expect_replies,
+        ))
+        await agent_client.send(activity)
+        agent_client.expect().that_for_any(
+            type=ActivityTypes.typing
         )
-
-        await agent_client.send_activity(activity)
-        responses = await response_client.pop()
-
-        message_responses = [r for r in responses if r.type == ActivityTypes.message]
-        assert len(message_responses) > 0, "No message response received"
 
     @pytest.mark.asyncio
     async def test__send_activity__sends_message_with_ac_submit__returns_response(
-        self, agent_client, response_client
+        self, agent_client: AgentClient
     ):
         """Test Action.Submit button on Adaptive Card."""
-        activity = self.populate(
+        activity = agent_client.template.create(dict(
             type=ActivityTypes.message,
             id="activityY1F",
             timestamp="2025-07-30T23:06:37.000Z",
@@ -175,48 +146,32 @@ class TestBasicAgentDirectLine(TestBasicAgent):
                 "data": {"name": "test"},
                 "usertext": "hello",
             },
+        ))
+
+        await agent_client.send(activity)
+        # Expect a response that includes the verb, action type, and user text
+        agent_client.expect().that_for_any(
+            type="message",
+            text=lambda x: "doStuff" in x and "Action.Submit" in x and "hello" in x
         )
-
-        await agent_client.send_activity(activity)
-        responses = await response_client.pop()
-
-        message_responses = [r for r in responses if r.type == ActivityTypes.message]
-        assert len(message_responses) > 0, "No message response received"
-
-        combined_text = " ".join(r.text or "" for r in message_responses)
-        assert "doStuff" in combined_text, "Action verb not found in response"
-        assert "Action.Submit" in combined_text, "Action.Submit not found in response"
-        assert "hello" in combined_text, "User text not found in response"
 
     @pytest.mark.asyncio
     async def test__send_activity__ends_conversation(
-        self, agent_client, response_client
+        self, agent_client: AgentClient
     ):
         """Test that sending 'end' ends the conversation."""
-        activity = self.populate(
-            type=ActivityTypes.message,
-            text="end",
-        )
-
-        await agent_client.send_activity(activity)
-        responses = await response_client.pop()
-
-        # Should have both message and endOfConversation
-        message_responses = [r for r in responses if r.type == ActivityTypes.message]
-        end_responses = [r for r in responses if r.type == ActivityTypes.end_of_conversation]
-
-        assert len(message_responses) > 0, "No message response received"
-        assert any(
-            "Ending conversation" in (r.text or "") for r in message_responses
-        ), "Ending message not found"
-        assert len(end_responses) > 0, "endOfConversation not received"
+        await agent_client.send("end", wait=1.0)
+        agent_client.expect()\
+            .that_for_any(type=ActivityTypes.message)\
+            .that_for_any(type=ActivityTypes.end_of_conversation)\
+            .that_for_any(text="~Ending conversation")
 
     @pytest.mark.asyncio
     async def test__send_activity__message_reaction_heart_added(
-        self, agent_client, response_client
+        self, agent_client: AgentClient
     ):
         """Test that adding heart reaction returns reaction acknowledgement."""
-        activity = self.populate(
+        activity = agent_client.template.create(dict(
             type=ActivityTypes.message_reaction,
             timestamp="2025-07-10T02:25:04.000Z",
             id="1752114287789",
@@ -233,24 +188,20 @@ class TestBasicAgentDirectLine(TestBasicAgent):
             },
             reactions_added=[{"type": "heart"}],
             reply_to_id="1752114287789",
+        ))
+
+        await agent_client.send(activity, wait=1.0)
+        agent_client.expect().that_for_one(
+            type=ActivityTypes.message,
+            text="~Message Reaction Added: heart"
         )
-
-        await agent_client.send_activity(activity)
-        responses = await response_client.pop()
-
-        message_responses = [r for r in responses if r.type == ActivityTypes.message]
-        assert len(message_responses) > 0, "No message response received"
-        assert any(
-            "Message Reaction Added: heart" in (r.text or "") 
-            for r in message_responses
-        ), "Reaction acknowledgement not found"
 
     @pytest.mark.asyncio
     async def test__send_activity__message_reaction_heart_removed(
-        self, agent_client, response_client
+        self, agent_client: AgentClient,
     ):
         """Test that removing heart reaction returns reaction acknowledgement."""
-        activity = self.populate(
+        activity = agent_client.template.create(dict(
             type=ActivityTypes.message_reaction,
             timestamp="2025-07-10T02:25:04.000Z",
             id="1752114287789",
@@ -267,56 +218,37 @@ class TestBasicAgentDirectLine(TestBasicAgent):
             },
             reactions_removed=[{"type": "heart"}],
             reply_to_id="1752114287789",
+        ))
+
+        await agent_client.send(activity, wait=1.0)
+        agent_client.expect().that_for_any(
+            type="message",
+            text="~Message Reaction Removed: heart"
         )
-
-        await agent_client.send_activity(activity)
-        responses = await response_client.pop()
-
-        message_responses = [r for r in responses if r.type == ActivityTypes.message]
-        assert len(message_responses) > 0, "No message response received"
-        assert any(
-            "Message Reaction Removed: heart" in (r.text or "") 
-            for r in message_responses
-        ), "Reaction removal acknowledgement not found"
 
     @pytest.mark.asyncio
     async def test__send_expected_replies__sends_poem__returns_poem(
-        self, agent_client, response_client
+        self, agent_client: AgentClient
     ):
         """Test send_expected_replies with poem request."""
-        activity = self.populate(
-            type=ActivityTypes.message,
-            text="poem",
-            delivery_mode=DeliveryModes.expect_replies
-        )
-
-        responses = await agent_client.send_expect_replies(activity)
-
+        responses = await agent_client.send_expect_replies("poem")
         assert len(responses) > 0, "No responses received for expectedReplies"
-        combined_text = " ".join(r.text or "" for r in responses)
-        assert "Apollo" in combined_text, "Apollo poem not found in responses"
+        Expect(responses).that_for_any(text="~Apollo")
 
     @pytest.mark.asyncio
     async def test__send_expected_replies__sends_weather__returns_weather(
-        self, agent_client, response_client
+        self, agent_client: AgentClient
     ):
         """Test send_expected_replies with weather request."""
-        activity = self.populate(
-            type=ActivityTypes.message,
-            text="w: Seattle for today",
-            delivery_mode=DeliveryModes.expect_replies
-        )
-
-        responses = await agent_client.send_expect_replies(activity)
-
+        responses = await agent_client.send_expect_replies("w: Seattle for today")
         assert len(responses) > 0, "No responses received for expectedReplies"
 
     @pytest.mark.asyncio
     async def test__send_invoke__basic_invoke__returns_response(
-        self, agent_client
+        self, agent_client: AgentClient
     ):
         """Test basic invoke activity."""
-        activity = self.populate(
+        activity = agent_client.template.create(dict(
             type=ActivityTypes.invoke,
             id="invoke456",
             from_property=ChannelAccount(id="user-id-0", name="Alex Wilber", aad_object_id="aad-user-alex"),
@@ -340,51 +272,53 @@ class TestBasicAgentDirectLine(TestBasicAgent):
                 "parameters": [{"value": "hi"}],
             },
             service_url="http://localhost:63676/_connector",
-        )
+        ))
         assert activity.type == "invoke"
-        response = await agent_client.send_invoke_activity(activity)
+
+        response = await agent_client.invoke(activity)
 
         assert response is not None, "No invoke response received"
         assert response.status == 200, f"Unexpected status: {response.status}"
 
     @pytest.mark.asyncio
     async def test__send_invoke__query_link(
-        self, agent_client, response_client
+        self, agent_client: AgentClient
     ):
         """Test invoke for query link."""
-        activity = self.populate(
+        activity = agent_client.template.create(dict(
             type=ActivityTypes.invoke,
             id="invoke_query_link",
             from_property=ChannelAccount(id="user-id-0"),
             name="composeExtension/queryLink",
             value={},
-        )
-
-        response = await agent_client.send_invoke_activity(activity)
+        ))
+        response = await agent_client.invoke(activity)
         assert response is not None, "No invoke response received"
+        assert response.status == 200, f"Unexpected status: {response.status}"
 
     @pytest.mark.asyncio
     async def test__send_invoke__query_package(
-        self, agent_client, response_client
+        self, agent_client: AgentClient
     ):
         """Test invoke for query package."""
-        activity = self.populate(
+        activity = agent_client.template.create(dict(
             type=ActivityTypes.invoke,
             id="invoke_query_package",
             from_property=ChannelAccount(id="user-id-0"),
             name="composeExtension/queryPackage",
             value={},
-        )
+        ))
 
-        response = await agent_client.send_invoke_activity(activity)
+        response = await agent_client.invoke(activity)
         assert response is not None, "No invoke response received"
+        assert response.status == 200, f"Unexpected status: {response.status}"
 
     @pytest.mark.asyncio
     async def test__send_invoke__select_item__returns_attachment(
-        self, agent_client, response_client
+        self, agent_client: AgentClient
     ):
         """Test invoke for selectItem to return package details."""
-        activity = self.populate(
+        activity = agent_client.template.create(dict(
             type=ActivityTypes.invoke,
             id="invoke123",
             from_property=ChannelAccount(id="user-id-0", name="Alex Wilber"),
@@ -403,9 +337,9 @@ class TestBasicAgentDirectLine(TestBasicAgent):
                 "projectUrl": "https://www.newtonsoft.com/json",
                 "iconUrl": "https://www.newtonsoft.com/favicon.ico",
             },
-        )
+        ))
 
-        response = await agent_client.send_invoke_activity(activity)
+        response = await agent_client.invoke(activity)
 
         assert response is not None, "No invoke response received"
         assert response.status == 200, f"Unexpected status: {response.status}"
@@ -414,10 +348,10 @@ class TestBasicAgentDirectLine(TestBasicAgent):
 
     @pytest.mark.asyncio
     async def test__send_invoke__adaptive_card_submit__returns_response(
-        self, agent_client, response_client
+        self, agent_client: AgentClient
     ):
         """Test invoke for Adaptive Card Action.Submit."""
-        activity = self.populate(
+        activity = agent_client.template.create(dict(
             type=ActivityTypes.invoke,
             id="ac_invoke_001",
             from_property=ChannelAccount(id="user-id-0"),
@@ -429,17 +363,17 @@ class TestBasicAgentDirectLine(TestBasicAgent):
                     "data": {"usertext": "hi"},
                 }
             },
-        )
+        ))
 
-        response = await agent_client.send_invoke_activity(activity)
+        response = await agent_client.invoke(activity)
         assert response is not None, "No invoke response received"
 
     @pytest.mark.asyncio
     async def test__send_activity__sends_hi_5__returns_5_responses(
-        self, agent_client, response_client
+        self, agent_client: AgentClient
     ):
         """Test that sending 'hi 5' returns 5 message responses."""
-        activity = self.populate(
+        activity = agent_client.template.create(dict(
             type=ActivityTypes.message,
             id="activity989",
             timestamp="2025-07-22T19:21:03.000Z",
@@ -451,13 +385,13 @@ class TestBasicAgentDirectLine(TestBasicAgent):
             ),
             recipient=ChannelAccount(id="bot-001", name="Test Bot"),
             text="hi 5",
-        )
+        ))
 
-        await agent_client.send_activity(activity)
-        responses = await response_client.pop()
+        responses = await agent_client.send(activity, wait=3.0)
 
-        message_responses = [r for r in responses if r.type == ActivityTypes.message]
-        assert len(message_responses) >= 5, f"Expected at least 5 messages, got {len(message_responses)}"
+        assert len(responses) >= 5, f"Expected at least 5 responses, got {len(responses)}"
+
+        message_responses = cast(list[Activity], agent_client.select().where(type=ActivityTypes.message).get())
 
         # Verify each message contains the expected pattern
         for i in range(5):
@@ -466,10 +400,10 @@ class TestBasicAgentDirectLine(TestBasicAgent):
 
     @pytest.mark.asyncio
     async def test__send_stream__stream_message__returns_stream_responses(
-        self, agent_client, response_client
+        self, agent_client: AgentClient
     ):
         """Test streaming message responses."""
-        activity = self.populate(
+        activity = agent_client.template.create(dict(
             type=ActivityTypes.message,
             id="activity-stream-001",
             timestamp="2025-06-18T18:47:46.000Z",
@@ -488,37 +422,33 @@ class TestBasicAgentDirectLine(TestBasicAgent):
                 })
             ],
             channel_data={"clientActivityID": "client-activity-stream-001"},
-        )
+        ))
 
-        await agent_client.send_activity(activity)
-        responses = await response_client.pop()
-
+        responses = await agent_client.send(activity, wait=1.0)
         # Stream tests just verify responses are received
         assert len(responses) > 0, "No stream responses received"
 
     @pytest.mark.asyncio
     async def test__send_activity__simulate_message_loop__weather_query(
-        self, agent_client, response_client
+        self, agent_client: AgentClient,
     ):
         """Test multiple message exchanges simulating message loop."""
         # First message: weather question
-        activity1 = self.populate(
+        activity1 = agent_client.template.create(dict(
             type=ActivityTypes.message,
             text="w: what's the weather?",
             conversation=ConversationAccount(id="conversation-simulate-002"),
-        )
+        ))
 
-        await agent_client.send_activity(activity1)
-        responses1 = await response_client.pop()
+        responses1 = await agent_client.send(activity1, wait=1.0)
         assert len(responses1) > 0, "No response to weather question"
 
         # Second message: location
-        activity2 = self.populate(
+        activity2 = agent_client.template.create(dict(
             type=ActivityTypes.message,
             text="w: Seattle for today",
             conversation=ConversationAccount(id="conversation-simulate-002"),
-        )
+        ))
 
-        await agent_client.send_activity(activity2)
-        responses2 = await response_client.pop()
+        responses2 = await agent_client.send(activity2, wait=1.0)
         assert len(responses2) > 0, "No response to location message"

@@ -6,9 +6,11 @@ from ..scenarios import load_scenario
 
 @pytest.mark.agent_test(load_scenario("quickstart"))
 class TestExpectReplies:
+    """Tests for expectReplies delivery mode."""
 
     @pytest.mark.asyncio
     async def test_expect_replies_without_service_url(self, agent_client: AgentClient):
+        """Test sending an activity with expectReplies delivery mode without a service URL."""
 
         activity = Activity(
             type="message",

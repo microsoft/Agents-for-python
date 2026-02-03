@@ -155,7 +155,7 @@ class AgentClient:
         """
         return Select(self._collect(history=history))
     
-    def expect_ex(self, history: bool = True) -> Expect:
+    def expect_ex(self, history: bool = False) -> Expect:
         """Create an Expect instance for asserting on exchanges.
         
         :param history: If True, includes full history; otherwise, recent only.
@@ -163,7 +163,7 @@ class AgentClient:
         """
         return Expect(self._ex_collect(history=history))
 
-    def expect(self, history: bool = True) -> Expect:
+    def expect(self, history: bool = False) -> Expect:
         """Create an Expect instance for asserting on activities.
         
         :param history: If True, includes full history; otherwise, recent only.

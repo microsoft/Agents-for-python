@@ -62,6 +62,7 @@ class ModelTemplate(Generic[ModelT]):
         """Create a new BaseModel instance based on the template.
         
         :param original: An optional BaseModel or dictionary to override default values.
+        :param kwargs: Additional values to override defaults.
         :return: A new BaseModel instance.
         """
         if original is None:
