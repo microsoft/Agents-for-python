@@ -191,9 +191,6 @@ class MsalAuth(AccessTokenProviderBase):
             if self._msal_configuration.AUTHORITY:
                 authority = MsalAuth._resolve_authority(self._msal_configuration, tenant_id)
             else:
-                # TODO -> there is no withTenantId, and I'm guessing it's equivalent to this
-                # circle back and check
-                # maybe I'm overthinking entirely...
                 authority = f"https://login.microsoftonline.com/{MsalAuth._resolve_tenant_id(self._msal_configuration, tenant_id)}"
 
             if self._client_credential_cache:
@@ -237,12 +234,12 @@ class MsalAuth(AccessTokenProviderBase):
                 client_credential=self._client_credential_cache,
             )
     
-    def _client_rep(self, tenant_id: str | None = None) -> str:
+    def _client_rep(self, tenant_id: str | None = None, instance_id: str | None = None) -> str:
         tenant_id = tenant_id or self._msal_configuration.TENANT_ID
-        return f"tenant:{tenant_id}" # might add more later
+        return f"tenant:{tenant_id}.instance:{instance_id}" # might add more later
     
-    def _get_client(self, tenant_id: str | None = None) -> ConfidentialClientApplication | ManagedIdentityClient:
-        rep = self._client_rep(tenant_id)
+    def _get_client(self, tenant_id: str | None = None, instance_id: str | None = None) -> ConfidentialClientApplication | ManagedIdentityClient:
+        rep = self._client_rep(tenant_id, instance_id)
         if rep in self._msal_auth_client_map:
             return self._msal_auth_client_map[rep]
         else:
@@ -297,7 +294,7 @@ class MsalAuth(AccessTokenProviderBase):
             "Attempting to get agentic application token from agent_app_instance_id %s",
             agent_app_instance_id,
         )
-        msal_auth_client = self._get_client(tenant_id)
+        msal_auth_client = self._get_client(tenant_id, agent_app_instance_id)
 
         if isinstance(msal_auth_client, ConfidentialClientApplication):
 
@@ -313,7 +310,6 @@ class MsalAuth(AccessTokenProviderBase):
 
         return None
 
-    # UPDATE TEST TODO -> change to API
     async def get_agentic_instance_token(
         self, tenant_id: str, agent_app_instance_id: str
     ) -> tuple[str, str]:
