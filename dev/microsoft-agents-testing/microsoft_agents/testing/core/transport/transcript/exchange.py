@@ -92,8 +92,8 @@ class Exchange(BaseModel):
 
             if request_activity.delivery_mode == DeliveryModes.expect_replies:
                 body = await response.text()
-                body_json = json.loads(body)
-                activities = [ Activity.model_validate(activity) for activity in body_json ]
+                activity_list = json.loads(body)["activities"]
+                activities = [ Activity.model_validate(activity) for activity in activity_list ]
                 
             elif request_activity.type == ActivityTypes.invoke:
                 body = await response.text()

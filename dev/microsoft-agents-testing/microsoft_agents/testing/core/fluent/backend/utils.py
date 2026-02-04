@@ -52,9 +52,9 @@ def expand(data: dict, level_sep: str = ".") -> dict:
             path = key[index + 1 :]
 
             if root in new_data and not isinstance(new_data[root], (dict, list)):
-                raise RuntimeError("Conflicting key found during expansion.")
+                raise RuntimeError(f"Conflicting key found during expansion: {root} and {key}")
             elif root in new_data and path in new_data[root]:
-                raise RuntimeError("Conflicting key found during expansion.")
+                raise RuntimeError(f"Conflicting key found during expansion: {root}.{path} and {key}")
 
             if root not in new_data:
                 new_data[root] = {}
@@ -64,7 +64,7 @@ def expand(data: dict, level_sep: str = ".") -> dict:
         else:
             root = key
             if root in new_data:
-                raise RuntimeError("Conflicting key found during expansion.")
+                raise RuntimeError(f"Conflicting key found during expansion: {root} and {key}")
 
             new_data[root] = value
 

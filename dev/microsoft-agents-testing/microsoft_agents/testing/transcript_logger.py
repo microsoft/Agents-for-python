@@ -10,7 +10,6 @@ text representations for debugging and logging purposes.
 from abc import ABC, abstractmethod
 from enum import Enum
 from datetime import datetime
-from typing import Any
 
 from microsoft_agents.activity import Activity, ActivityTypes
 

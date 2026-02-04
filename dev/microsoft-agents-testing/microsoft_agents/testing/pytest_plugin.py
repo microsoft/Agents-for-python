@@ -130,8 +130,8 @@ def agent_environment(request: pytest.FixtureRequest) -> AgentEnvironment:
             "agent_environment fixture is only available for in-process scenarios "
             "(e.g., AiohttpScenario), not for ExternalScenario"
         )
-    
-    return cast(AgentEnvironment, scenario.agent_environment)
+    agent_environment = getattr(scenario, "agent_environment")
+    return cast(AgentEnvironment, agent_environment)
 
 
 @pytest.fixture

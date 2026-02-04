@@ -16,7 +16,7 @@ if TYPE_CHECKING:
 from .post import post
 from .validate import validate
 from .chat import chat
-from .run import run
+from ._run import run
 
 # Add commands to this list to register them with the CLI
 COMMANDS: list["Command"] = [
