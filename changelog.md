@@ -1,6 +1,24 @@
+# Microsoft 365 Agents SDK for Python - Release Notes v0.7.0
+
+**Release Date:** January 21, 2026
+**Previous Version:** 0.6.1 (Released December 2, 2025)
+
+## Enhancements
+
+- **Authentication & Token Management**: Centralized token scope handling with new `get_token_scope` method in `ClaimsIdentity` for consistent scope determination across ChannelServiceAdapter and RestChannelServiceClientFactory (#290)
+- **Storage Backend Improvements**: AsyncTokenCredential support for CosmosDB and Blob Storage configurations, with enhanced async resource cleanup and improved error handling (#283)
+- **Copilot Studio Integration**: Configurable `aiohttp.ClientSession` creation through `ConnectionSettings.client_session_kwargs` parameter for custom HTTP client behavior (#278)
+- **Configuration & Logging**: Log configuration support via `.env` file with new `configure_logging` function (#230)
+
+## Documentation
+
+- Installation instructions simplified by removing test PyPI references (#284)
+
+---
+
 # Microsoft 365 Agents SDK for Python - Release Notes v0.6.1
 
-**Release Date:** December 1, 2025  
+**Release Date:** December 2, 2025
 **Previous Version:** 0.6.0 (Released November 18, 2025)
 
 ## Changes Documented
