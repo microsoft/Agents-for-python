@@ -149,6 +149,10 @@ class AiohttpScenario(Scenario):
             entry_point,
         )
 
+        app["agent_configuration"] = self._env.connections.get_default_connection_configuration()
+        app["agent_app"] = self._env.agent_application
+        app["adapter"] = adapter
+
         return app
 
     @asynccontextmanager

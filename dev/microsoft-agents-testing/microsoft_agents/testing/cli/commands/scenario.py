@@ -1,8 +1,11 @@
+import json
+
 import click
 
 from microsoft_agents.activity import Activity
 from microsoft_agents.testing.core import Scenario
 from microsoft_agents.testing.scenario_registry import scenario_registry
+from microsoft_agents.testing.transcript_logger import ActivityLogger
 
 from ..core import (
     async_command,
@@ -43,6 +46,7 @@ def scenario_list(out: Output, pattern: str) -> None:
 #         # todo -> blocking interaction for now
 #         pass
 
+# yes, I did ask Copilot to make this look pretty
 @scenario.command("chat")
 @async_command
 @pass_output
@@ -63,41 +67,103 @@ async def chat(out: Output, scenario: Scenario) -> None:
         # Chat with an in-process agent
         mat chat --agent myproject.agents.echo
     """
-    async with scenario.client() as client:
-        while True:
-            out.info("Enter a message to send to the agent (or 'exit' to quit):")
-            user_input = out.prompt()
-            if user_input.lower() == "exit":
-                break
-            out.newline()
+    # Print welcome banner
+    out.newline()
+    click.secho("╔══════════════════════════════════════════════════════════════╗", fg="cyan")
+    click.secho("║              🤖  Agent Chat Interface  🤖                    ║", fg="cyan")
+    click.secho("╚══════════════════════════════════════════════════════════════╝", fg="cyan")
+    out.newline()
+    click.secho("  Type your message and press Enter to chat with the agent.", fg="white", dim=True)
+    click.secho("  Type '/exit' or '/quit' to end the conversation.", fg="white", dim=True)
+    click.secho("  ─" * 32, fg="cyan", dim=True)
+    out.newline()
 
-            replies = await client.send_expect_replies(user_input)
-            for reply in replies:
-                out.info(f"agent: {reply.text}")
-                out.newline()
+    async with scenario.client() as client:
+        message_count = 0
+        
+        while True:
+            # User input prompt with styling
+            click.secho("You: ", fg="green", bold=True, nl=False)
+            user_input = click.prompt("", prompt_suffix="")
             
-        out.success("Exiting console.")
+            if user_input.lower() in ("/exit", "/quit"):
+                break
+            
+            if not user_input.strip():
+                click.secho("  (empty message, skipping...)", fg="yellow", dim=True)
+                continue
+            
+            message_count += 1
+            
+            # Show thinking indicator
+            click.secho("  ⏳ Agent is thinking...", fg="cyan", dim=True)
+            
+            try:
+                replies = await client.send_expect_replies(user_input)
+                
+                # Clear the "thinking" line by moving up (optional, works in most terminals)
+                click.echo("\033[A\033[K", nl=False)  # Move up and clear line
+                
+                if replies:
+                    for reply in replies:
+                        if reply.type == "message" and reply.text:
+                            click.secho("Agent: ", fg="blue", bold=True, nl=False)
+                            click.echo(reply.text)
+                        elif reply.type == "typing":
+                            # Skip typing indicators in output
+                            pass
+                        else:
+                            # Show other activity types in debug style
+                            click.secho(f"  [activity: {reply.type}]", fg="magenta", dim=True)
+                else:
+                    click.secho("  (no response from agent)", fg="yellow", dim=True)
+                    
+            except Exception as e:
+                click.secho(f"  ❌ Error: {e}", fg="red")
+            
+            out.newline()
+    
+    # Print exit summary
+    out.newline()
+    click.secho("  ─" * 32, fg="cyan", dim=True)
+    click.secho(f"  📊 Session Summary: {message_count} messages exchanged", fg="cyan")
+    out.newline()
+    out.success("Chat session ended. Goodbye!")
+    out.newline()
+
+@scenario.command("post")
+@async_command
+@click.argument("payload", required=False, help="Message text or JSON activity to send to the agent.")
+@click.option("--json_file", "-j", required=False, type=click.File("rb"), help="Message text or JSON activity to send to the agent.")
+@click.option("--wait", "-w", default=5.0, help="Seconds to wait for a response before timing out.")
+@pass_output
+@with_scenario
+async def post(out: Output, scenario: Scenario, payload: str | None, json_file, wait: float) -> None:
+    
+    if not payload and not json_file:
+        out.error("Either a payload argument or --json_file must be provided.")
+        return
+    
+    if payload and json_file:
+        out.error("Cannot provide both a payload argument and --json_file. Please choose one.")
+        return
+    
+    async with scenario.client() as client:
+        activity_or_str: Activity | str
+        if payload:
+            assert isinstance(payload, str)
+            activity_or_str = payload
+        else:
+            data = json.load(json_file)
+            activity_or_str = client.template.create(data)
+
+        await client.send(activity_or_str, wait=wait)
 
     transcript = client.transcript
-    out.error("Transcript of the conversation: TODO")
 
-# @scenario.command("post")
-# @async_command
-# @pass_output
-# @with_scenario
-# async def post(out: Output, scenario: Scenario, payload: str | dict, wait: float) -> None:
-        
+    text = ActivityLogger().format(transcript)
 
-#     async with scenario.client() as client:
-        
-#         activity_or_str: Activity | str
-#         if isinstance(payload, str):
-#             activity_or_str = payload
-#         else:
-#             assert isinstance(payload, dict)
-#             activity_or_str = client.template.create(payload)
-
-#         await client.send(activity_or_str, wait=wait)
-
-#     transcript = client.transcript
-#     out.error("Transcript of the conversation: TODO")
+    out.info("Transcript of the conversation:")
+    out.info("=" * 40)
+    out.newline()
+    out.info(text)
