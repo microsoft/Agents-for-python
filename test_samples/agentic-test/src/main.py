@@ -16,8 +16,8 @@ ms_agents_logger.addHandler(console_handler)
 ms_agents_logger.setLevel(logging.DEBUG)
 
 
-from .agent import AGENT_APP, CONNECTION_MANAGER
-from .start_server import start_server
+from agent import AGENT_APP, CONNECTION_MANAGER
+from start_server import start_server
 
 start_server(
     agent_application=AGENT_APP,

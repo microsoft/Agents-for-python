@@ -2,6 +2,8 @@
 # Licensed under the MIT License.
 
 import logging
+import os
+import jwt
 from dotenv import load_dotenv
 
 from os import environ
@@ -12,13 +14,16 @@ from microsoft_agents.hosting.core import (
     TurnState,
     TurnContext,
     MemoryStorage,
+    MessageFactory,
 )
 from microsoft_agents.hosting.core.storage import (
     TranscriptLoggerMiddleware,
     ConsoleTranscriptLogger,
 )
 from microsoft_agents.authentication.msal import MsalConnectionManager
-from microsoft_agents.activity import load_configuration_from_env
+from microsoft_agents.activity import load_configuration_from_env, Attachment
+
+from jwtcard import load_adaptive_card, update_card_data
 
 logger = logging.getLogger(__name__)
 
@@ -38,7 +43,25 @@ AGENT_APP = AgentApplication[TurnState](
 
 @AGENT_APP.activity("message", auth_handlers=["AGENTIC"])
 async def on_message(context: TurnContext, _state: TurnState):
+
     aau_token = await AGENT_APP.auth.get_token(context, "AGENTIC")
+    decoded = jwt.decode(aau_token.token, options={"verify_signature": False})
+    decoded["length"] = len(aau_token.token)
+
+    relative_path = os.path.abspath(os.path.dirname(__file__))
+    template_path = os.path.join(relative_path, "JWTDecodeCard.json")
+
+    card = load_adaptive_card(template_path)
+    popedCard = update_card_data(card, decoded)
+
+    attachment = MessageFactory.attachment(
+        Attachment(
+            content_type="application/vnd.microsoft.card.adaptive",
+            content=popedCard,
+        )
+    )
+    await context.send_activity(attachment)
+
     await context.send_activity(
         f"Acquired agentic user token with length: {len(aau_token.token)}"
     )
