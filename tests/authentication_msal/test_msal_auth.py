@@ -73,7 +73,7 @@ class TestMsalAuthTenantResolution:
     These methods are critical for multi-tenant authentication support.
     """
 
-    def test_resolve_tenant_id_with_tenant_id_parameter(self):
+    def test_resolve_tenant_id_with_override_parameter(self):
         """Test that tenant_id parameter takes precedence when provided"""
         config = AgentAuthConfiguration(
             tenant_id="12345678-1234-1234-1234-123456789abc"
@@ -102,7 +102,8 @@ class TestMsalAuthTenantResolution:
         assert result == "12345678-1234-1234-1234-123456789abc"
 
     def test_resolve_tenant_id_no_config_tenant_with_parameter(self):
-        """Test that tenant_id parameter is used when config.TENANT_ID is not set"""
+        """Test that tenant_id parameter is used when config.TENANT_ID is not set.
+        Note: tenant_id can be any string, not just GUID format."""
         config = AgentAuthConfiguration()
         result = MsalAuth._resolve_tenant_id(config, "fallback-tenant")
         assert result == "fallback-tenant"
