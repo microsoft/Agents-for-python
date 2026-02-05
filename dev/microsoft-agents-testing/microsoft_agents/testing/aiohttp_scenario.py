@@ -35,7 +35,7 @@ from .core import (
     Scenario,
     ScenarioConfig,
 )
-
+from .scenario_registry import scenario_registry
 
 @dataclass
 class AgentEnvironment:

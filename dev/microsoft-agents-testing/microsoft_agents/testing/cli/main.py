@@ -9,9 +9,19 @@ such as loading environment variables and configuration.
 
 import click
 
-from .config import CLIConfig
+from microsoft_agents.testing.scenario_registry import scenario_registry
+
 from .commands import COMMANDS
-from .core import Output
+from .core import (
+    CLIConfig,
+    Output,
+)
+
+from .scenarios import SCENARIOS
+
+for scenario in SCENARIOS:
+    scenario_name, scenario_obj, scenario_desc = scenario
+    scenario_registry.register(f"agt.{scenario_name}", scenario_obj, description=scenario_desc)
 
 
 @click.group()
@@ -33,7 +43,7 @@ from .core import Output
     help="Enable verbose output.",
 )
 @click.pass_context
-def cli(ctx: click.Context, env_path: str, connection: str | None, verbose: bool) -> None:
+def cli(ctx: click.Context, env_path: str, connection: str, verbose: bool) -> None:
     """Microsoft Agents Testing CLI.
     
     A command-line tool for testing and interacting with M365 Agents.
@@ -52,7 +62,7 @@ def cli(ctx: click.Context, env_path: str, connection: str | None, verbose: bool
     out.debug(f"Using environment file: {config.env_path}")
     
     ctx.obj["config"] = config
-
+    ctx.obj["out"] = out
 
 # Register all commands
 for command in COMMANDS:

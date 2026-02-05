@@ -11,6 +11,7 @@ from microsoft_agents.testing.aiohttp_scenario import (
     AiohttpScenario,
     AgentEnvironment,
 )
+from microsoft_agents.testing.scenario_registry import scenario_registry
 
 async def basic_scenario_init(env: AgentEnvironment):
 

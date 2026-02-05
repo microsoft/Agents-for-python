@@ -57,7 +57,7 @@ class CLIConfig:
         app_id: Azure AD application (client) ID.
         app_secret: Azure AD application secret.
         tenant_id: Azure AD tenant ID.
-        agent_url: URL of the agent service endpoint.
+        agent_url: URL of the agent messaging endpoint.
         service_url: Callback service URL for receiving responses.
     """
 

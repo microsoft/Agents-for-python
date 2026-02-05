@@ -9,8 +9,6 @@ needing to set up full scenarios - useful for quick tests and scripts.
 
 from microsoft_agents.activity import Activity
 from microsoft_agents.testing.core import (
-    ActivityTemplate,
-    ScenarioConfig,
     Exchange,
     ExternalScenario,
 )

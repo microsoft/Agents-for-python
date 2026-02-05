@@ -11,6 +11,7 @@ import click
 from microsoft_agents.activity import ActivityTypes
 
 from microsoft_agents.hosting.core import AgentApplication, TurnContext, TurnState
+from microsoft_agents.testing.scenario_registry import scenario_registry
 
 from microsoft_agents.testing.aiohttp_scenario import (
     AgentEnvironment,

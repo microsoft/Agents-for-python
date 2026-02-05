@@ -9,11 +9,7 @@ Provides ready-to-use scenario configurations for common testing patterns.
 from .auth_scenario import auth_scenario
 from .basic_scenario import basic_scenario
 
-SCENARIOS = {
-    "auth": auth_scenario,
-    "basic": basic_scenario,
-}
-
-__all__ = [
-    "SCENARIOS",
+SCENARIOS = [
+    ["auth", auth_scenario, "Authentication testing scenario with dynamic auth routes"],
+    ["basic", basic_scenario, "Basic message handling scenario"],
 ]

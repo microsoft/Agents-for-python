@@ -3,7 +3,8 @@
 
 """Reusable output formatting utilities for CLI commands."""
 
-from typing import Any, Optional
+from typing import Any, Iterator, Optional
+from contextlib import contextmanager
 import click
 
 from microsoft_agents.activity import Activity
@@ -118,6 +119,13 @@ class Output:
     def prompt(self) -> str:
         """Prompt the user for input."""
         return click.prompt(">> ")
+    
+    @contextmanager
+    def text_loading(self, message: str) -> Iterator[None]:
+        """Context manager for displaying a loading message."""
+        click.echo(f"{message}...", nl=False)
+        yield
+        click.echo("OK")
 
 
 # Convenience functions for quick access

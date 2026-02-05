@@ -64,9 +64,10 @@ from .transcript_logger import (
     TranscriptFormatter,
 )
 
-from .utils import (
-    send,
-    ex_send,
+from .scenario_registry import (
+    scenario_registry,
+    ScenarioEntry,
+    load_scenarios,
 )
 
 __all__ = [
@@ -87,8 +88,9 @@ __all__ = [
     "Unset",
     "AgentEnvironment",
     "AiohttpScenario",
-    "send",
-    "ex_send",
+    "ScenarioEntry",
+    "scenario_registry",
+    "load_scenarios",
     "DetailLevel",
     "ConversationLogger",
     "ActivityLogger",

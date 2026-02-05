@@ -25,12 +25,14 @@ Example:
 
 from __future__ import annotations
 
+import sys
+import importlib
+from pathlib import Path
 from fnmatch import fnmatch
 from dataclasses import dataclass
 from collections.abc import Iterator
 
-from ..core import Scenario
-
+from .core import Scenario
 
 @dataclass(frozen=True)
 class ScenarioEntry:
@@ -148,8 +150,8 @@ class ScenarioRegistry:
         }
     
     def __iter__(self) -> Iterator[ScenarioEntry]:
-        """Iterate over registered scenario names."""
-        return iter(self._entries)
+        """Iterate over registered scenario entries."""
+        return iter(self._entries.values())
         
     def __contains__(self, name: str) -> bool:
         """Check if a scenario is registered."""
@@ -165,3 +167,50 @@ class ScenarioRegistry:
 
 # Global singleton instance
 scenario_registry = ScenarioRegistry()
+
+
+def _import_modules(module_path: str) -> None:
+    """Import a module to trigger scenario registration.
+    
+    Args:
+        module_path: Python module path (e.g., "myproject.scenarios")
+                     or file path (e.g., "./scenarios.py")
+    
+    Returns:
+        Number of scenarios registered after import.
+    
+    Example:
+        load_scenarios("myproject.scenarios")
+        load_scenarios("./tests/scenarios.py")
+    """
+    
+    if module_path.endswith(".py") or "/" in module_path or "\\" in module_path:
+        # File path - load as module
+        path = Path(module_path).resolve()
+        if not path.exists():
+            raise FileNotFoundError(f"Scenario file not found: {path}")
+        
+        # Add parent to sys.path temporarily
+        parent = str(path.parent)
+        if parent not in sys.path:
+            sys.path.insert(0, parent)
+        
+        module_name = path.stem
+        importlib.import_module(module_name)
+        sys.path = [p for p in sys.path if p != parent]
+    else:
+        # Module path - import directly
+        importlib.import_module(module_path)
+    
+
+def load_scenarios(module_path: str) -> int:
+    """Load scenarios from the specified module or file path."""
+    before_count = len(scenario_registry)
+    try:
+        _import_modules(module_path)
+    except Exception as e:
+        print(f"Error loading scenarios from {module_path}: {e}")
+
+    after_count = len(scenario_registry)
+
+    return after_count - before_count
