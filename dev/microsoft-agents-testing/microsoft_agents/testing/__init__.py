@@ -57,10 +57,10 @@ from .aiohttp_scenario import (
     AiohttpScenario,
 )
 
-from .transcript_logger import (
+from .transcript_formatter import (
     DetailLevel,
-    ConversationLogger,
-    ActivityLogger,
+    ConversationTranscriptFormatter,
+    ActivityTranscriptFormatter,
     TranscriptFormatter,
 )
 
@@ -92,7 +92,7 @@ __all__ = [
     "scenario_registry",
     "load_scenarios",
     "DetailLevel",
-    "ConversationLogger",
-    "ActivityLogger",
+    "ConversationTranscriptFormatter",
+    "ActivityTranscriptFormatter",
     "TranscriptFormatter",
 ]

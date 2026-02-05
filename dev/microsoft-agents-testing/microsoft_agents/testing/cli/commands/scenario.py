@@ -1,11 +1,12 @@
 import json
+import asyncio
 
 import click
 
 from microsoft_agents.activity import Activity
-from microsoft_agents.testing.core import Scenario
+from microsoft_agents.testing.core import Scenario, ExternalScenario
 from microsoft_agents.testing.scenario_registry import scenario_registry
-from microsoft_agents.testing.transcript_logger import ActivityLogger
+from microsoft_agents.testing.transcript_formatter import ActivityTranscriptFormatter
 
 from ..core import (
     async_command,
@@ -37,14 +38,30 @@ def scenario_list(out: Output, pattern: str) -> None:
         out.info(f"\t{name}: {entry.description}")
     out.newline()
 
-# @scenario.command("run")
-# @async_command
-# @with_scenario
-# async def scenario_run(scenario_ctx: ScenarioContext) -> None:
-#     """Run a specified test scenario."""
-#     async with scenario.client() as client:
-#         # todo -> blocking interaction for now
-#         pass
+@scenario.command("run")
+@async_command
+@pass_output
+@with_scenario
+async def scenario_run(out: Output, scenario: Scenario) -> None:
+    """Run a specified test scenario."""
+    if isinstance(scenario, ExternalScenario):
+        out.error("Running an ExternalScenario is not supported in this command. Please use specific commands designed for interaction, such as 'chat' or 'post'.")
+        raise click.Abort()
+    
+    out.newline()
+    out.info("🚀 Scenario is running...")
+    out.info("Press Ctrl+C to stop.")
+    out.newline()
+    
+    try:
+        async with scenario.run() as factory:
+            # Block forever until KeyboardInterrupt
+            await asyncio.Event().wait()
+    except asyncio.CancelledError:
+        pass
+    
+    out.newline()
+    out.success("Scenario stopped.")
 
 # yes, I did ask Copilot to make this look pretty
 @scenario.command("chat")
@@ -133,26 +150,26 @@ async def chat(out: Output, scenario: Scenario) -> None:
 
 @scenario.command("post")
 @async_command
-@click.argument("payload", required=False, help="Message text or JSON activity to send to the agent.")
-@click.option("--json_file", "-j", required=False, type=click.File("rb"), help="Message text or JSON activity to send to the agent.")
-@click.option("--wait", "-w", default=5.0, help="Seconds to wait for a response before timing out.")
 @pass_output
 @with_scenario
-async def post(out: Output, scenario: Scenario, payload: str | None, json_file, wait: float) -> None:
+@click.argument("message", required=False)
+@click.option("--json_file", "-j", required=False, type=click.File("rb"), help="Message text or JSON activity to send to the agent.")
+@click.option("--wait", "-w", default=5.0, help="Seconds to wait for a response before timing out.")
+async def post(out: Output, scenario: Scenario, message: str | None, json_file, wait: float) -> None:
     
-    if not payload and not json_file:
-        out.error("Either a payload argument or --json_file must be provided.")
+    if not message and not json_file:
+        out.error("Either a message argument or --json_file must be provided.")
         return
     
-    if payload and json_file:
-        out.error("Cannot provide both a payload argument and --json_file. Please choose one.")
+    if message and json_file:
+        out.error("Cannot provide both a message argument and --json_file. Please choose one.")
         return
     
     async with scenario.client() as client:
         activity_or_str: Activity | str
-        if payload:
-            assert isinstance(payload, str)
-            activity_or_str = payload
+        if message:
+            assert isinstance(message, str)
+            activity_or_str = message
         else:
             data = json.load(json_file)
             activity_or_str = client.template.create(data)
@@ -161,7 +178,7 @@ async def post(out: Output, scenario: Scenario, payload: str | None, json_file, 
 
     transcript = client.transcript
 
-    text = ActivityLogger().format(transcript)
+    text = ActivityTranscriptFormatter().format(transcript)
 
     out.info("Transcript of the conversation:")
     out.info("=" * 40)

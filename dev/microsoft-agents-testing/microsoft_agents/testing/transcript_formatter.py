@@ -66,6 +66,8 @@ def _exchange_sort_key(exchange: Exchange) -> tuple:
     """
     dt = exchange.request_at
     if dt is None:
+        dt = exchange.response_at
+    if dt is None:
         # Use min datetime for None values
         return (datetime.min,)
     # Convert to naive for consistent comparison
@@ -129,7 +131,7 @@ def _is_error_exchange(exchange: Exchange) -> bool:
 
 
 # ============================================================================
-# ActivityLogger - Shows all activities with selectable fields
+# ActivityTranscriptFormatter - Shows all activities with selectable fields
 # ============================================================================
 
 
@@ -154,7 +156,7 @@ EXTENDED_ACTIVITY_FIELDS = [
 ]
 
 
-class ActivityLogger(TranscriptFormatter):
+class ActivityTranscriptFormatter(TranscriptFormatter):
     """Logs every activity sent and received with selectable fields.
     
     Provides detailed visibility into all activities in the transcript,
@@ -162,11 +164,11 @@ class ActivityLogger(TranscriptFormatter):
     
     Example::
     
-        logger = ActivityLogger(fields=["type", "text", "from_property"])
+        logger = ActivityTranscriptFormatter(fields=["type", "text", "from_property"])
         logger.print(transcript)
         
         # With timing info
-        logger = ActivityLogger(detail=DetailLevel.DETAILED)
+        logger = ActivityTranscriptFormatter(detail=DetailLevel.DETAILED)
         logger.print(transcript)
     """
     
@@ -177,7 +179,7 @@ class ActivityLogger(TranscriptFormatter):
         show_errors: bool = True,
         time_format: TimeFormat = TimeFormat.CLOCK,
     ):
-        """Initialize the ActivityLogger.
+        """Initialize the ActivityTranscriptFormatter.
         
         Args:
             fields: List of Activity field names to display. 
@@ -274,11 +276,11 @@ class ActivityLogger(TranscriptFormatter):
 
 
 # ============================================================================
-# ConversationLogger - Focused on message text with compact output
+# ConversationTranscriptFormatter - Focused on message text with compact output
 # ============================================================================
 
 
-class ConversationLogger(TranscriptFormatter):
+class ConversationTranscriptFormatter(TranscriptFormatter):
     """Logs conversation messages in a chat-like format.
     
     Focuses on message activities and their text content, providing
@@ -287,15 +289,15 @@ class ConversationLogger(TranscriptFormatter):
     
     Example::
     
-        logger = ConversationLogger()
+        logger = ConversationTranscriptFormatter()
         logger.print(transcript)
         
         # Show when non-message activities occur
-        logger = ConversationLogger(show_other_types=True)
+        logger = ConversationTranscriptFormatter(show_other_types=True)
         logger.print(transcript)
         
         # With timing
-        logger = ConversationLogger(detail=DetailLevel.DETAILED)
+        logger = ConversationTranscriptFormatter(detail=DetailLevel.DETAILED)
         logger.print(transcript)
     """
     
@@ -308,7 +310,7 @@ class ConversationLogger(TranscriptFormatter):
         agent_label: str = "Agent",
         time_format: TimeFormat = TimeFormat.CLOCK,
     ):
-        """Initialize the ConversationLogger.
+        """Initialize the ConversationTranscriptFormatter.
         
         Args:
             show_other_types: Show indicators for non-message activities.
@@ -453,7 +455,7 @@ def print_conversation(
         detail: Level of detail.
         show_other_types: Show non-message activity indicators.
     """
-    logger = ConversationLogger(
+    logger = ConversationTranscriptFormatter(
         detail=detail,
         show_other_types=show_other_types,
     )
@@ -474,7 +476,7 @@ def print_activities(
         fields: Activity fields to show.
         detail: Level of detail.
     """
-    logger = ActivityLogger(
+    logger = ActivityTranscriptFormatter(
         fields=fields,
         detail=detail,
     )

@@ -11,7 +11,6 @@ from microsoft_agents.testing.aiohttp_scenario import (
     AiohttpScenario,
     AgentEnvironment,
 )
-from microsoft_agents.testing.scenario_registry import scenario_registry
 
 async def basic_scenario_init(env: AgentEnvironment):
 
@@ -24,3 +23,4 @@ async def basic_scenario_init(env: AgentEnvironment):
         await context.send_activity("Echo: " + context.activity.text)
 
 basic_scenario = AiohttpScenario(basic_scenario_init)
+basic_scenario_no_auth = AiohttpScenario(basic_scenario_init, use_jwt_middleware=False)
