@@ -52,12 +52,12 @@ async def on_message(context: TurnContext, _state: TurnState):
     template_path = os.path.join(relative_path, "JWTDecodeCard.json")
 
     card = load_adaptive_card(template_path)
-    popedCard = update_card_data(card, decoded)
+    populated_card = update_card_data(card, decoded)
 
     attachment = MessageFactory.attachment(
         Attachment(
             content_type="application/vnd.microsoft.card.adaptive",
-            content=popedCard,
+            content=populated_card,
         )
     )
     await context.send_activity(attachment)
