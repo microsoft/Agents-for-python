@@ -163,7 +163,11 @@ class MsalAuth(AccessTokenProviderBase):
             )
 
         if config.AUTHORITY:
-            return re.sub(r"/common(?=/|$)", f"/{tenant_id}", config.AUTHORITY)
+            return re.sub(
+                r"/(?:common|[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12})(?=/|$)",
+                f"/{tenant_id}",
+                config.AUTHORITY,
+            )
 
         return f"https://login.microsoftonline.com/{tenant_id}"
 
@@ -177,7 +181,7 @@ class MsalAuth(AccessTokenProviderBase):
                 return tenant_id
             raise ValueError("TENANT_ID is not set in the configuration.")
 
-        if tenant_id and config.TENANT_ID.lower() == "common":
+        if tenant_id or config.TENANT_ID.lower() == "common":
             return tenant_id
 
         return config.TENANT_ID
@@ -366,7 +370,7 @@ class MsalAuth(AccessTokenProviderBase):
             client_id=agent_app_instance_id,
             authority=authority,
             client_credential={"client_assertion": agent_token_result},
-            token_cache=self._token_cache,
+            # token_cache=self._token_cache,
         )
 
         agentic_instance_token = await _async_acquire_token_for_client(
@@ -458,7 +462,7 @@ class MsalAuth(AccessTokenProviderBase):
             client_id=agent_app_instance_id,
             authority=authority,
             client_credential={"client_assertion": agent_token},
-            token_cache=self._token_cache,
+            # token_cache=self._token_cache,
         )
 
         logger.info(
