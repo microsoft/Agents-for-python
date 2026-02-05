@@ -19,7 +19,7 @@ def pass_config(func: Callable) -> Callable:
         config = ctx.obj.get("config")
         if config is None:
             raise RuntimeError("CLIConfig not found in context")
-        return func(config, *args, **kwargs)
+        return func(config=config, *args, **kwargs)
     return wrapper
 
 def pass_output(func: Callable) -> Callable:

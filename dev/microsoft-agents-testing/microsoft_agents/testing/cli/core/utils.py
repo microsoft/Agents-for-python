@@ -40,6 +40,10 @@ def _resolve_scenario(
             if module_path:
                 load_scenarios(module_path)
                 out.debug(f"Scenarios loaded from module: {module_path}")
-            return scenario_registry.get(agent_name_or_url)
-    
+            
+            try:
+                return scenario_registry.get(agent_name_or_url)
+            except KeyError as e:
+                return None
+
     return None

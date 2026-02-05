@@ -18,7 +18,6 @@ from ..core import (
 @click.group()
 def scenario():
     """Manage test scenarios."""
-    pass
 
 @scenario.command("list")
 @click.argument("pattern", default="*")
@@ -48,13 +47,12 @@ async def scenario_run(out: Output, scenario: Scenario) -> None:
         out.error("Running an ExternalScenario is not supported in this command. Please use specific commands designed for interaction, such as 'chat' or 'post'.")
         raise click.Abort()
     
-    out.newline()
-    out.info("🚀 Scenario is running...")
-    out.info("Press Ctrl+C to stop.")
-    out.newline()
-    
     try:
-        async with scenario.run() as factory:
+        async with scenario.run():
+            out.newline()
+            out.info("🚀 Scenario is running at http://localhost:3978...")
+            out.info("Press Ctrl+C to stop.")
+            out.newline()
             # Block forever until KeyboardInterrupt
             await asyncio.Event().wait()
     except asyncio.CancelledError:
@@ -68,7 +66,7 @@ async def scenario_run(out: Output, scenario: Scenario) -> None:
 @async_command
 @pass_output
 @with_scenario
-async def chat(out: Output, scenario: Scenario) -> None:
+async def scenario_chat(out: Output, scenario: Scenario) -> None:
     """Interactive chat with an agent.
     
     Starts a REPL-style conversation where you can send messages and
@@ -155,7 +153,7 @@ async def chat(out: Output, scenario: Scenario) -> None:
 @click.argument("message", required=False)
 @click.option("--json_file", "-j", required=False, type=click.File("rb"), help="Message text or JSON activity to send to the agent.")
 @click.option("--wait", "-w", default=5.0, help="Seconds to wait for a response before timing out.")
-async def post(out: Output, scenario: Scenario, message: str | None, json_file, wait: float) -> None:
+async def scenario_post(out: Output, scenario: Scenario, message: str | None, json_file, wait: float) -> None:
     
     if not message and not json_file:
         out.error("Either a message argument or --json_file must be provided.")
