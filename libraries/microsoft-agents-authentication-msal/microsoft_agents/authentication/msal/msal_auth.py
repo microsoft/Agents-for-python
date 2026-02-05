@@ -164,7 +164,7 @@ class MsalAuth(AccessTokenProviderBase):
 
         if config.AUTHORITY:
             return re.sub(
-                r"/\/(?:common|[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12})(?=\/|$)/",
+                r"/(?:common|[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12})(?=/|$)",
                 f"/{tenant_id}",
                 config.AUTHORITY,
             )
