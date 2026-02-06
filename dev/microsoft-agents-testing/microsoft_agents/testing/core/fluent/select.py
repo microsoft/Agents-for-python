@@ -13,7 +13,7 @@ import random
 from typing import TypeVar, Iterable, Callable, cast
 from pydantic import BaseModel
 
-from .backend import ModelPredicate, DictionaryTransform  # TODO: DictionaryTransform should be imported at module level
+from .backend import ModelPredicate, DictionaryTransform
 from .expect import Expect
 
 T = TypeVar("T", bound=BaseModel)
@@ -74,6 +74,12 @@ class Select:
         return self._child(filtered_items)
 
     def where(self, _filter: dict | Callable | None = None, **kwargs) -> Select:
+        """Filter items matching criteria. Chainable.
+
+        :param _filter: A dict of field checks or a callable predicate.
+        :param kwargs: Additional field checks.
+        :return: A new Select containing only matching items.
+        """
         return self._where(_filter, **kwargs)
 
     def where_not(self, _filter: dict | Callable | None = None, **kwargs) -> Select:
@@ -98,6 +104,7 @@ class Select:
         return self._child(self._items + other._items)
     
     def _bool_list(self) -> list[bool]:
+        """Return a list of True values matching the number of selected items."""
         return [ True for _ in self._items ]
     
     def first(self, n: int = 1) -> Select:
@@ -133,5 +140,5 @@ class Select:
         return len(self._items)
     
     def empty(self) -> bool:
-        """Select if no items are selected."""
+        """Check if no items are in the current selection."""
         return len(self._items) == 0

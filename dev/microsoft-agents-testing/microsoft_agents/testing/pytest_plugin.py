@@ -36,7 +36,6 @@ from microsoft_agents.hosting.core import (
 )
 
 from .core import (
-    AgentClient,
     ExternalScenario,
     Scenario,
 )

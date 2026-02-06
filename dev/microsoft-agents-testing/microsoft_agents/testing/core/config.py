@@ -35,7 +35,11 @@ class ClientConfig:
     activity_template: ActivityTemplate | None = None
     
     def with_headers(self, **headers: str) -> ClientConfig:
-        """Return a new config with additional headers."""
+        """Return a new config with additional headers merged into existing ones.
+
+        :param headers: Keyword arguments of header name-value pairs.
+        :return: A new ClientConfig with the merged headers.
+        """
         new_headers = {**self.headers, **headers}
         return ClientConfig(
             headers=new_headers,
@@ -44,7 +48,11 @@ class ClientConfig:
         )
     
     def with_auth_token(self, token: str) -> ClientConfig:
-        """Return a new config with a specific auth token."""
+        """Return a new config with a specific auth token.
+
+        :param token: The Bearer token to use for authentication.
+        :return: A new ClientConfig with the specified auth token.
+        """
         return ClientConfig(
             headers=self.headers,
             auth_token=token,
@@ -53,7 +61,11 @@ class ClientConfig:
         )
     
     def with_template(self, template: ActivityTemplate) -> ClientConfig:
-        """Return a new config with a specific activity template."""
+        """Return a new config with a specific activity template.
+
+        :param template: The ActivityTemplate to apply to outgoing activities.
+        :return: A new ClientConfig with the specified template.
+        """
         return ClientConfig(
             headers=self.headers,
             auth_token=self.auth_token,

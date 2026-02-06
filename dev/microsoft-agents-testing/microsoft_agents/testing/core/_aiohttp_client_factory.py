@@ -80,7 +80,10 @@ class _AiohttpClientFactory:
         return AgentClient(sender, self._transcript, template=template)
     
     async def cleanup(self):
-        """Close all created sessions."""
+        """Close all HTTP sessions created by this factory.
+
+        Should be called when the scenario finishes to release resources.
+        """
         for session in self._sessions:
             await session.close()
         self._sessions.clear()

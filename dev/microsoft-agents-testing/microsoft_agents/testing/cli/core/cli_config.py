@@ -31,7 +31,7 @@ def load_environment(
     path = Path(env_path) if env_path else Path(".env")
     
     if not path.exists():
-        return {}, None
+        return {}, ""
     
     resolved_path = str(path.resolve())
     
@@ -122,7 +122,11 @@ class CLIConfig:
         return self._service_url
     
     def _load(self, source_dict: dict, key_attr_map: dict) -> None:
-        """Load configuration values from a source dictionary."""
+        """Load configuration values from a source dictionary into instance attributes.
+
+        :param source_dict: Dictionary to read values from.
+        :param key_attr_map: Mapping of dict keys to attribute names on self.
+        """
         for key, attr_name in key_attr_map.items():
             if key in source_dict:
                 value = source_dict[key]

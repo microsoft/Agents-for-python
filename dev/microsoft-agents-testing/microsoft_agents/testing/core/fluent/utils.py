@@ -12,11 +12,12 @@ from pydantic import BaseModel
 from .backend import expand, flatten
 
 def normalize_model_data(source: BaseModel | dict) -> dict:
-    """Normalize AgentsModel data to a dictionary format.
+    """Normalize a BaseModel or dictionary to an expanded dictionary.
 
-    Creates a deep copy if the source is a dictionary.
+    Converts a BaseModel to a dictionary via ``model_dump``, or expands
+    a flat dot-notation dictionary into a nested structure.
 
-    :param source: The AgentsModel or dictionary to normalize.
+    :param source: The BaseModel or dictionary to normalize.
     :return: The normalized dictionary.
     """
 
@@ -27,12 +28,13 @@ def normalize_model_data(source: BaseModel | dict) -> dict:
     return expand(source)
 
 def flatten_model_data(source: BaseModel | dict) -> dict:
-    """Normalize AgentsModel data to a dictionary format.
+    """Flatten model data to a single-level dictionary with dot-notation keys.
 
-    Creates a deep copy if the source is a dictionary.
+    Converts a BaseModel or nested dictionary to a flat dictionary
+    where nested keys use dot notation (e.g., ``{"from.id": "user-1"}``.
 
-    :param source: The AgentsModel or dictionary to normalize.
-    :return: The normalized dictionary.
+    :param source: The BaseModel or dictionary to flatten.
+    :return: A flattened dictionary.
     """
 
     if isinstance(source, BaseModel):

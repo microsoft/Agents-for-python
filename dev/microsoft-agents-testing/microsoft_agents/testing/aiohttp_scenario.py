@@ -35,7 +35,6 @@ from .core import (
     Scenario,
     ScenarioConfig,
 )
-from .scenario_registry import scenario_registry
 
 @dataclass
 class AgentEnvironment:
@@ -105,7 +104,14 @@ class AiohttpScenario(Scenario):
         return self._env
 
     async def _init_agent_environment(self) -> dict:
-        """Initialize agent components, return SDK config."""
+        """Initialize agent components and return the SDK config.
+
+        Creates the storage, connection manager, adapter, authorization,
+        and application instances, then calls the user-provided init_agent
+        callback to register handlers.
+
+        :return: The SDK configuration dictionary.
+        """
         
         env_vars = dotenv_values(self._config.env_file_path)
         sdk_config = load_configuration_from_env(env_vars)
@@ -131,7 +137,13 @@ class AiohttpScenario(Scenario):
         return sdk_config
     
     def _create_application(self) -> Application:
-        """Initialize and return the aiohttp application."""
+        """Create and configure the aiohttp Application.
+
+        Sets up the /api/messages route pointing to the agent's entry point,
+        optionally adding JWT authorization middleware.
+
+        :return: A configured aiohttp Application.
+        """
         assert self._env is not None
         
         # Create aiohttp app

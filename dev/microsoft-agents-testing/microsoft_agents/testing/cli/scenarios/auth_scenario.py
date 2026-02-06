@@ -19,7 +19,15 @@ from microsoft_agents.testing.aiohttp_scenario import (
 )
 
 def create_auth_route(auth_handler_id: str, agent: AgentApplication):
-    """Create a dynamic function to handle authentication routes."""
+    """Create a dynamic message handler for testing an auth flow.
+
+    When invoked, the handler acquires a token for the given auth handler
+    and sends it back as a message.
+
+    :param auth_handler_id: The name of the authorization handler to test.
+    :param agent: The AgentApplication to acquire tokens from.
+    :return: An async handler function.
+    """
 
     async def dynamic_function(context: TurnContext, state: TurnState):
         token_response = await agent.auth.get_token(context, auth_handler_id)
@@ -34,7 +42,12 @@ def create_auth_route(auth_handler_id: str, agent: AgentApplication):
     return dynamic_function
 
 def sign_out_route(auth_handler_id: str, agent: AgentApplication):
-    """Create a dynamic function to handle sign-out routes."""
+    """Create a dynamic handler for signing out of an auth flow.
+
+    :param auth_handler_id: The name of the authorization handler to sign out.
+    :param agent: The AgentApplication to sign out from.
+    :return: An async handler function.
+    """
 
     async def dynamic_function(context: TurnContext, state: TurnState):
         await agent.auth.sign_out(context, auth_handler_id)
@@ -45,13 +58,22 @@ def sign_out_route(auth_handler_id: str, agent: AgentApplication):
     return dynamic_function
 
 async def auth_scenario_init(env: AgentEnvironment):
+    """Initialize the authentication testing agent.
 
-    """Initialize the application for the auth sample."""
+    Dynamically creates message routes for each configured auth handler,
+    allowing users to test OAuth flows by sending the handler name.
+    Also creates sign-out routes via '/signout <handler>'.
+
+    :param env: The AgentEnvironment for configuring the agent.
+    """
 
     app: AgentApplication[TurnState] = env.agent_application
 
     auth = env.authorization
 
+    # BUG: Accessing the private ``_handlers`` attribute directly.
+    # This couples the scenario to the internal implementation of
+    # Authorization and will break if the attribute is renamed.
     if auth._handlers:
 
         click.echo("To test authentication flows, send a message with the name of the auth handler (all lowercase) you want to test. For example, if you have a handler named 'Graph', send 'Graph' to test it.")
@@ -69,8 +91,10 @@ async def auth_scenario_init(env: AgentEnvironment):
         click.echo("No auth handlers found in the agent application. Please add auth handlers to test authentication flows.")
 
     async def handle_message(context: TurnContext, state: TurnState):
+        """Default message handler for unrecognized input."""
         await context.send_activity("Hello from the auth testing sample! Enter the name of an auth handler to test it.")
 
     app.activity(ActivityTypes.message)(handle_message)
 
+# Pre-built scenario instance for CLI registration
 auth_scenario = AiohttpScenario(auth_scenario_init)

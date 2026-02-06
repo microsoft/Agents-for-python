@@ -1,3 +1,12 @@
+# Copyright (c) Microsoft Corporation. All rights reserved.
+# Licensed under the MIT License.
+
+"""Scenario CLI commands.
+
+Provides commands for listing, running, chatting, and posting to
+agent test scenarios from the command line.
+"""
+
 import json
 import asyncio
 
@@ -19,11 +28,16 @@ from ..core import (
 def scenario():
     """Manage test scenarios."""
 
+
 @scenario.command("list")
 @click.argument("pattern", default="*")
 @pass_output
 def scenario_list(out: Output, pattern: str) -> None:
-    """List registered test scenarios matching a pattern."""
+    """List registered test scenarios matching a pattern.
+
+    :param out: CLI output helper.
+    :param pattern: Glob-style pattern to filter scenario names.
+    """
     matched_scenarios = scenario_registry.discover(pattern)
 
     out.newline()
@@ -42,7 +56,14 @@ def scenario_list(out: Output, pattern: str) -> None:
 @pass_output
 @with_scenario
 async def scenario_run(out: Output, scenario: Scenario) -> None:
-    """Run a specified test scenario."""
+    """Run a specified test scenario as a long-running server.
+
+    Only in-process scenarios (AiohttpScenario) are supported.
+    External scenarios cannot be "run" since they are already running.
+
+    :param out: CLI output helper.
+    :param scenario: The resolved Scenario instance.
+    """
     if isinstance(scenario, ExternalScenario):
         out.error("Running an ExternalScenario is not supported in this command. Please use specific commands designed for interaction, such as 'chat' or 'post'.")
         raise click.Abort()
@@ -61,7 +82,7 @@ async def scenario_run(out: Output, scenario: Scenario) -> None:
     out.newline()
     out.success("Scenario stopped.")
 
-# yes, I did ask Copilot to make this look pretty
+
 @scenario.command("chat")
 @async_command
 @pass_output
@@ -154,6 +175,16 @@ async def scenario_chat(out: Output, scenario: Scenario) -> None:
 @click.option("--json_file", "-j", required=False, type=click.File("rb"), help="Message text or JSON activity to send to the agent.")
 @click.option("--wait", "-w", default=5.0, help="Seconds to wait for a response before timing out.")
 async def scenario_post(out: Output, scenario: Scenario, message: str | None, json_file, wait: float) -> None:
+    """Send a single message or activity to an agent and display the transcript.
+
+    Provide either a text message as an argument or a JSON activity file via --json_file.
+
+    :param out: CLI output helper.
+    :param scenario: The resolved Scenario instance.
+    :param message: Plain text message to send.
+    :param json_file: File handle for a JSON activity payload.
+    :param wait: Seconds to wait for async responses.
+    """
     
     if not message and not json_file:
         out.error("Either a message argument or --json_file must be provided.")

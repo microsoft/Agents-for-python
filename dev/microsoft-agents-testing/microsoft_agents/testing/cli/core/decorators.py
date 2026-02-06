@@ -1,7 +1,11 @@
 # Copyright (c) Microsoft Corporation. All rights reserved.
 # Licensed under the MIT License.
 
-"""Base command utilities and decorators for CLI commands."""
+"""CLI command decorators.
+
+Provides decorators for common CLI patterns such as async commands,
+passing configuration/output objects, and resolving agent scenarios.
+"""
 
 import asyncio
 from functools import wraps
@@ -12,7 +16,13 @@ import click
 from .utils import _resolve_scenario
 
 def pass_config(func: Callable) -> Callable:
-    """Pass CLIConfig from context."""
+    """Decorator that injects CLIConfig from the click context.
+
+    The decorated function receives a ``config`` keyword argument.
+
+    :param func: The function to decorate.
+    :return: The wrapped function.
+    """
     @click.pass_context
     @wraps(func)
     def wrapper(ctx: click.Context, *args: Any, **kwargs: Any) -> Any:
@@ -23,7 +33,13 @@ def pass_config(func: Callable) -> Callable:
     return wrapper
 
 def pass_output(func: Callable) -> Callable:
-    """Pass Output from context."""
+    """Decorator that injects the Output helper from the click context.
+
+    The decorated function receives an ``out`` keyword argument.
+
+    :param func: The function to decorate.
+    :return: The wrapped function.
+    """
     @click.pass_context
     @wraps(func)
     def wrapper(ctx: click.Context, *args: Any, **kwargs: Any) -> Any:
@@ -113,8 +129,7 @@ def with_scenario(func: Callable) -> Callable:
         if out is None:
             raise RuntimeError("Output not found in context")
         
-        
-        # Determine which scenario to use
+        # Determine which scenario to use based on CLI arguments
         scenario = _resolve_scenario(
             agent_name_or_url=agent_name_or_url,
             module_path=module_path,
@@ -122,6 +137,7 @@ def with_scenario(func: Callable) -> Callable:
             out=out,
         )
         if not scenario:
+            # Retry with 'agt.' prefix for built-in scenario shorthand names
             if agent_name_or_url and not agent_name_or_url.startswith("http://"):
                 scenario = _resolve_scenario(
                     agent_name_or_url=f"agt.{agent_name_or_url}",

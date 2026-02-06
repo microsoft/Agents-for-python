@@ -19,6 +19,7 @@ from .core import (
 
 from .scenarios import SCENARIOS
 
+# Register built-in CLI scenarios under the "agt." namespace
 for scenario in SCENARIOS:
     scenario_name, scenario_obj, scenario_desc = scenario
     scenario_registry.register(f"agt.{scenario_name}", scenario_obj, description=scenario_desc)
@@ -64,7 +65,7 @@ def cli(ctx: click.Context, env_path: str, connection: str, verbose: bool) -> No
     ctx.obj["config"] = config
     ctx.obj["out"] = out
 
-# Register all commands
+# Register all commands with the CLI group
 for command in COMMANDS:
     cli.add_command(command)
 

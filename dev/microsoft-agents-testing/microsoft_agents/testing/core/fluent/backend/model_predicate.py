@@ -78,6 +78,11 @@ class ModelPredicate:
         self._transform = ModelTransform(dict_transform)
     
     def eval(self, source:  dict | BaseModel | list[dict] | list[BaseModel]) -> ModelPredicateResult:
+        """Evaluate the predicate against one or more models.
+
+        :param source: A single model or a list of models to evaluate.
+        :return: A ModelPredicateResult with per-item match results.
+        """
         if not isinstance(source, list):
             source = cast(list[dict] | list[BaseModel], [source])
         res = self._transform.eval(source)
@@ -85,6 +90,15 @@ class ModelPredicate:
         
     @staticmethod
     def from_args(arg: dict | Callable | None | ModelPredicate, **kwargs) -> ModelPredicate:
+        """Create a ModelPredicate from flexible argument types.
+
+        Accepts an existing ModelPredicate, a dictionary, a callable,
+        or None combined with keyword arguments.
+
+        :param arg: A predicate source (dict, callable, ModelPredicate, or None).
+        :param kwargs: Additional field criteria.
+        :return: A ModelPredicate instance.
+        """
         if isinstance(arg, ModelPredicate):
             return arg
         

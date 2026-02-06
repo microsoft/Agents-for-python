@@ -19,10 +19,10 @@ class TestAiohttpCallbackServerInitialization:
     """Tests for AiohttpCallbackServer initialization."""
 
     def test_default_port(self):
-        """AiohttpCallbackServer should use default port 9873."""
+        """AiohttpCallbackServer should use default port 9378."""
         server = AiohttpCallbackServer()
         
-        assert server._port == 9873
+        assert server._port == 9378
 
     def test_custom_port(self):
         """AiohttpCallbackServer should accept custom port."""
@@ -34,7 +34,7 @@ class TestAiohttpCallbackServerInitialization:
         """service_endpoint should use the configured port."""
         server = AiohttpCallbackServer()
         
-        assert server.service_endpoint == "http://localhost:9873/v3/conversations/"
+        assert server.service_endpoint == "http://localhost:9378/v3/conversations/"
 
     def test_service_endpoint_custom_port(self):
         """service_endpoint should use custom port."""
@@ -55,7 +55,7 @@ class TestAiohttpCallbackServerListen:
     @pytest.mark.asyncio
     async def test_listen_yields_transcript(self):
         """listen should yield a Transcript."""
-        server = AiohttpCallbackServer(port=19873)
+        server = AiohttpCallbackServer(port=19378)
         
         async with server.listen() as transcript:
             assert isinstance(transcript, Transcript)

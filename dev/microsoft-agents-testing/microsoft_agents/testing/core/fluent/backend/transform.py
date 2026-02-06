@@ -82,6 +82,16 @@ class DictionaryTransform:
             key: str,
             func: Callable[..., T],
         ) -> T:
+        """Invoke a predicate function with the resolved value for a key.
+
+        Uses introspection to determine whether the function expects
+        its argument as 'actual' or 'x'.
+
+        :param actual: The source dictionary.
+        :param key: The dot-notation key to resolve from the dictionary.
+        :param func: The predicate callable to invoke.
+        :return: The result of calling func.
+        """
 
         args = {}
         
@@ -95,7 +105,19 @@ class DictionaryTransform:
             
         return func(**args)
         
-    def eval(self, actual: dict, root_callable_arg: Any=None) -> dict:        
+    def eval(self, actual: dict, root_callable_arg: Any=None) -> dict:
+        """Evaluate all predicate functions against the given dictionary.
+
+        Each key in the transform map is resolved from ``actual`` using
+        dot-notation, and the corresponding callable is invoked with
+        the resolved value. Returns a result dict mirroring the transform
+        map with boolean outcomes.
+
+        :param actual: The dictionary to evaluate against.
+        :param root_callable_arg: Optional object passed as the value for
+                                  the root-level callable key.
+        :return: A dictionary mapping each key to its predicate result.
+        """       
         result = {}
 
         # Create a wrapper dict to avoid modifying the original object
@@ -146,6 +168,13 @@ class ModelTransform:
     @overload
     def eval(self, source: list[dict] | list[BaseModel]) -> list[dict]: ...
     def eval(self, source: dict | BaseModel | list[dict] | list[BaseModel]) -> list[dict] | dict:
+        """Evaluate the underlying DictionaryTransform against one or more models.
+
+        Pydantic models are dumped to dictionaries before evaluation.
+
+        :param source: A single model/dict or a list of models/dicts.
+        :return: Evaluation result(s) as dictionaries of boolean outcomes.
+        """
         if not isinstance(source, list):
             source = cast(list[dict] | list[BaseModel], [source])
             items = source

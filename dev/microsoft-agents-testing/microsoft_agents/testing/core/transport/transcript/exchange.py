@@ -50,12 +50,20 @@ class Exchange(BaseModel):
     
     @property
     def latency(self) -> datetime | None:
+        """Calculate the time delta between request and response.
+
+        :return: A timedelta object, or None if either timestamp is missing.
+        """
         if self.request_at is not None and self.response_at is not None:
             return self.response_at - self.request_at
         return None
     
     @property
     def latency_ms(self) -> float | None:
+        """Calculate the latency in milliseconds.
+
+        :return: Latency in milliseconds, or None if timestamps are missing.
+        """
         delta = self.latency
         if delta is not None:
             return delta.total_seconds() * 1000.0
@@ -63,6 +71,14 @@ class Exchange(BaseModel):
     
     @staticmethod
     def is_allowed_exception(exception: Exception) -> bool:
+        """Check if an exception is a recoverable transport error.
+
+        Timeout and connection errors are considered recoverable and
+        will be captured in the Exchange rather than re-raised.
+
+        :param exception: The exception to check.
+        :return: True if the exception is a known recoverable error.
+        """
         return isinstance(exception, (aiohttp.ClientTimeout, aiohttp.ClientConnectionError))
     
     @staticmethod
@@ -71,6 +87,20 @@ class Exchange(BaseModel):
         response_or_exception: Exception | ResponseT,
         **kwargs
     ) -> Exchange:
+        """Create an Exchange from a request activity and its outcome.
+
+        Handles three response types:
+        - Exception: Wraps recoverable errors; re-raises unexpected ones.
+        - aiohttp.ClientResponse: Parses the response based on the
+          activity's delivery mode (expect_replies, invoke, stream, or default).
+
+        :param request_activity: The Activity that was sent.
+        :param response_or_exception: The HTTP response or exception.
+        :param kwargs: Additional fields forwarded to the Exchange constructor
+                       (e.g., request_at, response_at).
+        :return: A populated Exchange instance.
+        :raises: Re-raises exceptions that are not in the allowed list.
+        """
         
         if isinstance(response_or_exception, Exception):
             if not Exchange.is_allowed_exception(response_or_exception):
@@ -90,6 +120,7 @@ class Exchange(BaseModel):
             activities: list[Activity] = []
             invoke_response: InvokeResponse | None = None
 
+            # Parse the response body based on the request's delivery mode
             if request_activity.delivery_mode == DeliveryModes.expect_replies:
                 body = await response.text()
                 activity_list = json.loads(body)["activities"]
@@ -101,6 +132,7 @@ class Exchange(BaseModel):
                 invoke_response = InvokeResponse.model_validate({"status": response.status, "body": body_json})
 
             elif request_activity.delivery_mode == DeliveryModes.stream:
+                # Parse Server-Sent Events (SSE) stream for activity events
                 event_type = None
                 body = ""
                 async for line in response.content:

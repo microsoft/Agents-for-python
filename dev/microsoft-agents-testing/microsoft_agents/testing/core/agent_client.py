@@ -106,12 +106,24 @@ class AgentClient:
     ###
 
     def _ex_collect(self, history: bool = True) -> list[Exchange]:
+        """Collect exchanges from the transcript.
+
+        :param history: If True, returns the full history from the root
+                        transcript; otherwise returns only this transcript's history.
+        :return: A list of Exchange objects.
+        """
         if history:
             return self._transcript.get_root().history()
         else:
             return self._transcript.history()
         
     def _collect(self, history: bool = True) -> list[Activity]:
+        """Collect response activities from the transcript.
+
+        :param history: If True, returns activities from the full history;
+                        otherwise returns only recent activities.
+        :return: A flat list of response Activity objects.
+        """
         ex = self._ex_collect(history)
         return activities_from_ex(ex)
     
@@ -176,7 +188,11 @@ class AgentClient:
     ###
     
     def _build_activity(self, base: Activity | str) -> Activity:
-        """Build an activity from string or Activity, applying template."""
+        """Build an activity from a string or Activity, applying the template.
+
+        :param base: A text string (converted to a message Activity) or an Activity.
+        :return: An Activity with template defaults applied.
+        """
         if isinstance(base, str):
             base = Activity(type=ActivityTypes.message, text=base)
         return self._template.create(base)
@@ -201,7 +217,8 @@ class AgentClient:
 
         exchange = await self._sender.send(activity, transcript=self._transcript, **kwargs)
 
-        if max(0.0, wait) != 0.0: # ignore negative waits, I guess
+        # Clamp negative wait values to zero, then sleep if positive
+        if max(0.0, wait) != 0.0:
             await asyncio.sleep(wait)
             return self.ex_recent()
 
@@ -326,6 +343,13 @@ class AgentClient:
         return exchange.invoke_response
     
     def child(self) -> AgentClient:
+        """Create a child AgentClient with a child transcript.
+
+        The child client shares the same sender and template but has
+        its own transcript scope for isolated exchange recording.
+
+        :return: A new AgentClient with a child Transcript.
+        """
         return AgentClient(
             self._sender,
             transcript=self._transcript.child(),

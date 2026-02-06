@@ -1,6 +1,13 @@
 # Copyright (c) Microsoft Corporation. All rights reserved.
 # Licensed under the MIT License.
 
+"""SafeObject - Safe attribute and item access wrapper.
+
+Provides SafeObject, a generic wrapper that returns Unset instead of
+raising exceptions when accessing missing attributes or items. This
+enables safe chained access patterns like ``obj.user.profile.name``.
+"""
+
 from __future__ import annotations
 
 from typing import Any, Generic, TypeVar, overload, cast

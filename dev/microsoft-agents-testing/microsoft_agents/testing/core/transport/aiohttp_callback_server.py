@@ -35,7 +35,7 @@ class AiohttpCallbackServer(CallbackServer):
             pass
     """
 
-    def __init__(self, port: int = 9873):
+    def __init__(self, port: int = 9378):
         """Initializes the response server.
 
         :param port: The port number on which the server will listen.
@@ -90,6 +90,9 @@ class AiohttpCallbackServer(CallbackServer):
             exchange = Exchange(responses=[activity], response_at=response_at)
 
             if activity.type != ActivityTypes.typing:
+                # Non-typing activities are recorded normally.
+                # Typing indicators are also recorded but could be filtered
+                # by formatters if desired.
                 pass
 
             response = Response(

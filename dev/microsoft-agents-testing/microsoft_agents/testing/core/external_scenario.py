@@ -55,7 +55,8 @@ class ExternalScenario(Scenario):
         callback_server = AiohttpCallbackServer(self._config.callback_server_port)
 
         async with callback_server.listen() as transcript:
-
+            # Create a factory that binds the agent URL, callback endpoint,
+            # and SDK config so callers can create configured clients
             factory = _AiohttpClientFactory(
                 agent_url=self._endpoint,
                 response_endpoint=callback_server.service_endpoint,

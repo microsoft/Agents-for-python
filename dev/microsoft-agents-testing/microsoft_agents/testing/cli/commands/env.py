@@ -1,3 +1,12 @@
+# Copyright (c) Microsoft Corporation. All rights reserved.
+# Licensed under the MIT License.
+
+"""Environment information CLI command.
+
+Displays runtime environment details such as Python version, platform,
+working directory, loaded .env variables, and registered scenarios.
+"""
+
 import sys
 from pathlib import Path
 
@@ -16,7 +25,14 @@ from ..core import (
 @pass_output
 @pass_config
 def env(config: CLIConfig, out: Output):
-    """Show environment information."""
+    """Show environment information.
+
+    Displays Python version, platform, current directory, loaded
+    environment variables, and the number of registered scenarios.
+
+    :param config: The CLI configuration loaded from the .env file.
+    :param out: CLI output helper.
+    """
     out.info("Environment information:")
     out.info(f"\tPython version: {sys.version}")
     out.info(f"\tPlatform: {sys.platform}")

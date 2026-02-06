@@ -1,10 +1,10 @@
 # Copyright (c) Microsoft Corporation. All rights reserved.
 # Licensed under the MIT License.
 
-"""Decorator for CLI commands that interact with agents via scenarios.
+"""CLI scenario resolution utilities.
 
-Provides a unified way to handle both ExternalScenario (external agents)
-and AiohttpScenario (in-process agents) in CLI commands.
+Provides helper functions for resolving which Scenario to use based
+on user-provided CLI options (URL, registered name, or module path).
 """
 
 from __future__ import annotations
@@ -16,7 +16,7 @@ from microsoft_agents.testing.core import (
 )
 from microsoft_agents.testing.scenario_registry import load_scenarios, scenario_registry
 
-from .cli_context import CLIConfig
+from .cli_config import CLIConfig
 from .output import Output
 
 def _resolve_scenario(
@@ -25,7 +25,17 @@ def _resolve_scenario(
     config: CLIConfig,
     out: Output,
 ) -> Scenario | None:
-    """Create the appropriate scenario based on the provided options.
+    """Resolve a Scenario from user-provided CLI options.
+
+    Checks whether the input is an HTTPS URL (creates ExternalScenario)
+    or a registered scenario name (looks up in the registry). If a
+    module_path is provided, it is imported first to trigger registration.
+
+    :param agent_name_or_url: A URL or registered scenario name.
+    :param module_path: Optional Python module path to import for registration.
+    :param config: The CLI configuration.
+    :param out: Output helper for debug messages.
+    :return: A resolved Scenario, or None if resolution fails.
     """
     
     scenario_config = ScenarioConfig(
@@ -33,6 +43,9 @@ def _resolve_scenario(
     )
 
     if agent_name_or_url:
+        # BUG: Only URLs starting with "https://" are detected as external
+        # endpoints. Plain "http://" URLs (e.g., http://localhost:3978/...)
+        # fall through to the registry lookup and will fail to resolve.
         if agent_name_or_url.startswith("https://"):   
             out.debug(f"Using external agent at: {agent_name_or_url}")
             return ExternalScenario(agent_name_or_url, config=scenario_config) 

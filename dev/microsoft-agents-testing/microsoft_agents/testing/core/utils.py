@@ -15,7 +15,14 @@ from microsoft_agents.hosting.core import AgentAuthConfiguration
 from .transport import Exchange
 
 def activities_from_ex(exchanges: list[Exchange]) -> list[Activity]:
-    """Extracts all response activities from a list of exchanges."""
+    """Extract all response activities from a list of exchanges.
+
+    Iterates over each Exchange and collects all response Activity objects
+    into a flat list.
+
+    :param exchanges: The list of Exchange objects to extract from.
+    :return: A flat list of response Activity objects.
+    """
     activities: list[Activity] = []
     for exchange in exchanges:
         activities.extend(exchange.responses)
@@ -24,12 +31,20 @@ def activities_from_ex(exchanges: list[Exchange]) -> list[Activity]:
 def sdk_config_connection(
     sdk_config: dict, connection_name: str = "SERVICE_CONNECTION"
 ) -> AgentAuthConfiguration:
-    """Creates an AgentAuthConfiguration from a provided config object."""
+    """Create an AgentAuthConfiguration from a SDK config dictionary.
+
+    Looks up the named connection in the config's CONNECTIONS section
+    and constructs an AgentAuthConfiguration from its settings.
+
+    :param sdk_config: The SDK configuration dictionary.
+    :param connection_name: The connection name to look up.
+    :return: An AgentAuthConfiguration instance.
+    """
     data = sdk_config["CONNECTIONS"][connection_name]["SETTINGS"]
     return AgentAuthConfiguration(**data)
 
-# TODO -> use MsalAuth to generate token
-# TODO -> support other forms of auth (certificates, etc)
+# TODO: Use MsalAuth to generate token instead of raw HTTP requests
+# TODO: Support other forms of auth (certificates, managed identity, etc.)
 def generate_token(app_id: str, app_secret: str, tenant_id: str) -> str:
     """Generate a token using the provided app credentials.
 

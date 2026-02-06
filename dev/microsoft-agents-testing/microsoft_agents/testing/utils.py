@@ -15,7 +15,12 @@ from microsoft_agents.testing.core import (
 from microsoft_agents.testing.core.utils import activities_from_ex
 
 def _create_activity(payload: str | dict | Activity) -> Activity:
-    """Create an Activity from various payload types."""
+    """Create an Activity from various payload types.
+
+    :param payload: A string message, dictionary, or Activity instance.
+    :return: An Activity object.
+    :raises TypeError: If the payload type is not supported.
+    """
     if isinstance(payload, Activity):
         return payload
     elif isinstance(payload, dict):

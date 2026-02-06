@@ -36,7 +36,13 @@ from .core import Scenario
 
 @dataclass(frozen=True)
 class ScenarioEntry:
-    """Metadata for a registered scenario."""
+    """Metadata for a registered scenario.
+
+    Attributes:
+        name: The unique registered name for this scenario.
+        scenario: The Scenario instance.
+        description: Human-readable description of the scenario.
+    """
 
     name: str
     scenario: Scenario
@@ -44,6 +50,11 @@ class ScenarioEntry:
 
     @property
     def namespace(self) -> str:
+        """Extract the namespace portion of the scenario name.
+
+        For a name like 'prod.echo', returns 'prod'.
+        Returns an empty string if there is no namespace.
+        """
 
         index = self.name.rfind(".")
         if index == -1:
@@ -170,18 +181,13 @@ scenario_registry = ScenarioRegistry()
 
 
 def _import_modules(module_path: str) -> None:
-    """Import a module to trigger scenario registration.
-    
-    Args:
-        module_path: Python module path (e.g., "myproject.scenarios")
-                     or file path (e.g., "./scenarios.py")
-    
-    Returns:
-        Number of scenarios registered after import.
-    
-    Example:
-        load_scenarios("myproject.scenarios")
-        load_scenarios("./tests/scenarios.py")
+    """Import a module to trigger scenario registration side-effects.
+
+    Supports both Python module paths (e.g., 'myproject.scenarios')
+    and file paths (e.g., './scenarios.py').
+
+    :param module_path: Python module path or file path to import.
+    :raises FileNotFoundError: If a file path is provided and does not exist.
     """
     
     if module_path.endswith(".py") or "/" in module_path or "\\" in module_path:
@@ -204,7 +210,14 @@ def _import_modules(module_path: str) -> None:
     
 
 def load_scenarios(module_path: str) -> int:
-    """Load scenarios from the specified module or file path."""
+    """Load scenarios from the specified module or file path.
+
+    Imports the module, which is expected to register scenarios as a
+    side-effect. Returns the number of newly registered scenarios.
+
+    :param module_path: Python module path or file path to import.
+    :return: Number of scenarios registered during this call.
+    """
     before_count = len(scenario_registry)
     try:
         _import_modules(module_path)

@@ -13,14 +13,21 @@ from microsoft_agents.testing.aiohttp_scenario import (
 )
 
 async def basic_scenario_init(env: AgentEnvironment):
+    """Initialize the basic echo agent.
 
-    """Initialize the application for the basic sample."""
+    Registers a single message handler that echoes back whatever
+    the user sends, prefixed with "Echo: ".
+
+    :param env: The AgentEnvironment for configuring the agent.
+    """
 
     app: AgentApplication[TurnState] = env.agent_application
 
     @app.activity(ActivityTypes.message)
     async def handler(context: TurnContext, state: TurnState):
+        """Echo handler: replies with the user's message."""
         await context.send_activity("Echo: " + context.activity.text)
 
+# Pre-built scenario instances for CLI registration
 basic_scenario = AiohttpScenario(basic_scenario_init)
 basic_scenario_no_auth = AiohttpScenario(basic_scenario_init, use_jwt_middleware=False)
