@@ -59,7 +59,7 @@ async with scenario.client() as client:
 ### External agent
 
 To test an agent that's already running (locally or deployed), point
-`ExternalScenario` at its endpoint. Auth credentials come from a `.env` file. The path defaults to `.\.venv` but this is configurable at `ExternalScenario` construction.
+`ExternalScenario` at its endpoint.
 
 ```python
 from microsoft_agents.testing import ExternalScenario
@@ -73,7 +73,7 @@ async with scenario.client() as client:
 ## Scenarios
 
 A Scenario manages infrastructure (servers, auth, teardown) and gives you a
-client to interact with the agent.
+client to interact with the agent. Auth credentials and general SDK config settings come from a `.env` file. The path defaults to `.\.env` but this is configurable through `ScenarioConfig` and `ClientConfig`, which are passed in during `Scenario` and `AgentClient` constructions.
 
 | Scenario | Description |
 |----------|-------------|

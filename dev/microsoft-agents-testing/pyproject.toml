@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "microsoft-agents-testing"
-dynamic = ["version", "dependencies"]
+dynamic = ["version"]
 description = "Core library for Microsoft Agents"
 readme = {file = "README.md", content-type = "text/markdown"}
 authors = [{name = "Microsoft Corporation"}]
@@ -25,6 +25,8 @@ dependencies = [
     "click",
     "microsoft-agents-activity",
     "microsoft-agents-hosting-core",
+    "microsoft-agents-hosting-aiohttp",
+    "microsoft-agents-authentication-msal",
     "pydantic",
     "pytest",
     "pytest-aiohttp",
