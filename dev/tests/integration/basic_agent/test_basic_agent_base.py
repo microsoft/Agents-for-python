@@ -27,6 +27,7 @@ _SCENARIO = ExternalScenario(
     )
 )
 
+@pytest.mark.skip(reason="Base class for other tests")
 @pytest.mark.agent_test(_SCENARIO, agent_name="basic-agent")
 class TestBasicAgentBase:
     """Base test class for basic agent."""
