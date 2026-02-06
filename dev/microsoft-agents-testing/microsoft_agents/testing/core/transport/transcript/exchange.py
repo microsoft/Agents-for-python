@@ -69,6 +69,10 @@ class Exchange(BaseModel):
             return delta.total_seconds() * 1000.0
         return None
     
+    def __repr__(self) -> str:
+        req_type = self.request.type if self.request else "None"
+        return f"Exchange(request={req_type}, status={self.status_code}, responses={len(self.responses)})"
+    
     @staticmethod
     def is_allowed_exception(exception: Exception) -> bool:
         """Check if an exception is a recoverable transport error.

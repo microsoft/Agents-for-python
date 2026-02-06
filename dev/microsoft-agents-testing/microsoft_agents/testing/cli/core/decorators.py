@@ -138,7 +138,7 @@ def with_scenario(func: Callable) -> Callable:
         )
         if not scenario:
             # Retry with 'agt.' prefix for built-in scenario shorthand names
-            if agent_name_or_url and not agent_name_or_url.startswith("http://"):
+            if agent_name_or_url:
                 scenario = _resolve_scenario(
                     agent_name_or_url=f"agt.{agent_name_or_url}",
                     module_path=module_path,

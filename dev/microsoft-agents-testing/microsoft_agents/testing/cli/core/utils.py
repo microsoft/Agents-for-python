@@ -46,7 +46,7 @@ def _resolve_scenario(
         # BUG: Only URLs starting with "https://" are detected as external
         # endpoints. Plain "http://" URLs (e.g., http://localhost:3978/...)
         # fall through to the registry lookup and will fail to resolve.
-        if agent_name_or_url.startswith("https://"):   
+        if agent_name_or_url.startswith("https://") or agent_name_or_url.startswith("http://"):   
             out.debug(f"Using external agent at: {agent_name_or_url}")
             return ExternalScenario(agent_name_or_url, config=scenario_config) 
         else:

@@ -175,3 +175,15 @@ class Expect:
         if len(self._items) == 0:
             raise AssertionError("Expected some items, found none.")
         return self
+    
+    def has_count(self, expected_count: int) -> Self:
+        """Assert that the number of items matches the expected count.
+        
+        :param expected_count: The expected number of items.
+        :raises AssertionError: If the count does not match.
+        :return: Self for chaining.
+        """
+        actual_count = len(self._items)
+        if actual_count != expected_count:
+            raise AssertionError(f"Expected {expected_count} items, found {actual_count}.")
+        return self

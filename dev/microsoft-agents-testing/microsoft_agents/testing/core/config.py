@@ -71,7 +71,7 @@ class ClientConfig:
             auth_token=self.auth_token,
             activity_template=template,
         )
-    
+        
 @dataclass
 class ScenarioConfig:
     """Configuration for agent test scenarios.

@@ -8,6 +8,7 @@ parent-child relationships for organizing complex test scenarios.
 """
 
 from __future__ import annotations
+from typing import Iterator
 
 from .exchange import Exchange
 
@@ -76,3 +77,11 @@ class Transcript:
         c = Transcript(parent=self)
         self._children.append(c)
         return c
+    
+    def __len__(self) -> int:
+        """Get the number of exchanges in the transcript."""
+        return len(self._history)
+    
+    def __iter__(self) -> Iterator[Exchange]:
+        """Iterate over the exchanges in the transcript."""
+        return iter(self._history)

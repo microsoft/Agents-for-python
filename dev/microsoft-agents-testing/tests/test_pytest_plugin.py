@@ -313,5 +313,185 @@ class TestMarkerValidation:
         item = Mock()
         item.get_closest_marker = Mock(return_value=marker)
 
-        with pytest.raises(pytest.UsageError, match="expects a URL string or Scenario"):
+        with pytest.raises(pytest.UsageError, match="expects a URL string"):
             _get_scenario_from_marker(item)
+
+
+# ============================================================================
+# Registered Scenario Flow Tests
+# ============================================================================
+
+
+class TestRegisteredScenarioFlow:
+    """Tests for using registered scenarios with @pytest.mark.agent_test.
+
+    When a non-URL string is passed to the marker, it should look up
+    the scenario by name in the global scenario_registry.
+    """
+
+    def test_registered_name_resolves_to_scenario(self):
+        """A registered scenario name resolves via _get_scenario_from_marker."""
+        from unittest.mock import Mock
+        from microsoft_agents.testing.pytest_plugin import _get_scenario_from_marker
+        from microsoft_agents.testing import scenario_registry
+
+        # Register a scenario under a test name
+        scenario_registry.register("test.plugin.echo", echo_scenario, description="Echo for plugin tests")
+        try:
+            marker = Mock()
+            marker.args = ("test.plugin.echo",)
+            item = Mock()
+            item.get_closest_marker = Mock(return_value=marker)
+
+            result = _get_scenario_from_marker(item)
+
+            assert result is echo_scenario
+        finally:
+            scenario_registry.clear()
+
+    def test_unregistered_name_raises_key_error(self):
+        """An unregistered scenario name raises KeyError."""
+        from unittest.mock import Mock
+        from microsoft_agents.testing.pytest_plugin import _get_scenario_from_marker
+        from microsoft_agents.testing import scenario_registry
+
+        scenario_registry.clear()
+
+        marker = Mock()
+        marker.args = ("nonexistent.scenario",)
+        item = Mock()
+        item.get_closest_marker = Mock(return_value=marker)
+
+        with pytest.raises(KeyError, match="nonexistent.scenario"):
+            _get_scenario_from_marker(item)
+
+    def test_url_string_still_creates_external_scenario(self):
+        """URL strings still create ExternalScenario (not registry lookup)."""
+        from unittest.mock import Mock
+        from microsoft_agents.testing.pytest_plugin import _get_scenario_from_marker
+        from microsoft_agents.testing.core import ExternalScenario
+
+        marker = Mock()
+        marker.args = ("https://my-agent.azurewebsites.net/api/messages",)
+        item = Mock()
+        item.get_closest_marker = Mock(return_value=marker)
+
+        result = _get_scenario_from_marker(item)
+
+        assert isinstance(result, ExternalScenario)
+
+    def test_registered_scenario_object_passthrough(self):
+        """Passing a Scenario instance directly still works alongside registry."""
+        from unittest.mock import Mock
+        from microsoft_agents.testing.pytest_plugin import _get_scenario_from_marker
+
+        marker = Mock()
+        marker.args = (echo_scenario,)
+        item = Mock()
+        item.get_closest_marker = Mock(return_value=marker)
+
+        result = _get_scenario_from_marker(item)
+
+        assert result is echo_scenario
+
+
+# Register the echo scenario for registered-name integration tests
+from microsoft_agents.testing import scenario_registry
+
+scenario_registry.register(
+    "plugin_tests.echo",
+    echo_scenario,
+    description="Echo agent for pytest plugin registered-name tests",
+)
+
+scenario_registry.register(
+    "plugin_tests.counter",
+    counter_scenario,
+    description="Counter agent for pytest plugin registered-name tests",
+)
+
+
+@pytest.mark.agent_test("plugin_tests.echo")
+class TestRegisteredScenarioEcho:
+    """Integration tests using a registered scenario name with the marker."""
+
+    @pytest.mark.asyncio
+    async def test_send_and_receive_via_registered_name(self, agent_client):
+        """agent_client works when scenario is resolved from the registry by name."""
+        await agent_client.send("Registered!", wait=0.2)
+        agent_client.expect().that_for_any(text="Echo: Registered!")
+
+    @pytest.mark.asyncio
+    async def test_multiple_messages_via_registered_name(self, agent_client):
+        """Multiple messages work through a registered scenario."""
+        await agent_client.send("A")
+        await agent_client.send("B", wait=0.2)
+
+        agent_client.expect().that_for_any(text="Echo: A")
+        agent_client.expect().that_for_any(text="Echo: B")
+
+    def test_environment_available_via_registered_name(self, agent_environment):
+        """agent_environment is available when using a registered scenario name."""
+        assert agent_environment is not None
+        assert isinstance(agent_environment, AgentEnvironment)
+        assert agent_environment.agent_application is not None
+
+
+@pytest.mark.agent_test("plugin_tests.counter")
+class TestRegisteredScenarioCounter:
+    """Integration tests using a registered stateful scenario by name."""
+
+    @pytest.mark.asyncio
+    async def test_stateful_scenario_via_registered_name(self, agent_client):
+        """Stateful scenario works when resolved by name from registry."""
+        await agent_client.send("one")
+        await agent_client.send("two")
+        await agent_client.send("three", wait=0.2)
+
+        agent_client.expect().that_for_any(text="Message #1")
+        agent_client.expect().that_for_any(text="Message #2")
+        agent_client.expect().that_for_any(text="Message #3")
+
+
+class TestRegisteredScenarioFunctionLevel:
+    """Tests that registered scenario names work with function-level markers."""
+
+    @pytest.mark.agent_test("plugin_tests.echo")
+    @pytest.mark.asyncio
+    async def test_function_marker_with_registered_name(self, agent_client):
+        """@pytest.mark.agent_test works on a function with a registered name."""
+        await agent_client.send("Function-level registered", wait=0.2)
+        agent_client.expect().that_for_any(text="Echo: Function-level registered")
+
+    @pytest.mark.agent_test("plugin_tests.echo")
+    def test_environment_on_function_with_registered_name(self, agent_environment):
+        """agent_environment works with function-level marker and registered name."""
+        assert agent_environment is not None
+
+    @pytest.mark.agent_test("plugin_tests.echo")
+    @pytest.mark.asyncio
+    async def test_all_fixtures_via_registered_name(
+        self,
+        agent_client,
+        agent_environment,
+        agent_application,
+        authorization,
+        storage,
+        adapter,
+        connection_manager,
+    ):
+        """All fixtures are available when using a registered scenario name."""
+        assert agent_client is not None
+        assert agent_environment is not None
+        assert agent_application is not None
+        assert authorization is not None
+        assert storage is not None
+        assert adapter is not None
+        assert connection_manager is not None
+
+        # Derived fixtures match environment components
+        assert agent_application is agent_environment.agent_application
+        assert authorization is agent_environment.authorization
+        assert storage is agent_environment.storage
+        assert adapter is agent_environment.adapter
+        assert connection_manager is agent_environment.connections

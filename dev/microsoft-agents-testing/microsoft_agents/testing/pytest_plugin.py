@@ -36,10 +36,10 @@ from microsoft_agents.hosting.core import (
 )
 
 from .core import (
-    ExternalScenario,
     Scenario,
 )
 from .aiohttp_scenario import AgentEnvironment
+from .utils import resolve_scenario
 
 
 # Store the scenario per test item
@@ -69,13 +69,13 @@ def _get_scenario_from_marker(item: pytest.Item) -> Scenario | None:
 
     arg = marker.args[0]
     if isinstance(arg, str):
-        return ExternalScenario(arg)
+        return resolve_scenario(arg)
     elif isinstance(arg, Scenario):
         return arg
     else:
         raise pytest.UsageError(
-            f"@pytest.mark.agent_test expects a URL string or Scenario instance, "
-            f"got {type(arg).__name__}"
+            f"@pytest.mark.agent_test expects a URL string, registered scenario name, "
+            f"or Scenario instance, got {type(arg).__name__}"
         )
 
 
@@ -99,9 +99,10 @@ async def agent_client(request: pytest.FixtureRequest):
     
     Only available when the test is decorated with @pytest.mark.agent_test.
     """
-    scenario: Scenario | None = getattr(request.node, _SCENARIO_KEY, None)
-    
-    if scenario is None:
+    scenario: Scenario | str | None = getattr(request.node, _SCENARIO_KEY, None)
+    if scenario is not None:
+        scenario = resolve_scenario(scenario)
+    else:
         pytest.skip("agent_client fixture requires @pytest.mark.agent_test marker")
         return
     
