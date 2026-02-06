@@ -1,0 +1,11 @@
+microsoft-agents-activity
+microsoft-agents-hosting-core
+pytest
+pytest-asyncio
+pytest-mock
+aiohttp
+requests
+pydantic
+python-dotenv
+pytest-aiohttp
+click
