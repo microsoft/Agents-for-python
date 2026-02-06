@@ -1,3 +1,77 @@
+# Microsoft 365 Agents SDK for Python - Release Notes v0.8.0
+
+**Release Date:** February 6, 2026
+**Previous Version:** 0.7.0 (Released January 21, 2026)
+
+## Major Features & Enhancements
+
+### Microsoft Copilot Studio Connector Support
+A significant enhancement enabling seamless integration with Microsoft Copilot Studio connectors, with comprehensive OAuth and authorization infrastructure updates.
+
+**New Capabilities:**
+- Added `ConnectorUserAuthorization` handler with On-Behalf-Of (OBO) token exchange support for Copilot Studio connector requests
+- New `connector_user` role type in `RoleTypes` enum for connector user identification
+- New `copilot_studio` channel in `Channels` enum for channel-specific handling
+- Added `MCSConnectorClient` for direct Copilot Studio connector interactions
+- Enhanced `ClaimsIdentity` to store original security tokens for improved token management
+
+**Configuration Improvements:**
+- Support for `auto_sign_in` configuration in authorization flow
+- Improved handler instantiation from config with better connector scenario support
+- JWT authorization middleware automatically assigns anonymous claims when no auth config is present
+
+**Pull Request:** [#295 - MCS Connector (Updated)](https://github.com/microsoft/Agents-for-python/pull/295)
+
+### Enhanced Multi-Tenant Authentication
+Comprehensive improvements to MSAL authentication enabling robust multi-tenant and multi-instance support for agentic applications.
+
+**Dynamic MSAL Client Management:**
+- Refactored `MsalAuth` class to manage multiple `ConfidentialClientApplication` and `ManagedIdentityClient` instances using a map keyed by tenant and instance
+- Added helper methods for dynamic authority and tenant ID resolution
+- Improved authority resolution to handle both `/common` and tenant GUIDs in authority URLs
+- Updated MSAL dependency to `>=1.34.0` for latest features and bug fixes
+
+**Token Acquisition Enhancements:**
+- Token acquisition methods now accept `tenant_id` as an explicit parameter for correct token scoping
+- Introduced shared `TokenCache` for MSAL clients to enable token reuse and reduce redundant authentication requests
+- Improved scope resolution to handle empty or missing scopes gracefully
+- Added `get_agentic_tenant_id` method to activity context for easier tenant information retrieval
+
+**Connection Manager Robustness:**
+- Refactored `MsalConnectionManager` to maintain explicit configuration map for connections
+- Enforces presence of default service connection with clear error messages when connections are missing
+- Cross-referenced agent authentication configurations for JWT patching
+
+**Pull Requests:** 
+- [#301 - Dynamic MSAL client resolution and robust authority/tenant handling](https://github.com/microsoft/Agents-for-python/pull/301)
+- [#307 - Enhance MsalAuth for multi-tenant support, update MSAL version, and add JWT decoding functionality](https://github.com/microsoft/Agents-for-python/pull/307)
+
+## Bug Fixes
+
+### FastAPI JWT Middleware Async/Await Fix
+Fixed a critical runtime error in FastAPI JWT middleware where `get_anonymous_claims()` was incorrectly being awaited despite being a synchronous method.
+
+**Changes:**
+- Removed incorrect `await` from synchronous `get_anonymous_claims()` call in `jwt_authorization_middleware.py`
+- Aligned FastAPI middleware implementation with aiohttp middleware which correctly calls the method synchronously
+- Resolves runtime errors when using Agents Playground in Anonymous mode
+
+**Pull Request:** [#299 - Fix: Remove await from synchronous get_anonymous_claims() in FastAPI JWT middleware](https://github.com/microsoft/Agents-for-python/pull/299)
+
+## Developer Experience Enhancements
+
+### JWT Token Decode Demo
+Added a comprehensive Adaptive Card-based JWT token decode demonstration in the agentic-test sample.
+
+**New Features:**
+- `JWTDecodeCard.json` Adaptive Card template for displaying JWT token information
+- `jwtcard.py` supporting code for decoding and presenting token details
+- Updated sample agent to decode agentic tokens and display them in user-friendly format
+
+**Pull Request:** [#307](https://github.com/microsoft/Agents-for-python/pull/307)
+
+---
+
 # Microsoft 365 Agents SDK for Python - Release Notes v0.7.0
 
 **Release Date:** January 21, 2026

@@ -16,6 +16,15 @@ This library is part of the **Microsoft 365 Agents SDK for Python** - a comprehe
     <th style="width:60%">Release Notes</th>
   </tr>
   <tr>
+    <td>0.8.0</td>
+    <td>2026-02-06</td>
+    <td>
+      <a href="https://github.com/microsoft/Agents-for-python/blob/main/changelog.md#microsoft-365-agents-sdk-for-python---release-notes-v080">
+        0.8.0 Release Notes
+      </a>
+    </td>
+  </tr>
+  <tr>
     <td>0.7.0</td>
     <td>2026-01-21</td>
     <td>
