@@ -95,14 +95,19 @@ class SafeObject(Generic[T], Readonly):
         """
 
         value = resolve(self)
-        value = cast(dict, value)
-        if isinstance(value, list):
-            cls = object.__getattribute__(self, "__class__")
-            return cls(value[key], self)
+        cls = object.__getattribute__(self, "__class__")
+        # Handle dictionaries via .get to safely return Unset for missing keys
+        if isinstance(value, dict):
+            return cls(value.get(key, Unset), self)
+        # If the underlying value is not indexable, return Unset
         if not getattr(value, "__getitem__", None):
-            cls = object.__getattribute__(self, "__class__")
             return cls(Unset, self)
-        return type(self)(value.get(key, Unset), self)
+        # For other indexable types, attempt value[key] and fall back to Unset on failure
+        try:
+            item = value[key]
+        except (KeyError, IndexError, TypeError):
+            item = Unset
+        return cls(item, self)
 
     def __str__(self) -> str:
         """Get the string representation of the wrapped object."""
