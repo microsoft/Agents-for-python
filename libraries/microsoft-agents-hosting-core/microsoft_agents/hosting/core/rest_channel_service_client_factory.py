@@ -67,12 +67,15 @@ class RestChannelServiceClientFactory(ChannelServiceClientFactoryBase):
             raise ValueError("Agent instance ID is required for agentic identity role")
 
         if context.activity.recipient.role == RoleTypes.agentic_identity:
-            token, _ = await connection.get_agentic_instance_token(agent_instance_id)
+            token, _ = await connection.get_agentic_instance_token(
+                context.activity.get_agentic_tenant_id(), agent_instance_id
+            )
         else:
             agentic_user = context.activity.get_agentic_user()
             if not agentic_user:
                 raise ValueError("Agentic user is required for agentic user role")
             token = await connection.get_agentic_user_token(
+                context.activity.get_agentic_tenant_id(),
                 agent_instance_id,
                 agentic_user,
                 [AuthenticationConstants.APX_PRODUCTION_SCOPE],

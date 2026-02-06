@@ -202,7 +202,9 @@ class TestAuthorizationUsage(TestEnv):
             [
                 {DEFAULTS.auth_handler_id: DEFAULTS.token},
                 {},
-                _SignInState(active_handler_id="some_value_bGoa+V7g/yqDXvKRqq+JTFn4uQZbPiQJo4pf9RzJV0E="),
+                _SignInState(
+                    active_handler_id="some_value_bGoa+V7g/yqDXvKRqq+JTFn4uQZbPiQJo4pf9RzJV0E="
+                ),
                 DEFAULTS.auth_handler_id,
             ],
             [
@@ -217,7 +219,9 @@ class TestAuthorizationUsage(TestEnv):
                     DEFAULTS.auth_handler_id: "value",
                 },
                 {DEFAULTS.auth_handler_id: "value"},
-                _SignInState(active_handler_id="some_value_bGoa+V7g/yqDXvKRqq+JTFn4uQZbPiQJo4pf9RzJV0E="),
+                _SignInState(
+                    active_handler_id="some_value_bGoa+V7g/yqDXvKRqq+JTFn4uQZbPiQJo4pf9RzJV0E="
+                ),
                 DEFAULTS.agentic_auth_handler_id,
             ],
         ],

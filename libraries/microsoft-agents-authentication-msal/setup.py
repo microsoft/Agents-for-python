@@ -13,7 +13,7 @@ setup(
     version=package_version,
     install_requires=[
         f"microsoft-agents-hosting-core=={package_version}",
-        "msal>=1.31.1",
+        "msal>=1.34.0",
         "requests>=2.32.3",
         "cryptography>=44.0.0",
     ],
