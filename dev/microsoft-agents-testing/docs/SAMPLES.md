@@ -6,7 +6,6 @@ Runnable scripts in `docs/samples/`. Each is self-contained.
 |------|----------------|
 | `quickstart.py` | Send a message, check the reply |
 | `interactive.py` | REPL chat with transcript on exit |
-| `expect_and_select.py` | `Expect` assertions and `Select` filtering |
 | `scenario_registry_demo.py` | Registering and discovering named scenarios |
 | `transcript_formatting.py` | Formatters, detail levels, time formats |
 | `pytest_plugin_usage.py` | `@pytest.mark.agent_test`, fixtures |
@@ -36,26 +35,6 @@ REPL loop. Type messages, see replies. Prints the full transcript on exit.
 
 ```bash
 python docs/samples/interactive.py
-```
-
----
-
-## expect_and_select.py
-
-Walks through `Expect` and `Select` in eight sections: basic assertions,
-`~` substring matching, lambdas, quantifiers, collection checks, filtering,
-filter-then-assert, and chaining.
-
-```python
-client.select() \
-    .where(type="message") \
-    .last() \
-    .expect() \
-    .that(text="~Message #3")
-```
-
-```bash
-python docs/samples/expect_and_select.py
 ```
 
 ---

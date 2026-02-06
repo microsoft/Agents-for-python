@@ -16,11 +16,6 @@ interactive.py
     REPL loop — chat with an in-process agent, print the transcript
     on exit.
 
-expect_and_select.py
-    Fluent assertions (Expect) and filtering (Select) on response
-    activities: quantifiers, lambdas, chaining, substring matching,
-    position helpers, and AgentClient shortcuts.
-
 scenario_registry_demo.py
     Register, discover, and look up named scenarios with the global
     scenario_registry.  Dot-notation namespacing and glob discovery.
@@ -39,3 +34,4 @@ multi_client.py
     Advanced patterns: multiple clients via ClientFactory, per-client
     ActivityTemplate and ClientConfig, child clients with transcript
     scoping, and transcript hierarchy.
+"""
