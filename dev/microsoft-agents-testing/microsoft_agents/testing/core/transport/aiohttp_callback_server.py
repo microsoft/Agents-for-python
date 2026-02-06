@@ -65,7 +65,10 @@ class AiohttpCallbackServer(CallbackServer):
         if self._transcript is not None:
             raise RuntimeError("Response server is already listening for responses.")
         
-        self._transcript = transcript or Transcript()
+        if transcript is not None:
+            self._transcript = transcript
+        else:
+            self._transcript = Transcript()
 
         async with TestServer(self._app, host="localhost", port=self._port):
             yield self._transcript

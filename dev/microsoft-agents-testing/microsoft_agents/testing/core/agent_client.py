@@ -81,7 +81,7 @@ class AgentClient:
         
         self._sender = sender
 
-        transcript = transcript or Transcript()
+        transcript = transcript if transcript is not None else Transcript()
         self._transcript = transcript
 
         self._template = (template or ActivityTemplate()).with_defaults(_DEFAULT_ACTIVITY_FIELDS)

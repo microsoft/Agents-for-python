@@ -271,10 +271,10 @@ class TestAiohttpSenderExpectReplies:
     @pytest.mark.asyncio
     async def test_send_expect_replies_parses_responses(self):
         """send with expect_replies should parse inline responses."""
-        responses_json = json.dumps([
+        responses_json = json.dumps({"activities": [
             {"type": "message", "text": "Reply 1"},
             {"type": "message", "text": "Reply 2"}
-        ])
+        ]})
         
         mock_response = create_mock_response(200, responses_json)
         mock_session = create_mock_session(mock_response)

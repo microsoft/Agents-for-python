@@ -129,7 +129,7 @@ class MockAgentServer:
                 return Response(
                     status=200,
                     content_type="application/json",
-                    text=json.dumps(responses)
+                    text=json.dumps({"activities": responses})
                 )
             
             # Normal message - just acknowledge

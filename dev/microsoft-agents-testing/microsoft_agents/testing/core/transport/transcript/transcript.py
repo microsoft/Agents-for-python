@@ -39,7 +39,7 @@ class Transcript:
         
         :param exchange: The exchange to propagate.
         """
-        if self._parent:
+        if self._parent is not None:
             self._parent._add(exchange)
             self._parent._propagate_up(exchange)
 

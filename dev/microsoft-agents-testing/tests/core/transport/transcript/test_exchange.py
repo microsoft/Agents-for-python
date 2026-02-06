@@ -249,10 +249,10 @@ class TestExchangeFromRequest:
         # Mock aiohttp response
         mock_response = self._create_mock_response(
             status=200,
-            text=json.dumps([
+            text=json.dumps({"activities": [
                 {"type": "message", "text": "Reply 1"},
                 {"type": "message", "text": "Reply 2"}
-            ])
+            ]})
         )
         
         exchange = await Exchange.from_request(

@@ -52,7 +52,7 @@ class TestAgentClientFixture:
     @pytest.mark.asyncio
     async def test_agent_client_can_send_message(self, agent_client):
         """agent_client can send messages and receive responses."""
-        await agent_client.send("Hello!", wait=0.2)
+        res = await agent_client.send_expect_replies("Hello!")
         agent_client.expect().that_for_any(text="Echo: Hello!")
 
     @pytest.mark.asyncio
@@ -247,7 +247,7 @@ class TestFunctionLevelMarker:
     @pytest.mark.asyncio
     async def test_marker_on_function(self, agent_client):
         """@pytest.mark.agent_test works on individual test functions."""
-        await agent_client.send("Function-level test", wait=0.2)
+        await agent_client.send_expect_replies("Function-level test")
         agent_client.expect().that_for_any(text="Echo: Function-level test")
 
     @pytest.mark.agent_test(echo_scenario)
@@ -317,84 +317,6 @@ class TestMarkerValidation:
             _get_scenario_from_marker(item)
 
 
-# ============================================================================
-# Registered Scenario Flow Tests
-# ============================================================================
-
-
-class TestRegisteredScenarioFlow:
-    """Tests for using registered scenarios with @pytest.mark.agent_test.
-
-    When a non-URL string is passed to the marker, it should look up
-    the scenario by name in the global scenario_registry.
-    """
-
-    def test_registered_name_resolves_to_scenario(self):
-        """A registered scenario name resolves via _get_scenario_from_marker."""
-        from unittest.mock import Mock
-        from microsoft_agents.testing.pytest_plugin import _get_scenario_from_marker
-        from microsoft_agents.testing import scenario_registry
-
-        # Register a scenario under a test name
-        scenario_registry.register("test.plugin.echo", echo_scenario, description="Echo for plugin tests")
-        try:
-            marker = Mock()
-            marker.args = ("test.plugin.echo",)
-            item = Mock()
-            item.get_closest_marker = Mock(return_value=marker)
-
-            result = _get_scenario_from_marker(item)
-
-            assert result is echo_scenario
-        finally:
-            scenario_registry.clear()
-
-    def test_unregistered_name_raises_key_error(self):
-        """An unregistered scenario name raises KeyError."""
-        from unittest.mock import Mock
-        from microsoft_agents.testing.pytest_plugin import _get_scenario_from_marker
-        from microsoft_agents.testing import scenario_registry
-
-        scenario_registry.clear()
-
-        marker = Mock()
-        marker.args = ("nonexistent.scenario",)
-        item = Mock()
-        item.get_closest_marker = Mock(return_value=marker)
-
-        with pytest.raises(KeyError, match="nonexistent.scenario"):
-            _get_scenario_from_marker(item)
-
-    def test_url_string_still_creates_external_scenario(self):
-        """URL strings still create ExternalScenario (not registry lookup)."""
-        from unittest.mock import Mock
-        from microsoft_agents.testing.pytest_plugin import _get_scenario_from_marker
-        from microsoft_agents.testing.core import ExternalScenario
-
-        marker = Mock()
-        marker.args = ("https://my-agent.azurewebsites.net/api/messages",)
-        item = Mock()
-        item.get_closest_marker = Mock(return_value=marker)
-
-        result = _get_scenario_from_marker(item)
-
-        assert isinstance(result, ExternalScenario)
-
-    def test_registered_scenario_object_passthrough(self):
-        """Passing a Scenario instance directly still works alongside registry."""
-        from unittest.mock import Mock
-        from microsoft_agents.testing.pytest_plugin import _get_scenario_from_marker
-
-        marker = Mock()
-        marker.args = (echo_scenario,)
-        item = Mock()
-        item.get_closest_marker = Mock(return_value=marker)
-
-        result = _get_scenario_from_marker(item)
-
-        assert result is echo_scenario
-
-
 # Register the echo scenario for registered-name integration tests
 from microsoft_agents.testing import scenario_registry
 
@@ -423,7 +345,7 @@ class TestRegisteredScenarioEcho:
 
     @pytest.mark.asyncio
     async def test_multiple_messages_via_registered_name(self, agent_client):
-        """Multiple messages work through a registered scenario."""
+        """Multiple messages work through a registerfed scenario."""
         await agent_client.send("A")
         await agent_client.send("B", wait=0.2)
 

@@ -49,7 +49,6 @@ class AiohttpSender(Sender):
             ) as response:
                 response_at = datetime.now(timezone.utc)
                 response_or_exception = response
-
                 exchange = await Exchange.from_request(
                     request_activity=activity,
                     response_or_exception=response_or_exception,
@@ -70,6 +69,6 @@ class AiohttpSender(Sender):
                 **kwargs
             )
         
-        if transcript:
+        if transcript is not None:
             transcript.record(exchange)
         return exchange
