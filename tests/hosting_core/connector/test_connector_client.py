@@ -4,7 +4,7 @@
 """Tests for ConversationsOperations.send_to_conversation."""
 
 import pytest
-from unittest.mock import AsyncMock, MagicMock, patch
+from unittest.mock import AsyncMock, MagicMock
 
 from aiohttp import ClientSession, ClientResponse
 
@@ -56,10 +56,11 @@ class TestSendToConversation:
         self, mock_client, mock_response, activity
     ):
         """Should return ResourceResponse validated from decoded response body."""
+        body = b'{"id": "activity-id-123"}'
         response = mock_response(
             status=200,
-            content_length=22,
-            body=b'{"id": "activity-id-123"}',
+            content_length=len(body),
+            body=body,
         )
         client = mock_client(response)
         ops = ConversationsOperations(client)
