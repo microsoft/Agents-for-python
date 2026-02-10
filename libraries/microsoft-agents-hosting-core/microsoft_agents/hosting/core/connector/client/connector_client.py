@@ -217,21 +217,20 @@ class ConversationsOperations(ConversationsBase):
             ),
         ) as response:
 
-            raw_response_body = await response.content.read()
-            result = raw_response_body.decode("utf-8") if raw_response_body else ""
+            response_text = await response.text("utf-8")
 
             if response.status >= 300:
                 logger.error(
                     "Error replying to activity: %s",
-                    result or response.status,
+                    response_text or response.status,
                     stack_info=True,
                 )
                 response.raise_for_status()
 
-            if not result:
+            if not response_text:
                 resource_response = ResourceResponse()
             else:
-                resource_response = ResourceResponse.model_validate_json(result)
+                resource_response = ResourceResponse.model_validate_json(response_text)
 
             logger.info(
                 "Reply to conversation/activity: %s, %s",
@@ -278,11 +277,10 @@ class ConversationsOperations(ConversationsBase):
                 )
                 response.raise_for_status()
 
-            raw_response_body = await response.content.read()
-            result = raw_response_body.decode("utf-8") if raw_response_body else ""
-            if not result:
+            response_text = await response.text("utf-8")
+            if not response_text:
                 return ResourceResponse()
-            return ResourceResponse.model_validate_json(result)
+            return ResourceResponse.model_validate_json(response_text)
 
     async def update_activity(
         self, conversation_id: str, activity_id: str, body: Activity
