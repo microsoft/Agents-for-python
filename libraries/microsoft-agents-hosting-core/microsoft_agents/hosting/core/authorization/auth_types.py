@@ -10,3 +10,4 @@ class AuthTypes(str, Enum):
     client_secret = "ClientSecret"
     user_managed_identity = "UserManagedIdentity"
     system_managed_identity = "SystemManagedIdentity"
+    federated_credentials = "FederatedCredentials"
