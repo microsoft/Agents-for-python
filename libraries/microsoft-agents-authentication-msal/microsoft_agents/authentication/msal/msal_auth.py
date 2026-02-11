@@ -237,10 +237,12 @@ class MsalAuth(AccessTokenProviderBase):
             elif self._msal_configuration.AUTH_TYPE == AuthTypes.federated_credentials:
                 assert self._msal_configuration.FEDERATED_CLIENT_ID
                 mi_client = ManagedIdentityClient(
-                    SystemAssignedManagedIdentity(), # TODO
+                    SystemAssignedManagedIdentity(),  # TODO
                     http_client=Session(),
                 )
-                mi_token = mi_client.acquire_token_for_client(resource=self._msal_configuration.FEDERATED_CLIENT_ID)
+                mi_token = mi_client.acquire_token_for_client(
+                    resource=self._msal_configuration.FEDERATED_CLIENT_ID
+                )
                 if "access_token" not in mi_token:
                     logger.error(
                         f"Failed to acquire token for federated credentials: {mi_token}"
