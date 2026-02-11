@@ -32,6 +32,7 @@ class AgentAuthConfiguration:
     CONNECTION_NAME: Optional[str]
     SCOPES: Optional[list[str]]
     AUTHORITY: Optional[str]
+    FEDERATED_CLIENT_ID: Optional[str]
     ALT_BLUEPRINT_ID: Optional[str]
     ANONYMOUS_ALLOWED: bool = False
 
@@ -69,6 +70,7 @@ class AgentAuthConfiguration:
         self.CONNECTION_NAME = connection_name or kwargs.get("CONNECTIONNAME", None)
         self.SCOPES = scopes or kwargs.get("SCOPES", None)
         self.ALT_BLUEPRINT_ID = kwargs.get("ALT_BLUEPRINT_NAME", None)
+        self.FEDERATED_CLIENT_ID = kwargs.get("FEDERATEDCLIENTID", None)
         self.ANONYMOUS_ALLOWED = anonymous_allowed or kwargs.get(
             "ANONYMOUS_ALLOWED", False
         )
