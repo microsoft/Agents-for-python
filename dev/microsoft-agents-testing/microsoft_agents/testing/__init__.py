@@ -1,59 +1,98 @@
 # Copyright (c) Microsoft Corporation. All rights reserved.
 # Licensed under the MIT License.
 
-from .sdk_config import SDKConfig
+"""Microsoft Agents Testing Framework.
 
-from .assertions import (
-    ModelAssertion,
-    Selector,
-    AssertionQuantifier,
-    assert_model,
-    assert_field,
-    check_model,
-    check_model_verbose,
-    check_field,
-    check_field_verbose,
-    FieldAssertionType,
-)
-from .auth import generate_token, generate_token_from_config
+This package provides a comprehensive testing framework for M365 Agents SDK for Python.
+It enables testing agents through both in-process scenarios and external HTTP endpoints.
 
-from .utils import populate_activity, get_host_and_port
+Key Components:
+    - **AgentClient**: Main client for sending activities and collecting responses.
+    - **Scenario / AiohttpScenario / ExternalScenario**: Test scenario orchestrators.
+    - **Expect / Select**: Fluent assertion and selection utilities for test validation.
+    - **Transcript / Exchange**: Request-response recording for debugging and analysis.
+    - **send / ex_send**: Simple utility functions for quick agent interactions.
 
-from .integration import (
-    Sample,
-    Environment,
-    ApplicationRunner,
+Example:
+    Basic usage with an external agent::
+
+        from microsoft_agents.testing import ExternalScenario
+
+        scenario = ExternalScenario("http://localhost:3978/api/messages")
+        async with scenario.client() as client:
+            replies = await client.send("Hello!")
+            client.expect().that_for_any(text="~Hello")
+
+    Using the fluent assertion API::
+
+        from microsoft_agents.testing import Expect, Select
+
+        # Assert all responses are messages
+        Expect(responses).that(type="message")
+
+        # Filter and assert
+        Select(responses).where(type="message").expect().that(text="~world")
+"""
+
+from .core import (
     AgentClient,
-    ResponseClient,
-    AiohttpEnvironment,
-    Integration,
-    ddt,
-    DataDrivenTest,
+    ScenarioConfig,
+    ClientConfig,
+    ActivityTemplate,
+    Scenario,
+    ExternalScenario,
+    AiohttpCallbackServer,
+    AiohttpSender,
+    CallbackServer,
+    Sender,
+    Transcript,
+    Exchange,
+    Expect,
+    Select,
+    Unset,
+)
+
+from .aiohttp_scenario import (
+    AgentEnvironment,
+    AiohttpScenario,
+)
+
+from .transcript_formatter import (
+    DetailLevel,
+    ConversationTranscriptFormatter,
+    ActivityTranscriptFormatter,
+    TranscriptFormatter,
+)
+
+from .scenario_registry import (
+    scenario_registry,
+    ScenarioEntry,
+    load_scenarios,
 )
 
 __all__ = [
-    "SDKConfig",
-    "generate_token",
-    "generate_token_from_config",
-    "Sample",
-    "Environment",
-    "ApplicationRunner",
     "AgentClient",
-    "ResponseClient",
-    "AiohttpEnvironment",
-    "Integration",
-    "populate_activity",
-    "get_host_and_port",
-    "ModelAssertion",
-    "Selector",
-    "AssertionQuantifier",
-    "assert_model",
-    "assert_field",
-    "check_model",
-    "check_model_verbose",
-    "check_field",
-    "check_field_verbose",
-    "FieldAssertionType",
-    "ddt",
-    "DataDrivenTest",
+    "ScenarioConfig",
+    "ClientConfig",
+    "ActivityTemplate",
+    "Scenario",
+    "ExternalScenario",
+    "AiohttpCallbackServer",
+    "AiohttpSender",
+    "CallbackServer",
+    "Sender",
+    "Transcript",
+    "Exchange",
+    "Expect",
+    "Select",
+    "Unset",
+    "AgentEnvironment",
+    "AiohttpScenario",
+    "ScenarioEntry",
+    "scenario_registry",
+    "load_scenarios",
+    "DetailLevel",
+    "ConversationTranscriptFormatter",
+    "ActivityTranscriptFormatter",
+    "TranscriptFormatter",
 ]

@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "microsoft-agents-testing"
-dynamic = ["version", "dependencies"]
+dynamic = ["version"]
 description = "Core library for Microsoft Agents"
 readme = {file = "README.md", content-type = "text/markdown"}
 authors = [{name = "Microsoft Corporation"}]
@@ -20,6 +20,27 @@ classifiers = [
     "Programming Language :: Python :: 3.14",
     "Operating System :: OS Independent",
 ]
+dependencies = [
+    "aiohttp",
+    "click",
+    "microsoft-agents-activity",
+    "microsoft-agents-hosting-core",
+    "microsoft-agents-hosting-aiohttp",
+    "microsoft-agents-authentication-msal",
+    "pydantic",
+    "pytest",
+    "pytest-aiohttp",
+    "pytest-asyncio",
+    "python-dotenv",
+    "pytest-mock",
+    "requests",
+]
 
 [project.urls]
 "Homepage" = "https://github.com/microsoft/Agents"
+
+[project.scripts]
+agt = "microsoft_agents.testing.cli:main"
+
+[project.entry-points.pytest11]
+agent_test = "microsoft_agents.testing.pytest_plugin"
