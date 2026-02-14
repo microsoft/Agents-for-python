@@ -150,7 +150,7 @@ class PowerPlatformEnvironment:
             parsed_direct = urlparse(direct_url)
             if not (parsed_direct.scheme and parsed_direct.netloc):
                 raise ValueError(
-                    "DirectConnectUrl must be provided when DirectConnectUrl is set"
+                    "Invalid DirectConnectUrl: an absolute URL with scheme and host is required"
                 )
 
             decoded_cloud = PowerPlatformEnvironment._decode_cloud_from_uri(direct_url)
