@@ -14,7 +14,7 @@ from microsoft_agents.copilotstudio.client import (
 )
 
 from aiohttp import ClientSession, ClientError
-
+from urllib.parse import urlparse
 
 @pytest.mark.asyncio
 async def test_copilot_client_error(mocker):
@@ -409,7 +409,9 @@ def test_power_platform_environment_direct_connect_with_conversation_id():
         settings=connection_settings, conversation_id="conv-123"
     )
 
-    assert "https://api.powerplatform.com" in url
+    parsed = urlparse(url)
+    assert parsed.scheme == "https"
+    assert parsed.hostname == "api.powerplatform.com"
     assert "/conversations/conv-123" in url
     assert "api-version=" in url
 
