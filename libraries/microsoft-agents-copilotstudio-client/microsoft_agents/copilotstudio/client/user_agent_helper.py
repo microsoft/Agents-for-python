@@ -27,6 +27,7 @@ class UserAgentHelper:
             CLIENT_VERSION = "0.8.0"
     else:
         CLIENT_VERSION = "0.8.0"
+
     @staticmethod
     def get_user_agent_header() -> str:
         """
