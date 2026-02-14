@@ -392,7 +392,9 @@ def test_power_platform_environment_with_direct_connect_url():
         settings=connection_settings
     )
 
-    assert "https://api.powerplatform.com" in url
+    parsed_url = urlparse(url)
+    assert parsed_url.scheme == "https"
+    assert parsed_url.hostname == "api.powerplatform.com"
     assert "/conversations" in url
     assert "api-version=" in url
 
