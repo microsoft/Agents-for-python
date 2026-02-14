@@ -249,14 +249,12 @@ class CopilotClient:
         if not conversation_id:
             raise ValueError("CopilotClient.subscribe: conversation_id cannot be None")
 
-        # Build the subscribe URL
+        # Build the subscribe URL using the environment helper to ensure correct path and query handling
         url = PowerPlatformEnvironment.get_copilot_studio_connection_url(
-            settings=self.settings, conversation_id=conversation_id
+            settings=self.settings,
+            conversation_id=conversation_id,
+            create_subscribe_link=True,
         )
-
-        # Append /subscribe to the URL
-        url = url.replace("/conversations/", "/subscribe/")
-
         headers = {
             "Content-Type": self.APPLICATION_JSON_TYPE,
             "Authorization": f"Bearer {self._token}",
