@@ -498,3 +498,236 @@ def test_direct_connect_url_path_normalization():
     # Should not have double /conversations/conversations
     assert "/conversations/conversations" not in url
     assert "/conversations/conv-abc" in url
+
+
+@pytest.mark.asyncio
+async def test_enable_diagnostics_logging(mocker, caplog):
+    import logging
+
+    # Define the connection settings with diagnostics enabled
+    connection_settings = ConnectionSettings(
+        "environment-id",
+        "agent-id",
+        client_session_settings={"base_url": "https://api.copilotstudio.com"},
+        enable_diagnostics=True,
+    )
+
+    mock_session = mocker.MagicMock(spec=ClientSession)
+    mock_session.__aenter__.return_value = mock_session
+
+    @asynccontextmanager
+    async def response():
+        mock_response = mocker.Mock()
+        mock_response.status = 200
+        mock_response.headers = {
+            "Content-Type": "text/event-stream",
+            "x-ms-conversationid": "test-conv-123",
+        }
+
+        activity = Activity(
+            type="message", text="Test response", conversation={"id": "test-conv-123"}
+        )
+        activity_json = activity.model_dump_json(exclude_unset=True)
+
+        async def content():
+            yield "event: activity".encode()
+            yield f"data: {activity_json}".encode()
+
+        mock_response.content = content()
+
+        yield mock_response
+
+    mock_session.post.return_value = response()
+
+    mocker.patch("aiohttp.ClientSession", return_value=mock_session)
+
+    # Create a CopilotClient instance
+    copilot_client = CopilotClient(connection_settings, "token")
+
+    # Enable logging capture at DEBUG level
+    with caplog.at_level(logging.DEBUG):
+        count = 0
+        async for message in copilot_client.start_conversation():
+            count += 1
+
+        assert count == 1
+
+        # Check that diagnostic messages were logged
+        debug_messages = [record.message for record in caplog.records]
+        assert any(">>> SEND TO" in msg for msg in debug_messages)
+        assert any("Content-Type" in msg for msg in debug_messages)
+        assert any("=" * 53 in msg for msg in debug_messages)
+
+
+@pytest.mark.asyncio
+async def test_experimental_endpoint_capture(mocker):
+    # Define the connection settings with experimental endpoint enabled
+    connection_settings = ConnectionSettings(
+        "environment-id",
+        "agent-id",
+        client_session_settings={"base_url": "https://api.copilotstudio.com"},
+        use_experimental_endpoint=True,
+    )
+
+    # Verify initial state
+    assert connection_settings.direct_connect_url is None
+    assert connection_settings.use_experimental_endpoint is True
+
+    mock_session = mocker.MagicMock(spec=ClientSession)
+    mock_session.__aenter__.return_value = mock_session
+
+    experimental_url = "https://experimental.api.powerplatform.com/bot/test-bot"
+
+    @asynccontextmanager
+    async def response():
+        mock_response = mocker.Mock()
+        mock_response.status = 200
+        mock_response.headers = {
+            "Content-Type": "text/event-stream",
+            "x-ms-conversationid": "test-conv-123",
+            "x-ms-d2e-experimental": experimental_url,
+        }
+
+        activity = Activity(
+            type="message", text="Test response", conversation={"id": "test-conv-123"}
+        )
+        activity_json = activity.model_dump_json(exclude_unset=True)
+
+        async def content():
+            yield "event: activity".encode()
+            yield f"data: {activity_json}".encode()
+
+        mock_response.content = content()
+
+        yield mock_response
+
+    mock_session.post.return_value = response()
+
+    mocker.patch("aiohttp.ClientSession", return_value=mock_session)
+
+    # Create a CopilotClient instance
+    copilot_client = CopilotClient(connection_settings, "token")
+
+    count = 0
+    async for message in copilot_client.start_conversation():
+        count += 1
+
+    assert count == 1
+
+    # Verify that the experimental URL was captured and stored
+    assert copilot_client._island_experimental_url == experimental_url
+    assert copilot_client.settings.direct_connect_url == experimental_url
+
+
+@pytest.mark.asyncio
+async def test_experimental_endpoint_not_captured_when_disabled(mocker):
+    # Define the connection settings with experimental endpoint disabled
+    connection_settings = ConnectionSettings(
+        "environment-id",
+        "agent-id",
+        client_session_settings={"base_url": "https://api.copilotstudio.com"},
+        use_experimental_endpoint=False,
+    )
+
+    mock_session = mocker.MagicMock(spec=ClientSession)
+    mock_session.__aenter__.return_value = mock_session
+
+    experimental_url = "https://experimental.api.powerplatform.com/bot/test-bot"
+
+    @asynccontextmanager
+    async def response():
+        mock_response = mocker.Mock()
+        mock_response.status = 200
+        mock_response.headers = {
+            "Content-Type": "text/event-stream",
+            "x-ms-conversationid": "test-conv-123",
+            "x-ms-d2e-experimental": experimental_url,
+        }
+
+        activity = Activity(
+            type="message", text="Test response", conversation={"id": "test-conv-123"}
+        )
+        activity_json = activity.model_dump_json(exclude_unset=True)
+
+        async def content():
+            yield "event: activity".encode()
+            yield f"data: {activity_json}".encode()
+
+        mock_response.content = content()
+
+        yield mock_response
+
+    mock_session.post.return_value = response()
+
+    mocker.patch("aiohttp.ClientSession", return_value=mock_session)
+
+    # Create a CopilotClient instance
+    copilot_client = CopilotClient(connection_settings, "token")
+
+    count = 0
+    async for message in copilot_client.start_conversation():
+        count += 1
+
+    assert count == 1
+
+    # Verify that the experimental URL was NOT captured
+    assert copilot_client._island_experimental_url == ""
+    assert copilot_client.settings.direct_connect_url is None
+
+
+@pytest.mark.asyncio
+async def test_experimental_endpoint_not_captured_when_direct_connect_set(mocker):
+    # Define the connection settings with both experimental endpoint and direct connect URL
+    direct_url = "https://direct.api.powerplatform.com/bot/direct-bot"
+    connection_settings = ConnectionSettings(
+        "environment-id",
+        "agent-id",
+        client_session_settings={"base_url": "https://api.copilotstudio.com"},
+        use_experimental_endpoint=True,
+        direct_connect_url=direct_url,
+    )
+
+    mock_session = mocker.MagicMock(spec=ClientSession)
+    mock_session.__aenter__.return_value = mock_session
+
+    experimental_url = "https://experimental.api.powerplatform.com/bot/test-bot"
+
+    @asynccontextmanager
+    async def response():
+        mock_response = mocker.Mock()
+        mock_response.status = 200
+        mock_response.headers = {
+            "Content-Type": "text/event-stream",
+            "x-ms-conversationid": "test-conv-123",
+            "x-ms-d2e-experimental": experimental_url,
+        }
+
+        activity = Activity(
+            type="message", text="Test response", conversation={"id": "test-conv-123"}
+        )
+        activity_json = activity.model_dump_json(exclude_unset=True)
+
+        async def content():
+            yield "event: activity".encode()
+            yield f"data: {activity_json}".encode()
+
+        mock_response.content = content()
+
+        yield mock_response
+
+    mock_session.post.return_value = response()
+
+    mocker.patch("aiohttp.ClientSession", return_value=mock_session)
+
+    # Create a CopilotClient instance
+    copilot_client = CopilotClient(connection_settings, "token")
+
+    count = 0
+    async for message in copilot_client.start_conversation():
+        count += 1
+
+    assert count == 1
+
+    # Verify that the experimental URL was NOT captured (direct_connect_url takes precedence)
+    assert copilot_client._island_experimental_url == ""
+    assert copilot_client.settings.direct_connect_url == direct_url

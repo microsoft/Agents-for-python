@@ -2,6 +2,7 @@
 # Licensed under the MIT License.
 
 import aiohttp
+import logging
 from typing import AsyncIterable, Callable, Optional
 
 from microsoft_agents.activity import Activity, ActivityTypes, ConversationAccount
@@ -19,6 +20,7 @@ class CopilotClient:
 
     EVENT_STREAM_TYPE = "text/event-stream"
     APPLICATION_JSON_TYPE = "application/json"
+    EXPERIMENTAL_URL_HEADER_KEY = "x-ms-d2e-experimental"
 
     _current_conversation_id = ""
 
@@ -29,9 +31,9 @@ class CopilotClient:
     ):
         self.settings = settings
         self._token = token
-        # TODO: Add logger
-        # self.logger = logger
+        self._logger = logging.getLogger(__name__)
         self.conversation_id = ""
+        self._island_experimental_url = ""
 
     async def post_request(
         self, url: str, data: dict, headers: dict
@@ -46,16 +48,42 @@ class CopilotClient:
         # Add User-Agent header
         headers["User-Agent"] = UserAgentHelper.get_user_agent_header()
 
+        # Log diagnostic information if enabled
+        if self.settings.enable_diagnostics:
+            self._logger.debug(f">>> SEND TO {url}")
+
         async with aiohttp.ClientSession(
             **self.settings.client_session_settings
         ) as session:
             async with session.post(url, json=data, headers=headers) as response:
 
                 if response.status != 200:
-                    # self.logger(f"Error sending request: {response.status}")
+                    self._logger.error(f"Error sending request: {response.status}")
                     raise aiohttp.ClientError(
                         f"Error sending request: {response.status}"
                     )
+
+                # Log response headers if diagnostics enabled
+                if self.settings.enable_diagnostics:
+                    self._logger.debug("=" * 53)
+                    for header_key, header_value in response.headers.items():
+                        self._logger.debug(f"{header_key} = {header_value}")
+                    self._logger.debug("=" * 53)
+
+                # Capture experimental endpoint if enabled and not already using DirectConnect
+                experimental_url = response.headers.get(
+                    self.EXPERIMENTAL_URL_HEADER_KEY
+                )
+                if experimental_url:
+                    if (
+                        self.settings.use_experimental_endpoint
+                        and not self.settings.direct_connect_url
+                    ):
+                        self._island_experimental_url = experimental_url
+                        self.settings.direct_connect_url = self._island_experimental_url
+                        self._logger.debug(
+                            f"Island Experimental URL: {self._island_experimental_url}"
+                        )
 
                 # Set conversation ID from response header when status is 200
                 conversation_id_header = response.headers.get("x-ms-conversationid")
@@ -242,15 +270,29 @@ class CopilotClient:
         # Add User-Agent header
         headers["User-Agent"] = UserAgentHelper.get_user_agent_header()
 
+        # Log diagnostic information if enabled
+        if self.settings.enable_diagnostics:
+            self._logger.debug(f">>> SEND TO {url}")
+
         async with aiohttp.ClientSession(
             **self.settings.client_session_settings
         ) as session:
             async with session.get(url, headers=headers) as response:
 
                 if response.status != 200:
+                    self._logger.error(
+                        f"Error subscribing to conversation: {response.status}"
+                    )
                     raise aiohttp.ClientError(
                         f"Error subscribing to conversation: {response.status}"
                     )
+
+                # Log response headers if diagnostics enabled
+                if self.settings.enable_diagnostics:
+                    self._logger.debug("=" * 53)
+                    for header_key, header_value in response.headers.items():
+                        self._logger.debug(f"{header_key} = {header_value}")
+                    self._logger.debug("=" * 53)
 
                 event_id = None
                 event_type = None

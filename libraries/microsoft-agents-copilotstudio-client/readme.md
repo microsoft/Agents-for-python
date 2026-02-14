@@ -133,10 +133,29 @@ settings = ConnectionSettings(
     custom_power_platform_cloud=None,
     direct_connect_url=None,  # Optional: Direct URL to agent
     use_experimental_endpoint=False,  # Optional: Enable experimental features
-    enable_diagnostics=False,  # Optional: Enable diagnostic logging
+    enable_diagnostics=False,  # Optional: Enable diagnostic logging (logs HTTP details)
     client_session_settings={"timeout": aiohttp.ClientTimeout(total=60)}  # Optional: aiohttp settings
 )
 ```
+
+**Diagnostic Logging Details**:
+When `enable_diagnostics=True`, the CopilotClient logs detailed HTTP communication using Python's `logging` module at the `DEBUG` level:
+- Pre-request: Logs the full request URL (`>>> SEND TO {url}`)
+- Post-response: Logs all HTTP response headers in a formatted table
+- Errors: Logs error messages with status codes
+
+To see diagnostic output, configure your Python logging:
+```python
+import logging
+logging.basicConfig(level=logging.DEBUG)
+```
+
+**Experimental Endpoint Details**:
+When `use_experimental_endpoint=True`, the CopilotClient will automatically capture and use the experimental endpoint URL from the first response:
+- The server returns the experimental endpoint in the `x-ms-d2e-experimental` response header
+- Once captured, this URL is stored in `settings.direct_connect_url` and used for all subsequent requests
+- This feature is only active when `use_experimental_endpoint=True` AND `direct_connect_url` is not already set
+- The experimental endpoint allows access to pre-release features and optimizations
 
 ### Start a Conversation
 
@@ -254,9 +273,22 @@ CLOUD=PROD  # Used for token audience resolution
 
 ```bash
 # Experimental and diagnostic features
-USE_EXPERIMENTAL_ENDPOINT=false  # Enable experimental API endpoints
-ENABLE_DIAGNOSTICS=false  # Enable diagnostic logging
+USE_EXPERIMENTAL_ENDPOINT=false  # Enable automatic experimental endpoint capture
+ENABLE_DIAGNOSTICS=false  # Enable diagnostic logging (logs HTTP requests/responses)
 ```
+
+**Experimental Endpoint**: When `USE_EXPERIMENTAL_ENDPOINT=true`, the client automatically captures and uses the experimental endpoint URL from the server's `x-ms-d2e-experimental` response header. This feature:
+- Only activates when `direct_connect_url` is not already set
+- Captures the URL from the first response and stores it for all subsequent requests
+- Provides access to pre-release features and performance optimizations
+- Useful for testing new capabilities before general availability
+
+**Diagnostic Logging**: When `ENABLE_DIAGNOSTICS=true` or `enable_diagnostics=True`, the client will log detailed HTTP request and response information including:
+- Request URLs before sending
+- All response headers with their values
+- Error messages for failed requests
+
+This is useful for debugging connection issues, authentication problems, or understanding the communication flow with Copilot Studio. Diagnostic logs use Python's standard `logging` module at the `DEBUG` level.
 
 #### Using Environment Variables in Code
 
@@ -291,7 +323,7 @@ settings = ConnectionSettings(**settings_dict)
 ✅ **User-Agent tracking** - Automatic SDK version and platform headers
 ✅ **Environment configuration** - Automatic loading from environment variables
 ✅ **Experimental endpoints** - Toggle experimental API features
-✅ **Diagnostic logging** - Enable detailed diagnostic information
+✅ **Diagnostic logging** - HTTP request/response logging for debugging and troubleshooting
 
 ### API Methods
 
