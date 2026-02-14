@@ -4,6 +4,11 @@
 import sys
 import platform
 
+try:
+    from importlib import metadata as importlib_metadata
+except ImportError:  # pragma: no cover - Python < 3.8
+    importlib_metadata = None  # type: ignore[assignment]
+
 
 class UserAgentHelper:
     """
@@ -11,8 +16,17 @@ class UserAgentHelper:
     """
 
     CLIENT_NAME = "CopilotStudioClient"
-    CLIENT_VERSION = "0.8.0"  # Should match package version
 
+    # Derive client version from installed package metadata, with a safe fallback.
+    if importlib_metadata is not None:
+        try:
+            _dist_name = (__package__ or __name__).split(".")[0]
+            CLIENT_VERSION = importlib_metadata.version(_dist_name)
+        except Exception:
+            # Fallback to a static version if metadata lookup fails
+            CLIENT_VERSION = "0.8.0"
+    else:
+        CLIENT_VERSION = "0.8.0"
     @staticmethod
     def get_user_agent_header() -> str:
         """
