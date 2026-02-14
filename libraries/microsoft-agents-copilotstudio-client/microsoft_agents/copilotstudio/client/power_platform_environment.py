@@ -143,6 +143,11 @@ class PowerPlatformEnvironment:
                         str(copilot_studio_errors.CustomCloudOrBaseAddressRequired)
                     )
 
+            # Normalize custom cloud base address to host-only (strip any scheme)
+            if cloud == PowerPlatformCloud.OTHER and cloud_base_address:
+                parsed_base = urlparse(cloud_base_address)
+                if parsed_base.scheme and parsed_base.netloc:
+                    cloud_base_address = parsed_base.netloc
             cloud_base_address = cloud_base_address or "api.unknown.powerplatform.com"
             return f"https://{PowerPlatformEnvironment.get_endpoint_suffix(cloud, cloud_base_address)}/.default"
         else:
