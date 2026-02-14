@@ -303,6 +303,9 @@ class CopilotClient:
                         activity_data = line[5:].decode("utf-8").strip()
                         activity = Activity.model_validate_json(activity_data)
                         yield SubscribeEvent(activity=activity, event_id=event_id)
+                        # Reset per-event state so IDs and types do not leak across events
+                        event_id = None
+                        event_type = None
 
     @staticmethod
     def scope_from_settings(settings: ConnectionSettings) -> str:
