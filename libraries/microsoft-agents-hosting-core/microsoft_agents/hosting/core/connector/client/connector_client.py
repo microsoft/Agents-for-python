@@ -216,21 +216,29 @@ class ConversationsOperations(ConversationsBase):
                 by_alias=True, exclude_unset=True, exclude_none=True, mode="json"
             ),
         ) as response:
-            result = await response.json() if response.content_length else {}
+
+            response_text = await response.text("utf-8")
 
             if response.status >= 300:
                 logger.error(
                     "Error replying to activity: %s",
-                    result or response.status,
+                    response_text or response.status,
                     stack_info=True,
                 )
                 response.raise_for_status()
 
+            if not response_text:
+                resource_response = ResourceResponse()
+            else:
+                resource_response = ResourceResponse.model_validate_json(response_text)
+
             logger.info(
-                "Reply to conversation/activity: %s, %s", result.get("id"), activity_id
+                "Reply to conversation/activity: %s, %s",
+                resource_response.id,
+                activity_id,
             )
 
-        return ResourceResponse.model_validate(result)
+            return resource_response
 
     async def send_to_conversation(
         self, conversation_id: str, body: Activity
@@ -269,8 +277,10 @@ class ConversationsOperations(ConversationsBase):
                 )
                 response.raise_for_status()
 
-            data = await response.json()
-            return ResourceResponse.model_validate(data)
+            response_text = await response.text("utf-8")
+            if not response_text:
+                return ResourceResponse()
+            return ResourceResponse.model_validate_json(response_text)
 
     async def update_activity(
         self, conversation_id: str, activity_id: str, body: Activity
