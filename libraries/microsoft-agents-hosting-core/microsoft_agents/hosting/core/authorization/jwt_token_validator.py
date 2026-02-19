@@ -28,13 +28,13 @@ class JwtTokenValidator:
             leeway=300.0,
             options={"verify_aud": False},
         )
-        if decoded_token["aud"] != self.configuration.CLIENT_ID:
+        if not self.configuration._jwt_patch_is_valid_aud(decoded_token["aud"]):
             logger.error(f"Invalid audience: {decoded_token['aud']}", stack_info=True)
             raise ValueError("Invalid audience.")
 
         # This probably should return a ClaimsIdentity
         logger.debug("JWT token validated successfully.")
-        return ClaimsIdentity(decoded_token, True)
+        return ClaimsIdentity(decoded_token, True, security_token=token)
 
     def get_anonymous_claims(self) -> ClaimsIdentity:
         logger.debug("Returning anonymous claims identity.")

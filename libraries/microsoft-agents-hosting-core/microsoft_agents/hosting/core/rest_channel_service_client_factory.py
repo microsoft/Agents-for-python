@@ -15,6 +15,7 @@ from microsoft_agents.hosting.core.authorization import AccessTokenProviderBase
 from microsoft_agents.hosting.core.connector import ConnectorClientBase
 from microsoft_agents.hosting.core.connector.client import UserTokenClient
 from microsoft_agents.hosting.core.connector.teams import TeamsConnectorClient
+from microsoft_agents.hosting.core.connector.mcs import MCSConnectorClient
 
 from .channel_service_client_factory_base import ChannelServiceClientFactoryBase
 from .turn_context import TurnContext
@@ -66,12 +67,15 @@ class RestChannelServiceClientFactory(ChannelServiceClientFactoryBase):
             raise ValueError("Agent instance ID is required for agentic identity role")
 
         if context.activity.recipient.role == RoleTypes.agentic_identity:
-            token, _ = await connection.get_agentic_instance_token(agent_instance_id)
+            token, _ = await connection.get_agentic_instance_token(
+                context.activity.get_agentic_tenant_id(), agent_instance_id
+            )
         else:
             agentic_user = context.activity.get_agentic_user()
             if not agentic_user:
                 raise ValueError("Agentic user is required for agentic user role")
             token = await connection.get_agentic_user_token(
+                context.activity.get_agentic_tenant_id(),
                 agent_instance_id,
                 agentic_user,
                 [AuthenticationConstants.APX_PRODUCTION_SCOPE],
@@ -113,7 +117,17 @@ class RestChannelServiceClientFactory(ChannelServiceClientFactoryBase):
             )
 
             token = await token_provider.get_access_token(
-                audience, scopes or [f"{audience}/.default"]
+                audience, scopes or claims_identity.get_token_scope()
+            )
+
+        # Check if this is a connector request (e.g., from Copilot Studio)
+        if (
+            context
+            and context.activity.recipient
+            and context.activity.recipient.role == RoleTypes.connector_user
+        ) or service_url.startswith("https://pvaruntime"):
+            return MCSConnectorClient(
+                endpoint=service_url,
             )
 
         return TeamsConnectorClient(
@@ -142,7 +156,7 @@ class RestChannelServiceClientFactory(ChannelServiceClientFactoryBase):
         if context.activity.is_agentic_request():
             token = await self._get_agentic_token(context, self._token_service_endpoint)
         else:
-            scopes = [f"{self._token_service_audience}/.default"]
+            scopes = claims_identity.get_token_scope()
 
             token_provider = self._connection_manager.get_token_provider(
                 claims_identity, self._token_service_endpoint

@@ -7,7 +7,6 @@ from microsoft_agents.hosting.core import (
     JwtTokenValidator,
 )
 
-
 logger = logging.getLogger(__name__)
 
 
@@ -63,9 +62,7 @@ class JwtAuthorizationMiddleware:
                 return
         else:
             if not auth_config or not auth_config.CLIENT_ID:
-                request.state.claims_identity = (
-                    await token_validator.get_anonymous_claims()
-                )
+                request.state.claims_identity = token_validator.get_anonymous_claims()
             else:
                 response = JSONResponse(
                     {"error": "Authorization header not found"},

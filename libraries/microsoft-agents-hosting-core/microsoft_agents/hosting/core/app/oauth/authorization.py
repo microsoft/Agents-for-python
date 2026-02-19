@@ -20,6 +20,7 @@ from ._sign_in_state import _SignInState
 from ._sign_in_response import _SignInResponse
 from ._handlers import (
     AgenticUserAuthorization,
+    ConnectorUserAuthorization,
     _UserAuthorization,
     _AuthorizationHandler,
 )
@@ -29,6 +30,7 @@ logger = logging.getLogger(__name__)
 AUTHORIZATION_TYPE_MAP = {
     "userauthorization": _UserAuthorization,
     "agenticuserauthorization": AgenticUserAuthorization,
+    "connectoruserauthorization": ConnectorUserAuthorization,
 }
 
 
@@ -44,7 +46,7 @@ class Authorization:
         storage: Storage,
         connection_manager: Connections,
         auth_handlers: Optional[dict[str, AuthHandler]] = None,
-        auto_signin: bool = False,
+        auto_sign_in: bool = False,
         use_cache: bool = False,
         **kwargs,
     ):
@@ -77,21 +79,26 @@ class Authorization:
 
         self._handlers = {}
 
+        auth_configuration: dict = kwargs.get("AGENTAPPLICATION", {}).get(
+            "USERAUTHORIZATION", {}
+        )
         if not auth_handlers:
             # get from config
-            auth_configuration: dict = kwargs.get("AGENTAPPLICATION", {}).get(
-                "USERAUTHORIZATION", {}
-            )
             handlers_config: dict[str, dict] = auth_configuration.get("HANDLERS")
             if not auth_handlers and handlers_config:
                 auth_handlers = {
                     handler_name: AuthHandler(
-                        name=handler_name, **config.get("SETTINGS", {})
+                        name=handler_name,
+                        auth_type=config.get("TYPE", None),
+                        **config.get("SETTINGS", {}),
                     )
                     for handler_name, config in handlers_config.items()
                 }
 
         self._handler_settings = auth_handlers
+        self._auto_sign_in = auto_sign_in or bool(
+            auth_configuration.get("AUTO_SIGN_IN", False)
+        )
 
         # operations default to the first handler if none specified
         if self._handler_settings:
@@ -296,13 +303,16 @@ class Authorization:
         """
         sign_in_state = await self._load_sign_in_state(context)
 
-        if sign_in_state:
-            auth_handler_id = sign_in_state.active_handler_id
-            if auth_handler_id:
+        if sign_in_state or self._auto_sign_in:
+            auth_handler_id = sign_in_state.active_handler_id if sign_in_state else None
+            if auth_handler_id or self._auto_sign_in:
                 sign_in_response = await self._start_or_continue_sign_in(
                     context, state, auth_handler_id
                 )
                 if sign_in_response.tag == _FlowStateTag.COMPLETE:
+                    if not sign_in_state:
+                        # flow just completed, no continuation activity
+                        return False, None
                     assert sign_in_state.continuation_activity is not None
                     continuation_activity = (
                         sign_in_state.continuation_activity.model_copy()

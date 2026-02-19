@@ -101,7 +101,9 @@ class TestRestChannelServiceClientFactory:
     ):
         mock_connector_client = mocker.Mock(spec=TeamsConnectorClient)
         mocker.patch.object(
-            TeamsConnectorClient, "__new__", return_value=mock_connector_client
+            TeamsConnectorClient,
+            "__new__",
+            side_effect=lambda cls, *args, **kwargs: mock_connector_client,
         )
 
         factory = RestChannelServiceClientFactory(
@@ -153,7 +155,9 @@ class TestRestChannelServiceClientFactory:
         # setup
         mock_connector_client = mocker.Mock(spec=TeamsConnectorClient)
         mocker.patch.object(
-            TeamsConnectorClient, "__new__", return_value=mock_connector_client
+            TeamsConnectorClient,
+            "__new__",
+            side_effect=lambda cls, *args, **kwargs: mock_connector_client,
         )
 
         token_provider = mocker.Mock(spec=AccessTokenProviderBase)
@@ -169,6 +173,9 @@ class TestRestChannelServiceClientFactory:
         claims_identity = mocker.Mock(spec=ClaimsIdentity)
         service_url = DEFAULTS.service_url
         audience = "https://service.audience/"
+        claims_identity.get_token_scope = mocker.Mock(
+            return_value=[f"{audience}/.default"]
+        )
 
         context = mocker.Mock(spec=TurnContext)
         context.activity = activity
@@ -218,7 +225,9 @@ class TestRestChannelServiceClientFactory:
         # setup
         mock_connector_client = mocker.Mock(spec=TeamsConnectorClient)
         mocker.patch.object(
-            TeamsConnectorClient, "__new__", return_value=mock_connector_client
+            TeamsConnectorClient,
+            "__new__",
+            side_effect=lambda cls, *args, **kwargs: mock_connector_client,
         )
 
         token_provider = mocker.Mock(spec=AccessTokenProviderBase)
@@ -268,7 +277,9 @@ class TestRestChannelServiceClientFactory:
         # setup
         mock_connector_client = mocker.Mock(spec=TeamsConnectorClient)
         mocker.patch.object(
-            TeamsConnectorClient, "__new__", return_value=mock_connector_client
+            TeamsConnectorClient,
+            "__new__",
+            side_effect=lambda cls, *args, **kwargs: mock_connector_client,
         )
 
         token_provider = mocker.Mock(spec=AccessTokenProviderBase)
@@ -316,7 +327,7 @@ class TestRestChannelServiceClientFactory:
             )
         assert token_provider.get_agentic_instance_token.call_count == 1
         token_provider.get_agentic_instance_token.assert_called_once_with(
-            "agentic_app_id"
+            None, "agentic_app_id"
         )
         TeamsConnectorClient.__new__.assert_called_once_with(
             TeamsConnectorClient, endpoint=DEFAULTS.service_url, token=DEFAULTS.token
@@ -330,7 +341,9 @@ class TestRestChannelServiceClientFactory:
         # setup
         mock_connector_client = mocker.Mock(spec=TeamsConnectorClient)
         mocker.patch.object(
-            TeamsConnectorClient, "__new__", return_value=mock_connector_client
+            TeamsConnectorClient,
+            "__new__",
+            side_effect=lambda cls, *args, **kwargs: mock_connector_client,
         )
 
         token_provider = mocker.Mock(spec=AccessTokenProviderBase)
@@ -378,6 +391,7 @@ class TestRestChannelServiceClientFactory:
             )
         assert token_provider.get_agentic_user_token.call_count == 1
         token_provider.get_agentic_user_token.assert_called_once_with(
+            None,
             "agentic_app_id",
             "agentic_user_id",
             [AuthenticationConstants.APX_PRODUCTION_SCOPE],

@@ -381,16 +381,14 @@ class ChannelServiceAdapter(ChannelAdapter, ABC):
             If the task completes successfully, then an :class:`microsoft_agents.activity.InvokeResponse` is returned;
             otherwise, `None` is returned.
         """
-        scopes: list[str] = None
+        scopes: list[str] = claims_identity.get_token_scope()
         outgoing_audience: str = None
 
         if claims_identity.is_agent_claim():
             outgoing_audience = claims_identity.get_token_audience()
-            scopes = [f"{claims_identity.get_outgoing_app_id()}/.default"]
             activity.caller_id = f"{CallerIdConstants.agent_to_agent_prefix}{claims_identity.get_outgoing_app_id()}"
         else:
             outgoing_audience = AuthenticationConstants.AGENTS_SDK_SCOPE
-            scopes = [f"{AuthenticationConstants.AGENTS_SDK_SCOPE}/.default"]
 
         use_anonymous_auth_callback = False
         if (
