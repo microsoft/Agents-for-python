@@ -20,6 +20,7 @@ from microsoft_agents.activity import (
 )
 from microsoft_agents.activity.entity.entity_types import EntityTypes
 from microsoft_agents.hosting.core.authorization.claims_identity import ClaimsIdentity
+from microsoft_agents.hosting.core.app.streaming import StreamingResponse
 
 
 class TurnContext(TurnContextProtocol):
@@ -142,15 +143,7 @@ class TurnContext(TurnContextProtocol):
         """
         # Use lazy import to avoid circular dependency
         if not hasattr(self, "_streaming_response"):
-            try:
-                from microsoft_agents.hosting.aiohttp.app.streaming import (
-                    StreamingResponse,
-                )
-
-                self._streaming_response = StreamingResponse(self)
-            except ImportError:
-                # If the hosting library isn't available, return None
-                self._streaming_response = None
+            self._streamign_response = StreamingRespone(self)
         return self._streaming_response
 
     @property
