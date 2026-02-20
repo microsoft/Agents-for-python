@@ -4,6 +4,8 @@
 from threading import Lock
 from typing import TypeVar
 
+from microsoft_agents.hosting.core.observability import agent_telemetry
+
 from ._type_aliases import JSON
 from .storage import Storage
 from .store_item import StoreItem
@@ -27,40 +29,43 @@ class MemoryStorage(Storage):
 
         result: dict[str, StoreItem] = {}
         with self._lock:
-            for key in keys:
-                if key == "":
-                    raise ValueError("MemoryStorage.read(): key cannot be empty")
-                if key in self._memory:
-                    if not target_cls:
-                        result[key] = self._memory[key]
-                    else:
-                        try:
-                            result[key] = target_cls.from_json_to_store_item(
-                                self._memory[key]
-                            )
-                        except AttributeError as error:
-                            raise TypeError(
-                                f"MemoryStorage.read(): could not deserialize in-memory item into {target_cls} class. Error: {error}"
-                            )
-            return result
+            with agent_telemetry.storage_operation("read"):
+                for key in keys:
+                    if key == "":
+                        raise ValueError("MemoryStorage.read(): key cannot be empty")
+                    if key in self._memory:
+                        if not target_cls:
+                            result[key] = self._memory[key]
+                        else:
+                            try:
+                                result[key] = target_cls.from_json_to_store_item(
+                                    self._memory[key]
+                                )
+                            except AttributeError as error:
+                                raise TypeError(
+                                    f"MemoryStorage.read(): could not deserialize in-memory item into {target_cls} class. Error: {error}"
+                                )
+                return result
 
     async def write(self, changes: dict[str, StoreItem]):
         if not changes:
             raise ValueError("MemoryStorage.write(): changes cannot be None")
 
         with self._lock:
-            for key in changes:
-                if key == "":
-                    raise ValueError("MemoryStorage.write(): key cannot be empty")
-                self._memory[key] = changes[key].store_item_to_json()
+            with agent_telemetry.storage_operation("write"):
+                for key in changes:
+                    if key == "":
+                        raise ValueError("MemoryStorage.write(): key cannot be empty")
+                    self._memory[key] = changes[key].store_item_to_json()
 
     async def delete(self, keys: list[str]):
         if not keys:
             raise ValueError("Storage.delete(): Keys are required when deleting.")
 
         with self._lock:
-            for key in keys:
-                if key == "":
-                    raise ValueError("MemoryStorage.delete(): key cannot be empty")
-                if key in self._memory:
-                    del self._memory[key]
+            with agent_telemetry.storage_operation("delete"):
+                for key in keys:
+                    if key == "":
+                        raise ValueError("MemoryStorage.delete(): key cannot be empty")
+                    if key in self._memory:
+                        del self._memory[key]

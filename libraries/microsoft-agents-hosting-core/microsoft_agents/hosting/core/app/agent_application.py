@@ -30,6 +30,8 @@ from microsoft_agents.activity import (
     InvokeResponse,
 )
 
+from microsoft_agents.hosting.core.observability import agent_telemetry
+
 from ..turn_context import TurnContext
 from ..agent import Agent
 from ..authorization import Connections
@@ -664,7 +666,8 @@ class AgentApplication(Agent, Generic[StateT]):
         logger.debug(
             f"AgentApplication.on_turn(): Processing turn for context: {context.activity.id}"
         )
-        await self._start_long_running_call(context, self._on_turn)
+        with agent_telemetry.turn_operation(context):
+            await self._start_long_running_call(context, self._on_turn)
 
     async def _on_turn(self, context: TurnContext):
         typing = None

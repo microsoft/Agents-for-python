@@ -30,9 +30,14 @@ class AgentTelemetry:
     _message_processing_duration: Histogram
     _active_conversations: UpDownCounter
 
-    def __init__(self):
-        self.tracer = trace.get_tracer("M365.agents", "1.0.0")
-        self.meter = metrics.get_meter("M365.agents", "1.0.0")
+    def __init__(self, tracer: Tracer | None = None, meter: Meter | None = None):
+        if tracer is None:
+             tracer = trace.get_tracer("M365.agents", "1.0.0")
+        if meter is None:
+            meter = metrics.get_meter("M365.agents", "1.0.0")
+
+        self.meter = meter
+        self.tracer = tracer
 
         self._turns_total = self.meter.create_counter(
             "agents.turns.total",
