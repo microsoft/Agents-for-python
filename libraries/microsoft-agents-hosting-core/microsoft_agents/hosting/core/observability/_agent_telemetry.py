@@ -144,7 +144,7 @@ class AgentTelemetry:
                         failure_callback(span, exception)
 
                     span.set_status(trace.Status(trace.StatusCode.ERROR))
-                    raise exception  # re-raise to ensure it's not swallowed
+                    raise exception from None # re-raise to ensure it's not swallowed
     
     @contextmanager
     def agent_turn_operation(self, context: TurnContext) -> Iterator[Span]:
@@ -182,19 +182,14 @@ class AgentTelemetry:
             yield span  # execute the turn operation in the with block            
 
     @contextmanager
-    def adapter_process_operation(self, operation_name: str, context: TurnContext):
+    def adapter_process_operation(self, operation_name: str):
         """Context manager for recording adapter processing operations"""
 
         def success_callback(span: Span, duration: float):
-            self._adapter_process_duration.record(duration, {
-                "conversation.id": context.activity.conversation.id if context.activity.conversation else "unknown",
-                "channel.id": str(context.activity.channel_id),
-            })
-
+            self._adapter_process_duration.record(duration)
 
         with self._timed_span(
             "adapter process",
-            context,
             success_callback=success_callback
         ) as span:
             yield span  # execute the adapter processing in the with block
