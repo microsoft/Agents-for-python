@@ -11,8 +11,6 @@ from opentelemetry.metrics import Meter, Counter, Histogram, UpDownCounter
 from opentelemetry import metrics, trace
 from opentelemetry.trace import Tracer, Span
 
-from .types import StorageOperation
-
 def _ts() -> float:
     """Helper function to get current timestamp in milliseconds"""
     return datetime.now(timezone.utc).timestamp() * 1000
@@ -182,7 +180,7 @@ class AgentTelemetry:
             yield span  # execute the turn operation in the with block            
 
     @contextmanager
-    def adapter_process_operation(self, operation_name: str):
+    def adapter_process_operation(self):
         """Context manager for recording adapter processing operations"""
 
         def success_callback(span: Span, duration: float):
@@ -195,15 +193,15 @@ class AgentTelemetry:
             yield span  # execute the adapter processing in the with block
 
     @contextmanager
-    def storage_operation(self, operation: StorageOperation):
+    def storage_operation(self, operation: str):
         """Context manager for recording storage operations"""
 
         def success_callback(span: Span, duration: float):
-            self._storage_operations.add(1, {"operation": operation.value})
-            self._storage_operation_duration.record(duration, {"operation": operation.value})
+            self._storage_operations.add(1, {"operation": operation})
+            self._storage_operation_duration.record(duration, {"operation": operation})
 
         with self._timed_span(
-            f"storage {operation.value}",
+            f"storage {operation}",
             success_callback=success_callback
         ) as span:
             yield span  # execute the storage operation in the with block
