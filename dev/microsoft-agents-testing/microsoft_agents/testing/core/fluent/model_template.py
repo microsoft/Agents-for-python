@@ -10,6 +10,7 @@ with consistent default values and easy customization.
 from __future__ import annotations
 
 from copy import deepcopy
+from email.mime import base
 from typing import Generic, TypeVar, cast, Self
 
 from pydantic import BaseModel
@@ -128,6 +129,19 @@ class ActivityTemplate(ModelTemplate[Activity]):
         :param kwargs: Additional default values as keyword arguments.
         """
         super().__init__(Activity, defaults, **kwargs)
+        ActivityTemplate._rename_from_property(self._defaults)
+
+    @staticmethod
+    def _rename_from_property(data: dict) -> None:
+        """Rename keys starting with 'from.' to 'from_property.' for compatibility with Activity model."""
+        mods = {}
+        for key in data.keys():
+            if "from." in key:
+                new_key = key.replace("from.", "from_property.")
+                mods[key] = new_key
+
+        for old_key, new_key in mods.items():
+            data[new_key] = data.pop(old_key)
     
     def with_defaults(self, defaults: dict | None = None, **kwargs) -> ActivityTemplate:
         """Create a new ModelTemplate with additional default values.
@@ -150,3 +164,13 @@ class ActivityTemplate(ModelTemplate[Activity]):
         deep_update(new_template, flat_kwargs)
         # Pass already-expanded data, avoid re-expansion
         return ActivityTemplate(new_template)
+
+    def create(self, original: BaseModel | dict | None = None) -> Activity:
+        """Create a new Activity instance based on the template."""
+        if original is None:
+            original = {}
+        data = flatten_model_data(original)
+        ActivityTemplate._rename_from_property(data)
+        set_defaults(data, self._defaults)
+        data = expand(data)
+        return Activity.model_validate(data)
