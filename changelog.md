@@ -1,3 +1,33 @@
+# Microsoft 365 Agents SDK for Python - Release Notes v0.8.0
+
+**Release Date:** February 6, 2026
+**Previous Version:** 0.7.0 (Released January 21, 2026)
+
+## Major Features & Enhancements
+
+- **Microsoft Copilot Studio (MCS) Connector**: Full MCS connector support with OAuth OBO token exchange, new `connector_user` role type, and `copilot_studio` channel enum value (#295)
+- **Enhanced Multi-Tenant Authentication**: Dynamic MSAL client resolution with robust authority and tenant handling for multi-tenant scenarios. Updated MSAL version (#301, #307)
+- **Integration Testing Framework Overhaul**: Replaced legacy data-driven test infrastructure with a modern scenario-based framework. Introduces `Scenario`, `ClientFactory`, and `AgentClient` abstractions; a fluent assertion API with per-item field-mismatch reporting; a new CLI with `env`, `chat`, `post`, and `scenario run` commands; and a `@pytest.mark.agent_test` plugin exposing agent internals as fixtures (#315)
+- **Copilot Studio Client – DirectConnect URL Support**: Added `direct_connect_url` parameter to `ConnectionSettings` for simplified single-URL connection setup, bypassing environment-ID lookup. Includes automatic cloud-based token-audience resolution from the URL (#325)
+
+## New Models & APIs
+
+- **`StartRequest`**: Advanced conversation-start options with optional `locale` and `conversation_id` parameters (#325)
+- **`SubscribeEvent` / `SubscribeRequest` / `SubscribeResponse`**: Models for real-time event streaming with SSE resumption support (#325)
+- **`UserAgentHelper`**: Utility class that automatically injects SDK version and platform information into HTTP `User-Agent` headers (#325)
+- **`ConnectionSettings.populate_from_environment()`**: Static method that loads `ConnectionSettings` from environment variables (#325)
+- **`use_experimental_endpoint` / `enable_diagnostics`**: New `ConnectionSettings` flags for experimental endpoint capture and HTTP diagnostic logging (#325)
+
+## Bug Fixes
+
+- **FastAPI JWT Middleware**: Removed incorrect `await` from synchronous `get_anonymous_claims()` call in FastAPI JWT middleware (#299)
+
+## Developer Experience
+
+- **JWT Token Decode Demo**: New Adaptive Card integration demonstrating JWT token decode functionality (#307)
+
+---
+
 # Microsoft 365 Agents SDK for Python - Release Notes v0.7.0
 
 **Release Date:** January 21, 2026
