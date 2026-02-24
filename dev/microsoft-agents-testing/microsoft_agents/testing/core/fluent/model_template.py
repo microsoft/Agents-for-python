@@ -23,7 +23,7 @@ from .backend import (
     set_defaults,
     flatten,
 )
-from .utils import flatten_model_data
+from .utils import flatten_model_data, rename_from_property
 
 ModelT = TypeVar("ModelT", bound=BaseModel | dict)
 
@@ -83,15 +83,17 @@ class ModelTemplate(Generic[ModelT]):
         :return: A new ModelTemplate instance.
         """
         new_template = deepcopy(self._defaults)
-        set_defaults(new_template, defaults, **kwargs)
+        defaults_copy = deepcopy(defaults) if defaults else {}
+        rename_from_property(defaults_copy)
+        set_defaults(new_template, defaults_copy, **kwargs)
         return ModelTemplate[ModelT](self._model_class, new_template)
     
     def with_updates(self, updates: dict | None = None, **kwargs) -> ModelTemplate[ModelT]:
         """Create a new ModelTemplate with updated default values."""
         new_template = deepcopy(self._defaults)
         # Expand the updates first so they merge correctly with nested structure
-        flat_updates = flatten(updates or {})
-        flat_kwargs = flatten(kwargs)
+        flat_updates = flatten_model_data(updates or {})
+        flat_kwargs = flatten_model_data(kwargs)
         deep_update(new_template, flat_updates)
         deep_update(new_template, flat_kwargs)
         # Pass already-expanded data, avoid re-expansion
@@ -129,19 +131,7 @@ class ActivityTemplate(ModelTemplate[Activity]):
         :param kwargs: Additional default values as keyword arguments.
         """
         super().__init__(Activity, defaults, **kwargs)
-        ActivityTemplate._rename_from_property(self._defaults)
-
-    @staticmethod
-    def _rename_from_property(data: dict) -> None:
-        """Rename keys starting with 'from.' to 'from_property.' for compatibility with Activity model."""
-        mods = {}
-        for key in data.keys():
-            if "from." in key:
-                new_key = key.replace("from.", "from_property.")
-                mods[key] = new_key
-
-        for old_key, new_key in mods.items():
-            data[new_key] = data.pop(old_key)
+        rename_from_property(self._defaults)
     
     def with_defaults(self, defaults: dict | None = None, **kwargs) -> ActivityTemplate:
         """Create a new ModelTemplate with additional default values.
@@ -151,26 +141,27 @@ class ActivityTemplate(ModelTemplate[Activity]):
         :return: A new ModelTemplate instance.
         """
         new_template = deepcopy(self._defaults)
-        set_defaults(new_template, defaults, **kwargs)
+        defaults_copy = deepcopy(defaults) if defaults else {}
+        rename_from_property(defaults_copy)
+        set_defaults(new_template, defaults_copy, **kwargs)
         return ActivityTemplate(new_template)
     
     def with_updates(self, updates: dict | None = None, **kwargs) -> ActivityTemplate:
         """Create a new ModelTemplate with updated default values."""
         new_template = deepcopy(self._defaults)
         # Expand the updates first so they merge correctly with nested structure
-        flat_updates = flatten(updates or {})
-        flat_kwargs = flatten(kwargs)
+        flat_updates = flatten_model_data(updates or {})
+        flat_kwargs = flatten_model_data(kwargs)
         deep_update(new_template, flat_updates)
         deep_update(new_template, flat_kwargs)
         # Pass already-expanded data, avoid re-expansion
         return ActivityTemplate(new_template)
 
-    def create(self, original: BaseModel | dict | None = None) -> Activity:
-        """Create a new Activity instance based on the template."""
-        if original is None:
-            original = {}
-        data = flatten_model_data(original)
-        ActivityTemplate._rename_from_property(data)
-        set_defaults(data, self._defaults)
-        data = expand(data)
-        return Activity.model_validate(data)
+    # def create(self, original: BaseModel | dict | None = None) -> Activity:
+    #     """Create a new Activity instance based on the template."""
+    #     if original is None:
+    #         original = {}
+    #     data = flatten_model_data(original)
+    #     set_defaults(data, self._defaults)
+    #     data = expand(data)
+    #     return Activity.model_validate(data)
