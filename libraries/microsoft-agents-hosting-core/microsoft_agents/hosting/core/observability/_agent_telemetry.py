@@ -155,18 +155,18 @@ class AgentTelemetry:
                 "channel.id": str(context.activity.channel_id),
             })
 
-            ts = int(datetime.now(timezone.utc).timestamp())
-            span.add_event(
-                "message.processed",
-                {
-                    "agent.is_agentic": context.activity.is_agentic_request(),
-                    "activity.type": context.activity.type,
-                    "channel.id": str(context.activity.channel_id),
-                    "message.id": str(context.activity.id),
-                    "message.text": context.activity.text,
-                },
-                ts,
-            )
+            # ts = int(datetime.now(timezone.utc).timestamp())
+            # span.add_event(
+            #     "message.processed",
+            #     {
+            #         "agent.is_agentic": context.activity.is_agentic_request(),
+            #         "activity.type": context.activity.type,
+            #        ddd "channel.id": str(context.activity.channel_id),
+            #         "message.id": str(context.activity.id),
+            #         "message.text": context.activity.text,
+            #     },
+            #     ts,
+            # )
 
         def failure_callback(span: Span, e: Exception):
             self._turns_errors.add(1)

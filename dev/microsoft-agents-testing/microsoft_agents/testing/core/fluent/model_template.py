@@ -156,12 +156,3 @@ class ActivityTemplate(ModelTemplate[Activity]):
         deep_update(new_template, flat_kwargs)
         # Pass already-expanded data, avoid re-expansion
         return ActivityTemplate(new_template)
-
-    # def create(self, original: BaseModel | dict | None = None) -> Activity:
-    #     """Create a new Activity instance based on the template."""
-    #     if original is None:
-    #         original = {}
-    #     data = flatten_model_data(original)
-    #     set_defaults(data, self._defaults)
-    #     data = expand(data)
-    #     return Activity.model_validate(data)
