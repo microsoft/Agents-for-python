@@ -1,6 +1,6 @@
 # Microsoft 365 Agents SDK for Python - Release Notes v0.8.0
 
-**Release Date:** February 6, 2026
+**Release Date:** February 23, 2026
 **Previous Version:** 0.7.0 (Released January 21, 2026)
 
 ## Major Features & Enhancements
