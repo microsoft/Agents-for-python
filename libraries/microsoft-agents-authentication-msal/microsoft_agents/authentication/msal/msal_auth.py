@@ -22,6 +22,10 @@ from cryptography.hazmat.backends import default_backend
 from cryptography.hazmat.primitives import hashes
 
 from microsoft_agents.activity._utils import _DeferredString
+from microsoft_agents.authentication.msal.federated_credentials import (
+    FederatedCredentials,
+    FederatedCredentialsClient,
+)
 
 from microsoft_agents.hosting.core import (
     AuthTypes,
@@ -79,12 +83,17 @@ class MsalAuth(AccessTokenProviderBase):
         local_scopes = self._resolve_scopes_list(instance_uri, scopes)
         msal_auth_client = self._get_client()
 
-        if isinstance(msal_auth_client, ManagedIdentityClient):
+        if isinstance(self._msal_auth_client, FederatedCredentialsClient):
+            logger.info("Acquiring token using Federated Credentials Client.")
+            auth_result_payload = await _async_acquire_token_for_client(
+                self._msal_auth_client, resource=resource_url
+            )
+        elif isinstance(msal_auth_client, ManagedIdentityClient):
             logger.info("Acquiring token using Managed Identity Client.")
             auth_result_payload = await _async_acquire_token_for_client(
                 msal_auth_client, resource=resource_url
             )
-        elif isinstance(msal_auth_client, ConfidentialClientApplication):
+        elif isinstance(msal_auth_client, ConfidentialClientApplication) or isinstance(self._msal_auth_client, FederatedCredentialsClient):
             logger.info("Acquiring token using Confidential Client Application.")
             auth_result_payload = await _async_acquire_token_for_client(
                 msal_auth_client, scopes=local_scopes
@@ -190,7 +199,17 @@ class MsalAuth(AccessTokenProviderBase):
         self, tenant_id: str | None = None
     ) -> ConfidentialClientApplication | ManagedIdentityClient:
 
-        if self._msal_configuration.AUTH_TYPE == AuthTypes.user_managed_identity:
+        if self._msal_configuration.AUTH_TYPE == AuthTypes.federated_credentials:
+            self._msal_auth_client = FederatedCredentialsClient(
+                FederatedCredentials(
+                    client_id=self._msal_configuration.CLIENT_ID,
+                    tenant_id=self._msal_configuration.TENANT_ID,
+                    federated_client_id=self._msal_configuration.FEDERATED_CLIENT_ID,
+                ),
+                http_client=Session(),
+            )
+
+        elif self._msal_configuration.AUTH_TYPE == AuthTypes.user_managed_identity:
             return ManagedIdentityClient(
                 UserAssignedManagedIdentity(
                     client_id=self._msal_configuration.CLIENT_ID

@@ -34,6 +34,7 @@ class AgentAuthConfiguration:
     AUTHORITY: Optional[str]
     ALT_BLUEPRINT_ID: Optional[str]
     ANONYMOUS_ALLOWED: bool = False
+    FEDERATED_CLIENT_ID: Optional[str]
 
     # Multi-connection support: Maintains a map of all configured connections
     # to enable JWT validation across connections. This allows tokens issued
@@ -56,6 +57,7 @@ class AgentAuthConfiguration:
         authority: Optional[str] = None,
         scopes: Optional[list[str]] = None,
         anonymous_allowed: bool = False,
+        federated_client_id: Optional[str] = None,
         **kwargs: Optional[dict[str, str]],
     ):
 
@@ -72,6 +74,7 @@ class AgentAuthConfiguration:
         self.ANONYMOUS_ALLOWED = anonymous_allowed or kwargs.get(
             "ANONYMOUS_ALLOWED", False
         )
+        self.FEDERATED_CLIENT_ID = federated_client_id or kwargs.get("FEDERATED_CLIENT_ID", None)
 
         # JWT-patch: always at least include self for backward compat
         self._connections = {str(self.CONNECTION_NAME): self}
