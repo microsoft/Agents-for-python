@@ -1,32 +1,24 @@
-# Modern Agent Framework (recommended)
-agent-framework --pre
-
 # M365 Agents SDK for Teams/M365 integration
 microsoft-agents-hosting-aiohttp
-microsoft-agents-hosting-core
-microsoft-agents-activity
-microsoft-agents-authentication-msal
+# microsoft-agents-authentication-msal  # uncomment to enable MSAL-based auth
 
 # Azure services
 azure-identity
 
-#OpenAI
+# OpenAI
 openai
 
 # Web framework
 aiohttp
-aiohttp-cors
 
 # Configuration
 python-dotenv
 pydantic
-pydantic-settings
 
 # Weather API client
 pyowm
 
 # Utilities
-httpx
 typing-extensions
 
 # OpenTelemetry — core (required for telemetry/)

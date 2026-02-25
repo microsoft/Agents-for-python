@@ -1,10 +1,10 @@
 """Weather lookup tools using OpenWeatherMap API."""
-from typing import Annotated, Optional, Dict, Any, List
+from os import environ
+from typing import Annotated, Dict, List
 from pydantic import Field
 from pyowm import OWM
 from pyowm.weatherapi30.weather import Weather
 from pyowm.weatherapi30.forecast import Forecast
-from config import settings
 
 
 def get_current_weather_for_location(
@@ -31,7 +31,7 @@ def get_current_weather_for_location(
 
     try:
         # Initialize OpenWeatherMap client
-        owm = OWM(settings.openweather_api_key)
+        owm = OWM(environ["OPENWEATHER_API_KEY"])
         mgr = owm.weather_manager()
 
         # Build location query
@@ -91,7 +91,7 @@ def get_weather_forecast_for_location(
 
     try:
         # Initialize OpenWeatherMap client
-        owm = OWM(settings.openweather_api_key)
+        owm = OWM(environ["OPENWEATHER_API_KEY"])
         mgr = owm.weather_manager()
 
         # Build location query
