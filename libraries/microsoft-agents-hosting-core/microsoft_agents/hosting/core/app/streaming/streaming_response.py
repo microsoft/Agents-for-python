@@ -17,8 +17,7 @@ from microsoft_agents.activity import (
     SensitivityUsageInfo,
 )
 
-from microsoft_agents.hosting.core import error_resources
-from microsoft_agents.hosting.core.turn_context import TurnContext
+from microsoft_agents.hosting.core.errors import error_resources
 
 from .citation import Citation
 from .citation_util import CitationUtil
@@ -232,7 +231,9 @@ class StreamingResponse:
 
     def _set_defaults(self, context: "TurnContext"):
 
-        channel = context.activity.channel_id.channel if context.activity.channel_id else None
+        channel = (
+            context.activity.channel_id.channel if context.activity.channel_id else None
+        )
 
         if channel == Channels.ms_teams:
             if context.activity.is_agentic_request():
