@@ -1,0 +1,42 @@
+# Modern Agent Framework (recommended)
+agent-framework --pre
+
+# M365 Agents SDK for Teams/M365 integration
+microsoft-agents-hosting-aiohttp
+microsoft-agents-hosting-core
+microsoft-agents-activity
+microsoft-agents-authentication-msal
+
+# Azure services
+azure-identity
+
+#OpenAI
+openai
+
+# Web framework
+aiohttp
+aiohttp-cors
+
+# Configuration
+python-dotenv
+pydantic
+pydantic-settings
+
+# Weather API client
+pyowm
+
+# Utilities
+httpx
+typing-extensions
+
+# OpenTelemetry — core (required for telemetry/)
+opentelemetry-api
+opentelemetry-sdk
+
+# OpenTelemetry — optional exporters (uncomment to activate)
+# OTLP (works with Aspire dashboard, Jaeger, Grafana, etc.)
+# opentelemetry-exporter-otlp-proto-grpc
+# Azure Monitor / Application Insights
+# azure-monitor-opentelemetry-exporter
+# Correlate Python log records with trace context
+# opentelemetry-instrumentation-logging
