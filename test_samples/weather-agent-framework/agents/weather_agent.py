@@ -10,7 +10,7 @@ from os import environ
 from openai import AzureOpenAI
 from azure.identity import DefaultAzureCredential
 
-from microsoft_agents.hosting.core import TurnContext, TurnState
+from microsoft_agents.hosting.core import TurnContext, TurnState, StoreItem
 
 from tools.weather_tools import get_current_weather_for_location, get_weather_forecast_for_location
 from tools.datetime_tools import get_date_time
@@ -85,6 +85,20 @@ _TOOLS = [
 ]
 
 
+class ConversationHistoryStoreItem(StoreItem):
+    """Wraps the OpenAI message list so it can be persisted via AgentState."""
+
+    def __init__(self, messages: list = None):
+        self.messages = messages or []
+
+    def store_item_to_json(self) -> dict:
+        return {"messages": self.messages}
+
+    @staticmethod
+    def from_json_to_store_item(json_data: dict) -> "ConversationHistoryStoreItem":
+        return ConversationHistoryStoreItem(messages=json_data.get("messages", []))
+
+
 class WeatherAgent:
     """Weather Agent that processes user messages with Azure OpenAI and weather tools."""
 
@@ -133,7 +147,12 @@ class WeatherAgent:
         print(f"Received: {user_text}")
 
         async def _process():
-            conversation_history = state.conversation.get("history", [])
+            history_item = state.get_value(
+                "ConversationState.history",
+                lambda: ConversationHistoryStoreItem(),
+                target_cls=ConversationHistoryStoreItem,
+            )
+            conversation_history = history_item.messages
             conversation_history.append({"role": "user", "content": user_text})
 
             messages = [
@@ -213,7 +232,8 @@ class WeatherAgent:
             if len(conversation_history) > 10:
                 conversation_history = conversation_history[-10:]
 
-            state.conversation["history"] = conversation_history
+            history_item.messages = conversation_history
+            state.set_value("ConversationState.history", history_item)
 
             await context.send_activity(final_message)
             print("Sent response")

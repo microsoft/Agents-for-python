@@ -36,9 +36,12 @@ from microsoft_agents.hosting.core import (
 )
 from microsoft_agents.hosting.aiohttp import (
     CloudAdapter,
+    jwt_authorization_middleware,
     start_agent_process,
 )
-from microsoft_agents.activity import ActivityTypes
+from microsoft_agents.hosting.core.app.oauth.authorization import Authorization
+from microsoft_agents.activity import ActivityTypes, load_configuration_from_env
+from microsoft_agents.authentication.msal import MsalConnectionManager
 from agents import WeatherAgent
 
 
@@ -65,16 +68,25 @@ def create_app() -> Application:
     Returns:
         Configured aiohttp Application.
     """
+    agents_sdk_config = load_configuration_from_env(environ)
     # Create storage
     storage = MemoryStorage()
+    
+    # Create connection manager for MSAL-based authentication
+    connection_manager = MsalConnectionManager(**agents_sdk_config)
 
     # Create adapter
-    adapter = CloudAdapter()
+    adapter = CloudAdapter(connection_manager=connection_manager)
+    
+    #Create authorization
+    authorization = Authorization(storage, connection_manager, **agents_sdk_config)
 
     # Create agent application
     agent_app = AgentApplication[TurnState](
         storage=storage,
         adapter=adapter,
+        authorization=authorization,
+        **agents_sdk_config
     )
 
     # Instantiate our weather agent
@@ -91,7 +103,7 @@ def create_app() -> Application:
 
     # Create aiohttp app with tracing middleware.
     # Equivalent to AddAspNetCoreInstrumentation() + health-check filter in C#.
-    app = Application(middlewares=[create_aiohttp_tracing_middleware()])
+    app = Application(middlewares=[create_aiohttp_tracing_middleware(), jwt_authorization_middleware])
 
     # Add routes
     app.router.add_post("/api/messages", messages_endpoint)
@@ -104,6 +116,7 @@ def create_app() -> Application:
     # Store agent components
     app["agent_app"] = agent_app
     app["adapter"] = adapter
+    app["agent_configuration"] = connection_manager.get_default_connection_configuration()
 
     return app
 

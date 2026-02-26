@@ -1,6 +1,6 @@
 # M365 Agents SDK for Teams/M365 integration
 microsoft-agents-hosting-aiohttp
-# microsoft-agents-authentication-msal  # uncomment to enable MSAL-based auth
+microsoft-agents-authentication-msal  # uncomment to enable MSAL-based auth
 
 # Azure services
 azure-identity
