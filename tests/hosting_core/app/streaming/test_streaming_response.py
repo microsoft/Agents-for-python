@@ -20,7 +20,6 @@ from microsoft_agents.hosting.core.app.streaming.streaming_response import (
 )
 from microsoft_agents.hosting.core.turn_context import TurnContext
 
-
 STREAMING_CHANNELS = [Channels.webchat, Channels.ms_teams, Channels.direct_line]
 NON_STREAMING_CHANNELS = [Channels.test, Channels.slack, Channels.email]
 
@@ -74,7 +73,9 @@ async def test_queue_informative_update_is_ignored_for_non_streaming_channel(moc
 
 
 @pytest.mark.asyncio
-async def test_queue_text_chunk_and_end_stream_send_streaming_then_final_message(mocker):
+async def test_queue_text_chunk_and_end_stream_send_streaming_then_final_message(
+    mocker,
+):
     context = _create_turn_context(
         mocker,
         delivery_mode=DeliveryModes.stream,
@@ -96,7 +97,9 @@ async def test_queue_text_chunk_and_end_stream_send_streaming_then_final_message
 
 
 @pytest.mark.asyncio
-async def test_multiple_queued_text_chunks_are_coalesced_into_one_final_activity(mocker):
+async def test_multiple_queued_text_chunks_are_coalesced_into_one_final_activity(
+    mocker,
+):
     context = _create_turn_context(
         mocker,
         delivery_mode=DeliveryModes.stream,
@@ -116,7 +119,9 @@ async def test_multiple_queued_text_chunks_are_coalesced_into_one_final_activity
 
 
 @pytest.mark.asyncio
-async def test_set_citations_only_sends_final_when_end_stream_happens_before_drain(mocker):
+async def test_set_citations_only_sends_final_when_end_stream_happens_before_drain(
+    mocker,
+):
     context = _create_turn_context(
         mocker,
         delivery_mode=DeliveryModes.stream,
@@ -145,7 +150,9 @@ async def test_set_citations_only_sends_final_when_end_stream_happens_before_dra
 
 
 @pytest.mark.asyncio
-async def test_set_citations_adds_only_used_citations_when_streaming_activity_is_sent(mocker):
+async def test_set_citations_adds_only_used_citations_when_streaming_activity_is_sent(
+    mocker,
+):
     context = _create_turn_context(
         mocker,
         delivery_mode=DeliveryModes.stream,
@@ -193,12 +200,17 @@ async def test_end_stream_cannot_be_called_twice(mocker):
 
 
 @pytest.mark.asyncio
-async def test_teams_403_marks_stream_as_cancelled_and_future_chunks_are_ignored(mocker):
+async def test_teams_403_marks_stream_as_cancelled_and_future_chunks_are_ignored(
+    mocker,
+):
 
     context = _create_turn_context(
         mocker,
         channel_id=Channels.ms_teams,
-        return_value=[RuntimeError("403 Forbidden: Stream cancelled by user"), ResourceResponse(id="stream-4")],
+        return_value=[
+            RuntimeError("403 Forbidden: Stream cancelled by user"),
+            ResourceResponse(id="stream-4"),
+        ],
     )
 
     response = StreamingResponse(context)
@@ -260,7 +272,9 @@ async def test_generated_by_ai_label_adds_ai_entity_on_final_message(mocker):
 
 
 @pytest.mark.asyncio
-async def test_streaming_operations_with_sleeps_send_informative_and_text_updates(mocker):
+async def test_streaming_operations_with_sleeps_send_informative_and_text_updates(
+    mocker,
+):
     context = _create_turn_context(
         mocker,
         channel_id=Channels.test,
@@ -289,7 +303,9 @@ async def test_streaming_operations_with_sleeps_send_informative_and_text_update
 
     sent_activities = [call.args[0] for call in context.send_activity.await_args_list]
     stream_types = [
-        next(entity for entity in activity.entities if entity.type == "streaminfo").stream_type
+        next(
+            entity for entity in activity.entities if entity.type == "streaminfo"
+        ).stream_type
         for activity in sent_activities
     ]
     sent_types = [activity.type for activity in sent_activities]
@@ -300,7 +316,9 @@ async def test_streaming_operations_with_sleeps_send_informative_and_text_update
 
 
 @pytest.mark.asyncio
-async def test_streaming_loop_with_sleep_emits_informative_and_streaming_updates(mocker):
+async def test_streaming_loop_with_sleep_emits_informative_and_streaming_updates(
+    mocker,
+):
     context = _create_turn_context(
         mocker,
         channel_id=Channels.test,
@@ -332,7 +350,9 @@ async def test_streaming_loop_with_sleep_emits_informative_and_streaming_updates
 
     sent_activities = [call.args[0] for call in context.send_activity.await_args_list]
     stream_types = [
-        next(entity for entity in activity.entities if entity.type == "streaminfo").stream_type
+        next(
+            entity for entity in activity.entities if entity.type == "streaminfo"
+        ).stream_type
         for activity in sent_activities
     ]
 
@@ -477,7 +497,9 @@ async def test_queue_text_chunk_citations_argument_is_currently_ignored(mocker):
 
 
 @pytest.mark.asyncio
-async def test_feedback_loop_type_without_enable_does_not_emit_feedback_loop_object(mocker):
+async def test_feedback_loop_type_without_enable_does_not_emit_feedback_loop_object(
+    mocker,
+):
     context = _create_turn_context(
         mocker,
         channel_id=Channels.ms_teams,
@@ -491,7 +513,9 @@ async def test_feedback_loop_type_without_enable_does_not_emit_feedback_loop_obj
     await response.end_stream()
 
     sent = context.send_activity.await_args_list[-1].args[0]
-    streaminfo = next(e for e in sent.entities if getattr(e, "type", None) == "streaminfo")
+    streaminfo = next(
+        e for e in sent.entities if getattr(e, "type", None) == "streaminfo"
+    )
 
     assert not hasattr(streaminfo, "feedback_loop")
     assert getattr(streaminfo, "feedback_loop_enabled", None) is False
