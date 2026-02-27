@@ -322,8 +322,8 @@ class StreamingResponse:
                 if activity:
                     await self._send_activity(activity)
         except Exception as err:
-            if (
-                "403" in str(err)
+            if "403" in str(err) and (
+                self._context.activity.channel_id is not None
                 and self._context.activity.channel_id.channel == Channels.ms_teams
             ):
                 logger.warning("Teams channel stopped the stream.")
