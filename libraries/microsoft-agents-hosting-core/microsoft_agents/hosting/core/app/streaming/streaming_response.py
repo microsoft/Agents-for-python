@@ -4,8 +4,7 @@
 import uuid
 import asyncio
 import logging
-from typing import List, Optional, Callable, Literal, TYPE_CHECKING
-from dataclasses import dataclass
+from typing import List, Optional, Callable, Literal
 
 from microsoft_agents.activity import (
     Activity,
@@ -325,7 +324,7 @@ class StreamingResponse:
         except Exception as err:
             if (
                 "403" in str(err)
-                and self._context.activity.channel_id == Channels.ms_teams
+                and self._context.activity.channel_id.channel == Channels.ms_teams
             ):
                 logger.warning("Teams channel stopped the stream.")
                 self._cancelled = True
