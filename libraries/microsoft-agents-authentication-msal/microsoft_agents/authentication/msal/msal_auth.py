@@ -203,6 +203,7 @@ class MsalAuth(AccessTokenProviderBase):
                 SystemAssignedManagedIdentity(),
                 http_client=Session(),
             )
+
         else:
             authority = MsalAuth._resolve_authority(self._msal_configuration, tenant_id)
 
@@ -233,6 +234,23 @@ class MsalAuth(AccessTokenProviderBase):
                     "thumbprint": thumbprint,
                     "private_key": private_key,
                 }
+            elif self._msal_configuration.AUTH_TYPE == AuthTypes.federated_credentials:
+                assert self._msal_configuration.FEDERATED_CLIENT_ID
+                mi_client = ManagedIdentityClient(
+                    SystemAssignedManagedIdentity(),  # TODO
+                    http_client=Session(),
+                )
+                mi_token = mi_client.acquire_token_for_client(
+                    resource=self._msal_configuration.FEDERATED_CLIENT_ID
+                )
+                if "access_token" not in mi_token:
+                    logger.error(
+                        f"Failed to acquire token for federated credentials: {mi_token}"
+                    )
+                    raise ValueError(
+                        authentication_errors.FailedToAcquireToken.format(str(mi_token))
+                    )
+                self._client_credential_cache = mi_token["access_token"]
             else:
                 logger.error(
                     f"Unsupported authentication type: {self._msal_configuration.AUTH_TYPE}"
