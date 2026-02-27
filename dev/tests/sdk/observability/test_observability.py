@@ -119,9 +119,9 @@ async def test_multiple_users(test_exporter, agent_client):
 
     assert_span_for_user("user1")
     assert_span_for_user("user2")
-
-    assert len([ span if span.name == "agent turn" else None for span in spans ]) == 2
-    assert len([ span if span.name == "adapter process" else None for span in spans ]) == 2
+    
+    assert len(list(filter(lambda span: span.name == "agent turn", spans))) == 2
+    assert len(list(filter(lambda span: span.name == "adapter process", spans))) == 2
 
 @pytest.mark.asyncio
 @pytest.mark.agent_test(_SCENARIO)
