@@ -12,6 +12,7 @@ from microsoft_agents.hosting.core.http import (
     HttpResponse,
 )
 from microsoft_agents.hosting.core import ChannelServiceClientFactoryBase
+from microsoft_agents.hosting.core.observability import agent_telemetry
 
 from .agent_http_adapter import AgentHttpAdapter
 
@@ -70,14 +71,15 @@ class CloudAdapter(HttpAdapterBase, AgentHttpAdapter):
         Returns:
             FastAPI Response object.
         """
-        # Adapt request to protocol
-        adapted_request = FastApiRequestAdapter(request)
+        with agent_telemetry.adapter_process_operation():
+            # Adapt request to protocol
+            adapted_request = FastApiRequestAdapter(request)
 
-        # Process using base implementation
-        http_response: HttpResponse = await self.process_request(adapted_request, agent)
+            # Process using base implementation
+            http_response: HttpResponse = await self.process_request(adapted_request, agent)
 
-        # Convert HttpResponse to FastAPI Response
-        return self._to_fastapi_response(http_response)
+            # Convert HttpResponse to FastAPI Response
+            return self._to_fastapi_response(http_response)
 
     @staticmethod
     def _to_fastapi_response(http_response: HttpResponse) -> Response:

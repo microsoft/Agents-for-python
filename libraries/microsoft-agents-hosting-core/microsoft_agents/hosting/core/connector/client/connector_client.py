@@ -17,6 +17,7 @@ from microsoft_agents.activity import (
     ConversationsResult,
     PagedMembersResult,
 )
+from microsoft_agents.hosting.core.observability import agent_telemetry
 from microsoft_agents.hosting.core.connector import ConnectorClientBase
 from ..attachments_base import AttachmentsBase
 from ..conversations_base import ConversationsBase

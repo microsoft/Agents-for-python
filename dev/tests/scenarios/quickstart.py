@@ -10,9 +10,11 @@ from microsoft_agents.hosting.core import (
     TurnState
 )
 
-from microsoft_agents.testing import AgentEnvironment
+from microsoft_agents.testing import (
+    AgentEnvironment,
+)
 
-async def init_app(env: AgentEnvironment):
+async def init_agent(env: AgentEnvironment):
     """Initialize the application for the quickstart sample."""
 
     app: AgentApplication[TurnState] = env.agent_application
