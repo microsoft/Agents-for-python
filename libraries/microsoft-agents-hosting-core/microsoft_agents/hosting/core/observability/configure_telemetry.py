@@ -15,7 +15,7 @@ from opentelemetry.sdk.trace.export import BatchSpanProcessor
 from . import constants
 
 def configure_telemetry() -> None:
-    """Configure OpenTelemetry for FastAPI application."""
+    """Configure OpenTelemetry with default exporters."""
 
     # Configure Tracing
     trace_provider = TracerProvider(resource=constants.RESOURCE)
