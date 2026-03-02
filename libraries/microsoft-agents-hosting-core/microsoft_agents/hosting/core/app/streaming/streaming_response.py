@@ -269,7 +269,7 @@ class StreamingResponse:
             if self._ended:
                 # Send final message
                 activity = Activity(
-                    type="message",
+                    type="message", 
                     text=self._message or "end stream response",
                     attachments=self._attachments or [],
                     entities=[
