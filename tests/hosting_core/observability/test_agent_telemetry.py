@@ -8,7 +8,10 @@ from opentelemetry.sdk.trace.export.in_memory_span_exporter import InMemorySpanE
 from opentelemetry.sdk.metrics import MeterProvider
 from opentelemetry.sdk.metrics.export import InMemoryMetricReader
 
-from microsoft_agents.hosting.core.observability import agent_telemetry
+from microsoft_agents.hosting.core.observability import (
+    agent_telemetry,
+    constants,
+)
 
 @pytest.fixture(scope="module")
 def test_telemetry():
@@ -122,81 +125,106 @@ def test_agent_turn_operation(test_exporter, test_metric_reader):
     """Test agent_turn_operation records span and turn metrics."""
     context = _build_turn_context()
 
-    metrics_before = test_metric_reader.get_metrics_data()
-    before_turn_total = _sum_counter(_find_metric(metrics_before, "app.turn.total"))
-    before_turn_duration_count = _sum_hist_count(
-        _find_metric(metrics_before, "app.turn.duration")
-    )
-
-    with agent_telemetry.agent_turn_operation(context):
+    with agent_telemetry.instrument_agent_turn(context):
         pass
 
     spans = test_exporter.get_finished_spans()
     assert len(spans) == 1
-    assert spans[0].name == "agent turn"
+    assert spans[0].name == constants.AGENT_TURN_OPERATION_NAME
 
-    metrics_after = test_metric_reader.get_metrics_data()
-    after_turn_total = _sum_counter(_find_metric(metrics_after, "app.turn.total"))
-    after_turn_duration_count = _sum_hist_count(
-        _find_metric(metrics_after, "app.turn.duration")
+    metric_data = test_metric_reader.get_metrics_data()
+    turn_total = _sum_counter(_find_metric(metric_data, constants.AGENT_TURN_TOTAL_METRIC_NAME))
+    turn_duration_count = _sum_hist_count(
+        _find_metric(metric_data, constants.AGENT_TURN_DURATION_METRIC_NAME)
     )
 
-    assert after_turn_total == before_turn_total + 1
-    assert after_turn_duration_count == before_turn_duration_count + 1
+    assert turn_total == 1
+    assert turn_duration_count == 1
 
 
-def test_adapter_process_operation(test_exporter, test_metric_reader):
-    """Test adapter_process_operation records span and duration metric."""
-    metrics_before = test_metric_reader.get_metrics_data()
-    before_duration_count = _sum_hist_count(
-        _find_metric(metrics_before, "agents.adapter.process.duration")
-    )
+def test_instrument_adapter_process(test_exporter, test_metric_reader):
+    """Test instrument_adapter_process records span and duration metric."""
 
-    with agent_telemetry.adapter_process_operation():
+    with agent_telemetry.instrument_adapter_process():
         pass
 
     spans = test_exporter.get_finished_spans()
     assert len(spans) == 1
-    assert spans[0].name == "adapter process"
+    assert spans[0].name == constants.ADAPTER_PROCESS_OPERATION_NAME
 
-    metrics_after = test_metric_reader.get_metrics_data()
-    after_duration_count = _sum_hist_count(
-        _find_metric(metrics_after, "agents.adapter.process.duration")
+    metric_data = test_metric_reader.get_metrics_data()
+    duration_count = _sum_hist_count(
+        _find_metric(metric_data, constants.ADAPTER_PROCESS_DURATION_METRIC_NAME)
     )
 
-    assert after_duration_count == before_duration_count + 1
+    assert duration_count == 1
 
 
-def test_storage_operation(test_exporter, test_metric_reader):
-    """Test storage_operation records span and operation-tagged metrics."""
+def test_instrument_storage_op(test_exporter, test_metric_reader):
+    """Test instrument_storage_op records span and operation-tagged metrics."""
     op_filter = {"operation": "read"}
 
-    metrics_before = test_metric_reader.get_metrics_data()
-    before_total = _sum_counter(
-        _find_metric(metrics_before, "storage.operation.total"),
-        attribute_filter=op_filter,
-    )
-    before_duration_count = _sum_hist_count(
-        _find_metric(metrics_before, "storage.operation.duration"),
-        attribute_filter=op_filter,
-    )
-
-    with agent_telemetry.storage_operation("read"):
+    with agent_telemetry.instrument_storage_op("read"):
         pass
 
     spans = test_exporter.get_finished_spans()
     assert len(spans) == 1
-    assert spans[0].name == "storage read"
+    assert spans[0].name == constants.STORAGE_OPERATION_NAME_FORMAT.format(operation_name="read")
 
-    metrics_after = test_metric_reader.get_metrics_data()
-    after_total = _sum_counter(
-        _find_metric(metrics_after, "storage.operation.total"),
+    metric_data = test_metric_reader.get_metrics_data()
+    total = _sum_counter(
+        _find_metric(metric_data, constants.STORAGE_OPERATION_TOTAL_METRIC_NAME),
         attribute_filter=op_filter,
     )
-    after_duration_count = _sum_hist_count(
-        _find_metric(metrics_after, "storage.operation.duration"),
+    duration_count = _sum_hist_count(
+        _find_metric(metric_data, constants.STORAGE_OPERATION_DURATION_METRIC_NAME),
         attribute_filter=op_filter,
     )
 
-    assert after_total == before_total + 1
-    assert after_duration_count == before_duration_count + 1
+    assert total == 1
+    assert duration_count == 1
+
+def test_instrument_connector_op(test_exporter, test_metric_reader):
+    """Test instrument_connector_op records span and connector-tagged metrics."""
+    connector_filter = {"operation": "test_connector"}
+
+    with agent_telemetry.instrument_connector_op("test_connector"):
+        pass
+
+    spans = test_exporter.get_finished_spans()
+    assert len(spans) == 1
+    assert spans[0].name == constants.CONNECTOR_REQUEST_OPERATION_NAME_FORMAT.format(operation_name="test_connector")
+
+    metric_data = test_metric_reader.get_metrics_data()
+    total = _sum_counter(
+        _find_metric(metric_data, constants.CONNECTOR_REQUEST_TOTAL_METRIC_NAME),
+        attribute_filter=connector_filter,
+    )
+    duration_count = _sum_hist_count(
+        _find_metric(metric_data, constants.CONNECTOR_REQUEST_DURATION_METRIC_NAME),
+        attribute_filter=connector_filter,
+    )
+
+    assert total == 1
+    assert duration_count == 1
+
+def test_instrument_auth_token_request(test_exporter, test_metric_reader):
+    """Test instrument_auth_token_request records span and auth token request metrics."""
+
+    with agent_telemetry.instrument_auth_token_request():
+        pass
+
+    spans = test_exporter.get_finished_spans()
+    assert len(spans) == 1
+    assert spans[0].name == constants.AUTH_TOKEN_REQUEST_OPERATION_NAME
+
+    metric_data = test_metric_reader.get_metrics_data()
+    total = _sum_counter(
+        _find_metric(metric_data, constants.AUTH_TOKEN_REQUEST_TOTAL_METRIC_NAME)
+    )
+    duration_count = _sum_hist_count(
+        _find_metric(metric_data, constants.AUTH_TOKEN_REQUEST_DURATION_METRIC_NAME)
+    )
+
+    assert total == 1
+    assert duration_count == 1

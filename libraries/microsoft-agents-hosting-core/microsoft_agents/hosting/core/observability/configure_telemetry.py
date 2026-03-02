@@ -1,5 +1,4 @@
 import logging
-import os
 
 from opentelemetry import metrics, trace
 from opentelemetry._logs import set_logger_provider
@@ -13,33 +12,29 @@ from opentelemetry.sdk.metrics.export import PeriodicExportingMetricReader
 from opentelemetry.sdk.trace import TracerProvider
 from opentelemetry.sdk.trace.export import BatchSpanProcessor
 
-from .constants import RESOURCE
+from . import constants
 
-# TODO
 def configure_telemetry() -> None:
     """Configure OpenTelemetry for FastAPI application."""
 
-    # Get OTLP endpoint from environment or use default for standalone dashboard
-    otlp_endpoint = os.getenv("OTEL_EXPORTER_OTLP_ENDPOINT", "http://localhost:4317")
-
     # Configure Tracing
-    trace_provider = TracerProvider(resource=RESOURCE)
+    trace_provider = TracerProvider(resource=constants.RESOURCE)
     trace_provider.add_span_processor(
-        BatchSpanProcessor(OTLPSpanExporter(endpoint=otlp_endpoint))
+        BatchSpanProcessor(OTLPSpanExporter())
     )
     trace.set_tracer_provider(trace_provider)
 
     # Configure Metrics
     metric_reader = PeriodicExportingMetricReader(
-        OTLPMetricExporter(endpoint=otlp_endpoint)
+        OTLPMetricExporter()
     )
-    meter_provider = MeterProvider(resource=RESOURCE, metric_readers=[metric_reader])
+    meter_provider = MeterProvider(resource=constants.RESOURCE, metric_readers=[metric_reader])
     metrics.set_meter_provider(meter_provider)
 
     # Configure Logging
-    logger_provider = LoggerProvider(resource=RESOURCE)
+    logger_provider = LoggerProvider(resource=constants.RESOURCE)
     logger_provider.add_log_record_processor(
-        BatchLogRecordProcessor(OTLPLogExporter(endpoint=otlp_endpoint))
+        BatchLogRecordProcessor(OTLPLogExporter())
     )
     set_logger_provider(logger_provider)
 

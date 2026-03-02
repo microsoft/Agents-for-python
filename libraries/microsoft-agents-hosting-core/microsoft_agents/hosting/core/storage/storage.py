@@ -73,7 +73,7 @@ class AsyncStorageBase(Storage):
 
         await self.initialize()
 
-        with agent_telemetry.storage_operation("read"):
+        with agent_telemetry.instrument_storage_op("read"):
             items: list[tuple[Union[str, None], Union[StoreItemT, None]]] = await gather(
                 *[self._read_item(key, target_cls=target_cls, **kwargs) for key in keys]
             )
@@ -90,7 +90,7 @@ class AsyncStorageBase(Storage):
 
         await self.initialize()
 
-        with agent_telemetry.storage_operation("write"):
+        with agent_telemetry.instrument_storage_op("write"):
             await gather(*[self._write_item(key, value) for key, value in changes.items()])
 
     @abstractmethod
@@ -104,5 +104,5 @@ class AsyncStorageBase(Storage):
 
         await self.initialize()
 
-        with agent_telemetry.storage_operation("delete"):
+        with agent_telemetry.instrument_storage_op("delete"):
             await gather(*[self._delete_item(key) for key in keys])

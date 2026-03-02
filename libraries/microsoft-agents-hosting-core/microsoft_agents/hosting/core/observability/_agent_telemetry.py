@@ -10,7 +10,8 @@ from opentelemetry import metrics, trace
 from opentelemetry.trace import Tracer, Span
 
 from microsoft_agents.hosting.core.turn_context import TurnContext
-from .constants import SERVICE_NAME, SERVICE_VERSION
+
+from . import constants
 
 def _ts() -> float:
     """Helper function to get current timestamp in milliseconds"""
@@ -31,9 +32,9 @@ class AgentTelemetry:
 
     def __init__(self, tracer: Tracer | None = None, meter: Meter | None = None):
         if tracer is None:
-             tracer = trace.get_tracer(SERVICE_NAME, SERVICE_VERSION)
+             tracer = trace.get_tracer(constants.SERVICE_NAME, constants.SERVICE_VERSION)
         if meter is None:
-            meter = metrics.get_meter(SERVICE_NAME, SERVICE_VERSION)
+            meter = metrics.get_meter(constants.SERVICE_NAME, constants.SERVICE_VERSION)
 
         self._meter = meter
         self._tracer = tracer
@@ -41,13 +42,13 @@ class AgentTelemetry:
         # Storage
 
         self._storage_operations = self._meter.create_counter(
-            "storage.operation.total",
+            constants.STORAGE_OPERATION_TOTAL_METRIC_NAME,
             "operation",
             description="Number of storage operations performed by the agent",
         )
 
         self._storage_operation_duration = self._meter.create_histogram(
-            "storage.operation.duration",
+            constants.STORAGE_OPERATION_DURATION_METRIC_NAME,
             "ms",
             description="Duration of storage operations in milliseconds",
         )
@@ -55,19 +56,19 @@ class AgentTelemetry:
         # AgentApplication
 
         self._turn_total = self._meter.create_counter(
-            "app.turn.total",
+            constants.AGENT_TURN_TOTAL_METRIC_NAME,
             "turn",
             description="Total number of turns processed by the agent",
         )
 
         self._turn_errors = self._meter.create_counter(
-            "app.turn.errors",
+            constants.AGENT_TURN_ERRORS_METRIC_NAME,
             "turn",
             description="Number of turns that resulted in an error",
         )
 
         self._turn_duration = self._meter.create_histogram(
-            "app.turn.duration",
+            constants.AGENT_TURN_DURATION_METRIC_NAME,
             "ms",
             description="Duration of agent turns in milliseconds",
         )
@@ -75,7 +76,7 @@ class AgentTelemetry:
         # Adapters
 
         self._adapter_process_duration = self._meter.create_histogram(
-            "agents.adapter.process.duration",
+            constants.ADAPTER_PROCESS_DURATION_METRIC_NAME,
             "ms",
             description="Duration of adapter processing in milliseconds",
         )
@@ -83,13 +84,13 @@ class AgentTelemetry:
         # Connectors
 
         self._connector_request_total = self._meter.create_counter(
-            "agents.connector.request.total",
+            constants.CONNECTOR_REQUEST_TOTAL_METRIC_NAME,
             "request",
             description="Total number of connector requests made by the agent",
         )
 
         self._connector_request_duration = self._meter.create_histogram(
-            "agents.connector.request.duration",
+            constants.CONNECTOR_REQUEST_DURATION_METRIC_NAME,
             "ms",
             description="Duration of connector requests in milliseconds",
         )
@@ -97,13 +98,13 @@ class AgentTelemetry:
         # Auth
 
         self._auth_token_request_total = self._meter.create_counter(
-            "agents.auth.request.total",
+            constants.AUTH_TOKEN_REQUEST_TOTAL_METRIC_NAME,
             "request",
             description="Total number of auth token requests made by the agent",
         )
 
         self._auth_token_requests_duration = self._meter.create_histogram(
-            "agents.auth.request.duration",
+            constants.AUTH_TOKEN_REQUEST_DURATION_METRIC_NAME,
             "ms",
             description="Duration of auth token retrieval in milliseconds",
         )
@@ -188,7 +189,7 @@ class AgentTelemetry:
                     raise exception from None # re-raise to ensure it's not swallowed
     
     @contextmanager
-    def invoke_agent_turn_op(self, context: TurnContext) -> Iterator[Span]:
+    def instrument_agent_turn(self, context: TurnContext) -> Iterator[Span]:
         """Context manager for recording an agent turn, including success/failure and duration"""
 
         def success_callback(span: Span, duration: float):
@@ -215,7 +216,7 @@ class AgentTelemetry:
             self._turn_errors.add(1)
 
         with self._start_timed_span(
-            "agent turn",
+            constants.AGENT_TURN_OPERATION_NAME,
             context=context,
             success_callback=success_callback,
             failure_callback=failure_callback
@@ -223,48 +224,48 @@ class AgentTelemetry:
             yield span  # execute the turn operation in the with block            
 
     @contextmanager
-    def invoke_adapter_process_op(self):
+    def instrument_adapter_process(self):
         """Context manager for recording adapter processing operations"""
 
         def success_callback(span: Span, duration: float):
             self._adapter_process_duration.record(duration)
 
         with self._start_timed_span(
-            "adapter process",
+            constants.ADAPTER_PROCESS_OPERATION_NAME,
             success_callback=success_callback
         ) as span:
             yield span  # execute the adapter processing in the with block
 
     @contextmanager
-    def invoke_storage_op(self, operation: str):
+    def instrument_storage_op(self, operation_name: str):
         """Context manager for recording storage operations"""
 
         def success_callback(span: Span, duration: float):
-            self._storage_operations.add(1, {"operation": operation})
-            self._storage_operation_duration.record(duration, {"operation": operation})
+            self._storage_operations.add(1, {"operation": operation_name})
+            self._storage_operation_duration.record(duration, {"operation": operation_name})
 
         with self._start_timed_span(
-            f"storage {operation}",
+            constants.STORAGE_OPERATION_NAME_FORMAT.format(operation_name=operation_name),
             success_callback=success_callback
         ) as span:
             yield span  # execute the storage operation in the with block
 
     @contextmanager
-    def invoke_connector_request_op(self, operation: str):
+    def instrument_connector_op(self, operation_name: str):
         """Context manager for recording connector requests"""
 
         def success_callback(span: Span, duration: float):
-            self._connector_request_total.add(1, {"operation": operation})
-            self._connector_request_duration.record(duration, {"operation": operation})
+            self._connector_request_total.add(1, {"operation": operation_name})
+            self._connector_request_duration.record(duration, {"operation": operation_name})
 
         with self._start_timed_span(
-            f"connector {operation}",
+            constants.CONNECTOR_REQUEST_OPERATION_NAME_FORMAT.format(operation_name=operation_name),
             success_callback=success_callback
         ) as span:
             yield span  # execute the connector request in the with block
 
     @contextmanager
-    def invoke_auth_token_request_op(self):
+    def instrument_auth_token_request(self):
         """Context manager for recording auth token retrieval operations"""
 
         def success_callback(span: Span, duration: float):
@@ -272,7 +273,7 @@ class AgentTelemetry:
             self._auth_token_requests_duration.record(duration)
 
         with self._start_timed_span(
-            "auth token request",
+            constants.AUTH_TOKEN_REQUEST_OPERATION_NAME,
             success_callback=success_callback
         ) as span:
             yield span  # execute the auth token retrieval operation in the with block

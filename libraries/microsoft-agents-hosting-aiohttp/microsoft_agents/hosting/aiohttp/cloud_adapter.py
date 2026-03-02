@@ -71,7 +71,7 @@ class CloudAdapter(HttpAdapterBase, AgentHttpAdapter):
             aiohttp Response object.
         """
 
-        with agent_telemetry.adapter_process_operation():
+        with agent_telemetry.instrument_adapter_process():
             # Adapt request to protocol
             adapted_request = AiohttpRequestAdapter(request)
 

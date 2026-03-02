@@ -29,7 +29,7 @@ class MemoryStorage(Storage):
 
         result: dict[str, StoreItem] = {}
         with self._lock:
-            with agent_telemetry.storage_operation("read"):
+            with agent_telemetry.instrument_storage_op("read"):
                 for key in keys:
                     if key == "":
                         raise ValueError("MemoryStorage.read(): key cannot be empty")
@@ -52,7 +52,7 @@ class MemoryStorage(Storage):
             raise ValueError("MemoryStorage.write(): changes cannot be None")
 
         with self._lock:
-            with agent_telemetry.storage_operation("write"):
+            with agent_telemetry.instrument_storage_op("write"):
                 for key in changes:
                     if key == "":
                         raise ValueError("MemoryStorage.write(): key cannot be empty")
@@ -63,7 +63,7 @@ class MemoryStorage(Storage):
             raise ValueError("Storage.delete(): Keys are required when deleting.")
 
         with self._lock:
-            with agent_telemetry.storage_operation("delete"):
+            with agent_telemetry.instrument_storage_op("delete"):
                 for key in keys:
                     if key == "":
                         raise ValueError("MemoryStorage.delete(): key cannot be empty")

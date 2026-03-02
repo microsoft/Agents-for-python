@@ -671,7 +671,7 @@ class AgentApplication(Agent, Generic[StateT]):
     async def _on_turn(self, context: TurnContext):
         typing = None
         try:
-            with agent_telemetry.agent_turn_operation(context):
+            with agent_telemetry.instrument_agent_turn(context):
                 if context.activity.type != ActivityTypes.typing:
                     if self._options.start_typing_timer:
                         typing = TypingIndicator(context)
