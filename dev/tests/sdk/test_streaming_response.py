@@ -40,13 +40,13 @@ async def init_agent(env: AgentEnvironment):
         assert context.streaming_response is not None
 
         context.streaming_response.queue_informative_update("Starting stream...")
+        await asyncio.sleep(1.0)  # Simulate delay before starting stream
 
-        for chunk in CHUNKS:
-            await asyncio.sleep(1.0)  # Simulate delay between chunks
+        for chunk in CHUNKS[:-1]:
             context.streaming_response.queue_text_chunk(chunk)
+            await asyncio.sleep(1.0)  # Simulate delay between chunks
 
-        await asyncio.sleep(1.0)
-
+        context.streaming_response.queue_text_chunk(CHUNKS[-1])
         await context.streaming_response.end_stream()
 
 _SCENARIO = AiohttpScenario(init_agent=init_agent, use_jwt_middleware=False)
@@ -91,7 +91,7 @@ async def test_basic_streaming_response_streaming_channel(agent_client: AgentCli
         entities=lambda x: any(e["type"] == "streaminfo" for e in x)
     ).get()
 
-    assert len(stream_activities) == len(CHUNKS) + 2
+    assert len(stream_activities) == len(CHUNKS) + 1
 
     informative = stream_activities[0]
     informative_streaminfo = get_streaminfo(informative)
@@ -102,7 +102,7 @@ async def test_basic_streaming_response_streaming_channel(agent_client: AgentCli
     assert informative.type == ActivityTypes.typing
 
     t = ""
-    for i, chunk in enumerate(CHUNKS):
+    for i, chunk in enumerate(CHUNKS[:-1]):
         t += chunk
 
         j = i + 1
