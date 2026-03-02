@@ -18,6 +18,7 @@ setup(
         "azure-core>=1.30.0",
         "python-dotenv>=1.1.1",
         "opentelemetry-api>=1.17.0", # TODO -> verify this before commit
-        "opentelemetry-sdk>=1.17.0", 
+        "opentelemetry-sdk>=1.17.0",
+        "opentelemetry-exporter-otlp-proto-http>=1.17.0",
     ],
 )

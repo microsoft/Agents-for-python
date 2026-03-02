@@ -5,12 +5,11 @@ from collections.abc import Iterator
 
 from contextlib import contextmanager
 
-from microsoft_agents.hosting.core import TurnContext
-
 from opentelemetry.metrics import Meter, Counter, Histogram, UpDownCounter
 from opentelemetry import metrics, trace
 from opentelemetry.trace import Tracer, Span
 
+from microsoft_agents.hosting.core.turn_context import TurnContext
 from .constants import SERVICE_NAME, SERVICE_VERSION
 
 def _ts() -> float:
@@ -142,7 +141,7 @@ class AgentTelemetry:
             yield span
 
     @contextmanager
-    def _timed_span(
+    def _start_timed_span(
         self,
         span_name: str,
         context: TurnContext | None = None,
@@ -189,7 +188,7 @@ class AgentTelemetry:
                     raise exception from None # re-raise to ensure it's not swallowed
     
     @contextmanager
-    def agent_turn_operation(self, context: TurnContext) -> Iterator[Span]:
+    def invoke_agent_turn_op(self, context: TurnContext) -> Iterator[Span]:
         """Context manager for recording an agent turn, including success/failure and duration"""
 
         def success_callback(span: Span, duration: float):
@@ -215,7 +214,7 @@ class AgentTelemetry:
         def failure_callback(span: Span, e: Exception):
             self._turn_errors.add(1)
 
-        with self._timed_span(
+        with self._start_timed_span(
             "agent turn",
             context=context,
             success_callback=success_callback,
@@ -224,55 +223,55 @@ class AgentTelemetry:
             yield span  # execute the turn operation in the with block            
 
     @contextmanager
-    def adapter_process_operation(self):
+    def invoke_adapter_process_op(self):
         """Context manager for recording adapter processing operations"""
 
         def success_callback(span: Span, duration: float):
             self._adapter_process_duration.record(duration)
 
-        with self._timed_span(
+        with self._start_timed_span(
             "adapter process",
             success_callback=success_callback
         ) as span:
             yield span  # execute the adapter processing in the with block
 
     @contextmanager
-    def storage_operation(self, operation: str):
+    def invoke_storage_op(self, operation: str):
         """Context manager for recording storage operations"""
 
         def success_callback(span: Span, duration: float):
             self._storage_operations.add(1, {"operation": operation})
             self._storage_operation_duration.record(duration, {"operation": operation})
 
-        with self._timed_span(
+        with self._start_timed_span(
             f"storage {operation}",
             success_callback=success_callback
         ) as span:
             yield span  # execute the storage operation in the with block
 
     @contextmanager
-    def connector_request_operation(self, operation: str):
+    def invoke_connector_request_op(self, operation: str):
         """Context manager for recording connector requests"""
 
         def success_callback(span: Span, duration: float):
             self._connector_request_total.add(1, {"operation": operation})
             self._connector_request_duration.record(duration, {"operation": operation})
 
-        with self._timed_span(
+        with self._start_timed_span(
             f"connector {operation}",
             success_callback=success_callback
         ) as span:
             yield span  # execute the connector request in the with block
 
     @contextmanager
-    def auth_token_request_operation(self):
+    def invoke_auth_token_request_op(self):
         """Context manager for recording auth token retrieval operations"""
 
         def success_callback(span: Span, duration: float):
             self._auth_token_request_total.add(1)
             self._auth_token_requests_duration.record(duration)
 
-        with self._timed_span(
+        with self._start_timed_span(
             "auth token request",
             success_callback=success_callback
         ) as span:
