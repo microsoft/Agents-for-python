@@ -4,18 +4,20 @@
 import uuid
 import asyncio
 import logging
-from typing import List, Optional, Callable, Literal
+from typing import List, Optional, Callable, Literal, cast
 
 from microsoft_agents.activity import (
     Activity,
     AIEntity,
     Entity,
+    EntityTypes,
     Attachment,
     Channels,
     ClientCitation,
     DeliveryModes,
     SensitivityUsageInfo,
     ClientCitationAppearance,
+    StreamInfo,
 )
 
 from microsoft_agents.hosting.core.errors import error_resources
@@ -88,8 +90,7 @@ class StreamingResponse:
                 type="typing",
                 text=text,
                 entities=[
-                    Entity(
-                        type="streaminfo",
+                    StreamInfo(
                         stream_type="informative",
                         stream_sequence=self._sequence_number,
                     )
@@ -174,10 +175,8 @@ class StreamingResponse:
 
             for citation in citations:
                 client_citation = ClientCitation(
-                    type="Claim",
                     position=curr_pos + 1,
                     appearance=ClientCitationAppearance(
-                        type="DigitalDocument",
                         name=citation.title or f"Document #{curr_pos + 1}",
                         abstract=CitationUtil.snippet(citation.content, 480),
                         url=citation.url,
@@ -276,8 +275,7 @@ class StreamingResponse:
                     text=self._message or "end stream response",
                     attachments=self._attachments or [],
                     entities=[
-                        Entity(
-                            type="streaminfo",
+                        StreamInfo(
                             stream_type="final",
                             stream_sequence=self._sequence_number,
                         )
@@ -289,8 +287,7 @@ class StreamingResponse:
                     type="typing",
                     text=self._message,
                     entities=[
-                        Entity(
-                            type="streaminfo",
+                        StreamInfo(
                             stream_type="streaming",
                             stream_sequence=self._sequence_number,
                         )
@@ -347,20 +344,22 @@ class StreamingResponse:
             activity: The activity to send.
         """
 
-        streaminfo_entity = None
+        streaminfo_entity: StreamInfo | None = None
 
         if not activity.entities:
-            streaminfo_entity = Entity(type="streaminfo")
+            streaminfo_entity = StreamInfo(stream_sequence=self._sequence_number)
+            self._sequence_number += 1
             activity.entities = [streaminfo_entity]
         else:
             for entity in activity.entities:
-                if hasattr(entity, "type") and entity.type == "streaminfo":
-                    streaminfo_entity = entity
+                if entity.type == EntityTypes.STREAM_INFO:
+                    streaminfo_entity = cast(StreamInfo, entity)
                     break
 
             if not streaminfo_entity:
                 # If no streaminfo entity exists, create one
-                streaminfo_entity = Entity(type="streaminfo")
+                streaminfo_entity = StreamInfo(stream_sequence=self._sequence_number)
+                self._sequence_number += 1
                 activity.entities.append(streaminfo_entity)
 
         # Set activity ID to the assigned stream ID

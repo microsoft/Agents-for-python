@@ -44,6 +44,7 @@ from .entity import (
     Place,
     ProductInfo,
     Thing,
+    StreamInfo,
 )
 from .error import Error
 from .error_response import ErrorResponse
@@ -133,6 +134,7 @@ __all__ = [
     "ExpectedReplies",
     "Entity",
     "AIEntity",
+    "EntityTypes",
     "ClientCitation",
     "ClientCitationAppearance",
     "ClientCitationImage",
@@ -154,6 +156,7 @@ __all__ = [
     "OAuthCard",
     "PagedMembersResult",
     "Place",
+    "StreamInfo",
     "ProductInfo",
     "ReceiptCard",
     "ReceiptItem",

@@ -79,6 +79,9 @@ class ClientCitationAppearance(AgentsModel):
     keywords: Optional[List[str]] = None
     usage_info: Optional[SensitivityUsageInfo] = None
 
+    def __init__(self, **data): # removes linter errors for user-facing code
+        super().__init__(**data)
+
 
 class ClientCitation(AgentsModel):
     """
@@ -91,6 +94,9 @@ class ClientCitation(AgentsModel):
     position: int = 0
     appearance: Optional[ClientCitationAppearance] = None
 
+    def __init__(self, **data): # removes linter errors for user-facing code
+        super().__init__(**data)
+
     def __post_init__(self):
         if self.appearance is None:
             self.appearance = ClientCitationAppearance()
@@ -100,12 +106,15 @@ class AIEntity(Entity):
     """Entity indicating AI-generated content."""
 
     type: str = "https://schema.org/Message"
-    schema_type: str = Field("Message", alias="@type")
-    context: str = Field("https://schema.org", alias="@context")
+    schema_type: str = Field("Message", validation_alias="@type", serialization_alias="@type")
+    context: str = Field("https://schema.org", validation_alias="@context", serialization_alias="@context")
     id: str = ""
     additional_type: Optional[List[str]] = None
     citation: Optional[List[ClientCitation]] = None
     usage_info: Optional[SensitivityUsageInfo] = None
+
+    def __init__(self, **data): # removes linter errors for user-facing code
+        super().__init__(**data)
 
     def __post_init__(self):
         if self.additional_type is None:

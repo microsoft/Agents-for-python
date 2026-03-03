@@ -157,7 +157,7 @@ class Activity(AgentsModel, _ChannelIdFieldMixin):
     local_timestamp: datetime = None
     local_timezone: NonEmptyString = None
     service_url: NonEmptyString = None
-    from_property: ChannelAccount = Field(None, alias="from")
+    from_property: ChannelAccount = Field(None, validation_alias="from", serialization_alias="from")
     conversation: ConversationAccount = None
     recipient: ChannelAccount = None
     text_format: NonEmptyString = None
@@ -192,6 +192,8 @@ class Activity(AgentsModel, _ChannelIdFieldMixin):
     text_highlights: list[TextHighlight] = None
     semantic_action: SemanticAction = None
     caller_id: NonEmptyString = None
+
+    def __init__(self, *, from_property: ChannelAccount | None = ..., **data: Any) -> None: ...
 
     @model_validator(mode="wrap")
     @classmethod
