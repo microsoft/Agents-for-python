@@ -2,8 +2,9 @@
 # Licensed under the MIT License.
 
 from enum import Enum
-from typing import List, Optional, Union, Literal
-from dataclasses import dataclass
+from typing import List, Optional
+
+from pydantic import Field
 
 from ..agents_model import AgentsModel
 from .entity import Entity
@@ -45,7 +46,7 @@ class ClientCitationImage(AgentsModel):
 class SensitivityPattern(AgentsModel):
     """Pattern information for sensitivity usage info."""
 
-    type: str = "DefinedTerm"
+    type: str = Field("DefinedTerm", alias="@type")
     in_defined_term_set: str = ""
     name: str = ""
     term_code: str = ""
@@ -58,17 +59,19 @@ class SensitivityUsageInfo(AgentsModel):
     """
 
     type: str = "https://schema.org/Message"
-    schema_type: str = "CreativeWork"
+    schema_type: str = Field("CreativeWork", alias="@type")
     description: Optional[str] = None
     name: str = ""
     position: Optional[int] = None
     pattern: Optional[SensitivityPattern] = None
 
+    def __init__(self, **data): # removes linter errors for user-facing code
+        super().__init__(**data)
 
 class ClientCitationAppearance(AgentsModel):
     """Appearance information for a client citation."""
 
-    type: str = "DigitalDocument"
+    type: str = Field("DigitalDocument", alias="@type")
     name: str = ""
     text: Optional[str] = None
     url: Optional[str] = None
@@ -78,6 +81,9 @@ class ClientCitationAppearance(AgentsModel):
     keywords: Optional[List[str]] = None
     usage_info: Optional[SensitivityUsageInfo] = None
 
+    def __init__(self, **data): # removes linter errors for user-facing code
+        super().__init__(**data)
+
 
 class ClientCitation(AgentsModel):
     """
@@ -86,9 +92,12 @@ class ClientCitation(AgentsModel):
     https://learn.microsoft.com/en-us/microsoftteams/platform/bots/how-to/bot-messages-ai-generated-content?tabs=before%2Cbotmessage
     """
 
-    type: str = "Claim"
+    type: str = Field("Claim", alias="@type")
     position: int = 0
     appearance: Optional[ClientCitationAppearance] = None
+
+    def __init__(self, **data): # removes linter errors for user-facing code
+        super().__init__(**data)
 
     def __post_init__(self):
         if self.appearance is None:
@@ -99,12 +108,15 @@ class AIEntity(Entity):
     """Entity indicating AI-generated content."""
 
     type: str = "https://schema.org/Message"
-    schema_type: str = "Message"
-    context: str = "https://schema.org"
+    schema_type: str = Field("Message", validation_alias="@type", serialization_alias="@type")
+    context: str = Field("https://schema.org", validation_alias="@context", serialization_alias="@context")
     id: str = ""
     additional_type: Optional[List[str]] = None
     citation: Optional[List[ClientCitation]] = None
     usage_info: Optional[SensitivityUsageInfo] = None
+
+    def __init__(self, **data): # removes linter errors for user-facing code
+        super().__init__(**data)
 
     def __post_init__(self):
         if self.additional_type is None:

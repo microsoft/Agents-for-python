@@ -12,3 +12,4 @@ class EntityTypes(str, Enum):
     PLACE = "Place"
     THING = "Thing"
     PRODUCT_INFO = "ProductInfo"
+    STREAM_INFO = "streaminfo"
