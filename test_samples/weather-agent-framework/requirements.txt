@@ -32,3 +32,7 @@ opentelemetry-sdk
 # azure-monitor-opentelemetry-exporter
 # Correlate Python log records with trace context
 # opentelemetry-instrumentation-logging
+
+# A365 observability — AgentFramework automatic instrumentation
+# Provides AgentFrameworkInstrumentor used in telemetry/agent_otel_extensions.py
+microsoft-agents-a365-observability-extensions-agent-framework

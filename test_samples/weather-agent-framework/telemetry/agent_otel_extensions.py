@@ -40,6 +40,8 @@ from opentelemetry.sdk.trace import TracerProvider
 from opentelemetry.sdk.trace.export import BatchSpanProcessor
 from opentelemetry.trace import StatusCode
 
+from microsoft_agents_a365.observability import AgentFrameworkInstrumentor
+
 logger = logging.getLogger(__name__)
 
 HEALTH_ENDPOINT_PATH = "/health"
@@ -251,6 +253,26 @@ def _configure_metrics(
 
     meter_provider = MeterProvider(resource=resource, metric_readers=readers)
     metrics.set_meter_provider(meter_provider)
+
+
+def enable_agentframework_instrumentation() -> None:
+    """Enable AgentFramework automatic instrumentation.
+
+    Equivalent to ``AgentFrameworkInstrumentor().instrument()`` called in
+    ``_enable_agentframework_instrumentation()`` of the reference
+    sample-agent/agent.py.
+
+    Must be called **after** :func:`configure_opentelemetry` so that the
+    TracerProvider is already in place when the instrumentor registers its
+    hooks.  If the ``microsoft-agents-a365`` package is not installed the
+    call is a graceful no-op, matching the try/except pattern used in the
+    reference sample.
+    """
+    try:
+        AgentFrameworkInstrumentor().instrument()
+        logger.info("✅ AgentFramework instrumentation enabled")
+    except Exception as e:
+        logger.warning("⚠️ AgentFramework instrumentation failed: %s", e)
 
 
 def _configure_logging() -> None:

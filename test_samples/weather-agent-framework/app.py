@@ -17,6 +17,7 @@ load_dotenv(path.join(path.dirname(__file__), ".env"))
 from telemetry import (
     configure_opentelemetry,
     create_aiohttp_tracing_middleware,
+    enable_agentframework_instrumentation,
     setup_health_routes,
 )
 
@@ -26,6 +27,7 @@ configure_opentelemetry(
     otlp_endpoint=environ.get("OTEL_EXPORTER_OTLP_ENDPOINT"),
     azure_monitor_connection_string=environ.get("APPLICATIONINSIGHTS_CONNECTION_STRING"),
 )
+enable_agentframework_instrumentation()
 
 # M365 Agents SDK imports
 from microsoft_agents.hosting.core import (
