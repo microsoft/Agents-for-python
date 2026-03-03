@@ -193,7 +193,9 @@ class Activity(AgentsModel, _ChannelIdFieldMixin):
     semantic_action: SemanticAction = None
     caller_id: NonEmptyString = None
 
-    def __init__(self, *, from_property: ChannelAccount | None = ..., **data: Any) -> None: ...
+    # fixes user-facing linting issues
+    def __init__(self, *, from_property: ChannelAccount | None = None, **data: Any) -> None:
+        super().__init__(**data)
 
     @model_validator(mode="wrap")
     @classmethod
@@ -756,9 +758,6 @@ class Activity(AgentsModel, _ChannelIdFieldMixin):
         """
         if citations:
             ai_entity = AIEntity(
-                type="https://schema.org/Message",
-                schema_type="Message",
-                context="https://schema.org",
                 id="",
                 additional_type=["AIGeneratedContent"],
                 citation=citations,

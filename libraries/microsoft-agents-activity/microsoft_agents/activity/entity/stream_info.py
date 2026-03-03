@@ -9,7 +9,7 @@ from .entity_types import EntityTypes
 
 class StreamInfo(Entity):
 
-    type: Literal[EntityTypes.STREAM_INFO] = EntityTypes.STREAM_INFO
+    type: str = EntityTypes.STREAM_INFO.value
 
     stream_type: NonEmptyString = "streaming"
     stream_sequence: int

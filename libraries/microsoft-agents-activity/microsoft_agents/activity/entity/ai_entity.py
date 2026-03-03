@@ -65,6 +65,8 @@ class SensitivityUsageInfo(AgentsModel):
     position: Optional[int] = None
     pattern: Optional[SensitivityPattern] = None
 
+    def __init__(self, **data): # removes linter errors for user-facing code
+        super().__init__(**data)
 
 class ClientCitationAppearance(AgentsModel):
     """Appearance information for a client citation."""

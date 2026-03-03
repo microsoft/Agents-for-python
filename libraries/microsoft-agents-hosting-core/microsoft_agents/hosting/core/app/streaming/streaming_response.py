@@ -399,7 +399,6 @@ class StreamingResponse:
             activity.add_ai_metadata(curr_citations, self._sensitivity_label)
 
         # Send activity
-        breakpoint()
         response = await self._context.send_activity(activity)
         await asyncio.sleep(self._interval)
 
