@@ -40,7 +40,7 @@ from opentelemetry.sdk.trace import TracerProvider
 from opentelemetry.sdk.trace.export import BatchSpanProcessor
 from opentelemetry.trace import StatusCode
 
-from microsoft_agents_a365.observability import AgentFrameworkInstrumentor
+from microsoft_agents_a365.observability.extensions.agentframework import AgentFrameworkInstrumentor
 
 logger = logging.getLogger(__name__)
 
