@@ -93,7 +93,7 @@ class CosmosDBStorage(AsyncStorageBase):
 
         if key == "":
             raise ValueError(str(storage_errors.CosmosDbKeyCannotBeEmpty))
-
+        
         escaped_key: str = self._sanitize(key)
         read_item_response: CosmosDict = await ignore_error(
             self._container.read_item(

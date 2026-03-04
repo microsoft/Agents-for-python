@@ -5,6 +5,8 @@ from typing import Protocol, TypeVar, Type, Union
 from abc import ABC, abstractmethod
 from asyncio import gather
 
+from microsoft_agents.hosting.core.telemetry import agents_telemetry
+
 from ._type_aliases import JSON
 from .store_item import StoreItem
 
@@ -71,10 +73,11 @@ class AsyncStorageBase(Storage):
 
         await self.initialize()
 
-        items: list[tuple[Union[str, None], Union[StoreItemT, None]]] = await gather(
-            *[self._read_item(key, target_cls=target_cls, **kwargs) for key in keys]
-        )
-        return {key: value for key, value in items if key is not None}
+        with agents_telemetry.instrument_storage_op("read"):
+            items: list[tuple[Union[str, None], Union[StoreItemT, None]]] = await gather(
+                *[self._read_item(key, target_cls=target_cls, **kwargs) for key in keys]
+            )
+            return {key: value for key, value in items if key is not None}
 
     @abstractmethod
     async def _write_item(self, key: str, value: StoreItemT) -> None:
@@ -87,7 +90,8 @@ class AsyncStorageBase(Storage):
 
         await self.initialize()
 
-        await gather(*[self._write_item(key, value) for key, value in changes.items()])
+        with agents_telemetry.instrument_storage_op("write"):
+            await gather(*[self._write_item(key, value) for key, value in changes.items()])
 
     @abstractmethod
     async def _delete_item(self, key: str) -> None:
@@ -100,4 +104,5 @@ class AsyncStorageBase(Storage):
 
         await self.initialize()
 
-        await gather(*[self._delete_item(key) for key in keys])
+        with agents_telemetry.instrument_storage_op("delete"):
+            await gather(*[self._delete_item(key) for key in keys])

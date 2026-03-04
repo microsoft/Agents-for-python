@@ -10,6 +10,7 @@ with consistent default values and easy customization.
 from __future__ import annotations
 
 from copy import deepcopy
+from email.mime import base
 from typing import Generic, TypeVar, cast, Self
 
 from pydantic import BaseModel
@@ -22,7 +23,7 @@ from .backend import (
     set_defaults,
     flatten,
 )
-from .utils import flatten_model_data
+from .utils import flatten_model_data, rename_from_property
 
 ModelT = TypeVar("ModelT", bound=BaseModel | dict)
 
@@ -82,15 +83,17 @@ class ModelTemplate(Generic[ModelT]):
         :return: A new ModelTemplate instance.
         """
         new_template = deepcopy(self._defaults)
-        set_defaults(new_template, defaults, **kwargs)
+        defaults_copy = deepcopy(defaults) if defaults else {}
+        rename_from_property(defaults_copy)
+        set_defaults(new_template, defaults_copy, **kwargs)
         return ModelTemplate[ModelT](self._model_class, new_template)
     
     def with_updates(self, updates: dict | None = None, **kwargs) -> ModelTemplate[ModelT]:
         """Create a new ModelTemplate with updated default values."""
         new_template = deepcopy(self._defaults)
         # Expand the updates first so they merge correctly with nested structure
-        flat_updates = flatten(updates or {})
-        flat_kwargs = flatten(kwargs)
+        flat_updates = flatten_model_data(updates or {})
+        flat_kwargs = flatten_model_data(kwargs)
         deep_update(new_template, flat_updates)
         deep_update(new_template, flat_kwargs)
         # Pass already-expanded data, avoid re-expansion
@@ -128,6 +131,7 @@ class ActivityTemplate(ModelTemplate[Activity]):
         :param kwargs: Additional default values as keyword arguments.
         """
         super().__init__(Activity, defaults, **kwargs)
+        rename_from_property(self._defaults)
     
     def with_defaults(self, defaults: dict | None = None, **kwargs) -> ActivityTemplate:
         """Create a new ModelTemplate with additional default values.
@@ -137,15 +141,17 @@ class ActivityTemplate(ModelTemplate[Activity]):
         :return: A new ModelTemplate instance.
         """
         new_template = deepcopy(self._defaults)
-        set_defaults(new_template, defaults, **kwargs)
+        defaults_copy = deepcopy(defaults) if defaults else {}
+        rename_from_property(defaults_copy)
+        set_defaults(new_template, defaults_copy, **kwargs)
         return ActivityTemplate(new_template)
     
     def with_updates(self, updates: dict | None = None, **kwargs) -> ActivityTemplate:
         """Create a new ModelTemplate with updated default values."""
         new_template = deepcopy(self._defaults)
         # Expand the updates first so they merge correctly with nested structure
-        flat_updates = flatten(updates or {})
-        flat_kwargs = flatten(kwargs)
+        flat_updates = flatten_model_data(updates or {})
+        flat_kwargs = flatten_model_data(kwargs)
         deep_update(new_template, flat_updates)
         deep_update(new_template, flat_kwargs)
         # Pass already-expanded data, avoid re-expansion

@@ -4,7 +4,7 @@ from microsoft_agents.testing import (
     Scenario,
 )
 
-from .quickstart import init_app as init_quickstart
+from .quickstart import init_agent as init_quickstart
 
 _SCENARIO_INITS = {
     "quickstart": init_quickstart,

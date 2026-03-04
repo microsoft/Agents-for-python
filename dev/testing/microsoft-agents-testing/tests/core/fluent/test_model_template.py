@@ -421,6 +421,88 @@ class TestActivityTemplateWithDotNotation:
         assert activity.conversation.name == "Test Conv"
 
 
+class TestActivityTemplateFromAliases:
+    """Tests for ActivityTemplate alias behavior between from and from_property."""
+
+    def test_from_dot_notation_defaults_are_normalized(self):
+        """Defaults using from.* are normalized to from_property.* internally."""
+        template = ActivityTemplate(
+            type=ActivityTypes.message,
+            **{"from.id": "user123", "from.name": "Alias User"}
+        )
+
+        assert "from.id" not in template._defaults
+        assert "from.name" not in template._defaults
+        assert template._defaults["from_property.id"] == "user123"
+        assert template._defaults["from_property.name"] == "Alias User"
+
+    def test_create_accepts_top_level_from_alias_in_defaults(self):
+        """Top-level from alias in defaults maps to Activity.from_property."""
+        template = ActivityTemplate(
+            type=ActivityTypes.message,
+            **{"from": {"id": "user123", "name": "Alias User"}}
+        )
+
+        activity = template.create()
+        assert activity.from_property is not None
+        assert activity.from_property.id == "user123"
+        assert activity.from_property.name == "Alias User"
+
+    def test_create_original_from_alias_overrides_from_property_default(self):
+        """create() accepts from alias and overrides from_property defaults."""
+        template = ActivityTemplate(
+            type=ActivityTypes.message,
+            **{"from_property.id": "default-id", "from_property.name": "Default User"}
+        )
+
+        activity = template.create({"from": {"id": "override-id", "name": "Override User"}})
+        assert activity.from_property is not None
+        assert activity.from_property.id == "override-id"
+        assert activity.from_property.name == "Override User"
+
+    def test_create_original_from_property_overrides_from_dot_default(self):
+        """create() accepts from_property and overrides defaults authored with from.* alias."""
+        template = ActivityTemplate(
+            type=ActivityTypes.message,
+            **{"from.id": "default-id", "from.name": "Default User"}
+        )
+
+        activity = template.create(
+            {
+                "from_property": {
+                    "id": "override-id",
+                    "name": "Override User",
+                }
+            }
+        )
+        assert activity.from_property is not None
+        assert activity.from_property.id == "override-id"
+        assert activity.from_property.name == "Override User"
+
+    def test_with_defaults_accepts_from_alias(self):
+        """with_defaults() supports from alias and produces from_property on create."""
+        template = ActivityTemplate(type=ActivityTypes.message).with_defaults(
+            **{"from.id": "user123", "from.name": "Alias User"}
+        )
+
+        activity = template.create()
+        assert activity.from_property is not None
+        assert activity.from_property.id == "user123"
+        assert activity.from_property.name == "Alias User"
+
+    def test_with_updates_accepts_from_alias(self):
+        """with_updates() supports from alias and updates existing from_property values."""
+        template = ActivityTemplate(
+            type=ActivityTypes.message,
+            **{"from_property.id": "default-id", "from_property.name": "Default User"}
+        ).with_updates(**{"from.id": "updated-id", "from.name": "Updated User"})
+
+        activity = template.create()
+        assert activity.from_property is not None
+        assert activity.from_property.id == "updated-id"
+        assert activity.from_property.name == "Updated User"
+
+
 class TestActivityTemplateEquality:
     """Tests for ActivityTemplate equality comparison."""
 
