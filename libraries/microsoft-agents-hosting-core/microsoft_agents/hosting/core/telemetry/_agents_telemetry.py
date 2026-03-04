@@ -17,7 +17,7 @@ def _ts() -> float:
     """Helper function to get current timestamp in milliseconds"""
     return datetime.now(timezone.utc).timestamp() * 1000
 
-class AgentTelemetry:
+class _AgentsTelemetry:
 
     _tracer: Tracer
     _meter: Meter
@@ -278,4 +278,4 @@ class AgentTelemetry:
         ) as span:
             yield span  # execute the auth token retrieval operation in the with block
 
-agent_telemetry = AgentTelemetry()
+agents_telemetry = _AgentsTelemetry()

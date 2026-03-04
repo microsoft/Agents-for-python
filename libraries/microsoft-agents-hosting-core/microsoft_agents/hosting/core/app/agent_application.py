@@ -30,7 +30,7 @@ from microsoft_agents.activity import (
     InvokeResponse,
 )
 
-from microsoft_agents.hosting.core.observability import agent_telemetry
+from microsoft_agents.hosting.core.telemetry import agents_telemetry
 from microsoft_agents.hosting.core.turn_context import TurnContext
 
 from ..agent import Agent
@@ -671,7 +671,7 @@ class AgentApplication(Agent, Generic[StateT]):
     async def _on_turn(self, context: TurnContext):
         typing = None
         try:
-            with agent_telemetry.instrument_agent_turn(context):
+            with agents_telemetry.instrument_agent_turn(context):
                 if context.activity.type != ActivityTypes.typing:
                     if self._options.start_typing_timer:
                         typing = TypingIndicator(context)

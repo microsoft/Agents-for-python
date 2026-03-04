@@ -8,8 +8,8 @@ from opentelemetry.sdk.trace.export.in_memory_span_exporter import InMemorySpanE
 from opentelemetry.sdk.metrics import MeterProvider
 from opentelemetry.sdk.metrics.export import InMemoryMetricReader
 
-from microsoft_agents.hosting.core.observability import (
-    agent_telemetry,
+from microsoft_agents.hosting.core.telemetry import (
+    agents_telemetry,
     constants,
 )
 
@@ -104,7 +104,7 @@ def test_start_as_current_span(test_exporter):
     """Test start_as_current_span creates a span with context attributes."""
     context = _build_turn_context()
 
-    with agent_telemetry.start_as_current_span("test_span", context):
+    with agents_telemetry.start_as_current_span("test_span", context):
         pass
 
     spans = test_exporter.get_finished_spans()
@@ -125,7 +125,7 @@ def test_agent_turn_operation(test_exporter, test_metric_reader):
     """Test agent_turn_operation records span and turn metrics."""
     context = _build_turn_context()
 
-    with agent_telemetry.instrument_agent_turn(context):
+    with agents_telemetry.instrument_agent_turn(context):
         pass
 
     spans = test_exporter.get_finished_spans()
@@ -145,7 +145,7 @@ def test_agent_turn_operation(test_exporter, test_metric_reader):
 def test_instrument_adapter_process(test_exporter, test_metric_reader):
     """Test instrument_adapter_process records span and duration metric."""
 
-    with agent_telemetry.instrument_adapter_process():
+    with agents_telemetry.instrument_adapter_process():
         pass
 
     spans = test_exporter.get_finished_spans()
@@ -164,7 +164,7 @@ def test_instrument_storage_op(test_exporter, test_metric_reader):
     """Test instrument_storage_op records span and operation-tagged metrics."""
     op_filter = {"operation": "read"}
 
-    with agent_telemetry.instrument_storage_op("read"):
+    with agents_telemetry.instrument_storage_op("read"):
         pass
 
     spans = test_exporter.get_finished_spans()
@@ -188,7 +188,7 @@ def test_instrument_connector_op(test_exporter, test_metric_reader):
     """Test instrument_connector_op records span and connector-tagged metrics."""
     connector_filter = {"operation": "test_connector"}
 
-    with agent_telemetry.instrument_connector_op("test_connector"):
+    with agents_telemetry.instrument_connector_op("test_connector"):
         pass
 
     spans = test_exporter.get_finished_spans()
@@ -211,7 +211,7 @@ def test_instrument_connector_op(test_exporter, test_metric_reader):
 def test_instrument_auth_token_request(test_exporter, test_metric_reader):
     """Test instrument_auth_token_request records span and auth token request metrics."""
 
-    with agent_telemetry.instrument_auth_token_request():
+    with agents_telemetry.instrument_auth_token_request():
         pass
 
     spans = test_exporter.get_finished_spans()

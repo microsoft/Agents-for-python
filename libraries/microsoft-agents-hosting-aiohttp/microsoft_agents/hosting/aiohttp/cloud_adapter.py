@@ -11,7 +11,7 @@ from microsoft_agents.hosting.core.http import (
     HttpResponse,
 )
 from microsoft_agents.hosting.core import ChannelServiceClientFactoryBase
-from microsoft_agents.hosting.core.observability import agent_telemetry
+from microsoft_agents.hosting.core.telemetry import agents_telemetry
 
 from .agent_http_adapter import AgentHttpAdapter
 
@@ -71,7 +71,7 @@ class CloudAdapter(HttpAdapterBase, AgentHttpAdapter):
             aiohttp Response object.
         """
 
-        with agent_telemetry.instrument_adapter_process():
+        with agents_telemetry.instrument_adapter_process():
             # Adapt request to protocol
             adapted_request = AiohttpRequestAdapter(request)
 

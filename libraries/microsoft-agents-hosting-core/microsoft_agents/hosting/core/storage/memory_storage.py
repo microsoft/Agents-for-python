@@ -4,7 +4,7 @@
 from threading import Lock
 from typing import TypeVar
 
-from microsoft_agents.hosting.core.observability import agent_telemetry
+from microsoft_agents.hosting.core.telemetry import agents_telemetry
 
 from ._type_aliases import JSON
 from .storage import Storage
@@ -29,7 +29,7 @@ class MemoryStorage(Storage):
 
         result: dict[str, StoreItem] = {}
         with self._lock:
-            with agent_telemetry.instrument_storage_op("read"):
+            with agents_telemetry.instrument_storage_op("read"):
                 for key in keys:
                     if key == "":
                         raise ValueError("MemoryStorage.read(): key cannot be empty")
@@ -52,7 +52,7 @@ class MemoryStorage(Storage):
             raise ValueError("MemoryStorage.write(): changes cannot be None")
 
         with self._lock:
-            with agent_telemetry.instrument_storage_op("write"):
+            with agents_telemetry.instrument_storage_op("write"):
                 for key in changes:
                     if key == "":
                         raise ValueError("MemoryStorage.write(): key cannot be empty")
@@ -63,7 +63,7 @@ class MemoryStorage(Storage):
             raise ValueError("Storage.delete(): Keys are required when deleting.")
 
         with self._lock:
-            with agent_telemetry.instrument_storage_op("delete"):
+            with agents_telemetry.instrument_storage_op("delete"):
                 for key in keys:
                     if key == "":
                         raise ValueError("MemoryStorage.delete(): key cannot be empty")
