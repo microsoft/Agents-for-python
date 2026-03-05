@@ -45,11 +45,6 @@ SPAN_STORAGE_READ = "agents.storage.read"
 SPAN_STORAGE_WRITE = "agents.storage.write"
 SPAN_STORAGE_DELETE = "agents.storage.delete"
 
-SPAN_AUTH_GET_ACCESS_TOKEN = "agents.auth.getAccessToken"
-SPAN_AUTH_ACQUIRE_TOKEN_ON_BEHALF_OF = "agents.auth.acquireTokenOnBehalfOf"
-SPAN_AUTH_GET_AGENTIC_INSTANCE_TOKEN = "agents.auth.getAgenticInstanceToken"
-SPAN_AUTH_GET_AGENTIC_USER_TOKEN = "agents.auth.getAgenticUserToken"
-
 SPAN_TURN_SEND_ACTIVITY = "agents.turn.sendActivity"
 SPAN_TURN_UPDATE_ACTIVITY = "agents.turn.updateActivity"
 SPAN_TURN_DELETE_ACTIVITY = "agents.turn.deleteActivity"
@@ -66,7 +61,6 @@ METRIC_ACTIVITIES_DELETED = "agents.activities.deleted"
 METRIC_TURN_TOTAL = "agents.turn.total"
 METRIC_TURN_ERRORS = "agents.turn.errors"
 
-METRIC_AUTH_TOKEN_REQUESTS = "agents.auth.token.requests"
 METRIC_CONNECTOR_REQUESTS_TOTAL = "agents.connector.requests"
 METRIC_STORAGE_OPERATION_TOTAL = "agents.storage.operations.total"
 
@@ -76,7 +70,6 @@ METRIC_TURN_DURATION = "agents.turn.duration"
 METRIC_ADAPTER_PROCESS_DURATION = "agents.adapter.process.duration"
 METRIC_CONNECTOR_REQUEST_DURATION = "agents.connector.request.duration"
 METRIC_STORAGE_OPERATION_DURATION = "agents.storage.operation.duration"
-METRIC_AUTH_TOKEN_REQUEST_DURATION = "agents.auth.token.request.duration"
 
 
 # Attributes
@@ -93,9 +86,10 @@ ATTR_ACTIVITY_ID = "activity.id"
 ATTR_ACTIVITY_COUNT = "activities.count"
 ATTR_ACTIVITY_TYPE = "activity.type"
 ATTR_AGENTIC_USER_ID = "agentic.user.id"
-ATTR_AGENTIC_APP_INSTANCE_ID = "agentic.instance.id"
+ATTR_AGENTIC_INSTANCE_ID = "agentic.instanceId"
 ATTR_ATTACHMENT_ID = "attachment.id"
 ATTR_AUTH_SCOPES = "auth.scopes"
+ATTR_AUTH_TYPE = "auth.method"
 
 ATTR_CONVERSATION_ID = "conversation.id"
 

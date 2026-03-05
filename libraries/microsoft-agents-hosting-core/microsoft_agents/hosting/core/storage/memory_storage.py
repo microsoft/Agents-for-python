@@ -4,7 +4,7 @@
 from threading import Lock
 from typing import TypeVar
 
-from microsoft_agents.hosting.core.telemetry import agents_telemetry
+from microsoft_agents.hosting.core.telemetry import spans
 
 from ._type_aliases import JSON
 from .storage import Storage
@@ -26,10 +26,10 @@ class MemoryStorage(Storage):
             raise ValueError("Storage.read(): Keys are required when reading.")
         if not target_cls:
             raise ValueError("Storage.read(): target_cls cannot be None.")
-
-        result: dict[str, StoreItem] = {}
-        with self._lock:
-            with agents_telemetry.instrument_storage_op("read"):
+        
+        with spans.start_span_storage_read(len(keys)):
+            result: dict[str, StoreItem] = {}
+            with self._lock:
                 for key in keys:
                     if key == "":
                         raise ValueError("MemoryStorage.read(): key cannot be empty")
@@ -50,9 +50,9 @@ class MemoryStorage(Storage):
     async def write(self, changes: dict[str, StoreItem]):
         if not changes:
             raise ValueError("MemoryStorage.write(): changes cannot be None")
-
-        with self._lock:
-            with agents_telemetry.instrument_storage_op("write"):
+        
+        with spans.start_spans_storage_write(len(changes)):
+            with self._lock:
                 for key in changes:
                     if key == "":
                         raise ValueError("MemoryStorage.write(): key cannot be empty")
@@ -62,8 +62,8 @@ class MemoryStorage(Storage):
         if not keys:
             raise ValueError("Storage.delete(): Keys are required when deleting.")
 
-        with self._lock:
-            with agents_telemetry.instrument_storage_op("delete"):
+        with spans.start_span_storage_delete(len(keys)):
+            with self._lock:
                 for key in keys:
                     if key == "":
                         raise ValueError("MemoryStorage.delete(): key cannot be empty")

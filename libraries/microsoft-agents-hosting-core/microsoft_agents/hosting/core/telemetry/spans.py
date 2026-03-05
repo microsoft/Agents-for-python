@@ -212,29 +212,6 @@ def start_span_storage_delete(self) -> Iterator[None]:
 # Auth
 #
 
-@contextmanager
-def start_span_auth_get_access_token(self) -> Iterator[None]:
-    with agents_telemetry.start_as_current_span(constants.SPAN_AUTH_GET_ACCESS_TOKEN):
-        yield
-
-
-@contextmanager
-def start_span_auth_acquire_token_on_behalf_of(self) -> Iterator[None]:
-    with agents_telemetry.start_as_current_span(constants.SPAN_AUTH_ACQUIRE_TOKEN_ON_BEHALF_OF):
-        yield
-
-
-@contextmanager
-def start_span_auth_get_agentic_instance_token(self) -> Iterator[None]:
-    with agents_telemetry.start_as_current_span(constants.SPAN_AUTH_GET_AGENTIC_INSTANCE_TOKEN):
-        yield
-
-
-@contextmanager
-def start_span_auth_get_agentic_user_token(self) -> Iterator[None]:
-    with agents_telemetry.start_as_current_span(constants.SPAN_AUTH_GET_AGENTIC_USER_TOKEN):
-        yield
-
 
 @contextmanager
 def start_span_agent_post_activity(self) -> Iterator[None]:

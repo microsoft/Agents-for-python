@@ -7,7 +7,7 @@
 #
 # This design hides the "mess" of telemetry to one location rather than throughout the codebase.
 
-from ._agents_temetry import agents_telemetry
+from ._agents_telemetry import agents_telemetry
 from .configure_telemetry import configure_telemetry
 from .constants import (
     SERVICE_NAME,
