@@ -40,9 +40,13 @@ from opentelemetry.sdk.trace import TracerProvider
 from opentelemetry.sdk.trace.export import BatchSpanProcessor
 from opentelemetry.trace import StatusCode
 
-from microsoft_agents_a365.observability.extensions.agentframework import AgentFrameworkInstrumentor
-
 logger = logging.getLogger(__name__)
+
+try:
+    from microsoft_agents_a365.observability.extensions.agentframework import AgentFrameworkInstrumentor as _AgentFrameworkInstrumentor
+    _HAS_AGENT_FRAMEWORK_INSTRUMENTOR = True
+except ImportError:
+    _HAS_AGENT_FRAMEWORK_INSTRUMENTOR = False
 
 HEALTH_ENDPOINT_PATH = "/health"
 ALIVENESS_ENDPOINT_PATH = "/alive"
@@ -54,6 +58,89 @@ _SOURCE_NAME = "A365.AgentFramework"
 # ---------------------------------------------------------------------------
 # Primary public API
 # ---------------------------------------------------------------------------
+
+
+def instrument_libraries() -> None:
+    """Instrument common HTTP libraries for automatic OpenTelemetry tracing.
+
+    Equivalent to the ``Use*Instrumentation()`` calls in the C# host builder.
+    Instruments:
+    - aiohttp server (inbound requests)
+    - aiohttp client (outbound requests) with URL enrichment hooks
+    - requests library (outbound requests) with URL enrichment hooks
+
+    Call this once at startup, before the server starts handling requests.
+    Each instrumentor is guarded with a try/except so missing optional packages
+    do not prevent the server from starting.
+    """
+    # aiohttp server
+    try:
+        from opentelemetry.instrumentation.aiohttp_server import AioHttpServerInstrumentor
+        AioHttpServerInstrumentor().instrument()
+        logger.debug("aiohttp server instrumentation enabled")
+    except ImportError:
+        logger.debug(
+            "opentelemetry-instrumentation-aiohttp-server not installed. "
+            "Install: pip install opentelemetry-instrumentation-aiohttp-server"
+        )
+
+    # aiohttp client
+    try:
+        import aiohttp
+        from opentelemetry.instrumentation.aiohttp_client import AioHttpClientInstrumentor
+        from opentelemetry.trace import Span
+
+        def _aiohttp_client_request_hook(span: Span, params: aiohttp.TraceRequestStartParams):
+            if span and span.is_recording():
+                span.set_attribute("http.url", str(params.url))
+
+        def _aiohttp_client_response_hook(span: Span, params):
+            if span and span.is_recording():
+                span.set_attribute("http.url", str(params.url))
+
+        AioHttpClientInstrumentor().instrument(
+            request_hook=_aiohttp_client_request_hook,
+            response_hook=_aiohttp_client_response_hook,
+        )
+        logger.debug("aiohttp client instrumentation enabled")
+    except ImportError:
+        logger.debug(
+            "opentelemetry-instrumentation-aiohttp-client not installed. "
+            "Install: pip install opentelemetry-instrumentation-aiohttp-client"
+        )
+
+    # requests library
+    try:
+        import requests as _requests
+        from opentelemetry.instrumentation.requests import RequestsInstrumentor
+        from opentelemetry.trace import Span
+
+        def _requests_request_hook(span: Span, request: _requests.Request):
+            if span and span.is_recording():
+                span.set_attribute("http.url", request.url)
+
+        def _requests_response_hook(span: Span, request: _requests.Request, response: _requests.Response):
+            if span and span.is_recording():
+                span.set_attribute("http.url", response.url)
+
+        RequestsInstrumentor().instrument(
+            request_hook=_requests_request_hook,
+            response_hook=_requests_response_hook,
+        )
+        logger.debug("requests instrumentation enabled")
+    except ImportError:
+        logger.debug(
+            "opentelemetry-instrumentation-requests not installed. "
+            "Install: pip install opentelemetry-instrumentation-requests"
+        )
+
+    # AgentFramework instrumentor (optional A365 package)
+    if _HAS_AGENT_FRAMEWORK_INSTRUMENTOR:
+        try:
+            _AgentFrameworkInstrumentor().instrument()
+            logger.debug("AgentFramework instrumentation enabled")
+        except Exception as exc:
+            logger.warning("AgentFramework instrumentation failed: %s", exc)
 
 
 def configure_opentelemetry(
@@ -92,7 +179,8 @@ def configure_opentelemetry(
 
     _configure_tracing(resource, app_name, otlp_endpoint, azure_monitor_connection_string)
     _configure_metrics(resource, otlp_endpoint, azure_monitor_connection_string)
-    _configure_logging()
+    _configure_logging(resource, otlp_endpoint)
+    instrument_libraries()
 
     logger.info(
         "OpenTelemetry configured — service: %s, environment: %s",
@@ -255,32 +343,47 @@ def _configure_metrics(
     metrics.set_meter_provider(meter_provider)
 
 
-def enable_agentframework_instrumentation() -> None:
-    """Enable AgentFramework automatic instrumentation.
-
-    Equivalent to ``AgentFrameworkInstrumentor().instrument()`` called in
-    ``_enable_agentframework_instrumentation()`` of the reference
-    sample-agent/agent.py.
-
-    Must be called **after** :func:`configure_opentelemetry` so that the
-    TracerProvider is already in place when the instrumentor registers its
-    hooks.  If the ``microsoft-agents-a365`` package is not installed the
-    call is a graceful no-op, matching the try/except pattern used in the
-    reference sample.
-    """
-    try:
-        AgentFrameworkInstrumentor().instrument()
-        logger.info("✅ AgentFramework instrumentation enabled")
-    except Exception as e:
-        logger.warning("⚠️ AgentFramework instrumentation failed: %s", e)
-
-
-def _configure_logging() -> None:
-    """Bridge Python logging to the OTEL LoggerProvider when available.
+def _configure_logging(
+    resource: Resource,
+    otlp_endpoint: Optional[str],
+) -> None:
+    """Configure OTEL LoggerProvider and bridge Python logging.
 
     Equivalent to ``builder.Logging.AddOpenTelemetry(...)`` in C#.
-    Requires ``pip install opentelemetry-instrumentation-logging``.
+
+    When an OTLP endpoint is available, a full LoggerProvider is created and
+    log records are exported via OTLP (matching the otel sample behaviour).
+    In all cases, Python log records are correlated with the active trace
+    context when ``opentelemetry-instrumentation-logging`` is installed.
+
+    Args:
+        resource: The shared OTel Resource created in configure_opentelemetry.
+        otlp_endpoint: OTLP collector URL, or None to skip OTLP log export.
     """
+    resolved_otlp = otlp_endpoint or os.environ.get("OTEL_EXPORTER_OTLP_ENDPOINT")
+    if resolved_otlp:
+        try:
+            from opentelemetry._logs import set_logger_provider
+            from opentelemetry.sdk._logs import LoggerProvider, LoggingHandler
+            from opentelemetry.sdk._logs.export import BatchLogRecordProcessor
+            from opentelemetry.exporter.otlp.proto.grpc._log_exporter import OTLPLogExporter
+
+            logger_provider = LoggerProvider(resource=resource)
+            logger_provider.add_log_record_processor(
+                BatchLogRecordProcessor(OTLPLogExporter(endpoint=resolved_otlp))
+            )
+            set_logger_provider(logger_provider)
+
+            handler = LoggingHandler(level=logging.NOTSET, logger_provider=logger_provider)
+            logging.getLogger().addHandler(handler)
+            logger.info("OTLP log exporter → %s", resolved_otlp)
+        except ImportError:
+            logger.warning(
+                "OTLP log exporter requested but package not found. "
+                "Install: pip install opentelemetry-exporter-otlp-proto-grpc"
+            )
+
+    # Bridge Python logging to trace context (adds trace_id/span_id to log records)
     try:
         from opentelemetry.instrumentation.logging import LoggingInstrumentor
 

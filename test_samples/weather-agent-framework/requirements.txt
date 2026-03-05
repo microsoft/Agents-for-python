@@ -25,12 +25,21 @@ typing-extensions
 opentelemetry-api
 opentelemetry-sdk
 
-# OpenTelemetry — optional exporters
+# OpenTelemetry — exporters
+# OTLP (traces, metrics, logs) — for Aspire dashboard, Jaeger, etc.
+opentelemetry-exporter-otlp
 # Azure Monitor / Application Insights
 azure-monitor-opentelemetry-exporter
+
+# OpenTelemetry — library auto-instrumentation
+# aiohttp server (inbound) and client (outbound)
+opentelemetry-instrumentation-aiohttp-server
+opentelemetry-instrumentation-aiohttp-client
+# requests library (outbound HTTP)
+opentelemetry-instrumentation-requests
 # Correlate Python log records with trace context
 opentelemetry-instrumentation-logging
 
-# A365 observability — AgentFramework automatic instrumentation
+# A365 observability — AgentFramework automatic instrumentation (optional)
 # Provides AgentFrameworkInstrumentor used in telemetry/agent_otel_extensions.py
 microsoft-agents-a365-observability-extensions-agent-framework>=0.2.1.dev32

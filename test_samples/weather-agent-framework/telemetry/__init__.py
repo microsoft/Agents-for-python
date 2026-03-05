@@ -45,7 +45,7 @@ from .agent_metrics import (
 from .agent_otel_extensions import (
     configure_opentelemetry,
     create_aiohttp_tracing_middleware,
-    enable_agentframework_instrumentation,
+    instrument_libraries,
     setup_health_routes,
 )
 
@@ -67,7 +67,7 @@ __all__ = [
     "invoke_observed_agent_operation_with_context",
     # agent_otel_extensions
     "configure_opentelemetry",
-    "enable_agentframework_instrumentation",
+    "instrument_libraries",
     "setup_health_routes",
     "create_aiohttp_tracing_middleware",
 ]
