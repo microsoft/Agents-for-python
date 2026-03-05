@@ -117,7 +117,7 @@ class MsalAuth(AccessTokenProviderBase):
         :param user_assertion: The user assertion token.
         :return: The access token as a string.
         """
-        with spans.start_span_auth_acquire_token_on_behalf_of():
+        with spans.start_span_auth_acquire_token_on_behalf_of(scopes):
             msal_auth_client = self._get_client()
             if isinstance(msal_auth_client, ManagedIdentityClient):
                 logger.error(

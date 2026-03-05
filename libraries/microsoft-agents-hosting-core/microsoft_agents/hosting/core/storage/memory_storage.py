@@ -51,7 +51,7 @@ class MemoryStorage(Storage):
         if not changes:
             raise ValueError("MemoryStorage.write(): changes cannot be None")
         
-        with spans.start_spans_storage_write(len(changes)):
+        with spans.start_span_storage_write(len(changes)):
             with self._lock:
                 for key in changes:
                     if key == "":

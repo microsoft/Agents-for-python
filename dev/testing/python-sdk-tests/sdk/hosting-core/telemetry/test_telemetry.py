@@ -7,6 +7,8 @@ from opentelemetry.sdk.trace.export.in_memory_span_exporter import InMemorySpanE
 from opentelemetry.sdk.metrics import MeterProvider
 from opentelemetry.sdk.metrics.export import InMemoryMetricReader
 
+from microsoft_agents.hosting.core.telemetry import constants
+
 from ...scenarios import load_scenario
 
 _SCENARIO = load_scenario("quickstart", use_jwt_middleware=False)
@@ -79,13 +81,13 @@ async def test_basic(test_exporter, agent_client):
 
     # adapter processing is a key part of the turn, so we should have a span for it
     assert any(
-        span.name == "adapter process"
+        span.name == constants.SPAN_ADAPTER_PROCESS
         for span in spans
     )
 
     # storage is read when accessing conversation state
     assert any(
-        span.name == "storage read"
+        span.name == constants.SPAN_STORAGE_READ
         for span in spans
     )
 
@@ -113,15 +115,15 @@ async def test_multiple_users(test_exporter, agent_client):
 
     def assert_span_for_user(user_id: str):
         assert any(
-            span.name == "agent turn" and span.attributes.get("from.id") == user_id
+            span.name == constants.SPAN_APP_ON_TURN and span.attributes.get("from.id") == user_id
             for span in spans
         )
 
     assert_span_for_user("user1")
     assert_span_for_user("user2")
     
-    assert len(list(filter(lambda span: span.name == "agent turn", spans))) == 2
-    assert len(list(filter(lambda span: span.name == "adapter process", spans))) == 2
+    assert len(list(filter(lambda span: span.name == "agent", spans))) == 2
+    assert len(list(filter(lambda span: span.name == constants.SPANS_ADAPTER_PROCESS, spans))) == 2
 
 @pytest.mark.asyncio
 @pytest.mark.agent_test(_SCENARIO)
