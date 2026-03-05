@@ -43,7 +43,7 @@ ADAPTER_PROCESS_DURATION = agents_telemetry.meter.create_histogram(
 # Connectors
 
 CONNECTOR_REQUEST_TOTAL = agents_telemetry.meter.create_counter(
-    constants.METRIC_CONNECTOR_REQUEST_TOTAL,
+    constants.METRIC_CONNECTOR_REQUESTS_TOTAL,
     "request",
     description="Total number of connector requests made by the agent",
 )

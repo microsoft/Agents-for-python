@@ -20,6 +20,7 @@ from microsoft_agents.activity import (
 )
 from microsoft_agents.activity.entity.entity_types import EntityTypes
 from microsoft_agents.hosting.core.authorization.claims_identity import ClaimsIdentity
+from microsoft_agents.hosting.core.telemetry import spans
 
 
 class TurnContext(TurnContextProtocol):
@@ -207,8 +208,10 @@ class TurnContext(TurnContextProtocol):
             if speak:
                 activity_or_text.speak = speak
 
-        result = await self.send_activities([activity_or_text])
-        return result[0] if result else None
+        with spans.start_span_turn_context_send_activity(self.activity):
+
+            result = await self.send_activities([activity_or_text])
+            return result[0] if result else None
 
     async def send_activities(
         self, activities: list[Activity]
@@ -268,13 +271,14 @@ class TurnContext(TurnContextProtocol):
         :param activity:
         :return:
         """
-        reference = self.activity.get_conversation_reference()
+        with spans.start_span_turn_context_update_activity(self.activity):
+            reference = self.activity.get_conversation_reference()
 
-        return await self._emit(
-            self._on_update_activity,
-            TurnContext.apply_conversation_reference(activity, reference),
-            self.adapter.update_activity(self, activity),
-        )
+            return await self._emit(
+                self._on_update_activity,
+                TurnContext.apply_conversation_reference(activity, reference),
+                self.adapter.update_activity(self, activity),
+            )
 
     async def delete_activity(self, id_or_reference: str | ConversationReference):
         """
@@ -282,16 +286,17 @@ class TurnContext(TurnContextProtocol):
         :param id_or_reference:
         :return:
         """
-        if isinstance(id_or_reference, str):
-            reference = self.activity.get_conversation_reference()
-            reference.activity_id = id_or_reference
-        else:
-            reference = id_or_reference
-        return await self._emit(
-            self._on_delete_activity,
-            reference,
-            self.adapter.delete_activity(self, reference),
-        )
+        with spans.start_span_turn_context_delete_activity(self.activity):
+            if isinstance(id_or_reference, str):
+                reference = self.activity.get_conversation_reference()
+                reference.activity_id = id_or_reference
+            else:
+                reference = id_or_reference
+            return await self._emit(
+                self._on_delete_activity,
+                reference,
+                self.adapter.delete_activity(self, reference),
+            )
 
     def on_send_activities(self, handler) -> "TurnContext":
         """

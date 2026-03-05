@@ -3,8 +3,7 @@ from contextlib import contextmanager
 
 from opentelemetry.trace import Span
 
-from microsoft_agents.activity import Activity
-from microsoft_agents.hosting.core.turn_context import TurnContext
+from microsoft_agents.activity import Activity, TurnContextProtocol
 
 from . import _metrics, constants
 from ._agents_telemetry import agents_telemetry
@@ -74,7 +73,7 @@ def start_span_adapter_continue_conversation(activity: Activity) -> Iterator[Non
 #
 
 @contextmanager
-def start_span_app_on_turn(turn_context: TurnContextProtocolProtocol) -> Iterator[None]:
+def start_span_app_on_turn(turn_context: TurnContextProtocol) -> Iterator[None]:
     """Context manager for recording an app on_turn call, including success/failure and duration"""
 
     activity = turn_context.activity
@@ -201,11 +200,11 @@ def start_span_storage_read(num_keys: int) -> Iterator[None]:
     with _start_span_storage_op(constants.SPAN_STORAGE_READ, num_keys): yield
 
 @contextmanager
-def start_span_storage_write(self) -> Iterator[None]:
+def start_span_storage_write(num_keys: int) -> Iterator[None]:
     with _start_span_storage_op(constants.SPAN_STORAGE_WRITE, num_keys): yield
 
 @contextmanager
-def start_span_storage_delete(self) -> Iterator[None]:
+def start_span_storage_delete(num_keys: int) -> Iterator[None]:
     with _start_span_storage_op(constants.SPAN_STORAGE_DELETE, num_keys): yield
 
 #
@@ -219,164 +218,23 @@ def start_span_agent_post_activity(self) -> Iterator[None]:
         yield
 
 
+#
+# TurnContext
+#
+
 @contextmanager
-def start_span_turn_send_activity(self) -> Iterator[None]:
+def start_span_turn_context_send_activity(self) -> Iterator[None]:
     with agents_telemetry.start_as_current_span(constants.SPAN_TURN_SEND_ACTIVITY):
         yield
 
 
 @contextmanager
-def start_span_turn_send_activities(self) -> Iterator[None]:
-    with agents_telemetry.start_as_current_span(constants.SPAN_TURN_SEND_ACTIVITY):
-        yield
-
-
-@contextmanager
-def start_span_turn_update_activity(self) -> Iterator[None]:
+def start_span_turn_context_update_activity(self) -> Iterator[None]:
     with agents_telemetry.start_as_current_span(constants.SPAN_TURN_UPDATE_ACTIVITY):
         yield
 
 
 @contextmanager
-def start_span_turn_delete_activity(self) -> Iterator[None]:
+def start_span_turn_context_delete_activity(self) -> Iterator[None]:
     with agents_telemetry.start_as_current_span(constants.SPAN_TURN_DELETE_ACTIVITY):
         yield
-
-# def start_span_agent_turn(turn_context: TurnContextProtocol) -> Iterator[Span]:
-#     """Context manager for recording an agent turn, including success/failure and duration"""
-
-#     def callback(span: Span, duration: float, error: Exception | None):
-#         if error is None:
-#             _metrics.TURN_TOTAL.add(1)
-#             _metrics.TURN_DURATION.record(duration, {
-#                 "conversation.id": turn_context.activity.conversation.id if turn_context.activity.conversation else "unknown",
-#                 "channel.id": str(turn_context.activity.channel_id),
-#             })
-#         else:
-#             self._turn_errors.add(1)
-
-#     with self._start_timed_span(
-#         constants.AGENT_TURN_OPERATION_NAME,
-#         turn_context=turn_context,
-#         callback=callback,
-#     ) as span:
-#         yield span  # execute the turn operation in the with block
-
-# @contextmanager
-# def start_span_app_run(turn_context: TurnContextProtocol) -> Iterator[Span]:
-#     """Context manager for recording an app run, including success/failure and duration"""
-
-#     with agents_telemetry.start_as_current_span(
-#         constants.SPAN_APP_RUN,
-#         turn_context=turn_context
-#     )
-#     with self._start_timed_span(
-#         constants.APP_RUN_OPERATION_NAME,
-#         callback=callback
-#     ) as span:
-#         span.set_attribute("app.name", app_name)
-#         yield span  # execute the app run operation in the with block
-
-
-
-# def start_span_adapter_process(self):
-#     """Context manager for recording adapter processing operations"""
-
-#     def callback(span: Span, duration: float, error: Exception | None):
-#         if error is None:
-#             self._adapter_process_duration.record(duration)
-
-#     with self._start_timed_span(
-#         constants.ADAPTER_PROCESS_OPERATION_NAME,
-#         callback=callback
-#     ) as span:
-#         yield span  # execute the adapter processing in the with block
-
-# def _start_span_adapter_activity_op(span_name: str, conversation_id: str | None = None):
-
-
-#     @contextmanager
-#     def _instrument_adapter_activity_op(span_name: str):
-#         """Context manager for recording adapter activity operations ()"""
-#         with self.start_as_current_span(span_name) as span:
-#             yield span
-
-#     @contextmanager
-#     def instrument_adapter_send_activities(activity_count: int, conversation_id: str) -> None:
-#         """Context manager for recording adapter SendActivities calls"""
-#         with self._instrument_adapter_activity_op(constants.SPAN_ADAPTER_SEND_ACTIVITIES):
-#             yield
-
-#     @contextmanger
-#     def instrument_adapter_update_activity(activity_id: str, conversation_id: str) -> None:
-#         """Context manager for recording adapter UpdateActivity calls"""
-#         with self._instrument_adapter_activity_op(constants.SPAN_ADAPTER_UPDATE_ACTIVITY):
-#             yield
-    
-#     @contextmanager
-
-
-#     @contextmanager
-#     def instrument_storage_op(
-#         
-#         operation_type: str,
-#         num_keys: int,
-#     ):
-#         """Context manager for recording storage operations"""
-
-#         def callback(span: Span, duration: float, error: Exception | None):
-#             if error is None:
-#                 self._storage_operations.add(1, {"operation": operation_type})
-#                 self._storage_operation_duration.record(duration, {"operation": operation_type})
-
-#         with self._start_timed_span(
-#             constants.STORAGE_OPERATION_NAME_FORMAT.format(operation_type=operation_type),
-#             callback=callback
-#         ) as span:
-#             span.set_attribute(constants.ATTR_NUM_KEYS, num_keys)
-#             yield span  # execute the storage operation in the with block
-
-#     @contextmanager
-#     def instrument_connector_op(operation_name: str):
-#         """Context manager for recording connector requests"""
-
-#         def callback(span: Span, duration: float, error: Exception | None):
-#             if error is None:
-#                 self._connector_request_total.add(1, {"operation": operation_name})
-#                 self._connector_request_duration.record(duration, {"operation": operation_name})
-
-#         with self._start_timed_span(
-#             constants.CONNECTOR_REQUEST_OPERATION_NAME_FORMAT.format(operation_name=operation_name),
-#             callback=callback
-#         ) as span:
-#             yield span  # execute the connector request in the with block
-
-#     @contextmanager
-#     def instrument_auth_token_request(
-#         
-#         scopes: list[str] | None = None,
-#         agentic_user_id: str | None = None,
-#         agentic_app_instance_id: str | None = None
-#     ):
-#         """Context manager for recording auth token retrieval operations"""
-
-#         def callback(span: Span, duration: float, error: Exception | None):
-#             if error is None:
-#                 self._auth_token_request_total.add(1)
-#                 self._auth_token_requests_duration.record(duration)
-
-#         with self._start_timed_span(
-#             constants.AUTH_TOKEN_REQUEST_OPERATION_NAME,
-#             callback=callback
-#         ) as span:
-
-#             attributes = {
-#                 constants.ATTR_AUTH_SCOPES: scopes,
-#                 constants.ATTR_AGENTIC_USER_ID: agentic_user_id,
-#                 constants.ATTR_AGENTIC_APP_INSTANCE_ID: agentic_app_instance_id,
-#             }
-#             _remove_nones(attributes)
-            
-#             span.set_attributes(attributes)
-
-#             yield span  # execute the auth token retrieval operation in the with block

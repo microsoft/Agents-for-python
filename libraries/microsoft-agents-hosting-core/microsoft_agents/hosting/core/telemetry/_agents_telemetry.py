@@ -10,7 +10,7 @@ from opentelemetry.metrics import Meter
 from opentelemetry import metrics, trace
 from opentelemetry.trace import Tracer, Span
 
-from microsoft_agents.hosting.core.turn_context import TurnContext
+from microsoft_agents.activity import TurnContextProtocol
 
 from . import constants
 
@@ -48,7 +48,7 @@ class _AgentsTelemetry:
         """Returns the OpenTelemetry meter instance for recording metrics"""
         return self._meter
 
-    def _extract_attributes_from_context(self, turn_context: TurnContext) -> dict:
+    def _extract_attributes_from_context(self, turn_context: TurnContextProtocol) -> dict:
         """Helper method to extract common attributes from the TurnContext for span and metric recording"""
 
         # This can be expanded to extract common attributes for spans and metrics from the context
@@ -69,7 +69,7 @@ class _AgentsTelemetry:
     def start_as_current_span(
         self,
         span_name: str,
-        turn_context: TurnContext | None = None,
+        turn_context: TurnContextProtocol | None = None,
     ) -> Iterator[Span]:
         """Context manager for starting a new span with the given name and setting attributes from the TurnContext if provided
         
@@ -98,7 +98,7 @@ class _AgentsTelemetry:
     def start_timed_span(
         self,
         span_name: str,
-        turn_context: TurnContext | None = None,
+        turn_context: TurnContextProtocol | None = None,
         callback: _TimedSpanCallback | None = None
     ) -> Iterator[Span]:
         """Context manager for starting a timed span that records duration and success/failure status, and invokes a callback with the results
