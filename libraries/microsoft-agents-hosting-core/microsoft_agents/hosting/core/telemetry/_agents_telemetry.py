@@ -87,7 +87,6 @@ class _AgentsTelemetry:
         use the provided context managers like `instrument_agent_turn`, `instrument_adapter_process`, etc.,
         which will automatically record relevant metrics and handle success/failure cases.
         """
-    
         with self._tracer.start_as_current_span(span_name) as span:
             if turn_context is not None:
                 attributes = self._extract_attributes_from_context(turn_context)

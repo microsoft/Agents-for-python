@@ -208,7 +208,7 @@ class TurnContext(TurnContextProtocol):
             if speak:
                 activity_or_text.speak = speak
 
-        with spans.start_span_turn_context_send_activity(self.activity):
+        with spans.start_span_turn_context_send_activity(self):
 
             result = await self.send_activities([activity_or_text])
             return result[0] if result else None
@@ -271,7 +271,7 @@ class TurnContext(TurnContextProtocol):
         :param activity:
         :return:
         """
-        with spans.start_span_turn_context_update_activity(self.activity):
+        with spans.start_span_turn_context_update_activity(self):
             reference = self.activity.get_conversation_reference()
 
             return await self._emit(
@@ -286,7 +286,7 @@ class TurnContext(TurnContextProtocol):
         :param id_or_reference:
         :return:
         """
-        with spans.start_span_turn_context_delete_activity(self.activity):
+        with spans.start_span_turn_context_delete_activity(self):
             if isinstance(id_or_reference, str):
                 reference = self.activity.get_conversation_reference()
                 reference.activity_id = id_or_reference

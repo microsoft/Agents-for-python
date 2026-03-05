@@ -208,33 +208,22 @@ def start_span_storage_delete(num_keys: int) -> Iterator[None]:
     with _start_span_storage_op(constants.SPAN_STORAGE_DELETE, num_keys): yield
 
 #
-# Auth
-#
-
-
-@contextmanager
-def start_span_agent_post_activity(self) -> Iterator[None]:
-    with agents_telemetry.start_as_current_span("agents.agentClient.postActivity"):
-        yield
-
-
-#
 # TurnContext
 #
 
 @contextmanager
-def start_span_turn_context_send_activity(self) -> Iterator[None]:
-    with agents_telemetry.start_as_current_span(constants.SPAN_TURN_SEND_ACTIVITY):
+def start_span_turn_context_send_activity(turn_context: TurnContextProtocol) -> Iterator[None]:
+    with agents_telemetry.start_as_current_span(constants.SPAN_TURN_SEND_ACTIVITY, turn_context):
         yield
 
 
 @contextmanager
-def start_span_turn_context_update_activity(self) -> Iterator[None]:
-    with agents_telemetry.start_as_current_span(constants.SPAN_TURN_UPDATE_ACTIVITY):
+def start_span_turn_context_update_activity(turn_context: TurnContextProtocol) -> Iterator[None]:
+    with agents_telemetry.start_as_current_span(constants.SPAN_TURN_UPDATE_ACTIVITY, turn_context):
         yield
 
 
 @contextmanager
-def start_span_turn_context_delete_activity(self) -> Iterator[None]:
-    with agents_telemetry.start_as_current_span(constants.SPAN_TURN_DELETE_ACTIVITY):
+def start_span_turn_context_delete_activity(turn_context: TurnContextProtocol) -> Iterator[None]:
+    with agents_telemetry.start_as_current_span(constants.SPAN_TURN_DELETE_ACTIVITY, turn_context):
         yield
