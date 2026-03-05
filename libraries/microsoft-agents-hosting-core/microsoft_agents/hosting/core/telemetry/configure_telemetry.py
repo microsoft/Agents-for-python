@@ -41,3 +41,5 @@ def configure_telemetry() -> None:
     # Add logging handler
     handler = LoggingHandler(level=logging.NOTSET, logger_provider=logger_provider)
     logging.getLogger().addHandler(handler)
+
+    

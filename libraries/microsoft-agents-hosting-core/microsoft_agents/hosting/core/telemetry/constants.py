@@ -18,26 +18,96 @@ RESOURCE = Resource.create(
 
 # Span operation names
 
-ADAPTER_PROCESS_OPERATION_NAME = "adapter process"
-AGENT_TURN_OPERATION_NAME = "agent turn"
-AUTH_TOKEN_REQUEST_OPERATION_NAME = "auth token request"
-CONNECTOR_REQUEST_OPERATION_NAME_FORMAT = "connector {operation_name}"
-STORAGE_OPERATION_NAME_FORMAT = "storage {operation_name}"
+SPAN_ADAPTER_PROCESS = "agents.adapter.process"
+SPAN_ADAPTER_SEND_ACTIVITIES = "agents.adapter.sendActivities"
+SPAN_ADAPTER_UPDATE_ACTIVITY = "agents.adapter.updateActivity"
+SPAN_ADAPTER_DELETE_ACTIVITY = "agents.adapter.deleteActivity"
+SPAN_ADAPTER_CONTINUE_CONVERSATION = "agents.adapter.continueConversation"
+SPAN_ADAPTER_CREATE_CONNECTOR_CLIENT = "agents.adapter.createConnectorClient"
 
-# Metric names
+SPAN_APP_RUN = "agents.app.run"
+SPAN_APP_ROUTE_HANDLER = "agents.app.routeHandler"
+SPAN_APP_BEFORE_TURN = "agents.app.beforeTurn"
+SPAN_APP_AFTER_TURN = "agents.app.afterTurn"
+SPAN_APP_DOWNLOAD_FILES = "agents.app.downloadFiles"
 
-ADAPTER_PROCESS_DURATION_METRIC_NAME = "agents.adapter.process.duration"
-ADAPTER_PROCESS_TOTAL_METRIC_NAME = "agents.adapter.process.total"
+SPAN_CONNECTOR_REPLY_TO_ACTIVITY = "agents.connector.replyToActivity"
+SPAN_CONNECTOR_SEND_TO_CONVERSATION = "agents.connector.sendToConversation"
+SPAN_CONNECTOR_UPDATE_ACTIVITY = "agents.connector.updateActivity"
+SPAN_CONNECTOR_DELETE_ACTIVITY = "agents.connector.deleteActivity"
+SPAN_CONNECTOR_CREATE_CONVERSATION = "agents.connector.createConversation"
+SPAN_CONNECTOR_GET_CONVERSATIONS = "agents.connector.getConversations"
+SPAN_CONNECTOR_GET_CONVERSATION_MEMBERS = "agents.connector.getConversationMembers"
+SPAN_CONNECTOR_UPDLOAD_ATTACHMENT = "agents.connector.uploadAttachment"
+SPAN_CONNECTOR_GET_ATTACHMENT = "agents.connector.getAttachment"
 
-AGENT_TURN_DURATION_METRIC_NAME = "agents.turn.duration"
-AGENT_TURN_TOTAL_METRIC_NAME = "agents.turn.total"
-AGENT_TURN_ERRORS_METRIC_NAME = "agents.turn.errors"
+SPAN_STORAGE_READ = "agents.storage.read"
+SPAN_STORAGE_WRITE = "agents.storage.write"
+SPAN_STORAGE_DELETE = "agents.storage.delete"
 
-AUTH_TOKEN_REQUEST_DURATION_METRIC_NAME = "agents.auth.request.duration"
-AUTH_TOKEN_REQUEST_TOTAL_METRIC_NAME = "agents.auth.request.total"
+SPAN_AUTH_GET_ACCESS_TOKEN = "agents.auth.getAccessToken"
+SPAN_AUTH_ACQUIRE_TOKEN_ON_BEHALF_OF = "agents.auth.acquireTokenOnBehalfOf"
+SPAN_AUTH_GET_AGENTIC_INSTANCE_TOKEN = "agents.auth.getAgenticInstanceToken"
+SPAN_AUTH_GET_AGENTIC_USER_TOKEN = "agents.auth.getAgenticUserToken"
 
-CONNECTOR_REQUEST_TOTAL_METRIC_NAME = "agents.connector.request.total"
-CONNECTOR_REQUEST_DURATION_METRIC_NAME = "agents.connector.request.duration"
+SPAN_TURN_SEND_ACTIVITY = "agents.turn.sendActivity"
+SPAN_TURN_UPDATE_ACTIVITY = "agents.turn.updateActivity"
+SPAN_TURN_DELETE_ACTIVITY = "agents.turn.deleteActivity"
 
-STORAGE_OPERATION_DURATION_METRIC_NAME = "storage.operation.duration"
-STORAGE_OPERATION_TOTAL_METRIC_NAME = "storage.operation.total"
+# Metrics
+
+# counters
+
+METRIC_ACTIVITIES_RECEIVED = "agents.activities.received"
+METRIC_ACTIVITIES_SENT = "agents.activities.sent"
+METRIC_ACTIVITIES_UPDATED = "agents.activities.updated"
+METRIC_ACTIVITIES_DELETED = "agents.activities.deleted"
+
+METRIC_TURN_TOTAL = "agents.turn.total"
+METRIC_TURN_ERRORS = "agents.turn.errors"
+
+METRIC_AUTH_TOKEN_REQUESTS = "agents.auth.token.requests"
+METRIC_CONNECTOR_REQUESTS_TOTAL = "agents.connector.requests"
+METRIC_STORAGE_OPERATION_TOTAL = "agents.storage.operations.total"
+
+# histograms
+
+METRIC_TURN_DURATION = "agents.turn.duration"
+METRIC_ADAPTER_PROCESS_DURATION = "agents.adapter.process.duration"
+METRIC_CONNECTOR_REQUEST_DURATION = "agents.connector.request.duration"
+METRIC_STORAGE_OPERATION_DURATION = "agents.storage.operation.duration"
+METRIC_AUTH_TOKEN_REQUEST_DURATION = "agents.auth.token.request.duration"
+
+
+# Attributes
+#
+# This section represents a mapping of internal attribute names to standardized telemetry attribute names.
+# There are two major reasons for this:
+# 1. Consistency with the other SDKs and the docs. Each language/SDK has different conventions for variable naming.
+# 2. Flexibility: This mapping allows us to change the internal attribute names without affecting the telemetry data.
+# 3. Efficiency: avoid snake case to camel case conversions (or any other convention)
+
+ATTR_ACTIVITY_DELIVERY_MODE = "activity.deliveryMode"
+ATTR_ACTIVITY_CHANNEL_ID = "activity.channelId"
+ATTR_ACTIVITY_ID = "activity.id"
+ATTR_ACTIVITY_COUNT = "activities.count"
+ATTR_ACTIVITY_TYPE = "activity.type"
+ATTR_AGENTIC_USER_ID = "agentic.user.id"
+ATTR_AGENTIC_APP_INSTANCE_ID = "agentic.instance.id"
+ATTR_ATTACHMENT_ID = "attachment.id"
+ATTR_AUTH_SCOPES = "auth.scopes"
+
+ATTR_CONVERSATION_ID = "conversation.id"
+
+ATTR_IS_AGENTIC_REQUEST = "isAgenticRequest"
+
+ATTR_NUM_KEYS = "keys.num"
+
+ATTR_ROUTE_IS_INVOKE = "route.isInvoke"
+ATTR_ROUTE_IS_AGENTIC = "route.isAgentic"
+
+ATTR_SERVICE_URL = "serviceUrl"
+
+# VALUES
+
+UNKNOWN = "unknown"

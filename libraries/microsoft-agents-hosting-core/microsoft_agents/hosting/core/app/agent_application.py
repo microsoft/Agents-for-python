@@ -30,7 +30,7 @@ from microsoft_agents.activity import (
     InvokeResponse,
 )
 
-from microsoft_agents.hosting.core.telemetry import agents_telemetry
+from microsoft_agents.hosting.core.telemetry import spans
 from microsoft_agents.hosting.core.turn_context import TurnContext
 
 from ..agent import Agent
@@ -671,7 +671,7 @@ class AgentApplication(Agent, Generic[StateT]):
     async def _on_turn(self, context: TurnContext):
         typing = None
         try:
-            with agents_telemetry.instrument_agent_turn(context):
+            with spans.start_span_app_on_turn(context.activity):
                 if context.activity.type != ActivityTypes.typing:
                     if self._options.start_typing_timer:
                         typing = TypingIndicator(context)
@@ -780,23 +780,25 @@ class AgentApplication(Agent, Generic[StateT]):
         return turn_state
 
     async def _run_before_turn_middleware(self, context: TurnContext, state: StateT):
-        for before_turn in self._internal_before_turn:
-            is_ok = await before_turn(context, state)
-            if not is_ok:
-                await state.save(context)
-                return False
-        return True
+        with spans.start_span_app_before_turn(context):
+            for before_turn in self._internal_before_turn:
+                is_ok = await before_turn(context, state)
+                if not is_ok:
+                    await state.save(context)
+                    return False
+            return True
 
     async def _handle_file_downloads(self, context: TurnContext, state: StateT):
-        if self._options.file_downloaders and len(self._options.file_downloaders) > 0:
-            input_files = state.temp.input_files if state.temp.input_files else []
-            for file_downloader in self._options.file_downloaders:
-                logger.info(
-                    f"Using file downloader: {file_downloader.__class__.__name__}"
-                )
-                files = await file_downloader.download_files(context)
-                input_files.extend(files)
-            state.temp.input_files = input_files
+        with spans.start_span_app_file_downloads(context):
+            if self._options.file_downloaders and len(self._options.file_downloaders) > 0:
+                input_files = state.temp.input_files if state.temp.input_files else []
+                for file_downloader in self._options.file_downloaders:
+                    logger.info(
+                        f"Using file downloader: {file_downloader.__class__.__name__}"
+                    )
+                    files = await file_downloader.download_files(context)
+                    input_files.extend(files)
+                state.temp.input_files = input_files
 
     def _contains_non_text_attachments(self, context: TurnContext):
         non_text_attachments = filter(
@@ -806,35 +808,37 @@ class AgentApplication(Agent, Generic[StateT]):
         return len(list(non_text_attachments)) > 0
 
     async def _run_after_turn_middleware(self, context: TurnContext, state: StateT):
-        for after_turn in self._internal_after_turn:
-            is_ok = await after_turn(context, state)
-            if not is_ok:
-                await state.save(context)
-                return False
-        return True
+        with spans.start_span_app_after_turn(context):
+            for after_turn in self._internal_after_turn:
+                is_ok = await after_turn(context, state)
+                if not is_ok:
+                    await state.save(context)
+                    return False
+            return True
 
     async def _on_activity(self, context: TurnContext, state: StateT):
-        for route in self._route_list:
-            if route.selector(context):
-                if not route.auth_handlers:
-                    await route.handler(context, state)
-                else:
-                    sign_in_complete = True
-                    for auth_handler_id in route.auth_handlers:
-                        if not (
-                            await self._auth._start_or_continue_sign_in(
-                                context, state, auth_handler_id
-                            )
-                        ).sign_in_complete():
-                            sign_in_complete = False
-                            break
-
-                    if sign_in_complete:
+        with spans.start_span_app_router_handler(context):
+            for route in self._route_list:
+                if route.selector(context):
+                    if not route.auth_handlers:
                         await route.handler(context, state)
-                return
-        logger.warning(
-            f"No route found for activity type: {context.activity.type} with text: {context.activity.text}"
-        )
+                    else:
+                        sign_in_complete = True
+                        for auth_handler_id in route.auth_handlers:
+                            if not (
+                                await self._auth._start_or_continue_sign_in(
+                                    context, state, auth_handler_id
+                                )
+                            ).sign_in_complete():
+                                sign_in_complete = False
+                                break
+
+                        if sign_in_complete:
+                            await route.handler(context, state)
+                    return
+            logger.warning(
+                f"No route found for activity type: {context.activity.type} with text: {context.activity.text}"
+            )
 
     async def _start_long_running_call(
         self, context: TurnContext, func: Callable[[TurnContext], Awaitable]

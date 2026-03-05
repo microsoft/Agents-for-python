@@ -18,6 +18,7 @@ from microsoft_agents.activity import (
     PagedMembersResult,
 )
 from microsoft_agents.hosting.core.connector import ConnectorClientBase
+from microsoft_agents.hosting.core.telemetry import spans
 from ..attachments_base import AttachmentsBase
 from ..conversations_base import ConversationsBase
 from ..get_product_info import get_product_info
@@ -94,33 +95,34 @@ class AttachmentsOperations(AttachmentsBase):
         :param view_id: The ID of the view.
         :return: The attachment as a readable stream.
         """
-        if attachment_id is None:
-            logger.error(
-                "AttachmentsOperations.get_attachment(): attachmentId is required",
-                stack_info=True,
-            )
-            raise ValueError("attachmentId is required")
-        if view_id is None:
-            logger.error(
-                "AttachmentsOperations.get_attachment(): viewId is required",
-                stack_info=True,
-            )
-            raise ValueError("viewId is required")
-
-        url = f"v3/attachments/{attachment_id}/views/{view_id}"
-
-        logger.info(
-            "Getting attachment for ID: %s, View ID: %s", attachment_id, view_id
-        )
-        async with self.client.get(url) as response:
-            if response.status >= 300:
+        with spans.start_span_connector_get_attachment(attachment_id=attachment_id):
+            if attachment_id is None:
                 logger.error(
-                    "Error getting attachment: %s", response.status, stack_info=True
+                    "AttachmentsOperations.get_attachment(): attachmentId is required",
+                    stack_info=True,
                 )
-                response.raise_for_status()
+                raise ValueError("attachmentId is required")
+            if view_id is None:
+                logger.error(
+                    "AttachmentsOperations.get_attachment(): viewId is required",
+                    stack_info=True,
+                )
+                raise ValueError("viewId is required")
 
-            data = await response.read()
-            return BytesIO(data)
+            url = f"v3/attachments/{attachment_id}/views/{view_id}"
+
+            logger.info(
+                "Getting attachment for ID: %s, View ID: %s", attachment_id, view_id
+            )
+            async with self.client.get(url) as response:
+                if response.status >= 300:
+                    logger.error(
+                        "Error getting attachment: %s", response.status, stack_info=True
+                    )
+                    response.raise_for_status()
+
+                data = await response.read()
+                return BytesIO(data)
 
 
 class ConversationsOperations(ConversationsBase):
@@ -193,44 +195,45 @@ class ConversationsOperations(ConversationsBase):
         :param body: The activity object.
         :return: The resource response.
         """
-        if not conversation_id or not activity_id:
-            logger.error(
-                "ConversationsOperations.reply_to_activity(): conversationId and activityId are required",
-                stack_info=True,
-            )
-            raise ValueError("conversationId and activityId are required")
-
-        conversation_id = self._normalize_conversation_id(conversation_id)
-        url = f"v3/conversations/{conversation_id}/activities/{activity_id}"
-
-        logger.info(
-            "Replying to activity: %s in conversation: %s. Activity type is %s",
-            activity_id,
-            conversation_id,
-            body.type,
-        )
-
-        async with self.client.post(
-            url,
-            json=body.model_dump(
-                by_alias=True, exclude_unset=True, exclude_none=True, mode="json"
-            ),
-        ) as response:
-            result = await response.json() if response.content_length else {}
-
-            if response.status >= 300:
+        with spans.start_span_connector_reply_to_activity(body):
+            if not conversation_id or not activity_id:
                 logger.error(
-                    "Error replying to activity: %s",
-                    result or response.status,
+                    "ConversationsOperations.reply_to_activity(): conversationId and activityId are required",
                     stack_info=True,
                 )
-                response.raise_for_status()
+                raise ValueError("conversationId and activityId are required")
+
+            conversation_id = self._normalize_conversation_id(conversation_id)
+            url = f"v3/conversations/{conversation_id}/activities/{activity_id}"
 
             logger.info(
-                "Reply to conversation/activity: %s, %s", result.get("id"), activity_id
+                "Replying to activity: %s in conversation: %s. Activity type is %s",
+                activity_id,
+                conversation_id,
+                body.type,
             )
 
-        return ResourceResponse.model_validate(result)
+            async with self.client.post(
+                url,
+                json=body.model_dump(
+                    by_alias=True, exclude_unset=True, exclude_none=True, mode="json"
+                ),
+            ) as response:
+                result = await response.json() if response.content_length else {}
+
+                if response.status >= 300:
+                    logger.error(
+                        "Error replying to activity: %s",
+                        result or response.status,
+                        stack_info=True,
+                    )
+                    response.raise_for_status()
+
+                logger.info(
+                    "Reply to conversation/activity: %s, %s", result.get("id"), activity_id
+                )
+
+            return ResourceResponse.model_validate(result)
 
     async def send_to_conversation(
         self, conversation_id: str, body: Activity
@@ -242,35 +245,36 @@ class ConversationsOperations(ConversationsBase):
         :param body: The activity object.
         :return: The resource response.
         """
-        if not conversation_id:
-            logger.error(
-                "ConversationsOperations.sent_to_conversation(): conversationId is required",
-                stack_info=True,
-            )
-            raise ValueError("conversationId is required")
-
-        conversation_id = self._normalize_conversation_id(conversation_id)
-        url = f"v3/conversations/{conversation_id}/activities"
-
-        logger.info(
-            "Sending to conversation: %s. Activity type is %s",
-            conversation_id,
-            body.type,
-        )
-        async with self.client.post(
-            url,
-            json=body.model_dump(by_alias=True, exclude_unset=True, mode="json"),
-        ) as response:
-            if response.status >= 300:
+        with spans.start_span_connector_send_to_conversation(conversation_id, body.id):
+            if not conversation_id:
                 logger.error(
-                    "Error sending to conversation: %s",
-                    response.status,
+                    "ConversationsOperations.sent_to_conversation(): conversationId is required",
                     stack_info=True,
                 )
-                response.raise_for_status()
+                raise ValueError("conversationId is required")
 
-            data = await response.json()
-            return ResourceResponse.model_validate(data)
+            conversation_id = self._normalize_conversation_id(conversation_id)
+            url = f"v3/conversations/{conversation_id}/activities"
+
+            logger.info(
+                "Sending to conversation: %s. Activity type is %s",
+                conversation_id,
+                body.type,
+            )
+            async with self.client.post(
+                url,
+                json=body.model_dump(by_alias=True, exclude_unset=True, mode="json"),
+            ) as response:
+                if response.status >= 300:
+                    logger.error(
+                        "Error sending to conversation: %s",
+                        response.status,
+                        stack_info=True,
+                    )
+                    response.raise_for_status()
+
+                data = await response.json()
+                return ResourceResponse.model_validate(data)
 
     async def update_activity(
         self, conversation_id: str, activity_id: str, body: Activity
@@ -283,34 +287,35 @@ class ConversationsOperations(ConversationsBase):
         :param body: The activity object.
         :return: The resource response.
         """
-        if not conversation_id or not activity_id:
-            logger.error(
-                "ConversationsOperations.update_activity(): conversationId and activityId are required",
-                stack_info=True,
-            )
-            raise ValueError("conversationId and activityId are required")
-
-        conversation_id = self._normalize_conversation_id(conversation_id)
-        url = f"v3/conversations/{conversation_id}/activities/{activity_id}"
-
-        logger.info(
-            "Updating activity: %s in conversation: %s. Activity type is %s",
-            activity_id,
-            conversation_id,
-            body.type,
-        )
-        async with self.client.put(
-            url,
-            json=body.model_dump(by_alias=True, exclude_unset=True),
-        ) as response:
-            if response.status >= 300:
+        with spans.start_span_connector_update_activity(body):
+            if not conversation_id or not activity_id:
                 logger.error(
-                    "Error updating activity: %s", response.status, stack_info=True
+                    "ConversationsOperations.update_activity(): conversationId and activityId are required",
+                    stack_info=True,
                 )
-                response.raise_for_status()
+                raise ValueError("conversationId and activityId are required")
 
-            data = await response.json()
-            return ResourceResponse.model_validate(data)
+            conversation_id = self._normalize_conversation_id(conversation_id)
+            url = f"v3/conversations/{conversation_id}/activities/{activity_id}"
+
+            logger.info(
+                "Updating activity: %s in conversation: %s. Activity type is %s",
+                activity_id,
+                conversation_id,
+                body.type,
+            )
+            async with self.client.put(
+                url,
+                json=body.model_dump(by_alias=True, exclude_unset=True),
+            ) as response:
+                if response.status >= 300:
+                    logger.error(
+                        "Error updating activity: %s", response.status, stack_info=True
+                    )
+                    response.raise_for_status()
+
+                data = await response.json()
+                return ResourceResponse.model_validate(data)
 
     async def delete_activity(self, conversation_id: str, activity_id: str) -> None:
         """
@@ -319,27 +324,30 @@ class ConversationsOperations(ConversationsBase):
         :param conversation_id: The ID of the conversation.
         :param activity_id: The ID of the activity.
         """
-        if not conversation_id or not activity_id:
-            logger.error(
-                "ConversationsOperations.delete_activity(): conversationId and activityId are required",
-                stack_info=True,
-            )
-            raise ValueError("conversationId and activityId are required")
-
-        conversation_id = self._normalize_conversation_id(conversation_id)
-        url = f"v3/conversations/{conversation_id}/activities/{activity_id}"
-
-        logger.info(
-            "Deleting activity: %s from conversation: %s",
-            activity_id,
-            conversation_id,
-        )
-        async with self.client.delete(url) as response:
-            if response.status >= 300:
+        with spans.start_span_connector_delete_activity(
+            activity_id=activity_id, conversation_id=conversation_id
+        ):
+            if not conversation_id or not activity_id:
                 logger.error(
-                    "Error deleting activity: %s", response.status, stack_info=True
+                    "ConversationsOperations.delete_activity(): conversationId and activityId are required",
+                    stack_info=True,
                 )
-                response.raise_for_status()
+                raise ValueError("conversationId and activityId are required")
+
+            conversation_id = self._normalize_conversation_id(conversation_id)
+            url = f"v3/conversations/{conversation_id}/activities/{activity_id}"
+
+            logger.info(
+                "Deleting activity: %s from conversation: %s",
+                activity_id,
+                conversation_id,
+            )
+            async with self.client.delete(url) as response:
+                if response.status >= 300:
+                    logger.error(
+                        "Error deleting activity: %s", response.status, stack_info=True
+                    )
+                    response.raise_for_status()
 
     async def upload_attachment(
         self, conversation_id: str, body: AttachmentData
@@ -351,38 +359,39 @@ class ConversationsOperations(ConversationsBase):
         :param body: The attachment data.
         :return: The resource response.
         """
-        if conversation_id is None:
-            logger.error(
-                "ConversationsOperations.upload_attachment(): conversationId is required",
-                stack_info=True,
-            )
-            raise ValueError("conversationId is required")
-
-        conversation_id = self._normalize_conversation_id(conversation_id)
-        url = f"v3/conversations/{conversation_id}/attachments"
-
-        # Convert the AttachmentData to a dictionary
-        attachment_dict = {
-            "name": body.name,
-            "originalBase64": body.original_base64,
-            "type": body.type,
-            "thumbnailBase64": body.thumbnail_base64,
-        }
-
-        logger.info(
-            "Uploading attachment to conversation: %s, Attachment name: %s",
-            conversation_id,
-            body.name,
-        )
-        async with self.client.post(url, json=attachment_dict) as response:
-            if response.status >= 300:
+        with spans.start_span_connector_upload_attachment(conversation_id):
+            if conversation_id is None:
                 logger.error(
-                    "Error uploading attachment: %s", response.status, stack_info=True
+                    "ConversationsOperations.upload_attachment(): conversationId is required",
+                    stack_info=True,
                 )
-                response.raise_for_status()
+                raise ValueError("conversationId is required")
 
-            data = await response.json()
-            return ResourceResponse.model_validate(data)
+            conversation_id = self._normalize_conversation_id(conversation_id)
+            url = f"v3/conversations/{conversation_id}/attachments"
+
+            # Convert the AttachmentData to a dictionary
+            attachment_dict = {
+                "name": body.name,
+                "originalBase64": body.original_base64,
+                "type": body.type,
+                "thumbnailBase64": body.thumbnail_base64,
+            }
+
+            logger.info(
+                "Uploading attachment to conversation: %s, Attachment name: %s",
+                conversation_id,
+                body.name,
+            )
+            async with self.client.post(url, json=attachment_dict) as response:
+                if response.status >= 300:
+                    logger.error(
+                        "Error uploading attachment: %s", response.status, stack_info=True
+                    )
+                    response.raise_for_status()
+
+                data = await response.json()
+                return ResourceResponse.model_validate(data)
 
     async def get_conversation_members(
         self, conversation_id: str
@@ -393,30 +402,31 @@ class ConversationsOperations(ConversationsBase):
         :param conversation_id: The ID of the conversation.
         :return: A list of members.
         """
-        if not conversation_id:
-            logger.error(
-                "ConversationsOperations.get_conversation_members(): conversationId is required",
-                stack_info=True,
-            )
-            raise ValueError("conversationId is required")
-
-        conversation_id = self._normalize_conversation_id(conversation_id)
-        url = f"v3/conversations/{conversation_id}/members"
-
-        logger.info(
-            "Getting conversation members for conversation: %s", conversation_id
-        )
-        async with self.client.get(url) as response:
-            if response.status >= 300:
+        with spans.start_span_connector_get_conversation_members():
+            if not conversation_id:
                 logger.error(
-                    "Error getting conversation members: %s",
-                    response.status,
+                    "ConversationsOperations.get_conversation_members(): conversationId is required",
                     stack_info=True,
                 )
-                response.raise_for_status()
+                raise ValueError("conversationId is required")
 
-            data = await response.json()
-            return [ChannelAccount.model_validate(member) for member in data]
+            conversation_id = self._normalize_conversation_id(conversation_id)
+            url = f"v3/conversations/{conversation_id}/members"
+
+            logger.info(
+                "Getting conversation members for conversation: %s", conversation_id
+            )
+            async with self.client.get(url) as response:
+                if response.status >= 300:
+                    logger.error(
+                        "Error getting conversation members: %s",
+                        response.status,
+                        stack_info=True,
+                    )
+                    response.raise_for_status()
+
+                data = await response.json()
+                return [ChannelAccount.model_validate(member) for member in data]
 
     async def get_conversation_member(
         self, conversation_id: str, member_id: str
@@ -428,32 +438,33 @@ class ConversationsOperations(ConversationsBase):
         :param member_id: The ID of the member.
         :return: The member.
         """
-        if not conversation_id or not member_id:
-            logger.error(
-                "ConversationsOperations.get_conversation_member(): conversationId and memberId are required",
-                stack_info=True,
-            )
-            raise ValueError("conversationId and memberId are required")
-
-        conversation_id = self._normalize_conversation_id(conversation_id)
-        url = f"v3/conversations/{conversation_id}/members/{member_id}"
-
-        logger.info(
-            "Getting conversation member: %s from conversation: %s",
-            member_id,
-            conversation_id,
-        )
-        async with self.client.get(url) as response:
-            if response.status >= 300:
+        with spans.start_span_connector_get_conversation_members():
+            if not conversation_id or not member_id:
                 logger.error(
-                    "Error getting conversation member: %s",
-                    response.status,
+                    "ConversationsOperations.get_conversation_member(): conversationId and memberId are required",
                     stack_info=True,
                 )
-                response.raise_for_status()
+                raise ValueError("conversationId and memberId are required")
 
-            data = await response.json()
-            return ChannelAccount.model_validate(data)
+            conversation_id = self._normalize_conversation_id(conversation_id)
+            url = f"v3/conversations/{conversation_id}/members/{member_id}"
+
+            logger.info(
+                "Getting conversation member: %s from conversation: %s",
+                member_id,
+                conversation_id,
+            )
+            async with self.client.get(url) as response:
+                if response.status >= 300:
+                    logger.error(
+                        "Error getting conversation member: %s",
+                        response.status,
+                        stack_info=True,
+                    )
+                    response.raise_for_status()
+
+                data = await response.json()
+                return ChannelAccount.model_validate(data)
 
     async def delete_conversation_member(
         self, conversation_id: str, member_id: str

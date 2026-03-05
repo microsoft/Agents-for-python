@@ -35,6 +35,7 @@ from microsoft_agents.hosting.core.authorization import (
     AuthenticationConstants,
     ClaimsIdentity,
 )
+from microsoft_agents.hosting.core.telemetry import spans
 from .channel_service_client_factory_base import ChannelServiceClientFactoryBase
 from .channel_adapter import ChannelAdapter
 from .turn_context import TurnContext
@@ -67,56 +68,58 @@ class ChannelServiceAdapter(ChannelAdapter, ABC):
         :rtype: list[:class:`microsoft_agents.activity.ResourceResponse`]
         :raises TypeError: If context or activities are None/invalid.
         """
-        if not context:
-            raise TypeError("Expected TurnContext but got None instead")
+        with spans.start_span_adapter_send_activities(activities):
+            
+            if not context:
+                raise TypeError("Expected TurnContext but got None instead")
 
-        if activities is None:
-            raise TypeError("Expected Activities list but got None instead")
+            if activities is None:
+                raise TypeError("Expected Activities list but got None instead")
 
-        if len(activities) == 0:
-            raise TypeError("Expecting one or more activities, but the list was empty.")
+            if len(activities) == 0:
+                raise TypeError("Expecting one or more activities, but the list was empty.")
+            
+            responses = []
 
-        responses = []
+            for activity in activities:
+                activity.id = None
 
-        for activity in activities:
-            activity.id = None
+                response = ResourceResponse()
 
-            response = ResourceResponse()
-
-            if activity.type == ActivityTypes.invoke_response:
-                context.turn_state[self.INVOKE_RESPONSE_KEY] = activity
-            elif (
-                activity.type == ActivityTypes.trace
-                and activity.channel_id != Channels.emulator
-            ):
-                # no-op
-                pass
-            else:
-                connector_client = cast(
-                    ConnectorClientBase,
-                    context.turn_state.get(self._AGENT_CONNECTOR_CLIENT_KEY),
-                )
-                if not connector_client:
-                    raise Error("Unable to extract ConnectorClient from turn context.")
-
-                if activity.reply_to_id:
-                    response = await connector_client.conversations.reply_to_activity(
-                        activity.conversation.id,
-                        activity.reply_to_id,
-                        activity,
-                    )
+                if activity.type == ActivityTypes.invoke_response:
+                    context.turn_state[self.INVOKE_RESPONSE_KEY] = activity
+                elif (
+                    activity.type == ActivityTypes.trace
+                    and activity.channel_id != Channels.emulator
+                ):
+                    # no-op
+                    pass
                 else:
-                    response = (
-                        await connector_client.conversations.send_to_conversation(
+                    connector_client = cast(
+                        ConnectorClientBase,
+                        context.turn_state.get(self._AGENT_CONNECTOR_CLIENT_KEY),
+                    )
+                    if not connector_client:
+                        raise Error("Unable to extract ConnectorClient from turn context.")
+
+                    if activity.reply_to_id:
+                        response = await connector_client.conversations.reply_to_activity(
                             activity.conversation.id,
+                            activity.reply_to_id,
                             activity,
                         )
-                    )
-            response = response or ResourceResponse(id=activity.id or "")
+                    else:
+                        response = (
+                            await connector_client.conversations.send_to_conversation(
+                                activity.conversation.id,
+                                activity,
+                            )
+                        )
+                response = response or ResourceResponse(id=activity.id or "")
 
-            responses.append(response)
+                responses.append(response)
 
-        return responses
+            return responses
 
     async def update_activity(self, context: TurnContext, activity: Activity):
         """
@@ -130,22 +133,24 @@ class ChannelServiceAdapter(ChannelAdapter, ABC):
         :rtype: :class:`microsoft_agents.activity.ResourceResponse`
         :raises TypeError: If context or activity are None/invalid.
         """
-        if not context:
-            raise TypeError("Expected TurnContext but got None instead")
+        with spans.start_span_adapter_update_activity(activity):
 
-        if activity is None:
-            raise TypeError("Expected Activity but got None instead")
+            if not context:
+                raise TypeError("Expected TurnContext but got None instead")
 
-        connector_client = cast(
-            ConnectorClientBase,
-            context.turn_state.get(self._AGENT_CONNECTOR_CLIENT_KEY),
-        )
-        if not connector_client:
-            raise Error("Unable to extract ConnectorClient from turn context.")
+            if activity is None:
+                raise TypeError("Expected Activity but got None instead")
 
-        return await connector_client.conversations.update_activity(
-            activity.conversation.id, activity.id, activity
-        )
+            connector_client = cast(
+                ConnectorClientBase,
+                context.turn_state.get(self._AGENT_CONNECTOR_CLIENT_KEY),
+            )
+            if not connector_client:
+                raise Error("Unable to extract ConnectorClient from turn context.")
+
+            return await connector_client.conversations.update_activity(
+                activity.conversation.id, activity.id, activity
+            )
 
     async def delete_activity(
         self, context: TurnContext, reference: ConversationReference
@@ -159,22 +164,24 @@ class ChannelServiceAdapter(ChannelAdapter, ABC):
         :type reference: :class:`microsoft_agents.activity.ConversationReference`
         :raises TypeError: If context or reference are None/invalid.
         """
-        if not context:
-            raise TypeError("Expected TurnContext but got None instead")
+        with spans.start_span_adapter_delete_activity(context.activity):
 
-        if not reference:
-            raise TypeError("Expected ConversationReference but got None instead")
+            if not context:
+                raise TypeError("Expected TurnContext but got None instead")
 
-        connector_client = cast(
-            ConnectorClientBase,
-            context.turn_state.get(self._AGENT_CONNECTOR_CLIENT_KEY),
-        )
-        if not connector_client:
-            raise Error("Unable to extract ConnectorClient from turn context.")
+            if not reference:
+                raise TypeError("Expected ConversationReference but got None instead")
 
-        await connector_client.conversations.delete_activity(
-            reference.conversation.id, reference.activity_id
-        )
+            connector_client = cast(
+                ConnectorClientBase,
+                context.turn_state.get(self._AGENT_CONNECTOR_CLIENT_KEY),
+            )
+            if not connector_client:
+                raise Error("Unable to extract ConnectorClient from turn context.")
+
+            await connector_client.conversations.delete_activity(
+                reference.conversation.id, reference.activity_id
+            )
 
     async def continue_conversation(  # pylint: disable=arguments-differ
         self,
@@ -196,21 +203,22 @@ class ChannelServiceAdapter(ChannelAdapter, ABC):
         :param callback: The method to call for the resulting agent turn.
         :type callback: Callable[[:class:`microsoft_agents.hosting.core.turn_context.TurnContext`], Awaitable]
         """
-        if not callable:
-            raise TypeError(
-                "Expected Callback (Callable[[TurnContext], Awaitable]) but got None instead"
+        with spans.start_span_adapter_continue_conversation(continuation_activity):
+            if not callable:
+                raise TypeError(
+                    "Expected Callback (Callable[[TurnContext], Awaitable]) but got None instead"
+                )
+
+            self._validate_continuation_activity(continuation_activity)
+
+            claims_identity = self.create_claims_identity(agent_app_id)
+
+            return await self.process_proactive(
+                claims_identity,
+                continuation_activity,
+                claims_identity.get_token_audience(),
+                callback,
             )
-
-        self._validate_continuation_activity(continuation_activity)
-
-        claims_identity = self.create_claims_identity(agent_app_id)
-
-        return await self.process_proactive(
-            claims_identity,
-            continuation_activity,
-            claims_identity.get_token_audience(),
-            callback,
-        )
 
     async def continue_conversation_with_claims(
         self,
@@ -231,12 +239,13 @@ class ChannelServiceAdapter(ChannelAdapter, ABC):
         :param audience: The audience for the conversation.
         :type audience: Optional[str]
         """
-        return await self.process_proactive(
-            claims_identity,
-            continuation_activity,
-            audience or claims_identity.get_token_audience(),
-            callback,
-        )
+        with spans.start_span_adapter_continue_continue_conversation(continuation_activity):
+            return await self.process_proactive(
+                claims_identity,
+                continuation_activity,
+                audience or claims_identity.get_token_audience(),
+                callback,
+            )
 
     async def create_conversation(  # pylint: disable=arguments-differ
         self,
