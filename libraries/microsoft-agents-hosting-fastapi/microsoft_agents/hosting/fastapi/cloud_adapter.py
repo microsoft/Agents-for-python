@@ -71,15 +71,14 @@ class CloudAdapter(HttpAdapterBase, AgentHttpAdapter):
         Returns:
             FastAPI Response object.
         """
-        with agents_telemetry.instrument_adapter_process():
-            # Adapt request to protocol
-            adapted_request = FastApiRequestAdapter(request)
+        # Adapt request to protocol
+        adapted_request = FastApiRequestAdapter(request)
 
-            # Process using base implementation
-            http_response: HttpResponse = await self.process_request(adapted_request, agent)
+        # Process using base implementation
+        http_response: HttpResponse = await self.process_request(adapted_request, agent)
 
-            # Convert HttpResponse to FastAPI Response
-            return self._to_fastapi_response(http_response)
+        # Convert HttpResponse to FastAPI Response
+        return self._to_fastapi_response(http_response)
 
     @staticmethod
     def _to_fastapi_response(http_response: HttpResponse) -> Response:

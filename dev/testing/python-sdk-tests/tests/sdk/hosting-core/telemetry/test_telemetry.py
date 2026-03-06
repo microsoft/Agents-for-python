@@ -9,7 +9,7 @@ from opentelemetry.sdk.metrics.export import InMemoryMetricReader
 
 from microsoft_agents.hosting.core.telemetry import constants
 
-from ...scenarios import load_scenario
+from tests.scenarios import load_scenario
 
 _SCENARIO = load_scenario("quickstart", use_jwt_middleware=False)
 
@@ -62,10 +62,10 @@ async def test_basic(test_exporter, agent_client):
 
     # We should have a span for the overall turn
     assert any(
-        span.name == "agent turn"
+        span.name == constants.SPAN_APP_ON_TURN
         for span in spans
     )
-    turn_span = next(span for span in spans if span.name == "agent turn")
+    turn_span = next(span for span in spans if span.name == constants.SPAN_APP_ON_TURN)
     assert (
         "activity.type" in turn_span.attributes and
         "agent.is_agentic" in turn_span.attributes and
@@ -122,8 +122,8 @@ async def test_multiple_users(test_exporter, agent_client):
     assert_span_for_user("user1")
     assert_span_for_user("user2")
     
-    assert len(list(filter(lambda span: span.name == "agent", spans))) == 2
-    assert len(list(filter(lambda span: span.name == constants.SPANS_ADAPTER_PROCESS, spans))) == 2
+    assert len(list(filter(lambda span: span.name == constants.SPAN_APP_ON_TURN, spans))) == 2
+    assert len(list(filter(lambda span: span.name == constants.SPAN_ADAPTER_PROCESS, spans))) == 2
 
 @pytest.mark.asyncio
 @pytest.mark.agent_test(_SCENARIO)

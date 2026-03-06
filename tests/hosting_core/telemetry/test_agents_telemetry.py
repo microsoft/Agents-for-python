@@ -167,7 +167,7 @@ def test_start_span_app_on_turn(mocker, test_exporter, test_metric_reader):
 
     spans = test_exporter.get_finished_spans()
     assert len(spans) == 1
-    assert spans[0].name == constants.SPAN_APP_RUN
+    assert spans[0].name == constants.SPAN_APP_ON_TURN
 
     metric_data = test_metric_reader.get_metrics_data()
     turn_total = _sum_counter(_find_metric(metric_data, constants.METRIC_TURN_TOTAL))

@@ -1,7 +1,7 @@
 import pytest
 from microsoft_agents.activity import Activity
 from microsoft_agents.testing import AgentClient
-from ..scenarios import load_scenario
+from tests.scenarios import load_scenario
 
 
 @pytest.mark.agent_test(load_scenario("quickstart"))

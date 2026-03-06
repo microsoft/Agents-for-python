@@ -18,7 +18,14 @@ def _get_conversation_id(activity: Activity) -> str:
 @contextmanager
 def start_span_adapter_process(activity: Activity) -> Iterator[None]:
     """Context manager for recording adapter process call"""
-    with agents_telemetry.start_as_current_span(constants.SPAN_ADAPTER_PROCESS) as span:
+
+    def callback(span: Span, duration: float, error: Exception | None):
+        _metrics.adapter_process_duration.record(duration)
+
+    with agents_telemetry.start_timed_span(
+        constants.SPAN_ADAPTER_PROCESS,
+        callback=callback
+    ) as span:
         span.set_attributes({
             constants.ATTR_ACTIVITY_TYPE: activity.type,
             constants.ATTR_ACTIVITY_CHANNEL_ID: activity.channel_id or constants.UNKNOWN,
@@ -80,16 +87,16 @@ def start_span_app_on_turn(turn_context: TurnContextProtocol) -> Iterator[None]:
 
     def callback(span: Span, duration: float, error: Exception | None):
         if error is None:
-            _metrics.TURN_TOTAL.add(1)
-            _metrics.TURN_DURATION.record(duration, {
+            _metrics.turn_total.add(1)
+            _metrics.turn_duration.record(duration, {
                 "conversation.id": activity.conversation.id if activity.conversation else "unknown",
                 "channel.id": str(activity.channel_id),
             })
         else:
-            _metrics.TURN_ERRORS.add(1)
+            _metrics.turn_errors.add(1)
 
     with agents_telemetry.start_timed_span(
-        constants.SPAN_APP_RUN,
+        constants.SPAN_APP_ON_TURN,
         turn_context=turn_context,
         callback=callback,
     ) as span:
@@ -128,59 +135,90 @@ def start_span_app_download_files(turn_context: TurnContextProtocol) -> Iterator
 #
 
 @contextmanager
-def _start_span_connector_activity_op(span_name: str, conversation_id: str, activity_id: str) -> Iterator[None]:
-    with agents_telemetry.start_as_current_span(span_name) as span:
-        span.set_attribute(constants.ATTR_ACTIVITY_ID, activity_id)
-        span.set_attribute(constants.ATTR_CONVERSATION_ID, conversation_id)
-        yield
+def _start_span_connector_op(
+    span_name: str,
+    *,
+    conversation_id: str | None = None,
+    activity_id: str | None = None,
+) -> Iterator[Span]:
+
+    def callback(span: Span, duration: int, error: Exception | None):
+        _metrics.connector_request_total.add(1)
+        _metrics.connector_request_duration.record(duration)
+
+    with agents_telemetry.start_timed_span(
+        span_name,
+        callback=callback
+    ) as span:
+        if activity_id: span.set_attribute(constants.ATTR_ACTIVITY_ID, activity_id)
+        if conversation_id: span.set_attribute(constants.ATTR_CONVERSATION_ID, conversation_id)
+        yield span
 
 @contextmanager
 def start_span_connector_reply_to_activity(conversation_id: str, activity_id: str) -> Iterator[None]:
-    with _start_span_connector_activity_op(constants.SPAN_CONNECTOR_REPLY_TO_ACTIVITY, conversation_id, activity_id):
+    with _start_span_connector_op(
+        constants.SPAN_CONNECTOR_REPLY_TO_ACTIVITY,
+        conversation_id=conversation_id,
+        activity_id=activity_id
+    ):
         yield
 
 @contextmanager
 def start_span_connector_send_to_conversation(conversation_id: str, activity_id: str) -> Iterator[None]:
-    with _start_span_connector_activity_op(constants.SPAN_CONNECTOR_SEND_TO_CONVERSATION, conversation_id, activity_id):
+    with _start_span_connector_op(
+        constants.SPAN_CONNECTOR_SEND_TO_CONVERSATION,
+        conversation_id=conversation_id,
+        activity_id=activity_id
+    ):
         yield
 
 @contextmanager
 def start_span_connector_update_activity(conversation_id: str, activity_id: str) -> Iterator[None]:
-    with _start_span_connector_activity_op(constants.SPAN_CONNECTOR_UPDATE_ACTIVITY, conversation_id, activity_id):
+    with _start_span_connector_op(
+        constants.SPAN_CONNECTOR_UPDATE_ACTIVITY,
+        conversation_id=conversation_id,
+        activity_id=activity_id
+    ):
         yield
 
 @contextmanager
 def start_span_connector_delete_activity(conversation_id: str, activity_id: str) -> Iterator[None]:
-    with _start_span_connector_activity_op(constants.SPAN_CONNECTOR_DELETE_ACTIVITY, conversation_id, activity_id):
+    with _start_span_connector_op(
+        constants.SPAN_CONNECTOR_DELETE_ACTIVITY,
+        conversation_id=conversation_id,
+        activity_id=activity_id
+    ):
         yield
 
 @contextmanager
 def start_span_connector_create_conversation() -> Iterator[None]:
-    with agents_telemetry.start_as_current_span(constants.SPAN_CONNECTOR_CREATE_CONVERSATION):
+    with _start_span_connector_op(constants.SPAN_CONNECTOR_CREATE_CONVERSATION):
         yield
 
 @contextmanager
 def start_span_connector_get_conversations() -> Iterator[None]:
-    with agents_telemetry.start_as_current_span(constants.SPAN_CONNECTOR_GET_CONVERSATIONS):
+    with _start_span_connector_op(constants.SPAN_CONNECTOR_GET_CONVERSATIONS):
         yield
 
 
 @contextmanager
 def start_span_connector_get_conversation_members() -> Iterator[None]:
-    with agents_telemetry.start_as_current_span(constants.SPAN_CONNECTOR_GET_CONVERSATION_MEMBERS):
+    with _start_span_connector_op(constants.SPAN_CONNECTOR_GET_CONVERSATION_MEMBERS):
         yield
 
 
 @contextmanager
 def start_span_connector_upload_attachment(conversation_id: str) -> Iterator[None]:
-    with agents_telemetry.start_as_current_span(constants.SPAN_CONNECTOR_UPDLOAD_ATTACHMENT) as span:
-        span.set_attribute(constants.ATTR_CONVERSATION_ID, conversation_id)
+    with _start_span_connector_op(
+        constants.SPAN_CONNECTOR_UPDLOAD_ATTACHMENT,
+        conversation_id=conversation_id    
+    ):
         yield
 
 
 @contextmanager
 def start_span_connector_get_attachment(attachment_id: str) -> Iterator[None]:
-    with agents_telemetry.start_as_current_span(constants.SPAN_CONNECTOR_GET_ATTACHMENT) as span:
+    with _start_span_connector_op(constants.SPAN_CONNECTOR_GET_ATTACHMENT) as span:
         span.set_attribute(constants.ATTR_ATTACHMENT_ID, attachment_id)
         yield
 
@@ -191,7 +229,15 @@ def start_span_connector_get_attachment(attachment_id: str) -> Iterator[None]:
 
 @contextmanager
 def _start_span_storage_op(span_name: str, num_keys: int) -> Iterator[None]:
-    with agents_telemetry.start_as_current_span(span_name) as span:
+
+    def callback(span: Span, duration: int, error: Exception | None):
+        _metrics.storage_operation_total.add(1)
+        _metrics.storage_operation_duration.record(duration)
+
+    with agents_telemetry.start_timed_span(
+        span_name,
+        callback=callback
+    ) as span:
         span.set_attribute(constants.ATTR_NUM_KEYS, num_keys)
         yield
 

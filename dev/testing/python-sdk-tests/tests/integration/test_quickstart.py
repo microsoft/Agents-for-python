@@ -1,5 +1,4 @@
 import pytest
-from ..scenarios import load_scenario
 
 from microsoft_agents.testing import (
     ActivityTemplate,
@@ -7,6 +6,8 @@ from microsoft_agents.testing import (
     ClientConfig,
     ScenarioConfig,
 )
+
+from tests.scenarios import load_scenario
 
 _TEMPLATE = {
     "channel_id": "webchat",

@@ -16,6 +16,7 @@ from microsoft_agents.hosting.core import (
     RestChannelServiceClientFactory,
     TurnContext,
 )
+from microsoft_agents.hosting.core.telemetry import spans
 
 from ._http_request_protocol import HttpRequestProtocol
 from ._http_response import HttpResponse, HttpResponseFactory
@@ -96,38 +97,40 @@ class HttpAdapterBase(ChannelServiceAdapter, ABC):
 
         activity: Activity = Activity.model_validate(body)
 
-        # Get claims identity (default to anonymous if not set by middleware)
-        claims_identity: ClaimsIdentity = (
-            request.get_claims_identity() or ClaimsIdentity({}, False)
-        )
+        with spans.start_span_adapter_process(activity):
 
-        # Validate required activity fields
-        if (
-            not activity.type
-            or not activity.conversation
-            or not activity.conversation.id
-        ):
-            return HttpResponseFactory.bad_request(
-                "Activity must have type and conversation.id"
+            # Get claims identity (default to anonymous if not set by middleware)
+            claims_identity: ClaimsIdentity = (
+                request.get_claims_identity() or ClaimsIdentity({}, False)
             )
 
-        try:
-            # Process the inbound activity with the agent
-            invoke_response = await self.process_activity(
-                claims_identity, activity, agent.on_turn
-            )
-
-            # Check if we need to return a synchronous response
+            # Validate required activity fields
             if (
-                activity.type == "invoke"
-                or activity.delivery_mode == DeliveryModes.expect_replies
+                not activity.type
+                or not activity.conversation
+                or not activity.conversation.id
             ):
-                # Invoke and ExpectReplies cannot be performed async
-                return HttpResponseFactory.json(
-                    invoke_response.body, invoke_response.status
+                return HttpResponseFactory.bad_request(
+                    "Activity must have type and conversation.id"
                 )
 
-            return HttpResponseFactory.accepted()
+            try:
+                # Process the inbound activity with the agent
+                invoke_response = await self.process_activity(
+                    claims_identity, activity, agent.on_turn
+                )
 
-        except PermissionError:
-            return HttpResponseFactory.unauthorized()
+                # Check if we need to return a synchronous response
+                if (
+                    activity.type == "invoke"
+                    or activity.delivery_mode == DeliveryModes.expect_replies
+                ):
+                    # Invoke and ExpectReplies cannot be performed async
+                    return HttpResponseFactory.json(
+                        invoke_response.body, invoke_response.status
+                    )
+
+                return HttpResponseFactory.accepted()
+
+            except PermissionError:
+                return HttpResponseFactory.unauthorized()

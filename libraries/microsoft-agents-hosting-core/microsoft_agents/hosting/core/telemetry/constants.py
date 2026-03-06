@@ -25,7 +25,7 @@ SPAN_ADAPTER_DELETE_ACTIVITY = "agents.adapter.deleteActivity"
 SPAN_ADAPTER_CONTINUE_CONVERSATION = "agents.adapter.continueConversation"
 SPAN_ADAPTER_CREATE_CONNECTOR_CLIENT = "agents.adapter.createConnectorClient"
 
-SPAN_APP_RUN = "agents.app.run"
+SPAN_APP_ON_TURN = "agents.app.run"
 SPAN_APP_ROUTE_HANDLER = "agents.app.routeHandler"
 SPAN_APP_BEFORE_TURN = "agents.app.beforeTurn"
 SPAN_APP_AFTER_TURN = "agents.app.afterTurn"

@@ -671,7 +671,7 @@ class AgentApplication(Agent, Generic[StateT]):
     async def _on_turn(self, context: TurnContext):
         typing = None
         try:
-            with spans.start_span_app_on_turn(context.activity):
+            with spans.start_span_app_on_turn(context):
                 if context.activity.type != ActivityTypes.typing:
                     if self._options.start_typing_timer:
                         typing = TypingIndicator(context)
@@ -789,7 +789,7 @@ class AgentApplication(Agent, Generic[StateT]):
             return True
 
     async def _handle_file_downloads(self, context: TurnContext, state: StateT):
-        with spans.start_span_app_file_downloads(context):
+        with spans.start_span_app_download_files(context):
             if self._options.file_downloaders and len(self._options.file_downloaders) > 0:
                 input_files = state.temp.input_files if state.temp.input_files else []
                 for file_downloader in self._options.file_downloaders:
@@ -817,7 +817,7 @@ class AgentApplication(Agent, Generic[StateT]):
             return True
 
     async def _on_activity(self, context: TurnContext, state: StateT):
-        with spans.start_span_app_router_handler(context):
+        with spans.start_span_app_route_handler(context):
             for route in self._route_list:
                 if route.selector(context):
                     if not route.auth_handlers:

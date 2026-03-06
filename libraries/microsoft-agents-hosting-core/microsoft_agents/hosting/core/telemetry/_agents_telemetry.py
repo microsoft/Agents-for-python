@@ -76,16 +76,6 @@ class _AgentsTelemetry:
         :param span_name: The name of the span to start
         :param turn_context Optional TurnContext to extract attributes from and set on the span
         :return: An iterator that yields the started span, which will be ended when the context manager exits
-
-        :example usage:
-    with agents_telemetry.start_as_current_span("my_operation", context) as span:
-        # perform some operations here, and the span will automatically end when the block is exited
-        # any exceptions raised will be recorded on the span and re-raised after the span is ended
-
-        :note: This method is lower-level and can be used for any custom instrumentation needs.
-        For common operations like instrumenting an agent turn, adapter processing, storage operations, etc.,
-        use the provided context managers like `instrument_agent_turn`, `instrument_adapter_process`, etc.,
-        which will automatically record relevant metrics and handle success/failure cases.
         """
         with self._tracer.start_as_current_span(span_name) as span:
             if turn_context is not None:
