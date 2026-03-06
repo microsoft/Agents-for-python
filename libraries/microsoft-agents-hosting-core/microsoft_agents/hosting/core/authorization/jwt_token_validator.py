@@ -3,9 +3,13 @@
 
 import asyncio
 import logging
-import jwt
 
-from jwt import PyJWKClient, PyJWK, decode, get_unverified_header
+from jwt import (
+    PyJWKClient,
+    PyJWK,
+    decode, 
+    get_unverified_header
+)
 
 from .agent_auth_configuration import AgentAuthConfiguration
 from .claims_identity import ClaimsIdentity
@@ -42,7 +46,7 @@ class JwtTokenValidator:
 
         logger.debug("Validating JWT token.")
         key = await self._get_public_key_or_secret(token)
-        decoded_token = jwt.decode(
+        decoded_token = decode(
             token,
             key=key,
             algorithms=["RS256"],
