@@ -16,16 +16,12 @@ from . import constants
 
 logger = logging.getLogger(__name__)
 
-def _ts() -> float:
-    """Helper function to get current timestamp in milliseconds"""
-    return datetime.now(timezone.utc).timestamp() * 1000
-
 _TimedSpanCallback = Callable[[Span, float, Exception | None], None]
 
-def _remove_nones(d: dict) -> None:
-    for key in list(d.keys()): # list conversion to avoid iterating over changing data structure
-        if d[key] is None:
-            del d[key]
+def _format_scopes(scopes: list[str] | None) -> str:
+    if not scopes:
+        return constants.UNKNOWN
+    return ",".join(scopes)
 
 class _AgentsTelemetry:
 

@@ -16,6 +16,7 @@ from microsoft_agents.hosting.core.connector import ConnectorClientBase
 from microsoft_agents.hosting.core.connector.client import UserTokenClient
 from microsoft_agents.hosting.core.connector.teams import TeamsConnectorClient
 from microsoft_agents.hosting.core.connector.mcs import MCSConnectorClient
+from microsoft_agents.hosting.core.telemetry import spans
 
 from .channel_service_client_factory_base import ChannelServiceClientFactoryBase
 from .turn_context import TurnContext
@@ -105,35 +106,43 @@ class RestChannelServiceClientFactory(ChannelServiceClientFactoryBase):
                 "RestChannelServiceClientFactory.create_connector_client: audience can't be None or Empty"
             )
 
-        if context and context.activity.is_agentic_request():
-            token = await self._get_agentic_token(context, service_url)
-        else:
-            token_provider: AccessTokenProviderBase = (
-                self._connection_manager.get_token_provider(
-                    claims_identity, service_url
+        is_agentic_request = context.activity.is_agentic_request() if context else False
+        
+        with spans.start_span_adapter_create_connector_client(
+            service_url=service_url,
+            scopes=scopes,
+            is_agentic_request=is_agentic_request
+        ):
+
+            if context and is_agentic_request:
+                token = await self._get_agentic_token(context, service_url)
+            else:
+                token_provider: AccessTokenProviderBase = (
+                    self._connection_manager.get_token_provider(
+                        claims_identity, service_url
+                    )
+                    if not use_anonymous
+                    else self._ANONYMOUS_TOKEN_PROVIDER
                 )
-                if not use_anonymous
-                else self._ANONYMOUS_TOKEN_PROVIDER
-            )
 
-            token = await token_provider.get_access_token(
-                audience, scopes or claims_identity.get_token_scope()
-            )
+                token = await token_provider.get_access_token(
+                    audience, scopes or claims_identity.get_token_scope()
+                )
 
-        # Check if this is a connector request (e.g., from Copilot Studio)
-        if (
-            context
-            and context.activity.recipient
-            and context.activity.recipient.role == RoleTypes.connector_user
-        ) or service_url.startswith("https://pvaruntime"):
-            return MCSConnectorClient(
+            # Check if this is a connector request (e.g., from Copilot Studio)
+            if (
+                context
+                and context.activity.recipient
+                and context.activity.recipient.role == RoleTypes.connector_user
+            ) or service_url.startswith("https://pvaruntime"):
+                return MCSConnectorClient(
+                    endpoint=service_url,
+                )
+
+            return TeamsConnectorClient(
                 endpoint=service_url,
+                token=token,
             )
-
-        return TeamsConnectorClient(
-            endpoint=service_url,
-            token=token,
-        )
 
     async def create_user_token_client(
         self,

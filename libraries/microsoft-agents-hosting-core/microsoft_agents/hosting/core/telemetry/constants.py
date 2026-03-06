@@ -62,7 +62,7 @@ METRIC_TURN_TOTAL = "agents.turn.total"
 METRIC_TURN_ERRORS = "agents.turn.errors"
 
 METRIC_CONNECTOR_REQUESTS_TOTAL = "agents.connector.requests"
-METRIC_STORAGE_OPERATION_TOTAL = "agents.storage.operations.total"
+METRIC_STORAGE_OPERATION_TOTAL = "agents.storage.operation.total"
 
 # histograms
 
@@ -85,7 +85,7 @@ ATTR_ACTIVITY_CHANNEL_ID = "activity.channelId"
 ATTR_ACTIVITY_ID = "activity.id"
 ATTR_ACTIVITY_COUNT = "activities.count"
 ATTR_ACTIVITY_TYPE = "activity.type"
-ATTR_AGENTIC_USER_ID = "agentic.user.id"
+ATTR_AGENTIC_USER_ID = "agentic.userId"
 ATTR_AGENTIC_INSTANCE_ID = "agentic.instanceId"
 ATTR_ATTACHMENT_ID = "attachment.id"
 ATTR_AUTH_SCOPES = "auth.scopes"

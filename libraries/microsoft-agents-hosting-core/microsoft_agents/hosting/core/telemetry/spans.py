@@ -6,7 +6,7 @@ from opentelemetry.trace import Span
 from microsoft_agents.activity import Activity, TurnContextProtocol
 
 from . import _metrics, constants
-from ._agents_telemetry import agents_telemetry
+from ._agents_telemetry import agents_telemetry, _format_scopes
 
 #
 # Adapter
@@ -17,7 +17,7 @@ def _get_conversation_id(activity: Activity) -> str:
 
 @contextmanager
 def start_span_adapter_process(activity: Activity) -> Iterator[None]:
-    """Context manager for recording adapter process call"""
+    """Context manager for reording adapter process call"""
 
     def callback(span: Span, duration: float, error: Exception | None):
         _metrics.adapter_process_duration.record(duration)
@@ -72,6 +72,22 @@ def start_span_adapter_continue_conversation(activity: Activity) -> Iterator[Non
         span.set_attributes({
             constants.ATTR_CONVERSATION_ID: _get_conversation_id(activity),
             constants.ATTR_IS_AGENTIC_REQUEST: activity.is_agentic_request(),
+        })
+        yield
+
+@contextmanager
+def start_span_adapter_create_connector_client(
+    *,
+    service_url: str,
+    scopes: list[list] | None,
+    is_agentic_request: bool,
+) -> Iterator[None]:
+    """Context manager for recording adapter create_connector_client call"""
+    with agents_telemetry.start_as_current_span(constants.SPAN_ADAPTER_CREATE_CONNECTOR_CLIENT) as span:
+        span.set_attributes({
+            constants.ATTR_SERVICE_URL: service_url,
+            constants.ATTR_AUTH_SCOPES: _format_scopes(scopes),
+            constants.ATTR_IS_AGENTIC_REQUEST: is_agentic_request
         })
         yield
 

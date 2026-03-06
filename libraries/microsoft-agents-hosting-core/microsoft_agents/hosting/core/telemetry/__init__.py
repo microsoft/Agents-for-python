@@ -7,7 +7,10 @@
 #
 # This design hides the "mess" of telemetry to one location rather than throughout the codebase.
 
-from ._agents_telemetry import agents_telemetry
+from ._agents_telemetry import (
+    agents_telemetry,
+    _format_scopes
+)
 from .configure_telemetry import configure_telemetry
 from .constants import (
     SERVICE_NAME,
@@ -18,6 +21,7 @@ from .constants import (
 __all__ = [
     "agents_telemetry",
     "configure_telemetry",
+    "_format_scopes",
     "SERVICE_NAME",
     "SERVICE_VERSION",
     "RESOURCE",

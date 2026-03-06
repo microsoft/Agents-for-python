@@ -1,12 +1,13 @@
 from contextlib import contextmanager
 from collections.abc import Iterator
 
-from microsoft_agents.hosting.core.telemetry import agents_telemetry, constants as common_constants
+from microsoft_agents.hosting.core.telemetry import (
+    agents_telemetry,
+    constants as common_constants,
+    _format_scopes
+)
 
 from . import constants, _metrics
-
-def _format_scopes(scopes: list[str]) -> str:
-    return ",".join(scopes)
 
 @contextmanager
 def start_span_auth_get_access_token(scopes: list[str], auth_type: str) -> Iterator[None]:
