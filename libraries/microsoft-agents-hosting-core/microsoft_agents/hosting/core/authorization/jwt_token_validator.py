@@ -4,12 +4,7 @@
 import asyncio
 import logging
 
-from jwt import (
-    PyJWKClient,
-    PyJWK,
-    decode, 
-    get_unverified_header
-)
+from jwt import PyJWKClient, PyJWK, decode, get_unverified_header
 
 from .agent_auth_configuration import AgentAuthConfiguration
 from .claims_identity import ClaimsIdentity
