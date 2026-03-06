@@ -45,7 +45,11 @@ logger = logging.getLogger(__name__)
 try:
     from microsoft_agents_a365.observability.extensions.agentframework import AgentFrameworkInstrumentor as _AgentFrameworkInstrumentor
     _HAS_AGENT_FRAMEWORK_INSTRUMENTOR = True
-except ImportError:
+except ImportError as exc:
+    logger.debug(
+        "AgentFrameworkInstrumentor not available — Agent Framework-specific telemetry will be disabled. "
+        f"ImportError: {exc}"
+    )
     _HAS_AGENT_FRAMEWORK_INSTRUMENTOR = False
 
 HEALTH_ENDPOINT_PATH = "/health"
