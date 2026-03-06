@@ -12,10 +12,18 @@ from .claims_identity import ClaimsIdentity
 
 logger = logging.getLogger(__name__)
 
-
 class JwtTokenValidator:
+
+    _jwk_clients_cache: dict[str, PyJWKClient] = {}
+
     def __init__(self, configuration: AgentAuthConfiguration):
         self.configuration = configuration
+
+    @staticmethod
+    def _get_jwk_client(jwks_uri: str) -> PyJWKClient:
+        if jwks_uri not in JwtTokenValidator._jwk_clients_cache:
+            JwtTokenValidator._jwk_clients_cache[jwks_uri] = PyJWKClient(jwks_uri)
+        return JwtTokenValidator._jwk_clients_cache[jwks_uri]
 
     async def validate_token(self, token: str) -> ClaimsIdentity:
 
@@ -49,8 +57,7 @@ class JwtTokenValidator:
             if unverified_payload.get("iss") == "https://api.botframework.com"
             else f"https://login.microsoftonline.com/{self.configuration.TENANT_ID}/discovery/v2.0/keys"
         )
-        jwks_client = PyJWKClient(jwksUri)
-
+        jwks_client = JwtTokenValidator._get_jwk_client(jwksUri)        
         key = await asyncio.to_thread(jwks_client.get_signing_key, header["kid"])
 
         return key
