@@ -12,12 +12,30 @@ from .claims_identity import ClaimsIdentity
 
 logger = logging.getLogger(__name__)
 
+class _JwkClientManager:
+    """Helper class to manage PyJWKClient instances for different JWKS URIs, with caching and thread safety."""
+
+    _cache: dict[str, PyJWKClient]
+
+    def __init__(self):
+        self._cache = {}
+
+    def _get_jwk_client(self, jwks_uri: str) -> PyJWKClient:
+        """Retrieves a PyJWKClient for the given JWKS URI, using a cache to avoid creating multiple clients for the same URI."""
+        if jwks_uri not in self._cache:
+            self._cache[jwks_uri] = PyJWKClient(jwks_uri)
+        return self._cache[jwks_uri]
+        
+    async def get_signing_key(self, jwks_uri: str, header: dict[str, Any]) -> PyJWK:
+        """Retrieves the signing key from the JWK client for the given token header."""
+        jwks_client = self._get_jwk_client(jwks_uri)
+        key = await asyncio.to_thread(jwks_client.get_signing_key, header["kid"])
+        return key
 
 class JwtTokenValidator:
     """Utility class for validating JWT tokens using the PyJWT library and JWKs from a specified URI."""
 
-    _jwk_clients_cache: dict[str, PyJWKClient] = {}
-    _get_signing_key_lock = asyncio.Lock()
+    _jwk_client_manager = _JwkClientManager()
 
     def __init__(self, configuration: AgentAuthConfiguration):
         """Initializes the JwtTokenValidator with the given configuration.
@@ -25,20 +43,6 @@ class JwtTokenValidator:
         :param configuration: An instance of AgentAuthConfiguration containing the necessary settings for token validation.
         """
         self.configuration = configuration
-
-    @staticmethod
-    def _get_jwk_client(jwks_uri: str, header: dict[str, Any]) -> PyJWKClient:
-        """Retrieves a PyJWKClient for the specified JWKS URI, using a cache to avoid redundant clients."""
-        if jwks_uri not in JwtTokenValidator._jwk_clients_cache:
-            JwtTokenValidator._jwk_clients_cache[jwks_uri] = PyJWKClient(jwks_uri)
-        return JwtTokenValidator._jwk_clients_cache[jwks_uri]
-    
-    @staticmethod
-    async def _get_signing_key(jwks_client: PyJWKClient, token: str) -> PyJWK:
-        async with JwtTokenValidator._get_signing_key_lock:
-            # get_signing_key is not guaranteed to be thread-safe, so we run it in a thread to avoid blocking the event loop
-            key = await asyncio.to_thread(jwks_client.get_signing_key, header["kid"])
-            return key
 
     async def validate_token(self, token: str) -> ClaimsIdentity:
         """Validates a JWT token.
@@ -80,8 +84,7 @@ class JwtTokenValidator:
             if unverified_payload.get("iss") == "https://api.botframework.com"
             else f"https://login.microsoftonline.com/{self.configuration.TENANT_ID}/discovery/v2.0/keys"
         )
-        
-        jwks_client = JwtTokenValidator._get_jwk_client(jwks_uri, header)
-        key = await JwtTokenValidator._get_signing_key(jwks_client)
+
+        key = await self._jwk_client_manager.get_signing_key(jwks_uri, header)
 
         return key
