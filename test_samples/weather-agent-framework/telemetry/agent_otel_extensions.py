@@ -142,11 +142,23 @@ def instrument_libraries() -> None:
     # AgentFramework instrumentor (optional A365 package)
     if _HAS_AGENT_FRAMEWORK_INSTRUMENTOR:
         try:
+            from .token_cache import get_cached_agentic_token
+
+            def _token_resolver(agent_id: str, tenant_id: str) -> str | None:
+                # Note: get_cached_agentic_token takes (tenant_id, agent_id)
+                return get_cached_agentic_token(tenant_id, agent_id)
+
             _configure_agent_framework_observability(
                 service_name="AgentFrameworkTracingWithAzureOpenAI",
                 service_namespace="AgentFrameworkTesting",
             )
-            _AgentFrameworkInstrumentor().instrument(skip_dep_check=True)
+            try:
+                _AgentFrameworkInstrumentor().instrument(
+                    skip_dep_check=True, token_resolver=_token_resolver
+                )
+            except TypeError:
+                # Older versions of the instrumentor may not support token_resolver
+                _AgentFrameworkInstrumentor().instrument(skip_dep_check=True)
             logger.debug("AgentFramework instrumentation enabled")
         except Exception as exc:
             logger.warning("AgentFramework instrumentation failed: %s", exc)
