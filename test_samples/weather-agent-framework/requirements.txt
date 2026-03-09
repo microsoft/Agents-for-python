@@ -44,4 +44,7 @@ opentelemetry-instrumentation-logging
 # Provides AgentFrameworkInstrumentor used in telemetry/agent_otel_extensions.py
 microsoft-agents-a365-runtime==0.2.1.dev33
 microsoft-agents-a365-observability-core==0.2.1.dev33
-microsoft-agents-a365-observability-extensions-agent-framework>=0.2.1.dev32
+microsoft-agents-a365-observability-extensions-agent-framework>=0.2.1.dev33
+
+# Agent Framework
+agent-framework-azure-ai

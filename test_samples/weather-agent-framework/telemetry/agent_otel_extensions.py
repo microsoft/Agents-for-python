@@ -44,6 +44,7 @@ logger = logging.getLogger(__name__)
 
 try:
     from microsoft_agents_a365.observability.extensions.agentframework import AgentFrameworkInstrumentor as _AgentFrameworkInstrumentor
+    from microsoft_agents_a365.observability.core.config import configure as _configure_agent_framework_observability
     _HAS_AGENT_FRAMEWORK_INSTRUMENTOR = True
 except ImportError as exc:
     logger.debug(
@@ -141,7 +142,11 @@ def instrument_libraries() -> None:
     # AgentFramework instrumentor (optional A365 package)
     if _HAS_AGENT_FRAMEWORK_INSTRUMENTOR:
         try:
-            _AgentFrameworkInstrumentor().instrument()
+            _configure_agent_framework_observability(
+                service_name="AgentFrameworkTracingWithAzureOpenAI",
+                service_namespace="AgentFrameworkTesting",
+            )
+            _AgentFrameworkInstrumentor().instrument(skip_dep_check=True)
             logger.debug("AgentFramework instrumentation enabled")
         except Exception as exc:
             logger.warning("AgentFramework instrumentation failed: %s", exc)
