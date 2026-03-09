@@ -54,7 +54,6 @@ class _JwkClientManager:
             with jwk_cache_entry.lock:
                 return jwk_cache_entry.jwk_client.get_signing_key(header["kid"])
 
-
         key = await asyncio.to_thread(_helper)
         return key
 

@@ -7,7 +7,6 @@ from microsoft_agents.hosting.core.authorization import (
 )
 
 
-
 @middleware
 async def jwt_authorization_middleware(request: Request, handler):
 
