@@ -4,6 +4,7 @@
 import asyncio
 import logging
 from typing import Any
+from dataclasses import dataclass
 
 from jwt import PyJWKClient, PyJWK, decode, get_unverified_header
 
@@ -12,25 +13,39 @@ from .claims_identity import ClaimsIdentity
 
 logger = logging.getLogger(__name__)
 
-class _JwkClientManager:
-    """Helper class to manage PyJWKClient instances for different JWKS URIs, with caching and thread safety."""
+@dataclass
+class _JwkClientCacheEntry:
 
-    _cache: dict[str, PyJWKClient]
+    jwk_client: PyJWKClient
+    lock: asyncio.Lock
+
+class _JwkClientManager:
+    """Helper class to manage PyJWKClient instances for different JWKS URIs, with caching and async-safety"""
+
+    _cache: dict[str, _JwkClientCacheEntry]
 
     def __init__(self):
         self._cache = {}
 
-    def _get_jwk_client(self, jwks_uri: str) -> PyJWKClient:
+    def _get_jwk_client(self, jwks_uri: str) -> _JwkClientCacheEntry:
         """Retrieves a PyJWKClient for the given JWKS URI, using a cache to avoid creating multiple clients for the same URI."""
         if jwks_uri not in self._cache:
-            self._cache[jwks_uri] = PyJWKClient(jwks_uri)
+            self._cache[jwks_uri] = _JwkClientCacheEntry(PyJWKClient(jwks_uri), asyncio.Lock())
         return self._cache[jwks_uri]
         
     async def get_signing_key(self, jwks_uri: str, header: dict[str, Any]) -> PyJWK:
         """Retrieves the signing key from the JWK client for the given token header."""
-        jwks_client = self._get_jwk_client(jwks_uri)
-        key = await asyncio.to_thread(jwks_client.get_signing_key, header["kid"])
-        return key
+
+        jwk_cache_entry = self._get_jwk_client(jwks_uri)
+        async with jwk_cache_entry.lock:
+            # locking and creating a new thread seems strange,
+            # but PyJWKClient.get_signing_key is synchronous, so we spawn another thread
+            # to make the call non-blocking, allowing other queued coroutines to run in the meantime.
+            # Meanwhile, the lock ensures safety for the PyJWKClient's underlying cache and
+            # prevents duplicate calls to the JWKS endpoint for the same URI when multiple
+            # coroutines are trying to get signing keys concurrently.
+            key = await asyncio.to_thread(jwk_cache_entry.jwk_client.get_signing_key, header["kid"])
+            return key
 
 class JwtTokenValidator:
     """Utility class for validating JWT tokens using the PyJWT library and JWKs from a specified URI."""
