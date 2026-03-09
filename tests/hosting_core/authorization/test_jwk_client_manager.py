@@ -40,9 +40,7 @@ class TestJwkClientManager:
         assert len(manager._cache) == 2
 
     @pytest.mark.asyncio
-    async def test_get_signing_key_calls_pyjwkclient_with_header_kid(
-        self, monkeypatch
-    ):
+    async def test_get_signing_key_calls_pyjwkclient_with_header_kid(self, monkeypatch):
         manager = _JwkClientManager()
         jwks_uri = "https://issuer.example.com/keys"
         seen_kids = []
