@@ -69,7 +69,7 @@ class ChannelServiceAdapter(ChannelAdapter, ABC):
         :raises TypeError: If context or activities are None/invalid.
         """
         with spans.start_span_adapter_send_activities(activities):
-            
+
             if not context:
                 raise TypeError("Expected TurnContext but got None instead")
 
@@ -77,8 +77,10 @@ class ChannelServiceAdapter(ChannelAdapter, ABC):
                 raise TypeError("Expected Activities list but got None instead")
 
             if len(activities) == 0:
-                raise TypeError("Expecting one or more activities, but the list was empty.")
-            
+                raise TypeError(
+                    "Expecting one or more activities, but the list was empty."
+                )
+
             responses = []
 
             for activity in activities:
@@ -100,13 +102,17 @@ class ChannelServiceAdapter(ChannelAdapter, ABC):
                         context.turn_state.get(self._AGENT_CONNECTOR_CLIENT_KEY),
                     )
                     if not connector_client:
-                        raise Error("Unable to extract ConnectorClient from turn context.")
+                        raise Error(
+                            "Unable to extract ConnectorClient from turn context."
+                        )
 
                     if activity.reply_to_id:
-                        response = await connector_client.conversations.reply_to_activity(
-                            activity.conversation.id,
-                            activity.reply_to_id,
-                            activity,
+                        response = (
+                            await connector_client.conversations.reply_to_activity(
+                                activity.conversation.id,
+                                activity.reply_to_id,
+                                activity,
+                            )
                         )
                     else:
                         response = (
@@ -239,7 +245,9 @@ class ChannelServiceAdapter(ChannelAdapter, ABC):
         :param audience: The audience for the conversation.
         :type audience: Optional[str]
         """
-        with spans.start_span_adapter_continue_continue_conversation(continuation_activity):
+        with spans.start_span_adapter_continue_continue_conversation(
+            continuation_activity
+        ):
             return await self.process_proactive(
                 claims_identity,
                 continuation_activity,

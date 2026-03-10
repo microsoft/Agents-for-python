@@ -107,11 +107,11 @@ class RestChannelServiceClientFactory(ChannelServiceClientFactoryBase):
             )
 
         is_agentic_request = context.activity.is_agentic_request() if context else False
-        
+
         with spans.start_span_adapter_create_connector_client(
             service_url=service_url,
             scopes=scopes,
-            is_agentic_request=is_agentic_request
+            is_agentic_request=is_agentic_request,
         ):
 
             if context and is_agentic_request:

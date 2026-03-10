@@ -1,7 +1,6 @@
 import time
 import logging
 from typing import Callable
-from datetime import datetime, timezone
 from collections.abc import Iterator
 
 from contextlib import contextmanager
@@ -18,33 +17,35 @@ logger = logging.getLogger(__name__)
 
 _TimedSpanCallback = Callable[[Span, float, Exception | None], None]
 
-def _format_scopes(scopes: list[str] | None) -> str:
-    if not scopes:
-        return constants.UNKNOWN
-    return ",".join(scopes)
 
 class _AgentsTelemetry:
 
     def __init__(self):
-        """ Initializes the AgentsTelemetry instance with the given tracer and meter, or creates new ones if not provided
-        
+        """Initializes the AgentsTelemetry instance with the given tracer and meter, or creates new ones if not provided
+
         :param tracer: Optional OpenTelemetry Tracer instance to use for creating spans. If not provided, a new tracer will be created with the service name and version from constants.
         :param meter: Optional OpenTelemetry Meter instance to use for recording metrics. If not provided, a new meter will be created with the service name and version from constants.
         """
-        self._tracer = trace.get_tracer(constants.SERVICE_NAME, constants.SERVICE_VERSION)
-        self._meter = metrics.get_meter(constants.SERVICE_NAME, constants.SERVICE_VERSION)
+        self._tracer = trace.get_tracer(
+            constants.SERVICE_NAME, constants.SERVICE_VERSION
+        )
+        self._meter = metrics.get_meter(
+            constants.SERVICE_NAME, constants.SERVICE_VERSION
+        )
 
     @property
     def tracer(self) -> Tracer:
         """Returns the OpenTelemetry tracer instance for creating spans"""
         return self._tracer
-    
+
     @property
     def meter(self) -> Meter:
         """Returns the OpenTelemetry meter instance for recording metrics"""
         return self._meter
 
-    def _extract_attributes_from_context(self, turn_context: TurnContextProtocol) -> dict:
+    def _extract_attributes_from_context(
+        self, turn_context: TurnContextProtocol
+    ) -> dict:
         """Helper method to extract common attributes from the TurnContext for span and metric recording"""
 
         # This can be expanded to extract common attributes for spans and metrics from the context
@@ -58,7 +59,9 @@ class _AgentsTelemetry:
         if turn_context.activity.conversation:
             attributes["conversation.id"] = turn_context.activity.conversation.id
         attributes["channel_id"] = turn_context.activity.channel_id
-        attributes["message.text.length"] = len(turn_context.activity.text) if turn_context.activity.text else 0
+        attributes["message.text.length"] = (
+            len(turn_context.activity.text) if turn_context.activity.text else 0
+        )
         return attributes
 
     @contextmanager
@@ -68,7 +71,7 @@ class _AgentsTelemetry:
         turn_context: TurnContextProtocol | None = None,
     ) -> Iterator[Span]:
         """Context manager for starting a new span with the given name and setting attributes from the TurnContext if provided
-        
+
         :param span_name: The name of the span to start
         :param turn_context Optional TurnContext to extract attributes from and set on the span
         :return: An iterator that yields the started span, which will be ended when the context manager exits
@@ -78,16 +81,17 @@ class _AgentsTelemetry:
                 attributes = self._extract_attributes_from_context(turn_context)
                 span.set_attributes(attributes)
             yield span
+        # self._tracer._tracer_provider._active_span_processor._span_processors[0].span_exporter._endpoint
 
     @contextmanager
     def start_timed_span(
         self,
         span_name: str,
         turn_context: TurnContextProtocol | None = None,
-        callback: _TimedSpanCallback | None = None
+        callback: _TimedSpanCallback | None = None,
     ) -> Iterator[Span]:
         """Context manager for starting a timed span that records duration and success/failure status, and invokes a callback with the results
-        
+
         :param span_name: The name of the span to start
         :param turn_context Optional TurnContext to extract attributes from and set on the span
         :param callback: Optional callback function that will be called with the span, duration in milliseconds, and any exception that was raised (or None if successful) when the span is ended
@@ -121,6 +125,7 @@ class _AgentsTelemetry:
                         callback(span, duration, exception)
 
                     span.set_status(trace.Status(trace.StatusCode.ERROR))
-                    raise exception from None # re-raise to ensure it's not swallowed
+                    raise exception from None  # re-raise to ensure it's not swallowed
+
 
 agents_telemetry = _AgentsTelemetry()

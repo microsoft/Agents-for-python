@@ -195,7 +195,7 @@ class ConversationsOperations(ConversationsBase):
         :param body: The activity object.
         :return: The resource response.
         """
-        with spans.start_span_connector_reply_to_activity(body):
+        with spans.start_span_connector_reply_to_activity(conversation_id, activity_id):
             if not conversation_id or not activity_id:
                 logger.error(
                     "ConversationsOperations.reply_to_activity(): conversationId and activityId are required",
@@ -230,7 +230,9 @@ class ConversationsOperations(ConversationsBase):
                     response.raise_for_status()
 
                 logger.info(
-                    "Reply to conversation/activity: %s, %s", result.get("id"), activity_id
+                    "Reply to conversation/activity: %s, %s",
+                    result.get("id"),
+                    activity_id,
                 )
 
             return ResourceResponse.model_validate(result)
@@ -287,7 +289,7 @@ class ConversationsOperations(ConversationsBase):
         :param body: The activity object.
         :return: The resource response.
         """
-        with spans.start_span_connector_update_activity(body):
+        with spans.start_span_connector_update_activity(conversation_id, activity_id):
             if not conversation_id or not activity_id:
                 logger.error(
                     "ConversationsOperations.update_activity(): conversationId and activityId are required",
@@ -324,9 +326,7 @@ class ConversationsOperations(ConversationsBase):
         :param conversation_id: The ID of the conversation.
         :param activity_id: The ID of the activity.
         """
-        with spans.start_span_connector_delete_activity(
-            activity_id=activity_id, conversation_id=conversation_id
-        ):
+        with spans.start_span_connector_delete_activity(conversation_id, activity_id):
             if not conversation_id or not activity_id:
                 logger.error(
                     "ConversationsOperations.delete_activity(): conversationId and activityId are required",
@@ -386,7 +386,9 @@ class ConversationsOperations(ConversationsBase):
             async with self.client.post(url, json=attachment_dict) as response:
                 if response.status >= 300:
                     logger.error(
-                        "Error uploading attachment: %s", response.status, stack_info=True
+                        "Error uploading attachment: %s",
+                        response.status,
+                        stack_info=True,
                     )
                     response.raise_for_status()
 

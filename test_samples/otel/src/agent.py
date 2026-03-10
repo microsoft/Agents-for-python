@@ -1,7 +1,6 @@
 # Copyright (c) Microsoft Corporation. All rights reserved.
 # Licensed under the MIT License.
 
-import os.path as path
 import re
 import sys
 import traceback
@@ -18,8 +17,6 @@ from microsoft_agents.hosting.core import (
 )
 from microsoft_agents.authentication.msal import MsalConnectionManager
 from microsoft_agents.activity import load_configuration_from_env
-
-from .agent_metrics import agent_metrics
 
 load_dotenv()
 agents_sdk_config = load_configuration_from_env(environ)
@@ -46,14 +43,12 @@ async def on_members_added(context: TurnContext, _state: TurnState):
 
 @AGENT_APP.message(re.compile(r"^hello$"))
 async def on_hello(context: TurnContext, _state: TurnState):
-    with agent_metrics.agent_operation("on_hello", context):
-        await context.send_activity("Hello!")
+    await context.send_activity("Hello!")
 
 
 @AGENT_APP.activity("message")
 async def on_message(context: TurnContext, _state: TurnState):
-    with agent_metrics.agent_operation("on_message", context):
-        await context.send_activity(f"you said: {context.activity.text}")
+    await context.send_activity(f"you said: {context.activity.text}")
 
 
 @AGENT_APP.error

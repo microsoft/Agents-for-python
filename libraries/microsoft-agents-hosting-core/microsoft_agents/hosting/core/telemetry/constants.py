@@ -80,27 +80,27 @@ METRIC_STORAGE_OPERATION_DURATION = "agents.storage.operation.duration"
 # 2. Flexibility: This mapping allows us to change the internal attribute names without affecting the telemetry data.
 # 3. Efficiency: avoid snake case to camel case conversions (or any other convention)
 
-ATTR_ACTIVITY_DELIVERY_MODE = "activity.deliveryMode"
-ATTR_ACTIVITY_CHANNEL_ID = "activity.channelId"
+ATTR_ACTIVITY_DELIVERY_MODE = "activity.delivery_mode"
+ATTR_ACTIVITY_CHANNEL_ID = "activity.channel_id"
 ATTR_ACTIVITY_ID = "activity.id"
 ATTR_ACTIVITY_COUNT = "activities.count"
 ATTR_ACTIVITY_TYPE = "activity.type"
-ATTR_AGENTIC_USER_ID = "agentic.userId"
-ATTR_AGENTIC_INSTANCE_ID = "agentic.instanceId"
+ATTR_AGENTIC_USER_ID = "agentic.user_id"
+ATTR_AGENTIC_INSTANCE_ID = "agentic.instance_id"
 ATTR_ATTACHMENT_ID = "attachment.id"
 ATTR_AUTH_SCOPES = "auth.scopes"
 ATTR_AUTH_TYPE = "auth.method"
 
-ATTR_CONVERSATION_ID = "conversation.id"
+ATTR_CONVERSATION_ID = "activity.conversation.id"
 
-ATTR_IS_AGENTIC_REQUEST = "isAgenticRequest"
+ATTR_IS_AGENTIC_REQUEST = "is_agentic_request"
 
 ATTR_NUM_KEYS = "keys.num"
 
-ATTR_ROUTE_IS_INVOKE = "route.isInvoke"
-ATTR_ROUTE_IS_AGENTIC = "route.isAgentic"
+ATTR_ROUTE_IS_INVOKE = "route.is_invoke"
+ATTR_ROUTE_IS_AGENTIC = "route.is_agentic"
 
-ATTR_SERVICE_URL = "serviceUrl"
+ATTR_SERVICE_URL = "service_url"
 
 # VALUES
 

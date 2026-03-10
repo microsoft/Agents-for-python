@@ -790,7 +790,10 @@ class AgentApplication(Agent, Generic[StateT]):
 
     async def _handle_file_downloads(self, context: TurnContext, state: StateT):
         with spans.start_span_app_download_files(context):
-            if self._options.file_downloaders and len(self._options.file_downloaders) > 0:
+            if (
+                self._options.file_downloaders
+                and len(self._options.file_downloaders) > 0
+            ):
                 input_files = state.temp.input_files if state.temp.input_files else []
                 for file_downloader in self._options.file_downloaders:
                     logger.info(

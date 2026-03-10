@@ -70,12 +70,17 @@ class AsyncStorageBase(Storage):
             raise ValueError("Storage.read(): Keys are required when reading.")
         if not target_cls:
             raise ValueError("Storage.read(): target_cls cannot be None.")
-        
+
         with spans.start_span_storage_read(len(keys)):
             await self.initialize()
 
-            items: list[tuple[Union[str, None], Union[StoreItemT, None]]] = await gather(
-                *[self._read_item(key, target_cls=target_cls, **kwargs) for key in keys]
+            items: list[tuple[Union[str, None], Union[StoreItemT, None]]] = (
+                await gather(
+                    *[
+                        self._read_item(key, target_cls=target_cls, **kwargs)
+                        for key in keys
+                    ]
+                )
             )
             return {key: value for key, value in items if key is not None}
 
@@ -87,11 +92,13 @@ class AsyncStorageBase(Storage):
     async def write(self, changes: dict[str, StoreItemT]) -> None:
         if not changes:
             raise ValueError("Storage.write(): Changes are required when writing.")
-        
+
         with spans.start_span_storage_write(len(changes)):
             await self.initialize()
 
-            await gather(*[self._write_item(key, value) for key, value in changes.items()])
+            await gather(
+                *[self._write_item(key, value) for key, value in changes.items()]
+            )
 
     @abstractmethod
     async def _delete_item(self, key: str) -> None:

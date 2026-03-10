@@ -26,7 +26,7 @@ class MemoryStorage(Storage):
             raise ValueError("Storage.read(): Keys are required when reading.")
         if not target_cls:
             raise ValueError("Storage.read(): target_cls cannot be None.")
-        
+
         with spans.start_span_storage_read(len(keys)):
             result: dict[str, StoreItem] = {}
             with self._lock:
@@ -50,7 +50,7 @@ class MemoryStorage(Storage):
     async def write(self, changes: dict[str, StoreItem]):
         if not changes:
             raise ValueError("MemoryStorage.write(): changes cannot be None")
-        
+
         with spans.start_span_storage_write(len(changes)):
             with self._lock:
                 for key in changes:

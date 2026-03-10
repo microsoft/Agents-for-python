@@ -97,9 +97,13 @@ class MsalAuth(AccessTokenProviderBase):
             else:
                 auth_result_payload = None
 
-            res = auth_result_payload.get("access_token") if auth_result_payload else None
+            res = (
+                auth_result_payload.get("access_token") if auth_result_payload else None
+            )
             if not res:
-                logger.error("Failed to acquire token for resource %s", auth_result_payload)
+                logger.error(
+                    "Failed to acquire token for resource %s", auth_result_payload
+                )
                 raise ValueError(
                     authentication_errors.FailedToAcquireToken.format(
                         str(auth_result_payload)
@@ -399,7 +403,8 @@ class MsalAuth(AccessTokenProviderBase):
             token = agentic_instance_token.get("access_token")
             if not token:
                 logger.error(
-                    "Failed to acquire agentic instance token, %s", agentic_instance_token
+                    "Failed to acquire agentic instance token, %s",
+                    agentic_instance_token,
                 )
                 raise ValueError(
                     authentication_errors.FailedToAcquireToken.format(
@@ -436,10 +441,14 @@ class MsalAuth(AccessTokenProviderBase):
         :return: The agentic user token, or None if not found.
         :rtype: Optional[str]
         """
-        with spans.start_span_get_agentic_user_token(agent_app_instance_id, agentic_user_id, scopes):
+        with spans.start_span_get_agentic_user_token(
+            agent_app_instance_id, agentic_user_id, scopes
+        ):
             if not agent_app_instance_id or not agentic_user_id:
                 raise ValueError(
-                    str(authentication_errors.AgentApplicationInstanceIdAndUserIdRequired)
+                    str(
+                        authentication_errors.AgentApplicationInstanceIdAndUserIdRequired
+                    )
                 )
 
             logger.info(
