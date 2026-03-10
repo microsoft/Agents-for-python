@@ -99,10 +99,6 @@ async def _cache_observability_token(tenant_id: str, agent_id: str, msal_auth: A
     MSAL caches tokens internally, so repeated calls within the token lifetime
     do not incur additional network requests.
     """
-    try:
-        from microsoft_agents_a365.observability.core.config import get_observability_authentication_scope
-    except ImportError:
-        return
 
     try:
         token = await msal_auth.get_agentic_application_token(
@@ -132,6 +128,8 @@ def _resolve_tenant_and_agent_id(turn_context) -> tuple[str, str]:
 
     # Tenant ID — prefer conversation.tenantId, then recipient.tenantId
     conversation = getattr(activity, "conversation", None)
+
+    #TODO: fix tenant id resolution.
     tenant_id = (
         getattr(conversation, "tenant_id", None)
         or getattr(recipient, "tenant_id", None)
