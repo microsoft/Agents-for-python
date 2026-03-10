@@ -151,12 +151,13 @@ def instrument_libraries() -> None:
             _configure_agent_framework_observability(
                 service_name="AgentFrameworkTracingWithAzureOpenAI",
                 service_namespace="AgentFrameworkTesting",
+                token_resolver=_token_resolver,
             )
             try:
                 _AgentFrameworkInstrumentor().instrument(
-                    skip_dep_check=True, token_resolver=_token_resolver
+                    skip_dep_check=True,
                 )
-            except TypeError:
+            except TypeError as exc:
                 # Older versions of the instrumentor may not support token_resolver
                 _AgentFrameworkInstrumentor().instrument(skip_dep_check=True)
             logger.debug("AgentFramework instrumentation enabled")

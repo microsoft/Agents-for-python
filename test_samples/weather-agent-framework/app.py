@@ -46,7 +46,6 @@ from microsoft_agents.hosting.core.app.oauth.authorization import Authorization
 from microsoft_agents.activity import ActivityTypes, load_configuration_from_env
 from microsoft_agents.authentication.msal import MsalConnectionManager
 from agents import WeatherAgent
-from telemetry.token_cache import cache_agentic_token
 
 
 async def messages_endpoint(request: Request) -> Response:
@@ -93,8 +92,10 @@ def create_app() -> Application:
         **agents_sdk_config
     )
 
-    # Instantiate our weather agent
-    weather_agent = WeatherAgent()
+    # Instantiate our weather agent, passing msal_auth for per-turn observability
+    # token caching — mirrors C# injecting IExporterTokenCache<AgenticTokenStruct>
+    # into WeatherAgent and passing UserAuthorization to InvokeObservedAgentOperation.
+    weather_agent = WeatherAgent(msal_auth=connection_manager.get_default_connection())
 
     # Register event handlers
     @agent_app.activity(ActivityTypes.message)
@@ -121,45 +122,6 @@ def create_app() -> Application:
     app["agent_app"] = agent_app
     app["adapter"] = adapter
     app["agent_configuration"] = connection_manager.get_default_connection_configuration()
-
-    # Register startup handler to prime the observability token cache.
-    # Mirrors _setup_observability_token() in host_agent_server.py of the reference sample.
-    async def _setup_observability_token(_app: Application) -> None:
-        try:
-            from microsoft_agents_a365.observability.core.config import get_observability_authentication_scope
-        except ImportError:
-            logger.debug(
-                "A365 observability package not available — skipping observability token setup"
-            )
-            return
-
-        try:
-            config = connection_manager.get_default_connection_configuration()
-            tenant_id = config.TENANT_ID
-            agent_id = config.CLIENT_ID
-
-            if not tenant_id or not agent_id:
-                logger.warning(
-                    "Missing TENANT_ID or CLIENT_ID — cannot cache observability token"
-                )
-                return
-
-            msal_auth = connection_manager.get_default_connection()
-            scope = get_observability_authentication_scope()
-            scopes = [scope] if isinstance(scope, str) else list(scope)
-
-            token = await msal_auth.get_access_token(
-                resource_url=f"https://login.microsoftonline.com/{tenant_id}",
-                scopes=scopes,
-            )
-            cache_agentic_token(tenant_id, agent_id, token)
-            logger.info(
-                "Observability token cached (tenant=%s, agent=%s)", tenant_id, agent_id
-            )
-        except Exception as exc:
-            logger.warning("Failed to cache observability token: %s", exc)
-
-    app.on_startup.append(_setup_observability_token)
 
     return app
 

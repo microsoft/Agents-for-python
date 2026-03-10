@@ -15,19 +15,21 @@ This Python port preserves the observable contract:
    downstream services can consume the context.
 3. Delegate to :func:`~telemetry.agent_metrics.invoke_observed_agent_operation`
    for span creation and metric recording.
-
-The token-cache observability hook (``RegisterObservability``) present in the
-C# wrapper has no equivalent in Python and is omitted.
+4. Cache the observability token per-turn using the activity-derived IDs,
+   equivalent to ``agentTokenCache.RegisterObservability()`` in C#.
 """
 
 import logging
 import uuid
-from typing import Awaitable, Callable
+from typing import Awaitable, Callable, Optional
 
 from opentelemetry import baggage
 from opentelemetry import context as otel_context
 
+from microsoft_agents.hosting.core import AccessTokenProviderBase
+
 from .agent_metrics import invoke_observed_agent_operation
+from .token_cache import cache_agentic_token
 
 logger = logging.getLogger(__name__)
 
@@ -44,24 +46,31 @@ async def invoke_observed_agent_operation_with_context(
     turn_context,
     turn_state,
     func: Callable[[], Awaitable[None]],
+    msal_auth: Optional[AccessTokenProviderBase] = None,
 ) -> None:
     """Wrap an agent operation with A365 observability baggage context.
 
     Equivalent to ``A365OtelWrapper.InvokeObservedAgentOperation()`` in C#.
 
     Resolves the tenant ID and agent ID from the activity, sets them as
-    OpenTelemetry baggage (equivalent to the C# ``BaggageBuilder``), then
-    delegates to :func:`~telemetry.agent_metrics.invoke_observed_agent_operation`
-    for span management and metric recording.
+    OpenTelemetry baggage (equivalent to the C# ``BaggageBuilder``), caches
+    the observability token per-turn when ``msal_auth`` is provided (equivalent
+    to ``agentTokenCache.RegisterObservability()``), then delegates to
+    :func:`~telemetry.agent_metrics.invoke_observed_agent_operation` for span
+    management and metric recording.
 
     Args:
         operation_name: Human-readable name of the operation / handler.
         turn_context: The current :class:`TurnContext`.
-        turn_state: The current :class:`TurnState` (kept for API parity with
-            the C# version; auth resolution is not performed here).
+        turn_state: The current :class:`TurnState`.
         func: Async function containing the agent logic to execute.
+        msal_auth: Optional MSAL authentication provider used to fetch and
+            cache the observability token for the activity-derived IDs.
     """
     agent_id, tenant_id = _resolve_tenant_and_agent_id(turn_context)
+
+    if msal_auth is not None:
+        await _cache_observability_token(tenant_id, agent_id, msal_auth)
 
     async def _with_baggage():
         # Set tenant.id and agent.id as baggage — equivalent to BaggageBuilder
@@ -83,23 +92,29 @@ async def invoke_observed_agent_operation_with_context(
 # ---------------------------------------------------------------------------
 
 
+async def _cache_observability_token(tenant_id: str, agent_id: str, msal_auth: AccessTokenProviderBase) -> None:
+    """Fetch and cache the observability token using activity-derived IDs.
+
+    Equivalent to ``agentTokenCache.RegisterObservability()`` in C#.
+    MSAL caches tokens internally, so repeated calls within the token lifetime
+    do not incur additional network requests.
+    """
+    try:
+        from microsoft_agents_a365.observability.core.config import get_observability_authentication_scope
+    except ImportError:
+        return
+
+    try:
+        token = await msal_auth.get_agentic_application_token(
+            tenant_id, agent_id)
+        cache_agentic_token(tenant_id, agent_id, token)
+        logger.debug("Observability token cached (tenant=%s, agent=%s)", tenant_id, agent_id)
+    except Exception as exc:
+        logger.warning("Failed to cache observability token: %s", exc)
+
+
 def _resolve_tenant_and_agent_id(turn_context) -> tuple[str, str]:
     """Extract tenant and agent IDs from the turn activity.
-
-    Equivalent to ``ResolveTenantAndAgentId()`` in C#.
-
-    The C# version calls into M365 auth helpers
-    (``GetAgenticInstanceId`` / ``ResolveAgentIdentity``) that are not
-    available in Python.  This implementation derives the values directly
-    from the activity fields that carry the same semantics:
-
-    * **agent_id** — the ``recipient.id`` of the activity (the bot/agent
-      identity that received the message).
-    * **tenant_id** — ``conversation.tenantId`` or ``recipient.tenantId``,
-      matching the fields inspected by the C# helper.
-
-    Falls back to ``00000000-0000-0000-0000-000000000000`` (Guid.Empty) for
-    any value that cannot be resolved, matching C# behaviour.
 
     Args:
         turn_context: The current :class:`TurnContext`.

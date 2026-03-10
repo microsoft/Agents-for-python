@@ -102,7 +102,8 @@ class ConversationHistoryStoreItem(StoreItem):
 class WeatherAgent:
     """Weather Agent that processes user messages with Azure OpenAI and weather tools."""
 
-    def __init__(self):
+    def __init__(self, msal_auth=None):
+        self._msal_auth = msal_auth
         endpoint = environ["AZURE_OPENAI_ENDPOINT"]
         api_version = environ.get("AZURE_OPENAI_API_VERSION", "2024-12-01-preview")
         api_key = environ.get("AZURE_OPENAI_API_KEY")
@@ -244,6 +245,7 @@ class WeatherAgent:
                 context,
                 state,
                 _process,
+                msal_auth=self._msal_auth,
             )
         except Exception as e:
             print(f"Error: {e}")
