@@ -26,7 +26,7 @@ class MemoryStorage(Storage):
             raise ValueError("Storage.read(): Keys are required when reading.")
         if not target_cls:
             raise ValueError("Storage.read(): target_cls cannot be None.")
-
+        
         with spans.start_span_storage_read(len(keys)):
             result: dict[str, StoreItem] = {}
             with self._lock:
