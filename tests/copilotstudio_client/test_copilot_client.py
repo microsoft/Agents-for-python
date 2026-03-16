@@ -16,6 +16,7 @@ from microsoft_agents.copilotstudio.client import (
 from aiohttp import ClientSession, ClientError
 from urllib.parse import urlparse
 
+
 @pytest.mark.asyncio
 async def test_copilot_client_error(mocker):
     # Define the connection settings
