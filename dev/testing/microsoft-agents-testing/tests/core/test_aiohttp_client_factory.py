@@ -30,7 +30,7 @@ class TestAiohttpClientFactoryInitialization:
         sdk_config = {"CONNECTIONS": {}}
         
         factory = _AiohttpClientFactory(
-            agent_url="http://localhost:3978",
+            agent_endpoint="http://localhost:3978",
             response_endpoint="http://localhost:9378/api/callback",
             sdk_config=sdk_config,
             default_template=template,
@@ -38,7 +38,7 @@ class TestAiohttpClientFactoryInitialization:
             transcript=transcript,
         )
         
-        assert factory._agent_url == "http://localhost:3978"
+        assert factory._agent_endpoint == "http://localhost:3978"
         assert factory._response_endpoint == "http://localhost:9378/api/callback"
         assert factory._sdk_config is sdk_config
         assert factory._default_template is template
@@ -48,7 +48,7 @@ class TestAiohttpClientFactoryInitialization:
     def test_initialization_creates_empty_sessions_list(self):
         """Factory initializes with empty sessions list."""
         factory = _AiohttpClientFactory(
-            agent_url="http://localhost:3978",
+            agent_endpoint="http://localhost:3978",
             response_endpoint="http://localhost:9378/api/callback",
             sdk_config={},
             default_template=ActivityTemplate(),
@@ -60,17 +60,17 @@ class TestAiohttpClientFactoryInitialization:
 
 
 # ============================================================================
-# _AiohttpClientfactory Tests
+# _AiohttpClientFactory Tests
 # ============================================================================
 
 class TestAiohttpClientFactoryCreateClient:
-    """Tests for _AiohttpClientfactory method."""
+    """Tests for _AiohttpClientFactory method."""
 
     @pytest.fixture
     def factory(self):
         """Create a factory with default configuration."""
         return _AiohttpClientFactory(
-            agent_url="http://localhost:3978",
+            agent_endpoint="http://localhost:3978",
             response_endpoint="http://localhost:9378/api/callback",
             sdk_config={},
             default_template=ActivityTemplate(type="message"),
@@ -210,7 +210,7 @@ class TestAiohttpClientFactoryAuthorization:
     async def test_explicit_authorization_header_preserved(self):
         """Explicit Authorization header is preserved."""
         factory = _AiohttpClientFactory(
-            agent_url="http://localhost:3978",
+            agent_endpoint="http://localhost:3978",
             response_endpoint="http://localhost:9378/api/callback",
             sdk_config={},
             default_template=ActivityTemplate(),
@@ -232,7 +232,7 @@ class TestAiohttpClientFactoryAuthorization:
     async def test_auth_token_overrides_when_no_explicit_authorization(self):
         """auth_token is used when no explicit Authorization header."""
         factory = _AiohttpClientFactory(
-            agent_url="http://localhost:3978",
+            agent_endpoint="http://localhost:3978",
             response_endpoint="http://localhost:9378/api/callback",
             sdk_config={},
             default_template=ActivityTemplate(),
@@ -254,7 +254,7 @@ class TestAiohttpClientFactoryAuthorization:
     async def test_no_auth_when_no_token_and_no_sdk_config(self):
         """No Authorization header when no token and sdk_config fails."""
         factory = _AiohttpClientFactory(
-            agent_url="http://localhost:3978",
+            agent_endpoint="http://localhost:3978",
             response_endpoint="http://localhost:9378/api/callback",
             sdk_config={},  # Empty, will cause generate_token_from_config to fail
             default_template=ActivityTemplate(),
@@ -278,7 +278,7 @@ class TestAiohttpClientFactoryAuthorization:
         invalid_sdk_config = {"CONNECTIONS": {"SERVICE_CONNECTION": {"SETTINGS": {}}}}
         
         factory = _AiohttpClientFactory(
-            agent_url="http://localhost:3978",
+            agent_endpoint="http://localhost:3978",
             response_endpoint="http://localhost:9378/api/callback",
             sdk_config=invalid_sdk_config,
             default_template=ActivityTemplate(),
@@ -306,7 +306,7 @@ class TestAiohttpClientFactoryCleanup:
     async def test_cleanup_closes_all_sessions(self):
         """cleanup closes all created sessions."""
         factory = _AiohttpClientFactory(
-            agent_url="http://localhost:3978",
+            agent_endpoint="http://localhost:3978",
             response_endpoint="http://localhost:9378/api/callback",
             sdk_config={},
             default_template=ActivityTemplate(),
@@ -331,7 +331,7 @@ class TestAiohttpClientFactoryCleanup:
     async def test_cleanup_clears_sessions_list(self):
         """cleanup clears the sessions list."""
         factory = _AiohttpClientFactory(
-            agent_url="http://localhost:3978",
+            agent_endpoint="http://localhost:3978",
             response_endpoint="http://localhost:9378/api/callback",
             sdk_config={},
             default_template=ActivityTemplate(),
@@ -352,7 +352,7 @@ class TestAiohttpClientFactoryCleanup:
     async def test_cleanup_on_empty_sessions_list(self):
         """cleanup handles empty sessions list gracefully."""
         factory = _AiohttpClientFactory(
-            agent_url="http://localhost:3978",
+            agent_endpoint="http://localhost:3978",
             response_endpoint="http://localhost:9378/api/callback",
             sdk_config={},
             default_template=ActivityTemplate(),
@@ -369,7 +369,7 @@ class TestAiohttpClientFactoryCleanup:
     async def test_cleanup_can_be_called_multiple_times(self):
         """cleanup can be called multiple times safely."""
         factory = _AiohttpClientFactory(
-            agent_url="http://localhost:3978",
+            agent_endpoint="http://localhost:3978",
             response_endpoint="http://localhost:9378/api/callback",
             sdk_config={},
             default_template=ActivityTemplate(),
@@ -398,7 +398,7 @@ class TestAiohttpClientFactoryTemplateHandling:
         default_template = ActivityTemplate(type="message", text="Default")
         
         factory = _AiohttpClientFactory(
-            agent_url="http://localhost:3978",
+            agent_endpoint="http://localhost:3978",
             response_endpoint="http://localhost:9378/api/callback",
             sdk_config={},
             default_template=default_template,
@@ -421,7 +421,7 @@ class TestAiohttpClientFactoryTemplateHandling:
         config = ClientConfig(activity_template=custom_template)
         
         factory = _AiohttpClientFactory(
-            agent_url="http://localhost:3978",
+            agent_endpoint="http://localhost:3978",
             response_endpoint="http://localhost:9378/api/callback",
             sdk_config={},
             default_template=default_template,
@@ -448,7 +448,7 @@ class TestAiohttpClientFactoryIntegration:
     async def test_full_workflow_create_and_cleanup(self):
         """Full workflow: create multiple clients, then cleanup."""
         factory = _AiohttpClientFactory(
-            agent_url="http://localhost:3978",
+            agent_endpoint="http://localhost:3978",
             response_endpoint="http://localhost:9378/api/callback",
             sdk_config={},
             default_template=ActivityTemplate(),
@@ -481,7 +481,7 @@ class TestAiohttpClientFactoryIntegration:
     async def test_session_base_url_is_set_correctly(self):
         """Sessions are created with correct base_url."""
         factory = _AiohttpClientFactory(
-            agent_url="http://my-agent:3978",
+            agent_endpoint="http://my-agent:3978",
             response_endpoint="http://localhost:9378/api/callback",
             sdk_config={},
             default_template=ActivityTemplate(),
@@ -493,7 +493,6 @@ class TestAiohttpClientFactoryIntegration:
         
         try:
             session = factory._sessions[0]
-            # aiohttp stores base_url as a URL object
-            assert str(session._base_url) == "http://my-agent:3978"
+            assert session._base_url is None
         finally:
             await factory.cleanup()

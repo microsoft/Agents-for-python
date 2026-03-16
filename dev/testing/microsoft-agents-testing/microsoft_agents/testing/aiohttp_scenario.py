@@ -113,7 +113,7 @@ class AiohttpScenario(Scenario):
         :return: The SDK configuration dictionary.
         """
         
-        env_vars = dotenv_values(self._config.env_file_path)
+        env_vars = dotenv_values(self._config.env_file_path or ".env")
         sdk_config = load_configuration_from_env(env_vars)
         
         storage = MemoryStorage()
@@ -179,10 +179,10 @@ class AiohttpScenario(Scenario):
 
         async with callback_server.listen() as transcript:
             async with TestServer(app, port=3978) as server:
-                agent_url = f"http://{server.host}:{server.port}/"
+                agent_endpoint = f"http://127.0.0.1:{server.port}/api/messages"
                 
                 factory = _AiohttpClientFactory(
-                    agent_url=agent_url,
+                    agent_endpoint=agent_endpoint,
                     response_endpoint=callback_server.service_endpoint,
                     sdk_config=sdk_config,
                     default_config=self._config.client_config,

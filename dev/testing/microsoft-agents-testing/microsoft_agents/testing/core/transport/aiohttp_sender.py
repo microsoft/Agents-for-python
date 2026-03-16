@@ -10,6 +10,7 @@ from datetime import datetime, timezone
 from typing import AsyncContextManager
 
 from aiohttp import ClientSession
+from aiohttp.client_exceptions import ClientError
 
 from microsoft_agents.activity import Activity
 
@@ -24,8 +25,13 @@ class AiohttpSender(Sender):
     the response in an Exchange object.
     """
     
-    def __init__(self, session: ClientSession):
+    def __init__(self, endpoint, session: ClientSession):
+        self._endpoint = endpoint
         self._session = session
+
+    @property
+    def endpoint(self) -> str:
+        return self._endpoint
 
     async def send(self, activity: Activity, transcript: Transcript | None = None, **kwargs) -> Exchange:
         """Send an activity and return the Exchange containing the response.
@@ -41,7 +47,7 @@ class AiohttpSender(Sender):
         request_at = datetime.now(timezone.utc)
         try:
             async with self._session.post(
-                "api/messages",
+                self._endpoint,
                 json=activity.model_dump(
                     by_alias=True, exclude_unset=True, exclude_none=True, mode="json"
                 ),
@@ -49,17 +55,26 @@ class AiohttpSender(Sender):
             ) as response:
                 response_at = datetime.now(timezone.utc)
                 response_or_exception = response
+
+                if response.status >= 300:
+                    raise ClientError(f"Received non-success status code: {response.status}")
+
                 exchange = await Exchange.from_request(
                     request_activity=activity,
                     response_or_exception=response_or_exception,
                     request_at=request_at,
                     response_at=response_at,
+                    status=response.status,
                     **kwargs
                 )
         
-        except Exception as e:
+        except ClientError as e:
+            
+            if response_or_exception is not None:
+                raise  # If we got a response but it was an error status, re-raise the exception
+
             response_at = datetime.now(timezone.utc)
-            response_or_exception = e 
+            response_or_exception = e
 
             exchange = await Exchange.from_request(
                 request_activity=activity,

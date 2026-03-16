@@ -11,6 +11,7 @@ from contextlib import asynccontextmanager
 import pytest
 import aiohttp
 from aiohttp import ClientSession, ClientResponse
+from aiohttp.client_exceptions import ClientError
 
 from microsoft_agents.activity import Activity, ActivityTypes, DeliveryModes
 from microsoft_agents.testing.core.transport import AiohttpSender
@@ -36,6 +37,7 @@ def create_mock_session(mock_response):
     mock_session.post = mock_post
     return mock_session
 
+ENDPOINT = "http://localhost:9999/api/messages"
 
 class TestAiohttpSenderInitialization:
     """Tests for AiohttpSender initialization."""
@@ -44,7 +46,7 @@ class TestAiohttpSenderInitialization:
         """AiohttpSender should store the provided session."""
         mock_session = MagicMock(spec=ClientSession)
         
-        sender = AiohttpSender(session=mock_session)
+        sender = AiohttpSender(endpoint=ENDPOINT, session=mock_session)
         
         assert sender._session is mock_session
 
@@ -67,13 +69,13 @@ class TestAiohttpSenderSend:
         
         mock_session.post = mock_post
         
-        sender = AiohttpSender(session=mock_session)
+        sender = AiohttpSender(endpoint=ENDPOINT, session=mock_session)
         activity = Activity(type=ActivityTypes.message, text="Hello")
         
         await sender.send(activity)
         
         assert len(post_calls) == 1
-        assert post_calls[0][0][0] == "api/messages"
+        assert post_calls[0][0][0] == "http://localhost:9999/api/messages"
 
     @pytest.mark.asyncio
     async def test_send_serializes_activity_correctly(self):
@@ -90,7 +92,7 @@ class TestAiohttpSenderSend:
         
         mock_session.post = mock_post
         
-        sender = AiohttpSender(session=mock_session)
+        sender = AiohttpSender(ENDPOINT, session=mock_session)
         activity = Activity(type=ActivityTypes.message, text="Hello")
         
         await sender.send(activity)
@@ -107,7 +109,7 @@ class TestAiohttpSenderSend:
         mock_response = create_mock_response(200, "OK")
         mock_session = create_mock_session(mock_response)
         
-        sender = AiohttpSender(session=mock_session)
+        sender = AiohttpSender(endpoint=ENDPOINT, session=mock_session)
         activity = Activity(type=ActivityTypes.message, text="Hello")
         
         exchange = await sender.send(activity)
@@ -122,7 +124,7 @@ class TestAiohttpSenderSend:
         mock_response = create_mock_response(200, "OK")
         mock_session = create_mock_session(mock_response)
         
-        sender = AiohttpSender(session=mock_session)
+        sender = AiohttpSender(endpoint=ENDPOINT, session=mock_session)
         activity = Activity(type=ActivityTypes.message, text="Hello")
         
         exchange = await sender.send(activity)
@@ -138,7 +140,7 @@ class TestAiohttpSenderSend:
         mock_response = create_mock_response(200, "OK")
         mock_session = create_mock_session(mock_response)
         
-        sender = AiohttpSender(session=mock_session)
+        sender = AiohttpSender(endpoint=ENDPOINT, session=mock_session)
         activity = Activity(type=ActivityTypes.message, text="Hello")
         transcript = Transcript()
         
@@ -153,7 +155,7 @@ class TestAiohttpSenderSend:
         mock_response = create_mock_response(200, "OK")
         mock_session = create_mock_session(mock_response)
         
-        sender = AiohttpSender(session=mock_session)
+        sender = AiohttpSender(endpoint=ENDPOINT, session=mock_session)
         activity = Activity(type=ActivityTypes.message, text="Hello")
         
         # Should not raise
@@ -175,7 +177,7 @@ class TestAiohttpSenderSend:
         
         mock_session.post = mock_post
         
-        sender = AiohttpSender(session=mock_session)
+        sender = AiohttpSender(endpoint=ENDPOINT, session=mock_session)
         activity = Activity(type=ActivityTypes.message, text="Hello")
         
         await sender.send(activity, timeout=30)
@@ -198,7 +200,7 @@ class TestAiohttpSenderErrorHandling:
         
         mock_session.post = mock_post
         
-        sender = AiohttpSender(session=mock_session)
+        sender = AiohttpSender(endpoint=ENDPOINT, session=mock_session)
         activity = Activity(type=ActivityTypes.message, text="Hello")
         
         exchange = await sender.send(activity)
@@ -218,7 +220,7 @@ class TestAiohttpSenderErrorHandling:
         
         mock_session.post = mock_post
         
-        sender = AiohttpSender(session=mock_session)
+        sender = AiohttpSender(endpoint=ENDPOINT, session=mock_session)
         activity = Activity(type=ActivityTypes.message, text="Hello")
         
         exchange = await sender.send(activity)
@@ -237,7 +239,7 @@ class TestAiohttpSenderErrorHandling:
         
         mock_session.post = mock_post
         
-        sender = AiohttpSender(session=mock_session)
+        sender = AiohttpSender(endpoint=ENDPOINT, session=mock_session)
         activity = Activity(type=ActivityTypes.message, text="Hello")
         transcript = Transcript()
         
@@ -258,7 +260,7 @@ class TestAiohttpSenderErrorHandling:
         
         mock_session.post = mock_post
         
-        sender = AiohttpSender(session=mock_session)
+        sender = AiohttpSender(endpoint=ENDPOINT, session=mock_session)
         activity = Activity(type=ActivityTypes.message, text="Hello")
         
         with pytest.raises(ValueError, match="Unexpected error"):
@@ -279,7 +281,7 @@ class TestAiohttpSenderExpectReplies:
         mock_response = create_mock_response(200, responses_json)
         mock_session = create_mock_session(mock_response)
         
-        sender = AiohttpSender(session=mock_session)
+        sender = AiohttpSender(endpoint=ENDPOINT, session=mock_session)
         activity = Activity(
             type=ActivityTypes.message,
             text="Hello",
@@ -304,7 +306,7 @@ class TestAiohttpSenderInvoke:
         mock_response = create_mock_response(200, invoke_response_json)
         mock_session = create_mock_session(mock_response)
         
-        sender = AiohttpSender(session=mock_session)
+        sender = AiohttpSender(endpoint=ENDPOINT, session=mock_session)
         activity = Activity(
             type=ActivityTypes.invoke,
             name="testAction"
@@ -315,3 +317,15 @@ class TestAiohttpSenderInvoke:
         assert exchange.invoke_response is not None
         assert exchange.invoke_response.status == 200
         assert exchange.invoke_response.body == {"result": "success"}
+
+    @pytest.mark.asyncio
+    async def test_send_raises_on_non_success_status(self):
+        """send should raise ClientError when response status >= 300."""
+        mock_response = create_mock_response(status=404, text="Not Found")
+        mock_session = create_mock_session(mock_response)
+
+        sender = AiohttpSender(endpoint=ENDPOINT, session=mock_session)
+        activity = Activity(type=ActivityTypes.message, text="Hello")
+
+        with pytest.raises(ClientError, match="404"):
+            await sender.send(activity)

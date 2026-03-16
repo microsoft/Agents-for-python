@@ -32,14 +32,14 @@ class _AiohttpClientFactory:
     
     def __init__(
         self,
-        agent_url: str,
+        agent_endpoint: str,
         response_endpoint: str,
         sdk_config: dict,
         default_template: ActivityTemplate | None = None,
         default_config: ClientConfig | None = None,
         transcript: Transcript | None = None,
     ):
-        self._agent_url = agent_url
+        self._agent_endpoint = agent_endpoint
         self._response_endpoint = response_endpoint
         self._sdk_config = sdk_config
         self._default_template = default_template or ActivityTemplate()
@@ -66,7 +66,7 @@ class _AiohttpClientFactory:
                 pass  # No auth available
         
         # Create session
-        session = ClientSession(base_url=self._agent_url, headers=headers)
+        session = ClientSession(headers=headers)
         self._sessions.append(session)
         
         # Build activity template with user identity
@@ -76,7 +76,7 @@ class _AiohttpClientFactory:
         )
         
         # Create sender and client
-        sender = AiohttpSender(session)
+        sender = AiohttpSender(self._agent_endpoint, session)
         return AgentClient(sender, self._transcript, template=template)
     
     async def cleanup(self):

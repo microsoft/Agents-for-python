@@ -89,6 +89,7 @@ class Exchange(BaseModel):
     async def from_request(
         request_activity: Activity,
         response_or_exception: Exception | ResponseT,
+        status: int | None = None,
         **kwargs
     ) -> Exchange:
         """Create an Exchange from a request activity and its outcome.
@@ -115,6 +116,13 @@ class Exchange(BaseModel):
                 error=str(response_or_exception),
                 **kwargs,
             )
+        elif isinstance(status, int) and status >= 300:
+            text = await response_or_exception.text()
+            return Exchange(
+                request=request_activity,
+                error=text,
+                **kwargs
+            )
         
         if isinstance(response_or_exception, aiohttp.ClientResponse):
             
@@ -129,7 +137,7 @@ class Exchange(BaseModel):
                 body = await response.text()
                 activity_list = json.loads(body)["activities"]
                 activities = [ Activity.model_validate(activity) for activity in activity_list ]
-                
+
             elif request_activity.type == ActivityTypes.invoke:
                 body = await response.text()
                 body_json = json.loads(body)

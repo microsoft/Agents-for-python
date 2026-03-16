@@ -31,11 +31,11 @@ class ExternalScenario(Scenario):
     
     Example::
     
-        scenario = ExternalScenario("http://localhost:3978/api/messages")
+        scenario = ExternalScenario("http://localhost:3978/api/messages/")
         async with scenario.client() as client:
             replies = await client.send("Hello!")
     
-    :param endpoint: The URL of the agent's message endpoint.
+    :param agent_url: The URL of the agent's message endpoint.
     :param config: Optional scenario configuration.
     """
     
@@ -48,8 +48,8 @@ class ExternalScenario(Scenario):
     @asynccontextmanager
     async def run(self) -> AsyncIterator[ClientFactory]:
         """Start callback server and yield a client factory."""
-        
-        env_vars = dotenv_values(self._config.env_file_path)
+
+        env_vars = dotenv_values(self._config.env_file_path or ".env")
         sdk_config = load_configuration_from_env(env_vars)
         
         callback_server = AiohttpCallbackServer(self._config.callback_server_port)
@@ -58,7 +58,7 @@ class ExternalScenario(Scenario):
             # Create a factory that binds the agent URL, callback endpoint,
             # and SDK config so callers can create configured clients
             factory = _AiohttpClientFactory(
-                agent_url=self._endpoint,
+                agent_endpoint=self._endpoint,
                 response_endpoint=callback_server.service_endpoint,
                 sdk_config=sdk_config,
                 default_config=self._config.client_config,

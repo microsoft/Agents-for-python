@@ -169,10 +169,12 @@ class TestAiohttpSenderIntegration:
         """AiohttpSender posts to a real HTTP server."""
         mock_server = MockAgentServer(port=9901)
         mock_server.default_response(Activity(type=ActivityTypes.message, text="Reply"))
+
+        agent_endpoint = f"{mock_server.endpoint}/api/messages"
         
         async with mock_server.run():
-            async with ClientSession(base_url=mock_server.endpoint) as session:
-                sender = AiohttpSender(session)
+            async with ClientSession() as session:
+                sender = AiohttpSender(agent_endpoint, session)
                 activity = Activity(type=ActivityTypes.message, text="Hello")
                 
                 exchange = await sender.send(activity)
@@ -189,10 +191,11 @@ class TestAiohttpSenderIntegration:
             Activity(type=ActivityTypes.message, text="Reply 1"),
             Activity(type=ActivityTypes.message, text="Reply 2")
         )
+        agent_endpoint = f"{mock_server.endpoint}/api/messages"
         
         async with mock_server.run():
-            async with ClientSession(base_url=mock_server.endpoint) as session:
-                sender = AiohttpSender(session)
+            async with ClientSession() as session:
+                sender = AiohttpSender(agent_endpoint, session)
                 activity = Activity(
                     type=ActivityTypes.message,
                     text="Hello",
@@ -210,10 +213,11 @@ class TestAiohttpSenderIntegration:
         """AiohttpSender handles invoke activities."""
         mock_server = MockAgentServer(port=9903)
         mock_server.on_invoke("action/test", 200, {"result": "success"})
+        agent_endpoint = f"{mock_server.endpoint}/api/messages"
         
         async with mock_server.run():
-            async with ClientSession(base_url=mock_server.endpoint) as session:
-                sender = AiohttpSender(session)
+            async with ClientSession() as session:
+                sender = AiohttpSender(agent_endpoint, session)
                 activity = Activity(type=ActivityTypes.invoke, name="action/test")
                 
                 exchange = await sender.send(activity)
@@ -226,10 +230,11 @@ class TestAiohttpSenderIntegration:
     async def test_sender_records_to_transcript(self):
         """AiohttpSender records exchanges to transcript."""
         mock_server = MockAgentServer(port=9904)
+        agent_endpoint = f"{mock_server.endpoint}/api/messages"
         
         async with mock_server.run():
-            async with ClientSession(base_url=mock_server.endpoint) as session:
-                sender = AiohttpSender(session)
+            async with ClientSession() as session:
+                sender = AiohttpSender(agent_endpoint, session)
                 transcript = Transcript()
                 
                 activity1 = Activity(type=ActivityTypes.message, text="First")
@@ -255,10 +260,11 @@ class TestAgentClientWithAiohttpSender:
         """AgentClient sends activities via real HTTP."""
         mock_server = MockAgentServer(port=9905)
         mock_server.default_response(Activity(type=ActivityTypes.message, text="OK"))
+        agent_endpoint = f"{mock_server.endpoint}/api/messages"
         
         async with mock_server.run():
-            async with ClientSession(base_url=mock_server.endpoint) as session:
-                sender = AiohttpSender(session)
+            async with ClientSession() as session:
+                sender = AiohttpSender(agent_endpoint, session)
                 template = ActivityTemplate(
                     channel_id="test",
                     **{"conversation.id": "conv-1", "from.id": "user-1"}
@@ -285,8 +291,9 @@ class TestAgentClientWithAiohttpSender:
         mock_server.default_response(Activity(type=ActivityTypes.message, text="I don't understand"))
         
         async with mock_server.run():
-            async with ClientSession(base_url=mock_server.endpoint) as session:
-                sender = AiohttpSender(session)
+            async with ClientSession() as session:
+                agent_endpoint = f"{mock_server.endpoint}/api/messages"
+                sender = AiohttpSender(agent_endpoint, session)
                 client = AgentClient(sender=sender)
                 
                 # Greeting
@@ -311,8 +318,9 @@ class TestAgentClientWithAiohttpSender:
         mock_server.on_invoke("submit/form", 200, {"submitted": True, "id": "form-123"})
         
         async with mock_server.run():
-            async with ClientSession(base_url=mock_server.endpoint) as session:
-                sender = AiohttpSender(session)
+            async with ClientSession() as session:
+                agent_endpoint = f"{mock_server.endpoint}/api/messages"
+                sender = AiohttpSender(agent_endpoint, session)
                 client = AgentClient(sender=sender)
                 
                 invoke_response = await client.invoke(
@@ -406,11 +414,12 @@ class Test_AiohttpClientFactoryIntegration:
         """Factory creates clients that can communicate with agent."""
         mock_server = MockAgentServer(port=9911)
         mock_server.default_response(Activity(type=ActivityTypes.message, text="Factory test OK"))
-        
+        agent_endpoint = f"{mock_server.endpoint}/api/messages"
+
         async with mock_server.run():
             transcript = Transcript()
             factory = _AiohttpClientFactory(
-                agent_url=mock_server.endpoint,
+                agent_endpoint=agent_endpoint,
                 response_endpoint="http://localhost:9999/callback",
                 sdk_config={},
                 default_template=ActivityTemplate(channel_id="test"),
@@ -440,9 +449,10 @@ class Test_AiohttpClientFactoryIntegration:
         )
         
         async with mock_server.run():
+            agent_endpoint = f"{mock_server.endpoint}/api/messages"
             transcript = Transcript()
             factory = _AiohttpClientFactory(
-                agent_url=mock_server.endpoint,
+                agent_endpoint=agent_endpoint,
                 response_endpoint="http://localhost:9999/callback",
                 sdk_config={},
                 default_template=default_template,
@@ -467,9 +477,10 @@ class Test_AiohttpClientFactoryIntegration:
         mock_server.default_response(Activity(type=ActivityTypes.message, text="OK"))
         
         async with mock_server.run():
+            agent_endpoint = f"{mock_server.endpoint}/api/messages"
             transcript = Transcript()
             factory = _AiohttpClientFactory(
-                agent_url=mock_server.endpoint,
+                agent_endpoint=agent_endpoint,
                 response_endpoint="http://localhost:9999/callback",
                 sdk_config={},
                 default_template=ActivityTemplate(),
@@ -500,8 +511,9 @@ class Test_AiohttpClientFactoryIntegration:
         mock_server = MockAgentServer(port=9914)
         
         async with mock_server.run():
+            agent_endpoint = f"{mock_server.endpoint}/api/messages"
             factory = _AiohttpClientFactory(
-                agent_url=mock_server.endpoint,
+                agent_endpoint=agent_endpoint,
                 response_endpoint="http://localhost:9999/callback",
                 sdk_config={},
                 default_template=ActivityTemplate(),
@@ -581,8 +593,9 @@ class TestEndToEndIntegration:
         async with mock_server.run():
             # Setup infrastructure
             transcript = Transcript()
+            agent_endpoint = f"{mock_server.endpoint}/api/messages"
             factory = _AiohttpClientFactory(
-                agent_url=mock_server.endpoint,
+                agent_endpoint=agent_endpoint,
                 response_endpoint="http://localhost:9999/callback",
                 sdk_config={},
                 default_template=ActivityTemplate(
@@ -633,11 +646,12 @@ class TestEndToEndIntegration:
         """Multiple users in same conversation via HTTP."""
         mock_server = MockAgentServer(port=9921)
         mock_server.default_response(Activity(type=ActivityTypes.message, text="Received"))
+        agent_endpoint = f"{mock_server.endpoint}/api/messages"
         
         async with mock_server.run():
             transcript = Transcript()
             factory = _AiohttpClientFactory(
-                agent_url=mock_server.endpoint,
+                agent_endpoint=agent_endpoint,
                 response_endpoint="http://localhost:9999/callback",
                 sdk_config={},
                 default_template=ActivityTemplate(**{"conversation.id": "multi-user-conv"}),
@@ -683,8 +697,9 @@ class TestEndToEndIntegration:
         mock_server.default_response(Activity(type=ActivityTypes.message, text="Message received"))
         
         async with mock_server.run():
-            async with ClientSession(base_url=mock_server.endpoint) as session:
-                sender = AiohttpSender(session)
+            async with ClientSession() as session:
+                agent_endpoint = f"{mock_server.endpoint}/api/messages"
+                sender = AiohttpSender(agent_endpoint, session)
                 client = AgentClient(sender=sender)
                 
                 # Regular message
@@ -729,8 +744,9 @@ class TestEndToEndIntegration:
         )
         
         async with mock_server.run():
-            async with ClientSession(base_url=mock_server.endpoint) as session:
-                sender = AiohttpSender(session)
+            async with ClientSession() as session:
+                agent_endpoint = f"{mock_server.endpoint}/api/messages"
+                sender = AiohttpSender(agent_endpoint, session)
                 client = AgentClient(sender=sender)
                 
                 responses = await client.send_expect_replies("report")

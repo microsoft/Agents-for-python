@@ -238,7 +238,7 @@ class TestExternalScenarioRun:
             mock_server_class.return_value = mock_server
             
             async with scenario.run() as factory:
-                assert factory._agent_url == "http://my-agent:3978/api/messages"
+                assert factory._agent_endpoint == "http://my-agent:3978/api/messages"
 
     @pytest.mark.asyncio
     async def test_run_passes_service_endpoint_to_factory(self):
@@ -539,7 +539,7 @@ class TestExternalScenarioEdgeCases:
             mock_server_class.return_value = mock_server
             
             async with scenario.run() as factory:
-                mock_dotenv.assert_called_once_with(None)
+                mock_dotenv.assert_called_once_with(".env")
 
 
 # ============================================================================
