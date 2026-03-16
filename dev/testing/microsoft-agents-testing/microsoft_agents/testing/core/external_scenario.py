@@ -31,7 +31,7 @@ class ExternalScenario(Scenario):
     
     Example::
     
-        scenario = ExternalScenario("http://localhost:3978/api/messages/")
+        scenario = ExternalScenario("http://localhost:3978/api/messages")
         async with scenario.client() as client:
             replies = await client.send("Hello!")
     

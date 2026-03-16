@@ -1,6 +1,6 @@
 from enum import Enum
 
-class SDKVersion(Enum, str):
+class SDKVersion(str, Enum):
 
     PYTHON = "python"
     JS = "js"
