@@ -2,13 +2,11 @@
 # Licensed under the MIT License.
 
 from enum import Enum
-from typing import List, Optional
-
-from pydantic import Field
+from typing import List, Optional, Literal
 
 from ..agents_model import AgentsModel
+from ._schema_mixin import _SchemaMixin
 from .entity import Entity
-
 
 class ClientCitationIconName(str, Enum):
     """Enumeration of supported citation icon names."""
@@ -43,23 +41,25 @@ class ClientCitationImage(AgentsModel):
     name: str = ""
 
 
-class SensitivityPattern(AgentsModel):
+class SensitivityPattern(AgentsModel, _SchemaMixin):
     """Pattern information for sensitivity usage info."""
 
-    type: str = Field("DefinedTerm", alias="@type")
+    at_type: Literal["DefinedTerm"] = "DefinedTerm"
+
     in_defined_term_set: str = ""
     name: str = ""
     term_code: str = ""
 
 
-class SensitivityUsageInfo(AgentsModel):
+class SensitivityUsageInfo(AgentsModel, _SchemaMixin):
     """
     Sensitivity usage info for content sent to the user.
     This is used to provide information about the content to the user.
     """
 
     type: str = "https://schema.org/Message"
-    schema_type: str = Field("CreativeWork", alias="@type")
+    at_type: Literal["CreativeWork"] = "CreativeWork"
+
     description: Optional[str] = None
     name: str = ""
     position: Optional[int] = None
@@ -68,10 +68,11 @@ class SensitivityUsageInfo(AgentsModel):
     def __init__(self, **data): # removes linter errors for user-facing code
         super().__init__(**data)
 
-class ClientCitationAppearance(AgentsModel):
+class ClientCitationAppearance(AgentsModel, _SchemaMixin):
     """Appearance information for a client citation."""
 
-    type: str = Field("DigitalDocument", alias="@type")
+    at_type: Literal["DigitalDocument"] = "DigitalDocument"
+
     name: str = ""
     text: Optional[str] = None
     url: Optional[str] = None
@@ -85,14 +86,15 @@ class ClientCitationAppearance(AgentsModel):
         super().__init__(**data)
 
 
-class ClientCitation(AgentsModel):
+class ClientCitation(AgentsModel, _SchemaMixin):
     """
     Represents a Teams client citation to be included in a message.
     See Bot messages with AI-generated content for more details.
     https://learn.microsoft.com/en-us/microsoftteams/platform/bots/how-to/bot-messages-ai-generated-content?tabs=before%2Cbotmessage
     """
 
-    type: str = Field("Claim", alias="@type")
+    at_type: Literal["Claim"] = "Claim"
+
     position: int = 0
     appearance: Optional[ClientCitationAppearance] = None
 
@@ -104,12 +106,13 @@ class ClientCitation(AgentsModel):
             self.appearance = ClientCitationAppearance()
 
 
-class AIEntity(Entity):
+class AIEntity(Entity, _SchemaMixin):
     """Entity indicating AI-generated content."""
 
+    at_type: Literal["Message"] = "Message"
+    at_context: Literal["https://schema.org"] = "https://schema.org"
+
     type: str = "https://schema.org/Message"
-    schema_type: str = Field("Message", validation_alias="@type", serialization_alias="@type")
-    context: str = Field("https://schema.org", validation_alias="@context", serialization_alias="@context")
     id: str = ""
     additional_type: Optional[List[str]] = None
     citation: Optional[List[ClientCitation]] = None
