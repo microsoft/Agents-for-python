@@ -15,6 +15,6 @@ class _SchemaMixin:
     ) -> dict[str, object]:
         serialized = handler(self)
         serialized["@type"] = self.at_type
-        if hasattr(self, "@context"):
+        if hasattr(self, "at_context"):
             serialized["@context"] = getattr(self, "at_context")
         return serialized

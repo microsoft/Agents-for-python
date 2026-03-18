@@ -10,7 +10,8 @@ from microsoft_agents.activity.entity import (
 
 
 @pytest.mark.parametrize(
-    "entity_cls"[
+    "entity_cls",
+    [
         ClientCitation,
         SensitivityUsageInfo,
         ClientCitationAppearance,
