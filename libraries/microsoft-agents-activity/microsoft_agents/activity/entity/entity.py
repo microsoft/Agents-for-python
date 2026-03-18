@@ -4,6 +4,7 @@
 from typing import Any
 
 from pydantic.alias_generators import to_camel
+from pydantic import model_serializer, SerializerFunctionWrapHandler
 
 from ..agents_model import AgentsModel, ConfigDict
 
@@ -28,3 +29,12 @@ class Entity(AgentsModel):
     def additional_properties(self) -> dict[str, Any]:
         """Returns the set of properties that are not None."""
         return self.model_extra
+
+    # ensures type is included when serializing, even when exclude_unset=True
+    @model_serializer(mode="wrap")
+    def serialize_with_type(
+        self, handler: SerializerFunctionWrapHandler
+    ) -> dict[str, object]:
+        serialized = handler(self)
+        serialized["type"] = self.type
+        return serialized

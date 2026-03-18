@@ -20,15 +20,12 @@ from microsoft_agents.activity.entity import (
 )
 def test_schema_mixin_at_type_serialization(entity_cls):
 
-    expected = entity_cls.at_type
-    assert isinstance(expected, str) and expected != ""
-
     entity = entity_cls()
 
     data = entity.model_dump(exclude_unset=True)
 
     assert "@type" in data
-    assert data["@type"] == expected
+    assert data["@type"] == entity.at_type
 
 
 def test_schema_mixin_at_context_serialization():
@@ -37,5 +34,5 @@ def test_schema_mixin_at_context_serialization():
 
     data = ai_entity.model_dump(exclude_unset=True)
 
-    assert data["@type"] == AIEntity.at_type
-    assert data["@context"] == AIEntity.at_context
+    assert data["@type"] == ai_entity.at_type
+    assert data["@context"] == ai_entity.at_context

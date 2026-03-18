@@ -55,6 +55,7 @@ class TestActivityConversationOps:
         return create_test_activity("en-us")
 
     def test_get_conversation_reference(self, activity):
+
         conversation_reference = activity.get_conversation_reference()
 
         assert activity.id == conversation_reference.activity_id
