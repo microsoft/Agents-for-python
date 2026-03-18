@@ -8,6 +8,7 @@ from microsoft_agents.activity import (
     TokenResponse,
     TokenStatus,
     TokenOrSignInResourceResponse,
+    TokenExchangeRequest,
 )
 
 
@@ -106,7 +107,7 @@ class UserTokenBase(Protocol):
 
     @abstractmethod
     async def exchange_token(
-        self, user_id: str, connection_name: str, channel_id: str, body: dict = None
+        self, user_id: str, connection_name: str, channel_id: str, body: dict | None = None
     ) -> TokenResponse:
         """
         Exchanges a token.

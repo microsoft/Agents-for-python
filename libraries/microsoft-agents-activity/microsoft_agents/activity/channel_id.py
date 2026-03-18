@@ -86,6 +86,20 @@ class ChannelId(str):
     def sub_channel(self) -> Optional[str]:
         """The sub-channel, e.g. 'work' in 'email:work'. May be None."""
         return self._sub_channel
+    
+    @staticmethod
+    def get_channel(channel_id: str | ChannelId) -> str:
+        """Get the main channel from a channel ID string or instance.
+
+        :param channel_id: The channel ID as a string or ChannelId instance.
+        :return: The main channel string.
+        """
+        if isinstance(channel_id, ChannelId):
+            return channel_id.channel
+        elif isinstance(channel_id, str):
+            return ChannelId(channel_id).channel
+        else:
+            raise TypeError("channel_id must be a string or ChannelId instance")
 
     # https://docs.pydantic.dev/dev/concepts/types/#customizing-validation-with-__get_pydantic_core_schema__
     @classmethod

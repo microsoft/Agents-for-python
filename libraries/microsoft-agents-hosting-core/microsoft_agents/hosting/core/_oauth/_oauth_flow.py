@@ -13,6 +13,7 @@ from microsoft_agents.activity import (
     Activity,
     ActivityTypes,
     TokenExchangeState,
+    TokenExchangeInvokeRequest,
     TokenResponse,
     SignInResource,
 )
@@ -249,12 +250,12 @@ class _OAuthFlow:
         self, activity: Activity
     ) -> TokenResponse:
         """Handles the continuation of the flow from an invoke activity for token exchange."""
-        token_exchange_request = activity.value
+        token_exchange_invoke_request = TokenExchangeInvokeRequest.model_validate(activity.value)
         token_response = await self._user_token_client.user_token.exchange_token(
             user_id=self._user_id,
             connection_name=self._abs_oauth_connection_name,
             channel_id=self._channel_id,
-            body=token_exchange_request,
+            body={"token": token_exchange_invoke_request.token},
         )
         return token_response
 

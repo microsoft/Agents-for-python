@@ -13,6 +13,7 @@ from microsoft_agents.activity import (
     TokenResponse,
     TokenStatus,
     SignInResource,
+    ChannelId,
 )
 from ..get_product_info import get_product_info
 from ..user_token_base import UserTokenBase
@@ -20,6 +21,10 @@ from ..agent_sign_in_base import AgentSignInBase
 
 logger = logging.getLogger(__name__)
 
+def _get_channel(channel_id: Optional[str]) -> str:
+    if channel_id:
+        return ChannelId.get_channel(channel_id)
+    return ""
 
 class AgentSignIn(AgentSignInBase):
     """Implementation of agent sign-in operations."""
@@ -119,7 +124,7 @@ class UserToken(UserTokenBase):
         params = {"userId": user_id, "connectionName": connection_name}
 
         if channel_id:
-            params["channelId"] = channel_id
+            params["channelId"] = _get_channel(channel_id)
         if code:
             params["code"] = code
 
@@ -146,7 +151,7 @@ class UserToken(UserTokenBase):
         params = {
             "userId": user_id,
             "connectionName": connection_name,
-            "channelId": channel_id,
+            "channelId": _get_channel(channel_id),
             "state": state,
             "code": code,
             "finalRedirect": final_redirect,
@@ -176,7 +181,7 @@ class UserToken(UserTokenBase):
         params = {"userId": user_id, "connectionName": connection_name}
 
         if channel_id:
-            params["channelId"] = channel_id
+            params["channelId"] = _get_channel(channel_id)
 
         logger.info("Getting AAD tokens with params: %s and body: %s", params, body)
         async with self.client.post(
@@ -200,7 +205,7 @@ class UserToken(UserTokenBase):
         if connection_name:
             params["connectionName"] = connection_name
         if channel_id:
-            params["channelId"] = channel_id
+            params["channelId"] = _get_channel(channel_id)
 
         logger.info("Signing out user %s with params: %s", user_id, params)
         async with self.client.delete(
@@ -219,7 +224,7 @@ class UserToken(UserTokenBase):
         params = {"userId": user_id}
 
         if channel_id:
-            params["channelId"] = channel_id
+            params["channelId"] = _get_channel(channel_id)
         if include:
             params["include"] = include
 
@@ -239,12 +244,13 @@ class UserToken(UserTokenBase):
         user_id: str,
         connection_name: str,
         channel_id: str,
-        body: Optional[dict] = None,
+        body: dict | None = None,
     ) -> TokenResponse:
+        
         params = {
             "userId": user_id,
             "connectionName": connection_name,
-            "channelId": channel_id,
+            "channelId": _get_channel(channel_id),
         }
 
         logger.info("Exchanging token with params: %s and body: %s", params, body)
