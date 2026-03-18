@@ -171,7 +171,7 @@ class ConversationsOperations(ConversationsBase):
         logger.info("Creating a new conversation")
         async with self.client.post(
             "v3/conversations",
-            json=body.model_dump(by_alias=True, mode="json"),
+            json=body.model_dump(by_alias=True, exclude_unset=True, mode="json"),
         ) as response:
             if response.status >= 300:
                 logger.error(
@@ -213,7 +213,7 @@ class ConversationsOperations(ConversationsBase):
         async with self.client.post(
             url,
             json=body.model_dump(
-                by_alias=True, exclude_none=True, mode="json"
+                by_alias=True, exclude_unset=True, exclude_none=True, mode="json"
             ),
         ) as response:
 
@@ -267,7 +267,7 @@ class ConversationsOperations(ConversationsBase):
         )
         async with self.client.post(
             url,
-            json=body.model_dump(by_alias=True, mode="json"),
+            json=body.model_dump(by_alias=True, exclude_unset=True, mode="json"),
         ) as response:
             if response.status >= 300:
                 logger.error(
@@ -311,7 +311,7 @@ class ConversationsOperations(ConversationsBase):
         )
         async with self.client.put(
             url,
-            json=body.model_dump(by_alias=True),
+            json=body.model_dump(exclude_unset=True, by_alias=True),
         ) as response:
             if response.status >= 300:
                 logger.error(
