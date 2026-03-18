@@ -4,6 +4,7 @@
 from typing import Any
 from pydantic import model_serializer, SerializerFunctionWrapHandler
 
+
 class _SchemaMixin:
 
     at_type: Any
@@ -15,5 +16,5 @@ class _SchemaMixin:
         serialized = handler(self)
         serialized["@type"] = self.at_type
         if hasattr(self, "@context"):
-            serialized['@context'] = getattr(self, "at_context")
+            serialized["@context"] = getattr(self, "at_context")
         return serialized

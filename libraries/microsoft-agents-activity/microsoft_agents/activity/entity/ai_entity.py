@@ -8,6 +8,7 @@ from ..agents_model import AgentsModel
 from ._schema_mixin import _SchemaMixin
 from .entity import Entity
 
+
 class ClientCitationIconName(str, Enum):
     """Enumeration of supported citation icon names."""
 
@@ -65,8 +66,9 @@ class SensitivityUsageInfo(AgentsModel, _SchemaMixin):
     position: Optional[int] = None
     pattern: Optional[SensitivityPattern] = None
 
-    def __init__(self, **data): # removes linter errors for user-facing code
+    def __init__(self, **data):  # removes linter errors for user-facing code
         super().__init__(**data)
+
 
 class ClientCitationAppearance(AgentsModel, _SchemaMixin):
     """Appearance information for a client citation."""
@@ -82,7 +84,7 @@ class ClientCitationAppearance(AgentsModel, _SchemaMixin):
     keywords: Optional[List[str]] = None
     usage_info: Optional[SensitivityUsageInfo] = None
 
-    def __init__(self, **data): # removes linter errors for user-facing code
+    def __init__(self, **data):  # removes linter errors for user-facing code
         super().__init__(**data)
 
 
@@ -98,7 +100,7 @@ class ClientCitation(AgentsModel, _SchemaMixin):
     position: int = 0
     appearance: Optional[ClientCitationAppearance] = None
 
-    def __init__(self, **data): # removes linter errors for user-facing code
+    def __init__(self, **data):  # removes linter errors for user-facing code
         super().__init__(**data)
 
     def __post_init__(self):
@@ -118,7 +120,7 @@ class AIEntity(Entity, _SchemaMixin):
     citation: Optional[List[ClientCitation]] = None
     usage_info: Optional[SensitivityUsageInfo] = None
 
-    def __init__(self, **data): # removes linter errors for user-facing code
+    def __init__(self, **data):  # removes linter errors for user-facing code
         super().__init__(**data)
 
     def __post_init__(self):

@@ -180,7 +180,7 @@ class StreamingResponse:
                         name=citation.title or f"Document #{curr_pos + 1}",
                         abstract=CitationUtil.snippet(citation.content, 480),
                         url=citation.url,
-                    )
+                    ),
                 )
                 curr_pos += 1
                 self._citations.append(client_citation)
@@ -271,7 +271,7 @@ class StreamingResponse:
             if self._ended:
                 # Send final message
                 activity = Activity(
-                    type="message", 
+                    type="message",
                     text=self._message or "end stream response",
                     attachments=self._attachments or [],
                     entities=[
@@ -369,7 +369,11 @@ class StreamingResponse:
 
         # the activity.add_ai_metadata call further down will add citations.
         # The extra condition here is to avoid duplication
-        if self._citations and not self._ended and not self._enable_generated_by_ai_label:
+        if (
+            self._citations
+            and not self._ended
+            and not self._enable_generated_by_ai_label
+        ):
             # Filter out the citations unused in content.
             curr_citations = CitationUtil.get_used_citations(
                 self._message, self._citations

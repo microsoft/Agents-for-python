@@ -16,7 +16,12 @@ class Entity(AgentsModel):
     :type type: str
     """
 
-    model_config = ConfigDict(extra="allow", alias_generator=to_camel, validate_by_name=True, validate_by_alias=True)
+    model_config = ConfigDict(
+        extra="allow",
+        alias_generator=to_camel,
+        validate_by_name=True,
+        validate_by_alias=True,
+    )
 
     type: str
 

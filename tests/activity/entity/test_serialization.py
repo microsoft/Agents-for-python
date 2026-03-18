@@ -8,13 +8,13 @@ from microsoft_agents.activity.entity import (
     SensitivityUsageInfo,
 )
 
+
 @pytest.mark.parametrize(
-    "entity_cls"
-    [
+    "entity_cls"[
         ClientCitation,
         SensitivityUsageInfo,
         ClientCitationAppearance,
-        SensitivityPattern
+        SensitivityPattern,
     ]
 )
 def test_schema_mixin_at_type_serialization(entity_cls):
@@ -28,6 +28,7 @@ def test_schema_mixin_at_type_serialization(entity_cls):
 
     assert "@type" in data
     assert data["@type"] == expected
+
 
 def test_schema_mixin_at_context_serialization():
 

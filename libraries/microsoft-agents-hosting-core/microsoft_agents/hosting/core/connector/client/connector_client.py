@@ -209,7 +209,7 @@ class ConversationsOperations(ConversationsBase):
             conversation_id,
             body.type,
         )
-        
+
         async with self.client.post(
             url,
             json=body.model_dump(
