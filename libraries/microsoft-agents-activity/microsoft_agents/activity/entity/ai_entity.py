@@ -93,11 +93,7 @@ class ClientCitation(AgentsModel, _SchemaMixin):
     at_type: Literal["Claim"] = "Claim"
 
     position: int = 0
-    appearance: Optional[ClientCitationAppearance] = None
-
-    def __post_init__(self):
-        if self.appearance is None:
-            self.appearance = ClientCitationAppearance()
+    appearance: Optional[ClientCitationAppearance] = Field(default_factory=ClientCitationAppearance)
 
 
 # in the future, we need a better way to resolve the different serializers.
