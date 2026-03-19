@@ -7,6 +7,7 @@ from pydantic.alias_generators import to_camel
 from pydantic import model_serializer, SerializerFunctionWrapHandler
 
 from ..agents_model import AgentsModel, ConfigDict
+from ._schema_mixin import _SchemaMixin
 
 
 class Entity(AgentsModel):

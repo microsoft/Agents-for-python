@@ -99,8 +99,8 @@ class ClientCitation(AgentsModel, _SchemaMixin):
         if self.appearance is None:
             self.appearance = ClientCitationAppearance()
 
-
-class AIEntity(AgentsModel, _SchemaMixin):
+# in the future, we need a better way to resolve the different serializers.
+class AIEntity(_SchemaMixin, Entity):
     """Entity indicating AI-generated content."""
 
     at_type: Literal["Message"] = "Message"
