@@ -1,8 +1,6 @@
 # Copyright (c) Microsoft Corporation. All rights reserved.
 # Licensed under the MIT License.
 
-from typing import Literal
-
 from .._type_aliases import NonEmptyString
 from .entity import Entity
 from .entity_types import EntityTypes
