@@ -1,7 +1,7 @@
 # Copyright (c) Microsoft Corporation. All rights reserved.
 # Licensed under the MIT License.
 
-from typing import Any, Self
+from typing import Any
 
 from pydantic import (
     model_serializer,
@@ -46,9 +46,7 @@ class Entity(AgentsModel):
 
     @model_validator(mode="wrap")
     @classmethod
-    def _validate_model(
-        cls, data: Any, handler: ModelWrapValidatorHandler[Self]
-    ) -> Self:
+    def _validate_model(cls, data: Any, handler: ModelWrapValidatorHandler):
         """Custom validator to handle both camelCase and snake_case keys, as well as @type, @context, and @id."""
 
         if isinstance(data, dict):
