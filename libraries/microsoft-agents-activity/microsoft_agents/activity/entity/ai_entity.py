@@ -93,7 +93,9 @@ class ClientCitation(AgentsModel, _SchemaMixin):
     at_type: Literal["Claim"] = "Claim"
 
     position: int = 0
-    appearance: ClientCitationAppearance = Field(default_factory=ClientCitationAppearance)
+    appearance: ClientCitationAppearance = Field(
+        default_factory=ClientCitationAppearance
+    )
 
 
 class AIEntity(Entity):

@@ -7,11 +7,13 @@ from pydantic import (
     model_validator,
     ModelWrapValidatorHandler,
     SerializerFunctionWrapHandler,
+    SerializationInfo,
     BaseModel,
 )
 
 
-def validate_schema_model(cls, data: Any, handler: ModelWrapValidatorHandler):
+def validate_schema_model(data: Any, handler: ModelWrapValidatorHandler):
+    """Custom validator to handle the aliases @type, @context, and @id if defined in the destination type."""
     model = handler(data)
     if isinstance(data, dict):
         if "@type" in data:
@@ -24,15 +26,17 @@ def validate_schema_model(cls, data: Any, handler: ModelWrapValidatorHandler):
 
 
 def serialize_schema_model(
-    self, handler: SerializerFunctionWrapHandler
-) -> dict[str, object]:
+    self, handler: SerializerFunctionWrapHandler, info: SerializationInfo
+) -> dict[str, Any]:
+    """Custom serializer to convert keys to force inclusion of @type, @context, and @id if defined."""
     serialized = handler(self)
-    if hasattr(self, "at_type"):
-        serialized["@type"] = getattr(self, "at_type")
-    if hasattr(self, "at_context"):
-        serialized["@context"] = getattr(self, "at_context")
-    if hasattr(self, "at_id"):
-        serialized["@id"] = getattr(self, "at_id")
+    if info.by_alias:
+        if hasattr(self, "at_type"):
+            serialized["@type"] = getattr(self, "at_type")
+        if hasattr(self, "at_context"):
+            serialized["@context"] = getattr(self, "at_context")
+        if hasattr(self, "at_id"):
+            serialized["@id"] = getattr(self, "at_id")
     return serialized
 
 
@@ -41,13 +45,13 @@ class _SchemaMixin(BaseModel):
 
     @model_validator(mode="wrap")
     @classmethod
-    def validate_model(
+    def _validate_model(
         cls, data: Any, handler: ModelWrapValidatorHandler[Self]
     ) -> Self:
-        return validate_schema_model(cls, data, handler)
+        return validate_schema_model(data, handler)
 
     @model_serializer(mode="wrap")
-    def serialize_model(
-        self, handler: SerializerFunctionWrapHandler
-    ) -> dict[str, object]:
-        return serialize_schema_model(self, handler)
+    def _serialize_model(
+        self, handler: SerializerFunctionWrapHandler, info: SerializationInfo
+    ) -> dict[str, Any]:
+        return serialize_schema_model(self, handler, info)
