@@ -101,7 +101,7 @@ class ClientCitation(AgentsModel, _SchemaMixin):
 
 
 # in the future, we need a better way to resolve the different serializers.
-class AIEntity(_SchemaMixin, Entity):
+class AIEntity(Entity):
     """Entity indicating AI-generated content."""
 
     at_type: Literal["Message"] = "Message"
