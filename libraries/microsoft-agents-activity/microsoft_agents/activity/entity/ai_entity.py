@@ -4,6 +4,7 @@
 from enum import Enum
 from typing import List, Optional, Literal
 
+from pydantic import Field
 from ..agents_model import AgentsModel
 from ._schema_mixin import _SchemaMixin
 from .entity import Entity
@@ -108,10 +109,6 @@ class AIEntity(AgentsModel, _SchemaMixin):
     type: str = "https://schema.org/Message"
     id: str = ""
 
-    additional_type: Optional[List[str]] = None
+    additional_type: List[str] = Field(default_factory=lambda: ["AIGeneratedContent"])
     citation: Optional[List[ClientCitation]] = None
     usage_info: Optional[SensitivityUsageInfo] = None
-
-    def __post_init__(self):
-        if self.additional_type is None:
-            self.additional_type = ["AIGeneratedContent"]
