@@ -176,7 +176,7 @@ async def test_set_citations_adds_only_used_citations_when_streaming_activity_is
     citation_entities = [
         entity
         for entity in streaming_activity.entities
-        if getattr(entity, "schema_type", None) == "Message"
+        if getattr(entity, "at_type", None) == "Message"
     ]
     assert len(citation_entities) == 1
     assert len(citation_entities[0].citation) == 1
@@ -517,5 +517,5 @@ async def test_feedback_loop_type_without_enable_does_not_emit_feedback_loop_obj
         e for e in sent.entities if getattr(e, "type", None) == "streaminfo"
     )
 
-    assert not hasattr(streaminfo, "feedback_loop")
-    assert getattr(streaminfo, "feedback_loop_enabled", None) is False
+    assert not streaminfo.feedback_loop
+    assert not streaminfo.feedback_loop_enabled

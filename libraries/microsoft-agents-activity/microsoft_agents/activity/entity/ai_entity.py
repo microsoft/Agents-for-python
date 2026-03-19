@@ -8,6 +8,7 @@ from ..agents_model import AgentsModel
 from ._schema_mixin import _SchemaMixin
 from .entity import Entity
 
+
 class ClientCitationIconName(str, Enum):
     """Enumeration of supported citation icon names."""
 
@@ -79,6 +80,7 @@ class ClientCitationAppearance(AgentsModel, _SchemaMixin):
     image: Optional[ClientCitationImage] = None
     keywords: Optional[List[str]] = None
     usage_info: Optional[SensitivityUsageInfo] = None
+
 
 class ClientCitation(AgentsModel, _SchemaMixin):
     """

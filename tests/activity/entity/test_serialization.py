@@ -16,7 +16,7 @@ from microsoft_agents.activity.entity import (
         SensitivityUsageInfo,
         ClientCitationAppearance,
         SensitivityPattern,
-    ]
+    ],
 )
 def test_schema_mixin_at_type_serialization(entity_cls):
 
