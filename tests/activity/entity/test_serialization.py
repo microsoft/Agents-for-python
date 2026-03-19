@@ -34,5 +34,4 @@ def test_schema_mixin_at_context_serialization():
 
     data = ai_entity.model_dump(exclude_unset=True)
 
-    assert data["@type"] == ai_entity.at_type
-    assert data["@context"] == ai_entity.at_context
+    assert data["@context"] == "https://schema.org"

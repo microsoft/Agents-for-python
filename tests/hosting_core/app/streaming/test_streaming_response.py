@@ -176,7 +176,7 @@ async def test_set_citations_adds_only_used_citations_when_streaming_activity_is
     citation_entities = [
         entity
         for entity in streaming_activity.entities
-        if getattr(entity, "at_type", None) == "Message"
+        if getattr(entity, "type", None) == "https://schema.org/Message"
     ]
     assert len(citation_entities) == 1
     assert len(citation_entities[0].citation) == 1

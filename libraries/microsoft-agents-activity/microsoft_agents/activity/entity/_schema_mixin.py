@@ -18,6 +18,8 @@ def validate_schema_model(cls, data: Any, handler: ModelWrapValidatorHandler):
             setattr(model, "at_type", data["@type"])
         if "@context" in data:
             setattr(model, "at_context", data["@context"])
+        if "@id" in data:
+            setattr(model, "at_id", data["@id"])
     return model
 
 
@@ -29,6 +31,8 @@ def serialize_schema_model(
         serialized["@type"] = getattr(self, "at_type")
     if hasattr(self, "at_context"):
         serialized["@context"] = getattr(self, "at_context")
+    if hasattr(self, "at_id"):
+        serialized["@id"] = getattr(self, "at_id")
     return serialized
 
 

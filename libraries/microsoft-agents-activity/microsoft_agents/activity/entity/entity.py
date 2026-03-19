@@ -59,6 +59,6 @@ class Entity(AgentsModel):
         else:
             new_data = {k: v for k, v in data.items()}
 
-        new_data["type"] = self.type  # ensure type is always included
+        # new_data["type"] = self.type  # ensure type is always included
 
         return new_data
