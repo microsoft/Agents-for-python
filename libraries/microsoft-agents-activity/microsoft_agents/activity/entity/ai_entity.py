@@ -4,7 +4,7 @@
 from enum import Enum
 from typing import List, Optional, Literal
 
-from pydantic import Field
+from pydantic import Field, model_serializer
 from ..agents_model import AgentsModel
 from ._schema_mixin import _SchemaMixin
 from .entity import Entity
@@ -109,3 +109,28 @@ class AIEntity(_SchemaMixin, Entity):
     additional_type: List[str] = Field(default_factory=lambda: ["AIGeneratedContent"])
     citation: Optional[List[ClientCitation]] = None
     usage_info: Optional[SensitivityUsageInfo] = None
+
+    @model_serializer(mode="wrap")
+    def _serialize_ai_entity(self, handler):
+        """
+        Unified serializer to ensure both Bot Framework `type` and
+        schema.org `@type` / `@context` are present in the wire output.
+        """
+        data = handler(self)
+
+        # Always include the Bot Framework 'type' field, even when it has its
+        # default value and `exclude_unset=True` is used.
+        data["type"] = getattr(self, "type", data.get("type"))
+
+        # Map internal schema fields to their JSON-LD counterparts.
+        at_type_value = getattr(self, "at_type", None)
+        if "at_type" in data or at_type_value is not None:
+            data["@type"] = at_type_value if at_type_value is not None else data.get("at_type")
+            data.pop("at_type", None)
+
+        at_context_value = getattr(self, "at_context", None)
+        if "at_context" in data or at_context_value is not None:
+            data["@context"] = at_context_value if at_context_value is not None else data.get("at_context")
+            data.pop("at_context", None)
+
+        return data
