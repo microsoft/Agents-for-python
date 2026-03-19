@@ -1,7 +1,7 @@
 # Copyright (c) Microsoft Corporation. All rights reserved.
 # Licensed under the MIT License.
 
-from typing import Any, Self
+from typing import Any
 from pydantic import (
     model_serializer,
     model_validator,
@@ -45,9 +45,7 @@ class _SchemaMixin(BaseModel):
 
     @model_validator(mode="wrap")
     @classmethod
-    def _validate_model(
-        cls, data: Any, handler: ModelWrapValidatorHandler[Self]
-    ) -> Self:
+    def _validate_model(cls, data: Any, handler: ModelWrapValidatorHandler):
         return validate_schema_model(data, handler)
 
     @model_serializer(mode="wrap")
