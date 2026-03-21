@@ -10,7 +10,7 @@ from os import environ
 from openai import AzureOpenAI
 from azure.identity import DefaultAzureCredential
 
-from microsoft_agents.hosting.core import TurnContext, TurnState, StoreItem
+from microsoft_agents.hosting.core import Authorization, TurnContext, TurnState, StoreItem
 
 from tools.weather_tools import get_current_weather_for_location, get_weather_forecast_for_location
 from tools.datetime_tools import get_date_time
@@ -102,8 +102,8 @@ class ConversationHistoryStoreItem(StoreItem):
 class WeatherAgent:
     """Weather Agent that processes user messages with Azure OpenAI and weather tools."""
 
-    def __init__(self, msal_auth=None):
-        self._msal_auth = msal_auth
+    def __init__(self, user_authorization: Authorization=None):
+        self._user_authorization = user_authorization
         endpoint = environ["AZURE_OPENAI_ENDPOINT"]
         api_version = environ.get("AZURE_OPENAI_API_VERSION", "2024-12-01-preview")
         api_key = environ.get("AZURE_OPENAI_API_KEY")
@@ -245,7 +245,7 @@ class WeatherAgent:
                 context,
                 state,
                 _process,
-                msal_auth=self._msal_auth,
+                user_authorization=self._user_authorization,
             )
         except Exception as e:
             print(f"Error: {e}")

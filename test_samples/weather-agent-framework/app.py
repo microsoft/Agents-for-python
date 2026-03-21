@@ -7,6 +7,10 @@ from aiohttp import web
 from aiohttp.web import Request, Response, Application
 from dotenv import load_dotenv
 
+from agent_framework.observability import configure_otel_providers
+
+configure_otel_providers()
+
 logger = logging.getLogger(__name__)
 
 load_dotenv(path.join(path.dirname(__file__), ".env"))
@@ -95,11 +99,12 @@ def create_app() -> Application:
     # Instantiate our weather agent, passing msal_auth for per-turn observability
     # token caching — mirrors C# injecting IExporterTokenCache<AgenticTokenStruct>
     # into WeatherAgent and passing UserAuthorization to InvokeObservedAgentOperation.
-    weather_agent = WeatherAgent(msal_auth=connection_manager.get_default_connection())
+    weather_agent = WeatherAgent(user_authorization=agent_app.auth)
 
     # Register event handlers
-    @agent_app.activity(ActivityTypes.message)
+    @agent_app.activity(ActivityTypes.message, auth_handlers=["AGENTIC"])
     async def on_message(context: TurnContext, state: TurnState):
+        # aau_token = await agent_app.auth.get_token(context, "AGENTIC")
         await weather_agent.handle_message(context, state)
 
     @agent_app.conversation_update("membersAdded")
