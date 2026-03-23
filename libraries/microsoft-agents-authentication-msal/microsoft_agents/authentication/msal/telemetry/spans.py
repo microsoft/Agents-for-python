@@ -3,7 +3,7 @@ from collections.abc import Iterator
 
 from microsoft_agents.hosting.core.telemetry import (
     agents_telemetry,
-    constants as common_constants,
+    core as common_constants,
     _format_scopes,
 )
 

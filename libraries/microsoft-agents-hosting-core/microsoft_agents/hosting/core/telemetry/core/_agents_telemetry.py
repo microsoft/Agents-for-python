@@ -11,12 +11,10 @@ from opentelemetry.trace import Tracer, Span
 
 from microsoft_agents.activity import TurnContextProtocol
 
-from . import constants
-
+from .. import core
 logger = logging.getLogger(__name__)
 
-_TimedSpanCallback = Callable[[Span, float, Exception | None], None]
-
+SpanCallback = Callable[[Span, float, Exception | None], None]
 
 class _AgentsTelemetry:
 
@@ -27,10 +25,10 @@ class _AgentsTelemetry:
         :param meter: Optional OpenTelemetry Meter instance to use for recording metrics. If not provided, a new meter will be created with the service name and version from constants.
         """
         self._tracer = trace.get_tracer(
-            constants.SERVICE_NAME, constants.SERVICE_VERSION
+            core.SERVICE_NAME, core.SERVICE_VERSION
         )
         self._meter = metrics.get_meter(
-            constants.SERVICE_NAME, constants.SERVICE_VERSION
+            core.SERVICE_NAME, core.SERVICE_VERSION
         )
 
     @property
@@ -63,42 +61,29 @@ class _AgentsTelemetry:
             len(turn_context.activity.text) if turn_context.activity.text else 0
         )
         return attributes
+    
+    def set_attributes_from_context(self, span: Span, turn_context: TurnContextProtocol) -> None:
+        """Extracts attributes from the TurnContext and sets them on the given span
 
+        :param span: The OpenTelemetry span to set attributes on
+        :param turn_context: The TurnContext to extract attributes from
+        """
+        span.set_attributes(self._extract_attributes_from_context(turn_context))
+    
     @contextmanager
     def start_as_current_span(
         self,
         span_name: str,
-        turn_context: TurnContextProtocol | None = None,
-    ) -> Iterator[Span]:
-        """Context manager for starting a new span with the given name and setting attributes from the TurnContext if provided
-
-        :param span_name: The name of the span to start
-        :param turn_context Optional TurnContext to extract attributes from and set on the span
-        :return: An iterator that yields the started span, which will be ended when the context manager exits
-        """
-        with self._tracer.start_as_current_span(span_name) as span:
-            if turn_context is not None:
-                attributes = self._extract_attributes_from_context(turn_context)
-                span.set_attributes(attributes)
-            yield span
-        # self._tracer._tracer_provider._active_span_processor._span_processors[0].span_exporter._endpoint
-
-    @contextmanager
-    def start_timed_span(
-        self,
-        span_name: str,
-        turn_context: TurnContextProtocol | None = None,
-        callback: _TimedSpanCallback | None = None,
+        callback: SpanCallback | None = None,
     ) -> Iterator[Span]:
         """Context manager for starting a timed span that records duration and success/failure status, and invokes a callback with the results
 
         :param span_name: The name of the span to start
-        :param turn_context Optional TurnContext to extract attributes from and set on the span
         :param callback: Optional callback function that will be called with the span, duration in milliseconds, and any exception that was raised (or None if successful) when the span is ended
         :return: An iterator that yields the started span, which will be ended when the context manager exits
         """
 
-        with self.start_as_current_span(span_name, turn_context) as span:
+        with self._tracer.start_as_current_span(span_name) as span:
 
             start = time.time()
             exception: Exception | None = None

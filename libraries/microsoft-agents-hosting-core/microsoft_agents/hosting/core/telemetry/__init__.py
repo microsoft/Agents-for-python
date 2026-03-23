@@ -8,10 +8,10 @@
 #
 # NOTE: this module should not be auto-loaded from __init__.py in order to avoid
 
-from ._agents_telemetry import (
+from .core._agents_telemetry import (
     agents_telemetry,
 )
-from .constants import SERVICE_NAME, SERVICE_VERSION, RESOURCE
+from .core import SERVICE_NAME, SERVICE_VERSION, RESOURCE
 from .utils import _format_scopes
 
 __all__ = [

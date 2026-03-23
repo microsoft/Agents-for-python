@@ -1,13 +1,13 @@
-from . import constants
-from ._agents_telemetry import agents_telemetry
+from . import core
+from .core._agents_telemetry import agents_telemetry
 
 storage_operation_total = agents_telemetry.meter.create_counter(
-    constants.METRIC_STORAGE_OPERATION_TOTAL,
+    core.METRIC_STORAGE_OPERATION_TOTAL,
     "operation",
     description="Number of storage operations performed by the agent",
 )
 storage_operation_duration = agents_telemetry.meter.create_histogram(
-    constants.METRIC_STORAGE_OPERATION_DURATION,
+    core.METRIC_STORAGE_OPERATION_DURATION,
     "ms",
     description="Duration of storage operations in milliseconds",
 )
@@ -15,19 +15,19 @@ storage_operation_duration = agents_telemetry.meter.create_histogram(
 # AgentApplication
 
 turn_total = agents_telemetry.meter.create_counter(
-    constants.METRIC_TURN_TOTAL,
+    core.METRIC_TURN_TOTAL,
     "turn",
     description="Total number of turns processed by the agent",
 )
 
 turn_errors = agents_telemetry.meter.create_counter(
-    constants.METRIC_TURN_ERRORS,
+    core.METRIC_TURN_ERRORS,
     "turn",
     description="Number of turns that resulted in an error",
 )
 
 turn_duration = agents_telemetry.meter.create_histogram(
-    constants.METRIC_TURN_DURATION,
+    core.METRIC_TURN_DURATION,
     "ms",
     description="Duration of agent turns in milliseconds",
 )
@@ -35,7 +35,7 @@ turn_duration = agents_telemetry.meter.create_histogram(
 # Adapters
 
 adapter_process_duration = agents_telemetry.meter.create_histogram(
-    constants.METRIC_ADAPTER_PROCESS_DURATION,
+    core.METRIC_ADAPTER_PROCESS_DURATION,
     "ms",
     description="Duration of adapter processing in milliseconds",
 )
@@ -43,13 +43,13 @@ adapter_process_duration = agents_telemetry.meter.create_histogram(
 # Connectors
 
 connector_request_total = agents_telemetry.meter.create_counter(
-    constants.METRIC_CONNECTOR_REQUESTS_TOTAL,
+    core.METRIC_CONNECTOR_REQUESTS_TOTAL,
     "request",
     description="Total number of connector requests made by the agent",
 )
 
 connector_request_duration = agents_telemetry.meter.create_histogram(
-    constants.METRIC_CONNECTOR_REQUEST_DURATION,
+    core.METRIC_CONNECTOR_REQUEST_DURATION,
     "ms",
     description="Duration of connector requests in milliseconds",
 )

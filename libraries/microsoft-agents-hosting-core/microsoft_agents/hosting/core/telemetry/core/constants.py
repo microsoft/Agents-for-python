@@ -24,6 +24,7 @@ SPAN_ADAPTER_UPDATE_ACTIVITY = "agents.adapter.updateActivity"
 SPAN_ADAPTER_DELETE_ACTIVITY = "agents.adapter.deleteActivity"
 SPAN_ADAPTER_CONTINUE_CONVERSATION = "agents.adapter.continueConversation"
 SPAN_ADAPTER_CREATE_CONNECTOR_CLIENT = "agents.adapter.createConnectorClient"
+SPAN_ADAPTER_CREATE_USER_TOKEN_CLIENT = "agents.adapter.createUserTokenClient"
 
 SPAN_APP_ON_TURN = "agents.app.run"
 SPAN_APP_ROUTE_HANDLER = "agents.app.routeHandler"
@@ -38,7 +39,7 @@ SPAN_CONNECTOR_DELETE_ACTIVITY = "agents.connector.deleteActivity"
 SPAN_CONNECTOR_CREATE_CONVERSATION = "agents.connector.createConversation"
 SPAN_CONNECTOR_GET_CONVERSATIONS = "agents.connector.getConversations"
 SPAN_CONNECTOR_GET_CONVERSATION_MEMBERS = "agents.connector.getConversationMembers"
-SPAN_CONNECTOR_UPDLOAD_ATTACHMENT = "agents.connector.uploadAttachment"
+SPAN_CONNECTOR_UPLOAD_ATTACHMENT = "agents.connector.uploadAttachment"
 SPAN_CONNECTOR_GET_ATTACHMENT = "agents.connector.getAttachment"
 
 SPAN_STORAGE_READ = "agents.storage.read"
@@ -87,20 +88,27 @@ ATTR_ACTIVITY_COUNT = "activities.count"
 ATTR_ACTIVITY_TYPE = "activity.type"
 ATTR_AGENTIC_USER_ID = "agentic.user_id"
 ATTR_AGENTIC_INSTANCE_ID = "agentic.instance_id"
-ATTR_ATTACHMENT_ID = "attachment.id"
+ATTR_APP_ID = "agent.app_id"
+ATTR_ATTACHMENT_ID = "activity.attachment.id"
+ATTR_ATTACHMENT_COUNT = "activity.attachments.count"
 ATTR_AUTH_SCOPES = "auth.scopes"
 ATTR_AUTH_TYPE = "auth.method"
 
 ATTR_CONVERSATION_ID = "activity.conversation.id"
 
+# TODO -> rename to ATTR_IS_AGENTIC
 ATTR_IS_AGENTIC_REQUEST = "is_agentic_request"
 
 ATTR_NUM_KEYS = "keys.num"
 
+ATTR_ROUTE_AUTHORIZED = "route.authorized"
 ATTR_ROUTE_IS_INVOKE = "route.is_invoke"
 ATTR_ROUTE_IS_AGENTIC = "route.is_agentic"
+ATTR_ROUTE_MATCHED = "route.matched"
 
 ATTR_SERVICE_URL = "service_url"
+
+ATTR_TOKEN_SERVICE_ENDPOINT = "agents.token_service.endpoint"
 
 # VALUES
 
