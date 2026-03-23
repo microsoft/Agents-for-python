@@ -754,9 +754,6 @@ class Activity(AgentsModel, _ChannelIdFieldMixin):
         """
         if citations:
             ai_entity = AIEntity(
-                type="https://schema.org/Message",
-                schema_type="Message",
-                context="https://schema.org",
                 id="",
                 additional_type=["AIGeneratedContent"],
                 citation=citations,

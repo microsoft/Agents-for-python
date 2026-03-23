@@ -311,7 +311,7 @@ class ConversationsOperations(ConversationsBase):
         )
         async with self.client.put(
             url,
-            json=body.model_dump(by_alias=True, exclude_unset=True),
+            json=body.model_dump(exclude_unset=True, by_alias=True),
         ) as response:
             if response.status >= 300:
                 logger.error(

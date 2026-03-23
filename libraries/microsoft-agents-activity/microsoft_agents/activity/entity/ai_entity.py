@@ -2,10 +2,11 @@
 # Licensed under the MIT License.
 
 from enum import Enum
-from typing import List, Optional, Union, Literal
-from dataclasses import dataclass
+from typing import List, Optional, Literal
 
+from pydantic import Field
 from ..agents_model import AgentsModel
+from ._schema_mixin import _SchemaMixin
 from .entity import Entity
 
 
@@ -42,33 +43,36 @@ class ClientCitationImage(AgentsModel):
     name: str = ""
 
 
-class SensitivityPattern(AgentsModel):
+class SensitivityPattern(AgentsModel, _SchemaMixin):
     """Pattern information for sensitivity usage info."""
 
-    type: str = "DefinedTerm"
+    at_type: Literal["DefinedTerm"] = "DefinedTerm"
+
     in_defined_term_set: str = ""
     name: str = ""
     term_code: str = ""
 
 
-class SensitivityUsageInfo(AgentsModel):
+class SensitivityUsageInfo(AgentsModel, _SchemaMixin):
     """
     Sensitivity usage info for content sent to the user.
     This is used to provide information about the content to the user.
     """
 
     type: str = "https://schema.org/Message"
-    schema_type: str = "CreativeWork"
+    at_type: Literal["CreativeWork"] = "CreativeWork"
+
     description: Optional[str] = None
     name: str = ""
     position: Optional[int] = None
     pattern: Optional[SensitivityPattern] = None
 
 
-class ClientCitationAppearance(AgentsModel):
+class ClientCitationAppearance(AgentsModel, _SchemaMixin):
     """Appearance information for a client citation."""
 
-    type: str = "DigitalDocument"
+    at_type: Literal["DigitalDocument"] = "DigitalDocument"
+
     name: str = ""
     text: Optional[str] = None
     url: Optional[str] = None
@@ -79,33 +83,30 @@ class ClientCitationAppearance(AgentsModel):
     usage_info: Optional[SensitivityUsageInfo] = None
 
 
-class ClientCitation(AgentsModel):
+class ClientCitation(AgentsModel, _SchemaMixin):
     """
     Represents a Teams client citation to be included in a message.
     See Bot messages with AI-generated content for more details.
     https://learn.microsoft.com/en-us/microsoftteams/platform/bots/how-to/bot-messages-ai-generated-content?tabs=before%2Cbotmessage
     """
 
-    type: str = "Claim"
-    position: int = 0
-    appearance: Optional[ClientCitationAppearance] = None
+    at_type: Literal["Claim"] = "Claim"
 
-    def __post_init__(self):
-        if self.appearance is None:
-            self.appearance = ClientCitationAppearance()
+    position: int = 0
+    appearance: ClientCitationAppearance = Field(
+        default_factory=ClientCitationAppearance
+    )
 
 
 class AIEntity(Entity):
     """Entity indicating AI-generated content."""
 
+    at_type: Literal["Message"] = "Message"
+    at_context: Literal["https://schema.org"] = "https://schema.org"
+
     type: str = "https://schema.org/Message"
-    schema_type: str = "Message"
-    context: str = "https://schema.org"
     id: str = ""
-    additional_type: Optional[List[str]] = None
+
+    additional_type: List[str] = Field(default_factory=lambda: ["AIGeneratedContent"])
     citation: Optional[List[ClientCitation]] = None
     usage_info: Optional[SensitivityUsageInfo] = None
-
-    def __post_init__(self):
-        if self.additional_type is None:
-            self.additional_type = ["AIGeneratedContent"]
