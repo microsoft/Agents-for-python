@@ -1,3 +1,6 @@
+# Copyright (c) Microsoft Corporation. All rights reserved.
+# Licensed under the MIT License.
+
 import os
 
 from opentelemetry.sdk.resources import Resource
@@ -99,7 +102,7 @@ ATTR_CONVERSATION_ID = "activity.conversation.id"
 # TODO -> rename to ATTR_IS_AGENTIC
 ATTR_IS_AGENTIC_REQUEST = "is_agentic_request"
 
-ATTR_NUM_KEYS = "keys.num"
+ATTR_KEY_COUNT = "storage.keys.count"
 
 ATTR_ROUTE_AUTHORIZED = "route.authorized"
 ATTR_ROUTE_IS_INVOKE = "route.is_invoke"

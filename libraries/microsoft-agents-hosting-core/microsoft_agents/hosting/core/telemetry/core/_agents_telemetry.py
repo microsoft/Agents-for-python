@@ -1,6 +1,8 @@
+# Copyright (c) Microsoft Corporation. All rights reserved.
+# Licensed under the MIT License.
+
 import time
 import logging
-from typing import Callable
 from collections.abc import Iterator
 
 from contextlib import contextmanager
@@ -12,9 +14,9 @@ from opentelemetry.trace import Tracer, Span
 from microsoft_agents.activity import TurnContextProtocol
 
 from .. import core
-logger = logging.getLogger(__name__)
+from .type_defs import SpanCallback
 
-SpanCallback = Callable[[Span, float, Exception | None], None]
+logger = logging.getLogger(__name__)
 
 class _AgentsTelemetry:
 

@@ -11,12 +11,19 @@
 from .core._agents_telemetry import (
     agents_telemetry,
 )
-from .core import SERVICE_NAME, SERVICE_VERSION, RESOURCE
-from .utils import _format_scopes
+from .core import SERVICE_NAME, SERVICE_VERSION, RESOURCE, AttributeMap
+from .utils import (
+    format_scopes,
+    get_conversation_id,
+    get_delivery_mode,
+)
 
 __all__ = [
     "agents_telemetry",
-    "_format_scopes",
+    "format_scopes",
+    "get_conversation_id",
+    "get_delivery_mode",
+    "AttributeMap",
     "SERVICE_NAME",
     "SERVICE_VERSION",
     "RESOURCE",

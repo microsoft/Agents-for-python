@@ -1,3 +1,6 @@
+# Copyright (c) Microsoft Corporation. All rights reserved.
+# Licensed under the MIT License.
+
 from __future__ import annotations
 
 from ..core import constants, AttributeMap
@@ -9,7 +12,7 @@ from ..core import (
     AttributeMap,
     SimpleSpanWrapper,
 )
-from ..core.utils import get_conversation_id, get_delivery_mode, format_scopes
+from ..utils import get_conversation_id, get_delivery_mode, format_scopes
 from .. import _metrics
 
 class AdapterProcess(SimpleSpanWrapper):

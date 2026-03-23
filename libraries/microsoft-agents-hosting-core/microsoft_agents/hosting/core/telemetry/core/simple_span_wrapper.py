@@ -1,3 +1,6 @@
+# Copyright (c) Microsoft Corporation. All rights reserved.
+# Licensed under the MIT License.
+
 from abc import ABC
 from collections.abc import Iterator
 from contextlib import contextmanager
@@ -6,7 +9,7 @@ from opentelemetry.trace import Span
 
 from ._agents_telemetry import agents_telemetry
 from .base_span_wrapper import BaseSpanWrapper
-from .utils import AttributeMap
+from .type_defs import AttributeMap
 
 class SimpleSpanWrapper(BaseSpanWrapper, ABC):
     """Simple implementation of the BaseSpanWrapper that can be used when no additional attributes or functionality are needed on the span beyond what is provided by the base BaseSpanWrapper class. This can be used as a simple wrapper around an OTEL span for cases where no SDK-specific telemetry is needed, while still providing the benefits of the BaseSpanWrapper abstraction and lifecycle management."""

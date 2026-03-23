@@ -1,15 +1,15 @@
+# Copyright (c) Microsoft Corporation. All rights reserved.
+# Licensed under the MIT License.
+
 from __future__ import annotations
 
-from ..core import constants, AttributeMap
 from opentelemetry.trace import Span
-from microsoft_agents.activity import Activity
 
 from ..core import (
     constants,
-    AttributeMap,
     SimpleSpanWrapper,
+    AttributeMap,
 )
-from ..core.utils import get_conversation_id, get_delivery_mode, format_scopes
 from .. import _metrics
 
 class _ConnectorSpanWrapper(SimpleSpanWrapper):
@@ -27,7 +27,10 @@ class _ConnectorSpanWrapper(SimpleSpanWrapper):
         _metrics.connector_request_total.add(1)
 
     def _get_attributes(self) -> dict[str, str]:
-        """Returns a dictionary of attributes to set on the span when it is started. This includes attributes related to the connector operation being performed."""
+        """Returns a dictionary of attributes to set on the span when it is started. This includes attributes related to the connector operation being performed.
+        
+        NOTE: a dict is the annotated return type to allow child classes to add additional attributes.
+        """
         attributes = {}
         if self._conversation_id is not None:
             attributes[constants.ATTR_CONVERSATION_ID] = self._conversation_id

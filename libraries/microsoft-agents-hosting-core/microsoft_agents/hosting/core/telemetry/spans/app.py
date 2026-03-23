@@ -1,14 +1,17 @@
+# Copyright (c) Microsoft Corporation. All rights reserved.
+# Licensed under the MIT License.
+
 from __future__ import annotations
 
 from opentelemetry.trace import Span
 from microsoft_agents.activity import TurnContextProtocol
 from ..core import (
     constants,
-    get_conversation_id,
     AttributeMap,
     SimpleSpanWrapper,
 )
 from .. import _metrics
+from ..utils import get_conversation_id
 
 class AppOnTurn(SimpleSpanWrapper):
     """Span for the entire app run, starting from when an activity is received in the adapter, until a response is sent back (if applicable). This span is meant to be a parent span for all other spans created during the processing of the activity, and can be used to correlate all telemetry for a given app run."""
