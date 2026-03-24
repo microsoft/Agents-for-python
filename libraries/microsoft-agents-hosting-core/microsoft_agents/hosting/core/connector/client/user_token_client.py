@@ -81,7 +81,7 @@ class AgentSignIn(AgentSignInBase):
         :param final_redirect: Final redirect URL.
         :return: The sign-in resource.
         """
-        with spans.GetSignInResource():
+        with spans.GetSignInResource() as span:
             params = {"state": state}
             if code_challenge:
                 params["codeChallenge"] = code_challenge
@@ -97,6 +97,7 @@ class AgentSignIn(AgentSignInBase):
             async with self.client.get(
                 "api/botsignin/getSignInResource", params=params
             ) as response:
+                span.share(http_method="GET", status_code=response.status)
                 if response.status >= 300:
                     logger.error("Error getting sign-in resource: %s", response.status)
                     response.raise_for_status()
@@ -121,7 +122,7 @@ class UserToken(UserTokenBase):
 
         with spans.GetUserToken(
             connection_name=connection_name, user_id=user_id, channel_id=channel_id
-        ):
+        ) as span:
             params = {"userId": user_id, "connectionName": connection_name}
 
             if channel_id:
@@ -133,6 +134,8 @@ class UserToken(UserTokenBase):
             async with self.client.get(
                 "api/usertoken/GetToken", params=params
             ) as response:
+                span.share(http_method="GET", status_code=response.status)
+
                 if response.status >= 300:
                     logger.error("Error getting token: %s", response.status)
                     response.raise_for_status()
@@ -154,7 +157,7 @@ class UserToken(UserTokenBase):
 
         with spans.GetTokenOrSignInResource(
             connection_name=connection_name, user_id=user_id, channel_id=channel_id
-        ):
+        ) as span:
             params = {
                 "userId": user_id,
                 "connectionName": connection_name,
@@ -169,6 +172,8 @@ class UserToken(UserTokenBase):
             async with self.client.get(
                 "/api/usertoken/GetTokenOrSignInResource", params=params
             ) as response:
+                span.share(http_method="GET", status_code=response.status)
+
                 if response.status != 200:
                     logger.error(
                         "Error getting token or sign-in resource: %s", response.status
@@ -189,7 +194,7 @@ class UserToken(UserTokenBase):
 
         with spans.GetAadTokens(
             connection_name=connection_name, user_id=user_id, channel_id=channel_id
-        ):
+        ) as span:
             params = {"userId": user_id, "connectionName": connection_name}
 
             if channel_id:
@@ -199,6 +204,8 @@ class UserToken(UserTokenBase):
             async with self.client.post(
                 "api/usertoken/GetAadTokens", params=params, json=body
             ) as response:
+                span.share(http_method="POST", status_code=response.status)
+
                 if response.status >= 300:
                     logger.error("Error getting AAD tokens: %s", response.status)
                     response.raise_for_status()
@@ -216,7 +223,7 @@ class UserToken(UserTokenBase):
 
         with spans.SignOut(
             user_id=user_id, connection_name=connection_name, channel_id=channel_id
-        ):
+        ) as span:
             params = {"userId": user_id}
 
             if connection_name:
@@ -228,6 +235,8 @@ class UserToken(UserTokenBase):
             async with self.client.delete(
                 "api/usertoken/SignOut", params=params
             ) as response:
+                span.share(http_method="DELETE", status_code=response.status)
+
                 if response.status >= 300:
                     logger.error("Error signing out: %s", response.status)
                     response.raise_for_status()
@@ -240,7 +249,7 @@ class UserToken(UserTokenBase):
     ) -> list[TokenStatus]:
         """Get token status for a user."""
 
-        with spans.GetTokenStatus(user_id=user_id, channel_id=channel_id):
+        with spans.GetTokenStatus(user_id=user_id, channel_id=channel_id) as span:
             params = {"userId": user_id}
 
             if channel_id:
@@ -254,6 +263,8 @@ class UserToken(UserTokenBase):
             async with self.client.get(
                 "api/usertoken/GetTokenStatus", params=params
             ) as response:
+                span.share(http_method="GET", status_code=response.status)
+
                 if response.status >= 300:
                     logger.error("Error getting token status: %s", response.status)
                     response.raise_for_status()
@@ -272,7 +283,7 @@ class UserToken(UserTokenBase):
 
         with spans.ExchangeToken(
             connection_name=connection_name, user_id=user_id, channel_id=channel_id
-        ):
+        ) as span:
             params = {
                 "userId": user_id,
                 "connectionName": connection_name,
@@ -283,6 +294,8 @@ class UserToken(UserTokenBase):
             async with self.client.post(
                 "api/usertoken/exchange", params=params, json=body
             ) as response:
+                span.share(http_method="POST", status_code=response.status)
+
                 if response.status >= 300:
                     logger.error("Error exchanging token: %s", response.status)
                     response.raise_for_status()
