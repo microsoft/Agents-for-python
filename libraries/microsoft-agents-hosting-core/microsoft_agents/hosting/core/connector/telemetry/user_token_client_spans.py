@@ -5,15 +5,11 @@ from __future__ import annotations
 
 from opentelemetry.trace import Span
 
-from microsoft_agents.hosting.core.telemetry import (
-    attributes,
-    SimpleSpanWrapper,
-    AttributeMap,
-)
+from microsoft_agents.hosting.core.telemetry import attributes
+from ._request_span_wrapper import _RequestSpanWrapper
 from . import metrics, constants
 
-
-class _UserTokenClientSpanWrapper(SimpleSpanWrapper):
+class _UserTokenClientSpanWrapper(_RequestSpanWrapper):
     """Base SpanWrapper for spans related to user token client operations in the adapter. This is meant to be a base class for spans related to user token client operations, such as creating a user token, and can be used to share common functionality and attributes related to user token client operations."""
 
     def __init__(
@@ -29,6 +25,12 @@ class _UserTokenClientSpanWrapper(SimpleSpanWrapper):
         self._connection_name = connection_name or attributes.UNKNOWN
         self._user_id = user_id or attributes.UNKNOWN
         self._channel_id = channel_id or attributes
+
+    def _callback(self, span: Span, duration: float, error: Exception | None) -> None:
+        """Callback function that is called when the span is ended. This is used to record metrics for the user token client operation based on the outcome of the span."""
+        attrs = self._get_request_attributes()
+        metrics.user_token_client_request_duration.record(duration, attributes=attrs)
+        metrics.user_token_client_request_count.add(1, attributes=attrs)
 
     def _get_attributes(self) -> dict[str, str]:
         """Returns a dictionary of attributes to set on the span when it is started. This includes attributes related to the user token client operation being performed.

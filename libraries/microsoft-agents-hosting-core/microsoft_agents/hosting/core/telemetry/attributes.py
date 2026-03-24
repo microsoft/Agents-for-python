@@ -16,15 +16,21 @@ ATTACHMENT_ID = "activity.attachment.id"
 ATTACHMENT_COUNT = "activity.attachments.count"
 
 AUTH_HANDLER_ID = "auth.handler.id"
+AUTH_METHOD = "auth.method"
 AUTH_SCOPES = "auth.scopes"
-AUTH_TYPE = "auth.method"
+AUTH_SUCCESS = "auth.success"
 
 CONNECTION_NAME = "auth.connection.name"
 CONVERSATION_ID = "activity.conversation.id"
 
+HTTP_METHOD = "http.method"
+HTTP_STATUS_CODE = "http.status_code"
+
 IS_AGENTIC = "is_agentic_request"
 
 KEY_COUNT = "storage.keys.count"
+
+OPERATION = "operation"
 
 ROUTE_AUTHORIZED = "route.authorized"
 ROUTE_IS_INVOKE = "route.is_invoke"
@@ -32,10 +38,13 @@ ROUTE_IS_AGENTIC = "route.is_agentic"
 ROUTE_MATCHED = "route.matched"
 
 SERVICE_URL = "service_url"
+STORAGE_OPERATION = "storage.operation"
 
 TOKEN_SERVICE_ENDPOINT = "agents.token_service.endpoint"
 
 USER_ID = "user.id"
+
+VIEW_ID = "view.id"
 
 # for missing values
 UNKNOWN = "unknown"

@@ -22,5 +22,9 @@ SPAN_GET_TOKEN_OR_SIGN_IN_RESOURCE = (
 SPAN_GET_TOKEN_STATUS = "agents.user_token_client.get_token_status"
 SPAN_GET_AAD_TOKENS = "agents.user_token_client.get_aad_tokens"
 
-METRIC_REQUESTS_TOTAL = "agents.connector.requests"
-METRIC_REQUEST_DURATION = "agents.connector.request.duration"
+METRIC_CONNECTOR_REQUEST_COUNT = "agents.connector.request.count"
+METRIC_CONNECTOR_REQUEST_DURATION = "agents.connector.request.duration"
+
+METRIC_USER_TOKEN_CLIENT_REQUEST_COUNT = "agents.user_token_client.request.count"
+METRIC_USER_TOKEN_CLIENT_REQUEST_DURATION = "agents.user_token_client.request.duration"
+

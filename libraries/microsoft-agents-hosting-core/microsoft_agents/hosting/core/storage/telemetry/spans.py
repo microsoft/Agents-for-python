@@ -22,7 +22,9 @@ class _StorageSpanWrapper(SimpleSpanWrapper):
 
     def _callback(self, span: Span, duration: float, error: Exception | None) -> None:
         """Callback function that is called when the span is ended. This is used to record metrics for the storage operation based on the outcome of the span."""
-        metrics.storage_operation_duration.record(duration)
+        metrics.storage_operation_duration.record(duration, attributes={
+            attributes.STORAGE_OPERATION: self._span_name,
+        })
         metrics.storage_operation_total.add(1)
 
     def _get_attributes(self) -> dict[str, str | int]:

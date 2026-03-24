@@ -5,15 +5,17 @@ from __future__ import annotations
 
 from opentelemetry.trace import Span
 
+from aiohttp.web import Request, Response
+
 from microsoft_agents.hosting.core.telemetry import (
     attributes,
-    SimpleSpanWrapper,
     AttributeMap,
 )
+from ._request_span_wrapper import _RequestSpanWrapper
 from . import metrics, constants
 
 
-class _ConnectorSpanWrapper(SimpleSpanWrapper):
+class _ConnectorSpanWrapper(_RequestSpanWrapper):
     """Base SpanWrapper for spans related to connector operations in the adapter. This is meant to be a base class for spans related to connector operations, such as creating a connector client or creating a user token, and can be used to share common functionality and attributes related to connector operations."""
 
     def __init__(
@@ -30,8 +32,9 @@ class _ConnectorSpanWrapper(SimpleSpanWrapper):
 
     def _callback(self, span: Span, duration: float, error: Exception | None) -> None:
         """Callback function that is called when the span is ended. This is used to record metrics for the connector operation based on the outcome of the span."""
-        metrics.connector_request_duration.record(duration)
-        metrics.connector_request_total.add(1)
+        attrs = self._get_request_attributes()
+        metrics.connector_request_duration.record(duration, attributes=attrs)
+        metrics.connector_request_count.add(1, attributes=attrs)
 
     def _get_attributes(self) -> dict[str, str]:
         """Returns a dictionary of attributes to set on the span when it is started. This includes attributes related to the connector operation being performed.
@@ -44,7 +47,6 @@ class _ConnectorSpanWrapper(SimpleSpanWrapper):
         if self._activity_id is not None:
             attr_dict[attributes.ACTIVITY_ID] = self._activity_id
         return attr_dict
-
 
 class ConnectorReplyToActivity(_ConnectorSpanWrapper):
     """Span for replying to an activity using the connector client in the adapter."""
@@ -143,12 +145,14 @@ class ConnectorGetAttachmentInfo(_ConnectorSpanWrapper):
 class ConnectorGetAttachment(_ConnectorSpanWrapper):
     """Span for getting an attachment using the connector client in the adapter."""
 
-    def __init__(self, attachment_id: str):
+    def __init__(self, attachment_id: str, view_id: str):
         """Initializes the ConnectorGetAttachment span."""
         super().__init__(constants.SPAN_GET_ATTACHMENT)
         self._attachment_id = attachment_id
+        self._view_id = view_id
 
     def _get_attributes(self) -> AttributeMap:
         attr_dict = super()._get_attributes()
         attr_dict[attributes.ATTACHMENT_ID] = self._attachment_id
+        attr_dict[attributes.VIEW_ID] = self._view_id
         return attr_dict

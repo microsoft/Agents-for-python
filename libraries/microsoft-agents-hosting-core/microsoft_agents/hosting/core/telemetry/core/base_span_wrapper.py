@@ -49,7 +49,8 @@ class BaseSpanWrapper(ABC):
         )
         logger.warning("Description: %s", desc)
 
-    def __enter__(self) -> BaseSpanWrapper:
+    # TODO -> Add Self annotation once 3.11 is the minimum supported version
+    def __enter__(self):
         """Starts the BaseSpanWrapper and returns the BaseSpanWrapper instance for chaining. This method should check if the BaseSpanWrapper is already active and log a warning if an attempt is made to start an already active BaseSpanWrapper, to help identify potential issues with BaseSpanWrapper lifecycle management."""
         if self._active:
             BaseSpanWrapper._log_lifespan_error(

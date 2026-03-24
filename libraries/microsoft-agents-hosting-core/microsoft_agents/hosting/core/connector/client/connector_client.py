@@ -96,7 +96,7 @@ class AttachmentsOperations(AttachmentsBase):
         :param view_id: The ID of the view.
         :return: The attachment as a readable stream.
         """
-        with spans.ConnectorGetAttachment(attachment_id):
+        with spans.ConnectorGetAttachment(attachment_id, view_id):
             if attachment_id is None:
                 logger.error(
                     "AttachmentsOperations.get_attachment(): attachmentId is required",

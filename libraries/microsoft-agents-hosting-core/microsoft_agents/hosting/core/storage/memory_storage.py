@@ -28,45 +28,42 @@ class MemoryStorage(Storage):
         if not target_cls:
             raise ValueError("Storage.read(): target_cls cannot be None.")
 
-        with spans.StorageRead(len(keys)):
-            result: dict[str, StoreItem] = {}
-            with self._lock:
-                for key in keys:
-                    if key == "":
-                        raise ValueError("MemoryStorage.read(): key cannot be empty")
-                    if key in self._memory:
-                        if not target_cls:
-                            result[key] = self._memory[key]
-                        else:
-                            try:
-                                result[key] = target_cls.from_json_to_store_item(
-                                    self._memory[key]
-                                )
-                            except AttributeError as error:
-                                raise TypeError(
-                                    f"MemoryStorage.read(): could not deserialize in-memory item into {target_cls} class. Error: {error}"
-                                )
-                return result
+        result: dict[str, StoreItem] = {}
+        with self._lock:
+            for key in keys:
+                if key == "":
+                    raise ValueError("MemoryStorage.read(): key cannot be empty")
+                if key in self._memory:
+                    if not target_cls:
+                        result[key] = self._memory[key]
+                    else:
+                        try:
+                            result[key] = target_cls.from_json_to_store_item(
+                                self._memory[key]
+                            )
+                        except AttributeError as error:
+                            raise TypeError(
+                                f"MemoryStorage.read(): could not deserialize in-memory item into {target_cls} class. Error: {error}"
+                            )
+            return result
 
     async def write(self, changes: dict[str, StoreItem]):
         if not changes:
             raise ValueError("MemoryStorage.write(): changes cannot be None")
 
-        with spans.StorageWrite(len(changes)):
-            with self._lock:
-                for key in changes:
-                    if key == "":
-                        raise ValueError("MemoryStorage.write(): key cannot be empty")
-                    self._memory[key] = changes[key].store_item_to_json()
+        with self._lock:
+            for key in changes:
+                if key == "":
+                    raise ValueError("MemoryStorage.write(): key cannot be empty")
+                self._memory[key] = changes[key].store_item_to_json()
 
     async def delete(self, keys: list[str]):
         if not keys:
             raise ValueError("Storage.delete(): Keys are required when deleting.")
 
-        with spans.StorageDelete(len(keys)):
-            with self._lock:
-                for key in keys:
-                    if key == "":
-                        raise ValueError("MemoryStorage.delete(): key cannot be empty")
-                    if key in self._memory:
-                        del self._memory[key]
+        with self._lock:
+            for key in keys:
+                if key == "":
+                    raise ValueError("MemoryStorage.delete(): key cannot be empty")
+                if key in self._memory:
+                    del self._memory[key]

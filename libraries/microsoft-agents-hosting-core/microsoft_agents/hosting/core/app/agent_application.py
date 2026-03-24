@@ -820,35 +820,37 @@ class AgentApplication(Agent, Generic[StateT]):
             return True
 
     async def _on_activity(self, context: TurnContext, state: StateT, on_turn_span: spans.AppOnTurn | None = None):
-        with spans.AppRouteHandler(context):
             
-            route_matched: bool = False
-            route_authorized: bool = False
+        route_matched: bool = False
+        route_authorized: bool = False
 
-            for route in self._route_list:
-                if route.selector(context):
-                    route_matched = True
-                    if not route.auth_handlers:
-                        route_authorized = True
+        for route in self._route_list:
+            if route.selector(context):
+                route_matched = True
+                if not route.auth_handlers:
+                    route_authorized = True
+                    with spans.AppRouteHandler(route.is_invoke, route.is_agentic):
                         await route.handler(context, state)
-                    else:
-                        sign_in_complete = True
-                        for auth_handler_id in route.auth_handlers:
-                            if not (
-                                await self._auth._start_or_continue_sign_in(
-                                    context, state, auth_handler_id
-                                )
-                            ).sign_in_complete():
-                                sign_in_complete = False
-                                break
+                else:
+                    sign_in_complete = True
+                    for auth_handler_id in route.auth_handlers:
+                        if not (
+                            await self._auth._start_or_continue_sign_in(
+                                context, state, auth_handler_id
+                            )
+                        ).sign_in_complete():
+                            sign_in_complete = False
+                            break
 
-                        if sign_in_complete:
-                            route_authorized = True
+                    if sign_in_complete:
+                        route_authorized = True
+                        with spans.AppRouteHandler(route.is_invoke, route.is_agentic):
                             await route.handler(context, state)
-                    return
-            logger.warning(
-                f"No route found for activity type: {context.activity.type} with text: {context.activity.text}"
-            )
+                return
+        logger.warning(
+            f"No route found for activity type: {context.activity.type} with text: {context.activity.text}"
+        )
+        if on_turn_span is not None:
             on_turn_span.share(route_authorized=route_authorized, route_matched=route_matched)
 
     async def _start_long_running_call(

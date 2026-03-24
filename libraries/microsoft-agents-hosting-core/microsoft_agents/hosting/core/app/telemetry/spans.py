@@ -11,6 +11,7 @@ from microsoft_agents.hosting.core.telemetry import (
     SimpleSpanWrapper,
     get_conversation_id,
 )
+from microsoft_agents.hosting.core._routes import _Route
 from . import constants, metrics
 
 
@@ -27,20 +28,16 @@ class AppOnTurn(SimpleSpanWrapper):
 
     def _callback(self, span: Span, duration: float, error: Exception | None) -> None:
         """Callback function that is called when the span is ended. This is used to record metrics for the app run based on the outcome of the span."""
+        attrs = {
+            attributes.ACTIVITY_TYPE: self._turn_context.activity.type,
+            attributes.ACTIVITY_CHANNEL_ID: self._turn_context.activity.channel_id or attributes.UNKNOWN,
+            attributes.CONVERSATION_ID: get_conversation_id(self._turn_context.activity),
+        }
         if error is None:
-            metrics.turn_total.add(1)
-            metrics.turn_duration.record(
-                duration,
-                {
-                    attributes.CONVERSATION_ID: (
-                        get_conversation_id(self._turn_context.activity)
-                    ),
-                    attributes.ACTIVITY_CHANNEL_ID: self._turn_context.activity.channel_id
-                    or attributes.UNKNOWN,
-                },
-            )
+            metrics.turn_count.add(1, attributes=attrs)
+            metrics.turn_duration.record(duration, attributes=attrs)
         else:
-            metrics.turn_errors.add(1)
+            metrics.turn_error_count.add(1, attributes=attrs)
 
     def _get_attributes(self) -> AttributeMap:
         return {
@@ -66,22 +63,18 @@ class AppOnTurn(SimpleSpanWrapper):
 class AppRouteHandler(SimpleSpanWrapper):
     """Span for handling the routing logic. From selection, through authorization, and through the invocation of the route handler."""
 
-    def __init__(self, turn_context: TurnContextProtocol):
+    def __init__(self, is_invoke: bool, is_agentic: bool):
         """Initializes the AppRouteHandler SpanWrapper."""
         super().__init__(constants.SPAN_ROUTE_HANDLER)
-        self._turn_context = turn_context
+        self._is_invoke = is_invoke
+        self._is_agentic = is_agentic
 
     def _get_attributes(self) -> AttributeMap:
         """Gets attributes for the AppRouteHandler span, based on the activity being processed."""
         return {
-            attributes.CONVERSATION_ID: get_conversation_id(
-                self._turn_context.activity
-            ),
-            attributes.ACTIVITY_CHANNEL_ID: self._turn_context.activity.channel_id
-            or attributes.UNKNOWN,
-            attributes.SERVICE_URL: self._turn_context.activity.service_url,
+            attributes.ROUTE_IS_INVOKE: self._is_invoke,
+            attributes.ROUTE_IS_AGENTIC: self._is_agentic,
         }
-
 
 class AppBeforeTurn(SimpleSpanWrapper):
     """Span for the logic that happens before the main turn processing. This is meant to capture telemetry for the pre-processing logic of the app run, and can be used to identify issues in the early stages of the app run before the main processing logic is invoked."""

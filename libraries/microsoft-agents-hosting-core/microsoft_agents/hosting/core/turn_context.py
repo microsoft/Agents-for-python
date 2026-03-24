@@ -271,14 +271,13 @@ class TurnContext(TurnContextProtocol):
         :param activity:
         :return:
         """
-        with spans.TurnContextUpdateActivity(self):
-            reference = self.activity.get_conversation_reference()
+        reference = self.activity.get_conversation_reference()
 
-            return await self._emit(
-                self._on_update_activity,
-                TurnContext.apply_conversation_reference(activity, reference),
-                self.adapter.update_activity(self, activity),
-            )
+        return await self._emit(
+            self._on_update_activity,
+            TurnContext.apply_conversation_reference(activity, reference),
+            self.adapter.update_activity(self, activity),
+        )
 
     async def delete_activity(self, id_or_reference: str | ConversationReference):
         """
@@ -286,17 +285,16 @@ class TurnContext(TurnContextProtocol):
         :param id_or_reference:
         :return:
         """
-        with spans.TurnContextDeleteActivity(self):
-            if isinstance(id_or_reference, str):
-                reference = self.activity.get_conversation_reference()
-                reference.activity_id = id_or_reference
-            else:
-                reference = id_or_reference
-            return await self._emit(
-                self._on_delete_activity,
-                reference,
-                self.adapter.delete_activity(self, reference),
-            )
+        if isinstance(id_or_reference, str):
+            reference = self.activity.get_conversation_reference()
+            reference.activity_id = id_or_reference
+        else:
+            reference = id_or_reference
+        return await self._emit(
+            self._on_delete_activity,
+            reference,
+            self.adapter.delete_activity(self, reference),
+        )
 
     def on_send_activities(self, handler) -> "TurnContext":
         """

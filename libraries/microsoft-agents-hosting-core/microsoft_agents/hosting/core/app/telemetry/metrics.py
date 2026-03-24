@@ -4,14 +4,14 @@
 from microsoft_agents.hosting.core.telemetry import agents_telemetry
 from . import constants
 
-turn_total = agents_telemetry.meter.create_counter(
-    constants.METRIC_TURN_TOTAL,
+turn_count = agents_telemetry.meter.create_counter(
+    constants.METRIC_TURN_COUNT,
     "turn",
     description="Total number of turns processed by the agent",
 )
 
-turn_errors = agents_telemetry.meter.create_counter(
-    constants.METRIC_TURN_ERRORS,
+turn_error_count = agents_telemetry.meter.create_counter(
+    constants.METRIC_TURN_ERROR_COUNT,
     "turn",
     description="Number of turns that resulted in an error",
 )

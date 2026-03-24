@@ -27,7 +27,12 @@ class AdapterProcess(SimpleSpanWrapper):
 
     def _callback(self, span: Span, duration: float, error: Exception | None) -> None:
         """Callback function that is called when the span is ended. This is used to record metrics for the adapter processing based on the outcome of the span."""
-        metrics.adapter_process_duration.record(duration)
+        attrs = {
+            attributes.ACTIVITY_TYPE: self._activity.type,
+            attributes.ACTIVITY_CHANNEL_ID: self._activity.channel_id or attributes.UNKNOWN,
+        }
+        metrics.adapter_process_duration.record(duration, attributes=attrs)
+        metrics.activities_received.add(1, attributes=attrs)
 
     def _get_attributes(self) -> AttributeMap:
         return {
@@ -47,6 +52,13 @@ class AdapterSendActivities(SimpleSpanWrapper):
         """Initializes the AdapterSendActivities span."""
         super().__init__(constants.SPAN_SEND_ACTIVITIES)
         self._activities = activities
+
+    def _callback(self, span: Span, duration: float, error: Exception | None) -> None:
+        for act in self._activities:
+            metrics.activities_sent.add(1, attributes={
+                attributes.ACTIVITY_TYPE: act.type,
+                attributes.ACTIVITY_CHANNEL_ID: act.channel_id or attributes.UNKNOWN,
+            })
 
     def _get_attributes(self) -> AttributeMap:
         """Returns a dictionary of attributes to set on the span when it is started. This includes attributes related to the activities being sent."""
@@ -68,6 +80,11 @@ class AdapterUpdateActivity(SimpleSpanWrapper):
         super().__init__(constants.SPAN_UPDATE_ACTIVITY)
         self._activity = activity
 
+    def _callback(self, span: Span, duration: float, error: Exception | None) -> None:
+        metrics.activities_updated.add(1, attributes={
+            attributes.ACTIVITY_CHANNEL_ID: self._activity.channel_id or attributes.UNKNOWN,
+        })
+
     def _get_attributes(self) -> AttributeMap:
         """Returns a dictionary of attributes to set on the span when it is started. This includes attributes related to the activity being updated."""
         return {
@@ -83,6 +100,11 @@ class AdapterDeleteActivity(SimpleSpanWrapper):
         """Initializes the AdapterDeleteActivity span."""
         super().__init__(constants.SPAN_DELETE_ACTIVITY)
         self._activity = activity
+
+    def _callback(self, span: Span, duration: float, error: Exception | None) -> None:
+        metrics.activities_deleted.add(1, attributes={
+            attributes.ACTIVITY_CHANNEL_ID: self._activity.channel_id or attributes.UNKNOWN,
+        })
 
     def _get_attributes(self) -> AttributeMap:
         """Returns a dictionary of attributes to set on the span when it is started. This includes attributes related to the activity being deleted."""
