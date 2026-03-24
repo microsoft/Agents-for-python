@@ -710,7 +710,7 @@ class AgentApplication(Agent, Generic[StateT]):
                 await self._handle_file_downloads(context, turn_state)
 
                 logger.debug("Running activity handlers")
-                await self._on_activity(context, turn_state)
+                await self._on_activity(context, turn_state, on_turn_span)
 
                 logger.debug("Running after turn middleware")
                 if await self._run_after_turn_middleware(context, turn_state):
@@ -780,7 +780,7 @@ class AgentApplication(Agent, Generic[StateT]):
         return turn_state
 
     async def _run_before_turn_middleware(self, context: TurnContext, state: StateT):
-        with spans.AppBeforeTurn(context):
+        with spans.AppBeforeTurn():
             for before_turn in self._internal_before_turn:
                 is_ok = await before_turn(context, state)
                 if not is_ok:
@@ -811,7 +811,7 @@ class AgentApplication(Agent, Generic[StateT]):
         return len(list(non_text_attachments)) > 0
 
     async def _run_after_turn_middleware(self, context: TurnContext, state: StateT):
-        with spans.AppAfterTurn(context):
+        with spans.AppAfterTurn():
             for after_turn in self._internal_after_turn:
                 is_ok = await after_turn(context, state)
                 if not is_ok:
@@ -819,11 +819,17 @@ class AgentApplication(Agent, Generic[StateT]):
                     return False
             return True
 
-    async def _on_activity(self, context: TurnContext, state: StateT):
+    async def _on_activity(self, context: TurnContext, state: StateT, on_turn_span: spans.AppOnTurn | None = None):
         with spans.AppRouteHandler(context):
+            
+            route_matched: bool = False
+            route_authorized: bool = False
+
             for route in self._route_list:
                 if route.selector(context):
+                    route_matched = True
                     if not route.auth_handlers:
+                        route_authorized = True
                         await route.handler(context, state)
                     else:
                         sign_in_complete = True
@@ -837,11 +843,13 @@ class AgentApplication(Agent, Generic[StateT]):
                                 break
 
                         if sign_in_complete:
+                            route_authorized = True
                             await route.handler(context, state)
                     return
             logger.warning(
                 f"No route found for activity type: {context.activity.type} with text: {context.activity.text}"
             )
+            on_turn_span.share(route_authorized=route_authorized, route_matched=route_matched)
 
     async def _start_long_running_call(
         self, context: TurnContext, func: Callable[[TurnContext], Awaitable]

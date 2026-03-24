@@ -10,6 +10,7 @@ SPAN_GET_CONVERSATIONS = "agents.connector.getConversations"
 SPAN_GET_CONVERSATION_MEMBERS = "agents.connector.getConversationMembers"
 SPAN_UPLOAD_ATTACHMENT = "agents.connector.uploadAttachment"
 SPAN_GET_ATTACHMENT = "agents.connector.getAttachment"
+SPAN_GET_ATTACHMENT_INFO = "agents.connector.getAttachmentInfo"
 
 SPAN_GET_USER_TOKEN = "agents.user_token_client.get_user_token"
 SPAN_SIGN_OUT = "agents.user_token_client.sign_out"

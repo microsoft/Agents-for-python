@@ -127,6 +127,18 @@ class ConnectorUploadAttachment(_ConnectorSpanWrapper):
             constants.SPAN_UPLOAD_ATTACHMENT, conversation_id=conversation_id
         )
 
+class ConnectorGetAttachmentInfo(_ConnectorSpanWrapper):
+    """Span for getting attachment info using the connector client in the adapter."""
+
+    def __init__(self, attachment_id: str):
+        """Initializes the ConnectorGetAttachmentInfo span."""
+        super().__init__(constants.SPAN_GET_ATTACHMENT_INFO)
+        self._attachment_id = attachment_id
+
+    def _get_attributes(self) -> AttributeMap:
+        attr_dict = super()._get_attributes()
+        attr_dict[attributes.ATTACHMENT_ID] = self._attachment_id
+        return attr_dict
 
 class ConnectorGetAttachment(_ConnectorSpanWrapper):
     """Span for getting an attachment using the connector client in the adapter."""

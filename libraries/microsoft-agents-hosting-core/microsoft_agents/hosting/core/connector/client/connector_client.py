@@ -69,23 +69,24 @@ class AttachmentsOperations(AttachmentsBase):
         :param attachment_id: The ID of the attachment.
         :return: The attachment information.
         """
-        if attachment_id is None:
-            raise ValueError("attachmentId is required")
+        with spans.ConnectorGetAttachmentInfo(attachment_id=attachment_id):
+            if attachment_id is None:
+                raise ValueError("attachmentId is required")
 
-        url = f"v3/attachments/{attachment_id}"
+            url = f"v3/attachments/{attachment_id}"
 
-        logger.info("Getting attachment info for ID: %s", attachment_id)
-        async with self.client.get(url) as response:
-            if response.status >= 300:
-                logger.error(
-                    "Error getting attachment info: %s",
-                    response.status,
-                    stack_info=True,
-                )
-                response.raise_for_status()
+            logger.info("Getting attachment info for ID: %s", attachment_id)
+            async with self.client.get(url) as response:
+                if response.status >= 300:
+                    logger.error(
+                        "Error getting attachment info: %s",
+                        response.status,
+                        stack_info=True,
+                    )
+                    response.raise_for_status()
 
-            data = await response.json()
-            return AttachmentInfo(**data)
+                data = await response.json()
+                return AttachmentInfo(**data)
 
     async def get_attachment(self, attachment_id: str, view_id: str) -> BytesIO:
         """
