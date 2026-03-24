@@ -13,10 +13,11 @@ from opentelemetry.trace import Tracer, Span
 
 from microsoft_agents.activity import TurnContextProtocol
 
-from .. import core
+from .resource import SERVICE_NAME, SERVICE_VERSION
 from .type_defs import SpanCallback
 
 logger = logging.getLogger(__name__)
+
 
 class _AgentsTelemetry:
 
@@ -26,12 +27,8 @@ class _AgentsTelemetry:
         :param tracer: Optional OpenTelemetry Tracer instance to use for creating spans. If not provided, a new tracer will be created with the service name and version from constants.
         :param meter: Optional OpenTelemetry Meter instance to use for recording metrics. If not provided, a new meter will be created with the service name and version from constants.
         """
-        self._tracer = trace.get_tracer(
-            core.SERVICE_NAME, core.SERVICE_VERSION
-        )
-        self._meter = metrics.get_meter(
-            core.SERVICE_NAME, core.SERVICE_VERSION
-        )
+        self._tracer = trace.get_tracer(SERVICE_NAME, SERVICE_VERSION)
+        self._meter = metrics.get_meter(SERVICE_NAME, SERVICE_VERSION)
 
     @property
     def tracer(self) -> Tracer:
@@ -63,15 +60,17 @@ class _AgentsTelemetry:
             len(turn_context.activity.text) if turn_context.activity.text else 0
         )
         return attributes
-    
-    def set_attributes_from_context(self, span: Span, turn_context: TurnContextProtocol) -> None:
+
+    def set_attributes_from_context(
+        self, span: Span, turn_context: TurnContextProtocol
+    ) -> None:
         """Extracts attributes from the TurnContext and sets them on the given span
 
         :param span: The OpenTelemetry span to set attributes on
         :param turn_context: The TurnContext to extract attributes from
         """
         span.set_attributes(self._extract_attributes_from_context(turn_context))
-    
+
     @contextmanager
     def start_as_current_span(
         self,

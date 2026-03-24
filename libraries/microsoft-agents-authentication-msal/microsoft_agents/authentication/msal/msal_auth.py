@@ -441,9 +441,7 @@ class MsalAuth(AccessTokenProviderBase):
         :return: The agentic user token, or None if not found.
         :rtype: Optional[str]
         """
-        with spans.GetAgenticUserToken(
-            agent_app_instance_id, agentic_user_id, scopes
-        ):
+        with spans.GetAgenticUserToken(agent_app_instance_id, agentic_user_id, scopes):
             if not agent_app_instance_id or not agentic_user_id:
                 raise ValueError(
                     str(

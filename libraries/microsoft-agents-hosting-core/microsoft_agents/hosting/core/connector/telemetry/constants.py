@@ -15,7 +15,9 @@ SPAN_GET_USER_TOKEN = "agents.user_token_client.get_user_token"
 SPAN_SIGN_OUT = "agents.user_token_client.sign_out"
 SPAN_GET_SIGN_IN_RESOURCE = "agents.user_token_client.get_sign_in_resource"
 SPAN_EXCHANGE_TOKEN = "agents.user_token_client.exchange_token"
-SPAN_GET_TOKEN_OR_SIGN_IN_RESOURCE = "agents.user_token_client.get_token_or_sign_in_resource"
+SPAN_GET_TOKEN_OR_SIGN_IN_RESOURCE = (
+    "agents.user_token_client.get_token_or_sign_in_resource"
+)
 SPAN_GET_TOKEN_STATUS = "agents.user_token_client.get_token_status"
 SPAN_GET_AAD_TOKENS = "agents.user_token_client.get_aad_tokens"
 

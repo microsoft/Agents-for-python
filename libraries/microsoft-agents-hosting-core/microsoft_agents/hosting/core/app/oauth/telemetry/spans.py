@@ -13,9 +13,10 @@ from microsoft_agents.hosting.core.telemetry import (
 )
 from . import constants
 
+
 class _AuthorizationSpanWrapper(SimpleSpanWrapper):
     """Base SpanWrapper for spans related to authorization operations.
-    
+
     This is meant to be a base class for spans related to authorization operations,
     and can be used to share common functionality and attributes
     """
@@ -64,6 +65,7 @@ class AgenticToken(_AuthorizationSpanWrapper):
             scopes,
         )
 
+
 class AzureBotToken(_AuthorizationSpanWrapper):
     """Span wrapper for azure bot token operations."""
 
@@ -80,6 +82,7 @@ class AzureBotToken(_AuthorizationSpanWrapper):
             connection_name,
             scopes,
         )
+
 
 class AzureBotSignIn(_AuthorizationSpanWrapper):
     """Span wrapper for azure bot sign in operations."""
@@ -98,10 +101,11 @@ class AzureBotSignIn(_AuthorizationSpanWrapper):
             scopes,
         )
 
+
 class AzureBotSignOut(_AuthorizationSpanWrapper):
     """Span wrapper for azure bot sign out operations."""
 
-    def __init__(self,  auth_handler_id: str):
+    def __init__(self, auth_handler_id: str):
         """Initializes the AzureBotSignOut span."""
         super().__init__(
             constants.AZURE_BOT_SIGN_OUT,

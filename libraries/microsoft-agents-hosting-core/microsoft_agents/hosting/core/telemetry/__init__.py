@@ -9,10 +9,8 @@
 # NOTE: this module should not be auto-loaded from __init__.py in order to avoid
 
 from . import attributes
-from .core._agents_telemetry import (
-    agents_telemetry,
-)
 from .core import (
+    agents_telemetry,
     SERVICE_NAME,
     SERVICE_VERSION,
     RESOURCE,

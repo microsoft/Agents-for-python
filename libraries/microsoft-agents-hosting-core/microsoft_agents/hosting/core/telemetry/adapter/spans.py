@@ -16,6 +16,7 @@ from microsoft_agents.hosting.core.telemetry import (
 )
 from . import constants, metrics
 
+
 class AdapterProcess(SimpleSpanWrapper):
     """Span for processing an incoming activity in the adapter."""
 
@@ -31,11 +32,13 @@ class AdapterProcess(SimpleSpanWrapper):
     def _get_attributes(self) -> AttributeMap:
         return {
             attributes.ACTIVITY_TYPE: self._activity.type,
-            attributes.ACTIVITY_CHANNEL_ID: self._activity.channel_id or attributes.UNKNOWN,
+            attributes.ACTIVITY_CHANNEL_ID: self._activity.channel_id
+            or attributes.UNKNOWN,
             attributes.ACTIVITY_DELIVERY_MODE: get_delivery_mode(self._activity),
             attributes.CONVERSATION_ID: get_conversation_id(self._activity),
             attributes.IS_AGENTIC: self._activity.is_agentic_request(),
         }
+
 
 class AdapterSendActivities(SimpleSpanWrapper):
     """Span for sending activities in the adapter."""
@@ -51,9 +54,11 @@ class AdapterSendActivities(SimpleSpanWrapper):
             attributes.ACTIVITY_COUNT: len(self._activities),
             attributes.CONVERSATION_ID: (
                 get_conversation_id(self._activities[0])
-                if self._activities else attributes.UNKNOWN
+                if self._activities
+                else attributes.UNKNOWN
             ),
         }
+
 
 class AdapterUpdateActivity(SimpleSpanWrapper):
     """Span for updating an activity in the adapter."""
@@ -70,6 +75,7 @@ class AdapterUpdateActivity(SimpleSpanWrapper):
             attributes.CONVERSATION_ID: get_conversation_id(self._activity),
         }
 
+
 class AdapterDeleteActivity(SimpleSpanWrapper):
     """Span for deleting an activity in the adapter."""
 
@@ -85,6 +91,7 @@ class AdapterDeleteActivity(SimpleSpanWrapper):
             attributes.CONVERSATION_ID: get_conversation_id(self._activity),
         }
 
+
 class AdapterContinueConversation(SimpleSpanWrapper):
     """Span for continuing a conversation in the adapter."""
 
@@ -96,10 +103,15 @@ class AdapterContinueConversation(SimpleSpanWrapper):
     def _get_attributes(self) -> AttributeMap:
         """Returns a dictionary of attributes to set on the span when it is started. This includes attributes related to the conversation being continued."""
         return {
-            attributes.APP_ID: self._activity.recipient.id if self._activity.recipient else attributes.UNKNOWN,
+            attributes.APP_ID: (
+                self._activity.recipient.id
+                if self._activity.recipient
+                else attributes.UNKNOWN
+            ),
             attributes.CONVERSATION_ID: get_conversation_id(self._activity),
             attributes.IS_AGENTIC_REQUEST: self._activity.is_agentic_request(),
         }
+
 
 class AdapterCreateUserTokenClient(SimpleSpanWrapper):
     """Span for creating a user token in the adapter."""
@@ -117,10 +129,13 @@ class AdapterCreateUserTokenClient(SimpleSpanWrapper):
             attributes.AUTH_SCOPES: format_scopes(self._scopes),
         }
 
+
 class AdapterCreateConnectorClient(SimpleSpanWrapper):
     """Span for creating a connector client in the adapter."""
 
-    def __init__(self, service_url: str, scopes: list[str] | None, is_agentic_request: bool):
+    def __init__(
+        self, service_url: str, scopes: list[str] | None, is_agentic_request: bool
+    ):
         """Initializes the AdapterCreateConnectorClient span."""
         super().__init__(constants.SPAN_CREATE_CONNECTOR_CLIENT)
         self._service_url = service_url
@@ -132,5 +147,5 @@ class AdapterCreateConnectorClient(SimpleSpanWrapper):
         return {
             attributes.SERVICE_URL: self._service_url,
             attributes.AUTH_SCOPES: format_scopes(self._scopes),
-            attributes.IS_AGENTIC_REQUEST: self._is_agentic_request,
+            attributes.IS_AGENTIC: self._is_agentic_request,
         }

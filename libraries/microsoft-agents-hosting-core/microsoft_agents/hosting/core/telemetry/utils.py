@@ -5,11 +5,13 @@ from microsoft_agents.activity import Activity, DeliveryModes
 
 from .attributes import UNKNOWN
 
+
 def format_scopes(scopes: list[str] | None) -> str:
     """Formats a list of scopes into a string for telemetry recording. If the list is None or empty, returns a constant value indicating unknown scopes."""
     if not scopes:
         return UNKNOWN
     return ",".join(scopes)
+
 
 def get_conversation_id(activity: Activity) -> str:
     """Extracts the conversation ID from the given activity. If the conversation ID cannot be found, returns a constant value indicating unknown conversation ID."""

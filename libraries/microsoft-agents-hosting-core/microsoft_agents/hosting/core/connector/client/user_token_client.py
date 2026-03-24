@@ -118,8 +118,10 @@ class UserToken(UserTokenBase):
         channel_id: Optional[str] = None,
         code: Optional[str] = None,
     ) -> TokenResponse:
-        
-        with spans.GetUserToken(connection_name=connection_name, user_id=user_id, channel_id=channel_id):
+
+        with spans.GetUserToken(
+            connection_name=connection_name, user_id=user_id, channel_id=channel_id
+        ):
             params = {"userId": user_id, "connectionName": connection_name}
 
             if channel_id:
@@ -128,7 +130,9 @@ class UserToken(UserTokenBase):
                 params["code"] = code
 
             logger.info("User_token.get_token(): Getting token with params: %s", params)
-            async with self.client.get("api/usertoken/GetToken", params=params) as response:
+            async with self.client.get(
+                "api/usertoken/GetToken", params=params
+            ) as response:
                 if response.status >= 300:
                     logger.error("Error getting token: %s", response.status)
                     response.raise_for_status()
@@ -148,7 +152,9 @@ class UserToken(UserTokenBase):
     ) -> TokenOrSignInResourceResponse:
         """Get token or sign-in resource for a user."""
 
-        with spans.GetTokenOrSignInResource(connection_name=connection_name, user_id=user_id, channel_id=channel_id):
+        with spans.GetTokenOrSignInResource(
+            connection_name=connection_name, user_id=user_id, channel_id=channel_id
+        ):
             params = {
                 "userId": user_id,
                 "connectionName": connection_name,
@@ -181,7 +187,9 @@ class UserToken(UserTokenBase):
     ) -> dict[str, TokenResponse]:
         """Get AAD tokens for a user."""
 
-        with spans.GetAadTokens(connection_name=connection_name, user_id=user_id, channel_id=channel_id):
+        with spans.GetAadTokens(
+            connection_name=connection_name, user_id=user_id, channel_id=channel_id
+        ):
             params = {"userId": user_id, "connectionName": connection_name}
 
             if channel_id:
@@ -206,7 +214,9 @@ class UserToken(UserTokenBase):
     ) -> None:
         """Sign out user from a connection."""
 
-        with spans.SignOut(user_id=user_id, connection_name=connection_name, channel_id=channel_id):
+        with spans.SignOut(
+            user_id=user_id, connection_name=connection_name, channel_id=channel_id
+        ):
             params = {"userId": user_id}
 
             if connection_name:
@@ -238,7 +248,9 @@ class UserToken(UserTokenBase):
             if include:
                 params["include"] = include
 
-            logger.info("Getting token status for user %s with params: %s", user_id, params)
+            logger.info(
+                "Getting token status for user %s with params: %s", user_id, params
+            )
             async with self.client.get(
                 "api/usertoken/GetTokenStatus", params=params
             ) as response:
@@ -258,7 +270,9 @@ class UserToken(UserTokenBase):
     ) -> TokenResponse:
         """Exchange token for a user."""
 
-        with spans.ExchangeToken(connection_name=connection_name, user_id=user_id, channel_id=channel_id):
+        with spans.ExchangeToken(
+            connection_name=connection_name, user_id=user_id, channel_id=channel_id
+        ):
             params = {
                 "userId": user_id,
                 "connectionName": connection_name,
@@ -278,7 +292,6 @@ class UserToken(UserTokenBase):
 
 
 class UserTokenClient(UserTokenClientBase):
-    
     """
     UserTokenClient is a client for interacting with the Microsoft M365 Agents SDK User Token API.
     """

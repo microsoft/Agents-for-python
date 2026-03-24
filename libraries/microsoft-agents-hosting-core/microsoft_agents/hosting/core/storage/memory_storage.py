@@ -4,7 +4,7 @@
 from threading import Lock
 from typing import TypeVar
 
-from microsoft_agents.hosting.core.telemetry import spans
+from .telemetry import spans
 
 from ._type_aliases import JSON
 from .storage import Storage
@@ -27,7 +27,7 @@ class MemoryStorage(Storage):
             raise ValueError("Storage.read(): Keys are required when reading.")
         if not target_cls:
             raise ValueError("Storage.read(): target_cls cannot be None.")
-        
+
         with spans.StorageRead(len(keys)):
             result: dict[str, StoreItem] = {}
             with self._lock:

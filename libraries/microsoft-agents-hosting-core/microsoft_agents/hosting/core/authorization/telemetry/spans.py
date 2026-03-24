@@ -13,9 +13,10 @@ from microsoft_agents.hosting.core.telemetry import (
 )
 from . import constants, metrics
 
+
 class _AuthenticationSpanWrapper(SimpleSpanWrapper):
     """Base SpanWrapper for spans related to authentication operations.
-    
+
     This is meant to be a base class for spans related to authentication operations, such as retrieving or validating tokens,
     and can be used to share common functionality and attributes
     """
@@ -26,7 +27,7 @@ class _AuthenticationSpanWrapper(SimpleSpanWrapper):
 
     def _callback(self, span: Span, duration: float, error: Exception | None) -> None:
         """Callback function that is called when the span ends. This function can be used to set additional attributes or record exceptions based on the outcome of the operation being traced."""
-    
+
 
 class GetAccessToken(_AuthenticationSpanWrapper):
     """Span wrapper for the operation of retrieving an access token."""
@@ -43,7 +44,8 @@ class GetAccessToken(_AuthenticationSpanWrapper):
             attributes.AUTH_SCOPES: format_scopes(self._scopes),
             attributes.AUTH_TYPE: self._auth_type,
         }
-    
+
+
 class AcquireTokenOnBehalfOf(_AuthenticationSpanWrapper):
     """Span wrapper for the operation of acquiring a token on behalf of a user."""
 
@@ -57,7 +59,8 @@ class AcquireTokenOnBehalfOf(_AuthenticationSpanWrapper):
         return {
             attributes.AUTH_SCOPES: format_scopes(self._scopes),
         }
-    
+
+
 class GetAgenticInstanceToken(_AuthenticationSpanWrapper):
     """Span wrapper for the operation of retrieving an agentic instance token."""
 
@@ -71,11 +74,14 @@ class GetAgenticInstanceToken(_AuthenticationSpanWrapper):
         return {
             attributes.AGENTIC_INSTANCE_ID: self._agentic_instance_id,
         }
-    
+
+
 class GetAgenticUserToken(_AuthenticationSpanWrapper):
     """Span wrapper for the operation of retrieving an agentic user token."""
 
-    def __init__(self, agentic_instance_id: str, agentic_user_id: str, scopes: list[str]):
+    def __init__(
+        self, agentic_instance_id: str, agentic_user_id: str, scopes: list[str]
+    ):
         """Initializes the GetAgenticUserToken span with the specified agentic instance ID, user ID, and authentication scopes."""
         super().__init__(constants.SPAN_GET_AGENTIC_USER_TOKEN)
         self._agentic_instance_id = agentic_instance_id

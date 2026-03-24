@@ -8,9 +8,10 @@ from microsoft_agents.hosting.core.telemetry import (
     AttributeMap,
     SimpleSpanWrapper,
     attributes,
-    get_conversation_id
+    get_conversation_id,
 )
 from . import constants
+
 
 class _TurnContextSpanWrapper(SimpleSpanWrapper):
     """Base span wrapper for TurnContext operations"""
@@ -25,18 +26,21 @@ class _TurnContextSpanWrapper(SimpleSpanWrapper):
         return {
             attributes.CONVERSATION_ID: get_conversation_id(activity),
         }
-    
+
+
 class TurnContextSendActivity(_TurnContextSpanWrapper):
     """Span wrapper for sending an activity within a turn context."""
 
     def __init__(self, turn_context: TurnContextProtocol):
         super().__init__(constants.SPAN_TURN_SEND_ACTIVITY, turn_context)
 
+
 class TurnContextUpdateActivity(_TurnContextSpanWrapper):
     """Span wrapper for updating an activity within a turn context."""
 
     def __init__(self, turn_context: TurnContextProtocol):
         super().__init__(constants.SPAN_TURN_UPDATE_ACTIVITY, turn_context)
+
 
 class TurnContextDeleteActivity(_TurnContextSpanWrapper):
     """Span wrapper for deleting an activity within a turn context."""

@@ -158,9 +158,9 @@ class RestChannelServiceClientFactory(ChannelServiceClientFactoryBase):
         """
         if not context or not claims_identity:
             raise ValueError("context and claims_identity are required")
-        
+
         scopes = claims_identity.get_token_scope() if claims_identity else None
-        
+
         with spans.AdapterCreateUserTokenClient(
             token_service_endpoint=self._token_service_endpoint,
             scopes=scopes,
@@ -170,7 +170,9 @@ class RestChannelServiceClientFactory(ChannelServiceClientFactoryBase):
                 return UserTokenClient(endpoint=self._token_service_endpoint, token="")
 
             if context.activity.is_agentic_request():
-                token = await self._get_agentic_token(context, self._token_service_endpoint)
+                token = await self._get_agentic_token(
+                    context, self._token_service_endpoint
+                )
             else:
                 token_provider = self._connection_manager.get_token_provider(
                     claims_identity, self._token_service_endpoint

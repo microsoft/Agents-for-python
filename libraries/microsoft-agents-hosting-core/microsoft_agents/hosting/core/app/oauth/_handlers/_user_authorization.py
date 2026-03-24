@@ -245,7 +245,11 @@ class _UserAuthorization(_AuthorizationHandler):
 
                 return _SignInResponse(
                     token_response=token_response,
-                    tag=_FlowStateTag.COMPLETE if token_response else _FlowStateTag.FAILURE,
+                    tag=(
+                        _FlowStateTag.COMPLETE
+                        if token_response
+                        else _FlowStateTag.FAILURE
+                    ),
                 )
 
             return _SignInResponse(tag=flow_response.flow_state.tag)
