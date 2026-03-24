@@ -4,12 +4,13 @@
 from __future__ import annotations
 
 from microsoft_agents.activity import TurnContextProtocol
-from ..core import (
-    constants,
+from microsoft_agents.hosting.core.telemetry import (
     AttributeMap,
     SimpleSpanWrapper,
+    attributes,
+    get_conversation_id
 )
-from ..utils import get_conversation_id
+from . import constants
 
 class _TurnContextSpanWrapper(SimpleSpanWrapper):
     """Base span wrapper for TurnContext operations"""
@@ -22,7 +23,7 @@ class _TurnContextSpanWrapper(SimpleSpanWrapper):
     def _get_attributes(self) -> AttributeMap:
         activity = self._turn_context.activity
         return {
-            constants.ATTR_CONVERSATION_ID: get_conversation_id(activity),
+            attributes.CONVERSATION_ID: get_conversation_id(activity),
         }
     
 class TurnContextSendActivity(_TurnContextSpanWrapper):

@@ -30,7 +30,6 @@ from microsoft_agents.activity import (
     InvokeResponse,
 )
 
-from microsoft_agents.hosting.core.telemetry import spans
 from microsoft_agents.hosting.core.turn_context import TurnContext
 
 from ..agent import Agent
@@ -42,6 +41,7 @@ from .state import TurnState
 from ..channel_service_adapter import ChannelServiceAdapter
 from .oauth import Authorization
 from .typing_indicator import TypingIndicator
+from .telemetry import spans
 
 from ._type_defs import RouteHandler, RouteSelector
 from ._routes import _RouteList, _Route, RouteRank, _agentic_selector
@@ -671,7 +671,7 @@ class AgentApplication(Agent, Generic[StateT]):
     async def _on_turn(self, context: TurnContext):
         typing = None
         try:
-            with spans.start_span_app_on_turn(context):
+            with spans.AppOnTurn(context) as on_turn_span:
                 if context.activity.type != ActivityTypes.typing:
                     if self._options.start_typing_timer:
                         typing = TypingIndicator(context)
@@ -780,7 +780,7 @@ class AgentApplication(Agent, Generic[StateT]):
         return turn_state
 
     async def _run_before_turn_middleware(self, context: TurnContext, state: StateT):
-        with spans.start_span_app_before_turn(context):
+        with spans.AppBeforeTurn(context):
             for before_turn in self._internal_before_turn:
                 is_ok = await before_turn(context, state)
                 if not is_ok:
@@ -789,7 +789,7 @@ class AgentApplication(Agent, Generic[StateT]):
             return True
 
     async def _handle_file_downloads(self, context: TurnContext, state: StateT):
-        with spans.start_span_app_download_files(context):
+        with spans.AppDownloadFiles(context):
             if (
                 self._options.file_downloaders
                 and len(self._options.file_downloaders) > 0
@@ -811,7 +811,7 @@ class AgentApplication(Agent, Generic[StateT]):
         return len(list(non_text_attachments)) > 0
 
     async def _run_after_turn_middleware(self, context: TurnContext, state: StateT):
-        with spans.start_span_app_after_turn(context):
+        with spans.AppAfterTurn(context):
             for after_turn in self._internal_after_turn:
                 is_ok = await after_turn(context, state)
                 if not is_ok:
@@ -820,7 +820,7 @@ class AgentApplication(Agent, Generic[StateT]):
             return True
 
     async def _on_activity(self, context: TurnContext, state: StateT):
-        with spans.start_span_app_route_handler(context):
+        with spans.AppRouteHandler(context):
             for route in self._route_list:
                 if route.selector(context):
                     if not route.auth_handlers:

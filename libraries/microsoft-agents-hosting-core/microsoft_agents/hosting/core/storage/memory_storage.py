@@ -9,6 +9,7 @@ from microsoft_agents.hosting.core.telemetry import spans
 from ._type_aliases import JSON
 from .storage import Storage
 from .store_item import StoreItem
+from .telemetry import spans
 
 StoreItemT = TypeVar("StoreItemT", bound=StoreItem)
 
@@ -27,7 +28,7 @@ class MemoryStorage(Storage):
         if not target_cls:
             raise ValueError("Storage.read(): target_cls cannot be None.")
         
-        with spans.start_span_storage_read(len(keys)):
+        with spans.StorageRead(len(keys)):
             result: dict[str, StoreItem] = {}
             with self._lock:
                 for key in keys:
@@ -51,7 +52,7 @@ class MemoryStorage(Storage):
         if not changes:
             raise ValueError("MemoryStorage.write(): changes cannot be None")
 
-        with spans.start_span_storage_write(len(changes)):
+        with spans.StorageWrite(len(changes)):
             with self._lock:
                 for key in changes:
                     if key == "":
@@ -62,7 +63,7 @@ class MemoryStorage(Storage):
         if not keys:
             raise ValueError("Storage.delete(): Keys are required when deleting.")
 
-        with spans.start_span_storage_delete(len(keys)):
+        with spans.StorageDelete(len(keys)):
             with self._lock:
                 for key in keys:
                     if key == "":

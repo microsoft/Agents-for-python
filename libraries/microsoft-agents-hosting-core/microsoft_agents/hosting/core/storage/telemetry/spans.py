@@ -5,11 +5,11 @@ from __future__ import annotations
 
 from opentelemetry.trace import Span
 
-from ..core import (
-    constants,
+from microsoft_agents.hosting.core.telemetry import (
+    resource as common_constants,
     SimpleSpanWrapper,
 )
-from .. import _metrics
+from . import metrics, constants
 
 class _StorageSpanWrapper(SimpleSpanWrapper):
     """Base SpanWrapper for spans related to storage operations. This is meant to be a base class for spans related to storage operations, such as retrieving or saving state, and can be used to share common functionality and attributes related to storage operations."""
@@ -21,16 +21,16 @@ class _StorageSpanWrapper(SimpleSpanWrapper):
 
     def _callback(self, span: Span, duration: float, error: Exception | None) -> None:
         """Callback function that is called when the span is ended. This is used to record metrics for the storage operation based on the outcome of the span."""
-        _metrics.storage_operation_duration.record(duration)
-        _metrics.storage_operation_total.add(1)
+        metrics.storage_operation_duration.record(duration)
+        metrics.storage_operation_total.add(1)
 
-    def _get_attributes(self) -> dict[str, str]:
+    def _get_attributes(self) -> dict[str, str | int]:
         """Returns a dictionary of attributes to set on the span when it is started. This includes attributes related to the storage operation being performed.
 
         NOTE: a dict is the annotated return type to allow child classes to add additional attributes.
         """
         return {
-            constants.ATTR_KEY_COUNT: self._key_count,
+            common_constants.ATTR_KEY_COUNT: self._key_count,
         }
     
 class StorageRead(_StorageSpanWrapper):

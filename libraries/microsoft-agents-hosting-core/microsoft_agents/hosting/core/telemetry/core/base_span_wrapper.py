@@ -46,7 +46,6 @@ class BaseSpanWrapper(ABC):
         logger.warning("Attempting to perform an operation on an inactive BaseSpanWrapper. This may indicate a bug in the telemetry implementation or misuse of the BaseSpanWrapper lifecycle.")
         logger.warning("Description: %s", desc)
 
-    @abstractmethod
     def __enter__(self) -> BaseSpanWrapper:
         """Starts the BaseSpanWrapper and returns the BaseSpanWrapper instance for chaining. This method should check if the BaseSpanWrapper is already active and log a warning if an attempt is made to start an already active BaseSpanWrapper, to help identify potential issues with BaseSpanWrapper lifecycle management."""
         if self.active:

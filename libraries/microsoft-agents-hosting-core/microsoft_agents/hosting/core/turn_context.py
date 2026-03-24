@@ -20,7 +20,7 @@ from microsoft_agents.activity import (
 )
 from microsoft_agents.activity.entity.entity_types import EntityTypes
 from microsoft_agents.hosting.core.authorization.claims_identity import ClaimsIdentity
-from microsoft_agents.hosting.core.telemetry import spans
+from microsoft_agents.hosting.core.telemetry.turn_context import spans
 
 
 class TurnContext(TurnContextProtocol):
@@ -208,7 +208,7 @@ class TurnContext(TurnContextProtocol):
             if speak:
                 activity_or_text.speak = speak
 
-        with spans.start_span_turn_context_send_activity(self):
+        with spans.TurnContextSendActivity(self):
 
             result = await self.send_activities([activity_or_text])
             return result[0] if result else None
@@ -271,7 +271,7 @@ class TurnContext(TurnContextProtocol):
         :param activity:
         :return:
         """
-        with spans.start_span_turn_context_update_activity(self):
+        with spans.TurnContextUpdateActivity(self):
             reference = self.activity.get_conversation_reference()
 
             return await self._emit(
@@ -286,7 +286,7 @@ class TurnContext(TurnContextProtocol):
         :param id_or_reference:
         :return:
         """
-        with spans.start_span_turn_context_delete_activity(self):
+        with spans.TurnContextDeleteActivity(self):
             if isinstance(id_or_reference, str):
                 reference = self.activity.get_conversation_reference()
                 reference.activity_id = id_or_reference

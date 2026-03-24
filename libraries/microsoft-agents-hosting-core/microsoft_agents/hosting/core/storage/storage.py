@@ -2,13 +2,11 @@
 # Licensed under the MIT License.
 
 from typing import Protocol, TypeVar, Type, Union
-from abc import ABC, abstractmethod
+from abc import abstractmethod
 from asyncio import gather
 
-from microsoft_agents.hosting.core.telemetry import spans
-
-from ._type_aliases import JSON
 from .store_item import StoreItem
+from .telemetry import spans
 
 StoreItemT = TypeVar("StoreItemT", bound=StoreItem)
 
@@ -71,7 +69,7 @@ class AsyncStorageBase(Storage):
         if not target_cls:
             raise ValueError("Storage.read(): target_cls cannot be None.")
 
-        with spans.start_span_storage_read(len(keys)):
+        with spans.StorageRead(len(keys)):
             await self.initialize()
 
             items: list[tuple[Union[str, None], Union[StoreItemT, None]]] = (
@@ -93,7 +91,7 @@ class AsyncStorageBase(Storage):
         if not changes:
             raise ValueError("Storage.write(): Changes are required when writing.")
 
-        with spans.start_span_storage_write(len(changes)):
+        with spans.StorageWrite(len(changes)):
             await self.initialize()
 
             await gather(
@@ -109,7 +107,7 @@ class AsyncStorageBase(Storage):
         if not keys:
             raise ValueError("Storage.delete(): Keys are required when deleting.")
 
-        with spans.start_span_storage_delete(len(keys)):
+        with spans.StorageDelete(len(keys)):
             await self.initialize()
 
             await gather(*[self._delete_item(key) for key in keys])

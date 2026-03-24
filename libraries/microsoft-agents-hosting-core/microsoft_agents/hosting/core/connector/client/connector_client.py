@@ -22,6 +22,7 @@ from microsoft_agents.hosting.core.telemetry import spans
 from ..attachments_base import AttachmentsBase
 from ..conversations_base import ConversationsBase
 from ..get_product_info import get_product_info
+from ..telemetry import spans
 
 logger = logging.getLogger(__name__)
 
@@ -95,7 +96,7 @@ class AttachmentsOperations(AttachmentsBase):
         :param view_id: The ID of the view.
         :return: The attachment as a readable stream.
         """
-        with spans.start_span_connector_get_attachment(attachment_id=attachment_id):
+        with spans.ConnectorGetAttachment(attachment_id):
             if attachment_id is None:
                 logger.error(
                     "AttachmentsOperations.get_attachment(): attachmentId is required",
@@ -195,7 +196,7 @@ class ConversationsOperations(ConversationsBase):
         :param body: The activity object.
         :return: The resource response.
         """
-        with spans.start_span_connector_reply_to_activity(conversation_id, activity_id):
+        with spans.ConnectorReplyToActivity(conversation_id, activity_id):
             if not conversation_id or not activity_id:
                 logger.error(
                     "ConversationsOperations.reply_to_activity(): conversationId and activityId are required",
@@ -247,7 +248,7 @@ class ConversationsOperations(ConversationsBase):
         :param body: The activity object.
         :return: The resource response.
         """
-        with spans.start_span_connector_send_to_conversation(conversation_id, body.id):
+        with spans.ConnectorSendToConversation(conversation_id, body.id):
             if not conversation_id:
                 logger.error(
                     "ConversationsOperations.sent_to_conversation(): conversationId is required",
@@ -289,7 +290,7 @@ class ConversationsOperations(ConversationsBase):
         :param body: The activity object.
         :return: The resource response.
         """
-        with spans.start_span_connector_update_activity(conversation_id, activity_id):
+        with spans.ConnectorUpdateActivity(conversation_id, activity_id):
             if not conversation_id or not activity_id:
                 logger.error(
                     "ConversationsOperations.update_activity(): conversationId and activityId are required",
@@ -326,7 +327,7 @@ class ConversationsOperations(ConversationsBase):
         :param conversation_id: The ID of the conversation.
         :param activity_id: The ID of the activity.
         """
-        with spans.start_span_connector_delete_activity(conversation_id, activity_id):
+        with spans.ConnectorDeleteActivity(conversation_id, activity_id):
             if not conversation_id or not activity_id:
                 logger.error(
                     "ConversationsOperations.delete_activity(): conversationId and activityId are required",
@@ -359,7 +360,7 @@ class ConversationsOperations(ConversationsBase):
         :param body: The attachment data.
         :return: The resource response.
         """
-        with spans.start_span_connector_upload_attachment(conversation_id):
+        with spans.ConnectorUploadAttachment(conversation_id):
             if conversation_id is None:
                 logger.error(
                     "ConversationsOperations.upload_attachment(): conversationId is required",
@@ -404,7 +405,7 @@ class ConversationsOperations(ConversationsBase):
         :param conversation_id: The ID of the conversation.
         :return: A list of members.
         """
-        with spans.start_span_connector_get_conversation_members():
+        with spans.ConnectorGetConversationMembers():
             if not conversation_id:
                 logger.error(
                     "ConversationsOperations.get_conversation_members(): conversationId is required",
@@ -440,7 +441,7 @@ class ConversationsOperations(ConversationsBase):
         :param member_id: The ID of the member.
         :return: The member.
         """
-        with spans.start_span_connector_get_conversation_members():
+        with spans.ConnectorGetConversationMembers():
             if not conversation_id or not member_id:
                 logger.error(
                     "ConversationsOperations.get_conversation_member(): conversationId and memberId are required",

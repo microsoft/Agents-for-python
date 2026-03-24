@@ -8,10 +8,19 @@
 #
 # NOTE: this module should not be auto-loaded from __init__.py in order to avoid
 
+from . import attributes
 from .core._agents_telemetry import (
     agents_telemetry,
 )
-from .core import SERVICE_NAME, SERVICE_VERSION, RESOURCE, AttributeMap
+from .core import (
+    SERVICE_NAME,
+    SERVICE_VERSION,
+    RESOURCE,
+    AttributeMap,
+    BaseSpanWrapper,
+    SimpleSpanWrapper,
+)
+
 from .utils import (
     format_scopes,
     get_conversation_id,
@@ -19,11 +28,14 @@ from .utils import (
 )
 
 __all__ = [
+    "attributes",
     "agents_telemetry",
     "format_scopes",
     "get_conversation_id",
     "get_delivery_mode",
     "AttributeMap",
+    "BaseSpanWrapper",
+    "SimpleSpanWrapper",
     "SERVICE_NAME",
     "SERVICE_VERSION",
     "RESOURCE",

@@ -35,7 +35,7 @@ from microsoft_agents.hosting.core.authorization import (
     AuthenticationConstants,
     ClaimsIdentity,
 )
-from microsoft_agents.hosting.core.telemetry import spans
+from microsoft_agents.hosting.core.telemetry.adapter import spans
 from .channel_service_client_factory_base import ChannelServiceClientFactoryBase
 from .channel_adapter import ChannelAdapter
 from .turn_context import TurnContext
@@ -68,7 +68,7 @@ class ChannelServiceAdapter(ChannelAdapter, ABC):
         :rtype: list[:class:`microsoft_agents.activity.ResourceResponse`]
         :raises TypeError: If context or activities are None/invalid.
         """
-        with spans.start_span_adapter_send_activities(activities):
+        with spans.AdapterSendActivities(activities):
 
             if not context:
                 raise TypeError("Expected TurnContext but got None instead")
@@ -139,7 +139,7 @@ class ChannelServiceAdapter(ChannelAdapter, ABC):
         :rtype: :class:`microsoft_agents.activity.ResourceResponse`
         :raises TypeError: If context or activity are None/invalid.
         """
-        with spans.start_span_adapter_update_activity(activity):
+        with spans.AdapterUpdateActivity(activity):
 
             if not context:
                 raise TypeError("Expected TurnContext but got None instead")
@@ -170,7 +170,7 @@ class ChannelServiceAdapter(ChannelAdapter, ABC):
         :type reference: :class:`microsoft_agents.activity.ConversationReference`
         :raises TypeError: If context or reference are None/invalid.
         """
-        with spans.start_span_adapter_delete_activity(context.activity):
+        with spans.AdapterDeleteActivity(context.activity):
 
             if not context:
                 raise TypeError("Expected TurnContext but got None instead")
@@ -209,7 +209,7 @@ class ChannelServiceAdapter(ChannelAdapter, ABC):
         :param callback: The method to call for the resulting agent turn.
         :type callback: Callable[[:class:`microsoft_agents.hosting.core.turn_context.TurnContext`], Awaitable]
         """
-        with spans.start_span_adapter_continue_conversation(continuation_activity):
+        with spans.AdapterContinueConversation(continuation_activity):
             if not callable:
                 raise TypeError(
                     "Expected Callback (Callable[[TurnContext], Awaitable]) but got None instead"
@@ -245,9 +245,7 @@ class ChannelServiceAdapter(ChannelAdapter, ABC):
         :param audience: The audience for the conversation.
         :type audience: Optional[str]
         """
-        with spans.start_span_adapter_continue_continue_conversation(
-            continuation_activity
-        ):
+        with spans.AdapterContinueConversation(continuation_activity):
             return await self.process_proactive(
                 claims_identity,
                 continuation_activity,
