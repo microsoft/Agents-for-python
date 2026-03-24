@@ -16,7 +16,7 @@ from microsoft_agents.hosting.core import (
     RestChannelServiceClientFactory,
     TurnContext,
 )
-from microsoft_agents.hosting.core.telemetry import spans
+from microsoft_agents.hosting.core.telemetry.adapter import spans
 
 from ._http_request_protocol import HttpRequestProtocol
 from ._http_response import HttpResponse, HttpResponseFactory
@@ -97,7 +97,7 @@ class HttpAdapterBase(ChannelServiceAdapter, ABC):
 
         activity: Activity = Activity.model_validate(body)
 
-        with spans.start_span_adapter_process(activity):
+        with spans.AdapterProcess(activity):
 
             # Get claims identity (default to anonymous if not set by middleware)
             claims_identity: ClaimsIdentity = (

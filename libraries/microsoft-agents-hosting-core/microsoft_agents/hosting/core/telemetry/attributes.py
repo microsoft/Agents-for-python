@@ -15,9 +15,11 @@ APP_ID = "agent.app_id"
 ATTACHMENT_ID = "activity.attachment.id"
 ATTACHMENT_COUNT = "activity.attachments.count"
 
+AUTH_HANDLER_ID = "auth.handler.id"
 AUTH_SCOPES = "auth.scopes"
 AUTH_TYPE = "auth.method"
 
+CONNECTION_NAME = "auth.connection.name"
 CONVERSATION_ID = "activity.conversation.id"
 
 IS_AGENTIC = "is_agentic_request"
@@ -32,6 +34,8 @@ ROUTE_MATCHED = "route.matched"
 SERVICE_URL = "service_url"
 
 TOKEN_SERVICE_ENDPOINT = "agents.token_service.endpoint"
+
+USER_ID = "user.id"
 
 # for missing values
 UNKNOWN = "unknown"

@@ -28,8 +28,8 @@ from microsoft_agents.hosting.core import (
     AccessTokenProviderBase,
     AgentAuthConfiguration,
 )
+from microsoft_agents.hosting.core.authorization.telemetry import spans
 from microsoft_agents.authentication.msal.errors import authentication_errors
-from .telemetry import spans
 
 logger = logging.getLogger(__name__)
 
@@ -69,7 +69,7 @@ class MsalAuth(AccessTokenProviderBase):
     async def get_access_token(
         self, resource_url: str, scopes: list[str], force_refresh: bool = False
     ) -> str:
-        with spans.start_span_auth_get_access_token(
+        with spans.GetAccessToken(
             scopes,
             self._msal_configuration.AUTH_TYPE,
         ):
@@ -121,7 +121,7 @@ class MsalAuth(AccessTokenProviderBase):
         :param user_assertion: The user assertion token.
         :return: The access token as a string.
         """
-        with spans.start_span_auth_acquire_token_on_behalf_of(scopes):
+        with spans.AcquireTokenOnBehalfOf(scopes):
             msal_auth_client = self._get_client()
             if isinstance(msal_auth_client, ManagedIdentityClient):
                 logger.error(
@@ -348,7 +348,7 @@ class MsalAuth(AccessTokenProviderBase):
         :return: A tuple containing the agentic instance token and the agent application token.
         :rtype: tuple[str, str]
         """
-        with spans.start_span_auth_get_agentic_instance_token(agent_app_instance_id):
+        with spans.GetAgenticInstanceToken(agent_app_instance_id):
 
             if not agent_app_instance_id:
                 raise ValueError(
@@ -441,7 +441,7 @@ class MsalAuth(AccessTokenProviderBase):
         :return: The agentic user token, or None if not found.
         :rtype: Optional[str]
         """
-        with spans.start_span_get_agentic_user_token(
+        with spans.GetAgenticUserToken(
             agent_app_instance_id, agentic_user_id, scopes
         ):
             if not agent_app_instance_id or not agentic_user_id:
