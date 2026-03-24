@@ -11,7 +11,7 @@ from microsoft_agents.hosting.core.telemetry import (
     SimpleSpanWrapper,
     get_conversation_id,
 )
-from microsoft_agents.hosting.core._routes import _Route
+from microsoft_agents.hosting.core.app._routes import _Route
 from . import constants, metrics
 
 
@@ -30,8 +30,11 @@ class AppOnTurn(SimpleSpanWrapper):
         """Callback function that is called when the span is ended. This is used to record metrics for the app run based on the outcome of the span."""
         attrs = {
             attributes.ACTIVITY_TYPE: self._turn_context.activity.type,
-            attributes.ACTIVITY_CHANNEL_ID: self._turn_context.activity.channel_id or attributes.UNKNOWN,
-            attributes.CONVERSATION_ID: get_conversation_id(self._turn_context.activity),
+            attributes.ACTIVITY_CHANNEL_ID: self._turn_context.activity.channel_id
+            or attributes.UNKNOWN,
+            attributes.CONVERSATION_ID: get_conversation_id(
+                self._turn_context.activity
+            ),
         }
         if error is None:
             metrics.turn_count.add(1, attributes=attrs)
@@ -75,6 +78,7 @@ class AppRouteHandler(SimpleSpanWrapper):
             attributes.ROUTE_IS_INVOKE: self._is_invoke,
             attributes.ROUTE_IS_AGENTIC: self._is_agentic,
         }
+
 
 class AppBeforeTurn(SimpleSpanWrapper):
     """Span for the logic that happens before the main turn processing. This is meant to capture telemetry for the pre-processing logic of the app run, and can be used to identify issues in the early stages of the app run before the main processing logic is invoked."""

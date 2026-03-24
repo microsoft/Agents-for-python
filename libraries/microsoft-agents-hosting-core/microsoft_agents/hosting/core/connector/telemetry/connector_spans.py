@@ -48,6 +48,7 @@ class _ConnectorSpanWrapper(_RequestSpanWrapper):
             attr_dict[attributes.ACTIVITY_ID] = self._activity_id
         return attr_dict
 
+
 class ConnectorReplyToActivity(_ConnectorSpanWrapper):
     """Span for replying to an activity using the connector client in the adapter."""
 
@@ -129,6 +130,7 @@ class ConnectorUploadAttachment(_ConnectorSpanWrapper):
             constants.SPAN_UPLOAD_ATTACHMENT, conversation_id=conversation_id
         )
 
+
 class ConnectorGetAttachmentInfo(_ConnectorSpanWrapper):
     """Span for getting attachment info using the connector client in the adapter."""
 
@@ -141,6 +143,7 @@ class ConnectorGetAttachmentInfo(_ConnectorSpanWrapper):
         attr_dict = super()._get_attributes()
         attr_dict[attributes.ATTACHMENT_ID] = self._attachment_id
         return attr_dict
+
 
 class ConnectorGetAttachment(_ConnectorSpanWrapper):
     """Span for getting an attachment using the connector client in the adapter."""

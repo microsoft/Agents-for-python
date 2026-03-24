@@ -13,6 +13,7 @@ from microsoft_agents.hosting.core.telemetry import (
 )
 from . import constants, metrics
 
+
 class _AuthenticationSpanWrapper(SimpleSpanWrapper):
     """Base SpanWrapper for spans related to authentication operations.
 
@@ -56,7 +57,9 @@ class AcquireTokenOnBehalfOf(_AuthenticationSpanWrapper):
 
     def __init__(self, scopes: list[str]):
         """Initializes the AcquireTokenOnBehalfOf span with the specified authentication scope."""
-        super().__init__(constants.SPAN_ACQUIRE_TOKEN_ON_BEHALF_OF, constants.AUTH_METHOD_OBO)
+        super().__init__(
+            constants.SPAN_ACQUIRE_TOKEN_ON_BEHALF_OF, constants.AUTH_METHOD_OBO
+        )
         self._scopes = scopes
 
     def _get_attributes(self) -> AttributeMap:
@@ -65,12 +68,16 @@ class AcquireTokenOnBehalfOf(_AuthenticationSpanWrapper):
             attributes.AUTH_SCOPES: format_scopes(self._scopes),
         }
 
+
 class GetAgenticInstanceToken(_AuthenticationSpanWrapper):
     """Span wrapper for the operation of retrieving an agentic instance token."""
 
     def __init__(self, agentic_instance_id: str):
         """Initializes the GetAgenticInstanceToken span with the specified agentic instance ID."""
-        super().__init__(constants.SPAN_GET_AGENTIC_INSTANCE_TOKEN, constants.AUTH_METHOD_AGENTIC_INSTANCE)
+        super().__init__(
+            constants.SPAN_GET_AGENTIC_INSTANCE_TOKEN,
+            constants.AUTH_METHOD_AGENTIC_INSTANCE,
+        )
         self._agentic_instance_id = agentic_instance_id
 
     def _get_attributes(self) -> AttributeMap:
@@ -87,7 +94,9 @@ class GetAgenticUserToken(_AuthenticationSpanWrapper):
         self, agentic_instance_id: str, agentic_user_id: str, scopes: list[str]
     ):
         """Initializes the GetAgenticUserToken span with the specified agentic instance ID, user ID, and authentication scopes."""
-        super().__init__(constants.SPAN_GET_AGENTIC_USER_TOKEN, constants.AUTH_METHOD_AGENTIC_USER)
+        super().__init__(
+            constants.SPAN_GET_AGENTIC_USER_TOKEN, constants.AUTH_METHOD_AGENTIC_USER
+        )
         self._agentic_instance_id = agentic_instance_id
         self._agentic_user_id = agentic_user_id
         self._scopes = scopes

@@ -61,16 +61,6 @@ class _AgentsTelemetry:
         )
         return attributes
 
-    def set_attributes_from_context(
-        self, span: Span, turn_context: TurnContextProtocol
-    ) -> None:
-        """Extracts attributes from the TurnContext and sets them on the given span
-
-        :param span: The OpenTelemetry span to set attributes on
-        :param turn_context: The TurnContext to extract attributes from
-        """
-        span.set_attributes(self._extract_attributes_from_context(turn_context))
-
     @contextmanager
     def start_as_current_span(
         self,

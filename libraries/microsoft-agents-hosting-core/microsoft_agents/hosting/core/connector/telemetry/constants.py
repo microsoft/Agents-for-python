@@ -27,4 +27,3 @@ METRIC_CONNECTOR_REQUEST_DURATION = "agents.connector.request.duration"
 
 METRIC_USER_TOKEN_CLIENT_REQUEST_COUNT = "agents.user_token_client.request.count"
 METRIC_USER_TOKEN_CLIENT_REQUEST_DURATION = "agents.user_token_client.request.duration"
-

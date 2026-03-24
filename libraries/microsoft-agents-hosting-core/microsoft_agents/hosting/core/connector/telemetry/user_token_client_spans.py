@@ -9,6 +9,7 @@ from microsoft_agents.hosting.core.telemetry import attributes
 from ._request_span_wrapper import _RequestSpanWrapper
 from . import metrics, constants
 
+
 class _UserTokenClientSpanWrapper(_RequestSpanWrapper):
     """Base SpanWrapper for spans related to user token client operations in the adapter. This is meant to be a base class for spans related to user token client operations, such as creating a user token, and can be used to share common functionality and attributes related to user token client operations."""
 

@@ -21,7 +21,7 @@ from microsoft_agents.hosting.core.connector import ConnectorClientBase
 from ..attachments_base import AttachmentsBase
 from ..conversations_base import ConversationsBase
 from ..get_product_info import get_product_info
-from ..telemetry import connector_client_spans as spans
+from ..telemetry import connector_spans as spans
 
 logger = logging.getLogger(__name__)
 

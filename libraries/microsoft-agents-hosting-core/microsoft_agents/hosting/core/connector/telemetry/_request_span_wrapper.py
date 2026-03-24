@@ -5,6 +5,7 @@ from microsoft_agents.hosting.core.telemetry import (
     SimpleSpanWrapper,
 )
 
+
 class _RequestSpanWrapper(SimpleSpanWrapper):
 
     def __init__(self, span_name: str):
@@ -23,7 +24,9 @@ class _RequestSpanWrapper(SimpleSpanWrapper):
         attr_dict[attributes.OPERATION] = self._span_name
         return attr_dict
 
-    def share(self, request: Request | None = None, response: Response | None = None) -> None:
+    def share(
+        self, request: Request | None = None, response: Response | None = None
+    ) -> None:
         """Shares the span by setting the request and response attributes and ending the span. This should be called when the client operation is complete and a response is being sent back to the caller."""
         if request is not None:
             self._request = request

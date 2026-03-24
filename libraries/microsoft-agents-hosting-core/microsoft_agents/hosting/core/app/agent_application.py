@@ -819,8 +819,13 @@ class AgentApplication(Agent, Generic[StateT]):
                     return False
             return True
 
-    async def _on_activity(self, context: TurnContext, state: StateT, on_turn_span: spans.AppOnTurn | None = None):
-            
+    async def _on_activity(
+        self,
+        context: TurnContext,
+        state: StateT,
+        on_turn_span: spans.AppOnTurn | None = None,
+    ):
+
         route_matched: bool = False
         route_authorized: bool = False
 
@@ -851,7 +856,9 @@ class AgentApplication(Agent, Generic[StateT]):
             f"No route found for activity type: {context.activity.type} with text: {context.activity.text}"
         )
         if on_turn_span is not None:
-            on_turn_span.share(route_authorized=route_authorized, route_matched=route_matched)
+            on_turn_span.share(
+                route_authorized=route_authorized, route_matched=route_matched
+            )
 
     async def _start_long_running_call(
         self, context: TurnContext, func: Callable[[TurnContext], Awaitable]
