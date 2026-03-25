@@ -38,7 +38,7 @@ class BaseTestQuickstart:
         await agent_client.send(input_activity, wait=10)
         agent_client.expect().that_for_one(type="message", text="~Welcome")
 
-    # @pytest.mark.asyncio
+    @pytest.mark.asyncio
     async def test_send_hello(self, agent_client: AgentClient):
         """Test sending a 'hello' message and receiving a response."""
         await agent_client.send("hello", wait=10)

@@ -98,10 +98,8 @@ class ChannelServiceAdapter(ChannelAdapter, ABC):
                     context.turn_state.get(self._AGENT_CONNECTOR_CLIENT_KEY),
                 )
                 if not connector_client:
-                    raise Error(
-                        "Unable to extract ConnectorClient from turn context."
-                    )
-                
+                    raise Error("Unable to extract ConnectorClient from turn context.")
+
                 with spans.AdapterSendActivities([activity]):
                     if activity.reply_to_id:
                         response = (

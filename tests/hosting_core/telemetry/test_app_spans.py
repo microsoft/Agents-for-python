@@ -48,18 +48,25 @@ def test_app_on_turn_creates_span(test_exporter):
 
 
 def test_app_on_turn_span_attributes(test_exporter):
+    ctx = _make_context(id="act-1")
+
+    with AppOnTurn(ctx):
+        pass
+
+    span = test_exporter.get_finished_spans()[0]
+    assert span.attributes[attributes.ACTIVITY_TYPE] == "message"
+    assert span.attributes[attributes.ACTIVITY_ID] == "act-1"
+
+
+def test_app_on_turn_span_attributes_missing_id(test_exporter):
     ctx = _make_context()
 
     with AppOnTurn(ctx):
         pass
 
     span = test_exporter.get_finished_spans()[0]
-    assert span.attributes[attributes.CONVERSATION_ID] == "conv-1"
-    assert span.attributes[attributes.ACTIVITY_CHANNEL_ID] == "msteams"
-    assert (
-        span.attributes[attributes.SERVICE_URL]
-        == "https://smba.trafficmanager.net/teams/"
-    )
+    assert span.attributes[attributes.ACTIVITY_TYPE] == "message"
+    assert span.attributes[attributes.ACTIVITY_ID] == attributes.UNKNOWN
 
 
 def test_app_on_turn_records_turn_metrics(test_exporter, test_metric_reader):
