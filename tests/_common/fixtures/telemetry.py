@@ -113,27 +113,41 @@ class DeltaMetricReader:
             ]
         )
 
+_metric_reader = None
+_exporter = None
 
 @pytest.fixture(scope="session")
 def test_telemetry():
     """Set up fresh in-memory exporter for testing."""
-    exporter = InMemorySpanExporter()
-    metric_reader = InMemoryMetricReader()
+    global _exporter, _metric_reader
 
-    tracer_provider = TracerProvider()
-    tracer_provider.add_span_processor(SimpleSpanProcessor(exporter))
-    trace.set_tracer_provider(tracer_provider)
+    if _exporter is None:
+        exporter = InMemorySpanExporter()
+        metric_reader = InMemoryMetricReader()
 
-    meter_provider = MeterProvider([metric_reader])
+        tracer_provider = TracerProvider()
+        tracer_provider.add_span_processor(SimpleSpanProcessor(exporter))
+        trace.set_tracer_provider(tracer_provider)
 
-    metrics.set_meter_provider(meter_provider)
+        meter_provider = MeterProvider([metric_reader])
 
-    yield exporter, metric_reader
+        metrics.set_meter_provider(meter_provider)
+
+        _exporter = exporter
+        _metric_reader = metric_reader
+    else:
+        meter_provider = metrics.get_meter_provider()
+        tracer_provider = trace.get_tracer_provider()
+
+        exporter = _exporter
+        metric_reader = _metric_reader
+
+    yield _exporter, metric_reader
 
     exporter.clear()
     meter_provider.force_flush()
-    tracer_provider.shutdown()
-    meter_provider.shutdown()
+    # tracer_provider.shutdown()
+    # meter_provider.shutdown()
 
 
 @pytest.fixture(scope="function")
