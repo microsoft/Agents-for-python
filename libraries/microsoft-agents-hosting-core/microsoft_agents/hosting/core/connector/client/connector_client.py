@@ -111,7 +111,7 @@ class AttachmentsOperations(AttachmentsBase):
                 stack_info=True,
             )
             raise ValueError("viewId is required")
-        
+
         with spans.ConnectorGetAttachment(attachment_id, view_id) as span:
 
             url = f"v3/attachments/{attachment_id}/views/{view_id}"
@@ -218,7 +218,7 @@ class ConversationsOperations(ConversationsBase):
                 stack_info=True,
             )
             raise ValueError("conversationId and activityId are required")
-        
+
         with spans.ConnectorReplyToActivity(conversation_id, activity_id) as span:
 
             conversation_id = self._normalize_conversation_id(conversation_id)
@@ -318,7 +318,7 @@ class ConversationsOperations(ConversationsBase):
                 stack_info=True,
             )
             raise ValueError("conversationId and activityId are required")
-        
+
         with spans.ConnectorUpdateActivity(conversation_id, activity_id) as span:
 
             conversation_id = self._normalize_conversation_id(conversation_id)
@@ -358,7 +358,7 @@ class ConversationsOperations(ConversationsBase):
                 stack_info=True,
             )
             raise ValueError("conversationId and activityId are required")
-        
+
         with spans.ConnectorDeleteActivity(conversation_id, activity_id) as span:
 
             conversation_id = self._normalize_conversation_id(conversation_id)

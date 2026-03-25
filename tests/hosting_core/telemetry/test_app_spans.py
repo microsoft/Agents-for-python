@@ -56,7 +56,10 @@ def test_app_on_turn_span_attributes(test_exporter):
     span = test_exporter.get_finished_spans()[0]
     assert span.attributes[attributes.CONVERSATION_ID] == "conv-1"
     assert span.attributes[attributes.ACTIVITY_CHANNEL_ID] == "msteams"
-    assert span.attributes[attributes.SERVICE_URL] == "https://smba.trafficmanager.net/teams/"
+    assert (
+        span.attributes[attributes.SERVICE_URL]
+        == "https://smba.trafficmanager.net/teams/"
+    )
 
 
 def test_app_on_turn_records_turn_metrics(test_exporter, test_metric_reader):
@@ -72,7 +75,9 @@ def test_app_on_turn_records_turn_metrics(test_exporter, test_metric_reader):
     assert duration == 1
 
 
-def test_app_on_turn_records_error_metric_on_exception(test_exporter, test_metric_reader):
+def test_app_on_turn_records_error_metric_on_exception(
+    test_exporter, test_metric_reader
+):
     ctx = _make_context()
 
     try:

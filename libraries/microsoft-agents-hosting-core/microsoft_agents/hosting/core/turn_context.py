@@ -200,7 +200,7 @@ class TurnContext(TurnContextProtocol):
         :return:
         """
         with spans.TurnContextSendActivity(self):
-            
+
             if isinstance(activity_or_text, str):
                 activity_or_text = Activity(
                     type=ActivityTypes.message,

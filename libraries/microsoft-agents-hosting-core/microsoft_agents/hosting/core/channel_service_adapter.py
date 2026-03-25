@@ -75,9 +75,7 @@ class ChannelServiceAdapter(ChannelAdapter, ABC):
             raise TypeError("Expected Activities list but got None instead")
 
         if len(activities) == 0:
-            raise TypeError(
-                "Expecting one or more activities, but the list was empty."
-            )
+            raise TypeError("Expecting one or more activities, but the list was empty.")
 
         with spans.AdapterSendActivities(activities):
 
@@ -175,7 +173,7 @@ class ChannelServiceAdapter(ChannelAdapter, ABC):
 
         if not reference:
             raise TypeError("Expected ConversationReference but got None instead")
-        
+
         with spans.AdapterDeleteActivity(context.activity):
 
             connector_client = cast(
@@ -213,7 +211,7 @@ class ChannelServiceAdapter(ChannelAdapter, ABC):
             raise TypeError(
                 "Expected Callback (Callable[[TurnContext], Awaitable]) but got None instead"
             )
-    
+
         with spans.AdapterContinueConversation(continuation_activity):
 
             self._validate_continuation_activity(continuation_activity)

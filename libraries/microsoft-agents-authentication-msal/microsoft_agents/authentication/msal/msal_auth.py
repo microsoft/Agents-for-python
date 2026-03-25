@@ -443,11 +443,9 @@ class MsalAuth(AccessTokenProviderBase):
         """
         if not agent_app_instance_id or not agentic_user_id:
             raise ValueError(
-                str(
-                    authentication_errors.AgentApplicationInstanceIdAndUserIdRequired
-                )
+                str(authentication_errors.AgentApplicationInstanceIdAndUserIdRequired)
             )
-        
+
         with spans.GetAgenticUserToken(agent_app_instance_id, agentic_user_id, scopes):
 
             logger.info(

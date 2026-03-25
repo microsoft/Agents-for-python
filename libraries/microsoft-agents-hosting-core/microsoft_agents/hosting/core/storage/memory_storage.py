@@ -4,12 +4,9 @@
 from threading import Lock
 from typing import TypeVar
 
-from .telemetry import spans
-
 from ._type_aliases import JSON
 from .storage import Storage
 from .store_item import StoreItem
-from .telemetry import spans
 
 StoreItemT = TypeVar("StoreItemT", bound=StoreItem)
 

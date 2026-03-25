@@ -13,7 +13,6 @@ from tests._common.fixtures.telemetry import (
     test_metric_reader,
 )
 
-
 # ---- AgenticToken ----
 
 

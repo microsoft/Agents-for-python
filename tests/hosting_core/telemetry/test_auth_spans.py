@@ -14,7 +14,6 @@ from tests._common.fixtures.telemetry import (
 )
 from tests._common.telemetry_utils import find_metric, sum_counter, sum_hist_count
 
-
 # ---- GetAccessToken ----
 
 

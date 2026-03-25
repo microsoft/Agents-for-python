@@ -11,7 +11,6 @@ from microsoft_agents.hosting.core.http import (
     HttpResponse,
 )
 from microsoft_agents.hosting.core import ChannelServiceClientFactoryBase
-from microsoft_agents.hosting.core.telemetry import spans
 
 from .agent_http_adapter import AgentHttpAdapter
 

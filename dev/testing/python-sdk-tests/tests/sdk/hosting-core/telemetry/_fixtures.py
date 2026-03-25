@@ -147,9 +147,6 @@ def test_telemetry():
     yield _exporter, metric_reader
 
     exporter.clear()
-    meter_provider.force_flush()
-    # tracer_provider.shutdown()
-    # meter_provider.shutdown()
 
 
 @pytest.fixture(scope="function")

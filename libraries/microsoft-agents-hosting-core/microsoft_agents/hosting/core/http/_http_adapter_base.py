@@ -84,7 +84,7 @@ class HttpAdapterBase(ChannelServiceAdapter, ABC):
             raise TypeError("HttpAdapterBase.process_request: request can't be None")
         if not agent:
             raise TypeError("HttpAdapterBase.process_request: agent can't be None")
-        
+
         with spans.AdapterProcess() as span:
 
             if request.method != "POST":

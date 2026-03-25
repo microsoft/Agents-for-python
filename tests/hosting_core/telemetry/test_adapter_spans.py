@@ -67,12 +67,13 @@ def test_adapter_process_span_attributes(test_exporter):
     assert attributes.ACTIVITY_DELIVERY_MODE in span_attrs
     assert attributes.IS_AGENTIC in span_attrs
 
+
 def test_adapter_process_span_attributes_shared_activity(test_exporter):
     activity = _make_activity(type="invoke", channel_id="webchat")
 
     with AdapterProcess() as span:
         span.share(activity)
-    
+
     span = test_exporter.get_finished_spans()[0]
     span_attrs = dict(span.attributes)
     assert span_attrs[attributes.ACTIVITY_TYPE] == "invoke"
