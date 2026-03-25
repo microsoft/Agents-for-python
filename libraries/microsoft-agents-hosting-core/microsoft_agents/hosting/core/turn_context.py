@@ -199,16 +199,16 @@ class TurnContext(TurnContextProtocol):
         :param activity_or_text:
         :return:
         """
-        if isinstance(activity_or_text, str):
-            activity_or_text = Activity(
-                type=ActivityTypes.message,
-                text=activity_or_text,
-                input_hint=input_hint or InputHints.accepting_input,
-            )
-            if speak:
-                activity_or_text.speak = speak
-
         with spans.TurnContextSendActivity(self):
+            
+            if isinstance(activity_or_text, str):
+                activity_or_text = Activity(
+                    type=ActivityTypes.message,
+                    text=activity_or_text,
+                    input_hint=input_hint or InputHints.accepting_input,
+                )
+                if speak:
+                    activity_or_text.speak = speak
 
             result = await self.send_activities([activity_or_text])
             return result[0] if result else None

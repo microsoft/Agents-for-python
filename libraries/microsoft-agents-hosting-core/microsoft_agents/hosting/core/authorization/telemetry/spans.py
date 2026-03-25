@@ -39,7 +39,7 @@ class _AuthenticationSpanWrapper(SimpleSpanWrapper):
 class GetAccessToken(_AuthenticationSpanWrapper):
     """Span wrapper for the operation of retrieving an access token."""
 
-    def __init__(self, scopes: list[str], auth_method: str):
+    def __init__(self, scopes: list[str], auth_method: str | Enum):
         """Initializes the GetAccessToken span with the specified authentication scope and type."""
         super().__init__(constants.SPAN_GET_ACCESS_TOKEN, auth_method)
         self._scopes = scopes

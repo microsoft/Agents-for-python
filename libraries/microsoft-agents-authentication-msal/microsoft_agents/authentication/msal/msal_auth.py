@@ -348,12 +348,12 @@ class MsalAuth(AccessTokenProviderBase):
         :return: A tuple containing the agentic instance token and the agent application token.
         :rtype: tuple[str, str]
         """
-        with spans.GetAgenticInstanceToken(agent_app_instance_id):
+        if not agent_app_instance_id:
+            raise ValueError(
+                str(authentication_errors.AgentApplicationInstanceIdRequired)
+            )
 
-            if not agent_app_instance_id:
-                raise ValueError(
-                    str(authentication_errors.AgentApplicationInstanceIdRequired)
-                )
+        with spans.GetAgenticInstanceToken(agent_app_instance_id):
 
             logger.info(
                 "Attempting to get agentic instance token from agent_app_instance_id %s",
@@ -441,13 +441,14 @@ class MsalAuth(AccessTokenProviderBase):
         :return: The agentic user token, or None if not found.
         :rtype: Optional[str]
         """
-        with spans.GetAgenticUserToken(agent_app_instance_id, agentic_user_id, scopes):
-            if not agent_app_instance_id or not agentic_user_id:
-                raise ValueError(
-                    str(
-                        authentication_errors.AgentApplicationInstanceIdAndUserIdRequired
-                    )
+        if not agent_app_instance_id or not agentic_user_id:
+            raise ValueError(
+                str(
+                    authentication_errors.AgentApplicationInstanceIdAndUserIdRequired
                 )
+            )
+        
+        with spans.GetAgenticUserToken(agent_app_instance_id, agentic_user_id, scopes):
 
             logger.info(
                 "Attempting to get agentic user token from agent_app_instance_id %s and agentic_user_id %s",

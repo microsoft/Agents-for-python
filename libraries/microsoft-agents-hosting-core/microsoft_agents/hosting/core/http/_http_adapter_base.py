@@ -84,20 +84,21 @@ class HttpAdapterBase(ChannelServiceAdapter, ABC):
             raise TypeError("HttpAdapterBase.process_request: request can't be None")
         if not agent:
             raise TypeError("HttpAdapterBase.process_request: agent can't be None")
+        
+        with spans.AdapterProcess() as span:
 
-        if request.method != "POST":
-            return HttpResponseFactory.method_not_allowed()
+            if request.method != "POST":
+                return HttpResponseFactory.method_not_allowed()
 
-        try:
-            body = await request.json()
-        except Exception:
-            return HttpResponseFactory.bad_request(
-                "Invalid JSON or unsupported Content-Type"
-            )
+            try:
+                body = await request.json()
+            except Exception:
+                return HttpResponseFactory.bad_request(
+                    "Invalid JSON or unsupported Content-Type"
+                )
 
-        activity: Activity = Activity.model_validate(body)
-
-        with spans.AdapterProcess(activity):
+            activity: Activity = Activity.model_validate(body)
+            span.share(activity=activity)
 
             # Get claims identity (default to anonymous if not set by middleware)
             claims_identity: ClaimsIdentity = (

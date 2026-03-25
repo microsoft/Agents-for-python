@@ -69,9 +69,10 @@ class AttachmentsOperations(AttachmentsBase):
         :param attachment_id: The ID of the attachment.
         :return: The attachment information.
         """
+        if attachment_id is None:
+            raise ValueError("attachmentId is required")
+
         with spans.ConnectorGetAttachmentInfo(attachment_id=attachment_id) as span:
-            if attachment_id is None:
-                raise ValueError("attachmentId is required")
 
             url = f"v3/attachments/{attachment_id}"
 
@@ -89,7 +90,6 @@ class AttachmentsOperations(AttachmentsBase):
 
                 data = await response.json()
                 return AttachmentInfo(**data)
-            
 
     async def get_attachment(self, attachment_id: str, view_id: str) -> BytesIO:
         """
@@ -99,19 +99,20 @@ class AttachmentsOperations(AttachmentsBase):
         :param view_id: The ID of the view.
         :return: The attachment as a readable stream.
         """
+        if attachment_id is None:
+            logger.error(
+                "AttachmentsOperations.get_attachment(): attachmentId is required",
+                stack_info=True,
+            )
+            raise ValueError("attachmentId is required")
+        if view_id is None:
+            logger.error(
+                "AttachmentsOperations.get_attachment(): viewId is required",
+                stack_info=True,
+            )
+            raise ValueError("viewId is required")
+        
         with spans.ConnectorGetAttachment(attachment_id, view_id) as span:
-            if attachment_id is None:
-                logger.error(
-                    "AttachmentsOperations.get_attachment(): attachmentId is required",
-                    stack_info=True,
-                )
-                raise ValueError("attachmentId is required")
-            if view_id is None:
-                logger.error(
-                    "AttachmentsOperations.get_attachment(): viewId is required",
-                    stack_info=True,
-                )
-                raise ValueError("viewId is required")
 
             url = f"v3/attachments/{attachment_id}/views/{view_id}"
 
@@ -151,7 +152,9 @@ class ConversationsOperations(ConversationsBase):
         """
         with spans.ConnectorGetConversations() as span:
             params = (
-                {"continuationToken": continuation_token} if continuation_token else None
+                {"continuationToken": continuation_token}
+                if continuation_token
+                else None
             )
 
             logger.info(
@@ -162,7 +165,9 @@ class ConversationsOperations(ConversationsBase):
 
                 if response.status >= 300:
                     logger.error(
-                        "Error getting conversations: %s", response.status, stack_info=True
+                        "Error getting conversations: %s",
+                        response.status,
+                        stack_info=True,
                     )
                     response.raise_for_status()
 
@@ -187,7 +192,9 @@ class ConversationsOperations(ConversationsBase):
                 span.share(http_method="POST", status_code=response.status)
                 if response.status >= 300:
                     logger.error(
-                        "Error creating conversation: %s", response.status, stack_info=True
+                        "Error creating conversation: %s",
+                        response.status,
+                        stack_info=True,
                     )
                     response.raise_for_status()
 
@@ -205,13 +212,14 @@ class ConversationsOperations(ConversationsBase):
         :param body: The activity object.
         :return: The resource response.
         """
+        if not conversation_id or not activity_id:
+            logger.error(
+                "ConversationsOperations.reply_to_activity(): conversationId and activityId are required",
+                stack_info=True,
+            )
+            raise ValueError("conversationId and activityId are required")
+        
         with spans.ConnectorReplyToActivity(conversation_id, activity_id) as span:
-            if not conversation_id or not activity_id:
-                logger.error(
-                    "ConversationsOperations.reply_to_activity(): conversationId and activityId are required",
-                    stack_info=True,
-                )
-                raise ValueError("conversationId and activityId are required")
 
             conversation_id = self._normalize_conversation_id(conversation_id)
             url = f"v3/conversations/{conversation_id}/activities/{activity_id}"
@@ -259,13 +267,14 @@ class ConversationsOperations(ConversationsBase):
         :param body: The activity object.
         :return: The resource response.
         """
+        if not conversation_id:
+            logger.error(
+                "ConversationsOperations.send_to_conversation(): conversationId is required",
+                stack_info=True,
+            )
+            raise ValueError("conversationId is required")
+
         with spans.ConnectorSendToConversation(conversation_id, body.id) as span:
-            if not conversation_id:
-                logger.error(
-                    "ConversationsOperations.sent_to_conversation(): conversationId is required",
-                    stack_info=True,
-                )
-                raise ValueError("conversationId is required")
 
             conversation_id = self._normalize_conversation_id(conversation_id)
             url = f"v3/conversations/{conversation_id}/activities"
@@ -303,13 +312,14 @@ class ConversationsOperations(ConversationsBase):
         :param body: The activity object.
         :return: The resource response.
         """
+        if not conversation_id or not activity_id:
+            logger.error(
+                "ConversationsOperations.update_activity(): conversationId and activityId are required",
+                stack_info=True,
+            )
+            raise ValueError("conversationId and activityId are required")
+        
         with spans.ConnectorUpdateActivity(conversation_id, activity_id) as span:
-            if not conversation_id or not activity_id:
-                logger.error(
-                    "ConversationsOperations.update_activity(): conversationId and activityId are required",
-                    stack_info=True,
-                )
-                raise ValueError("conversationId and activityId are required")
 
             conversation_id = self._normalize_conversation_id(conversation_id)
             url = f"v3/conversations/{conversation_id}/activities/{activity_id}"
@@ -342,13 +352,14 @@ class ConversationsOperations(ConversationsBase):
         :param conversation_id: The ID of the conversation.
         :param activity_id: The ID of the activity.
         """
+        if not conversation_id or not activity_id:
+            logger.error(
+                "ConversationsOperations.delete_activity(): conversationId and activityId are required",
+                stack_info=True,
+            )
+            raise ValueError("conversationId and activityId are required")
+        
         with spans.ConnectorDeleteActivity(conversation_id, activity_id) as span:
-            if not conversation_id or not activity_id:
-                logger.error(
-                    "ConversationsOperations.delete_activity(): conversationId and activityId are required",
-                    stack_info=True,
-                )
-                raise ValueError("conversationId and activityId are required")
 
             conversation_id = self._normalize_conversation_id(conversation_id)
             url = f"v3/conversations/{conversation_id}/activities/{activity_id}"
@@ -377,13 +388,14 @@ class ConversationsOperations(ConversationsBase):
         :param body: The attachment data.
         :return: The resource response.
         """
+        if conversation_id is None:
+            logger.error(
+                "ConversationsOperations.upload_attachment(): conversationId is required",
+                stack_info=True,
+            )
+            raise ValueError("conversationId is required")
+
         with spans.ConnectorUploadAttachment(conversation_id) as span:
-            if conversation_id is None:
-                logger.error(
-                    "ConversationsOperations.upload_attachment(): conversationId is required",
-                    stack_info=True,
-                )
-                raise ValueError("conversationId is required")
 
             conversation_id = self._normalize_conversation_id(conversation_id)
             url = f"v3/conversations/{conversation_id}/attachments"
@@ -424,14 +436,14 @@ class ConversationsOperations(ConversationsBase):
         :param conversation_id: The ID of the conversation.
         :return: A list of members.
         """
+        if not conversation_id:
+            logger.error(
+                "ConversationsOperations.get_conversation_members(): conversationId is required",
+                stack_info=True,
+            )
+            raise ValueError("conversationId is required")
+
         with spans.ConnectorGetConversationMembers() as span:
-            
-            if not conversation_id:
-                logger.error(
-                    "ConversationsOperations.get_conversation_members(): conversationId is required",
-                    stack_info=True,
-                )
-                raise ValueError("conversationId is required")
 
             conversation_id = self._normalize_conversation_id(conversation_id)
             url = f"v3/conversations/{conversation_id}/members"
@@ -463,13 +475,14 @@ class ConversationsOperations(ConversationsBase):
         :param member_id: The ID of the member.
         :return: The member.
         """
+        if not conversation_id or not member_id:
+            logger.error(
+                "ConversationsOperations.get_conversation_member(): conversationId and memberId are required",
+                stack_info=True,
+            )
+            raise ValueError("conversationId and memberId are required")
+
         with spans.ConnectorGetConversationMembers() as span:
-            if not conversation_id or not member_id:
-                logger.error(
-                    "ConversationsOperations.get_conversation_member(): conversationId and memberId are required",
-                    stack_info=True,
-                )
-                raise ValueError("conversationId and memberId are required")
 
             conversation_id = self._normalize_conversation_id(conversation_id)
             url = f"v3/conversations/{conversation_id}/members/{member_id}"

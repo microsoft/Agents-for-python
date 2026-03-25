@@ -67,7 +67,7 @@ class SignOut(_UserTokenClientSpanWrapper):
     """Span for signing out a user using the user token client in the adapter."""
 
     def __init__(
-        self, connection_name: str, user_id: str, channel_id: str | None = None
+        self, connection_name: str | None, user_id: str, channel_id: str | None = None
     ):
         """Initializes the SignOut span."""
         super().__init__(

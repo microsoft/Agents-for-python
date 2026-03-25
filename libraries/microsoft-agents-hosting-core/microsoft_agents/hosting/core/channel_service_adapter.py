@@ -68,18 +68,18 @@ class ChannelServiceAdapter(ChannelAdapter, ABC):
         :rtype: list[:class:`microsoft_agents.activity.ResourceResponse`]
         :raises TypeError: If context or activities are None/invalid.
         """
+        if not context:
+            raise TypeError("Expected TurnContext but got None instead")
+
+        if activities is None:
+            raise TypeError("Expected Activities list but got None instead")
+
+        if len(activities) == 0:
+            raise TypeError(
+                "Expecting one or more activities, but the list was empty."
+            )
+
         with spans.AdapterSendActivities(activities):
-
-            if not context:
-                raise TypeError("Expected TurnContext but got None instead")
-
-            if activities is None:
-                raise TypeError("Expected Activities list but got None instead")
-
-            if len(activities) == 0:
-                raise TypeError(
-                    "Expecting one or more activities, but the list was empty."
-                )
 
             responses = []
 
@@ -139,13 +139,13 @@ class ChannelServiceAdapter(ChannelAdapter, ABC):
         :rtype: :class:`microsoft_agents.activity.ResourceResponse`
         :raises TypeError: If context or activity are None/invalid.
         """
+        if not context:
+            raise TypeError("Expected TurnContext but got None instead")
+
+        if activity is None:
+            raise TypeError("Expected Activity but got None instead")
+
         with spans.AdapterUpdateActivity(activity):
-
-            if not context:
-                raise TypeError("Expected TurnContext but got None instead")
-
-            if activity is None:
-                raise TypeError("Expected Activity but got None instead")
 
             connector_client = cast(
                 ConnectorClientBase,
@@ -170,13 +170,13 @@ class ChannelServiceAdapter(ChannelAdapter, ABC):
         :type reference: :class:`microsoft_agents.activity.ConversationReference`
         :raises TypeError: If context or reference are None/invalid.
         """
+        if not context:
+            raise TypeError("Expected TurnContext but got None instead")
+
+        if not reference:
+            raise TypeError("Expected ConversationReference but got None instead")
+        
         with spans.AdapterDeleteActivity(context.activity):
-
-            if not context:
-                raise TypeError("Expected TurnContext but got None instead")
-
-            if not reference:
-                raise TypeError("Expected ConversationReference but got None instead")
 
             connector_client = cast(
                 ConnectorClientBase,
@@ -209,11 +209,12 @@ class ChannelServiceAdapter(ChannelAdapter, ABC):
         :param callback: The method to call for the resulting agent turn.
         :type callback: Callable[[:class:`microsoft_agents.hosting.core.turn_context.TurnContext`], Awaitable]
         """
+        if not callable(callback):
+            raise TypeError(
+                "Expected Callback (Callable[[TurnContext], Awaitable]) but got None instead"
+            )
+    
         with spans.AdapterContinueConversation(continuation_activity):
-            if not callable:
-                raise TypeError(
-                    "Expected Callback (Callable[[TurnContext], Awaitable]) but got None instead"
-                )
 
             self._validate_continuation_activity(continuation_activity)
 

@@ -20,18 +20,24 @@ from . import constants, metrics
 class AdapterProcess(SimpleSpanWrapper):
     """Span for processing an incoming activity in the adapter."""
 
-    def __init__(self, activity: Activity):
+    def __init__(self, activity: Activity | None = None):
         """Initializes the AdapterProcess SpanWrapper."""
         super().__init__(constants.SPAN_PROCESS)
-        self._activity = activity
+        self._activity: Activity | None = None
 
     def _callback(self, span: Span, duration: float, error: Exception | None) -> None:
         """Callback function that is called when the span is ended. This is used to record metrics for the adapter processing based on the outcome of the span."""
-        attrs = {
-            attributes.ACTIVITY_TYPE: self._activity.type,
-            attributes.ACTIVITY_CHANNEL_ID: self._activity.channel_id
-            or attributes.UNKNOWN,
-        }
+        if self._active is None:
+            attrs = {
+                attributes.ACTIVITY_TYPE: attributes.UNKNOWN,
+                attributes.ACTIVITY_CHANNEL_ID: attributes.UNKNOWN,
+            }
+        else:   
+            attrs = {
+                attributes.ACTIVITY_TYPE: self._activity.type,
+                attributes.ACTIVITY_CHANNEL_ID: self._activity.channel_id
+                or attributes.UNKNOWN,
+            }
         metrics.adapter_process_duration.record(duration, attributes=attrs)
         metrics.activities_received.add(1, attributes=attrs)
 
@@ -44,6 +50,10 @@ class AdapterProcess(SimpleSpanWrapper):
             attributes.CONVERSATION_ID: get_conversation_id(self._activity),
             attributes.IS_AGENTIC: self._activity.is_agentic_request(),
         }
+
+    def share(self, activity: Activity) -> None:
+        """Shares the activity being processed with the span, so that it can be used in the callback to record metrics."""
+        self._activity = activity
 
 
 class AdapterSendActivities(SimpleSpanWrapper):
