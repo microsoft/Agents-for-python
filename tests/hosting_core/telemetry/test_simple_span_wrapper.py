@@ -12,9 +12,9 @@ from tests._common.fixtures.telemetry import ( # unused imports are needed for f
     clear
 )
 from tests._common.telemetry_utils import (
-    _find_metric,
-    _sum_counter,
-    _sum_hist_count,
+    find_metric,
+    sum_counter,
+    sum_hist_count,
 )
 
 from microsoft_agents.hosting.core import TurnContext

@@ -7,11 +7,36 @@ from tests._common.fixtures.telemetry import ( # unused imports are needed for f
     clear
 )
 
+from tests._common.telemetry_utils import find_metric, sum_counter
+
 from microsoft_agents.hosting.core.telemetry import (
     agents_telemetry, 
     SERVICE_NAME,
     SERVICE_VERSION,
 )
+
+def test_tracer(test_exporter):
+    """Test that the tracer is initialized with the correct service name and version."""
+
+    with agents_telemetry.tracer.start_as_current_span("test_span"):
+        pass
+
+    spans = test_exporter.get_finished_spans()
+    assert len(spans) == 1
+    assert spans[0].name == "test_span"
+    assert spans[0].instrumentation_scope.name == SERVICE_NAME
+    assert spans[0].instrumentation_scope.version == SERVICE_VERSION
+
+def test_meter(test_metric_reader):
+    """Test that the meter is initialized with the correct service name and version."""
+    counter = agents_telemetry.meter.create_counter("test_counter")
+    counter.add(1)
+
+    metrics_data = test_metric_reader.get_metrics_data()
+    metric = find_metric(metrics_data, "test_counter")
+    assert len(metric.data.data_points) == 1
+    assert sum_counter(metric) == 1
+    assert metric.name == "test_counter"
 
 def test_start_as_current_span(test_exporter):
     """Test start_as_current_span creates a span with context attributes."""
@@ -22,8 +47,8 @@ def test_start_as_current_span(test_exporter):
     spans = test_exporter.get_finished_spans()
     assert len(spans) == 1
     assert spans[0].name == "test_span"
-    assert spans[0].resource.attributes["service.name"] == SERVICE_NAME
-    assert spans[0].resource.attributes["service.version"] == SERVICE_VERSION
+    assert spans[0].instrumentation_scope.name == SERVICE_NAME
+    assert spans[0].instrumentation_scope.version == SERVICE_VERSION
 
 def test_start_as_current_span_with_callback(mocker, test_exporter):
     """Test start_as_current_span records success status and callback payload."""
