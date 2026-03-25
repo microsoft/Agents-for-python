@@ -82,8 +82,8 @@ class _AgentsTelemetry:
             try:
                 yield span  # execute the operation in the with block
             except Exception as e:
-                span.record_exception(e)
                 exception = e
+                raise
             finally:
 
                 success = exception is None
@@ -101,7 +101,6 @@ class _AgentsTelemetry:
                         callback(span, duration, exception)
 
                     span.set_status(trace.Status(trace.StatusCode.ERROR))
-                    raise exception from None  # re-raise to ensure it's not swallowed
 
 
 agents_telemetry = _AgentsTelemetry()

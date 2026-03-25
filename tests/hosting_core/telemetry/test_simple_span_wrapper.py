@@ -9,7 +9,6 @@ from tests._common.fixtures.telemetry import ( # unused imports are needed for f
     test_telemetry,
     test_exporter,
     test_metric_reader,
-    clear
 )
 from tests._common.telemetry_utils import (
     find_metric,

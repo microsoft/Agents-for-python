@@ -144,7 +144,7 @@ class AdapterContinueConversation(SimpleSpanWrapper):
                 else attributes.UNKNOWN
             ),
             attributes.CONVERSATION_ID: get_conversation_id(self._activity),
-            attributes.IS_AGENTIC_REQUEST: self._activity.is_agentic_request(),
+            attributes.IS_AGENTIC: self._activity.is_agentic_request(),
         }
 
 
