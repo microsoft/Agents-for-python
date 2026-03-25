@@ -80,15 +80,17 @@ def test_adapter_process_records_metrics(test_exporter, test_metric_reader):
 
     metric_data = test_metric_reader.get_metrics_data()
 
-    received = sum_counter(find_metric(metric_data, constants.METRIC_ACTIVITIES_RECEIVED))
-    
+    received = sum_counter(
+        find_metric(metric_data, constants.METRIC_ACTIVITIES_RECEIVED)
+    )
+
     assert received == 1
 
     duration_count = sum_hist_count(
         find_metric(metric_data, constants.METRIC_ADAPTER_PROCESS_DURATION)
     )
     assert duration_count == 1
-    
+
 
 # ---- AdapterSendActivities ----
 
@@ -275,7 +277,10 @@ def test_adapter_create_user_token_client_span_attributes(test_exporter):
         pass
 
     span = test_exporter.get_finished_spans()[0]
-    assert span.attributes[attributes.TOKEN_SERVICE_ENDPOINT] == "https://token.example.com"
+    assert (
+        span.attributes[attributes.TOKEN_SERVICE_ENDPOINT]
+        == "https://token.example.com"
+    )
     assert span.attributes[attributes.AUTH_SCOPES] == "User.Read,Mail.Read"
 
 

@@ -5,7 +5,7 @@ from types import SimpleNamespace
 
 from opentelemetry.trace import StatusCode
 
-from tests._common.fixtures.telemetry import ( # unused imports are needed for fixtures
+from tests._common.fixtures.telemetry import (  # unused imports are needed for fixtures
     test_telemetry,
     test_exporter,
     test_metric_reader,
@@ -34,7 +34,7 @@ class MySpanWrapper(SimpleSpanWrapper):
         span.set_attribute("duration_ms", duration_ms)
         if exception:
             span.set_attribute("exception_message", str(exception))
-    
+
     def _get_attributes(self):
         return {"custom_attribute": "custom_value"}
 

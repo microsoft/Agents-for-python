@@ -68,9 +68,7 @@ class DeltaMetricReader:
     def _empty_data():
         return SimpleNamespace(
             resource_metrics=[
-                SimpleNamespace(
-                    scope_metrics=[SimpleNamespace(metrics=[])]
-                )
+                SimpleNamespace(scope_metrics=[SimpleNamespace(metrics=[])])
             ]
         )
 
@@ -111,9 +109,7 @@ class DeltaMetricReader:
                         )
         return SimpleNamespace(
             resource_metrics=[
-                SimpleNamespace(
-                    scope_metrics=[SimpleNamespace(metrics=all_metrics)]
-                )
+                SimpleNamespace(scope_metrics=[SimpleNamespace(metrics=all_metrics)])
             ]
         )
 
@@ -139,12 +135,14 @@ def test_telemetry():
     tracer_provider.shutdown()
     meter_provider.shutdown()
 
+
 @pytest.fixture(scope="function")
 def test_exporter(test_telemetry):
     """Provide the in-memory span exporter for each test."""
     exporter, _ = test_telemetry
     exporter.clear()
     return exporter
+
 
 @pytest.fixture(scope="function")
 def test_metric_reader(test_telemetry):

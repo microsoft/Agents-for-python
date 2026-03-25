@@ -10,7 +10,6 @@ from microsoft_agents.hosting.core.telemetry.utils import (
     get_delivery_mode,
 )
 
-
 # ---- format_scopes ----
 
 
@@ -71,4 +70,3 @@ def test_get_delivery_mode_all_enum_values():
     for mode in DeliveryModes:
         activity = Activity(type="message", delivery_mode=mode)
         assert get_delivery_mode(activity) == mode.value
-

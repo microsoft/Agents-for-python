@@ -1,6 +1,6 @@
 def find_metric(metrics_data, metric_name):
     """Helper function to find a metric by name in the collected metrics data.
-    
+
     Usage:
         metric = find_metric(metrics_data, "my_metric_name")
     """
