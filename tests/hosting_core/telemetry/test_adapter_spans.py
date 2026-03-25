@@ -1,8 +1,4 @@
-from datetime import datetime
-from microsoft_agents.hosting.core import TurnContext
 from microsoft_agents.hosting.core.telemetry import (
-    agents_telemetry,
-    SimpleSpanWrapper,
     attributes,
 )
 from microsoft_agents.hosting.core.telemetry.adapter.spans import (
@@ -76,7 +72,7 @@ def test_adapter_process_span_attributes_shared_activity(test_exporter):
 
     with AdapterProcess() as span:
         span.share(activity)
-
+    
     span = test_exporter.get_finished_spans()[0]
     span_attrs = dict(span.attributes)
     assert span_attrs[attributes.ACTIVITY_TYPE] == "invoke"

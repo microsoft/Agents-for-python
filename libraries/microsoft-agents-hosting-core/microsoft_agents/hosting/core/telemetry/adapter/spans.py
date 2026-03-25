@@ -23,16 +23,16 @@ class AdapterProcess(SimpleSpanWrapper):
     def __init__(self, activity: Activity | None = None):
         """Initializes the AdapterProcess SpanWrapper."""
         super().__init__(constants.SPAN_PROCESS)
-        self._activity: Activity | None = None
+        self._activity: Activity | None = activity
 
     def _callback(self, span: Span, duration: float, error: Exception | None) -> None:
         """Callback function that is called when the span is ended. This is used to record metrics for the adapter processing based on the outcome of the span."""
-        if self._active is None:
+        if self._activity is None:
             attrs = {
                 attributes.ACTIVITY_TYPE: attributes.UNKNOWN,
                 attributes.ACTIVITY_CHANNEL_ID: attributes.UNKNOWN,
             }
-        else:   
+        else:
             attrs = {
                 attributes.ACTIVITY_TYPE: self._activity.type,
                 attributes.ACTIVITY_CHANNEL_ID: self._activity.channel_id
@@ -42,6 +42,8 @@ class AdapterProcess(SimpleSpanWrapper):
         metrics.activities_received.add(1, attributes=attrs)
 
     def _get_attributes(self) -> AttributeMap:
+        if self._activity is None:
+            return {}
         return {
             attributes.ACTIVITY_TYPE: self._activity.type,
             attributes.ACTIVITY_CHANNEL_ID: self._activity.channel_id
