@@ -44,12 +44,8 @@ class AppOnTurn(SimpleSpanWrapper):
 
     def _get_attributes(self) -> AttributeMap:
         return {
-            attributes.CONVERSATION_ID: get_conversation_id(
-                self._turn_context.activity
-            ),
-            attributes.ACTIVITY_CHANNEL_ID: self._turn_context.activity.channel_id
-            or attributes.UNKNOWN,
-            attributes.SERVICE_URL: self._turn_context.activity.service_url,
+            attributes.ACTIVITY_TYPE: self._turn_context.activity.type,
+            attributes.ACTIVITY_ID: self._turn_context.activity.id or attributes.UNKNOWN,
         }
 
     def share(self, route_authorized: bool, route_matched: bool) -> None:

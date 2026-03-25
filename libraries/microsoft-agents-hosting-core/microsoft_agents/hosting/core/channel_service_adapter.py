@@ -77,33 +77,32 @@ class ChannelServiceAdapter(ChannelAdapter, ABC):
         if len(activities) == 0:
             raise TypeError("Expecting one or more activities, but the list was empty.")
 
-        with spans.AdapterSendActivities(activities):
+        responses = []
 
-            responses = []
+        for activity in activities:
+            activity.id = None
 
-            for activity in activities:
-                activity.id = None
+            response = ResourceResponse()
 
-                response = ResourceResponse()
-
-                if activity.type == ActivityTypes.invoke_response:
-                    context.turn_state[self.INVOKE_RESPONSE_KEY] = activity
-                elif (
-                    activity.type == ActivityTypes.trace
-                    and activity.channel_id != Channels.emulator
-                ):
-                    # no-op
-                    pass
-                else:
-                    connector_client = cast(
-                        ConnectorClientBase,
-                        context.turn_state.get(self._AGENT_CONNECTOR_CLIENT_KEY),
+            if activity.type == ActivityTypes.invoke_response:
+                context.turn_state[self.INVOKE_RESPONSE_KEY] = activity
+            elif (
+                activity.type == ActivityTypes.trace
+                and activity.channel_id != Channels.emulator
+            ):
+                # no-op
+                pass
+            else:
+                connector_client = cast(
+                    ConnectorClientBase,
+                    context.turn_state.get(self._AGENT_CONNECTOR_CLIENT_KEY),
+                )
+                if not connector_client:
+                    raise Error(
+                        "Unable to extract ConnectorClient from turn context."
                     )
-                    if not connector_client:
-                        raise Error(
-                            "Unable to extract ConnectorClient from turn context."
-                        )
-
+                
+                with spans.AdapterSendActivities([activity]):
                     if activity.reply_to_id:
                         response = (
                             await connector_client.conversations.reply_to_activity(
@@ -119,11 +118,11 @@ class ChannelServiceAdapter(ChannelAdapter, ABC):
                                 activity,
                             )
                         )
-                response = response or ResourceResponse(id=activity.id or "")
+            response = response or ResourceResponse(id=activity.id or "")
 
-                responses.append(response)
+            responses.append(response)
 
-            return responses
+        return responses
 
     async def update_activity(self, context: TurnContext, activity: Activity):
         """
@@ -534,22 +533,25 @@ class ChannelServiceAdapter(ChannelAdapter, ABC):
         # Handle ExpectedReplies scenarios where all activities have been
         # buffered and sent back at once in an invoke response.
         if context.activity.delivery_mode == DeliveryModes.expect_replies:
-            return InvokeResponse(
-                status=HTTPStatus.OK,
-                body=ExpectedReplies(
-                    activities=context.buffered_reply_activities
-                ).model_dump(mode="json", by_alias=True, exclude_unset=True),
-            )
+            with spans.AdapterSendActivities([context.activity]):
+                return InvokeResponse(
+                    status=HTTPStatus.OK,
+                    body=ExpectedReplies(
+                        activities=context.buffered_reply_activities
+                    ).model_dump(mode="json", by_alias=True, exclude_unset=True),
+                )
 
         # Handle Invoke scenarios where the agent will return a specific body and return code.
         if context.activity.type == ActivityTypes.invoke:
-            activity_invoke_response: Activity = context.turn_state.get(
-                self.INVOKE_RESPONSE_KEY
-            )
-            if not activity_invoke_response:
-                return InvokeResponse(status=HTTPStatus.NOT_IMPLEMENTED)
 
-            return InvokeResponse.model_validate(activity_invoke_response.value)
+            with spans.AdapterSendActivities([context.activity]):
+                activity_invoke_response: Activity = context.turn_state.get(
+                    self.INVOKE_RESPONSE_KEY
+                )
+                if not activity_invoke_response:
+                    return InvokeResponse(status=HTTPStatus.NOT_IMPLEMENTED)
+
+                return InvokeResponse.model_validate(activity_invoke_response.value)
 
         # No body to return
         return None

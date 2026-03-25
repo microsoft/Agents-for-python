@@ -851,10 +851,12 @@ class AgentApplication(Agent, Generic[StateT]):
                         route_authorized = True
                         with spans.AppRouteHandler(route.is_invoke, route.is_agentic):
                             await route.handler(context, state)
-                return
-        logger.warning(
-            f"No route found for activity type: {context.activity.type} with text: {context.activity.text}"
-        )
+                break
+
+        if not route_matched:
+            logger.warning(
+                f"No route found for activity type: {context.activity.type} with text: {context.activity.text}"
+            )
         if on_turn_span is not None:
             on_turn_span.share(
                 route_authorized=route_authorized, route_matched=route_matched
