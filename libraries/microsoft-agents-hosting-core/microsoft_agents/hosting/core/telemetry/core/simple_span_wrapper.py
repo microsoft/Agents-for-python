@@ -33,8 +33,12 @@ class SimpleSpanWrapper(BaseSpanWrapper, ABC):
         with agents_telemetry.start_as_current_span(
             self._span_name, callback=self._callback
         ) as span:
-            yield span
-            if span is not None:
-                attributes = self._get_attributes()
-                if attributes:
-                    span.set_attributes(attributes)
+            try:
+                yield span
+            except Exception:
+                raise
+            finally:
+                if span is not None:
+                    attributes = self._get_attributes()
+                    if attributes:
+                        span.set_attributes(attributes)

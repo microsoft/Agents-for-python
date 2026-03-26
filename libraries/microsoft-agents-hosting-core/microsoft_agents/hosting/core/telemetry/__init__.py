@@ -6,7 +6,8 @@
 #
 # This design hides the "mess" of telemetry to one location rather than throughout the codebase.
 #
-# NOTE: this module should not be auto-loaded from __init__.py in order to avoid
+# NOTE: this module should not be auto-loaded from __init__.py in order to avoid creating
+# of the telemetry providers too early for the user to configure them.
 
 from . import attributes
 from .core import (

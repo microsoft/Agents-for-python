@@ -20,7 +20,6 @@ from microsoft_agents.activity import (
 )
 from microsoft_agents.activity.entity.entity_types import EntityTypes
 from microsoft_agents.hosting.core.authorization.claims_identity import ClaimsIdentity
-from microsoft_agents.hosting.core.telemetry.turn_context import spans
 
 
 class TurnContext(TurnContextProtocol):
