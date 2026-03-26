@@ -72,7 +72,7 @@ def test_adapter_process_span_attributes_shared_activity(test_exporter):
     activity = _make_activity(type="invoke", channel_id="webchat")
 
     with AdapterProcess() as span:
-        span.share(activity)
+        span.share(activity=activity)
 
     span = test_exporter.get_finished_spans()[0]
     span_attrs = dict(span.attributes)

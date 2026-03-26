@@ -164,8 +164,7 @@ class TestSimpleSpanWrapper:
     def test_otel_span_raises_when_not_started(self):
         """Accessing otel_span before start raises RuntimeError."""
         wrapper = MinimalSpanWrapper("not_started")
-        with pytest.raises(RuntimeError):
-            _ = wrapper.otel_span
+        assert wrapper.otel_span is None
 
     def test_start_end_manual_lifecycle(self, test_exporter):
         """start() and end() can be used instead of the context manager."""

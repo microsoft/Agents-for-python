@@ -8,7 +8,6 @@ import logging
 from abc import ABC, abstractmethod
 from contextlib import ExitStack
 from typing import ContextManager
-from venv import logger
 
 from opentelemetry.trace import Span
 
@@ -27,8 +26,6 @@ class BaseSpanWrapper(ABC):
     @property
     def otel_span(self) -> Span | None:
         """Returns the underlying OTEL span if it is active, or None if the span has not been started or has already ended. This can be used to access OTEL-specific functionality or attributes of the span when needed, while still providing a higher-level abstraction through the BaseSpanWrapper class."""
-        if self._span is None:
-            raise RuntimeError("BaseSpanWrapper has not been started yet")
         return self._span
 
     @property

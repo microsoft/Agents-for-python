@@ -25,7 +25,7 @@ class _UserTokenClientSpanWrapper(_RequestSpanWrapper):
         super().__init__(span_name)
         self._connection_name = connection_name or attributes.UNKNOWN
         self._user_id = user_id or attributes.UNKNOWN
-        self._channel_id = channel_id or attributes
+        self._channel_id = channel_id or attributes.UNKNOWN
 
     def _callback(self, span: Span, duration: float, error: Exception | None) -> None:
         """Callback function that is called when the span is ended. This is used to record metrics for the user token client operation based on the outcome of the span."""

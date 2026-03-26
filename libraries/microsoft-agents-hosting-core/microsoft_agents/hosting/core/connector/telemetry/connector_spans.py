@@ -5,8 +5,6 @@ from __future__ import annotations
 
 from opentelemetry.trace import Span
 
-from aiohttp.web import Request, Response
-
 from microsoft_agents.hosting.core.telemetry import (
     attributes,
     AttributeMap,

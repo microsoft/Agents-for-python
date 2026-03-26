@@ -53,7 +53,7 @@ class AdapterProcess(SimpleSpanWrapper):
             attributes.IS_AGENTIC: self._activity.is_agentic_request(),
         }
 
-    def share(self, activity: Activity) -> None:
+    def share(self, *, activity: Activity) -> None:
         """Shares the activity being processed with the span, so that it can be used in the callback to record metrics."""
         self._activity = activity
 
