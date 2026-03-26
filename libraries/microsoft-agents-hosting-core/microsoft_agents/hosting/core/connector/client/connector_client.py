@@ -252,7 +252,9 @@ class ConversationsOperations(ConversationsBase):
                 if not response_text:
                     resource_response = ResourceResponse()
                 else:
-                    resource_response = ResourceResponse.model_validate_json(response_text)
+                    resource_response = ResourceResponse.model_validate_json(
+                        response_text
+                    )
 
                 logger.info(
                     "Reply to conversation/activity: %s, %s",

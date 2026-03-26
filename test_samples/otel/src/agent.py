@@ -14,9 +14,13 @@ from microsoft_agents.hosting.core import (
     TurnState,
     TurnContext,
     MemoryStorage,
+    MessageFactory,
 )
 from microsoft_agents.authentication.msal import MsalConnectionManager
 from microsoft_agents.activity import load_configuration_from_env
+
+from .get_user_info import get_user_info
+from .card import create_profile_card
 
 load_dotenv()
 agents_sdk_config = load_configuration_from_env(environ)
@@ -41,6 +45,26 @@ async def on_members_added(context: TurnContext, _state: TurnState):
     return True
 
 
+@AGENT_APP.message("/logout")
+async def logout(context: TurnContext, state: TurnState) -> None:
+    await AGENT_APP.auth.sign_out(context, "GRAPH")
+    await context.send_activity(MessageFactory.text("You have been logged out."))
+
+
+@AGENT_APP.message(
+    re.compile(r"^/(me|profile)$", re.IGNORECASE), auth_handlers=["GRAPH"]
+)
+async def profile_request(context: TurnContext, state: TurnState) -> None:
+    user_token_response = await AGENT_APP.auth.get_token(context, "GRAPH")
+    if user_token_response and user_token_response is not None:
+        user_info = await get_user_info(user_token_response.token)
+        activity = MessageFactory.attachment(create_profile_card(user_info))
+        await context.send_activity(activity)
+    else:
+        await context.send_activity(
+            'Token not available. Enter "login" to sign in.'
+        )
+
 @AGENT_APP.message(re.compile(r"^hello$"))
 async def on_hello(context: TurnContext, _state: TurnState):
     await context.send_activity("Hello!")
@@ -49,7 +73,6 @@ async def on_hello(context: TurnContext, _state: TurnState):
 @AGENT_APP.activity("message")
 async def on_message(context: TurnContext, _state: TurnState):
     await context.send_activity(f"you said: {context.activity.text}")
-
 
 @AGENT_APP.error
 async def on_error(context: TurnContext, error: Exception):

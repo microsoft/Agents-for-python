@@ -5,6 +5,7 @@ from microsoft_agents.hosting.core import AgentApplication, AgentAuthConfigurati
 from microsoft_agents.hosting.aiohttp import (
     start_agent_process,
     CloudAdapter,
+    jwt_authorization_middleware,
 )
 from aiohttp.web import Request, Response, Application, run_app
 
@@ -26,16 +27,8 @@ def start_server(
             adapter,
         )
 
-    APP = Application(middlewares=[])
+    APP = Application(middlewares=[jwt_authorization_middleware])
     APP.router.add_post("/api/messages", entry_point)
-    # async def health(_req: Request) -> Response:
-    #     return json_response(
-    #         {
-    #             "status": "ok",
-    #             "content": "Healthy"
-    #         }
-    #     )
-    # APP.router.add_get("/health", health)
 
     APP["agent_configuration"] = auth_configuration
     APP["agent_app"] = agent_application

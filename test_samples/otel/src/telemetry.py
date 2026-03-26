@@ -25,11 +25,6 @@ def instrument_libraries():
     """Instrument libraries for OpenTelemetry."""
 
     # ##
-    # # instrument aiohttp server -> causes problems
-    # ##
-    # AioHttpServerInstrumentor().instrument(tracer_provider=tracer_provider)
-
-    # ##
     # # instrument aiohttp client
     # ##
     def aiohttp_client_request_hook(
