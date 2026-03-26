@@ -28,7 +28,12 @@ class _StorageSpanWrapper(SimpleSpanWrapper):
                 attributes.STORAGE_OPERATION: self._span_name,
             },
         )
-        metrics.storage_operation_total.add(1)
+        metrics.storage_operation_total.add(
+            1,
+            attributes={
+                attributes.STORAGE_OPERATION: self._span_name,
+            },
+        )
 
     def _get_attributes(self) -> dict[str, str | int]:
         """Returns a dictionary of attributes to set on the span when it is started. This includes attributes related to the storage operation being performed.
