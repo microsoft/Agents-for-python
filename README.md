@@ -29,6 +29,9 @@ from microsoft_agents.hosting.core import TurnContext
 # aiohttp hosting
 from microsoft_agents.hosting.aiohttp import start_agent_process
 
+# FastAPI hosting
+from microsoft_agents.hosting.fastapi import start_agent_process
+
 # Teams-specific functionality (compatible only with activity handler)
 from microsoft_agents.hosting.teams import TeamsActivityHandler
 
@@ -54,6 +57,7 @@ We offer the following PyPI packages to create conversational experiences based 
 | `microsoft-agents-activity` | [![PyPI](https://img.shields.io/pypi/v/microsoft-agents-activity)](https://pypi.org/project/microsoft-agents-activity/) | Types and validators implementing the Activity protocol spec. | `botframework-schema` |
 | `microsoft-agents-hosting-core` | [![PyPI](https://img.shields.io/pypi/v/microsoft-agents-hosting-core)](https://pypi.org/project/microsoft-agents-hosting-core/) | Core library for Microsoft Agents hosting. | `botbuilder-core, botframework-connector` |
 | `microsoft-agents-hosting-aiohttp` | [![PyPI](https://img.shields.io/pypi/v/microsoft-agents-hosting-aiohttp)](https://pypi.org/project/microsoft-agents-hosting-aiohttp/) | Configures aiohttp to run the Agent. | `botbuilder-integration-aiohttp` |
+| `microsoft-agents-hosting-fastapi` | [![PyPI](https://img.shields.io/pypi/v/microsoft-agents-hosting-fastapi)](https://pypi.org/project/microsoft-agents-hosting-fastapi/) | Configures FastAPI to run the Agent. | N/A |
 | `microsoft-agents-hosting-teams` | [![PyPI](https://img.shields.io/pypi/v/microsoft-agents-hosting-teams)](https://pypi.org/project/microsoft-agents-hosting-teams/) | Provides classes to host an Agent for Teams. | N/A |
 | `microsoft-agents-storage-blob` | [![PyPI](https://img.shields.io/pypi/v/microsoft-agents-storage-blob)](https://pypi.org/project/microsoft-agents-storage-blob/) | Extension to use Azure Blob as storage. | `botbuilder-azure` |
 | `microsoft-agents-storage-cosmos` | [![PyPI](https://img.shields.io/pypi/v/microsoft-agents-storage-cosmos)](https://pypi.org/project/microsoft-agents-storage-cosmos/) | Extension to use CosmosDB as storage. | `botbuilder-azure` |
