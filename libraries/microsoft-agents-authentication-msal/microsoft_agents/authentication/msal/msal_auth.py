@@ -227,7 +227,7 @@ class MsalAuth(AccessTokenProviderBase):
                 cert = load_pem_x509_certificate(
                     data=bytes(public_certificate, "UTF-8"), backend=default_backend()
                 )
-                thumbprint = cert.fingerprint(hashes.SHA1()).hex()
+                thumbprint = cert.fingerprint(hashes.SHA256()).hex()
 
                 self._client_credential_cache = {
                     "thumbprint": thumbprint,
