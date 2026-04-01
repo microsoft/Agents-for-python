@@ -17,9 +17,6 @@ from msal import (
     TokenCache,
 )
 from requests import Session
-from cryptography.x509 import load_pem_x509_certificate
-from cryptography.hazmat.backends import default_backend
-from cryptography.hazmat.primitives import hashes
 
 from microsoft_agents.activity._utils import _DeferredString
 
@@ -212,26 +209,8 @@ class MsalAuth(AccessTokenProviderBase):
             elif self._msal_configuration.AUTH_TYPE == AuthTypes.client_secret:
                 self._client_credential_cache = self._msal_configuration.CLIENT_SECRET
             elif self._msal_configuration.AUTH_TYPE == AuthTypes.certificate:
-                with open(self._msal_configuration.CERT_KEY_FILE) as file:
-                    logger.info(
-                        "Loading certificate private key for MSAL authentication."
-                    )
-                    private_key = file.read()
-
-                with open(self._msal_configuration.CERT_PEM_FILE) as file:
-                    logger.info("Loading public certificate for MSAL authentication.")
-                    public_certificate = file.read()
-
-                # Create an X509 object and calculate the thumbprint
-                logger.info("Calculating thumbprint for the public certificate.")
-                cert = load_pem_x509_certificate(
-                    data=bytes(public_certificate, "UTF-8"), backend=default_backend()
-                )
-                thumbprint = cert.fingerprint(hashes.SHA1()).hex()
-
                 self._client_credential_cache = {
-                    "thumbprint": thumbprint,
-                    "private_key": private_key,
+                    "private_key_pfx_path": self._msal_configuration.CERT_PFX_FILE,
                 }
             else:
                 logger.error(

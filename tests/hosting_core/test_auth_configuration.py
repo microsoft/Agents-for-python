@@ -16,8 +16,7 @@ class TestAuthorizationConfiguration:
             tenant_id="test-tenant-id",
             client_id="test-client-id",
             client_secret="test-client-secret",
-            cert_pem_file="test-cert.pem",
-            cert_key_file="test-cert.key",
+            cert_pfx_file="test-cert.pfx",
             connection_name="test-connection",
             authority="https://login.microsoftonline.com",
             scopes=["test-scope-1", "test-scope-2"],
@@ -27,8 +26,7 @@ class TestAuthorizationConfiguration:
         assert auth_config.TENANT_ID == "test-tenant-id"
         assert auth_config.CLIENT_ID == "test-client-id"
         assert auth_config.CLIENT_SECRET == "test-client-secret"
-        assert auth_config.CERT_PEM_FILE == "test-cert.pem"
-        assert auth_config.CERT_KEY_FILE == "test-cert.key"
+        assert auth_config.CERT_PFX_FILE == "test-cert.pfx"
         assert auth_config.CONNECTION_NAME == "test-connection"
         assert auth_config.AUTHORITY == "https://login.microsoftonline.com"
         assert auth_config.SCOPES == ["test-scope-1", "test-scope-2"]
@@ -72,8 +70,7 @@ class TestAuthorizationConfiguration:
         assert auth_config.TENANT_ID == None
         assert auth_config.CLIENT_ID == None
         assert auth_config.CLIENT_SECRET == None
-        assert auth_config.CERT_PEM_FILE == None
-        assert auth_config.CERT_KEY_FILE == None
+        assert auth_config.CERT_PFX_FILE == None
         assert auth_config.CONNECTION_NAME == None
         assert auth_config.AUTHORITY == None
         assert auth_config.SCOPES == None

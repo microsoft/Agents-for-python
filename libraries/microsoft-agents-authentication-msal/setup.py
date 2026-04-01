@@ -15,6 +15,5 @@ setup(
         f"microsoft-agents-hosting-core=={package_version}",
         "msal>=1.34.0",
         "requests>=2.32.3",
-        "cryptography>=44.0.0",
     ],
 )
