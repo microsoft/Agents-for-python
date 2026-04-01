@@ -209,10 +209,48 @@ def configure_opentelemetry(
     )
 
 
+def setup_health_routes(app, development: bool = True) -> None:
+    """Register ``/health`` and ``/alive`` endpoints on an aiohttp Application.
+
+    Equivalent to ``MapDefaultEndpoints()`` in C#.  Mirrors the C# behaviour
+    of only registering the endpoints in non-production environments.
+
+    Args:
+        app: :class:`aiohttp.web.Application` instance.
+        development: When ``False`` the endpoints are **not** registered
+            (matches the C# guard on ``IsDevelopment()``).
+    """
+    if not development:
+        return
+
+    from aiohttp import web
+
+    async def health_handler(_request):
+        return web.Response(
+            text='{"status":"Healthy"}',
+            content_type="application/json",
+        )
+
+    async def alive_handler(_request):
+        return web.Response(
+            text='{"status":"Alive"}',
+            content_type="application/json",
+        )
+
+    app.router.add_get(HEALTH_ENDPOINT_PATH, health_handler)
+    app.router.add_get(ALIVENESS_ENDPOINT_PATH, alive_handler)
+    logger.info(
+        "Health check endpoints registered: %s, %s",
+        HEALTH_ENDPOINT_PATH,
+        ALIVENESS_ENDPOINT_PATH,
+    )
+
+
 def create_aiohttp_tracing_middleware():
-    """Return an aiohttp middleware that traces every request.
+    """Return an aiohttp middleware that traces every non-health-check request.
 
     Equivalent to the ``AddAspNetCoreInstrumentation()`` configuration in C#:
+    - Filters out ``/health`` and ``/alive`` paths.
     - Enriches spans with ``http.request.body.size`` and ``user_agent`` on
       request, and ``http.status_code`` / ``http.response.body.size`` on
       response.
@@ -224,6 +262,12 @@ def create_aiohttp_tracing_middleware():
 
     @web.middleware
     async def tracing_middleware(request, handler):
+        # Exclude health check requests from tracing (mirrors C# filter lambda)
+        if request.path.startswith(HEALTH_ENDPOINT_PATH) or request.path.startswith(
+            ALIVENESS_ENDPOINT_PATH
+        ):
+            return await handler(request)
+
         span_name = f"{request.method} {request.path}"
         with _tracer.start_as_current_span(span_name) as span:
             # Enrich with request details — equivalent to EnrichWithHttpRequest

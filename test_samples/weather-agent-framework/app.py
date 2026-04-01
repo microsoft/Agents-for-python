@@ -102,7 +102,7 @@ def create_app() -> Application:
     weather_agent = WeatherAgent(user_authorization=agent_app.auth)
 
     # Register event handlers
-    @agent_app.activity(ActivityTypes.message)
+    @agent_app.activity(ActivityTypes.message, auth_handlers=["AGENTIC"])
     async def on_message(context: TurnContext, state: TurnState):
         aau_token = await agent_app.auth.get_token(context, "AGENTIC")
         await weather_agent.handle_message(context, state)

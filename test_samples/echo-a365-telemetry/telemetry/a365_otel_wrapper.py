@@ -126,9 +126,9 @@ async def _resolve_tenant_and_agent_id(turn_context: TurnContext, user_authoriza
     if activity is None:
         return _EMPTY_GUID, _EMPTY_GUID
 
-    agentic_token = await user_authorization.get_token(turn_context, auth_handler or "AGENTIC") if user_authorization else None
+    # agentic_token = await user_authorization.get_token(turn_context, auth_handler or "AGENTIC") if user_authorization else None
 
-    agent_id = activity.get_agentic_instance_id() if activity.is_agentic_request() else _get_app_id_from_token(agentic_token)
+    agent_id = activity.get_agentic_instance_id()
     agent_id = agent_id or _EMPTY_GUID
 
     tenant_id = activity.conversation.tenant_id if activity.conversation and activity.conversation.tenant_id else _EMPTY_GUID

@@ -34,6 +34,7 @@ load_dotenv(path.join(path.dirname(__file__), ".env"))
 from telemetry import (
     configure_opentelemetry,
     create_aiohttp_tracing_middleware,
+    setup_health_routes,
 )
 
 configure_opentelemetry(
@@ -93,7 +94,7 @@ def create_app() -> Application:
     async def on_message(context: TurnContext, state: TurnState):
         # Pre-fetch the agentic token so it is warm in the cache before the
         # A365 wrapper tries to use it (mirrors the weather agent pattern).
-        await agent_app.auth.get_token(context, "AGENTIC")
+        # await agent_app.auth.get_token(context, "AGENTIC")
         await echo.handle_message(context, state)
 
     @agent_app.conversation_update("membersAdded")
@@ -107,10 +108,13 @@ def create_app() -> Application:
     app.router.add_post("/api/messages", messages_endpoint)
     app.router.add_get("/", lambda _: Response(text="Echo Agent is running", status=200))
 
+    # Register /health and /alive endpoints (development only).
     is_development = environ.get("ENVIRONMENT", "development").lower() == "development"
+    setup_health_routes(app, development=is_development)
 
     app["agent_app"] = agent_app
     app["adapter"] = adapter
+    app["agent_configuration"] = connection_manager.get_default_connection_configuration()
 
     return app
 
@@ -125,6 +129,7 @@ def main() -> None:
     print(f"{'='*60}")
     print(f"Endpoint: http://{host}:{port}/api/messages")
     print(f"Health:   http://{host}:{port}/health")
+    print(f"Alive:    http://{host}:{port}/alive")
     print(f"{'='*60}\n")
 
     web.run_app(create_app(), host=host, port=port)

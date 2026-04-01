@@ -2,11 +2,8 @@
 microsoft-agents-hosting-aiohttp
 microsoft-agents-authentication-msal
 
-# Azure AI Foundry — chat completions client (async)
-azure-ai-inference
-
-# Azure authentication (DefaultAzureCredential fallback)
-azure-identity
+# Azure OpenAI
+openai
 
 # Web framework
 aiohttp

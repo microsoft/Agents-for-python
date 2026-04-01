@@ -1,13 +1,13 @@
 # Copyright (c) Microsoft Corporation.
 # Licensed under the MIT License.
 
-"""Echo Agent — relays user text to an Azure AI Foundry endpoint.
+"""Echo Agent — relays user text to an Azure OpenAI endpoint.
 
 The entire agent logic is intentionally minimal so that the telemetry
 infrastructure (spans, metrics, baggage, token caching) stays in the
 foreground.  The AI call is a single-turn, stateless chat completion:
 
-    User text → Azure AI Foundry (azure-ai-inference) → reply to user
+    User text → Azure OpenAI (openai) → reply to user
 
 No conversation history, no tools, no state persistence.
 """
@@ -16,10 +16,7 @@ import logging
 import traceback
 from os import environ
 
-from azure.ai.inference.aio import ChatCompletionsClient
-from azure.ai.inference.models import SystemMessage, UserMessage
-from azure.core.credentials import AzureKeyCredential
-from azure.identity.aio import DefaultAzureCredential
+from openai import AzureOpenAI
 
 from microsoft_agents.hosting.core import Authorization, TurnContext, TurnState
 
@@ -33,38 +30,29 @@ _SYSTEM_PROMPT = environ.get(
 )
 _WELCOME_MESSAGE = environ.get(
     "AGENT_WELCOME_MESSAGE",
-    "Hello! I'm the Echo Agent. Send me any message and I'll relay it to Azure AI Foundry.",
+    "Hello! I'm the Echo Agent. Send me any message and I'll relay it to Azure OpenAI.",
 )
 
 
-def _build_client() -> ChatCompletionsClient:
-    """Build an async Azure AI Foundry ChatCompletionsClient.
+def _build_client() -> AzureOpenAI:
+    """Build an AzureOpenAI client.
 
-    Prefers an explicit API key; falls back to DefaultAzureCredential (managed
-    identity / az login) when no key is set.
+    Requires AZURE_OPENAI_ENDPOINT and AZURE_OPENAI_API_KEY to be set.
     """
-    endpoint = environ["AZURE_AI_FOUNDRY_ENDPOINT"]
-    api_key = environ.get("AZURE_AI_FOUNDRY_API_KEY")
-
-    if api_key:
-        return ChatCompletionsClient(
-            endpoint=endpoint,
-            credential=AzureKeyCredential(api_key),
-        )
-
-    return ChatCompletionsClient(
-        endpoint=endpoint,
-        credential=DefaultAzureCredential(),
+    return AzureOpenAI(
+        azure_endpoint=environ["AZURE_OPENAI_ENDPOINT"],
+        api_key=environ["AZURE_OPENAI_API_KEY"],
+        api_version=environ.get("AZURE_OPENAI_API_VERSION", "2024-12-01-preview"),
     )
 
 
 class EchoAgent:
-    """Stateless agent that echoes user text through Azure AI Foundry."""
+    """Stateless agent that echoes user text through Azure OpenAI."""
 
     def __init__(self, user_authorization: Authorization = None):
         self._user_authorization = user_authorization
         self._client = _build_client()
-        self._model = environ.get("AZURE_AI_FOUNDRY_DEPLOYMENT", "gpt-4o-mini")
+        self._model = environ.get("AZURE_OPENAI_DEPLOYMENT", "gpt-4o-mini")
         logger.info("EchoAgent initialised (model=%s)", self._model)
 
     async def send_welcome(self, context: TurnContext, state: TurnState) -> None:
@@ -74,7 +62,7 @@ class EchoAgent:
                 await context.send_activity(_WELCOME_MESSAGE)
 
     async def handle_message(self, context: TurnContext, state: TurnState) -> None:
-        """Process an incoming message and relay the Foundry reply to the user.
+        """Process an incoming message and relay the OpenAI reply to the user.
 
         The core logic is wrapped inside
         ``invoke_observed_agent_operation_with_context`` so that every
@@ -91,15 +79,15 @@ class EchoAgent:
         logger.info("Received: %s", user_text)
 
         async def _process() -> None:
-            response = await self._client.complete(
-                messages=[
-                    SystemMessage(content=_SYSTEM_PROMPT),
-                    UserMessage(content=user_text),
-                ],
+            response = self._client.chat.completions.create(
                 model=self._model,
+                messages=[
+                    {"role": "system", "content": _SYSTEM_PROMPT},
+                    {"role": "user", "content": user_text},
+                ],
             )
             reply = response.choices[0].message.content
-            logger.info("Foundry reply: %s", reply)
+            logger.info("OpenAI reply: %s", reply)
             await context.send_activity(reply)
 
         try:

@@ -8,7 +8,7 @@ AgentOTELExtensions.cs).
 
 Typical usage in app.py::
 
-    from telemetry import configure_opentelemetry
+    from telemetry import configure_opentelemetry, setup_health_routes
     from telemetry import create_aiohttp_tracing_middleware
     from telemetry import invoke_observed_agent_operation_with_context
 
@@ -18,7 +18,10 @@ Typical usage in app.py::
     # 2. Add tracing middleware to the aiohttp app
     app = web.Application(middlewares=[create_aiohttp_tracing_middleware()])
 
-    # 3. Wrap message handlers with observed operations
+    # 3. Register /health and /alive endpoints (development only)
+    setup_health_routes(app, development=True)
+
+    # 4. Wrap message handlers with observed operations
     await invoke_observed_agent_operation_with_context(
         "OnMessageActivity", turn_context, turn_state, handler_func
     )
@@ -43,6 +46,7 @@ from .agent_otel_extensions import (
     configure_opentelemetry,
     create_aiohttp_tracing_middleware,
     instrument_libraries,
+    setup_health_routes,
 )
 
 __all__ = [
@@ -64,5 +68,6 @@ __all__ = [
     # agent_otel_extensions
     "configure_opentelemetry",
     "instrument_libraries",
+    "setup_health_routes",
     "create_aiohttp_tracing_middleware",
 ]
