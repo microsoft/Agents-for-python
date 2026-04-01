@@ -18,7 +18,7 @@ class AgentAuthConfiguration:
     CERT_PFX_FILE: The path to the PFX certificate file (if using certificate authentication).
     CONNECTION_NAME: The name of the connection
     SCOPES: The scopes to request
-    AUTHORITY: The authority URL for the Azure AD (if different from the default).f
+    AUTHORITY: The authority URL for the Azure AD (if different from the default).
     ALT_BLUEPRINT_ID: An optional alternative blueprint ID used when constructing a connector client.
     """
 
