@@ -67,10 +67,10 @@ class TestAuthorizationConfiguration:
     def test_empty_settings(self):
         auth_config = AgentAuthConfiguration()
         assert auth_config.AUTH_TYPE == AuthTypes.client_secret
-        assert auth_config.TENANT_ID == None
-        assert auth_config.CLIENT_ID == None
-        assert auth_config.CLIENT_SECRET == None
-        assert auth_config.CERT_PFX_FILE == None
-        assert auth_config.CONNECTION_NAME == None
-        assert auth_config.AUTHORITY == None
-        assert auth_config.SCOPES == None
+        assert auth_config.TENANT_ID is None
+        assert auth_config.CLIENT_ID is None
+        assert auth_config.CLIENT_SECRET is None
+        assert auth_config.CERT_PFX_FILE is None
+        assert auth_config.CONNECTION_NAME is None
+        assert auth_config.AUTHORITY is None
+        assert auth_config.SCOPES is None

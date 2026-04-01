@@ -24,6 +24,7 @@ class AgentAuthConfiguration:
 
     TENANT_ID: Optional[str]
     AUTH_TYPE: AuthTypes
+    CLIENT_ID: Optional[str]
     CLIENT_SECRET: Optional[str]
     CERT_PFX_FILE: Optional[str]
     CONNECTION_NAME: Optional[str]
@@ -52,7 +53,7 @@ class AgentAuthConfiguration:
         authority: str | None = None,
         scopes: list[str] | None = None,
         anonymous_allowed: bool = False,
-        **kwargs: Optional[dict[str, str]],
+        **kwargs: str,
     ):
 
         self.AUTH_TYPE = auth_type or kwargs.get("AUTHTYPE", AuthTypes.client_secret)
