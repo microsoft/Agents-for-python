@@ -2,7 +2,6 @@
 # Licensed under the MIT License.
 
 from __future__ import annotations
-from typing import Optional
 
 from microsoft_agents.hosting.core.authorization.auth_types import AuthTypes
 
@@ -56,7 +55,6 @@ class AgentAuthConfiguration:
         scopes: list[str] | None = None,
         anonymous_allowed: bool = False,
         **kwargs: str,
-        **kwargs: str,
     ):
 
         self.AUTH_TYPE = auth_type or kwargs.get("AUTHTYPE", AuthTypes.client_secret)
@@ -65,9 +63,10 @@ class AgentAuthConfiguration:
         self.TENANT_ID = tenant_id or kwargs.get("TENANTID", None)
         self.CLIENT_SECRET = client_secret or kwargs.get("CLIENTSECRET", None)
         self.CERT_PFX_FILE = cert_pfx_file or kwargs.get("CERTPFXFILE", None)
-        self.CERT_PFX_FILE = cert_pfx_file or kwargs.get("CERTPFXFILE", None)
         self.CONNECTION_NAME = connection_name or kwargs.get("CONNECTIONNAME", None)
-        self.FEDERATED_CLIENT_ID = federated_client_id or kwargs.get("FEDERATEDCLIENTID", None)
+        self.FEDERATED_CLIENT_ID = federated_client_id or kwargs.get(
+            "FEDERATEDCLIENTID", None
+        )
         self.SCOPES = scopes or kwargs.get("SCOPES", None)
         self.ALT_BLUEPRINT_ID = kwargs.get("ALT_BLUEPRINT_NAME", None)
         self.ANONYMOUS_ALLOWED = anonymous_allowed or kwargs.get(

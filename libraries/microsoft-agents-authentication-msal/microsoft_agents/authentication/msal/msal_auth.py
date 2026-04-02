@@ -210,20 +210,27 @@ class MsalAuth(AccessTokenProviderBase):
                 }
             elif self._msal_configuration.AUTH_TYPE == AuthTypes.federated_credentials:
                 mi_client = ManagedIdentityClient(
-                    UserAssignedManagedIdentity(client_id=self._msal_configuration.FEDERATED_CLIENT_ID),
+                    UserAssignedManagedIdentity(
+                        client_id=self._msal_configuration.FEDERATED_CLIENT_ID
+                    ),
                     http_client=Session(),
                 )
+
                 def get_assertion() -> str:
-                    result = mi_client.acquire_token_for_client(resource="api://AzureADTokenExchange")
+                    result = mi_client.acquire_token_for_client(
+                        resource="api://AzureADTokenExchange"
+                    )
                     if "access_token" not in result:
                         logger.error(
                             f"Failed to acquire token for federated credentials: {result}"
                         )
                         raise ValueError(
-                            authentication_errors.FailedToAcquireToken.format(str(result))
+                            authentication_errors.FailedToAcquireToken.format(
+                                str(result)
+                            )
                         )
                     return result["access_token"]
-    
+
                 client_credential = {"client_assertion": get_assertion}
             else:
                 logger.error(
@@ -236,7 +243,7 @@ class MsalAuth(AccessTokenProviderBase):
             return ConfidentialClientApplication(
                 client_id=self._msal_configuration.CLIENT_ID,
                 authority=authority,
-                client_credential=client_credential
+                client_credential=client_credential,
             )
 
     def _client_rep(
