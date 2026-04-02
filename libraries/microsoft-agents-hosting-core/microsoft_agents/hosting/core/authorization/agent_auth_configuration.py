@@ -56,6 +56,7 @@ class AgentAuthConfiguration:
         scopes: list[str] | None = None,
         anonymous_allowed: bool = False,
         **kwargs: str,
+        **kwargs: str,
     ):
 
         self.AUTH_TYPE = auth_type or kwargs.get("AUTHTYPE", AuthTypes.client_secret)
@@ -63,6 +64,7 @@ class AgentAuthConfiguration:
         self.AUTHORITY = authority or kwargs.get("AUTHORITY", None)
         self.TENANT_ID = tenant_id or kwargs.get("TENANTID", None)
         self.CLIENT_SECRET = client_secret or kwargs.get("CLIENTSECRET", None)
+        self.CERT_PFX_FILE = cert_pfx_file or kwargs.get("CERTPFXFILE", None)
         self.CERT_PFX_FILE = cert_pfx_file or kwargs.get("CERTPFXFILE", None)
         self.CONNECTION_NAME = connection_name or kwargs.get("CONNECTIONNAME", None)
         self.FEDERATED_CLIENT_ID = federated_client_id or kwargs.get("FEDERATEDCLIENTID", None)
