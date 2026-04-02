@@ -16,6 +16,7 @@ from ._authorization_handler import _AuthorizationHandler
 from ....storage import Storage
 from ....authorization import Connections
 from ..auth_handler import AuthHandler
+from ..telemetry import spans
 
 logger = logging.getLogger(__name__)
 
@@ -179,9 +180,14 @@ class AgenticUserAuthorization(_AuthorizationHandler):
         :param exchange_scopes: Optional list of scopes to request during token exchange. If None, default scopes will be used.
         :type exchange_scopes: Optional[list[str]], Optional
         """
-        if not exchange_scopes:
-            exchange_scopes = self._handler.scopes or []
-        return await self.get_agentic_user_token(context, exchange_scopes)
+        with spans.AgenticToken(
+            auth_handler_id=self._id,
+            connection_name=exchange_connection,
+            scopes=exchange_scopes,
+        ):
+            if not exchange_scopes:
+                exchange_scopes = self._handler.scopes or []
+            return await self.get_agentic_user_token(context, exchange_scopes)
 
     async def sign_out(
         self, context: TurnContext, auth_handler_id: Optional[str] = None
