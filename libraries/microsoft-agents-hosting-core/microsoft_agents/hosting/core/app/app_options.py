@@ -17,6 +17,7 @@ from .input_file import InputFileDownloader
 from ..channel_service_adapter import ChannelServiceAdapter
 
 from .state.turn_state import TurnState
+from .proactive.proactive_options import ProactiveOptions
 
 # from .teams_adapter import TeamsAdapter
 
@@ -88,4 +89,11 @@ class ApplicationOptions:
     """
     Optional. Authorization handler for OAuth flows.
     If not provided, no OAuth flows will be supported.
+    """
+
+    proactive: Optional[ProactiveOptions] = None
+    """
+    Optional. Options for the proactive messaging subsystem.
+    When set, :attr:`AgentApplication.proactive` is available for storing
+    conversations and initiating proactive turns.
     """

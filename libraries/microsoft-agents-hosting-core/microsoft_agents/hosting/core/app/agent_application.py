@@ -43,6 +43,7 @@ from .typing_indicator import TypingIndicator
 
 from ._type_defs import RouteHandler, RouteSelector
 from ._routes import _RouteList, _Route, RouteRank, _agentic_selector
+from .proactive import Proactive, ProactiveOptions
 
 logger = logging.getLogger(__name__)
 
@@ -67,6 +68,7 @@ class AgentApplication(Agent, Generic[StateT]):
     _options: ApplicationOptions
     _adapter: Optional[ChannelServiceAdapter] = None
     _auth: Optional[Authorization] = None
+    _proactive: Optional[Proactive] = None
     _internal_before_turn: list[Callable[[TurnContext, StateT], Awaitable[bool]]] = []
     _internal_after_turn: list[Callable[[TurnContext, StateT], Awaitable[bool]]] = []
     _route_list: _RouteList[StateT] = _RouteList[StateT]()
@@ -145,6 +147,12 @@ class AgentApplication(Agent, Generic[StateT]):
             or partial(TurnState.with_storage, self._options.storage)
         )
 
+        if options.proactive:
+            proactive_opts = options.proactive
+            if not proactive_opts.storage:
+                proactive_opts.storage = self._options.storage
+            self._proactive = Proactive(self, proactive_opts)
+
         # TODO: decide how to initialize the Authorization (params vs options vs kwargs)
         if authorization:
             self._auth = authorization
@@ -213,6 +221,26 @@ class AgentApplication(Agent, Generic[StateT]):
         :rtype: :class:`microsoft_agents.hosting.core.app.app_options.ApplicationOptions`
         """
         return self._options
+
+    @property
+    def proactive(self) -> Proactive:
+        """
+        The application's proactive messaging manager.
+
+        :return: The proactive messaging manager.
+        :rtype: :class:`microsoft_agents.hosting.core.app.proactive.proactive.Proactive`
+        :raises ApplicationError: If proactive options were not configured.
+        """
+        if not self._proactive:
+            logger.error(
+                "AgentApplication.proactive(): proactive options are not configured.",
+                stack_info=True,
+            )
+            raise ApplicationError("""
+                The `AgentApplication.proactive` property is unavailable because
+                no ProactiveOptions were configured in ApplicationOptions.
+                """)
+        return self._proactive
 
     def add_route(
         self,
