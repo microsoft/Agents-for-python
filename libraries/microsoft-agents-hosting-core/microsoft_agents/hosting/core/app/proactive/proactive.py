@@ -19,7 +19,9 @@ from .proactive_options import ProactiveOptions
 
 if TYPE_CHECKING:
     from microsoft_agents.hosting.core.turn_context import TurnContext
-    from microsoft_agents.hosting.core.channel_service_adapter import ChannelServiceAdapter
+    from microsoft_agents.hosting.core.channel_service_adapter import (
+        ChannelServiceAdapter,
+    )
     from microsoft_agents.hosting.core.app.agent_application import AgentApplication
 
 logger = logging.getLogger(__name__)

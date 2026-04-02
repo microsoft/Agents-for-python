@@ -45,7 +45,9 @@ class Conversation(StoreItem):
         if isinstance(claims, ClaimsIdentity):
             self.claims: dict[str, str] = Conversation.claims_from_identity(claims)
         else:
-            self.claims = {k: v for k, v in claims.items() if k in _PERSISTED_CLAIM_KEYS}
+            self.claims = {
+                k: v for k, v in claims.items() if k in _PERSISTED_CLAIM_KEYS
+            }
         self.conversation_reference: ConversationReference = conversation_reference
 
     # ------------------------------------------------------------------
@@ -115,9 +117,13 @@ class Conversation(StoreItem):
         if not self.conversation_reference:
             raise ValueError("Conversation.conversation_reference is required.")
         if not self.conversation_reference.conversation:
-            raise ValueError("Conversation.conversation_reference.conversation is required.")
+            raise ValueError(
+                "Conversation.conversation_reference.conversation is required."
+            )
         if not self.conversation_reference.service_url:
-            raise ValueError("Conversation.conversation_reference.service_url is required.")
+            raise ValueError(
+                "Conversation.conversation_reference.service_url is required."
+            )
 
     # ------------------------------------------------------------------
     # StoreItem serialization
