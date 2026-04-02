@@ -17,6 +17,7 @@ class TestAuthorizationConfiguration:
             client_id="test-client-id",
             client_secret="test-client-secret",
             cert_pfx_file="test-cert.pfx",
+            cert_pfx_file="test-cert.pfx",
             connection_name="test-connection",
             authority="https://login.microsoftonline.com",
             scopes=["test-scope-1", "test-scope-2"],
@@ -26,6 +27,7 @@ class TestAuthorizationConfiguration:
         assert auth_config.TENANT_ID == "test-tenant-id"
         assert auth_config.CLIENT_ID == "test-client-id"
         assert auth_config.CLIENT_SECRET == "test-client-secret"
+        assert auth_config.CERT_PFX_FILE == "test-cert.pfx"
         assert auth_config.CERT_PFX_FILE == "test-cert.pfx"
         assert auth_config.CONNECTION_NAME == "test-connection"
         assert auth_config.AUTHORITY == "https://login.microsoftonline.com"
@@ -67,10 +69,11 @@ class TestAuthorizationConfiguration:
     def test_empty_settings(self):
         auth_config = AgentAuthConfiguration()
         assert auth_config.AUTH_TYPE == AuthTypes.client_secret
-        assert auth_config.TENANT_ID == None
-        assert auth_config.CLIENT_ID == None
-        assert auth_config.CLIENT_SECRET == None
-        assert auth_config.CERT_PFX_FILE == None
-        assert auth_config.CONNECTION_NAME == None
-        assert auth_config.AUTHORITY == None
-        assert auth_config.SCOPES == None
+        assert auth_config.TENANT_ID is None
+        assert auth_config.CLIENT_ID is None
+        assert auth_config.CLIENT_SECRET is None
+        assert auth_config.CERT_PFX_FILE is None
+        assert auth_config.FEDERATED_CLIENT_ID is None
+        assert auth_config.CONNECTION_NAME is None
+        assert auth_config.AUTHORITY is None
+        assert auth_config.SCOPES is None

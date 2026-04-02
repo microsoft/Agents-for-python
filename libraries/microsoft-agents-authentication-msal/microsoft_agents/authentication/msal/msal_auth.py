@@ -41,8 +41,6 @@ async def _async_acquire_token_for_client(msal_auth_client, *args, **kwargs):
 
 class MsalAuth(AccessTokenProviderBase):
 
-    _client_credential_cache = None
-
     def __init__(self, msal_configuration: AgentAuthConfiguration):
         """Initializes the MsalAuth class with the given configuration.
 
@@ -202,16 +200,31 @@ class MsalAuth(AccessTokenProviderBase):
             )
         else:
             authority = MsalAuth._resolve_authority(self._msal_configuration, tenant_id)
+            client_credential = None
 
-            if self._client_credential_cache:
-                logger.info("Using cached client credentials for MSAL authentication.")
-                pass
-            elif self._msal_configuration.AUTH_TYPE == AuthTypes.client_secret:
-                self._client_credential_cache = self._msal_configuration.CLIENT_SECRET
+            if self._msal_configuration.AUTH_TYPE == AuthTypes.client_secret:
+                client_credential = self._msal_configuration.CLIENT_SECRET
             elif self._msal_configuration.AUTH_TYPE == AuthTypes.certificate:
-                self._client_credential_cache = {
+                client_credential = {
                     "private_key_pfx_path": self._msal_configuration.CERT_PFX_FILE,
                 }
+            elif self._msal_configuration.AUTH_TYPE == AuthTypes.federated_credentials:
+                mi_client = ManagedIdentityClient(
+                    UserAssignedManagedIdentity(client_id=self._msal_configuration.FEDERATED_CLIENT_ID),
+                    http_client=Session(),
+                )
+                def get_assertion() -> str:
+                    result = mi_client.acquire_token_for_client(resource="api://AzureADTokenExchange")
+                    if "access_token" not in result:
+                        logger.error(
+                            f"Failed to acquire token for federated credentials: {result}"
+                        )
+                        raise ValueError(
+                            authentication_errors.FailedToAcquireToken.format(str(result))
+                        )
+                    return result["access_token"]
+    
+                client_credential = {"client_assertion": get_assertion}
             else:
                 logger.error(
                     f"Unsupported authentication type: {self._msal_configuration.AUTH_TYPE}"
@@ -223,7 +236,7 @@ class MsalAuth(AccessTokenProviderBase):
             return ConfidentialClientApplication(
                 client_id=self._msal_configuration.CLIENT_ID,
                 authority=authority,
-                client_credential=self._client_credential_cache,
+                client_credential=client_credential
             )
 
     def _client_rep(

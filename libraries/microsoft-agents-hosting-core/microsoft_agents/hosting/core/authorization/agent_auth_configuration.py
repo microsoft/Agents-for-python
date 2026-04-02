@@ -18,18 +18,20 @@ class AgentAuthConfiguration:
     CERT_PFX_FILE: The path to the PFX certificate file (if using certificate authentication).
     CONNECTION_NAME: The name of the connection
     SCOPES: The scopes to request
-    AUTHORITY: The authority URL for the Azure AD (if different from the default).f
+    AUTHORITY: The authority URL for the Azure AD (if different from the default).
     ALT_BLUEPRINT_ID: An optional alternative blueprint ID used when constructing a connector client.
     """
 
-    TENANT_ID: Optional[str]
+    TENANT_ID: str | None
     AUTH_TYPE: AuthTypes
-    CLIENT_SECRET: Optional[str]
-    CERT_PFX_FILE: Optional[str]
-    CONNECTION_NAME: Optional[str]
-    SCOPES: Optional[list[str]]
-    AUTHORITY: Optional[str]
-    ALT_BLUEPRINT_ID: Optional[str]
+    CLIENT_ID: str | None
+    CLIENT_SECRET: str | None
+    CERT_PFX_FILE: str | None
+    CONNECTION_NAME: str | None
+    FEDERATED_CLIENT_ID: str | None
+    SCOPES: list[str] | None
+    AUTHORITY: str | None
+    ALT_BLUEPRINT_ID: str | None
     ANONYMOUS_ALLOWED: bool = False
 
     # Multi-connection support: Maintains a map of all configured connections
@@ -49,10 +51,11 @@ class AgentAuthConfiguration:
         client_secret: str | None = None,
         cert_pfx_file: str | None = None,
         connection_name: str | None = None,
+        federated_client_id: str | None = None,
         authority: str | None = None,
         scopes: list[str] | None = None,
         anonymous_allowed: bool = False,
-        **kwargs: Optional[dict[str, str]],
+        **kwargs: str,
     ):
 
         self.AUTH_TYPE = auth_type or kwargs.get("AUTHTYPE", AuthTypes.client_secret)
@@ -62,6 +65,7 @@ class AgentAuthConfiguration:
         self.CLIENT_SECRET = client_secret or kwargs.get("CLIENTSECRET", None)
         self.CERT_PFX_FILE = cert_pfx_file or kwargs.get("CERTPFXFILE", None)
         self.CONNECTION_NAME = connection_name or kwargs.get("CONNECTIONNAME", None)
+        self.FEDERATED_CLIENT_ID = federated_client_id or kwargs.get("FEDERATEDCLIENTID", None)
         self.SCOPES = scopes or kwargs.get("SCOPES", None)
         self.ALT_BLUEPRINT_ID = kwargs.get("ALT_BLUEPRINT_NAME", None)
         self.ANONYMOUS_ALLOWED = anonymous_allowed or kwargs.get(
