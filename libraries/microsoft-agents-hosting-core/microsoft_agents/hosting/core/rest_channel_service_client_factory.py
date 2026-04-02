@@ -16,6 +16,7 @@ from microsoft_agents.hosting.core.connector import ConnectorClientBase
 from microsoft_agents.hosting.core.connector.client import UserTokenClient
 from microsoft_agents.hosting.core.connector.teams import TeamsConnectorClient
 from microsoft_agents.hosting.core.connector.mcs import MCSConnectorClient
+from microsoft_agents.hosting.core.telemetry.adapter import spans
 
 from .channel_service_client_factory_base import ChannelServiceClientFactoryBase
 from .turn_context import TurnContext
@@ -105,35 +106,43 @@ class RestChannelServiceClientFactory(ChannelServiceClientFactoryBase):
                 "RestChannelServiceClientFactory.create_connector_client: audience can't be None or Empty"
             )
 
-        if context and context.activity.is_agentic_request():
-            token = await self._get_agentic_token(context, service_url)
-        else:
-            token_provider: AccessTokenProviderBase = (
-                self._connection_manager.get_token_provider(
-                    claims_identity, service_url
+        is_agentic_request = context.activity.is_agentic_request() if context else False
+
+        with spans.AdapterCreateConnectorClient(
+            service_url=service_url,
+            scopes=scopes,
+            is_agentic_request=is_agentic_request,
+        ):
+
+            if context and is_agentic_request:
+                token = await self._get_agentic_token(context, service_url)
+            else:
+                token_provider: AccessTokenProviderBase = (
+                    self._connection_manager.get_token_provider(
+                        claims_identity, service_url
+                    )
+                    if not use_anonymous
+                    else self._ANONYMOUS_TOKEN_PROVIDER
                 )
-                if not use_anonymous
-                else self._ANONYMOUS_TOKEN_PROVIDER
-            )
 
-            token = await token_provider.get_access_token(
-                audience, scopes or claims_identity.get_token_scope()
-            )
+                token = await token_provider.get_access_token(
+                    audience, scopes or claims_identity.get_token_scope()
+                )
 
-        # Check if this is a connector request (e.g., from Copilot Studio)
-        if (
-            context
-            and context.activity.recipient
-            and context.activity.recipient.role == RoleTypes.connector_user
-        ) or service_url.startswith("https://pvaruntime"):
-            return MCSConnectorClient(
+            # Check if this is a connector request (e.g., from Copilot Studio)
+            if (
+                context
+                and context.activity.recipient
+                and context.activity.recipient.role == RoleTypes.connector_user
+            ) or service_url.startswith("https://pvaruntime"):
+                return MCSConnectorClient(
+                    endpoint=service_url,
+                )
+
+            return TeamsConnectorClient(
                 endpoint=service_url,
+                token=token,
             )
-
-        return TeamsConnectorClient(
-            endpoint=service_url,
-            token=token,
-        )
 
     async def create_user_token_client(
         self,
@@ -150,27 +159,34 @@ class RestChannelServiceClientFactory(ChannelServiceClientFactoryBase):
         if not context or not claims_identity:
             raise ValueError("context and claims_identity are required")
 
-        if use_anonymous:
-            return UserTokenClient(endpoint=self._token_service_endpoint, token="")
+        scopes = claims_identity.get_token_scope() if claims_identity else None
 
-        if context.activity.is_agentic_request():
-            token = await self._get_agentic_token(context, self._token_service_endpoint)
-        else:
-            scopes = claims_identity.get_token_scope()
+        with spans.AdapterCreateUserTokenClient(
+            token_service_endpoint=self._token_service_endpoint,
+            scopes=scopes,
+        ):
 
-            token_provider = self._connection_manager.get_token_provider(
-                claims_identity, self._token_service_endpoint
+            if use_anonymous:
+                return UserTokenClient(endpoint=self._token_service_endpoint, token="")
+
+            if context.activity.is_agentic_request():
+                token = await self._get_agentic_token(
+                    context, self._token_service_endpoint
+                )
+            else:
+                token_provider = self._connection_manager.get_token_provider(
+                    claims_identity, self._token_service_endpoint
+                )
+
+                token = await token_provider.get_access_token(
+                    self._token_service_audience, scopes
+                )
+
+            if not token:
+                logger.error("Failed to obtain token for user token client")
+                raise ValueError("Failed to obtain token for user token client")
+
+            return UserTokenClient(
+                endpoint=self._token_service_endpoint,
+                token=token,
             )
-
-            token = await token_provider.get_access_token(
-                self._token_service_audience, scopes
-            )
-
-        if not token:
-            logger.error("Failed to obtain token for user token client")
-            raise ValueError("Failed to obtain token for user token client")
-
-        return UserTokenClient(
-            endpoint=self._token_service_endpoint,
-            token=token,
-        )
