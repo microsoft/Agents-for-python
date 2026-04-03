@@ -17,9 +17,6 @@ from msal import (
     TokenCache,
 )
 from requests import Session
-from cryptography.x509 import load_pem_x509_certificate
-from cryptography.hazmat.backends import default_backend
-from cryptography.hazmat.primitives import hashes
 
 from microsoft_agents.activity._utils import _DeferredString
 
@@ -28,6 +25,7 @@ from microsoft_agents.hosting.core import (
     AccessTokenProviderBase,
     AgentAuthConfiguration,
 )
+from microsoft_agents.hosting.core.authorization.telemetry import spans
 from microsoft_agents.authentication.msal.errors import authentication_errors
 
 logger = logging.getLogger(__name__)
@@ -68,40 +66,48 @@ class MsalAuth(AccessTokenProviderBase):
     async def get_access_token(
         self, resource_url: str, scopes: list[str], force_refresh: bool = False
     ) -> str:
-        logger.debug(
-            f"Requesting access token for resource: {resource_url}, scopes: {scopes}"
-        )
-        valid_uri, instance_uri = self._uri_validator(resource_url)
-        if not valid_uri:
-            raise ValueError(str(authentication_errors.InvalidInstanceUrl))
-        assert instance_uri is not None  # for mypy
-
-        local_scopes = self._resolve_scopes_list(instance_uri, scopes)
-        msal_auth_client = self._get_client()
-
-        if isinstance(msal_auth_client, ManagedIdentityClient):
-            logger.info("Acquiring token using Managed Identity Client.")
-            auth_result_payload = await _async_acquire_token_for_client(
-                msal_auth_client, resource=resource_url
+        with spans.GetAccessToken(
+            scopes,
+            self._msal_configuration.AUTH_TYPE,
+        ):
+            logger.debug(
+                f"Requesting access token for resource: {resource_url}, scopes: {scopes}"
             )
-        elif isinstance(msal_auth_client, ConfidentialClientApplication):
-            logger.info("Acquiring token using Confidential Client Application.")
-            auth_result_payload = await _async_acquire_token_for_client(
-                msal_auth_client, scopes=local_scopes
-            )
-        else:
-            auth_result_payload = None
+            valid_uri, instance_uri = self._uri_validator(resource_url)
+            if not valid_uri:
+                raise ValueError(str(authentication_errors.InvalidInstanceUrl))
+            assert instance_uri is not None  # for mypy
 
-        res = auth_result_payload.get("access_token") if auth_result_payload else None
-        if not res:
-            logger.error("Failed to acquire token for resource %s", auth_result_payload)
-            raise ValueError(
-                authentication_errors.FailedToAcquireToken.format(
-                    str(auth_result_payload)
+            local_scopes = self._resolve_scopes_list(instance_uri, scopes)
+            msal_auth_client = self._get_client()
+
+            if isinstance(msal_auth_client, ManagedIdentityClient):
+                logger.info("Acquiring token using Managed Identity Client.")
+                auth_result_payload = await _async_acquire_token_for_client(
+                    msal_auth_client, resource=resource_url
                 )
-            )
+            elif isinstance(msal_auth_client, ConfidentialClientApplication):
+                logger.info("Acquiring token using Confidential Client Application.")
+                auth_result_payload = await _async_acquire_token_for_client(
+                    msal_auth_client, scopes=local_scopes
+                )
+            else:
+                auth_result_payload = None
 
-        return res
+            res = (
+                auth_result_payload.get("access_token") if auth_result_payload else None
+            )
+            if not res:
+                logger.error(
+                    "Failed to acquire token for resource %s", auth_result_payload
+                )
+                raise ValueError(
+                    authentication_errors.FailedToAcquireToken.format(
+                        str(auth_result_payload)
+                    )
+                )
+
+            return res
 
     async def acquire_token_on_behalf_of(
         self, scopes: list[str], user_assertion: str
@@ -112,44 +118,44 @@ class MsalAuth(AccessTokenProviderBase):
         :param user_assertion: The user assertion token.
         :return: The access token as a string.
         """
+        with spans.AcquireTokenOnBehalfOf(scopes):
+            msal_auth_client = self._get_client()
+            if isinstance(msal_auth_client, ManagedIdentityClient):
+                logger.error(
+                    "Attempted on-behalf-of flow with Managed Identity authentication."
+                )
+                raise NotImplementedError(
+                    str(authentication_errors.OnBehalfOfFlowNotSupportedManagedIdentity)
+                )
+            elif isinstance(msal_auth_client, ConfidentialClientApplication):
+                # TODO: Handling token error / acquisition failed
 
-        msal_auth_client = self._get_client()
-        if isinstance(msal_auth_client, ManagedIdentityClient):
+                # MSAL in Python does not support async, so we use asyncio.to_thread to run it in
+                # a separate thread and avoid blocking the event loop
+                token = await asyncio.to_thread(
+                    lambda: msal_auth_client.acquire_token_on_behalf_of(
+                        scopes=scopes, user_assertion=user_assertion
+                    )
+                )
+
+                if "access_token" not in token:
+                    logger.error(
+                        f"Failed to acquire token on behalf of user: {user_assertion}"
+                    )
+                    raise ValueError(
+                        authentication_errors.FailedToAcquireToken.format(str(token))
+                    )
+
+                return token["access_token"]
+
             logger.error(
-                "Attempted on-behalf-of flow with Managed Identity authentication."
+                f"On-behalf-of flow is not supported with the current authentication type: {msal_auth_client.__class__.__name__}"
             )
             raise NotImplementedError(
-                str(authentication_errors.OnBehalfOfFlowNotSupportedManagedIdentity)
-            )
-        elif isinstance(msal_auth_client, ConfidentialClientApplication):
-            # TODO: Handling token error / acquisition failed
-
-            # MSAL in Python does not support async, so we use asyncio.to_thread to run it in
-            # a separate thread and avoid blocking the event loop
-            token = await asyncio.to_thread(
-                lambda: msal_auth_client.acquire_token_on_behalf_of(
-                    scopes=scopes, user_assertion=user_assertion
+                authentication_errors.OnBehalfOfFlowNotSupportedAuthType.format(
+                    msal_auth_client.__class__.__name__
                 )
             )
-
-            if "access_token" not in token:
-                logger.error(
-                    f"Failed to acquire token on behalf of user: {user_assertion}"
-                )
-                raise ValueError(
-                    authentication_errors.FailedToAcquireToken.format(str(token))
-                )
-
-            return token["access_token"]
-
-        logger.error(
-            f"On-behalf-of flow is not supported with the current authentication type: {msal_auth_client.__class__.__name__}"
-        )
-        raise NotImplementedError(
-            authentication_errors.OnBehalfOfFlowNotSupportedAuthType.format(
-                msal_auth_client.__class__.__name__
-            )
-        )
 
     @staticmethod
     def _resolve_authority(
@@ -212,26 +218,8 @@ class MsalAuth(AccessTokenProviderBase):
             elif self._msal_configuration.AUTH_TYPE == AuthTypes.client_secret:
                 self._client_credential_cache = self._msal_configuration.CLIENT_SECRET
             elif self._msal_configuration.AUTH_TYPE == AuthTypes.certificate:
-                with open(self._msal_configuration.CERT_KEY_FILE) as file:
-                    logger.info(
-                        "Loading certificate private key for MSAL authentication."
-                    )
-                    private_key = file.read()
-
-                with open(self._msal_configuration.CERT_PEM_FILE) as file:
-                    logger.info("Loading public certificate for MSAL authentication.")
-                    public_certificate = file.read()
-
-                # Create an X509 object and calculate the thumbprint
-                logger.info("Calculating thumbprint for the public certificate.")
-                cert = load_pem_x509_certificate(
-                    data=bytes(public_certificate, "UTF-8"), backend=default_backend()
-                )
-                thumbprint = cert.fingerprint(hashes.SHA1()).hex()
-
                 self._client_credential_cache = {
-                    "thumbprint": thumbprint,
-                    "private_key": private_key,
+                    "private_key_pfx_path": self._msal_configuration.CERT_PFX_FILE,
                 }
             else:
                 logger.error(
@@ -339,78 +327,80 @@ class MsalAuth(AccessTokenProviderBase):
         :return: A tuple containing the agentic instance token and the agent application token.
         :rtype: tuple[str, str]
         """
-
         if not agent_app_instance_id:
             raise ValueError(
                 str(authentication_errors.AgentApplicationInstanceIdRequired)
             )
 
-        logger.info(
-            "Attempting to get agentic instance token from agent_app_instance_id %s",
-            agent_app_instance_id,
-        )
-        agent_token_result = await self.get_agentic_application_token(
-            tenant_id, agent_app_instance_id
-        )
+        with spans.GetAgenticInstanceToken(agent_app_instance_id):
 
-        if not agent_token_result:
-            logger.error(
-                "Failed to acquire agentic instance token or agent token for agent_app_instance_id %s",
+            logger.info(
+                "Attempting to get agentic instance token from agent_app_instance_id %s",
                 agent_app_instance_id,
             )
-            raise Exception(
-                authentication_errors.FailedToAcquireAgenticInstanceToken.format(
-                    agent_app_instance_id
+            agent_token_result = await self.get_agentic_application_token(
+                tenant_id, agent_app_instance_id
+            )
+
+            if not agent_token_result:
+                logger.error(
+                    "Failed to acquire agentic instance token or agent token for agent_app_instance_id %s",
+                    agent_app_instance_id,
                 )
-            )
-
-        authority = MsalAuth._resolve_authority(self._msal_configuration, tenant_id)
-
-        instance_app = ConfidentialClientApplication(
-            client_id=agent_app_instance_id,
-            authority=authority,
-            client_credential={"client_assertion": agent_token_result},
-            # token_cache=self._token_cache,
-        )
-
-        agentic_instance_token = await _async_acquire_token_for_client(
-            instance_app, ["api://AzureAdTokenExchange/.default"]
-        )
-
-        if not agentic_instance_token:
-            logger.error(
-                "Failed to acquire agentic instance token or agent token for agent_app_instance_id %s",
-                agent_app_instance_id,
-            )
-            raise Exception(
-                authentication_errors.FailedToAcquireAgenticInstanceToken.format(
-                    agent_app_instance_id
+                raise Exception(
+                    authentication_errors.FailedToAcquireAgenticInstanceToken.format(
+                        agent_app_instance_id
+                    )
                 )
+
+            authority = MsalAuth._resolve_authority(self._msal_configuration, tenant_id)
+
+            instance_app = ConfidentialClientApplication(
+                client_id=agent_app_instance_id,
+                authority=authority,
+                client_credential={"client_assertion": agent_token_result},
+                # token_cache=self._token_cache,
             )
 
-        # future scenario where we don't know the blueprint id upfront
-
-        token = agentic_instance_token.get("access_token")
-        if not token:
-            logger.error(
-                "Failed to acquire agentic instance token, %s", agentic_instance_token
+            agentic_instance_token = await _async_acquire_token_for_client(
+                instance_app, ["api://AzureAdTokenExchange/.default"]
             )
-            raise ValueError(
-                authentication_errors.FailedToAcquireToken.format(
-                    str(agentic_instance_token)
+
+            if not agentic_instance_token:
+                logger.error(
+                    "Failed to acquire agentic instance token or agent token for agent_app_instance_id %s",
+                    agent_app_instance_id,
                 )
+                raise Exception(
+                    authentication_errors.FailedToAcquireAgenticInstanceToken.format(
+                        agent_app_instance_id
+                    )
+                )
+
+            # future scenario where we don't know the blueprint id upfront
+
+            token = agentic_instance_token.get("access_token")
+            if not token:
+                logger.error(
+                    "Failed to acquire agentic instance token, %s",
+                    agentic_instance_token,
+                )
+                raise ValueError(
+                    authentication_errors.FailedToAcquireToken.format(
+                        str(agentic_instance_token)
+                    )
+                )
+
+            logger.debug(
+                "Agentic blueprint id: %s",
+                _DeferredString(
+                    lambda: jwt.decode(token, options={"verify_signature": False}).get(
+                        "xms_par_app_azp"
+                    )
+                ),
             )
 
-        logger.debug(
-            "Agentic blueprint id: %s",
-            _DeferredString(
-                lambda: jwt.decode(token, options={"verify_signature": False}).get(
-                    "xms_par_app_azp"
-                )
-            ),
-        )
-
-        return agentic_instance_token["access_token"], agent_token_result
+            return agentic_instance_token["access_token"], agent_token_result
 
     async def get_agentic_user_token(
         self,
@@ -435,71 +425,73 @@ class MsalAuth(AccessTokenProviderBase):
                 str(authentication_errors.AgentApplicationInstanceIdAndUserIdRequired)
             )
 
-        logger.info(
-            "Attempting to get agentic user token from agent_app_instance_id %s and agentic_user_id %s",
-            agent_app_instance_id,
-            agentic_user_id,
-        )
-        instance_token, agent_token = await self.get_agentic_instance_token(
-            tenant_id, agent_app_instance_id
-        )
+        with spans.GetAgenticUserToken(agent_app_instance_id, agentic_user_id, scopes):
 
-        if not instance_token or not agent_token:
-            logger.error(
-                "Failed to acquire instance token or agent token for agent_app_instance_id %s and agentic_user_id %s",
+            logger.info(
+                "Attempting to get agentic user token from agent_app_instance_id %s and agentic_user_id %s",
                 agent_app_instance_id,
                 agentic_user_id,
             )
-            raise Exception(
-                authentication_errors.FailedToAcquireInstanceOrAgentToken.format(
-                    agent_app_instance_id, agentic_user_id
+            instance_token, agent_token = await self.get_agentic_instance_token(
+                tenant_id, agent_app_instance_id
+            )
+
+            if not instance_token or not agent_token:
+                logger.error(
+                    "Failed to acquire instance token or agent token for agent_app_instance_id %s and agentic_user_id %s",
+                    agent_app_instance_id,
+                    agentic_user_id,
                 )
+                raise Exception(
+                    authentication_errors.FailedToAcquireInstanceOrAgentToken.format(
+                        agent_app_instance_id, agentic_user_id
+                    )
+                )
+
+            authority = MsalAuth._resolve_authority(self._msal_configuration, tenant_id)
+
+            instance_app = ConfidentialClientApplication(
+                client_id=agent_app_instance_id,
+                authority=authority,
+                client_credential={"client_assertion": agent_token},
+                # token_cache=self._token_cache,
             )
 
-        authority = MsalAuth._resolve_authority(self._msal_configuration, tenant_id)
-
-        instance_app = ConfidentialClientApplication(
-            client_id=agent_app_instance_id,
-            authority=authority,
-            client_credential={"client_assertion": agent_token},
-            # token_cache=self._token_cache,
-        )
-
-        logger.info(
-            "Acquiring agentic user token for agent_app_instance_id %s and agentic_user_id %s",
-            agent_app_instance_id,
-            agentic_user_id,
-        )
-        # MSAL in Python does not support async, so we use asyncio.to_thread to run it in
-        # a separate thread and avoid blocking the event loop
-        auth_result_payload = await _async_acquire_token_for_client(
-            instance_app,
-            scopes,
-            data={
-                "user_id": agentic_user_id,
-                "user_federated_identity_credential": instance_token,
-                "grant_type": "user_fic",
-            },
-        )
-
-        if not auth_result_payload:
-            logger.error(
-                "Failed to acquire agentic user token for agent_app_instance_id %s and agentic_user_id %s, %s",
+            logger.info(
+                "Acquiring agentic user token for agent_app_instance_id %s and agentic_user_id %s",
                 agent_app_instance_id,
                 agentic_user_id,
-                auth_result_payload,
             )
-            return None
-
-        access_token = auth_result_payload.get("access_token")
-        if not access_token:
-            logger.error(
-                "Failed to acquire agentic user token for agent_app_instance_id %s and agentic_user_id %s, %s",
-                agent_app_instance_id,
-                agentic_user_id,
-                auth_result_payload,
+            # MSAL in Python does not support async, so we use asyncio.to_thread to run it in
+            # a separate thread and avoid blocking the event loop
+            auth_result_payload = await _async_acquire_token_for_client(
+                instance_app,
+                scopes,
+                data={
+                    "user_id": agentic_user_id,
+                    "user_federated_identity_credential": instance_token,
+                    "grant_type": "user_fic",
+                },
             )
-            return None
 
-        logger.info("Acquired agentic user token response.")
-        return access_token
+            if not auth_result_payload:
+                logger.error(
+                    "Failed to acquire agentic user token for agent_app_instance_id %s and agentic_user_id %s, %s",
+                    agent_app_instance_id,
+                    agentic_user_id,
+                    auth_result_payload,
+                )
+                return None
+
+            access_token = auth_result_payload.get("access_token")
+            if not access_token:
+                logger.error(
+                    "Failed to acquire agentic user token for agent_app_instance_id %s and agentic_user_id %s, %s",
+                    agent_app_instance_id,
+                    agentic_user_id,
+                    auth_result_payload,
+                )
+                return None
+
+            logger.info("Acquired agentic user token response.")
+            return access_token

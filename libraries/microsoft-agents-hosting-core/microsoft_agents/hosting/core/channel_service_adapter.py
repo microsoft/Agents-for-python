@@ -35,6 +35,7 @@ from microsoft_agents.hosting.core.authorization import (
     AuthenticationConstants,
     ClaimsIdentity,
 )
+from microsoft_agents.hosting.core.telemetry.adapter import spans
 from .channel_service_client_factory_base import ChannelServiceClientFactoryBase
 from .channel_adapter import ChannelAdapter
 from .turn_context import TurnContext
@@ -99,19 +100,22 @@ class ChannelServiceAdapter(ChannelAdapter, ABC):
                 if not connector_client:
                     raise Error("Unable to extract ConnectorClient from turn context.")
 
-                if activity.reply_to_id:
-                    response = await connector_client.conversations.reply_to_activity(
-                        activity.conversation.id,
-                        activity.reply_to_id,
-                        activity,
-                    )
-                else:
-                    response = (
-                        await connector_client.conversations.send_to_conversation(
-                            activity.conversation.id,
-                            activity,
+                with spans.AdapterSendActivities([activity]):
+                    if activity.reply_to_id:
+                        response = (
+                            await connector_client.conversations.reply_to_activity(
+                                activity.conversation.id,
+                                activity.reply_to_id,
+                                activity,
+                            )
                         )
-                    )
+                    else:
+                        response = (
+                            await connector_client.conversations.send_to_conversation(
+                                activity.conversation.id,
+                                activity,
+                            )
+                        )
             response = response or ResourceResponse(id=activity.id or "")
 
             responses.append(response)
@@ -136,16 +140,18 @@ class ChannelServiceAdapter(ChannelAdapter, ABC):
         if activity is None:
             raise TypeError("Expected Activity but got None instead")
 
-        connector_client = cast(
-            ConnectorClientBase,
-            context.turn_state.get(self._AGENT_CONNECTOR_CLIENT_KEY),
-        )
-        if not connector_client:
-            raise Error("Unable to extract ConnectorClient from turn context.")
+        with spans.AdapterUpdateActivity(activity):
 
-        return await connector_client.conversations.update_activity(
-            activity.conversation.id, activity.id, activity
-        )
+            connector_client = cast(
+                ConnectorClientBase,
+                context.turn_state.get(self._AGENT_CONNECTOR_CLIENT_KEY),
+            )
+            if not connector_client:
+                raise Error("Unable to extract ConnectorClient from turn context.")
+
+            return await connector_client.conversations.update_activity(
+                activity.conversation.id, activity.id, activity
+            )
 
     async def delete_activity(
         self, context: TurnContext, reference: ConversationReference
@@ -165,16 +171,18 @@ class ChannelServiceAdapter(ChannelAdapter, ABC):
         if not reference:
             raise TypeError("Expected ConversationReference but got None instead")
 
-        connector_client = cast(
-            ConnectorClientBase,
-            context.turn_state.get(self._AGENT_CONNECTOR_CLIENT_KEY),
-        )
-        if not connector_client:
-            raise Error("Unable to extract ConnectorClient from turn context.")
+        with spans.AdapterDeleteActivity(context.activity):
 
-        await connector_client.conversations.delete_activity(
-            reference.conversation.id, reference.activity_id
-        )
+            connector_client = cast(
+                ConnectorClientBase,
+                context.turn_state.get(self._AGENT_CONNECTOR_CLIENT_KEY),
+            )
+            if not connector_client:
+                raise Error("Unable to extract ConnectorClient from turn context.")
+
+            await connector_client.conversations.delete_activity(
+                reference.conversation.id, reference.activity_id
+            )
 
     async def continue_conversation(  # pylint: disable=arguments-differ
         self,
@@ -196,21 +204,23 @@ class ChannelServiceAdapter(ChannelAdapter, ABC):
         :param callback: The method to call for the resulting agent turn.
         :type callback: Callable[[:class:`microsoft_agents.hosting.core.turn_context.TurnContext`], Awaitable]
         """
-        if not callable:
+        if not callable(callback):
             raise TypeError(
                 "Expected Callback (Callable[[TurnContext], Awaitable]) but got None instead"
             )
 
-        self._validate_continuation_activity(continuation_activity)
+        with spans.AdapterContinueConversation(continuation_activity):
 
-        claims_identity = self.create_claims_identity(agent_app_id)
+            self._validate_continuation_activity(continuation_activity)
 
-        return await self.process_proactive(
-            claims_identity,
-            continuation_activity,
-            claims_identity.get_token_audience(),
-            callback,
-        )
+            claims_identity = self.create_claims_identity(agent_app_id)
+
+            return await self.process_proactive(
+                claims_identity,
+                continuation_activity,
+                claims_identity.get_token_audience(),
+                callback,
+            )
 
     async def continue_conversation_with_claims(
         self,
@@ -231,12 +241,13 @@ class ChannelServiceAdapter(ChannelAdapter, ABC):
         :param audience: The audience for the conversation.
         :type audience: Optional[str]
         """
-        return await self.process_proactive(
-            claims_identity,
-            continuation_activity,
-            audience or claims_identity.get_token_audience(),
-            callback,
-        )
+        with spans.AdapterContinueConversation(continuation_activity):
+            return await self.process_proactive(
+                claims_identity,
+                continuation_activity,
+                audience or claims_identity.get_token_audience(),
+                callback,
+            )
 
     async def create_conversation(  # pylint: disable=arguments-differ
         self,
@@ -520,22 +531,25 @@ class ChannelServiceAdapter(ChannelAdapter, ABC):
         # Handle ExpectedReplies scenarios where all activities have been
         # buffered and sent back at once in an invoke response.
         if context.activity.delivery_mode == DeliveryModes.expect_replies:
-            return InvokeResponse(
-                status=HTTPStatus.OK,
-                body=ExpectedReplies(
-                    activities=context.buffered_reply_activities
-                ).model_dump(mode="json", by_alias=True, exclude_unset=True),
-            )
+            with spans.AdapterSendActivities([context.activity]):
+                return InvokeResponse(
+                    status=HTTPStatus.OK,
+                    body=ExpectedReplies(
+                        activities=context.buffered_reply_activities
+                    ).model_dump(mode="json", by_alias=True, exclude_unset=True),
+                )
 
         # Handle Invoke scenarios where the agent will return a specific body and return code.
         if context.activity.type == ActivityTypes.invoke:
-            activity_invoke_response: Activity = context.turn_state.get(
-                self.INVOKE_RESPONSE_KEY
-            )
-            if not activity_invoke_response:
-                return InvokeResponse(status=HTTPStatus.NOT_IMPLEMENTED)
 
-            return InvokeResponse.model_validate(activity_invoke_response.value)
+            with spans.AdapterSendActivities([context.activity]):
+                activity_invoke_response: Activity = context.turn_state.get(
+                    self.INVOKE_RESPONSE_KEY
+                )
+                if not activity_invoke_response:
+                    return InvokeResponse(status=HTTPStatus.NOT_IMPLEMENTED)
+
+                return InvokeResponse.model_validate(activity_invoke_response.value)
 
         # No body to return
         return None
