@@ -222,10 +222,15 @@ class MsalAuth(AccessTokenProviderBase):
                     "private_key_pfx_path": self._msal_configuration.CERT_PFX_FILE,
                 }
             elif self._msal_configuration.AUTH_TYPE == AuthTypes.workload_identity:
-                with open(self._msal_configuration.FEDERATED_TOKEN_FILE, "rb") as f:
-                    federated_token = f.read().decode("utf-8")
+                
+                assert self._msal_configuration.FEDERATED_TOKEN_FILE is not None
+                
+                def get_credential():
+                    with open(self._msal_configuration.FEDERATED_TOKEN_FILE, "rb") as f:
+                        return f.read().decode("utf-8")
+
                 self._client_credential_cache = {
-                    "client_assertion": federated_token,
+                    "client_assertion": get_credential
                 }
                 
             else:
