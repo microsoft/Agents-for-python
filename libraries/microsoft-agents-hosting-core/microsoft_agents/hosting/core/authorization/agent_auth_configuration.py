@@ -28,6 +28,7 @@ class AgentAuthConfiguration:
     CLIENT_SECRET: Optional[str]
     CERT_PFX_FILE: Optional[str]
     CONNECTION_NAME: Optional[str]
+    FEDERATED_TOKEN_FILE: Optional[str]
     SCOPES: Optional[list[str]]
     AUTHORITY: Optional[str]
     ALT_BLUEPRINT_ID: Optional[str]
@@ -50,6 +51,7 @@ class AgentAuthConfiguration:
         client_secret: str | None = None,
         cert_pfx_file: str | None = None,
         connection_name: str | None = None,
+        federated_token_file: str | None = None,
         authority: str | None = None,
         scopes: list[str] | None = None,
         anonymous_allowed: bool = False,
@@ -63,6 +65,7 @@ class AgentAuthConfiguration:
         self.CLIENT_SECRET = client_secret or kwargs.get("CLIENTSECRET", None)
         self.CERT_PFX_FILE = cert_pfx_file or kwargs.get("CERTPFXFILE", None)
         self.CONNECTION_NAME = connection_name or kwargs.get("CONNECTIONNAME", None)
+        self.FEDERATED_TOKEN_FILE = federated_token_file or kwargs.get("FEDERATEDTOKENFILE", None)
         self.SCOPES = scopes or kwargs.get("SCOPES", None)
         self.ALT_BLUEPRINT_ID = kwargs.get("ALT_BLUEPRINT_NAME", None)
         self.ANONYMOUS_ALLOWED = anonymous_allowed or kwargs.get(
