@@ -1,7 +1,6 @@
 # Proactive Agent Sample
 
-Mirrors the pattern from the C# `ProactiveAgent` sample.  Demonstrates how
-`AgentApplication.proactive` enables proactive messaging entirely through the
+Demonstrates how`AgentApplication.proactive` enables proactive messaging entirely through the
 standard bot messaging endpoint — no separate HTTP trigger endpoint is needed
 for in-conversation proactive flows.
 
