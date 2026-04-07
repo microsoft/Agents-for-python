@@ -90,7 +90,7 @@ async def _on_continue(context: TurnContext, state: TurnState) -> None:
     by passing token_handlers=["me"] to continue_conversation.  If sign-in is
     complete, retrieve the token and report its length (mirrors C# sample).
     """
-    token_response = await AGENT_APP.auth.get_token(context, auth_handler_id="me")
+    token_response = await AGENT_APP.auth.get_token(context, auth_handler_id="ME")
     token_len = len(token_response.token) if token_response and token_response.token else 0
     await context.send_activity(
         f"This is the proactive continuation turn. "
@@ -156,7 +156,7 @@ async def on_store(context: TurnContext, _state: TurnState) -> None:
     logger.info("Stored conversation: %s", conversation_id)
 
 
-@AGENT_APP.message("-signin", auth_handlers=["me"])
+@AGENT_APP.message("-signin", auth_handlers=["ME"])
 async def on_signin(context: TurnContext, _state: TurnState) -> None:
     """Trigger the OAuth sign-in flow for the 'me' connection.
 
@@ -195,7 +195,7 @@ async def on_continue(context: TurnContext, _state: TurnState) -> None:
                 ADAPTER,
                 conversation_id,
                 _on_continue,
-                token_handlers=["me"],
+                token_handlers=["ME"],
             )
             await context.send_activity(
                 f"Proactive continuation sent to conversation `{conversation_id}`."
@@ -214,7 +214,7 @@ async def on_continue(context: TurnContext, _state: TurnState) -> None:
                 ADAPTER,
                 conversation,
                 _on_continue,
-                token_handlers=["me"],
+                token_handlers=["ME"],
             )
         except RuntimeError:
             await context.send_activity("Send **-signin** first.")
