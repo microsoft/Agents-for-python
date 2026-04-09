@@ -71,6 +71,7 @@ class TestAuthorizationConfiguration:
         assert auth_config.CLIENT_ID is None
         assert auth_config.CLIENT_SECRET is None
         assert auth_config.CERT_PFX_FILE is None
+        assert auth_config.FEDERATED_CLIENT_ID is None
         assert auth_config.CONNECTION_NAME is None
         assert auth_config.AUTHORITY is None
         assert auth_config.SCOPES is None
