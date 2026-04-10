@@ -198,12 +198,9 @@ def test_output_structure_compatible_with_helpers():
 
     data = delta.get_metrics_data()
 
-    assert hasattr(data, "resource_metrics")
-    rm = data.resource_metrics[0]
-    assert hasattr(rm, "scope_metrics")
-    sm = rm.scope_metrics[0]
-    assert hasattr(sm, "metrics")
-    m = sm.metrics[0]
+    # Test that the structure is compatible with find_metric helper
+    m = find_metric(data, "compat")
+    assert m is not None
     assert m.name == "compat"
     assert hasattr(m.data, "data_points")
     dp = m.data.data_points[0]
