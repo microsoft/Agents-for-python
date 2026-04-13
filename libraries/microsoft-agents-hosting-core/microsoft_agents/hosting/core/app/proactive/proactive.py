@@ -327,7 +327,7 @@ class Proactive(Generic[StateT]):
         await adapter.create_conversation(
             options.identity.get_app_id() or "",
             options.channel_id,
-            options.service_url or "",
+            options.service_url,
             audience,
             options.parameters,
             _callback,

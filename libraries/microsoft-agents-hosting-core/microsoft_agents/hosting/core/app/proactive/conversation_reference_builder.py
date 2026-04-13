@@ -203,12 +203,16 @@ class ConversationReferenceBuilder:
         """
         Construct the :class:`~microsoft_agents.activity.ConversationReference`.
 
-        :raises ValueError: If ``channel_id`` has not been set.
+        :raises ValueError: If ``channel_id`` or ``conversation_id`` have not been set.
         :return: The built conversation reference.
         :rtype: :class:`~microsoft_agents.activity.ConversationReference`
         """
         if not self._channel_id:
             raise ValueError("ConversationReferenceBuilder: channel_id is required.")
+        if not self._conversation_id:
+            raise ValueError(
+                "ConversationReferenceBuilder: conversation_id is required."
+            )
 
         service_url = self._service_url or _service_url_for_channel(self._channel_id)
 
@@ -225,7 +229,7 @@ class ConversationReferenceBuilder:
 
         return ConversationReference(
             channel_id=self._channel_id,
-            conversation=ConversationAccount(id=self._conversation_id or ""),
+            conversation=ConversationAccount(id=self._conversation_id),
             service_url=service_url,
             bot=agent,
             user=user,

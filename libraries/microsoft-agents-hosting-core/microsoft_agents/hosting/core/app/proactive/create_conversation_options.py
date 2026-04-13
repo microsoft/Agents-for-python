@@ -48,8 +48,8 @@ class CreateConversationOptions:
         """
         Raise :exc:`ValueError` if required fields are missing.
 
-        :raises ValueError: If ``identity``, ``channel_id``, or ``parameters``
-            are absent or ``service_url`` is missing and cannot be derived.
+        :raises ValueError: If ``identity``, ``channel_id``, ``parameters``,
+            or ``service_url`` are absent.
         """
         if not self.identity:
             raise ValueError("CreateConversationOptions.identity is required.")
@@ -57,3 +57,5 @@ class CreateConversationOptions:
             raise ValueError("CreateConversationOptions.channel_id is required.")
         if not self.parameters:
             raise ValueError("CreateConversationOptions.parameters is required.")
+        if not self.service_url:
+            raise ValueError("CreateConversationOptions.service_url is required.")

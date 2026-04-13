@@ -201,12 +201,14 @@ class ConversationBuilder:
         """
         Construct the :class:`~microsoft_agents.hosting.core.app.proactive.conversation.Conversation`.
 
-        :raises ValueError: If required fields (``channel_id``) are missing.
+        :raises ValueError: If required fields (``channel_id``, ``conversation_id``) are missing.
         :return: The built :class:`~microsoft_agents.hosting.core.app.proactive.conversation.Conversation`.
         :rtype: :class:`~microsoft_agents.hosting.core.app.proactive.conversation.Conversation`
         """
         if not self._channel_id:
             raise ValueError("ConversationBuilder: channel_id is required.")
+        if not self._conversation_id:
+            raise ValueError("ConversationBuilder: conversation_id is required.")
 
         agent = (
             ChannelAccount(id=self._agent_id, name=self._agent_name)
@@ -223,7 +225,7 @@ class ConversationBuilder:
             channel_id=self._channel_id,
             service_url=self._service_url or _service_url_for_channel(self._channel_id),
             conversation=ConversationAccount(
-                id=self._conversation_id or "",
+                id=self._conversation_id,
                 name=self._conversation_name,
                 tenant_id=self._tenant_id,
             ),

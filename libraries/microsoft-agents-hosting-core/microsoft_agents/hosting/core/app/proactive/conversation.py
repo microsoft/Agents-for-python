@@ -120,6 +120,10 @@ class Conversation(StoreItem):
             raise ValueError(
                 "Conversation.conversation_reference.conversation is required."
             )
+        if not self.conversation_reference.conversation.id:
+            raise ValueError(
+                "Conversation.conversation_reference.conversation.id is required."
+            )
         if not self.conversation_reference.service_url:
             raise ValueError(
                 "Conversation.conversation_reference.service_url is required."

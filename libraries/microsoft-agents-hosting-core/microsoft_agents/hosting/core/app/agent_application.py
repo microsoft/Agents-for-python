@@ -150,7 +150,7 @@ class AgentApplication(Agent, Generic[StateT]):
         )
 
         if options.proactive:
-            proactive_opts = options.proactive
+            proactive_opts = copy(options.proactive)
             if not proactive_opts.storage:
                 proactive_opts.storage = self._options.storage
             self._proactive = Proactive(self, proactive_opts)
