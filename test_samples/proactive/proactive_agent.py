@@ -87,7 +87,7 @@ async def _on_continue(context: TurnContext, state: TurnState) -> None:
     """Proactive turn handler for -c.
 
     Requires the user to be signed in via the "me" OAuth connection — enforced
-    by passing token_handlers=["me"] to continue_conversation.  If sign-in is
+    by passing token_handlers=["ME"] to continue_conversation.  If sign-in is
     complete, retrieve the token and report its length (mirrors C# sample).
     """
     token_response = await AGENT_APP.auth.get_token(context, auth_handler_id="ME")
@@ -160,7 +160,7 @@ async def on_store(context: TurnContext, _state: TurnState) -> None:
 async def on_signin(context: TurnContext, _state: TurnState) -> None:
     """Trigger the OAuth sign-in flow for the 'me' connection.
 
-    The auth_handlers=["me"] parameter causes the SDK to start or resume the
+    The auth_handlers=["ME"] parameter causes the SDK to start or resume the
     OAuth flow before this handler runs.  By the time we reach here the user
     is signed in.
     """
@@ -181,7 +181,7 @@ async def on_continue(context: TurnContext, _state: TurnState) -> None:
     With no argument, continues THIS conversation (no prior -s needed).
     With an argument, continues the stored conversation with that ID.
 
-    Passes token_handlers=["me"] so the proactive turn will fail with a
+    Passes token_handlers=["ME"] so the proactive turn will fail with a
     RuntimeError if the user is not yet signed in — mirrors the C# sample's
     UserNotSignedIn exception handling.
     """

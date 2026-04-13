@@ -100,12 +100,12 @@ curl -X POST http://localhost:3978/api/proactive/notify \
 ### `-signin` — OAuth sign-in
 
 ```python
-@AGENT_APP.message("-signin", auth_handlers=["me"])
+@AGENT_APP.message("-signin", auth_handlers=["ME"])
 async def on_signin(context, state):
     await context.send_activity("Signed in.")
 ```
 
-The `auth_handlers=["me"]` parameter causes the SDK to start or resume the
+The `auth_handlers=["ME"]` parameter causes the SDK to start or resume the
 OAuth flow before the handler runs.  By the time the handler is invoked the
 user is fully signed in and the token is cached.
 
@@ -120,7 +120,7 @@ async def on_signout(context, state):
 
 ### `-c` / `-c <id>` — Continue with sign-in guard
 
-`token_handlers=["me"]` is passed to `continue_conversation`.  Internally the
+`token_handlers=["ME"]` is passed to `continue_conversation`.  Internally the
 SDK calls `_start_or_continue_sign_in` for each listed handler before invoking
 the user's handler.  If the user is not signed in and
 `ProactiveOptions.fail_on_unsigned_in_connections` is `True` (the default), a
@@ -130,7 +130,7 @@ the user's handler.  If the user is not signed in and
 try:
     await AGENT_APP.proactive.continue_conversation(
         ADAPTER, conversation_id, _on_continue,
-        token_handlers=["me"],
+        token_handlers=["ME"],
     )
 except RuntimeError:
     await context.send_activity("Send **-signin** first.")
