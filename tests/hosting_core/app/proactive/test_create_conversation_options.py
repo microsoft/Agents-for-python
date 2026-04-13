@@ -78,6 +78,7 @@ class TestCreateConversationOptionsValidate:
             identity=_make_identity(),
             channel_id="msteams",
             parameters=_make_params(),
+            service_url="https://custom/",
         )
         opts.validate()  # must not raise
 
@@ -86,7 +87,7 @@ class TestCreateConversationOptionsValidate:
             identity=_make_identity(),
             channel_id="msteams",
             parameters=_make_params(),
-            service_url=None,
+            service_url="https://custom/",
             audience=None,
         )
         opts.validate()  # must not raise
