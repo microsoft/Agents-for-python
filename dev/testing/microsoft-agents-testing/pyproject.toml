@@ -28,6 +28,7 @@ dependencies = [
     "microsoft-agents-hosting-aiohttp",
     "microsoft-agents-authentication-msal",
     "pydantic",
+    "pydantic-settings",
     "pytest",
     "pytest-aiohttp",
     "pytest-asyncio",

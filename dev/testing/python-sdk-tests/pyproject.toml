@@ -1,0 +1,30 @@
+[project]
+name = "python-sdk-tests"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+requires-python = ">=3.13"
+dependencies = [
+    "microsoft-agents-testing",
+    "microsoft-agents-activity",
+    "microsoft-agents-hosting-core",
+    "microsoft-agents-hosting-aiohttp",
+    "microsoft-agents-authentication-msal",
+    "opentelemetry-sdk",
+]
+
+[tool.uv.sources]
+microsoft-agents-testing = { path = "../microsoft-agents-testing", editable = true }
+microsoft-agents-activity = { path = "../../../libraries/microsoft-agents-activity", editable = true }
+microsoft-agents-hosting-core = { path = "../../../libraries/microsoft-agents-hosting-core", editable = true }
+microsoft-agents-hosting-aiohttp = { path = "../../../libraries/microsoft-agents-hosting-aiohttp", editable = true }
+microsoft-agents-authentication-msal = { path = "../../../libraries/microsoft-agents-authentication-msal", editable = true }
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+filterwarnings = [
+    "ignore::DeprecationWarning",
+    "ignore::PendingDeprecationWarning",
+]
+addopts = "--strict-markers --tb=short"
+minversion = "6.0"

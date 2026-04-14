@@ -1,13 +1,54 @@
 ## Testing
 
-This folder contains three test-related directories:
+This folder contains two test-related directories:
 
-`cross-sdk-tests`: End-to-end tests across all SDKs (Python, JavaScript, .NET). This is a work in progress.
+`microsoft-agents-testing`: The testing framework used to facilitate testing agents. Handles auth, in-process agent hosting, activity construction, and response collection. Internal use only.
 
-`microsoft-agents-testing`: This is the testing framework used to facilitate testing agents. This is only for internal development purposes.
+`python-sdk-tests`: Integration tests for the Python SDK. These run agents in-process and have access to SDK internals (state, routing, middleware), making them more targeted than HTTP-level end-to-end tests.
 
-`python-sdk-tests`: These are integration tests related to the Python SDK. These are an extension of the Python SDK's unit tests. These tests are more specific that the ones in `cross-sdk-tests` because they look into the internals of Python SDK components for the running agents while the other test suite communicates purely over HTTP/HTTPS.
+## Running Tests
 
-## Running tests and installation
+### Option 1 — Local (manual setup)
 
-The instructions to install the `microsoft-agents-testing` library are specificed in `microsoft-agents-testing/README.md`. To run the `python-sdk-tests`, `cd` into that directory and run `pytest` via Powershell. `cross-sdk-tests` still does not have an entry point for testing.
+Manually populate `.env` with credentials, then run uv run pytest directly:
+
+```bash
+cd python-sdk-tests
+cp env.TEMPLATE .env  # fill in credentials
+uv sync
+uv run pytest
+```
+
+### Option 2 — azd (recommended)
+
+Use `azd` to provision the required Azure resources (App Registration, Azure Bot, Key Vault) and automatically populate `.env` via the postprovision hook:
+
+```bash
+cd python-sdk-tests
+azd env new e2e-python
+azd up   # provisions infra and runs postprovision hook to write .env
+uv run pytest
+```
+
+To tear down the Azure resources:
+
+```bash
+azd down
+```
+
+### Option 3 — Docker (via run_local.ps1)
+
+Builds and runs tests inside a Docker container. Requires `azd up` to have been run first:
+
+```powershell
+./scripts/run_local.ps1
+
+# Skip Docker build (reuse existing image):
+./scripts/run_local.ps1 -NoBuild
+```
+
+See [python-sdk-tests/README.md](python-sdk-tests/README.md) for more details.
+
+### microsoft-agents-testing
+
+This is a library, not a test suite. Installation instructions are in [microsoft-agents-testing/README.md](microsoft-agents-testing/README.md).
