@@ -21,6 +21,16 @@ from .oauth import (
     AgenticUserAuthorization,
 )
 
+# Proactive
+from .proactive import (
+    Conversation,
+    ConversationBuilder,
+    ConversationReferenceBuilder,
+    CreateConversationOptions,
+    Proactive,
+    ProactiveOptions,
+)
+
 # App State
 from .state.conversation_state import ConversationState
 from .state.state import State, StatePropertyAccessor, state
@@ -47,4 +57,11 @@ __all__ = [
     "Authorization",
     "AuthHandler",
     "AgenticUserAuthorization",
+    # Proactive
+    "Conversation",
+    "ConversationBuilder",
+    "ConversationReferenceBuilder",
+    "CreateConversationOptions",
+    "Proactive",
+    "ProactiveOptions",
 ]
