@@ -15,9 +15,10 @@ from . import metrics, constants
 class _StorageSpanWrapper(SimpleSpanWrapper):
     """Base SpanWrapper for spans related to storage operations. This is meant to be a base class for spans related to storage operations, such as retrieving or saving state, and can be used to share common functionality and attributes related to storage operations."""
 
-    def __init__(self, span_name: str, *, key_count: int):
+    def __init__(self, span_name: str, operation_name: str, *, key_count: int):
         """Initializes the _StorageSpanWrapper span."""
         super().__init__(span_name)
+        self._operation_name = operation_name
         self._key_count = key_count
 
     def _callback(self, span: Span, duration: float, error: Exception | None) -> None:
@@ -25,13 +26,13 @@ class _StorageSpanWrapper(SimpleSpanWrapper):
         metrics.storage_operation_duration.record(
             duration,
             attributes={
-                attributes.STORAGE_OPERATION: self._span_name,
+                attributes.STORAGE_OPERATION: self._operation_name,
             },
         )
         metrics.storage_operation_total.add(
             1,
             attributes={
-                attributes.STORAGE_OPERATION: self._span_name,
+                attributes.STORAGE_OPERATION: self._operation_name,
             },
         )
 
@@ -42,6 +43,7 @@ class _StorageSpanWrapper(SimpleSpanWrapper):
         """
         return {
             attributes.KEY_COUNT: self._key_count,
+            attributes.STORAGE_OPERATION: self._operation_name,
         }
 
 
@@ -50,7 +52,7 @@ class StorageRead(_StorageSpanWrapper):
 
     def __init__(self, key_count: int):
         """Initializes the StorageRead span."""
-        super().__init__(constants.SPAN_STORAGE_READ, key_count=key_count)
+        super().__init__(constants.SPAN_STORAGE_READ, "read", key_count=key_count)
 
 
 class StorageWrite(_StorageSpanWrapper):
@@ -58,7 +60,7 @@ class StorageWrite(_StorageSpanWrapper):
 
     def __init__(self, key_count: int):
         """Initializes the StorageWrite span."""
-        super().__init__(constants.SPAN_STORAGE_WRITE, key_count=key_count)
+        super().__init__(constants.SPAN_STORAGE_WRITE, "write", key_count=key_count)
 
 
 class StorageDelete(_StorageSpanWrapper):
@@ -66,4 +68,4 @@ class StorageDelete(_StorageSpanWrapper):
 
     def __init__(self, key_count: int):
         """Initializes the StorageDelete span."""
-        super().__init__(constants.SPAN_STORAGE_DELETE, key_count=key_count)
+        super().__init__(constants.SPAN_STORAGE_DELETE, "delete", key_count=key_count)

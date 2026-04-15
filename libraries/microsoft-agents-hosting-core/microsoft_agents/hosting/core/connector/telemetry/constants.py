@@ -1,16 +1,16 @@
 # Copyright (c) Microsoft Corporation. All rights reserved.
 # Licensed under the MIT License.
 
-SPAN_REPLY_TO_ACTIVITY = "agents.connector.replyToActivity"
-SPAN_SEND_TO_CONVERSATION = "agents.connector.sendToConversation"
-SPAN_UPDATE_ACTIVITY = "agents.connector.updateActivity"
-SPAN_DELETE_ACTIVITY = "agents.connector.deleteActivity"
-SPAN_CREATE_CONVERSATION = "agents.connector.createConversation"
-SPAN_GET_CONVERSATIONS = "agents.connector.getConversations"
-SPAN_GET_CONVERSATION_MEMBERS = "agents.connector.getConversationMembers"
-SPAN_UPLOAD_ATTACHMENT = "agents.connector.uploadAttachment"
-SPAN_GET_ATTACHMENT = "agents.connector.getAttachment"
-SPAN_GET_ATTACHMENT_INFO = "agents.connector.getAttachmentInfo"
+SPAN_REPLY_TO_ACTIVITY = "agents.connector.reply_to_activity"
+SPAN_SEND_TO_CONVERSATION = "agents.connector.send_to_conversation"
+SPAN_UPDATE_ACTIVITY = "agents.connector.update_activity"
+SPAN_DELETE_ACTIVITY = "agents.connector.delete_activity"
+SPAN_CREATE_CONVERSATION = "agents.connector.create_conversation"
+SPAN_GET_CONVERSATIONS = "agents.connector.get_conversations"
+SPAN_GET_CONVERSATION_MEMBERS = "agents.connector.get_conversation_members"
+SPAN_UPLOAD_ATTACHMENT = "agents.connector.upload_attachment"
+SPAN_GET_ATTACHMENT = "agents.connector.get_attachment"
+SPAN_GET_ATTACHMENT_INFO = "agents.connector.get_attachment_info"
 
 SPAN_GET_USER_TOKEN = "agents.user_token_client.get_user_token"
 SPAN_SIGN_OUT = "agents.user_token_client.sign_out"
