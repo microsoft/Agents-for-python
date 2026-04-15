@@ -26,7 +26,7 @@ CONVERSATION_ID = "activity.conversation.id"
 HTTP_METHOD = "http.method"
 HTTP_STATUS_CODE = "http.status_code"
 
-IS_AGENTIC = "is_agentic_request"
+IS_AGENTIC = "activity.is_agentic_request"
 
 KEY_COUNT = "storage.keys.count"
 
