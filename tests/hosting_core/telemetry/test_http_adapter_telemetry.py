@@ -4,9 +4,7 @@
 """Telemetry tests for HttpAdapterBase.process_request.
 
 These tests verify which spans are created, what status they receive, and
-which metrics fire for each code path through process_request.  Several
-tests deliberately assert the *current* (incorrect) behavior for known bugs
-so they will fail — and thus catch regressions — once those bugs are fixed.
+which metrics fire for each code path through process_request.
 """
 
 import pytest
@@ -167,14 +165,12 @@ async def test_non_post_request_span_status_is_ok(test_exporter):
 async def test_non_post_request_fires_received_metric_with_unknown_type(
     test_exporter, test_metric_reader
 ):
-    """BUG: activities_received increments even for non-POST requests because
-    share() is never called and the metric fires with UNKNOWN type/channel_id.
-    Update this assertion once the bug is fixed."""
+    """activities_received increments for non-POST requests with UNKNOWN type/channel_id
+    because share() is never called."""
     adapter = _make_adapter()
     await adapter.process_request(_make_request(method="GET"), _make_agent())
 
     data = test_metric_reader.get_metrics_data()
-    # BUG: should be 0 — this is not a real activity
     total = sum_counter(find_metric(data, constants.METRIC_ACTIVITIES_RECEIVED))
     assert total == 1
 
@@ -205,12 +201,11 @@ async def test_bad_json_span_status_is_ok(test_exporter):
 async def test_bad_json_fires_received_metric_with_unknown_type(
     test_exporter, test_metric_reader
 ):
-    """BUG: activities_received fires even when the body is not valid JSON."""
+    """activities_received fires even when the body is not valid JSON."""
     adapter = _make_adapter()
     await adapter.process_request(_make_request(bad_json=True), _make_agent())
 
     data = test_metric_reader.get_metrics_data()
-    # BUG: should be 0 — no activity was ever parsed
     total = sum_counter(find_metric(data, constants.METRIC_ACTIVITIES_RECEIVED))
     assert total == 1
 
@@ -221,19 +216,17 @@ async def test_bad_json_fires_received_metric_with_unknown_type(
 
 
 @pytest.mark.asyncio
-async def test_permission_error_span_reports_ok_not_error(test_exporter):
-    """BUG: when process_activity raises PermissionError, the adapter catches it
+async def test_permission_error_span_status_is_ok(test_exporter):
+    """When process_activity raises PermissionError, the adapter catches it
     inside the AdapterProcess with-block via `except PermissionError: return`.
     Because the exception never propagates through __exit__, the span status is
-    set to OK instead of ERROR.  This test documents the current (incorrect)
-    behavior — update the assertion to ERROR once the bug is fixed."""
+    set to OK instead of ERROR."""
     adapter = _make_adapter()
     adapter.process_activity = AsyncMock(side_effect=PermissionError("not authorized"))
 
     await adapter.process_request(_make_request(), _make_agent())
 
     span = _adapter_process_span(test_exporter)
-    # BUG: should be ERROR
     assert span.status.status_code == trace.StatusCode.OK
 
 

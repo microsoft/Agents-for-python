@@ -349,8 +349,8 @@ class ConversationsOperations(ConversationsBase):
                     )
                     response.raise_for_status()
 
-                    data = await response.json()
-                    return ResourceResponse.model_validate(data)
+                data = await response.json()
+                return ResourceResponse.model_validate(data)
 
     async def delete_activity(self, conversation_id: str, activity_id: str) -> None:
         """
