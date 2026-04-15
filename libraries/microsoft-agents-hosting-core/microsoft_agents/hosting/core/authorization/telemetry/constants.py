@@ -10,8 +10,8 @@ SPAN_GET_AGENTIC_USER_TOKEN = "agents.authentication.get_agentic_user_token"
 
 # Metrics
 
-METRIC_AUTH_TOKEN_REQUEST_DURATION = "agents.auth.token.duration"
-METRIC_AUTH_TOKEN_REQUEST_COUNT = "agents.auth.token.count"
+METRIC_AUTH_TOKEN_REQUEST_DURATION = "agents.auth.token.request.duration"
+METRIC_AUTH_TOKEN_REQUEST_COUNT = "agents.auth.token.request.count"
 
 AUTH_METHOD_OBO = "obo"
 AUTH_METHOD_AGENTIC_INSTANCE = "agentic_instance"
