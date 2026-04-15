@@ -3,10 +3,10 @@
 
 # Spans
 
-SPAN_GET_ACCESS_TOKEN = "agents.auth.getAccessToken"
-SPAN_ACQUIRE_TOKEN_ON_BEHALF_OF = "agents.auth.acquireTokenOnBehalfOf"
-SPAN_GET_AGENTIC_INSTANCE_TOKEN = "agents.auth.getAgenticInstanceToken"
-SPAN_GET_AGENTIC_USER_TOKEN = "agents.auth.getAgenticUserToken"
+SPAN_GET_ACCESS_TOKEN = "agents.authentication.get_access_token"
+SPAN_ACQUIRE_TOKEN_ON_BEHALF_OF = "agents.authentication.acquire_token_on_behalf_of"
+SPAN_GET_AGENTIC_INSTANCE_TOKEN = "agents.authentication.get_agentic_instance_token"
+SPAN_GET_AGENTIC_USER_TOKEN = "agents.authentication.get_agentic_user_token"
 
 # Metrics
 

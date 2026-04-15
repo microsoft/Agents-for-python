@@ -17,5 +17,5 @@ class SuggestedActions(AgentsModel):
     :type actions: list[~microsoft_agents.activity.CardAction]
     """
 
-    to: list[NonEmptyString]
+    to: list[NonEmptyString] = []
     actions: list[CardAction]

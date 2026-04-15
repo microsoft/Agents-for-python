@@ -1,3 +1,0 @@
-microsoft-agents-hosting-core
-microsoft-agents-hosting-aiohttp
-microsoft-agents-authentication-msal

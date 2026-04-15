@@ -219,7 +219,11 @@ class AgentState:
 
         if not value and default_value_factory is not None:
             # If the value is None and a factory is provided, call the factory to get a default value
-            return default_value_factory()
+            default = default_value_factory()
+            # Store the default value in the cache so modifications to it are tracked
+            if self._cached_state is not None:
+                self._cached_state.state[property_name] = default
+            return default
 
         if target_cls and value:
             # Attempt to deserialize the value if it is not None

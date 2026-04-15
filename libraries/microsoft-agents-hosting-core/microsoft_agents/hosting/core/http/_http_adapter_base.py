@@ -126,10 +126,11 @@ class HttpAdapterBase(ChannelServiceAdapter, ABC):
                     activity.type == "invoke"
                     or activity.delivery_mode == DeliveryModes.expect_replies
                 ):
-                    # Invoke and ExpectReplies cannot be performed async
-                    return HttpResponseFactory.json(
-                        invoke_response.body, invoke_response.status
-                    )
+                    with spans.AdapterWriteResponse(activity):
+                        # Invoke and ExpectReplies cannot be performed async
+                        return HttpResponseFactory.json(
+                            invoke_response.body, invoke_response.status
+                        )
 
                 return HttpResponseFactory.accepted()
 
