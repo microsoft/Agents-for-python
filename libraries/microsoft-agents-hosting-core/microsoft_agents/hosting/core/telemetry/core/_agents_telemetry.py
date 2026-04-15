@@ -40,27 +40,6 @@ class _AgentsTelemetry:
         """Returns the OpenTelemetry meter instance for recording metrics"""
         return self._meter
 
-    def _extract_attributes_from_context(
-        self, turn_context: TurnContextProtocol
-    ) -> dict:
-        """Helper method to extract common attributes from the TurnContext for span and metric recording"""
-
-        # This can be expanded to extract common attributes for spans and metrics from the context
-        attributes = {}
-        attributes["activity.type"] = turn_context.activity.type
-        attributes["agent.is_agentic"] = turn_context.activity.is_agentic_request()
-        if turn_context.activity.from_property:
-            attributes["from.id"] = turn_context.activity.from_property.id
-        if turn_context.activity.recipient:
-            attributes["recipient.id"] = turn_context.activity.recipient.id
-        if turn_context.activity.conversation:
-            attributes["conversation.id"] = turn_context.activity.conversation.id
-        attributes["channel_id"] = turn_context.activity.channel_id
-        attributes["message.text.length"] = (
-            len(turn_context.activity.text) if turn_context.activity.text else 0
-        )
-        return attributes
-
     @contextmanager
     def start_as_current_span(
         self,
@@ -74,7 +53,9 @@ class _AgentsTelemetry:
         :return: An iterator that yields the started span, which will be ended when the context manager exits
         """
 
-        with self._tracer.start_as_current_span(span_name) as span:
+        with self._tracer.start_as_current_span(
+            span_name, record_exception=False, set_status_on_exception=False
+        ) as span:
 
             start = time.time()
             exception: Exception | None = None
@@ -92,7 +73,6 @@ class _AgentsTelemetry:
                 duration = (end - start) * 1000  # milliseconds
 
                 if success:
-                    span.add_event(f"{span_name} completed", {"duration_ms": duration})
                     span.set_status(trace.Status(trace.StatusCode.OK))
                     if callback:
                         callback(span, duration, None)
@@ -101,6 +81,7 @@ class _AgentsTelemetry:
                         callback(span, duration, exception)
 
                     span.set_status(trace.Status(trace.StatusCode.ERROR))
+                    span.record_exception(exception)
 
 
 agents_telemetry = _AgentsTelemetry()

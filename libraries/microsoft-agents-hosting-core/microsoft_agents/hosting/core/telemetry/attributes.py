@@ -39,6 +39,7 @@ ROUTE_MATCHED = "route.matched"
 
 SERVICE_URL = "service_url"
 STORAGE_OPERATION = "storage.operation"
+SUCCESS = "success"
 
 TOKEN_SERVICE_ENDPOINT = "agents.token_service.endpoint"
 

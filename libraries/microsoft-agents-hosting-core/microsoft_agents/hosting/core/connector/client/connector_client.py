@@ -333,24 +333,24 @@ class ConversationsOperations(ConversationsBase):
             conversation_id = self._normalize_conversation_id(conversation_id)
             url = f"v3/conversations/{conversation_id}/activities/{activity_id}"
 
-        logger.info(
-            "Updating activity: %s in conversation: %s. Activity type is %s",
-            activity_id,
-            conversation_id,
-            body.type,
-        )
-        async with self.client.put(
-            url,
-            json=body.model_dump(by_alias=True, exclude_unset=True),
-        ) as response:
-            if response.status >= 300:
-                logger.error(
-                    "Error updating activity: %s", response.status, stack_info=True
-                )
-                response.raise_for_status()
+            logger.info(
+                "Updating activity: %s in conversation: %s. Activity type is %s",
+                activity_id,
+                conversation_id,
+                body.type,
+            )
+            async with self.client.put(
+                url,
+                json=body.model_dump(by_alias=True, exclude_unset=True),
+            ) as response:
+                if response.status >= 300:
+                    logger.error(
+                        "Error updating activity: %s", response.status, stack_info=True
+                    )
+                    response.raise_for_status()
 
-                data = await response.json()
-                return ResourceResponse.model_validate(data)
+                    data = await response.json()
+                    return ResourceResponse.model_validate(data)
 
     async def delete_activity(self, conversation_id: str, activity_id: str) -> None:
         """

@@ -38,14 +38,11 @@ class _UserTokenClientSpanWrapper(_RequestSpanWrapper):
 
         NOTE: a dict is the annotated return type to allow child classes to add additional attributes.
         """
-        attr_dict = {}
-        if self._connection_name is not None:
-            attr_dict[attributes.CONNECTION_NAME] = self._connection_name
-        if self._user_id is not None:
-            attr_dict[attributes.USER_ID] = self._user_id
-        if self._channel_id is not None:
-            attr_dict[attributes.ACTIVITY_CHANNEL_ID] = self._channel_id
-        return attr_dict
+        return {
+            attributes.CONNECTION_NAME: self._connection_name,
+            attributes.USER_ID: self._user_id,
+            attributes.ACTIVITY_CHANNEL_ID: self._channel_id,
+        }
 
 
 class GetUserToken(_UserTokenClientSpanWrapper):

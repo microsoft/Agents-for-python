@@ -116,16 +116,6 @@ class TestSimpleSpanWrapper:
         assert len(exception_events) == 1
         assert "type error" in exception_events[0].attributes["exception.message"]
 
-    def test_span_completion_event_on_success(self, test_exporter):
-        """A completion event is added on successful span execution."""
-        with MinimalSpanWrapper("evt_span"):
-            pass
-
-        span = test_exporter.get_finished_spans()[0]
-        completion_events = [e for e in span.events if "completed" in e.name]
-        assert len(completion_events) == 1
-        assert completion_events[0].attributes["duration_ms"] >= 0
-
     def test_no_completion_event_on_failure(self, test_exporter):
         """No completion event is added when the span body raises."""
         with pytest.raises(Exception):

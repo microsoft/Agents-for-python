@@ -196,3 +196,27 @@ class AdapterCreateConnectorClient(SimpleSpanWrapper):
             attributes.AUTH_SCOPES: format_scopes(self._scopes),
             attributes.IS_AGENTIC: self._is_agentic_request,
         }
+
+class AdapterWriteResponse(SimpleSpanWrapper):
+    """Span for writing an InvokeResponse in the adapter. This captures the handling of expectReplies, invoke, and streaming"""
+
+    def __init__(self, activity: Activity):
+        """Initializes the AdapterWriteResponse span."""
+        super().__init__(constants.SPAN_WRITE_RESPONSE)
+        self._activity = activity
+
+    def _callback(self, span: Span, duration: float, error: Exception | None) -> None:
+        metrics.activities_sent.add(
+            1,
+            attributes={
+                attributes.ACTIVITY_TYPE: self._activity.type,
+                attributes.ACTIVITY_CHANNEL_ID: self._activity.channel_id
+                or attributes.UNKNOWN,
+            },
+        )
+
+    def _get_attributes(self) -> AttributeMap:
+        """Returns a dictionary of attributes to set on the span when it is started. This includes attributes related to the activities being sent."""
+        return {
+            attributes.CONVERSATION_ID: get_conversation_id(self._activity),
+        }

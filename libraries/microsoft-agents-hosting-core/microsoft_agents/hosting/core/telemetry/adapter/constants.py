@@ -8,6 +8,7 @@ SPAN_DELETE_ACTIVITY = "agents.adapter.delete_activity"
 SPAN_CONTINUE_CONVERSATION = "agents.adapter.continue_conversation"
 SPAN_CREATE_CONNECTOR_CLIENT = "agents.adapter.create_connector_client"
 SPAN_CREATE_USER_TOKEN_CLIENT = "agents.adapter.create_user_token_client"
+SPAN_WRITE_RESPONSE = "agents.adapter.write_response"
 
 METRIC_ADAPTER_PROCESS_DURATION = "agents.adapter.process.duration"
 
