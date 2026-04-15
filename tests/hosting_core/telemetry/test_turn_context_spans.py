@@ -38,7 +38,7 @@ def test_send_activity_creates_span(test_exporter):
 
     spans = test_exporter.get_finished_spans()
     assert len(spans) == 1
-    assert spans[0].name == constants.SPAN_TURN_SEND_ACTIVITY
+    assert spans[0].name == constants.SPAN_TURN_SEND_ACTIVITIES
 
 
 def test_send_activity_span_attributes(test_exporter):

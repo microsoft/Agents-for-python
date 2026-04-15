@@ -101,9 +101,7 @@ def test_app_on_turn_records_error_metric_on_exception(
     assert success_count == 0
 
 
-def test_app_on_turn_records_turn_duration_on_error(
-    test_exporter, test_metric_reader
-):
+def test_app_on_turn_records_turn_duration_on_error(test_exporter, test_metric_reader):
     """turn_duration is recorded on both success and error paths."""
     ctx = _make_context()
 

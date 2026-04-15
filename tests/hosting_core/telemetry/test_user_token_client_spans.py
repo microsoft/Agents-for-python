@@ -23,7 +23,6 @@ from tests._common.fixtures.telemetry import (  # unused imports are needed for 
 )
 from tests._common.telemetry_utils import find_metric, sum_counter, sum_hist_count
 
-
 # ---- GetUserToken ----
 
 
@@ -120,7 +119,8 @@ def test_get_sign_in_resource_creates_span(test_exporter):
         pass
 
     assert (
-        test_exporter.get_finished_spans()[0].name == constants.SPAN_GET_SIGN_IN_RESOURCE
+        test_exporter.get_finished_spans()[0].name
+        == constants.SPAN_GET_SIGN_IN_RESOURCE
     )
 
 
@@ -201,7 +201,9 @@ def test_get_token_or_sign_in_resource_span_attributes(test_exporter):
     assert span.attributes[attributes.ACTIVITY_CHANNEL_ID] == "webchat"
 
 
-def test_get_token_or_sign_in_resource_records_metrics(test_exporter, test_metric_reader):
+def test_get_token_or_sign_in_resource_records_metrics(
+    test_exporter, test_metric_reader
+):
     with GetTokenOrSignInResource("conn-1", "user-1") as span:
         span.share(http_method="GET", status_code=200)
 

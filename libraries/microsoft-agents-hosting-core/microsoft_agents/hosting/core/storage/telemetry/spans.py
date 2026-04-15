@@ -62,6 +62,7 @@ class StorageWrite(_StorageSpanWrapper):
         """Initializes the StorageWrite span."""
         super().__init__(constants.SPAN_STORAGE_WRITE, "write", key_count=key_count)
 
+
 class StorageDelete(_StorageSpanWrapper):
     """Span for deleting from storage."""
 

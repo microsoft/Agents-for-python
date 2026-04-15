@@ -197,6 +197,7 @@ class AdapterCreateConnectorClient(SimpleSpanWrapper):
             attributes.IS_AGENTIC: self._is_agentic_request,
         }
 
+
 class AdapterWriteResponse(SimpleSpanWrapper):
     """Span for writing an InvokeResponse in the adapter. This captures the handling of expectReplies, invoke, and streaming"""
 

@@ -26,7 +26,6 @@ from tests._common.fixtures.telemetry import (  # unused imports are needed for 
 )
 from tests._common.telemetry_utils import find_metric, sum_counter, sum_hist_count
 
-
 # ---- ConnectorReplyToActivity ----
 
 
@@ -117,8 +116,7 @@ def test_connector_span_status_ok_on_success(test_exporter):
         pass
 
     assert (
-        test_exporter.get_finished_spans()[0].status.status_code
-        == trace.StatusCode.OK
+        test_exporter.get_finished_spans()[0].status.status_code == trace.StatusCode.OK
     )
 
 
@@ -140,7 +138,10 @@ def test_connector_send_to_conversation_creates_span(test_exporter):
     with ConnectorSendToConversation("conv-1", "act-1"):
         pass
 
-    assert test_exporter.get_finished_spans()[0].name == constants.SPAN_SEND_TO_CONVERSATION
+    assert (
+        test_exporter.get_finished_spans()[0].name
+        == constants.SPAN_SEND_TO_CONVERSATION
+    )
 
 
 def test_connector_send_to_conversation_span_attributes(test_exporter):
@@ -152,7 +153,9 @@ def test_connector_send_to_conversation_span_attributes(test_exporter):
     assert attributes.ACTIVITY_ID not in span.attributes
 
 
-def test_connector_send_to_conversation_records_metrics(test_exporter, test_metric_reader):
+def test_connector_send_to_conversation_records_metrics(
+    test_exporter, test_metric_reader
+):
     with ConnectorSendToConversation("conv-1", None) as span:
         span.share(http_method="POST", status_code=201)
 
@@ -237,7 +240,9 @@ def test_connector_create_conversation_has_no_conversation_or_activity_attrs(
     assert attributes.ACTIVITY_ID not in span.attributes
 
 
-def test_connector_create_conversation_records_metrics(test_exporter, test_metric_reader):
+def test_connector_create_conversation_records_metrics(
+    test_exporter, test_metric_reader
+):
     with ConnectorCreateConversation() as span:
         span.share(http_method="POST", status_code=201)
 
@@ -252,7 +257,9 @@ def test_connector_get_conversations_creates_span(test_exporter):
     with ConnectorGetConversations():
         pass
 
-    assert test_exporter.get_finished_spans()[0].name == constants.SPAN_GET_CONVERSATIONS
+    assert (
+        test_exporter.get_finished_spans()[0].name == constants.SPAN_GET_CONVERSATIONS
+    )
 
 
 def test_connector_get_conversations_records_metrics(test_exporter, test_metric_reader):
@@ -338,7 +345,9 @@ def test_connector_get_attachment_info_span_attributes(test_exporter):
     )
 
 
-def test_connector_get_attachment_info_records_metrics(test_exporter, test_metric_reader):
+def test_connector_get_attachment_info_records_metrics(
+    test_exporter, test_metric_reader
+):
     with ConnectorGetAttachmentInfo("attach-1") as span:
         span.share(http_method="GET", status_code=200)
 

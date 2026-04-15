@@ -24,7 +24,6 @@ from tests._common.fixtures.telemetry import (  # unused imports are needed for 
 )
 from tests._common.telemetry_utils import find_metric, sum_counter, sum_hist_count
 
-
 # ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------
@@ -114,7 +113,9 @@ async def test_valid_activity_span_has_activity_attributes(test_exporter):
 
 
 @pytest.mark.asyncio
-async def test_valid_activity_records_received_metric(test_exporter, test_metric_reader):
+async def test_valid_activity_records_received_metric(
+    test_exporter, test_metric_reader
+):
     adapter = _make_adapter()
     await adapter.process_request(_make_request(), _make_agent())
 
@@ -237,7 +238,9 @@ async def test_permission_error_span_reports_ok_not_error(test_exporter):
 
 
 @pytest.mark.asyncio
-async def test_permission_error_records_received_metric(test_exporter, test_metric_reader):
+async def test_permission_error_records_received_metric(
+    test_exporter, test_metric_reader
+):
     """activities_received fires even when the request was unauthorized."""
     adapter = _make_adapter()
     adapter.process_activity = AsyncMock(side_effect=PermissionError("not authorized"))
@@ -278,9 +281,7 @@ async def test_unhandled_exception_records_exception_on_span(test_exporter):
 
     span = _adapter_process_span(test_exporter)
     assert len(span.events) > 0
-    exception_event = next(
-        (e for e in span.events if e.name == "exception"), None
-    )
+    exception_event = next((e for e in span.events if e.name == "exception"), None)
     assert exception_event is not None
 
 

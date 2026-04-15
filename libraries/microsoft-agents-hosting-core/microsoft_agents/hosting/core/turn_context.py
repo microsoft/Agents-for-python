@@ -22,6 +22,7 @@ from microsoft_agents.activity.entity.entity_types import EntityTypes
 from microsoft_agents.hosting.core.authorization.claims_identity import ClaimsIdentity
 import microsoft_agents.hosting.core.telemetry.turn_context.spans as spans
 
+
 class TurnContext(TurnContextProtocol):
     # Same constant as in the BF Adapter, duplicating here to avoid circular dependency
     _INVOKE_RESPONSE_KEY = "TurnContext.InvokeResponse"
