@@ -494,6 +494,29 @@ class TestOAuthFlow(TestUtils):
             await flow.continue_flow(activity)
 
     @pytest.mark.asyncio
+    async def test_continue_flow_verify_state_accepted_on_composite_teams_channel(
+        self, mocker, active_flow_state
+    ):
+        # Composite channel IDs like "msteams:subchannel" should resolve to the
+        # parent channel and be treated as Teams.
+        user_token_client = self.UserTokenClient(
+            mocker, get_token_return=TokenResponse(token=DEFAULTS.token)
+        )
+        activity = self.Activity(
+            mocker,
+            type=ActivityTypes.invoke,
+            name="signin/verifyState",
+            value={"state": "magic_code"},
+            channel_id="msteams:some-sub-channel",
+        )
+        await self.helper_continue_flow_success(
+            active_flow_state,
+            user_token_client,
+            activity,
+            expected_token=DEFAULTS.token,
+        )
+
+    @pytest.mark.asyncio
     async def test_continue_flow_invalid_activity_type(
         self, mocker, active_flow_state, user_token_client
     ):

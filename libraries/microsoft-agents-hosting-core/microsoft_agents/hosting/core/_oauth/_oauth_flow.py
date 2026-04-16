@@ -283,13 +283,12 @@ class _OAuthFlow:
         # does not send signin/verifyState when user consent is required, so accepting it
         # on non-Teams channels would run the magic-code path for a channel that never
         # produces one and advance the flow to a failed state.
-        channel = (
-            activity.channel_id.channel
-            if activity.channel_id is not None
-            and hasattr(activity.channel_id, "channel")
-            else activity.channel_id
+        # Use the parent channel so composite IDs (e.g. "msteams:subchannel") still
+        # resolve as Teams.
+        parent_channel = (
+            activity.channel_id.channel if activity.channel_id is not None else None
         )
-        is_teams = channel == Channels.ms_teams
+        is_teams = parent_channel == Channels.ms_teams
 
         if activity.type == ActivityTypes.message:
             token_response, flow_error_tag = await self._continue_from_message(activity)
