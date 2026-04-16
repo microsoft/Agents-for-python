@@ -25,17 +25,17 @@ class Channel:
 
         max_actions = {
             # https://developers.facebook.com/docs/messenger-platform/send-messages/quick-replies
-            Channels.facebook: 10,
-            Channels.skype: 10,
+            Channels.facebook.value: 10,
+            Channels.skype.value: 10,
             # https://developers.line.biz/en/reference/messaging-api/#items-object
-            Channels.line: 13,
+            Channels.line.value: 13,
             # https://dev.kik.com/#/docs/messaging#text-response-object
-            Channels.kik: 20,
-            Channels.telegram: 100,
-            Channels.emulator: 100,
-            Channels.direct_line: 100,
-            Channels.direct_line_speech: 100,
-            Channels.webchat: 100,
+            Channels.kik.value: 20,
+            Channels.telegram.value: 100,
+            Channels.emulator.value: 100,
+            Channels.direct_line.value: 100,
+            Channels.direct_line_speech.value: 100,
+            Channels.webchat.value: 100,
         }
         return (
             button_cnt <= max_actions[channel_id]
@@ -57,16 +57,16 @@ class Channel:
         """
 
         max_actions = {
-            Channels.facebook: 3,
-            Channels.skype: 3,
-            Channels.ms_teams: 3,
-            Channels.line: 99,
-            Channels.slack: 100,
-            Channels.telegram: 100,
-            Channels.emulator: 100,
-            Channels.direct_line: 100,
-            Channels.direct_line_speech: 100,
-            Channels.webchat: 100,
+            Channels.facebook.value: 3,
+            Channels.skype.value: 3,
+            Channels.ms_teams.value: 3,
+            Channels.line.value: 99,
+            Channels.slack.value: 100,
+            Channels.telegram.value: 100,
+            Channels.emulator.value: 100,
+            Channels.direct_line.value: 100,
+            Channels.direct_line_speech.value: 100,
+            Channels.webchat.value: 100,
         }
         return (
             button_cnt <= max_actions[channel_id]
@@ -88,6 +88,20 @@ class Channel:
         return True
 
     @staticmethod
+    def get_channel_id(turn_context: TurnContext) -> str:
+        """Get the channel ID from the TurnContext's activity.
+
+        Args:
+            turn_context (TurnContext): The current turn context.
+
+        Returns:
+            str: The channel ID, or an empty string if not set.
+        """
+        if turn_context.activity and turn_context.activity.channel_id:
+            return turn_context.activity.channel_id
+        return ""
+
+    @staticmethod
     def max_action_title_length(  # pylint: disable=unused-argument
         channel_id: str,
     ) -> int:
@@ -101,19 +115,3 @@ class Channel:
         """
 
         return 20
-
-    @staticmethod
-    def get_channel_id(turn_context: TurnContext) -> str:
-        """Get the Channel Id from the current Activity on the Turn Context.
-
-        Args:
-            turn_context (TurnContext): The Turn Context to retrieve the Activity's Channel Id from.
-
-        Returns:
-            str: The Channel Id from the Turn Context's Activity.
-        """
-
-        if turn_context.activity.channel_id is None:
-            return ""
-
-        return turn_context.activity.channel_id

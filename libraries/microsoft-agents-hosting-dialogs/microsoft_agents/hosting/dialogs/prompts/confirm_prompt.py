@@ -1,7 +1,7 @@
 # Copyright (c) Microsoft Corporation. All rights reserved.
 # Licensed under the MIT License.
 
-from typing import Dict
+from typing import Any, Callable
 
 from recognizers_choice import recognize_boolean
 
@@ -19,10 +19,11 @@ from .prompt import Prompt
 from .prompt_culture_models import PromptCultureModels
 from .prompt_options import PromptOptions
 from .prompt_recognizer_result import PromptRecognizerResult
+from .prompt_validator_context import PromptValidatorContext
 
 
 class ConfirmPrompt(Prompt):
-    _default_choice_options: Dict[str, object] = {
+    _default_choice_options: dict[str, tuple[Choice, Choice, ChoiceFactoryOptions]] = {
         c.locale: (
             Choice(c.yes_in_language),
             Choice(c.no_in_language),
@@ -34,9 +35,9 @@ class ConfirmPrompt(Prompt):
     def __init__(
         self,
         dialog_id: str,
-        validator: object = None,
-        default_locale: str = None,
-        choice_defaults: Dict[str, object] = None,
+        validator: Callable[[PromptValidatorContext], Any] | None = None,
+        default_locale: str | None = None,
+        choice_defaults: dict[str, tuple[Choice, Choice, ChoiceFactoryOptions]] | None = None,
     ):
         super().__init__(dialog_id, validator)
         if dialog_id is None:
@@ -52,7 +53,7 @@ class ConfirmPrompt(Prompt):
     async def on_prompt(
         self,
         turn_context: TurnContext,
-        state: Dict[str, object],
+        state: dict[str, object],
         options: PromptOptions,
         is_retry: bool,
     ):
@@ -62,7 +63,7 @@ class ConfirmPrompt(Prompt):
             raise TypeError("ConfirmPrompt.on_prompt(): options cannot be None.")
 
         # Format prompt to send
-        channel_id = turn_context.activity.channel_id
+        channel_id = turn_context.activity.channel_id or ""
         culture = self._determine_culture(turn_context.activity)
         defaults = self._default_choice_options[culture]
         choice_opts = (
@@ -87,7 +88,7 @@ class ConfirmPrompt(Prompt):
     async def on_recognize(
         self,
         turn_context: TurnContext,
-        state: Dict[str, object],
+        state: dict[str, object],
         options: PromptOptions,
     ) -> PromptRecognizerResult:
         if not turn_context:
@@ -121,7 +122,7 @@ class ConfirmPrompt(Prompt):
                         if self.confirm_choices is not None
                         else (defaults[0], defaults[1])
                     )
-                    choices = {confirm_choices[0], confirm_choices[1]}
+                    choices = [confirm_choices[0], confirm_choices[1]]
                     second_attempt_results = ChoiceRecognizers.recognize_choices(
                         utterance, choices
                     )

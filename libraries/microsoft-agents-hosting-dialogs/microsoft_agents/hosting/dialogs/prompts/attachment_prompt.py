@@ -1,7 +1,7 @@
 # Copyright (c) Microsoft Corporation. All rights reserved.
 # Licensed under the MIT License.
 
-from typing import Callable, Dict
+from typing import Callable
 
 from microsoft_agents.hosting.core import TurnContext
 from microsoft_agents.activity import ActivityTypes
@@ -19,14 +19,14 @@ class AttachmentPrompt(Prompt):
     """
 
     def __init__(
-        self, dialog_id: str, validator: Callable[[PromptValidatorContext], bool] = None
+        self, dialog_id: str, validator: Callable[[PromptValidatorContext], bool] | None = None
     ):
         super().__init__(dialog_id, validator)
 
     async def on_prompt(
         self,
         turn_context: TurnContext,
-        state: Dict[str, object],
+        state: dict[str, object],
         options: PromptOptions,
         is_retry: bool,
     ):
@@ -46,7 +46,7 @@ class AttachmentPrompt(Prompt):
     async def on_recognize(
         self,
         turn_context: TurnContext,
-        state: Dict[str, object],
+        state: dict[str, object],
         options: PromptOptions,
     ) -> PromptRecognizerResult:
         if not turn_context:

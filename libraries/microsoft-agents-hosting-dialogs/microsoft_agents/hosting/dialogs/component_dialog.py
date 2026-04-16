@@ -1,21 +1,23 @@
 # Copyright (c) Microsoft Corporation. All rights reserved.
 # Licensed under the MIT License.
 
+from typing import Any
+
 from microsoft_agents.hosting.core import TurnContext
 
 from .dialog import Dialog
 from .dialog_context import DialogContext
-from .dialog_turn_result import DialogTurnResult
+from .models.dialog_turn_result import DialogTurnResult
 from .dialog_state import DialogState
-from .dialog_turn_status import DialogTurnStatus
-from .dialog_reason import DialogReason
+from .models.dialog_turn_status import DialogTurnStatus
+from .models.dialog_reason import DialogReason
 from .dialog_set import DialogSet
-from .dialog_instance import DialogInstance
+from .models.dialog_instance import DialogInstance
 
 
 class ComponentDialog(Dialog):
     """
-    A :class:`botbuilder.dialogs.Dialog` that is composed of other dialogs
+    A :class:`microsoft_agents.hosting.dialogs.Dialog` that is composed of other dialogs
 
     :var persisted_dialog state:
     :vartype persisted_dialog_state: str
@@ -41,7 +43,7 @@ class ComponentDialog(Dialog):
     # TODO: Add TelemetryClient
 
     async def begin_dialog(
-        self, dialog_context: DialogContext, options: object = None
+        self, dialog_context: DialogContext, options: Any = None
     ) -> DialogTurnResult:
         """
         Called when the dialog is started and pushed onto the parent's dialog stack.
@@ -52,15 +54,16 @@ class ComponentDialog(Dialog):
         :param dialog_context: The :class:`botbuilder.dialogs.DialogContext` for the current turn of the conversation.
         :type dialog_context: :class:`botbuilder.dialogs.DialogContext`
         :param options: Optional, initial information to pass to the dialog.
-        :type options: object
+        :type options: Any
         :return: Signals the end of the turn
-        :rtype: :class:`botbuilder.dialogs.Dialog.end_of_turn`
+        :rtype: :class:`microsoft_agents.hosting.dialogs.Dialog.end_of_turn`
         """
         if dialog_context is None:
             raise TypeError("ComponentDialog.begin_dialog(): outer_dc cannot be None.")
 
         # Start the inner dialog.
         dialog_state = DialogState()
+        assert dialog_context.active_dialog is not None
         dialog_context.active_dialog.state[self.persisted_dialog_state] = dialog_state
         inner_dc = DialogContext(self._dialogs, dialog_context.context, dialog_state)
         inner_dc.parent = dialog_context
@@ -85,20 +88,22 @@ class ComponentDialog(Dialog):
             contain a return value.
 
             If this method is *not* overriden the component dialog calls the
-            :meth:`botbuilder.dialogs.DialogContext.continue_dialog` method on it's inner dialog
+            :meth:`microsoft_agents.hosting.dialogs.DialogContext.continue_dialog` method on it's inner dialog
             context. If the inner dialog stack is empty, the component dialog ends,
-            and if a :class:`botbuilder.dialogs.DialogTurnResult.result` is available, the component dialog
+            and if a :class:`microsoft_agents.hosting.dialogs.DialogTurnResult.result` is available, the component dialog
             uses that as it's return value.
 
 
         :param dialog_context: The parent dialog context for the current turn of the conversation.
-        :type dialog_context: :class:`botbuilder.dialogs.DialogContext`
+        :type dialog_context: :class:`microsoft_agents.hosting.dialogs.DialogContext`
         :return: Signals the end of the turn
-        :rtype: :class:`botbuilder.dialogs.Dialog.end_of_turn`
+        :rtype: :class:`microsoft_agents.hosting.dialogs.Dialog.end_of_turn`
         """
         if dialog_context is None:
             raise TypeError("ComponentDialog.begin_dialog(): outer_dc cannot be None.")
+        
         # Continue execution of inner dialog.
+        assert dialog_context.active_dialog is not None
         dialog_state = dialog_context.active_dialog.state[self.persisted_dialog_state]
         inner_dc = DialogContext(self._dialogs, dialog_context.context, dialog_state)
         inner_dc.parent = dialog_context
@@ -124,15 +129,16 @@ class ComponentDialog(Dialog):
             ask our inner dialog stack to re-prompt.
 
         :param dialog_context: The dialog context for the current turn of the conversation.
-        :type dialog_context: :class:`botbuilder.dialogs.DialogContext`
+        :type dialog_context: :class:`microsoft_agents.hosting.dialogs.DialogContext`
         :param reason: Reason why the dialog resumed.
-        :type reason: :class:`botbuilder.dialogs.DialogReason`
+        :type reason: :class:`microsoft_agents.hosting.dialogs.DialogReason`
         :param result: Optional, value returned from the dialog that was called.
         :type result: object
         :return: Signals the end of the turn
-        :rtype: :class:`botbuilder.dialogs.Dialog.end_of_turn`
+        :rtype: :class:`microsoft_agents.hosting.dialogs.Dialog.end_of_turn`
         """
 
+        assert dialog_context.active_dialog is not None
         await self.reprompt_dialog(dialog_context.context, dialog_context.active_dialog)
         return Dialog.end_of_turn
 
@@ -143,9 +149,9 @@ class ComponentDialog(Dialog):
         Called when the dialog should re-prompt the user for input.
 
         :param context: The context object for this turn.
-        :type context: :class:`botbuilder.core.TurnContext`
+        :type context: :class:`microsoft_agents.hosting.dialogs.TurnContext`
         :param instance: State information for this dialog.
-        :type instance: :class:`botbuilder.dialogs.DialogInstance`
+        :type instance: :class:`microsoft_agents.hosting.dialogs.DialogInstance`
         """
         # Delegate to inner dialog.
         dialog_state = instance.state[self.persisted_dialog_state]
@@ -162,11 +168,11 @@ class ComponentDialog(Dialog):
         Called when the dialog is ending.
 
         :param context: The context object for this turn.
-        :type context: :class:`botbuilder.core.TurnContext`
+        :type context: :class:`microsoft_agents.hosting.dialogs.TurnContext`
         :param instance: State information associated with the instance of this component dialog.
-        :type instance: :class:`botbuilder.dialogs.DialogInstance`
+        :type instance: :class:`microsoft_agents.hosting.dialogs.DialogInstance`
         :param reason: Reason why the dialog ended.
-        :type reason: :class:`botbuilder.dialogs.DialogReason`
+        :type reason: :class:`microsoft_agents.hosting.dialogs.DialogReason`
         """
         # Forward cancel to inner dialog
         if reason == DialogReason.CancelCalled:
@@ -188,7 +194,7 @@ class ComponentDialog(Dialog):
             self.initial_dialog_id = dialog.id
         return self
 
-    async def find_dialog(self, dialog_id: str) -> Dialog:
+    async def find_dialog(self, dialog_id: str | None) -> Dialog | None:
         """
         Finds a dialog by ID.
 
@@ -208,16 +214,17 @@ class ComponentDialog(Dialog):
             If the task is successful, the result indicates whether the dialog is still
             active after the turn has been processed by the dialog.
 
-            By default, this calls the :meth:`botbuilder.dialogs.Dialog.begin_dialog()`
+            By default, this calls the :meth:`microsoft_agents.hosting.dialogs.Dialog.begin_dialog()`
             method of the component dialog's initial dialog.
 
             Override this method in a derived class to implement interrupt logic.
 
         :param inner_dc: The inner dialog context for the current turn of conversation.
-        :type inner_dc: :class:`botbuilder.dialogs.DialogContext`
+        :type inner_dc: :class:`microsoft_agents.hosting.dialogs.DialogContext`
         :param options: Optional, initial information to pass to the dialog.
         :type options: object
         """
+        assert self.initial_dialog_id is not None, "ComponentDialog: initial_dialog_id must be set before begin_dialog is called."
         return await inner_dc.begin_dialog(self.initial_dialog_id, options)
 
     async def on_continue_dialog(self, inner_dc: DialogContext) -> DialogTurnResult:

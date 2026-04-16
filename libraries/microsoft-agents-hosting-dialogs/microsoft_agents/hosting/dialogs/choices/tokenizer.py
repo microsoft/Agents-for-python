@@ -1,9 +1,7 @@
 # Copyright (c) Microsoft Corporation. All rights reserved.
 # Licensed under the MIT License.
 
-from typing import Union
-
-from .token import Token
+from .models.token import Token
 
 
 class Tokenizer:
@@ -11,8 +9,8 @@ class Tokenizer:
 
     @staticmethod
     def default_tokenizer(  # pylint: disable=unused-argument
-        text: str, locale: str = None
-    ) -> [Token]:
+        text: str, locale: str | None = None
+    ) -> list[Token]:
         """
         Simple tokenizer that breaks on spaces and punctuation. The only normalization is to lowercase.
 
@@ -23,8 +21,8 @@ class Tokenizer:
 
         locale: (Optional) Identifies the locale of the input text.
         """
-        tokens: [Token] = []
-        token: Union[Token, None] = None
+        tokens: list[Token] = []
+        token: Token | None = None
 
         # Parse text
         length: int = len(text) if text else 0
@@ -87,7 +85,7 @@ class Tokenizer:
         return from_val <= value <= to_val
 
     @staticmethod
-    def _append_token(tokens: [Token], token: Token, end: int):
+    def _append_token(tokens: list[Token], token: Token | None, end: int):
         if token is not None:
             token.end = end
             token.normalized = token.text.lower()

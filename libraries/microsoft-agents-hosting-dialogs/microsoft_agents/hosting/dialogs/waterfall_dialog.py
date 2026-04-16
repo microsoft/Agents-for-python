@@ -2,16 +2,16 @@
 # Licensed under the MIT License.
 
 import uuid
-from typing import Callable, Coroutine
+from typing import Callable
 
 from microsoft_agents.hosting.core import TurnContext
 from microsoft_agents.activity import ActivityTypes
 
-from .dialog_reason import DialogReason
+from .models.dialog_reason import DialogReason
 from .dialog import Dialog
-from .dialog_turn_result import DialogTurnResult
+from .models.dialog_turn_result import DialogTurnResult
 from .dialog_context import DialogContext
-from .dialog_instance import DialogInstance
+from .models.dialog_instance import DialogInstance
 from .waterfall_step_context import WaterfallStepContext
 
 
@@ -21,7 +21,7 @@ class WaterfallDialog(Dialog):
     PersistedValues = "values"
     PersistedInstanceId = "instanceId"
 
-    def __init__(self, dialog_id: str, steps: list = None):
+    def __init__(self, dialog_id: str, steps: list | None = None):
         super(WaterfallDialog, self).__init__(dialog_id)
         if not steps:
             self._steps = []
@@ -49,9 +49,10 @@ class WaterfallDialog(Dialog):
             raise TypeError("WaterfallDialog.begin_dialog(): dc cannot be None.")
 
         # Initialize waterfall state
+        assert dialog_context.active_dialog is not None
         state = dialog_context.active_dialog.state
 
-        instance_id = uuid.uuid1().__str__()
+        instance_id = str(uuid.uuid1())
         state[self.PersistedOptions] = options
         state[self.PersistedValues] = {}
         state[self.PersistedInstanceId] = instance_id
@@ -66,8 +67,8 @@ class WaterfallDialog(Dialog):
 
     async def continue_dialog(  # pylint: disable=unused-argument,arguments-differ
         self,
-        dialog_context: DialogContext = None,
-        reason: DialogReason = None,
+        dialog_context: DialogContext | None = None,
+        reason: DialogReason | None = None,
         result: object = None,
     ) -> DialogTurnResult:
         if not dialog_context:
@@ -89,6 +90,7 @@ class WaterfallDialog(Dialog):
             raise TypeError("WaterfallDialog.resume_dialog(): dc cannot be None.")
 
         # Increment step index and run step
+        assert dialog_context.active_dialog is not None
         state = dialog_context.active_dialog.state
 
         return await self.run_step(
@@ -118,6 +120,7 @@ class WaterfallDialog(Dialog):
 
     async def on_step(self, step_context: WaterfallStepContext) -> DialogTurnResult:
         step_name = self.get_step_name(step_context.index)
+        assert step_context.active_dialog is not None
         instance_id = str(step_context.active_dialog.state[self.PersistedInstanceId])
         properties = {
             "DialogId": self.id,
@@ -140,6 +143,7 @@ class WaterfallDialog(Dialog):
             )
         if index < len(self._steps):
             # Update persisted step index
+            assert dialog_context.active_dialog is not None
             state = dialog_context.active_dialog.state
             state[self.StepIndex] = index
 

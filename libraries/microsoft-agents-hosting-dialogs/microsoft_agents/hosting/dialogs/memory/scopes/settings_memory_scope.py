@@ -1,6 +1,13 @@
 # Copyright (c) Microsoft Corporation. All rights reserved.
 # Licensed under the MIT License.
 
+from __future__ import annotations
+
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from ...dialog_context import DialogContext
+
 from microsoft_agents.hosting.dialogs.memory import scope_path
 
 from .memory_scope import MemoryScope
@@ -16,7 +23,7 @@ class SettingsMemoryScope(MemoryScope):
         if not dialog_context:
             raise TypeError(f"Expecting: DialogContext, but received None")
 
-        settings: dict = dialog_context.context.turn_state.get(
+        settings: dict | None = dialog_context.context.turn_state.get(  # type: ignore[assignment]
             scope_path.SETTINGS, None
         )
 

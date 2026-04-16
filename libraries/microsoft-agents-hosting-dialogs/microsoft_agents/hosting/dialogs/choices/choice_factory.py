@@ -1,7 +1,7 @@
 # Copyright (c) Microsoft Corporation. All rights reserved.
 # Licensed under the MIT License.
 
-from typing import List, Union
+from collections.abc import Iterable
 
 from microsoft_agents.hosting.core import CardFactory, MessageFactory
 from microsoft_agents.activity import ActionTypes, Activity, CardAction, HeroCard, InputHints
@@ -17,10 +17,10 @@ class ChoiceFactory:
     @staticmethod
     def for_channel(
         channel_id: str,
-        choices: List[Union[str, Choice]],
-        text: str = None,
-        speak: str = None,
-        options: ChoiceFactoryOptions = None,
+        choices: Iterable[str | Choice],
+        text: str | None = None,
+        speak: str | None = None,
+        options: ChoiceFactoryOptions | None = None,
     ) -> Activity:
         """
         Creates a message activity that includes a list of choices formatted based on the
@@ -36,46 +36,46 @@ class ChoiceFactory:
         if channel_id is None:
             channel_id = ""
 
-        choices = ChoiceFactory._to_choices(choices)
+        choice_list: list[Choice] = ChoiceFactory._to_choices(choices)
 
         # Find maximum title length
         max_title_length = 0
-        for choice in choices:
+        for choice in choice_list:
             if choice.action is not None and choice.action.title not in (None, ""):
                 size = len(choice.action.title)
             else:
-                size = len(choice.value)
+                size = len(choice.value) if choice.value is not None else 0
 
             max_title_length = max(max_title_length, size)
 
         # Determine list style
         supports_suggested_actions = Channel.supports_suggested_actions(
-            channel_id, len(choices)
+            channel_id, len(choice_list)
         )
-        supports_card_actions = Channel.supports_card_actions(channel_id, len(choices))
+        supports_card_actions = Channel.supports_card_actions(channel_id, len(choice_list))
         max_action_title_length = Channel.max_action_title_length(channel_id)
         long_titles = max_title_length > max_action_title_length
 
         if not long_titles and not supports_suggested_actions and supports_card_actions:
             # SuggestedActions is the preferred approach, but for channels that don't
             # support them (e.g. Teams, Cortana) we should use a HeroCard with CardActions
-            return ChoiceFactory.hero_card(choices, text, speak)
+            return ChoiceFactory.hero_card(choice_list, text, speak)
         if not long_titles and supports_suggested_actions:
             # We always prefer showing choices using suggested actions. If the titles are too long, however,
             # we'll have to show them as a text list.
-            return ChoiceFactory.suggested_action(choices, text, speak)
-        if not long_titles and len(choices) <= 3:
+            return ChoiceFactory.suggested_action(choice_list, text, speak)
+        if not long_titles and len(choice_list) <= 3:
             # If the titles are short and there are 3 or less choices we'll use an inline list.
-            return ChoiceFactory.inline(choices, text, speak, options)
+            return ChoiceFactory.inline(choice_list, text, speak, options)
         # Show a numbered list.
-        return ChoiceFactory.list_style(choices, text, speak, options)
+        return ChoiceFactory.list_style(choice_list, text, speak, options)
 
     @staticmethod
     def inline(
-        choices: List[Union[str, Choice]],
-        text: str = None,
-        speak: str = None,
-        options: ChoiceFactoryOptions = None,
+        choices: Iterable[str | Choice],
+        text: str | None = None,
+        speak: str | None = None,
+        options: ChoiceFactoryOptions | None = None,
     ) -> Activity:
         """
         Creates a message activity that includes a list of choices formatted as an inline list.
@@ -87,7 +87,7 @@ class ChoiceFactory:
         speak: (Optional) SSML. Text to be spoken by your bot on a speech-enabled channel.
         options: (Optional) The formatting options to use to tweak rendering of list.
         """
-        choices = ChoiceFactory._to_choices(choices)
+        choice_list = ChoiceFactory._to_choices(choices)
 
         if options is None:
             options = ChoiceFactoryOptions()
@@ -103,9 +103,12 @@ class ChoiceFactory:
 
         # Format list of choices
         connector = ""
-        txt_builder: List[str] = [text]
-        txt_builder.append(" ")
-        for index, choice in enumerate(choices):
+        txt_builder: list[str] = []
+        if text is not None:
+            txt_builder.append(text)
+            txt_builder.append(" ")
+
+        for index, choice in enumerate(choice_list):
             title = (
                 choice.action.title
                 if (choice.action is not None and choice.action.title is not None)
@@ -117,8 +120,8 @@ class ChoiceFactory:
                 txt_builder.append(f"{index + 1}")
                 txt_builder.append(") ")
 
-            txt_builder.append(title)
-            if index == (len(choices) - 2):
+            txt_builder.append(title or "title")
+            if index == (len(choice_list) - 2):
                 connector = opt.inline_or if index == 0 else opt.inline_or_more
                 connector = connector or ""
             else:
@@ -131,11 +134,11 @@ class ChoiceFactory:
 
     @staticmethod
     def list_style(
-        choices: List[Union[str, Choice]],
-        text: str = None,
-        speak: str = None,
-        options: ChoiceFactoryOptions = None,
-    ):
+        choices: Iterable[str | Choice],
+        text: str | None = None,
+        speak: str | None = None,
+        options: ChoiceFactoryOptions | None = None,
+    ) -> Activity:
         """
         Creates a message activity that includes a list of choices formatted as a numbered or bulleted list.
 
@@ -161,8 +164,10 @@ class ChoiceFactory:
 
         # Format list of choices
         connector = ""
-        txt_builder = [text]
-        txt_builder.append("\n\n   ")
+        txt_builder: list[str] = []
+        if text:
+            txt_builder.append(text)
+            txt_builder.append("\n\n   ")
 
         for index, choice in enumerate(choices):
             title = (
@@ -187,7 +192,7 @@ class ChoiceFactory:
 
     @staticmethod
     def suggested_action(
-        choices: List[Choice], text: str = None, speak: str = None
+        choices: Iterable[Choice], text: str | None = None, speak: str | None = None
     ) -> Activity:
         """
         Creates a message activity that includes a list of choices that have been added as suggested actions.
@@ -202,13 +207,13 @@ class ChoiceFactory:
 
     @staticmethod
     def hero_card(
-        choices: List[Union[Choice, str]], text: str = None, speak: str = None
+        choices: Iterable[Choice | str], text: str | None = None, speak: str | None = None
     ) -> Activity:
         """
         Creates a message activity that includes a lsit of coices that have been added as `HeroCard`'s
         """
         attachment = CardFactory.hero_card(
-            HeroCard(text=text, buttons=ChoiceFactory._extract_actions(choices))
+            HeroCard(text=text or "", buttons=ChoiceFactory._extract_actions(choices))
         )
 
         # Return activity with choices as HeroCard with buttons
@@ -217,7 +222,7 @@ class ChoiceFactory:
         )
 
     @staticmethod
-    def _to_choices(choices: List[Union[str, Choice]]) -> List[Choice]:
+    def _to_choices(choices: Iterable[str | Choice]) -> list[Choice]:
         """
         Takes a list of strings and returns them as [`Choice`].
         """
@@ -229,11 +234,11 @@ class ChoiceFactory:
         ]
 
     @staticmethod
-    def _extract_actions(choices: List[Union[str, Choice]]) -> List[CardAction]:
+    def _extract_actions(choices: Iterable[str | Choice]) -> list[CardAction]:
         if choices is None:
             choices = []
         choices = ChoiceFactory._to_choices(choices)
-        card_actions: List[CardAction] = []
+        card_actions: list[CardAction] = []
         for choice in choices:
             if choice.action is not None:
                 card_action = choice.action

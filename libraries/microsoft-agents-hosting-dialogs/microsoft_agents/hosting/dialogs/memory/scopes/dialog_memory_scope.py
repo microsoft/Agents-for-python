@@ -1,6 +1,13 @@
 # Copyright (c) Microsoft Corporation. All rights reserved.
 # Licensed under the MIT License.
 
+from __future__ import annotations
+
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from ...dialog_context import DialogContext
+
 from microsoft_agents.hosting.dialogs.memory import scope_path
 
 from .memory_scope import MemoryScope
@@ -46,19 +53,20 @@ class DialogMemoryScope(MemoryScope):
 
         # If active dialog is a container dialog then "dialog" binds to it.
         # Otherwise the "dialog" will bind to the dialogs parent assuming it is a container.
-        parent = dialog_context
+        parent: DialogContext | None = dialog_context
         if not self.is_container(parent) and self.is_container(parent.parent):
             parent = parent.parent
 
         # If there's no active dialog then throw an error.
+        assert parent is not None
         if not parent.active_dialog:
             raise Exception(
                 "Cannot set DialogMemoryScope. There is no active dialog or parent dialog in the context"
             )
 
-        parent.active_dialog.state = memory
+        parent.active_dialog.state = memory  # type: ignore[assignment]
 
-    def is_container(self, dialog_context: "DialogContext"):
+    def is_container(self, dialog_context: "DialogContext | None"):
         if dialog_context and dialog_context.active_dialog:
             dialog = dialog_context.find_dialog_sync(dialog_context.active_dialog.id)
             if isinstance(dialog, self._dialog_container_cls):

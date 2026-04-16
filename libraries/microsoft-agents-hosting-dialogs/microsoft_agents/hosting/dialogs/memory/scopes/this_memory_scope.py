@@ -1,6 +1,13 @@
 # Copyright (c) Microsoft Corporation. All rights reserved.
 # Licensed under the MIT License.
 
+from __future__ import annotations
+
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from ...dialog_context import DialogContext
+
 from microsoft_agents.hosting.dialogs.memory import scope_path
 
 from .memory_scope import MemoryScope
@@ -25,4 +32,5 @@ class ThisMemoryScope(MemoryScope):
         if not memory:
             raise TypeError(f"Expecting: object, but received None")
 
-        dialog_context.active_dialog.state = memory
+        assert dialog_context.active_dialog is not None
+        dialog_context.active_dialog.state = memory  # type: ignore[assignment]

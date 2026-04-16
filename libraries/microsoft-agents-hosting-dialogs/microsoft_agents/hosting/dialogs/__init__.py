@@ -10,14 +10,14 @@ __version__ = "0.0.0"
 from .component_dialog import ComponentDialog
 from .dialog_container import DialogContainer
 from .dialog_context import DialogContext
-from .dialog_event import DialogEvent
-from .dialog_events import DialogEvents
-from .dialog_instance import DialogInstance
-from .dialog_reason import DialogReason
+from .models.dialog_event import DialogEvent
+from .models.dialog_events import DialogEvents
+from .models.dialog_instance import DialogInstance
+from .models.dialog_reason import DialogReason
 from .dialog_set import DialogSet
 from .dialog_state import DialogState
-from .dialog_turn_result import DialogTurnResult
-from .dialog_turn_status import DialogTurnStatus
+from .models.dialog_turn_result import DialogTurnResult
+from .models.dialog_turn_status import DialogTurnStatus
 from .dialog_manager import DialogManager
 from .dialog_manager_result import DialogManagerResult
 from .dialog import Dialog
@@ -31,6 +31,14 @@ from .prompts import *
 from .choices import *
 from .skills import *
 from .object_path import ObjectPath
+from .models import (
+    DialogEvent,
+    DialogEvents,
+    DialogInstance,
+    DialogReason,
+    DialogTurnResult,
+    DialogTurnStatus,
+)
 
 __all__ = [
     "ComponentDialog",

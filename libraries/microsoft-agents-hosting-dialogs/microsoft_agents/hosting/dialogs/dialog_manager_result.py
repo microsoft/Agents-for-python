@@ -1,21 +1,16 @@
 # Copyright (c) Microsoft Corporation. All rights reserved.
 # Licensed under the MIT License.
 
-from typing import List
+from dataclasses import dataclass, field
 
 from microsoft_agents.activity import Activity
 
-from .dialog_turn_result import DialogTurnResult
+from .models.dialog_turn_result import DialogTurnResult
 from .persisted_state import PersistedState
 
-
+@dataclass
 class DialogManagerResult:
-    def __init__(
-        self,
-        turn_result: DialogTurnResult = None,
-        activities: List[Activity] = None,
-        persisted_state: PersistedState = None,
-    ):
-        self.turn_result = turn_result
-        self.activities = activities
-        self.persisted_state = persisted_state
+
+    turn_result: DialogTurnResult | None = None
+    activities: list[Activity] = field(default_factory=list)
+    persisted_state: PersistedState | None = None

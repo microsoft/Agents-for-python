@@ -1,7 +1,7 @@
 # Copyright (c) Microsoft Corporation. All rights reserved.
 # Licensed under the MIT License.
 
-from typing import Dict
+from typing import Any, Callable, cast
 
 from recognizers_date_time import recognize_datetime
 
@@ -12,11 +12,12 @@ from .datetime_resolution import DateTimeResolution
 from .prompt import Prompt
 from .prompt_options import PromptOptions
 from .prompt_recognizer_result import PromptRecognizerResult
+from .prompt_validator_context import PromptValidatorContext
 
 
 class DateTimePrompt(Prompt):
     def __init__(
-        self, dialog_id: str, validator: object = None, default_locale: str = None
+        self, dialog_id: str, validator: Callable[[PromptValidatorContext], Any] | None = None, default_locale: str | None = None
     ):
         super(DateTimePrompt, self).__init__(dialog_id, validator)
         self.default_locale = default_locale
@@ -24,7 +25,7 @@ class DateTimePrompt(Prompt):
     async def on_prompt(
         self,
         turn_context: TurnContext,
-        state: Dict[str, object],
+        state: dict[str, object],
         options: PromptOptions,
         is_retry: bool,
     ):
@@ -42,7 +43,7 @@ class DateTimePrompt(Prompt):
     async def on_recognize(
         self,
         turn_context: TurnContext,
-        state: Dict[str, object],
+        state: dict[str, object],
         options: PromptOptions,
     ) -> PromptRecognizerResult:
         if not turn_context:
@@ -66,13 +67,13 @@ class DateTimePrompt(Prompt):
             if results:
                 result.succeeded = True
                 result.value = []
-                values = results[0].resolution["values"]
+                values = cast(list, results[0].resolution["values"])
                 for value in values:
-                    result.value.append(self.read_resolution(value))
+                    cast(list, result.value).append(self.read_resolution(value))
 
         return result
 
-    def read_resolution(self, resolution: Dict[str, str]) -> DateTimeResolution:
+    def read_resolution(self, resolution: dict[str, str]) -> DateTimeResolution:
         result = DateTimeResolution()
 
         if "timex" in resolution:

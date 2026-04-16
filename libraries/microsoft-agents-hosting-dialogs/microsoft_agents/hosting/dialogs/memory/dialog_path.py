@@ -29,4 +29,5 @@ class DialogPath:
 
     @staticmethod
     def get_property_name(prop: str) -> str:
+        """Get the property name without the 'dialog.' prefix, if it exists."""
         return prop.replace("dialog.", "")

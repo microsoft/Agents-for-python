@@ -1,26 +1,34 @@
 # Copyright (c) Microsoft Corporation. All rights reserved.
 # Licensed under the MIT License.
 
+from __future__ import annotations
+
 import inspect
 from hashlib import sha256
-from typing import Dict
+from typing import TYPE_CHECKING
 
 from microsoft_agents.hosting.core import TurnContext, StatePropertyAccessor
 
-from ._telemetry_client import BotTelemetryClient, NullTelemetryClient
+from ._telemetry_client import AgentTelemetryClient, NullTelemetryClient
 from .dialog import Dialog
 from .dialog_state import DialogState
 
+if TYPE_CHECKING:
+    from .dialog_context import DialogContext
+
 
 class DialogSet:
-    def __init__(self, dialog_state: StatePropertyAccessor = None):
+    def __init__(self, dialog_state: StatePropertyAccessor | None = None):
         # pylint: disable=import-outside-toplevel
         if dialog_state is None:
-            frame = inspect.currentframe().f_back
+            current_frame = inspect.currentframe()
+            frame = current_frame.f_back if current_frame is not None else None
             try:
                 # try to access the caller's "self"
                 try:
-                    self_obj = frame.f_locals["self"]
+                    self_obj = frame.f_locals["self"] if frame is not None else None
+                    if self_obj is None:
+                        raise KeyError
                 except KeyError:
                     raise TypeError("DialogSet(): dialog_state cannot be None.")
                 # Only ComponentDialog / DialogContainer / DialogManager can initialize with None dialog_state
@@ -39,18 +47,18 @@ class DialogSet:
         self._dialog_state = dialog_state
         self.__telemetry_client = NullTelemetryClient()
 
-        self._dialogs: Dict[str, Dialog] = {}
-        self._version: str = None
+        self._dialogs: dict[str, Dialog] = {}
+        self._version: str | None = None
 
     @property
-    def telemetry_client(self) -> BotTelemetryClient:
+    def telemetry_client(self) -> AgentTelemetryClient:
         """
         Gets the telemetry client for logging events.
         """
         return self.__telemetry_client
 
     @telemetry_client.setter
-    def telemetry_client(self, value: BotTelemetryClient) -> None:
+    def telemetry_client(self, value: AgentTelemetryClient) -> None:
         """
         Sets the telemetry client for all dialogs in this set.
         """
@@ -113,13 +121,14 @@ class DialogSet:
                 "DialogSet.create_context(): DialogSet created with a null IStatePropertyAccessor."
             )
 
-        state: DialogState = await self._dialog_state.get(
+        from typing import cast as _cast  # pylint: disable=import-outside-toplevel
+        state: DialogState = _cast(DialogState, await self._dialog_state.get(
             turn_context, lambda: DialogState()
-        )
+        ))
 
         return DialogContext(self, turn_context, state)
 
-    async def find(self, dialog_id: str) -> Dialog:
+    async def find(self, dialog_id: str | None) -> Dialog | None:
         """
         Finds a dialog that was previously added to the set using add(dialog)
         :param dialog_id: ID of the dialog/prompt to look up.
@@ -133,7 +142,7 @@ class DialogSet:
 
         return None
 
-    def find_dialog(self, dialog_id: str) -> Dialog:
+    def find_dialog(self, dialog_id: str | None) -> Dialog | None:
         """
         Finds a dialog that was previously added to the set using add(dialog).
         Synchronous version of find().

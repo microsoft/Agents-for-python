@@ -1,7 +1,7 @@
 # Copyright (c) Microsoft Corporation. All rights reserved.
 # Licensed under the MIT License.
 
-from typing import Callable, Dict, List
+from typing import Callable
 
 from microsoft_agents.hosting.core import TurnContext
 from microsoft_agents.activity import Activity, ActivityTypes
@@ -29,7 +29,7 @@ class ChoicePrompt(Prompt):
     was selected.
     """
 
-    _default_choice_options: Dict[str, ChoiceFactoryOptions] = {
+    _default_choice_options: dict[str, ChoiceFactoryOptions] = {
         c.locale: ChoiceFactoryOptions(
             inline_separator=c.separator,
             inline_or=c.inline_or_more,
@@ -42,16 +42,16 @@ class ChoicePrompt(Prompt):
     def __init__(
         self,
         dialog_id: str,
-        validator: Callable[[PromptValidatorContext], bool] = None,
-        default_locale: str = None,
-        choice_defaults: Dict[str, ChoiceFactoryOptions] = None,
+        validator: Callable[[PromptValidatorContext], bool] | None = None,
+        default_locale: str | None = None,
+        choice_defaults: dict[str, ChoiceFactoryOptions] | None = None,
     ):
         super().__init__(dialog_id, validator)
 
         self.style = ListStyle.auto
         self.default_locale = default_locale
-        self.choice_options: ChoiceFactoryOptions = None
-        self.recognizer_options: FindChoicesOptions = None
+        self.choice_options: ChoiceFactoryOptions | None = None
+        self.recognizer_options: FindChoicesOptions | None = None
 
         if choice_defaults is not None:
             self._default_choice_options = choice_defaults
@@ -59,7 +59,7 @@ class ChoicePrompt(Prompt):
     async def on_prompt(
         self,
         turn_context: TurnContext,
-        state: Dict[str, object],
+        state: dict[str, object],
         options: PromptOptions,
         is_retry: bool,
     ):
@@ -73,8 +73,8 @@ class ChoicePrompt(Prompt):
         culture = self._determine_culture(turn_context.activity)
 
         # Format prompt to send
-        choices: List[Choice] = options.choices if options.choices else []
-        channel_id: str = turn_context.activity.channel_id
+        choices: list[Choice] = options.choices if options.choices else []
+        channel_id: str = turn_context.activity.channel_id or ""
         choice_options: ChoiceFactoryOptions = (
             self.choice_options
             if self.choice_options
@@ -99,13 +99,13 @@ class ChoicePrompt(Prompt):
     async def on_recognize(
         self,
         turn_context: TurnContext,
-        state: Dict[str, object],
+        state: dict[str, object],
         options: PromptOptions,
     ) -> PromptRecognizerResult:
         if not turn_context:
             raise TypeError("ChoicePrompt.on_recognize(): turn_context cannot be None.")
 
-        choices: List[Choice] = options.choices if (options and options.choices) else []
+        choices: list[Choice] = options.choices if (options and options.choices) else []
         result: PromptRecognizerResult = PromptRecognizerResult()
 
         if turn_context.activity.type == ActivityTypes.message:
@@ -128,12 +128,12 @@ class ChoicePrompt(Prompt):
         return result
 
     def _determine_culture(
-        self, activity: Activity, opt: FindChoicesOptions = FindChoicesOptions()
+        self, activity: Activity, opt: FindChoicesOptions | None = None
     ) -> str:
         culture = (
             PromptCultureModels.map_to_nearest_language(activity.locale)
-            or opt.locale
             or self.default_locale
+            or (opt.locale if opt else None)
             or PromptCultureModels.English.locale
         )
         if not culture or not self._default_choice_options.get(culture):

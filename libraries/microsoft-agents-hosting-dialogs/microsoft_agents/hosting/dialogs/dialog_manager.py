@@ -3,6 +3,7 @@
 
 from datetime import datetime, timedelta
 from threading import Lock
+from typing import cast
 
 from microsoft_agents.hosting.core import (
     ChannelAdapter,
@@ -13,13 +14,12 @@ from microsoft_agents.hosting.core import (
 
 from .dialog import Dialog
 from .dialog_context import DialogContext
-from .dialog_events import DialogEvents
 from .dialog_extensions import DialogExtensions
 from .dialog_set import DialogSet
 from .dialog_state import DialogState
 from .dialog_manager_result import DialogManagerResult
-from .dialog_turn_status import DialogTurnStatus
-from .dialog_turn_result import DialogTurnResult
+from .models.dialog_turn_status import DialogTurnStatus
+from .models.dialog_turn_result import DialogTurnResult
 
 
 class DialogManager:
@@ -27,7 +27,7 @@ class DialogManager:
     Class which runs the dialog system.
     """
 
-    def __init__(self, root_dialog: Dialog = None, dialog_state_property: str = None):
+    def __init__(self, root_dialog: Dialog | None = None, dialog_state_property: str = "DialogState"):
         """
         Initializes an instance of the DialogManager class.
         :param root_dialog: Root dialog to use.
@@ -35,17 +35,17 @@ class DialogManager:
         """
         self.last_access = "_lastAccess"
         self._root_dialog_id = ""
-        self._dialog_state_property = dialog_state_property or "DialogState"
+        self._dialog_state_property = dialog_state_property
         self._lock = Lock()
 
         # Gets or sets root dialog to use to start conversation.
         self.root_dialog = root_dialog
 
         # Gets or sets the ConversationState.
-        self.conversation_state: ConversationState = None
+        self.conversation_state: ConversationState | None = None
 
         # Gets or sets the UserState.
-        self.user_state: UserState = None
+        self.user_state: UserState | None = None
 
         # Gets InitialTurnState collection to copy into the TurnState on every turn.
         self.initial_turn_state = {}
@@ -54,7 +54,7 @@ class DialogManager:
         self.dialogs = DialogSet()
 
         # Gets or sets (optional) number of milliseconds to expire the bot's state after.
-        self.expire_after: int = None
+        self.expire_after: int | None = None
 
     async def on_turn(self, context: TurnContext) -> DialogManagerResult:
         """
@@ -66,6 +66,8 @@ class DialogManager:
         if not self._root_dialog_id:
             with self._lock:
                 if not self._root_dialog_id:
+                    if self.root_dialog is None:
+                        raise ValueError("DialogManager: root_dialog cannot be None.")
                     self._root_dialog_id = self.root_dialog.id
                     self.dialogs.add(self.root_dialog)
 
@@ -84,20 +86,20 @@ class DialogManager:
                     f"Unable to get an instance of {conversation_state_name} from turn_context. "
                     f"Please ensure ConversationState is available in turn_state."
                 )
-            self.conversation_state = context.turn_state[conversation_state_name]
+            self.conversation_state = cast(ConversationState, context.turn_state[conversation_state_name])
         else:
             context.turn_state[conversation_state_name] = self.conversation_state
 
         # Resolve UserState (optional)
         user_state_name = UserState.__name__
         if self.user_state is None:
-            self.user_state = context.turn_state.get(user_state_name, None)
+            self.user_state = cast(UserState | None, context.turn_state.get(user_state_name, None))
         else:
             context.turn_state[user_state_name] = self.user_state
 
         # Create property accessors
         last_access_property = self.conversation_state.create_property(self.last_access)
-        last_access: datetime = await last_access_property.get(context, datetime.now)
+        last_access: datetime = cast(datetime, await last_access_property.get(context, datetime.now))
 
         # Check for expired conversation
         if self.expire_after is not None and (
@@ -113,7 +115,7 @@ class DialogManager:
         dialogs_property = self.conversation_state.create_property(
             self._dialog_state_property
         )
-        dialog_state: DialogState = await dialogs_property.get(context, DialogState)
+        dialog_state: DialogState = cast(DialogState, await dialogs_property.get(context, DialogState))
 
         # Create DialogContext
         dialog_context = DialogContext(self.dialogs, context, dialog_state)

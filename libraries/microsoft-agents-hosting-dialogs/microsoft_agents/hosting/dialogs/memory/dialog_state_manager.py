@@ -1,20 +1,19 @@
 # Copyright (c) Microsoft Corporation. All rights reserved.
 # Licensed under the MIT License.
 
+from __future__ import annotations
+
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from ..dialog_context import DialogContext
+
 import builtins
 
+from collections.abc import Callable, Iterable, Iterator
 from inspect import isawaitable
 from traceback import print_tb
-from typing import (
-    Callable,
-    Dict,
-    Iterable,
-    Iterator,
-    List,
-    Tuple,
-    Type,
-    TypeVar,
-)
+from typing import TypeVar, cast
 
 from .scopes.memory_scope import MemoryScope
 from .component_memory_scopes_base import ComponentMemoryScopesBase
@@ -39,7 +38,7 @@ class DialogStateManager:
     def __init__(
         self,
         dialog_context: "DialogContext",
-        configuration: DialogStateManagerConfiguration = None,
+        configuration: DialogStateManagerConfiguration | None = None,
     ):
         """
         Initializes a new instance of the DialogStateManager class.
@@ -68,8 +67,10 @@ class DialogStateManager:
         if not dialog_context:
             raise TypeError(f"Expecting: DialogContext, but received None")
 
-        self._configuration = configuration or dialog_context.context.turn_state.get(
-            DialogStateManagerConfiguration.__name__, None
+        from typing import cast as _cast  # pylint: disable=import-outside-toplevel
+        self._configuration: DialogStateManagerConfiguration | None = configuration or _cast(
+            DialogStateManagerConfiguration | None,
+            dialog_context.context.turn_state.get(DialogStateManagerConfiguration.__name__, None)
         )
         if not self._configuration:
             self._configuration = DialogStateManagerConfiguration()
@@ -103,13 +104,14 @@ class DialogStateManager:
         """
         Gets the number of memory scopes in the dialog state manager.
         """
-        return len(self._configuration.memory_scopes)
+        return len(self.configuration.memory_scopes)
 
     @property
     def configuration(self) -> DialogStateManagerConfiguration:
         """
         Gets or sets the configured path resolvers and memory scopes for the dialog state manager.
         """
+        assert self._configuration is not None
         return self._configuration
 
     @property
@@ -174,8 +176,8 @@ class DialogStateManager:
         """
         if not name:
             raise TypeError(f"Expecting: {str.__name__}, but received None")
-
-        return next(
+        
+        memory_scope = next(
             (
                 memory_scope
                 for memory_scope in self.configuration.memory_scopes
@@ -184,13 +186,18 @@ class DialogStateManager:
             None,
         )
 
+        if not memory_scope:
+            raise IndexError(self._get_bad_scope_message(name))
+
+        return memory_scope
+
     def version(self) -> str:
         """
         Version help caller to identify the updates and decide cache or not.
         """
         return str(self._version)
 
-    def resolve_memory_scope(self, path: str) -> Tuple[MemoryScope, str]:
+    def resolve_memory_scope(self, path: str) -> tuple[MemoryScope, str]:
         """
         Will find the MemoryScope for and return the remaining path.
         """
@@ -230,12 +237,12 @@ class DialogStateManager:
         return path
 
     @staticmethod
-    def _is_primitive(type_to_check: Type) -> bool:
+    def _is_primitive(type_to_check: type) -> bool:
         return type_to_check.__name__ in BUILTIN_TYPES
 
     def try_get_value(
-        self, path: str, class_type: Type = object
-    ) -> Tuple[bool, object]:
+        self, path: str, class_type: type = object
+    ) -> tuple[bool, object]:
         """
         Get the value from memory using path expression (NOTE: This always returns clone of value).
         """
@@ -289,10 +296,10 @@ class DialogStateManager:
 
     def get_value(
         self,
-        class_type: Type,
+        class_type: type,
         path_expression: str,
-        default_value: Callable[[], T] = None,
-    ) -> T:
+        default_value: Callable[[], T] | None = None,
+    ) -> T | None:
         """
         Get the value from memory using path expression (NOTE: This always returns clone of value).
         """
@@ -301,7 +308,7 @@ class DialogStateManager:
 
         success, value = self.try_get_value(path_expression, class_type)
         if success:
-            return value
+            return cast(T, value)
 
         return default_value() if default_value else None
 
@@ -313,7 +320,7 @@ class DialogStateManager:
             raise TypeError(f"Expecting: {str.__name__}, but received None")
         success, value = self.try_get_value(path_expression, int)
         if success:
-            return value
+            return cast(int, value)
 
         return default_value
 
@@ -325,7 +332,7 @@ class DialogStateManager:
             raise TypeError(f"Expecting: {str.__name__}, but received None")
         success, value = self.try_get_value(path_expression, bool)
         if success:
-            return value
+            return cast(bool, value)
 
         return default_value
 
@@ -337,7 +344,7 @@ class DialogStateManager:
             raise TypeError(f"Expecting: {str.__name__}, but received None")
         success, value = self.try_get_value(path_expression, str)
         if success:
-            return value
+            return cast(str, value)
 
         return default_value
 
@@ -369,7 +376,7 @@ class DialogStateManager:
         if self._track_change(path, None):
             self._object_path_cls.remove_path_value(self, path)
 
-    def get_memory_snapshot(self) -> Dict[str, object]:
+    def get_memory_snapshot(self) -> dict[str, object]:
         """
         Gets all memoryscopes suitable for logging.
         """
@@ -429,13 +436,13 @@ class DialogStateManager:
     def clear(self, key: str):
         raise RuntimeError("Not supported")
 
-    def contains(self, item: Tuple[str, object]) -> bool:
+    def contains(self, item: tuple[str, object]) -> bool:
         raise RuntimeError("Not supported")
 
-    def __contains__(self, item: Tuple[str, object]) -> bool:
+    def __contains__(self, item: tuple[str, object]) -> bool:
         raise RuntimeError("Not supported")
 
-    def copy_to(self, array: List[Tuple[str, object]], array_index: int):
+    def copy_to(self, array: list[tuple[str, object]], array_index: int):
         for memory_scope in self.configuration.memory_scopes:
             array[array_index] = (
                 memory_scope.name,
@@ -443,14 +450,14 @@ class DialogStateManager:
             )
             array_index += 1
 
-    def remove_item(self, item: Tuple[str, object]) -> bool:
+    def remove_item(self, item: tuple[str, object]) -> bool:
         raise RuntimeError("Not supported")
 
-    def get_enumerator(self) -> Iterator[Tuple[str, object]]:
+    def get_enumerator(self) -> Iterator[tuple[str, object]]:
         for memory_scope in self.configuration.memory_scopes:
             yield (memory_scope.name, memory_scope.get_memory(self._dialog_context))
 
-    def track_paths(self, paths: Iterable[str]) -> List[str]:
+    def track_paths(self, paths: Iterable[str]) -> list[str]:
         """
         Track when specific paths are changed.
         """
@@ -474,7 +481,7 @@ class DialogStateManager:
         found = False
         if paths:
             for path in paths:
-                if self.get_value(int, self.path_tracker + "." + path) > counter:
+                if self.get_int_value(self.path_tracker + "." + path) > counter:
                     found = True
                     break
 
@@ -487,12 +494,12 @@ class DialogStateManager:
     @staticmethod
     def _try_get_first_nested_value(
         remaining_path: str, memory: object
-    ) -> Tuple[bool, object]:
+    ) -> tuple[bool, object]:
         # pylint: disable=import-outside-toplevel
         from microsoft_agents.hosting.dialogs import ObjectPath
 
         array = ObjectPath.try_get_path_value(memory, remaining_path)
-        if array:
+        if array and isinstance(array, list):
             if isinstance(array[0], list):
                 first = array[0]
                 if first:

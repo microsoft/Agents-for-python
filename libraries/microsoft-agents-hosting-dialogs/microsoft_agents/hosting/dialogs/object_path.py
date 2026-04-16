@@ -148,9 +148,9 @@ class ObjectPath:
         if current:
             last_segment = segments[-1]
             if ObjectPath.is_int(last_segment):
-                current[int(last_segment)] = None
+                current[int(last_segment)] = None  # type: ignore[index]
             else:
-                current.pop(last_segment)
+                current.pop(last_segment)  # type: ignore[union-attr]
 
     @staticmethod
     def try_get_path_value(obj, path: str) -> object:
@@ -199,7 +199,7 @@ class ObjectPath:
         return value
 
     @staticmethod
-    def try_resolve_path(obj, property_path: str, evaluate: bool = False) -> []:
+    def try_resolve_path(obj, property_path: str, evaluate: bool = False) -> list | None:
         so_far = []
         first = property_path[0] if property_path else " "
         if first in ("'", '"'):
@@ -277,7 +277,7 @@ class ObjectPath:
                 action(key, value)
 
     @staticmethod
-    def __resolve_segments(current, segments: []) -> object:
+    def __resolve_segments(current, segments: list) -> object:
         result = current
 
         for segment in segments:

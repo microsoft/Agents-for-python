@@ -1,8 +1,6 @@
 # Copyright (c) Microsoft Corporation. All rights reserved.
 # Licensed under the MIT License.
 
-from typing import List
-
 from recognizers_text import Culture
 
 
@@ -198,7 +196,7 @@ class PromptCultureModels:
         return culture_code
 
     @classmethod
-    def get_supported_cultures(cls) -> List[PromptCultureModel]:
+    def get_supported_cultures(cls) -> list[PromptCultureModel]:
         """
         Gets a list of the supported culture models.
         """
@@ -220,5 +218,5 @@ class PromptCultureModels:
         ]
 
     @classmethod
-    def _get_supported_locales(cls) -> List[str]:
+    def _get_supported_locales(cls) -> list[str]:
         return [c.locale for c in cls.get_supported_cultures()]

@@ -5,7 +5,7 @@ from ..path_resolver_base import PathResolverBase
 
 
 class AliasPathResolver(PathResolverBase):
-    def __init__(self, alias: str, prefix: str, postfix: str = None):
+    def __init__(self, alias: str, prefix: str, postfix: str = ""):
         """
         Initializes a new instance of the <see cref="AliasPathResolver"/> class.
         <param name="alias">Alias name.</param>
@@ -20,8 +20,8 @@ class AliasPathResolver(PathResolverBase):
         # Gets the alias name.
         self.alias = alias.strip()
         self._prefix = prefix.strip()
-        self._postfix = postfix.strip() if postfix else ""
-
+        self._postfix = postfix.strip()
+        
     def transform_path(self, path: str):
         """
         Transforms the path.

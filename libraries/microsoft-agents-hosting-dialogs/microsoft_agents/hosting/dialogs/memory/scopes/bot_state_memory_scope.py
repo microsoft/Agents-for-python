@@ -1,7 +1,12 @@
 # Copyright (c) Microsoft Corporation. All rights reserved.
 # Licensed under the MIT License.
 
-from typing import Type
+from __future__ import annotations
+
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from ...dialog_context import DialogContext
 
 from microsoft_agents.hosting.core import AgentState
 
@@ -9,7 +14,7 @@ from .memory_scope import MemoryScope
 
 
 class BotStateMemoryScope(MemoryScope):
-    def __init__(self, agent_state_type: Type[AgentState], name: str):
+    def __init__(self, agent_state_type: type[AgentState], name: str):
         super().__init__(name, include_in_snapshot=True)
         self.agent_state_type = agent_state_type
 
@@ -37,18 +42,18 @@ class BotStateMemoryScope(MemoryScope):
         raise RuntimeError("You cannot replace the root AgentState object")
 
     async def load(self, dialog_context: "DialogContext", force: bool = False):
-        agent_state: AgentState = self._get_agent_state(dialog_context)
+        agent_state: AgentState | None = self._get_agent_state(dialog_context)
 
         if agent_state:
             await agent_state.load(dialog_context.context, force)
 
     async def save_changes(self, dialog_context: "DialogContext", force: bool = False):
-        agent_state: AgentState = self._get_agent_state(dialog_context)
+        agent_state: AgentState | None = self._get_agent_state(dialog_context)
 
         if agent_state:
             await agent_state.save(dialog_context.context, force)
 
-    def _get_agent_state(self, dialog_context: "DialogContext") -> AgentState:
+    def _get_agent_state(self, dialog_context: "DialogContext") -> AgentState | None:
         value = dialog_context.context.turn_state.get(self.agent_state_type.__name__, None)
         # After AgentState.load(), the turn_state key holds CachedAgentState, not AgentState.
         # Return None in that case so callers don't try to call AgentState methods on it.

@@ -1,20 +1,25 @@
 # Copyright (c) Microsoft Corporation. All rights reserved.
 # Licensed under the MIT License.
 
+from __future__ import annotations
+
 from abc import ABC, abstractmethod
+from typing import TYPE_CHECKING
 
 from microsoft_agents.hosting.core import TurnContext
 
-from ._telemetry_client import BotTelemetryClient, NullTelemetryClient
-from .dialog_reason import DialogReason
-from .dialog_event import DialogEvent
-from .dialog_turn_status import DialogTurnStatus
-from .dialog_turn_result import DialogTurnResult
-from .dialog_instance import DialogInstance
+from ._telemetry_client import AgentTelemetryClient, NullTelemetryClient
+from .models.dialog_reason import DialogReason
+from .models.dialog_event import DialogEvent
+from .models.dialog_turn_status import DialogTurnStatus
+from .models.dialog_turn_result import DialogTurnResult
+from .models.dialog_instance import DialogInstance
+
+if TYPE_CHECKING:
+    from .dialog_context import DialogContext
 
 
 class Dialog(ABC):
-    end_of_turn = DialogTurnResult(DialogTurnStatus.Waiting)
 
     def __init__(self, dialog_id: str):
         if dialog_id is None or not dialog_id.strip():
@@ -23,19 +28,22 @@ class Dialog(ABC):
         self._telemetry_client = NullTelemetryClient()
         self._id = dialog_id
 
+    end_of_turn = DialogTurnResult(DialogTurnStatus.Waiting)
+    """DialogTurnResult indicating the dialog is waiting for new activity."""
+
     @property
     def id(self) -> str:  # pylint: disable=invalid-name
         return self._id
 
     @property
-    def telemetry_client(self) -> BotTelemetryClient:
+    def telemetry_client(self) -> AgentTelemetryClient:
         """
         Gets the telemetry client for logging events.
         """
         return self._telemetry_client
 
     @telemetry_client.setter
-    def telemetry_client(self, value: BotTelemetryClient) -> None:
+    def telemetry_client(self, value: AgentTelemetryClient) -> None:
         """
         Sets the telemetry client for logging events.
         """

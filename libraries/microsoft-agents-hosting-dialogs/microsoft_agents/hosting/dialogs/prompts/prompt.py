@@ -3,7 +3,7 @@
 
 from abc import abstractmethod
 import copy
-from typing import Dict, List
+from typing import Any, Callable, Awaitable, cast
 
 from microsoft_agents.hosting.core import TurnContext
 from microsoft_agents.activity import InputHints, ActivityTypes, Activity
@@ -15,11 +15,12 @@ from ..choices import (
     ListStyle,
 )
 from .prompt_options import PromptOptions
+from .prompt_recognizer_result import PromptRecognizerResult
 from .prompt_validator_context import PromptValidatorContext
-from ..dialog_reason import DialogReason
+from ..models.dialog_reason import DialogReason
 from ..dialog import Dialog
-from ..dialog_instance import DialogInstance
-from ..dialog_turn_result import DialogTurnResult
+from ..models.dialog_instance import DialogInstance
+from ..models.dialog_turn_result import DialogTurnResult
 from ..dialog_context import DialogContext
 
 
@@ -32,7 +33,7 @@ class Prompt(Dialog):
     persisted_options = "options"
     persisted_state = "state"
 
-    def __init__(self, dialog_id: str, validator: object = None):
+    def __init__(self, dialog_id: str, validator: Callable[[PromptValidatorContext], Any] | None = None):
         """
         Creates a new Prompt instance.
         """
@@ -55,6 +56,7 @@ class Prompt(Dialog):
             options.retry_prompt.input_hint = InputHints.expecting_input
 
         # Initialize prompt state
+        assert dialog_context.active_dialog is not None
         state = dialog_context.active_dialog.state
         state[self.persisted_options] = options
         state[self.persisted_state] = {}
@@ -79,8 +81,9 @@ class Prompt(Dialog):
 
         # Perform base recognition
         instance = dialog_context.active_dialog
-        state = instance.state[self.persisted_state]
-        options = instance.state[self.persisted_options]
+        assert instance is not None
+        state = cast(dict[str, object], instance.state[self.persisted_state])
+        options = cast(PromptOptions, instance.state[self.persisted_options])
         recognized = await self.on_recognize(dialog_context.context, state, options)
 
         # Validate the return value
@@ -108,6 +111,7 @@ class Prompt(Dialog):
     async def resume_dialog(
         self, dialog_context: DialogContext, reason: DialogReason, result: object
     ) -> DialogTurnResult:
+        assert dialog_context.active_dialog is not None
         await self.reprompt_dialog(dialog_context.context, dialog_context.active_dialog)
         return Dialog.end_of_turn
 
@@ -120,7 +124,7 @@ class Prompt(Dialog):
     async def on_prompt(
         self,
         turn_context: TurnContext,
-        state: Dict[str, object],
+        state: dict[str, object],
         options: PromptOptions,
         is_retry: bool,
     ):
@@ -130,18 +134,18 @@ class Prompt(Dialog):
     async def on_recognize(
         self,
         turn_context: TurnContext,
-        state: Dict[str, object],
+        state: dict[str, object],
         options: PromptOptions,
-    ):
+    ) -> PromptRecognizerResult:
         pass
 
     def append_choices(
         self,
-        prompt: Activity,
+        prompt: Activity | None,
         channel_id: str,
-        choices: List[Choice],
-        style: ListStyle,
-        options: ChoiceFactoryOptions = None,
+        choices: list[Choice],
+        style: ListStyle | int,
+        options: ChoiceFactoryOptions | None = None,
     ) -> Activity:
         """
         Composes an output activity containing a set of choices.
@@ -164,7 +168,7 @@ class Prompt(Dialog):
 
         def list_style_none() -> Activity:
             from microsoft_agents.activity import Activity as _Activity, ActivityTypes as _AT
-            activity = _Activity(type=_AT.message)
+            activity = _Activity(type=_AT.message)  # type: ignore[call-arg]
             activity.text = text
             return activity
 
@@ -181,7 +185,7 @@ class Prompt(Dialog):
             5: hero_card,
         }
 
-        msg = switcher.get(int(style.value), default)()
+        msg = switcher.get(int(style), default)()
 
         # Update prompt with text, actions and attachments
         if prompt:
@@ -205,5 +209,5 @@ class Prompt(Dialog):
 
             return prompt
 
-        msg.input_hint = None
+        msg.input_hint = None  # type: ignore[assignment]
         return msg

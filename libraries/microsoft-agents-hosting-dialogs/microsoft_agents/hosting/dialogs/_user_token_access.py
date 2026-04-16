@@ -1,16 +1,19 @@
 # Copyright (c) Microsoft Corporation. All rights reserved.
 # Licensed under the MIT License.
 
-from microsoft_agents.hosting.core import ChannelAdapter, TurnContext
+import json
+from dataclasses import dataclass
+from typing import cast
+
+from microsoft_agents.hosting.core import ChannelAdapter, TurnContext, UserTokenClient
 from microsoft_agents.activity import TokenResponse
 
-
+@dataclass
 class TokenExchangeRequest:
     """Simple token exchange request for OAuth flows."""
 
-    def __init__(self, uri: str = None, token: str = None):
-        self.uri = uri
-        self.token = token
+    uri: str | None = None
+    token: str | None = None
 
 
 class _UserTokenAccess:
@@ -20,18 +23,18 @@ class _UserTokenAccess:
     """
 
     @staticmethod
-    def _get_user_token_client(context: TurnContext):
+    def _get_user_token_client(context: TurnContext) -> UserTokenClient:
         client = context.turn_state.get(ChannelAdapter.USER_TOKEN_CLIENT_KEY)
         if not client:
             raise Exception(
                 "OAuth is not supported by the current adapter. "
                 "Ensure the adapter provides a UserTokenClient in the turn state."
             )
-        return client
+        return cast(UserTokenClient, client)
 
     @staticmethod
     async def get_user_token(
-        context: TurnContext, settings, magic_code: str = None
+        context: TurnContext, settings, magic_code: str | None = None
     ) -> TokenResponse:
         """
         Get the user's token for the given OAuth connection.
@@ -44,6 +47,9 @@ class _UserTokenAccess:
         activity = context.activity
         user_id = activity.from_property.id if activity.from_property else None
         channel_id = activity.channel_id
+
+        if not user_id:
+            raise Exception("Cannot get user token without a user ID in the activity's from property.")
 
         return await user_token_client.user_token.get_token(
             user_id,
@@ -64,6 +70,9 @@ class _UserTokenAccess:
         user_id = activity.from_property.id if activity.from_property else None
         channel_id = activity.channel_id
 
+        if not user_id:
+            raise Exception("Cannot sign out user without a user ID in the activity's from property.")
+
         await user_token_client.user_token.sign_out(
             user_id,
             settings.connection_name,
@@ -82,7 +91,6 @@ class _UserTokenAccess:
         activity = context.activity
 
         # Build a state parameter that encodes enough context for the sign-in flow
-        import json
         state = json.dumps(
             {
                 "connectionName": settings.connection_name,
@@ -129,6 +137,9 @@ class _UserTokenAccess:
         activity = context.activity
         user_id = activity.from_property.id if activity.from_property else None
         channel_id = activity.channel_id
+
+        if not user_id or not channel_id:
+            raise Exception("Cannot exchange token without a user ID and channel ID from the activity.")
 
         body = {}
         if hasattr(token_exchange_request, "token") and token_exchange_request.token:

@@ -3,7 +3,6 @@
 
 from microsoft_agents.hosting.core import (
     ClaimsIdentity,
-    AuthenticationConstants,
     ChannelAdapter,
     StatePropertyAccessor,
     TurnContext,
@@ -11,17 +10,18 @@ from microsoft_agents.hosting.core import (
 from microsoft_agents.activity import Activity, ActivityTypes, EndOfConversationCodes
 
 from microsoft_agents.hosting.dialogs.memory import DialogStateManager
+from .dialog import Dialog
 from .dialog_context import DialogContext
-from .dialog_turn_result import DialogTurnResult
-from .dialog_events import DialogEvents
+from .models import DialogTurnResult
+from .models.dialog_events import DialogEvents
 from .dialog_set import DialogSet
-from .dialog_turn_status import DialogTurnStatus
+from .models.dialog_turn_status import DialogTurnStatus
 
 
 class DialogExtensions:
     @staticmethod
     async def run_dialog(
-        dialog: "Dialog",
+        dialog: Dialog,
         turn_context: TurnContext,
         accessor: StatePropertyAccessor,
     ):
@@ -52,6 +52,7 @@ class DialogExtensions:
 
         # Loop as long as we are getting valid OnError handled we should continue executing the actions for the turn.
         end_of_turn = False
+        dialog_turn_result: DialogTurnResult = DialogTurnResult(DialogTurnStatus.Empty)
         while not end_of_turn:
             try:
                 dialog_turn_result = await DialogExtensions.__inner_run(
@@ -118,7 +119,7 @@ class DialogExtensions:
             or result.status == DialogTurnStatus.Cancelled
         ):
             if DialogExtensions.__send_eoc_to_parent(turn_context):
-                activity = Activity(
+                activity = Activity(  # type: ignore[call-arg]
                     type=ActivityTypes.end_of_conversation,
                     value=result.result,
                     locale=turn_context.activity.locale,
@@ -137,7 +138,7 @@ class DialogExtensions:
         """
         Determines if this turn is an incoming request from a parent bot to this skill.
         """
-        claims_identity: ClaimsIdentity = turn_context.turn_state.get(
+        claims_identity = turn_context.turn_state.get(
             ChannelAdapter.AGENT_IDENTITY_KEY, None
         )
         return isinstance(claims_identity, ClaimsIdentity) and claims_identity.is_agent_claim()
@@ -147,7 +148,7 @@ class DialogExtensions:
         """
         Helper to send a trace activity with a memory snapshot of the active dialog DC.
         """
-        claims_identity: ClaimsIdentity = dialog_context.context.turn_state.get(
+        claims_identity = dialog_context.context.turn_state.get(
             ChannelAdapter.AGENT_IDENTITY_KEY, None
         )
         trace_label = (
@@ -160,7 +161,7 @@ class DialogExtensions:
         snapshot = DialogExtensions._get_active_dialog_context(
             dialog_context
         ).state.get_memory_snapshot()
-        trace_activity = Activity(
+        trace_activity = Activity(  # type: ignore[call-arg]
             type=ActivityTypes.trace,
             name="BotState",
             value_type="https://www.botframework.com/schemas/botState",
@@ -174,7 +175,7 @@ class DialogExtensions:
         """
         Determines whether to send an EndOfConversation to the parent bot.
         """
-        claims_identity: ClaimsIdentity = turn_context.turn_state.get(
+        claims_identity = turn_context.turn_state.get(
             ChannelAdapter.AGENT_IDENTITY_KEY, None
         )
         if isinstance(claims_identity, ClaimsIdentity) and claims_identity.is_agent_claim():

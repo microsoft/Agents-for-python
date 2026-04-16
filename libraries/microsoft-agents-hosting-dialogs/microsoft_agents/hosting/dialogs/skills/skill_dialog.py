@@ -2,13 +2,14 @@
 # Licensed under the MIT License.
 
 from copy import deepcopy
-from typing import List
+from typing import cast
 
 from microsoft_agents.activity import (
     Activity,
     ActivityTypes,
     ExpectedReplies,
     DeliveryModes,
+    OAuthCard,
     SignInConstants,
     TokenExchangeInvokeRequest,
 )
@@ -18,9 +19,9 @@ from microsoft_agents.hosting.core import CardFactory
 
 from ..dialog import Dialog
 from ..dialog_context import DialogContext
-from ..dialog_events import DialogEvents
-from ..dialog_reason import DialogReason
-from ..dialog_instance import DialogInstance
+from ..models.dialog_events import DialogEvents
+from ..models.dialog_reason import DialogReason
+from ..models.dialog_instance import DialogInstance
 
 from .begin_skill_dialog_options import BeginSkillDialogOptions
 from .skill_dialog_options import SkillDialogOptions
@@ -56,11 +57,12 @@ class SkillDialog(Dialog):
         # Apply conversation reference and common properties from incoming activity before sending.
         TurnContext.apply_conversation_reference(
             skill_activity,
-            TurnContext.get_conversation_reference(dialog_context.context.activity),
+            dialog_context.context.activity.get_conversation_reference(),
             is_incoming=True,
         )
 
         # Store delivery mode in dialog state for later use.
+        assert dialog_context.active_dialog is not None
         dialog_context.active_dialog.state[self._deliver_mode_state_key] = (
             dialog_args.activity.delivery_mode
         )
@@ -95,6 +97,7 @@ class SkillDialog(Dialog):
         # Create deep clone of the original activity to avoid altering it before forwarding it.
         skill_activity = deepcopy(dialog_context.context.activity)
 
+        assert dialog_context.active_dialog is not None
         skill_activity.delivery_mode = dialog_context.active_dialog.state[
             self._deliver_mode_state_key
         ]
@@ -122,7 +125,7 @@ class SkillDialog(Dialog):
         # Apply conversation reference and common properties from incoming activity before sending.
         TurnContext.apply_conversation_reference(
             reprompt_event,
-            TurnContext.get_conversation_reference(context.activity),
+            context.activity.get_conversation_reference(),
             is_incoming=True,
         )
 
@@ -132,6 +135,7 @@ class SkillDialog(Dialog):
     async def resume_dialog(  # pylint: disable=unused-argument
         self, dialog_context: "DialogContext", reason: DialogReason, result: object
     ):
+        assert dialog_context.active_dialog is not None
         await self.reprompt_dialog(dialog_context.context, dialog_context.active_dialog)
         return self.end_of_turn
 
@@ -145,11 +149,10 @@ class SkillDialog(Dialog):
             # Apply conversation reference and common properties from incoming activity before sending.
             TurnContext.apply_conversation_reference(
                 activity,
-                TurnContext.get_conversation_reference(context.activity),
+                context.activity.get_conversation_reference(),
                 is_incoming=True,
             )
             activity.channel_data = context.activity.channel_data
-            activity.additional_properties = context.activity.additional_properties
 
             skill_conversation_id = instance.state[
                 SkillDialog.SKILLCONVERSATIONIDSTATEKEY
@@ -187,20 +190,22 @@ class SkillDialog(Dialog):
 
     async def _send_to_skill(
         self, context: TurnContext, activity: Activity, skill_conversation_id: str
-    ) -> Activity:
+    ) -> Activity | None:
         if activity.type == ActivityTypes.invoke:
             # Force ExpectReplies for invoke activities so we can get the replies right away and send
             # them back to the channel if needed.
             activity.delivery_mode = DeliveryModes.expect_replies
 
         # Always save state before forwarding
+        assert self.dialog_options.conversation_state is not None
         await self.dialog_options.conversation_state.save(context, True)
 
+        assert self.dialog_options.skill is not None
         skill_info = self.dialog_options.skill
         response = await self.dialog_options.skill_client.post_activity(
-            self.dialog_options.bot_id,
-            skill_info.app_id if hasattr(skill_info, "app_id") else None,
-            skill_info.skill_endpoint if hasattr(skill_info, "skill_endpoint") else skill_info.endpoint,
+            self.dialog_options.agent_id,
+            skill_info.app_id,
+            skill_info.endpoint,
             self.dialog_options.skill_host_endpoint,
             skill_conversation_id,
             activity,
@@ -210,16 +215,20 @@ class SkillDialog(Dialog):
         if not 200 <= response.status <= 299:
             raise Exception(
                 f'Error invoking the skill id: "{skill_info.id}" at'
-                f' "{skill_info.skill_endpoint if hasattr(skill_info, "skill_endpoint") else skill_info.endpoint}"'
+                f' "{skill_info.endpoint}"'
                 f" (status is {response.status}). \r\n {response.body}"
             )
 
-        eoc_activity: Activity = None
+        eoc_activity: Activity | None = None
         if activity.delivery_mode == DeliveryModes.expect_replies and response.body:
             # Process replies in the response.Body.
-            response.body: List[Activity]
-            expected_replies = ExpectedReplies.model_validate(response.body) if isinstance(response.body, dict) else response.body
-            activities = expected_replies.activities if hasattr(expected_replies, "activities") else response.body
+            raw_body = response.body
+            expected_replies: ExpectedReplies | list[Activity] = (
+                ExpectedReplies.model_validate(raw_body) if isinstance(raw_body, dict) else cast(list[Activity], raw_body)
+            )
+            activities: list[Activity] = (
+                expected_replies.activities if isinstance(expected_replies, ExpectedReplies) else cast(list[Activity], expected_replies)
+            )
 
             # Track sent invoke responses, so more than one is not sent.
             sent_invoke_response = False
@@ -230,9 +239,10 @@ class SkillDialog(Dialog):
                     eoc_activity = from_skill_activity
 
                     # The conversation has ended, so cleanup the conversation id
-                    await self.dialog_options.conversation_id_factory.delete_conversation_reference(
-                        skill_conversation_id
-                    )
+                    if self.dialog_options.conversation_id_factory is not None:
+                        await self.dialog_options.conversation_id_factory.delete_conversation_reference(
+                            skill_conversation_id
+                        )
                 elif not sent_invoke_response and await self._intercept_oauth_cards(
                     context, from_skill_activity, self.dialog_options.connection_name
                 ):
@@ -253,19 +263,21 @@ class SkillDialog(Dialog):
         self, context: TurnContext, activity: Activity
     ) -> str:
         # Create a conversationId to interact with the skill
+        assert self.dialog_options.skill is not None
         conversation_id_factory_options = ConversationIdFactoryOptions(
-            from_oauth_scope=context.turn_state.get(ChannelAdapter.OAUTH_SCOPE_KEY),
-            from_agent_id=self.dialog_options.bot_id,
+            from_oauth_scope=cast(str, context.turn_state.get(ChannelAdapter.OAUTH_SCOPE_KEY)) or "",
+            from_agent_id=self.dialog_options.agent_id or "",
             activity=activity,
             agent=self.dialog_options.skill,
         )
+        assert self.dialog_options.conversation_id_factory is not None
         skill_conversation_id = await self.dialog_options.conversation_id_factory.create_conversation_id(
             conversation_id_factory_options
         )
         return skill_conversation_id
 
     async def _intercept_oauth_cards(
-        self, context: TurnContext, activity: Activity, connection_name: str
+        self, context: TurnContext, activity: Activity, connection_name: str | None
     ):
         """
         Tells if we should intercept the OAuthCard message.
@@ -287,7 +299,7 @@ class SkillDialog(Dialog):
         if oauth_card_attachment is None:
             return False
 
-        oauth_card = oauth_card_attachment.content
+        oauth_card = cast(OAuthCard, oauth_card_attachment.content)
         if (
             not oauth_card
             or not oauth_card.token_exchange_resource
@@ -326,7 +338,7 @@ class SkillDialog(Dialog):
         connection_name: str,
         token: str,
     ):
-        activity = incoming_activity.create_reply()
+        activity = cast(Activity, incoming_activity.create_reply())
         activity.type = ActivityTypes.invoke
         activity.name = SignInConstants.token_exchange_operation_name
         activity.value = TokenExchangeInvokeRequest(
@@ -336,11 +348,12 @@ class SkillDialog(Dialog):
         )
 
         # route the activity to the skill
+        assert self.dialog_options.skill is not None
         skill_info = self.dialog_options.skill
         response = await self.dialog_options.skill_client.post_activity(
-            self.dialog_options.bot_id,
-            skill_info.app_id if hasattr(skill_info, "app_id") else None,
-            skill_info.skill_endpoint if hasattr(skill_info, "skill_endpoint") else skill_info.endpoint,
+            self.dialog_options.agent_id,
+            skill_info.app_id,
+            skill_info.endpoint,
             self.dialog_options.skill_host_endpoint,
             incoming_activity.conversation.id,
             activity,

@@ -4,7 +4,7 @@
 
 class DateTimeResolution:
     def __init__(
-        self, value: str = None, start: str = None, end: str = None, timex: str = None
+        self, value: str | None = None, start: str | None = None, end: str | None = None, timex: str | None = None
     ):
         self.value = value
         self.start = start

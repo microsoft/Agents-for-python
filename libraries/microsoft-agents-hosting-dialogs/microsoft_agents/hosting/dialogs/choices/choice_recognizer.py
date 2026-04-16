@@ -1,16 +1,19 @@
 # Copyright (c) Microsoft Corporation. All rights reserved.
 # Licensed under the MIT License.
 
-from typing import List, Union
+from collections.abc import Iterable
+
 from recognizers_number import NumberModel, NumberRecognizer, OrdinalModel
 from recognizers_text import Culture
 
+from typing import cast
 
-from .choice import Choice
+
+from .models.choice import Choice
 from .find import Find
-from .find_choices_options import FindChoicesOptions
-from .found_choice import FoundChoice
-from .model_result import ModelResult
+from .models.find_choices_options import FindChoicesOptions
+from .models.found_choice import FoundChoice
+from .models.model_result import ModelResult
 
 
 class ChoiceRecognizers:
@@ -19,9 +22,9 @@ class ChoiceRecognizers:
     @staticmethod
     def recognize_choices(
         utterance: str,
-        choices: List[Union[str, Choice]],
-        options: FindChoicesOptions = None,
-    ) -> List[ModelResult]:
+        choices: Iterable[str | Choice],
+        options: FindChoicesOptions | None = None,
+    ) -> list[ModelResult]:
         """
         Matches user input against a list of choices.
 
@@ -89,8 +92,8 @@ class ChoiceRecognizers:
         return matched
 
     @staticmethod
-    def _recognize_ordinal(utterance: str, culture: str) -> List[ModelResult]:
-        model: OrdinalModel = NumberRecognizer(culture).get_ordinal_model(culture)
+    def _recognize_ordinal(utterance: str, culture: str) -> list[ModelResult]:
+        model: OrdinalModel = cast(OrdinalModel, NumberRecognizer(culture).get_ordinal_model(culture))
 
         return list(
             map(ChoiceRecognizers._found_choice_constructor, model.parse(utterance))
@@ -98,7 +101,7 @@ class ChoiceRecognizers:
 
     @staticmethod
     def _match_choice_by_index(
-        choices: List[Choice], matched: List[ModelResult], match: ModelResult
+        choices: list[Choice], matched: list[ModelResult], match: ModelResult
     ):
         try:
             index: int = int(match.resolution.value) - 1
@@ -121,8 +124,8 @@ class ChoiceRecognizers:
             pass
 
     @staticmethod
-    def _recognize_number(utterance: str, culture: str) -> List[ModelResult]:
-        model: NumberModel = NumberRecognizer(culture).get_number_model(culture)
+    def _recognize_number(utterance: str, culture: str) -> list[ModelResult]:
+        model: NumberModel = cast(NumberModel, NumberRecognizer(culture).get_number_model(culture))
 
         return list(
             map(ChoiceRecognizers._found_choice_constructor, model.parse(utterance))

@@ -1,8 +1,6 @@
 # Copyright (c) Microsoft Corporation. All rights reserved.
 # Licensed under the MIT License.
 
-from typing import Dict
-
 from microsoft_agents.hosting.core import TurnContext
 from microsoft_agents.activity import ActivityTypes
 
@@ -15,7 +13,7 @@ class TextPrompt(Prompt):
     async def on_prompt(
         self,
         turn_context: TurnContext,
-        state: Dict[str, object],
+        state: dict[str, object],
         options: PromptOptions,
         is_retry: bool,
     ):
@@ -33,7 +31,7 @@ class TextPrompt(Prompt):
     async def on_recognize(
         self,
         turn_context: TurnContext,
-        state: Dict[str, object],
+        state: dict[str, object],
         options: PromptOptions,
     ) -> PromptRecognizerResult:
         if not turn_context:

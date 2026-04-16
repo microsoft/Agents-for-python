@@ -5,8 +5,8 @@ class OAuthPromptSettings:
         self,
         connection_name: str,
         title: str,
-        text: str = None,
-        timeout: int = None,
+        text: str | None = None,
+        timeout: int | None = None,
         oauth_app_credentials=None,
         end_on_invalid_message: bool = False,
     ):

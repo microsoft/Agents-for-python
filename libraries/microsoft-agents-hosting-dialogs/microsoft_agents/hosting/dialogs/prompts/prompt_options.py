@@ -1,8 +1,6 @@
 # Copyright (c) Microsoft Corporation. All rights reserved.
 # Licensed under the MIT License.
 
-from typing import List
-
 from microsoft_agents.activity import Activity
 from microsoft_agents.hosting.dialogs.choices import Choice, ListStyle
 
@@ -14,10 +12,10 @@ class PromptOptions:
 
     def __init__(
         self,
-        prompt: Activity = None,
-        retry_prompt: Activity = None,
-        choices: List[Choice] = None,
-        style: ListStyle = None,
+        prompt: Activity | None = None,
+        retry_prompt: Activity | None = None,
+        choices: list[Choice] | None = None,
+        style: ListStyle | None = None,
         validations: object = None,
         number_of_attempts: int = 0,
     ):

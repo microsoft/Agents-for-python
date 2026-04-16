@@ -1,7 +1,7 @@
 # Copyright (c) Microsoft Corporation. All rights reserved.
 # Licensed under the MIT License.
 
-from typing import Callable, Dict
+from typing import Callable, cast
 
 from recognizers_number import recognize_number
 from recognizers_text import Culture, ModelResult
@@ -19,8 +19,8 @@ class NumberPrompt(Prompt):
     def __init__(
         self,
         dialog_id: str,
-        validator: Callable[[PromptValidatorContext], bool] = None,
-        default_locale: str = None,
+        validator: Callable[[PromptValidatorContext], bool] | None = None,
+        default_locale: str | None = None,
     ):
         super(NumberPrompt, self).__init__(dialog_id, validator)
         self.default_locale = default_locale
@@ -28,7 +28,7 @@ class NumberPrompt(Prompt):
     async def on_prompt(
         self,
         turn_context: TurnContext,
-        state: Dict[str, object],
+        state: dict[str, object],
         options: PromptOptions,
         is_retry: bool,
     ):
@@ -45,7 +45,7 @@ class NumberPrompt(Prompt):
     async def on_recognize(
         self,
         turn_context: TurnContext,
-        state: Dict[str, object],
+        state: dict[str, object],
         options: PromptOptions,
     ) -> PromptRecognizerResult:
         if not turn_context:
@@ -57,12 +57,12 @@ class NumberPrompt(Prompt):
             if not utterance:
                 return result
             culture = self._get_culture(turn_context)
-            results: [ModelResult] = recognize_number(utterance, culture)
+            results: list[ModelResult] = recognize_number(utterance, culture)
 
             if results:
                 result.succeeded = True
                 result.value = parse_decimal(
-                    results[0].resolution["value"], locale=culture.replace("-", "_")
+                    cast(str, results[0].resolution["value"]), locale=culture.replace("-", "_")
                 )
 
         return result

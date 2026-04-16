@@ -1,6 +1,6 @@
 # Copyright (c) Microsoft Corporation. All rights reserved.
 # Licensed under the MIT License.
-from typing import Dict
+from typing import Dict, cast
 from microsoft_agents.hosting.core import TurnContext
 from .prompt_options import PromptOptions
 from .prompt_recognizer_result import PromptRecognizerResult
@@ -39,4 +39,4 @@ class PromptValidatorContext:
         # pylint: disable=import-outside-toplevel
         from microsoft_agents.hosting.dialogs.prompts.prompt import Prompt
 
-        return self.state.get(Prompt.ATTEMPT_COUNT_KEY, 0)
+        return int(cast(int, self.state.get(Prompt.ATTEMPT_COUNT_KEY, 0)))

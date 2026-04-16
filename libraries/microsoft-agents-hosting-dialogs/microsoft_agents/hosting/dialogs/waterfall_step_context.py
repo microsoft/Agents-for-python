@@ -1,11 +1,9 @@
 # Copyright (c) Microsoft Corporation. All rights reserved.
 # Licensed under the MIT License.
 
-from typing import Dict
-
 from .dialog_context import DialogContext
-from .dialog_reason import DialogReason
-from .dialog_turn_result import DialogTurnResult
+from .models.dialog_reason import DialogReason
+from .models.dialog_turn_result import DialogTurnResult
 from .dialog_state import DialogState
 
 
@@ -15,7 +13,7 @@ class WaterfallStepContext(DialogContext):
         parent,
         dc: DialogContext,
         options: object,
-        values: Dict[str, object],
+        values: dict[str, object],
         index: int,
         reason: DialogReason,
         result: object = None,
@@ -49,7 +47,7 @@ class WaterfallStepContext(DialogContext):
         return self._result
 
     @property
-    def values(self) -> Dict[str, object]:
+    def values(self) -> dict[str, object]:
         return self._values
 
     async def next(self, result: object) -> DialogTurnResult:

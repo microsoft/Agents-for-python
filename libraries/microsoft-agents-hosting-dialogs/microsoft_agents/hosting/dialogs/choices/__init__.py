@@ -6,18 +6,18 @@
 # --------------------------------------------------------------------------
 
 from .channel import Channel
-from .choice import Choice
-from .choice_factory_options import ChoiceFactoryOptions
+from .models.choice import Choice
+from .models.choice_factory_options import ChoiceFactoryOptions
 from .choice_factory import ChoiceFactory
 from .choice_recognizer import ChoiceRecognizers
 from .find import Find
-from .find_choices_options import FindChoicesOptions, FindValuesOptions
-from .found_choice import FoundChoice
-from .found_value import FoundValue
-from .list_style import ListStyle
-from .model_result import ModelResult
-from .sorted_value import SortedValue
-from .token import Token
+from .models.find_choices_options import FindChoicesOptions, FindValuesOptions
+from .models.found_choice import FoundChoice
+from .models.found_value import FoundValue
+from .models.list_style import ListStyle
+from .models.model_result import ModelResult
+from .models.sorted_value import SortedValue
+from .models.token import Token
 from .tokenizer import Tokenizer
 
 __all__ = [

@@ -1,23 +1,22 @@
 # Copyright (c) Microsoft Corporation. All rights reserved.
 # Licensed under the MIT License.
 
-from typing import List, Optional
-
 from microsoft_agents.hosting.core.turn_context import TurnContext
 from microsoft_agents.hosting.dialogs.memory import DialogStateManager
 
-from .dialog_event import DialogEvent
-from .dialog_events import DialogEvents
+from .models.dialog_event import DialogEvent
+from .models.dialog_events import DialogEvents
 from .dialog_set import DialogSet
 from .dialog_state import DialogState
-from .dialog_turn_status import DialogTurnStatus
-from .dialog_turn_result import DialogTurnResult
-from .dialog_reason import DialogReason
-from .dialog_instance import DialogInstance
+from .models.dialog_turn_status import DialogTurnStatus
+from .models.dialog_turn_result import DialogTurnResult
+from .models.dialog_reason import DialogReason
+from .models.dialog_instance import DialogInstance
 from .dialog import Dialog
 
 
 class DialogContext:
+
     def __init__(
         self, dialog_set: DialogSet, turn_context: TurnContext, state: DialogState
     ):
@@ -30,7 +29,7 @@ class DialogContext:
         self._dialogs = dialog_set
         self._stack = state.dialog_stack
         self.services = {}
-        self.parent: DialogContext = None
+        self.parent: DialogContext | None = None
         self.state = DialogStateManager(self)
 
     @property
@@ -52,7 +51,7 @@ class DialogContext:
         return self._turn_context
 
     @property
-    def stack(self) -> List:
+    def stack(self) -> list:
         """Gets the current dialog stack.
 
         :param:
@@ -72,7 +71,7 @@ class DialogContext:
         return None
 
     @property
-    def child(self) -> Optional["DialogContext"]:
+    def child(self) -> "DialogContext | None":
         """Return the container link in the database.
 
         :param:
@@ -208,8 +207,8 @@ class DialogContext:
 
     async def cancel_all_dialogs(
         self,
-        cancel_parents: bool = None,
-        event_name: str = None,
+        cancel_parents: bool | None = None,
+        event_name: str | None = None,
         event_value: object = None,
     ):
         """
@@ -259,7 +258,7 @@ class DialogContext:
             self.__set_exception_context_data(err)
             raise
 
-    async def find_dialog(self, dialog_id: str) -> Dialog:
+    async def find_dialog(self, dialog_id: str | None) -> Dialog | None:
         """
         If the dialog cannot be found within the current `DialogSet`, the parent `DialogContext`
         will be searched if there is one.
@@ -276,7 +275,7 @@ class DialogContext:
             self.__set_exception_context_data(err)
             raise
 
-    def find_dialog_sync(self, dialog_id: str) -> Dialog:
+    def find_dialog_sync(self, dialog_id: str | None) -> Dialog | None:
         """
         If the dialog cannot be found within the current `DialogSet`, the parent `DialogContext`
         will be searched if there is one.
@@ -397,9 +396,10 @@ class DialogContext:
 
     def __set_exception_context_data(self, exception: Exception):
         if not hasattr(exception, "data"):
-            exception.data = {}
+            setattr(exception, "data", {})
 
-        if not type(self).__name__ in exception.data:
+        data = getattr(exception, "data")
+        if not type(self).__name__ in data:
             stack = []
             current_dc = self
 
@@ -407,10 +407,14 @@ class DialogContext:
                 stack = stack + [x.id for x in current_dc.stack]
                 current_dc = current_dc.parent
 
-            exception.data[type(self).__name__] = {
+            parent_active_id = None
+            if self.parent is not None and self.parent.active_dialog is not None:
+                parent_active_id = self.parent.active_dialog.id
+
+            data[type(self).__name__] = {
                 "active_dialog": (
                     None if self.active_dialog is None else self.active_dialog.id
                 ),
-                "parent": None if self.parent is None else self.parent.active_dialog.id,
+                "parent": parent_active_id,
                 "stack": self.stack,
             }

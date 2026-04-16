@@ -4,7 +4,9 @@
 from enum import Enum
 
 
-class ListStyle(str, Enum):
+class ListStyle(int, Enum):
+    """Defines the style of list to present choices to the user."""
+
     none = 0
     auto = 1
     in_line = 2
