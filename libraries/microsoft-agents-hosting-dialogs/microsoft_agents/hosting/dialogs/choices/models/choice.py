@@ -5,6 +5,7 @@ from dataclasses import dataclass, field
 
 from microsoft_agents.activity import CardAction
 
+
 @dataclass
 class Choice:
 

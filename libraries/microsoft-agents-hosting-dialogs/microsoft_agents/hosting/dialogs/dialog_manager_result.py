@@ -8,6 +8,7 @@ from microsoft_agents.activity import Activity
 from .models.dialog_turn_result import DialogTurnResult
 from .persisted_state import PersistedState
 
+
 @dataclass
 class DialogManagerResult:
 

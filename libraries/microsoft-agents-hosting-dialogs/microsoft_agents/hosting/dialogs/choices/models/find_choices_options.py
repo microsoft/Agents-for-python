@@ -9,7 +9,7 @@ from .find_values_options import FindValuesOptions
 @dataclass
 class FindChoicesOptions(FindValuesOptions):
     """Contains options to control how input is matched against a list of choices
-    
+
     no_value: If `True`, the choices `value` field will NOT be search over. Defaults to `False`.
 
     no_action: If `True`, the choices `action.title` field will NOT be searched over.

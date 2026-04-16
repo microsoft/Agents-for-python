@@ -19,7 +19,9 @@ class AttachmentPrompt(Prompt):
     """
 
     def __init__(
-        self, dialog_id: str, validator: Callable[[PromptValidatorContext], bool] | None = None
+        self,
+        dialog_id: str,
+        validator: Callable[[PromptValidatorContext], bool] | None = None,
     ):
         super().__init__(dialog_id, validator)
 

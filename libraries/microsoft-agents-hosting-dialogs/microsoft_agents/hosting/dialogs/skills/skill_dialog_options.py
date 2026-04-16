@@ -10,6 +10,7 @@ from microsoft_agents.hosting.core.client import (
     ChannelInfoProtocol,
 )
 
+
 @dataclass
 class SkillDialogOptions:
 

@@ -30,7 +30,9 @@ from microsoft_agents.hosting.dialogs.memory.path_resolvers import (
 )
 
 
-class DialogsComponentRegistration(ComponentMemoryScopesBase, ComponentPathResolversBase):
+class DialogsComponentRegistration(
+    ComponentMemoryScopesBase, ComponentPathResolversBase
+):
     def get_memory_scopes(self) -> Iterable[MemoryScope]:
         yield TurnMemoryScope()
         yield SettingsMemoryScope()

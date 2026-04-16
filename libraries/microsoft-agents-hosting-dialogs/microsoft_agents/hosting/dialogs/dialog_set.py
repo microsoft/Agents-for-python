@@ -112,9 +112,7 @@ class DialogSet:
         from .dialog_context import DialogContext
 
         if turn_context is None:
-            raise TypeError(
-                "DialogSet.create_context(): turn_context cannot be None."
-            )
+            raise TypeError("DialogSet.create_context(): turn_context cannot be None.")
 
         if not self._dialog_state:
             raise RuntimeError(
@@ -122,9 +120,11 @@ class DialogSet:
             )
 
         from typing import cast as _cast  # pylint: disable=import-outside-toplevel
-        state: DialogState = _cast(DialogState, await self._dialog_state.get(
-            turn_context, lambda: DialogState()
-        ))
+
+        state: DialogState = _cast(
+            DialogState,
+            await self._dialog_state.get(turn_context, lambda: DialogState()),
+        )
 
         return DialogContext(self, turn_context, state)
 

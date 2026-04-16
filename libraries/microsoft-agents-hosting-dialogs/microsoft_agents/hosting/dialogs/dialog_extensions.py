@@ -141,7 +141,10 @@ class DialogExtensions:
         claims_identity = turn_context.turn_state.get(
             ChannelAdapter.AGENT_IDENTITY_KEY, None
         )
-        return isinstance(claims_identity, ClaimsIdentity) and claims_identity.is_agent_claim()
+        return (
+            isinstance(claims_identity, ClaimsIdentity)
+            and claims_identity.is_agent_claim()
+        )
 
     @staticmethod
     async def _send_state_snapshot_trace(dialog_context: DialogContext):
@@ -178,7 +181,10 @@ class DialogExtensions:
         claims_identity = turn_context.turn_state.get(
             ChannelAdapter.AGENT_IDENTITY_KEY, None
         )
-        if isinstance(claims_identity, ClaimsIdentity) and claims_identity.is_agent_claim():
+        if (
+            isinstance(claims_identity, ClaimsIdentity)
+            and claims_identity.is_agent_claim()
+        ):
             return True
 
         return False

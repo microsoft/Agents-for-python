@@ -37,7 +37,9 @@ class ConfirmPrompt(Prompt):
         dialog_id: str,
         validator: Callable[[PromptValidatorContext], Any] | None = None,
         default_locale: str | None = None,
-        choice_defaults: dict[str, tuple[Choice, Choice, ChoiceFactoryOptions]] | None = None,
+        choice_defaults: (
+            dict[str, tuple[Choice, Choice, ChoiceFactoryOptions]] | None
+        ) = None,
     ):
         super().__init__(dialog_id, validator)
         if dialog_id is None:

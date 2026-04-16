@@ -18,7 +18,7 @@ from dotenv import load_dotenv
 from .user_profile_dialog import UserProfileDialog
 from .agent import DialogAgent
 
-load_dotenv(path.join(path.dirname(__file__), ".env"))
+load_dotenv(path.join(path.dirname(__file__), "..", ".env"))
 agents_sdk_config = load_configuration_from_env(dict(environ))
 
 STORAGE = MemoryStorage()

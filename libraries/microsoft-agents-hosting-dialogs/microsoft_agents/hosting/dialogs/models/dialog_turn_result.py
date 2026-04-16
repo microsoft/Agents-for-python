@@ -6,6 +6,7 @@ from typing import Any
 
 from .dialog_turn_status import DialogTurnStatus
 
+
 @dataclass
 class DialogTurnResult:
     """

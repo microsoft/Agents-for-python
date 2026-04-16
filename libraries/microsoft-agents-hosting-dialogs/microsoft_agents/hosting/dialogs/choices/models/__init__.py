@@ -19,5 +19,5 @@ __all__ = [
     "ListStyle",
     "ModelResult",
     "SortedValue",
-    "Token"
+    "Token",
 ]

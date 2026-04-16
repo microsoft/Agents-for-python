@@ -101,7 +101,7 @@ class ComponentDialog(Dialog):
         """
         if dialog_context is None:
             raise TypeError("ComponentDialog.begin_dialog(): outer_dc cannot be None.")
-        
+
         # Continue execution of inner dialog.
         assert dialog_context.active_dialog is not None
         dialog_state = dialog_context.active_dialog.state[self.persisted_dialog_state]
@@ -224,7 +224,9 @@ class ComponentDialog(Dialog):
         :param options: Optional, initial information to pass to the dialog.
         :type options: object
         """
-        assert self.initial_dialog_id is not None, "ComponentDialog: initial_dialog_id must be set before begin_dialog is called."
+        assert (
+            self.initial_dialog_id is not None
+        ), "ComponentDialog: initial_dialog_id must be set before begin_dialog is called."
         return await inner_dc.begin_dialog(self.initial_dialog_id, options)
 
     async def on_continue_dialog(self, inner_dc: DialogContext) -> DialogTurnResult:

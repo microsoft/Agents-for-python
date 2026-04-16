@@ -62,7 +62,8 @@ class NumberPrompt(Prompt):
             if results:
                 result.succeeded = True
                 result.value = parse_decimal(
-                    cast(str, results[0].resolution["value"]), locale=culture.replace("-", "_")
+                    cast(str, results[0].resolution["value"]),
+                    locale=culture.replace("-", "_"),
                 )
 
         return result

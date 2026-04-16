@@ -68,9 +68,15 @@ class DialogStateManager:
             raise TypeError(f"Expecting: DialogContext, but received None")
 
         from typing import cast as _cast  # pylint: disable=import-outside-toplevel
-        self._configuration: DialogStateManagerConfiguration | None = configuration or _cast(
-            DialogStateManagerConfiguration | None,
-            dialog_context.context.turn_state.get(DialogStateManagerConfiguration.__name__, None)
+
+        self._configuration: DialogStateManagerConfiguration | None = (
+            configuration
+            or _cast(
+                DialogStateManagerConfiguration | None,
+                dialog_context.context.turn_state.get(
+                    DialogStateManagerConfiguration.__name__, None
+                ),
+            )
         )
         if not self._configuration:
             self._configuration = DialogStateManagerConfiguration()
@@ -176,7 +182,7 @@ class DialogStateManager:
         """
         if not name:
             raise TypeError(f"Expecting: {str.__name__}, but received None")
-        
+
         memory_scope = next(
             (
                 memory_scope

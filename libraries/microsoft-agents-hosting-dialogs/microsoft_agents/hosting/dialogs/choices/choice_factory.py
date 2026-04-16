@@ -4,7 +4,13 @@
 from collections.abc import Iterable
 
 from microsoft_agents.hosting.core import CardFactory, MessageFactory
-from microsoft_agents.activity import ActionTypes, Activity, CardAction, HeroCard, InputHints
+from microsoft_agents.activity import (
+    ActionTypes,
+    Activity,
+    CardAction,
+    HeroCard,
+    InputHints,
+)
 
 from . import Channel, Choice, ChoiceFactoryOptions
 
@@ -52,7 +58,9 @@ class ChoiceFactory:
         supports_suggested_actions = Channel.supports_suggested_actions(
             channel_id, len(choice_list)
         )
-        supports_card_actions = Channel.supports_card_actions(channel_id, len(choice_list))
+        supports_card_actions = Channel.supports_card_actions(
+            channel_id, len(choice_list)
+        )
         max_action_title_length = Channel.max_action_title_length(channel_id)
         long_titles = max_title_length > max_action_title_length
 
@@ -207,7 +215,9 @@ class ChoiceFactory:
 
     @staticmethod
     def hero_card(
-        choices: Iterable[Choice | str], text: str | None = None, speak: str | None = None
+        choices: Iterable[Choice | str],
+        text: str | None = None,
+        speak: str | None = None,
     ) -> Activity:
         """
         Creates a message activity that includes a lsit of coices that have been added as `HeroCard`'s

@@ -33,7 +33,11 @@ class Prompt(Dialog):
     persisted_options = "options"
     persisted_state = "state"
 
-    def __init__(self, dialog_id: str, validator: Callable[[PromptValidatorContext], Any] | None = None):
+    def __init__(
+        self,
+        dialog_id: str,
+        validator: Callable[[PromptValidatorContext], Any] | None = None,
+    ):
         """
         Creates a new Prompt instance.
         """
@@ -167,7 +171,11 @@ class Prompt(Dialog):
             return ChoiceFactory.hero_card(choices, text)
 
         def list_style_none() -> Activity:
-            from microsoft_agents.activity import Activity as _Activity, ActivityTypes as _AT
+            from microsoft_agents.activity import (
+                Activity as _Activity,
+                ActivityTypes as _AT,
+            )
+
             activity = _Activity(type=_AT.message)  # type: ignore[call-arg]
             activity.text = text
             return activity

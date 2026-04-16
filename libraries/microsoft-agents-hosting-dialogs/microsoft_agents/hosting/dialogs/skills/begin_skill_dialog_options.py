@@ -7,6 +7,7 @@ from dataclasses import dataclass
 
 from microsoft_agents.activity import Activity
 
+
 @dataclass
 class BeginSkillDialogOptions:
 

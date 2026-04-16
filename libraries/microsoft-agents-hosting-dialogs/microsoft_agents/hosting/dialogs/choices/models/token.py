@@ -3,6 +3,7 @@
 
 from dataclasses import dataclass
 
+
 @dataclass
 class Token:
     """Represents an individual token, such as a word in an input string.

@@ -8,6 +8,7 @@ from typing import cast
 from microsoft_agents.hosting.core import ChannelAdapter, TurnContext, UserTokenClient
 from microsoft_agents.activity import TokenResponse
 
+
 @dataclass
 class TokenExchangeRequest:
     """Simple token exchange request for OAuth flows."""
@@ -49,7 +50,9 @@ class _UserTokenAccess:
         channel_id = activity.channel_id
 
         if not user_id:
-            raise Exception("Cannot get user token without a user ID in the activity's from property.")
+            raise Exception(
+                "Cannot get user token without a user ID in the activity's from property."
+            )
 
         return await user_token_client.user_token.get_token(
             user_id,
@@ -71,7 +74,9 @@ class _UserTokenAccess:
         channel_id = activity.channel_id
 
         if not user_id:
-            raise Exception("Cannot sign out user without a user ID in the activity's from property.")
+            raise Exception(
+                "Cannot sign out user without a user ID in the activity's from property."
+            )
 
         await user_token_client.user_token.sign_out(
             user_id,
@@ -116,7 +121,9 @@ class _UserTokenAccess:
                     ),
                 },
                 "relatesTo": None,
-                "MSAppId": settings.ms_app_id if hasattr(settings, "ms_app_id") else None,
+                "MSAppId": (
+                    settings.ms_app_id if hasattr(settings, "ms_app_id") else None
+                ),
             }
         )
 
@@ -139,7 +146,9 @@ class _UserTokenAccess:
         channel_id = activity.channel_id
 
         if not user_id or not channel_id:
-            raise Exception("Cannot exchange token without a user ID and channel ID from the activity.")
+            raise Exception(
+                "Cannot exchange token without a user ID and channel ID from the activity."
+            )
 
         body = {}
         if hasattr(token_exchange_request, "token") and token_exchange_request.token:

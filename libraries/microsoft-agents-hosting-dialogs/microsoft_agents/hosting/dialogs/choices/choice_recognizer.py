@@ -93,10 +93,12 @@ class ChoiceRecognizers:
 
     @staticmethod
     def _recognize_ordinal(utterance: str, culture: str) -> list[ModelResult]:
-        model: OrdinalModel = cast(OrdinalModel, NumberRecognizer(culture).get_ordinal_model(culture))
+        model: OrdinalModel = cast(
+            OrdinalModel, NumberRecognizer(culture).get_ordinal_model(culture)
+        )
 
         return list(
-            map(ChoiceRecognizers._found_choice_constructor, model.parse(utterance))
+            map(ChoiceRecognizers._found_choice_constructor, model.parse(utterance))  # type: ignore[arg-type]
         )
 
     @staticmethod
@@ -125,10 +127,12 @@ class ChoiceRecognizers:
 
     @staticmethod
     def _recognize_number(utterance: str, culture: str) -> list[ModelResult]:
-        model: NumberModel = cast(NumberModel, NumberRecognizer(culture).get_number_model(culture))
+        model: NumberModel = cast(
+            NumberModel, NumberRecognizer(culture).get_number_model(culture)
+        )
 
         return list(
-            map(ChoiceRecognizers._found_choice_constructor, model.parse(utterance))
+            map(ChoiceRecognizers._found_choice_constructor, model.parse(utterance))  # type: ignore[arg-type]
         )
 
     @staticmethod

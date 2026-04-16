@@ -21,7 +21,7 @@ class AliasPathResolver(PathResolverBase):
         self.alias = alias.strip()
         self._prefix = prefix.strip()
         self._postfix = postfix.strip()
-        
+
     def transform_path(self, path: str):
         """
         Transforms the path.

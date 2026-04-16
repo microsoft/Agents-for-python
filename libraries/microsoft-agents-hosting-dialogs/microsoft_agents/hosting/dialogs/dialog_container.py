@@ -21,6 +21,7 @@ class DialogContainer(Dialog):
         super().__init__(dialog_id or self.__class__.__name__)
         # Import here to avoid circular imports at module level
         from .dialog_set import DialogSet  # pylint: disable=import-outside-toplevel
+
         self.dialogs = DialogSet(None)
 
     def create_child_context(self, dialog_context: DialogContext) -> DialogContext:

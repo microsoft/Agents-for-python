@@ -5,6 +5,7 @@ from dataclasses import dataclass, field
 
 from .models.dialog_instance import DialogInstance
 
+
 @dataclass
 class DialogState:
     """

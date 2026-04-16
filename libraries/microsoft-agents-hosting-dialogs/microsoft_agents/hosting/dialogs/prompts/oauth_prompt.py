@@ -80,7 +80,9 @@ class OAuthPrompt(Dialog):
                 f"OAuthPrompt.begin_dialog(): Expected DialogContext but got NoneType instead"
             )
 
-        prompt_options = (options if isinstance(options, PromptOptions) else None) or PromptOptions()
+        prompt_options = (
+            options if isinstance(options, PromptOptions) else None
+        ) or PromptOptions()
 
         # Ensure prompts have input hint set
         if prompt_options.prompt and not prompt_options.prompt.input_hint:
@@ -193,9 +195,10 @@ class OAuthPrompt(Dialog):
 
     @staticmethod
     def __create_caller_info(context: TurnContext) -> CallerInfo | None:
-        bot_identity = cast(ClaimsIdentity | None, context.turn_state.get(
-            ChannelAdapter.AGENT_IDENTITY_KEY
-        ))
+        bot_identity = cast(
+            ClaimsIdentity | None,
+            context.turn_state.get(ChannelAdapter.AGENT_IDENTITY_KEY),
+        )
         if bot_identity and bot_identity.is_agent_claim():
             return CallerInfo(
                 caller_service_url=context.activity.service_url,
@@ -224,9 +227,10 @@ class OAuthPrompt(Dialog):
                     context, self._settings
                 )
                 link = sign_in_resource.sign_in_link
-                bot_identity = cast(ClaimsIdentity | None, context.turn_state.get(
-                    ChannelAdapter.AGENT_IDENTITY_KEY
-                ))
+                bot_identity = cast(
+                    ClaimsIdentity | None,
+                    context.turn_state.get(ChannelAdapter.AGENT_IDENTITY_KEY),
+                )
 
                 # use the SignInLink when in speech channel or bot is a skill or
                 # an extra OAuthAppCredentials is being passed in
@@ -356,10 +360,7 @@ class OAuthPrompt(Dialog):
 
             token_value = cast(TokenExchangeInvokeRequest, context.activity.value)
 
-            if not (
-                token_value
-                and self._is_token_exchange_request(token_value)
-            ):
+            if not (token_value and self._is_token_exchange_request(token_value)):
                 # Received activity is not a token exchange request.
                 await context.send_activity(
                     self._get_token_exchange_invoke_response(
@@ -368,9 +369,7 @@ class OAuthPrompt(Dialog):
                         " This is required to be sent with the InvokeActivity.",
                     )
                 )
-            elif (
-                token_value.connection_name != self._settings.connection_name
-            ):
+            elif token_value.connection_name != self._settings.connection_name:
                 # Connection name on activity does not match that of setting.
                 await context.send_activity(
                     self._get_token_exchange_invoke_response(
@@ -384,7 +383,10 @@ class OAuthPrompt(Dialog):
                 # No errors. Proceed with token exchange.
                 token_exchange_response = None
                 try:
-                    from microsoft_agents.hosting.dialogs._user_token_access import TokenExchangeRequest
+                    from microsoft_agents.hosting.dialogs._user_token_access import (
+                        TokenExchangeRequest,
+                    )
+
                     token_exchange_response = await _UserTokenAccess.exchange_token(
                         context,
                         self._settings,

@@ -25,7 +25,9 @@ class BotStateMemoryScope(MemoryScope):
         # In the new SDK, after AgentState.load() is called, turn_state contains
         # a CachedAgentState (not the AgentState itself) at the context_service_key.
         # Handle both cases: AgentState (before load) and CachedAgentState (after load).
-        turn_state_value = dialog_context.context.turn_state.get(self.agent_state_type.__name__)
+        turn_state_value = dialog_context.context.turn_state.get(
+            self.agent_state_type.__name__
+        )
         if turn_state_value is None:
             return None
         if isinstance(turn_state_value, AgentState):
@@ -36,7 +38,7 @@ class BotStateMemoryScope(MemoryScope):
                 return None
             return cached_state.state
         # It's a CachedAgentState (stored after load() was called)
-        return getattr(turn_state_value, 'state', None)
+        return getattr(turn_state_value, "state", None)
 
     def set_memory(self, dialog_context: "DialogContext", memory: object):
         raise RuntimeError("You cannot replace the root AgentState object")
@@ -54,7 +56,9 @@ class BotStateMemoryScope(MemoryScope):
             await agent_state.save(dialog_context.context, force)
 
     def _get_agent_state(self, dialog_context: "DialogContext") -> AgentState | None:
-        value = dialog_context.context.turn_state.get(self.agent_state_type.__name__, None)
+        value = dialog_context.context.turn_state.get(
+            self.agent_state_type.__name__, None
+        )
         # After AgentState.load(), the turn_state key holds CachedAgentState, not AgentState.
         # Return None in that case so callers don't try to call AgentState methods on it.
         if isinstance(value, AgentState):

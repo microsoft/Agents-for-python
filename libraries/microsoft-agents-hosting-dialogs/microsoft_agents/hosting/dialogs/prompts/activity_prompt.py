@@ -80,14 +80,20 @@ class ActivityPrompt(Dialog):
         # Perform base recognition
         instance = dialog_context.active_dialog
         assert instance is not None
-        state: dict[str, object] = cast(dict[str, object], instance.state[self.persisted_state])
-        prompt_options: PromptOptions = cast(PromptOptions, instance.state[self.persisted_options])
+        state: dict[str, object] = cast(
+            dict[str, object], instance.state[self.persisted_state]
+        )
+        prompt_options: PromptOptions = cast(
+            PromptOptions, instance.state[self.persisted_options]
+        )
         recognized: PromptRecognizerResult = await self.on_recognize(
             dialog_context.context, state, prompt_options
         )
 
         # Increment attempt count
-        state[Prompt.ATTEMPT_COUNT_KEY] = int(cast(int, state.get(Prompt.ATTEMPT_COUNT_KEY, 0))) + 1
+        state[Prompt.ATTEMPT_COUNT_KEY] = (
+            int(cast(int, state.get(Prompt.ATTEMPT_COUNT_KEY, 0))) + 1
+        )
 
         # Validate the return value
         is_valid = False

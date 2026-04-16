@@ -26,9 +26,7 @@ class Find:
         """Matches user input against a list of choices"""
 
         if not choices:
-            raise TypeError(
-                "Find: choices cannot be None."
-            )
+            raise TypeError("Find: choices cannot be None.")
 
         opt = options or FindChoicesOptions()
 
@@ -47,9 +45,7 @@ class Find:
             if not opt.no_value:
                 synonyms.append(SortedValue(value=choice.value, index=index))
 
-            if (
-                choice.action and choice.action.title and not opt.no_action
-            ):
+            if choice.action and choice.action.title and not opt.no_action:
                 synonyms.append(SortedValue(value=choice.action.title, index=index))
 
             if choice.synonyms is not None:
@@ -74,14 +70,14 @@ class Find:
 
         # Find synonyms in utterance and map back to their choices_list
         return list(
-            map(
-                found_choice_constructor, Find.find_values(utterance, synonyms, opt)
-            )
+            map(found_choice_constructor, Find.find_values(utterance, synonyms, opt))
         )
 
     @staticmethod
     def find_values(
-        utterance: str, values: list[SortedValue], options: FindValuesOptions | None = None
+        utterance: str,
+        values: list[SortedValue],
+        options: FindValuesOptions | None = None,
     ) -> list[ModelResult]:
         # Sort values in descending order by length, so that the longest value is searchd over first.
         sorted_values = sorted(

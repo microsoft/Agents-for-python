@@ -17,7 +17,10 @@ from .prompt_validator_context import PromptValidatorContext
 
 class DateTimePrompt(Prompt):
     def __init__(
-        self, dialog_id: str, validator: Callable[[PromptValidatorContext], Any] | None = None, default_locale: str | None = None
+        self,
+        dialog_id: str,
+        validator: Callable[[PromptValidatorContext], Any] | None = None,
+        default_locale: str | None = None,
     ):
         super(DateTimePrompt, self).__init__(dialog_id, validator)
         self.default_locale = default_locale

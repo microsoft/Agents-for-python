@@ -35,9 +35,7 @@ class TextPrompt(Prompt):
         options: PromptOptions,
     ) -> PromptRecognizerResult:
         if not turn_context:
-            raise TypeError(
-                "TextPrompt.on_recognize(): turn_context cannot be None."
-            )
+            raise TypeError("TextPrompt.on_recognize(): turn_context cannot be None.")
 
         result = PromptRecognizerResult()
         if turn_context.activity.type == ActivityTypes.message:

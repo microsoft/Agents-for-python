@@ -5,11 +5,10 @@ from typing import Any
 
 from .persisted_state_keys import PersistedStateKeys
 
+
 class PersistedState:
     def __init__(
-        self,
-        keys: PersistedStateKeys | None = None,
-        data: dict[str, Any] | None = None
+        self, keys: PersistedStateKeys | None = None, data: dict[str, Any] | None = None
     ):
         if keys and data:
             self.user_state: dict[str, Any] = (

@@ -27,7 +27,11 @@ class DialogManager:
     Class which runs the dialog system.
     """
 
-    def __init__(self, root_dialog: Dialog | None = None, dialog_state_property: str = "DialogState"):
+    def __init__(
+        self,
+        root_dialog: Dialog | None = None,
+        dialog_state_property: str = "DialogState",
+    ):
         """
         Initializes an instance of the DialogManager class.
         :param root_dialog: Root dialog to use.
@@ -86,20 +90,26 @@ class DialogManager:
                     f"Unable to get an instance of {conversation_state_name} from turn_context. "
                     f"Please ensure ConversationState is available in turn_state."
                 )
-            self.conversation_state = cast(ConversationState, context.turn_state[conversation_state_name])
+            self.conversation_state = cast(
+                ConversationState, context.turn_state[conversation_state_name]
+            )
         else:
             context.turn_state[conversation_state_name] = self.conversation_state
 
         # Resolve UserState (optional)
         user_state_name = UserState.__name__
         if self.user_state is None:
-            self.user_state = cast(UserState | None, context.turn_state.get(user_state_name, None))
+            self.user_state = cast(
+                UserState | None, context.turn_state.get(user_state_name, None)
+            )
         else:
             context.turn_state[user_state_name] = self.user_state
 
         # Create property accessors
         last_access_property = self.conversation_state.create_property(self.last_access)
-        last_access: datetime = cast(datetime, await last_access_property.get(context, datetime.now))
+        last_access: datetime = cast(
+            datetime, await last_access_property.get(context, datetime.now)
+        )
 
         # Check for expired conversation
         if self.expire_after is not None and (
@@ -115,14 +125,18 @@ class DialogManager:
         dialogs_property = self.conversation_state.create_property(
             self._dialog_state_property
         )
-        dialog_state: DialogState = cast(DialogState, await dialogs_property.get(context, DialogState))
+        dialog_state: DialogState = cast(
+            DialogState, await dialogs_property.get(context, DialogState)
+        )
 
         # Create DialogContext
         dialog_context = DialogContext(self.dialogs, context, dialog_state)
 
         # Call the common dialog "continue/begin" execution pattern shared with the classic RunAsync extension method
-        turn_result = await DialogExtensions._internal_run(  # pylint: disable=protected-access
-            context, self._root_dialog_id, dialog_context
+        turn_result = (
+            await DialogExtensions._internal_run(  # pylint: disable=protected-access
+                context, self._root_dialog_id, dialog_context
+            )
         )
 
         # Save ConversationState changes
@@ -144,9 +158,10 @@ class DialogManager:
         claims_identity = turn_context.turn_state.get(
             ChannelAdapter.AGENT_IDENTITY_KEY, None
         )
-        return isinstance(
-            claims_identity, ClaimsIdentity
-        ) and claims_identity.is_agent_claim()
+        return (
+            isinstance(claims_identity, ClaimsIdentity)
+            and claims_identity.is_agent_claim()
+        )
 
     @staticmethod
     def should_send_end_of_conversation_to_parent(

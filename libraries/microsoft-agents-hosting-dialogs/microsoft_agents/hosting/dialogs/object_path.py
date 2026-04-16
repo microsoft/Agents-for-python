@@ -199,7 +199,9 @@ class ObjectPath:
         return value
 
     @staticmethod
-    def try_resolve_path(obj, property_path: str, evaluate: bool = False) -> list | None:
+    def try_resolve_path(
+        obj, property_path: str, evaluate: bool = False
+    ) -> list | None:
         so_far = []
         first = property_path[0] if property_path else " "
         if first in ("'", '"'):

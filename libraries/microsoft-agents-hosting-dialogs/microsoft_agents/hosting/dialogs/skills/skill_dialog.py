@@ -118,7 +118,7 @@ class SkillDialog(Dialog):
         self, context: TurnContext, instance: DialogInstance
     ):
         # Create and send an event to the skill so it can resume the dialog.
-        reprompt_event = Activity(
+        reprompt_event = Activity(  # type: ignore[call-arg]
             type=ActivityTypes.event, name=DialogEvents.reprompt_dialog
         )
 
@@ -144,7 +144,7 @@ class SkillDialog(Dialog):
     ):
         # Send EndOfConversation to the skill if the dialog has been cancelled.
         if reason in (DialogReason.CancelCalled, DialogReason.ReplaceCalled):
-            activity = Activity(type=ActivityTypes.end_of_conversation)
+            activity = Activity(type=ActivityTypes.end_of_conversation)  # type: ignore[call-arg]
 
             # Apply conversation reference and common properties from incoming activity before sending.
             TurnContext.apply_conversation_reference(
@@ -224,10 +224,14 @@ class SkillDialog(Dialog):
             # Process replies in the response.Body.
             raw_body = response.body
             expected_replies: ExpectedReplies | list[Activity] = (
-                ExpectedReplies.model_validate(raw_body) if isinstance(raw_body, dict) else cast(list[Activity], raw_body)
+                ExpectedReplies.model_validate(raw_body)
+                if isinstance(raw_body, dict)
+                else cast(list[Activity], raw_body)
             )
             activities: list[Activity] = (
-                expected_replies.activities if isinstance(expected_replies, ExpectedReplies) else cast(list[Activity], expected_replies)
+                expected_replies.activities
+                if isinstance(expected_replies, ExpectedReplies)
+                else cast(list[Activity], expected_replies)
             )
 
             # Track sent invoke responses, so more than one is not sent.
@@ -265,14 +269,19 @@ class SkillDialog(Dialog):
         # Create a conversationId to interact with the skill
         assert self.dialog_options.skill is not None
         conversation_id_factory_options = ConversationIdFactoryOptions(
-            from_oauth_scope=cast(str, context.turn_state.get(ChannelAdapter.OAUTH_SCOPE_KEY)) or "",
+            from_oauth_scope=cast(
+                str, context.turn_state.get(ChannelAdapter.OAUTH_SCOPE_KEY)
+            )
+            or "",
             from_agent_id=self.dialog_options.agent_id or "",
             activity=activity,
             agent=self.dialog_options.skill,
         )
         assert self.dialog_options.conversation_id_factory is not None
-        skill_conversation_id = await self.dialog_options.conversation_id_factory.create_conversation_id(
-            conversation_id_factory_options
+        skill_conversation_id = (
+            await self.dialog_options.conversation_id_factory.create_conversation_id(
+                conversation_id_factory_options
+            )
         )
         return skill_conversation_id
 

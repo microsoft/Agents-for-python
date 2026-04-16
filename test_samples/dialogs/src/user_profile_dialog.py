@@ -152,16 +152,21 @@ class UserProfileDialog(ComponentDialog):
     async def confirm_step(
         self, step_context: WaterfallStepContext
     ) -> DialogTurnResult:
-        msg = f"Thanks."
         if step_context.result:
-            msg += f" Your profile saved successfully."
+            # User confirmed — save collected values to user profile state.
+            user_profile = await self.user_profile_accessor.get(
+                step_context.context, UserProfile
+            )
+            user_profile.transport = step_context.values["transport"]
+            user_profile.name = step_context.values["name"]
+            user_profile.age = step_context.values["age"]
+            user_profile.picture = step_context.values["picture"]
+            msg = "Thanks. Your profile was saved successfully."
         else:
-            msg += f" Your profile will not be kept."
+            msg = "Thanks. Your profile will not be kept."
 
         await step_context.context.send_activity(MessageFactory.text(msg))
 
-        # WaterfallStep always finishes with the end of the Waterfall or
-        # with another dialog; here it is a Prompt Dialog.
         return await step_context.end_dialog()
 
     async def summary_step(
@@ -170,33 +175,25 @@ class UserProfileDialog(ComponentDialog):
         step_context.values["picture"] = (
             None if not step_context.result else step_context.result[0]
         )
-        # Get the current profile object from user state.  Changes to it
-        # will saved during Bot.on_turn.
-        user_profile = await self.user_profile_accessor.get(
-            step_context.context, UserProfile
-        )
 
-        user_profile.transport = step_context.values["transport"]
-        user_profile.name = step_context.values["name"]
-        user_profile.age = step_context.values["age"]
-        user_profile.picture = step_context.values["picture"]
+        # Display a summary of what was collected before asking for confirmation.
+        transport = step_context.values["transport"]
+        name = step_context.values["name"]
+        age = step_context.values["age"]
+        picture = step_context.values["picture"]
 
-        msg = f"I have your mode of transport as {user_profile.transport} and your name as {user_profile.name}."
-        if user_profile.age != -1:
-            msg += f" And age as {user_profile.age}."
+        msg = f"I have your mode of transport as {transport} and your name as {name}."
+        if age != -1:
+            msg += f" And age as {age}."
 
         await step_context.context.send_activity(MessageFactory.text(msg))
 
-        if user_profile.picture:
+        if picture:
             await step_context.context.send_activity(
-                MessageFactory.attachment(
-                    user_profile.picture, "This is your profile picture."
-                )
+                MessageFactory.attachment(picture, "This is your profile picture.")
             )
         else:
-            await step_context.context.send_activity(
-                "A profile picture was saved but could not be displayed here."
-            )
+            await step_context.context.send_activity("No profile picture provided.")
 
         # WaterfallStep always finishes with the end of the Waterfall or with another
         # dialog, here it is the end.
