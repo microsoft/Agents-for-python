@@ -50,6 +50,34 @@ class TestDialogSet:
             dialog_set.find_dialog("B").telemetry_client, MyBotTelemetryClient
         )
 
+    def test_add_duplicate_dialog_id_raises(self):
+        """Adding a second dialog with the same ID raises TypeError."""
+        convo_state = ConversationState(MemoryStorage())
+        dialog_state_property = convo_state.create_property("dialogstate")
+        dialog_set = DialogSet(dialog_state_property)
+
+        dialog_set.add(WaterfallDialog("A"))
+        with pytest.raises(TypeError):
+            dialog_set.add(WaterfallDialog("A"))
+
+    def test_add_none_dialog_raises(self):
+        """Adding None raises TypeError."""
+        convo_state = ConversationState(MemoryStorage())
+        dialog_state_property = convo_state.create_property("dialogstate")
+        dialog_set = DialogSet(dialog_state_property)
+        with pytest.raises(TypeError):
+            dialog_set.add(None)
+
+    def test_get_version_is_stable(self):
+        """get_version() returns the same hash on repeated calls."""
+        convo_state = ConversationState(MemoryStorage())
+        dialog_state_property = convo_state.create_property("dialogstate")
+        dialog_set = DialogSet(dialog_state_property)
+        dialog_set.add(WaterfallDialog("A"))
+        v1 = dialog_set.get_version()
+        v2 = dialog_set.get_version()
+        assert v1 == v2
+
     def test_dialogset_nulltelemetryset(self):
         convo_state = ConversationState(MemoryStorage())
         dialog_state_property = convo_state.create_property("dialogstate")

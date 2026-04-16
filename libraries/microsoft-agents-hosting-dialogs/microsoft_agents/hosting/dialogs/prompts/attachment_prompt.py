@@ -32,6 +32,13 @@ class AttachmentPrompt(Prompt):
         options: PromptOptions,
         is_retry: bool,
     ):
+        """Sends the initial or retry prompt activity to the user.
+
+        :param turn_context: The context for the current turn.
+        :param state: Persisted prompt state (unused by AttachmentPrompt).
+        :param options: Prompt options containing the prompt and optional retry prompt.
+        :param is_retry: ``True`` when re-prompting after failed validation.
+        """
         if not turn_context:
             raise TypeError("AttachmentPrompt.on_prompt(): TurnContext cannot be None.")
 
@@ -51,6 +58,21 @@ class AttachmentPrompt(Prompt):
         state: dict[str, object],
         options: PromptOptions,
     ) -> PromptRecognizerResult:
+        """Attempts to recognise attachments from the incoming activity.
+
+        Succeeds only when the activity is a message **and** ``activity.attachments``
+        is a non-empty list.  The full attachment list is returned as the result.
+
+        .. note::
+            A message activity with no attachments (e.g. plain text) will fail
+            recognition and trigger the retry prompt.
+
+        :param turn_context: The context for the current turn.
+        :param state: Persisted prompt state (unused by AttachmentPrompt).
+        :param options: Prompt options (unused by AttachmentPrompt).
+        :return: Recognition result with ``succeeded=True`` and the list of
+            :class:`Attachment` objects, or ``succeeded=False`` if none were found.
+        """
         if not turn_context:
             raise TypeError("AttachmentPrompt.on_recognize(): context cannot be None.")
 

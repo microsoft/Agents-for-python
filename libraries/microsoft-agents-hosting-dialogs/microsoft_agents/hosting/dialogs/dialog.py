@@ -96,10 +96,13 @@ class Dialog(ABC):
     async def reprompt_dialog(  # pylint: disable=unused-argument
         self, context: TurnContext, instance: DialogInstance
     ):
-        """
-        :param context:
-        :param instance:
-        :return:
+        """Called when the dialog should re-prompt the user for input.
+
+        Override this method to send a repeat of the most recent prompt activity.
+        The default implementation is a no-op.
+
+        :param context: The context for the current turn.
+        :param instance: The dialog instance on the stack.
         """
         # No-op by default
         return
@@ -107,16 +110,26 @@ class Dialog(ABC):
     async def end_dialog(  # pylint: disable=unused-argument
         self, context: TurnContext, instance: DialogInstance, reason: DialogReason
     ):
-        """
-        :param context:
-        :param instance:
-        :param reason:
-        :return:
+        """Called when the dialog is ending. Override to perform cleanup or send an
+        EndOfConversation activity.
+
+        The default implementation is a no-op; subclasses should call ``super()``
+        only if they need the no-op behaviour to remain in derived chains.
+
+        :param context: The context for the current turn.
+        :param instance: The dialog instance being ended.
+        :param reason: Why the dialog is ending (EndCalled, CancelCalled, or ReplaceCalled).
         """
         # No-op by default
         return
 
     def get_version(self) -> str:
+        """Gets a string that uniquely describes this dialog's version. Changing the version
+        indicates that a stored instance of the dialog may be incompatible with the current
+        definition. By default this returns the dialog's ID.
+
+        :return: Version string for this dialog.
+        """
         return self.id
 
     async def on_dialog_event(

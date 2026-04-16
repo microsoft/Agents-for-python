@@ -23,6 +23,21 @@ from .prompt_validator_context import PromptValidatorContext
 
 
 class ConfirmPrompt(Prompt):
+    """Prompts a user to confirm something with a yes/no response.
+
+    The prompt first attempts to recognise a boolean value using the
+    ``recognizers_choice`` package (e.g. "yes", "no", "true", "false", locale
+    equivalents).  If that fails and the prompt was configured to include
+    numbered choices (the default), it falls back to matching choice indices
+    ("1" → yes, "2" → no).
+
+    Returns ``True`` for confirmation, ``False`` for denial.
+
+    Culture/locale detection uses :class:`PromptCultureModels`.  Override
+    ``default_locale`` or ``choice_defaults`` at construction time to customise
+    the displayed choices and the locale used for recognition.
+    """
+
     _default_choice_options: dict[str, tuple[Choice, Choice, ChoiceFactoryOptions]] = {
         c.locale: (
             Choice(c.yes_in_language),

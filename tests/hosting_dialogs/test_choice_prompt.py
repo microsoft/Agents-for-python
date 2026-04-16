@@ -945,3 +945,47 @@ class TestChoicePrompt:
             FindChoicesOptions(recognize_numbers=False, recognize_ordinals=False),
         )
         assert not found
+
+    @pytest.mark.asyncio
+    async def test_choice_prompt_with_empty_choices_renders_but_errors_on_response(
+        self,
+    ):
+        """ChoicePrompt with an empty choices list renders the prompt without
+        error, but raises TypeError when the user responds.
+
+        This is because Find.find_choices() treats an empty list the same as
+        None and raises TypeError: "Find: choices cannot be None."  Always
+        provide at least one Choice when using ChoicePrompt.
+        """
+        convo_state = ConversationState(MemoryStorage())
+        dialog_state = convo_state.create_property("dialogState")
+        dialogs = DialogSet(dialog_state)
+        dialogs.add(ChoicePrompt("ChoicePrompt"))
+
+        turns = []
+
+        async def exec_test(turn_context: TurnContext):
+            dialog_context = await dialogs.create_context(turn_context)
+            try:
+                results = await dialog_context.continue_dialog()
+                if results.status == DialogTurnStatus.Empty:
+                    options = PromptOptions(
+                        prompt=Activity(type=ActivityTypes.message, text="Choose one:"),
+                        choices=[],
+                    )
+                    await dialog_context.prompt("ChoicePrompt", options)
+                    turns.append("prompted")
+                else:
+                    turns.append("continued")
+            except TypeError as exc:
+                turns.append(f"error:{exc}")
+            await convo_state.save(turn_context)
+
+        adapter = DialogTestAdapter(exec_test)
+        # First turn: prompt is sent without error
+        await adapter.send("hello")
+        assert turns[-1] == "prompted"
+
+        # Second turn: recognition raises because choices is empty
+        await adapter.send("red")
+        assert turns[-1].startswith("error:")

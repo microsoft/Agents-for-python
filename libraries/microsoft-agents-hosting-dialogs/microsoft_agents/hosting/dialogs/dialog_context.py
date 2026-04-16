@@ -61,10 +61,9 @@ class DialogContext:
 
     @property
     def active_dialog(self):
-        """Return the container link in the database.
+        """Gets the instance of the active (top-of-stack) dialog, or None if the stack is empty.
 
-        :param:
-        :return:
+        :return: The active DialogInstance, or None if no dialog is active.
         """
         if self._stack:
             return self._stack[0]
@@ -72,10 +71,11 @@ class DialogContext:
 
     @property
     def child(self) -> "DialogContext | None":
-        """Return the container link in the database.
+        """Gets the DialogContext for the active dialog's inner dialog stack, if the active
+        dialog is a DialogContainer (e.g. ComponentDialog). Returns None if there is no
+        active dialog or the active dialog is not a container.
 
-        :param:
-        :return DialogContext:
+        :return: The child DialogContext, or None.
         """
         # pylint: disable=import-outside-toplevel
         instance = self.active_dialog
@@ -331,6 +331,10 @@ class DialogContext:
             raise
 
     async def end_active_dialog(self, reason: DialogReason):
+        """Pops the active dialog off the stack and notifies it of the reason it ended.
+
+        :param reason: The reason the dialog is ending (e.g. EndCalled, CancelCalled).
+        """
         instance = self.active_dialog
         if instance is not None:
             # Look up dialog

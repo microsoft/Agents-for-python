@@ -41,6 +41,16 @@ class ActivityPrompt(Dialog):
     async def begin_dialog(
         self, dialog_context: DialogContext, options: object = None
     ) -> DialogTurnResult:
+        """Starts the prompt by sending the initial prompt activity.
+
+        Initialises persisted state with an attempt count of 0, then calls
+        :meth:`on_prompt`.
+
+        :param dialog_context: The dialog context for the current turn.
+        :param options: Must be a :class:`PromptOptions` instance.
+        :raises TypeError: If ``options`` is not a :class:`PromptOptions`.
+        :return: :attr:`Dialog.end_of_turn` to wait for the user's response.
+        """
         if not dialog_context:
             raise TypeError("ActivityPrompt.begin_dialog(): dc cannot be None.")
         if not isinstance(options, PromptOptions):
@@ -72,6 +82,23 @@ class ActivityPrompt(Dialog):
         return Dialog.end_of_turn
 
     async def continue_dialog(self, dialog_context: DialogContext) -> DialogTurnResult:
+        """Processes the next incoming activity through the prompt.
+
+        Increments the persisted attempt count **before** calling the validator,
+        so :attr:`PromptValidatorContext.attempt_count` is at least 1 on the
+        first validation call.
+
+        .. note::
+            This differs from the base :class:`Prompt` class, where
+            ``attempt_count`` is never stored in state and is always 0 when the
+            validator runs.  Code that validates both ``ActivityPrompt`` and
+            ``Prompt`` subclasses should rely on
+            :attr:`PromptOptions.number_of_attempts` for consistent counting.
+
+        :param dialog_context: The dialog context for the current turn.
+        :return: :attr:`Dialog.end_of_turn` while waiting for valid input, or
+            a Complete result once the validator accepts the activity.
+        """
         if not dialog_context:
             raise TypeError(
                 "ActivityPrompt.continue_dialog(): DialogContext cannot be None."
@@ -139,6 +166,15 @@ class ActivityPrompt(Dialog):
         options: PromptOptions,
         is_retry: bool = False,
     ):
+        """Sends the initial or retry prompt activity to the user.
+
+        Always sets ``input_hint`` to ``expecting_input`` before sending.
+
+        :param context: The context for the current turn.
+        :param state: Persisted prompt state (unused by default implementation).
+        :param options: Prompt options containing the prompt and optional retry prompt.
+        :param is_retry: ``True`` when re-prompting after failed validation.
+        """
         if is_retry and options.retry_prompt:
             options.retry_prompt.input_hint = InputHints.expecting_input
             await context.send_activity(options.retry_prompt)
@@ -149,6 +185,17 @@ class ActivityPrompt(Dialog):
     async def on_recognize(  # pylint: disable=unused-argument
         self, context: TurnContext, state: dict[str, object], options: PromptOptions
     ) -> PromptRecognizerResult:
+        """Default recognizer: always succeeds and returns the raw incoming activity.
+
+        Override this in a subclass to restrict which activities are considered
+        valid (e.g. accept only events with a specific name).
+
+        :param context: The context for the current turn.
+        :param state: Persisted prompt state.
+        :param options: Prompt options.
+        :return: A result with ``succeeded=True`` and ``value`` set to the
+            current :class:`Activity`.
+        """
         result = PromptRecognizerResult()
         result.succeeded = True
         result.value = context.activity

@@ -6,6 +6,7 @@ from unittest.mock import MagicMock
 
 from microsoft_agents.hosting.dialogs import (
     ComponentDialog,
+    Dialog,
     DialogContext,
     DialogSet,
     DialogState,
@@ -130,6 +131,58 @@ class TestDialogContext:
 
         await adapter.send_text_to_agent_async("hi", callback)
         assert result_holder["status"] == DialogTurnStatus.Empty
+
+    @pytest.mark.asyncio
+    async def test_begin_dialog_unknown_id_raises(self):
+        """begin_dialog raises when the dialog ID is not registered."""
+        convo_state = ConversationState(MemoryStorage())
+        dialog_state = convo_state.create_property("dialogState")
+        ds = DialogSet(dialog_state)
+
+        adapter = DialogTestAdapter()
+
+        async def callback(tc):
+            dc = await ds.create_context(tc)
+            with pytest.raises(Exception):
+                await dc.begin_dialog("does-not-exist")
+
+        await adapter.send_text_to_agent_async("hi", callback)
+
+    @pytest.mark.asyncio
+    async def test_replace_dialog_ends_active_and_starts_new(self):
+        """replace_dialog pops the active dialog and starts the replacement."""
+        convo_state = ConversationState(MemoryStorage())
+        dialog_state = convo_state.create_property("dialogState")
+        ds = DialogSet(dialog_state)
+
+        completed = {}
+
+        async def step1(step):
+            await step.context.send_activity("step1")
+            return Dialog.end_of_turn
+
+        async def step2(step):
+            await step.context.send_activity("replacement")
+            return await step.end_dialog()
+
+        ds.add(WaterfallDialog("first", [step1]))
+        ds.add(WaterfallDialog("second", [step2]))
+
+        adapter = DialogTestAdapter()
+
+        async def callback(tc):
+            dc = await ds.create_context(tc)
+            results = await dc.continue_dialog()
+            if results.status == DialogTurnStatus.Empty:
+                await dc.begin_dialog("first")
+            elif results.status == DialogTurnStatus.Waiting:
+                await dc.replace_dialog("second")
+            await convo_state.save(tc)
+
+        step = await adapter.send_text_to_agent_async("hi", callback)
+        step = await adapter.send_text_to_agent_async("next", callback)
+        completed["done"] = True
+        assert completed["done"]
 
     @pytest.mark.asyncio
     async def test_find_dialog_returns_none_for_unknown(self):

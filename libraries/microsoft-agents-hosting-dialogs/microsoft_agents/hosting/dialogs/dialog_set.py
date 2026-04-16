@@ -107,6 +107,15 @@ class DialogSet:
         return self
 
     async def create_context(self, turn_context: TurnContext) -> "DialogContext":
+        """Creates a DialogContext for this set using the given TurnContext.
+
+        Loads persisted dialog state via the StatePropertyAccessor provided at construction
+        and wraps it in a new DialogContext. Raises RuntimeError if the set was created
+        without a StatePropertyAccessor (e.g. from within a ComponentDialog).
+
+        :param turn_context: The current turn context.
+        :return: A DialogContext backed by the loaded dialog state.
+        """
         # This import prevents circular dependency issues
         # pylint: disable=import-outside-toplevel
         from .dialog_context import DialogContext

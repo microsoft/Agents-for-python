@@ -130,6 +130,20 @@ class ChoicePrompt(Prompt):
     def _determine_culture(
         self, activity: Activity, opt: FindChoicesOptions | None = None
     ) -> str:
+        """Resolves the culture/locale string to use for choice formatting and recognition.
+
+        Resolution order:
+        1. ``activity.locale`` (mapped to the nearest supported language)
+        2. ``self.default_locale`` set at construction
+        3. ``opt.locale`` from the recognizer options (if provided)
+        4. English (``en-us``) as the final fallback
+
+        If the resolved locale is not in ``_default_choice_options``, English is used.
+
+        :param activity: The incoming activity (provides ``locale``).
+        :param opt: Optional recogniser options (provides ``locale`` fallback).
+        :return: A locale string present in :attr:`_default_choice_options`.
+        """
         culture = (
             PromptCultureModels.map_to_nearest_language(activity.locale)
             or self.default_locale

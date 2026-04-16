@@ -121,6 +121,45 @@ class TestTextPrompt:
         await flow.assert_reply("Got: good")
 
     @pytest.mark.asyncio
+    async def test_text_prompt_non_message_activity_does_not_succeed(self):
+        """A non-message activity (e.g. event) causes recognition to fail.
+
+        The base Prompt.continue_dialog returns end_of_turn immediately for
+        non-message activities without calling the recognizer or validator.
+        The dialog remains active (Waiting) and the user is not re-prompted.
+        """
+        from microsoft_agents.activity import ActivityTypes
+
+        convo_state = ConversationState(MemoryStorage())
+        dialog_state = convo_state.create_property("dialogState")
+        ds = DialogSet(dialog_state)
+        ds.add(TextPrompt("TextPrompt"))
+
+        completed = []
+
+        async def exec(tc):
+            dc = await ds.create_context(tc)
+            results = await dc.continue_dialog()
+            if results.status == DialogTurnStatus.Empty:
+                options = PromptOptions(
+                    prompt=Activity(type=ActivityTypes.message, text="Enter something.")
+                )
+                await dc.prompt("TextPrompt", options)
+            elif results.status == DialogTurnStatus.Complete:
+                completed.append(results.result)
+            await convo_state.save(tc)
+
+        adapter = DialogTestAdapter(exec)
+        # Start the prompt
+        flow = await adapter.send("hello")
+        await flow.assert_reply("Enter something.")
+
+        # Send a non-message event — dialog must NOT complete
+        event_activity = Activity(type=ActivityTypes.event, name="custom")
+        await adapter.process_activity_async(event_activity, exec)
+        assert len(completed) == 0, "Prompt must not complete on non-message activity"
+
+    @pytest.mark.asyncio
     async def test_text_prompt_with_custom_message_validator(self):
         """Validator can send its own message and return False."""
         convo_state = ConversationState(MemoryStorage())

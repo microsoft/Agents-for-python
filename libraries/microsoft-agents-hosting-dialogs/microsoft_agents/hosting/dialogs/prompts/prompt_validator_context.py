@@ -33,8 +33,19 @@ class PromptValidatorContext:
 
     @property
     def attempt_count(self) -> int:
-        """
-        Gets the number of times the prompt has been executed.
+        """Gets the number of times ``continue_dialog`` has been called on this prompt.
+
+        .. warning:: **Behaviour differs between prompt types:**
+
+            * :class:`ActivityPrompt` increments the counter in persisted state
+              *before* calling the validator, so ``attempt_count`` is at least 1
+              on the first validation call.
+            * The base :class:`Prompt` class (and all its subclasses —
+              :class:`TextPrompt`, :class:`NumberPrompt`, :class:`ChoicePrompt`,
+              etc.) does **not** store this key in state, so ``attempt_count``
+              is always **0** regardless of how many times the user has been
+              prompted.  Use :attr:`PromptOptions.number_of_attempts` for
+              reliable attempt tracking in those prompts.
         """
         # pylint: disable=import-outside-toplevel
         from microsoft_agents.hosting.dialogs.prompts.prompt import Prompt
