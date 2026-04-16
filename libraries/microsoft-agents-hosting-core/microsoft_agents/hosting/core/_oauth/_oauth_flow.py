@@ -12,6 +12,7 @@ from typing import Optional
 from microsoft_agents.activity import (
     Activity,
     ActivityTypes,
+    Channels,
     TokenExchangeState,
     TokenResponse,
     SignInResource,
@@ -278,11 +279,24 @@ class _OAuthFlow:
             )
 
         flow_error_tag = _FlowErrorTag.NONE
+        # signin/verifyState (six-digit magic code) is a Teams-specific flow. M365/BizChat
+        # does not send signin/verifyState when user consent is required, so accepting it
+        # on non-Teams channels would run the magic-code path for a channel that never
+        # produces one and advance the flow to a failed state.
+        channel = (
+            activity.channel_id.channel
+            if activity.channel_id is not None
+            and hasattr(activity.channel_id, "channel")
+            else activity.channel_id
+        )
+        is_teams = channel == Channels.ms_teams
+
         if activity.type == ActivityTypes.message:
             token_response, flow_error_tag = await self._continue_from_message(activity)
         elif (
             activity.type == ActivityTypes.invoke
             and activity.name == "signin/verifyState"
+            and is_teams
         ):
             token_response = await self._continue_from_invoke_verify_state(activity)
         elif (

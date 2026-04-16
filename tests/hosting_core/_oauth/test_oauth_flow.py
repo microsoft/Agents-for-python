@@ -31,6 +31,7 @@ def create_testing_Activity(
     name="a",
     value=None,
     text="a",
+    channel_id=None,
 ):
     # mock_conversation_ref = mocker.MagicMock(ConversationReference)
     conversation_reference = ConversationReference(
@@ -45,7 +46,7 @@ def create_testing_Activity(
         type=type,
         name=name,
         from_property=ChannelAccount(id=DEFAULTS.user_id),
-        channel_id=DEFAULTS.channel_id,
+        channel_id=channel_id or DEFAULTS.channel_id,
         # get_conversation_reference=mocker.Mock(return_value=conv_ref),
         relates_to=conversation_reference,
         value=value,
@@ -371,6 +372,7 @@ class TestOAuthFlow(TestUtils):
             type=ActivityTypes.invoke,
             name="signin/verifyState",
             value={"state": "magic_code"},
+            channel_id="msteams",
         )
         await self.helper_continue_flow_failure(
             active_flow_state, user_token_client, activity, _FlowErrorTag.OTHER
@@ -396,6 +398,7 @@ class TestOAuthFlow(TestUtils):
             type=ActivityTypes.invoke,
             name="signin/verifyState",
             value={"state": "magic_code"},
+            channel_id="msteams",
         )
         await self.helper_continue_flow_success(
             active_flow_state,
@@ -470,6 +473,24 @@ class TestOAuthFlow(TestUtils):
                 mocker, type=ActivityTypes.invoke, name="other", value={}
             )
             flow = _OAuthFlow(active_flow_state, user_token_client)
+            await flow.continue_flow(activity)
+
+    @pytest.mark.asyncio
+    async def test_continue_flow_verify_state_rejected_on_non_teams_channel(
+        self, mocker, active_flow_state, user_token_client
+    ):
+        # signin/verifyState is a Teams-only flow; on other channels (e.g. M365)
+        # continue_flow should not treat it as a recognized invoke. It is expected
+        # to fall through to the "unknown activity type" branch.
+        activity = self.Activity(
+            mocker,
+            type=ActivityTypes.invoke,
+            name="signin/verifyState",
+            value={"state": "magic_code"},
+            channel_id="webchat",
+        )
+        flow = _OAuthFlow(active_flow_state, user_token_client)
+        with pytest.raises(ValueError):
             await flow.continue_flow(activity)
 
     @pytest.mark.asyncio

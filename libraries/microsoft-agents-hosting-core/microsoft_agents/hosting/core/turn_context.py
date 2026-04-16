@@ -81,6 +81,9 @@ class TurnContext(TurnContextProtocol):
         :param context:
         :return:
         """
+        # _streaming_response intentionally omitted: it holds a reference to the HTTP
+        # response of the originating request. Copying it to a detached context would
+        # cause writes against a response that has already completed.
         for attribute in [
             "adapter",
             "activity",

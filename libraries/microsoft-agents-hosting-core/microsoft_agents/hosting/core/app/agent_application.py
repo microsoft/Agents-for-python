@@ -4,6 +4,7 @@ Licensed under the MIT License.
 """
 
 from __future__ import annotations
+import asyncio
 import logging
 from copy import copy
 from functools import partial
@@ -720,14 +721,21 @@ class AgentApplication(Agent, Generic[StateT]):
                     ) = await self._auth._on_turn_auth_intercept(context, turn_state)
                     if auth_intercepts:
                         if continuation_activity:
-                            new_context = copy(context)
-                            new_context.activity = continuation_activity
                             logger.info(
-                                "Resending continuation activity %s",
+                                "Resending continuation activity %s asynchronously",
                                 continuation_activity.text,
                             )
-                            await self.on_turn(new_context)
+                            # Save turn state before detaching so the continuation
+                            # (which runs on a fresh turn) sees the updated state.
                             await turn_state.save(context)
+                            # Detach continuation from the current invoke's response
+                            # cycle. Without this, signin/tokenExchange would wait for
+                            # the full message turn (LLM, connector calls) before
+                            # returning, causing clients like M365/BizChat to time
+                            # out the exchange and re-render the sign-in card.
+                            self._start_detached_continuation(
+                                context, continuation_activity
+                            )
                         return
 
                 logger.debug("Running before turn middleware")
@@ -889,6 +897,47 @@ class AgentApplication(Agent, Generic[StateT]):
             on_turn_span.share(
                 route_authorized=route_authorized, route_matched=route_matched
             )
+
+    def _start_detached_continuation(
+        self, context: TurnContext, continuation_activity: Activity
+    ) -> None:
+        """Fire-and-forget processing of a continuation activity after auth completes.
+
+        When a signin/tokenExchange (or equivalent) invoke completes the sign-in flow,
+        the original user activity stored in _SignInState must be re-run. Running it on
+        the same request/response cycle would hold open the invoke's HTTP response while
+        the agent does its real work (LLM calls, connectors, Graph calls), and clients
+        with tight token-exchange deadlines (M365/BizChat) will time out and render a
+        sign-in card again even though the exchange succeeded.
+
+        This method schedules the continuation as a background task via the adapter's
+        continue_conversation mechanism so the current invoke responds immediately.
+        """
+        claims_identity = context.identity
+        bot_app_id = self._options.bot_app_id
+
+        async def _runner():
+            try:
+                if claims_identity is not None and hasattr(
+                    self._adapter, "continue_conversation_with_claims"
+                ):
+                    await self._adapter.continue_conversation_with_claims(
+                        claims_identity=claims_identity,
+                        continuation_activity=continuation_activity,
+                        callback=self._on_turn,
+                    )
+                else:
+                    await self._adapter.continue_conversation(
+                        agent_app_id=bot_app_id,
+                        continuation_activity=continuation_activity,
+                        callback=self._on_turn,
+                    )
+            except Exception as err:  # noqa: BLE001
+                logger.exception(
+                    "Unhandled error in detached auth continuation: %s", err
+                )
+
+        asyncio.create_task(_runner())
 
     async def _start_long_running_call(
         self, context: TurnContext, func: Callable[[TurnContext], Awaitable]
