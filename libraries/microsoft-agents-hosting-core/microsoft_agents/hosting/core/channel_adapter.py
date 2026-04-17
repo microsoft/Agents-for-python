@@ -119,7 +119,7 @@ class ChannelAdapter(ABC, ChannelAdapterProtocol):
         claims_identity: ClaimsIdentity,
         continuation_activity: Activity,
         callback: Callable[[TurnContext], Awaitable],
-        audience: str = None,
+        audience: str | None = None,
     ):
         """
         Sends a proactive message to a conversation. Call this method to proactively send a message to a conversation.
@@ -221,7 +221,9 @@ class ChannelAdapter(ABC, ChannelAdapterProtocol):
         return await self.run_pipeline(context, callback)
 
     async def run_pipeline(
-        self, context: TurnContext, callback: Callable[[TurnContext], Awaitable] = None
+        self,
+        context: TurnContext,
+        callback: Callable[[TurnContext], Awaitable] | None = None,
     ):
         """
         Called by the parent class to run the adapters middleware set and calls the passed in `callback()` handler at

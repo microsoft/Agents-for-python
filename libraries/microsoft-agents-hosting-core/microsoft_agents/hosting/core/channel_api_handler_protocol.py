@@ -2,7 +2,7 @@
 # Licensed under the MIT License.
 
 from abc import abstractmethod
-from typing import Protocol, Optional
+from typing import Protocol
 
 from microsoft_agents.activity import (
     Activity,
@@ -25,7 +25,7 @@ class ChannelApiHandlerProtocol(Protocol):
         self,
         claims_identity: ClaimsIdentity,
         conversation_id: str,
-        continuation_token: Optional[str] = None,
+        continuation_token: str | None = None,
     ) -> ConversationsResult:
         """
         List the Conversations in which this agent has participated.
@@ -123,8 +123,8 @@ class ChannelApiHandlerProtocol(Protocol):
         self,
         claims_identity: ClaimsIdentity,
         conversation_id: str,
-        page_size: Optional[int] = None,
-        continuation_token: Optional[str] = None,
+        page_size: int | None = None,
+        continuation_token: str | None = None,
     ) -> PagedMembersResult:
         """
         Enumerate the members of a conversation one page at a time.

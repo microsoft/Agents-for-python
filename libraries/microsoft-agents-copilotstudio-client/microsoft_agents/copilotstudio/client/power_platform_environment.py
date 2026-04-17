@@ -3,7 +3,7 @@
 
 from microsoft_agents.copilotstudio.client.errors import copilot_studio_errors
 from urllib.parse import urlparse, urlunparse
-from typing import Optional
+
 from .connection_settings import ConnectionSettings
 from .agent_type import AgentType
 from .power_platform_cloud import PowerPlatformCloud
@@ -20,12 +20,12 @@ class PowerPlatformEnvironment:
     @staticmethod
     def get_copilot_studio_connection_url(
         settings: ConnectionSettings,
-        conversation_id: Optional[str] = None,
+        conversation_id: str | None = None,
         agent_type: AgentType = AgentType.PUBLISHED,
         cloud: PowerPlatformCloud = PowerPlatformCloud.PROD,
         create_subscribe_link: bool = False,
-        cloud_base_address: Optional[str] = None,
-        direct_connect_url: Optional[str] = None,
+        cloud_base_address: str | None = None,
+        direct_connect_url: str | None = None,
     ) -> str:
         """
         Gets the Power Platform API connection URL for the given settings.
@@ -97,10 +97,10 @@ class PowerPlatformEnvironment:
 
     @staticmethod
     def get_token_audience(
-        settings: Optional[ConnectionSettings] = None,
+        settings: ConnectionSettings | None = None,
         cloud: PowerPlatformCloud = PowerPlatformCloud.UNKNOWN,
-        cloud_base_address: Optional[str] = None,
-        direct_connect_url: Optional[str] = None,
+        cloud_base_address: str | None = None,
+        direct_connect_url: str | None = None,
     ) -> str:
         """
         Returns the Power Platform API Audience.
@@ -183,7 +183,7 @@ class PowerPlatformEnvironment:
         agent_identifier: str,
         host: str,
         agent_type: AgentType,
-        conversation_id: Optional[str],
+        conversation_id: str | None,
         create_subscribe_link: bool = False,
     ) -> str:
         """
@@ -206,7 +206,7 @@ class PowerPlatformEnvironment:
         agent_identifier: str,
         host: str,
         agent_type: AgentType,
-        conversation_id: Optional[str],
+        conversation_id: str | None,
         create_subscribe_link: bool = False,
     ) -> str:
         """
@@ -243,7 +243,7 @@ class PowerPlatformEnvironment:
     @staticmethod
     def _create_uri_direct(
         base_address: str,
-        conversation_id: Optional[str],
+        conversation_id: str | None,
         create_subscribe_link: bool = False,
     ) -> str:
         """
@@ -317,7 +317,7 @@ class PowerPlatformEnvironment:
     def get_environment_endpoint(
         cloud: PowerPlatformCloud,
         environment_id: str,
-        cloud_base_address: Optional[str] = None,
+        cloud_base_address: str | None = None,
     ) -> str:
         if cloud == PowerPlatformCloud.OTHER and not cloud_base_address:
             raise ValueError(str(copilot_studio_errors.CloudBaseAddressRequired))

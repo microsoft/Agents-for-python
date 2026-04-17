@@ -3,11 +3,10 @@
 
 from __future__ import annotations
 
-from asyncio import sleep
 from abc import ABC
 from copy import Error
 from http import HTTPStatus
-from typing import Awaitable, Callable, cast, Optional
+from typing import Awaitable, Callable, cast
 from uuid import uuid4
 
 from microsoft_agents.activity import (
@@ -27,7 +26,6 @@ from microsoft_agents.activity import (
 )
 from microsoft_agents.hosting.core.connector import (
     ConnectorClientBase,
-    UserTokenClientBase,
     ConnectorClient,
     UserTokenClient,
 )
@@ -239,7 +237,7 @@ class ChannelServiceAdapter(ChannelAdapter, ABC):
         :param callback: The method to call for the resulting agent turn.
         :type callback: Callable[[:class:`microsoft_agents.hosting.core.turn_context.TurnContext`], Awaitable]
         :param audience: The audience for the conversation.
-        :type audience: Optional[str]
+        :type audience: str | None
         """
         with spans.AdapterContinueConversation(continuation_activity):
             return await self.process_proactive(
@@ -382,7 +380,7 @@ class ChannelServiceAdapter(ChannelAdapter, ABC):
         :type callback: Callable[[:class:`microsoft_agents.hosting.core.turn_context.TurnContext`], Awaitable]
 
         :return: A task that represents the work queued to execute.
-        :rtype: Optional[:class:`microsoft_agents.activity.InvokeResponse`]
+        :rtype: :class:`microsoft_agents.activity.InvokeResponse` | None
 
         .. note::
             This class processes an activity received by the agents web server. This includes any messages
@@ -425,7 +423,7 @@ class ChannelServiceAdapter(ChannelAdapter, ABC):
         context.turn_state[self.USER_TOKEN_CLIENT_KEY] = user_token_client
 
         # Create the connector client to use for outbound requests.
-        connector_client: Optional[ConnectorClient] = None
+        connector_client: ConnectorClient | None = None
         if self._resolve_if_connector_client_is_needed(activity):
             connector_client = (
                 await self._channel_service_client_factory.create_connector_client(
@@ -507,7 +505,7 @@ class ChannelServiceAdapter(ChannelAdapter, ABC):
         claims_identity: ClaimsIdentity,
         oauth_scope: str,
         callback: Callable[[TurnContext], Awaitable],
-        activity: Optional[Activity] = None,
+        activity: Activity | None = None,
     ) -> TurnContext:
         context = TurnContext(self, activity, claims_identity)
 
@@ -520,13 +518,13 @@ class ChannelServiceAdapter(ChannelAdapter, ABC):
 
         return context
 
-    def _process_turn_results(self, context: TurnContext) -> Optional[InvokeResponse]:
+    def _process_turn_results(self, context: TurnContext) -> InvokeResponse | None:
         """Process the results of a turn and return the appropriate response.
 
         :param context: The turn context
         :type context: :class:`microsoft_agents.hosting.core.turn_context.TurnContext`
         :return: The invoke response, if applicable
-        :rtype: Optional[:class:`microsoft_agents.activity.InvokeResponse`]
+        :rtype: :class:`microsoft_agents.activity.InvokeResponse` | None
         """
         # Handle ExpectedReplies scenarios where all activities have been
         # buffered and sent back at once in an invoke response.

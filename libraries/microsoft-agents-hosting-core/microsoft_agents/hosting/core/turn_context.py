@@ -30,8 +30,8 @@ class TurnContext(TurnContextProtocol):
     def __init__(
         self,
         adapter_or_context,
-        request: Activity = None,
-        identity: ClaimsIdentity = None,
+        request: Activity | None = None,
+        identity: ClaimsIdentity | None = None,
     ):
         """
         Creates a new TurnContext instance.
@@ -185,8 +185,8 @@ class TurnContext(TurnContextProtocol):
     async def send_activity(
         self,
         activity_or_text: Activity | str,
-        speak: str = None,
-        input_hint: str = None,
+        speak: str | None = None,
+        input_hint: str | None = None,
     ) -> ResourceResponse | None:
         """
         Sends a single activity or message to the user.
@@ -338,7 +338,11 @@ class TurnContext(TurnContextProtocol):
         return await logic
 
     async def send_trace_activity(
-        self, name: str, value: object = None, value_type: str = None, label: str = None
+        self,
+        name: str,
+        value: object | None = None,
+        value_type: str | None = None,
+        label: str | None = None,
     ) -> ResourceResponse:
         trace_activity = Activity(
             type=ActivityTypes.trace,

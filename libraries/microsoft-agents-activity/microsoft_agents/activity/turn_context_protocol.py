@@ -3,7 +3,7 @@
 
 from __future__ import annotations
 
-from typing import Protocol, List, Callable, Optional, Generic, TypeVar
+from typing import Protocol, Callable, Generic, TypeVar
 from abc import abstractmethod
 
 from microsoft_agents.activity import (
@@ -28,19 +28,19 @@ class TurnContextProtocol(Protocol, Generic[T]):
     async def send_activity(
         self,
         activity_or_text: Activity | str,
-        speak: Optional[str] = None,
-        input_hint: Optional[str] = None,
-    ) -> Optional[ResourceResponse]:
+        speak: str | None = None,
+        input_hint: str | None = None,
+    ) -> ResourceResponse | None:
         pass
 
     @abstractmethod
     async def send_activities(
-        self, activities: List[Activity]
-    ) -> List[ResourceResponse]:
+        self, activities: list[Activity]
+    ) -> list[ResourceResponse]:
         pass
 
     @abstractmethod
-    async def update_activity(self, activity: Activity) -> Optional[ResourceResponse]:
+    async def update_activity(self, activity: Activity) -> ResourceResponse | None:
         pass
 
     @abstractmethod
@@ -63,6 +63,10 @@ class TurnContextProtocol(Protocol, Generic[T]):
 
     @abstractmethod
     async def send_trace_activity(
-        self, name: str, value: object = None, value_type: str = None, label: str = None
+        self,
+        name: str,
+        value: object | None = None,
+        value_type: str | None = None,
+        label: str | None = None,
     ) -> ResourceResponse:
         pass

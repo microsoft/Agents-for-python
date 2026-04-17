@@ -14,7 +14,6 @@ from typing import (
     Awaitable,
     Callable,
     Generic,
-    Optional,
     Pattern,
     TypeVar,
     Union,
@@ -68,32 +67,32 @@ class AgentApplication(Agent, Generic[StateT]):
     typing: TypingIndicator
 
     _options: ApplicationOptions
-    _adapter: Optional[ChannelServiceAdapter] = None
-    _auth: Optional[Authorization] = None
-    _proactive: Optional[Proactive] = None
+    _adapter: ChannelServiceAdapter | None = None
+    _auth: Authorization | None = None
+    _proactive: Proactive | None = None
     _internal_before_turn: list[Callable[[TurnContext, StateT], Awaitable[bool]]] = []
     _internal_after_turn: list[Callable[[TurnContext, StateT], Awaitable[bool]]] = []
     _route_list: _RouteList[StateT] = _RouteList[StateT]()
-    _error: Optional[Callable[[TurnContext, Exception], Awaitable[None]]] = None
-    _turn_state_factory: Optional[Callable[[TurnContext], StateT]] = None
+    _error: Callable[[TurnContext, Exception], Awaitable[None]] | None = None
+    _turn_state_factory: Callable[[TurnContext], StateT] | None = None
 
     def __init__(
         self,
-        options: Optional[ApplicationOptions] = None,
+        options: ApplicationOptions | None = None,
         *,
-        connection_manager: Optional[Connections] = None,
-        authorization: Optional[Authorization] = None,
+        connection_manager: Connections | None = None,
+        authorization: Authorization | None = None,
         **kwargs,
     ) -> None:
         """
         Creates a new AgentApplication instance.
 
         :param options: Configuration options for the application.
-        :type options: Optional[:class:`microsoft_agents.hosting.core.app.app_options.ApplicationOptions`]
+        :type options: :class:`microsoft_agents.hosting.core.app.app_options.ApplicationOptions` | None
         :param connection_manager: OAuth connection manager.
-        :type connection_manager: Optional[:class:`microsoft_agents.hosting.core.authorization.Connections`]
+        :type connection_manager: :class:`microsoft_agents.hosting.core.authorization.Connections` | None
         :param authorization: Authorization manager for handling authentication flows.
-        :type authorization: Optional[:class:`microsoft_agents.hosting.core.app.oauth.Authorization`]
+        :type authorization: :class:`microsoft_agents.hosting.core.app.oauth.Authorization` | None
         :param kwargs: Additional configuration parameters.
         :type kwargs: Any
         """
@@ -251,7 +250,7 @@ class AgentApplication(Agent, Generic[StateT]):
         is_invoke: bool = False,
         is_agentic: bool = False,
         rank: RouteRank = RouteRank.DEFAULT,
-        auth_handlers: Optional[list[str]] = None,
+        auth_handlers: list[str] | None = None,
     ) -> None:
         """Adds a new route to the application.
 
@@ -269,7 +268,7 @@ class AgentApplication(Agent, Generic[StateT]):
         :param rank: The rank of the route, defaults to RouteRank.DEFAULT
         :type rank: :class:`microsoft_agents.hosting.core.app._routes.route_rank.RouteRank`, Optional
         :param auth_handlers: A list of authentication handler IDs to use for this route, defaults to None
-        :type auth_handlers: Optional[list[str]], Optional
+        :type auth_handlers: list[str] | None
         :raises ApplicationError: If the selector or handler are not valid.
         """
         if not selector or not handler:
@@ -290,7 +289,7 @@ class AgentApplication(Agent, Generic[StateT]):
         self,
         activity_type: Union[str, ActivityTypes, list[Union[str, ActivityTypes]]],
         *,
-        auth_handlers: Optional[list[str]] = None,
+        auth_handlers: list[str] | None = None,
         **kwargs,
     ) -> Callable[[RouteHandler[StateT]], RouteHandler[StateT]]:
         """
@@ -307,7 +306,7 @@ class AgentApplication(Agent, Generic[StateT]):
         :param activity_type: Activity type or collection of types that should trigger the handler.
         :type activity_type: Union[str, microsoft_agents.activity.ActivityTypes, list[Union[str, microsoft_agents.activity.ActivityTypes]]]
         :param auth_handlers: Optional list of authorization handler IDs for the route.
-        :type auth_handlers: Optional[list[str]]
+        :type auth_handlers: list[str] | None
         :param kwargs: Additional route configuration passed to :meth:`add_route`.
         """
 
@@ -327,7 +326,7 @@ class AgentApplication(Agent, Generic[StateT]):
         self,
         select: Union[str, Pattern[str], list[Union[str, Pattern[str]]]],
         *,
-        auth_handlers: Optional[list[str]] = None,
+        auth_handlers: list[str] | None = None,
         **kwargs,
     ) -> Callable[[RouteHandler[StateT]], RouteHandler[StateT]]:
         """
@@ -344,7 +343,7 @@ class AgentApplication(Agent, Generic[StateT]):
         :param select: Literal text, compiled regex, or list of either used to match the incoming message.
         :type select: Union[str, Pattern[str], list[Union[str, Pattern[str]]]]
         :param auth_handlers: Optional list of authorization handler IDs for the route.
-        :type auth_handlers: Optional[list[str]]
+        :type auth_handlers: list[str] | None
         :param kwargs: Additional route configuration passed to :meth:`add_route`.
         """
 
@@ -372,7 +371,7 @@ class AgentApplication(Agent, Generic[StateT]):
         self,
         type: ConversationUpdateTypes,
         *,
-        auth_handlers: Optional[list[str]] = None,
+        auth_handlers: list[str] | None = None,
         **kwargs,
     ) -> Callable[[RouteHandler[StateT]], RouteHandler[StateT]]:
         """
@@ -389,7 +388,7 @@ class AgentApplication(Agent, Generic[StateT]):
         :param type: Conversation update category that must match the incoming activity.
         :type type: microsoft_agents.activity.ConversationUpdateTypes
         :param auth_handlers: Optional list of authorization handler IDs for the route.
-        :type auth_handlers: Optional[list[str]]
+        :type auth_handlers: list[str] | None
         :param kwargs: Additional route configuration passed to :meth:`add_route`.
         """
 
@@ -426,7 +425,7 @@ class AgentApplication(Agent, Generic[StateT]):
         self,
         type: MessageReactionTypes,
         *,
-        auth_handlers: Optional[list[str]] = None,
+        auth_handlers: list[str] | None = None,
         **kwargs,
     ) -> Callable[[RouteHandler[StateT]], RouteHandler[StateT]]:
         """
@@ -443,7 +442,7 @@ class AgentApplication(Agent, Generic[StateT]):
         :param type: Reaction category that must match the incoming activity.
         :type type: microsoft_agents.activity.MessageReactionTypes
         :param auth_handlers: Optional list of authorization handler IDs for the route.
-        :type auth_handlers: Optional[list[str]]
+        :type auth_handlers: list[str] | None
         :param kwargs: Additional route configuration passed to :meth:`add_route`.
         """
 
@@ -476,7 +475,7 @@ class AgentApplication(Agent, Generic[StateT]):
         self,
         type: MessageUpdateTypes,
         *,
-        auth_handlers: Optional[list[str]] = None,
+        auth_handlers: list[str] | None = None,
         **kwargs,
     ) -> Callable[[RouteHandler[StateT]], RouteHandler[StateT]]:
         """
@@ -493,7 +492,7 @@ class AgentApplication(Agent, Generic[StateT]):
         :param type: Message update category that must match the incoming activity.
         :type type: microsoft_agents.activity.MessageUpdateTypes
         :param auth_handlers: Optional list of authorization handler IDs for the route.
-        :type auth_handlers: Optional[list[str]]
+        :type auth_handlers: list[str] | None
         :param kwargs: Additional route configuration passed to :meth:`add_route`.
         """
 
@@ -535,9 +534,7 @@ class AgentApplication(Agent, Generic[StateT]):
 
         return __call
 
-    def handoff(
-        self, *, auth_handlers: Optional[list[str]] = None, **kwargs
-    ) -> Callable[
+    def handoff(self, *, auth_handlers: list[str] | None = None, **kwargs) -> Callable[
         [Callable[[TurnContext, StateT, str], Awaitable[None]]],
         Callable[[TurnContext, StateT, str], Awaitable[None]],
     ]:
@@ -552,7 +549,7 @@ class AgentApplication(Agent, Generic[StateT]):
                     print(continuation)
 
         :param auth_handlers: Optional list of authorization handler IDs for the route.
-        :type auth_handlers: Optional[list[str]]
+        :type auth_handlers: list[str] | None
         :param kwargs: Additional route configuration passed to :meth:`add_route`.
         """
 
@@ -587,8 +584,8 @@ class AgentApplication(Agent, Generic[StateT]):
         return __call
 
     def on_sign_in_success(
-        self, func: Callable[[TurnContext, StateT, Optional[str]], Awaitable[None]]
-    ) -> Callable[[TurnContext, StateT, Optional[str]], Awaitable[None]]:
+        self, func: Callable[[TurnContext, StateT, str | None], Awaitable[None]]
+    ) -> Callable[[TurnContext, StateT, str | None], Awaitable[None]]:
         """
         Register a callback that executes when a user successfully signs in.
 
@@ -600,7 +597,7 @@ class AgentApplication(Agent, Generic[StateT]):
                     print("sign-in succeeded")
 
         :param func: Callable that handles the sign-in success event.
-        :type func: Callable[[TurnContext, StateT, Optional[str]], Awaitable[None]]
+        :type func: Callable[[TurnContext, StateT, str | None], Awaitable[None]]
         :raises ApplicationError: If authorization services are not configured.
         """
 
@@ -621,8 +618,8 @@ class AgentApplication(Agent, Generic[StateT]):
         return func
 
     def on_sign_in_failure(
-        self, func: Callable[[TurnContext, StateT, Optional[str]], Awaitable[None]]
-    ) -> Callable[[TurnContext, StateT, Optional[str]], Awaitable[None]]:
+        self, func: Callable[[TurnContext, StateT, str | None], Awaitable[None]]
+    ) -> Callable[[TurnContext, StateT, str | None], Awaitable[None]]:
         """
         Register a callback that executes when a user fails to sign in.
 
@@ -634,7 +631,7 @@ class AgentApplication(Agent, Generic[StateT]):
                     print("sign-in failed")
 
         :param func: Callable that handles the sign-in failure event.
-        :type func: Callable[[TurnContext, StateT, Optional[str]], Awaitable[None]]
+        :type func: Callable[[TurnContext, StateT, str | None], Awaitable[None]]
         :raises ApplicationError: If authorization services are not configured.
         """
 

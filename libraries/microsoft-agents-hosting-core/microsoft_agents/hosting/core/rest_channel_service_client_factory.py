@@ -1,7 +1,6 @@
 # Copyright (c) Microsoft Corporation. All rights reserved.
 # Licensed under the MIT License.
 
-from typing import Optional
 import logging
 
 from microsoft_agents.activity import RoleTypes
@@ -92,7 +91,7 @@ class RestChannelServiceClientFactory(ChannelServiceClientFactoryBase):
         claims_identity: ClaimsIdentity,
         service_url: str,
         audience: str,
-        scopes: Optional[list[str]] = None,
+        scopes: list[str] | None = None,
         use_anonymous: bool = False,
     ) -> ConnectorClientBase:
         if not claims_identity:

@@ -54,7 +54,7 @@ class ChannelAdapterProtocol(Protocol):
         claims_identity: dict,
         continuation_activity: Activity,
         callback: Callable[[TurnContextProtocol], Awaitable],
-        audience: str = None,
+        audience: str | None = None,
     ):
         pass
 

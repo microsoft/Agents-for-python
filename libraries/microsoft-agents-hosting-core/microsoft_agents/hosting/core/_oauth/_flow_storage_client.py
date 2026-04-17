@@ -1,8 +1,6 @@
 # Copyright (c) Microsoft Corporation. All rights reserved.
 # Licensed under the MIT License.
 
-from typing import Optional
-
 from ..storage import Storage
 from ._flow_state import _FlowState
 
@@ -34,7 +32,7 @@ class _FlowStorageClient:
         channel_id: str,
         user_id: str,
         storage: Storage,
-        cache_class: Optional[type[Storage]] = None,
+        cache_class: type[Storage] | None = None,
     ):
         """
         Args:
@@ -65,7 +63,7 @@ class _FlowStorageClient:
         """Creates a storage key for a specific sign-in handler."""
         return f"{self._base_key}{auth_handler_id}"
 
-    async def read(self, auth_handler_id: str) -> Optional[_FlowState]:
+    async def read(self, auth_handler_id: str) -> _FlowState | None:
         """Reads the flow state for a specific authentication handler."""
         key: str = self.key(auth_handler_id)
         data = await self._cache.read([key], target_cls=_FlowState)

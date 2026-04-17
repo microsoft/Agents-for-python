@@ -3,10 +3,8 @@ Copyright (c) Microsoft Corporation. All rights reserved.
 Licensed under the MIT License.
 """
 
-from datetime import datetime
 import logging
-from typing import TypeVar, Optional, Callable, Awaitable, Generic, cast
-import jwt
+from typing import Optional, Callable, Awaitable, cast
 
 from microsoft_agents.activity import Activity, TokenResponse
 
@@ -45,7 +43,7 @@ class Authorization:
         self,
         storage: Storage,
         connection_manager: Connections,
-        auth_handlers: Optional[dict[str, AuthHandler]] = None,
+        auth_handlers: dict[str, AuthHandler] | None = None,
         auto_sign_in: bool = False,
         use_cache: bool = False,
         **kwargs,
@@ -70,12 +68,12 @@ class Authorization:
         self._storage = storage
         self._connection_manager = connection_manager
 
-        self._sign_in_success_handler: Optional[
-            Callable[[TurnContext, TurnState, Optional[str]], Awaitable[None]]
-        ] = None
-        self._sign_in_failure_handler: Optional[
-            Callable[[TurnContext, TurnState, Optional[str]], Awaitable[None]]
-        ] = None
+        self._sign_in_success_handler: (
+            Callable[[TurnContext, TurnState, str | None], Awaitable[None]] | None
+        ) = None
+        self._sign_in_failure_handler: (
+            Callable[[TurnContext, TurnState, str | None], Awaitable[None]] | None
+        ) = None
 
         self._handlers = {}
 
@@ -139,7 +137,7 @@ class Authorization:
         """
         return f"auth:_SignInState:{context.activity.channel_id}:{context.activity.from_property.id}"
 
-    async def _load_sign_in_state(self, context: TurnContext) -> Optional[_SignInState]:
+    async def _load_sign_in_state(self, context: TurnContext) -> _SignInState | None:
         """Load the sign-in state from storage for the given context.
 
         :param context: The turn context for the current turn of conversation.
@@ -215,7 +213,7 @@ class Authorization:
         self,
         context: TurnContext,
         state: TurnState,
-        auth_handler_id: Optional[str] = None,
+        auth_handler_id: str | None = None,
     ) -> _SignInResponse:
         """Start or continue the sign-in process for the user with the given auth handler.
 
@@ -343,9 +341,9 @@ class Authorization:
     async def exchange_token(
         self,
         context: TurnContext,
-        scopes: Optional[list[str]] = None,
-        auth_handler_id: Optional[str] = None,
-        exchange_connection: Optional[str] = None,
+        scopes: list[str] | None = None,
+        auth_handler_id: str | None = None,
+        exchange_connection: str | None = None,
     ) -> TokenResponse:
         """Exchanges or refreshes the token for a specific auth handler or the default handler.
 
