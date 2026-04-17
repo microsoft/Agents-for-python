@@ -69,6 +69,7 @@ class DialogSet:
 
         for dialog in self._dialogs.values():
             dialog.telemetry_client = self.__telemetry_client
+        self._version = None
 
     def get_version(self) -> str:
         """
@@ -103,6 +104,7 @@ class DialogSet:
             )
 
         self._dialogs[dialog.id] = dialog
+        self._version = None
 
         return self
 
@@ -144,7 +146,7 @@ class DialogSet:
         :return: The dialog if found, otherwise null.
         """
         if not dialog_id:
-            raise TypeError("DialogContext.find(): dialog_id cannot be None.")
+            raise TypeError("DialogSet.find(): dialog_id cannot be None.")
 
         if dialog_id in self._dialogs:
             return self._dialogs[dialog_id]
@@ -159,7 +161,7 @@ class DialogSet:
         :return: The dialog if found, otherwise null.
         """
         if not dialog_id:
-            raise TypeError("DialogContext.find(): dialog_id cannot be None.")
+            raise TypeError("DialogSet.find_dialog(): dialog_id cannot be None.")
 
         if dialog_id in self._dialogs:
             return self._dialogs[dialog_id]

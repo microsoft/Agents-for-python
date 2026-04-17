@@ -4,6 +4,7 @@
 from typing import Any, Callable, cast
 
 from recognizers_date_time import recognize_datetime
+from recognizers_text import Culture
 
 from microsoft_agents.hosting.core import TurnContext
 from microsoft_agents.activity import ActivityTypes
@@ -61,9 +62,7 @@ class DateTimePrompt(Prompt):
             if not utterance:
                 return result
             culture = (
-                turn_context.activity.locale
-                if turn_context.activity.locale is not None
-                else "English"
+                turn_context.activity.locale or self.default_locale or Culture.English
             )
 
             results = recognize_datetime(utterance, culture)

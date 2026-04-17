@@ -14,8 +14,8 @@ def _assert_token(token, start, end, text, normalized=None):
     assert (
         token.text == text
     ), f"Invalid token.text of '{token.text}' for '{text}' token."
-    assert (
-        token.normalized == normalized or text
+    assert token.normalized == (
+        normalized or text.lower()
     ), f"Invalid token.normalized of '{token.normalized}' for '{text}' token."
 
 

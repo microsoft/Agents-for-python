@@ -22,9 +22,11 @@ class AtPathResolver(AliasPathResolver):
             and len(path) > 1
             and AtPathResolver._is_path_char(path[1])
         ):
-            end = any(delimiter in path for delimiter in AtPathResolver._DELIMITERS)
+            end = AtPathResolver._index_of_any(path[1:], AtPathResolver._DELIMITERS)
             if end == -1:
-                end = len(path)
+                end = len(path) - 1
+            # +1 to offset the leading '@' we skipped in the search
+            end += 1
 
             prop = path[1:end]
             suffix = path[end:]

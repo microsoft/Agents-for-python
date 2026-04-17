@@ -32,7 +32,7 @@ class ChoicePrompt(Prompt):
     _default_choice_options: dict[str, ChoiceFactoryOptions] = {
         c.locale: ChoiceFactoryOptions(
             inline_separator=c.separator,
-            inline_or=c.inline_or_more,
+            inline_or=c.inline_or,
             inline_or_more=c.inline_or_more,
             include_numbers=True,
         )

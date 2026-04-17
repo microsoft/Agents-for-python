@@ -238,8 +238,8 @@ class OAuthPrompt(Dialog):
                     (bot_identity and bot_identity.is_agent_claim())
                     or not context.activity.service_url.startswith("http")
                     or (
-                        hasattr(self._settings, "oath_app_credentials")
-                        and self._settings.oath_app_credentials
+                        hasattr(self._settings, "oauth_app_credentials")
+                        and self._settings.oauth_app_credentials
                     )
                 ):
                     if context.activity.channel_id == Channels.emulator:

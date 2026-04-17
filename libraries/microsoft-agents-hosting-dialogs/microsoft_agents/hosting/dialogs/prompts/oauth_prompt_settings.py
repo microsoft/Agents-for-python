@@ -30,5 +30,14 @@ class OAuthPromptSettings:
         self.title = title
         self.text = text
         self.timeout = timeout
-        self.oath_app_credentials = oauth_app_credentials
+        self.oauth_app_credentials = oauth_app_credentials
         self.end_on_invalid_message = end_on_invalid_message
+
+    @property
+    def oath_app_credentials(self):
+        """Backward-compatible alias for the misspelled attribute name."""
+        return self.oauth_app_credentials
+
+    @oath_app_credentials.setter
+    def oath_app_credentials(self, value):
+        self.oauth_app_credentials = value

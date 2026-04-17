@@ -57,6 +57,14 @@ class TestChannel:
                 expected == actual
             ), f"channel={channel}, button_cnt={button_cnt}: expected {expected}, got {actual}"
 
+    def test_supports_suggested_actions_accepts_string_channel_id(self):
+        assert Channel.supports_suggested_actions("facebook", 5)
+        assert not Channel.supports_suggested_actions("facebook", 11)
+
+    def test_supports_card_actions_accepts_string_channel_id(self):
+        assert Channel.supports_card_actions("msteams", 3)
+        assert not Channel.supports_card_actions("msteams", 4)
+
     def test_should_return_channel_id_from_context_activity(self):
         adapter = MockTestingAdapter(channel_id=Channels.facebook)
         test_activity = Activity(

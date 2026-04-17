@@ -22,6 +22,8 @@ class Channel:
             bool: True if the Channel supports the button_cnt total Suggested Actions, False if the Channel does not
              support that number of Suggested Actions.
         """
+        if isinstance(channel_id, Channels):
+            channel_id = channel_id.value
 
         max_actions = {
             # https://developers.facebook.com/docs/messenger-platform/send-messages/quick-replies
@@ -55,6 +57,8 @@ class Channel:
             bool: True if the Channel supports the button_cnt total Card Actions, False if the Channel does not support
              that number of Card Actions.
         """
+        if isinstance(channel_id, Channels):
+            channel_id = channel_id.value
 
         max_actions = {
             Channels.facebook.value: 3,

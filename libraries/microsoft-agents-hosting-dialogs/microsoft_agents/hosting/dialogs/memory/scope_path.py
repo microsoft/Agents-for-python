@@ -33,3 +33,6 @@ SETTINGS = "settings"
 # Turn memory scope root path.
 # <remarks>This property is deprecated, use ScopePath.Turn instead.</remarks>
 TURN = "turn"
+
+# DialogContext memory scope root path.
+DIALOG_CONTEXT = "dialogContext"

@@ -63,7 +63,7 @@ class Prompt(Dialog):
         assert dialog_context.active_dialog is not None
         state = dialog_context.active_dialog.state
         state[self.persisted_options] = options
-        state[self.persisted_state] = {}
+        state[self.persisted_state] = {self.ATTEMPT_COUNT_KEY: 0}
 
         # Send initial prompt
         await self.on_prompt(
@@ -92,6 +92,9 @@ class Prompt(Dialog):
 
         # Validate the return value
         is_valid = False
+        state[self.ATTEMPT_COUNT_KEY] = (
+            int(cast(int, state.get(self.ATTEMPT_COUNT_KEY, 0))) + 1
+        )
         if self._validator is not None:
             prompt_context = PromptValidatorContext(
                 dialog_context.context, recognized, state, options

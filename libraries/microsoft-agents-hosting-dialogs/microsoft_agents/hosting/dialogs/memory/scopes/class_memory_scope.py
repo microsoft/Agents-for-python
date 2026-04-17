@@ -17,7 +17,7 @@ from .memory_scope import MemoryScope
 
 class ClassMemoryScope(MemoryScope):
     def __init__(self):
-        super().__init__(scope_path.SETTINGS, include_in_snapshot=False)
+        super().__init__(scope_path.CLASS, include_in_snapshot=False)
 
     def get_memory(self, dialog_context: "DialogContext") -> object:
         if not dialog_context:

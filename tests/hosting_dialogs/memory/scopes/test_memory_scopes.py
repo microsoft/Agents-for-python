@@ -24,6 +24,7 @@ from microsoft_agents.hosting.dialogs import (
 from microsoft_agents.hosting.dialogs.memory.scopes import (
     ClassMemoryScope,
     ConversationMemoryScope,
+    DialogContextMemoryScope,
     DialogMemoryScope,
     UserMemoryScope,
     SettingsMemoryScope,
@@ -192,6 +193,11 @@ class TestMemoryScopes:
         assert "can't set attribute" in str(exc_info.value)
         await scope.save_changes(dialog_context)
         assert dialog.message == "test message"
+
+    def test_class_memory_scope_has_unique_name(self):
+        """ClassMemoryScope must use 'class', not 'settings', to avoid colliding with SettingsMemoryScope."""
+        assert ClassMemoryScope().name == "class"
+        assert ClassMemoryScope().name != SettingsMemoryScope().name
 
     @pytest.mark.asyncio
     async def test_conversation_memory_scope_should_return_conversation_state(self):
@@ -611,3 +617,10 @@ class TestMemoryScopes:
         memory = scope.get_memory(dialog_context)
         assert memory is not None, "state not returned"
         assert memory.foo == "bar"
+
+    def test_dialog_context_memory_scope_has_unique_name(self):
+        """DialogContextMemoryScope must not share its scope name with SettingsMemoryScope."""
+        dc_scope = DialogContextMemoryScope()
+        settings_scope = SettingsMemoryScope()
+        assert dc_scope.name == "dialogContext"
+        assert dc_scope.name != settings_scope.name

@@ -32,16 +32,9 @@ class TestPromptValidatorContext:
         assert dialog_set is not None
 
     @pytest.mark.asyncio
-    async def test_attempt_count_is_zero_for_base_prompt_subclasses(self):
-        """For Prompt subclasses (TextPrompt, NumberPrompt, etc.) the
-        ATTEMPT_COUNT_KEY is never written to persisted state, so
-        attempt_count is always 0 inside the validator regardless of how many
-        times the user has been reprompted.
-
-        This is a documented inconsistency with ActivityPrompt, which increments
-        the counter before calling the validator (attempt_count >= 1).
-        Use PromptOptions.number_of_attempts for reliable counting instead.
-        """
+    async def test_attempt_count_starts_at_one_on_first_validation(self):
+        """attempt_count is 1 on the first validator call and increments on each
+        subsequent user reply (mirrors ActivityPrompt behaviour)."""
         observed_attempt_counts = []
 
         convo_state = ConversationState(MemoryStorage())
@@ -50,7 +43,6 @@ class TestPromptValidatorContext:
 
         async def validator(pc: PromptValidatorContext) -> bool:
             observed_attempt_counts.append(pc.attempt_count)
-            # Accept any non-empty text
             return bool(pc.recognized.value)
 
         ds.add(TextPrompt("TextPrompt", validator))
@@ -69,9 +61,44 @@ class TestPromptValidatorContext:
         adapter = DialogTestAdapter(exec)
         flow = await adapter.send("hello")
         await flow.assert_reply("Enter text.")
-        flow = await adapter.send("something")  # triggers validator
+        await adapter.send("something")
 
-        # For Prompt subclasses, attempt_count is always 0 — the key is never stored
-        assert all(
-            count == 0 for count in observed_attempt_counts
-        ), f"Expected all attempt_count=0 for base Prompt, got {observed_attempt_counts}"
+        assert observed_attempt_counts == [1]
+
+    @pytest.mark.asyncio
+    async def test_attempt_count_increments_across_retries(self):
+        """attempt_count increments with each user reply, so retry #1 = 2, retry #2 = 3, etc."""
+        observed_attempt_counts = []
+
+        convo_state = ConversationState(MemoryStorage())
+        dialog_state = convo_state.create_property("dialogState")
+        ds = DialogSet(dialog_state)
+
+        async def validator(pc: PromptValidatorContext) -> bool:
+            observed_attempt_counts.append(pc.attempt_count)
+            # Only accept the literal word "yes"
+            return pc.recognized.succeeded and pc.recognized.value == "yes"
+
+        ds.add(TextPrompt("TextPrompt", validator))
+
+        async def exec(tc):
+            dc = await ds.create_context(tc)
+            results = await dc.continue_dialog()
+            if results.status == DialogTurnStatus.Empty:
+                options = PromptOptions(
+                    prompt=Activity(type=ActivityTypes.message, text="Say yes."),
+                    retry_prompt=Activity(
+                        type=ActivityTypes.message, text="Please say yes."
+                    ),
+                )
+                await dc.prompt("TextPrompt", options)
+            await convo_state.save(tc)
+
+        adapter = DialogTestAdapter(exec)
+        flow = await adapter.send("start")
+        await flow.assert_reply("Say yes.")
+        await adapter.send("no")  # attempt 1 — rejected
+        await adapter.send("nope")  # attempt 2 — rejected
+        await adapter.send("yes")  # attempt 3 — accepted
+
+        assert observed_attempt_counts == [1, 2, 3]

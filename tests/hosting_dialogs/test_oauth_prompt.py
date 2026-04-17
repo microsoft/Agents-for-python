@@ -358,3 +358,24 @@ class TestOAuthPrompt:
         step2 = await step1.assert_reply(inspector)
         step3 = await step2.send(activity)
         await step3.assert_reply(no_token_response)
+
+
+class TestOAuthPromptSettings:
+    def test_oauth_app_credentials_stored_correctly(self):
+        """Constructor param oauth_app_credentials must be accessible as oauth_app_credentials."""
+        sentinel = object()
+        settings = OAuthPromptSettings("conn", "title", oauth_app_credentials=sentinel)
+        assert settings.oauth_app_credentials is sentinel
+
+    def test_oath_typo_alias_reads_same_value(self):
+        """oath_app_credentials (typo alias) must return the same value as oauth_app_credentials."""
+        sentinel = object()
+        settings = OAuthPromptSettings("conn", "title", oauth_app_credentials=sentinel)
+        assert settings.oath_app_credentials is sentinel
+
+    def test_oath_typo_alias_setter_writes_to_canonical(self):
+        """Writing via the typo alias updates oauth_app_credentials."""
+        sentinel = object()
+        settings = OAuthPromptSettings("conn", "title")
+        settings.oath_app_credentials = sentinel
+        assert settings.oauth_app_credentials is sentinel

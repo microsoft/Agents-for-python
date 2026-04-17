@@ -12,16 +12,18 @@ from .prompt_recognizer_result import PromptRecognizerResult
 class TextPrompt(Prompt):
     """Prompts a user to enter any text.
 
-    Succeeds whenever the user sends a message activity that contains non-empty
-    text.  There is no built-in recognizer: the raw ``activity.text`` string is
-    returned as the result.
+    Succeeds whenever the user sends a message activity whose ``text`` field is
+    not ``None``.  Empty strings are accepted as valid because some channels
+    send an empty ``text`` alongside attachments.  There is no built-in
+    recognizer: the raw ``activity.text`` string is returned as the result.
 
     Pass an optional ``validator`` at construction time to apply additional
-    constraints (e.g. minimum length, allow-list).
+    constraints (e.g. minimum length, allow-list, non-empty enforcement).
 
     .. note::
-        Non-message activities and messages with ``None`` or empty ``text`` cause
-        recognition to fail and will trigger the retry prompt if one was provided.
+        Non-message activities and messages where ``activity.text`` is ``None``
+        cause recognition to fail and will trigger the retry prompt if one was
+        provided.
     """
 
     async def on_prompt(
