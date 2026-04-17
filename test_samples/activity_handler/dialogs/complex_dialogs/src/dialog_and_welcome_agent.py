@@ -13,14 +13,14 @@ from microsoft_agents.activity import ChannelAccount
 from .dialog_agent import DialogAgent
 
 
-class DialogAndWelcomeBot(DialogAgent):
+class DialogAndWelcomeAgent(DialogAgent):
     def __init__(
         self,
         conversation_state: ConversationState,
         user_state: UserState,
         dialog: Dialog,
     ):
-        super(DialogAndWelcomeBot, self).__init__(
+        super().__init__(
             conversation_state, user_state, dialog
         )
 

@@ -1,90 +1,47 @@
 # Copyright (c) Microsoft Corporation. All rights reserved.
 # Licensed under the MIT License.
 
-import sys
-import traceback
-from datetime import datetime
-from http import HTTPStatus
+from os import path, environ
 
 from aiohttp import web
-from aiohttp.web import Request, Response, json_response
-from botbuilder.core import (
+from aiohttp.web import Request, Response
+from microsoft_agents.authentication.msal import MsalConnectionManager
+from microsoft_agents.hosting.core import (
     ConversationState,
     MemoryStorage,
-    TurnContext,
     UserState,
 )
-from botbuilder.core.integration import aiohttp_error_middleware
-from botbuilder.integration.aiohttp import CloudAdapter, ConfigurationBotFrameworkAuthentication
-from botbuilder.schema import Activity, ActivityTypes
+from microsoft_agents.hosting.aiohttp import CloudAdapter
+from microsoft_agents.activity import load_configuration_from_env
+from dotenv import load_dotenv
 
-from bots import DialogAndWelcomeBot
+from .main_dialog import MainDialog
+from .dialog_and_welcome_agent import DialogAndWelcomeAgent
 
-# Create the loop and Flask app
-from config import DefaultConfig
-from dialogs import MainDialog
+load_dotenv(path.join(path.dirname(__file__), "..", ".env"))
+agents_sdk_config = load_configuration_from_env(dict(environ))
 
-CONFIG = DefaultConfig()
+STORAGE = MemoryStorage()
+CONNECTION_MANAGER = MsalConnectionManager(**agents_sdk_config)
+ADAPTER = CloudAdapter(connection_manager=CONNECTION_MANAGER)
 
-# Create adapter.
-# See https://aka.ms/about-bot-adapter to learn more about how bots work.
-ADAPTER = CloudAdapter(ConfigurationBotFrameworkAuthentication(CONFIG))
+CONVERSATION_STATE = ConversationState(STORAGE)
+USER_STATE = UserState(STORAGE)
 
-# Catch-all for errors.
-async def on_error(context: TurnContext, error: Exception):
-    # This check writes out errors to console log .vs. app insights.
-    # NOTE: In production environment, you should consider logging this to Azure
-    #       application insights.
-    print(f"\n [on_turn_error] unhandled error: {error}", file=sys.stderr)
-    traceback.print_exc()
-
-    # Send a message to the user
-    await context.send_activity("The bot encountered an error or bug.")
-    await context.send_activity(
-        "To continue to run this bot, please fix the bot source code."
-    )
-    # Send a trace activity if we're talking to the Bot Framework Emulator
-    if context.activity.channel_id == "emulator":
-        # Create a trace activity that contains the error object
-        trace_activity = Activity(
-            label="TurnError",
-            name="on_turn_error Trace",
-            timestamp=datetime.utcnow(),
-            type=ActivityTypes.trace,
-            value=f"{error}",
-            value_type="https://www.botframework.com/schemas/error",
-        )
-        # Send a trace activity, which will be displayed in Bot Framework Emulator
-        await context.send_activity(trace_activity)
-
-    # Clear out state
-    await CONVERSATION_STATE.delete(context)
-
-
-# Set the error handler on the Adapter.
-# In this case, we want an unbound function, so MethodType is not needed.
-ADAPTER.on_turn_error = on_error
-
-# Create MemoryStorage and state
-MEMORY = MemoryStorage()
-USER_STATE = UserState(MEMORY)
-CONVERSATION_STATE = ConversationState(MEMORY)
-
-# Create Dialog and Bot
 DIALOG = MainDialog(USER_STATE)
-BOT = DialogAndWelcomeBot(CONVERSATION_STATE, USER_STATE, DIALOG)
-
+AGENT = DialogAndWelcomeAgent(CONVERSATION_STATE, USER_STATE, DIALOG)
 
 # Listen for incoming requests on /api/messages.
 async def messages(req: Request) -> Response:
-    return await ADAPTER.process(req, BOT)
+    return await ADAPTER.process(req, AGENT)
 
 
-APP = web.Application(middlewares=[aiohttp_error_middleware])
+APP = web.Application()
 APP.router.add_post("/api/messages", messages)
 
 if __name__ == "__main__":
     try:
-        web.run_app(APP, host="localhost", port=CONFIG.PORT)
+        web.run_app(APP, host="localhost", port=3978)
     except Exception as error:
         raise error
+    
