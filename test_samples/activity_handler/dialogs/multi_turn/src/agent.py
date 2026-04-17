@@ -13,11 +13,11 @@ from .dialog_helper import DialogHelper
 
 class DialogAgent(ActivityHandler):
     """
-    This Bot implementation can run any type of Dialog. The use of type parameterization is to allows multiple
-    different bots to be run at different endpoints within the same project. This can be achieved by defining distinct
-    Controller types each with dependency on distinct Bot types. The ConversationState is used by the Dialog system. The
+    This Agent implementation can run any type of Dialog. The use of type parameterization is to allows multiple
+    different agents to be run at different endpoints within the same project. This can be achieved by defining distinct
+    Controller types each with dependency on distinct Agent types. The ConversationState is used by the Dialog system. The
     UserState isn't, however, it might have been used in a Dialog implementation, and the requirement is that all
-    BotState objects are saved at the end of a turn.
+    AgentState objects are saved at the end of a turn.
     """
 
     def __init__(
@@ -28,14 +28,14 @@ class DialogAgent(ActivityHandler):
     ):
         if conversation_state is None:
             raise TypeError(
-                "[DialogBot]: Missing parameter. conversation_state is required but None was given"
+                "[DialogAgent]: Missing parameter. conversation_state is required but None was given"
             )
         if user_state is None:
             raise TypeError(
-                "[DialogBot]: Missing parameter. user_state is required but None was given"
+                "[DialogAgent]: Missing parameter. user_state is required but None was given"
             )
         if dialog is None:
-            raise Exception("[DialogBot]: Missing parameter. dialog is required")
+            raise Exception("[DialogAgent]: Missing parameter. dialog is required")
 
         self.conversation_state = conversation_state
         self.user_state = user_state

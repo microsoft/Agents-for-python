@@ -12,7 +12,7 @@ from microsoft_agents.hosting.dialogs import Dialog
 from .dialog_helper import DialogHelper
 
 
-class DialogBot(ActivityHandler):
+class DialogAgent(ActivityHandler):
 
     def __init__(
         self,
@@ -22,12 +22,12 @@ class DialogBot(ActivityHandler):
     ):
         if conversation_state is None:
             raise Exception(
-                "[DialogBot]: Missing parameter. conversation_state is required"
+                "[DialogAgent]: Missing parameter. conversation_state is required"
             )
         if user_state is None:
-            raise Exception("[DialogBot]: Missing parameter. user_state is required")
+            raise Exception("[DialogAgent]: Missing parameter. user_state is required")
         if dialog is None:
-            raise Exception("[DialogBot]: Missing parameter. dialog is required")
+            raise Exception("[DialogAgent]: Missing parameter. dialog is required")
 
         self.conversation_state = conversation_state
         self.user_state = user_state

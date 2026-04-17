@@ -32,7 +32,7 @@ class DialogAndWelcomeAgent(DialogAgent):
             if member.id != turn_context.activity.recipient.id:
                 await turn_context.send_activity(
                     MessageFactory.text(
-                        f"Welcome to Complex Dialog Bot {member.name}. This bot provides a complex conversation, with "
+                        f"Welcome to Complex Dialog Agent {member.name}. This agent provides a complex conversation, with "
                         f"multiple dialogs. Type anything to get started. "
                     )
                 )
