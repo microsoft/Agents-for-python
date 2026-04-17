@@ -6,13 +6,20 @@ Licensed under the MIT License.
 from __future__ import annotations
 import logging
 import jwt
+from http import HTTPStatus
 from typing import Optional
 
 from microsoft_agents.activity import (
+    Activity,
+    ActivityTypes,
     Attachment,
     ActionTypes,
     CardAction,
+    Channels,
+    InvokeResponse,
     OAuthCard,
+    SignInConstants,
+    TokenExchangeInvokeResponse,
     TokenResponse,
 )
 
@@ -224,6 +231,14 @@ class _UserAuthorization(_AuthorizationHandler):
             connection_name=exchange_connection,
             scopes=exchange_scopes,
         ):
+            if (
+                context.activity.type == ActivityTypes.invoke
+                and context.activity.name == SignInConstants.token_exchange_operation_name
+                and not context.activity.value
+            ):
+                await self._send_invoke_response(context, HTTPStatus.BAD_REQUEST)
+                return _SignInResponse(tag=_FlowStateTag.FAILURE)
+
             flow, flow_storage_client = await self._load_flow(context)
             flow_response: _FlowResponse = await flow.begin_or_continue_flow(
                 context.activity
@@ -232,6 +247,9 @@ class _UserAuthorization(_AuthorizationHandler):
             logger.info("Saving OAuth flow state to storage")
             await flow_storage_client.write(flow_response.flow_state)
             await self._handle_flow_response(context, flow_response)
+
+            if context.activity.type == ActivityTypes.invoke:
+                await self._send_sign_in_invoke_response(context, flow_response)
 
             if flow_response.token_response:
                 # attempt exchange if needed
@@ -253,6 +271,65 @@ class _UserAuthorization(_AuthorizationHandler):
                 )
 
             return _SignInResponse(tag=flow_response.flow_state.tag)
+
+    async def _send_sign_in_invoke_response(
+        self, context: TurnContext, flow_response: _FlowResponse
+    ) -> None:
+        """Sends the appropriate InvokeResponse for signin invoke activities.
+
+        Matches JS azureBotAuthorization.ts sendInvokeResponse behavior:
+        - signin/tokenExchange on Teams: 200+body on success, 412+body on failure.
+        - signin/tokenExchange on other channels: 200 (no body).
+        - signin/verifyState: 200 (all channels).
+        """
+        activity = context.activity
+        is_teams = activity.channel_id == Channels.ms_teams
+
+        if activity.name == SignInConstants.token_exchange_operation_name:
+            invoke_id = (
+                activity.value.get("id")
+                if isinstance(activity.value, dict)
+                else None
+            )
+            connection_name = self._handler.abs_oauth_connection_name
+            if is_teams:
+                if flow_response.token_response:
+                    body = TokenExchangeInvokeResponse(
+                        id=invoke_id, connection_name=connection_name
+                    )
+                    await self._send_invoke_response(context, HTTPStatus.OK, body)
+                else:
+                    body = TokenExchangeInvokeResponse(
+                        id=invoke_id,
+                        connection_name=connection_name,
+                        failure_detail="Unable to exchange token.",
+                    )
+                    await self._send_invoke_response(
+                        context, HTTPStatus.PRECONDITION_FAILED, body
+                    )
+            else:
+                await self._send_invoke_response(context, HTTPStatus.OK)
+
+        elif activity.name == SignInConstants.verify_state_operation_name:
+            await self._send_invoke_response(context, HTTPStatus.OK)
+
+    @staticmethod
+    async def _send_invoke_response(
+        context: TurnContext,
+        status: HTTPStatus,
+        body=None,
+    ) -> None:
+        """Sends an InvokeResponse activity to the channel."""
+        serialized_body = (
+            body.model_dump(by_alias=True, exclude_none=True) if body else None
+        )
+        invoke_response = InvokeResponse(status=int(status), body=serialized_body)
+        await context.send_activity(
+            Activity(
+                type=ActivityTypes.invoke_response,
+                value=invoke_response.model_dump(by_alias=True, exclude_none=True),
+            )
+        )
 
     async def get_refreshed_token(
         self,
