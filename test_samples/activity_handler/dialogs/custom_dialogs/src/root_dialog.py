@@ -125,7 +125,7 @@ class RootDialog(ComponentDialog):
 
     @staticmethod
     async def shoe_size_validator(prompt_context: PromptValidatorContext) -> bool:
-        if not prompt_context.recognized.value:
+        if not prompt_context.recognized.succeeded or prompt_context.recognized.value is None:
             return False
 
         shoe_size = round(prompt_context.recognized.value, 1)

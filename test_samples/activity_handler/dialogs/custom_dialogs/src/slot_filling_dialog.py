@@ -93,7 +93,7 @@ class SlotFillingDialog(Dialog):
     ) -> Dict[str, object]:
         obj = dialog_instance.state.get(self.PERSISTED_VALUES)
 
-        if not obj:
+        if obj is None:
             obj = {}
             dialog_instance.state[self.PERSISTED_VALUES] = obj
 
