@@ -14,6 +14,7 @@ from microsoft_agents.hosting.dialogs import (
     WaterfallDialog,
     WaterfallStepContext,
 )
+from microsoft_agents.hosting.dialogs.models.dialog_reason import DialogReason
 from microsoft_agents.hosting.dialogs.prompts import NumberPrompt, PromptOptions
 from tests.hosting_dialogs.helpers import DialogTestAdapter
 
@@ -288,3 +289,83 @@ class TestComponentDialog:
         flow = await flow.assert_reply("Enter another number.")
         flow = await flow.send("5")
         await flow.assert_reply("Bot received the number '5'.")
+
+
+class TestComponentDialogOnEndDialogHook:
+    @pytest.mark.asyncio
+    async def test_on_end_dialog_called_with_cancel_reason(self):
+        """on_end_dialog hook receives CancelCalled reason when cancel_all_dialogs() is invoked."""
+        convo_state = ConversationState(MemoryStorage())
+        dialog_state = convo_state.create_property("dialogState")
+        ds = DialogSet(dialog_state)
+
+        hook_calls = []
+
+        class TrackingComp(ComponentDialog):
+            def __init__(self):
+                super().__init__("TrackingComp")
+
+                async def waiting_step(step):
+                    return Dialog.end_of_turn
+
+                self.add_dialog(WaterfallDialog("inner-wf", [waiting_step]))
+
+            async def on_end_dialog(self, context, instance, reason):
+                hook_calls.append(reason)
+
+        ds.add(TrackingComp())
+
+        turn = [0]
+
+        async def exec(tc):
+            turn[0] += 1
+            dc = await ds.create_context(tc)
+            if turn[0] == 1:
+                results = await dc.continue_dialog()
+                if results.status == DialogTurnStatus.Empty:
+                    await dc.begin_dialog("TrackingComp")
+            else:
+                # Cancel without continuing so the waterfall doesn't advance
+                await dc.cancel_all_dialogs()
+            await convo_state.save(tc)
+
+        adapter = DialogTestAdapter(exec)
+        await adapter.send("hi")  # starts the dialog, step 0 waits
+        await adapter.send("cancel")  # triggers cancel_all_dialogs directly
+
+        assert DialogReason.CancelCalled in hook_calls
+
+    @pytest.mark.asyncio
+    async def test_on_end_dialog_called_with_end_reason_on_completion(self):
+        """on_end_dialog hook receives EndCalled reason when the component finishes normally."""
+        convo_state = ConversationState(MemoryStorage())
+        dialog_state = convo_state.create_property("dialogState")
+        ds = DialogSet(dialog_state)
+
+        hook_calls = []
+
+        class TrackingComp(ComponentDialog):
+            def __init__(self):
+                super().__init__("TrackingComp")
+
+                async def ending_step(step):
+                    return await step.end_dialog("done")
+
+                self.add_dialog(WaterfallDialog("inner-wf", [ending_step]))
+
+            async def on_end_dialog(self, context, instance, reason):
+                hook_calls.append(reason)
+
+        ds.add(TrackingComp())
+
+        async def exec(tc):
+            dc = await ds.create_context(tc)
+            results = await dc.continue_dialog()
+            if results.status == DialogTurnStatus.Empty:
+                await dc.begin_dialog("TrackingComp")
+            await convo_state.save(tc)
+
+        adapter = DialogTestAdapter(exec)
+        await adapter.send("hi")  # starts and immediately completes the component
+
+        assert DialogReason.EndCalled in hook_calls

@@ -115,3 +115,57 @@ class TestWaterfallDialogValidation:
         dc = _make_dc(activity_type=ActivityTypes.event)
         result = await dialog.continue_dialog(dc)
         assert result.status == DialogTurnStatus.Waiting
+
+
+class TestWaterfallStepName:
+    def test_get_step_name_named_function_uses_qualname(self):
+        """Named step functions expose their __qualname__ as the step name."""
+
+        async def my_named_step(step):
+            return Dialog.end_of_turn
+
+        dialog = WaterfallDialog("A", [my_named_step])
+        assert "my_named_step" in dialog.get_step_name(0)
+
+    def test_get_step_name_lambda_uses_fallback_format(self):
+        """Lambda steps fall back to 'Step{n}of{total}' because their __qualname__ ends in '<lambda>'."""
+        dialog = WaterfallDialog("A", [lambda s: None, lambda s: None])
+        assert dialog.get_step_name(0) == "Step1of2"
+        assert dialog.get_step_name(1) == "Step2of2"
+
+
+class TestWaterfallStepNoneReturn:
+    @pytest.mark.asyncio
+    async def test_step_returning_none_raises_type_error(self):
+        """A step returning None raises a clear TypeError instead of a confusing AttributeError."""
+        from microsoft_agents.hosting.core import ConversationState, MemoryStorage
+        from microsoft_agents.hosting.dialogs import DialogSet
+        from tests.hosting_dialogs.helpers import DialogTestAdapter
+
+        convo_state = ConversationState(MemoryStorage())
+        dialog_state = convo_state.create_property("dialogState")
+        ds = DialogSet(dialog_state)
+
+        async def bad_step(step):
+            return None  # programmer forgot to return Dialog.end_of_turn
+
+        ds.add(WaterfallDialog("bad-waterfall", [bad_step]))
+
+        error_holder = {}
+
+        async def exec(tc):
+            dc = await ds.create_context(tc)
+            results = await dc.continue_dialog()
+            if results.status == DialogTurnStatus.Empty:
+                try:
+                    await dc.begin_dialog("bad-waterfall")
+                except TypeError as e:
+                    error_holder["error"] = e
+            await convo_state.save(tc)
+
+        adapter = DialogTestAdapter(exec)
+        await adapter.send("hi")
+
+        assert "error" in error_holder, "Expected TypeError but none was raised"
+        error_msg = str(error_holder["error"]).lower()
+        assert "none" in error_msg or "step" in error_msg

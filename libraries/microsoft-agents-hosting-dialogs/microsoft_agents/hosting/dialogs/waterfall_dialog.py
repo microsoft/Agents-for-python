@@ -200,7 +200,13 @@ class WaterfallDialog(Dialog):
             "InstanceId": instance_id,
         }
         self.telemetry_client.track_event("WaterfallStep", properties)
-        return await self._steps[step_context.index](step_context)
+        result = await self._steps[step_context.index](step_context)
+        if result is None:
+            raise TypeError(
+                f"WaterfallDialog '{self.id}' step '{step_name}' (index {step_context.index}) "
+                "returned None. Each step must return 'Dialog.end_of_turn' or a DialogTurnResult."
+            )
+        return result
 
     async def run_step(
         self,

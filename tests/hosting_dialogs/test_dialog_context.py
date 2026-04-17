@@ -4,6 +4,7 @@
 import pytest
 from unittest.mock import MagicMock
 
+from microsoft_agents.activity import Activity, ActivityTypes
 from microsoft_agents.hosting.dialogs import (
     ComponentDialog,
     Dialog,
@@ -15,6 +16,8 @@ from microsoft_agents.hosting.dialogs import (
     WaterfallStepContext,
     DialogTurnResult,
 )
+from microsoft_agents.hosting.dialogs.models.dialog_instance import DialogInstance
+from microsoft_agents.hosting.dialogs.prompts import TextPrompt, PromptOptions
 from microsoft_agents.hosting.core import ConversationState, MemoryStorage
 from tests.hosting_dialogs.helpers import DialogTestAdapter
 
@@ -200,3 +203,91 @@ class TestDialogContext:
 
         await adapter.send_text_to_agent_async("hi", callback)
         assert result_holder["found"] is None
+
+    @pytest.mark.asyncio
+    async def test_reprompt_dialog_resends_prompt_activity(self):
+        """reprompt_dialog re-sends the original prompt when a TextPrompt is waiting."""
+        convo_state = ConversationState(MemoryStorage())
+        dialog_state = convo_state.create_property("dialogState")
+        ds = DialogSet(dialog_state)
+        ds.add(TextPrompt("text-prompt"))
+
+        async def start_prompt(tc):
+            dc = await ds.create_context(tc)
+            results = await dc.continue_dialog()
+            if results.status == DialogTurnStatus.Empty:
+                options = PromptOptions(
+                    prompt=Activity(
+                        type=ActivityTypes.message, text="Please enter text."
+                    )
+                )
+                await dc.prompt("text-prompt", options)
+            await convo_state.save(tc)
+
+        async def do_reprompt(tc):
+            dc = await ds.create_context(tc)
+            await dc.reprompt_dialog()
+            await convo_state.save(tc)
+
+        adapter = DialogTestAdapter()
+
+        await adapter.send_text_to_agent_async("hi", start_prompt)
+        first_prompt = adapter.get_next_reply()
+        assert first_prompt is not None
+        assert first_prompt.text == "Please enter text."
+
+        adapter.active_queue.clear()
+        await adapter.send_text_to_agent_async("anything", do_reprompt)
+        reprompt_reply = adapter.get_next_reply()
+        assert reprompt_reply is not None
+        assert reprompt_reply.text == "Please enter text."
+
+    @pytest.mark.asyncio
+    async def test_emit_event_bubbles_to_parent_dc(self):
+        """Events emitted with bubble=True propagate from the inner DC to the parent DC's active dialog."""
+        from unittest.mock import MagicMock
+
+        captured_events = []
+
+        class CapturingDialog(WaterfallDialog):
+            async def _on_pre_bubble_event(self, dc, event):
+                captured_events.append(event.name)
+                return True  # mark as handled; stop bubbling
+
+        # ComponentDialog subclasses are the only way to get a no-state DialogSet
+        class _OuterHolder(ComponentDialog):
+            def __init__(self):
+                super().__init__("_outer_holder")
+
+        class _InnerHolder(ComponentDialog):
+            def __init__(self):
+                super().__init__("_inner_holder")
+
+        # Outer DC: has CapturingDialog active on the stack
+        outer_ds = _OuterHolder()._dialogs
+        outer_ds.add(CapturingDialog("capturing", []))
+        outer_state = DialogState()
+        outer_instance = DialogInstance()
+        outer_instance.id = "capturing"
+        outer_instance.state = {}
+        outer_state.dialog_stack.insert(0, outer_instance)
+        mock_tc = MagicMock()
+        outer_dc = DialogContext(outer_ds, mock_tc, outer_state)
+
+        # Inner DC: has a plain WaterfallDialog active; parent is outer_dc
+        inner_ds = _InnerHolder()._dialogs
+        inner_ds.add(WaterfallDialog("inner-wf", []))
+        inner_state = DialogState()
+        inner_instance = DialogInstance()
+        inner_instance.id = "inner-wf"
+        inner_instance.state = {}
+        inner_state.dialog_stack.insert(0, inner_instance)
+        inner_dc = DialogContext(inner_ds, mock_tc, inner_state)
+        inner_dc.parent = outer_dc
+
+        handled = await inner_dc.emit_event("custom.test.event", "payload", bubble=True)
+
+        assert (
+            handled
+        ), "Event should have been caught by the outer dialog's _on_pre_bubble_event"
+        assert "custom.test.event" in captured_events
