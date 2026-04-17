@@ -101,6 +101,21 @@ def test_app_on_turn_records_error_metric_on_exception(
     assert success_count == 0
 
 
+def test_app_on_turn_records_turn_duration_on_error(test_exporter, test_metric_reader):
+    """turn_duration is recorded on both success and error paths."""
+    ctx = _make_context()
+
+    try:
+        with AppOnTurn(ctx):
+            raise ValueError("boom")
+    except ValueError:
+        pass
+
+    data = test_metric_reader.get_metrics_data()
+    duration_count = sum_hist_count(find_metric(data, constants.METRIC_TURN_DURATION))
+    assert duration_count == 1
+
+
 def test_app_on_turn_share(test_exporter):
     ctx = _make_context()
 

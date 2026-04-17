@@ -35,12 +35,14 @@ class AppOnTurn(SimpleSpanWrapper):
             attributes.CONVERSATION_ID: get_conversation_id(
                 self._turn_context.activity
             ),
+            attributes.SUCCESS: error is None,
         }
         if error is None:
             metrics.turn_count.add(1, attributes=attrs)
             metrics.turn_duration.record(duration, attributes=attrs)
         else:
             metrics.turn_error_count.add(1, attributes=attrs)
+            metrics.turn_duration.record(duration, attributes=attrs)
 
     def _get_attributes(self) -> AttributeMap:
         return {

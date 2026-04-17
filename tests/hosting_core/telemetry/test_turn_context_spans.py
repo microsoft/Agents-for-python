@@ -3,7 +3,7 @@ from types import SimpleNamespace
 from microsoft_agents.activity import Activity, ConversationAccount, ChannelAccount
 from microsoft_agents.hosting.core.telemetry import attributes
 from microsoft_agents.hosting.core.telemetry.turn_context.spans import (
-    TurnContextSendActivity,
+    TurnContextSendActivities,
 )
 from microsoft_agents.hosting.core.telemetry.turn_context import constants
 
@@ -27,24 +27,24 @@ def _make_context(**activity_overrides):
     return SimpleNamespace(activity=activity)
 
 
-# ---- TurnContextSendActivity ----
+# ---- TurnContextSendActivities ----
 
 
 def test_send_activity_creates_span(test_exporter):
     ctx = _make_context()
 
-    with TurnContextSendActivity(ctx):
+    with TurnContextSendActivities(ctx):
         pass
 
     spans = test_exporter.get_finished_spans()
     assert len(spans) == 1
-    assert spans[0].name == constants.SPAN_TURN_SEND_ACTIVITY
+    assert spans[0].name == constants.SPAN_TURN_SEND_ACTIVITIES
 
 
 def test_send_activity_span_attributes(test_exporter):
     ctx = _make_context()
 
-    with TurnContextSendActivity(ctx):
+    with TurnContextSendActivities(ctx):
         pass
 
     span = test_exporter.get_finished_spans()[0]
@@ -55,7 +55,7 @@ def test_send_activity_no_conversation(test_exporter):
     ctx = _make_context()
     ctx.activity.conversation = None
 
-    with TurnContextSendActivity(ctx):
+    with TurnContextSendActivities(ctx):
         pass
 
     span = test_exporter.get_finished_spans()[0]

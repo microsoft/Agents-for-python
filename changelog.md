@@ -1,3 +1,33 @@
+# Microsoft 365 Agents SDK for Python - Release Notes v0.9.0
+
+**Release Date:** April 15, 2026
+**Previous Version:** 0.8.0 (Released February 23, 2026)
+
+## Major Features & Enhancements
+
+- **OpenTelemetry Support**: Full distributed tracing and metrics support with traces spanning adapter, app, auth, OAuth, storage, and turn-context layers. Includes a new OTel sample and comprehensive test coverage (#341)
+- **Proactive Messaging**: New `proactive` module in `AgentApplication` with `Conversation`, `ConversationBuilder`, and `ConversationReferenceBuilder` abstractions for initiating outbound conversations (#350)
+- **FederatedCredentials Auth Type**: Support for Managed Identity with Federated Identity Credential (FIC) authentication type in MSAL auth (#353)
+- **PFX Certificate Auth**: Support for PFX files in MSAL Certificate authentication type (#349)
+
+## Bug Fixes
+
+- **MCS Connector**: Fixed incorrect connector creation in `RestChannelServiceClientFactory` for MCS channels (#360)
+- **FastAPI JWT Middleware**: Fixed parity with aiohttp by correcting async handling in JWT authorization middleware (#343)
+- **OpenTelemetry Testing Utility**: Fixed `DeltaMetricReader` test utility (#362)
+
+## Developer Experience
+
+- **Streaming Consolidation**: Moved `StreamingResponse`, `Citation`, and `CitationUtil` from `hosting-aiohttp` and `hosting-fastapi` into `hosting-core`, eliminating duplication (#339)
+- **PyJWKClient Caching**: Added thread-safe JWK client caching with a dedicated `JwkClientManager` class to reduce redundant token-key fetches (#338)
+- **Connector Validation**: Improved response-data validation in `ConversationsOperations` methods with added test coverage (#317)
+
+## Documentation
+
+- **Packages Overview**: Added missing `microsoft-agents-hosting-fastapi` entry to the README packages overview (#346)
+
+---
+
 # Microsoft 365 Agents SDK for Python - Release Notes v0.8.0
 
 **Release Date:** February 23, 2026

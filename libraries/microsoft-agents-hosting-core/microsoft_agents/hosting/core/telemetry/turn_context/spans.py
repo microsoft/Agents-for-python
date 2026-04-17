@@ -13,11 +13,11 @@ from microsoft_agents.hosting.core.telemetry import (
 from . import constants
 
 
-class TurnContextSendActivity(SimpleSpanWrapper):
-    """Span wrapper for sending an activity within a turn context."""
+class TurnContextSendActivities(SimpleSpanWrapper):
+    """Span wrapper for sending activities within a turn context."""
 
     def __init__(self, turn_context: TurnContextProtocol):
-        super().__init__(constants.SPAN_TURN_SEND_ACTIVITY)
+        super().__init__(constants.SPAN_TURN_SEND_ACTIVITIES)
         self._turn_context = turn_context
 
     def _get_attributes(self) -> AttributeMap:
