@@ -3,8 +3,6 @@
 from __future__ import annotations
 
 import re
-from typing import Optional
-
 from copy import copy, deepcopy
 from collections.abc import Callable
 from datetime import datetime, timezone
@@ -149,7 +147,7 @@ class TurnContext(TurnContextProtocol):
         return self._streaming_response
 
     @property
-    def identity(self) -> Optional[ClaimsIdentity]:
+    def identity(self) -> ClaimsIdentity | None:
         return self._identity
 
     def get(self, key: str) -> object:

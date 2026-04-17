@@ -1,8 +1,6 @@
 # Copyright (c) Microsoft Corporation. All rights reserved.
 # Licensed under the MIT License.
 
-from typing import Optional
-
 from .access_token_provider_base import AccessTokenProviderBase
 
 
@@ -24,7 +22,7 @@ class AnonymousTokenProvider(AccessTokenProviderBase):
 
     async def get_agentic_application_token(
         self, tenant_id: str, agent_app_instance_id: str
-    ) -> Optional[str]:
+    ) -> str | None:
         return ""
 
     async def get_agentic_instance_token(
@@ -38,5 +36,5 @@ class AnonymousTokenProvider(AccessTokenProviderBase):
         agent_app_instance_id: str,
         agentic_user_id: str,
         scopes: list[str],
-    ) -> Optional[str]:
+    ) -> str | None:
         return ""

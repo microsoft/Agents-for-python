@@ -14,7 +14,7 @@ class TranscriptStore(TranscriptLogger):
         self,
         channel_id: str,
         conversation_id: str,
-        continuation_token: str = None,
+        continuation_token: str | None = None,
         start_date: datetime = datetime.min.replace(tzinfo=timezone.utc),
     ) -> tuple[list[Activity], str]:
         """

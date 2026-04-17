@@ -5,8 +5,6 @@ Licensed under the MIT License.
 
 from __future__ import annotations
 import logging
-import jwt
-from typing import Optional
 
 from microsoft_agents.activity import (
     Attachment,
@@ -96,8 +94,8 @@ class _UserAuthorization(_AuthorizationHandler):
         self,
         context: TurnContext,
         input_token_response: TokenResponse,
-        exchange_connection: Optional[str] = None,
-        exchange_scopes: Optional[list[str]] = None,
+        exchange_connection: str | None = None,
+        exchange_scopes: list[str] | None = None,
     ) -> TokenResponse:
         """
         Exchanges a token for another token with different scopes.
@@ -205,8 +203,8 @@ class _UserAuthorization(_AuthorizationHandler):
     async def _sign_in(
         self,
         context: TurnContext,
-        exchange_connection: Optional[str] = None,
-        exchange_scopes: Optional[list[str]] = None,
+        exchange_connection: str | None = None,
+        exchange_scopes: list[str] | None = None,
     ) -> _SignInResponse:
         """Begins or continues an OAuth flow.
 
@@ -257,17 +255,17 @@ class _UserAuthorization(_AuthorizationHandler):
     async def get_refreshed_token(
         self,
         context: TurnContext,
-        exchange_connection: Optional[str] = None,
-        exchange_scopes: Optional[list[str]] = None,
+        exchange_connection: str | None = None,
+        exchange_scopes: list[str] | None = None,
     ) -> TokenResponse:
         """Attempts to get a refreshed token for the user with the given scopes
 
         :param context: The turn context for the current turn of conversation.
         :type context: TurnContext
         :param exchange_connection: Optional name of the connection to use for token exchange. If None, default connection will be used.
-        :type exchange_connection: Optional[str], Optional
+        :type exchange_connection: str | None
         :param exchange_scopes: Optional list of scopes to request during token exchange. If None, default scopes will be used.
-        :type exchange_scopes: Optional[list[str]], Optional
+        :type exchange_scopes: list[str] | None
         """
         flow, _ = await self._load_flow(context)
         input_token_response = await flow.get_user_token()

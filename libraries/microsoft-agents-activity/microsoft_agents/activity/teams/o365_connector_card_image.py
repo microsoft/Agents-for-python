@@ -2,7 +2,6 @@
 # Licensed under the MIT License.
 
 from ..agents_model import AgentsModel
-from typing import Optional
 
 
 class O365ConnectorCardImage(AgentsModel):
@@ -11,8 +10,8 @@ class O365ConnectorCardImage(AgentsModel):
     :param image: URL for the image.
     :type image: str
     :param title: Title of the image.
-    :type title: Optional[str]
+    :type title: str | None
     """
 
     image: str = None
-    title: Optional[str] = None
+    title: str | None = None

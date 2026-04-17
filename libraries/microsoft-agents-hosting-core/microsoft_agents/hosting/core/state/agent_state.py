@@ -5,7 +5,7 @@ from __future__ import annotations
 
 from abc import abstractmethod
 from copy import deepcopy
-from typing import Callable, Dict, Union, Type
+from typing import Callable, Type
 
 from microsoft_agents.hosting.core.storage import Storage, StoreItem
 
@@ -18,7 +18,7 @@ class CachedAgentState(StoreItem):
     Internal cached Agent state.
     """
 
-    def __init__(self, state: Dict[str, StoreItem | dict] = None):
+    def __init__(self, state: dict[str, StoreItem | dict] = None):
         if state:
             self.state = state
             self.hash = self.compute_hash()
@@ -85,7 +85,7 @@ class AgentState:
         self.state_key = "state"
         self._storage = storage
         self._context_service_key = context_service_key
-        self._cached_state: CachedAgentState = None
+        self._cached_state: CachedAgentState | None = None
 
     def get_cached_state(self, turn_context: TurnContext) -> CachedAgentState:
         """
@@ -113,7 +113,7 @@ class AgentState:
             )
         return BotStatePropertyAccessor(self, name)
 
-    def get(self, turn_context: TurnContext) -> Dict[str, StoreItem]:
+    def get(self, turn_context: TurnContext) -> dict[str, StoreItem]:
         cached = self.get_cached_state(turn_context)
 
         return getattr(cached, "state", None)
@@ -148,7 +148,7 @@ class AgentState:
 
         if force or (self._cached_state is not None and self._cached_state.is_changed):
             storage_key = self.get_storage_key(turn_context)
-            changes: Dict[str, StoreItem] = {storage_key: self._cached_state}
+            changes: dict[str, StoreItem] = {storage_key: self._cached_state}
             await self._storage.write(changes)
             self._cached_state.hash = self._cached_state.compute_hash()
 
@@ -185,16 +185,16 @@ class AgentState:
 
     @abstractmethod
     def get_storage_key(
-        self, turn_context: TurnContext, *, target_cls: Type[StoreItem] = None
+        self, turn_context: TurnContext, *, target_cls: Type[StoreItem] | None = None
     ) -> str:
         raise NotImplementedError()
 
     def get_value(
         self,
         property_name: str,
-        default_value_factory: Callable[[], StoreItem] = None,
+        default_value_factory: Callable[[], StoreItem] | None = None,
         *,
-        target_cls: Type[StoreItem] = None,
+        target_cls: Type[StoreItem] | None = None,
     ) -> StoreItem:
         """
         Gets the value of the specified property in the turn context.
@@ -312,9 +312,9 @@ class BotStatePropertyAccessor(StatePropertyAccessor):
     async def get(
         self,
         turn_context: TurnContext,
-        default_value_or_factory: Union[Callable, StoreItem] = None,
+        default_value_or_factory: Callable | StoreItem | None = None,
         *,
-        target_cls: Type[StoreItem] = None,
+        target_cls: Type[StoreItem] | None = None,
     ) -> StoreItem:
         """
         Gets the property value.

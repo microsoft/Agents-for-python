@@ -2,7 +2,6 @@
 # Licensed under the MIT License.
 
 from ..agents_model import AgentsModel
-from typing import List
 from .meeting_notification_recipient_failure_info import (
     MeetingNotificationRecipientFailureInfo,
 )
@@ -17,4 +16,4 @@ class MeetingNotificationResponse(AgentsModel):
     :type recipients_failure_info: list[MeetingNotificationRecipientFailureInfo]
     """
 
-    recipients_failure_info: List[MeetingNotificationRecipientFailureInfo] = None
+    recipients_failure_info: list[MeetingNotificationRecipientFailureInfo] = None

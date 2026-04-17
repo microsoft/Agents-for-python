@@ -3,7 +3,7 @@
 
 from pydantic import Field
 from ..agents_model import AgentsModel
-from typing import Annotated, List
+from typing import Annotated
 
 from .message_actions_payload_from import MessageActionsPayloadFrom
 from .message_actions_payload_body import MessageActionsPayloadBody
@@ -44,11 +44,11 @@ class MessageActionsPayload(AgentsModel):
     :param attachment_layout: How the attachment(s) are displayed in the message.
     :type attachment_layout: str
     :param attachments: Attachments in the message - card, image, file, etc.
-    :type attachments: List[MessageActionsPayloadAttachment]
+    :type attachments: list[MessageActionsPayloadAttachment]
     :param mentions: List of entities mentioned in the message.
-    :type mentions: List[MessageActionsPayloadMention]
+    :type mentions: list[MessageActionsPayloadMention]
     :param reactions: Reactions for the message.
-    :type reactions: List[MessageActionsPayloadReaction]
+    :type reactions: list[MessageActionsPayloadReaction]
     """
 
     id: str = None
@@ -65,6 +65,6 @@ class MessageActionsPayload(AgentsModel):
     from_property: MessageActionsPayloadFrom = None
     body: MessageActionsPayloadBody = None
     attachment_layout: str = None
-    attachments: List[MessageActionsPayloadAttachment] = None
-    mentions: List[MessageActionsPayloadMention] = None
-    reactions: List[MessageActionsPayloadReaction] = None
+    attachments: list[MessageActionsPayloadAttachment] = None
+    mentions: list[MessageActionsPayloadMention] = None
+    reactions: list[MessageActionsPayloadReaction] = None

@@ -2,7 +2,6 @@
 # Licensed under the MIT License.
 
 from ..agents_model import AgentsModel
-from typing import Optional
 from .task_module_task_info import TaskModuleTaskInfo
 
 
@@ -12,8 +11,8 @@ class TaskModuleContinueResponse(AgentsModel):
     :param type: The type of response. Default is 'continue'.
     :type type: str
     :param value: The task module task info.
-    :type value: Optional["TaskModuleTaskInfo"]
+    :type value: TaskModuleTaskInfo | None
     """
 
     type: str = None
-    value: Optional[TaskModuleTaskInfo] = None
+    value: TaskModuleTaskInfo | None = None

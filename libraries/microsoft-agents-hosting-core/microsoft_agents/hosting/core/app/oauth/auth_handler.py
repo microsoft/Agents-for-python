@@ -4,7 +4,6 @@ Licensed under the MIT License.
 """
 
 import logging
-from typing import Optional
 
 logger = logging.getLogger(__name__)
 

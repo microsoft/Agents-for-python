@@ -4,7 +4,7 @@ Licensed under the MIT License.
 """
 
 import logging
-from typing import Optional, Callable, Awaitable, cast
+from typing import Callable, Awaitable, cast
 
 from microsoft_agents.activity import Activity, TokenResponse
 
@@ -59,7 +59,7 @@ class Authorization:
         :param connection_manager: The connection manager for OAuth providers.
         :type connection_manager: :class:`microsoft_agents.hosting.core.authorization.Connections`
         :param auth_handlers: Configuration for OAuth providers.
-        :type auth_handlers: dict[str, :class:`microsoft_agents.hosting.core.app.oauth.auth_handler.AuthHandler`], Optional
+        :type auth_handlers: dict[str, :class:`microsoft_agents.hosting.core.app.oauth.auth_handler.AuthHandler`] | None
         :raises ValueError: When storage is None or no auth handlers provided.
         """
         if not storage:
@@ -143,7 +143,7 @@ class Authorization:
         :param context: The turn context for the current turn of conversation.
         :type context: :class:`microsoft_agents.hosting.core.turn_context.TurnContext`
         :return: The sign-in state if found, None otherwise.
-        :rtype: Optional[:class:`microsoft_agents.hosting.core.app.oauth._sign_in_state._SignInState`]
+        :rtype: :class:`microsoft_agents.hosting.core.app.oauth._sign_in_state._SignInState` | None
         """
         key = self._sign_in_state_key(context)
         return (await self._storage.read([key], target_cls=_SignInState)).get(key)
@@ -177,9 +177,9 @@ class Authorization:
     @staticmethod
     def _get_cached_token(
         context: TurnContext, handler_id: str
-    ) -> Optional[TokenResponse]:
+    ) -> TokenResponse | None:
         key = Authorization._cache_key(context, handler_id)
-        return cast(Optional[TokenResponse], context.turn_state.get(key))
+        return cast(TokenResponse | None, context.turn_state.get(key))
 
     @staticmethod
     def _cache_token(
@@ -266,14 +266,14 @@ class Authorization:
         return sign_in_response
 
     async def sign_out(
-        self, context: TurnContext, auth_handler_id: Optional[str] = None
+        self, context: TurnContext, auth_handler_id: str | None = None
     ) -> None:
         """Attempts to sign out the user from a specified auth handler or the default handler.
 
         :param context: The turn context for the current turn of conversation.
         :type context: :class:`microsoft_agents.hosting.core.turn_context.TurnContext`
         :param auth_handler_id: The ID of the auth handler to sign out from. If None, sign out from all handlers.
-        :type auth_handler_id: Optional[str]
+        :type auth_handler_id: str | None
         :return: None
         """
         auth_handler_id = auth_handler_id or self._default_handler_id
@@ -284,7 +284,7 @@ class Authorization:
 
     async def _on_turn_auth_intercept(
         self, context: TurnContext, state: TurnState
-    ) -> tuple[bool, Optional[Activity]]:
+    ) -> tuple[bool, Activity | None]:
         """Intercepts the turn to check for active authentication flows.
 
         Returns true if the rest of the turn should be skipped because auth did not finish.
@@ -297,7 +297,7 @@ class Authorization:
         :param state: The turn state for the current turn.
         :type state: :class:`microsoft_agents.hosting.core.app.state.turn_state.TurnState`
         :return: A tuple indicating whether the turn should be skipped and the continuation activity if applicable.
-        :rtype: tuple[bool, Optional[:class:`microsoft_agents.activity.Activity`]]
+        :rtype: tuple[bool, :class:`microsoft_agents.activity.Activity` | None]
         """
         sign_in_state = await self._load_sign_in_state(context)
 
@@ -323,7 +323,7 @@ class Authorization:
         return False, None
 
     async def get_token(
-        self, context: TurnContext, auth_handler_id: Optional[str] = None
+        self, context: TurnContext, auth_handler_id: str | None = None
     ) -> TokenResponse:
         """Gets the token for a specific auth handler or the default handler.
 
@@ -351,13 +351,13 @@ class Authorization:
         :type context: :class:`microsoft_agents.hosting.core.turn_context.TurnContext`
         :param scopes: The scopes to request during the token exchange or refresh. Defaults
             to the list given in the AuthHandler configuration if None.
-        :type scopes: Optional[list[str]]
+        :type scopes: list[str] | None
         :param auth_handler_id: The ID of the auth handler to exchange or refresh the token for.
             If None, the default handler will be used.
-        :type auth_handler_id: Optional[str]
+        :type auth_handler_id: str | None
         :param exchange_connection: The name of the connection to use for token exchange. If None,
             the connection defined in the AuthHandler configuration will be used.
-        :type exchange_connection: Optional[str]
+        :type exchange_connection: str | None
         :return: The token response from the OAuth provider.
         :rtype: :class:`microsoft_agents.activity.TokenResponse`
         :raises ValueError: If the specified auth handler ID is not recognized or not configured.
@@ -394,24 +394,24 @@ class Authorization:
 
     def on_sign_in_success(
         self,
-        handler: Callable[[TurnContext, TurnState, Optional[str]], Awaitable[None]],
+        handler: Callable[[TurnContext, TurnState, str | None], Awaitable[None]],
     ) -> None:
         """
         Sets a handler to be called when sign-in is successfully completed.
 
         :param handler: The handler function to call on successful sign-in.
-        :type handler: Callable[[:class:`microsoft_agents.hosting.core.turn_context.TurnContext`, :class:`microsoft_agents.hosting.core.app.state.turn_state.TurnState`, Optional[str]], Awaitable[None]]
+        :type handler: Callable[[:class:`microsoft_agents.hosting.core.turn_context.TurnContext`, :class:`microsoft_agents.hosting.core.app.state.turn_state.TurnState`, str | None], Awaitable[None]]
         """
         self._sign_in_success_handler = handler
 
     def on_sign_in_failure(
         self,
-        handler: Callable[[TurnContext, TurnState, Optional[str]], Awaitable[None]],
+        handler: Callable[[TurnContext, TurnState, str | None], Awaitable[None]],
     ) -> None:
         """
         Sets a handler to be called when sign-in fails.
 
         :param handler: The handler function to call on sign-in failure.
-        :type handler: Callable[[:class:`microsoft_agents.hosting.core.turn_context.TurnContext`, :class:`microsoft_agents.hosting.core.app.state.turn_state.TurnState`, Optional[str]], Awaitable[None]]
+        :type handler: Callable[[:class:`microsoft_agents.hosting.core.turn_context.TurnContext`, :class:`microsoft_agents.hosting.core.app.state.turn_state.TurnState`, str | None], Awaitable[None]]
         """
         self._sign_in_failure_handler = handler

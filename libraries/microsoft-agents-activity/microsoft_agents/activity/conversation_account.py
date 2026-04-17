@@ -1,7 +1,6 @@
 # Copyright (c) Microsoft Corporation. All rights reserved.
 # Licensed under the MIT License.
 
-from typing import Optional
 from .agents_model import AgentsModel
 from ._type_aliases import NonEmptyString
 
@@ -31,11 +30,11 @@ class ConversationAccount(AgentsModel):
     :type properties: object
     """
 
-    is_group: Optional[bool] = None
-    conversation_type: Optional[NonEmptyString] = None
+    is_group: bool | None = None
+    conversation_type: NonEmptyString | None = None
     id: NonEmptyString
-    name: Optional[NonEmptyString] = None
-    aad_object_id: Optional[NonEmptyString] = None
-    role: Optional[NonEmptyString] = None
-    tenant_id: Optional[NonEmptyString] = None
+    name: NonEmptyString | None = None
+    aad_object_id: NonEmptyString | None = None
+    role: NonEmptyString | None = None
+    tenant_id: NonEmptyString | None = None
     properties: object = None

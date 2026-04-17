@@ -3,7 +3,6 @@
 
 from pydantic import Field
 from ..agents_model import AgentsModel
-from typing import List
 from .o365_connector_card_input_base import O365ConnectorCardInputBase
 from .o365_connector_card_action_base import O365ConnectorCardActionBase
 
@@ -18,13 +17,13 @@ class O365ConnectorCardActionCard(AgentsModel):
     :param id: Action Id
     :type id: str
     :param inputs: Set of inputs contained in this ActionCard
-    :type inputs: List["O365ConnectorCardInputBase"]
+    :type inputs: list[O365ConnectorCardInputBase]
     :param actions: Set of actions contained in this ActionCard
-    :type actions: List["O365ConnectorCardActionBase"]
+    :type actions: list[O365ConnectorCardActionBase]
     """
 
     type: str = Field(None, alias="@type")
     name: str = None
     id: str = Field(None, alias="@id")
-    inputs: List[O365ConnectorCardInputBase] = None
-    actions: List[O365ConnectorCardActionBase] = None
+    inputs: list[O365ConnectorCardInputBase] = None
+    actions: list[O365ConnectorCardActionBase] = None

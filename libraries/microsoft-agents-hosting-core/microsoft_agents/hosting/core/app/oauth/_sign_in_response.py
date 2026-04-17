@@ -2,8 +2,6 @@
 # Licensed under the MIT License.
 
 
-from typing import Optional
-
 from microsoft_agents.activity import TokenResponse
 
 from ..._oauth import _FlowStateTag

@@ -5,7 +5,6 @@ from __future__ import annotations
 
 from datetime import datetime, timezone
 from enum import Enum
-from typing import Optional
 
 from pydantic import BaseModel
 
@@ -48,7 +47,7 @@ class _FlowState(BaseModel, StoreItem):
     auth_handler_id: str = ""
 
     expiration: float = 0
-    continuation_activity: Optional[Activity] = None
+    continuation_activity: Activity | None = None
     attempts_remaining: int = 0
     tag: _FlowStateTag = _FlowStateTag.NOT_STARTED
 

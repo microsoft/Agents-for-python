@@ -5,8 +5,6 @@ Licensed under the MIT License.
 
 from __future__ import annotations
 
-from typing import Optional
-
 from microsoft_agents.activity import (
     ChannelAccount,
     Channels,
@@ -45,15 +43,15 @@ class ConversationReferenceBuilder:
     """
 
     def __init__(self) -> None:
-        self._channel_id: Optional[str] = None
-        self._conversation_id: Optional[str] = None
-        self._service_url: Optional[str] = None
-        self._agent_id: Optional[str] = None
-        self._agent_name: Optional[str] = None
-        self._user_id: Optional[str] = None
-        self._user_name: Optional[str] = None
-        self._activity_id: Optional[str] = None
-        self._locale: Optional[str] = None
+        self._channel_id: str | None = None
+        self._conversation_id: str | None = None
+        self._service_url: str | None = None
+        self._agent_id: str | None = None
+        self._agent_name: str | None = None
+        self._user_id: str | None = None
+        self._user_name: str | None = None
+        self._activity_id: str | None = None
+        self._locale: str | None = None
 
     # ------------------------------------------------------------------
     # Entry-point factories
@@ -86,7 +84,7 @@ class ConversationReferenceBuilder:
         cls,
         agent_client_id: str,
         channel_id: str,
-        service_url: Optional[str] = None,
+        service_url: str | None = None,
     ) -> "ConversationReferenceBuilder":
         """
         Start building a :class:`~microsoft_agents.activity.ConversationReference`
@@ -101,7 +99,7 @@ class ConversationReferenceBuilder:
         :type channel_id: str
         :param service_url: Override the service URL.  When ``None`` the default
             URL for the channel is used.
-        :type service_url: Optional[str]
+        :type service_url: str | None
         :return: A builder pre-populated for the agent.
         :rtype: :class:`ConversationReferenceBuilder`
         """
@@ -124,7 +122,7 @@ class ConversationReferenceBuilder:
     def with_agent(
         self,
         agent_id: str,
-        agent_name: Optional[str] = None,
+        agent_name: str | None = None,
     ) -> "ConversationReferenceBuilder":
         """
         Set the agent (bot) account on the reference.
@@ -132,7 +130,7 @@ class ConversationReferenceBuilder:
         :param agent_id: The agent's channel account ID.
         :type agent_id: str
         :param agent_name: Optional display name.
-        :type agent_name: Optional[str]
+        :type agent_name: str | None
         :return: ``self`` for chaining.
         :rtype: :class:`ConversationReferenceBuilder`
         """
@@ -143,7 +141,7 @@ class ConversationReferenceBuilder:
     def with_user(
         self,
         user_id: str,
-        user_name: Optional[str] = None,
+        user_name: str | None = None,
     ) -> "ConversationReferenceBuilder":
         """
         Set the user account on the reference.
@@ -151,7 +149,7 @@ class ConversationReferenceBuilder:
         :param user_id: The user's channel account ID.
         :type user_id: str
         :param user_name: Optional display name.
-        :type user_name: Optional[str]
+        :type user_name: str | None
         :return: ``self`` for chaining.
         :rtype: :class:`ConversationReferenceBuilder`
         """

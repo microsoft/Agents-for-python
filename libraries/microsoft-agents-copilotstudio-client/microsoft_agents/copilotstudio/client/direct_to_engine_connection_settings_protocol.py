@@ -1,7 +1,7 @@
 # Copyright (c) Microsoft Corporation. All rights reserved.
 # Licensed under the MIT License.
 
-from typing import Protocol, Optional
+from typing import Protocol
 
 from .agent_type import AgentType
 from .power_platform_cloud import PowerPlatformCloud
@@ -13,16 +13,16 @@ class DirectToEngineConnectionSettingsProtocol(Protocol):
     """
 
     # Schema name for the Copilot Studio Hosted Copilot.
-    agent_identifier: Optional[str]
+    agent_identifier: str | None
 
     # if PowerPlatformCloud is set to Other, this is the url for the power platform API endpoint.
-    custom_power_platform_cloud: Optional[str]
+    custom_power_platform_cloud: str | None
 
     # Environment ID for the environment that hosts the agent
-    environment_id: Optional[str]
+    environment_id: str | None
 
     # Power Platform Cloud where the environment is hosted
-    cloud: Optional[PowerPlatformCloud]
+    cloud: PowerPlatformCloud | None
 
     # Type of Agent hosted in Copilot Studio
-    copilot_agent_type: Optional[AgentType]
+    copilot_agent_type: AgentType | None

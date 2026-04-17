@@ -2,10 +2,9 @@
 # Licensed under the MIT License.
 
 from abc import abstractmethod
-from typing import Protocol, Optional
+from typing import Protocol
 
 from microsoft_agents.activity import (
-    AttachmentInfo,
     ConversationResourceResponse,
     ConversationsResult,
     ConversationParameters,
@@ -21,7 +20,7 @@ from microsoft_agents.activity import (
 class ConversationsBase(Protocol):
     @abstractmethod
     async def get_conversations(
-        self, continuation_token: Optional[str] = None
+        self, continuation_token: str | None = None
     ) -> ConversationsResult:
         """
         List the Conversations in which this agent has participated.
@@ -102,8 +101,8 @@ class ConversationsBase(Protocol):
     async def get_conversation_paged_members(
         self,
         conversation_id: str,
-        page_size: Optional[int] = None,
-        continuation_token: Optional[str] = None,
+        page_size: int | None = None,
+        continuation_token: str | None = None,
     ) -> PagedMembersResult:
         """
         Enumerate the members of a conversation one page at a time.

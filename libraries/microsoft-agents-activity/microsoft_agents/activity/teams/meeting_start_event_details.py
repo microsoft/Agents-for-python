@@ -2,7 +2,6 @@
 # Licensed under the MIT License.
 
 from ..agents_model import AgentsModel
-from typing import Optional
 
 
 class MeetingStartEventDetails(AgentsModel):

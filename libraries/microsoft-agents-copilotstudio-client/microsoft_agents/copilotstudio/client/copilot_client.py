@@ -3,7 +3,7 @@
 
 import aiohttp
 import logging
-from typing import AsyncIterable, Callable, Optional
+from typing import AsyncIterable, Callable
 
 from microsoft_agents.activity import Activity, ActivityTypes, ConversationAccount
 
@@ -126,7 +126,7 @@ class CopilotClient:
             yield activity
 
     async def ask_question(
-        self, question: str, conversation_id: Optional[str] = None
+        self, question: str, conversation_id: str | None = None
     ) -> AsyncIterable[Activity]:
         """Ask a question in the specified conversation.
 
@@ -236,7 +236,7 @@ class CopilotClient:
             yield result_activity
 
     async def subscribe(
-        self, conversation_id: str, last_received_event_id: Optional[str] = None
+        self, conversation_id: str, last_received_event_id: str | None = None
     ) -> AsyncIterable[SubscribeEvent]:
         """Subscribe to conversation events.
 

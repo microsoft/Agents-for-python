@@ -3,7 +3,6 @@
 
 from pydantic import Field
 from ..agents_model import AgentsModel
-from typing import List, Optional
 from .o365_connector_card_multichoice_input_choice import (
     O365ConnectorCardMultichoiceInputChoice,
 )
@@ -17,24 +16,24 @@ class O365ConnectorCardMultichoiceInput(AgentsModel):
     :param id: Input Id. It must be unique per entire O365 connector card.
     :type id: str
     :param is_required: Define if this input is a required field. Default value is false.
-    :type is_required: Optional[bool]
+    :type is_required: bool | None
     :param title: Input title that will be shown as the placeholder
-    :type title: Optional[str]
+    :type title: str | None
     :param value: Default value for this input field
-    :type value: Optional[str]
+    :type value: str | None
     :param choices: Set of choices for this input field.
-    :type choices: List["O365ConnectorCardMultichoiceInputChoice"]
+    :type choices: list[O365ConnectorCardMultichoiceInputChoice]
     :param style: Choice style. Possible values include: 'compact', 'expanded'
-    :type style: Optional[str]
+    :type style: str | None
     :param is_multi_select: Define if this input field allows multiple selections. Default value is false.
-    :type is_multi_select: Optional[bool]
+    :type is_multi_select: bool | None
     """
 
     type: str = Field(None, alias="@type")
     id: str = None
-    is_required: Optional[bool] = None
-    title: Optional[str] = None
-    value: Optional[str] = None
-    choices: List[O365ConnectorCardMultichoiceInputChoice] = None
-    style: Optional[str] = None
-    is_multi_select: Optional[bool] = None
+    is_required: bool | None = None
+    title: str | None = None
+    value: str | None = None
+    choices: list[O365ConnectorCardMultichoiceInputChoice] = None
+    style: str | None = None
+    is_multi_select: bool | None = None

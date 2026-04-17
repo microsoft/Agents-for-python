@@ -2,7 +2,6 @@
 # Licensed under the MIT License.
 
 import re
-from typing import List, Optional
 
 from microsoft_agents.activity import ClientCitation
 
@@ -45,8 +44,8 @@ class CitationUtil:
 
     @staticmethod
     def get_used_citations(
-        text: str, citations: List[ClientCitation]
-    ) -> Optional[List[ClientCitation]]:
+        text: str, citations: list[ClientCitation]
+    ) -> list[ClientCitation] | None:
         """
         Get the citations used in the text. This will remove any citations that are
         included in the citations array from the response but not referenced in the text.

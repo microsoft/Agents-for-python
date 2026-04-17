@@ -2,7 +2,6 @@
 # Licensed under the MIT License.
 
 from ..agents_model import AgentsModel
-from typing import List
 from .channel_info import ChannelInfo
 from .team_info import TeamInfo
 from .notification_info import NotificationInfo
@@ -30,7 +29,7 @@ class TeamsChannelData(AgentsModel):
     :param settings: Information about the settings in which the message was sent
     :type settings: TeamsChannelDataSettings
     :param on_behalf_of: The OnBehalfOf list for user attribution
-    :type on_behalf_of: List[OnBehalfOf]
+    :type on_behalf_of: list[OnBehalfOf]
     """
 
     channel: ChannelInfo = None
@@ -40,4 +39,4 @@ class TeamsChannelData(AgentsModel):
     tenant: TenantInfo = None
     meeting: TeamsMeetingInfo = None
     settings: TeamsChannelDataSettings = None
-    on_behalf_of: List[OnBehalfOf] = None
+    on_behalf_of: list[OnBehalfOf] = None

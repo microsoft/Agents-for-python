@@ -3,7 +3,7 @@
 
 """HTTP response abstraction."""
 
-from typing import Any, Optional, Dict
+from typing import Any
 from dataclasses import dataclass
 
 
@@ -12,9 +12,9 @@ class HttpResponse:
     """Framework-agnostic HTTP response."""
 
     status_code: int
-    body: Optional[Any] = None
-    headers: Optional[Dict[str, str]] = None
-    content_type: Optional[str] = "application/json"
+    body: Any | None = None
+    headers: dict[str, str] | None = None
+    content_type: str | None = "application/json"
 
 
 class HttpResponseFactory:

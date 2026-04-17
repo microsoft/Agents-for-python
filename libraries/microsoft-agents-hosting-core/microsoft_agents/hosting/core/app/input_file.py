@@ -7,7 +7,6 @@ from __future__ import annotations
 
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
-from typing import List, Optional
 
 from microsoft_agents.hosting.core import TurnContext
 
@@ -21,12 +20,12 @@ class InputFile:
     :param content_type: The content type of the file.
     :type content_type: str
     :param content_url: Optional. URL to the content of the file.
-    :type content_url: Optional[str]
+    :type content_url: str | None
     """
 
     content: bytes
     content_type: str
-    content_url: Optional[str]
+    content_url: str | None
 
 
 class InputFileDownloader(ABC):
@@ -38,7 +37,7 @@ class InputFileDownloader(ABC):
     """
 
     @abstractmethod
-    async def download_files(self, context: TurnContext) -> List[InputFile]:
+    async def download_files(self, context: TurnContext) -> list[InputFile]:
         """
         Download any files referenced by the incoming activity for the current turn.
 

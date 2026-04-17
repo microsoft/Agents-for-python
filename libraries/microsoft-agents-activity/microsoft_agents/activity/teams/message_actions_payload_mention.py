@@ -2,7 +2,6 @@
 # Licensed under the MIT License.
 
 from ..agents_model import AgentsModel
-from typing import Optional
 
 from .message_actions_payload_from import MessageActionsPayloadFrom
 
@@ -11,13 +10,13 @@ class MessageActionsPayloadMention(AgentsModel):
     """Represents the entity that was mentioned in the message.
 
     :param id: The id of the mentioned entity.
-    :type id: Optional[int]
+    :type id: int | None
     :param mention_text: The plaintext display name of the mentioned entity.
-    :type mention_text: Optional[str]
+    :type mention_text: str | None
     :param mentioned: Provides more details on the mentioned entity.
-    :type mentioned: Optional["MessageActionsPayloadFrom"]
+    :type mentioned: MessageActionsPayloadFrom | None
     """
 
-    id: Optional[int]
-    mention_text: Optional[str]
-    mentioned: Optional[MessageActionsPayloadFrom]
+    id: int | None
+    mention_text: str | None
+    mentioned: MessageActionsPayloadFrom | None

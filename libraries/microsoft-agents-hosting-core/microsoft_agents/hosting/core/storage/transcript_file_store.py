@@ -10,7 +10,7 @@ import re
 
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Any, Dict, Iterable, List, Optional, Tuple, Union
+from typing import Any
 
 from .transcript_logger import TranscriptLogger
 from .transcript_logger import PagedResult
@@ -41,7 +41,7 @@ class FileTranscriptStore(TranscriptLogger):
       - Microsoft.Agents.Storage.Transcript namespace overview           [AGENTS]
     """
 
-    def __init__(self, root_folder: Union[str, Path]) -> None:
+    def __init__(self, root_folder: str | Path) -> None:
         self._root = Path(root_folder).expanduser().resolve()
         self._root.mkdir(parents=True, exist_ok=True)
 
@@ -87,10 +87,10 @@ class FileTranscriptStore(TranscriptLogger):
         :param channel_id: The channel ID to list transcripts for."""
         channel_dir = self._channel_dir(channel_id)
 
-        def _list() -> List[TranscriptInfo]:
+        def _list() -> list[TranscriptInfo]:
             if not channel_dir.exists():
                 return []
-            results: List[TranscriptInfo] = []
+            results: list[TranscriptInfo] = []
             for p in channel_dir.glob("*.transcript"):
                 # mtime is a reasonable proxy for 'created/updated'
                 created = datetime.fromtimestamp(p.stat().st_mtime, tz=timezone.utc)
@@ -112,8 +112,8 @@ class FileTranscriptStore(TranscriptLogger):
         self,
         channel_id: str,
         conversation_id: str,
-        continuation_token: Optional[str] = None,
-        start_date: Optional[datetime] = None,
+        continuation_token: str | None = None,
+        start_date: datetime | None = None,
         page_bytes: int = 512 * 1024,
     ) -> PagedResult[Activity]:
         """
@@ -127,12 +127,12 @@ class FileTranscriptStore(TranscriptLogger):
         """
         file_path = self._file_path(channel_id, conversation_id)
 
-        def _read_page() -> Tuple[List[Activity], Optional[str]]:
+        def _read_page() -> tuple[list[Activity], str | None]:
             if not file_path.exists():
                 return [], None
 
             offset = int(continuation_token) if continuation_token else 0
-            results: List[Activity] = []
+            results: list[Activity] = []
 
             with open(file_path, "rb") as f:
                 f.seek(0, os.SEEK_END)
@@ -215,9 +215,9 @@ def _sanitize(pattern: re.Pattern[str], value: str) -> str:
     return value or "unknown"
 
 
-def _get_ids(activity: Activity) -> Tuple[str, str]:
+def _get_ids(activity: Activity) -> tuple[str, str]:
     # Works with both dict-like and object-like Activity
-    def _get(obj: Any, *path: str) -> Optional[Any]:
+    def _get(obj: Any, *path: str) -> Any:
         cur = obj
         for key in path:
             if cur is None:
@@ -235,7 +235,7 @@ def _get_ids(activity: Activity) -> Tuple[str, str]:
     return str(channel_id), str(conversation_id)
 
 
-def _to_plain_dict(activity: Activity) -> Dict[str, Any]:
+def _to_plain_dict(activity: Activity) -> dict[str, Any]:
 
     if isinstance(activity, dict):
         return activity

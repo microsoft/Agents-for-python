@@ -2,7 +2,6 @@
 # Licensed under the MIT License.
 
 from ..agents_model import AgentsModel
-from typing import Optional
 
 
 class NotificationInfo(AgentsModel):
@@ -11,11 +10,11 @@ class NotificationInfo(AgentsModel):
     :param alert: True if notification is to be sent to the user, false otherwise.
     :type alert: bool
     :param alert_in_meeting: True if notification is to be sent in a meeting context.
-    :type alert_in_meeting: Optional[bool]
+    :type alert_in_meeting: bool | None
     :param external_resource_url: URL for external resources related to the notification.
-    :type external_resource_url: Optional[str]
+    :type external_resource_url: str | None
     """
 
     alert: bool = None
-    alert_in_meeting: Optional[bool] = None
-    external_resource_url: Optional[str] = None
+    alert_in_meeting: bool | None = None
+    external_resource_url: str | None = None

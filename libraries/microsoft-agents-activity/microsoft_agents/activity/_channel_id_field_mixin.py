@@ -4,7 +4,7 @@
 from __future__ import annotations
 
 import logging
-from typing import Optional, Any
+from typing import Any
 
 from pydantic import (
     ModelWrapValidatorHandler,
@@ -25,12 +25,12 @@ logger = logging.getLogger(__name__)
 class _ChannelIdFieldMixin:
     """A mixin to add a computed field channel_id of type ChannelId to a Pydantic model."""
 
-    _channel_id: Optional[ChannelId] = None
+    _channel_id: ChannelId | None = None
 
     # required to define the setter below
-    @computed_field(return_type=Optional[ChannelId], alias="channelId")
+    @computed_field(return_type=ChannelId | None, alias="channelId")
     @property
-    def channel_id(self) -> Optional[ChannelId]:
+    def channel_id(self) -> ChannelId | None:
         """Gets the _channel_id field"""
         return self._channel_id
 

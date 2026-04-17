@@ -2,7 +2,6 @@
 # Licensed under the MIT License.
 
 from ..agents_model import AgentsModel
-from typing import Optional
 
 from ..attachment import Attachment
 
@@ -27,6 +26,6 @@ class MessagingExtensionAttachment(AgentsModel):
     content_type: str
     content_url: str
     content: object = None
-    name: Optional[str] = None
-    thumbnail_url: Optional[str] = None
+    name: str | None = None
+    thumbnail_url: str | None = None
     preview: Attachment = None

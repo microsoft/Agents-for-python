@@ -4,7 +4,7 @@
 import uuid
 import asyncio
 import logging
-from typing import List, Optional, Callable, Literal, cast
+from typing import Callable, Literal, cast
 
 from microsoft_agents.activity import (
     Activity,
@@ -49,20 +49,20 @@ class StreamingResponse:
         """
         self._context = context
         self._sequence_number = 1
-        self._stream_id: Optional[str] = None
+        self._stream_id: str | None = None
         self._message = ""
-        self._queue: List[Callable[[], Activity | None]] = []
-        self._queue_sync: Optional[asyncio.Task] = None
+        self._queue: list[Callable[[], Activity | None]] = []
+        self._queue_sync: asyncio.Task | None = None
         self._chunk_queued = False
         self._ended = False
         self._cancelled = False
         self._is_streaming_channel = False
         self._interval = 0.1
-        self._attachments: Optional[List[Attachment]] = None
-        self._citations: List[ClientCitation] = []
-        self._sensitivity_label: Optional[SensitivityUsageInfo] = None
+        self._attachments: list[Attachment] | None = None
+        self._citations: list[ClientCitation] = []
+        self._sensitivity_label: SensitivityUsageInfo | None = None
         self._enable_feedback_loop = False
-        self._feedback_loop_type: Optional[Literal["default", "custom"]] = None
+        self._feedback_loop_type: Literal["default", "custom"] | None = None
         self._enable_generated_by_ai_label = False
 
         # Set defaults based on channel
@@ -102,7 +102,7 @@ class StreamingResponse:
         self._queue_activity(create_activity)
 
     def queue_text_chunk(
-        self, text: str, citations: Optional[List[Citation]] = None
+        self, text: str, citations: list[Citation] | None = None
     ) -> None:
         """
         Queues a chunk of partial message text to be sent to the client.
@@ -142,7 +142,7 @@ class StreamingResponse:
         # Wait for the queue to drain
         await self.wait_for_queue()
 
-    def set_attachments(self, attachments: List[Attachment]) -> None:
+    def set_attachments(self, attachments: list[Attachment]) -> None:
         """
         Sets the attachments to attach to the final chunk.
 
@@ -160,7 +160,7 @@ class StreamingResponse:
         """
         self._sensitivity_label = sensitivity_label
 
-    def set_citations(self, citations: List[Citation]) -> None:
+    def set_citations(self, citations: list[Citation]) -> None:
         """
         Sets the citations for the full message.
 

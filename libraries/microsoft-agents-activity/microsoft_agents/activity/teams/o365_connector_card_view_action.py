@@ -3,7 +3,6 @@
 
 from pydantic import Field
 from ..agents_model import AgentsModel
-from typing import Optional
 
 
 class O365ConnectorCardViewAction(AgentsModel):
@@ -16,10 +15,10 @@ class O365ConnectorCardViewAction(AgentsModel):
     :param id: Id of the ViewAction action.
     :type id: str
     :param target: Target URL for the ViewAction action.
-    :type target: Optional[str]
+    :type target: str | None
     """
 
     type: str = Field(None, alias="@type")
     name: str = None
     id: str = Field(None, alias="@id")
-    target: Optional[str] = None
+    target: str | None = None

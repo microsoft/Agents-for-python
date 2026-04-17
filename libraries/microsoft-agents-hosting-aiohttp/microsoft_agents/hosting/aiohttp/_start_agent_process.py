@@ -1,4 +1,3 @@
-from typing import Optional
 from aiohttp.web import Request, Response
 from microsoft_agents.hosting.core import error_resources
 from microsoft_agents.hosting.core.app import AgentApplication
@@ -9,7 +8,7 @@ async def start_agent_process(
     request: Request,
     agent_application: AgentApplication,
     adapter: CloudAdapter,
-) -> Optional[Response]:
+) -> Response | None:
     """Starts the agent host with the provided adapter and agent application.
     Args:
         adapter (CloudAdapter): The adapter to use for the agent host.

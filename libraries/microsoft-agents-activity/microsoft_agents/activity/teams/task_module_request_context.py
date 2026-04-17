@@ -2,14 +2,13 @@
 # Licensed under the MIT License.
 
 from ..agents_model import AgentsModel
-from typing import Optional
 
 
 class TaskModuleRequestContext(AgentsModel):
     """Context for a task module request.
 
     :param theme: The current user's theme.
-    :type theme: Optional[str]
+    :type theme: str | None
     """
 
-    theme: Optional[str] = None
+    theme: str | None = None

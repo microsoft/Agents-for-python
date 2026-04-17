@@ -3,7 +3,7 @@
 
 from abc import ABC, abstractmethod
 from collections.abc import Callable
-from typing import List, Awaitable
+from typing import Awaitable
 from microsoft_agents.hosting.core.authorization import ClaimsIdentity
 from microsoft_agents.activity import ChannelAdapterProtocol
 from microsoft_agents.activity import (
@@ -34,8 +34,8 @@ class ChannelAdapter(ABC, ChannelAdapterProtocol):
 
     @abstractmethod
     async def send_activities(
-        self, context: TurnContext, activities: List[Activity]
-    ) -> List[ResourceResponse]:
+        self, context: TurnContext, activities: list[Activity]
+    ) -> list[ResourceResponse]:
         """
         Sends a set of activities to the user. An array of responses from the server will be returned.
 

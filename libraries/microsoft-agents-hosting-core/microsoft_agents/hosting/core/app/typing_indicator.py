@@ -7,7 +7,6 @@ from __future__ import annotations
 
 import asyncio
 import logging
-from typing import Optional
 
 from microsoft_agents.hosting.core import TurnContext
 from microsoft_agents.activity import Activity, ActivityTypes
@@ -32,7 +31,7 @@ class TypingIndicator:
             raise ValueError("interval_seconds must be greater than 0")
         self._context: TurnContext = context
         self._interval: float = interval_seconds
-        self._task: Optional[asyncio.Task[None]] = None
+        self._task: asyncio.Task[None] | None = None
 
     async def _run(self) -> None:
         """Sends typing indicators at regular intervals."""

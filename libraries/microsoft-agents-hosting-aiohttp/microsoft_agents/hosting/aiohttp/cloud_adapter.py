@@ -1,6 +1,5 @@
 # Copyright (c) Microsoft Corporation. All rights reserved.
 # Licensed under the MIT License.
-from typing import Optional
 
 from aiohttp.web import Request, Response, json_response
 
@@ -59,7 +58,7 @@ class CloudAdapter(HttpAdapterBase, AgentHttpAdapter):
             channel_service_client_factory=channel_service_client_factory,
         )
 
-    async def process(self, request: Request, agent: Agent) -> Optional[Response]:
+    async def process(self, request: Request, agent: Agent) -> Response | None:
         """Process an aiohttp request.
 
         Args:

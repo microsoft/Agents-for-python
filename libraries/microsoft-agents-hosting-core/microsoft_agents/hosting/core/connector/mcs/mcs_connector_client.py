@@ -4,7 +4,6 @@
 """MCS Connector Client for Microsoft Copilot Studio via Power Apps Connector."""
 
 import logging
-from typing import Optional
 from aiohttp import ClientSession
 
 from microsoft_agents.activity import Activity, ResourceResponse
@@ -156,7 +155,7 @@ class MCSConversations(ConversationsBase):
         )
 
     async def get_conversations(
-        self, continuation_token: Optional[str] = None, **kwargs
+        self, continuation_token: str | None = None, **kwargs
     ) -> dict:
         """Not supported for MCS Connector."""
         raise NotImplementedError(
@@ -166,8 +165,8 @@ class MCSConversations(ConversationsBase):
     async def get_conversation_paged_members(
         self,
         conversation_id: str,
-        page_size: Optional[int] = None,
-        continuation_token: Optional[str] = None,
+        page_size: int | None = None,
+        continuation_token: str | None = None,
         **kwargs,
     ) -> dict:
         """Not supported for MCS Connector."""
@@ -205,7 +204,7 @@ class MCSConnectorClient(ConnectorClientBase):
     All other operations will raise NotImplementedError.
     """
 
-    def __init__(self, endpoint: str, client: Optional[ClientSession] = None):
+    def __init__(self, endpoint: str, client: ClientSession | None = None):
         """
         Initialize the MCS Connector Client.
 

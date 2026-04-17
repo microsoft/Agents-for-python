@@ -1,5 +1,3 @@
-from typing import Union
-
 from azure.core.credentials_async import AsyncTokenCredential
 
 
@@ -11,7 +9,7 @@ class BlobStorageConfig:
         container_name: str,
         connection_string: str = "",
         url: str = "",
-        credential: Union[AsyncTokenCredential, None] = None,
+        credential: AsyncTokenCredential | None = None,
     ):
         """Configuration settings for BlobStorage.
 
@@ -25,4 +23,4 @@ class BlobStorageConfig:
         self.container_name: str = container_name
         self.connection_string: str = connection_string
         self.url: str = url
-        self.credential: Union[AsyncTokenCredential, None] = credential
+        self.credential: AsyncTokenCredential | None = credential

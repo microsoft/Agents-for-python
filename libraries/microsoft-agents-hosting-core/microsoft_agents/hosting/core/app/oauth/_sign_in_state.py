@@ -5,8 +5,6 @@ Licensed under the MIT License.
 
 from __future__ import annotations
 
-from typing import Optional
-
 from pydantic import BaseModel
 
 from microsoft_agents.activity import Activity
@@ -23,7 +21,7 @@ class _SignInState(BaseModel, StoreItem):
     """
 
     active_handler_id: str
-    continuation_activity: Optional[Activity] = None
+    continuation_activity: Activity | None = None
 
     def store_item_to_json(self) -> JSON:
         return self.model_dump(mode="json", exclude_unset=True, by_alias=True)

@@ -2,7 +2,7 @@
 # Licensed under the MIT License.
 
 from abc import abstractmethod
-from typing import Optional, Protocol
+from typing import Protocol
 
 from fastapi import Request, Response
 
@@ -11,5 +11,5 @@ from microsoft_agents.hosting.core import Agent
 
 class AgentHttpAdapter(Protocol):
     @abstractmethod
-    async def process(self, request: Request, agent: Agent) -> Optional[Response]:
+    async def process(self, request: Request, agent: Agent) -> Response | None:
         raise NotImplementedError()

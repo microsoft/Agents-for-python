@@ -7,7 +7,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 from logging import Logger
-from typing import Callable, List, Optional
+from typing import Callable
 
 from microsoft_agents.hosting.core.app.oauth import AuthHandler
 from microsoft_agents.hosting.core.storage import Storage
@@ -24,7 +24,7 @@ from .proactive.proactive_options import ProactiveOptions
 
 @dataclass
 class ApplicationOptions:
-    adapter: Optional[ChannelServiceAdapter] = None
+    adapter: ChannelServiceAdapter | None = None
     """
     Optional. Options used to initialize your `BotAdapter`
     """
@@ -39,7 +39,7 @@ class ApplicationOptions:
     Optional. `AgentApplication` ID of the bot.
     """
 
-    storage: Optional[Storage] = None
+    storage: Storage | None = None
     """
     Optional. `Storage` provider to use for the application.
     """
@@ -73,25 +73,25 @@ class ApplicationOptions:
     will mark the bot's process as idle and shut it down.
     """
 
-    file_downloaders: List[InputFileDownloader] = field(default_factory=list)
+    file_downloaders: list[InputFileDownloader] = field(default_factory=list)
     """
     Optional. Array of input file download plugins to use. 
     """
 
-    turn_state_factory: Optional[Callable[[], TurnState]] = None
+    turn_state_factory: Callable[[], TurnState] | None = None
     """
     Optional. Factory function to create the turn state.
     This should return an instance of `TurnState` or a subclass.
     If not provided, the default `TurnState` will be used.
     """
 
-    authorization_handlers: Optional[dict[str, AuthHandler]] = None
+    authorization_handlers: dict[str, AuthHandler] | None = None
     """
     Optional. Authorization handler for OAuth flows.
     If not provided, no OAuth flows will be supported.
     """
 
-    proactive: Optional[ProactiveOptions] = None
+    proactive: ProactiveOptions | None = None
     """
     Optional. Options for the proactive messaging subsystem.
     When set, :attr:`AgentApplication.proactive` is available for storing

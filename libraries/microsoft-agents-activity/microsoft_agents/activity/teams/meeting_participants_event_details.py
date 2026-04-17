@@ -2,7 +2,6 @@
 # Licensed under the MIT License.
 
 from ..agents_model import AgentsModel
-from typing import List
 from .teams_meeting_member import TeamsMeetingMember
 
 
@@ -13,4 +12,4 @@ class MeetingParticipantsEventDetails(AgentsModel):
     :type members: list[TeamsMeetingMember]
     """
 
-    members: List[TeamsMeetingMember] = None
+    members: list[TeamsMeetingMember] = None
