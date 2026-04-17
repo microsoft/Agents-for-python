@@ -233,7 +233,8 @@ class _UserAuthorization(_AuthorizationHandler):
         ):
             if (
                 context.activity.type == ActivityTypes.invoke
-                and context.activity.name == SignInConstants.token_exchange_operation_name
+                and context.activity.name
+                == SignInConstants.token_exchange_operation_name
                 and not context.activity.value
             ):
                 await self._send_invoke_response(context, HTTPStatus.BAD_REQUEST)
@@ -287,9 +288,7 @@ class _UserAuthorization(_AuthorizationHandler):
 
         if activity.name == SignInConstants.token_exchange_operation_name:
             invoke_id = (
-                activity.value.get("id")
-                if isinstance(activity.value, dict)
-                else None
+                activity.value.get("id") if isinstance(activity.value, dict) else None
             )
             connection_name = self._handler.abs_oauth_connection_name
             if is_teams:
