@@ -73,7 +73,7 @@ class TurnMemoryScope(MemoryScope):
 
         turn_value = dialog_context.context.turn_state.get(scope_path.TURN, None)
 
-        if not turn_value:
+        if turn_value is None:
             turn_value = CaseInsensitiveDict()
             dialog_context.context.turn_state[scope_path.TURN] = turn_value
 

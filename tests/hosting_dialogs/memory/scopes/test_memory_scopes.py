@@ -451,6 +451,24 @@ class TestMemoryScopes:
             await dialog_context.begin_dialog("container")
             scope.set_memory(dialog_context, None)
 
+    @pytest.mark.asyncio
+    async def test_dialog_memory_scope_accepts_empty_dict(self):
+        """set_memory() must accept an empty dict — empty dialog state is valid."""
+        storage = MemoryStorage()
+        conversation_state = ConversationState(storage)
+        dialog_state = conversation_state.create_property("dialogs")
+        dialogs = DialogSet(dialog_state)
+        dialogs.add(_TestContainer("container"))
+
+        adapter = DialogTestAdapter()
+        context = TurnContext(adapter, _begin_message)
+        dialog_context = await dialogs.create_context(context)
+        await dialog_context.begin_dialog("container")
+
+        scope = DialogMemoryScope()
+        scope.set_memory(dialog_context, {})
+        assert scope.get_memory(dialog_context) == {}
+
     @pytest.mark.skip(reason="Requires test_settings module not available")
     @pytest.mark.asyncio
     async def test_settings_memory_scope_should_return_content_of_settings(self):
@@ -550,6 +568,24 @@ class TestMemoryScopes:
             scope.set_memory(dialog_context, None)
 
     @pytest.mark.asyncio
+    async def test_this_memory_scope_accepts_empty_dict(self):
+        """set_memory() must accept an empty dict — empty dialog state is valid."""
+        storage = MemoryStorage()
+        conversation_state = ConversationState(storage)
+        dialog_state = conversation_state.create_property("dialogs")
+        dialogs = DialogSet(dialog_state)
+        dialogs.add(_TestContainer("container"))
+
+        adapter = DialogTestAdapter()
+        context = TurnContext(adapter, _begin_message)
+        dialog_context = await dialogs.create_context(context)
+        await dialog_context.begin_dialog("container")
+
+        scope = ThisMemoryScope()
+        scope.set_memory(dialog_context, {})
+        assert scope.get_memory(dialog_context) == {}
+
+    @pytest.mark.asyncio
     async def test_this_memory_scope_should_raise_error_if_set_memory_called_without_active_dialog(
         self,
     ):
@@ -617,6 +653,28 @@ class TestMemoryScopes:
         memory = scope.get_memory(dialog_context)
         assert memory is not None, "state not returned"
         assert memory.foo == "bar"
+
+    @pytest.mark.asyncio
+    async def test_turn_memory_scope_preserves_empty_dict(self):
+        """An empty dict stored in turn state must not be replaced with a new CaseInsensitiveDict."""
+        storage = MemoryStorage()
+        conversation_state = ConversationState(storage)
+        dialog_state = conversation_state.create_property("dialogs")
+        dialogs = DialogSet(dialog_state)
+        dialogs.add(_TestDialog("test", "test message"))
+
+        adapter = DialogTestAdapter()
+        context = TurnContext(adapter, _begin_message)
+        dialog_context = await dialogs.create_context(context)
+
+        scope = TurnMemoryScope()
+        empty = {}
+        scope.set_memory(dialog_context, empty)
+
+        retrieved = scope.get_memory(dialog_context)
+        assert (
+            retrieved is empty
+        ), "get_memory() must return the stored empty dict, not a new one"
 
     def test_dialog_context_memory_scope_has_unique_name(self):
         """DialogContextMemoryScope must not share its scope name with SettingsMemoryScope."""

@@ -29,7 +29,7 @@ class ThisMemoryScope(MemoryScope):
         if not dialog_context:
             raise TypeError(f"Expecting: DialogContext, but received None")
 
-        if not memory:
+        if memory is None:
             raise TypeError(f"Expecting: object, but received None")
 
         assert dialog_context.active_dialog is not None

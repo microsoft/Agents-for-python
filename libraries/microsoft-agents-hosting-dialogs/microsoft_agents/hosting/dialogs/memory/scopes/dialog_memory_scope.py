@@ -48,7 +48,7 @@ class DialogMemoryScope(MemoryScope):
         if not dialog_context:
             raise TypeError(f"Expecting: DialogContext, but received None")
 
-        if not memory:
+        if memory is None:
             raise TypeError(f"Expecting: memory object, but received None")
 
         # If active dialog is a container dialog then "dialog" binds to it.
