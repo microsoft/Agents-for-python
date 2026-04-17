@@ -1,7 +1,7 @@
 # Copyright (c) Microsoft Corporation. All rights reserved.
 # Licensed under the MIT License.
 
-from typing import Protocol, Optional
+from typing import Protocol
 from abc import abstractmethod
 
 
@@ -34,7 +34,7 @@ class AccessTokenProviderBase(Protocol):
 
     async def get_agentic_application_token(
         self, tenant_id: str, agent_app_instance_id: str
-    ) -> Optional[str]:
+    ) -> str | None:
         raise NotImplementedError()
 
     async def get_agentic_instance_token(
@@ -48,5 +48,5 @@ class AccessTokenProviderBase(Protocol):
         agent_app_instance_id: str,
         agentic_user_id: str,
         scopes: list[str],
-    ) -> Optional[str]:
+    ) -> str | None:
         raise NotImplementedError()

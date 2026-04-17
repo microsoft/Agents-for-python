@@ -480,7 +480,7 @@ class ActivityHandler(Agent):
         :type turn_context: :class:`microsoft_agents.activity.TurnContextProtocol`
 
         :returns: A task that represents the work queued to execute
-        :rtype: Optional[:class:`microsoft_agents.activity.InvokeResponse`]
+        :rtype: :class:`microsoft_agents.activity.InvokeResponse` | None
         """
         try:
             if (
@@ -539,7 +539,7 @@ class ActivityHandler(Agent):
         raise _InvokeResponseException(HTTPStatus.NOT_IMPLEMENTED)
 
     @staticmethod
-    def _create_invoke_response(body: BaseModel = None) -> InvokeResponse:
+    def _create_invoke_response(body: BaseModel | None = None) -> InvokeResponse:
         serialized_body = (
             body.model_dump(mode="json", by_alias=True, exclude_none=True)
             if body

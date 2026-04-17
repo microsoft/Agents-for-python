@@ -1,7 +1,7 @@
 # Copyright (c) Microsoft Corporation. All rights reserved.
 # Licensed under the MIT License.
 
-from typing import TypeVar, Union
+from typing import TypeVar
 import asyncio
 
 from azure.cosmos import (
@@ -88,8 +88,8 @@ class CosmosDBStorage(AsyncStorageBase):
         )
 
     async def _read_item(
-        self, key: str, *, target_cls: StoreItemT = None, **kwargs
-    ) -> tuple[Union[str, None], Union[StoreItemT, None]]:
+        self, key: str, *, target_cls: StoreItemT | None = None, **kwargs
+    ) -> tuple[str | None, StoreItemT | None]:
 
         if key == "":
             raise ValueError(str(storage_errors.CosmosDbKeyCannotBeEmpty))

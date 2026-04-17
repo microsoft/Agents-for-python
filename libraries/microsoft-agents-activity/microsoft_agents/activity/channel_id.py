@@ -3,7 +3,7 @@
 
 from __future__ import annotations
 
-from typing import Optional, Any
+from typing import Any
 
 from pydantic_core import CoreSchema, core_schema
 from pydantic import GetCoreSchemaHandler
@@ -16,10 +16,10 @@ class ChannelId(str):
 
     def __init__(
         self,
-        value: Optional[str] = None,
+        value: str | None = None,
         *,
-        channel: Optional[str] = None,
-        sub_channel: Optional[str] = None,
+        channel: str | None = None,
+        sub_channel: str | None = None,
     ) -> None:
         """Initialize a ChannelId instance.
 
@@ -39,10 +39,10 @@ class ChannelId(str):
 
     def __new__(
         cls,
-        value: Optional[str] = None,
+        value: str | None = None,
         *,
-        channel: Optional[str] = None,
-        sub_channel: Optional[str] = None,
+        channel: str | None = None,
+        sub_channel: str | None = None,
     ) -> ChannelId:
         """Create a new ChannelId instance.
 
@@ -83,7 +83,7 @@ class ChannelId(str):
         return self._channel  # type: ignore[return-value]
 
     @property
-    def sub_channel(self) -> Optional[str]:
+    def sub_channel(self) -> str | None:
         """The sub-channel, e.g. 'work' in 'email:work'. May be None."""
         return self._sub_channel
 

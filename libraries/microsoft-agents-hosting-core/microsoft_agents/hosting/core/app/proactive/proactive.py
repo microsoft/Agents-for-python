@@ -6,7 +6,7 @@ Licensed under the MIT License.
 from __future__ import annotations
 
 import logging
-from typing import Awaitable, Callable, Generic, Optional, TypeVar, TYPE_CHECKING
+from typing import Awaitable, Callable, Generic, TypeVar, TYPE_CHECKING
 
 from microsoft_agents.activity import Activity, ResourceResponse
 
@@ -125,7 +125,7 @@ class Proactive(Generic[StateT]):
         logger.debug("Storing conversation with key: %s", key)
         await self._storage.write({key: conversation})
 
-    async def get_conversation(self, conversation_id: str) -> Optional[Conversation]:
+    async def get_conversation(self, conversation_id: str) -> Conversation | None:
         """
         Retrieve a previously stored
         :class:`~microsoft_agents.hosting.core.app.proactive.conversation.Conversation`.
@@ -134,7 +134,7 @@ class Proactive(Generic[StateT]):
         :type conversation_id: str
         :return: The stored :class:`~microsoft_agents.hosting.core.app.proactive.conversation.Conversation`,
             or ``None`` if not found.
-        :rtype: Optional[:class:`~microsoft_agents.hosting.core.app.proactive.conversation.Conversation`]
+        :rtype: :class:`~microsoft_agents.hosting.core.app.proactive.conversation.Conversation` | None
         """
         key = self._storage_key(conversation_id)
         results = await self._storage.read([key], target_cls=Conversation)
@@ -160,7 +160,7 @@ class Proactive(Generic[StateT]):
         adapter: "ChannelServiceAdapter",
         conversation_id_or_conversation: "str | Conversation",
         activity: Activity,
-    ) -> Optional[ResourceResponse]:
+    ) -> ResourceResponse | None:
         """
         Send a single activity into an existing conversation.
 
@@ -176,7 +176,7 @@ class Proactive(Generic[StateT]):
         :type activity: :class:`~microsoft_agents.activity.Activity`
         :return: The :class:`~microsoft_agents.activity.ResourceResponse` from the
             channel, or ``None``.
-        :rtype: Optional[:class:`~microsoft_agents.activity.ResourceResponse`]
+        :rtype: :class:`~microsoft_agents.activity.ResourceResponse` | None
         :raises KeyError: If *conversation_id_or_conversation* is a string and the
             conversation is not found in storage.
         """
@@ -188,9 +188,9 @@ class Proactive(Generic[StateT]):
         adapter: "ChannelServiceAdapter",
         conversation: Conversation,
         activity: Activity,
-    ) -> Optional[ResourceResponse]:
-        result: Optional[ResourceResponse] = None
-        captured_exc: Optional[BaseException] = None
+    ) -> ResourceResponse | None:
+        result: ResourceResponse | None = None
+        captured_exc: BaseException | None = None
 
         claims = Conversation.identity_from_claims(conversation.claims)
         continuation = conversation.conversation_reference.get_continuation_activity()
@@ -218,8 +218,8 @@ class Proactive(Generic[StateT]):
         conversation_id_or_conversation: "str | Conversation",
         handler: RouteHandler,
         *,
-        continuation_activity: Optional[Activity] = None,
-        token_handlers: Optional[list[str]] = None,
+        continuation_activity: Activity | None = None,
+        token_handlers: list[str] | None = None,
     ) -> None:
         """
         Continue an existing conversation by invoking *handler* inside a full
@@ -240,12 +240,12 @@ class Proactive(Generic[StateT]):
             :meth:`~microsoft_agents.activity.ConversationReference.get_continuation_activity`
             is used.  Supply a custom activity to carry additional payload (e.g. the
             original message) into the proactive turn via ``context.activity.value``.
-        :type continuation_activity: Optional[:class:`~microsoft_agents.activity.Activity`]
+        :type continuation_activity: :class:`~microsoft_agents.activity.Activity` | None
         :param token_handlers: Optional list of OAuth connection names whose
             tokens must be available before *handler* is invoked.  When
             :attr:`~ProactiveOptions.fail_on_unsigned_in_connections` is ``True``
             (the default) and a token is missing a :exc:`RuntimeError` is raised.
-        :type token_handlers: Optional[list[str]]
+        :type token_handlers: list[str] | None
         :raises KeyError: If *conversation_id_or_conversation* is a string and the
             conversation is not found in storage.
         :raises RuntimeError: If a required OAuth token is not available and
@@ -253,7 +253,7 @@ class Proactive(Generic[StateT]):
         """
         conversation = await self._resolve_conversation(conversation_id_or_conversation)
 
-        captured_exc: Optional[BaseException] = None
+        captured_exc: BaseException | None = None
         claims = Conversation.identity_from_claims(conversation.claims)
         continuation = (
             continuation_activity
@@ -280,7 +280,7 @@ class Proactive(Generic[StateT]):
         self,
         adapter: "ChannelServiceAdapter",
         options: CreateConversationOptions,
-        handler: Optional[RouteHandler] = None,
+        handler: RouteHandler | None = None,
     ) -> Conversation:
         """
         Create a brand-new conversation with a user and optionally run *handler*.
@@ -292,7 +292,7 @@ class Proactive(Generic[StateT]):
         :type options: :class:`~microsoft_agents.hosting.core.app.proactive.create_conversation_options.CreateConversationOptions`
         :param handler: Optional async callable invoked inside the new
             conversation's first turn.
-        :type handler: Optional[Callable]
+        :type handler: Callable | None
         :return: A :class:`~microsoft_agents.hosting.core.app.proactive.conversation.Conversation`
             representing the newly created conversation.
         :rtype: :class:`~microsoft_agents.hosting.core.app.proactive.conversation.Conversation`
@@ -300,8 +300,8 @@ class Proactive(Generic[StateT]):
         """
         options.validate()
 
-        new_conversation: Optional[Conversation] = None
-        captured_exc: Optional[BaseException] = None
+        new_conversation: Conversation | None = None
+        captured_exc: BaseException | None = None
 
         audience = options.audience or options.identity.get_token_audience()
 
@@ -346,7 +346,7 @@ class Proactive(Generic[StateT]):
         self,
         context: "TurnContext",
         handler: RouteHandler,
-        token_handlers: Optional[list[str]] = None,
+        token_handlers: list[str] | None = None,
     ) -> None:
         """Run a proactive turn: load state → optional OAuth check → handler → save state."""
         state = await self._load_state(context)

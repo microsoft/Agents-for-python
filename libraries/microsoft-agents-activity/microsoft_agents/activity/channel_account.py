@@ -1,7 +1,7 @@
 # Copyright (c) Microsoft Corporation. All rights reserved.
 # Licensed under the MIT License.
 
-from typing import Any, Optional
+from typing import Any
 
 from pydantic import ConfigDict
 from .agents_model import AgentsModel
@@ -27,11 +27,11 @@ class ChannelAccount(AgentsModel):
 
     id: NonEmptyString = None
     name: str = None
-    aad_object_id: Optional[NonEmptyString] = None
-    role: Optional[NonEmptyString] = None
-    agentic_user_id: Optional[NonEmptyString] = None
-    agentic_app_id: Optional[NonEmptyString] = None
-    tenant_id: Optional[NonEmptyString] = None
+    aad_object_id: NonEmptyString | None = None
+    role: NonEmptyString | None = None
+    agentic_user_id: NonEmptyString | None = None
+    agentic_app_id: NonEmptyString | None = None
+    tenant_id: NonEmptyString | None = None
 
     @property
     def properties(self) -> dict[str, Any]:

@@ -1,7 +1,7 @@
 # Copyright (c) Microsoft Corporation. All rights reserved.
 # Licensed under the MIT License.
 
-from typing import AsyncIterable, Optional, Protocol
+from typing import AsyncIterable, Protocol
 from microsoft_agents.activity import Activity
 from .subscribe_event import SubscribeEvent
 from .start_request import StartRequest
@@ -35,7 +35,7 @@ class CopilotClientProtocol(Protocol):
         ...
 
     async def ask_question(
-        self, question: str, conversation_id: Optional[str] = None
+        self, question: str, conversation_id: str | None = None
     ) -> AsyncIterable[Activity]:
         """
         Ask a question in a conversation.
@@ -79,7 +79,7 @@ class CopilotClientProtocol(Protocol):
         ...
 
     async def subscribe(
-        self, conversation_id: str, last_received_event_id: Optional[str] = None
+        self, conversation_id: str, last_received_event_id: str | None = None
     ) -> AsyncIterable[SubscribeEvent]:
         """
         Subscribe to conversation events.

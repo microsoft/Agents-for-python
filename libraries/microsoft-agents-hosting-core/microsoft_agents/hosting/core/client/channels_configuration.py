@@ -10,12 +10,12 @@ class ChannelInfo(ChannelInfoProtocol):
 
     def __init__(
         self,
-        id: str = None,
-        app_id: str = None,
-        resource_url: str = None,
-        token_provider: str = None,
-        channel_factory: str = None,
-        endpoint: str = None,
+        id: str | None = None,
+        app_id: str | None = None,
+        resource_url: str | None = None,
+        token_provider: str | None = None,
+        channel_factory: str | None = None,
+        endpoint: str | None = None,
         **kwargs
     ):
         self.id = id

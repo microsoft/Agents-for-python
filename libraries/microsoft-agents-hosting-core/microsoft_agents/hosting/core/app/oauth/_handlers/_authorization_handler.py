@@ -4,7 +4,6 @@ Licensed under the MIT License.
 """
 
 from abc import ABC
-from typing import Optional
 import logging
 
 from microsoft_agents.activity import TokenResponse
@@ -29,10 +28,10 @@ class _AuthorizationHandler(ABC):
         self,
         storage: Storage,
         connection_manager: Connections,
-        auth_handler: Optional[AuthHandler] = None,
+        auth_handler: AuthHandler | None = None,
         *,
-        auth_handler_id: Optional[str] = None,
-        auth_handler_settings: Optional[dict] = None,
+        auth_handler_id: str | None = None,
+        auth_handler_settings: dict | None = None,
         **kwargs,
     ) -> None:
         """
@@ -68,14 +67,14 @@ class _AuthorizationHandler(ABC):
             )
 
     async def _sign_in(
-        self, context: TurnContext, scopes: Optional[list[str]] = None
+        self, context: TurnContext, scopes: list[str] | None = None
     ) -> _SignInResponse:
         """Initiate or continue the sign-in process for the user with the given auth handler.
 
         :param context: The turn context for the current turn of conversation.
         :type context: TurnContext
         :param scopes: Optional list of scopes to request during sign-in. If None, default scopes will be used.
-        :type scopes: Optional[list[str]], Optional
+        :type scopes: list[str] | None
         :return: A SignInResponse indicating the result of the sign-in attempt.
         :rtype: SignInResponse
         """
@@ -84,17 +83,17 @@ class _AuthorizationHandler(ABC):
     async def get_refreshed_token(
         self,
         context: TurnContext,
-        exchange_connection: Optional[str] = None,
-        exchange_scopes: Optional[list[str]] = None,
+        exchange_connection: str | None = None,
+        exchange_scopes: list[str] | None = None,
     ) -> TokenResponse:
         """Attempts to get a refreshed token for the user with the given scopes
 
         :param context: The turn context for the current turn of conversation.
         :type context: TurnContext
         :param exchange_connection: Optional name of the connection to use for token exchange. If None, default connection will be used.
-        :type exchange_connection: Optional[str], Optional
+        :type exchange_connection: str | None
         :param exchange_scopes: Optional list of scopes to request during token exchange. If None, default scopes will be used.
-        :type exchange_scopes: Optional[list[str]], Optional
+        :type exchange_scopes: list[str] | None
         """
         raise NotImplementedError()
 
@@ -104,6 +103,6 @@ class _AuthorizationHandler(ABC):
         :param context: The turn context for the current turn of conversation.
         :type context: TurnContext
         :param auth_handler_id: The ID of the auth handler to sign out from. If None, sign out from all handlers.
-        :type auth_handler_id: Optional[str]
+        :type auth_handler_id: str | None
         """
         raise NotImplementedError()

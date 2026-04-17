@@ -3,7 +3,7 @@
 
 """Teams information utilities for Microsoft Agents."""
 
-from typing import Optional, Tuple, Dict, Any, List
+from typing import Any
 
 from microsoft_agents.activity import Activity, Channels, ConversationParameters
 
@@ -37,9 +37,9 @@ class TeamsInfo:
     @staticmethod
     async def get_meeting_participant(
         context: TurnContext,
-        meeting_id: Optional[str] = None,
-        participant_id: Optional[str] = None,
-        tenant_id: Optional[str] = None,
+        meeting_id: str | None = None,
+        participant_id: str | None = None,
+        tenant_id: str | None = None,
     ) -> TeamsMeetingParticipant:
         """
         Gets the meeting participant information.
@@ -85,7 +85,7 @@ class TeamsInfo:
 
     @staticmethod
     async def get_meeting_info(
-        context: TurnContext, meeting_id: Optional[str] = None
+        context: TurnContext, meeting_id: str | None = None
     ) -> MeetingInfo:
         """
         Gets the meeting information.
@@ -113,7 +113,7 @@ class TeamsInfo:
 
     @staticmethod
     async def get_team_details(
-        context: TurnContext, team_id: Optional[str] = None
+        context: TurnContext, team_id: str | None = None
     ) -> TeamDetails:
         """
         Gets the team details.
@@ -144,8 +144,8 @@ class TeamsInfo:
         context: TurnContext,
         activity: Activity,
         teams_channel_id: str,
-        app_id: Optional[str] = None,
-    ) -> Tuple[Dict[str, Any], str]:
+        app_id: str | None = None,
+    ) -> tuple[dict[str, Any], str]:
         """
         Sends a message to a Teams channel.
 
@@ -224,8 +224,8 @@ class TeamsInfo:
 
     @staticmethod
     async def get_team_channels(
-        context: TurnContext, team_id: Optional[str] = None
-    ) -> List[ChannelInfo]:
+        context: TurnContext, team_id: str | None = None
+    ) -> list[ChannelInfo]:
         """
         Gets the channels of a team.
 
@@ -252,8 +252,8 @@ class TeamsInfo:
     @staticmethod
     async def get_paged_members(
         context: TurnContext,
-        page_size: Optional[int] = None,
-        continuation_token: Optional[str] = None,
+        page_size: int | None = None,
+        continuation_token: str | None = None,
     ) -> TeamsPagedMembersResult:
         """
         Gets the paged members of a team or conversation.
@@ -326,9 +326,9 @@ class TeamsInfo:
     @staticmethod
     async def get_paged_team_members(
         context: TurnContext,
-        team_id: Optional[str] = None,
-        page_size: Optional[int] = None,
-        continuation_token: Optional[str] = None,
+        team_id: str | None = None,
+        page_size: int | None = None,
+        continuation_token: str | None = None,
     ) -> TeamsPagedMembersResult:
         """
         Gets the paged members of a team.
@@ -392,7 +392,7 @@ class TeamsInfo:
     async def send_meeting_notification(
         context: TurnContext,
         notification: MeetingNotification,
-        meeting_id: Optional[str] = None,
+        meeting_id: str | None = None,
     ) -> MeetingNotificationResponse:
         """
         Sends a meeting notification.
@@ -425,7 +425,7 @@ class TeamsInfo:
         context: TurnContext,
         activity: Activity,
         tenant_id: str,
-        members: List[TeamsMember],
+        members: list[TeamsMember],
     ) -> TeamsBatchOperationResponse:
         """
         Sends a message to a list of users.
@@ -524,7 +524,7 @@ class TeamsInfo:
         context: TurnContext,
         activity: Activity,
         tenant_id: str,
-        members: List[TeamsMember],
+        members: list[TeamsMember],
     ) -> TeamsBatchOperationResponse:
         """
         Sends a message to a list of channels.

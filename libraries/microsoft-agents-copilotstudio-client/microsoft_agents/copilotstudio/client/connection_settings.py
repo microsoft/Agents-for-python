@@ -2,7 +2,8 @@
 # Licensed under the MIT License.
 
 from os import environ
-from typing import Dict, Optional, Any
+from typing import Any
+
 from .direct_to_engine_connection_settings_protocol import (
     DirectToEngineConnectionSettingsProtocol,
 )
@@ -19,11 +20,11 @@ class ConnectionSettings(DirectToEngineConnectionSettingsProtocol):
         self,
         environment_id: str,
         agent_identifier: str,
-        cloud: Optional[PowerPlatformCloud] = None,
-        copilot_agent_type: Optional[AgentType] = None,
-        custom_power_platform_cloud: Optional[str] = None,
-        client_session_settings: Optional[dict] = None,
-        direct_connect_url: Optional[str] = None,
+        cloud: PowerPlatformCloud | None = None,
+        copilot_agent_type: AgentType | None = None,
+        custom_power_platform_cloud: str | None = None,
+        client_session_settings: dict | None = None,
+        direct_connect_url: str | None = None,
         use_experimental_endpoint: bool = False,
         enable_diagnostics: bool = False,
     ) -> None:
@@ -59,15 +60,15 @@ class ConnectionSettings(DirectToEngineConnectionSettingsProtocol):
 
     @staticmethod
     def populate_from_environment(
-        environment_id: Optional[str] = None,
-        agent_identifier: Optional[str] = None,
-        cloud: Optional[PowerPlatformCloud] = None,
-        copilot_agent_type: Optional[AgentType] = None,
-        custom_power_platform_cloud: Optional[str] = None,
-        direct_connect_url: Optional[str] = None,
-        use_experimental_endpoint: Optional[bool] = None,
-        enable_diagnostics: Optional[bool] = None,
-    ) -> Dict[str, Any]:
+        environment_id: str | None = None,
+        agent_identifier: str | None = None,
+        cloud: PowerPlatformCloud | None = None,
+        copilot_agent_type: AgentType | None = None,
+        custom_power_platform_cloud: str | None = None,
+        direct_connect_url: str | None = None,
+        use_experimental_endpoint: bool | None = None,
+        enable_diagnostics: bool | None = None,
+    ) -> dict[str, Any]:
         """
         Populate connection settings from environment variables.
 

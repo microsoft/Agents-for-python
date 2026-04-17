@@ -6,8 +6,6 @@ Licensed under the MIT License.
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Optional
-
 from microsoft_agents.hosting.core.storage import Storage
 
 
@@ -17,7 +15,7 @@ class ProactiveOptions:
     Options for the Proactive messaging subsystem.
 
     :param storage: The storage instance used to persist and retrieve conversations.
-    :type storage: Optional[:class:`microsoft_agents.hosting.core.storage.Storage`]
+    :type storage: :class:`microsoft_agents.hosting.core.storage.Storage` | None
     :param fail_on_unsigned_in_connections: If ``True`` (the default), a
         :exc:`RuntimeError` is raised when a required OAuth token is not available
         during a proactive continuation.  Set to ``False`` to silently skip the
@@ -25,7 +23,7 @@ class ProactiveOptions:
     :type fail_on_unsigned_in_connections: bool
     """
 
-    storage: Optional[Storage] = None
+    storage: Storage | None = None
     """Storage used to persist Conversation objects."""
 
     fail_on_unsigned_in_connections: bool = True

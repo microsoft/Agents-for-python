@@ -3,7 +3,6 @@
 
 from pydantic import Field
 from ..agents_model import AgentsModel
-from typing import Optional
 
 
 class O365ConnectorCardInputBase(AgentsModel):
@@ -14,15 +13,15 @@ class O365ConnectorCardInputBase(AgentsModel):
     :param id: Input Id. It must be unique per entire O365 connector card.
     :type id: str
     :param is_required: Define if this input is a required field. Default value is false.
-    :type is_required: Optional[bool]
+    :type is_required: bool | None
     :param title: Input title that will be shown as the placeholder
-    :type title: Optional[str]
+    :type title: str | None
     :param value: Default value for this input field
-    :type value: Optional[str]
+    :type value: str | None
     """
 
     type: str = Field(None, alias="@type")
     id: str = None
-    is_required: Optional[bool] = None
-    title: Optional[str] = None
-    value: Optional[str] = None
+    is_required: bool | None = None
+    title: str | None = None
+    value: str | None = None

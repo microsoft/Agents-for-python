@@ -2,7 +2,6 @@
 # Licensed under the MIT License.
 
 from datetime import datetime
-from typing import Optional
 from ..agents_model import AgentsModel
 
 
@@ -20,5 +19,5 @@ class BatchOperationStateResponse(AgentsModel):
 
     state: str = None
     status_map: dict[int, int] = None
-    retry_after: Optional[datetime] = None
+    retry_after: datetime | None = None
     total_entries_count: int = None

@@ -3,7 +3,6 @@
 
 from pydantic import Field
 from ..agents_model import AgentsModel
-from typing import Optional
 
 
 class O365ConnectorCardHttpPOST(AgentsModel):
@@ -16,10 +15,10 @@ class O365ConnectorCardHttpPOST(AgentsModel):
     :param id: Id of the HttpPOST action.
     :type id: str
     :param body: Content of the HttpPOST action.
-    :type body: Optional[str]
+    :type body: str | None
     """
 
     type: str = Field(None, alias="@type")
     name: str = None
     id: str = Field(None, alias="@id")
-    body: Optional[str] = None
+    body: str | None = None

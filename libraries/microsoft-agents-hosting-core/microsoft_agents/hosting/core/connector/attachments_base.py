@@ -2,7 +2,7 @@
 # Licensed under the MIT License.
 
 from abc import abstractmethod
-from typing import AsyncIterator, Optional, Protocol
+from typing import AsyncIterator, Protocol
 
 from microsoft_agents.activity import AttachmentInfo
 
@@ -13,5 +13,5 @@ class AttachmentsBase(Protocol):
         raise NotImplementedError()
 
     @abstractmethod
-    async def get_attachment(self) -> Optional[AsyncIterator[bytes]]:
+    async def get_attachment(self) -> AsyncIterator[bytes] | None:
         pass

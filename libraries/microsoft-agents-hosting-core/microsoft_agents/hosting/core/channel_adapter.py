@@ -3,7 +3,7 @@
 
 from abc import ABC, abstractmethod
 from collections.abc import Callable
-from typing import List, Awaitable
+from typing import Awaitable
 from microsoft_agents.hosting.core.authorization import ClaimsIdentity
 from microsoft_agents.activity import ChannelAdapterProtocol
 from microsoft_agents.activity import (
@@ -34,8 +34,8 @@ class ChannelAdapter(ABC, ChannelAdapterProtocol):
 
     @abstractmethod
     async def send_activities(
-        self, context: TurnContext, activities: List[Activity]
-    ) -> List[ResourceResponse]:
+        self, context: TurnContext, activities: list[Activity]
+    ) -> list[ResourceResponse]:
         """
         Sends a set of activities to the user. An array of responses from the server will be returned.
 
@@ -119,7 +119,7 @@ class ChannelAdapter(ABC, ChannelAdapterProtocol):
         claims_identity: ClaimsIdentity,
         continuation_activity: Activity,
         callback: Callable[[TurnContext], Awaitable],
-        audience: str = None,
+        audience: str | None = None,
     ):
         """
         Sends a proactive message to a conversation. Call this method to proactively send a message to a conversation.
@@ -221,7 +221,9 @@ class ChannelAdapter(ABC, ChannelAdapterProtocol):
         return await self.run_pipeline(context, callback)
 
     async def run_pipeline(
-        self, context: TurnContext, callback: Callable[[TurnContext], Awaitable] = None
+        self,
+        context: TurnContext,
+        callback: Callable[[TurnContext], Awaitable] | None = None,
     ):
         """
         Called by the parent class to run the adapters middleware set and calls the passed in `callback()` handler at

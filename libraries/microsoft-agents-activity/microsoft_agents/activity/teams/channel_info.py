@@ -2,20 +2,19 @@
 # Licensed under the MIT License.
 
 from ..agents_model import AgentsModel
-from typing import Optional
 
 
 class ChannelInfo(AgentsModel):
     """A channel info object which describes the channel.
 
     :param id: Unique identifier representing a channel
-    :type id: Optional[str]
+    :type id: str | None
     :param name: Name of the channel
-    :type name: Optional[str]
+    :type name: str | None
     :param type: The channel type
-    :type type: Optional[str]
+    :type type: str | None
     """
 
-    id: Optional[str] = None
-    name: Optional[str] = None
-    type: Optional[str] = None
+    id: str | None = None
+    name: str | None = None
+    type: str | None = None

@@ -5,7 +5,7 @@ Licensed under the MIT License.
 
 from __future__ import annotations
 
-from typing import Optional, TYPE_CHECKING
+from typing import TYPE_CHECKING
 
 from microsoft_agents.activity import ConversationReference
 from microsoft_agents.hosting.core.authorization import ClaimsIdentity
@@ -67,7 +67,7 @@ class Conversation(StoreItem):
         """
         from microsoft_agents.hosting.core.channel_adapter import ChannelAdapter
 
-        identity: Optional[ClaimsIdentity] = context.turn_state.get(
+        identity: ClaimsIdentity | None = context.turn_state.get(
             ChannelAdapter.AGENT_IDENTITY_KEY
         )
         reference = context.activity.get_conversation_reference()

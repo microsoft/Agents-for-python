@@ -2,8 +2,6 @@
 # Licensed under the MIT License.
 
 
-from typing import Optional
-
 from microsoft_agents.activity import TokenResponse
 
 from ..._oauth import _FlowStateTag
@@ -17,7 +15,7 @@ class _SignInResponse:
 
     def __init__(
         self,
-        token_response: Optional[TokenResponse] = None,
+        token_response: TokenResponse | None = None,
         tag: _FlowStateTag = _FlowStateTag.FAILURE,
     ) -> None:
         self.token_response = token_response or TokenResponse()

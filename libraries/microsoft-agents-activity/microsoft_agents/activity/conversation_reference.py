@@ -4,7 +4,6 @@
 from __future__ import annotations
 
 from uuid import uuid4 as uuid
-from typing import Optional
 import logging
 
 from pydantic import Field
@@ -46,11 +45,11 @@ class ConversationReference(AgentsModel, _ChannelIdFieldMixin):
     """
 
     # optionals here are due to webchat
-    activity_id: Optional[NonEmptyString] = None
-    user: Optional[ChannelAccount] = None
+    activity_id: NonEmptyString | None = None
+    user: ChannelAccount | None = None
     agent: ChannelAccount = Field(None, alias="bot")
     conversation: ConversationAccount
-    locale: Optional[NonEmptyString] = None
+    locale: NonEmptyString | None = None
     service_url: NonEmptyString = None
 
     def get_continuation_activity(self) -> "Activity":  # type: ignore

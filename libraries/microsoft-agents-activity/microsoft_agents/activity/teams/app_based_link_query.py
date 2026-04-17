@@ -2,17 +2,16 @@
 # Licensed under the MIT License.
 
 from ..agents_model import AgentsModel
-from typing import Optional
 
 
 class AppBasedLinkQuery(AgentsModel):
     """Invoke request body type for app-based link query.
 
     :param url: Url queried by user
-    :type url: Optional[str]
+    :type url: str | None
     :param state: The magic code for OAuth Flow
-    :type state: Optional[str]
+    :type state: str | None
     """
 
-    url: Optional[str]
-    state: Optional[str]
+    url: str | None
+    state: str | None

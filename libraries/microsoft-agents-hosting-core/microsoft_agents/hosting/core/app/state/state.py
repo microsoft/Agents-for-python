@@ -9,7 +9,7 @@ import logging
 import json
 from abc import ABC, abstractmethod
 from copy import deepcopy
-from typing import Any, Callable, List, Optional, Type, TypeVar, Union, overload
+from typing import Any, Callable, Type, TypeVar, overload
 
 from microsoft_agents.hosting.core.state.state_property_accessor import (
     StatePropertyAccessor as _StatePropertyAccessor,
@@ -31,8 +31,8 @@ def state(_cls: Type[T]) -> Type[T]: ...
 
 
 def state(
-    _cls: Optional[Type[T]] = None,
-) -> Union[Callable[[Type[T]], Type[T]], Type[T]]:
+    _cls: Type[T] | None = None,
+) -> Callable[[Type[T]], Type[T]] | Type[T]:
     """
     @state\n
     class Example(State):
@@ -71,7 +71,7 @@ class State(dict[str, StoreItem], ABC):
     The Storage Key
     """
 
-    __deleted__: List[str]
+    __deleted__: list[str]
     """
     Deleted Keys
     """
@@ -91,16 +91,14 @@ class State(dict[str, StoreItem], ABC):
         for key, value in kwargs.items():
             self[key] = value
 
-    async def save(
-        self, _context: TurnContext, storage: Optional[Storage] = None
-    ) -> None:
+    async def save(self, _context: TurnContext, storage: Storage | None = None) -> None:
         """
         Saves The State to Storage
 
         :param _context: the turn context.
         :type _context: :class:`microsoft_agents.hosting.core.turn_context.TurnContext`
         :param storage: storage to save to.
-        :type storage: Optional[:class:`microsoft_agents.hosting.core.storage.Storage`]
+        :type storage: :class:`microsoft_agents.hosting.core.storage.Storage` | None
         """
 
         if not storage or self.__key__ == "":
@@ -122,7 +120,7 @@ class State(dict[str, StoreItem], ABC):
     @classmethod
     @abstractmethod
     async def load(
-        cls, context: TurnContext, storage: Optional[Storage] = None
+        cls, context: TurnContext, storage: Storage | None = None
     ) -> "State":
         """
         Loads The State from Storage
@@ -130,7 +128,7 @@ class State(dict[str, StoreItem], ABC):
         :param context: the turn context.
         :type context: :class:`microsoft_agents.hosting.core.turn_context.TurnContext`
         :param storage: storage to read from.
-        :type storage: Optional[:class:`microsoft_agents.hosting.core.storage.Storage`]
+        :type storage: :class:`microsoft_agents.hosting.core.storage.Storage` | None
         :return: The loaded state instance.
         :rtype: :class:`microsoft_agents.hosting.core.app.state.state.State`
         """
@@ -206,19 +204,17 @@ class StatePropertyAccessor(_StatePropertyAccessor):
     async def get(
         self,
         turn_context: TurnContext,
-        default_value_or_factory: Optional[
-            Union[Any, Callable[[], Optional[Any]]]
-        ] = None,
-    ) -> Optional[Any]:
+        default_value_or_factory: Any | Callable[[], Any | None] = None,
+    ) -> Any | None:
         """
         Get the property value from the state.
 
         :param turn_context: The turn context.
         :type turn_context: :class:`microsoft_agents.hosting.core.turn_context.TurnContext`
         :param default_value_or_factory: Default value or factory function to use if property doesn't exist.
-        :type default_value_or_factory: Optional[Union[Any, Callable[[], Optional[Any]]]]
+        :type default_value_or_factory: Any | Callable[[], Any | None] | None
         :return: The property value or default value if not found.
-        :rtype: Optional[Any]
+        :rtype: Any | None
         """
         value = self._state[self._name] if self._name in self._state else None
 

@@ -3,7 +3,7 @@
 
 from __future__ import annotations
 
-from typing import Generic, Optional, TypeVar
+from typing import Generic, TypeVar
 
 from ...turn_context import TurnContext
 from .._type_defs import RouteHandler, RouteSelector
@@ -35,7 +35,7 @@ class _Route(Generic[StateT]):
         handler: RouteHandler[StateT],
         is_invoke: bool = False,
         rank: int = RouteRank.DEFAULT,
-        auth_handlers: Optional[list[str]] = None,
+        auth_handlers: list[str] | None = None,
         is_agentic: bool = False,
         **kwargs,
     ) -> None:

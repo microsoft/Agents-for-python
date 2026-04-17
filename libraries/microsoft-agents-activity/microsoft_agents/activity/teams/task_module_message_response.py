@@ -2,7 +2,6 @@
 # Licensed under the MIT License.
 
 from ..agents_model import AgentsModel
-from typing import Optional
 
 
 class TaskModuleMessageResponse(AgentsModel):
@@ -11,8 +10,8 @@ class TaskModuleMessageResponse(AgentsModel):
     :param type: The type of response. Default is 'message'.
     :type type: str
     :param value: The message to display.
-    :type value: Optional[str]
+    :type value: str | None
     """
 
     type: str = None
-    value: Optional[str] = None
+    value: str | None = None

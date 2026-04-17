@@ -3,7 +3,6 @@
 
 """Models for token status operations."""
 
-from typing import Optional
 from pydantic import Field
 
 from .agents_model import AgentsModel
@@ -24,9 +23,9 @@ class TokenStatus(AgentsModel):
     :type service_provider_display_name: str
     """
 
-    channel_id: Optional[NonEmptyString] = Field(None, alias="channelId")
-    connection_name: Optional[NonEmptyString] = Field(None, alias="connectionName")
-    has_token: Optional[bool] = Field(None, alias="hasToken")
-    service_provider_display_name: Optional[NonEmptyString] = Field(
+    channel_id: NonEmptyString | None = Field(None, alias="channelId")
+    connection_name: NonEmptyString | None = Field(None, alias="connectionName")
+    has_token: bool | None = Field(None, alias="hasToken")
+    service_provider_display_name: NonEmptyString | None = Field(
         None, alias="serviceProviderDisplayName"
     )

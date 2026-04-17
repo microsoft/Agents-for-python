@@ -6,7 +6,7 @@ from __future__ import annotations
 import logging
 from copy import copy
 from datetime import datetime, timezone
-from typing import Optional, Any
+from typing import Any, cast
 
 from pydantic import (
     Field,
@@ -15,7 +15,6 @@ from pydantic import (
     model_validator,
     SerializerFunctionWrapHandler,
     ModelWrapValidatorHandler,
-    computed_field,
     ValidationError,
 )
 
@@ -152,7 +151,7 @@ class Activity(AgentsModel, _ChannelIdFieldMixin):
     """
 
     type: NonEmptyString
-    id: Optional[NonEmptyString] = None
+    id: NonEmptyString | None = None
     timestamp: datetime = None
     local_timestamp: datetime = None
     local_timezone: NonEmptyString = None
@@ -497,7 +496,7 @@ class Activity(AgentsModel, _ChannelIdFieldMixin):
         """
         return Activity(type=ActivityTypes.message)
 
-    def create_reply(self, text: str = None, locale: str = None):
+    def create_reply(self, text: str | None = None, locale: str | None = None):
         """
         Creates a new message activity as a response to this activity.
 
@@ -539,7 +538,11 @@ class Activity(AgentsModel, _ChannelIdFieldMixin):
         )
 
     def create_trace(
-        self, name: str, value: object = None, value_type: str = None, label: str = None
+        self,
+        name: str,
+        value: object | None = None,
+        value_type: str | None = None,
+        label: str | None = None,
     ):
         """
         Creates a new trace activity based on this activity.
@@ -551,41 +554,47 @@ class Activity(AgentsModel, _ChannelIdFieldMixin):
 
         :returns: The new trace activity.
         """
-        if not value_type and value:
+        if not value_type and value is not None:
             value_type = type(value).__name__
 
-        return pick_model(
+        return cast(
             Activity,
-            type=ActivityTypes.trace,
-            timestamp=datetime.now(timezone.utc),
-            from_property=SkipNone(
-                ChannelAccount.pick_properties(self.recipient, ["id", "name"])
+            pick_model(
+                Activity,
+                type=ActivityTypes.trace,
+                timestamp=datetime.now(timezone.utc),
+                from_property=SkipNone(
+                    ChannelAccount.pick_properties(self.recipient, ["id", "name"])
+                ),
+                recipient=SkipNone(
+                    ChannelAccount.pick_properties(self.from_property, ["id", "name"])
+                ),
+                reply_to_id=(
+                    SkipNone(self.id)  # preserve unset
+                    if type != ActivityTypes.conversation_update
+                    or self.channel_id not in ["directline", "webchat"]
+                    else None
+                ),
+                service_url=self.service_url,
+                channel_id=self.channel_id,
+                conversation=SkipNone(
+                    ConversationAccount.pick_properties(
+                        self.conversation, ["is_group", "id", "name"]
+                    )
+                ),
+                name=SkipNone(name),
+                label=SkipNone(label),
+                value_type=SkipNone(value_type),
+                value=SkipNone(value),
             ),
-            recipient=SkipNone(
-                ChannelAccount.pick_properties(self.from_property, ["id", "name"])
-            ),
-            reply_to_id=(
-                SkipNone(self.id)  # preserve unset
-                if type != ActivityTypes.conversation_update
-                or self.channel_id not in ["directline", "webchat"]
-                else None
-            ),
-            service_url=self.service_url,
-            channel_id=self.channel_id,
-            conversation=SkipNone(
-                ConversationAccount.pick_properties(
-                    self.conversation, ["is_group", "id", "name"]
-                )
-            ),
-            name=SkipNone(name),
-            label=SkipNone(label),
-            value_type=SkipNone(value_type),
-            value=SkipNone(value),
         ).as_trace_activity()
 
     @staticmethod
     def create_trace_activity(
-        name: str, value: object = None, value_type: str = None, label: str = None
+        name: str,
+        value: object | None = None,
+        value_type: str | None = None,
+        label: str | None = None,
     ):
         """
         Creates an instance of the :class:`Activity` class as a TraceActivity object.
@@ -597,7 +606,7 @@ class Activity(AgentsModel, _ChannelIdFieldMixin):
 
         :returns: The new trace activity.
         """
-        if not value_type and value:
+        if not value_type and value is not None:
             value_type = type(value).__name__
 
         return pick_model(
@@ -624,23 +633,26 @@ class Activity(AgentsModel, _ChannelIdFieldMixin):
 
         :returns: A conversation reference for the conversation that contains this activity.
         """
-        return pick_model(
+        return cast(
             ConversationReference,
-            activity_id=(
-                SkipNone(self.id)
-                if self.type != ActivityTypes.conversation_update
-                or self.channel_id not in ["directline", "webchat"]
-                else None
+            pick_model(
+                ConversationReference,
+                activity_id=(
+                    SkipNone(self.id)
+                    if self.type != ActivityTypes.conversation_update
+                    or self.channel_id not in ["directline", "webchat"]
+                    else None
+                ),
+                user=copy(self.from_property),
+                agent=copy(self.recipient),
+                conversation=copy(self.conversation),
+                channel_id=self.channel_id,
+                locale=self.locale,
+                service_url=self.service_url,
             ),
-            user=copy(self.from_property),
-            agent=copy(self.recipient),
-            conversation=copy(self.conversation),
-            channel_id=self.channel_id,
-            locale=self.locale,
-            service_url=self.service_url,
         )
 
-    def get_product_info_entity(self) -> Optional[ProductInfo]:
+    def get_product_info_entity(self) -> ProductInfo | None:
         if not self.entities:
             return None
         target = EntityTypes.PRODUCT_INFO.lower()
@@ -741,8 +753,8 @@ class Activity(AgentsModel, _ChannelIdFieldMixin):
 
     def add_ai_metadata(
         self,
-        citations: Optional[list[ClientCitation]] = None,
-        usage_info: Optional[SensitivityUsageInfo] = None,
+        citations: list[ClientCitation] | None = None,
+        usage_info: SensitivityUsageInfo | None = None,
     ) -> None:
         """
         Adds AI entity to an activity to indicate AI-generated content.
@@ -771,19 +783,19 @@ class Activity(AgentsModel, _ChannelIdFieldMixin):
             RoleTypes.agentic_user,
         ]
 
-    def get_agentic_instance_id(self) -> Optional[str]:
+    def get_agentic_instance_id(self) -> str | None:
         """Gets the agent instance ID from the context if it's an agentic request."""
         if not self.is_agentic_request() or not self.recipient:
             return None
         return self.recipient.agentic_app_id
 
-    def get_agentic_user(self) -> Optional[str]:
+    def get_agentic_user(self) -> str | None:
         """Gets the agentic user (agenticUserId) from the context if it's an agentic request."""
         if not self.is_agentic_request() or not self.recipient:
             return None
         return self.recipient.agentic_user_id
 
-    def get_agentic_tenant_id(self) -> Optional[str]:
+    def get_agentic_tenant_id(self) -> str | None:
         """Gets the agentic tenant ID from the context if it's an agentic request."""
         if self.is_agentic_request():
             if self.recipient and self.recipient.tenant_id:

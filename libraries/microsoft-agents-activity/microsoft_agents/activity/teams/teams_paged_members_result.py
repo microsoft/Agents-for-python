@@ -2,7 +2,6 @@
 # Licensed under the MIT License.
 
 from ..agents_model import AgentsModel
-from typing import List
 from .teams_channel_account import TeamsChannelAccount
 
 
@@ -16,4 +15,4 @@ class TeamsPagedMembersResult(AgentsModel):
     """
 
     continuation_token: str = None
-    members: List[TeamsChannelAccount] = None
+    members: list[TeamsChannelAccount] = None

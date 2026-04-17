@@ -1,6 +1,5 @@
 # Copyright (c) Microsoft Corporation. All rights reserved.
 # Licensed under the MIT License.
-from typing import Optional
 
 from .authentication_constants import AuthenticationConstants
 
@@ -10,18 +9,18 @@ class ClaimsIdentity:
         self,
         claims: dict[str, str],
         is_authenticated: bool,
-        authentication_type: Optional[str] = None,
-        security_token: Optional[str] = None,
+        authentication_type: str | None = None,
+        security_token: str | None = None,
     ):
         self.claims = claims
         self.is_authenticated = is_authenticated
         self.authentication_type = authentication_type
         self.security_token = security_token
 
-    def get_claim_value(self, claim_type: str) -> Optional[str]:
+    def get_claim_value(self, claim_type: str) -> str | None:
         return self.claims.get(claim_type)
 
-    def get_app_id(self) -> Optional[str]:
+    def get_app_id(self) -> str | None:
         """
         Gets the AppId from the current ClaimsIdentity.
 
@@ -32,7 +31,7 @@ class ClaimsIdentity:
             AuthenticationConstants.AUDIENCE_CLAIM, None
         ) or self.claims.get(AuthenticationConstants.APP_ID_CLAIM, None)
 
-    def get_outgoing_app_id(self) -> Optional[str]:
+    def get_outgoing_app_id(self) -> str | None:
         """
         Gets the outgoing AppId from current claims.
 

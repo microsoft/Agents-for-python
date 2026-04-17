@@ -6,7 +6,7 @@ Licensed under the MIT License.
 from __future__ import annotations
 import logging
 
-from typing import Any, Dict, Optional, Type, TypeVar, cast, Callable, Awaitable
+from typing import Any, Dict, Type, TypeVar, Callable
 import asyncio
 
 from microsoft_agents.hosting.core.storage import Storage
@@ -113,9 +113,9 @@ class TurnState:
     def get_value(
         self,
         name: str,
-        default_value_factory: Optional[Callable[[], T]] = None,
+        default_value_factory: Callable[[], T] | None = None,
         *,
-        target_cls: Type[T] = None,
+        target_cls: Type[T] | None = None,
     ) -> T:
         """
         Gets a value from state.
@@ -195,7 +195,7 @@ class TurnState:
             return scope_obj
         raise ValueError(f"Scope '{scope_type.__name__}' not found")
 
-    def _try_get_scope(self, scope_type: Type[T]) -> tuple[bool, Optional[T]]:
+    def _try_get_scope(self, scope_type: Type[T]) -> tuple[bool, T | None]:
         """
         Tries to get a scope by type.
 

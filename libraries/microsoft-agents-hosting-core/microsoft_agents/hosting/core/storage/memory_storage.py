@@ -17,7 +17,7 @@ class MemoryStorage(Storage):
         self._lock = Lock()
 
     async def read(
-        self, keys: list[str], *, target_cls: StoreItemT = None, **kwargs
+        self, keys: list[str], *, target_cls: StoreItemT | None = None, **kwargs
     ) -> dict[str, StoreItemT]:
 
         if not keys:

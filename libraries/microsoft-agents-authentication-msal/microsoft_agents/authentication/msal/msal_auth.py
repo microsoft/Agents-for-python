@@ -7,7 +7,6 @@ import re
 import asyncio
 import logging
 import jwt
-from typing import Optional
 from urllib.parse import urlparse, ParseResult as URI
 from msal import (
     ConfidentialClientApplication,
@@ -275,7 +274,7 @@ class MsalAuth(AccessTokenProviderBase):
             return client
 
     @staticmethod
-    def _uri_validator(url_str: str) -> tuple[bool, Optional[URI]]:
+    def _uri_validator(url_str: str) -> tuple[bool, URI | None]:
         try:
             result = urlparse(url_str)
             return all([result.scheme, result.netloc]), result
@@ -303,13 +302,13 @@ class MsalAuth(AccessTokenProviderBase):
     # to avoid this
     async def get_agentic_application_token(
         self, tenant_id: str, agent_app_instance_id: str
-    ) -> Optional[str]:
+    ) -> str | None:
         """Gets the agentic application token for the given agent application instance ID.
 
         :param agent_app_instance_id: The agent application instance ID.
         :type agent_app_instance_id: str
         :return: The agentic application token, or None if not found.
-        :rtype: Optional[str]
+        :rtype: str | None
         """
 
         if not agent_app_instance_id:
@@ -428,7 +427,7 @@ class MsalAuth(AccessTokenProviderBase):
         agent_app_instance_id: str,
         agentic_user_id: str,
         scopes: list[str],
-    ) -> Optional[str]:
+    ) -> str | None:
         """Gets the agentic user token for the given agent application instance ID and agentic user Id and the scopes.
 
         :param agent_app_instance_id: The agent application instance ID.
@@ -438,7 +437,7 @@ class MsalAuth(AccessTokenProviderBase):
         :param scopes: The scopes to request for the token.
         :type scopes: list[str]
         :return: The agentic user token, or None if not found.
-        :rtype: Optional[str]
+        :rtype: str | None
         """
         if not agent_app_instance_id or not agentic_user_id:
             raise ValueError(

@@ -2,7 +2,7 @@
 # Licensed under the MIT License.
 
 from enum import Enum
-from typing import List, Optional, Literal
+from typing import Literal
 
 from pydantic import Field
 from ..agents_model import AgentsModel
@@ -62,10 +62,10 @@ class SensitivityUsageInfo(AgentsModel, _SchemaMixin):
     type: str = "https://schema.org/Message"
     at_type: Literal["CreativeWork"] = "CreativeWork"
 
-    description: Optional[str] = None
+    description: str | None = None
     name: str = ""
-    position: Optional[int] = None
-    pattern: Optional[SensitivityPattern] = None
+    position: int | None = None
+    pattern: SensitivityPattern | None = None
 
 
 class ClientCitationAppearance(AgentsModel, _SchemaMixin):
@@ -74,13 +74,13 @@ class ClientCitationAppearance(AgentsModel, _SchemaMixin):
     at_type: Literal["DigitalDocument"] = "DigitalDocument"
 
     name: str = ""
-    text: Optional[str] = None
-    url: Optional[str] = None
+    text: str | None = None
+    url: str | None = None
     abstract: str = ""
-    encoding_format: Optional[str] = None
-    image: Optional[ClientCitationImage] = None
-    keywords: Optional[List[str]] = None
-    usage_info: Optional[SensitivityUsageInfo] = None
+    encoding_format: str | None = None
+    image: ClientCitationImage | None = None
+    keywords: list[str] | None = None
+    usage_info: SensitivityUsageInfo | None = None
 
 
 class ClientCitation(AgentsModel, _SchemaMixin):
@@ -107,6 +107,6 @@ class AIEntity(Entity):
     type: str = "https://schema.org/Message"
     id: str = ""
 
-    additional_type: List[str] = Field(default_factory=lambda: ["AIGeneratedContent"])
-    citation: Optional[List[ClientCitation]] = None
-    usage_info: Optional[SensitivityUsageInfo] = None
+    additional_type: list[str] = Field(default_factory=lambda: ["AIGeneratedContent"])
+    citation: list[ClientCitation] | None = None
+    usage_info: SensitivityUsageInfo | None = None

@@ -1,7 +1,7 @@
 # Copyright (c) Microsoft Corporation. All rights reserved.
 # Licensed under the MIT License.
 
-from typing import Protocol, Optional
+from typing import Protocol
 from abc import abstractmethod
 
 from microsoft_agents.hosting.core.authorization import ClaimsIdentity
@@ -20,7 +20,7 @@ class ChannelServiceClientFactoryBase(Protocol):
         claims_identity: ClaimsIdentity,
         service_url: str,
         audience: str,
-        scopes: Optional[list[str]] = None,
+        scopes: list[str] | None = None,
         use_anonymous: bool = False,
     ) -> ConnectorClientBase:
         """

@@ -4,7 +4,7 @@
 """Connector Client for Microsoft Agents."""
 
 import logging
-from typing import Any, Optional
+from typing import Any
 from aiohttp import ClientSession
 from io import BytesIO
 
@@ -142,7 +142,7 @@ class ConversationsOperations(ConversationsBase):
         return conversation_id[: self._max_conversation_id_length]
 
     async def get_conversations(
-        self, continuation_token: Optional[str] = None
+        self, continuation_token: str | None = None
     ) -> ConversationsResult:
         """
         Retrieves a list of conversations.
@@ -586,8 +586,8 @@ class ConversationsOperations(ConversationsBase):
     async def get_conversation_paged_members(
         self,
         conversation_id: str,
-        page_size: Optional[int] = None,
-        continuation_token: Optional[str] = None,
+        page_size: int | None = None,
+        continuation_token: str | None = None,
     ) -> PagedMembersResult:
         """
         Gets the members of a conversation with pagination.

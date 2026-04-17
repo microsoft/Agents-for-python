@@ -4,7 +4,6 @@
 """User Token Client for Microsoft Agents."""
 
 import logging
-from typing import Optional
 from aiohttp import ClientSession
 
 from microsoft_agents.hosting.core.connector import UserTokenClientBase
@@ -31,9 +30,9 @@ class AgentSignIn(AgentSignInBase):
     async def get_sign_in_url(
         self,
         state: str,
-        code_challenge: Optional[str] = None,
-        emulator_url: Optional[str] = None,
-        final_redirect: Optional[str] = None,
+        code_challenge: str | None = None,
+        emulator_url: str | None = None,
+        final_redirect: str | None = None,
     ) -> str:
         """
         Get sign-in URL.
@@ -68,9 +67,9 @@ class AgentSignIn(AgentSignInBase):
     async def get_sign_in_resource(
         self,
         state: str,
-        code_challenge: Optional[str] = None,
-        emulator_url: Optional[str] = None,
-        final_redirect: Optional[str] = None,
+        code_challenge: str | None = None,
+        emulator_url: str | None = None,
+        final_redirect: str | None = None,
     ) -> SignInResource:
         """
         Get sign-in resource.
@@ -116,8 +115,8 @@ class UserToken(UserTokenBase):
         self,
         user_id: str,
         connection_name: str,
-        channel_id: Optional[str] = None,
-        code: Optional[str] = None,
+        channel_id: str | None = None,
+        code: str | None = None,
     ) -> TokenResponse:
 
         with spans.GetUserToken(
@@ -187,8 +186,8 @@ class UserToken(UserTokenBase):
         self,
         user_id: str,
         connection_name: str,
-        channel_id: Optional[str] = None,
-        body: Optional[dict] = None,
+        channel_id: str | None = None,
+        body: dict | None = None,
     ) -> dict[str, TokenResponse]:
         """Get AAD tokens for a user."""
 
@@ -216,8 +215,8 @@ class UserToken(UserTokenBase):
     async def sign_out(
         self,
         user_id: str,
-        connection_name: Optional[str] = None,
-        channel_id: Optional[str] = None,
+        connection_name: str | None = None,
+        channel_id: str | None = None,
     ) -> None:
         """Sign out user from a connection."""
 
@@ -244,8 +243,8 @@ class UserToken(UserTokenBase):
     async def get_token_status(
         self,
         user_id: str,
-        channel_id: Optional[str] = None,
-        include: Optional[str] = None,
+        channel_id: str | None = None,
+        include: str | None = None,
     ) -> list[TokenStatus]:
         """Get token status for a user."""
 
@@ -277,7 +276,7 @@ class UserToken(UserTokenBase):
         user_id: str,
         connection_name: str,
         channel_id: str,
-        body: Optional[dict] = None,
+        body: dict | None = None,
     ) -> TokenResponse:
         """Exchange token for a user."""
 

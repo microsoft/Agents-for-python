@@ -7,7 +7,6 @@ import logging
 
 from pydantic import BaseModel
 from datetime import datetime, timezone
-from typing import Optional
 
 from microsoft_agents.activity import (
     Activity,
@@ -28,8 +27,8 @@ class _FlowResponse(BaseModel):
 
     flow_state: _FlowState = _FlowState()
     flow_error_tag: _FlowErrorTag = _FlowErrorTag.NONE
-    token_response: Optional[TokenResponse] = None
-    sign_in_resource: Optional[SignInResource] = None
+    token_response: TokenResponse | None = None
+    sign_in_resource: SignInResource | None = None
 
 
 class _OAuthFlow:
@@ -107,11 +106,11 @@ class _OAuthFlow:
     def flow_state(self) -> _FlowState:
         return self._flow_state.model_copy()
 
-    async def get_user_token(self, magic_code: str = None) -> TokenResponse:
+    async def get_user_token(self, magic_code: str | None = None) -> TokenResponse:
         """Get the user token based on the context.
 
         Args:
-            magic_code (str, Optional): Defaults to None. The magic code for user authentication.
+            magic_code (str | None): Defaults to None. The magic code for user authentication.
 
         Returns:
             TokenResponse

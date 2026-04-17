@@ -1,7 +1,6 @@
 # Copyright (c) Microsoft Corporation. All rights reserved.
 # Licensed under the MIT License.
 
-from typing import Optional
 import jwt
 
 from .agents_model import AgentsModel
@@ -53,7 +52,7 @@ class TokenResponse(AgentsModel):
             return False
 
     @staticmethod
-    def _get_app_id_from_token_payload(token_payload: dict) -> Optional[str]:
+    def _get_app_id_from_token_payload(token_payload: dict) -> str | None:
         """
         Extracts the appId from the token's claims.
 
