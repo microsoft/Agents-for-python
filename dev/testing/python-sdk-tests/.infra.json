@@ -1,7 +1,0 @@
-{
-  "KEY_VAULT_NAME": "kv-retfa5wsg4wmm",
-  "TENANT_ID": "367c5af9-6300-4248-99bc-72288021c775",
-  "BOT_NAME": "bot-e2e-python",
-  "KEY_VAULT_URI": "https://kv-retfa5wsg4wmm.vault.azure.net/",
-  "APP_ID": "7c6aa537-fc48-42b2-88b7-041140c079fa"
-}
