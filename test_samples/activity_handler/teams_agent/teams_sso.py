@@ -8,7 +8,7 @@ from microsoft_agents.hosting.core import (
 from microsoft_agents.activity import ChannelAccount
 from microsoft_agents.hosting.teams import TeamsActivityHandler
 
-from graph_client import GraphClient
+from test_samples.activity_handler.teams_agent.graph_client import GraphClient
 
 
 class TeamsSso(TeamsActivityHandler):

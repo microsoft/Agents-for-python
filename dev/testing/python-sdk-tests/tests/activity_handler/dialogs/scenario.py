@@ -1,13 +1,13 @@
 # Copyright (c) Microsoft Corporation. All rights reserved.
 # Licensed under the MIT License.
 
-"""Dialog scenario for integration testing UserProfileDialog + DialogAgent."""
+"""Scenario definition for ActivityHandler-based dialog integration tests."""
 
 from microsoft_agents.hosting.core import ConversationState, UserState, Storage
 from microsoft_agents.testing import ActivityHandlerScenario, ScenarioConfig
 
-from tests.integration.dialogs.sample.dialog_agent import DialogAgent
-from tests.integration.dialogs.sample.user_profile_dialog import UserProfileDialog
+from tests.activity_handler.dialogs.sample.dialog_agent import DialogAgent
+from tests.activity_handler.dialogs.sample.user_profile_dialog import UserProfileDialog
 
 
 def _create_handler(

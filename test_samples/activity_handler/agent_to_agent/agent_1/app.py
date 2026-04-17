@@ -8,13 +8,21 @@ from microsoft_agents.hosting.core import (
     Connections,
     AccessTokenProviderBase,
     ClaimsIdentity,
+    ConfigurationChannelHost,
+    ConversationIdFactory,
+    HttpAgentChannelFactory,
+    MemoryStorage,
     RestChannelServiceClientFactory,
 )
-from microsoft_agents.hosting.aiohttp import CloudAdapter, jwt_authorization_middleware
+from microsoft_agents.hosting.aiohttp import (
+    CloudAdapter,
+    jwt_authorization_middleware,
+    channel_service_route_table,
+)
 from microsoft_agents.authentication.msal import MsalAuth
 
-from agent2 import Agent2
-from config import DefaultConfig
+from test_samples.activity_handler.agent_to_agent.agent_1.agent1 import Agent1
+from test_samples.activity_handler.agent_to_agent.agent_1.config import DefaultConfig
 
 load_dotenv()
 
@@ -28,20 +36,35 @@ class DefaultConnection(Connections):
     def get_token_provider(
         self, claims_identity: ClaimsIdentity, service_url: str
     ) -> AccessTokenProviderBase:
+        # This is the provider used for ABS
         return AUTH_PROVIDER
 
     def get_connection(self, connection_name: str) -> AccessTokenProviderBase:
-        pass
+        # In this case we are using the same settings for both ABS and Channel
+        # This is the provider used for Channel
+        return AUTH_PROVIDER
 
 
+DEFAULT_CONNECTION = DefaultConnection()
 CONFIG = DefaultConfig()
-CHANNEL_CLIENT_FACTORY = RestChannelServiceClientFactory(CONFIG, DefaultConnection())
+CHANNEL_CLIENT_FACTORY = RestChannelServiceClientFactory(CONFIG, DEFAULT_CONNECTION)
+
+AGENT_CHANNEL_FACTORY = HttpAgentChannelFactory()
+CHANNEL_HOST = ConfigurationChannelHost(
+    AGENT_CHANNEL_FACTORY, DEFAULT_CONNECTION, CONFIG, "HttpAgentClient"
+)
+STORAGE = MemoryStorage()
+CONVERSATION_ID_FACTORY = ConversationIdFactory(STORAGE)
 
 # Create adapter.
 ADAPTER = CloudAdapter(CHANNEL_CLIENT_FACTORY)
 
 # Create the Agent
-AGENT = Agent2()
+AGENT = Agent1(
+    adapter=ADAPTER,
+    channel_host=CHANNEL_HOST,
+    conversation_id_factory=CONVERSATION_ID_FACTORY,
+)
 
 
 # Listen for incoming requests on /api/messages
@@ -52,6 +75,7 @@ async def messages(req: Request) -> Response:
 
 APP = Application(middlewares=[jwt_authorization_middleware])
 APP.router.add_post("/api/messages", messages)
+APP.router.add_routes(channel_service_route_table(AGENT, "/api/botresponse"))
 APP["agent_configuration"] = CONFIG
 APP["adapter"] = ADAPTER
 

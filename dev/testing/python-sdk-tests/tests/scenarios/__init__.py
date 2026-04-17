@@ -1,4 +1,4 @@
-"""Test scenario registry for integration tests."""
+"""Test scenario registry for AgentApplication-based integration tests."""
 
 from microsoft_agents.testing import (
     AiohttpScenario,
@@ -7,7 +7,6 @@ from microsoft_agents.testing import (
 )
 
 from .quickstart import init_agent as init_quickstart
-from .dialogs import create_dialog_scenario
 
 _SCENARIO_INITS = {
     "quickstart": init_quickstart,
@@ -34,5 +33,4 @@ def load_scenario(
 
 __all__ = [
     "load_scenario",
-    "create_dialog_scenario",
 ]

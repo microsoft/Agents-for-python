@@ -13,10 +13,10 @@ from microsoft_agents.hosting.teams import (
     TeamsInfo,
 )
 
-from helpers.task_module_response_factory import TaskModuleResponseFactory
-from helpers.task_module_ids import TaskModuleIds
-from helpers.ui_settings import UISettings
-from helpers.task_module_ui_constants import TaskModuleUIConstants
+from test_samples.activity_handler.teams_agent.helpers.task_module_response_factory import TaskModuleResponseFactory
+from test_samples.activity_handler.teams_agent.helpers.task_module_ids import TaskModuleIds
+from test_samples.activity_handler.teams_agent.helpers.ui_settings import UISettings
+from test_samples.activity_handler.teams_agent.helpers.task_module_ui_constants import TaskModuleUIConstants
 
 
 class TeamsMultiFeature(TeamsActivityHandler):

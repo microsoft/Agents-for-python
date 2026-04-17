@@ -11,10 +11,10 @@ from microsoft_agents.authentication.msal import MsalConnectionManager
 from microsoft_agents.hosting.aiohttp import CloudAdapter, jwt_authorization_decorator
 from microsoft_agents.hosting.core import Authorization, MemoryStorage, UserState
 
-from teams_handler import TeamsHandler
-from teams_sso import TeamsSso
-from teams_multi_feature import TeamsMultiFeature
-from config import DefaultConfig
+from test_samples.activity_handler.teams_agent.teams_handler import TeamsHandler
+from test_samples.activity_handler.teams_agent.teams_sso import TeamsSso
+from test_samples.activity_handler.teams_agent.teams_multi_feature import TeamsMultiFeature
+from test_samples.activity_handler.teams_agent.config import DefaultConfig
 
 load_dotenv(path.join(path.dirname(__file__), ".env"))
 
