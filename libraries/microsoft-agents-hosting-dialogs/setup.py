@@ -16,5 +16,7 @@ setup(
         "recognizers-text-number>=1.0.1a0",
         "recognizers-text-choice>=1.0.1a0",
         "recognizers-text-date-time>=1.0.1a0",
+        "babel>=2.9.0",
+        "emoji<2.0.0",
     ],
 )
