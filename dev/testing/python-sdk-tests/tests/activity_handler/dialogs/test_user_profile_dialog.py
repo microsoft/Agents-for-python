@@ -22,6 +22,7 @@ Turn flow summary
 
 import pytest
 
+from microsoft_agents.activity import Activity, Attachment, ActivityTypes
 from microsoft_agents.testing import AgentClient, ScenarioConfig, ClientConfig, ActivityTemplate
 
 from tests.activity_handler.dialogs.scenario import create_dialog_scenario
@@ -182,3 +183,232 @@ class TestUserProfileDialogValidation:
         # Should jump straight to picture step (age = -1 → "No age given.")
         agent_client.expect().that_for_any(type="message", text="~No age given")
         agent_client.expect().that_for_any(type="message", text="~profile picture")
+
+
+# ---------------------------------------------------------------------------
+# ChoicePrompt retry tests
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.agent_test(_SCENARIO)
+class TestUserProfileDialogChoicePrompt:
+    """Tests for the ChoicePrompt at step 1 (transport selection)."""
+
+    @pytest.mark.asyncio
+    async def test_unrecognized_choice_triggers_retry(self, agent_client: AgentClient):
+        """Entering a value not in the choices list causes ChoicePrompt to re-ask."""
+
+        await agent_client.send("hi", wait=0.5)
+        agent_client.expect().that_for_any(type="message", text="~mode of transport")
+        agent_client.clear()
+
+        # "Train" is not among Car / Bus / Bicycle
+        await agent_client.send("Train", wait=0.5)
+        agent_client.expect().that_for_any(type="message", text="~mode of transport")
+        agent_client.clear()
+
+        await agent_client.send("Bus", wait=0.5)
+        agent_client.expect().that_for_any(type="message", text="~name")
+
+    @pytest.mark.asyncio
+    async def test_multiple_invalid_choices_then_valid(
+        self, agent_client: AgentClient
+    ):
+        """Two consecutive invalid choices both trigger retries before a valid pick."""
+
+        await agent_client.send("hi", wait=0.5)
+        agent_client.clear()
+
+        await agent_client.send("Hovercraft", wait=0.5)
+        agent_client.expect().that_for_any(type="message", text="~mode of transport")
+        agent_client.clear()
+
+        await agent_client.send("Rocket", wait=0.5)
+        agent_client.expect().that_for_any(type="message", text="~mode of transport")
+        agent_client.clear()
+
+        await agent_client.send("Bicycle", wait=0.5)
+        agent_client.expect().that_for_any(type="message", text="~name")
+
+
+# ---------------------------------------------------------------------------
+# AttachmentPrompt tests
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.agent_test(_SCENARIO)
+class TestUserProfileDialogAttachment:
+    """Tests for the AttachmentPrompt at step 5 (profile picture)."""
+
+    async def _navigate_to_picture_step(self, client: AgentClient) -> None:
+        """Helper: drive through steps 1-4 to land on the picture prompt."""
+        await client.send("hi", wait=0.5)
+        client.clear()
+        await client.send("Car", wait=0.5)
+        client.clear()
+        await client.send("Eli", wait=0.5)
+        client.clear()
+        await client.send("no", wait=0.5)  # skip age
+        client.clear()
+
+    @pytest.mark.asyncio
+    async def test_valid_jpeg_attachment_accepted(self, agent_client: AgentClient):
+        """A jpeg attachment passes the picture validator and advances to the summary."""
+
+        await self._navigate_to_picture_step(agent_client)
+
+        jpeg = Activity(
+            type=ActivityTypes.message,
+            attachments=[
+                Attachment(
+                    name="photo.jpg",
+                    content_type="image/jpeg",
+                    content_url="https://example.com/photo.jpg",
+                )
+            ],
+        )
+        await agent_client.send(jpeg, wait=0.5)
+        agent_client.expect().that_for_any(type="message", text="~Is this ok")
+
+    @pytest.mark.asyncio
+    async def test_png_attachment_accepted(self, agent_client: AgentClient):
+        """A png attachment is also accepted by the picture validator."""
+
+        await self._navigate_to_picture_step(agent_client)
+
+        png = Activity(
+            type=ActivityTypes.message,
+            attachments=[
+                Attachment(
+                    name="avatar.png",
+                    content_type="image/png",
+                    content_url="https://example.com/avatar.png",
+                )
+            ],
+        )
+        await agent_client.send(png, wait=0.5)
+        agent_client.expect().that_for_any(type="message", text="~Is this ok")
+
+    @pytest.mark.asyncio
+    async def test_non_image_attachment_triggers_retry(
+        self, agent_client: AgentClient
+    ):
+        """A PDF attachment fails validation and the retry prompt is shown."""
+
+        await self._navigate_to_picture_step(agent_client)
+
+        pdf = Activity(
+            type=ActivityTypes.message,
+            attachments=[
+                Attachment(
+                    name="resume.pdf",
+                    content_type="application/pdf",
+                    content_url="https://example.com/resume.pdf",
+                )
+            ],
+        )
+        await agent_client.send(pdf, wait=0.5)
+        agent_client.expect().that_for_any(type="message", text="~jpeg/png")
+
+    @pytest.mark.asyncio
+    async def test_invalid_attachment_then_valid_accepted(
+        self, agent_client: AgentClient
+    ):
+        """A bad attachment type triggers the retry, then a valid jpeg is accepted."""
+
+        await self._navigate_to_picture_step(agent_client)
+
+        # First send a PDF (rejected)
+        pdf = Activity(
+            type=ActivityTypes.message,
+            attachments=[
+                Attachment(
+                    name="doc.pdf",
+                    content_type="application/pdf",
+                    content_url="https://example.com/doc.pdf",
+                )
+            ],
+        )
+        await agent_client.send(pdf, wait=0.5)
+        agent_client.expect().that_for_any(type="message", text="~jpeg/png")
+        agent_client.clear()
+
+        # Then send a valid jpeg (accepted)
+        jpeg = Activity(
+            type=ActivityTypes.message,
+            attachments=[
+                Attachment(
+                    name="photo.jpg",
+                    content_type="image/jpeg",
+                    content_url="https://example.com/photo.jpg",
+                )
+            ],
+        )
+        await agent_client.send(jpeg, wait=0.5)
+        agent_client.expect().that_for_any(type="message", text="~Is this ok")
+
+
+# ---------------------------------------------------------------------------
+# Summary content tests
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.agent_test(_SCENARIO)
+class TestUserProfileDialogSummaryContent:
+    """Tests that verify what appears in the summary message at step 6."""
+
+    @pytest.mark.asyncio
+    async def test_summary_includes_transport_and_name(
+        self, agent_client: AgentClient
+    ):
+        """The summary message includes the chosen transport mode and the user's name."""
+
+        await agent_client.send("hi", wait=0.5)
+        agent_client.clear()
+        await agent_client.send("Bicycle", wait=0.5)
+        agent_client.clear()
+        await agent_client.send("Charlie", wait=0.5)
+        agent_client.clear()
+        await agent_client.send("no", wait=0.5)   # skip age
+        agent_client.clear()
+        await agent_client.send("skip", wait=0.5)  # skip picture
+        # summary messages arrive before the confirm prompt
+        agent_client.expect().that_for_any(type="message", text="~Bicycle")
+        agent_client.expect().that_for_any(type="message", text="~Charlie")
+
+    @pytest.mark.asyncio
+    async def test_summary_includes_age_when_provided(
+        self, agent_client: AgentClient
+    ):
+        """When age is collected, the summary message includes it."""
+
+        await agent_client.send("hi", wait=0.5)
+        agent_client.clear()
+        await agent_client.send("Car", wait=0.5)
+        agent_client.clear()
+        await agent_client.send("Dana", wait=0.5)
+        agent_client.clear()
+        await agent_client.send("yes", wait=0.5)   # confirm age
+        agent_client.clear()
+        await agent_client.send("35", wait=0.5)    # provide age
+        agent_client.clear()
+        await agent_client.send("skip", wait=0.5)  # skip picture
+        agent_client.expect().that_for_any(type="message", text="~35")
+
+    @pytest.mark.asyncio
+    async def test_no_picture_message_shown_when_skipped(
+        self, agent_client: AgentClient
+    ):
+        """When no picture is attached, the summary step says 'No profile picture provided.'"""
+
+        await agent_client.send("hi", wait=0.5)
+        agent_client.clear()
+        await agent_client.send("Bus", wait=0.5)
+        agent_client.clear()
+        await agent_client.send("Frank", wait=0.5)
+        agent_client.clear()
+        await agent_client.send("no", wait=0.5)
+        agent_client.clear()
+
+        await agent_client.send("skip", wait=0.5)
+        agent_client.expect().that_for_any(type="message", text="~No profile picture")
