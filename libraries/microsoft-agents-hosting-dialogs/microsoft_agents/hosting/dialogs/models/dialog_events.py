@@ -9,3 +9,4 @@ class DialogEvents:
     error = "error"
     activity_received = "activityReceived"
     recognize_utterance = "recognizeUtterance"
+    version_changed = "versionChanged"

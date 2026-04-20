@@ -10,6 +10,7 @@ from microsoft_agents.hosting.core import (
     ConversationState,
     UserState,
     TurnContext,
+    ClaimsIdentity,
 )
 
 from .dialog import Dialog
@@ -153,7 +154,6 @@ class DialogManager:
         """
         Determines if this turn is a request from a parent bot to this skill.
         """
-        from microsoft_agents.hosting.core import ClaimsIdentity
 
         claims_identity = turn_context.turn_state.get(
             ChannelAdapter.AGENT_IDENTITY_KEY, None

@@ -1,6 +1,8 @@
 # Copyright (c) Microsoft Corporation. All rights reserved.
 # Licensed under the MIT License.
 
+from __future__ import annotations
+
 from microsoft_agents.hosting.core.turn_context import TurnContext
 from microsoft_agents.hosting.dialogs.memory import DialogStateManager
 
@@ -51,7 +53,7 @@ class DialogContext:
         return self._turn_context
 
     @property
-    def stack(self) -> list:
+    def stack(self) -> list[DialogInstance]:
         """Gets the current dialog stack.
 
         :param:
@@ -60,7 +62,7 @@ class DialogContext:
         return self._stack
 
     @property
-    def active_dialog(self):
+    def active_dialog(self) -> DialogInstance | None:
         """Gets the instance of the active (top-of-stack) dialog, or None if the stack is empty.
 
         :return: The active DialogInstance, or None if no dialog is active.
@@ -70,7 +72,7 @@ class DialogContext:
         return None
 
     @property
-    def child(self) -> "DialogContext | None":
+    def child(self) -> DialogContext | None:
         """Gets the DialogContext for the active dialog's inner dialog stack, if the active
         dialog is a DialogContainer (e.g. ComponentDialog). Returns None if there is no
         active dialog or the active dialog is not a container.
