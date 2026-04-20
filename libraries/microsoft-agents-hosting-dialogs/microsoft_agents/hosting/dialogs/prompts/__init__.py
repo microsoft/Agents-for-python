@@ -33,7 +33,6 @@ __all__ = [
     "OAuthPromptSettings",
     "PromptCultureModel",
     "PromptCultureModels",
-    "PromptOptions",
     "PromptRecognizerResult",
     "PromptValidatorContext",
     "Prompt",
