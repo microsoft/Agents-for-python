@@ -19,7 +19,7 @@ class OAuthPromptSettings:
             timeout (int): (Optional) number of milliseconds the prompt will wait for the user to authenticate.
                 `OAuthPrompt` defaults value to `900,000` ms (15 minutes).
             oauth_app_credentials (AppCredentials): (Optional) AppCredentials to use for OAuth.  If None,
-            the Bots credentials are used.
+            the Agent credentials are used.
             end_on_invalid_message (bool): (Optional) value indicating whether the OAuthPrompt should end upon
             receiving an invalid message.  Generally the OAuthPrompt will ignore incoming messages from the
             user during the auth flow, if they are not related to the auth flow.  This flag enables ending the
