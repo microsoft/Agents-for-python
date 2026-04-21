@@ -47,6 +47,7 @@ from .oauth_prompt_settings import OAuthPromptSettings
 
 logger = logging.getLogger(__name__)
 
+
 class CallerInfo:
     def __init__(self, caller_service_url: str | None = None, scope: str | None = None):
         self.caller_service_url = caller_service_url
@@ -69,7 +70,7 @@ class OAuthPrompt(Dialog):
         settings: OAuthPromptSettings,
     ):
         super().__init__(dialog_id)
-        self._storage = MemoryStorage() # to keep track of the OAuth flow state
+        self._storage = MemoryStorage()  # to keep track of the OAuth flow state
 
         if not settings:
             raise TypeError(
@@ -80,9 +81,7 @@ class OAuthPrompt(Dialog):
 
     @staticmethod
     def _get_user_token_client(context: TurnContext) -> UserTokenClient:
-        return context.turn_state.get(
-            context.adapter.USER_TOKEN_CLIENT_KEY
-        )
+        return context.turn_state.get(context.adapter.USER_TOKEN_CLIENT_KEY)
 
     async def _load_flow(
         self, context: TurnContext
@@ -179,29 +178,43 @@ class OAuthPrompt(Dialog):
 
         flow, flow_storage_client = await self._load_flow(dialog_context.context)
 
-        flow_response: _FlowResponse = await flow.begin_flow(dialog_context.context.activity)
+        flow_response: _FlowResponse = await flow.begin_flow(
+            dialog_context.context.activity
+        )
 
         await flow_storage_client.write(flow_response.flow_state)
 
         if flow_response.flow_state.tag == _FlowStateTag.COMPLETE:
             return await dialog_context.end_dialog(flow_response.token_response)
-    
-        await self._send_oauth_card(dialog_context.context, prompt_options.prompt, flow_response)
+
+        await self._send_oauth_card(
+            dialog_context.context, flow_response, prompt_options.prompt
+        )
         return Dialog.end_of_turn
 
     async def continue_dialog(self, dialog_context: DialogContext) -> DialogTurnResult:
-        # Check for timeout
         assert dialog_context.active_dialog is not None
         state = dialog_context.active_dialog.state
 
+        # Check for timeout
+        expires = state.get(OAuthPrompt.PERSISTED_EXPIRES)
+        if expires and datetime.now() > expires:
+            return await dialog_context.end_dialog(None)
+
         flow_response = await self._continue_flow(dialog_context.context)
 
-        if flow_response is not None and flow_response.flow_state.tag == _FlowStateTag.COMPLETE:
+        if (
+            flow_response is not None
+            and flow_response.flow_state.tag == _FlowStateTag.COMPLETE
+        ):
             return await dialog_context.end_dialog(flow_response.token_response)
-        
-        if dialog_context.context.activity.type == ActivityTypes.message and self._settings.end_on_invalid_message:
+
+        if (
+            dialog_context.context.activity.type == ActivityTypes.message
+            and self._settings.end_on_invalid_message
+        ):
             return await dialog_context.end_dialog(None)
-        
+
         if (
             not dialog_context.context.responded
             and dialog_context.context.activity.type == ActivityTypes.message
@@ -210,7 +223,7 @@ class OAuthPrompt(Dialog):
             await dialog_context.context.send_activity(
                 state[OAuthPrompt.PERSISTED_OPTIONS].retry_prompt
             )
-        
+
         return Dialog.end_of_turn
 
     async def get_user_token(
@@ -228,7 +241,9 @@ class OAuthPrompt(Dialog):
         """
         flow, flow_storage_client = await self._load_flow(context)
         await flow.sign_out()
-        await flow_storage_client.delete(self._id)  # Clear flow state from storage after signing out
+        await flow_storage_client.delete(
+            self._id
+        )  # Clear flow state from storage after signing out
 
     @staticmethod
     def __create_caller_info(context: TurnContext) -> CallerInfo | None:
@@ -245,7 +260,10 @@ class OAuthPrompt(Dialog):
         return None
 
     async def _send_oauth_card(
-        self, context: TurnContext, prompt: Activity | str | None = None, flow_response: _FlowResponse
+        self,
+        context: TurnContext,
+        flow_response: _FlowResponse,
+        prompt: Activity | str | None = None,
     ):
         if not isinstance(prompt, Activity):
             prompt = MessageFactory.text(prompt or "", None, InputHints.accepting_input)
@@ -349,7 +367,9 @@ class OAuthPrompt(Dialog):
         await context.send_activity(prompt)
 
     @staticmethod
-    def _validate_token_exchange_invoke_response(activity: Activity) -> TokenExchangeInvokeRequest:
+    def _validate_token_exchange_invoke_response(
+        activity: Activity,
+    ) -> TokenExchangeInvokeRequest:
         activity_value = activity.value
         if isinstance(activity_value, dict):
             activity_value = TokenExchangeInvokeRequest.model_validate(activity_value)
@@ -363,7 +383,9 @@ class OAuthPrompt(Dialog):
                     activity_value
                 )
 
-            token_exchange_invoke_request = OAuthPrompt._validate_token_exchange_invoke_response(context.activity)
+            token_exchange_invoke_request = (
+                OAuthPrompt._validate_token_exchange_invoke_response(context.activity)
+            )
 
             if not (
                 token_exchange_invoke_request
@@ -375,7 +397,10 @@ class OAuthPrompt(Dialog):
                     "The bot received an InvokeActivity that is missing a TokenExchangeInvokeRequest value."
                     " This is required to be sent with the InvokeActivity.",
                 )
-            elif token_exchange_invoke_request.connection_name != self._settings.connection_name:
+            elif (
+                token_exchange_invoke_request.connection_name
+                != self._settings.connection_name
+            ):
                 # Connection name on activity does not match that of setting.
                 return self._get_token_exchange_invoke_response(
                     int(HTTPStatus.BAD_REQUEST),
@@ -383,13 +408,17 @@ class OAuthPrompt(Dialog):
                     " ConnectionName that does not match the ConnectionName expected by the bots active"
                     " OAuthPrompt. Ensure these names match when sending the InvokeActivity.",
                 )
-            
-    async def _exchange_token(self, context: TurnContext, input_token_response: TokenResponse | None) -> TokenResponse | None:
+
+    async def _exchange_token(
+        self, context: TurnContext, input_token_response: TokenResponse | None
+    ) -> TokenResponse | None:
         if not input_token_response:
             return input_token_response
 
         user_id = context.activity.from_property.id
-        channel_id = context.activity.channel_id.channel if context.activity.channel_id else ""
+        channel_id = (
+            context.activity.channel_id.channel if context.activity.channel_id else ""
+        )
 
         user_token_client = OAuthPrompt._get_user_token_client(context)
 
@@ -399,11 +428,12 @@ class OAuthPrompt(Dialog):
             channel_id,
             {"token": input_token_response.token},
         )
-        
+
     async def _continue_flow(
-        self, context: TurnContext,
+        self,
+        context: TurnContext,
     ) -> _FlowResponse | None:
-        
+
         flow_response: _FlowResponse | None = None
 
         error_response = self._validate_continue_flow(context)
@@ -446,12 +476,11 @@ class OAuthPrompt(Dialog):
                             )
                         )
                 elif self._is_token_exchange_request_invoke(context):
-                    
-                    token_exchange_response : TokenResponse | None = None
+
+                    token_exchange_response: TokenResponse | None = None
 
                     token_exchange_response = await self._exchange_token(
-                        context,
-                        token_response
+                        context, token_response
                     )
 
                     if token_exchange_response:

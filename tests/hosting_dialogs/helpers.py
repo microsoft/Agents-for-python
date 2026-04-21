@@ -14,6 +14,7 @@ from microsoft_agents.activity import (
     ActivityTypes,
     TokenResponse,
     SignInResource,
+    TokenOrSignInResourceResponse,
 )
 from microsoft_agents.hosting.core import ChannelAdapter, TurnContext
 from microsoft_agents.hosting.core.authorization import ClaimsIdentity
@@ -38,16 +39,12 @@ class _MockUserToken:
     def _exchange_key(connection_name, channel_id, user_id, item):
         return f"{connection_name}:{channel_id}:{user_id}:{item}"
 
-    async def get_token(self, user_id, connection_name, channel_id, magic_code=None):
+    async def get_token(self, user_id, connection_name, channel_id, code=None):
         key = self._key(connection_name, channel_id, user_id)
         entry = self._store.get(key)
         if entry:
             token, stored_code = entry
-            # If token has a magic code guard, only return when the correct magic code is provided
-            # If no magic code guard, return without requiring magic code
-            if stored_code is None or (
-                magic_code is not None and magic_code == stored_code
-            ):
+            if stored_code is None or (code is not None and code == stored_code):
                 return TokenResponse(
                     connection_name=connection_name,
                     token=token,
@@ -73,8 +70,26 @@ class _MockUserToken:
             )
         return None
 
-    async def _get_token_or_sign_in_resource(self, *args, **kwargs):
-        return None
+    async def _get_token_or_sign_in_resource(
+        self, user_id, connection_name, channel_id, state, *_
+    ):
+        key = self._key(connection_name, channel_id, user_id)
+        entry = self._store.get(key)
+        if entry:
+            token, stored_code = entry
+            if stored_code is None:
+                return TokenOrSignInResourceResponse(
+                    token_response=TokenResponse(
+                        connection_name=connection_name,
+                        token=token,
+                        channel_id=channel_id,
+                    )
+                )
+        return TokenOrSignInResourceResponse(
+            sign_in_resource=SignInResource(
+                sign_in_link=f"https://token.botframework.com/oauthcards?state={state or ''}"
+            )
+        )
 
 
 class _MockAgentSignIn:
@@ -203,6 +218,8 @@ class DialogTestAdapter(MockTestingAdapter):
         self._callback = callback
         # Dialog-specific token client that implements the user_token API
         self._dialog_token_client = DialogUserTokenClient()
+        # OAuthPrompt reads claims["aud"] from the identity in turn_state
+        self.claims_identity = ClaimsIdentity({"aud": "test-app-id"}, True)
 
     def add_user_token(
         self,
@@ -256,9 +273,12 @@ class DialogTestAdapter(MockTestingAdapter):
         so OAuthPrompt can find it via _UserTokenAccess.
         """
         turn_context = super().create_turn_context(activity, identity)
-        # Put the dialog-compatible token client in turn_state at the standard key
         turn_context.turn_state[ChannelAdapter.USER_TOKEN_CLIENT_KEY] = (
             self._dialog_token_client
+        )
+        # OAuthPrompt reads claims["aud"] from this identity
+        turn_context.turn_state[ChannelAdapter.AGENT_IDENTITY_KEY] = (
+            identity or self.claims_identity
         )
         return turn_context
 
