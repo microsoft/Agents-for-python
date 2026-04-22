@@ -19,8 +19,7 @@ class CosmosDBStorageConfig:
         container_throughput: int | None = None,
         key_suffix: str = "",
         compatibility_mode: bool = False,
-        url: str = "",
-        credential: AsyncTokenCredential | None = None,
+        credential: Union[AsyncTokenCredential, None] = None,
         **kwargs,
     ):
         """Create the Config object.
@@ -36,7 +35,6 @@ class CosmosDBStorageConfig:
             key characters. (e.g. not: '\\', '?', '/', '#', '*')
         :param compatibility_mode: True if keys should be truncated in order to support previous CosmosDb
             max key length of 255.
-        :param url: The URL to the CosmosDB resource.
         :param credential: The TokenCredential to use for authentication.
         :return CosmosDBConfig:
         """
@@ -60,8 +58,7 @@ class CosmosDBStorageConfig:
         self.compatibility_mode: bool = compatibility_mode or kwargs.get(
             "compatibility_mode", False
         )
-        self.url = url or kwargs.get("url", "")
-        self.credential: AsyncTokenCredential | None = credential
+        self.credential: Union[AsyncTokenCredential, None] = credential
 
     @staticmethod
     def validate_cosmos_db_config(config: "CosmosDBStorageConfig") -> None:

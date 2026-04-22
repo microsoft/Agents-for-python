@@ -253,9 +253,9 @@ class TestCosmosDBStorage(QuickCRUDStorageTests):
         load_dotenv()
 
         cred = DefaultAzureCredential()
-        url = os.environ.get("TEST_COSMOS_DB_ENDPOINT")
+        url = os.environ.get("TEST_COSMOS_DB_ENDPOINT", "")
         config = CosmosDBStorageConfig(
-            url=url,
+            cosmos_db_endpoint=url,
             credential=cred,
             database_id="test-db",
             container_id="bot-storage",
