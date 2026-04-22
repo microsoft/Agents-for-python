@@ -34,7 +34,7 @@ class AuthAgent(DialogAgent):
                     "'logout' to sign-out."
                 )
 
-    async def on_token_response_event(self, turn_context: TurnContext):
+    async def on_invoke_activity(self, turn_context: TurnContext):
         # Run the Dialog with the new Token Response Event Activity.
         await DialogHelper.run_dialog(
             self.dialog,

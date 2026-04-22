@@ -83,6 +83,15 @@ class OAuthPrompt(Dialog):
     def _get_user_token_client(context: TurnContext) -> UserTokenClient:
         return context.turn_state.get(context.adapter.USER_TOKEN_CLIENT_KEY)
 
+    def _get_app_id(self, context: TurnContext) -> str:
+        if (
+            hasattr(self._settings, "oauth_app_credentials")
+            and self._settings.oauth_app_credentials
+            and hasattr(self._settings.oauth_app_credentials, "app_id")
+        ):
+            return self._settings.oauth_app_credentials.app_id
+        return context._identity.claims.get("aud", "")
+
     async def _load_flow(
         self, context: TurnContext
     ) -> tuple[_OAuthFlow, _FlowStorageClient]:
@@ -109,9 +118,7 @@ class OAuthPrompt(Dialog):
         channel_id = context.activity.channel_id
         user_id = context.activity.from_property.id
 
-        ms_app_id = context.turn_state.get(context.adapter.AGENT_IDENTITY_KEY).claims[
-            "aud"
-        ]
+        ms_app_id = self._get_app_id(context)
 
         # try to load existing state
         flow_storage_client = _FlowStorageClient(channel_id, user_id, self._storage)
@@ -193,6 +200,7 @@ class OAuthPrompt(Dialog):
         return Dialog.end_of_turn
 
     async def continue_dialog(self, dialog_context: DialogContext) -> DialogTurnResult:
+
         assert dialog_context.active_dialog is not None
         state = dialog_context.active_dialog.state
 
@@ -442,9 +450,9 @@ class OAuthPrompt(Dialog):
 
         # do something here
 
-        flow, flow_storage_client = await self._load_flow(context)
-
         if error_response is None:
+
+            flow, flow_storage_client = await self._load_flow(context)
 
             try:
                 flow_response = await flow.continue_flow(context.activity)
@@ -485,8 +493,9 @@ class OAuthPrompt(Dialog):
 
                     if token_exchange_response:
                         await context.send_activity(
-                            self._get_token_exchange_invoke_response(
-                                int(HTTPStatus.OK), None
+                            Activity(  # type: ignore[call-arg]
+                                type=ActivityTypes.invoke_response,
+                                value=InvokeResponse(status=HTTPStatus.OK),
                             )
                         )
                     else:
@@ -500,18 +509,14 @@ class OAuthPrompt(Dialog):
         return flow_response
 
     def _get_token_exchange_invoke_response(
-        self, status: int, failure_detail: str | None, identifier: str | None = None
+        self, status: int, failure_detail: str | None
     ) -> Activity:
+        body = {"connectionName": self._settings.connection_name}
+        if failure_detail:
+            body["failureDetail"] = failure_detail
         return Activity(  # type: ignore[call-arg]
             type=ActivityTypes.invoke_response,
-            value=InvokeResponse(
-                status=status,
-                body=TokenExchangeInvokeResponse(
-                    id=identifier,  # type: ignore[arg-type]
-                    connection_name=self._settings.connection_name,
-                    failure_detail=failure_detail,  # type: ignore[arg-type]
-                ),
-            ),
+            value=InvokeResponse(status=status, body=body),
         )
 
     @staticmethod
