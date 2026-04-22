@@ -53,33 +53,41 @@ class CosmosDBStorage(AsyncStorageBase):
         self._lock: asyncio.Lock = asyncio.Lock()
 
     def _create_client(self) -> CosmosClient:
-        if self._config.url:
-            if not self._config.credential:
-                raise ValueError(
-                    storage_errors.InvalidConfiguration.format(
-                        "Credential is required when using a custom service URL"
-                    )
+
+        if not self._config.cosmos_db_endpoint:
+            raise ValueError(
+                storage_errors.InvalidConfiguration.format(
+                    "Cosmos DB Endpoint is required."
                 )
-            return CosmosClient(
-                url=self._config.url, credential=self._config.credential
             )
 
-        connection_policy = self._config.cosmos_client_options.get(
-            "connection_policy", documents.ConnectionPolicy()
-        )
+        if self._config.credential or self._config.auth_key:
+            cred = (
+                self._config.credential
+                if self._config.credential
+                else self._config.auth_key
+            )
 
-        # kwargs 'connection_verify' is to handle CosmosClient overwriting the
-        # ConnectionPolicy.DisableSSLVerification value.
-        return CosmosClient(
-            self._config.cosmos_db_endpoint,
-            self._config.auth_key,
-            consistency_level=self._config.cosmos_client_options.get(
-                "consistency_level", None
-            ),
-            **{
-                "connection_policy": connection_policy,
-                "connection_verify": not connection_policy.DisableSSLVerification,
-            },
+            connection_policy = self._config.cosmos_client_options.get(
+                "connection_policy", documents.ConnectionPolicy()
+            )
+
+            return CosmosClient(
+                url=self._config.cosmos_db_endpoint,
+                credential=cred,
+                consistency_level=self._config.cosmos_client_options.get(
+                    "consistency_level", None
+                ),
+                **{
+                    "connection_policy": connection_policy,
+                    "connection_verify": not connection_policy.DisableSSLVerification,
+                },
+            )
+
+        raise ValueError(
+            storage_errors.InvalidConfiguration.format(
+                "Either Cosmos DB Credential or Auth Key is required."
+            )
         )
 
     def _sanitize(self, key: str) -> str:
