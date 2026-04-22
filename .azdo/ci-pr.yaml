@@ -72,6 +72,7 @@ steps:
     python -m pip install ./dist/microsoft_agents_authentication_msal*.whl
     python -m pip install ./dist/microsoft_agents_copilotstudio_client*.whl
     python -m pip install ./dist/microsoft_agents_hosting_aiohttp*.whl
+    python -m pip install ./dist/microsoft_agents_hosting_dialogs*.whl
     python -m pip install ./dist/microsoft_agents_hosting_teams*.whl
     python -m pip install ./dist/microsoft_agents_storage_blob*.whl
     python -m pip install ./dist/microsoft_agents_storage_cosmos*.whl

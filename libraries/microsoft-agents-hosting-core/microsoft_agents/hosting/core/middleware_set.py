@@ -74,5 +74,5 @@ class MiddlewareSet(Middleware):
 
         try:
             return await next_middleware.on_turn(context, call_next_middleware)
-        except Exception as error:
-            raise error
+        except Exception:
+            raise

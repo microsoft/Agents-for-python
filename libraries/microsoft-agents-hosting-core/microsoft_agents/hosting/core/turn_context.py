@@ -330,8 +330,8 @@ class TurnContext(TurnContextProtocol):
 
                     await handlers[i](context, arg, next_handler)
 
-            except Exception as error:
-                raise error
+            except Exception:
+                raise
 
         await emit_next(0)
         # logic does not use parentheses because it's a coroutine
