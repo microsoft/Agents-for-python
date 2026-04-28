@@ -93,7 +93,9 @@ class TestCreateConversationOptionsValidate:
         opts.validate()  # must not raise
 
     def test_validate_raises_when_identity_missing(self):
-        opts = CreateConversationOptions(channel_id="msteams", parameters=_make_params())
+        opts = CreateConversationOptions(
+            channel_id="msteams", parameters=_make_params()
+        )
         with pytest.raises(ValueError, match="identity"):
             opts.validate()
 

@@ -5,9 +5,11 @@ Licensed under the MIT License.
 
 import pytest
 
-from microsoft_agents.hosting.core.app.proactive import Conversation, ConversationBuilder
+from microsoft_agents.hosting.core.app.proactive import (
+    Conversation,
+    ConversationBuilder,
+)
 from microsoft_agents.hosting.core.authorization import ClaimsIdentity
-
 
 # ---------------------------------------------------------------------------
 # Helper
@@ -51,7 +53,9 @@ class TestConversationBuilderCreate:
         assert builder._agent_id == "app-id"
 
     def test_create_with_requestor_id_sets_appid_claim(self):
-        builder = ConversationBuilder.create("app-id", "msteams", requestor_id="requestor-id")
+        builder = ConversationBuilder.create(
+            "app-id", "msteams", requestor_id="requestor-id"
+        )
         assert builder._claims["appid"] == "requestor-id"
 
     def test_create_without_requestor_id_no_appid_claim(self):
@@ -199,7 +203,10 @@ class TestConversationBuilderBuild:
 
     def test_build_sets_service_url(self):
         conv = _prep_build(ConversationBuilder.create("app-id", "msteams")).build()
-        assert conv.conversation_reference.service_url == "https://smba.trafficmanager.net/teams/"
+        assert (
+            conv.conversation_reference.service_url
+            == "https://smba.trafficmanager.net/teams/"
+        )
 
     def test_build_sets_agent_with_teams_prefix(self):
         conv = _prep_build(ConversationBuilder.create("app-id", "msteams")).build()
@@ -210,6 +217,7 @@ class TestConversationBuilderBuild:
         # ConversationReference.agent has Field(None, alias="bot") with ChannelAccount type,
         # so explicitly passing bot=None raises a Pydantic ValidationError.
         from pydantic import ValidationError
+
         builder = ConversationBuilder()
         builder._channel_id = "directline"
         builder._service_url = "https://directline.botframework.com/"

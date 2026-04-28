@@ -69,7 +69,9 @@ class TestConversationInit:
 class TestConversationFromTurnContext:
     def test_from_turn_context_extracts_reference_and_identity(self):
         ref = _make_reference("ctx-conv")
-        identity = ClaimsIdentity(claims={"aud": "app-id", "tid": "t"}, is_authenticated=True)
+        identity = ClaimsIdentity(
+            claims={"aud": "app-id", "tid": "t"}, is_authenticated=True
+        )
 
         ctx = MagicMock()
         ctx.activity.get_conversation_reference.return_value = ref
@@ -195,7 +197,9 @@ class TestConversationSerialization:
     def test_round_trip_preserves_service_url(self):
         original = Conversation(
             claims={},
-            conversation_reference=_make_reference(service_url="https://custom.service/"),
+            conversation_reference=_make_reference(
+                service_url="https://custom.service/"
+            ),
         )
         json_data = original.store_item_to_json()
         restored = Conversation.from_json_to_store_item(json_data)
