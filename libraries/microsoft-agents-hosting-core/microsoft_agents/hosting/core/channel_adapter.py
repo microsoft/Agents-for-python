@@ -246,7 +246,7 @@ class ChannelAdapter(ABC, ChannelAdapterProtocol):
                 if self.on_turn_error is not None:
                     await self.on_turn_error(context, error)
                 else:
-                    raise
+                    raise error
         else:
             # callback to caller on proactive case
             if callback is not None:
