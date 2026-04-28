@@ -17,9 +17,9 @@ from microsoft_agents.activity import (
 def attachment_activity(
     attachment_layout: AttachmentLayoutTypes,
     attachments: list[Attachment],
-    text: str | None = None,
-    speak: str | None = None,
-    input_hint: InputHints | str | None = InputHints.accepting_input,
+    text: str = None,
+    speak: str = None,
+    input_hint: InputHints | str = InputHints.accepting_input,
 ) -> Activity:
     message = Activity(
         type=ActivityTypes.message,
@@ -44,8 +44,8 @@ class MessageFactory:
     @staticmethod
     def text(
         text: str,
-        speak: str | None = None,
-        input_hint: InputHints | str | None = InputHints.accepting_input,
+        speak: str = None,
+        input_hint: InputHints | str = InputHints.accepting_input,
     ) -> Activity:
         """
         Returns a simple text message.
@@ -68,9 +68,9 @@ class MessageFactory:
     @staticmethod
     def suggested_actions(
         actions: list[CardAction],
-        text: str | None = None,
-        speak: str | None = None,
-        input_hint: InputHints | str | None = InputHints.accepting_input,
+        text: str = None,
+        speak: str = None,
+        input_hint: InputHints | str = InputHints.accepting_input,
     ) -> Activity:
         """
         Returns a message that includes a set of suggested actions and optional text.
@@ -101,9 +101,9 @@ class MessageFactory:
     @staticmethod
     def attachment(
         attachment: Attachment,
-        text: str | None = None,
-        speak: str | None = None,
-        input_hint: InputHints | str | None = None,
+        text: str = None,
+        speak: str = None,
+        input_hint: InputHints | str = None,
     ):
         """
         Returns a single message activity containing an attachment.
@@ -129,9 +129,9 @@ class MessageFactory:
     @staticmethod
     def list(
         attachments: list[Attachment],
-        text: str | None = None,
-        speak: str | None = None,
-        input_hint: InputHints | str | None = None,
+        text: str = None,
+        speak: str = None,
+        input_hint: InputHints | str = None,
     ) -> Activity:
         """
         Returns a message that will display a set of attachments in list form.
@@ -161,9 +161,9 @@ class MessageFactory:
     @staticmethod
     def carousel(
         attachments: list[Attachment],
-        text: str | None = None,
-        speak: str | None = None,
-        input_hint: InputHints | str | None = None,
+        text: str = None,
+        speak: str = None,
+        input_hint: InputHints | str = None,
     ) -> Activity:
         """
         Returns a message that will display a set of attachments using a carousel layout.
@@ -194,10 +194,10 @@ class MessageFactory:
     def content_url(
         url: str,
         content_type: str,
-        name: str | None = None,
-        text: str | None = None,
-        speak: str | None = None,
-        input_hint: InputHints | str | None = None,
+        name: str = None,
+        text: str = None,
+        speak: str = None,
+        input_hint: InputHints | str = None,
     ):
         """
         Returns a message that will display a single image or video to a user.
