@@ -94,6 +94,6 @@ class ApplicationOptions:
     proactive: Optional[ProactiveOptions] = None
     """
     Optional. Options for the proactive messaging subsystem.
-    When set, :attr:`AgentApplication.proactive` is available for storing
+    When set, :attr:`microsoft_agents.hosting.core.AgentApplication.proactive` is available for storing
     conversations and initiating proactive turns.
     """

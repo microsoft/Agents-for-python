@@ -27,7 +27,7 @@ class ComponentDialog(Dialog):
 
     def __init__(self, dialog_id: str):
         """
-        Initializes a new instance of the :class:`ComponentDialog`
+        Initializes a new instance of the :class:`microsoft_agents.hosting.dialogs.ComponentDialog`
 
         :param dialog_id: The ID to assign to the new dialog within the parent dialog set.
         :type dialog_id: str
@@ -124,7 +124,7 @@ class ComponentDialog(Dialog):
         .. remarks::
             Containers are typically leaf nodes on the stack but the dev is free to push other dialogs
             on top of the stack which will result in the container receiving an unexpected call to
-            :meth:`ComponentDialog.resume_dialog()` when the pushed on dialog ends.
+            :meth:`microsoft_agents.hosting.dialogs.ComponentDialog.resume_dialog` when the pushed on dialog ends.
             To avoid the container prematurely ending we need to implement this method and simply
             ask our inner dialog stack to re-prompt.
 
@@ -183,11 +183,11 @@ class ComponentDialog(Dialog):
 
     def add_dialog(self, dialog: Dialog) -> object:
         """
-        Adds a :class:`Dialog` to the component dialog and returns the updated component.
+        Adds a :class:`microsoft_agents.hosting.dialogs.Dialog` to the component dialog and returns the updated component.
 
         :param dialog: The dialog to add.
-        :return: The updated :class:`ComponentDialog`.
-        :rtype: :class:`ComponentDialog`
+        :return: The updated :class:`microsoft_agents.hosting.dialogs.ComponentDialog`.
+        :rtype: :class:`microsoft_agents.hosting.dialogs.ComponentDialog`
         """
         self._dialogs.add(dialog)
         if not self.initial_dialog_id:

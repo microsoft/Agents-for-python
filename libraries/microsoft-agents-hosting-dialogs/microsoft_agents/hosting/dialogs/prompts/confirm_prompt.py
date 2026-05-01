@@ -33,7 +33,7 @@ class ConfirmPrompt(Prompt):
 
     Returns ``True`` for confirmation, ``False`` for denial.
 
-    Culture/locale detection uses :class:`PromptCultureModels`.  Override
+    Culture/locale detection uses :class:`microsoft_agents.hosting.dialogs.PromptCultureModels`.  Override
     ``default_locale`` or ``choice_defaults`` at construction time to customise
     the displayed choices and the locale used for recognition.
     """
