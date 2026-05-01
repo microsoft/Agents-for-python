@@ -5,7 +5,7 @@
 
 import logging
 from typing import Optional
-from aiohttp import ClientSession
+from aiohttp import ClientResponseError, ClientSession
 
 from microsoft_agents.hosting.core.connector import UserTokenClientBase
 from microsoft_agents.activity import (
@@ -297,8 +297,19 @@ class UserToken(UserTokenBase):
                 span.share(http_method="POST", status_code=response.status)
 
                 if response.status >= 300:
-                    logger.error("Error exchanging token: %s", response.status)
-                    response.raise_for_status()
+                    response_text = await response.text("utf-8")
+                    logger.error(
+                        "Error exchanging token: %s %s",
+                        response.status,
+                        response_text,
+                    )
+                    raise ClientResponseError(
+                        response.request_info,
+                        response.history,
+                        status=response.status,
+                        message=response_text,
+                        headers=response.headers,
+                    )
 
                 data = await response.json()
                 return TokenResponse.model_validate(data)
