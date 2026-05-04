@@ -547,7 +547,7 @@ class ChannelServiceAdapter(ChannelAdapter, ABC):
                     self.INVOKE_RESPONSE_KEY
                 )
                 if not activity_invoke_response:
-                    return InvokeResponse(status=HTTPStatus.NOT_IMPLEMENTED)
+                    return InvokeResponse(status=HTTPStatus.OK)
 
                 return InvokeResponse.model_validate(activity_invoke_response.value)
 

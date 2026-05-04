@@ -8,7 +8,8 @@ import logging
 from typing import TypeVar, Optional, Callable, Awaitable, Generic, cast
 import jwt
 
-from microsoft_agents.activity import Activity, TokenResponse
+from microsoft_agents.activity import Activity, Channels, SignInConstants, TokenResponse
+from microsoft_agents.activity.activity_types import ActivityTypes
 
 from ...turn_context import TurnContext
 from ...storage import Storage
@@ -261,9 +262,17 @@ class Authorization:
             await self._delete_sign_in_state(context)
 
         elif sign_in_response.tag in [_FlowStateTag.BEGIN, _FlowStateTag.CONTINUE]:
-            # store continuation activity and wait for next turn
-            sign_in_state.continuation_activity = context.activity
-            await self._save_sign_in_state(context, sign_in_state)
+            # Handling special case for Teams SSO, ConsentRequired
+            if not (
+                context.activity.channel_id.channel == Channels.ms_teams
+                and sign_in_state.continuation_activity
+                and context.activity.type == ActivityTypes.invoke
+                and context.activity.name
+                == SignInConstants.token_exchange_operation_name
+            ):
+                # store continuation activity and wait for next turn
+                sign_in_state.continuation_activity = context.activity
+                await self._save_sign_in_state(context, sign_in_state)
 
         return sign_in_response
 
