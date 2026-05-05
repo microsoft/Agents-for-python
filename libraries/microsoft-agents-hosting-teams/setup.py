@@ -14,5 +14,6 @@ setup(
     install_requires=[
         f"microsoft-agents-hosting-core=={package_version}",
         "aiohttp>=3.11.11",
+        "microsoft-teams-api>=2.0.0,<3",
     ],
 )

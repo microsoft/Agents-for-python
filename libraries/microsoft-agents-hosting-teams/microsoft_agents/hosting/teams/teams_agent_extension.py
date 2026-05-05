@@ -15,18 +15,19 @@ from microsoft_agents.hosting.core.app import AgentApplication, RouteRank
 from microsoft_agents.hosting.core.app.state import TurnState
 
 from microsoft_agents.activity.teams import (
+    MeetingParticipantsEventDetails,
+    ReadReceiptInfo,
+)
+from microsoft_teams.api.models import (
     AppBasedLinkQuery,
     ConfigResponse,
     FileConsentCardResponse,
-    MeetingEndEventDetails,
-    MeetingParticipantsEventDetails,
-    MeetingStartEventDetails,
+    MeetingDetails,
     MessagingExtensionAction,
     MessagingExtensionActionResponse,
     MessagingExtensionQuery,
     MessagingExtensionResponse,
     O365ConnectorCardActionQuery,
-    ReadReceiptInfo,
     TaskModuleRequest,
     TaskModuleResponse,
 )
@@ -605,15 +606,12 @@ class Meeting(Generic[StateT]):
         def __selector(context: TurnContext) -> bool:
             return (
                 context.activity.type == ActivityTypes.event
-                and context.activity.name
-                == "application/vnd.microsoft.meetingStart"
+                and context.activity.name == "application/vnd.microsoft.meetingStart"
             )
 
         def __register(func: Callable) -> Callable:
             async def __handler(context: TurnContext, state: StateT) -> None:
-                meeting = MeetingStartEventDetails.model_validate(
-                    context.activity.value or {}
-                )
+                meeting = MeetingDetails.model_validate(context.activity.value or {})
                 await func(context, state, meeting)
 
             self._app.add_route(
@@ -645,9 +643,7 @@ class Meeting(Generic[StateT]):
 
         def __register(func: Callable) -> Callable:
             async def __handler(context: TurnContext, state: StateT) -> None:
-                meeting = MeetingEndEventDetails.model_validate(
-                    context.activity.value or {}
-                )
+                meeting = MeetingDetails.model_validate(context.activity.value or {})
                 await func(context, state, meeting)
 
             self._app.add_route(
@@ -751,7 +747,7 @@ class TeamsAgentExtension(Generic[StateT]):
             return MessagingExtensionResponse(...)
 
         @teams.meeting.on_start
-        async def handle_meeting_start(context, state, meeting: MeetingStartEventDetails):
+        async def handle_meeting_start(context, state, meeting: MeetingDetails):
             ...
     """
 
