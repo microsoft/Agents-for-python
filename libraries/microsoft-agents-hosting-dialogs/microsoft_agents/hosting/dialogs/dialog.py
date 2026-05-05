@@ -1,0 +1,198 @@
+# Copyright (c) Microsoft Corporation. All rights reserved.
+# Licensed under the MIT License.
+
+from __future__ import annotations
+
+from abc import ABC, abstractmethod
+from typing import TYPE_CHECKING
+
+from microsoft_agents.hosting.core import TurnContext
+
+from ._telemetry_client import AgentTelemetryClient, NullTelemetryClient
+from .models.dialog_reason import DialogReason
+from .models.dialog_event import DialogEvent
+from .models.dialog_turn_status import DialogTurnStatus
+from .models.dialog_turn_result import DialogTurnResult
+from .models.dialog_instance import DialogInstance
+
+if TYPE_CHECKING:
+    from .dialog_context import DialogContext
+
+
+class Dialog(ABC):
+
+    def __init__(self, dialog_id: str):
+        if dialog_id is None or not dialog_id.strip():
+            raise TypeError("Dialog(): dialogId cannot be None.")
+
+        self._telemetry_client = NullTelemetryClient()
+        self._id = dialog_id
+
+    end_of_turn = DialogTurnResult(DialogTurnStatus.Waiting)
+    """DialogTurnResult indicating the dialog is waiting for new activity."""
+
+    @property
+    def id(self) -> str:  # pylint: disable=invalid-name
+        return self._id
+
+    @property
+    def telemetry_client(self) -> AgentTelemetryClient:
+        """
+        Gets the telemetry client for logging events.
+        """
+        return self._telemetry_client
+
+    @telemetry_client.setter
+    def telemetry_client(self, value: AgentTelemetryClient) -> None:
+        """
+        Sets the telemetry client for logging events.
+        """
+        if value is None:
+            self._telemetry_client = NullTelemetryClient()
+        else:
+            self._telemetry_client = value
+
+    @abstractmethod
+    async def begin_dialog(
+        self, dialog_context: "DialogContext", options: object = None
+    ):
+        """
+        Method called when a new dialog has been pushed onto the stack and is being activated.
+        :param dialog_context: The dialog context for the current turn of conversation.
+        :param options: (Optional) additional argument(s) to pass to the dialog being started.
+        """
+        raise NotImplementedError()
+
+    async def continue_dialog(self, dialog_context: "DialogContext"):
+        """
+        Method called when an instance of the dialog is the "current" dialog and the
+        user replies with a new activity. The dialog will generally continue to receive the user's
+        replies until it calls either `end_dialog()` or `begin_dialog()`.
+        If this method is NOT implemented then the dialog will automatically be ended when the user replies.
+        :param dialog_context: The dialog context for the current turn of conversation.
+        :return:
+        """
+        # By default just end the current dialog.
+        return await dialog_context.end_dialog(None)
+
+    async def resume_dialog(  # pylint: disable=unused-argument
+        self, dialog_context: "DialogContext", reason: DialogReason, result: object
+    ):
+        """
+        Method called when an instance of the dialog is being returned to from another
+        dialog that was started by the current instance using `begin_dialog()`.
+        If this method is NOT implemented then the dialog will be automatically ended with a call
+        to `end_dialog()`. Any result passed from the called dialog will be passed
+        to the current dialog's parent. If there are no more parent dialogs on the stack then
+        processing of the turn will end.
+        :param dialog_context: The dialog context for the current turn of conversation.
+        :param reason: Reason why the dialog resumed.
+        :param result: (Optional) value returned from the dialog that was called.
+        :return:
+        """
+        # By default just end the current dialog and return result to parent.
+        return await dialog_context.end_dialog(result)
+
+    async def reprompt_dialog(  # pylint: disable=unused-argument
+        self, context: TurnContext, instance: DialogInstance
+    ):
+        """Called when the dialog should re-prompt the user for input.
+
+        Override this method to send a repeat of the most recent prompt activity.
+        The default implementation is a no-op.
+
+        :param context: The context for the current turn.
+        :param instance: The dialog instance on the stack.
+        """
+        # No-op by default
+        return
+
+    async def end_dialog(  # pylint: disable=unused-argument
+        self, context: TurnContext, instance: DialogInstance, reason: DialogReason
+    ):
+        """Called when the dialog is ending. Override to perform cleanup or send an
+        EndOfConversation activity.
+
+        The default implementation is a no-op; subclasses should call ``super()``
+        only if they need the no-op behaviour to remain in derived chains.
+
+        :param context: The context for the current turn.
+        :param instance: The dialog instance being ended.
+        :param reason: Why the dialog is ending (EndCalled, CancelCalled, or ReplaceCalled).
+        """
+        # No-op by default
+        return
+
+    def get_version(self) -> str:
+        """Gets a string that uniquely describes this dialog's version. Changing the version
+        indicates that a stored instance of the dialog may be incompatible with the current
+        definition. By default this returns the dialog's ID.
+
+        :return: Version string for this dialog.
+        """
+        return self.id
+
+    async def on_dialog_event(
+        self, dialog_context: "DialogContext", dialog_event: DialogEvent
+    ) -> bool:
+        """
+        Called when an event has been raised, using `DialogContext.emitEvent()`, by either the current dialog or a
+         dialog that the current dialog started.
+        :param dialog_context: The dialog context for the current turn of conversation.
+        :param dialog_event: The event being raised.
+        :return: True if the event is handled by the current dialog and bubbling should stop.
+        """
+        # Before bubble
+        handled = await self._on_pre_bubble_event(dialog_context, dialog_event)
+
+        # Bubble as needed
+        if (not handled) and dialog_event.bubble and dialog_context.parent:
+            handled = await dialog_context.parent.emit_event(
+                dialog_event.name, dialog_event.value, True, False
+            )
+
+        # Post bubble
+        if not handled:
+            handled = await self._on_post_bubble_event(dialog_context, dialog_event)
+
+        return handled
+
+    async def _on_pre_bubble_event(  # pylint: disable=unused-argument
+        self, dialog_context: "DialogContext", dialog_event: DialogEvent
+    ) -> bool:
+        """
+        Called before an event is bubbled to its parent.
+        :param dialog_context: The dialog context for the current turn of conversation.
+        :param dialog_event: The event being raised.
+        :return: Whether the event is handled by the current dialog and further processing should stop.
+        """
+        return False
+
+    async def _on_post_bubble_event(  # pylint: disable=unused-argument
+        self, dialog_context: "DialogContext", dialog_event: DialogEvent
+    ) -> bool:
+        """
+        Called after an event was bubbled to all parents and wasn't handled.
+        :param dialog_context: The dialog context for the current turn of conversation.
+        :param dialog_event: The event being raised.
+        :return: Whether the event is handled by the current dialog and further processing should stop.
+        """
+        return False
+
+    def _on_compute_id(self) -> str:
+        """
+        Computes an unique ID for a dialog.
+        :return: An unique ID for a dialog
+        """
+        return self.__class__.__name__
+
+    def _register_source_location(
+        self, path: str, line_number: int
+    ):  # pylint: disable=unused-argument
+        """
+        Registers a SourceRange in the provided location.
+        :param path: The path to the source file.
+        :param line_number: The line number where the source will be located on the file.
+        """
+        if path:
+            pass

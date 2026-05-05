@@ -57,6 +57,11 @@ from .aiohttp_scenario import (
     AiohttpScenario,
 )
 
+from .activity_handler_scenario import (
+    ActivityHandlerEnvironment,
+    ActivityHandlerScenario,
+)
+
 from .transcript_formatter import (
     DetailLevel,
     ConversationTranscriptFormatter,
@@ -88,6 +93,8 @@ __all__ = [
     "Unset",
     "AgentEnvironment",
     "AiohttpScenario",
+    "ActivityHandlerEnvironment",
+    "ActivityHandlerScenario",
     "ScenarioEntry",
     "scenario_registry",
     "load_scenarios",
