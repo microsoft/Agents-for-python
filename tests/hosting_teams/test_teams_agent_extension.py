@@ -7,17 +7,13 @@ import re
 import pytest
 from unittest.mock import AsyncMock, MagicMock, patch
 
-from microsoft_agents.activity import Activity, ActivityTypes, InvokeResponse
+from microsoft_agents.activity import Activity, ActivityTypes
 from microsoft_agents.activity.teams import (
     MeetingParticipantsEventDetails,
     ReadReceiptInfo,
 )
 from microsoft_teams.api.models import (
-    AppBasedLinkQuery,
-    FileConsentCardResponse,
     MeetingDetails,
-    MessagingExtensionAction,
-    MessagingExtensionActionResponse,
     MessagingExtensionQuery,
     MessagingExtensionResponse,
     O365ConnectorCardActionQuery,

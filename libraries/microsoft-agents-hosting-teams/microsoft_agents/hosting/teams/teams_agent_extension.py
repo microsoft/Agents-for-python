@@ -7,7 +7,7 @@ from __future__ import annotations
 
 import re
 from http import HTTPStatus
-from typing import Any, Awaitable, Callable, Generic, Optional, Pattern, TypeVar, Union
+from typing import Any, Callable, Generic, Optional, Pattern, TypeVar, Union
 
 from microsoft_agents.activity import Activity, ActivityTypes, InvokeResponse
 from microsoft_agents.hosting.core import TurnContext
@@ -20,16 +20,12 @@ from microsoft_agents.activity.teams import (
 )
 from microsoft_teams.api.models import (
     AppBasedLinkQuery,
-    ConfigResponse,
     FileConsentCardResponse,
     MeetingDetails,
     MessagingExtensionAction,
-    MessagingExtensionActionResponse,
     MessagingExtensionQuery,
-    MessagingExtensionResponse,
     O365ConnectorCardActionQuery,
     TaskModuleRequest,
-    TaskModuleResponse,
 )
 
 StateT = TypeVar("StateT", bound=TurnState)
