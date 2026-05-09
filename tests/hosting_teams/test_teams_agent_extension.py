@@ -220,7 +220,7 @@ class TestMessageExtension:
         self.app = _make_app()
         self.teams = TeamsAgentExtension(self.app)
 
-    def test_on_query_matches_by_command_id(self):
+    def test_on_query_matches_by_first_parameter_value(self):
         @self.teams.message_extension.on_query("searchCmd")
         async def handler(ctx, state, query): ...
 
@@ -228,17 +228,17 @@ class TestMessageExtension:
         ctx_match = _make_context(
             ActivityTypes.invoke,
             name="composeExtension/query",
-            value={"commandId": "searchCmd"},
+            value={"parameters": [{"name": "searchQuery", "value": "searchCmd"}]},
         )
         ctx_no_match = _make_context(
             ActivityTypes.invoke,
             name="composeExtension/query",
-            value={"commandId": "otherCmd"},
+            value={"parameters": [{"name": "searchQuery", "value": "other"}]},
         )
         assert selector(ctx_match) is True
         assert selector(ctx_no_match) is False
 
-    def test_on_query_no_command_id_matches_all(self):
+    def test_on_query_no_selector_matches_all(self):
         @self.teams.message_extension.on_query()
         async def handler(ctx, state, query): ...
 
@@ -246,9 +246,15 @@ class TestMessageExtension:
         ctx = _make_context(
             ActivityTypes.invoke,
             name="composeExtension/query",
-            value={"commandId": "anyCommand"},
+            value={"parameters": [{"name": "searchQuery", "value": "anything"}]},
+        )
+        ctx_no_params = _make_context(
+            ActivityTypes.invoke,
+            name="composeExtension/query",
+            value={},
         )
         assert selector(ctx) is True
+        assert selector(ctx_no_params) is True
 
     def test_on_query_is_invoke(self):
         @self.teams.message_extension.on_query()
