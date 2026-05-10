@@ -526,25 +526,45 @@ class TeamsActivityHandler(ActivityHandler):
             event_type = channel_data.event_type
 
             if event_type == "channelCreated":
-                return await self.on_teams_channel_created(turn_context)
+                return await self.on_teams_channel_created(
+                    channel_data.channel, channel_data.team, turn_context
+                )
             elif event_type == "channelDeleted":
-                return await self.on_teams_channel_deleted(turn_context)
+                return await self.on_teams_channel_deleted(
+                    channel_data.channel, channel_data.team, turn_context
+                )
             elif event_type == "channelRenamed":
-                return await self.on_teams_channel_renamed(turn_context)
+                return await self.on_teams_channel_renamed(
+                    channel_data.channel, channel_data.team, turn_context
+                )
             elif event_type == "teamArchived":
-                return await self.on_teams_team_archived(turn_context)
+                return await self.on_teams_team_archived(
+                    channel_data.team, turn_context
+                )
             elif event_type == "teamDeleted":
-                return await self.on_teams_team_deleted(turn_context)
+                return await self.on_teams_team_deleted(
+                    channel_data.team, turn_context
+                )
             elif event_type == "teamHardDeleted":
-                return await self.on_teams_team_hard_deleted(turn_context)
+                return await self.on_teams_team_hard_deleted(
+                    channel_data.team, turn_context
+                )
             elif event_type == "channelRestored":
-                return await self.on_teams_channel_restored(turn_context)
+                return await self.on_teams_channel_restored(
+                    channel_data.channel, channel_data.team, turn_context
+                )
             elif event_type == "teamRenamed":
-                return await self.on_teams_team_renamed(turn_context)
+                return await self.on_teams_team_renamed(
+                    channel_data.team, turn_context
+                )
             elif event_type == "teamRestored":
-                return await self.on_teams_team_restored(turn_context)
+                return await self.on_teams_team_restored(
+                    channel_data.team, turn_context
+                )
             elif event_type == "teamUnarchived":
-                return await self.on_teams_team_unarchived(turn_context)
+                return await self.on_teams_team_unarchived(
+                    channel_data.team, turn_context
+                )
 
         return await super().on_conversation_update_activity(turn_context)
 
