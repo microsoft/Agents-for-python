@@ -8,27 +8,31 @@ import sys
 import pytest
 from unittest.mock import AsyncMock, MagicMock, patch
 
+is_supported_version = sys.version_info >= (3, 12)
+
 pytestmark = pytest.mark.skipif(
-    sys.version_info < (3, 12),
+    not is_supported_version,
     reason="microsoft-agents-hosting-teams tests require Python 3.12+",
 )
 
 from microsoft_agents.activity import Activity, ActivityTypes
-from microsoft_agents.activity.teams import (
-    MeetingParticipantsEventDetails,
-    ReadReceiptInfo,
-)
-from microsoft_teams.api.models import (
-    MeetingDetails,
-    MessagingExtensionQuery,
-    MessagingExtensionResponse,
-    O365ConnectorCardActionQuery,
-    TaskModuleRequest,
-    TaskModuleResponse,
-)
 from microsoft_agents.hosting.core import TurnContext
 from microsoft_agents.hosting.core.app import AgentApplication, RouteRank
-from microsoft_agents.hosting.teams import TeamsAgentExtension
+
+if is_supported_version:
+    from microsoft_agents.activity.teams import (
+        MeetingParticipantsEventDetails,
+        ReadReceiptInfo,
+    )
+    from microsoft_teams.api.models import (
+        MeetingDetails,
+        MessagingExtensionQuery,
+        MessagingExtensionResponse,
+        O365ConnectorCardActionQuery,
+        TaskModuleRequest,
+        TaskModuleResponse,
+    )
+    from microsoft_agents.hosting.teams import TeamsAgentExtension
 
 
 def _make_app() -> AgentApplication:
@@ -91,6 +95,7 @@ class TestTaskModule:
 
     # ── Selector tests ──────────────────────────────────────────────────────
 
+    @pytestmark
     def test_on_fetch_no_verb_matches_any(self):
         @self.teams.task_module.on_fetch()
         async def handler(ctx, state, req): ...
@@ -99,6 +104,7 @@ class TestTaskModule:
         ctx = _make_context(ActivityTypes.invoke, name="task/fetch", value={})
         assert selector(ctx) is True
 
+    @pytestmark
     def test_on_fetch_verb_matches_exact(self):
         @self.teams.task_module.on_fetch("myVerb")
         async def handler(ctx, state, req): ...
@@ -115,6 +121,7 @@ class TestTaskModule:
         assert selector(ctx_match) is True
         assert selector(ctx_no_match) is False
 
+    @pytestmark
     def test_on_fetch_verb_matches_regex(self):
         @self.teams.task_module.on_fetch(re.compile(r"my.*"))
         async def handler(ctx, state, req): ...
@@ -131,6 +138,7 @@ class TestTaskModule:
         assert selector(ctx_match) is True
         assert selector(ctx_no_match) is False
 
+    @pytestmark
     def test_on_fetch_wrong_invoke_name(self):
         @self.teams.task_module.on_fetch()
         async def handler(ctx, state, req): ...
@@ -139,6 +147,7 @@ class TestTaskModule:
         ctx = _make_context(ActivityTypes.invoke, name="task/submit", value={})
         assert selector(ctx) is False
 
+    @pytestmark
     def test_on_fetch_wrong_activity_type(self):
         @self.teams.task_module.on_fetch()
         async def handler(ctx, state, req): ...
@@ -147,6 +156,7 @@ class TestTaskModule:
         ctx = _make_context(ActivityTypes.message, name="task/fetch")
         assert selector(ctx) is False
 
+    @pytestmark
     def test_on_submit_selector(self):
         @self.teams.task_module.on_submit("submitVerb")
         async def handler(ctx, state, req): ...
@@ -163,12 +173,14 @@ class TestTaskModule:
         assert selector(ctx_match) is True
         assert selector(ctx_no_match) is False
 
+    @pytestmark
     def test_on_fetch_is_invoke(self):
         @self.teams.task_module.on_fetch()
         async def handler(ctx, state, req): ...
 
         assert self.app._routes[0]["is_invoke"] is True
 
+    @pytestmark
     def test_on_submit_is_invoke(self):
         @self.teams.task_module.on_submit()
         async def handler(ctx, state, req): ...
@@ -177,6 +189,7 @@ class TestTaskModule:
 
     # ── Handler tests ───────────────────────────────────────────────────────
 
+    @pytestmark
     @pytest.mark.asyncio
     async def test_on_fetch_handler_passes_request_and_sends_response(self):
         response = TaskModuleResponse()
@@ -202,6 +215,7 @@ class TestTaskModule:
             assert isinstance(args[2], TaskModuleRequest)
             mock_send.assert_awaited_once_with(ctx, response)
 
+    @pytestmark
     @pytest.mark.asyncio
     async def test_on_fetch_handler_skips_send_when_none_returned(self):
         @self.teams.task_module.on_fetch()
@@ -226,6 +240,7 @@ class TestMessageExtension:
         self.app = _make_app()
         self.teams = TeamsAgentExtension(self.app)
 
+    @pytestmark
     def test_on_query_matches_by_first_parameter_value(self):
         @self.teams.message_extension.on_query("searchCmd")
         async def handler(ctx, state, query): ...
@@ -244,6 +259,7 @@ class TestMessageExtension:
         assert selector(ctx_match) is True
         assert selector(ctx_no_match) is False
 
+    @pytestmark
     def test_on_query_no_selector_matches_all(self):
         @self.teams.message_extension.on_query()
         async def handler(ctx, state, query): ...
@@ -262,12 +278,14 @@ class TestMessageExtension:
         assert selector(ctx) is True
         assert selector(ctx_no_params) is True
 
+    @pytestmark
     def test_on_query_is_invoke(self):
         @self.teams.message_extension.on_query()
         async def handler(ctx, state, query): ...
 
         assert self.app._routes[0]["is_invoke"] is True
 
+    @pytestmark
     def test_on_submit_action_excludes_preview(self):
         @self.teams.message_extension.on_submit_action()
         async def handler(ctx, state, action): ...
@@ -286,6 +304,7 @@ class TestMessageExtension:
         assert selector(ctx_normal) is True
         assert selector(ctx_preview) is False
 
+    @pytestmark
     def test_on_agent_message_preview_edit_selector(self):
         @self.teams.message_extension.on_agent_message_preview_edit()
         async def handler(ctx, state, action): ...
@@ -304,6 +323,7 @@ class TestMessageExtension:
         assert selector(ctx_edit) is True
         assert selector(ctx_send) is False
 
+    @pytestmark
     def test_on_agent_message_preview_send_selector(self):
         @self.teams.message_extension.on_agent_message_preview_send()
         async def handler(ctx, state, action): ...
@@ -322,6 +342,7 @@ class TestMessageExtension:
         assert selector(ctx_send) is True
         assert selector(ctx_edit) is False
 
+    @pytestmark
     def test_on_fetch_task_matches_command_id(self):
         @self.teams.message_extension.on_fetch_task("myCmd")
         async def handler(ctx, state, action): ...
@@ -340,6 +361,7 @@ class TestMessageExtension:
         assert selector(ctx_match) is True
         assert selector(ctx_no_match) is False
 
+    @pytestmark
     def test_on_query_link_selector(self):
         @self.teams.message_extension.on_query_link
         async def handler(ctx, state, query): ...
@@ -350,6 +372,7 @@ class TestMessageExtension:
         assert selector(ctx) is True
         assert selector(ctx_other) is False
 
+    @pytestmark
     def test_on_anonymous_query_link_selector(self):
         @self.teams.message_extension.on_anonymous_query_link
         async def handler(ctx, state, query): ...
@@ -358,6 +381,7 @@ class TestMessageExtension:
         ctx = _make_context(ActivityTypes.invoke, name="composeExtension/anonymousQueryLink")
         assert selector(ctx) is True
 
+    @pytestmark
     def test_on_select_item_selector(self):
         @self.teams.message_extension.on_select_item
         async def handler(ctx, state, item): ...
@@ -368,6 +392,7 @@ class TestMessageExtension:
         assert selector(ctx) is True
         assert selector(ctx_other) is False
 
+    @pytestmark
     def test_on_configure_settings_sends_empty_response(self):
         """on_configure_settings always sends a 200 regardless of handler return value."""
 
@@ -376,6 +401,7 @@ class TestMessageExtension:
 
         assert self.app._routes[0]["is_invoke"] is True
 
+    @pytestmark
     def test_on_card_button_clicked_selector(self):
         @self.teams.message_extension.on_card_button_clicked
         async def handler(ctx, state, data): ...
@@ -384,6 +410,7 @@ class TestMessageExtension:
         ctx = _make_context(ActivityTypes.invoke, name="composeExtension/onCardButtonClicked")
         assert selector(ctx) is True
 
+    @pytestmark
     @pytest.mark.asyncio
     async def test_on_query_handler_parses_query_and_sends_response(self):
         response = MessagingExtensionResponse()
@@ -408,6 +435,7 @@ class TestMessageExtension:
             assert isinstance(args[2], MessagingExtensionQuery)
             mock_send.assert_awaited_once_with(ctx, response)
 
+    @pytestmark
     @pytest.mark.asyncio
     async def test_on_configure_settings_always_sends_response(self):
         @self.teams.message_extension.on_configure_settings
@@ -431,6 +459,7 @@ class TestMeeting:
         self.app = _make_app()
         self.teams = TeamsAgentExtension(self.app)
 
+    @pytestmark
     def test_on_start_selector(self):
         @self.teams.meeting.on_start
         async def handler(ctx, state, meeting): ...
@@ -441,6 +470,7 @@ class TestMeeting:
         assert selector(ctx) is True
         assert selector(ctx_other) is False
 
+    @pytestmark
     def test_on_end_selector(self):
         @self.teams.meeting.on_end
         async def handler(ctx, state, meeting): ...
@@ -449,6 +479,7 @@ class TestMeeting:
         ctx = _make_context(ActivityTypes.event, name="application/vnd.microsoft.meetingEnd")
         assert selector(ctx) is True
 
+    @pytestmark
     def test_on_participants_join_selector(self):
         @self.teams.meeting.on_participants_join
         async def handler(ctx, state, details): ...
@@ -460,6 +491,7 @@ class TestMeeting:
         )
         assert selector(ctx) is True
 
+    @pytestmark
     def test_on_participants_leave_selector(self):
         @self.teams.meeting.on_participants_leave
         async def handler(ctx, state, details): ...
@@ -471,12 +503,14 @@ class TestMeeting:
         )
         assert selector(ctx) is True
 
+    @pytestmark
     def test_on_start_is_not_invoke(self):
         @self.teams.meeting.on_start
         async def handler(ctx, state, meeting): ...
 
         assert self.app._routes[0]["is_invoke"] is False
 
+    @pytestmark
     @pytest.mark.asyncio
     async def test_on_start_handler_parses_meeting_details(self):
         user_handler = AsyncMock()
@@ -495,6 +529,7 @@ class TestMeeting:
         args = user_handler.call_args[0]
         assert isinstance(args[2], MeetingDetails)
 
+    @pytestmark
     @pytest.mark.asyncio
     async def test_on_end_handler_parses_meeting_details(self):
         user_handler = AsyncMock()
@@ -513,6 +548,7 @@ class TestMeeting:
         args = user_handler.call_args[0]
         assert isinstance(args[2], MeetingDetails)
 
+    @pytestmark
     @pytest.mark.asyncio
     async def test_on_participants_join_handler_parses_details(self):
         user_handler = AsyncMock()
@@ -540,6 +576,7 @@ class TestTeamsAgentExtensionTopLevel:
 
     # ── Message edit / undelete / soft delete ───────────────────────────────
 
+    @pytestmark
     def test_on_message_edit_selector(self):
         @self.teams.on_message_edit
         async def handler(ctx, state): ...
@@ -551,6 +588,7 @@ class TestTeamsAgentExtensionTopLevel:
         )
         assert selector(ctx) is True
 
+    @pytestmark
     def test_on_message_edit_wrong_event_type(self):
         @self.teams.on_message_edit
         async def handler(ctx, state): ...
@@ -562,6 +600,7 @@ class TestTeamsAgentExtensionTopLevel:
         )
         assert selector(ctx) is False
 
+    @pytestmark
     def test_on_message_edit_wrong_channel(self):
         @self.teams.on_message_edit
         async def handler(ctx, state): ...
@@ -574,6 +613,7 @@ class TestTeamsAgentExtensionTopLevel:
         )
         assert selector(ctx) is False
 
+    @pytestmark
     def test_on_message_undelete_selector(self):
         @self.teams.on_message_undelete
         async def handler(ctx, state): ...
@@ -585,6 +625,7 @@ class TestTeamsAgentExtensionTopLevel:
         )
         assert selector(ctx) is True
 
+    @pytestmark
     def test_on_message_soft_delete_selector(self):
         @self.teams.on_message_soft_delete
         async def handler(ctx, state): ...
@@ -598,6 +639,7 @@ class TestTeamsAgentExtensionTopLevel:
 
     # ── Read receipt ───────────────────────────────────────────────────────
 
+    @pytestmark
     def test_on_read_receipt_selector(self):
         @self.teams.on_read_receipt
         async def handler(ctx, state, receipt): ...
@@ -606,6 +648,7 @@ class TestTeamsAgentExtensionTopLevel:
         ctx = _make_context(ActivityTypes.event, name="application/vnd.microsoft.readReceipt")
         assert selector(ctx) is True
 
+    @pytestmark
     @pytest.mark.asyncio
     async def test_on_read_receipt_handler_parses_receipt(self):
         user_handler = AsyncMock()
@@ -626,6 +669,7 @@ class TestTeamsAgentExtensionTopLevel:
 
     # ── Config ─────────────────────────────────────────────────────────────
 
+    @pytestmark
     def test_on_config_fetch_selector(self):
         @self.teams.on_config_fetch
         async def handler(ctx, state, data): ...
@@ -636,12 +680,14 @@ class TestTeamsAgentExtensionTopLevel:
         assert selector(ctx) is True
         assert selector(ctx_other) is False
 
+    @pytestmark
     def test_on_config_fetch_is_invoke(self):
         @self.teams.on_config_fetch
         async def handler(ctx, state, data): ...
 
         assert self.app._routes[0]["is_invoke"] is True
 
+    @pytestmark
     def test_on_config_submit_selector(self):
         @self.teams.on_config_submit
         async def handler(ctx, state, data): ...
@@ -652,6 +698,7 @@ class TestTeamsAgentExtensionTopLevel:
 
     # ── File consent ───────────────────────────────────────────────────────
 
+    @pytestmark
     def test_on_file_consent_accept_selector(self):
         @self.teams.on_file_consent_accept
         async def handler(ctx, state, data): ...
@@ -670,6 +717,7 @@ class TestTeamsAgentExtensionTopLevel:
         assert selector(ctx_accept) is True
         assert selector(ctx_decline) is False
 
+    @pytestmark
     def test_on_file_consent_decline_selector(self):
         @self.teams.on_file_consent_decline
         async def handler(ctx, state, data): ...
@@ -688,6 +736,7 @@ class TestTeamsAgentExtensionTopLevel:
         assert selector(ctx_decline) is True
         assert selector(ctx_accept) is False
 
+    @pytestmark
     @pytest.mark.asyncio
     async def test_on_file_consent_accept_sends_empty_response(self):
         @self.teams.on_file_consent_accept
@@ -708,6 +757,7 @@ class TestTeamsAgentExtensionTopLevel:
 
     # ── O365 ───────────────────────────────────────────────────────────────
 
+    @pytestmark
     def test_on_o365_connector_card_action_selector(self):
         @self.teams.on_o365_connector_card_action
         async def handler(ctx, state, query): ...
@@ -716,6 +766,7 @@ class TestTeamsAgentExtensionTopLevel:
         ctx = _make_context(ActivityTypes.invoke, name="actionableMessage/executeAction")
         assert selector(ctx) is True
 
+    @pytestmark
     @pytest.mark.asyncio
     async def test_on_o365_connector_card_action_parses_query(self):
         user_handler = AsyncMock()
@@ -740,6 +791,7 @@ class TestTeamsAgentExtensionTopLevel:
 
     # ── Conversation update events ─────────────────────────────────────────
 
+    @pytestmark
     def test_on_members_added_selector(self):
         @self.teams.on_members_added
         async def handler(ctx, state): ...
@@ -757,6 +809,7 @@ class TestTeamsAgentExtensionTopLevel:
         assert selector(ctx) is True
         assert selector(ctx_empty) is False
 
+    @pytestmark
     def test_on_members_added_requires_teams_channel(self):
         @self.teams.on_members_added
         async def handler(ctx, state): ...
@@ -770,6 +823,7 @@ class TestTeamsAgentExtensionTopLevel:
         )
         assert selector(ctx) is False
 
+    @pytestmark
     def test_on_members_removed_selector(self):
         @self.teams.on_members_removed
         async def handler(ctx, state): ...
@@ -782,6 +836,7 @@ class TestTeamsAgentExtensionTopLevel:
         )
         assert selector(ctx) is True
 
+    @pytestmark
     def test_on_channel_created_selector(self):
         @self.teams.on_channel_created
         async def handler(ctx, state): ...
@@ -798,6 +853,7 @@ class TestTeamsAgentExtensionTopLevel:
         assert selector(ctx) is True
         assert selector(ctx_other) is False
 
+    @pytestmark
     def test_on_channel_deleted_selector(self):
         @self.teams.on_channel_deleted
         async def handler(ctx, state): ...
@@ -809,6 +865,7 @@ class TestTeamsAgentExtensionTopLevel:
         )
         assert selector(ctx) is True
 
+    @pytestmark
     def test_on_channel_renamed_selector(self):
         @self.teams.on_channel_renamed
         async def handler(ctx, state): ...
@@ -820,6 +877,7 @@ class TestTeamsAgentExtensionTopLevel:
         )
         assert selector(ctx) is True
 
+    @pytestmark
     def test_on_channel_restored_selector(self):
         @self.teams.on_channel_restored
         async def handler(ctx, state): ...
@@ -831,6 +889,7 @@ class TestTeamsAgentExtensionTopLevel:
         )
         assert selector(ctx) is True
 
+    @pytestmark
     def test_on_team_archived_selector(self):
         @self.teams.on_team_archived
         async def handler(ctx, state): ...
@@ -842,6 +901,7 @@ class TestTeamsAgentExtensionTopLevel:
         )
         assert selector(ctx) is True
 
+    @pytestmark
     def test_on_team_deleted_selector(self):
         @self.teams.on_team_deleted
         async def handler(ctx, state): ...
@@ -853,6 +913,7 @@ class TestTeamsAgentExtensionTopLevel:
         )
         assert selector(ctx) is True
 
+    @pytestmark
     def test_on_team_hard_deleted_selector(self):
         @self.teams.on_team_hard_deleted
         async def handler(ctx, state): ...
@@ -864,6 +925,7 @@ class TestTeamsAgentExtensionTopLevel:
         )
         assert selector(ctx) is True
 
+    @pytestmark
     def test_on_team_renamed_selector(self):
         @self.teams.on_team_renamed
         async def handler(ctx, state): ...
@@ -875,6 +937,7 @@ class TestTeamsAgentExtensionTopLevel:
         )
         assert selector(ctx) is True
 
+    @pytestmark
     def test_on_team_restored_selector(self):
         @self.teams.on_team_restored
         async def handler(ctx, state): ...
@@ -886,6 +949,7 @@ class TestTeamsAgentExtensionTopLevel:
         )
         assert selector(ctx) is True
 
+    @pytestmark
     def test_on_team_unarchived_selector(self):
         @self.teams.on_team_unarchived
         async def handler(ctx, state): ...
@@ -899,6 +963,7 @@ class TestTeamsAgentExtensionTopLevel:
 
     # ── Sub-object accessors ────────────────────────────────────────────────
 
+    @pytestmark
     def test_properties_return_sub_objects(self):
         from microsoft_agents.hosting.teams.teams_agent_extension import (
             MessageExtension,
@@ -912,6 +977,7 @@ class TestTeamsAgentExtensionTopLevel:
 
     # ── Decorator style without args ────────────────────────────────────────
 
+    @pytestmark
     def test_on_message_edit_direct_decorator(self):
         """Verify on_message_edit works as @teams.on_message_edit (no call parens)."""
 
@@ -920,6 +986,7 @@ class TestTeamsAgentExtensionTopLevel:
 
         assert len(self.app._routes) == 1
 
+    @pytestmark
     def test_on_message_edit_factory_decorator(self):
         """Verify on_message_edit works as @teams.on_message_edit() (with call parens)."""
 
