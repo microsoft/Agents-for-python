@@ -88,13 +88,18 @@ class MessageExtension(Generic[StateT]):
         """Register a handler for composeExtension/query invokes."""
 
         def __selector(context: TurnContext) -> bool:
-            parameters = (context.activity.value or {}).get("parameters") or [{}]
+            value = context.activity.value or {}
+            parameters = value.get("parameters") or [{}]
+            selected_command_id = value.get("commandId")
+            if selected_command_id is None:
+                selected_command_id = parameters[0].get("value")
+
             return (
                 context.activity.type == ActivityTypes.invoke
                 and context.activity.name == "composeExtension/query"
                 and _match_selector(
                     command_id,
-                    parameters[0].get("value"),
+                    selected_command_id,
                 )
             )
 
