@@ -58,7 +58,7 @@ Some clients send `initialRun=true` when the extension first opens. Playground
 doesn't surface this directly, but you can hit it by:
 
 - Restarting the agent.
-- Opening the **Search Command** dropdown without typing — Playground auto-sends an empty query. To force `initialRun=true`, change the **Parameter name** field to `initialRun` and set its value to `true` (you'll need to send via the raw `Adaptive Card / Activity payload` panel if your Playground build supports it; otherwise verify this branch in a unit test instead — the branch is just a single `if` and is exercised by the existing test `test_on_query_handler_parses_query_and_sends_response`'s shape).
+- Opening the **Search Command** dropdown without typing — Playground auto-sends an empty query. To force `initialRun=true`, change the **Parameter name** field to `initialRun` and set its value to `true` (you'll need to send via the raw `Adaptive Card / Activity payload` panel if your Playground build supports it; otherwise verify this branch with a dedicated unit test that explicitly sets `initialRun=true` and validates the sample agent's behavior).
 
 ---
 
