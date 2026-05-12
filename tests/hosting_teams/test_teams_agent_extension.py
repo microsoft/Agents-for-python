@@ -241,7 +241,7 @@ class TestMessageExtension:
         self.teams = TeamsAgentExtension(self.app)
 
     @pytestmark
-    def test_on_query_matches_by_first_parameter_value(self):
+    def test_on_query_matches_by_command_id(self):
         @self.teams.message_extension.on_query("searchCmd")
         async def handler(ctx, state, query): ...
 
@@ -249,12 +249,12 @@ class TestMessageExtension:
         ctx_match = _make_context(
             ActivityTypes.invoke,
             name="composeExtension/query",
-            value={"parameters": [{"name": "searchQuery", "value": "searchCmd"}]},
+            value={"commandId": "searchCmd", "parameters": [{"name": "searchQuery", "value": "pizza"}]},
         )
         ctx_no_match = _make_context(
             ActivityTypes.invoke,
             name="composeExtension/query",
-            value={"parameters": [{"name": "searchQuery", "value": "other"}]},
+            value={"commandId": "other", "parameters": [{"name": "searchQuery", "value": "searchCmd"}]},
         )
         assert selector(ctx_match) is True
         assert selector(ctx_no_match) is False

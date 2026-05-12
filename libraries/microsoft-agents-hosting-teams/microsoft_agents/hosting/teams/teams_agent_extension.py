@@ -89,17 +89,12 @@ class MessageExtension(Generic[StateT]):
 
         def __selector(context: TurnContext) -> bool:
             value = context.activity.value or {}
-            parameters = value.get("parameters") or [{}]
-            selected_command_id = value.get("commandId")
-            if selected_command_id is None:
-                selected_command_id = parameters[0].get("value")
-
             return (
                 context.activity.type == ActivityTypes.invoke
                 and context.activity.name == "composeExtension/query"
                 and _match_selector(
                     command_id,
-                    selected_command_id,
+                    value.get("commandId"),
                 )
             )
 
