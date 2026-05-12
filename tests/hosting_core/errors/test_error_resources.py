@@ -5,11 +5,18 @@
 Tests for error resources and error message formatting.
 """
 
+import sys
+
 import pytest
 from microsoft_agents.hosting.core.errors import (
     ErrorMessage,
     ErrorResources,
     error_resources,
+)
+
+_requires_py312_teams = pytest.mark.skipif(
+    sys.version_info < (3, 12),
+    reason="microsoft-agents-hosting-teams tests require Python 3.12+",
 )
 
 
@@ -161,6 +168,7 @@ class TestDistributedErrorResources:
         except ImportError:
             pytest.skip("Storage Blob package not available")
 
+    @_requires_py312_teams
     def test_teams_errors_exist(self):
         """Test that teams errors are defined in their package."""
         try:
@@ -233,6 +241,7 @@ class TestDistributedErrorResources:
         except ImportError:
             pytest.skip("Storage Cosmos package not available")
 
+    @_requires_py312_teams
     def test_teams_error_format(self):
         """Test teams error formatting."""
         try:

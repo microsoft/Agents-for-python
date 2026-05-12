@@ -4,8 +4,14 @@ Licensed under the MIT License.
 """
 
 import re
+import sys
 import pytest
 from unittest.mock import AsyncMock, MagicMock, patch
+
+pytestmark = pytest.mark.skipif(
+    sys.version_info < (3, 12),
+    reason="microsoft-agents-hosting-teams tests require Python 3.12+",
+)
 
 from microsoft_agents.activity import Activity, ActivityTypes
 from microsoft_agents.activity.teams import (
