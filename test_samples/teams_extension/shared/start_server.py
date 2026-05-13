@@ -23,4 +23,8 @@ def start_server(
     APP["agent_app"] = agent_application
     APP["adapter"] = agent_application.adapter
 
-    run_app(APP, host="localhost", port=int(environ.get("PORT", "3978")))
+    run_app(
+        APP,
+        host=environ.get("HOST", "localhost"),
+        port=int(environ.get("PORT", "3978")),
+    )
