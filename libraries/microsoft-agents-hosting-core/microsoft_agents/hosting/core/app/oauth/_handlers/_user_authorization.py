@@ -9,6 +9,8 @@ import jwt
 from typing import Optional
 
 from microsoft_agents.activity import (
+    Activity,
+    ActivityTypes,
     Attachment,
     ActionTypes,
     CardAction,
@@ -16,6 +18,14 @@ from microsoft_agents.activity import (
     TokenResponse,
 )
 
+from microsoft_agents.activity.invoke_response import InvokeResponse
+from microsoft_agents.activity.token_exchange_invoke_request import (
+    TokenExchangeInvokeRequest,
+)
+from microsoft_agents.activity.token_exchange_invoke_response import (
+    TokenExchangeInvokeResponse,
+)
+from microsoft_agents.hosting.core._oauth._flow_state import _FlowErrorTag
 from microsoft_agents.hosting.core.card_factory import CardFactory
 from microsoft_agents.hosting.core.message_factory import MessageFactory
 from microsoft_agents.hosting.core.connector.client import UserTokenClient
@@ -201,6 +211,26 @@ class _UserAuthorization(_AuthorizationHandler):
             else:
                 logger.warning("Sign-in flow failed for unknown reasons.")
                 await context.send_activity("Sign-in failed. Please try again.")
+        elif (
+            flow_state.tag == _FlowStateTag.CONTINUE
+            and flow_response.flow_error_tag == _FlowErrorTag.PRECONDITION_FAILED
+        ):
+            token_exchange_request = TokenExchangeInvokeRequest().model_validate(
+                context.activity.value
+            )
+            await context.send_activity(
+                Activity(
+                    type=ActivityTypes.invoke_response,
+                    value=InvokeResponse(
+                        status=412,
+                        body=TokenExchangeInvokeResponse(
+                            id=token_exchange_request.id,
+                            connection_name=flow_state.connection,
+                            failure_detail="The Agent is unable to exchange token. Proceed with regular login.",
+                        ),
+                    ).model_dump(exclude_unset=True),
+                )
+            )
 
     async def _sign_in(
         self,
