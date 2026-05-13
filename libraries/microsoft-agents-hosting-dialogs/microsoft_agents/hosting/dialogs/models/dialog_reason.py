@@ -7,17 +7,17 @@ class DialogReason(Enum):
     """
     Indicates in which a dialog-related method is being called.
 
-    :var BeginCalled: A dialog is being started through a call to :meth:`DialogContext.begin()`.
+    :var BeginCalled: A dialog is being started through a call to :meth:`microsoft_agents.hosting.dialogs.DialogContext.begin`.
     :vartype BeginCalled: int
-    :var ContinueCalled: A dialog is being continued through a call to :meth:`DialogContext.continue_dialog()`.
+    :var ContinueCalled: A dialog is being continued through a call to :meth:`microsoft_agents.hosting.dialogs.DialogContext.continue_dialog`.
     :vartype ContinueCalled: int
-    :var EndCalled: A dialog ended normally through a call to :meth:`DialogContext.end_dialog()
+    :var EndCalled: A dialog ended normally through a call to :meth:`microsoft_agents.hosting.dialogs.DialogContext.end_dialog`
     :vartype EndCalled: int
-    :var ReplaceCalled: A dialog is ending and replaced through a call to :meth:``DialogContext.replace_dialog()`.
+    :var ReplaceCalled: A dialog is ending and replaced through a call to :meth:``microsoft_agents.hosting.dialogs.DialogContext.replace_dialog`.
     :vartype ReplacedCalled: int
-    :var CancelCalled: A dialog was cancelled as part of a call to :meth:`DialogContext.cancel_all_dialogs()`.
+    :var CancelCalled: A dialog was cancelled as part of a call to :meth:`microsoft_agents.hosting.dialogs.DialogContext.cancel_all_dialogs`.
     :vartype CancelCalled: int
-    :var NextCalled: A preceding step was skipped through a call to :meth:`WaterfallStepContext.next()`.
+    :var NextCalled: A preceding step was skipped through a call to :meth:`microsoft_agents.hosting.dialogs.WaterfallStepContext.next`.
     :vartype NextCalled: int
     """
 

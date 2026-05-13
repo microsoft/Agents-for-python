@@ -44,12 +44,12 @@ class ActivityPrompt(Dialog):
         """Starts the prompt by sending the initial prompt activity.
 
         Initialises persisted state with an attempt count of 0, then calls
-        :meth:`on_prompt`.
+        :meth:`microsoft_agents.hosting.dialogs.ActivityPrompt.on_prompt`.
 
         :param dialog_context: The dialog context for the current turn.
-        :param options: Must be a :class:`PromptOptions` instance.
-        :raises TypeError: If ``options`` is not a :class:`PromptOptions`.
-        :return: :attr:`Dialog.end_of_turn` to wait for the user's response.
+        :param options: Must be a :class:`microsoft_agents.hosting.dialogs.PromptOptions` instance.
+        :raises TypeError: If ``options`` is not a :class:`microsoft_agents.hosting.dialogs.PromptOptions`.
+        :return: :attr:`microsoft_agents.hosting.dialogs.Dialog.end_of_turn` to wait for the user's response.
         """
         if not dialog_context:
             raise TypeError("ActivityPrompt.begin_dialog(): dc cannot be None.")
@@ -85,18 +85,18 @@ class ActivityPrompt(Dialog):
         """Processes the next incoming activity through the prompt.
 
         Increments the persisted attempt count **before** calling the validator,
-        so :attr:`PromptValidatorContext.attempt_count` is at least 1 on the
+        so :attr:`microsoft_agents.hosting.dialogs.PromptValidatorContext.attempt_count` is at least 1 on the
         first validation call.
 
         .. note::
-            This differs from the base :class:`Prompt` class, where
+            This differs from the base :class:`microsoft_agents.hosting.dialogs.Prompt` class, where
             ``attempt_count`` is never stored in state and is always 0 when the
             validator runs.  Code that validates both ``ActivityPrompt`` and
             ``Prompt`` subclasses should rely on
-            :attr:`PromptOptions.number_of_attempts` for consistent counting.
+            :attr:`microsoft_agents.hosting.dialogs.PromptOptions.number_of_attempts` for consistent counting.
 
         :param dialog_context: The dialog context for the current turn.
-        :return: :attr:`Dialog.end_of_turn` while waiting for valid input, or
+        :return: :attr:`microsoft_agents.hosting.dialogs.Dialog.end_of_turn` while waiting for valid input, or
             a Complete result once the validator accepts the activity.
         """
         if not dialog_context:
@@ -194,7 +194,7 @@ class ActivityPrompt(Dialog):
         :param state: Persisted prompt state.
         :param options: Prompt options.
         :return: A result with ``succeeded=True`` and ``value`` set to the
-            current :class:`Activity`.
+            current :class:`microsoft_agents.activity.Activity`.
         """
         result = PromptRecognizerResult()
         result.succeeded = True

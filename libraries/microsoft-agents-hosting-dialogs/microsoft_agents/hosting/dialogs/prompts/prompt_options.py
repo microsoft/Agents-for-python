@@ -7,7 +7,7 @@ from microsoft_agents.hosting.dialogs.choices import Choice, ListStyle
 
 class PromptOptions:
     """
-    Contains settings to pass to a :class:`Prompt` object when the prompt is started.
+    Contains settings to pass to a :class:`microsoft_agents.hosting.dialogs.Prompt` object when the prompt is started.
     """
 
     def __init__(
@@ -20,13 +20,13 @@ class PromptOptions:
         number_of_attempts: int = 0,
     ):
         """
-        Contains settings to pass to a :class:`Prompt` when the prompt is started.
+        Contains settings to pass to a :class:`microsoft_agents.hosting.dialogs.Prompt` when the prompt is started.
 
         :param prompt: The initial prompt activity to send to the user.
         :type prompt: :class:`microsoft_agents.activity.Activity`
         :param retry_prompt: The activity to send when the user's input fails validation.
         :type retry_prompt: :class:`microsoft_agents.activity.Activity`
-        :param choices: The list of choices presented to the user (used by :class:`ChoicePrompt`).
+        :param choices: The list of choices presented to the user (used by :class:`microsoft_agents.hosting.dialogs.ChoicePrompt`).
         :type choices: list[:class:`microsoft_agents.hosting.dialogs.choices.Choice`]
         :param style: Controls how the choice list is rendered.
         :type style: :class:`microsoft_agents.hosting.dialogs.choices.ListStyle`

@@ -84,7 +84,7 @@ class ConversationBuilder:
             when the requestor differs from the audience).
         :type requestor_id: Optional[str]
         :return: A builder pre-populated with the supplied claims.
-        :rtype: :class:`ConversationBuilder`
+        :rtype: :class:`microsoft_agents.hosting.core.app.proactive.ConversationBuilder`
         """
         builder = cls()
         builder._channel_id = channel_id
@@ -119,7 +119,7 @@ class ConversationBuilder:
         :param service_url: Override the service URL.
         :type service_url: Optional[str]
         :return: A builder pre-populated with the identity's claims.
-        :rtype: :class:`ConversationBuilder`
+        :rtype: :class:`microsoft_agents.hosting.core.app.proactive.ConversationBuilder`
         """
         builder = cls()
         builder._channel_id = channel_id
@@ -152,7 +152,7 @@ class ConversationBuilder:
         :param user_name: Optional display name.
         :type user_name: Optional[str]
         :return: ``self`` for chaining.
-        :rtype: :class:`ConversationBuilder`
+        :rtype: :class:`microsoft_agents.hosting.core.app.proactive.ConversationBuilder`
         """
         self._user_id = user_id
         self._user_name = user_name
@@ -174,7 +174,7 @@ class ConversationBuilder:
         :param tenant_id: Optional tenant ID.
         :type tenant_id: Optional[str]
         :return: ``self`` for chaining.
-        :rtype: :class:`ConversationBuilder`
+        :rtype: :class:`microsoft_agents.hosting.core.app.proactive.ConversationBuilder`
         """
         self._conversation_id = conversation_id
         self._conversation_name = conversation_name
@@ -188,7 +188,7 @@ class ConversationBuilder:
         :param activity_id: The activity ID.
         :type activity_id: str
         :return: ``self`` for chaining.
-        :rtype: :class:`ConversationBuilder`
+        :rtype: :class:`microsoft_agents.hosting.core.app.proactive.ConversationBuilder`
         """
         self._activity_id = activity_id
         return self

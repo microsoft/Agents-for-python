@@ -37,19 +37,19 @@ class Proactive(Generic[StateT]):
     """
     Proactive messaging support for :class:`~microsoft_agents.hosting.core.app.agent_application.AgentApplication`.
 
-    This class is attached to :attr:`AgentApplication.proactive` automatically when
+    This class is attached to :attr:`microsoft_agents.hosting.core.AgentApplication.proactive` automatically when
     :attr:`~microsoft_agents.hosting.core.app.app_options.ApplicationOptions.proactive` options are
     provided.  It provides methods to:
 
     * **Persist** a conversation reference so it can be resumed later
-      (:meth:`store_conversation`, :meth:`get_conversation`,
-      :meth:`delete_conversation`).
+      (:meth:`microsoft_agents.hosting.core.app.proactive.Proactive.store_conversation`, :meth:`microsoft_agents.hosting.core.app.proactive.Proactive.get_conversation`,
+      :meth:`microsoft_agents.hosting.core.app.proactive.Proactive.delete_conversation`).
     * **Continue** an existing conversation proactively
-      (:meth:`continue_conversation`).
+      (:meth:`microsoft_agents.hosting.core.app.proactive.Proactive.continue_conversation`).
     * **Send** a single activity into an existing conversation
-      (:meth:`send_activity`).
+      (:meth:`microsoft_agents.hosting.core.app.proactive.Proactive.send_activity`).
     * **Create** a brand-new conversation with a user
-      (:meth:`create_conversation`).
+      (:meth:`microsoft_agents.hosting.core.app.proactive.Proactive.create_conversation`).
 
     Example — store then resume::
 
@@ -243,13 +243,13 @@ class Proactive(Generic[StateT]):
         :type continuation_activity: Optional[:class:`~microsoft_agents.activity.Activity`]
         :param token_handlers: Optional list of OAuth connection names whose
             tokens must be available before *handler* is invoked.  When
-            :attr:`~ProactiveOptions.fail_on_unsigned_in_connections` is ``True``
+            :attr:`~microsoft_agents.hosting.core.app.proactive.ProactiveOptions.fail_on_unsigned_in_connections` is ``True``
             (the default) and a token is missing a :exc:`RuntimeError` is raised.
         :type token_handlers: Optional[list[str]]
         :raises KeyError: If *conversation_id_or_conversation* is a string and the
             conversation is not found in storage.
         :raises RuntimeError: If a required OAuth token is not available and
-            :attr:`~ProactiveOptions.fail_on_unsigned_in_connections` is ``True``.
+            :attr:`~microsoft_agents.hosting.core.app.proactive.ProactiveOptions.fail_on_unsigned_in_connections` is ``True``.
         """
         conversation = await self._resolve_conversation(conversation_id_or_conversation)
 

@@ -74,7 +74,7 @@ class ConversationReferenceBuilder:
         :param conversation_id: The existing conversation ID.
         :type conversation_id: str
         :return: A builder pre-populated with the channel and conversation.
-        :rtype: :class:`ConversationReferenceBuilder`
+        :rtype: :class:`microsoft_agents.hosting.core.app.proactive.ConversationReferenceBuilder`
         """
         builder = cls()
         builder._channel_id = channel_id
@@ -103,7 +103,7 @@ class ConversationReferenceBuilder:
             URL for the channel is used.
         :type service_url: Optional[str]
         :return: A builder pre-populated for the agent.
-        :rtype: :class:`ConversationReferenceBuilder`
+        :rtype: :class:`microsoft_agents.hosting.core.app.proactive.ConversationReferenceBuilder`
         """
         builder = cls()
         builder._channel_id = channel_id
@@ -134,7 +134,7 @@ class ConversationReferenceBuilder:
         :param agent_name: Optional display name.
         :type agent_name: Optional[str]
         :return: ``self`` for chaining.
-        :rtype: :class:`ConversationReferenceBuilder`
+        :rtype: :class:`microsoft_agents.hosting.core.app.proactive.ConversationReferenceBuilder`
         """
         self._agent_id = agent_id
         self._agent_name = agent_name
@@ -153,7 +153,7 @@ class ConversationReferenceBuilder:
         :param user_name: Optional display name.
         :type user_name: Optional[str]
         :return: ``self`` for chaining.
-        :rtype: :class:`ConversationReferenceBuilder`
+        :rtype: :class:`microsoft_agents.hosting.core.app.proactive.ConversationReferenceBuilder`
         """
         self._user_id = user_id
         self._user_name = user_name
@@ -166,7 +166,7 @@ class ConversationReferenceBuilder:
         :param service_url: The service URL to use.
         :type service_url: str
         :return: ``self`` for chaining.
-        :rtype: :class:`ConversationReferenceBuilder`
+        :rtype: :class:`microsoft_agents.hosting.core.app.proactive.ConversationReferenceBuilder`
         """
         self._service_url = service_url
         return self
@@ -178,7 +178,7 @@ class ConversationReferenceBuilder:
         :param activity_id: The activity ID.
         :type activity_id: str
         :return: ``self`` for chaining.
-        :rtype: :class:`ConversationReferenceBuilder`
+        :rtype: :class:`microsoft_agents.hosting.core.app.proactive.ConversationReferenceBuilder`
         """
         self._activity_id = activity_id
         return self
@@ -190,7 +190,7 @@ class ConversationReferenceBuilder:
         :param locale: BCP-47 locale string (e.g. ``"en-US"``).
         :type locale: str
         :return: ``self`` for chaining.
-        :rtype: :class:`ConversationReferenceBuilder`
+        :rtype: :class:`microsoft_agents.hosting.core.app.proactive.ConversationReferenceBuilder`
         """
         self._locale = locale
         return self

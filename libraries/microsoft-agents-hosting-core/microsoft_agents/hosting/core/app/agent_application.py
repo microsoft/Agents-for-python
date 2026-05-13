@@ -308,7 +308,7 @@ class AgentApplication(Agent, Generic[StateT]):
         :type activity_type: Union[str, microsoft_agents.activity.ActivityTypes, list[Union[str, microsoft_agents.activity.ActivityTypes]]]
         :param auth_handlers: Optional list of authorization handler IDs for the route.
         :type auth_handlers: Optional[list[str]]
-        :param kwargs: Additional route configuration passed to :meth:`add_route`.
+        :param kwargs: Additional route configuration passed to :meth:`microsoft_agents.hosting.core.AgentApplication.add_route`.
         """
 
         def __selector(context: TurnContext):
@@ -345,7 +345,7 @@ class AgentApplication(Agent, Generic[StateT]):
         :type select: Union[str, Pattern[str], list[Union[str, Pattern[str]]]]
         :param auth_handlers: Optional list of authorization handler IDs for the route.
         :type auth_handlers: Optional[list[str]]
-        :param kwargs: Additional route configuration passed to :meth:`add_route`.
+        :param kwargs: Additional route configuration passed to :meth:`microsoft_agents.hosting.core.AgentApplication.add_route`.
         """
 
         def __selector(context: TurnContext):
@@ -390,7 +390,7 @@ class AgentApplication(Agent, Generic[StateT]):
         :type type: microsoft_agents.activity.ConversationUpdateTypes
         :param auth_handlers: Optional list of authorization handler IDs for the route.
         :type auth_handlers: Optional[list[str]]
-        :param kwargs: Additional route configuration passed to :meth:`add_route`.
+        :param kwargs: Additional route configuration passed to :meth:`microsoft_agents.hosting.core.AgentApplication.add_route`.
         """
 
         def __selector(context: TurnContext):
@@ -444,7 +444,7 @@ class AgentApplication(Agent, Generic[StateT]):
         :type type: microsoft_agents.activity.MessageReactionTypes
         :param auth_handlers: Optional list of authorization handler IDs for the route.
         :type auth_handlers: Optional[list[str]]
-        :param kwargs: Additional route configuration passed to :meth:`add_route`.
+        :param kwargs: Additional route configuration passed to :meth:`microsoft_agents.hosting.core.AgentApplication.add_route`.
         """
 
         def __selector(context: TurnContext):
@@ -494,7 +494,7 @@ class AgentApplication(Agent, Generic[StateT]):
         :type type: microsoft_agents.activity.MessageUpdateTypes
         :param auth_handlers: Optional list of authorization handler IDs for the route.
         :type auth_handlers: Optional[list[str]]
-        :param kwargs: Additional route configuration passed to :meth:`add_route`.
+        :param kwargs: Additional route configuration passed to :meth:`microsoft_agents.hosting.core.AgentApplication.add_route`.
         """
 
         def __selector(context: TurnContext):
@@ -553,7 +553,7 @@ class AgentApplication(Agent, Generic[StateT]):
 
         :param auth_handlers: Optional list of authorization handler IDs for the route.
         :type auth_handlers: Optional[list[str]]
-        :param kwargs: Additional route configuration passed to :meth:`add_route`.
+        :param kwargs: Additional route configuration passed to :meth:`microsoft_agents.hosting.core.AgentApplication.add_route`.
         """
 
         def __selector(context: TurnContext) -> bool:
