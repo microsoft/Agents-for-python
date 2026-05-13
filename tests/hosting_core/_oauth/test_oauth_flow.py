@@ -32,25 +32,22 @@ def create_testing_Activity(
     value=None,
     text="a",
 ):
-    # mock_conversation_ref = mocker.MagicMock(ConversationReference)
     conversation_reference = ConversationReference(
         conversation={"id": "conv1"},
     )
-    mocker.patch.object(
-        Activity,
-        "get_conversation_reference",
-        return_value=conversation_reference,
-    )
-    return Activity(
+    activity = Activity(
         type=type,
         name=name,
         from_property=ChannelAccount(id=DEFAULTS.user_id),
+        recipient=ChannelAccount(id="agent-id"),
+        conversation={"id": "conv1"},
         channel_id=DEFAULTS.channel_id,
-        # get_conversation_reference=mocker.Mock(return_value=conv_ref),
+        service_url=DEFAULTS.service_url,
         relates_to=conversation_reference,
         value=value,
         text=text,
     )
+    return activity
 
 
 class TestUtils(FlowStateFixtures):
@@ -174,6 +171,9 @@ class TestOAuthFlow(TestUtils):
         mocker.patch.object(
             TokenExchangeState, "get_encoded_state", return_value="encoded_state"
         )
+        get_conversation_reference_spy = mocker.spy(
+            Activity, "get_conversation_reference"
+        )
         flow = _OAuthFlow(flow_state, user_token_client)
         expected_flow_state = flow_state
         expected_flow_state.tag = _FlowStateTag.COMPLETE
@@ -197,8 +197,8 @@ class TestOAuthFlow(TestUtils):
             activity.channel_id,
             "encoded_state",
         )
-        Activity.get_conversation_reference.assert_called_once_with(
-            force_base_channel=True
+        get_conversation_reference_spy.assert_any_call(
+            activity, force_base_channel=True
         )
 
     @pytest.mark.asyncio
