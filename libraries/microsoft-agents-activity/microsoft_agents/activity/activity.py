@@ -640,11 +640,7 @@ class Activity(AgentsModel, _ChannelIdFieldMixin):
             agent=copy(self.recipient),
             conversation=copy(self.conversation),
             channel_id=(
-                (
-                    self.channel_id.channel
-                    if hasattr(self.channel_id, "channel")
-                    else str(self.channel_id).split(":", 1)[0]
-                )
+                str(self.channel_id).split(":", 1)[0]
                 if force_base_channel and self.channel_id is not None
                 else self.channel_id
             ),
