@@ -1,0 +1,2 @@
+microsoft-agents-hosting-slack
+python-dotenv
