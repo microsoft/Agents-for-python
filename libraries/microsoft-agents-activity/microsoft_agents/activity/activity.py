@@ -626,6 +626,7 @@ class Activity(AgentsModel, _ChannelIdFieldMixin):
 
         :param force_base_channel: Optional, when True use only the base channel value
             from the channel id (for example ``msteams`` from ``msteams:copilot-web``).
+            Composite values are split only on the first ``:``.
         :returns: A conversation reference for the conversation that contains this activity.
         """
         return pick_model(
@@ -640,7 +641,7 @@ class Activity(AgentsModel, _ChannelIdFieldMixin):
             agent=copy(self.recipient),
             conversation=copy(self.conversation),
             channel_id=(
-                str(self.channel_id).split(":", 1)[0]
+                self.channel_id.split(":", 1)[0]
                 if force_base_channel and self.channel_id is not None
                 else self.channel_id
             ),
