@@ -187,7 +187,7 @@ class _OAuthFlow:
 
         token_exchange_state = TokenExchangeState(
             connection_name=self._abs_oauth_connection_name,
-            conversation=activity.get_conversation_reference(),
+            conversation=activity.get_conversation_reference(force_base_channel=True),
             relates_to=activity.relates_to,
             ms_app_id=self._ms_app_id,
         )

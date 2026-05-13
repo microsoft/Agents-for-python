@@ -197,6 +197,9 @@ class TestOAuthFlow(TestUtils):
             activity.channel_id,
             "encoded_state",
         )
+        Activity.get_conversation_reference.assert_called_once_with(
+            force_base_channel=True
+        )
 
     @pytest.mark.asyncio
     async def test_begin_flow_long_case(self, mocker, flow_state, activity):

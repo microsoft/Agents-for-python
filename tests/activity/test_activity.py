@@ -66,6 +66,15 @@ class TestActivityConversationOps:
         assert activity.locale == conversation_reference.locale
         assert activity.service_url == conversation_reference.service_url
 
+    def test_get_conversation_reference_force_base_channel(self, activity):
+        activity.channel_id = "msteams:copilot-web"
+
+        conversation_reference = activity.get_conversation_reference(
+            force_base_channel=True
+        )
+
+        assert conversation_reference.channel_id == "msteams"
+
     def test_get_reply_conversation_reference(self, activity):
         reply = ResourceResponse(id="1234")
         conversation_reference = activity.get_reply_conversation_reference(reply)
