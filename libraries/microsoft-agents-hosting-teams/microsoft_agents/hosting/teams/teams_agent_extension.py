@@ -174,10 +174,20 @@ class MessageExtension(Generic[StateT]):
                 or context.activity.name != "composeExtension/submitAction"
             ):
                 return False
-            value = context.activity.value or {}
-            if value.get("botMessagePreviewAction"):
+            value = context.activity.value
+            if isinstance(value, dict):
+                bot_message_preview_action = value.get("botMessagePreviewAction")
+                resolved_command_id = value.get("commandId") or value.get("command_id")
+            else:
+                bot_message_preview_action = getattr(
+                    value, "botMessagePreviewAction", None
+                )
+                resolved_command_id = getattr(value, "commandId", None) or getattr(
+                    value, "command_id", None
+                )
+            if bot_message_preview_action:
                 return False
-            return _match_selector(command_id, value.get("commandId"))
+            return _match_selector(command_id, resolved_command_id)
 
         def __call(func: Callable) -> Callable:
             async def __handler(context: TurnContext, state: StateT) -> None:
