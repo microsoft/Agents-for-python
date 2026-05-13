@@ -77,7 +77,11 @@ class TestActivityConversationOps:
 
     @pytest.mark.parametrize(
         "channel_id, expected_base_channel",
-        [("msteams", "msteams"), ("msteams:copilot:web", "msteams")],
+        [
+            ("msteams", "msteams"),
+            ("msteams:copilot-web", "msteams"),
+            ("msteams:copilot:web", "msteams"),
+        ],
     )
     def test_get_conversation_reference_force_base_channel_variants(
         self, activity, channel_id, expected_base_channel

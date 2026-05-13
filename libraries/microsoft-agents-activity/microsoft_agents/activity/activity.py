@@ -625,7 +625,7 @@ class Activity(AgentsModel, _ChannelIdFieldMixin):
         Creates a ConversationReference based on this activity.
 
         :param force_base_channel: Optional, when True use only the base channel value
-            from the channel id (for example ``msteams`` from ``msteams:copilotweb``).
+            from the channel id (for example ``msteams`` from ``msteams:copilot-web``).
         :returns: A conversation reference for the conversation that contains this activity.
         """
         return pick_model(
