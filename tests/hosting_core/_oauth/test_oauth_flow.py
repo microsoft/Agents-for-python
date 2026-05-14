@@ -1,3 +1,6 @@
+import base64
+import json
+
 import pytest
 
 from microsoft_agents.activity import (
@@ -31,6 +34,7 @@ def create_testing_Activity(
     name="a",
     value=None,
     text="a",
+    channel_id=DEFAULTS.channel_id,
 ):
     conversation_reference = ConversationReference(
         conversation={"id": "conv1"},
@@ -41,7 +45,7 @@ def create_testing_Activity(
         from_property=ChannelAccount(id=DEFAULTS.user_id),
         recipient=ChannelAccount(id="agent-id"),
         conversation={"id": "conv1"},
-        channel_id=DEFAULTS.channel_id,
+        channel_id=channel_id,
         service_url=DEFAULTS.service_url,
         relates_to=conversation_reference,
         value=value,
@@ -194,12 +198,30 @@ class TestOAuthFlow(TestUtils):
         user_token_client.user_token._get_token_or_sign_in_resource.assert_called_once_with(
             activity.from_property.id,
             flow_state.connection,
-            activity.channel_id,
+            activity.channel_id.split(":", 1)[0],
             "encoded_state",
         )
         get_conversation_reference_spy.assert_any_call(
             activity, force_base_channel=True
         )
+
+    @pytest.mark.asyncio
+    async def test_begin_flow_uses_base_channel_for_composite_channel(self, mocker):
+        activity = self.Activity(mocker, channel_id="msteams:copilot-web")
+        user_token_client = self.UserTokenClient(
+            mocker,
+            get_token_or_sign_in_resource_return=TokenResponse(token=DEFAULTS.token),
+        )
+        flow = _OAuthFlow(FLOW_DATA.started.model_copy(), user_token_client)
+
+        await flow.begin_flow(activity)
+
+        token_call_args = (
+            user_token_client.user_token._get_token_or_sign_in_resource.call_args.args
+        )
+        assert token_call_args[2] == "msteams"
+        decoded_state = json.loads(base64.b64decode(token_call_args[3]).decode("utf-8"))
+        assert decoded_state["conversation"]["channelId"] == "msteams"
 
     @pytest.mark.asyncio
     async def test_begin_flow_long_case(self, mocker, flow_state, activity):
