@@ -1,0 +1,86 @@
+name: Nightly Build when something has changed in the last 24 hrs.
+
+on:
+  schedule:
+    - cron: "0 10 * * *" # runs at 2am PST (10am UTC) every day
+  workflow_dispatch:
+
+env:
+  AzDevOpsPipelineId: TBD # TODO: Update with actual Azure DevOps Pipeline ID
+
+permissions:
+  id-token: write
+  contents: read
+
+jobs:
+  check_date:
+    runs-on: ubuntu-latest
+    name: Check latest commit
+    outputs:
+      should_run: ${{ steps.should_run.outputs.should_run }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: print latest_commit
+        run: echo ${{ github.sha }}
+      - id: should_run
+        continue-on-error: true
+        name: check latest commit is less than a day
+        if: ${{ github.event_name == 'schedule' }}
+        run: test -z $(git rev-list --after="24 hours" ${{ github.sha }}) && echo "should_run=false" >> $GITHUB_OUTPUT
+
+  trigger-nightly:
+    needs: check_date
+    if: ${{ needs.check_date.outputs.should_run != 'false' }}
+    name: Nightly Build when something has changed in the last 24 hrs.
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Get Azure DevOps Access Token
+        id: getToken
+        uses: "./.github/actions/get-ado-token"
+        with:
+          client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          organization: ${{ vars.AZDEVOPS_ORGANIZATION }}
+      - name: Trigger Azure DevOps Pipeline
+        id: trigger
+        run: |
+          response=$(curl -v -X POST \
+            -H "Authorization: Bearer ${{ steps.getToken.outputs.token }}" \
+            -H "Content-Type: application/json" \
+            -d '{"resources": {"repositories": {"self": {"refName": "refs/heads/main"}}},"variables": {"ProjectBranch": {"value": "${{ github.head_ref || github.ref_name }}"}}}' \
+            ${{ vars.AZDEVOPS_URL }}/_apis/pipelines/${{ env.AzDevOpsPipelineId }}/runs?api-version=7.1)
+          echo $BRANCH_NAME
+          echo $response
+          echo "::set-output name=run_id::$(echo $response | jq -r .id)"
+        env:
+          BRANCH_NAME: ${{ github.head_ref || github.ref_name }}
+      #          -d '{"resources": {"repositories": {"self": {"refName": "refs/heads/main"}}}}' \
+      #          refs/heads/users/mbarbour/pipelineUpdate      
+      - name: Monitor Pipeline Run
+        run: |
+          run_id=${{ steps.trigger.outputs.run_id }}
+          status="inProgress"
+          while [ "$status" == "inProgress" ] || [ "$status" == "notStarted" ] || [ "$status" == "canceling" ]  ; do
+            response=$(curl -X GET \
+              -H "Authorization: Bearer ${{ steps.getToken.outputs.token }}" \
+              ${{ vars.AZDEVOPS_URL }}/_apis/pipelines/${{ env.AzDevOpsPipelineId }}/runs/$run_id?api-version=7.1)
+            status=$(echo $response | jq -r .state)
+            r1=$(echo $response | jq -r .result)
+            weblink=$(echo $response | jq -r ._links.web.href)
+            echo "Pipeline status: $status"
+            echo "Result response: $r1"
+            echo "WebLink: $weblink"
+            if [ "$status" == "completed" ]; then
+              result=$(echo $response | jq -r .result)
+              if [ "$result" == "succeeded" ]; then
+                echo "Pipeline succeeded"
+                exit 0
+              else
+                echo "::error file={name},line={line},endLine={endLine},title={title}::Pipeline failed with result: $result"
+                echo "Pipeline failed with result: $result"
+                exit 1
+              fi
+            fi
+            sleep 10
+          done
