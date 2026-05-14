@@ -702,7 +702,10 @@ class AgentApplication(Agent, Generic[StateT]):
             with spans.AppOnTurn(context) as on_turn_span:
                 if context.activity.type != ActivityTypes.typing:
                     if self._options.start_typing_timer:
-                        typing = TypingIndicator(context)
+                        typing = TypingIndicator(
+                            context,
+                            typing_options=self._options.typing,
+                        )
                         typing.start()
 
                 self._remove_mentions(context)
@@ -752,7 +755,7 @@ class AgentApplication(Agent, Generic[StateT]):
             await self._on_error(context, err)
         finally:
             if typing:
-                typing.stop()
+                await typing.stop()
 
     def _remove_mentions(self, context: TurnContext):
         if (
