@@ -195,10 +195,13 @@ class TestOAuthFlow(TestUtils):
         assert response.flow_error_tag == _FlowErrorTag.NONE
         assert response.token_response
         assert response.token_response.token == DEFAULTS.token
+        expected_channel_id = activity.get_conversation_reference(
+            force_base_channel=True
+        ).channel_id
         user_token_client.user_token._get_token_or_sign_in_resource.assert_called_once_with(
             activity.from_property.id,
             flow_state.connection,
-            activity.channel_id.split(":", 1)[0],
+            expected_channel_id,
             "encoded_state",
         )
         get_conversation_reference_spy.assert_any_call(
