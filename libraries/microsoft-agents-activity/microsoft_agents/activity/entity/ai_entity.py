@@ -11,7 +11,12 @@ from .entity import Entity
 
 
 class ClientCitationIconName(str, Enum):
-    """Enumeration of supported citation icon names."""
+    """Supported citation icon names for ``citation.appearance.image.name``.
+
+    The values mirror the predefined icon names documented for Teams bot
+    messages with AI-generated content. See "Add citations":
+    https://learn.microsoft.com/en-us/microsoftteams/platform/bots/how-to/bot-messages-ai-generated-content#add-citations
+    """
 
     MICROSOFT_WORD = "Microsoft Word"
     MICROSOFT_EXCEL = "Microsoft Excel"
@@ -21,12 +26,12 @@ class ClientCitationIconName(str, Enum):
     MICROSOFT_VISIO = "Microsoft Visio"
     MICROSOFT_LOOP = "Microsoft Loop"
     MICROSOFT_WHITEBOARD = "Microsoft Whiteboard"
+    SOURCE_CODE = "Source Code"
+    SKETCH = "Sketch"
     ADOBE_ILLUSTRATOR = "Adobe Illustrator"
     ADOBE_PHOTOSHOP = "Adobe Photoshop"
     ADOBE_INDESIGN = "Adobe InDesign"
     ADOBE_FLASH = "Adobe Flash"
-    SKETCH = "Sketch"
-    SOURCE_CODE = "Source Code"
     IMAGE = "Image"
     GIF = "GIF"
     VIDEO = "Video"
