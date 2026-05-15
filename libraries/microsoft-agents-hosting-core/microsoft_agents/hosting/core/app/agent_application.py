@@ -5,6 +5,7 @@ Licensed under the MIT License.
 
 from __future__ import annotations
 import logging
+from contextlib import nullcontext
 from copy import copy
 from functools import partial
 
@@ -697,62 +698,69 @@ class AgentApplication(Agent, Generic[StateT]):
         await self._start_long_running_call(context, self._on_turn)
 
     async def _on_turn(self, context: TurnContext):
-        typing = None
         try:
             with spans.AppOnTurn(context) as on_turn_span:
-                if context.activity.type != ActivityTypes.typing:
-                    if self._options.start_typing_timer:
-                        typing = TypingIndicator(context)
-                        typing.start()
+                use_typing = (
+                    self._options.start_typing_timer
+                    and context.activity.type != ActivityTypes.typing
+                )
+                typing_context = (
+                    TypingIndicator(
+                        context,
+                        typing_options=self._options.typing,
+                    )
+                    if use_typing
+                    else nullcontext()
+                )
 
-                self._remove_mentions(context)
+                async with typing_context:
+                    self._remove_mentions(context)
 
-                logger.debug("Initializing turn state")
-                turn_state = await self._initialize_state(context)
-                if (
-                    context.activity.type == ActivityTypes.message
-                    or context.activity.type == ActivityTypes.invoke
-                ):
+                    logger.debug("Initializing turn state")
+                    turn_state = await self._initialize_state(context)
+                    if (
+                        context.activity.type == ActivityTypes.message
+                        or context.activity.type == ActivityTypes.invoke
+                    ):
 
-                    (
-                        auth_intercepts,
-                        continuation_activity,
-                    ) = await self._auth._on_turn_auth_intercept(context, turn_state)
-                    if auth_intercepts:
-                        if continuation_activity:
-                            new_context = copy(context)
-                            new_context.activity = continuation_activity
-                            logger.info(
-                                "Resending continuation activity %s",
-                                continuation_activity.text,
-                            )
-                            await self.on_turn(new_context)
-                            await turn_state.save(context)
+                        (
+                            auth_intercepts,
+                            continuation_activity,
+                        ) = await self._auth._on_turn_auth_intercept(
+                            context, turn_state
+                        )
+                        if auth_intercepts:
+                            if continuation_activity:
+                                new_context = copy(context)
+                                new_context.activity = continuation_activity
+                                logger.info(
+                                    "Resending continuation activity %s",
+                                    continuation_activity.text,
+                                )
+                                await self.on_turn(new_context)
+                                await turn_state.save(context)
+                            return
+
+                    logger.debug("Running before turn middleware")
+                    if not await self._run_before_turn_middleware(context, turn_state):
                         return
 
-                logger.debug("Running before turn middleware")
-                if not await self._run_before_turn_middleware(context, turn_state):
+                    logger.debug("Running file downloads")
+                    await self._handle_file_downloads(context, turn_state)
+
+                    logger.debug("Running activity handlers")
+                    await self._on_activity(context, turn_state, on_turn_span)
+
+                    logger.debug("Running after turn middleware")
+                    if await self._run_after_turn_middleware(context, turn_state):
+                        await turn_state.save(context)
                     return
-
-                logger.debug("Running file downloads")
-                await self._handle_file_downloads(context, turn_state)
-
-                logger.debug("Running activity handlers")
-                await self._on_activity(context, turn_state, on_turn_span)
-
-                logger.debug("Running after turn middleware")
-                if await self._run_after_turn_middleware(context, turn_state):
-                    await turn_state.save(context)
-                return
         except ApplicationError as err:
             logger.error(
                 f"An application error occurred in the AgentApplication: {err}",
                 exc_info=True,
             )
             await self._on_error(context, err)
-        finally:
-            if typing:
-                typing.stop()
 
     def _remove_mentions(self, context: TurnContext):
         if (
