@@ -17,7 +17,7 @@ from microsoft_agents.activity import Activity, ActivityTypes, Channels, EntityT
 logger = logging.getLogger(__name__)
 
 DEFAULT_INITIAL_DELAY_MS = 500
-DEFAULT_INTERVAL_MS = 2000
+DEFAULT_INTERVAL_MS = 10000
 
 
 @dataclass
@@ -52,10 +52,10 @@ class TypingOptions:
                 TypingChannelStrategy(initial_delay_ms=250, interval_ms=1000)
             )
 
-    def get_strategy_for_channel(self, channel_id: str) -> TypingChannelStrategy:
+    def get_strategy_for_channel(self, channel: str) -> TypingChannelStrategy:
         """Returns the timing strategy for the given channel, falling back to defaults."""
-        if channel_id and channel_id in self.channel_strategies:
-            return self.channel_strategies[channel_id]
+        if channel and channel in self.channel_strategies:
+            return self.channel_strategies[channel]
         return TypingChannelStrategy(
             initial_delay_ms=self.initial_delay_ms,
             interval_ms=self.interval_ms,
@@ -93,10 +93,10 @@ class TypingIndicator:
         """
         options = typing_options or TypingOptions()
 
-        channel_id = (
+        channel = (
             context.activity.channel_id.channel if context.activity.channel_id else ""
         ) or ""
-        strategy = options.get_strategy_for_channel(channel_id)
+        strategy = options.get_strategy_for_channel(channel)
 
         # Legacy parameter overrides the resolved strategy when explicitly set
         interval = (
@@ -107,7 +107,10 @@ class TypingIndicator:
         initial_delay = strategy.initial_delay_ms / 1000.0
 
         if interval <= 0:
-            raise ValueError("interval_seconds must be greater than 0")
+            raise ValueError("interval must be greater than 0")
+
+        if initial_delay <= 0:
+            raise ValueError("initial_delay must be greater than 0")
 
         self._context: TurnContext = context
         self._interval: float = interval
@@ -179,17 +182,20 @@ class TypingIndicator:
         self._stopped = False
         self._task = asyncio.create_task(self._run())
 
-        # Register hook to auto-stop when a message or streaming activity is sent.
-        async def _on_send_activities_handler(ctx, activities, next_handler):
-            should_stop = any(
-                a.type == ActivityTypes.message or self._has_streaminfo(a)
-                for a in activities
-            )
-            if should_stop:
-                await self.stop()
-            return await next_handler()
+        if not getattr(self, "_send_activities_hook_registered", False):
+            # Register hook once to auto-stop when a message or streaming
+            # activity is sent.
+            async def _on_send_activities_handler(ctx, activities, next_handler):
+                should_stop = any(
+                    a.type == ActivityTypes.message or self._has_streaminfo(a)
+                    for a in activities
+                )
+                if should_stop:
+                    await self.stop()
+                return await next_handler()
 
-        self._context.on_send_activities(_on_send_activities_handler)
+            self._context.on_send_activities(_on_send_activities_handler)
+            self._send_activities_hook_registered = True
 
     async def stop(self) -> None:
         """Stops sending typing indicators and waits for any in-flight send."""

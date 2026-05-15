@@ -58,7 +58,7 @@ class StubTurnContext:
 # Helper to create fast options for timing-sensitive tests
 # ---------------------------------------------------------------------------
 def _fast_options(
-    initial_delay_ms: int = 0, interval_ms: int = 10
+    initial_delay_ms: int = 5, interval_ms: int = 10
 ) -> TypingOptions:
     """Create TypingOptions with fast timing for tests.
 
@@ -81,7 +81,7 @@ class TestTypingOptions:
     def test_defaults(self):
         opts = TypingOptions()
         assert opts.initial_delay_ms == 500
-        assert opts.interval_ms == 2000
+        assert opts.interval_ms == 10000
 
     def test_copilot_studio_default_strategy(self):
         opts = TypingOptions()
@@ -111,7 +111,7 @@ class TestTypingOptions:
         opts = TypingOptions()
         strategy = opts.get_strategy_for_channel("")
         assert strategy.initial_delay_ms == 500
-        assert strategy.interval_ms == 2000
+        assert strategy.interval_ms == 10000
 
     def test_override_copilot_studio_default(self):
         """User can override the built-in copilot_studio default."""
@@ -305,7 +305,7 @@ async def test_channel_strategy_controls_timing():
         interval_ms=9999,
         channel_strategies={
             "msteams": TypingChannelStrategy(
-                initial_delay_ms=0, interval_ms=10
+                initial_delay_ms=5, interval_ms=10
             )
         },
     )
@@ -324,7 +324,7 @@ async def test_channel_strategy_controls_timing():
 async def test_unknown_channel_uses_default_timing():
     """Unknown channels should fall back to the default timing."""
     context = StubTurnContext(channel_id="some_custom_channel")
-    opts = TypingOptions(initial_delay_ms=0, interval_ms=10)
+    opts = TypingOptions(initial_delay_ms=5, interval_ms=10)
     indicator = TypingIndicator(context, typing_options=opts)
 
     indicator.start()
@@ -355,7 +355,7 @@ async def test_no_options_uses_global_defaults():
     indicator = TypingIndicator(context)
 
     assert indicator._initial_delay == 0.5
-    assert indicator._interval == 2.0
+    assert indicator._interval == 10.0
 
     await indicator.stop()
 
@@ -365,7 +365,7 @@ async def test_invalid_interval_raises():
     """interval_ms <= 0 should raise ValueError."""
     context = StubTurnContext()
     opts = TypingOptions(interval_ms=0)
-    with pytest.raises(ValueError, match="interval_seconds"):
+    with pytest.raises(ValueError, match="interval"):
         TypingIndicator(context, typing_options=opts)
 
 
@@ -378,11 +378,22 @@ async def test_negative_initial_delay_raises():
     # float internally — but since initial_delay is not validated in __init__
     # (only interval is), this is a TypingOptions-level concern.
     # We verify the indicator uses the value correctly.
-    opts = TypingOptions(initial_delay_ms=0, interval_ms=10)
-    indicator = TypingIndicator(context, typing_options=opts)
-    assert indicator._initial_delay == 0.0
-    await indicator.stop()
+    opts = TypingOptions(initial_delay_ms=-1, interval_ms=10)
+    with pytest.raises(ValueError, match="initial_delay"):
+        TypingIndicator(context, typing_options=opts)
 
+@pytest.mark.asyncio
+async def test_negative_interval_ms_raises():
+    """initial_delay_ms < 0 in a channel strategy should raise ValueError
+    at the strategy level (TypingIndicator won't accept it)."""
+    context = StubTurnContext()
+    # A negative initial_delay_ms in the options still resolves to a negative
+    # float internally — but since initial_delay is not validated in __init__
+    # (only interval is), this is a TypingOptions-level concern.
+    # We verify the indicator uses the value correctly.
+    opts = TypingOptions(initial_delay_ms=1000, interval_ms=-1)
+    with pytest.raises(ValueError, match="interval"):
+        TypingIndicator(context, typing_options=opts)
 
 # ---------------------------------------------------------------------------
 # Backward compatibility tests (legacy constructor parameter)
@@ -409,7 +420,7 @@ async def test_legacy_interval_seconds_parameter():
 async def test_legacy_params_override_typing_options():
     """Explicit interval_seconds takes precedence over typing_options."""
     context = StubTurnContext()
-    opts = TypingOptions(initial_delay_ms=0, interval_ms=9999)
+    opts = TypingOptions(initial_delay_ms=5, interval_ms=9999)
     indicator = TypingIndicator(
         context,
         interval_seconds=0.01,
@@ -418,4 +429,4 @@ async def test_legacy_params_override_typing_options():
 
     assert indicator._interval == 0.01
     # initial_delay still comes from typing_options
-    assert indicator._initial_delay == 0.0
+    assert indicator._initial_delay == 0.005
