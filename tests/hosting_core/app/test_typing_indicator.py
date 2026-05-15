@@ -458,3 +458,37 @@ async def test_legacy_params_override_typing_options():
     assert indicator._interval == 0.01
     # initial_delay still comes from typing_options
     assert indicator._initial_delay == 0.005
+
+
+# ---------------------------------------------------------------------------
+# Async context manager tests
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.asyncio
+async def test_async_context_manager_starts_and_stops():
+    """TypingIndicator can be used as an async context manager."""
+    context = StubTurnContext()
+    opts = _fast_options()
+
+    async with TypingIndicator(context, typing_options=opts) as indicator:
+        await asyncio.sleep(0.05)
+        assert indicator._task is not None
+
+    # After exiting, should be stopped
+    assert indicator._stopped is True
+    assert len(context.sent_activities) >= 1
+
+
+@pytest.mark.asyncio
+async def test_async_context_manager_stops_on_exception():
+    """Context manager stops typing even if body raises."""
+    context = StubTurnContext()
+    opts = _fast_options()
+
+    with pytest.raises(RuntimeError):
+        async with TypingIndicator(context, typing_options=opts) as indicator:
+            await asyncio.sleep(0.02)
+            raise RuntimeError("test error")
+
+    assert indicator._stopped is True

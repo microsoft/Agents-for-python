@@ -48,9 +48,8 @@ class TypingOptions:
     def __post_init__(self):
         # Apply default channel overrides (matching .NET's M365Copilot default)
         if Channels.copilot_studio.value not in self.channel_strategies:
-            self.channel_strategies = dict(
-                self.channel_strategies
-            )  # make a copy to avoid mutating input
+            # make a copy to avoid mutating input
+            self.channel_strategies = dict(self.channel_strategies)
             self.channel_strategies[Channels.copilot_studio.value] = (
                 TypingChannelStrategy(initial_delay_ms=250, interval_ms=1000)
             )
@@ -74,14 +73,18 @@ class TypingIndicator:
     Automatically stops when a message or streaming activity is about to be
     sent on the same turn, preventing bare typing activities from overlapping
     with real responses.
-    """
 
-    _UNSET = object()
+    Can be used as an async context manager::
+
+        async with TypingIndicator(context, typing_options=opts) as typing:
+            # typing indicators are sent automatically
+            ...
+    """
 
     def __init__(
         self,
         context: TurnContext,
-        interval_seconds: float = _UNSET,  # type: ignore[assignment]
+        interval_seconds: Optional[float] = None,
         typing_options: Optional[TypingOptions] = None,
     ) -> None:
         """Initializes a new instance of the TypingIndicator class.
@@ -101,10 +104,9 @@ class TypingIndicator:
         ) or ""
         strategy = options.get_strategy_for_channel(channel)
 
-        # Legacy parameter overrides the resolved strategy when explicitly set
         interval = (
             interval_seconds
-            if interval_seconds is not self._UNSET
+            if interval_seconds is not None
             else strategy.interval_ms / 1000.0
         )
         initial_delay = strategy.initial_delay_ms / 1000.0
@@ -120,43 +122,15 @@ class TypingIndicator:
         self._initial_delay: float = initial_delay
         self._task: Optional[asyncio.Task[None]] = None
         self._last_send: Optional[asyncio.Task[None]] = None
-        self._stop_cleanup_task: Optional[asyncio.Task[None]] = None
-        self._stopped = False
+        self._stopped: bool = False
+        self._hook_registered: bool = False
 
-    def _signal_stop(self) -> None:
-        """Synchronously marks the indicator as stopped and cancels the loop task."""
-        if self._stopped:
-            return
+    async def __aenter__(self) -> "TypingIndicator":
+        self.start()
+        return self
 
-        self._stopped = True
-
-        if self._task is None:
-            logger.warning(
-                "Typing indicator is not running for conversation %s",
-                self._context.activity.conversation.id,
-            )
-            return
-
-        logger.debug(
-            "Stopping typing indicator for conversation %s",
-            self._context.activity.conversation.id,
-        )
-
-        self._task.cancel()
-        self._task = None
-
-    async def _drain_last_send(self) -> None:
-        """Waits for any in-flight typing send and clears its tracking handle."""
-        if self._last_send and not self._last_send.done():
-            try:
-                await asyncio.shield(self._last_send)
-            except (asyncio.CancelledError, Exception):
-                pass
-        self._last_send = None
-
-    def _schedule_drain_last_send(self) -> None:
-        if self._stop_cleanup_task is None or self._stop_cleanup_task.done():
-            self._stop_cleanup_task = asyncio.create_task(self._drain_last_send())
+    async def __aexit__(self, exc_type, exc_val, exc_tb) -> None:
+        await self.stop()
 
     async def _send_typing(self) -> None:
         """Sends a single typing activity via the adapter, bypassing middleware."""
@@ -221,38 +195,39 @@ class TypingIndicator:
         self._stopped = False
         self._task = asyncio.create_task(self._run())
 
-        if not getattr(self, "_send_activities_hook_registered", False):
-            # Register hook once to auto-stop when a message or streaming
-            # activity is sent.
+        if not self._hook_registered:
+
             async def _on_send_activities_handler(ctx, activities, next_handler):
                 should_stop = any(
                     a.type == ActivityTypes.message or self._has_streaminfo(a)
                     for a in activities
                 )
                 if should_stop:
-                    self._signal_stop()
-                    self._schedule_drain_last_send()
+                    self._stop_loop()
                 return await next_handler()
 
             self._context.on_send_activities(_on_send_activities_handler)
-            self._send_activities_hook_registered = True
+            self._hook_registered = True
+
+    def _stop_loop(self) -> None:
+        """Cancels the background loop task. Does not await in-flight sends."""
+        if self._stopped:
+            return
+        self._stopped = True
+
+        if self._task is not None:
+            self._task.cancel()
+            self._task = None
 
     async def stop(self) -> None:
         """Stops sending typing indicators and waits for any in-flight send."""
+        self._stop_loop()
 
-        if self._stopped:
-            if self._stop_cleanup_task and not self._stop_cleanup_task.done():
-                try:
-                    await asyncio.shield(self._stop_cleanup_task)
-                except (asyncio.CancelledError, Exception):
-                    pass
-            return
-
-        self._signal_stop()
-        self._schedule_drain_last_send()
-
-        if self._stop_cleanup_task and not self._stop_cleanup_task.done():
+        # Wait for any in-flight typing send to finish so we don't
+        # interrupt an adapter call mid-flight.
+        if self._last_send and not self._last_send.done():
             try:
-                await asyncio.shield(self._stop_cleanup_task)
+                await asyncio.shield(self._last_send)
             except (asyncio.CancelledError, Exception):
                 pass
+        self._last_send = None
