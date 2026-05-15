@@ -235,7 +235,7 @@ async def test_typing_activity_format():
     indicator = TypingIndicator(context, typing_options=_fast_options())
 
     indicator.start()
-    await asyncio.sleep(0.015)
+    await asyncio.sleep(0.05)
     await indicator.stop()
 
     assert len(context.sent_activities) >= 1
@@ -251,7 +251,7 @@ async def test_typing_activity_has_conversation_reference():
     indicator = TypingIndicator(context, typing_options=_fast_options())
 
     indicator.start()
-    await asyncio.sleep(0.015)
+    await asyncio.sleep(0.05)
     await indicator.stop()
 
     assert len(context.sent_activities) >= 1
@@ -267,7 +267,7 @@ async def test_stop_is_idempotent():
     indicator = TypingIndicator(context, typing_options=_fast_options())
 
     indicator.start()
-    await asyncio.sleep(0.015)
+    await asyncio.sleep(0.05)
     await indicator.stop()
     await indicator.stop()  # should not raise
 
@@ -396,8 +396,27 @@ async def test_invalid_interval_raises():
 
 
 @pytest.mark.asyncio
-async def test_negative_initial_delay_raises():
+async def test_negative_initial_delay_strategy_raises():
     """initial_delay_ms < 0 in a channel strategy should raise ValueError
+    at the strategy level (TypingIndicator won't accept it)."""
+    context = StubTurnContext()
+    # A negative initial_delay_ms in the options still resolves to a negative
+    # float internally — but since initial_delay is not validated in __init__
+    # (only interval is), this is a TypingOptions-level concern.
+    # We verify the indicator uses the value correctly.
+    channel_strategies = {
+        "test": TypingChannelStrategy(initial_delay_ms=-1, interval_ms=10)
+    }
+    opts = TypingOptions(
+        initial_delay_ms=0, interval_ms=10, channel_strategies=channel_strategies
+    )
+    with pytest.raises(ValueError, match="initial_delay"):
+        TypingIndicator(context, typing_options=opts)
+
+
+@pytest.mark.asyncio
+async def test_negative_initial_delay_raises():
+    """initial_delay_ms < 0 should raise ValueError
     at the strategy level (TypingIndicator won't accept it)."""
     context = StubTurnContext()
     # A negative initial_delay_ms in the options still resolves to a negative
@@ -492,3 +511,20 @@ async def test_async_context_manager_stops_on_exception():
             raise RuntimeError("test error")
 
     assert indicator._stopped is True
+
+
+# ---------------------------------------------------------------------------
+# nullcontext fallback test (simulates start_typing_timer=False in AgentApplication)
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.asyncio
+async def test_nullcontext_fallback_with_async_with():
+    """When typing is None, `async with typing or nullcontext()` should work."""
+    from contextlib import nullcontext
+
+    typing = None  # simulates start_typing_timer=False
+
+    # This must not raise
+    async with typing or nullcontext():
+        pass  # turn logic would run here

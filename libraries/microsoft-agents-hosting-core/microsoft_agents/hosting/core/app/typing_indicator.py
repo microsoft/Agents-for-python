@@ -149,7 +149,14 @@ class TypingIndicator:
             while not self._stopped:
                 send_task = asyncio.ensure_future(self._send_typing())
                 self._last_send = send_task
-                await send_task
+                # Shield the send so task cancellation doesn't interrupt
+                # an in-flight adapter call.
+                try:
+                    await asyncio.shield(send_task)
+                except asyncio.CancelledError:
+                    # Task was cancelled while sending — wait for the send
+                    # to finish naturally, then exit the loop.
+                    break
                 await asyncio.sleep(self._interval)
         except asyncio.CancelledError:
             pass
