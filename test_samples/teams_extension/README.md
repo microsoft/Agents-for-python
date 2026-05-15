@@ -17,6 +17,7 @@ adapted to Python decorators on `TeamsAgentExtension` sub-objects.
 | `message_extensions_agent.py` | `composeExtension/*` invokes — search query, select item, submit action, query link, settings URL, configure settings, fetch task. |
 | `task_modules_agent.py` | `task/fetch` and `task/submit` for simple form, webpage dialog, and a multi-step (chained submits) flow. |
 | `meeting_events_agent.py` | Meeting start/end via the new single `MeetingDetails` model, plus participant join/leave and read receipts (legacy models retained). |
+| `targeted_messages_agent.py` | Group-chat targeted-message fan-out mirroring [microsoft/Agents-for-net PR #807](https://github.com/microsoft/Agents-for-net/pull/807). Iterates chat members via `TeamsInfo.get_paged_members`, builds a per-member `Activity` with explicit `recipient` plus an `activityTreatment=targeted` entity, and sends through `adapter.send_activities` directly to bypass `TurnContext.apply_conversation_reference` (which would otherwise overwrite the recipient). See the module docstring for the limitations of this inline workaround. |
 
 ## Setup
 
@@ -38,6 +39,8 @@ python message_extensions_agent.py
 python task_modules_agent.py
 # or
 python meeting_events_agent.py
+# or
+python targeted_messages_agent.py
 ```
 
 The agent listens on `http://localhost:3978/api/messages`. To exercise the
