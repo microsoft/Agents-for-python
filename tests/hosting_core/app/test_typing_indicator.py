@@ -7,7 +7,7 @@ import asyncio
 
 import pytest
 
-from microsoft_agents.activity import Activity, ActivityTypes, Channels, EntityTypes
+from microsoft_agents.activity import Activity, ActivityTypes, Channels
 from microsoft_agents.hosting.core.app.typing_indicator import (
     TypingChannelStrategy,
     TypingIndicator,
@@ -32,9 +32,7 @@ class StubAdapter:
 class StubTurnContext:
     """Test double that tracks sent activities."""
 
-    def __init__(
-        self, should_raise: bool = False, channel_id: str = "test"
-    ) -> None:
+    def __init__(self, should_raise: bool = False, channel_id: str = "test") -> None:
         self.adapter = StubAdapter(should_raise)
         self.activity = Activity(
             type="message",
@@ -57,9 +55,7 @@ class StubTurnContext:
 # ---------------------------------------------------------------------------
 # Helper to create fast options for timing-sensitive tests
 # ---------------------------------------------------------------------------
-def _fast_options(
-    initial_delay_ms: int = 5, interval_ms: int = 10
-) -> TypingOptions:
+def _fast_options(initial_delay_ms: int = 5, interval_ms: int = 10) -> TypingOptions:
     """Create TypingOptions with fast timing for tests.
 
     Uses a sentinel channel so the built-in copilot_studio default doesn't
@@ -92,9 +88,7 @@ class TestTypingOptions:
     def test_custom_channel_strategy(self):
         opts = TypingOptions(
             channel_strategies={
-                "msteams": TypingChannelStrategy(
-                    initial_delay_ms=100, interval_ms=500
-                )
+                "msteams": TypingChannelStrategy(initial_delay_ms=100, interval_ms=500)
             }
         )
         strategy = opts.get_strategy_for_channel("msteams")
@@ -116,9 +110,7 @@ class TestTypingOptions:
     def test_override_copilot_studio_default(self):
         """User can override the built-in copilot_studio default."""
         custom = TypingChannelStrategy(initial_delay_ms=999, interval_ms=8888)
-        opts = TypingOptions(
-            channel_strategies={Channels.copilot_studio.value: custom}
-        )
+        opts = TypingOptions(channel_strategies={Channels.copilot_studio.value: custom})
         strategy = opts.get_strategy_for_channel(Channels.copilot_studio.value)
         assert strategy.initial_delay_ms == 999
         assert strategy.interval_ms == 8888
@@ -291,6 +283,42 @@ async def test_send_failure_stops_gracefully():
     await indicator.stop()
 
 
+@pytest.mark.asyncio
+async def test_send_hook_does_not_block_on_inflight_typing_send():
+    """Hook should stop typing without delaying real outbound activities."""
+    context = StubTurnContext()
+    opts = _fast_options(initial_delay_ms=5000, interval_ms=1000)
+    indicator = TypingIndicator(context, typing_options=opts)
+    indicator.start()
+
+    assert len(context._on_send_handlers) == 1
+    handler = context._on_send_handlers[0]
+
+    release_send = asyncio.Event()
+
+    async def _blocked_send():
+        await release_send.wait()
+
+    indicator._last_send = asyncio.create_task(_blocked_send())
+
+    next_handler_called = False
+
+    async def _next_handler():
+        nonlocal next_handler_called
+        next_handler_called = True
+
+    # This call would block if the hook awaited stop() while _last_send is in flight.
+    await asyncio.wait_for(
+        handler(context, [Activity(type=ActivityTypes.message)], _next_handler),
+        timeout=0.05,
+    )
+
+    assert next_handler_called
+
+    release_send.set()
+    await indicator.stop()
+
+
 # ---------------------------------------------------------------------------
 # Per-channel strategy tests
 # ---------------------------------------------------------------------------
@@ -304,9 +332,7 @@ async def test_channel_strategy_controls_timing():
         initial_delay_ms=9999,  # very large default — would time-out
         interval_ms=9999,
         channel_strategies={
-            "msteams": TypingChannelStrategy(
-                initial_delay_ms=5, interval_ms=10
-            )
+            "msteams": TypingChannelStrategy(initial_delay_ms=5, interval_ms=10)
         },
     )
     indicator = TypingIndicator(context, typing_options=opts)
@@ -350,7 +376,7 @@ async def test_copilot_studio_uses_builtin_defaults():
 
 @pytest.mark.asyncio
 async def test_no_options_uses_global_defaults():
-    """When no TypingOptions are provided, global defaults (500ms/2000ms) apply."""
+    """When no TypingOptions are provided, global defaults (500ms/10000ms) apply."""
     context = StubTurnContext(channel_id="test")
     indicator = TypingIndicator(context)
 
@@ -382,6 +408,7 @@ async def test_negative_initial_delay_raises():
     with pytest.raises(ValueError, match="initial_delay"):
         TypingIndicator(context, typing_options=opts)
 
+
 @pytest.mark.asyncio
 async def test_negative_interval_ms_raises():
     """initial_delay_ms < 0 in a channel strategy should raise ValueError
@@ -394,6 +421,7 @@ async def test_negative_interval_ms_raises():
     opts = TypingOptions(initial_delay_ms=1000, interval_ms=-1)
     with pytest.raises(ValueError, match="interval"):
         TypingIndicator(context, typing_options=opts)
+
 
 # ---------------------------------------------------------------------------
 # Backward compatibility tests (legacy constructor parameter)

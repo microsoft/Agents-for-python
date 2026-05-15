@@ -9,7 +9,7 @@ import asyncio
 import logging
 from copy import deepcopy
 from dataclasses import dataclass, field
-from typing import Callable, Dict, Optional
+from typing import Dict, Optional
 
 from microsoft_agents.hosting.core import TurnContext
 from microsoft_agents.activity import Activity, ActivityTypes, Channels, EntityTypes
@@ -48,6 +48,9 @@ class TypingOptions:
     def __post_init__(self):
         # Apply default channel overrides (matching .NET's M365Copilot default)
         if Channels.copilot_studio.value not in self.channel_strategies:
+            self.channel_strategies = dict(
+                self.channel_strategies
+            )  # make a copy to avoid mutating input
             self.channel_strategies[Channels.copilot_studio.value] = (
                 TypingChannelStrategy(initial_delay_ms=250, interval_ms=1000)
             )
@@ -109,15 +112,51 @@ class TypingIndicator:
         if interval <= 0:
             raise ValueError("interval must be greater than 0")
 
-        if initial_delay <= 0:
-            raise ValueError("initial_delay must be greater than 0")
+        if initial_delay < 0:
+            raise ValueError("initial_delay must be greater than or equal to 0")
 
         self._context: TurnContext = context
         self._interval: float = interval
         self._initial_delay: float = initial_delay
         self._task: Optional[asyncio.Task[None]] = None
         self._last_send: Optional[asyncio.Task[None]] = None
+        self._stop_cleanup_task: Optional[asyncio.Task[None]] = None
         self._stopped = False
+
+    def _signal_stop(self) -> None:
+        """Synchronously marks the indicator as stopped and cancels the loop task."""
+        if self._stopped:
+            return
+
+        self._stopped = True
+
+        if self._task is None:
+            logger.warning(
+                "Typing indicator is not running for conversation %s",
+                self._context.activity.conversation.id,
+            )
+            return
+
+        logger.debug(
+            "Stopping typing indicator for conversation %s",
+            self._context.activity.conversation.id,
+        )
+
+        self._task.cancel()
+        self._task = None
+
+    async def _drain_last_send(self) -> None:
+        """Waits for any in-flight typing send and clears its tracking handle."""
+        if self._last_send and not self._last_send.done():
+            try:
+                await asyncio.shield(self._last_send)
+            except (asyncio.CancelledError, Exception):
+                pass
+        self._last_send = None
+
+    def _schedule_drain_last_send(self) -> None:
+        if self._stop_cleanup_task is None or self._stop_cleanup_task.done():
+            self._stop_cleanup_task = asyncio.create_task(self._drain_last_send())
 
     async def _send_typing(self) -> None:
         """Sends a single typing activity via the adapter, bypassing middleware."""
@@ -191,7 +230,8 @@ class TypingIndicator:
                     for a in activities
                 )
                 if should_stop:
-                    await self.stop()
+                    self._signal_stop()
+                    self._schedule_drain_last_send()
                 return await next_handler()
 
             self._context.on_send_activities(_on_send_activities_handler)
@@ -201,29 +241,18 @@ class TypingIndicator:
         """Stops sending typing indicators and waits for any in-flight send."""
 
         if self._stopped:
+            if self._stop_cleanup_task and not self._stop_cleanup_task.done():
+                try:
+                    await asyncio.shield(self._stop_cleanup_task)
+                except (asyncio.CancelledError, Exception):
+                    pass
             return
 
-        self._stopped = True
+        self._signal_stop()
+        self._schedule_drain_last_send()
 
-        if self._task is None:
-            logger.warning(
-                "Typing indicator is not running for conversation %s",
-                self._context.activity.conversation.id,
-            )
-            return
-
-        logger.debug(
-            "Stopping typing indicator for conversation %s",
-            self._context.activity.conversation.id,
-        )
-
-        self._task.cancel()
-        self._task = None
-
-        # Wait for any in-flight typing send to complete before proceeding.
-        if self._last_send and not self._last_send.done():
+        if self._stop_cleanup_task and not self._stop_cleanup_task.done():
             try:
-                await asyncio.shield(self._last_send)
+                await asyncio.shield(self._stop_cleanup_task)
             except (asyncio.CancelledError, Exception):
                 pass
-        self._last_send = None
