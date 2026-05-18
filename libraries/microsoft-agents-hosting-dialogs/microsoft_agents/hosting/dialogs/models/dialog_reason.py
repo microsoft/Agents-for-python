@@ -7,7 +7,7 @@ class DialogReason(Enum):
     """
     Indicates in which a dialog-related method is being called.
 
-    :var BeginCalled: A dialog is being started through a call to :meth:`microsoft_agents.hosting.dialogs.DialogContext.begin`.
+    :var BeginCalled: A dialog is being started through a call to :meth:`microsoft_agents.hosting.dialogs.DialogContext.begin_dialog`.
     :vartype BeginCalled: int
     :var ContinueCalled: A dialog is being continued through a call to :meth:`microsoft_agents.hosting.dialogs.DialogContext.continue_dialog`.
     :vartype ContinueCalled: int
