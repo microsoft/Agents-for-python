@@ -3,7 +3,6 @@
 
 from __future__ import annotations
 
-from opentelemetry.trace import Span
 from microsoft_agents.activity import Activity
 from microsoft_agents.hosting.core.telemetry import (
     AttributeMap,
