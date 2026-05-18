@@ -372,8 +372,8 @@ class ActivityHandler(Agent):
         :rtype: Awaitable[None]
 
         .. note::
-            When the :meth:`microsoft_agents.hosting.core.ActivityHandler.on_event_activity` is used method receives an event with an
-            activity name other than `tokens/response`, it calls this method.
+            When the :meth:`microsoft_agents.hosting.core.ActivityHandler.on_event_activity` method is used, it receives an event with an
+            activity name other than `tokens/response` and calls this method.
             This method could optionally be overridden if the agent is meant to handle miscellaneous events.
         """
         return
