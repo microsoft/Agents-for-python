@@ -309,6 +309,7 @@ def test_create_conversation_span_attributes(test_exporter):
 
     span = test_exporter.get_finished_spans()[0]
     assert span.attributes[attributes.ACTIVITY_CHANNEL_ID] == "msteams"
+    # members_count is recorded as an int when known; unknown falls back to attributes.UNKNOWN.
     assert span.attributes[attributes.MEMBERS_COUNT] == 2
 
 
