@@ -309,7 +309,6 @@ def test_create_conversation_span_attributes(test_exporter):
 
     span = test_exporter.get_finished_spans()[0]
     assert span.attributes[attributes.ACTIVITY_CHANNEL_ID] == "msteams"
-    # members_count is serialized as a string (UNKNOWN fallback is also a string)
     assert span.attributes[attributes.MEMBERS_COUNT] == 2
 
 
