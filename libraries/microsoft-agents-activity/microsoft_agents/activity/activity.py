@@ -618,10 +618,15 @@ class Activity(AgentsModel, _ChannelIdFieldMixin):
         """
         return Activity(type=ActivityTypes.typing)
 
-    def get_conversation_reference(self) -> ConversationReference:
+    def get_conversation_reference(
+        self, force_base_channel: bool | None = None
+    ) -> ConversationReference:
         """
         Creates a ConversationReference based on this activity.
 
+        :param force_base_channel: Optional, when True use only the base channel value
+            from the channel id (for example ``msteams`` from ``msteams:copilot-web``).
+            Composite values are split only on the first ``:``.
         :returns: A conversation reference for the conversation that contains this activity.
         """
         return pick_model(
@@ -635,7 +640,11 @@ class Activity(AgentsModel, _ChannelIdFieldMixin):
             user=copy(self.from_property),
             agent=copy(self.recipient),
             conversation=copy(self.conversation),
-            channel_id=self.channel_id,
+            channel_id=(
+                self.channel_id.split(":", 1)[0]
+                if force_base_channel and self.channel_id is not None
+                else self.channel_id
+            ),
             locale=self.locale,
             service_url=self.service_url,
         )
