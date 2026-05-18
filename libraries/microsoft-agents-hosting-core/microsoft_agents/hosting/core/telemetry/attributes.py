@@ -21,7 +21,7 @@ AUTH_SCOPES = "auth.scopes"
 AUTH_SUCCESS = "auth.success"
 
 CONNECTION_NAME = "auth.connection.name"
-CONVERSATION_FOUND = "proactive.conversation_found"
+CONVERSATION_FOUND = "proactive.conversation.found"
 CONVERSATION_ID = "activity.conversation.id"
 
 HTTP_METHOD = "http.method"
@@ -31,7 +31,7 @@ IS_AGENTIC = "activity.is_agentic_request"
 
 KEY_COUNT = "storage.keys.count"
 
-MEMBERS_COUNT = "proactive.members_count"
+MEMBERS_COUNT = "proactive.members.count"
 
 OPERATION = "operation"
 

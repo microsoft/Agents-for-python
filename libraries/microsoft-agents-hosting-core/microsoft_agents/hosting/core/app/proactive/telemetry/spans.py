@@ -31,7 +31,7 @@ class ProactiveStoreConversation(SimpleSpanWrapper):
 
 
 class ProactiveGetConversation(SimpleSpanWrapper):
-    """Span for getting a conversation reference in proactive scenarios, starting from when the get operation is initiated until it is completed. This span can be used to correlate telemetry related to getting conversation references in proactive scenarios."""
+    """Span for getting a conversation reference in proactive scenarios."""
 
     def __init__(self, conversation_id: str):
         """Initializes the ProactiveGetConversation SpanWrapper.
