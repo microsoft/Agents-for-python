@@ -718,10 +718,10 @@ class AgentApplication(Agent, Generic[StateT]):
 
                     logger.debug("Initializing turn state")
                     turn_state = await self._initialize_state(context)
-                    if (
-                        context.activity.type == ActivityTypes.message
-                        or context.activity.type == ActivityTypes.invoke
-                    ):
+                    if context.activity.type in [
+                        ActivityTypes.message,
+                        ActivityTypes.invoke,
+                    ]:
 
                         (
                             auth_intercepts,

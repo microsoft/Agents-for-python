@@ -7,7 +7,6 @@ from __future__ import annotations
 
 import asyncio
 import logging
-from copy import deepcopy
 from dataclasses import dataclass, field
 from typing import Dict, Optional
 
@@ -56,7 +55,7 @@ class TypingOptions:
 
     def get_strategy_for_channel(self, channel: str) -> TypingChannelStrategy:
         """Returns the timing strategy for the given channel, falling back to defaults."""
-        if channel and channel in self.channel_strategies:
+        if channel in self.channel_strategies:
             return self.channel_strategies[channel]
         return TypingChannelStrategy(
             initial_delay_ms=self.initial_delay_ms,
@@ -136,7 +135,7 @@ class TypingIndicator:
         """Sends a single typing activity via the adapter, bypassing middleware."""
         ref = self._context.activity.get_conversation_reference()
         typing_activity = TurnContext.apply_conversation_reference(
-            deepcopy(Activity(type=ActivityTypes.typing)), ref
+            Activity(type=ActivityTypes.typing), ref
         )
         await self._context.adapter.send_activities(self._context, [typing_activity])
 
