@@ -44,6 +44,6 @@ class InputFileDownloader(ABC):
 
         :param context: The turn context for the current request.
         :type context: :class:`microsoft_agents.hosting.core.turn_context.TurnContext`
-        :return: A list of downloaded :class:`microsoft_agents.hosting.core.InputFile` objects.
+        :return: A list of downloaded :class:`microsoft_agents.hosting.core.app.input_file.InputFile` objects.
         :rtype: list[:class:`microsoft_agents.hosting.core.app.input_file.InputFile`]
         """
