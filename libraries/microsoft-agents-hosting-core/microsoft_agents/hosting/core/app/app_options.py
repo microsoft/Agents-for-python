@@ -13,6 +13,7 @@ from microsoft_agents.hosting.core.app.oauth import AuthHandler
 from microsoft_agents.hosting.core.storage import Storage
 
 # from .auth import AuthOptions
+from .typing_indicator import TypingOptions
 from .input_file import InputFileDownloader
 from ..channel_service_adapter import ChannelServiceAdapter
 
@@ -60,6 +61,13 @@ class ApplicationOptions:
     Optional. If true, the bot will automatically start a typing timer when messages are received.
     This allows the bot to automatically indicate that it's received the message and is processing
     the request. Defaults to true.
+    """
+
+    typing: Optional[TypingOptions] = None
+    """
+    Optional. Typing indicator timing options. Controls initial delay, interval,
+    and per-channel strategies. If not provided, defaults are used when
+    ``start_typing_timer`` is true.
     """
 
     long_running_messages: bool = False
