@@ -13,7 +13,7 @@ class DialogReason(Enum):
     :vartype ContinueCalled: int
     :var EndCalled: A dialog ended normally through a call to :meth:`microsoft_agents.hosting.dialogs.DialogContext.end_dialog`
     :vartype EndCalled: int
-    :var ReplaceCalled: A dialog is ending and replaced through a call to :meth:``microsoft_agents.hosting.dialogs.DialogContext.replace_dialog`.
+    :var ReplaceCalled: A dialog is ending and replaced through a call to :meth:`microsoft_agents.hosting.dialogs.DialogContext.replace_dialog`.
     :vartype ReplacedCalled: int
     :var CancelCalled: A dialog was cancelled as part of a call to :meth:`microsoft_agents.hosting.dialogs.DialogContext.cancel_all_dialogs`.
     :vartype CancelCalled: int
