@@ -129,7 +129,7 @@ class TypingIndicator:
         return self
 
     async def __aexit__(self, exc_type, exc_val, exc_tb) -> None:
-        await self.stop()
+        await self._stop_async()
 
     async def _send_typing(self) -> None:
         """Sends a single typing activity via the adapter, bypassing middleware."""
@@ -225,8 +225,12 @@ class TypingIndicator:
             self._task.cancel()
             self._task = None
 
-    async def stop(self) -> None:
-        """Stops sending typing indicators and waits for any in-flight send."""
+    def stop(self) -> None:
+        """Stops sending typing indicators synchronously."""
+        self._stop_loop()
+
+    async def _stop_async(self) -> None:
+        """Stops typing and waits for any in-flight send to finish."""
         self._stop_loop()
 
         # Wait for any in-flight typing send to finish so we don't

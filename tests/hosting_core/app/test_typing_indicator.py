@@ -134,7 +134,7 @@ async def test_start_sends_typing_activity_after_initial_delay():
     assert len(context.sent_activities) == 0
 
     await asyncio.sleep(0.25)
-    await indicator.stop()
+    await indicator._stop_async()
 
     assert len(context.sent_activities) >= 1
     assert all(
@@ -150,7 +150,7 @@ async def test_start_sends_typing_at_interval():
 
     indicator.start()
     await asyncio.sleep(0.08)
-    await indicator.stop()
+    await indicator._stop_async()
 
     assert len(context.sent_activities) >= 2
     assert all(
@@ -169,7 +169,7 @@ async def test_start_creates_task():
     assert indicator._task is not None
     assert isinstance(indicator._task, asyncio.Task)
 
-    await indicator.stop()
+    await indicator._stop_async()
 
 
 @pytest.mark.asyncio
@@ -181,7 +181,7 @@ async def test_start_if_already_running():
     indicator.start()
     indicator.start()
 
-    await indicator.stop()
+    await indicator._stop_async()
 
 
 @pytest.mark.asyncio
@@ -189,7 +189,7 @@ async def test_stop_if_not_running():
     """Test that stop() is idempotent if not running."""
     context = StubTurnContext()
     indicator = TypingIndicator(context, typing_options=_fast_options())
-    await indicator.stop()
+    await indicator._stop_async()
 
 
 @pytest.mark.asyncio
@@ -200,7 +200,7 @@ async def test_stop_prevents_further_typing_activities():
 
     indicator.start()
     await asyncio.sleep(0.025)
-    await indicator.stop()
+    await indicator._stop_async()
 
     count_before = len(context.sent_activities)
     await asyncio.sleep(0.03)
@@ -217,12 +217,12 @@ async def test_multiple_start_stop_cycles():
 
     indicator.start()
     await asyncio.sleep(0.02)
-    await indicator.stop()
+    await indicator._stop_async()
     count_first = len(context.sent_activities)
 
     indicator.start()
     await asyncio.sleep(0.02)
-    await indicator.stop()
+    await indicator._stop_async()
     count_second = len(context.sent_activities)
 
     assert count_second > count_first
@@ -236,7 +236,7 @@ async def test_typing_activity_format():
 
     indicator.start()
     await asyncio.sleep(0.05)
-    await indicator.stop()
+    await indicator._stop_async()
 
     assert len(context.sent_activities) >= 1
     for activity in context.sent_activities:
@@ -252,7 +252,7 @@ async def test_typing_activity_has_conversation_reference():
 
     indicator.start()
     await asyncio.sleep(0.05)
-    await indicator.stop()
+    await indicator._stop_async()
 
     assert len(context.sent_activities) >= 1
     activity = context.sent_activities[0]
@@ -268,8 +268,8 @@ async def test_stop_is_idempotent():
 
     indicator.start()
     await asyncio.sleep(0.05)
-    await indicator.stop()
-    await indicator.stop()  # should not raise
+    await indicator._stop_async()
+    await indicator._stop_async()  # should not raise
 
 
 @pytest.mark.asyncio
@@ -280,7 +280,7 @@ async def test_send_failure_stops_gracefully():
 
     indicator.start()
     await asyncio.sleep(0.03)
-    await indicator.stop()
+    await indicator._stop_async()
 
 
 @pytest.mark.asyncio
@@ -316,7 +316,7 @@ async def test_send_hook_does_not_block_on_inflight_typing_send():
     assert next_handler_called
 
     release_send.set()
-    await indicator.stop()
+    await indicator._stop_async()
 
 
 # ---------------------------------------------------------------------------
@@ -339,7 +339,7 @@ async def test_channel_strategy_controls_timing():
 
     indicator.start()
     await asyncio.sleep(0.06)
-    await indicator.stop()
+    await indicator._stop_async()
 
     # Should have sent typing despite the large defaults,
     # because the msteams strategy overrides.
@@ -355,7 +355,7 @@ async def test_unknown_channel_uses_default_timing():
 
     indicator.start()
     await asyncio.sleep(0.06)
-    await indicator.stop()
+    await indicator._stop_async()
 
     assert len(context.sent_activities) >= 1
 
@@ -371,7 +371,7 @@ async def test_copilot_studio_uses_builtin_defaults():
     assert indicator._initial_delay == 0.25
     assert indicator._interval == 1.0
 
-    await indicator.stop()
+    await indicator._stop_async()
 
 
 @pytest.mark.asyncio
@@ -383,7 +383,7 @@ async def test_no_options_uses_global_defaults():
     assert indicator._initial_delay == 0.5
     assert indicator._interval == 10.0
 
-    await indicator.stop()
+    await indicator._stop_async()
 
 
 @pytest.mark.asyncio
@@ -459,7 +459,7 @@ async def test_legacy_interval_seconds_parameter():
 
     indicator.start()
     await asyncio.sleep(0.6)
-    await indicator.stop()
+    await indicator._stop_async()
     assert len(context.sent_activities) >= 1
 
 
