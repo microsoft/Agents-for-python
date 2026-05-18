@@ -13,6 +13,7 @@ from microsoft_agents.hosting.core.telemetry import (
 from . import constants
 from ..create_conversation_options import CreateConversationOptions
 
+
 class ProactiveStoreConversation(SimpleSpanWrapper):
     """Span for storing a conversation reference in proactive scenarios, starting from when the store operation is initiated until it is completed. This span can be used to correlate telemetry related to storing conversation references in proactive scenarios."""
 
@@ -28,7 +29,8 @@ class ProactiveStoreConversation(SimpleSpanWrapper):
         return {
             attributes.CONVERSATION_ID: self._conversation_id or attributes.UNKNOWN,
         }
-    
+
+
 class ProactiveGetConversation(SimpleSpanWrapper):
     """Span for getting a conversation reference in proactive scenarios, starting from when the get operation is initiated until it is completed. This span can be used to correlate telemetry related to getting conversation references in proactive scenarios."""
 
@@ -44,16 +46,19 @@ class ProactiveGetConversation(SimpleSpanWrapper):
     def _get_attributes(self) -> AttributeMap:
         return {
             attributes.CONVERSATION_ID: self._conversation_id or attributes.UNKNOWN,
-            attributes.CONVERSATION_FOUND: self._found if self._found is not None else attributes.UNKNOWN,
+            attributes.CONVERSATION_FOUND: (
+                self._found if self._found is not None else attributes.UNKNOWN
+            ),
         }
-    
+
     def share(self, found: bool) -> None:
         """Records to the span whether the conversation being retrieved was found.
 
         :param found: Whether the conversation being retrieved was found
         """
         self._found = found
-    
+
+
 class ProactiveDeleteConversation(SimpleSpanWrapper):
     """Span for deleting a conversation reference in proactive scenarios, starting from when the delete operation is initiated until it is completed. This span can be used to correlate telemetry related to deleting conversation references in proactive scenarios."""
 
@@ -69,7 +74,8 @@ class ProactiveDeleteConversation(SimpleSpanWrapper):
         return {
             attributes.CONVERSATION_ID: self._conversation_id or attributes.UNKNOWN,
         }
-    
+
+
 class ProactiveSendActivity(SimpleSpanWrapper):
     """Span for sending an activity in proactive scenarios, starting from when the send operation is initiated until it is completed. This span can be used to correlate telemetry related to sending activities in proactive scenarios."""
 
@@ -87,8 +93,10 @@ class ProactiveSendActivity(SimpleSpanWrapper):
         return {
             attributes.CONVERSATION_ID: self._conversation_id or attributes.UNKNOWN,
             attributes.ACTIVITY_TYPE: self._activity.type or attributes.UNKNOWN,
-            attributes.ACTIVITY_CHANNEL_ID: self._activity.channel_id or attributes.UNKNOWN,
+            attributes.ACTIVITY_CHANNEL_ID: self._activity.channel_id
+            or attributes.UNKNOWN,
         }
+
 
 class ProactiveContinueConversation(SimpleSpanWrapper):
     """Span for continuing a conversation in proactive scenarios, starting from when the continue operation is initiated until it is completed. This span can be used to correlate telemetry related to continuing conversations in proactive scenarios."""
@@ -107,9 +115,11 @@ class ProactiveContinueConversation(SimpleSpanWrapper):
         return {
             attributes.CONVERSATION_ID: self._conversation_id or attributes.UNKNOWN,
             attributes.ACTIVITY_TYPE: self._activity.type or attributes.UNKNOWN,
-            attributes.ACTIVITY_CHANNEL_ID: self._activity.channel_id or attributes.UNKNOWN,
+            attributes.ACTIVITY_CHANNEL_ID: self._activity.channel_id
+            or attributes.UNKNOWN,
         }
-    
+
+
 class ProactiveCreateConversation(SimpleSpanWrapper):
     """Span for creating a conversation in proactive scenarios, starting from when the create operation is initiated until it is completed. This span can be used to correlate telemetry related to creating conversations in proactive scenarios."""
 
@@ -120,7 +130,11 @@ class ProactiveCreateConversation(SimpleSpanWrapper):
         """
         super().__init__(constants.SPAN_CREATE_CONVERSATION)
         self._channel_id = options.channel_id
-        self._members_count: str = str(len(options.parameters.members)) if options.parameters and options.parameters.members else attributes.UNKNOWN
+        self._members_count: str | int = (
+            len(options.parameters.members)
+            if options.parameters and options.parameters.members
+            else attributes.UNKNOWN
+        )
 
     def _get_attributes(self) -> AttributeMap:
         return {

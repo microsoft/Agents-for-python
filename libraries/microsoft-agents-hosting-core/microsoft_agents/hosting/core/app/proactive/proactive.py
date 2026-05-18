@@ -121,7 +121,9 @@ class Proactive(Generic[StateT]):
         else:
             conversation = context_or_conversation
 
-        with spans.ProactiveStoreConversation(conversation.conversation_reference.conversation.id):
+        with spans.ProactiveStoreConversation(
+            conversation.conversation_reference.conversation.id
+        ):
             conversation.validate()
             key = self._storage_key(conversation.conversation_reference.conversation.id)
             logger.debug("Storing conversation with key: %s", key)
@@ -138,10 +140,12 @@ class Proactive(Generic[StateT]):
             or ``None`` if not found.
         :rtype: Optional[:class:`~microsoft_agents.hosting.core.app.proactive.conversation.Conversation`]
         """
-        with spans.ProactiveGetConversation(conversation_id):
+        with spans.ProactiveGetConversation(conversation_id) as span:
             key = self._storage_key(conversation_id)
             results = await self._storage.read([key], target_cls=Conversation)
-            return results.get(key)
+            conversation = results.get(key)
+            span.share(found=conversation is not None)
+            return conversation
 
     async def delete_conversation(self, conversation_id: str) -> None:
         """
@@ -273,10 +277,12 @@ class Proactive(Generic[StateT]):
                 await self._on_turn(context, handler, token_handlers)
             except Exception as exc:  # noqa: BLE001
                 captured_exc = exc
-            
+
         with spans.ProactiveContinueConversation(conversation_id, continuation):
 
-            await adapter.continue_conversation_with_claims(claims, continuation, _callback)
+            await adapter.continue_conversation_with_claims(
+                claims, continuation, _callback
+            )
 
             if captured_exc is not None:
                 raise captured_exc
