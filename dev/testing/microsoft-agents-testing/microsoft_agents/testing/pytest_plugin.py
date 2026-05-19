@@ -92,7 +92,7 @@ def pytest_runtest_setup(item: pytest.Item) -> None:
 # =============================================================================
 
 
-@pytest.fixture(scope="class")
+@pytest.fixture
 async def agent_client(request: pytest.FixtureRequest):
     """
     Provides an AgentClient for communicating with the agent under test.
@@ -113,7 +113,7 @@ async def agent_client(request: pytest.FixtureRequest):
         request.node._agent_client_transcript = client.transcript
 
 
-@pytest.fixture(scope="class")
+@pytest.fixture
 def agent_environment(request: pytest.FixtureRequest) -> AgentEnvironment:
     """
     Provides access to the AgentEnvironment (only for in-process scenarios).
@@ -134,31 +134,31 @@ def agent_environment(request: pytest.FixtureRequest) -> AgentEnvironment:
     return cast(AgentEnvironment, agent_environment)
 
 
-@pytest.fixture(scope="class")
+@pytest.fixture
 def agent_application(agent_environment: AgentEnvironment) -> AgentApplication:
     """Provides the AgentApplication instance from the test scenario."""
     return agent_environment.agent_application
 
 
-@pytest.fixture(scope="class")
+@pytest.fixture
 def authorization(agent_environment: AgentEnvironment) -> Authorization:
     """Provides the Authorization instance from the test scenario."""
     return agent_environment.authorization
 
 
-@pytest.fixture(scope="class")
+@pytest.fixture
 def storage(agent_environment: AgentEnvironment) -> Storage:
     """Provides the Storage instance from the test scenario."""
     return agent_environment.storage
 
 
-@pytest.fixture(scope="class")
+@pytest.fixture
 def adapter(agent_environment: AgentEnvironment) -> ChannelServiceAdapter:
     """Provides the ChannelServiceAdapter instance from the test scenario."""
     return agent_environment.adapter
 
 
-@pytest.fixture(scope="class")
+@pytest.fixture
 def connection_manager(agent_environment: AgentEnvironment) -> Connections:
     """Provides the Connections (connection manager) instance from the test scenario."""
     return agent_environment.connections
