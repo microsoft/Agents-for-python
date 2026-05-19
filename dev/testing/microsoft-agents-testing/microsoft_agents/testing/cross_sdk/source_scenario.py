@@ -61,7 +61,7 @@ class SourceScenario(ExternalScenario):
                 stdout=subprocess.PIPE,
                 stderr=subprocess.PIPE,
                 cwd=script_path.parent,
-                shell=sys.platform == "win32",
+                # shell=sys.platform == "win32",
             )
 
             # wait for the agent to start running
@@ -70,9 +70,13 @@ class SourceScenario(ExternalScenario):
             yield
 
             process.terminate()
+            process.wait()
         except Exception as ex:
             process.kill()
             raise ex
+        finally:
+            process.terminate()
+            process.wait()
 
     @asynccontextmanager
     async def run(self) -> AsyncIterator[ClientFactory]:
