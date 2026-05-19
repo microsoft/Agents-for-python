@@ -34,7 +34,7 @@ class InputFileDownloader(ABC):
     Abstract base class for a plugin responsible for downloading files provided by the user.
 
     Implementations should download any files referenced by the incoming activity and return a
-    list of :class:`microsoft_agents.hosting.core.InputFile` instances representing the downloaded content.
+    list of :class:`microsoft_agents.hosting.core.app.input_file.InputFile` instances representing the downloaded content.
     """
 
     @abstractmethod
