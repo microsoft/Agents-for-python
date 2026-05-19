@@ -68,10 +68,8 @@ def _get_scenario_from_marker(item: pytest.Item) -> Scenario | None:
         )
 
     arg = marker.args[0]
-    if isinstance(arg, str):
+    if isinstance(arg, str) or isinstance(arg, Scenario):
         return resolve_scenario(arg)
-    elif isinstance(arg, Scenario):
-        return arg
     else:
         raise pytest.UsageError(
             f"@pytest.mark.agent_test expects a URL string, registered scenario name, "
@@ -90,7 +88,6 @@ def pytest_runtest_setup(item: pytest.Item) -> None:
 # =============================================================================
 # Fixtures
 # =============================================================================
-
 
 @pytest.fixture
 async def agent_client(request: pytest.FixtureRequest):
@@ -111,7 +108,6 @@ async def agent_client(request: pytest.FixtureRequest):
         # After test completes, attach conversation to the test item
         # This makes it available to pytest's reporting hooks
         request.node._agent_client_transcript = client.transcript
-
 
 @pytest.fixture
 def agent_environment(request: pytest.FixtureRequest) -> AgentEnvironment:

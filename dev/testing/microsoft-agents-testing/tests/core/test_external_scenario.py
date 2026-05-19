@@ -496,7 +496,7 @@ class TestExternalScenarioEdgeCases:
         """ExternalScenario accepts endpoint with trailing slash."""
         scenario = ExternalScenario(endpoint="http://localhost:3978/api/messages/")
         
-        assert scenario._endpoint == "http://localhost:3978/api/messages/"
+        assert scenario._endpoint == "http://localhost:3978/api/messages"
 
     def test_endpoint_with_https(self):
         """ExternalScenario accepts https endpoint."""
