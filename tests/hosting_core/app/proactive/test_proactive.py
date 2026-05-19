@@ -326,7 +326,9 @@ class TestProactiveContinueConversation:
 
         async def fake_continue(claims, continuation, callback):
             ctx = MagicMock()
-            with patch.object(proactive_instance, "_load_state", AsyncMock(return_value=state)):
+            with patch.object(
+                proactive_instance, "_load_state", AsyncMock(return_value=state)
+            ):
                 await callback(ctx)
 
         adapter = MagicMock()
@@ -483,7 +485,9 @@ class TestProactiveCreateConversation:
     def _make_adapter(self, new_conversation_id="new-conv"):
         ref = _make_reference(new_conversation_id)
 
-        async def fake_create(app_id, channel_id, service_url, audience, params, callback):
+        async def fake_create(
+            app_id, channel_id, service_url, audience, params, callback
+        ):
             ctx = MagicMock()
             ctx.activity.get_conversation_reference.return_value = ref
             await callback(ctx)
@@ -570,7 +574,9 @@ class TestProactiveCreateConversation:
     async def test_create_passes_channel_id_to_adapter(self, proactive, options):
         captured_channel_id = None
 
-        async def fake_create(app_id, channel_id, service_url, audience, params, callback):
+        async def fake_create(
+            app_id, channel_id, service_url, audience, params, callback
+        ):
             nonlocal captured_channel_id
             captured_channel_id = channel_id
             ref = _make_reference("x")
