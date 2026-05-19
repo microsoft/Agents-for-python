@@ -26,6 +26,12 @@ from microsoft_agents.activity import (
 # supported Response types, currently only aiohttp.ClientResponse
 ResponseT = TypeVar("ResponseT", bound=aiohttp.ClientResponse)
 
+def _load_activity(activity_dict: dict) -> Activity:
+    new_activity_dict = {
+        key: value for key, value in activity_dict.items() if value != ""
+    }
+    return Activity(**new_activity_dict)
+
 class Exchange(BaseModel):
     """A complete send-receive exchange with an agent.
     
@@ -136,7 +142,8 @@ class Exchange(BaseModel):
             if request_activity.delivery_mode == DeliveryModes.expect_replies:
                 body = await response.text()
                 activity_list = json.loads(body)["activities"]
-                activities = [ Activity.model_validate(activity) for activity in activity_list ]
+
+                activities = [ _load_activity(activity) for activity in activity_list ]
 
             elif request_activity.type == ActivityTypes.invoke:
                 body = await response.text()
