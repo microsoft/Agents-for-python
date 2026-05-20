@@ -8,6 +8,8 @@ import sys
 
 from pathlib import Path
 
+import psutil
+
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
 
@@ -32,6 +34,36 @@ _TEMPLATE = {
 client_config=ClientConfig(
     activity_template=ActivityTemplate(_TEMPLATE)
 )
+
+
+def _terminate_tree(process: subprocess.Popen, timeout: float = 5.0) -> None:
+    """Terminate `process` and all of its descendants.
+
+    Why: Popen.terminate() only signals the immediate PID, so child processes
+    spawned by the script (e.g. ``python agent.py`` launched from a .ps1)
+    become orphans on both Windows and POSIX.
+    """
+    try:
+        parent = psutil.Process(process.pid)
+    except psutil.NoSuchProcess:
+        return
+
+    descendants = parent.children(recursive=True)
+    targets = [*descendants, parent]
+
+    for proc in targets:
+        try:
+            proc.terminate()
+        except psutil.NoSuchProcess:
+            pass
+
+    _, alive = psutil.wait_procs(targets, timeout=timeout)
+    for proc in alive:
+        try:
+            proc.kill()
+        except psutil.NoSuchProcess:
+            pass
+
 
 class SourceScenario(ExternalScenario):
     """Base class for script-based test scenarios."""
@@ -67,15 +99,17 @@ class SourceScenario(ExternalScenario):
             # wait for the agent to start running
             await asyncio.sleep(self._delay)
 
-            yield
+            if process.poll() is not None:
+                stdout, stderr = process.communicate()  # safe — process is already dead
+                raise RuntimeError(
+                    f"Agent exited with code {process.returncode} during startup.\n"
+                    f"stderr: {stderr.decode(errors='replace')}\n"
+                    f"stdout: {stdout.decode(errors='replace')}"
+                )
 
-            process.terminate()
-            process.wait()
-        except Exception as ex:
-            process.kill()
-            raise ex
+            yield
         finally:
-            process.terminate()
+            _terminate_tree(process)
             process.wait()
 
     @asynccontextmanager
