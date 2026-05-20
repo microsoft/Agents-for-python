@@ -5,18 +5,22 @@
 
 import logging
 from typing import Any, Optional
+from urllib.parse import quote
 from aiohttp import ClientSession
 from io import BytesIO
 
 from microsoft_agents.activity import (
     Activity,
     ChannelAccount,
+    Channels,
     ConversationParameters,
     ConversationResourceResponse,
     ResourceResponse,
+    RoleTypes,
     ConversationsResult,
     PagedMembersResult,
 )
+from microsoft_agents.activity.channel_id import ChannelId
 from microsoft_agents.hosting.core.connector import ConnectorClientBase
 from ..attachments_base import AttachmentsBase
 from ..conversations_base import ConversationsBase
@@ -138,8 +142,26 @@ class ConversationsOperations(ConversationsBase):
         self.client = client
         self._max_conversation_id_length = kwargs.get("max_conversation_id_length", 150)
 
-    def _normalize_conversation_id(self, conversation_id: str) -> str:
-        return conversation_id[: self._max_conversation_id_length]
+    def _normalize_conversation_id(
+        self, conversation_id: str, activity: Optional[Activity] = None
+    ) -> str:
+        trimmed = conversation_id[: self._max_conversation_id_length]
+        if activity is not None and self._should_url_encode_conversation_id(activity):
+            return quote(trimmed, safe="")
+        return trimmed
+
+    @staticmethod
+    def _should_url_encode_conversation_id(activity: Activity) -> bool:
+        channel_id = activity.channel_id
+        if not channel_id:
+            return False
+        base_channel = channel_id.channel if isinstance(channel_id, ChannelId) else channel_id.split(":", 1)[0]
+        if base_channel not in (Channels.ms_teams, Channels.agents):
+            return False
+        from_property = activity.from_property
+        if not from_property or not from_property.role:
+            return False
+        return from_property.role in (RoleTypes.agentic_identity, RoleTypes.agentic_user)
 
     async def get_conversations(
         self, continuation_token: Optional[str] = None
@@ -221,7 +243,7 @@ class ConversationsOperations(ConversationsBase):
 
         with spans.ConnectorReplyToActivity(conversation_id, activity_id) as span:
 
-            conversation_id = self._normalize_conversation_id(conversation_id)
+            conversation_id = self._normalize_conversation_id(conversation_id, body)
             url = f"v3/conversations/{conversation_id}/activities/{activity_id}"
 
             logger.info(
@@ -283,7 +305,7 @@ class ConversationsOperations(ConversationsBase):
 
         with spans.ConnectorSendToConversation(conversation_id, body.id) as span:
 
-            conversation_id = self._normalize_conversation_id(conversation_id)
+            conversation_id = self._normalize_conversation_id(conversation_id, body)
             url = f"v3/conversations/{conversation_id}/activities"
 
             logger.info(
@@ -330,7 +352,7 @@ class ConversationsOperations(ConversationsBase):
 
         with spans.ConnectorUpdateActivity(conversation_id, activity_id) as span:
 
-            conversation_id = self._normalize_conversation_id(conversation_id)
+            conversation_id = self._normalize_conversation_id(conversation_id, body)
             url = f"v3/conversations/{conversation_id}/activities/{activity_id}"
 
             logger.info(
