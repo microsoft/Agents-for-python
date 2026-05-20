@@ -111,6 +111,9 @@ class SourceScenario(ExternalScenario):
         finally:
             _terminate_tree(process)
             process.wait()
+            # Give the OS time to release the listening socket so chained scenarios
+            # on the same port don't hit "address already in use".
+            await asyncio.sleep(3.0)
 
     @asynccontextmanager
     async def run(self) -> AsyncIterator[ClientFactory]:
