@@ -17,7 +17,7 @@
 - **API Reference Docstrings**: Docstrings updated from short-form to fully qualified object names for Learn API reference generation (#381)
 - **SuggestedActions Factory**: New factory for the `to` property of `SuggestedActions` (#370)
 - **Dialogs Test Layout**: `hosting-dialogs` tests moved back under the top-level `tests/` directory for consistency with other packages (#379)
-- **Build Dependencies**: Temporal fix for build testing dependencies (#404)
+- **Build Dependencies**: Temporary fix for build testing dependencies (#404)
 
 ---
 
