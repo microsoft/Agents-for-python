@@ -18,9 +18,9 @@ from .waterfall_step_context import WaterfallStepContext
 class WaterfallDialog(Dialog):
     """A dialog composed of a fixed, ordered sequence of steps (a waterfall).
 
-    Each step receives a :class:`WaterfallStepContext` and must either:
+    Each step receives a :class:`microsoft_agents.hosting.dialogs.WaterfallStepContext` and must either:
 
-    * return :attr:`Dialog.end_of_turn` to wait for user input before proceeding
+    * return :attr:`microsoft_agents.hosting.dialogs.Dialog.end_of_turn` to wait for user input before proceeding
       to the next step, or
     * call ``await step.next(result)`` / ``await step.begin_dialog(...)`` /
       ``await step.end_dialog(...)`` to advance the flow explicitly.
@@ -44,9 +44,9 @@ class WaterfallDialog(Dialog):
 
         :param dialog_id: Unique ID for this dialog within its parent DialogSet.
         :param steps: Optional list of async callables (step functions).  Each callable
-            must accept a single :class:`WaterfallStepContext` and return a
-            :class:`DialogTurnResult`.  Pass ``None`` or omit to start with an empty
-            waterfall and add steps later with :meth:`add_step`.
+            must accept a single :class:`microsoft_agents.hosting.dialogs.WaterfallStepContext` and return a
+            :class:`microsoft_agents.hosting.dialogs.DialogTurnResult`.  Pass ``None`` or omit to start with an empty
+            waterfall and add steps later with :meth:`microsoft_agents.hosting.dialogs.WaterfallDialog.add_step`.
         :raises TypeError: If ``steps`` is not a list.
         """
         super(WaterfallDialog, self).__init__(dialog_id)
@@ -80,7 +80,7 @@ class WaterfallDialog(Dialog):
 
         :param dialog_context: The dialog context for the current turn.
         :param options: Optional argument passed through to every step as
-            :attr:`WaterfallStepContext.options`.
+            :attr:`microsoft_agents.hosting.dialogs.WaterfallStepContext.options`.
         :return: The result of the first step, or a Complete result if there are
             no steps.
         """
@@ -112,9 +112,9 @@ class WaterfallDialog(Dialog):
     ) -> DialogTurnResult:
         """Continues the waterfall on the next incoming activity.
 
-        Non-message activities are ignored (returns :attr:`Dialog.end_of_turn`).
+        Non-message activities are ignored (returns :attr:`microsoft_agents.hosting.dialogs.Dialog.end_of_turn`).
         For message activities the user's text is forwarded as the result of the
-        previous step via :meth:`resume_dialog`.
+        previous step via :meth:`microsoft_agents.hosting.dialogs.WaterfallDialog.resume_dialog`.
 
         :param dialog_context: The dialog context for the current turn.
         :return: The result of resuming the current step.
@@ -138,7 +138,7 @@ class WaterfallDialog(Dialog):
         step's output.
 
         Called automatically by the dialog system when a child dialog completes or
-        when :meth:`WaterfallStepContext.next` is called explicitly.
+        when :meth:`microsoft_agents.hosting.dialogs.WaterfallStepContext.next` is called explicitly.
 
         :param dialog_context: The dialog context for the current turn.
         :param reason: Why the dialog is being resumed.
@@ -219,7 +219,7 @@ class WaterfallDialog(Dialog):
         last step.
 
         Saves the step index into persisted state, constructs a
-        :class:`WaterfallStepContext`, and delegates to :meth:`on_step`.
+        :class:`microsoft_agents.hosting.dialogs.WaterfallStepContext`, and delegates to :meth:`microsoft_agents.hosting.dialogs.WaterfallDialog.on_step`.
 
         :param dialog_context: The dialog context for the current turn.
         :param index: Zero-based index of the step to run.
