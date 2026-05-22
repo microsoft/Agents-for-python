@@ -8,20 +8,20 @@ from .dialog_state import DialogState
 
 
 class WaterfallStepContext(DialogContext):
-    """Context passed to each step function in a :class:`WaterfallDialog`.
+    """Context passed to each step function in a :class:`microsoft_agents.hosting.dialogs.WaterfallDialog`.
 
-    Inherits from :class:`DialogContext` so step functions can call
-    :meth:`begin_dialog`, :meth:`prompt`, :meth:`end_dialog`, etc. directly on
+    Inherits from :class:`microsoft_agents.hosting.dialogs.DialogContext` so step functions can call
+    :meth:`microsoft_agents.hosting.dialogs.DialogContext.begin_dialog`, :meth:`microsoft_agents.hosting.dialogs.DialogContext.prompt`, :meth:`microsoft_agents.hosting.dialogs.DialogContext.end_dialog`, etc. directly on
     the step context.
 
-    In addition to the standard :class:`DialogContext` interface, a step context
+    In addition to the standard :class:`microsoft_agents.hosting.dialogs.DialogContext` interface, a step context
     provides read-only properties for the current step index, the options passed
     to the waterfall, the reason this step is executing, the result from the
     previous step (or child dialog), and a shared ``values`` dict that persists
     across all steps of the same waterfall instance.
 
-    Call :meth:`next` to skip ahead to the next step without waiting for user
-    input.  Calling :meth:`next` more than once in the same step raises an
+    Call :meth:`microsoft_agents.hosting.dialogs.WaterfallStepContext.next` to skip ahead to the next step without waiting for user
+    input.  Calling :meth:`microsoft_agents.hosting.dialogs.WaterfallStepContext.next` more than once in the same step raises an
     exception.
     """
 
@@ -54,7 +54,7 @@ class WaterfallStepContext(DialogContext):
 
     @property
     def options(self) -> object:
-        """Options originally passed to :meth:`WaterfallDialog.begin_dialog`.
+        """Options originally passed to :meth:`microsoft_agents.hosting.dialogs.WaterfallDialog.begin_dialog`.
         Shared across all steps of the same waterfall run.
         """
         return self._options
@@ -92,7 +92,7 @@ class WaterfallStepContext(DialogContext):
         advance immediately (e.g. when data was already available).
 
         :param result: Value to pass to the next step as
-            :attr:`WaterfallStepContext.result`.
+            :attr:`microsoft_agents.hosting.dialogs.WaterfallStepContext.result`.
         :raises Exception: If called more than once within the same step.
         :return: The result of running the next step.
         """

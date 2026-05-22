@@ -142,7 +142,7 @@ class ChoicePrompt(Prompt):
 
         :param activity: The incoming activity (provides ``locale``).
         :param opt: Optional recogniser options (provides ``locale`` fallback).
-        :return: A locale string present in :attr:`_default_choice_options`.
+        :return: A locale string present in :attr:`microsoft_agents.hosting.dialogs.ChoicePrompt._default_choice_options`.
         """
         culture = (
             PromptCultureModels.map_to_nearest_language(activity.locale)
