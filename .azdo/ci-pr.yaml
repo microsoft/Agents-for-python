@@ -84,5 +84,5 @@ steps:
   displayName: 'Install wheels'
 
 - script: |
-    pytest
+    pytest -W "ignore:SelectableGroups dict interface is deprecated. Use select.:DeprecationWarning"
   displayName: 'Test with pytest'

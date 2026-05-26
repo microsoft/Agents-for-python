@@ -72,4 +72,4 @@ jobs:
         python -m pip install ./dist/microsoft_agents_storage_cosmos*.whl
     - name: Test with pytest
       run: |
-        pytest
+        pytest -W "ignore:SelectableGroups dict interface is deprecated. Use select.:DeprecationWarning"

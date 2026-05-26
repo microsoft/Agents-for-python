@@ -437,7 +437,7 @@ class Activity(AgentsModel, _ChannelIdFieldMixin):
     @staticmethod
     def create_contact_relation_update_activity():
         """
-        Creates an instance of the :class:`Activity` class as a ContactRelationUpdateActivity object.
+        Creates an instance of the :class:`microsoft_agents.activity.Activity` class as a ContactRelationUpdateActivity object.
 
         :returns: The new contact relation update activity.
         """
@@ -446,7 +446,7 @@ class Activity(AgentsModel, _ChannelIdFieldMixin):
     @staticmethod
     def create_conversation_update_activity():
         """
-        Creates an instance of the :class:`Activity` class as a ConversationUpdateActivity object.
+        Creates an instance of the :class:`microsoft_agents.activity.Activity` class as a ConversationUpdateActivity object.
 
         :returns: The new conversation update activity.
         """
@@ -455,7 +455,7 @@ class Activity(AgentsModel, _ChannelIdFieldMixin):
     @staticmethod
     def create_end_of_conversation_activity():
         """
-        Creates an instance of the :class:`Activity` class as an EndOfConversationActivity object.
+        Creates an instance of the :class:`microsoft_agents.activity.Activity` class as an EndOfConversationActivity object.
 
         :returns: The new end of conversation activity.
         """
@@ -464,7 +464,7 @@ class Activity(AgentsModel, _ChannelIdFieldMixin):
     @staticmethod
     def create_event_activity():
         """
-        Creates an instance of the :class:`Activity` class as an EventActivity object.
+        Creates an instance of the :class:`microsoft_agents.activity.Activity` class as an EventActivity object.
 
         :returns: The new event activity.
         """
@@ -473,7 +473,7 @@ class Activity(AgentsModel, _ChannelIdFieldMixin):
     @staticmethod
     def create_handoff_activity():
         """
-        Creates an instance of the :class:`Activity` class as a HandoffActivity object.
+        Creates an instance of the :class:`microsoft_agents.activity.Activity` class as a HandoffActivity object.
 
         :returns: The new handoff activity.
         """
@@ -482,7 +482,7 @@ class Activity(AgentsModel, _ChannelIdFieldMixin):
     @staticmethod
     def create_invoke_activity():
         """
-        Creates an instance of the :class:`Activity` class as an InvokeActivity object.
+        Creates an instance of the :class:`microsoft_agents.activity.Activity` class as an InvokeActivity object.
 
         :returns: The new invoke activity.
         """
@@ -491,7 +491,7 @@ class Activity(AgentsModel, _ChannelIdFieldMixin):
     @staticmethod
     def create_message_activity():
         """
-        Creates an instance of the :class:`Activity` class as a MessageActivity object.
+        Creates an instance of the :class:`microsoft_agents.activity.Activity` class as a MessageActivity object.
 
         :returns: The new message activity.
         """
@@ -588,7 +588,7 @@ class Activity(AgentsModel, _ChannelIdFieldMixin):
         name: str, value: object = None, value_type: str = None, label: str = None
     ):
         """
-        Creates an instance of the :class:`Activity` class as a TraceActivity object.
+        Creates an instance of the :class:`microsoft_agents.activity.Activity` class as a TraceActivity object.
 
         :param name: The name of the trace operation to create.
         :param value: Optional, the content for this trace operation.
@@ -612,16 +612,21 @@ class Activity(AgentsModel, _ChannelIdFieldMixin):
     @staticmethod
     def create_typing_activity() -> "Activity":
         """
-        Creates an instance of the :class:`Activity` class as a TypingActivity object.
+        Creates an instance of the :class:`microsoft_agents.activity.Activity` class as a TypingActivity object.
 
         :returns: The new typing activity.
         """
         return Activity(type=ActivityTypes.typing)
 
-    def get_conversation_reference(self) -> ConversationReference:
+    def get_conversation_reference(
+        self, force_base_channel: bool | None = None
+    ) -> ConversationReference:
         """
         Creates a ConversationReference based on this activity.
 
+        :param force_base_channel: Optional, when True use only the base channel value
+            from the channel id (for example ``msteams`` from ``msteams:copilot-web``).
+            Composite values are split only on the first ``:``.
         :returns: A conversation reference for the conversation that contains this activity.
         """
         return pick_model(
@@ -635,7 +640,11 @@ class Activity(AgentsModel, _ChannelIdFieldMixin):
             user=copy(self.from_property),
             agent=copy(self.recipient),
             conversation=copy(self.conversation),
-            channel_id=self.channel_id,
+            channel_id=(
+                self.channel_id.split(":", 1)[0]
+                if force_base_channel and self.channel_id is not None
+                else self.channel_id
+            ),
             locale=self.locale,
             service_url=self.service_url,
         )
@@ -655,7 +664,7 @@ class Activity(AgentsModel, _ChannelIdFieldMixin):
         :returns: The array of mentions; or an empty array, if none are found.
 
         .. remarks::
-            This method is defined on the :class:`Activity` class, but is only intended for use with a message activity,
+            This method is defined on the :class:`microsoft_agents.activity.Activity` class, but is only intended for use with a message activity,
             where the activity Activity.Type is set to ActivityTypes.Message.
         """
         if not self.entities:
@@ -683,7 +692,7 @@ class Activity(AgentsModel, _ChannelIdFieldMixin):
         :returns: True, if this activity has any content to send; otherwise, false.
 
         .. remarks::
-            This method is defined on the :class:`Activity` class, but is only intended for use with a message activity,
+            This method is defined on the :class:`microsoft_agents.activity.Activity` class, but is only intended for use with a message activity,
             where the activity Activity.Type is set to ActivityTypes.Message.
         """
         if self.text and self.text.strip():
