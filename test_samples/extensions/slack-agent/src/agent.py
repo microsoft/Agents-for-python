@@ -34,9 +34,7 @@ slack = SlackAgentExtension[TurnState](APP)
 
 @APP.conversation_update(ConversationUpdateTypes.MEMBERS_ADDED)
 async def welcome_added_members(context: TurnContext, state: TurnState):
-    for member in context.activity.members_added or []:
-        if member.id != context.activity.recipient.id:
-            await context.send_activity("Hello and Welcome!")
+    await context.send_activity("Hello and Welcome!")
 
 
 @slack.on_message("-stream")
