@@ -1,8 +1,6 @@
 # Copyright (c) Microsoft Corporation. All rights reserved.
 # Licensed under the MIT License.
 
-import json
-
 from .transcript_formatter import BaseTranscriptFormatter
 from .utils import _exchange_sort_key
 
@@ -27,8 +25,5 @@ class ActivityTranscriptFormatter(BaseTranscriptFormatter):
             if exchange.responses:
                 activities.extend(exchange.responses)
         
-        activity_dicts: list[dict] = [
-            activity.model_dump(**self._model_dump_args) for activity in activities
-        ]
-
-        return json.dumps(activity_dicts)
+        parts = [activity.model_dump_json(**self._model_dump_args) for activity in activities]
+        return "[" + ",".join(parts) + "]"

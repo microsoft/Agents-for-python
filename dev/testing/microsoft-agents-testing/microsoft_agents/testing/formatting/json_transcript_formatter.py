@@ -1,4 +1,5 @@
-import json
+# Copyright (c) Microsoft Corporation. All rights reserved.
+# Licensed under the MIT License.
 
 from .transcript_formatter import BaseTranscriptFormatter
 from .utils import _exchange_sort_key
@@ -15,8 +16,5 @@ class JsonTranscriptFormatter(BaseTranscriptFormatter):
 
         exchanges = sorted(transcript.history(), key=_exchange_sort_key)
 
-        exchange_dicts: list[dict] = [
-            exchange.model_dump(**self._model_dump_args) for exchange in exchanges
-        ]
-
-        return json.dumps(exchange_dicts)
+        parts = [exchange.model_dump_json(**self._model_dump_args) for exchange in exchanges]
+        return "[" + ",".join(parts) + "]"

@@ -1,3 +1,6 @@
+# Copyright (c) Microsoft Corporation. All rights reserved.
+# Licensed under the MIT License.
+
 import click
 
 from microsoft_agents.testing.cli.core import (
@@ -8,13 +11,13 @@ from microsoft_agents.testing.cli.core import (
 )
 from microsoft_agents.testing.core import Scenario
 
-from .scenario import scenario
+from .scenario_group import scenario_group
 
-@scenario.command("chat")
+@scenario_group.command("chat")
 @async_command
 @pass_output
 @with_scenario
-async def scenario_chat(out: Output, scenario: Scenario) -> None:
+async def chat(out: Output, scenario: Scenario) -> None:
     """Interactive chat with an agent.
     
     Starts a REPL-style conversation where you can send messages and

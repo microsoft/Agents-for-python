@@ -1,3 +1,6 @@
+# Copyright (c) Microsoft Corporation. All rights reserved.
+# Licensed under the MIT License.
+
 import asyncio
 import click
 
@@ -12,13 +15,13 @@ from microsoft_agents.testing.core import (
     ExternalScenario
 )
 
-from .scenario import scenario
+from .scenario_group import scenario_group
 
-@scenario.command("run")
+@scenario_group.command("run")
 @async_command
 @pass_output
 @with_scenario
-async def scenario_run(out: Output, scenario: Scenario) -> None:
+async def run(out: Output, scenario: Scenario) -> None:
     """Run a specified test scenario as a long-running server.
 
     Only in-process scenarios (AiohttpScenario) are supported.

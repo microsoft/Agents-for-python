@@ -1,7 +1,8 @@
-import click
-import json
+# Copyright (c) Microsoft Corporation. All rights reserved.
+# Licensed under the MIT License.
 
-from microsoft_agents.activity import Activity
+import click
+
 from microsoft_agents.testing.cli.core import (
     async_command,
     pass_output,
@@ -11,17 +12,18 @@ from microsoft_agents.testing.cli.core import (
 from microsoft_agents.testing.core import Scenario
 from microsoft_agents.testing.formatting import ActivityTranscriptFormatter
 
-from .scenario import scenario
+from .scenario_group import scenario_group
+from ._utils import load_activity
 
 
-@scenario.command("post")
+@scenario_group.command("post")
 @async_command
 @pass_output
 @with_scenario
-@click.argument("message", required=False)
-@click.option("--json_file", "-j", required=False, type=click.File("rb"), help="Message text or JSON activity to send to the agent.")
-@click.option("--wait", "-w", default=5.0, help="Seconds to wait for a response before timing out.")
-async def scenario_post(out: Output, scenario: Scenario, message: str | None, json_file, wait: float) -> None:
+@click.option("--message", "-m", required=False, help="Text message to send to the agent.")
+@click.option("--json_file", "-j", required=False, type=click.File("rb"), help="JSON activity to send to the agent.")
+@click.option("--timeout", "-timeout", default=5000, type=int, help="Milliseconds to wait for a response before timing out.")
+async def post(out: Output, scenario: Scenario, message: str | None, json_file, timeout: int) -> None:
     """Send a single message or activity to an agent and display the transcript.
 
     Provide either a text message as an argument or a JSON activity file via --json_file.
@@ -30,27 +32,13 @@ async def scenario_post(out: Output, scenario: Scenario, message: str | None, js
     :param scenario: The resolved Scenario instance.
     :param message: Plain text message to send.
     :param json_file: File handle for a JSON activity payload.
-    :param wait: Seconds to wait for async responses.
+    :param timeout: Milliseconds to wait for a response before timing out.
     """
     
-    if not message and not json_file:
-        out.error("Either a message argument or --json_file must be provided.")
-        return
-    
-    if message and json_file:
-        out.error("Cannot provide both a message argument and --json_file. Please choose one.")
-        return
+    activity = load_activity(message, json_file, out)
     
     async with scenario.client() as client:
-        activity_or_str: Activity | str
-        if message:
-            assert isinstance(message, str)
-            activity_or_str = message
-        else:
-            data = json.load(json_file)
-            activity_or_str = client.template.create(data)
-
-        await client.send(activity_or_str, wait=wait)
+        await client.send(activity, wait=timeout)
 
     transcript = client.transcript
 

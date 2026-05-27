@@ -11,12 +11,12 @@ from click import Command
 
 # Import commands
 from .env import env
-from .scenario import scenario
+from .scenario import scenario_group
 
 # Add commands to this list to register them with the CLI
 COMMANDS: list[Command] = [
     env,
-    scenario,
+    scenario_group,
 ]
 
 __all__ = ["COMMANDS"]

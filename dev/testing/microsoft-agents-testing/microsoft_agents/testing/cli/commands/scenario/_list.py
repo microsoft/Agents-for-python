@@ -1,3 +1,6 @@
+# Copyright (c) Microsoft Corporation. All rights reserved.
+# Licensed under the MIT License.
+
 import click
 
 from microsoft_agents.testing.cli.core import (
@@ -6,12 +9,12 @@ from microsoft_agents.testing.cli.core import (
 )
 from microsoft_agents.testing.scenario_registry import scenario_registry
 
-from .scenario import scenario
+from .scenario_group import scenario_group
 
-@scenario.command("list")
+@scenario_group.command("list")
 @click.argument("pattern", default="*")
 @pass_output
-def scenario_list(out: Output, pattern: str) -> None:
+def _list(out: Output, pattern: str) -> None:
     """List registered test scenarios matching a pattern.
 
     :param out: CLI output helper.

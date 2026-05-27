@@ -92,7 +92,7 @@ def with_scenario(func: Callable) -> Callable:
        Uses ExternalScenario to connect to an agent running at the specified
        URL. This is the default mode when AGENT_URL is configured.
        
-       Example: mat chat --url http://localhost:3978/api/messages
+       Example: agt chat --url http://localhost:3978/api/messages
     
     2. In-Process Agent Mode (--agent):
        Uses AiohttpScenario to run the agent in-process. The --agent option
@@ -104,7 +104,18 @@ def with_scenario(func: Callable) -> Callable:
        takes an AgentEnvironment and configures the agent handlers.
     """
     
-    @click.argument("agent_name_or_url")
+    @click.option(
+        "--url", "-u",
+        "agent_url",
+        default=None,
+        help="URL of the external agent to connect to.",
+    )
+    @click.option(
+        "--agent", "-a",
+        "agent_name",
+        default=None,
+        help="Name of the agent to use.",
+    )
     @click.option(
         "--module", "-m",
         "module_path",
@@ -115,7 +126,8 @@ def with_scenario(func: Callable) -> Callable:
     @wraps(func)
     def wrapper(
         ctx: click.Context,
-        agent_name_or_url: str | None,
+        agent_url: str | None,
+        agent_name: str | None,
         module_path: str | None,
         *args: Any,
         **kwargs: Any,
@@ -129,6 +141,13 @@ def with_scenario(func: Callable) -> Callable:
         if out is None:
             raise RuntimeError("Output not found in context")
         
+        if agent_url and agent_name:
+            raise ValueError("Only one of --url or --agent can be specified.")
+        elif not agent_url and not agent_name:
+            raise ValueError("Either --url or --agent must be specified.")
+
+        agent_name_or_url = agent_url or agent_name
+        
         # Determine which scenario to use based on CLI arguments
         scenario = _resolve_scenario(
             agent_name_or_url=agent_name_or_url,
@@ -138,13 +157,12 @@ def with_scenario(func: Callable) -> Callable:
         )
         if not scenario:
             # Retry with 'agt.' prefix for built-in scenario shorthand names
-            if agent_name_or_url:
-                scenario = _resolve_scenario(
-                    agent_name_or_url=f"agt.{agent_name_or_url}",
-                    module_path=module_path,
-                    config=config,
-                    out=out,
-                )
+            scenario = _resolve_scenario(
+                agent_name_or_url=f"agt.{agent_name_or_url}",
+                module_path=module_path,
+                config=config,
+                out=out,
+            )
             
             if not scenario:
                 out.error("Failed to locate the scenario. Please check your options.")

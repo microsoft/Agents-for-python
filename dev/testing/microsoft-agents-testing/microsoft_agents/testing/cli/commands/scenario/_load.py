@@ -1,0 +1,89 @@
+# Copyright (c) Microsoft Corporation. All rights reserved.
+# Licensed under the MIT License.
+
+import asyncio
+import click
+
+from datetime import timedelta
+from dataclasses import dataclass
+
+from microsoft_agents.activity import Activity
+from microsoft_agents.testing.cli.core import (
+    async_command,
+    pass_output,
+    Output,
+    with_scenario
+)
+from microsoft_agents.testing.core import (
+    Exchange,
+    Scenario
+)
+
+from .scenario_group import scenario_group
+from ._utils import load_activity
+
+@dataclass
+class RunResult:
+    """Represents the result of a load test run."""
+
+    latency: timedelta | None
+    error: bool
+
+async def run_load_test(scenario: Scenario, activity: Activity, num: int, timeout: float) -> list[RunResult | None]:
+    """Run a load test with the given scenario, activity, and parameters."""
+
+    results: list[RunResult | None] = [None] * num
+
+    async with scenario.run() as client_factory:
+
+        async def send_activity(run_id: int):
+            """Send an activity and record the result."""
+            try:
+                client = await client_factory()
+
+                exchange: Exchange
+                async with asyncio.timeout(timeout / 1000):
+                    exchange = (await client.ex_send_expect_replies(activity))[-1]
+
+                results[run_id] = RunResult(
+                    latency=exchange.latency,
+                    error=exchange.is_error
+                )
+            except Exception as e:
+                results[run_id] = RunResult(
+                    latency=None,
+                    error=True
+                )
+
+        await asyncio.gather(
+            *[send_activity(i) for i in range(num)]
+        )
+
+    return results
+
+@scenario_group.command("post")
+@async_command
+@pass_output
+@with_scenario
+@click.option("--message", "-m", required=False, help="Text message to send to the agent.")
+@click.option("--json_file", "-j", required=False, type=click.File("rb"), help="JSON activity to send to the agent.")
+@click.option("--num", "-n", required=True, type=int, help="Number of concurrent requests to make.")
+@click.option("--timeout", "-t", default=5000, help="Milliseconds to wait for a response before timing out.")
+async def load(out: Output, scenario: Scenario, message: str | None, json_file, num: int, timeout: float) -> None:
+    """Send a single message or activity to an agent and display the transcript.
+
+    Provide either a text message as an argument or a JSON activity file via --json_file.
+
+    :param out: CLI output helper.
+    :param scenario: The resolved Scenario instance.
+    :param message: Plain text message to send.
+    :param json_file: File handle for a JSON activity payload.
+    :param num: Number of concurrent requests to make.
+    :param timeout: Milliseconds to wait for a response before timing out.
+    """
+    
+    activity = load_activity(message, json_file, out)
+
+    results: list[RunResult | None] = await run_load_test(scenario, activity, num, timeout)
+
+    print(results)

@@ -1,3 +1,6 @@
+# Copyright (c) Microsoft Corporation. All rights reserved.
+# Licensed under the MIT License.
+
 from microsoft_agents.testing.core import Transcript
 
 from .activity_transcript_formatter import ActivityTranscriptFormatter
