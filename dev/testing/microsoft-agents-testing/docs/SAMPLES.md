@@ -7,7 +7,7 @@ Runnable scripts in `docs/samples/`. Each is self-contained.
 | `quickstart.py` | Send a message, check the reply |
 | `interactive.py` | REPL chat with transcript on exit |
 | `scenario_registry_demo.py` | Registering and discovering named scenarios |
-| `transcript_formatting.py` | Formatters, detail levels, time formats |
+| `transcript_formatting.py` | `ConversationTranscriptFormatter`, `ActivityTranscriptFormatter`, `JsonTranscriptFormatter` |
 | `pytest_plugin_usage.py` | `@pytest.mark.agent_test`, fixtures |
 | `multi_client.py` | Multiple users, `ActivityTemplate`, child clients |
 
@@ -58,14 +58,22 @@ python docs/samples/scenario_registry_demo.py
 
 ## transcript_formatting.py
 
-`ConversationTranscriptFormatter`, `ActivityTranscriptFormatter`,
-`DetailLevel`, `TimeFormat`, custom labels, and convenience functions.
+Demonstrates the three transcript formatters and the convenience print functions.
+
+- `ConversationTranscriptFormatter` — chat-style, timestamped lines
+- `ActivityTranscriptFormatter` — flat JSON array of `Activity` objects
+- `JsonTranscriptFormatter` — JSON array of `Exchange` objects
 
 ```python
-ConversationTranscriptFormatter(
-    detail=DetailLevel.FULL,
-    time_format=TimeFormat.ELAPSED,
-).print(client.transcript)
+from microsoft_agents.testing import (
+    ConversationTranscriptFormatter,
+    ActivityTranscriptFormatter,
+    JsonTranscriptFormatter,
+    print_conversation, print_activities, print_json,
+)
+
+print_conversation(client.transcript)
+print(ActivityTranscriptFormatter(model_dump_args={"exclude_none": True}).format(client.transcript))
 ```
 
 ```bash
@@ -111,4 +119,53 @@ async with scenario.run() as factory:
 
 ```bash
 python docs/samples/multi_client.py
+```
+
+---
+
+## CLI
+
+The `agt` CLI is the quickest way to interact with an agent without writing code.
+
+### Interactive chat
+
+```bash
+# Chat with an agent running locally
+agt scenario chat --url http://localhost:3978/api/messages
+
+# Chat with a registered scenario
+agt scenario chat --agent agt.basic
+```
+
+Type `/exit` or `/quit` to end the session.
+
+### Load testing
+
+```bash
+# Send "Hello!" 50 times concurrently, 5 s timeout
+agt scenario load --url http://localhost:3978/api/messages \
+    --message "Hello!" --num 50 --timeout 5000
+
+# Send a custom activity from a JSON file
+agt scenario load --url http://localhost:3978/api/messages \
+    --json-file activity.json --num 20
+```
+
+Reports per-request errors and aggregate latency (average, min, max, p90).
+
+### Environment setup
+
+```bash
+# Print .env variable names required for auth
+agt env help
+
+# Inspect the current environment
+agt env show
+```
+
+### Listing registered scenarios
+
+```bash
+agt scenario list          # all scenarios
+agt scenario list "agt.*"  # built-in scenarios
 ```

@@ -20,7 +20,7 @@ from microsoft_agents.testing.core import (
 )
 
 from .scenario_group import scenario_group
-from ._utils import load_activity
+from ._utils import load_activity, console_histogram
 
 @dataclass
 class RunResult:
@@ -90,7 +90,7 @@ def show_results(results: list[RunResult | None], out: Output) -> None:
         else:
             latencies.append(result.latency)
     
-    out.info(f"Completed {len(latencies)} requests.")
+    out.info(f"Completed {len(results) - len(error_ids) - len(missing_ids)} requests.")
     if error_ids:
         out.info(f"Failed {len(error_ids)} requests.")
     if missing_ids:
@@ -101,7 +101,15 @@ def show_results(results: list[RunResult | None], out: Output) -> None:
         out.info(f"Minimum latency: {min(latencies).total_seconds() * 1000:.2f} ms")
         out.info(f"Maximum latency: {max(latencies).total_seconds() * 1000:.2f} ms")
         out.info(f"90th percentile latency: {sorted(latencies)[int(len(latencies) * 0.9)].total_seconds() * 1000:.2f} ms")
-        
+    
+    out.newline()
+
+    out.info("Latency distribution (seconds):")
+    console_histogram(
+        [ latency.total_seconds() * 1000 for latency in latencies ],
+        out,
+        bins=10
+    )
         
 
 
