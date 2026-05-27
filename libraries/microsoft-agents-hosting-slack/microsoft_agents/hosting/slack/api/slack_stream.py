@@ -6,8 +6,7 @@ Licensed under the MIT License.
 from __future__ import annotations
 
 import json
-from typing import Any, Optional, Sequence, Union
-from collections.abc import Iterable
+from typing import Any, Optional, Union
 
 from pydantic import BaseModel
 
@@ -65,7 +64,7 @@ class SlackStream:
 
     async def append(
         self,
-        chunk_or_text: Union[str, BaseModel, Sequence[BaseModel]],
+        chunk_or_text: Union[str, BaseModel, list[BaseModel]],
     ) -> "SlackStream":
         """Append one or more chunks to the stream.
 
@@ -107,8 +106,8 @@ class SlackStream:
 
     async def stop(
         self,
-        chunks: Optional[Sequence[BaseModel]] = None,
-        blocks: Union[str, Sequence[Any], dict, None] = None,
+        chunks: Optional[list[BaseModel]] = None,
+        blocks: Union[str, list[Any], dict, None] = None,
     ) -> None:
         """Stop the active stream, optionally finalizing with chunks and/or
         Block Kit blocks.
@@ -153,8 +152,8 @@ class SlackStream:
             if "blocks" not in blocks or not isinstance(blocks["blocks"], list):
                 raise ValueError("blocks object must contain a 'blocks' array property")
             return blocks["blocks"]
-        if isinstance(blocks, Iterable):
-            return list(blocks)
+        if isinstance(blocks, list):
+            return blocks
         raise ValueError(
             "blocks must be a JSON array, a JSON object with a 'blocks' array, "
             "or a string encoding either"
