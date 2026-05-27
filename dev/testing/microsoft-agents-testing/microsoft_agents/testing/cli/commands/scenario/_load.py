@@ -34,11 +34,13 @@ async def run_load_test(scenario: Scenario, activity: Activity, num: int, timeou
     """Run a load test with the given scenario, activity, and parameters."""
 
     results: list[RunResult | None] = [None] * num
+    seen: list[bool] = [False] * num
 
     async with scenario.run() as client_factory:
 
         async def send_activity(run_id: int):
             """Send an activity and record the result."""
+            seen[run_id] = True
             try:
                 client = await client_factory()
 
@@ -50,6 +52,12 @@ async def run_load_test(scenario: Scenario, activity: Activity, num: int, timeou
                     latency=exchange.latency,
                     error=exchange.is_error,
                     error_message=exchange.error
+                )
+            except asyncio.TimeoutError:
+                results[run_id] = RunResult(
+                    latency=timedelta(milliseconds=timeout),
+                    error=True,
+                    error_message="Request timed out"
                 )
             except Exception as e:
                 results[run_id] = RunResult(
