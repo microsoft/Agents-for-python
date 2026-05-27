@@ -39,7 +39,7 @@ def _strip_nones(value: Any) -> Any:
     if isinstance(value, dict):
         return {k: _strip_nones(v) for k, v in value.items() if v is not None}
     if isinstance(value, list):
-        return [_strip_nones(v) for v in value]
+        return [_strip_nones(v) for v in value if v is not None]
     if isinstance(value, BaseModel):
         return value.model_dump(mode="json", by_alias=True, exclude_none=True)
     return value
