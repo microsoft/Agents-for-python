@@ -62,11 +62,14 @@ from .activity_handler_scenario import (
     ActivityHandlerScenario,
 )
 
-from .transcript_formatter import (
-    DetailLevel,
-    ConversationTranscriptFormatter,
+from .formatting import (
     ActivityTranscriptFormatter,
+    ConversationTranscriptFormatter,
+    JsonTranscriptFormatter,
     TranscriptFormatter,
+    print_activities,
+    print_conversation,
+    print_json
 )
 
 from .scenario_registry import (
@@ -98,8 +101,11 @@ __all__ = [
     "ScenarioEntry",
     "scenario_registry",
     "load_scenarios",
-    "DetailLevel",
+    "JsonTranscriptFormatter",
     "ConversationTranscriptFormatter",
     "ActivityTranscriptFormatter",
     "TranscriptFormatter",
+    "print_activities",
+    "print_conversation",
+    "print_json"
 ]
