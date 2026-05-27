@@ -117,7 +117,7 @@ def with_scenario(func: Callable) -> Callable:
         help="Name of the agent to use.",
     )
     @click.option(
-        "--module", "-m",
+        "--module",
         "module_path",
         default=None,
         help="Python module path for registered agents (e.g., myproject.agents.echo).",
@@ -142,9 +142,9 @@ def with_scenario(func: Callable) -> Callable:
             raise RuntimeError("Output not found in context")
         
         if agent_url and agent_name:
-            raise ValueError("Only one of --url or --agent can be specified.")
+            out.error("Only one of --url or --agent can be specified.", exit=True)
         elif not agent_url and not agent_name:
-            raise ValueError("Either --url or --agent must be specified.")
+            out.error("Either --url or --agent must be specified.", exit=True)
 
         agent_name_or_url = agent_url or agent_name
         

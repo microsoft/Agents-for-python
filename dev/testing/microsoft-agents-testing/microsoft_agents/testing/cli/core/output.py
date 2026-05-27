@@ -3,6 +3,7 @@
 
 """Reusable output formatting utilities for CLI commands."""
 
+import sys
 from typing import Any, Iterator, Optional
 from contextlib import contextmanager
 import click
@@ -40,9 +41,11 @@ class Output:
         """Display a success message in green."""
         click.secho(f"✓ {message}", fg="green")
 
-    def error(self, message: str) -> None:
+    def error(self, message: str, exit: bool = False) -> None:
         """Display an error message in red."""
         click.secho(f"✗ {message}", fg="red", err=True)
+        if exit:
+            sys.exit(1)
 
     def warning(self, message: str) -> None:
         """Display a warning message in yellow."""

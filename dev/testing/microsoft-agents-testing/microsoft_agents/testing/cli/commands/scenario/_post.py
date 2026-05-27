@@ -38,11 +38,16 @@ async def post(out: Output, scenario: Scenario, message: str | None, json_file, 
     activity = load_activity(message, json_file, out)
     
     async with scenario.client() as client:
-        await client.send(activity, wait=timeout)
+        await client.send(activity, wait=timeout/1000)
 
     transcript = client.transcript
 
-    text = ActivityTranscriptFormatter().format(transcript)
+    text = ActivityTranscriptFormatter(
+        model_dump_args={
+            "exclude_unset": True,
+            "exclude_none": True
+        }
+    ).format(transcript)
 
     out.info("Transcript of the conversation:")
     out.info("=" * 40)
