@@ -122,6 +122,15 @@ async def test_stop_with_object_missing_blocks_array_raises():
 
 
 @pytest.mark.asyncio
+async def test_append_before_start_raises():
+    api = _fake_api()
+    stream = SlackStream(api, "C1", "thread1", "tok")
+    with pytest.raises(ValueError, match="start\\(\\)"):
+        await stream.append("hello")
+    api.call.assert_not_awaited()
+
+
+@pytest.mark.asyncio
 async def test_stop_before_start_is_noop():
     api = _fake_api()
     stream = SlackStream(api, "C1", "thread1", "tok")

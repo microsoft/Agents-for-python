@@ -74,6 +74,9 @@ class SlackStream:
 
         See https://docs.slack.dev/reference/methods/chat.appendStream
         """
+        if self._message_ts is None:
+            raise ValueError("start() must be called before append()")
+
         if chunk_or_text is None:
             raise ValueError("chunk_or_text must not be None")
 
