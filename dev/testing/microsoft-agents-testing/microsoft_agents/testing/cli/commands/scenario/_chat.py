@@ -24,14 +24,14 @@ async def chat(out: Output, scenario: Scenario) -> None:
     see the agent's responses in real-time.
     
     Examples:
-    
+
         \b
         # Chat with an external agent
-        mat chat --url http://localhost:3978/api/messages
-        
+        agt scenario chat --url http://localhost:3978/api/messages
+
         \b
-        # Chat with an in-process agent
-        mat chat --agent myproject.agents.echo
+        # Chat with a registered scenario
+        agt scenario chat --agent agt.basic
     """
     # Print welcome banner
     out.newline()

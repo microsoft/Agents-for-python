@@ -3,6 +3,7 @@
 
 from .scenario_group import scenario_group
 
+# force modules to load, allowing CLI registration
 from . import _chat
 from . import _list
 from . import _load

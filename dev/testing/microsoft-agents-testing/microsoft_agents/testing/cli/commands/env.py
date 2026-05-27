@@ -41,5 +41,5 @@ def env(config: CLIConfig, out: Output):
     out.newline()
     out.info(f"\tEnvironment file: {config.env_path if config.env_path else 'None'}")
     out.info("\tEnvironment variables from file:")
-    for key, value in config.env.items():
-        out.info(f"\t\t{key}={value}")
+    for key in config.env.keys():
+        out.info(f"\t\t{key}")

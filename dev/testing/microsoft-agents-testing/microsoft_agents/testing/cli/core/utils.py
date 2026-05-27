@@ -27,7 +27,7 @@ def _resolve_scenario(
 ) -> Scenario | None:
     """Resolve a Scenario from user-provided CLI options.
 
-    Checks whether the input is an HTTPS URL (creates ExternalScenario)
+    Checks whether the input is an HTTP/HTTPS URL (creates ExternalScenario)
     or a registered scenario name (looks up in the registry). If a
     module_path is provided, it is imported first to trigger registration.
 

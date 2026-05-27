@@ -114,16 +114,19 @@ def show_results(results: list[RunResult | None], out: Output) -> None:
 @click.option("--num", "-n", required=True, type=int, help="Number of concurrent requests to make.")
 @click.option("--timeout", "-t", default=5000, help="Milliseconds to wait for a response before timing out.")
 async def load(out: Output, scenario: Scenario, message: str | None, json_file, num: int, timeout: float) -> None:
-    """Send a single message or activity to an agent and display the transcript.
+    """Run a concurrent load test against an agent and report latency statistics.
 
-    Provide either a text message as an argument or a JSON activity file via --json_file.
+    Sends the same message or activity to the agent ``--num`` times concurrently
+    and prints per-request results along with average, min, max, and p90 latencies.
+
+    Provide either a text message via ``--message`` or a JSON activity via ``--json_file``.
 
     :param out: CLI output helper.
     :param scenario: The resolved Scenario instance.
-    :param message: Plain text message to send.
-    :param json_file: File handle for a JSON activity payload.
-    :param num: Number of concurrent requests to make.
-    :param timeout: Milliseconds to wait for a response before timing out.
+    :param message: Plain text message to send to each concurrent request.
+    :param json_file: File handle for a JSON activity payload to send to each request.
+    :param num: Number of concurrent requests to send.
+    :param timeout: Milliseconds to wait per request before treating it as a timeout error.
     """
     
     activity = load_activity(message, json_file, out)

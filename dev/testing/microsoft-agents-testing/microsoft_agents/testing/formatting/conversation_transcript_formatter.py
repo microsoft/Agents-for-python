@@ -28,9 +28,18 @@ class _ActivityObservation:
         return self.error is not None
 
 class ConversationTranscriptFormatter(BaseTranscriptFormatter):
-    """Formats a transcript as a conversation string."""
+    """Formats a transcript as a human-readable conversation string.
+
+    Each activity is rendered on its own line as:
+    ``[HH:MM:SS.mmm] You: <text>`` for user messages,
+    ``[HH:MM:SS.mmm] Agent: <text>`` for agent messages, and
+    ``[HH:MM:SS.mmm]   --- Agent [<type>] ---`` for non-message activity types.
+    Errors are rendered as ``[HH:MM:SS.mmm] [X] Error: <message>``.
+    Lines are sorted by activity timestamp.
+    """
 
     def _get_exchange_observations(self, exchange: Exchange) -> list[_ActivityObservation]:
+        """Return observations for a single exchange, preserving request/response order."""
         obs = []
         if exchange.request:
             assert exchange.request_at is not None
@@ -49,19 +58,22 @@ class ConversationTranscriptFormatter(BaseTranscriptFormatter):
         return obs
     
     def _get_observations(self, transcript: Transcript) -> list[_ActivityObservation]:
+        """Collect and sort all observations across the full transcript by timestamp."""
         obs = []
         for exchange in transcript.history():
             obs.extend(self._get_exchange_observations(exchange))
 
         return sorted(obs, key=lambda o: o.at)
-    
+
     def _format_exchange(self, exchange: Exchange) -> str:
+        """Format a single exchange as newline-separated observation lines."""
         return "\n".join(
             self._format_observation(obs)
             for obs in self._get_exchange_observations(exchange)
         )
 
     def _format_observation(self, observation: _ActivityObservation) -> str:
+        """Format a single activity observation as a timestamped conversation line."""
         ts = _format_timestamp(observation.at)
 
         if observation.is_error:
