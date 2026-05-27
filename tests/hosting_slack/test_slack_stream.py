@@ -10,7 +10,6 @@ from unittest.mock import AsyncMock, MagicMock
 import pytest
 
 from microsoft_agents.hosting.slack.api import (
-    BlocksChunk,
     MarkdownTextChunk,
     SlackResponse,
     SlackStream,

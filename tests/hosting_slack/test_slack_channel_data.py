@@ -9,11 +9,8 @@ examples from https://docs.slack.dev/apis/events-api/#callback-field
 
 import json
 
-import pytest
-
 from microsoft_agents.hosting.slack.api import (
     EventContent,
-    EventEnvelope,
     SlackChannelData,
 )
 

@@ -6,7 +6,6 @@ Licensed under the MIT License.
 from __future__ import annotations
 
 import json
-from contextlib import asynccontextmanager
 from typing import Any
 
 import pytest
