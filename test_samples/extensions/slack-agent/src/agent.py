@@ -16,6 +16,7 @@ Slack sample agent. Ports the SlackAgent C# sample to Python.
 from __future__ import annotations
 
 import asyncio
+import logging
 
 from microsoft_agents.activity import ConversationUpdateTypes
 from microsoft_agents.hosting.core import RouteRank, TurnContext, TurnState
@@ -28,6 +29,8 @@ from microsoft_agents.hosting.slack.api import (
 )
 
 from .app import APP
+
+_logger = logging.getLogger(__name__)
 
 slack = SlackAgentExtension[TurnState](APP)
 
@@ -97,6 +100,55 @@ async def on_slack_stream_message(context: TurnContext, state: TurnState):
             }
         ]
         await stream.stop(blocks=feedback_blocks)
+
+
+@slack.on_message("-test")
+async def on_slack_test_message(context: TurnContext, state: TurnState):
+    channel_data = SlackChannelData.from_activity(context.activity)
+    slack_token = channel_data.api_token
+    slack_channel = channel_data.channel
+    thread_ts = channel_data.thread_ts
+
+    if not thread_ts:
+        await context.send_activity(
+            "Unable to extract thread timestamp from the message. "
+            "Please ensure the message is sent as a reply in a thread."
+        )
+        return
+
+    resp = await slack.call(
+        context,
+        "assistant.threads.setSuggestedPrompts",
+        {
+            "channel_id": slack_channel,
+            "thread_ts": thread_ts,
+            "prompts": [
+                {
+                    "title": "📧 Summarize my emails from today",
+                    "message": "Summarize my emails from today",
+                },
+                {
+                    "title": "📅 What meetings do I have tomorrow?",
+                    "message": "What meetings do I have tomorrow?",
+                },
+                {
+                    "title": "📁 Find recent files shared with me",
+                    "message": "Find recent files shared with me",
+                },
+                {
+                    "title": "👥 Who did I meet with last week?",
+                    "message": "Who did I meet with last week?",
+                },
+            ],
+            "title": "Try asking me things like:",
+        },
+        token=slack_token or "",
+    )
+    _logger.info(
+        "Slack auth.test response: %s", resp.model_dump_json(exclude_none=True)
+    )
+
+    await context.send_activity("PING")
 
 
 @slack.on_message("-buttons")
