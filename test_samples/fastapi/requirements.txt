@@ -1,5 +1,6 @@
 # FastAPI sample requirements
 fastapi>=0.104.0
+starlette>=1.0.1  # CVE-2026-48710 fix
 uvicorn[standard]>=0.24.0
 python-dotenv>=1.0.0
 aiohttp>=3.8.0
