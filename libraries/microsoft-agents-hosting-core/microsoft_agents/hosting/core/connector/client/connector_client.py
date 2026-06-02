@@ -4,8 +4,8 @@
 """Connector Client for Microsoft Agents."""
 
 import logging
+import re
 from typing import Any, Optional
-from urllib.parse import quote
 from aiohttp import ClientSession
 from io import BytesIO
 
@@ -146,17 +146,17 @@ class ConversationsOperations(ConversationsBase):
         self, conversation_id: str, activity: Optional[Activity] = None
     ) -> str:
         trimmed = conversation_id[: self._max_conversation_id_length]
-        if activity is not None and self._should_url_encode_conversation_id(activity):
-            return quote(trimmed, safe="")
+        if activity is not None and self._should_sanitize_conversation_id(activity):
+            return re.sub(r"[/\\#?]", "_", trimmed)
         return trimmed
 
     @staticmethod
-    def _should_url_encode_conversation_id(activity: Activity) -> bool:
+    def _should_sanitize_conversation_id(activity: Activity) -> bool:
         channel_id = activity.channel_id
         if not channel_id:
             return False
         base_channel = channel_id.channel if isinstance(channel_id, ChannelId) else channel_id.split(":", 1)[0]
-        if base_channel not in (Channels.ms_teams, Channels.agents):
+        if base_channel != Channels.agents:
             return False
         from_property = activity.from_property
         if not from_property or not from_property.role:

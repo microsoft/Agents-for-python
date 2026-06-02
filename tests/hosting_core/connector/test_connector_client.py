@@ -138,76 +138,67 @@ class TestReplyToActivity:
 
 
 class TestNormalizeConversationId:
-    """Tests for ConversationsOperations._normalize_conversation_id and _should_url_encode_conversation_id."""
+    """Tests for ConversationsOperations._normalize_conversation_id and _should_sanitize_conversation_id."""
 
     def _make_ops(self):
         return ConversationsOperations(None)
 
-    # --- _should_url_encode_conversation_id ---
+    # --- _should_sanitize_conversation_id ---
 
     @pytest.mark.parametrize(
-        "channel, role",
-        [
-            (Channels.agents, RoleTypes.agentic_identity),
-            (Channels.agents, RoleTypes.agentic_user),
-            (Channels.ms_teams, RoleTypes.agentic_identity),
-            (Channels.ms_teams, RoleTypes.agentic_user),
-        ],
+        "role",
+        [RoleTypes.agentic_identity, RoleTypes.agentic_user],
     )
-    def test_should_url_encode_when_agentic_channel_and_agentic_role(self, channel, role):
+    def test_should_sanitize_when_agents_channel_and_agentic_role(self, role):
         activity = Activity(
             type="message",
-            channel_id=channel,
+            channel_id=Channels.agents,
             from_property=ChannelAccount(id="user1", role=role),
         )
-        assert ConversationsOperations._should_url_encode_conversation_id(activity) is True
+        assert ConversationsOperations._should_sanitize_conversation_id(activity) is True
 
-    @pytest.mark.parametrize(
-        "channel",
-        [Channels.agents, Channels.ms_teams],
-    )
     @pytest.mark.parametrize(
         "role",
         [RoleTypes.user, RoleTypes.agent, RoleTypes.skill],
     )
-    def test_should_not_url_encode_when_non_agentic_role(self, channel, role):
+    def test_should_not_sanitize_when_non_agentic_role(self, role):
         activity = Activity(
             type="message",
-            channel_id=channel,
+            channel_id=Channels.agents,
             from_property=ChannelAccount(id="user1", role=role),
         )
-        assert ConversationsOperations._should_url_encode_conversation_id(activity) is False
+        assert ConversationsOperations._should_sanitize_conversation_id(activity) is False
 
     @pytest.mark.parametrize(
         "channel",
-        [Channels.email, Channels.direct_line, Channels.webchat, Channels.emulator],
+        [Channels.ms_teams, Channels.email, Channels.direct_line, Channels.webchat, Channels.emulator],
     )
-    def test_should_not_url_encode_when_non_agentic_channel(self, channel):
+    def test_should_not_sanitize_when_non_agents_channel(self, channel):
         activity = Activity(
             type="message",
             channel_id=channel,
             from_property=ChannelAccount(id="user1", role=RoleTypes.agentic_identity),
         )
-        assert ConversationsOperations._should_url_encode_conversation_id(activity) is False
+        assert ConversationsOperations._should_sanitize_conversation_id(activity) is False
 
-    def test_should_not_url_encode_when_no_channel_id(self):
+    def test_should_not_sanitize_when_no_channel_id(self):
         activity = Activity(
             type="message",
             from_property=ChannelAccount(id="user1", role=RoleTypes.agentic_identity),
         )
-        assert ConversationsOperations._should_url_encode_conversation_id(activity) is False
+        assert ConversationsOperations._should_sanitize_conversation_id(activity) is False
 
-    def test_should_not_url_encode_when_no_from(self):
+    def test_should_not_sanitize_when_no_from(self):
         activity = Activity(type="message", channel_id=Channels.agents)
-        assert ConversationsOperations._should_url_encode_conversation_id(activity) is False
+        assert ConversationsOperations._should_sanitize_conversation_id(activity) is False
 
-    def test_should_not_url_encode_when_no_role(self):
+    def test_should_not_sanitize_when_no_role(self):
         activity = Activity(
             type="message",
             channel_id=Channels.agents,
             from_property=ChannelAccount(id="user1"),
         )
-        assert ConversationsOperations._should_url_encode_conversation_id(activity) is False
+        assert ConversationsOperations._should_sanitize_conversation_id(activity) is False
 
     # --- _normalize_conversation_id ---
 
@@ -217,13 +208,13 @@ class TestNormalizeConversationId:
         result = ops._normalize_conversation_id(long_id)
         assert result == "a" * 150
 
-    def test_normalize_does_not_url_encode_without_activity(self):
+    def test_normalize_does_not_sanitize_without_activity(self):
         ops = self._make_ops()
         conv_id = "conv/with/slashes"
         result = ops._normalize_conversation_id(conv_id)
         assert result == conv_id
 
-    def test_normalize_url_encodes_for_agents_channel_with_agentic_role(self):
+    def test_normalize_sanitizes_slashes_for_agents_channel_with_agentic_role(self):
         ops = self._make_ops()
         conv_id = "conv/with/slashes"
         activity = Activity(
@@ -232,10 +223,22 @@ class TestNormalizeConversationId:
             from_property=ChannelAccount(id="user1", role=RoleTypes.agentic_identity),
         )
         result = ops._normalize_conversation_id(conv_id, activity)
-        assert result == "conv%2Fwith%2Fslashes"
+        assert result == "conv_with_slashes"
 
-    def test_normalize_url_encodes_for_agents_subchannel(self):
-        """Test that agents:email sub-channel also triggers URL encoding."""
+    def test_normalize_sanitizes_all_path_chars_for_agents_channel(self):
+        """Test that /, \\, #, and ? are all replaced with _."""
+        ops = self._make_ops()
+        conv_id = "conv/with\\special#chars?here"
+        activity = Activity(
+            type="message",
+            channel_id=Channels.agents,
+            from_property=ChannelAccount(id="user1", role=RoleTypes.agentic_user),
+        )
+        result = ops._normalize_conversation_id(conv_id, activity)
+        assert result == "conv_with_special_chars_here"
+
+    def test_normalize_sanitizes_for_agents_subchannel(self):
+        """Test that agents:email sub-channel also triggers sanitization."""
         ops = self._make_ops()
         conv_id = "conv/with/slashes"
         activity = Activity(
@@ -244,9 +247,10 @@ class TestNormalizeConversationId:
             from_property=ChannelAccount(id="user1", role=RoleTypes.agentic_user),
         )
         result = ops._normalize_conversation_id(conv_id, activity)
-        assert result == "conv%2Fwith%2Fslashes"
+        assert result == "conv_with_slashes"
 
-    def test_normalize_url_encodes_for_msteams_with_agentic_role(self):
+    def test_normalize_does_not_sanitize_for_msteams_with_agentic_role(self):
+        """msteams channel should NOT sanitize the conversation ID."""
         ops = self._make_ops()
         conv_id = "conv/with/slashes"
         activity = Activity(
@@ -255,9 +259,9 @@ class TestNormalizeConversationId:
             from_property=ChannelAccount(id="user1", role=RoleTypes.agentic_user),
         )
         result = ops._normalize_conversation_id(conv_id, activity)
-        assert result == "conv%2Fwith%2Fslashes"
+        assert result == conv_id
 
-    def test_normalize_truncates_before_url_encoding(self):
+    def test_normalize_truncates_before_sanitizing(self):
         ops = ConversationsOperations(None, max_conversation_id_length=5)
         conv_id = "ab/cd/ef"
         activity = Activity(
@@ -265,11 +269,11 @@ class TestNormalizeConversationId:
             channel_id=Channels.agents,
             from_property=ChannelAccount(id="user1", role=RoleTypes.agentic_identity),
         )
-        # Truncated to 5 chars first: "ab/cd", then URL encoded
+        # Truncated to 5 chars first: "ab/cd", then sanitized
         result = ops._normalize_conversation_id(conv_id, activity)
-        assert result == "ab%2Fcd"
+        assert result == "ab_cd"
 
-    def test_normalize_no_url_encode_for_non_agentic_role_with_agents_channel(self):
+    def test_normalize_no_sanitize_for_non_agentic_role_with_agents_channel(self):
         ops = self._make_ops()
         conv_id = "conv/with/slashes"
         activity = Activity(
@@ -282,10 +286,10 @@ class TestNormalizeConversationId:
 
 
 class TestSendToConversationUrlEncoding:
-    """Integration tests: URL encoding of conversation_id in send_to_conversation."""
+    """Integration tests: sanitization of conversation_id in send_to_conversation."""
 
     @pytest.mark.asyncio
-    async def test_send_to_conversation_encodes_conversation_id_for_agentic_agents_channel(
+    async def test_send_to_conversation_sanitizes_conversation_id_for_agentic_agents_channel(
         self,
     ):
         captured = {}
@@ -312,16 +316,16 @@ class TestSendToConversationUrlEncoding:
                 )
                 await ops.send_to_conversation("conv/sub/id", activity)
 
-            assert "conv%2Fsub%2Fid" in captured["raw_path"]
+            assert "conv_sub_id" in captured["raw_path"]
         finally:
             await server.close()
 
 
 class TestReplyToActivityUrlEncoding:
-    """Integration tests: URL encoding of conversation_id in reply_to_activity."""
+    """Integration tests: sanitization of conversation_id in reply_to_activity."""
 
     @pytest.mark.asyncio
-    async def test_reply_to_activity_encodes_conversation_id_for_agentic_agents_channel(
+    async def test_reply_to_activity_sanitizes_conversation_id_for_agentic_agents_channel(
         self,
     ):
         captured = {}
@@ -345,13 +349,13 @@ class TestReplyToActivityUrlEncoding:
                 ops = ConversationsOperations(session)
                 activity = Activity(
                     type="message",
-                    channel_id=Channels.ms_teams,
+                    channel_id=Channels.agents,
                     from_property=ChannelAccount(
                         id="user1", role=RoleTypes.agentic_user
                     ),
                 )
                 await ops.reply_to_activity("conv/sub/id", "act-1", activity)
 
-            assert "conv%2Fsub%2Fid" in captured["raw_path"]
+            assert "conv_sub_id" in captured["raw_path"]
         finally:
             await server.close()
