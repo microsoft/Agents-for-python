@@ -1,3 +1,26 @@
+# Microsoft 365 Agents SDK for Python - Release Notes v1.0.0
+
+**Release Date:** May 22, 2026
+**Previous Version:** 0.9.0 (Released April 15, 2026)
+
+## Major Features & Enhancements
+
+- **Dialogs Library**: New `microsoft-agents-hosting-dialogs` package porting the BotFramework dialog system (WaterfallDialog, ComponentDialog, DialogSet, DialogContext) and prompts (TextPrompt, NumberPrompt, ChoicePrompt, ConfirmPrompt, DateTimePrompt, AttachmentPrompt, OAuthPrompt) to the new SDK (#378)
+- **Teams SSO Consent**: Support for the Teams SSO `Consent Required` flow (#380)
+- **Teams Extension Updates**: `TeamsAgentExtension` and related types re-exported at the `microsoft_agents.hosting.teams` package root, integration with `microsoft-teams-api` 2.x Pydantic models, and new runnable samples for message extensions, task modules, and meeting events (#385)
+- **Copilot Web OAuth Base-Channel Support**: New optional `force_base_channel` parameter on `Activity.get_conversation_reference()` and `_OAuthFlow.begin_flow()` so OAuth token exchange uses the base channel (e.g. `msteams`) when receiving composite channel IDs like `msteams:copilot-web` (#392)
+- **Per-Channel Typing Indicator**: New `TypingChannelStrategy` and `TypingOptions` for configurable per-channel typing behavior, surfaced via `ApplicationOptions` and a streaming fix (#398)
+- **Proactive Telemetry**: OpenTelemetry spans across all proactive operations (store, get, delete, send activity, continue, create conversation) with new `CONVERSATION_FOUND` and `MEMBERS_COUNT` attributes (#399)
+
+## Developer Experience
+
+- **API Reference Docstrings**: Docstrings updated from short-form to fully qualified object names for Learn API reference generation (#381)
+- **SuggestedActions Factory**: New factory for the `to` property of `SuggestedActions` (#370)
+- **Dialogs Test Layout**: `hosting-dialogs` tests moved back under the top-level `tests/` directory for consistency with other packages (#379)
+- **Build Dependencies**: Temporary fix for build testing dependencies (#404)
+
+---
+
 # Microsoft 365 Agents SDK for Python - Release Notes v0.9.0
 
 **Release Date:** April 15, 2026
