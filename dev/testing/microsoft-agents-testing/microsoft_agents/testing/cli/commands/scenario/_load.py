@@ -104,7 +104,7 @@ def show_results(results: list[RunResult | None], out: Output) -> None:
     
     out.newline()
 
-    out.info("Latency distribution (seconds):")
+    out.info("Latency distribution (ms):")
     console_histogram(
         [ latency.total_seconds() * 1000 for latency in latencies ],
         out,

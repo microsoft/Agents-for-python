@@ -575,7 +575,7 @@ Commands for interacting with agents via scenarios. All subcommands accept `--ur
 |--------|-------------|
 | `--url / -u URL` | Connect to an agent at a URL (http or https); creates an `ExternalScenario` |
 | `--agent / -a NAME` | Use a named scenario from `scenario_registry` |
-| `--module / -m MODULE` | Python module to import first (triggers scenario registrations) |
+| `--module MODULE` | Python module to import first (triggers scenario registrations) |
 
 #### `agt scenario list [PATTERN]`
 
