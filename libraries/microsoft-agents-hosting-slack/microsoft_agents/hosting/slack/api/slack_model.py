@@ -40,7 +40,9 @@ class SlackModel(BaseModel):
         """Remap caller-supplied path before navigation. Default: identity."""
         return path
 
-    def get(self, path: str, default: Optional[T] = None, type_: Type[T] = None) -> Any:
+    def get(
+        self, path: str, default: Optional[T] = None, type_: Type[T] = None
+    ) -> Type[T]:
         """Get a value at the dot-notation ``path``. Supports dot separators and
         bracket array indexing (e.g. ``"message.attachments[0].text"``). Returns
         ``default`` (or ``None``) when the path does not exist.

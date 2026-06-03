@@ -8,7 +8,7 @@ from __future__ import annotations
 from typing import Any, Optional, Tuple
 
 
-def _parse_path(path: str) -> Optional[list[Any]]:
+def _parse_path(path: str) -> Optional[list[int | str]]:
     """Tokenize a dot/bracket path into a list of segments.
 
     Supports ``a.b.c``, ``a[0].b``, ``a[1][2]``. Integer brackets become ``int``
