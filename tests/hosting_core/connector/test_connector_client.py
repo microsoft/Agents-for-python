@@ -155,7 +155,9 @@ class TestNormalizeConversationId:
             channel_id=Channels.agents,
             from_property=ChannelAccount(id="user1", role=role),
         )
-        assert ConversationsOperations._should_sanitize_conversation_id(activity) is True
+        assert (
+            ConversationsOperations._should_sanitize_conversation_id(activity) is True
+        )
 
     @pytest.mark.parametrize(
         "role",
@@ -167,11 +169,19 @@ class TestNormalizeConversationId:
             channel_id=Channels.agents,
             from_property=ChannelAccount(id="user1", role=role),
         )
-        assert ConversationsOperations._should_sanitize_conversation_id(activity) is False
+        assert (
+            ConversationsOperations._should_sanitize_conversation_id(activity) is False
+        )
 
     @pytest.mark.parametrize(
         "channel",
-        [Channels.ms_teams, Channels.email, Channels.direct_line, Channels.webchat, Channels.emulator],
+        [
+            Channels.ms_teams,
+            Channels.email,
+            Channels.direct_line,
+            Channels.webchat,
+            Channels.emulator,
+        ],
     )
     def test_should_not_sanitize_when_non_agents_channel(self, channel):
         activity = Activity(
@@ -179,18 +189,24 @@ class TestNormalizeConversationId:
             channel_id=channel,
             from_property=ChannelAccount(id="user1", role=RoleTypes.agentic_identity),
         )
-        assert ConversationsOperations._should_sanitize_conversation_id(activity) is False
+        assert (
+            ConversationsOperations._should_sanitize_conversation_id(activity) is False
+        )
 
     def test_should_not_sanitize_when_no_channel_id(self):
         activity = Activity(
             type="message",
             from_property=ChannelAccount(id="user1", role=RoleTypes.agentic_identity),
         )
-        assert ConversationsOperations._should_sanitize_conversation_id(activity) is False
+        assert (
+            ConversationsOperations._should_sanitize_conversation_id(activity) is False
+        )
 
     def test_should_not_sanitize_when_no_from(self):
         activity = Activity(type="message", channel_id=Channels.agents)
-        assert ConversationsOperations._should_sanitize_conversation_id(activity) is False
+        assert (
+            ConversationsOperations._should_sanitize_conversation_id(activity) is False
+        )
 
     def test_should_not_sanitize_when_no_role(self):
         activity = Activity(
@@ -198,7 +214,9 @@ class TestNormalizeConversationId:
             channel_id=Channels.agents,
             from_property=ChannelAccount(id="user1"),
         )
-        assert ConversationsOperations._should_sanitize_conversation_id(activity) is False
+        assert (
+            ConversationsOperations._should_sanitize_conversation_id(activity) is False
+        )
 
     # --- _normalize_conversation_id ---
 
@@ -335,9 +353,7 @@ class TestReplyToActivityUrlEncoding:
             return web.json_response({"id": "resp-1"})
 
         routes = [
-            web.post(
-                "/v3/conversations/{tail:.*}/activities/{activity_id}", handler
-            )
+            web.post("/v3/conversations/{tail:.*}/activities/{activity_id}", handler)
         ]
         app = web.Application()
         app.router.add_routes(routes)

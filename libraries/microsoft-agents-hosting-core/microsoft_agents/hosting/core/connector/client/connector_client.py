@@ -155,13 +155,20 @@ class ConversationsOperations(ConversationsBase):
         channel_id = activity.channel_id
         if not channel_id:
             return False
-        base_channel = channel_id.channel if isinstance(channel_id, ChannelId) else channel_id.split(":", 1)[0]
+        base_channel = (
+            channel_id.channel
+            if isinstance(channel_id, ChannelId)
+            else channel_id.split(":", 1)[0]
+        )
         if base_channel != Channels.agents:
             return False
         from_property = activity.from_property
         if not from_property or not from_property.role:
             return False
-        return from_property.role in (RoleTypes.agentic_identity, RoleTypes.agentic_user)
+        return from_property.role in (
+            RoleTypes.agentic_identity,
+            RoleTypes.agentic_user,
+        )
 
     async def get_conversations(
         self, continuation_token: Optional[str] = None
