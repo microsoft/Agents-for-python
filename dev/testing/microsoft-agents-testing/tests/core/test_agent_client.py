@@ -3,6 +3,8 @@
 
 """Tests for the AgentClient class."""
 
+import asyncio
+
 import pytest
 from datetime import datetime
 
@@ -668,6 +670,112 @@ class TestAgentClientChild:
         
         await parent.send("From parent")
         await child.send("From child")
-        
+
         assert len(parent.ex_history()) == 2
         assert len(child.ex_history()) == 2
+
+
+# ============================================================================
+# AgentClient Poll Tests
+# ============================================================================
+
+class TestAgentClientPoll:
+    """Tests for AgentClient.poll method."""
+
+    @pytest.mark.asyncio
+    async def test_poll_raises_for_negative_interval(self):
+        """poll() raises ValueError when interval is negative."""
+        client = AgentClient(sender=StubSender())
+        with pytest.raises(ValueError, match="Interval must be a non-negative number"):
+            await client.poll(lambda: True, timeout=1.0, interval=-0.1)
+
+    @pytest.mark.asyncio
+    async def test_poll_raises_when_timeout_less_than_interval(self):
+        """poll() raises ValueError when timeout is less than interval."""
+        client = AgentClient(sender=StubSender())
+        with pytest.raises(ValueError, match="Timeout must be greater than or equal to interval"):
+            await client.poll(lambda: True, timeout=0.05, interval=0.5)
+
+    @pytest.mark.asyncio
+    async def test_poll_returns_when_condition_true_immediately(self):
+        """poll() returns after a single condition check when it is True on the first call."""
+        client = AgentClient(sender=StubSender())
+        call_count = 0
+
+        def condition():
+            nonlocal call_count
+            call_count += 1
+            return True
+
+        await client.poll(condition, timeout=1.0, interval=0.01)
+        assert call_count == 1
+
+    @pytest.mark.asyncio
+    async def test_poll_retries_until_condition_becomes_true(self):
+        """poll() keeps calling condition until it returns True."""
+        client = AgentClient(sender=StubSender())
+        call_count = 0
+
+        def condition():
+            nonlocal call_count
+            call_count += 1
+            return call_count >= 3
+
+        await client.poll(condition, timeout=1.0, interval=0.01)
+        assert call_count == 3
+
+    @pytest.mark.asyncio
+    async def test_poll_raises_timeout_error_when_condition_never_true(self):
+        """poll() raises TimeoutError when the condition never becomes True."""
+        client = AgentClient(sender=StubSender())
+        with pytest.raises(TimeoutError, match="Polling timed out"):
+            await client.poll(lambda: False, timeout=0.05, interval=0.01)
+
+    @pytest.mark.asyncio
+    async def test_poll_calls_condition_multiple_times_before_timeout(self):
+        """poll() calls condition repeatedly, not just once, before timing out."""
+        client = AgentClient(sender=StubSender())
+        call_count = 0
+
+        def condition():
+            nonlocal call_count
+            call_count += 1
+            return False
+
+        with pytest.raises(TimeoutError):
+            await client.poll(condition, timeout=0.05, interval=0.01)
+
+        assert call_count > 1
+
+    @pytest.mark.asyncio
+    async def test_poll_accepts_zero_interval(self):
+        """poll() accepts interval=0 (non-negative boundary value)."""
+        client = AgentClient(sender=StubSender())
+        call_count = 0
+
+        def condition():
+            nonlocal call_count
+            call_count += 1
+            return call_count >= 2
+
+        await client.poll(condition, timeout=1.0, interval=0.0)
+        assert call_count == 2
+
+    @pytest.mark.asyncio
+    async def test_poll_default_interval_is_point_one(self):
+        """poll() uses 0.1s as the default interval between checks."""
+        client = AgentClient(sender=StubSender())
+        call_count = 0
+
+        def condition():
+            nonlocal call_count
+            call_count += 1
+            return call_count >= 2
+
+        loop = asyncio.get_event_loop()
+        start = loop.time()
+        await client.poll(condition, timeout=2.0)
+        elapsed = loop.time() - start
+
+        assert call_count == 2
+        assert elapsed >= 0.1
