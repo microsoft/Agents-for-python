@@ -71,7 +71,7 @@ class AttachmentPrompt(Prompt):
         :param state: Persisted prompt state (unused by AttachmentPrompt).
         :param options: Prompt options (unused by AttachmentPrompt).
         :return: Recognition result with ``succeeded=True`` and the list of
-            :class:`Attachment` objects, or ``succeeded=False`` if none were found.
+            :class:`microsoft_agents.activity.Attachment` objects, or ``succeeded=False`` if none were found.
         """
         if not turn_context:
             raise TypeError("AttachmentPrompt.on_recognize(): context cannot be None.")

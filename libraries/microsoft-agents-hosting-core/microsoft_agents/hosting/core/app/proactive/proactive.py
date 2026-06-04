@@ -16,6 +16,7 @@ from microsoft_agents.hosting.core.storage import Storage
 from .conversation import Conversation
 from .create_conversation_options import CreateConversationOptions
 from .proactive_options import ProactiveOptions
+from .telemetry import spans
 
 if TYPE_CHECKING:
     from microsoft_agents.hosting.core.turn_context import TurnContext
@@ -37,19 +38,19 @@ class Proactive(Generic[StateT]):
     """
     Proactive messaging support for :class:`~microsoft_agents.hosting.core.app.agent_application.AgentApplication`.
 
-    This class is attached to :attr:`AgentApplication.proactive` automatically when
+    This class is attached to :attr:`microsoft_agents.hosting.core.AgentApplication.proactive` automatically when
     :attr:`~microsoft_agents.hosting.core.app.app_options.ApplicationOptions.proactive` options are
     provided.  It provides methods to:
 
     * **Persist** a conversation reference so it can be resumed later
-      (:meth:`store_conversation`, :meth:`get_conversation`,
-      :meth:`delete_conversation`).
+      (:meth:`microsoft_agents.hosting.core.app.proactive.Proactive.store_conversation`, :meth:`microsoft_agents.hosting.core.app.proactive.Proactive.get_conversation`,
+      :meth:`microsoft_agents.hosting.core.app.proactive.Proactive.delete_conversation`).
     * **Continue** an existing conversation proactively
-      (:meth:`continue_conversation`).
+      (:meth:`microsoft_agents.hosting.core.app.proactive.Proactive.continue_conversation`).
     * **Send** a single activity into an existing conversation
-      (:meth:`send_activity`).
+      (:meth:`microsoft_agents.hosting.core.app.proactive.Proactive.send_activity`).
     * **Create** a brand-new conversation with a user
-      (:meth:`create_conversation`).
+      (:meth:`microsoft_agents.hosting.core.app.proactive.Proactive.create_conversation`).
 
     Example — store then resume::
 
@@ -95,7 +96,7 @@ class Proactive(Generic[StateT]):
 
     async def store_conversation(
         self,
-        context_or_conversation: "TurnContext | Conversation",
+        context_or_conversation: TurnContext | Conversation,
     ) -> None:
         """
         Persist a :class:`~microsoft_agents.hosting.core.app.proactive.conversation.Conversation`
@@ -120,10 +121,13 @@ class Proactive(Generic[StateT]):
         else:
             conversation = context_or_conversation
 
-        conversation.validate()
-        key = self._storage_key(conversation.conversation_reference.conversation.id)
-        logger.debug("Storing conversation with key: %s", key)
-        await self._storage.write({key: conversation})
+        with spans.ProactiveStoreConversation(
+            conversation.conversation_reference.conversation.id
+        ):
+            conversation.validate()
+            key = self._storage_key(conversation.conversation_reference.conversation.id)
+            logger.debug("Storing conversation with key: %s", key)
+            await self._storage.write({key: conversation})
 
     async def get_conversation(self, conversation_id: str) -> Optional[Conversation]:
         """
@@ -136,9 +140,12 @@ class Proactive(Generic[StateT]):
             or ``None`` if not found.
         :rtype: Optional[:class:`~microsoft_agents.hosting.core.app.proactive.conversation.Conversation`]
         """
-        key = self._storage_key(conversation_id)
-        results = await self._storage.read([key], target_cls=Conversation)
-        return results.get(key)
+        with spans.ProactiveGetConversation(conversation_id) as span:
+            key = self._storage_key(conversation_id)
+            results = await self._storage.read([key], target_cls=Conversation)
+            conversation = results.get(key)
+            span.share(found=conversation is not None)
+            return conversation
 
     async def delete_conversation(self, conversation_id: str) -> None:
         """
@@ -147,9 +154,10 @@ class Proactive(Generic[StateT]):
         :param conversation_id: The conversation ID to delete.
         :type conversation_id: str
         """
-        key = self._storage_key(conversation_id)
-        logger.debug("Deleting conversation with key: %s", key)
-        await self._storage.delete([key])
+        with spans.ProactiveDeleteConversation(conversation_id):
+            key = self._storage_key(conversation_id)
+            logger.debug("Deleting conversation with key: %s", key)
+            await self._storage.delete([key])
 
     # ------------------------------------------------------------------
     # Send a single activity
@@ -181,7 +189,9 @@ class Proactive(Generic[StateT]):
             conversation is not found in storage.
         """
         conversation = await self._resolve_conversation(conversation_id_or_conversation)
-        return await Proactive._send_activity_impl(adapter, conversation, activity)
+        conversation_id = conversation.conversation_reference.conversation.id
+        with spans.ProactiveSendActivity(conversation_id, activity):
+            return await Proactive._send_activity_impl(adapter, conversation, activity)
 
     @staticmethod
     async def _send_activity_impl(
@@ -243,15 +253,16 @@ class Proactive(Generic[StateT]):
         :type continuation_activity: Optional[:class:`~microsoft_agents.activity.Activity`]
         :param token_handlers: Optional list of OAuth connection names whose
             tokens must be available before *handler* is invoked.  When
-            :attr:`~ProactiveOptions.fail_on_unsigned_in_connections` is ``True``
+            :attr:`~microsoft_agents.hosting.core.app.proactive.ProactiveOptions.fail_on_unsigned_in_connections` is ``True``
             (the default) and a token is missing a :exc:`RuntimeError` is raised.
         :type token_handlers: Optional[list[str]]
         :raises KeyError: If *conversation_id_or_conversation* is a string and the
             conversation is not found in storage.
         :raises RuntimeError: If a required OAuth token is not available and
-            :attr:`~ProactiveOptions.fail_on_unsigned_in_connections` is ``True``.
+            :attr:`~microsoft_agents.hosting.core.app.proactive.ProactiveOptions.fail_on_unsigned_in_connections` is ``True``.
         """
         conversation = await self._resolve_conversation(conversation_id_or_conversation)
+        conversation_id = conversation.conversation_reference.conversation.id
 
         captured_exc: Optional[BaseException] = None
         claims = Conversation.identity_from_claims(conversation.claims)
@@ -267,10 +278,14 @@ class Proactive(Generic[StateT]):
             except Exception as exc:  # noqa: BLE001
                 captured_exc = exc
 
-        await adapter.continue_conversation_with_claims(claims, continuation, _callback)
+        with spans.ProactiveContinueConversation(conversation_id, continuation):
 
-        if captured_exc is not None:
-            raise captured_exc
+            await adapter.continue_conversation_with_claims(
+                claims, continuation, _callback
+            )
+
+            if captured_exc is not None:
+                raise captured_exc
 
     # ------------------------------------------------------------------
     # Create a new conversation
@@ -303,40 +318,42 @@ class Proactive(Generic[StateT]):
         new_conversation: Optional[Conversation] = None
         captured_exc: Optional[BaseException] = None
 
-        audience = options.audience or options.identity.get_token_audience()
+        with spans.ProactiveCreateConversation(options):
 
-        async def _callback(context: "TurnContext") -> None:
-            nonlocal new_conversation, captured_exc
-            try:
-                reference = context.activity.get_conversation_reference()
-                new_conversation = Conversation(
-                    claims=options.identity,
-                    conversation_reference=reference,
-                )
+            audience = options.audience or options.identity.get_token_audience()
 
-                if options.store_conversation:
-                    await self.store_conversation(new_conversation)
+            async def _callback(context: "TurnContext") -> None:
+                nonlocal new_conversation, captured_exc
+                try:
+                    reference = context.activity.get_conversation_reference()
+                    new_conversation = Conversation(
+                        claims=options.identity,
+                        conversation_reference=reference,
+                    )
 
-                if handler is not None:
-                    state = await self._load_state(context)
-                    await handler(context, state)
-                    await state.save(context)
-            except Exception as exc:  # noqa: BLE001
-                captured_exc = exc
+                    if options.store_conversation:
+                        await self.store_conversation(new_conversation)
 
-        await adapter.create_conversation(
-            options.identity.get_app_id() or "",
-            options.channel_id,
-            options.service_url,
-            audience,
-            options.parameters,
-            _callback,
-        )
+                    if handler is not None:
+                        state = await self._load_state(context)
+                        await handler(context, state)
+                        await state.save(context)
+                except Exception as exc:  # noqa: BLE001
+                    captured_exc = exc
 
-        if captured_exc is not None:
-            raise captured_exc
+            await adapter.create_conversation(
+                options.identity.get_app_id() or "",
+                options.channel_id,
+                options.service_url,
+                audience,
+                options.parameters,
+                _callback,
+            )
 
-        return new_conversation
+            if captured_exc is not None:
+                raise captured_exc
+
+            return new_conversation
 
     # ------------------------------------------------------------------
     # Internal helpers

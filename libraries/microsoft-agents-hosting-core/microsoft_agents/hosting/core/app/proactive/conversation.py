@@ -27,7 +27,7 @@ class Conversation(StoreItem):
 
     Instances are typically created via
     :meth:`~microsoft_agents.hosting.core.app.proactive.conversation_builder.ConversationBuilder`
-    or via :meth:`from_turn_context`.
+    or via :meth:`microsoft_agents.hosting.core.app.proactive.Conversation.from_turn_context`.
 
     :param claims: Filtered JWT claims (``aud``, ``azp``, ``appid``, ``idtyp``,
         ``ver``, ``iss``, ``tid``).  May be a raw ``dict`` or a
@@ -57,13 +57,13 @@ class Conversation(StoreItem):
     @classmethod
     def from_turn_context(cls, context: "TurnContext") -> "Conversation":
         """
-        Create a :class:`Conversation` from the current turn context.
+        Create a :class:`microsoft_agents.hosting.core.app.proactive.Conversation` from the current turn context.
 
         :param context: The active turn context.
         :type context: :class:`~microsoft_agents.hosting.core.turn_context.TurnContext`
-        :return: A new :class:`Conversation` capturing the current turn's identity
+        :return: A new :class:`microsoft_agents.hosting.core.app.proactive.Conversation` capturing the current turn's identity
             and conversation reference.
-        :rtype: :class:`Conversation`
+        :rtype: :class:`microsoft_agents.hosting.core.app.proactive.Conversation`
         """
         from microsoft_agents.hosting.core.channel_adapter import ChannelAdapter
 
@@ -96,7 +96,7 @@ class Conversation(StoreItem):
         Reconstruct a :class:`~microsoft_agents.hosting.core.authorization.ClaimsIdentity`
         from a previously persisted claims dict.
 
-        :param claims: Filtered claims dictionary (as produced by :meth:`claims_from_identity`).
+        :param claims: Filtered claims dictionary (as produced by :meth:`microsoft_agents.hosting.core.app.proactive.Conversation.claims_from_identity`).
         :type claims: dict[str, str]
         :return: Reconstituted claims identity.
         :rtype: :class:`~microsoft_agents.hosting.core.authorization.ClaimsIdentity`
