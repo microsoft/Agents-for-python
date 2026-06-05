@@ -5,7 +5,7 @@ Licensed under the MIT License.
 
 from __future__ import annotations
 
-from typing import Any, Optional, Type, TypeVar
+from typing import Any, Optional, Type, TypeVar, overload
 
 from pydantic import BaseModel, ConfigDict
 
@@ -40,9 +40,18 @@ class SlackModel(BaseModel):
         """Remap caller-supplied path before navigation. Default: identity."""
         return path
 
+    @overload
+    def get(self, path: str) -> Any: ...
+    @overload
+    def get(self, path: str, default: T) -> T: ...
+    @overload
+    def get(self, path: str, type_: Type[T]) -> T: ...
+    @overload
+    def get(self, path: str, default: T, type_: Type[T]) -> T: ...
+
     def get(
         self, path: str, default: Optional[T] = None, type_: Type[T] = None
-    ) -> Type[T]:
+    ) -> Optional[T]:
         """Get a value at the dot-notation ``path``. Supports dot separators and
         bracket array indexing (e.g. ``"message.attachments[0].text"``). Returns
         ``default`` (or ``None``) when the path does not exist.
