@@ -10,7 +10,6 @@ for sending activities to agents and making assertions on responses.
 from __future__ import annotations
 
 import asyncio
-from typing import Callable
 
 from microsoft_agents.activity import (
     Activity,
@@ -147,21 +146,6 @@ class AgentClient:
     def clear(self) -> None:
         """Clears the transcript."""
         self._transcript.clear()
-
-    async def poll(self, condition: Callable[[], bool], timeout: float, interval: float = 0.1) -> None:
-        """Polls a callable function until it returns or a timeout is reached."""
-
-        if interval < 0:
-            raise ValueError("Interval must be a non-negative number.")
-        if timeout < interval:
-            raise ValueError("Timeout must be greater than or equal to interval.")        
-
-        start = asyncio.get_event_loop().time()
-        while asyncio.get_event_loop().time() - start < timeout:
-            if condition():
-                return
-            await asyncio.sleep(interval)
-        raise TimeoutError("Polling timed out")
     
     ###
     ### Utilities

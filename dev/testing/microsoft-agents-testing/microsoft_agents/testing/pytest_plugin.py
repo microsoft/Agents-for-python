@@ -39,7 +39,7 @@ from .core import (
     Scenario,
 )
 from .aiohttp_scenario import AgentEnvironment
-from .utils import resolve_scenario
+from .scenario_registry import resolve_scenario
 
 
 # Store the scenario per test item
