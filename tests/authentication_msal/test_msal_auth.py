@@ -213,6 +213,53 @@ class TestMsalAuthTenantResolution:
         )
 
 
+class TestMsalAuthAzureRegion:
+    """
+    Test suite for resolving the Azure regional token service (ESTS-R).
+    """
+
+    def test_resolve_azure_region_when_configured(self):
+        config = AgentAuthConfiguration(azure_region="westus")
+        assert MsalAuth._resolve_azure_region(config) == "westus"
+
+    def test_resolve_azure_region_none_when_unset(self):
+        config = AgentAuthConfiguration()
+        assert MsalAuth._resolve_azure_region(config) is None
+
+    def test_resolve_azure_region_none_when_whitespace(self):
+        config = AgentAuthConfiguration(azure_region="   ")
+        assert MsalAuth._resolve_azure_region(config) is None
+
+    def test_create_client_application_passes_azure_region(self, mocker):
+        config = AgentAuthConfiguration(
+            auth_type=AuthTypes.client_secret,
+            tenant_id="12345678-1234-1234-1234-123456789abc",
+            client_id="test-client-id",
+            client_secret="test-client-secret",
+            azure_region="westus",
+        )
+        mock_cca = mocker.patch(
+            "microsoft_agents.authentication.msal.msal_auth.ConfidentialClientApplication"
+        )
+        auth = MsalAuth(config)
+        auth._create_client_application()
+        assert mock_cca.call_args.kwargs["azure_region"] == "westus"
+
+    def test_create_client_application_azure_region_defaults_none(self, mocker):
+        config = AgentAuthConfiguration(
+            auth_type=AuthTypes.client_secret,
+            tenant_id="12345678-1234-1234-1234-123456789abc",
+            client_id="test-client-id",
+            client_secret="test-client-secret",
+        )
+        mock_cca = mocker.patch(
+            "microsoft_agents.authentication.msal.msal_auth.ConfidentialClientApplication"
+        )
+        auth = MsalAuth(config)
+        auth._create_client_application()
+        assert mock_cca.call_args.kwargs["azure_region"] is None
+
+
 # class TestMsalAuthAgentic:
 
 #     @pytest.mark.asyncio

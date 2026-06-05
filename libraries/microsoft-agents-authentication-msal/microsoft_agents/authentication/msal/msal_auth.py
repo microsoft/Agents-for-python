@@ -176,6 +176,18 @@ class MsalAuth(AccessTokenProviderBase):
         return f"https://login.microsoftonline.com/{tenant_id}"
 
     @staticmethod
+    def _resolve_azure_region(config: AgentAuthConfiguration) -> str | None:
+        """Resolves the Azure regional token service (ESTS-R) to use, if configured.
+
+        Returns the configured region only when it is populated and non-whitespace,
+        otherwise None so that MSAL falls back to the global token service.
+        """
+        azure_region = getattr(config, "AZURE_REGION", None)
+        if azure_region and azure_region.strip():
+            return azure_region
+        return None
+
+    @staticmethod
     def _resolve_tenant_id(
         config: AgentAuthConfiguration, tenant_id: str | None = None
     ) -> str:
@@ -253,6 +265,7 @@ class MsalAuth(AccessTokenProviderBase):
                 client_id=self._msal_configuration.CLIENT_ID,
                 authority=authority,
                 client_credential=client_credential,
+                azure_region=MsalAuth._resolve_azure_region(self._msal_configuration),
             )
 
     def _client_rep(
@@ -379,6 +392,7 @@ class MsalAuth(AccessTokenProviderBase):
                 client_id=agent_app_instance_id,
                 authority=authority,
                 client_credential={"client_assertion": agent_token_result},
+                azure_region=MsalAuth._resolve_azure_region(self._msal_configuration),
                 # token_cache=self._token_cache,
             )
 
@@ -474,6 +488,7 @@ class MsalAuth(AccessTokenProviderBase):
                 client_id=agent_app_instance_id,
                 authority=authority,
                 client_credential={"client_assertion": agent_token},
+                azure_region=MsalAuth._resolve_azure_region(self._msal_configuration),
                 # token_cache=self._token_cache,
             )
 
