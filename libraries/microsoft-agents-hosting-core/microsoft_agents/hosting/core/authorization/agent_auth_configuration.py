@@ -20,6 +20,8 @@ class AgentAuthConfiguration:
     SCOPES: The scopes to request
     AUTHORITY: The authority URL for the Azure AD (if different from the default).
     ALT_BLUEPRINT_ID: An optional alternative blueprint ID used when constructing a connector client.
+    AZURE_REGION: The Azure regional token service to use for token acquisition (ESTS-R).
+        This feature is currently available to first-party applications only.
     """
 
     TENANT_ID: str | None
@@ -32,6 +34,7 @@ class AgentAuthConfiguration:
     SCOPES: list[str] | None
     AUTHORITY: str | None
     ALT_BLUEPRINT_ID: str | None
+    AZURE_REGION: str | None
     ANONYMOUS_ALLOWED: bool = False
 
     # Multi-connection support: Maintains a map of all configured connections
@@ -54,6 +57,7 @@ class AgentAuthConfiguration:
         federated_client_id: str | None = None,
         authority: str | None = None,
         scopes: list[str] | None = None,
+        azure_region: str | None = None,
         anonymous_allowed: bool = False,
         **kwargs: str,
     ):
@@ -69,6 +73,13 @@ class AgentAuthConfiguration:
             "FEDERATEDCLIENTID", None
         )
         self.SCOPES = scopes or kwargs.get("SCOPES", None)
+        # Azure regional token service. Falls back to the legacy "REGIONALAUTHORITY"
+        # configuration key when "AZUREREGION" is not provided.
+        self.AZURE_REGION = (
+            azure_region
+            or kwargs.get("AZUREREGION", None)
+            or kwargs.get("REGIONALAUTHORITY", None)
+        )
         self.ALT_BLUEPRINT_ID = kwargs.get("ALT_BLUEPRINT_NAME", None)
         self.ANONYMOUS_ALLOWED = anonymous_allowed or kwargs.get(
             "ANONYMOUS_ALLOWED", False
