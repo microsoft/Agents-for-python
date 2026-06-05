@@ -88,6 +88,13 @@ from .connector import (
     get_product_info,
 )
 
+# Header propagation
+from .header_propagation import (
+    HeaderValueProvider,
+    AgenticHeaderProvider,
+    HeaderPropagationContext,
+)
+
 # State management
 from .state.agent_state import AgentState
 from .state.state_property_accessor import StatePropertyAccessor
@@ -166,6 +173,9 @@ __all__ = [
     "TeamsConnectorClient",
     "ConnectorClientBase",
     "get_product_info",
+    "HeaderValueProvider",
+    "AgenticHeaderProvider",
+    "HeaderPropagationContext",
     "AgentState",
     "StatePropertyAccessor",
     "UserState",
