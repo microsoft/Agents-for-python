@@ -13,8 +13,9 @@ async def poll(condition: Callable[[], bool], timeout: float, interval: float = 
     if timeout < interval:
         raise ValueError("Timeout must be greater than or equal to interval.")        
 
-    start = asyncio.get_event_loop().time()
-    while asyncio.get_event_loop().time() - start < timeout:
+    loop = asyncio.get_running_loop()
+    start = loop.time()
+    while loop.time() - start < timeout:
         if condition():
             return
         await asyncio.sleep(interval)
