@@ -43,6 +43,7 @@ def sdk_config_connection(
     data = sdk_config["CONNECTIONS"][connection_name]["SETTINGS"]
     return AgentAuthConfiguration(**data)
 
+
 # TODO: Use MsalAuth to generate token instead of raw HTTP requests
 # TODO: Support other forms of auth (certificates, managed identity, etc.)
 def generate_token(app_id: str, app_secret: str, tenant_id: str) -> str:

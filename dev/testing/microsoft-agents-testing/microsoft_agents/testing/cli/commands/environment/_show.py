@@ -10,21 +10,20 @@ working directory, loaded .env variables, and registered scenarios.
 import sys
 from pathlib import Path
 
-import click
-
 from microsoft_agents.testing.scenario_registry import scenario_registry
-
-from ..core import (
+from microsoft_agents.testing.cli.core import (
     Output,
     CLIConfig,
     pass_output,
     pass_config,
 )
 
-@click.command("env")
+from .env_group import env_group
+
+@env_group.command("show")
 @pass_output
 @pass_config
-def env(config: CLIConfig, out: Output):
+def show(config: CLIConfig, out: Output):
     """Show environment information.
 
     Displays Python version, platform, current directory, loaded

@@ -32,7 +32,7 @@ from fnmatch import fnmatch
 from dataclasses import dataclass
 from collections.abc import Iterator
 
-from .core import Scenario
+from .core import Scenario, ExternalScenario
 
 @dataclass(frozen=True)
 class ScenarioEntry:
@@ -227,3 +227,23 @@ def load_scenarios(module_path: str) -> int:
     after_count = len(scenario_registry)
 
     return after_count - before_count
+
+def resolve_scenario(scenario_or_str: Scenario | str ) -> Scenario:
+    """Resolve a scenario from a Scenario instance or a registered name.
+    
+    If a string is provided, looks up the scenario in the registry.
+    
+    :param scenario_or_str: A Scenario instance or a string key for lookup.
+    :return: The resolved Scenario instance.
+    :raises ValueError: If the string key is not found in the registry.
+    """
+    if isinstance(scenario_or_str, Scenario):
+        return scenario_or_str
+    elif isinstance(scenario_or_str, str):
+        if scenario_or_str.startswith("http://") or scenario_or_str.startswith("https://"):
+            # If it's a URL, create an ExternalScenario on the fly
+            return ExternalScenario(scenario_or_str)
+        else:
+            return scenario_registry.get(scenario_or_str)
+    else:
+        raise TypeError("Input must be a Scenario instance or a string key.")

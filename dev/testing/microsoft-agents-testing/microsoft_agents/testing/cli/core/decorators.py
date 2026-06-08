@@ -66,47 +66,51 @@ def async_command(func: Callable) -> Callable:
 
 def with_scenario(func: Callable) -> Callable:
     """Decorator for commands that can interact with agents via scenarios.
-    
-    This decorator adds options for specifying how to connect to an agent:
-    - --url/-u: Connect to an external agent at the specified URL
-    - --agent/-a: Run an in-process agent from the specified module path
-    
-    The decorated function receives a ScenarioContext as its first argument
-    (after click.Context), providing access to the scenario and client.
-    
+
+    Adds ``--url``/``-u`` and ``--agent``/``-a`` options to the command.
+    Exactly one must be provided. The decorated function receives the resolved
+    ``Scenario`` instance via a ``scenario`` keyword argument.
+
     Example::
-    
+
         @click.command()
-        @click.pass_context
         @with_scenario
         @async_command
-        async def chat(ctx: click.Context, scenario_ctx: ScenarioContext) -> None:
-            client = scenario_ctx.client
-            replies = await client.send_expect_replies("Hello!")
-            for reply in replies:
-                print(f"Agent: {reply.text}")
-    
+        async def chat(scenario: Scenario) -> None:
+            async with scenario.client() as client:
+                replies = await client.send_expect_replies("Hello!")
+                for reply in replies:
+                    print(f"Agent: {reply.text}")
+
     The decorator supports two modes:
-    
-    1. External Agent Mode (--url):
-       Uses ExternalScenario to connect to an agent running at the specified
-       URL. This is the default mode when AGENT_URL is configured.
-       
-       Example: mat chat --url http://localhost:3978/api/messages
-    
-    2. In-Process Agent Mode (--agent):
-       Uses AiohttpScenario to run the agent in-process. The --agent option
-       specifies a Python module path containing an init_agent function.
-       
-       Example: mat chat --agent myproject.agents.echo
-       
-       The module must export an async function called `init_agent` that
-       takes an AgentEnvironment and configures the agent handlers.
+
+    1. External Agent Mode (``--url``):
+       Creates an ``ExternalScenario`` that sends HTTP requests to an agent
+       already running at the given URL.
+
+       Example: ``agt scenario chat --url http://localhost:3978/api/messages``
+
+    2. Registered Scenario Mode (``--agent``):
+       Looks up a named scenario in the scenario registry.  Use ``--module``
+       to import a module first if its scenarios are not yet registered.
+
+       Example: ``agt scenario chat --agent agt.basic``
     """
     
-    @click.argument("agent_name_or_url")
     @click.option(
-        "--module", "-m",
+        "--url", "-u",
+        "agent_url",
+        default=None,
+        help="URL of the external agent to connect to.",
+    )
+    @click.option(
+        "--agent", "-a",
+        "agent_name",
+        default=None,
+        help="Name of the agent to use.",
+    )
+    @click.option(
+        "--module",
         "module_path",
         default=None,
         help="Python module path for registered agents (e.g., myproject.agents.echo).",
@@ -115,7 +119,8 @@ def with_scenario(func: Callable) -> Callable:
     @wraps(func)
     def wrapper(
         ctx: click.Context,
-        agent_name_or_url: str | None,
+        agent_url: str | None,
+        agent_name: str | None,
         module_path: str | None,
         *args: Any,
         **kwargs: Any,
@@ -129,6 +134,13 @@ def with_scenario(func: Callable) -> Callable:
         if out is None:
             raise RuntimeError("Output not found in context")
         
+        if agent_url and agent_name:
+            out.error("Only one of --url or --agent can be specified.", exit=True)
+        elif not agent_url and not agent_name:
+            out.error("Either --url or --agent must be specified.", exit=True)
+
+        agent_name_or_url = agent_url or agent_name
+        
         # Determine which scenario to use based on CLI arguments
         scenario = _resolve_scenario(
             agent_name_or_url=agent_name_or_url,
@@ -138,13 +150,12 @@ def with_scenario(func: Callable) -> Callable:
         )
         if not scenario:
             # Retry with 'agt.' prefix for built-in scenario shorthand names
-            if agent_name_or_url:
-                scenario = _resolve_scenario(
-                    agent_name_or_url=f"agt.{agent_name_or_url}",
-                    module_path=module_path,
-                    config=config,
-                    out=out,
-                )
+            scenario = _resolve_scenario(
+                agent_name_or_url=f"agt.{agent_name_or_url}",
+                module_path=module_path,
+                config=config,
+                out=out,
+            )
             
             if not scenario:
                 out.error("Failed to locate the scenario. Please check your options.")
