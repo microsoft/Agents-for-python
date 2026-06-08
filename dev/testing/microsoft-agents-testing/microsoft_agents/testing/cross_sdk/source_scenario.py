@@ -87,11 +87,30 @@ class SourceScenario(ExternalScenario):
         if runner is None:
             raise FileNotFoundError("Could not find pwsh or powershell in PATH")
 
+        process = subprocess.Popen(
+            [runner, "-NoProfile", "-ExecutionPolicy", "Bypass", "-File", str(script_path)],
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            cwd=script_path.parent,
+            # shell=sys.platform == "win32",
+        )
+
         try:
-            process = subprocess.Popen(
-                [runner, "-NoProfile", "-ExecutionPolicy", "Bypass", "-File", str(script_path)],
-                stdout=subprocess.PIPE,
-                stderr=subprocess.PIPE,
+            # wait for the agent to start running
+            await asyncio.sleep(self._delay)
+
+            if process.poll() is not None:
+                stdout, stderr = process.communicate()  # safe — process is already dead
+                raise RuntimeError(
+                    f"Agent exited with code {process.returncode} during startup.\n"
+                    f"stderr: {stderr.decode(errors='replace')}\n"
+                    f"stdout: {stdout.decode(errors='replace')}"
+                )
+
+            yield
+        finally:
+            _terminate_tree(process)
+            process.wait()
                 cwd=script_path.parent,
                 # shell=sys.platform == "win32",
             )
