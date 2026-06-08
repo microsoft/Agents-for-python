@@ -39,7 +39,7 @@ from ._utils import load_activity
 async def post(out: Output, scenario: Scenario, message: str | None, json_file, timeout: int) -> None:
     """Send a single message or activity to an agent and display the transcript.
 
-    Provide either a text message as an argument or a JSON activity file via --json_file.
+    Provide either a text message as an argument or a JSON activity file via --json-file.
 
     :param out: CLI output helper.
     :param scenario: The resolved Scenario instance.
