@@ -111,25 +111,6 @@ class SourceScenario(ExternalScenario):
         finally:
             _terminate_tree(process)
             process.wait()
-                cwd=script_path.parent,
-                # shell=sys.platform == "win32",
-            )
-
-            # wait for the agent to start running
-            await asyncio.sleep(self._delay)
-
-            if process.poll() is not None:
-                stdout, stderr = process.communicate()  # safe — process is already dead
-                raise RuntimeError(
-                    f"Agent exited with code {process.returncode} during startup.\n"
-                    f"stderr: {stderr.decode(errors='replace')}\n"
-                    f"stdout: {stdout.decode(errors='replace')}"
-                )
-
-            yield
-        finally:
-            _terminate_tree(process)
-            process.wait()
             # Give the OS time to release the listening socket so chained scenarios
             # on the same port don't hit "address already in use".
             await asyncio.sleep(3.0)
