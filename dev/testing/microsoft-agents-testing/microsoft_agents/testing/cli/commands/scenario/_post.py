@@ -21,8 +21,21 @@ from ._utils import load_activity
 @pass_output
 @with_scenario
 @click.option("--message", "-m", required=False, help="Text message to send to the agent.")
-@click.option("--json_file", "-j", required=False, type=click.File("rb"), help="JSON activity to send to the agent.")
-@click.option("--timeout", "-timeout", default=5000, type=int, help="Milliseconds to wait for a response before timing out.")
+@click.option(
+    "--json-file",
+    "-j",
+    "json_file",
+    required=False,
+    type=click.File("rb"),
+    help="JSON activity to send to the agent.",
+)
+@click.option(
+    "--timeout",
+    "-t",
+    default=5000,
+    type=int,
+    help="Milliseconds to wait for a response before timing out.",
+)
 async def post(out: Output, scenario: Scenario, message: str | None, json_file, timeout: int) -> None:
     """Send a single message or activity to an agent and display the transcript.
 
