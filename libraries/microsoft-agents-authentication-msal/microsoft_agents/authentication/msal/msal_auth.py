@@ -188,6 +188,23 @@ class MsalAuth(AccessTokenProviderBase):
         return None
 
     @staticmethod
+    def _resolve_idpm_resource(config: AgentAuthConfiguration) -> str:
+        """Resolves the resource URL for Identity Proxy Manager (IDPM) token acquisition.
+
+        When no resource is configured, defaults to the AzureAdTokenExchange resource.
+        Otherwise the configured value must be a valid absolute URI.
+        """
+        idpm_resource = getattr(config, "IDPM_RESOURCE", None)
+        if not idpm_resource:
+            return "api://AzureAdTokenExchange/.default"
+
+        valid_uri, _ = MsalAuth._uri_validator(idpm_resource)
+        if not valid_uri:
+            raise ValueError("IDPM_RESOURCE must be a valid absolute URI")
+
+        return idpm_resource
+
+    @staticmethod
     def _resolve_tenant_id(
         config: AgentAuthConfiguration, tenant_id: str | None = None
     ) -> str:
@@ -206,7 +223,10 @@ class MsalAuth(AccessTokenProviderBase):
         self, tenant_id: str | None = None
     ) -> ConfidentialClientApplication | ManagedIdentityClient:
 
-        if self._msal_configuration.AUTH_TYPE == AuthTypes.user_managed_identity:
+        if self._msal_configuration.AUTH_TYPE in (
+            AuthTypes.user_managed_identity,
+            AuthTypes.identity_proxy_manager,
+        ):
             return ManagedIdentityClient(
                 UserAssignedManagedIdentity(
                     client_id=self._msal_configuration.CLIENT_ID
@@ -348,7 +368,29 @@ class MsalAuth(AccessTokenProviderBase):
             if auth_result_payload:
                 return auth_result_payload.get("access_token")
 
-        return None
+            return None
+
+        if (
+            self._msal_configuration.AUTH_TYPE == AuthTypes.identity_proxy_manager
+            and isinstance(msal_auth_client, ManagedIdentityClient)
+        ):
+            resource = MsalAuth._resolve_idpm_resource(self._msal_configuration)
+            logger.info(
+                "Acquiring agentic application token using Identity Proxy Manager for resource %s",
+                resource,
+            )
+            auth_result_payload = await _async_acquire_token_for_client(
+                msal_auth_client, resource=resource
+            )
+
+            if auth_result_payload:
+                return auth_result_payload.get("access_token")
+
+            return None
+
+        raise RuntimeError(
+            "Only ConfidentialClientApplication or AuthTypes.identity_proxy_manager is supported for Agentic."
+        )
 
     async def get_agentic_instance_token(
         self, tenant_id: str, agent_app_instance_id: str
