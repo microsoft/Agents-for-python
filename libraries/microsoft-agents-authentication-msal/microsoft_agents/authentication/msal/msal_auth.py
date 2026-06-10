@@ -389,7 +389,7 @@ class MsalAuth(AccessTokenProviderBase):
             return None
 
         raise RuntimeError(
-            "Only ConfidentialClientApplication or AuthTypes.identity_proxy_manager is supported for Agentic."
+            "Agentic token acquisition supports ConfidentialClientApplication, or ManagedIdentityClient when AUTH_TYPE is AuthTypes.identity_proxy_manager."
         )
 
     async def get_agentic_instance_token(
