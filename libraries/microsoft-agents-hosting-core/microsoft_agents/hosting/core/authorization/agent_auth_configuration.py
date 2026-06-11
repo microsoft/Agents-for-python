@@ -22,6 +22,9 @@ class AgentAuthConfiguration:
     ALT_BLUEPRINT_ID: An optional alternative blueprint ID used when constructing a connector client.
     AZURE_REGION: The Azure regional token service to use for token acquisition (ESTS-R).
         This feature is currently available to first-party applications only.
+    IDPM_RESOURCE: The resource URL for Identity Proxy Manager (IDPM) token acquisition.
+        Only meaningful when AUTH_TYPE is AuthTypes.identity_proxy_manager. When not set,
+        it defaults to "api://AzureAdTokenExchange/.default".
     """
 
     TENANT_ID: str | None
@@ -35,6 +38,7 @@ class AgentAuthConfiguration:
     AUTHORITY: str | None
     ALT_BLUEPRINT_ID: str | None
     AZURE_REGION: str | None
+    IDPM_RESOURCE: str | None
     ANONYMOUS_ALLOWED: bool = False
 
     # Multi-connection support: Maintains a map of all configured connections
@@ -58,6 +62,7 @@ class AgentAuthConfiguration:
         authority: str | None = None,
         scopes: list[str] | None = None,
         azure_region: str | None = None,
+        idpm_resource: str | None = None,
         anonymous_allowed: bool = False,
         **kwargs: str,
     ):
@@ -80,6 +85,9 @@ class AgentAuthConfiguration:
             or kwargs.get("AZUREREGION", None)
             or kwargs.get("REGIONALAUTHORITY", None)
         )
+        # Resource URL for Identity Proxy Manager (IDPM) token acquisition.
+        # Only meaningful when AUTH_TYPE is AuthTypes.identity_proxy_manager.
+        self.IDPM_RESOURCE = idpm_resource or kwargs.get("IDPMRESOURCE", None)
         self.ALT_BLUEPRINT_ID = kwargs.get("ALT_BLUEPRINT_NAME", None)
         self.ANONYMOUS_ALLOWED = anonymous_allowed or kwargs.get(
             "ANONYMOUS_ALLOWED", False
