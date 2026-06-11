@@ -1,0 +1,35 @@
+name: Get Azure DevOps Access Token
+description: Get an access token to authenticate with Azure DevOps
+
+inputs:
+  client-id:
+    description: "The client ID of the application calling Azure DevOps"
+    required: true
+  tenant-id:
+    description: "The tenant ID of the application calling Azure DevOps"
+    required: true
+  organization:
+    description: "The Azure DevOps organization to authenticate with"
+    required: true
+
+outputs:
+  token:
+    description: "The access token to authenticate with Azure DevOps"
+    value: ${{ steps.ADOAuth.outputs.token }}
+
+runs:
+  using: "composite"
+  steps:
+    - name: OIDC Login with AzPowershell
+      uses: azure/login@v2
+      with:
+        client-id: ${{ inputs.client-id }}
+        tenant-id: ${{ inputs.tenant-id }}
+        allow-no-subscriptions: true
+
+    - name: Get Azure DevOps Access Token
+      shell: pwsh
+      id: ADOAuth
+      run: |
+        $accessToken = az account get-access-token --resource="https://${{inputs.organization}}.visualstudio.com" --query accessToken
+        "token=$accessToken" | Out-File -FilePath $env:GITHUB_OUTPUT -Append
