@@ -27,6 +27,7 @@ from __future__ import annotations
 
 import sys
 import importlib
+import json
 from pathlib import Path
 from fnmatch import fnmatch
 from dataclasses import dataclass
@@ -106,6 +107,42 @@ class ScenarioRegistry:
             scenario=scenario,
             description=description,
         )
+
+    def load_json(self, file_path: str) -> None:
+        """Load scenarios from a JSON file."""
+
+        with open(file_path, "r") as f:
+            data = json.load(f)
+
+        agent_defs = data.get("agents", {})
+
+        for name, body in agent_defs.items():
+
+            path_str = body.get("path", "")
+            desc = body.get("description", "")
+
+            if "http" in path_str:
+                self.register(
+                    name,
+                    ExternalScenario(path_str),
+                    description=desc,
+                )
+            else:
+                path = Path(path_str)
+                if not path.exists():
+                    raise FileNotFoundError(f"Scenario file not found: {path}")
+                self.register(
+                    name,
+                    SourceScenario(path),
+                    description=desc,
+                )
+
+        for name, scenario_data in data.items():
+            self.register(
+                name,
+                ExternalScenario(url=scenario_data["url"]),
+                description=scenario_data.get("description", ""),
+            )
 
     def get_entry(self, name: str) -> ScenarioEntry:
         """Get the full entry (scenario + metadata) by name."""

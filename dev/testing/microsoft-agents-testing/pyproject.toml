@@ -45,3 +45,6 @@ agt = "microsoft_agents.testing.cli:main"
 
 [project.entry-points.pytest11]
 agent_test = "microsoft_agents.testing.pytest_plugin"
+
+[tool.setuptools.package-data]
+"microsoft_agents.testing" = ["presets/**/*"]
