@@ -1,0 +1,39 @@
+# M365 Agents SDK
+microsoft-agents-hosting-aiohttp
+microsoft-agents-authentication-msal
+
+# Azure OpenAI
+openai
+
+# Web framework
+aiohttp
+
+# Configuration
+python-dotenv
+
+# JWT decoding (for A365 observability wrapper)
+PyJWT
+
+# OpenTelemetry — core
+opentelemetry-api
+opentelemetry-sdk
+
+# OpenTelemetry — exporters
+# OTLP (traces, metrics, logs) — for Aspire dashboard, Jaeger, etc.
+opentelemetry-exporter-otlp
+# Azure Monitor / Application Insights
+azure-monitor-opentelemetry-exporter
+
+# OpenTelemetry — library auto-instrumentation
+opentelemetry-instrumentation-aiohttp-server
+opentelemetry-instrumentation-aiohttp-client
+opentelemetry-instrumentation-requests
+opentelemetry-instrumentation-logging
+
+# A365 observability — AgentFramework automatic instrumentation
+microsoft-agents-a365-runtime==0.2.1.dev43
+microsoft-agents-a365-observability-core==0.2.1.dev43
+microsoft-agents-a365-observability-extensions-agent-framework>=0.2.1.dev43
+
+# Agent Framework (required for configure_otel_providers)
+agent-framework-azure-ai

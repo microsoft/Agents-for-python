@@ -397,7 +397,7 @@ class ChannelServiceAdapter(ChannelAdapter, ABC):
 
         if claims_identity.is_agent_claim():
             outgoing_audience = claims_identity.get_token_audience()
-            activity.caller_id = f"{CallerIdConstants.agent_to_agent_prefix}{claims_identity.get_outgoing_app_id()}"
+            activity.caller_id = f"{CallerIdConstants.agent_to_agent_prefix.value}{claims_identity.get_outgoing_app_id()}"
         else:
             outgoing_audience = AuthenticationConstants.AGENTS_SDK_SCOPE
 
