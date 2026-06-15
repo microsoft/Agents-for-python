@@ -24,7 +24,7 @@ def _discover_presets() -> dict:
             for entry in _PRESETS_ROOT.iterdir()
             if entry.is_dir()
         }
-    except Exception:
+    except (FileNotFoundError, NotADirectoryError):
         return {}
 
 
