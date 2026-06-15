@@ -104,7 +104,9 @@ class AgentApplication(Agent, Generic[StateT]):
         # Human-friendly agent name surfaced on outgoing agentic headers.
         # Falls back to the application class name when not explicitly provided.
         raw_agent_name = kwargs.get("agent_name") or type(self).__name__
-        sanitized_agent_name = re.sub(r"[^A-Za-z0-9 ._-]", "", str(raw_agent_name)).strip()
+        sanitized_agent_name = re.sub(
+            r"[^A-Za-z0-9 ._-]", "", str(raw_agent_name)
+        ).strip()
         self._agent_name = sanitized_agent_name or type(self).__name__
 
         configuration = kwargs
