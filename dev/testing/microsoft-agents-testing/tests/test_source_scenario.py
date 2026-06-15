@@ -8,10 +8,8 @@ from unittest.mock import patch, MagicMock, AsyncMock
 
 import pytest
 
-from microsoft_agents.testing.cross_sdk import (
-    SourceScenario,
-    constants
-)
+from microsoft_agents.testing import SourceScenario
+import microsoft_agents.testing.constants as constants
 
 
 class TestSourceScenarioInit:
@@ -68,11 +66,11 @@ class TestRunScriptPwshDetection:
         with patch("shutil.which", side_effect=_fake_which), \
              patch("subprocess.Popen", return_value=mock_process) as mock_popen, \
              patch(
-                 "microsoft_agents.testing.cross_sdk.source_scenario.asyncio.sleep",
+                 "microsoft_agents.testing.source_scenario.asyncio.sleep",
                  new_callable=AsyncMock,
              ), \
              patch(
-                 "microsoft_agents.testing.cross_sdk.source_scenario._terminate_tree"
+                 "microsoft_agents.testing.source_scenario._terminate_tree"
              ):
             async with scenario._run_script():
                 captured["cmd"] = mock_popen.call_args[0][0]
@@ -94,11 +92,11 @@ class TestRunScriptPwshDetection:
         with patch("shutil.which", side_effect=_fake_which), \
              patch("subprocess.Popen", return_value=mock_process) as mock_popen, \
              patch(
-                 "microsoft_agents.testing.cross_sdk.source_scenario.asyncio.sleep",
+                 "microsoft_agents.testing.source_scenario.asyncio.sleep",
                  new_callable=AsyncMock,
              ), \
              patch(
-                 "microsoft_agents.testing.cross_sdk.source_scenario._terminate_tree"
+                 "microsoft_agents.testing.source_scenario._terminate_tree"
              ):
             async with scenario._run_script():
                 captured["cmd"] = mock_popen.call_args[0][0]
@@ -115,11 +113,11 @@ class TestRunScriptPwshDetection:
         with patch("shutil.which", return_value="/usr/bin/pwsh"), \
              patch("subprocess.Popen", return_value=mock_process) as mock_popen, \
              patch(
-                 "microsoft_agents.testing.cross_sdk.source_scenario.asyncio.sleep",
+                 "microsoft_agents.testing.source_scenario.asyncio.sleep",
                  new_callable=AsyncMock,
              ), \
              patch(
-                 "microsoft_agents.testing.cross_sdk.source_scenario._terminate_tree"
+                 "microsoft_agents.testing.source_scenario._terminate_tree"
              ):
             async with scenario._run_script():
                 pass
@@ -146,7 +144,7 @@ class TestSourceScenarioLifecycle:
             return proc
 
         with patch(
-            "microsoft_agents.testing.cross_sdk.source_scenario.subprocess.Popen",
+            "microsoft_agents.testing.source_scenario.subprocess.Popen",
             side_effect=_capture_popen,
         ):
             for run_index in range(2):
@@ -206,7 +204,7 @@ class TestSourceScenarioLifecycle:
 
         try:
             with patch(
-                "microsoft_agents.testing.cross_sdk.source_scenario.subprocess.Popen",
+                "microsoft_agents.testing.source_scenario.subprocess.Popen",
                 side_effect=_capture_popen,
             ):
                 scenario = SourceScenario(str(tmp_path), ps_command)

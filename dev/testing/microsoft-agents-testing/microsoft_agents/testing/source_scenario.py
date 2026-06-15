@@ -13,27 +13,12 @@ from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
 
 from microsoft_agents.testing import (
-    ActivityTemplate,
-    ClientConfig,
     ExternalScenario,
     ScenarioConfig,
 )
 from microsoft_agents.testing.core import ClientFactory
 
 from .constants import DEFAULT_LOCAL_AGENT_ENDPOINT
-
-_TEMPLATE = {
-    "channel_id": "webchat",
-    "locale": "en-US",
-    "conversation": {"id": "conv1"},
-    "from": {"id": "user1", "name": "User"},
-    "recipient": {"id": "bot", "name": "Bot"},
-}
-
-client_config=ClientConfig(
-    activity_template=ActivityTemplate(_TEMPLATE)
-)
-
 
 def _terminate_tree(process: subprocess.Popen, timeout: float = 5.0) -> None:
     """Terminate `process` and all of its descendants.

@@ -1,0 +1,7 @@
+{
+    "agents": {
+        "my_agent": {
+            "path": "http://localhost:3978/api/messages"
+        }
+    }
+}

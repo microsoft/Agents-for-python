@@ -34,7 +34,7 @@ from dataclasses import dataclass
 from collections.abc import Iterator
 
 from .core import Scenario, ExternalScenario
-from .cross_sdk import SourceScenario
+from .source_scenario import SourceScenario
 
 @dataclass(frozen=True)
 class ScenarioEntry:
