@@ -668,6 +668,6 @@ class TestAgentClientChild:
         
         await parent.send("From parent")
         await child.send("From child")
-        
+
         assert len(parent.ex_history()) == 2
         assert len(child.ex_history()) == 2

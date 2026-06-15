@@ -125,22 +125,38 @@ Select(client.history()).where(type="message").expect().that(text="~hello")
 Every request and response is recorded in a `Transcript`. When a test fails
 you can print the conversation to see exactly what happened.
 
-`ConversationTranscriptFormatter` gives a chat-style view;
-`ActivityTranscriptFormatter` shows all activities with selectable fields.
-Both support `DetailLevel` (`MINIMAL`, `STANDARD`, `DETAILED`, `FULL`) and
-`TimeFormat` (`CLOCK`, `RELATIVE`, `ELAPSED`).
+Three formatters are provided:
+
+| Formatter | Output |
+|-----------|--------|
+| `ConversationTranscriptFormatter` | Human-readable chat lines sorted by timestamp |
+| `ActivityTranscriptFormatter` | Flat JSON array of `Activity` objects |
+| `JsonTranscriptFormatter` | JSON array of `Exchange` objects (request + responses + metadata) |
 
 ```python
-from microsoft_agents.testing import ConversationTranscriptFormatter, DetailLevel
+from microsoft_agents.testing import (
+    ConversationTranscriptFormatter,
+    ActivityTranscriptFormatter,
+    JsonTranscriptFormatter,
+    print_conversation, print_activities, print_json,
+)
 
-ConversationTranscriptFormatter(detail=DetailLevel.FULL).print(client.transcript)
+# Chat-style view
+print_conversation(client.transcript)
+
+# Flat JSON activity stream
+print_activities(client.transcript)
+
+# Exchange-grouped JSON
+print_json(client.transcript)
 ```
 
 ```
-[0.000s] You: Hello!
-  (253ms)
-[0.253s] Agent: Echo: Hello!
+[19:42:07.742] You: Hello!
+[19:42:07.995] Agent: Echo: Hello!
 ```
+
+Use `model_dump_args` to control JSON output (e.g. `{"exclude_none": True}`) on the JSON formatters.
 
 ## Pytest Plugin
 
@@ -176,6 +192,27 @@ scenario = scenario_registry.get("echo")
 @pytest.mark.agent_test("echo")
 class TestEcho: ...
 ```
+
+## CLI
+
+The `agt` CLI lets you test agents interactively from the terminal without writing test code.
+
+```bash
+# Show environment info and loaded .env keys
+agt env show
+
+# Interactive chat with a running agent
+agt scenario chat --url http://localhost:3978/api/messages
+
+# Concurrent load test — 50 requests, 5 s timeout, prints p90 latency
+agt scenario load --url http://localhost:3978/api/messages \
+    --message "Hello!" --num 50
+
+# List registered scenarios
+agt scenario list
+```
+
+Use `--agent NAME` instead of `--url` to target a named scenario from `scenario_registry`.
 
 ## Documentation
 

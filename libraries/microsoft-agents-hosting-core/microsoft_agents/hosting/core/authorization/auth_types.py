@@ -11,3 +11,4 @@ class AuthTypes(str, Enum):
     user_managed_identity = "UserManagedIdentity"
     system_managed_identity = "SystemManagedIdentity"
     federated_credentials = "FederatedCredentials"
+    identity_proxy_manager = "IdentityProxyManager"
