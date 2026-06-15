@@ -34,6 +34,7 @@ from dataclasses import dataclass
 from collections.abc import Iterator
 
 from .core import Scenario, ExternalScenario
+from .cross_sdk import SourceScenario
 
 @dataclass(frozen=True)
 class ScenarioEntry:
@@ -120,6 +121,7 @@ class ScenarioRegistry:
 
             path_str = body.get("path", "")
             desc = body.get("description", "")
+            script = body.get("script", "")
 
             if "http" in path_str:
                 self.register(
@@ -128,21 +130,18 @@ class ScenarioRegistry:
                     description=desc,
                 )
             else:
+
+                if not script:
+                    raise ValueError("A 'script' field is required for source scenarios")
+
                 path = Path(path_str)
                 if not path.exists():
                     raise FileNotFoundError(f"Scenario file not found: {path}")
                 self.register(
                     name,
-                    SourceScenario(path),
+                    SourceScenario(path, script),
                     description=desc,
                 )
-
-        for name, scenario_data in data.items():
-            self.register(
-                name,
-                ExternalScenario(url=scenario_data["url"]),
-                description=scenario_data.get("description", ""),
-            )
 
     def get_entry(self, name: str) -> ScenarioEntry:
         """Get the full entry (scenario + metadata) by name."""
@@ -213,7 +212,8 @@ class ScenarioRegistry:
         """Remove all registered scenarios. Primarily for testing."""
         self._entries.clear()
 
-# Global singleton instance
+# Global singlet
+# on instance
 scenario_registry = ScenarioRegistry()
 
 

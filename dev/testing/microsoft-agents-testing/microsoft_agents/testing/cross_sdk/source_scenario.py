@@ -4,7 +4,6 @@
 import asyncio
 import shutil
 import subprocess
-import sys
 
 from pathlib import Path
 
@@ -70,29 +69,30 @@ class SourceScenario(ExternalScenario):
 
     def __init__(
         self,
-        script_path: str,
+        agent_path: str | Path,
+        script: str,
         delay: float = 0.0,
         config: ScenarioConfig | None = None
     ) -> None:
         super().__init__(DEFAULT_LOCAL_AGENT_ENDPOINT, config)
-        self._script_path = Path(script_path)
+        self._agent_path = Path(agent_path)
+        self._script = script
         self._delay = delay
 
     @asynccontextmanager
     async def _run_script(self) -> AsyncIterator[None]:
 
-        script_path = self._script_path.resolve()
+        agent_path = self._agent_path.resolve()
 
         runner = shutil.which("pwsh") or shutil.which("powershell")
         if runner is None:
             raise FileNotFoundError("Could not find pwsh or powershell in PATH")
 
         process = subprocess.Popen(
-            [runner, "-NoProfile", "-ExecutionPolicy", "Bypass", "-File", str(script_path)],
+            [runner, "-NoProfile", "-ExecutionPolicy", "Bypass", "-Command", self._script],
             stdout=subprocess.PIPE,
             stderr=subprocess.PIPE,
-            cwd=script_path.parent,
-            # shell=sys.platform == "win32",
+            cwd=agent_path,
         )
 
         try:

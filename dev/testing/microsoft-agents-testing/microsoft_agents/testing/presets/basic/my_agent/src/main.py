@@ -20,7 +20,7 @@ from microsoft_agents.hosting.core.app.oauth.authorization import Authorization
 from .start_server import start_server
 
 logging.basicConfig(level=logging.INFO)
-load_dotenv(path.join(path.dirname(__file__), ".env"))
+load_dotenv()
 
 agents_sdk_config = load_configuration_from_env(environ)
 

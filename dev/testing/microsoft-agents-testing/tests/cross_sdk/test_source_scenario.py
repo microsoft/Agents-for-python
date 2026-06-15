@@ -15,26 +15,25 @@ from microsoft_agents.testing.cross_sdk import (
 
 
 class TestSourceScenarioInit:
-    def test_stores_script_path(self, tmp_path):
-        script = tmp_path / "run_agent.ps1"
-        scenario = SourceScenario(str(script))
-        assert scenario._script_path == pathlib.Path(str(script))
+    def test_stores_agent_path_and_script(self, tmp_path):
+        scenario = SourceScenario(str(tmp_path), "python agent.py")
+        assert scenario._agent_path == pathlib.Path(str(tmp_path))
+        assert scenario._script == "python agent.py"
 
     def test_default_delay_is_zero(self, tmp_path):
-        scenario = SourceScenario(str(tmp_path / "run_agent.ps1"))
+        scenario = SourceScenario(str(tmp_path), "python agent.py")
         assert scenario._delay == 0.0
 
     def test_custom_delay(self, tmp_path):
-        scenario = SourceScenario(str(tmp_path / "run_agent.ps1"), delay=15.0)
+        scenario = SourceScenario(str(tmp_path), "python agent.py", delay=15.0)
         assert scenario._delay == 15.0
 
     def test_uses_default_endpoint(self, tmp_path):
-        scenario = SourceScenario(str(tmp_path / "run_agent.ps1"))
-        # ExternalScenario stores the endpoint; access via the attribute set by super().__init__
+        scenario = SourceScenario(str(tmp_path), "python agent.py")
         assert scenario._endpoint == constants.DEFAULT_LOCAL_AGENT_ENDPOINT
 
     def test_accepts_none_config(self, tmp_path):
-        scenario = SourceScenario(str(tmp_path / "run_agent.ps1"), config=None)
+        scenario = SourceScenario(str(tmp_path), "python agent.py", config=None)
         assert scenario is not None
 
 
@@ -47,9 +46,7 @@ def _stub_process() -> MagicMock:
 
 class TestRunScriptPwshDetection:
     async def test_raises_when_no_powershell_found(self, tmp_path):
-        script = tmp_path / "run_agent.ps1"
-        script.write_text("# stub")
-        scenario = SourceScenario(str(script))
+        scenario = SourceScenario(str(tmp_path), "python agent.py")
 
         with patch("shutil.which", return_value=None):
             with pytest.raises(FileNotFoundError, match="pwsh"):
@@ -57,9 +54,7 @@ class TestRunScriptPwshDetection:
                     pass
 
     async def test_prefers_pwsh_over_powershell(self, tmp_path):
-        script = tmp_path / "run_agent.ps1"
-        script.write_text("# stub")
-        scenario = SourceScenario(str(script))
+        scenario = SourceScenario(str(tmp_path), "python agent.py")
 
         captured = {}
 
@@ -85,9 +80,7 @@ class TestRunScriptPwshDetection:
         assert captured["cmd"][0] == "/usr/bin/pwsh"
 
     async def test_falls_back_to_powershell(self, tmp_path):
-        script = tmp_path / "run_agent.ps1"
-        script.write_text("# stub")
-        scenario = SourceScenario(str(script))
+        scenario = SourceScenario(str(tmp_path), "python agent.py")
 
         captured = {}
 
@@ -112,12 +105,10 @@ class TestRunScriptPwshDetection:
 
         assert captured["cmd"][0] == "C:\\Windows\\powershell.exe"
 
-    async def test_script_cwd_is_parent_directory(self, tmp_path):
+    async def test_script_cwd_is_agent_path(self, tmp_path):
         agent_dir = tmp_path / "my_agent"
         agent_dir.mkdir()
-        script = agent_dir / "run_agent.ps1"
-        script.write_text("# stub")
-        scenario = SourceScenario(str(script))
+        scenario = SourceScenario(str(agent_dir), "python agent.py")
 
         mock_process = _stub_process()
 
@@ -134,7 +125,7 @@ class TestRunScriptPwshDetection:
                 pass
 
         _, kwargs = mock_popen.call_args
-        assert kwargs["cwd"] == script.resolve().parent
+        assert kwargs["cwd"] == agent_dir.resolve()
 
 
 @pytest.mark.slow
@@ -145,10 +136,6 @@ class TestSourceScenarioLifecycle:
         # Need a real PowerShell to actually spawn a long-running process.
         if not (shutil.which("pwsh") or shutil.which("powershell")):
             pytest.skip("pwsh/powershell not available on PATH")
-
-        # Script never exits on its own — the only way it stops is via terminate().
-        script = tmp_path / "run_forever.ps1"
-        script.write_text("while ($true) { Start-Sleep -Seconds 1 }\n")
 
         captured: list[subprocess.Popen] = []
         real_popen = subprocess.Popen
@@ -163,21 +150,20 @@ class TestSourceScenarioLifecycle:
             side_effect=_capture_popen,
         ):
             for run_index in range(2):
-                scenario = SourceScenario(str(script))
+                scenario = SourceScenario(
+                    str(tmp_path),
+                    "while ($true) { Start-Sleep -Seconds 1 }",
+                )
 
                 async with scenario._run_script():
-                    # Process must be alive inside the context.
                     assert captured[-1].poll() is None, (
                         f"Scenario {run_index} exited before the context began"
                     )
                     await asyncio.sleep(5)
-                    # Still alive right before the context exits — proves "indefinitely".
                     assert captured[-1].poll() is None, (
                         f"Scenario {run_index} exited on its own during the 5s window"
                     )
 
-                # External check: leaving the context must have shut the process down.
-                # Allow a brief grace window in case terminate/wait hasn't fully reaped yet.
                 deadline = time.monotonic() + 2.0
                 while time.monotonic() < deadline and captured[-1].poll() is None:
                     await asyncio.sleep(0.05)
@@ -190,7 +176,7 @@ class TestSourceScenarioLifecycle:
     async def test_child_process_is_killed_when_context_exits(self, tmp_path):
         """Reproducer for orphaned-child bug.
 
-        A real run_agent.ps1 launches a child (e.g. ``python agent.py``).
+        A real script launches a child (e.g. ``python agent.py``).
         terminate() on the pwsh PID does NOT kill its descendants on Windows
         or POSIX, so the child becomes an orphan. We detect this by watching
         a heartbeat file the child writes every 0.2s — if its mtime keeps
@@ -208,9 +194,7 @@ class TestSourceScenarioLifecycle:
             "    time.sleep(0.2)\n"
         )
 
-        script = tmp_path / "run_agent.ps1"
-        # & invokes a native command in pwsh; quoted paths handle spaces.
-        script.write_text(f'& "{sys.executable}" "{child}"\n')
+        ps_command = f'& "{sys.executable}" "{child}"'
 
         captured: list[subprocess.Popen] = []
         real_popen = subprocess.Popen
@@ -225,17 +209,14 @@ class TestSourceScenarioLifecycle:
                 "microsoft_agents.testing.cross_sdk.source_scenario.subprocess.Popen",
                 side_effect=_capture_popen,
             ):
-                scenario = SourceScenario(str(script))
+                scenario = SourceScenario(str(tmp_path), ps_command)
                 async with scenario._run_script():
-                    # Wait for the child to come up and start heartbeating.
                     deadline = time.monotonic() + 5.0
                     while time.monotonic() < deadline and not heartbeat.exists():
                         await asyncio.sleep(0.1)
                     assert heartbeat.exists(), "Child never started heartbeating"
                     await asyncio.sleep(1.0)
 
-                # Let any in-flight terminate() complete, then snapshot mtime
-                # and watch for further updates.
                 await asyncio.sleep(1.0)
                 mtime_after_exit = heartbeat.stat().st_mtime
                 await asyncio.sleep(2.0)
@@ -247,7 +228,6 @@ class TestSourceScenarioLifecycle:
                     "wrapper but not its descendants."
                 )
         finally:
-            # Defensive cleanup so a failed test doesn't leak the orphan.
             if sys.platform == "win32":
                 for proc in captured:
                     subprocess.run(
