@@ -123,7 +123,7 @@ class ScenarioRegistry:
             desc = body.get("description", "")
             script = body.get("script", "")
 
-            if "http" in path_str:
+            if path_str.startswith(("http://", "https://")):
                 self.register(
                     name,
                     ExternalScenario(path_str),
