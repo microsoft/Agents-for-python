@@ -96,3 +96,15 @@ def init_group(out: Output, preset: str, force: bool) -> None:
     out.info(f"Initializing preset '{preset}' ...")
     _copy_traversable(preset_traversable, cwd)
     out.success(f"Done. Files written to {cwd}")
+
+    out.info("")
+    out.info("Next step: create .env files for each component from their env.TEMPLATE:")
+    env_templates = [
+        cwd / item.name / "env.TEMPLATE"
+        for item in preset_traversable.iterdir()
+        if item.is_dir() and (cwd / item.name / "env.TEMPLATE").exists()
+    ]
+    for template in env_templates:
+        out.info(f"\t{template.parent.name}/env.TEMPLATE  →  {template.parent.name}/.env")
+    out.info("")
+    out.info("Populate each .env with your app credentials and configuration before running.")
