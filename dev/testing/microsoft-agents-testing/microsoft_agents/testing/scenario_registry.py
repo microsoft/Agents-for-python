@@ -134,9 +134,9 @@ class ScenarioRegistry:
                 if not script:
                     raise ValueError("A 'script' field is required for source scenarios")
 
-                path = Path(path_str)
+                path = (Path(file_path).resolve().parent / path_str).resolve()
                 if not path.exists():
-                    raise FileNotFoundError(f"Scenario file not found: {path}")
+                    raise FileNotFoundError(f"Agent path not found: {path}")
                 self.register(
                     name,
                     SourceScenario(path, script),
