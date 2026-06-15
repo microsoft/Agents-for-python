@@ -112,7 +112,7 @@ class ScenarioRegistry:
     def load_json(self, file_path: str) -> None:
         """Load scenarios from a JSON file."""
 
-        with open(file_path, "r") as f:
+        with open(file_path, "r", encoding="utf-8") as f:
             data = json.load(f)
 
         agent_defs = data.get("agents", {})
