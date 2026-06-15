@@ -72,5 +72,5 @@ class AgenticHeaderProvider(HeaderValueProvider):
             "AgentName": _safe_header_value(self._agent_name),
             "Agent-Referrer": _safe_header_value(self._activity.channel_id),
         }
-        logger.debug("Resolved agentic headers: %s", headers)
+        logger.debug("Resolved agentic headers: %s", list(headers.keys()))
         return headers
