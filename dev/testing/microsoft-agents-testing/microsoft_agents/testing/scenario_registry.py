@@ -212,8 +212,7 @@ class ScenarioRegistry:
         """Remove all registered scenarios. Primarily for testing."""
         self._entries.clear()
 
-# Global singlet
-# on instance
+# Global singleton instance
 scenario_registry = ScenarioRegistry()
 
 
