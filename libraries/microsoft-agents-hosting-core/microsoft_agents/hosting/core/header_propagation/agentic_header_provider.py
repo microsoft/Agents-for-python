@@ -58,14 +58,19 @@ class AgenticHeaderProvider(HeaderValueProvider):
         if not self._activity.is_agentic_request():
             return {}
 
+        def _safe_header_value(value: object) -> str:
+            text = "" if value is None else str(value)
+            # Prevent CRLF/header injection and normalize whitespace.
+            return text.replace("\r", "").replace("\n", "").strip()
+
         recipient = self._activity.recipient
         headers = {
             "AgentRegistrar": AGENT_REGISTRAR,
-            "AgentID": (recipient.agentic_app_id if recipient else None) or "",
-            "AgentName": self._agent_name,
-            "Agent-Referrer": (
-                str(self._activity.channel_id) if self._activity.channel_id else ""
+            "AgentID": _safe_header_value(
+                recipient.agentic_app_id if recipient else None
             ),
+            "AgentName": _safe_header_value(self._agent_name),
+            "Agent-Referrer": _safe_header_value(self._activity.channel_id),
         }
         logger.debug("Resolved agentic headers: %s", headers)
         return headers
