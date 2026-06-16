@@ -6,7 +6,7 @@ Licensed under the MIT License.
 from __future__ import annotations
 
 import re
-from typing import Any, Callable, Generic, Optional, Pattern, TypeVar, Union
+from typing import Any, Callable, Generic, Optional, Pattern, TypeVar
 
 from microsoft_agents.activity import ActivityTypes, Channels
 from microsoft_agents.hosting.core import TurnContext
@@ -22,7 +22,7 @@ from .api import (
 
 StateT = TypeVar("StateT", bound=TurnState)
 
-TextSelector = Union[str, Pattern[str], None]
+TextSelector = str | Pattern[str], None
 
 _SLACK_API_SERVICE_KEY = "microsoft_agents.hosting.slack.SlackApi"
 

@@ -497,7 +497,7 @@ class Activity(AgentsModel, _ChannelIdFieldMixin):
         """
         return Activity(type=ActivityTypes.message)
 
-    def create_reply(self, text: str = None, locale: str = None):
+    def create_reply(self, text: str | None = None, locale: str | None = None):
         """
         Creates a new message activity as a response to this activity.
 
@@ -539,7 +539,11 @@ class Activity(AgentsModel, _ChannelIdFieldMixin):
         )
 
     def create_trace(
-        self, name: str, value: object = None, value_type: str = None, label: str = None
+        self,
+        name: str,
+        value: object = None,
+        value_type: str | None = None,
+        label: str | None = None,
     ):
         """
         Creates a new trace activity based on this activity.
@@ -585,7 +589,10 @@ class Activity(AgentsModel, _ChannelIdFieldMixin):
 
     @staticmethod
     def create_trace_activity(
-        name: str, value: object = None, value_type: str = None, label: str = None
+        name: str,
+        value: object = None,
+        value_type: str | None = None,
+        label: str | None = None,
     ):
         """
         Creates an instance of the :class:`microsoft_agents.activity.Activity` class as a TraceActivity object.
