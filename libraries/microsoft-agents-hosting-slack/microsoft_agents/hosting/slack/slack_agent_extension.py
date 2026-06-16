@@ -22,7 +22,7 @@ from .api import (
 
 StateT = TypeVar("StateT", bound=TurnState)
 
-TextSelector = str | Pattern[str], None
+TextSelector = str | Pattern[str] | None
 
 _SLACK_API_SERVICE_KEY = "microsoft_agents.hosting.slack.SlackApi"
 
