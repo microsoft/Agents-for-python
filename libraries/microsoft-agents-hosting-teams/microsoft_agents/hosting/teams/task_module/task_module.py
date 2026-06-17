@@ -1,8 +1,18 @@
+# Copyright (c) Microsoft Corporation. All rights reserved.
+# Licensed under the MIT License.
+
+
 from typing import (
     Any,
     Generic,
     Optional
 )
+
+from microsoft_teams.api.models import (
+    TaskModuleRequest,
+)
+
+from microsoft_agents.activity import ActivityTypes
 
 from microsoft_agents.hosting.core import (
     AgentApplication,
@@ -11,9 +21,9 @@ from microsoft_agents.hosting.core import (
 )
 
 from microsoft_agents.hosting.teams.teams_turn_context import TeamsTurnContext
-from microsoft_agents.hosting.teams._type_defs import (
+from microsoft_agents.hosting.teams.type_defs import (
     CommandSelector,
-    RouteDecorator,
+    _RouteDecorator,
     StateT,
 )
 from microsoft_agents.hosting.teams._utils import (
@@ -22,6 +32,8 @@ from microsoft_agents.hosting.teams._utils import (
 )
 
 from .route_handlers import (
+    FetchHandler,
+    SubmitHandler
 )
 
 class TaskModule(Generic[StateT]):
@@ -42,13 +54,13 @@ class TaskModule(Generic[StateT]):
             return data.get("verb")
         return None
 
-    def on_fetch(
+    def fetch(
         self,
         verb: CommandSelector = None,
         *,
         auth_handlers: Optional[list[str]] = None,
         rank: RouteRank = RouteRank.DEFAULT,
-    ) -> RouteDecorator[]:
+    ) -> _RouteDecorator[FetchHandler[StateT]]:
         """Register a handler for task/fetch invokes.
 
         :param verb: Optional verb string or regex to match against task data.
@@ -63,10 +75,11 @@ class TaskModule(Generic[StateT]):
                 return False
             return _match_selector(verb, TaskModule._get_verb(context.activity.value))
 
-        def __call(func: Callable) -> Callable:
+        def __call(func: FetchHandler[StateT]) -> FetchHandler[StateT]:
             async def __handler(context: TurnContext, state: StateT) -> None:
+                teams_context = TeamsTurnContext(context)
                 request = TaskModuleRequest.model_validate(context.activity.value or {})
-                response = await func(context, state, request)
+                response = await func(teams_context, state, request)
                 if response is not None:
                     await _send_invoke_response(context, response)
 
@@ -87,7 +100,7 @@ class TaskModule(Generic[StateT]):
         *,
         auth_handlers: Optional[list[str]] = None,
         rank: RouteRank = RouteRank.DEFAULT,
-    ) -> Callable:
+    ) -> _RouteDecorator[SubmitHandler[StateT]]:
         """Register a handler for task/submit invokes.
 
         :param verb: Optional verb string or regex to match against task data.
@@ -102,10 +115,11 @@ class TaskModule(Generic[StateT]):
                 return False
             return _match_selector(verb, TaskModule._get_verb(context.activity.value))
 
-        def __call(func: Callable) -> Callable:
+        def __call(func: SubmitHandler[StateT]) -> SubmitHandler[StateT]:
             async def __handler(context: TurnContext, state: StateT) -> None:
+                teams_context = TeamsTurnContext(context)
                 request = TaskModuleRequest.model_validate(context.activity.value or {})
-                response = await func(context, state, request)
+                response = await func(teams_context, state, request)
                 if response is not None:
                     await _send_invoke_response(context, response)
 

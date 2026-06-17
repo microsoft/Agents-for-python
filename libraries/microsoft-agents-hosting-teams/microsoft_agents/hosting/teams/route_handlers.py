@@ -1,26 +1,16 @@
 # Copyright (c) Microsoft Corporation. All rights reserved.
 # Licensed under the MIT License.
 
+from __future__ import annotations
+
 from typing import (
-    Any,
     Awaitable,
     Protocol,
 )
 
-from microsoft_agents.activity import Activity
-
-from microsoft_teams.api.models import (
-    Channel,
-    Team,
-    MeetingDetails,
-    MeetingParticipantsEventDetails,
-    MessagingExtensionAction,
-    MessagingExtensionQuery,
-    MessageExtensionActionResponse,
-    MessagingExtensionResponse,
-    O365ConnectorCardActionQuery,
-    TaskModuleRequest,
-    TaskModuleResponse
+from microsoft_agents.hosting.core import (
+    RouteHandler,
+    TurnContext,
 )
 
 from .teams_turn_context import TeamsTurnContext
@@ -29,31 +19,14 @@ from .type_defs import StateT
 class TeamsRouteHandler(Protocol[StateT]):
     def __call__(self, context: TeamsTurnContext, state: StateT) -> Awaitable[None]: ...
 
+    @staticmethod
+    def wrap(handler: TeamsRouteHandler[StateT]) -> RouteHandler[StateT]:
+        async def __func(context: TurnContext, state: StateT) -> None:
+            teams_context = TeamsTurnContext(context)
+            await handler(teams_context, state)
+        return __func
+
 # Meetings route handlers
-
-class MeetingStartHandler(Protocol[StateT]):
-    def __call__(
-            self,
-            context: TeamsTurnContext,
-            state: StateT,
-            meeting: MeetingDetails
-        ) -> Awaitable[None]: ...
-
-class MeetingEndHandler(Protocol[StateT]):
-    def __call__(
-            self,
-            context: TeamsTurnContext,
-            state: StateT,
-            meeting: MeetingDetails
-        ) -> Awaitable[None]: ...
-
-class MeetingParticipantsEventHandler(Protocol[StateT]):
-    def __call__(
-            self,
-            context: TeamsTurnContext,
-            state: StateT,
-            meeting: MeetingParticipantsEventDetails
-        ) -> Awaitable[None]: ...
 
 # Message extension route handlers
 
@@ -75,26 +48,6 @@ class ReadReceiptHandler(Protocol[StateT]):
             state: StateT,
             data: dict
         ) -> Awaitable[None]:
-        ...
-
-# Task Modules route handlers
-
-class TaskFetchHandler(Protocol[StateT]):
-    def __call__(
-            self,
-            context: TeamsTurnContext,
-            state: StateT,
-            request: TaskModuleRequest,
-        ) -> Awaitable[TaskModuleResponse]:
-        ...
-
-class TaskSubmitHandler(Protocol[StateT]):
-    def __call__(
-            self,
-            context: TeamsTurnContext,
-            state: StateT,
-            request: TaskModuleRequest,
-        ) -> Awaitable[TaskModuleResponse]:
         ...
 
 # Teams Channels route handlers

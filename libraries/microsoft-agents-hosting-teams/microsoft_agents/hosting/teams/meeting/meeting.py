@@ -1,3 +1,39 @@
+# Copyright (c) Microsoft Corporation. All rights reserved.
+# Licensed under the MIT License.
+
+from typing import (
+    Callable,
+    Generic,
+    Optional
+)
+
+from microsoft_teams.api.models import (
+    MeetingDetails,
+    MeetingParticipantsEventDetails,
+)
+
+from microsoft_agents.activity import (
+    Activity,
+    ActivityTypes,
+)
+from microsoft_agents.hosting.core import (
+    AgentApplication,
+    RouteRank,
+    TurnContext,
+)
+
+from microsoft_agents.hosting.teams.teams_turn_context import TeamsTurnContext
+from microsoft_agents.hosting.teams.type_defs import (
+    _RouteDecorator,
+    StateT,
+)
+
+from .route_handlers import (
+    MeetingStartHandler,
+    MeetingEndHandler,
+    MeetingParticipantsEventHandler
+)
+
 class Meeting(Generic[StateT]):
     """
     Route registration for Teams Meeting event activities.
@@ -7,13 +43,20 @@ class Meeting(Generic[StateT]):
     def __init__(self, app: AgentApplication[StateT]) -> None:
         self._app = app
 
+
+    #
+    # @meeting.on_start
+    # def on_start_handler(self, context: TeamsTurnContext, state: StateT, meeting: MeetingDetails) -> None:
+    #     pass
+
+    # meeting.on_start()(on_start_handler)
+
     def on_start(
         self,
-        handler: Optional[Callable] = None,
         *,
         auth_handlers: Optional[list[str]] = None,
         rank: RouteRank = RouteRank.DEFAULT,
-    ) -> Callable:
+    ) -> _RouteDecorator[MeetingStartHandler[StateT]]:
         """Register a handler for meeting start events."""
 
         def __selector(context: TurnContext) -> bool:
@@ -22,10 +65,11 @@ class Meeting(Generic[StateT]):
                 and context.activity.name == "application/vnd.microsoft.meetingStart"
             )
 
-        def __register(func: Callable) -> Callable:
+        def __call(func: MeetingStartHandler[StateT]) -> MeetingStartHandler[StateT]:
             async def __handler(context: TurnContext, state: StateT) -> None:
+                teams_context = TeamsTurnContext(context)
                 meeting = MeetingDetails.model_validate(context.activity.value or {})
-                await func(context, state, meeting)
+                await func(teams_context, state, meeting)
 
             self._app.add_route(
                 __selector,
@@ -35,17 +79,14 @@ class Meeting(Generic[StateT]):
             )
             return func
 
-        if handler is not None:
-            return __register(handler)
-        return __register
+        return __call
 
     def on_end(
         self,
-        handler: Optional[Callable] = None,
         *,
         auth_handlers: Optional[list[str]] = None,
         rank: RouteRank = RouteRank.DEFAULT,
-    ) -> Callable:
+    ) -> _RouteDecorator[MeetingEndHandler[StateT]]:
         """Register a handler for meeting end events."""
 
         def __selector(context: TurnContext) -> bool:
@@ -54,10 +95,11 @@ class Meeting(Generic[StateT]):
                 and context.activity.name == "application/vnd.microsoft.meetingEnd"
             )
 
-        def __register(func: Callable) -> Callable:
+        def __call(func: MeetingEndHandler[StateT]) -> MeetingEndHandler[StateT]:
             async def __handler(context: TurnContext, state: StateT) -> None:
+                teams_context = TeamsTurnContext(context)
                 meeting = MeetingDetails.model_validate(context.activity.value or {})
-                await func(context, state, meeting)
+                await func(teams_context, state, meeting)
 
             self._app.add_route(
                 __selector,
@@ -67,17 +109,14 @@ class Meeting(Generic[StateT]):
             )
             return func
 
-        if handler is not None:
-            return __register(handler)
-        return __register
+        return __call
 
     def on_participants_join(
         self,
-        handler: Optional[Callable] = None,
         *,
         auth_handlers: Optional[list[str]] = None,
         rank: RouteRank = RouteRank.DEFAULT,
-    ) -> Callable:
+    ) -> _RouteDecorator[MeetingParticipantsEventHandler[StateT]]:
         """Register a handler for meeting participant join events."""
 
         def __selector(context: TurnContext) -> bool:
@@ -87,12 +126,13 @@ class Meeting(Generic[StateT]):
                 == "application/vnd.microsoft.meetingParticipantJoin"
             )
 
-        def __register(func: Callable) -> Callable:
+        def __call(func: MeetingParticipantsEventHandler[StateT]) -> MeetingParticipantsEventHandler[StateT]:
             async def __handler(context: TurnContext, state: StateT) -> None:
+                teams_context = TeamsTurnContext(context)
                 details = MeetingParticipantsEventDetails.model_validate(
                     context.activity.value or {}
                 )
-                await func(context, state, details)
+                await func(teams_context, state, details)
 
             self._app.add_route(
                 __selector,
@@ -102,17 +142,14 @@ class Meeting(Generic[StateT]):
             )
             return func
 
-        if handler is not None:
-            return __register(handler)
-        return __register
+        return __call
 
     def on_participants_leave(
         self,
-        handler: Optional[Callable] = None,
         *,
         auth_handlers: Optional[list[str]] = None,
         rank: RouteRank = RouteRank.DEFAULT,
-    ) -> Callable:
+    ) -> _RouteDecorator[MeetingParticipantsEventHandler[StateT]]:
         """Register a handler for meeting participant leave events."""
 
         def __selector(context: TurnContext) -> bool:
@@ -122,12 +159,13 @@ class Meeting(Generic[StateT]):
                 == "application/vnd.microsoft.meetingParticipantLeave"
             )
 
-        def __register(func: Callable) -> Callable:
+        def __call(func: MeetingParticipantsEventHandler[StateT]) -> MeetingParticipantsEventHandler[StateT]:
             async def __handler(context: TurnContext, state: StateT) -> None:
+                teams_context = TeamsTurnContext(context)
                 details = MeetingParticipantsEventDetails.model_validate(
                     context.activity.value or {}
                 )
-                await func(context, state, details)
+                await func(teams_context, state, details)
 
             self._app.add_route(
                 __selector,
@@ -136,7 +174,5 @@ class Meeting(Generic[StateT]):
                 auth_handlers=auth_handlers,
             )
             return func
-
-        if handler is not None:
-            return __register(handler)
-        return __register
+        
+        return __call

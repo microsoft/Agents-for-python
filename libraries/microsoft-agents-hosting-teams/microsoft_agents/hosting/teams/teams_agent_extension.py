@@ -28,6 +28,17 @@ from microsoft_teams.api.models import (
     TaskModuleRequest,
 )
 
+from .channel import Channel
+from .meeting import Meeting
+from .message import Message
+from .message_extension import MessageExtension
+from .task_module import TaskModule
+from .team import Team
+
+from .type_defs import (
+    StateT
+)
+
 
 class TeamsAgentExtension(Generic[StateT]):
     """
@@ -56,6 +67,9 @@ class TeamsAgentExtension(Generic[StateT]):
         self._message_extension: MessageExtension[StateT] = MessageExtension(app)
         self._task_module: TaskModule[StateT] = TaskModule(app)
         self._meeting: Meeting[StateT] = Meeting(app)
+        self._message: Message[StateT] = Message(app)
+        self._team: Team[StateT] = Team(app)
+        self._channel: Channel[StateT] = Channel(app)
 
     @property
     def message_extension(self) -> MessageExtension[StateT]:
@@ -71,6 +85,11 @@ class TeamsAgentExtension(Generic[StateT]):
     def meeting(self) -> Meeting[StateT]:
         """Route registration for Meeting lifecycle events."""
         return self._meeting
+    
+    @property
+    def message(self) -> Message[StateT]:
+        """Route registration for messaging activities."""
+        return self._message
 
     # ── Message update / delete ────────────────────────────────────────────
 
@@ -90,15 +109,15 @@ class TeamsAgentExtension(Generic[StateT]):
                 and _get_channel_event_type(context) == "editMessage"
             )
 
-        def __register(func: Callable) -> Callable:
+        def __call(func: Callable) -> Callable:
             self._app.add_route(
                 __selector, func, rank=rank, auth_handlers=auth_handlers
             )
             return func
 
         if handler is not None:
-            return __register(handler)
-        return __register
+            return __call(handler)
+        return __call
 
     def on_message_undelete(
         self,
@@ -116,15 +135,15 @@ class TeamsAgentExtension(Generic[StateT]):
                 and _get_channel_event_type(context) == "undeleteMessage"
             )
 
-        def __register(func: Callable) -> Callable:
+        def __call(func: Callable) -> Callable:
             self._app.add_route(
                 __selector, func, rank=rank, auth_handlers=auth_handlers
             )
             return func
 
         if handler is not None:
-            return __register(handler)
-        return __register
+            return __call(handler)
+        return __call
 
     def on_message_soft_delete(
         self,
@@ -142,15 +161,15 @@ class TeamsAgentExtension(Generic[StateT]):
                 and _get_channel_event_type(context) == "softDeleteMessage"
             )
 
-        def __register(func: Callable) -> Callable:
+        def __call(func: Callable) -> Callable:
             self._app.add_route(
                 __selector, func, rank=rank, auth_handlers=auth_handlers
             )
             return func
 
         if handler is not None:
-            return __register(handler)
-        return __register
+            return __call(handler)
+        return __call
 
     # ── Read receipt ───────────────────────────────────────────────────────
 
@@ -169,7 +188,7 @@ class TeamsAgentExtension(Generic[StateT]):
                 and context.activity.name == "application/vnd.microsoft.readReceipt"
             )
 
-        def __register(func: Callable) -> Callable:
+        def __call(func: Callable) -> Callable:
             async def __handler(context: TurnContext, state: StateT) -> None:
                 receipt = ReadReceiptInfo.model_validate(context.activity.value or {})
                 await func(context, state, receipt)
@@ -180,8 +199,8 @@ class TeamsAgentExtension(Generic[StateT]):
             return func
 
         if handler is not None:
-            return __register(handler)
-        return __register
+            return __call(handler)
+        return __call
 
     # ── Config ─────────────────────────────────────────────────────────────
 
@@ -200,7 +219,7 @@ class TeamsAgentExtension(Generic[StateT]):
                 and context.activity.name == "config/fetch"
             )
 
-        def __register(func: Callable) -> Callable:
+        def __call(func: Callable) -> Callable:
             async def __handler(context: TurnContext, state: StateT) -> None:
                 response = await func(context, state, context.activity.value)
                 if response is not None:
@@ -216,8 +235,8 @@ class TeamsAgentExtension(Generic[StateT]):
             return func
 
         if handler is not None:
-            return __register(handler)
-        return __register
+            return __call(handler)
+        return __call
 
     def on_config_submit(
         self,
@@ -234,7 +253,7 @@ class TeamsAgentExtension(Generic[StateT]):
                 and context.activity.name == "config/submit"
             )
 
-        def __register(func: Callable) -> Callable:
+        def __call(func: Callable) -> Callable:
             async def __handler(context: TurnContext, state: StateT) -> None:
                 response = await func(context, state, context.activity.value)
                 if response is not None:
@@ -250,8 +269,8 @@ class TeamsAgentExtension(Generic[StateT]):
             return func
 
         if handler is not None:
-            return __register(handler)
-        return __register
+            return __call(handler)
+        return __call
 
     # ── File consent ───────────────────────────────────────────────────────
 
@@ -272,7 +291,7 @@ class TeamsAgentExtension(Generic[StateT]):
                 and context.activity.value.get("action") == "accept"
             )
 
-        def __register(func: Callable) -> Callable:
+        def __call(func: Callable) -> Callable:
             async def __handler(context: TurnContext, state: StateT) -> None:
                 file_consent = FileConsentCardResponse.model_validate(
                     context.activity.value or {}
@@ -290,8 +309,8 @@ class TeamsAgentExtension(Generic[StateT]):
             return func
 
         if handler is not None:
-            return __register(handler)
-        return __register
+            return __call(handler)
+        return __call
 
     def on_file_consent_decline(
         self,
@@ -310,7 +329,7 @@ class TeamsAgentExtension(Generic[StateT]):
                 and context.activity.value.get("action") == "decline"
             )
 
-        def __register(func: Callable) -> Callable:
+        def __call(func: Callable) -> Callable:
             async def __handler(context: TurnContext, state: StateT) -> None:
                 file_consent = FileConsentCardResponse.model_validate(
                     context.activity.value or {}
@@ -328,8 +347,8 @@ class TeamsAgentExtension(Generic[StateT]):
             return func
 
         if handler is not None:
-            return __register(handler)
-        return __register
+            return __call(handler)
+        return __call
 
     # ── O365 Connector ─────────────────────────────────────────────────────
 
@@ -348,7 +367,7 @@ class TeamsAgentExtension(Generic[StateT]):
                 and context.activity.name == "actionableMessage/executeAction"
             )
 
-        def __register(func: Callable) -> Callable:
+        def __call(func: Callable) -> Callable:
             async def __handler(context: TurnContext, state: StateT) -> None:
                 query = O365ConnectorCardActionQuery.model_validate(
                     context.activity.value or {}
@@ -366,8 +385,8 @@ class TeamsAgentExtension(Generic[StateT]):
             return func
 
         if handler is not None:
-            return __register(handler)
-        return __register
+            return __call(handler)
+        return __call
 
     # ── Conversation update events ─────────────────────────────────────────
 
@@ -388,15 +407,15 @@ class TeamsAgentExtension(Generic[StateT]):
                 and len(context.activity.members_added) > 0
             )
 
-        def __register(func: Callable) -> Callable:
+        def __call(func: Callable) -> Callable:
             self._app.add_route(
                 __selector, func, rank=rank, auth_handlers=auth_handlers
             )
             return func
 
         if handler is not None:
-            return __register(handler)
-        return __register
+            return __call(handler)
+        return __call
 
     def on_members_removed(
         self,
@@ -415,15 +434,15 @@ class TeamsAgentExtension(Generic[StateT]):
                 and len(context.activity.members_removed) > 0
             )
 
-        def __register(func: Callable) -> Callable:
+        def __call(func: Callable) -> Callable:
             self._app.add_route(
                 __selector, func, rank=rank, auth_handlers=auth_handlers
             )
             return func
 
         if handler is not None:
-            return __register(handler)
-        return __register
+            return __call(handler)
+        return __call
 
     def on_channel_created(
         self,
@@ -560,12 +579,12 @@ class TeamsAgentExtension(Generic[StateT]):
                 and _get_channel_event_type(context) == event_type
             )
 
-        def __register(func: Callable) -> Callable:
+        def __call(func: Callable) -> Callable:
             self._app.add_route(
                 __selector, func, rank=rank, auth_handlers=auth_handlers
             )
             return func
 
         if handler is not None:
-            return __register(handler)
-        return __register
+            return __call(handler)
+        return __call

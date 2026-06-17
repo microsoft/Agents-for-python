@@ -35,9 +35,11 @@ from microsoft_agents.hosting.teams._utils import (
 )
 
 from .route_handlers import (
-    FetchActionHandler,
+    FetchTaskHandler,
+    QueryHandler,
     SubmitActionHandler,
     MessagePreviewEditHandler,
+    MessagePreviewSendHandler,
     QueryHandler,
     SelectItemHandler,
     QueryLinkHandler,
@@ -55,7 +57,7 @@ class MessageExtension(Generic[StateT]):
     def __init__(self, app: AgentApplication[StateT]) -> None:
         self._app = app
 
-    def on_query(
+    def query(
         self,
         command_id: CommandSelector = None,
         *,
@@ -103,7 +105,7 @@ class MessageExtension(Generic[StateT]):
 
         return __call
 
-    def on_select_item(
+    def select_item(
         self,
         *,
         auth_handlers: Optional[list[str]] = None,
@@ -135,7 +137,7 @@ class MessageExtension(Generic[StateT]):
 
         return __call
 
-    def on_submit_action(
+    def submit_action(
         self,
         command_id: CommandSelector = None,
         *,
@@ -186,7 +188,7 @@ class MessageExtension(Generic[StateT]):
 
         return __call
 
-    def on_message_preview_edit(
+    def message_preview_edit(
         self,
         command_id: CommandSelector = None,
         *,
@@ -227,7 +229,7 @@ class MessageExtension(Generic[StateT]):
 
         return __call
 
-    def on_message_preview_send(
+    def message_preview_send(
         self,
         command_id: CommandSelector = None,
         *,
@@ -253,6 +255,11 @@ class MessageExtension(Generic[StateT]):
                 action = MessagingExtensionAction.model_validate(
                     context.activity.value or {}
                 )
+                # activity_preview: Activity | None = None
+                # if action.bot_activity_preview:
+                #     activity_preview = Activity.model_validate(action.bot_activity_preview[0])
+                # activity_preview =
+                # action.bot_activity_preview[0]
                 response = await func(teams_context, state, action)
                 if response is not None:
                     await _send_invoke_response(context, response)
@@ -268,13 +275,13 @@ class MessageExtension(Generic[StateT]):
 
         return __call
 
-    def on_task_fetch(
+    def fetch_task(
         self,
         command_id: CommandSelector = None,
         *,
         auth_handlers: Optional[list[str]] = None,
         rank: RouteRank = RouteRank.DEFAULT,
-    ) -> _RouteDecorator[TaskFetchHandler[StateT]]:
+    ) -> _RouteDecorator[FetchTaskHandler[StateT]]:
         """Register a handler for composeExtension/fetchTask invokes."""
 
         def __selector(context: TurnContext) -> bool:
@@ -287,7 +294,7 @@ class MessageExtension(Generic[StateT]):
                 )
             )
 
-        def __call(func: TaskFetchHandler[StateT]) -> TaskFetchHandler[StateT]:
+        def __call(func: FetchTaskHandler[StateT]) -> FetchTaskHandler[StateT]:
             async def __handler(context: TurnContext, state: StateT) -> None:
                 action = MessagingExtensionAction.model_validate(
                     context.activity.value or {}
@@ -307,7 +314,7 @@ class MessageExtension(Generic[StateT]):
 
         return __call
 
-    def on_query_link(
+    def query_link(
         self,
         *,
         auth_handlers: Optional[list[str]] = None,
@@ -340,7 +347,7 @@ class MessageExtension(Generic[StateT]):
 
         return __call
 
-    def on_anonymous_query_link(
+    def anonymous_query_link(
         self,
         *,
         auth_handlers: Optional[list[str]] = None,
@@ -354,7 +361,7 @@ class MessageExtension(Generic[StateT]):
                 and context.activity.name == "composeExtension/anonymousQueryLink"
             )
 
-        def __register(func: QueryLinkHandler[StateT]) -> QueryLinkHandler[StateT]:
+        def __call(func: QueryLinkHandler[StateT]) -> QueryLinkHandler[StateT]:
             async def __handler(context: TurnContext, state: StateT) -> None:
                 teams_context = TeamsTurnContext(context)
                 query = AppBasedLinkQuery.model_validate(context.activity.value or {})
@@ -371,9 +378,9 @@ class MessageExtension(Generic[StateT]):
             )
             return func
 
-        return __register
+        return __call
 
-    def on_query_url_setting(
+    def query_setting_url(
         self,
         *,
         auth_handlers: Optional[list[str]] = None,
@@ -387,7 +394,7 @@ class MessageExtension(Generic[StateT]):
                 and context.activity.name == "composeExtension/querySettingUrl"
             )
 
-        def __register(func: QueryUrlSettingHandler[StateT]) -> QueryUrlSettingHandler[StateT]:
+        def __call(func: QueryUrlSettingHandler[StateT]) -> QueryUrlSettingHandler[StateT]:
             async def __handler(context: TurnContext, state: StateT) -> None:
                 teams_context = TeamsTurnContext(context)
                 query = MessagingExtensionQuery.model_validate(
@@ -406,15 +413,15 @@ class MessageExtension(Generic[StateT]):
             )
             return func
 
-        return __register
+        return __call
 
-    def on_configure_settings(
+    def configure_settings(
         self,
         handler: Optional[Callable] = None,
         *,
         auth_handlers: Optional[list[str]] = None,
         rank: RouteRank = RouteRank.DEFAULT,
-    ) -> Callable:
+    ) -> _RouteDecorator[ConfigureSettingsHandler[StateT]]:
         """Register a handler for composeExtension/setting invokes."""
 
         def __selector(context: TurnContext) -> bool:
@@ -423,7 +430,7 @@ class MessageExtension(Generic[StateT]):
                 and context.activity.name == "composeExtension/setting"
             )
 
-        def __register(func: Callable) -> Callable:
+        def __call(func: Callable) -> Callable:
             async def __handler(context: TurnContext, state: StateT) -> None:
                 await func(context, state, context.activity.value)
                 await _send_invoke_response(context)
@@ -438,16 +445,15 @@ class MessageExtension(Generic[StateT]):
             return func
 
         if handler is not None:
-            return __register(handler)
-        return __register
+            return __call(handler)
+        return __call
 
-    def on_card_button_clicked(
+    def card_button_clicked(
         self,
-        handler: Optional[Callable] = None,
         *,
         auth_handlers: Optional[list[str]] = None,
         rank: RouteRank = RouteRank.DEFAULT,
-    ) -> Callable:
+    ) -> _RouteDecorator[CardButtonClickedHandler[StateT]]:
         """Register a handler for composeExtension/onCardButtonClicked invokes."""
 
         def __selector(context: TurnContext) -> bool:
@@ -456,7 +462,7 @@ class MessageExtension(Generic[StateT]):
                 and context.activity.name == "composeExtension/onCardButtonClicked"
             )
 
-        def __register(func: Callable) -> Callable:
+        def __call(func: CardButtonClickedHandler[StateT]) -> CardButtonClickedHandler[StateT]:
             async def __handler(context: TurnContext, state: StateT) -> None:
                 await func(context, state, context.activity.value)
                 await _send_invoke_response(context)
@@ -470,6 +476,4 @@ class MessageExtension(Generic[StateT]):
             )
             return func
 
-        if handler is not None:
-            return __register(handler)
-        return __register
+        return __call

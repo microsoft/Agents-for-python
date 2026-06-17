@@ -27,7 +27,7 @@ from microsoft_agents.activity import Activity
 from microsoft_agents.hosting.teams_turn_context import TeamsTurnContext
 from microsoft_agents.hosting.teams.type_defs import StateT
 
-class FetchActionHandler(Protocol[StateT]):
+class FetchTaskHandler(Protocol[StateT]):
     def __call__(
             self,
             context: TeamsTurnContext,
@@ -92,6 +92,7 @@ class QueryUrlSettingHandler(Protocol[StateT]):
             self,
             context: TeamsTurnContext,
             state: StateT,
+            query: MessageExtensionQuery
         ) -> Awaitable[MessageExtensionResponse]:
         ...
 
