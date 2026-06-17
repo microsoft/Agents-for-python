@@ -69,7 +69,7 @@ class FileConsent(Generic[StateT]):
         rank: RouteRank = RouteRank.DEFAULT,
     ) -> _RouteDecorator[FileConsentHandler[StateT]]:
         """Register a handler for fileConsent/invoke with action == 'accept'."""
-        return self._create_decorator("accept")
+        return self._create_decorator("accept", auth_handlers=auth_handlers, rank=rank)
 
     def on_file_consent_decline(
         self,
@@ -78,4 +78,4 @@ class FileConsent(Generic[StateT]):
         rank: RouteRank = RouteRank.DEFAULT,
     ) -> _RouteDecorator[FileConsentHandler[StateT]]:
         """Register a handler for fileConsent/invoke with action == 'decline'."""
-        return self._create_decorator("decline")
+        return self._create_decorator("decline", auth_handlers=auth_handlers, rank=rank)
