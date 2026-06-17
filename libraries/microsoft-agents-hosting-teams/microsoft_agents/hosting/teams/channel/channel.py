@@ -99,7 +99,7 @@ class Channel(Generic[StateT]):
             "channelRenamed", auth_handlers=auth_handlers, rank=rank
         )
 
-    def restored(
+    def rest(
         self,
         *,
         auth_handlers: Optional[list[str]] = None,
@@ -109,3 +109,65 @@ class Channel(Generic[StateT]):
         return self._create_decorator(
             "channelRestored", auth_handlers=auth_handlers, rank=rank
         )
+    
+    def on_members_added(
+        self,
+        *,
+        auth_handlers: Optional[list[str]] = None,
+        rank: RouteRank = RouteRank.DEFAULT,
+    ) -> _RouteDecorator[ChannelUpdateHandler[StateT]]:
+        """Register a handler for Teams membersAdded conversation update events."""
+
+        def __selector(context: TurnContext) -> bool:
+            return (
+                context.activity.type == ActivityTypes.conversation_update
+                and context.activity.channel_id == "msteams"
+                and isinstance(context.activity.members_added, list)
+                and len(context.activity.members_added) > 0
+            )
+
+        def __call(func: ChannelUpdateHandler[StateT]) -> ChannelUpdateHandler[StateT]:
+
+            async def __func(context: TurnContext, state: StateT) -> None:
+                teams_context = TeamsTurnContext(context)
+                channel_data = _get_channel_data(context)
+                await func(teams_context, state, channel_data)
+
+            self._app.add_route(
+                __selector, __func, rank=rank, auth_handlers=auth_handlers
+            )
+
+            return func
+
+        return __call
+
+    def on_members_removed(
+        self,
+        *,
+        auth_handlers: Optional[list[str]] = None,
+        rank: RouteRank = RouteRank.DEFAULT,
+    ) -> _RouteDecorator[ChannelUpdateHandler[StateT]]:
+        """Register a handler for Teams membersRemoved conversation update events."""
+
+        def __selector(context: TurnContext) -> bool:
+            return (
+                context.activity.type == ActivityTypes.conversation_update
+                and context.activity.channel_id == "msteams"
+                and isinstance(context.activity.members_removed, list)
+                and len(context.activity.members_removed) > 0
+            )
+
+        def __call(func: ChannelUpdateHandler[StateT]) -> ChannelUpdateHandler[StateT]:
+
+            async def __func(context: TurnContext, state: StateT) -> None:
+                teams_context = TeamsTurnContext(context)
+                channel_data = _get_channel_data(context)
+                await func(teams_context, state, channel_data)
+
+            self._app.add_route(
+                __selector, __func, rank=rank, auth_handlers=auth_handlers
+            )
+
+            return func
+
+        return __call

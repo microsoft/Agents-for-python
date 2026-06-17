@@ -5,28 +5,9 @@ Licensed under the MIT License.
 
 from __future__ import annotations
 
-import re
-from http import HTTPStatus
-from typing import Any, Callable, Generic, Optional, Pattern, TypeVar
+from typing import Generic
 
-from microsoft_agents.activity import Activity, ActivityTypes, InvokeResponse
-from microsoft_agents.hosting.core import TurnContext
-from microsoft_agents.hosting.core.app import AgentApplication, RouteRank
-from microsoft_agents.hosting.core.app.state import TurnState
-
-from microsoft_agents.activity.teams import (
-    MeetingParticipantsEventDetails,
-    ReadReceiptInfo,
-)
-from microsoft_teams.api.models import (
-    AppBasedLinkQuery,
-    FileConsentCardResponse,
-    MeetingDetails,
-    MessagingExtensionAction,
-    MessagingExtensionQuery,
-    O365ConnectorCardActionQuery,
-    TaskModuleRequest,
-)
+from microsoft_agents.hosting.core.app import AgentApplication
 
 from .channel import Channel
 from .configuration import Configuration
@@ -37,9 +18,7 @@ from .message_extension import MessageExtension
 from .task_module import TaskModule
 from .team import Team
 
-from .type_defs import (
-    StateT
-)
+from .type_defs import StateT
 
 
 class TeamsAgentExtension(Generic[StateT]):
@@ -111,61 +90,3 @@ class TeamsAgentExtension(Generic[StateT]):
     def task_module(self) -> TaskModule[StateT]:
         """Route registration for Task Module (task/fetch, task/submit) invokes."""
         return self._task_module
-    
-
-    
-    # ── Conversation update events ─────────────────────────────────────────
-
-    def on_members_added(
-        self,
-        handler: Optional[Callable] = None,
-        *,
-        auth_handlers: Optional[list[str]] = None,
-        rank: RouteRank = RouteRank.DEFAULT,
-    ) -> Callable:
-        """Register a handler for Teams membersAdded conversation update events."""
-
-        def __selector(context: TurnContext) -> bool:
-            return (
-                context.activity.type == ActivityTypes.conversation_update
-                and context.activity.channel_id == "msteams"
-                and isinstance(context.activity.members_added, list)
-                and len(context.activity.members_added) > 0
-            )
-
-        def __call(func: Callable) -> Callable:
-            self._app.add_route(
-                __selector, func, rank=rank, auth_handlers=auth_handlers
-            )
-            return func
-
-        if handler is not None:
-            return __call(handler)
-        return __call
-
-    def on_members_removed(
-        self,
-        handler: Optional[Callable] = None,
-        *,
-        auth_handlers: Optional[list[str]] = None,
-        rank: RouteRank = RouteRank.DEFAULT,
-    ) -> Callable:
-        """Register a handler for Teams membersRemoved conversation update events."""
-
-        def __selector(context: TurnContext) -> bool:
-            return (
-                context.activity.type == ActivityTypes.conversation_update
-                and context.activity.channel_id == "msteams"
-                and isinstance(context.activity.members_removed, list)
-                and len(context.activity.members_removed) > 0
-            )
-
-        def __call(func: Callable) -> Callable:
-            self._app.add_route(
-                __selector, func, rank=rank, auth_handlers=auth_handlers
-            )
-            return func
-
-        if handler is not None:
-            return __call(handler)
-        return __call
