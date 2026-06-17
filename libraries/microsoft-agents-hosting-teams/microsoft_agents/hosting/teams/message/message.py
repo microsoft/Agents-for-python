@@ -22,7 +22,10 @@ from microsoft_agents.hosting.teams.type_defs import (
     _RouteDecorator,
     StateT,
 )
-from microsoft_agetns.hosting.teams._utils import _get_channel_event_type
+from microsoft_agetns.hosting.teams._utils import (
+    _get_channel_event_type,
+    _send_invoke_response,
+)
 
 from .route_handlers import (
     O365ConnectorCardActionHandler,
