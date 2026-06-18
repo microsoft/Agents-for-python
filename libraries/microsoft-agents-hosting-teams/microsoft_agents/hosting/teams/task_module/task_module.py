@@ -5,9 +5,7 @@
 
 from typing import Any, Generic, Optional
 
-from microsoft_teams.api.models import (
-    TaskModuleRequest,
-)
+from microsoft_teams.api.models.task_module import TaskModuleRequest
 
 from microsoft_agents.activity import ActivityTypes
 
@@ -30,7 +28,7 @@ from .route_handlers import FetchHandler, SubmitHandler
 class TaskModule(Generic[StateT]):
     """
     Route registration for Teams Task Module (task/fetch, task/submit) invoke activities.
-    Access via TeamsAgentExtension.task_module.
+    Access via TeamsAgentExtension.task_modules.
     """
 
     def __init__(self, app: AgentApplication[StateT]) -> None:

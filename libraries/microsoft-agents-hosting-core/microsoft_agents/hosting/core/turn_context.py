@@ -27,6 +27,8 @@ class TurnContext(TurnContextProtocol):
     # Same constant as in the BF Adapter, duplicating here to avoid circular dependency
     _INVOKE_RESPONSE_KEY = "TurnContext.InvokeResponse"
 
+    _activity: Activity
+
     def __init__(
         self,
         adapter_or_context,
@@ -43,7 +45,7 @@ class TurnContext(TurnContextProtocol):
             self._identity = adapter_or_context.identity
         else:
             self.adapter = adapter_or_context
-            self._activity = request
+            self._activity = request  # exception thrown if None further down
             self.responses: list[Activity] = []
             self._services: dict = {}
             self._on_send_activities: Callable[
@@ -60,7 +62,7 @@ class TurnContext(TurnContextProtocol):
 
         if self.adapter is None:
             raise TypeError("TurnContext must be instantiated with an adapter.")
-        if self.activity is None:
+        if self._activity is None:
             raise TypeError(
                 "TurnContext must be instantiated with a request parameter of type Activity."
             )

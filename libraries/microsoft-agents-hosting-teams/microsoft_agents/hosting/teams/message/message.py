@@ -3,7 +3,7 @@
 
 """Route registration helpers for Teams message update and actionable message activities."""
 
-from typing import Callable, Generic, Optional
+from typing import Generic, Optional
 
 from microsoft_teams.api.models.o365 import O365ConnectorCardActionQuery
 

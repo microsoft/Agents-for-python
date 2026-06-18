@@ -5,10 +5,10 @@
 
 from typing import Generic, Optional, Callable
 
-from microsoft_teams.api.models import (
+from microsoft_teams.api.models import AppBasedLinkQuery
+from microsoft_teams.api.models.messaging_extension import (
     MessagingExtensionQuery,
     MessagingExtensionAction,
-    AppBasedLinkQuery,
 )
 
 from microsoft_agents.activity import Activity, ActivityTypes

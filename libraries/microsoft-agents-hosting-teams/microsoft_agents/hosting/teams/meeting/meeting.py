@@ -3,17 +3,12 @@
 
 """Route registration helpers for Teams meeting lifecycle event activities."""
 
-from typing import Callable, Generic, Optional
+from typing import Generic, Optional
 
-from microsoft_teams.api.models import (
-    MeetingDetails,
-    MeetingParticipant,
-)
+from microsoft_teams.api.models.meetings import MeetingDetails
 
-from microsoft_agents.activity import (
-    Activity,
-    ActivityTypes,
-)
+from microsoft_agents.activity import ActivityTypes
+from microsoft_agents.activity.teams import MeetingParticipantsEventDetails
 from microsoft_agents.hosting.core import (
     AgentApplication,
     RouteRank,
@@ -36,7 +31,7 @@ from .route_handlers import (
 class Meeting(Generic[StateT]):
     """
     Route registration for Teams Meeting event activities.
-    Access via TeamsAgentExtension.meeting.
+    Access via TeamsAgentExtension.meetings.
     """
 
     def __init__(self, app: AgentApplication[StateT]) -> None:
@@ -122,7 +117,7 @@ class Meeting(Generic[StateT]):
         ) -> MeetingParticipantsEventHandler[StateT]:
             async def __handler(context: TurnContext, state: StateT) -> None:
                 teams_context = TeamsTurnContext(context, self._app)
-                details = MeetingParticipant.model_validate(
+                details = MeetingParticipantsEventDetails.model_validate(
                     context.activity.value or {}
                 )
                 await func(teams_context, state, details)
@@ -157,7 +152,7 @@ class Meeting(Generic[StateT]):
         ) -> MeetingParticipantsEventHandler[StateT]:
             async def __handler(context: TurnContext, state: StateT) -> None:
                 teams_context = TeamsTurnContext(context, self._app)
-                details = MeetingParticipant.model_validate(
+                details = MeetingParticipantsEventDetails.model_validate(
                     context.activity.value or {}
                 )
                 await func(teams_context, state, details)

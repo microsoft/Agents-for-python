@@ -5,10 +5,8 @@
 
 from typing import Awaitable, Protocol
 
-from microsoft_teams.api.models import (
-    MeetingDetails,
-    MeetingParticipant,
-)
+from microsoft_teams.api.models.meetings import MeetingDetails
+from microsoft_agents.activity.teams import MeetingParticipantsEventDetails
 
 from microsoft_agents.hosting.teams.teams_turn_context import TeamsTurnContext
 from microsoft_agents.hosting.teams.type_defs import StateT
@@ -57,7 +55,7 @@ class MeetingParticipantsEventHandler(Protocol[StateT]):
         self,
         context: TeamsTurnContext,
         state: StateT,
-        meeting: MeetingParticipant,
+        meeting: MeetingParticipantsEventDetails,
     ) -> Awaitable[None]:
         """Handle a meeting participant join or leave event.
 
