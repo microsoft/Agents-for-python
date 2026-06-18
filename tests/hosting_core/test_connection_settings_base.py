@@ -57,3 +57,20 @@ class TestConnectionSettingsBase:
         assert kwargs["client_id"] == "cid"
         assert kwargs["authority"] == "https://authority"
         assert kwargs["alternate_blueprint_connection_name"] == "bp"
+
+    def test_from_configuration_binds_from_mapping(self):
+        # A raw mapping (e.g. a parsed SETTINGS dict) must bind the same way an
+        # attribute-style AgentAuthConfiguration does.
+        config = {
+            "CLIENT_ID": "cid",
+            "AUTHORITY": "https://authority",
+            "TENANT_ID": "tid",
+            "SCOPES": ["s1"],
+            "ALT_BLUEPRINT_ID": "bp",
+        }
+        settings = ConnectionSettingsBase.from_configuration(config)
+        assert settings.client_id == "cid"
+        assert settings.authority == "https://authority"
+        assert settings.tenant_id == "tid"
+        assert settings.scopes == ["s1"]
+        assert settings.alternate_blueprint_connection_name == "bp"

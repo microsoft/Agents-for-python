@@ -107,3 +107,24 @@ class TestGenericConnectionManager:
         cm = self._make(**ENV_CONFIG)
         config = cm.get_default_connection_configuration()
         assert config.CLIENT_ID == "client-service"
+
+    def test_default_connections_map_is_empty_list(self):
+        config = {k: v for k, v in ENV_CONFIG.items() if k != "CONNECTIONSMAP"}
+        cm = self._make(**config)
+        assert cm._connections_map == []
+        assert isinstance(cm._connections_map, list)
+
+    def test_explicit_empty_connections_map_overrides_kwargs(self):
+        # An explicit empty map must win over a CONNECTIONSMAP kwarg and disable
+        # URL-based routing (falling back to the default connection).
+        cm = ConnectionManager(
+            provider_factory=FakeProvider,
+            connections_map=[],
+            **ENV_CONFIG,
+        )
+        assert cm._connections_map == []
+        claims = ClaimsIdentity(claims={"aud": "api://service"}, is_authenticated=True)
+        assert (
+            cm.get_token_provider(claims, "https://service.com/api")
+            is cm.get_default_connection()
+        )

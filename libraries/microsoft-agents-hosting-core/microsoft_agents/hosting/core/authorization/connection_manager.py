@@ -48,7 +48,11 @@ class ConnectionManager(Connections):
 
         self._provider_factory = provider_factory
         self._connections = {}
-        self._connections_map = connections_map or kwargs.get("CONNECTIONSMAP", {})
+        self._connections_map = (
+            connections_map
+            if connections_map is not None
+            else kwargs.get("CONNECTIONSMAP", [])
+        )
         self._config_map = {}
 
         if connections_configurations:

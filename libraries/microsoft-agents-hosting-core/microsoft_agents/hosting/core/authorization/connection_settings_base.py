@@ -3,6 +3,7 @@
 
 from __future__ import annotations
 
+from collections.abc import Mapping
 from typing import Any, TYPE_CHECKING
 
 if TYPE_CHECKING:
@@ -17,8 +18,13 @@ def _read(configuration: Any, *names: str, default: Any = None) -> Any:
     :class:`AgentAuthConfiguration`, a raw mapping-like object, or another
     settings instance.
     """
+    is_mapping = isinstance(configuration, Mapping)
     for name in names:
-        value = getattr(configuration, name, None)
+        value = (
+            configuration.get(name)
+            if is_mapping
+            else getattr(configuration, name, None)
+        )
         if value is not None:
             return value
     return default
