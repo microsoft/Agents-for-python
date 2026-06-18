@@ -3,7 +3,7 @@
 
 """Route registration helpers for Teams message update and actionable message activities."""
 
-from typing import Generic, Optional
+from typing import Generic, Optional, overload
 
 from microsoft_teams.api.models.o365 import O365ConnectorCardActionQuery
 
@@ -49,14 +49,7 @@ class Message(Generic[StateT]):
         auth_handlers: Optional[list[str]] = None,
         rank: RouteRank = RouteRank.DEFAULT,
     ) -> _RouteDecorator[TeamsRouteHandler[StateT]]:
-        """Build a route decorator for a Teams messageUpdate channel event type.
-
-        :param event_type: The channel event type to match (e.g. ``"editMessage"``).
-        :param message_type: The activity type to match.
-        :param auth_handlers: Optional auth handler names to run before the route.
-        :param rank: Route priority rank.
-        :return: A decorator that registers the handler.
-        """
+        """Build a route decorator for a Teams messageUpdate channel event type."""
 
         def __selector(context: TurnContext) -> bool:
             return (
@@ -76,54 +69,97 @@ class Message(Generic[StateT]):
 
         return __call
 
+    @overload
+    def edit(self, handler: TeamsRouteHandler[StateT]) -> TeamsRouteHandler[StateT]: ...
+    @overload
+    def edit(
+        self, *, auth_handlers: Optional[list[str]] = ..., rank: RouteRank = ...
+    ) -> _RouteDecorator[TeamsRouteHandler[StateT]]: ...
     def edit(
         self,
+        handler: Optional[TeamsRouteHandler[StateT]] = None,
         *,
         auth_handlers: Optional[list[str]] = None,
         rank: RouteRank = RouteRank.DEFAULT,
-    ) -> _RouteDecorator[TeamsRouteHandler[StateT]]:
+    ) -> TeamsRouteHandler[StateT] | _RouteDecorator[TeamsRouteHandler[StateT]]:
         """Register a handler for Teams editMessage events."""
-        return self._create_basic_decorator(
+        decorator = self._create_basic_decorator(
             "editMessage",
             ActivityTypes.message_update,
             auth_handlers=auth_handlers,
             rank=rank,
         )
+        if handler is not None:
+            return decorator(handler)
+        return decorator
 
+    @overload
+    def undelete(
+        self, handler: TeamsRouteHandler[StateT]
+    ) -> TeamsRouteHandler[StateT]: ...
+    @overload
+    def undelete(
+        self, *, auth_handlers: Optional[list[str]] = ..., rank: RouteRank = ...
+    ) -> _RouteDecorator[TeamsRouteHandler[StateT]]: ...
     def undelete(
         self,
+        handler: Optional[TeamsRouteHandler[StateT]] = None,
         *,
         auth_handlers: Optional[list[str]] = None,
         rank: RouteRank = RouteRank.DEFAULT,
-    ) -> _RouteDecorator[TeamsRouteHandler[StateT]]:
+    ) -> TeamsRouteHandler[StateT] | _RouteDecorator[TeamsRouteHandler[StateT]]:
         """Register a handler for Teams undeleteMessage events."""
-        return self._create_basic_decorator(
+        decorator = self._create_basic_decorator(
             "undeleteMessage",
             ActivityTypes.message_update,
             auth_handlers=auth_handlers,
             rank=rank,
         )
+        if handler is not None:
+            return decorator(handler)
+        return decorator
 
+    @overload
+    def soft_delete(
+        self, handler: TeamsRouteHandler[StateT]
+    ) -> TeamsRouteHandler[StateT]: ...
+    @overload
+    def soft_delete(
+        self, *, auth_handlers: Optional[list[str]] = ..., rank: RouteRank = ...
+    ) -> _RouteDecorator[TeamsRouteHandler[StateT]]: ...
     def soft_delete(
         self,
+        handler: Optional[TeamsRouteHandler[StateT]] = None,
         *,
         auth_handlers: Optional[list[str]] = None,
         rank: RouteRank = RouteRank.DEFAULT,
-    ) -> _RouteDecorator[TeamsRouteHandler[StateT]]:
+    ) -> TeamsRouteHandler[StateT] | _RouteDecorator[TeamsRouteHandler[StateT]]:
         """Register a handler for Teams softDeleteMessage events."""
-        return self._create_basic_decorator(
+        decorator = self._create_basic_decorator(
             "softDeleteMessage",
             ActivityTypes.message_delete,
             auth_handlers=auth_handlers,
             rank=rank,
         )
+        if handler is not None:
+            return decorator(handler)
+        return decorator
 
+    @overload
+    def read_receipt(
+        self, handler: ReadReceiptHandler[StateT]
+    ) -> ReadReceiptHandler[StateT]: ...
+    @overload
+    def read_receipt(
+        self, *, auth_handlers: Optional[list[str]] = ..., rank: RouteRank = ...
+    ) -> _RouteDecorator[ReadReceiptHandler[StateT]]: ...
     def read_receipt(
         self,
+        handler: Optional[ReadReceiptHandler[StateT]] = None,
         *,
         auth_handlers: Optional[list[str]] = None,
         rank: RouteRank = RouteRank.DEFAULT,
-    ) -> _RouteDecorator[ReadReceiptHandler[StateT]]:
+    ) -> ReadReceiptHandler[StateT] | _RouteDecorator[ReadReceiptHandler[StateT]]:
         """Register a handler for Teams readReceipt events."""
 
         def __selector(context: TurnContext) -> bool:
@@ -147,14 +183,25 @@ class Message(Generic[StateT]):
             )
             return func
 
+        if handler is not None:
+            return __call(handler)
         return __call
 
+    @overload
+    def execute_action(
+        self, handler: ExecuteActionHandler[StateT]
+    ) -> ExecuteActionHandler[StateT]: ...
+    @overload
+    def execute_action(
+        self, *, auth_handlers: Optional[list[str]] = ..., rank: RouteRank = ...
+    ) -> _RouteDecorator[ExecuteActionHandler[StateT]]: ...
     def execute_action(
         self,
+        handler: Optional[ExecuteActionHandler[StateT]] = None,
         *,
         auth_handlers: Optional[list[str]] = None,
         rank: RouteRank = RouteRank.DEFAULT,
-    ) -> _RouteDecorator[ExecuteActionHandler[StateT]]:
+    ) -> ExecuteActionHandler[StateT] | _RouteDecorator[ExecuteActionHandler[StateT]]:
         """Register a handler for actionableMessage/executeAction invokes."""
 
         def __selector(context: TurnContext) -> bool:
@@ -181,4 +228,6 @@ class Message(Generic[StateT]):
             )
             return func
 
+        if handler is not None:
+            return __call(handler)
         return __call

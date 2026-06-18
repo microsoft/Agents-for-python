@@ -221,3 +221,34 @@ class TestMeetingParticipants:
         )
         await route_handler(ctx, MagicMock())
         assert isinstance(user_handler.call_args[0][2], MeetingParticipantsEventDetails)
+
+
+class TestMeetingDirectDecoratorStyle:
+
+    def setup_method(self):
+        self.app = _make_app()
+        self.ext = TeamsAgentExtension(self.app)
+
+    def test_start_direct(self):
+        @self.ext.meetings.start  # type: ignore[arg-type]
+        async def handler(ctx, state, meeting): ...
+
+        assert self.app._routes[0]["selector"] is not None
+
+    def test_end_direct(self):
+        @self.ext.meetings.end  # type: ignore[arg-type]
+        async def handler(ctx, state, meeting): ...
+
+        assert self.app._routes[0]["selector"] is not None
+
+    def test_participants_join_direct(self):
+        @self.ext.meetings.participants_join  # type: ignore[arg-type]
+        async def handler(ctx, state, details): ...
+
+        assert self.app._routes[0]["selector"] is not None
+
+    def test_participants_leave_direct(self):
+        @self.ext.meetings.participants_leave  # type: ignore[arg-type]
+        async def handler(ctx, state, details): ...
+
+        assert self.app._routes[0]["selector"] is not None

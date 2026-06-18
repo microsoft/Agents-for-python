@@ -3,7 +3,7 @@
 
 """Route registration helpers for Teams meeting lifecycle event activities."""
 
-from typing import Generic, Optional
+from typing import Generic, Optional, overload
 
 from microsoft_teams.api.models.meetings import MeetingDetails
 
@@ -37,12 +37,21 @@ class Meeting(Generic[StateT]):
     def __init__(self, app: AgentApplication[StateT]) -> None:
         self._app = app
 
+    @overload
+    def start(
+        self, handler: MeetingStartHandler[StateT]
+    ) -> MeetingStartHandler[StateT]: ...
+    @overload
+    def start(
+        self, *, auth_handlers: Optional[list[str]] = ..., rank: RouteRank = ...
+    ) -> _RouteDecorator[MeetingStartHandler[StateT]]: ...
     def start(
         self,
+        handler: Optional[MeetingStartHandler[StateT]] = None,
         *,
         auth_handlers: Optional[list[str]] = None,
         rank: RouteRank = RouteRank.DEFAULT,
-    ) -> _RouteDecorator[MeetingStartHandler[StateT]]:
+    ) -> MeetingStartHandler[StateT] | _RouteDecorator[MeetingStartHandler[StateT]]:
         """Register a handler for meeting start events."""
 
         def __selector(context: TurnContext) -> bool:
@@ -65,14 +74,23 @@ class Meeting(Generic[StateT]):
             )
             return func
 
+        if handler is not None:
+            return __call(handler)
         return __call
 
+    @overload
+    def end(self, handler: MeetingEndHandler[StateT]) -> MeetingEndHandler[StateT]: ...
+    @overload
+    def end(
+        self, *, auth_handlers: Optional[list[str]] = ..., rank: RouteRank = ...
+    ) -> _RouteDecorator[MeetingEndHandler[StateT]]: ...
     def end(
         self,
+        handler: Optional[MeetingEndHandler[StateT]] = None,
         *,
         auth_handlers: Optional[list[str]] = None,
         rank: RouteRank = RouteRank.DEFAULT,
-    ) -> _RouteDecorator[MeetingEndHandler[StateT]]:
+    ) -> MeetingEndHandler[StateT] | _RouteDecorator[MeetingEndHandler[StateT]]:
         """Register a handler for meeting end events."""
 
         def __selector(context: TurnContext) -> bool:
@@ -95,14 +113,28 @@ class Meeting(Generic[StateT]):
             )
             return func
 
+        if handler is not None:
+            return __call(handler)
         return __call
 
+    @overload
+    def participants_join(
+        self, handler: MeetingParticipantsEventHandler[StateT]
+    ) -> MeetingParticipantsEventHandler[StateT]: ...
+    @overload
+    def participants_join(
+        self, *, auth_handlers: Optional[list[str]] = ..., rank: RouteRank = ...
+    ) -> _RouteDecorator[MeetingParticipantsEventHandler[StateT]]: ...
     def participants_join(
         self,
+        handler: Optional[MeetingParticipantsEventHandler[StateT]] = None,
         *,
         auth_handlers: Optional[list[str]] = None,
         rank: RouteRank = RouteRank.DEFAULT,
-    ) -> _RouteDecorator[MeetingParticipantsEventHandler[StateT]]:
+    ) -> (
+        MeetingParticipantsEventHandler[StateT]
+        | _RouteDecorator[MeetingParticipantsEventHandler[StateT]]
+    ):
         """Register a handler for meeting participant join events."""
 
         def __selector(context: TurnContext) -> bool:
@@ -130,14 +162,28 @@ class Meeting(Generic[StateT]):
             )
             return func
 
+        if handler is not None:
+            return __call(handler)
         return __call
 
+    @overload
+    def participants_leave(
+        self, handler: MeetingParticipantsEventHandler[StateT]
+    ) -> MeetingParticipantsEventHandler[StateT]: ...
+    @overload
+    def participants_leave(
+        self, *, auth_handlers: Optional[list[str]] = ..., rank: RouteRank = ...
+    ) -> _RouteDecorator[MeetingParticipantsEventHandler[StateT]]: ...
     def participants_leave(
         self,
+        handler: Optional[MeetingParticipantsEventHandler[StateT]] = None,
         *,
         auth_handlers: Optional[list[str]] = None,
         rank: RouteRank = RouteRank.DEFAULT,
-    ) -> _RouteDecorator[MeetingParticipantsEventHandler[StateT]]:
+    ) -> (
+        MeetingParticipantsEventHandler[StateT]
+        | _RouteDecorator[MeetingParticipantsEventHandler[StateT]]
+    ):
         """Register a handler for meeting participant leave events."""
 
         def __selector(context: TurnContext) -> bool:
@@ -165,4 +211,6 @@ class Meeting(Generic[StateT]):
             )
             return func
 
+        if handler is not None:
+            return __call(handler)
         return __call

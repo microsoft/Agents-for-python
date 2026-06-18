@@ -3,7 +3,7 @@
 
 """Route registration helpers for Teams fileConsent/invoke activities."""
 
-from typing import Generic, Optional
+from typing import Generic, Optional, overload
 
 from microsoft_teams.api.models import FileConsentCardResponse
 
@@ -44,13 +44,7 @@ class FileConsent(Generic[StateT]):
         auth_handlers: Optional[list[str]] = None,
         rank: RouteRank = RouteRank.DEFAULT,
     ) -> _RouteDecorator[FileConsentHandler[StateT]]:
-        """Build a route decorator for a fileConsent/invoke action.
-
-        :param action: The consent action to match — ``"accept"`` or ``"decline"``.
-        :param auth_handlers: Optional auth handler names to run before the route.
-        :param rank: Route priority rank.
-        :return: A decorator that registers the handler.
-        """
+        """Build a route decorator for a fileConsent/invoke action."""
 
         def __selector(context: TurnContext) -> bool:
             return (
@@ -80,20 +74,48 @@ class FileConsent(Generic[StateT]):
 
         return __call
 
+    @overload
+    def accept(
+        self, handler: FileConsentHandler[StateT]
+    ) -> FileConsentHandler[StateT]: ...
+    @overload
+    def accept(
+        self, *, auth_handlers: Optional[list[str]] = ..., rank: RouteRank = ...
+    ) -> _RouteDecorator[FileConsentHandler[StateT]]: ...
     def accept(
         self,
+        handler: Optional[FileConsentHandler[StateT]] = None,
         *,
         auth_handlers: Optional[list[str]] = None,
         rank: RouteRank = RouteRank.DEFAULT,
-    ) -> _RouteDecorator[FileConsentHandler[StateT]]:
+    ) -> FileConsentHandler[StateT] | _RouteDecorator[FileConsentHandler[StateT]]:
         """Register a handler for fileConsent/invoke with action == 'accept'."""
-        return self._create_decorator("accept", auth_handlers=auth_handlers, rank=rank)
+        decorator = self._create_decorator(
+            "accept", auth_handlers=auth_handlers, rank=rank
+        )
+        if handler is not None:
+            return decorator(handler)
+        return decorator
 
+    @overload
+    def decline(
+        self, handler: FileConsentHandler[StateT]
+    ) -> FileConsentHandler[StateT]: ...
+    @overload
+    def decline(
+        self, *, auth_handlers: Optional[list[str]] = ..., rank: RouteRank = ...
+    ) -> _RouteDecorator[FileConsentHandler[StateT]]: ...
     def decline(
         self,
+        handler: Optional[FileConsentHandler[StateT]] = None,
         *,
         auth_handlers: Optional[list[str]] = None,
         rank: RouteRank = RouteRank.DEFAULT,
-    ) -> _RouteDecorator[FileConsentHandler[StateT]]:
+    ) -> FileConsentHandler[StateT] | _RouteDecorator[FileConsentHandler[StateT]]:
         """Register a handler for fileConsent/invoke with action == 'decline'."""
-        return self._create_decorator("decline", auth_handlers=auth_handlers, rank=rank)
+        decorator = self._create_decorator(
+            "decline", auth_handlers=auth_handlers, rank=rank
+        )
+        if handler is not None:
+            return decorator(handler)
+        return decorator

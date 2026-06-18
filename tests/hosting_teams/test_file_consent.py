@@ -133,3 +133,15 @@ class TestFileConsent:
             await route_handler(ctx, MagicMock())
             assert isinstance(user_handler.call_args[0][2], FileConsentCardResponse)
             mock_send.assert_awaited_once_with(ctx)
+
+    def test_accept_direct_decorator_style(self):
+        @self.ext.file_consent.accept  # type: ignore[arg-type]
+        async def handler(ctx, state, data): ...
+
+        assert self.app._routes[0]["selector"] is not None
+
+    def test_decline_direct_decorator_style(self):
+        @self.ext.file_consent.decline  # type: ignore[arg-type]
+        async def handler(ctx, state, data): ...
+
+        assert self.app._routes[0]["selector"] is not None

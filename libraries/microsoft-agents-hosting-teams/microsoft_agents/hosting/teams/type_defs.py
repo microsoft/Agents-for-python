@@ -25,7 +25,7 @@ CommandSelector = str | Pattern[str] | None
 class _RouteDecorator(Protocol[RouteHandlerT]):
     """Protocol for a decorator that registers *func* as a route and returns it unchanged."""
 
-    def __call__(self, func: RouteHandlerT, /) -> RouteHandlerT:
+    def __call__(self, func: RouteHandlerT) -> RouteHandlerT:
         """Register *func* as a route handler and return it.
 
         :param func: The handler to register.

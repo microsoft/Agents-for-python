@@ -4,6 +4,7 @@
 """Shared test helpers for microsoft-agents-hosting-teams tests."""
 
 import sys
+from typing import Any
 from unittest.mock import AsyncMock, MagicMock
 
 from microsoft_agents.activity import Activity, ActivityTypes
@@ -12,8 +13,11 @@ from microsoft_agents.hosting.core.app import AgentApplication, RouteRank
 
 is_supported_version = sys.version_info >= (3, 12)
 
+if is_supported_version:
+    from microsoft_agents.hosting.teams.teams_turn_context import TeamsTurnContext
 
-def _make_app() -> AgentApplication:
+
+def _make_app() -> Any:
     app = MagicMock(spec=AgentApplication)
     app._routes = []
 
@@ -54,4 +58,31 @@ def _make_context(
     activity.members_removed = members_removed
     context.activity = activity
     context.send_activity = AsyncMock()
+
+    mock_adapter = MagicMock()
+    context.adapter = mock_adapter
+    context._responded = False
+    context._services = {}
+    context._on_send_activities = []
+    context._on_update_activity = []
+    context._on_delete_activity = []
+    context.identity = MagicMock()
+
+    def _copy_to(target):
+        target.adapter = mock_adapter
+        target._activity = activity
+        target._responded = False
+        target._services = {}
+        target._on_send_activities = []
+        target._on_update_activity = []
+        target._on_delete_activity = []
+
+    context.copy_to.side_effect = _copy_to
     return context
+
+
+def _make_teams_context() -> "TeamsTurnContext":
+    """Return a MagicMock shaped like a TeamsTurnContext for use in unit tests."""
+    ctx = MagicMock(spec=TeamsTurnContext)
+    ctx.send_activity = AsyncMock()
+    return ctx

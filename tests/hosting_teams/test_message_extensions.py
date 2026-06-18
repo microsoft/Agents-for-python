@@ -487,12 +487,6 @@ class TestMessageExtensionSetting:
 
         assert self.app._routes[0]["is_invoke"] is True
 
-    def test_setting_direct_decorator_style(self):
-        @self.ext.message_extensions.setting
-        async def handler(ctx, state, settings): ...
-
-        assert len(self.app._routes) == 1
-
     @pytest.mark.asyncio
     async def test_setting_always_sends_empty_response(self):
         @self.ext.message_extensions.setting()
@@ -536,3 +530,46 @@ class TestMessageExtensionCardButtonClicked:
         async def handler(ctx, state, data): ...
 
         assert self.app._routes[0]["is_invoke"] is True
+
+
+class TestMessageExtensionDirectDecoratorStyle:
+
+    def setup_method(self):
+        self.app = _make_app()
+        self.ext = TeamsAgentExtension(self.app)
+
+    def test_select_item_direct(self):
+        @self.ext.message_extensions.select_item  # type: ignore[arg-type]
+        async def handler(ctx, state, value): ...
+
+        assert self.app._routes[0]["selector"] is not None
+
+    def test_query_link_direct(self):
+        @self.ext.message_extensions.query_link  # type: ignore[arg-type]
+        async def handler(ctx, state, query): ...
+
+        assert self.app._routes[0]["selector"] is not None
+
+    def test_anonymous_query_link_direct(self):
+        @self.ext.message_extensions.anonymous_query_link  # type: ignore[arg-type]
+        async def handler(ctx, state, query): ...
+
+        assert self.app._routes[0]["selector"] is not None
+
+    def test_query_setting_url_direct(self):
+        @self.ext.message_extensions.query_setting_url  # type: ignore[arg-type]
+        async def handler(ctx, state, query): ...
+
+        assert self.app._routes[0]["selector"] is not None
+
+    def test_setting_direct(self):
+        @self.ext.message_extensions.setting  # type: ignore[arg-type]
+        async def handler(ctx, state, value): ...
+
+        assert self.app._routes[0]["selector"] is not None
+
+    def test_card_button_clicked_direct(self):
+        @self.ext.message_extensions.card_button_clicked  # type: ignore[arg-type]
+        async def handler(ctx, state, value): ...
+
+        assert self.app._routes[0]["selector"] is not None

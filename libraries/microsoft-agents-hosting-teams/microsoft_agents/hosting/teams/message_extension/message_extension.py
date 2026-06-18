@@ -3,7 +3,7 @@
 
 """Route registration helpers for Teams Message Extension (composeExtension) invokes."""
 
-from typing import Generic, Optional, Callable
+from typing import Generic, Optional, Callable, overload
 
 from microsoft_teams.api.models import AppBasedLinkQuery
 from microsoft_teams.api.models.messaging_extension import (
@@ -116,12 +116,21 @@ class MessageExtension(Generic[StateT]):
 
         return __call
 
+    @overload
+    def select_item(
+        self, handler: SelectItemHandler[StateT]
+    ) -> SelectItemHandler[StateT]: ...
+    @overload
+    def select_item(
+        self, *, auth_handlers: Optional[list[str]] = ..., rank: RouteRank = ...
+    ) -> _RouteDecorator[SelectItemHandler[StateT]]: ...
     def select_item(
         self,
+        handler: Optional[SelectItemHandler[StateT]] = None,
         *,
         auth_handlers: Optional[list[str]] = None,
         rank: RouteRank = RouteRank.DEFAULT,
-    ) -> _RouteDecorator[SelectItemHandler[StateT]]:
+    ) -> SelectItemHandler[StateT] | _RouteDecorator[SelectItemHandler[StateT]]:
         """Register a handler for composeExtension/selectItem invokes."""
 
         def __selector(context: TurnContext) -> bool:
@@ -146,6 +155,8 @@ class MessageExtension(Generic[StateT]):
             )
             return func
 
+        if handler is not None:
+            return __call(handler)
         return __call
 
     def submit_action(
@@ -214,7 +225,9 @@ class MessageExtension(Generic[StateT]):
                 or context.activity.name != "composeExtension/submitAction"
             ):
                 return False
-            value = context.activity.value or {}
+            value = context.activity.value
+            if not isinstance(value, dict):
+                return False
             if value.get("botMessagePreviewAction") != "edit":
                 return False
             return _match_selector(command_id, value.get("commandId"))
@@ -255,7 +268,9 @@ class MessageExtension(Generic[StateT]):
                 or context.activity.name != "composeExtension/submitAction"
             ):
                 return False
-            value = context.activity.value or {}
+            value = context.activity.value
+            if not isinstance(value, dict):
+                return False
             if value.get("botMessagePreviewAction") != "send":
                 return False
             return _match_selector(command_id, value.get("commandId"))
@@ -291,13 +306,12 @@ class MessageExtension(Generic[StateT]):
         """Register a handler for composeExtension/fetchTask invokes."""
 
         def __selector(context: TurnContext) -> bool:
+            value = context.activity.value
             return (
                 context.activity.type == ActivityTypes.invoke
                 and context.activity.name == "composeExtension/fetchTask"
-                and _match_selector(
-                    command_id,
-                    (context.activity.value or {}).get("commandId"),
-                )
+                and isinstance(value, dict)
+                and _match_selector(command_id, value.get("commandId"))
             )
 
         def __call(func: FetchTaskHandler[StateT]) -> FetchTaskHandler[StateT]:
@@ -321,12 +335,21 @@ class MessageExtension(Generic[StateT]):
 
         return __call
 
+    @overload
+    def query_link(
+        self, handler: QueryLinkHandler[StateT]
+    ) -> QueryLinkHandler[StateT]: ...
+    @overload
+    def query_link(
+        self, *, auth_handlers: Optional[list[str]] = ..., rank: RouteRank = ...
+    ) -> _RouteDecorator[QueryLinkHandler[StateT]]: ...
     def query_link(
         self,
+        handler: Optional[QueryLinkHandler[StateT]] = None,
         *,
         auth_handlers: Optional[list[str]] = None,
         rank: RouteRank = RouteRank.DEFAULT,
-    ) -> _RouteDecorator[QueryLinkHandler[StateT]]:
+    ) -> QueryLinkHandler[StateT] | _RouteDecorator[QueryLinkHandler[StateT]]:
         """Register a handler for composeExtension/queryLink invokes."""
 
         def __selector(context: TurnContext) -> bool:
@@ -352,14 +375,25 @@ class MessageExtension(Generic[StateT]):
             )
             return func
 
+        if handler is not None:
+            return __call(handler)
         return __call
 
+    @overload
+    def anonymous_query_link(
+        self, handler: QueryLinkHandler[StateT]
+    ) -> QueryLinkHandler[StateT]: ...
+    @overload
+    def anonymous_query_link(
+        self, *, auth_handlers: Optional[list[str]] = ..., rank: RouteRank = ...
+    ) -> _RouteDecorator[QueryLinkHandler[StateT]]: ...
     def anonymous_query_link(
         self,
+        handler: Optional[QueryLinkHandler[StateT]] = None,
         *,
         auth_handlers: Optional[list[str]] = None,
         rank: RouteRank = RouteRank.DEFAULT,
-    ) -> _RouteDecorator[QueryLinkHandler[StateT]]:
+    ) -> QueryLinkHandler[StateT] | _RouteDecorator[QueryLinkHandler[StateT]]:
         """Register a handler for composeExtension/anonymousQueryLink invokes."""
 
         def __selector(context: TurnContext) -> bool:
@@ -385,14 +419,27 @@ class MessageExtension(Generic[StateT]):
             )
             return func
 
+        if handler is not None:
+            return __call(handler)
         return __call
 
+    @overload
+    def query_setting_url(
+        self, handler: QueryUrlSettingHandler[StateT]
+    ) -> QueryUrlSettingHandler[StateT]: ...
+    @overload
+    def query_setting_url(
+        self, *, auth_handlers: Optional[list[str]] = ..., rank: RouteRank = ...
+    ) -> _RouteDecorator[QueryUrlSettingHandler[StateT]]: ...
     def query_setting_url(
         self,
+        handler: Optional[QueryUrlSettingHandler[StateT]] = None,
         *,
         auth_handlers: Optional[list[str]] = None,
         rank: RouteRank = RouteRank.DEFAULT,
-    ) -> _RouteDecorator[QueryUrlSettingHandler[StateT]]:
+    ) -> (
+        QueryUrlSettingHandler[StateT] | _RouteDecorator[QueryUrlSettingHandler[StateT]]
+    ):
         """Register a handler for composeExtension/querySettingUrl invokes."""
 
         def __selector(context: TurnContext) -> bool:
@@ -422,14 +469,28 @@ class MessageExtension(Generic[StateT]):
             )
             return func
 
+        if handler is not None:
+            return __call(handler)
         return __call
 
+    @overload
+    def setting(
+        self, handler: ConfigureSettingsHandler[StateT]
+    ) -> ConfigureSettingsHandler[StateT]: ...
+    @overload
+    def setting(
+        self, *, auth_handlers: Optional[list[str]] = ..., rank: RouteRank = ...
+    ) -> _RouteDecorator[ConfigureSettingsHandler[StateT]]: ...
     def setting(
         self,
+        handler: Optional[Callable] = None,
         *,
         auth_handlers: Optional[list[str]] = None,
         rank: RouteRank = RouteRank.DEFAULT,
-    ) -> _RouteDecorator[ConfigureSettingsHandler[StateT]]:
+    ) -> (
+        ConfigureSettingsHandler[StateT]
+        | _RouteDecorator[ConfigureSettingsHandler[StateT]]
+    ):
         """Register a handler for composeExtension/setting invokes."""
 
         def __selector(context: TurnContext) -> bool:
@@ -453,14 +514,28 @@ class MessageExtension(Generic[StateT]):
             )
             return func
 
+        if handler is not None:
+            return __call(handler)
         return __call
 
+    @overload
+    def card_button_clicked(
+        self, handler: CardButtonClickedHandler[StateT]
+    ) -> CardButtonClickedHandler[StateT]: ...
+    @overload
+    def card_button_clicked(
+        self, *, auth_handlers: Optional[list[str]] = ..., rank: RouteRank = ...
+    ) -> _RouteDecorator[CardButtonClickedHandler[StateT]]: ...
     def card_button_clicked(
         self,
+        handler: Optional[CardButtonClickedHandler[StateT]] = None,
         *,
         auth_handlers: Optional[list[str]] = None,
         rank: RouteRank = RouteRank.DEFAULT,
-    ) -> _RouteDecorator[CardButtonClickedHandler[StateT]]:
+    ) -> (
+        CardButtonClickedHandler[StateT]
+        | _RouteDecorator[CardButtonClickedHandler[StateT]]
+    ):
         """Register a handler for composeExtension/onCardButtonClicked invokes."""
 
         def __selector(context: TurnContext) -> bool:
@@ -486,4 +561,6 @@ class MessageExtension(Generic[StateT]):
             )
             return func
 
+        if handler is not None:
+            return __call(handler)
         return __call

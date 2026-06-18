@@ -279,3 +279,40 @@ class TestMessageExecuteAction:
                 user_handler.call_args[0][2], O365ConnectorCardActionQuery
             )
             mock_send.assert_awaited_once_with(ctx)
+
+
+class TestMessageDirectDecoratorStyle:
+
+    def setup_method(self):
+        self.app = _make_app()
+        self.ext = TeamsAgentExtension(self.app)
+
+    def test_edit_direct(self):
+        @self.ext.messages.edit  # type: ignore[arg-type]
+        async def handler(ctx, state): ...
+
+        assert self.app._routes[0]["selector"] is not None
+
+    def test_undelete_direct(self):
+        @self.ext.messages.undelete  # type: ignore[arg-type]
+        async def handler(ctx, state): ...
+
+        assert self.app._routes[0]["selector"] is not None
+
+    def test_soft_delete_direct(self):
+        @self.ext.messages.soft_delete  # type: ignore[arg-type]
+        async def handler(ctx, state): ...
+
+        assert self.app._routes[0]["selector"] is not None
+
+    def test_read_receipt_direct(self):
+        @self.ext.messages.read_receipt  # type: ignore[arg-type]
+        async def handler(ctx, state, value): ...
+
+        assert self.app._routes[0]["selector"] is not None
+
+    def test_execute_action_direct(self):
+        @self.ext.messages.execute_action  # type: ignore[arg-type]
+        async def handler(ctx, state, query): ...
+
+        assert self.app._routes[0]["selector"] is not None

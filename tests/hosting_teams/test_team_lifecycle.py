@@ -170,3 +170,46 @@ class TestTeamLifecycle:
         async def handler(ctx, state, data): ...
 
         assert self.app._routes[0]["is_invoke"] is False
+
+
+class TestTeamDirectDecoratorStyle:
+
+    def setup_method(self):
+        self.app = _make_app()
+        self.ext = TeamsAgentExtension(self.app)
+
+    def test_archived_direct(self):
+        @self.ext.teams.archived  # type: ignore[arg-type]
+        async def handler(ctx, state, data): ...
+
+        assert self.app._routes[0]["selector"] is not None
+
+    def test_deleted_direct(self):
+        @self.ext.teams.deleted  # type: ignore[arg-type]
+        async def handler(ctx, state, data): ...
+
+        assert self.app._routes[0]["selector"] is not None
+
+    def test_hard_deleted_direct(self):
+        @self.ext.teams.hard_deleted  # type: ignore[arg-type]
+        async def handler(ctx, state, data): ...
+
+        assert self.app._routes[0]["selector"] is not None
+
+    def test_renamed_direct(self):
+        @self.ext.teams.renamed  # type: ignore[arg-type]
+        async def handler(ctx, state, data): ...
+
+        assert self.app._routes[0]["selector"] is not None
+
+    def test_restored_direct(self):
+        @self.ext.teams.restored  # type: ignore[arg-type]
+        async def handler(ctx, state, data): ...
+
+        assert self.app._routes[0]["selector"] is not None
+
+    def test_unarchived_direct(self):
+        @self.ext.teams.unarchived  # type: ignore[arg-type]
+        async def handler(ctx, state, data): ...
+
+        assert self.app._routes[0]["selector"] is not None

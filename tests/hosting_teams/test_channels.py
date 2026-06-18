@@ -263,3 +263,46 @@ class TestChannelMembers:
         ctx = _make_context(ActivityTypes.conversation_update, members_added=[member])
         with pytest.raises(ValueError, match="channel_data"):
             await route_handler(ctx, MagicMock())
+
+
+class TestChannelDirectDecoratorStyle:
+
+    def setup_method(self):
+        self.app = _make_app()
+        self.ext = TeamsAgentExtension(self.app)
+
+    def test_created_direct(self):
+        @self.ext.channels.created  # type: ignore[arg-type]
+        async def handler(ctx, state, data): ...
+
+        assert self.app._routes[0]["selector"] is not None
+
+    def test_deleted_direct(self):
+        @self.ext.channels.deleted  # type: ignore[arg-type]
+        async def handler(ctx, state, data): ...
+
+        assert self.app._routes[0]["selector"] is not None
+
+    def test_renamed_direct(self):
+        @self.ext.channels.renamed  # type: ignore[arg-type]
+        async def handler(ctx, state, data): ...
+
+        assert self.app._routes[0]["selector"] is not None
+
+    def test_rest_direct(self):
+        @self.ext.channels.rest  # type: ignore[arg-type]
+        async def handler(ctx, state, data): ...
+
+        assert self.app._routes[0]["selector"] is not None
+
+    def test_members_added_direct(self):
+        @self.ext.channels.members_added  # type: ignore[arg-type]
+        async def handler(ctx, state, data): ...
+
+        assert self.app._routes[0]["selector"] is not None
+
+    def test_members_removed_direct(self):
+        @self.ext.channels.members_removed  # type: ignore[arg-type]
+        async def handler(ctx, state, data): ...
+
+        assert self.app._routes[0]["selector"] is not None
