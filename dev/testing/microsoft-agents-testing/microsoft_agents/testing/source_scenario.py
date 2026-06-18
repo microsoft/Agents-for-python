@@ -4,7 +4,6 @@
 import asyncio
 import shutil
 import subprocess
-import sys
 
 from pathlib import Path
 
@@ -14,27 +13,12 @@ from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
 
 from microsoft_agents.testing import (
-    ActivityTemplate,
-    ClientConfig,
     ExternalScenario,
     ScenarioConfig,
 )
 from microsoft_agents.testing.core import ClientFactory
 
 from .constants import DEFAULT_LOCAL_AGENT_ENDPOINT
-
-_TEMPLATE = {
-    "channel_id": "webchat",
-    "locale": "en-US",
-    "conversation": {"id": "conv1"},
-    "from": {"id": "user1", "name": "User"},
-    "recipient": {"id": "bot", "name": "Bot"},
-}
-
-client_config=ClientConfig(
-    activity_template=ActivityTemplate(_TEMPLATE)
-)
-
 
 def _terminate_tree(process: subprocess.Popen, timeout: float = 5.0) -> None:
     """Terminate `process` and all of its descendants.
@@ -70,29 +54,30 @@ class SourceScenario(ExternalScenario):
 
     def __init__(
         self,
-        script_path: str,
+        agent_path: str | Path,
+        script: str,
         delay: float = 0.0,
         config: ScenarioConfig | None = None
     ) -> None:
         super().__init__(DEFAULT_LOCAL_AGENT_ENDPOINT, config)
-        self._script_path = Path(script_path)
+        self._agent_path = Path(agent_path)
+        self._script = script
         self._delay = delay
 
     @asynccontextmanager
     async def _run_script(self) -> AsyncIterator[None]:
 
-        script_path = self._script_path.resolve()
+        agent_path = self._agent_path.resolve()
 
         runner = shutil.which("pwsh") or shutil.which("powershell")
         if runner is None:
             raise FileNotFoundError("Could not find pwsh or powershell in PATH")
 
         process = subprocess.Popen(
-            [runner, "-NoProfile", "-ExecutionPolicy", "Bypass", "-File", str(script_path)],
+            [runner, "-NoProfile", "-ExecutionPolicy", "Bypass", "-Command", self._script],
             stdout=subprocess.PIPE,
             stderr=subprocess.PIPE,
-            cwd=script_path.parent,
-            # shell=sys.platform == "win32",
+            cwd=agent_path,
         )
 
         try:
