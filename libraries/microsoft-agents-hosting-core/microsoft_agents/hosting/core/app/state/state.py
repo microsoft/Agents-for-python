@@ -6,10 +6,9 @@ Licensed under the MIT License.
 from __future__ import annotations
 import logging
 
-import json
 from abc import ABC, abstractmethod
 from copy import deepcopy
-from typing import Any, Callable, List, Optional, Type, TypeVar, Union, overload
+from typing import Any, Callable, Optional, Type, TypeVar, overload
 
 from microsoft_agents.hosting.core.state.state_property_accessor import (
     StatePropertyAccessor as _StatePropertyAccessor,
@@ -32,7 +31,7 @@ def state(_cls: Type[T]) -> Type[T]: ...
 
 def state(
     _cls: Optional[Type[T]] = None,
-) -> Union[Callable[[Type[T]], Type[T]], Type[T]]:
+) -> Callable[[Type[T]], Type[T]] | Type[T]:
     """
     @state\n
     class Example(State):
@@ -71,7 +70,7 @@ class State(dict[str, StoreItem], ABC):
     The Storage Key
     """
 
-    __deleted__: List[str]
+    __deleted__: list[str]
     """
     Deleted Keys
     """
@@ -206,9 +205,7 @@ class StatePropertyAccessor(_StatePropertyAccessor):
     async def get(
         self,
         turn_context: TurnContext,
-        default_value_or_factory: Optional[
-            Union[Any, Callable[[], Optional[Any]]]
-        ] = None,
+        default_value_or_factory: Optional[Any | Callable[[], Optional[Any]]] = None,
     ) -> Optional[Any]:
         """
         Get the property value from the state.
@@ -216,7 +213,7 @@ class StatePropertyAccessor(_StatePropertyAccessor):
         :param turn_context: The turn context.
         :type turn_context: :class:`microsoft_agents.hosting.core.turn_context.TurnContext`
         :param default_value_or_factory: Default value or factory function to use if property doesn't exist.
-        :type default_value_or_factory: Optional[Union[Any, Callable[[], Optional[Any]]]]
+        :type default_value_or_factory: Optional[Any | Callable[[], Optional[Any]]]
         :return: The property value or default value if not found.
         :rtype: Optional[Any]
         """

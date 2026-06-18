@@ -2,7 +2,6 @@
 # Licensed under the MIT License.
 
 from ..agents_model import AgentsModel
-from typing import List
 from .on_behalf_of import OnBehalfOf
 
 
@@ -13,4 +12,4 @@ class MeetingNotificationChannelData(AgentsModel):
     :type on_behalf_of_list: list[OnBehalfOf]
     """
 
-    on_behalf_of_list: List[OnBehalfOf] = None
+    on_behalf_of_list: list[OnBehalfOf] = None

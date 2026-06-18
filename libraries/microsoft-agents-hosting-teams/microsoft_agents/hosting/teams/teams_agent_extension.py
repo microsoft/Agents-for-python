@@ -7,7 +7,7 @@ from __future__ import annotations
 
 import re
 from http import HTTPStatus
-from typing import Any, Callable, Generic, Optional, Pattern, TypeVar, Union
+from typing import Any, Callable, Generic, Optional, Pattern, TypeVar
 
 from microsoft_agents.activity import Activity, ActivityTypes, InvokeResponse
 from microsoft_agents.hosting.core import TurnContext
@@ -30,7 +30,7 @@ from microsoft_teams.api.models import (
 
 StateT = TypeVar("StateT", bound=TurnState)
 
-CommandSelector = Union[str, Pattern[str], None]
+CommandSelector = str | Pattern[str] | None
 
 
 def _match_selector(selector: CommandSelector, value: Optional[str]) -> bool:

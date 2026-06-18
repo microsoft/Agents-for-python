@@ -1,7 +1,7 @@
 # Copyright (c) Microsoft Corporation. All rights reserved.
 # Licensed under the MIT License.
 
-from typing import Protocol, TypeVar, Type, Union
+from typing import Protocol, TypeVar, Type
 from abc import abstractmethod
 from asyncio import gather
 
@@ -13,7 +13,7 @@ StoreItemT = TypeVar("StoreItemT", bound=StoreItem)
 
 class Storage(Protocol):
     async def read(
-        self, keys: list[str], *, target_cls: Type[StoreItemT] = None, **kwargs
+        self, keys: list[str], *, target_cls: Type[StoreItemT] | None = None, **kwargs
     ) -> dict[str, StoreItemT]:
         """Reads multiple items from storage.
 
@@ -53,8 +53,8 @@ class AsyncStorageBase(Storage):
 
     @abstractmethod
     async def _read_item(
-        self, key: str, *, target_cls: Type[StoreItemT] = None, **kwargs
-    ) -> tuple[Union[str, None], Union[StoreItemT, None]]:
+        self, key: str, *, target_cls: Type[StoreItemT] | None = None, **kwargs
+    ) -> tuple[str | None, StoreItemT | None]:
         """Reads a single item from storage by key.
 
         Returns a tuple of (key, StoreItem) if found, or (None, None) if not found.
@@ -62,7 +62,7 @@ class AsyncStorageBase(Storage):
         pass
 
     async def read(
-        self, keys: list[str], *, target_cls: Type[StoreItemT] = None, **kwargs
+        self, keys: list[str], *, target_cls: Type[StoreItemT] | None = None, **kwargs
     ) -> dict[str, StoreItemT]:
         if not keys:
             raise ValueError("Storage.read(): Keys are required when reading.")
@@ -72,13 +72,8 @@ class AsyncStorageBase(Storage):
         with spans.StorageRead(len(keys)):
             await self.initialize()
 
-            items: list[tuple[Union[str, None], Union[StoreItemT, None]]] = (
-                await gather(
-                    *[
-                        self._read_item(key, target_cls=target_cls, **kwargs)
-                        for key in keys
-                    ]
-                )
+            items: list[tuple[str | None, StoreItemT | None]] = await gather(
+                *[self._read_item(key, target_cls=target_cls, **kwargs) for key in keys]
             )
             return {key: value for key, value in items if key is not None}
 

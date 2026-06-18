@@ -2,7 +2,7 @@
 # Licensed under the MIT License.
 
 from abc import abstractmethod
-from typing import Protocol, List, Callable, Awaitable, Optional
+from typing import Protocol, Callable, Awaitable, Optional
 
 from .turn_context_protocol import TurnContextProtocol
 from microsoft_agents.activity import (
@@ -18,8 +18,8 @@ class ChannelAdapterProtocol(Protocol):
 
     @abstractmethod
     async def send_activities(
-        self, context: TurnContextProtocol, activities: List[Activity]
-    ) -> List[ResourceResponse]:
+        self, context: TurnContextProtocol, activities: list[Activity]
+    ) -> list[ResourceResponse]:
         pass
 
     @abstractmethod
@@ -54,7 +54,7 @@ class ChannelAdapterProtocol(Protocol):
         claims_identity: dict,
         continuation_activity: Activity,
         callback: Callable[[TurnContextProtocol], Awaitable],
-        audience: str = None,
+        audience: str | None = None,
     ):
         pass
 

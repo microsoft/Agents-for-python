@@ -23,7 +23,7 @@ class O365ConnectorCardMultichoiceInput(AgentsModel):
     :param value: Default value for this input field
     :type value: Optional[str]
     :param choices: Set of choices for this input field.
-    :type choices: List["O365ConnectorCardMultichoiceInputChoice"]
+    :type choices: list["O365ConnectorCardMultichoiceInputChoice"]
     :param style: Choice style. Possible values include: 'compact', 'expanded'
     :type style: Optional[str]
     :param is_multi_select: Define if this input field allows multiple selections. Default value is false.
@@ -35,6 +35,6 @@ class O365ConnectorCardMultichoiceInput(AgentsModel):
     is_required: Optional[bool] = None
     title: Optional[str] = None
     value: Optional[str] = None
-    choices: List[O365ConnectorCardMultichoiceInputChoice] = None
+    choices: list[O365ConnectorCardMultichoiceInputChoice] = None
     style: Optional[str] = None
     is_multi_select: Optional[bool] = None
