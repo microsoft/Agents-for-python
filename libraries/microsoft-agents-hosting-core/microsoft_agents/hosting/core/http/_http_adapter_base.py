@@ -32,8 +32,8 @@ class HttpAdapterBase(ChannelServiceAdapter, ABC):
     def __init__(
         self,
         *,
-        connection_manager: Connections = None,
-        channel_service_client_factory: ChannelServiceClientFactoryBase = None,
+        connection_manager: Connections | None = None,
+        channel_service_client_factory: ChannelServiceClientFactoryBase | None = None,
     ):
         """Initialize the HTTP adapter.
 

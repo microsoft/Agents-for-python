@@ -12,7 +12,7 @@ StoreItemT = TypeVar("StoreItemT", bound=StoreItem)
 
 
 class MemoryStorage(Storage):
-    def __init__(self, state: dict[str, JSON] = None):
+    def __init__(self, state: dict[str, JSON] | None = None):
         self._memory: dict[str, JSON] = state or {}
         self._lock = Lock()
 

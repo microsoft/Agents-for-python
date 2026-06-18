@@ -4,7 +4,7 @@ Licensed under the MIT License.
 """
 
 from http import HTTPStatus
-from typing import Any, List
+from typing import Any
 
 from microsoft_agents.hosting.core import ActivityHandler, TurnContext
 from microsoft_agents.hosting.teams.errors import teams_errors
@@ -621,7 +621,7 @@ class TeamsActivityHandler(ActivityHandler):
 
     async def on_teams_members_added_dispatch(
         self,
-        members_added: List[ChannelAccount],
+        members_added: list[ChannelAccount],
         team_info: TeamInfo,
         turn_context: TurnContext,
     ) -> None:
@@ -672,7 +672,7 @@ class TeamsActivityHandler(ActivityHandler):
 
     async def on_teams_members_added(
         self,
-        teams_members_added: List[TeamsChannelAccount],
+        teams_members_added: list[TeamsChannelAccount],
         team_info: TeamInfo,
         turn_context: TurnContext,
     ) -> None:
@@ -686,7 +686,7 @@ class TeamsActivityHandler(ActivityHandler):
 
     async def on_teams_members_removed_dispatch(
         self,
-        members_removed: List[ChannelAccount],
+        members_removed: list[ChannelAccount],
         team_info: TeamInfo,
         turn_context: TurnContext,
     ) -> None:
@@ -706,7 +706,7 @@ class TeamsActivityHandler(ActivityHandler):
 
     async def on_teams_members_removed(
         self,
-        teams_members_removed: List[TeamsChannelAccount],
+        teams_members_removed: list[TeamsChannelAccount],
         team_info: TeamInfo,
         turn_context: TurnContext,
     ) -> None:

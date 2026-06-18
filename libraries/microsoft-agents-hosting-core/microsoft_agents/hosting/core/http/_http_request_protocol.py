@@ -3,7 +3,7 @@
 
 """Protocol for abstracting HTTP request objects across frameworks."""
 
-from typing import Protocol, Dict, Any, Optional
+from typing import Protocol, Any, Optional
 
 
 class HttpRequestProtocol(Protocol):
@@ -19,11 +19,11 @@ class HttpRequestProtocol(Protocol):
         ...
 
     @property
-    def headers(self) -> Dict[str, str]:
+    def headers(self) -> dict[str, str]:
         """Request headers."""
         ...
 
-    async def json(self) -> Dict[str, Any]:
+    async def json(self) -> dict[str, Any]:
         """Parse request body as JSON."""
         ...
 

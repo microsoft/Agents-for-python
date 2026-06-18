@@ -6,7 +6,7 @@ Licensed under the MIT License.
 from __future__ import annotations
 
 import json
-from typing import Any, Optional, Union
+from typing import Any, Optional
 
 from pydantic import BaseModel
 
@@ -64,7 +64,7 @@ class SlackStream:
 
     async def append(
         self,
-        chunk_or_text: Union[str, BaseModel, list[BaseModel]],
+        chunk_or_text: str | BaseModel | list[BaseModel],
     ) -> "SlackStream":
         """Append one or more chunks to the stream.
 
@@ -107,7 +107,7 @@ class SlackStream:
     async def stop(
         self,
         chunks: Optional[list[BaseModel]] = None,
-        blocks: Union[str, list[Any], dict, None] = None,
+        blocks: str | list[Any] | dict | None = None,
     ) -> None:
         """Stop the active stream, optionally finalizing with chunks and/or
         Block Kit blocks.

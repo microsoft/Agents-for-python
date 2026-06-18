@@ -2,7 +2,7 @@
 # Licensed under the MIT License.
 
 from ..agents_model import AgentsModel
-from typing import List, Optional
+from typing import Optional
 
 from .messaging_extension_attachment import MessagingExtensionAttachment
 from .messaging_extension_suggested_action import MessagingExtensionSuggestedAction
@@ -17,7 +17,7 @@ class MessagingExtensionResult(AgentsModel):
     :param type: The type of the result. Possible values include: 'result', 'auth', 'config', 'message', 'botMessagePreview'
     :type type: str
     :param attachments: (Only when type is result) Attachments
-    :type attachments: List["MessagingExtensionAttachment"]
+    :type attachments: list["MessagingExtensionAttachment"]
     :param suggested_actions: Suggested actions for the result.
     :type suggested_actions: Optional["MessagingExtensionSuggestedAction"]
     :param text: (Only when type is message) Text
@@ -28,7 +28,7 @@ class MessagingExtensionResult(AgentsModel):
 
     attachment_layout: str = None
     type: str = None
-    attachments: List[MessagingExtensionAttachment] = None
+    attachments: list[MessagingExtensionAttachment] = None
     suggested_actions: Optional[MessagingExtensionSuggestedAction] = None
     text: Optional[str] = None
     activity_preview: Optional["Activity"] = None

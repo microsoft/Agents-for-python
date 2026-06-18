@@ -2,7 +2,7 @@
 # Licensed under the MIT License.
 
 import copy
-from typing import Union, Callable
+from typing import Callable
 
 
 class ObjectPath:
@@ -11,7 +11,7 @@ class ObjectPath:
     """
 
     @staticmethod
-    def assign(start_object, overlay_object, default: Union[Callable, object] = None):
+    def assign(start_object, overlay_object, default: Callable | object = None):
         """
         Creates a new object by overlaying values in start_object with non-null values from overlay_object.
 
@@ -106,9 +106,7 @@ class ObjectPath:
         ObjectPath.__set_object_segment(current, last_segment, value)
 
     @staticmethod
-    def get_path_value(
-        obj, path: str, default: Union[Callable, object] = None
-    ) -> object:
+    def get_path_value(obj, path: str, default: Callable | object = None) -> object:
         """
         Get the value for a path relative to an object.
         """

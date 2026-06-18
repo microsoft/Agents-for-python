@@ -33,7 +33,7 @@ class ConversationState(AgentState):
         super().__init__(storage=storage, context_service_key=self.CONTEXT_SERVICE_KEY)
 
     def get_storage_key(
-        self, turn_context: TurnContext, *, target_cls: Type[StoreItem] = None
+        self, turn_context: TurnContext, *, target_cls: Type[StoreItem] | None = None
     ):
         channel_id = turn_context.activity.channel_id
         if not channel_id:

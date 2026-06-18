@@ -18,7 +18,6 @@ from typing import (
     Optional,
     Pattern,
     TypeVar,
-    Union,
     cast,
 )
 
@@ -289,7 +288,7 @@ class AgentApplication(Agent, Generic[StateT]):
 
     def activity(
         self,
-        activity_type: Union[str, ActivityTypes, list[Union[str, ActivityTypes]]],
+        activity_type: str | ActivityTypes | list[str | ActivityTypes],
         *,
         auth_handlers: Optional[list[str]] = None,
         **kwargs,
@@ -306,7 +305,7 @@ class AgentApplication(Agent, Generic[StateT]):
                     return True
 
         :param activity_type: Activity type or collection of types that should trigger the handler.
-        :type activity_type: Union[str, microsoft_agents.activity.ActivityTypes, list[Union[str, microsoft_agents.activity.ActivityTypes]]]
+        :type activity_type: str | microsoft_agents.activity.ActivityTypes | list[str | microsoft_agents.activity.ActivityTypes]
         :param auth_handlers: Optional list of authorization handler IDs for the route.
         :type auth_handlers: Optional[list[str]]
         :param kwargs: Additional route configuration passed to :meth:`microsoft_agents.hosting.core.AgentApplication.add_route`.
@@ -326,7 +325,7 @@ class AgentApplication(Agent, Generic[StateT]):
 
     def message(
         self,
-        select: Union[str, Pattern[str], list[Union[str, Pattern[str]]]],
+        select: str | Pattern[str] | list[str | Pattern[str]],
         *,
         auth_handlers: Optional[list[str]] = None,
         **kwargs,
@@ -343,7 +342,7 @@ class AgentApplication(Agent, Generic[StateT]):
                     return True
 
         :param select: Literal text, compiled regex, or list of either used to match the incoming message.
-        :type select: Union[str, Pattern[str], list[Union[str, Pattern[str]]]]
+        :type select: str | Pattern[str] | list[str | Pattern[str]]
         :param auth_handlers: Optional list of authorization handler IDs for the route.
         :type auth_handlers: Optional[list[str]]
         :param kwargs: Additional route configuration passed to :meth:`microsoft_agents.hosting.core.AgentApplication.add_route`.
