@@ -1,6 +1,8 @@
 # Copyright (c) Microsoft Corporation. All rights reserved.
 # Licensed under the MIT License.
 
+"""Route registration helpers for Teams Message Extension (composeExtension) invokes."""
+
 from typing import Generic, Optional, Callable
 
 from microsoft_teams.api.models import (
@@ -9,7 +11,7 @@ from microsoft_teams.api.models import (
     AppBasedLinkQuery,
 )
 
-from microsoft_agents.activity import ActivityTypes
+from microsoft_agents.activity import Activity, ActivityTypes
 
 from microsoft_agents.hosting.core import (
     AgentApplication,
@@ -21,13 +23,10 @@ from microsoft_agents.hosting.teams.teams_turn_context import TeamsTurnContext
 from microsoft_agents.hosting.teams.type_defs import (
     StateT,
     CommandSelector,
-    _RouteDecorator
+    _RouteDecorator,
 )
 
-from microsoft_agents.hosting.teams._utils import (
-    _match_selector,
-    _send_invoke_response
-)
+from microsoft_agents.hosting.teams._utils import _match_selector, _send_invoke_response
 
 from .route_handlers import (
     FetchTaskHandler,
@@ -35,13 +34,30 @@ from .route_handlers import (
     SubmitActionHandler,
     MessagePreviewEditHandler,
     MessagePreviewSendHandler,
-    QueryHandler,
     SelectItemHandler,
     QueryLinkHandler,
     QueryUrlSettingHandler,
     ConfigureSettingsHandler,
-    CardButtonClickedHandler
+    CardButtonClickedHandler,
 )
+
+
+def _extract_activity_preview(value: object) -> Activity:
+    """Extract and deserialize the first botActivityPreview entry from a composeExtension/submitAction value.
+
+    :raises ValueError: If value is not a dict or no preview entries are present.
+    """
+    if not isinstance(value, dict):
+        raise ValueError(
+            f"botActivityPreview: activity.value must be a dict, got {type(value).__name__}"
+        )
+    previews = value.get("botActivityPreview") or []
+    if not previews:
+        raise ValueError(
+            "botActivityPreview: no preview activity found in activity.value"
+        )
+    return Activity.model_validate(previews[0])
+
 
 class MessageExtension(Generic[StateT]):
     """
@@ -81,7 +97,7 @@ class MessageExtension(Generic[StateT]):
 
         def __call(func: QueryHandler[StateT]) -> QueryHandler[StateT]:
             async def __handler(context: TurnContext, state: StateT) -> None:
-                teams_context = TeamsTurnContext(context)
+                teams_context = TeamsTurnContext(context, self._app)
                 query = MessagingExtensionQuery.model_validate(
                     context.activity.value or {}
                 )
@@ -116,7 +132,7 @@ class MessageExtension(Generic[StateT]):
 
         def __call(func: SelectItemHandler[StateT]) -> SelectItemHandler[StateT]:
             async def __handler(context: TurnContext, state: StateT) -> None:
-                teams_context = TeamsTurnContext(context)
+                teams_context = TeamsTurnContext(context, self._app)
                 response = await func(teams_context, state, context.activity.value)
                 if response is not None:
                     await _send_invoke_response(context, response)
@@ -164,7 +180,7 @@ class MessageExtension(Generic[StateT]):
 
         def __call(func: SubmitActionHandler[StateT]) -> SubmitActionHandler[StateT]:
             async def __handler(context: TurnContext, state: StateT) -> None:
-                teams_context = TeamsTurnContext(context)
+                teams_context = TeamsTurnContext(context, self._app)
                 action = MessagingExtensionAction.model_validate(
                     context.activity.value or {}
                 )
@@ -203,13 +219,13 @@ class MessageExtension(Generic[StateT]):
                 return False
             return _match_selector(command_id, value.get("commandId"))
 
-        def __call(func: MessagePreviewEditHandler[StateT]) -> MessagePreviewEditHandler[StateT]:
+        def __call(
+            func: MessagePreviewEditHandler[StateT],
+        ) -> MessagePreviewEditHandler[StateT]:
             async def __handler(context: TurnContext, state: StateT) -> None:
-                teams_context = TeamsTurnContext(context)
-                action = MessagingExtensionAction.model_validate(
-                    context.activity.value or {}
-                )
-                response = await func(teams_context, state, action)
+                teams_context = TeamsTurnContext(context, self._app)
+                activity_preview = _extract_activity_preview(context.activity.value)
+                response = await func(teams_context, state, activity_preview)
                 if response is not None:
                     await _send_invoke_response(context, response)
 
@@ -244,18 +260,13 @@ class MessageExtension(Generic[StateT]):
                 return False
             return _match_selector(command_id, value.get("commandId"))
 
-        def __call(func: MessagePreviewSendHandler[StateT]) -> MessagePreviewSendHandler[StateT]:
+        def __call(
+            func: MessagePreviewSendHandler[StateT],
+        ) -> MessagePreviewSendHandler[StateT]:
             async def __handler(context: TurnContext, state: StateT) -> None:
-                teams_context = TeamsTurnContext(context)
-                action = MessagingExtensionAction.model_validate(
-                    context.activity.value or {}
-                )
-                # activity_preview: Activity | None = None
-                # if action.bot_activity_preview:
-                #     activity_preview = Activity.model_validate(action.bot_activity_preview[0])
-                # activity_preview =
-                # action.bot_activity_preview[0]
-                response = await func(teams_context, state, action)
+                teams_context = TeamsTurnContext(context, self._app)
+                activity_preview = _extract_activity_preview(context.activity.value)
+                response = await func(teams_context, state, activity_preview)
                 if response is not None:
                     await _send_invoke_response(context, response)
 
@@ -291,10 +302,11 @@ class MessageExtension(Generic[StateT]):
 
         def __call(func: FetchTaskHandler[StateT]) -> FetchTaskHandler[StateT]:
             async def __handler(context: TurnContext, state: StateT) -> None:
+                teams_context = TeamsTurnContext(context, self._app)
                 action = MessagingExtensionAction.model_validate(
                     context.activity.value or {}
                 )
-                response = await func(context, state, action)
+                response = await func(teams_context, state, action)
                 if response is not None:
                     await _send_invoke_response(context, response)
 
@@ -325,7 +337,7 @@ class MessageExtension(Generic[StateT]):
 
         def __call(func: QueryLinkHandler[StateT]) -> QueryLinkHandler[StateT]:
             async def __handler(context: TurnContext, state: StateT) -> None:
-                teams_context = TeamsTurnContext(context)
+                teams_context = TeamsTurnContext(context, self._app)
                 query = AppBasedLinkQuery.model_validate(context.activity.value or {})
                 response = await func(teams_context, state, query)
                 if response is not None:
@@ -358,7 +370,7 @@ class MessageExtension(Generic[StateT]):
 
         def __call(func: QueryLinkHandler[StateT]) -> QueryLinkHandler[StateT]:
             async def __handler(context: TurnContext, state: StateT) -> None:
-                teams_context = TeamsTurnContext(context)
+                teams_context = TeamsTurnContext(context, self._app)
                 query = AppBasedLinkQuery.model_validate(context.activity.value or {})
                 response = await func(teams_context, state, query)
                 if response is not None:
@@ -389,9 +401,11 @@ class MessageExtension(Generic[StateT]):
                 and context.activity.name == "composeExtension/querySettingUrl"
             )
 
-        def __call(func: QueryUrlSettingHandler[StateT]) -> QueryUrlSettingHandler[StateT]:
+        def __call(
+            func: QueryUrlSettingHandler[StateT],
+        ) -> QueryUrlSettingHandler[StateT]:
             async def __handler(context: TurnContext, state: StateT) -> None:
-                teams_context = TeamsTurnContext(context)
+                teams_context = TeamsTurnContext(context, self._app)
                 query = MessagingExtensionQuery.model_validate(
                     context.activity.value or {}
                 )
@@ -412,7 +426,6 @@ class MessageExtension(Generic[StateT]):
 
     def setting(
         self,
-        handler: Optional[Callable] = None,
         *,
         auth_handlers: Optional[list[str]] = None,
         rank: RouteRank = RouteRank.DEFAULT,
@@ -427,7 +440,8 @@ class MessageExtension(Generic[StateT]):
 
         def __call(func: Callable) -> Callable:
             async def __handler(context: TurnContext, state: StateT) -> None:
-                await func(context, state, context.activity.value)
+                teams_context = TeamsTurnContext(context, self._app)
+                await func(teams_context, state, context.activity.value)
                 await _send_invoke_response(context)
 
             self._app.add_route(
@@ -439,8 +453,6 @@ class MessageExtension(Generic[StateT]):
             )
             return func
 
-        if handler is not None:
-            return __call(handler)
         return __call
 
     def card_button_clicked(
@@ -457,9 +469,12 @@ class MessageExtension(Generic[StateT]):
                 and context.activity.name == "composeExtension/onCardButtonClicked"
             )
 
-        def __call(func: CardButtonClickedHandler[StateT]) -> CardButtonClickedHandler[StateT]:
+        def __call(
+            func: CardButtonClickedHandler[StateT],
+        ) -> CardButtonClickedHandler[StateT]:
             async def __handler(context: TurnContext, state: StateT) -> None:
-                await func(context, state, context.activity.value)
+                teams_context = TeamsTurnContext(context, self._app)
+                await func(teams_context, state, context.activity.value)
                 await _send_invoke_response(context)
 
             self._app.add_route(

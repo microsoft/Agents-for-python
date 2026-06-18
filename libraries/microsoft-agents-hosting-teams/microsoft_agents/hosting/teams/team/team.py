@@ -1,13 +1,9 @@
 # Copyright (c) Microsoft Corporation. All rights reserved.
 # Licensed under the MIT License.
 
-from typing import (
-    Callable,
-    Generic,
-    Optional
-)
+"""Route registration helpers for Teams team conversation update events."""
 
-from microsoft_teams.api.models import Team
+from typing import Generic, Optional
 
 from microsoft_agents.activity import ActivityTypes
 from microsoft_agents.hosting.core import (
@@ -16,29 +12,30 @@ from microsoft_agents.hosting.core import (
     TurnContext,
 )
 
-from microsoft_agents.hosting.teams.route_handlers import TeamsRouteHandler
 from microsoft_agents.hosting.teams.teams_turn_context import TeamsTurnContext
 from microsoft_agents.hosting.teams.type_defs import (
     _RouteDecorator,
     StateT,
 )
-from microsoft_agetns.hosting.teams._utils import (
+from microsoft_agents.hosting.teams._utils import (
+    _get_channel_data,
     _get_channel_event_type,
 )
 
 from .route_handlers import TeamUpdateHandler
 
-def _get_team_data(context: TurnContext) -> Team:
-    data = context.activity.channel_data
-    if data is None:
-        raise ValueError("Channel data is required")
-    if isinstance(data, dict):
-        return Team(**data)
-    return Team.model_validate(data)
 
 class Team(Generic[StateT]):
+    """Route registration for Teams team conversation update events.
 
-    def __init__(self, app: AgentApplication[StateT]):
+    Access via :attr:`TeamsAgentExtension.teams` (property currently missing — see known issues).
+    """
+
+    def __init__(self, app: AgentApplication[StateT]) -> None:
+        """Initialise with the owning :class:`AgentApplication`.
+
+        :param app: The application to register routes on.
+        """
         self._app = app
 
     def _create_decorator(
@@ -48,6 +45,14 @@ class Team(Generic[StateT]):
         auth_handlers: Optional[list[str]] = None,
         rank: RouteRank = RouteRank.DEFAULT,
     ) -> _RouteDecorator[TeamUpdateHandler[StateT]]:
+        """Build a route decorator for a specific Teams team event type.
+
+        :param event_type: The ``eventType`` value to match (e.g. ``"teamArchived"``).
+        :param auth_handlers: Optional auth handler names to run before the route.
+        :param rank: Route priority rank.
+        :return: A decorator that registers the handler.
+        """
+
         def __selector(context: TurnContext) -> bool:
             return (
                 context.activity.type == ActivityTypes.conversation_update
@@ -58,17 +63,16 @@ class Team(Generic[StateT]):
         def __call(func: TeamUpdateHandler[StateT]) -> TeamUpdateHandler[StateT]:
 
             async def __handler(context: TurnContext, state: StateT) -> None:
-                teams_context = TeamsTurnContext(context)
-                team_data = _get_team_data(context)
+                teams_context = TeamsTurnContext(context, self._app)
+                team_data = _get_channel_data(context)
                 await func(teams_context, state, team_data)
 
             self._app.add_route(
                 __selector, __handler, rank=rank, auth_handlers=auth_handlers
             )
             return func
-        
-        return __call
 
+        return __call
 
     def archived(
         self,
@@ -127,7 +131,6 @@ class Team(Generic[StateT]):
 
     def unarchived(
         self,
-        handler: Optional[Callable] = None,
         *,
         auth_handlers: Optional[list[str]] = None,
         rank: RouteRank = RouteRank.DEFAULT,

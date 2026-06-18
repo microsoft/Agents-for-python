@@ -1,15 +1,13 @@
 # Copyright (c) Microsoft Corporation. All rights reserved.
 # Licensed under the MIT License.
 
-from typing import (
-    Callable,
-    Generic,
-    Optional
-)
+"""Route registration helpers for Teams meeting lifecycle event activities."""
+
+from typing import Callable, Generic, Optional
 
 from microsoft_teams.api.models import (
     MeetingDetails,
-    MeetingParticipantsEventDetails,
+    MeetingParticipant,
 )
 
 from microsoft_agents.activity import (
@@ -31,8 +29,9 @@ from microsoft_agents.hosting.teams.type_defs import (
 from .route_handlers import (
     MeetingStartHandler,
     MeetingEndHandler,
-    MeetingParticipantsEventHandler
+    MeetingParticipantsEventHandler,
 )
+
 
 class Meeting(Generic[StateT]):
     """
@@ -59,7 +58,7 @@ class Meeting(Generic[StateT]):
 
         def __call(func: MeetingStartHandler[StateT]) -> MeetingStartHandler[StateT]:
             async def __handler(context: TurnContext, state: StateT) -> None:
-                teams_context = TeamsTurnContext(context)
+                teams_context = TeamsTurnContext(context, self._app)
                 meeting = MeetingDetails.model_validate(context.activity.value or {})
                 await func(teams_context, state, meeting)
 
@@ -89,7 +88,7 @@ class Meeting(Generic[StateT]):
 
         def __call(func: MeetingEndHandler[StateT]) -> MeetingEndHandler[StateT]:
             async def __handler(context: TurnContext, state: StateT) -> None:
-                teams_context = TeamsTurnContext(context)
+                teams_context = TeamsTurnContext(context, self._app)
                 meeting = MeetingDetails.model_validate(context.activity.value or {})
                 await func(teams_context, state, meeting)
 
@@ -118,10 +117,12 @@ class Meeting(Generic[StateT]):
                 == "application/vnd.microsoft.meetingParticipantJoin"
             )
 
-        def __call(func: MeetingParticipantsEventHandler[StateT]) -> MeetingParticipantsEventHandler[StateT]:
+        def __call(
+            func: MeetingParticipantsEventHandler[StateT],
+        ) -> MeetingParticipantsEventHandler[StateT]:
             async def __handler(context: TurnContext, state: StateT) -> None:
-                teams_context = TeamsTurnContext(context)
-                details = MeetingParticipantsEventDetails.model_validate(
+                teams_context = TeamsTurnContext(context, self._app)
+                details = MeetingParticipant.model_validate(
                     context.activity.value or {}
                 )
                 await func(teams_context, state, details)
@@ -151,10 +152,12 @@ class Meeting(Generic[StateT]):
                 == "application/vnd.microsoft.meetingParticipantLeave"
             )
 
-        def __call(func: MeetingParticipantsEventHandler[StateT]) -> MeetingParticipantsEventHandler[StateT]:
+        def __call(
+            func: MeetingParticipantsEventHandler[StateT],
+        ) -> MeetingParticipantsEventHandler[StateT]:
             async def __handler(context: TurnContext, state: StateT) -> None:
-                teams_context = TeamsTurnContext(context)
-                details = MeetingParticipantsEventDetails.model_validate(
+                teams_context = TeamsTurnContext(context, self._app)
+                details = MeetingParticipant.model_validate(
                     context.activity.value or {}
                 )
                 await func(teams_context, state, details)
@@ -166,5 +169,5 @@ class Meeting(Generic[StateT]):
                 auth_handlers=auth_handlers,
             )
             return func
-        
+
         return __call

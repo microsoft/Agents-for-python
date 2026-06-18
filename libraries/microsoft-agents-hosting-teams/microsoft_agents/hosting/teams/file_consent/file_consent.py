@@ -1,6 +1,8 @@
 # Copyright (c) Microsoft Corporation. All rights reserved.
 # Licensed under the MIT License.
 
+"""Route registration helpers for Teams fileConsent/invoke activities."""
+
 from typing import Generic, Optional
 
 from microsoft_teams.api.models import FileConsentCardResponse
@@ -21,9 +23,18 @@ from microsoft_agents.hosting.teams._utils import _send_invoke_response
 
 from .route_handlers import FileConsentHandler
 
-class FileConsent(Generic[StateT]):
 
-    def __init__(self, app: AgentApplication[StateT]):
+class FileConsent(Generic[StateT]):
+    """Route registration for Teams file consent invoke activities.
+
+    Access via :attr:`TeamsAgentExtension.file_consent`.
+    """
+
+    def __init__(self, app: AgentApplication[StateT]) -> None:
+        """Initialise with the owning :class:`AgentApplication`.
+
+        :param app: The application to register routes on.
+        """
         self._app = app
 
     def _create_decorator(
@@ -33,6 +44,13 @@ class FileConsent(Generic[StateT]):
         auth_handlers: Optional[list[str]] = None,
         rank: RouteRank = RouteRank.DEFAULT,
     ) -> _RouteDecorator[FileConsentHandler[StateT]]:
+        """Build a route decorator for a fileConsent/invoke action.
+
+        :param action: The consent action to match — ``"accept"`` or ``"decline"``.
+        :param auth_handlers: Optional auth handler names to run before the route.
+        :param rank: Route priority rank.
+        :return: A decorator that registers the handler.
+        """
 
         def __selector(context: TurnContext) -> bool:
             return (
@@ -44,7 +62,7 @@ class FileConsent(Generic[StateT]):
 
         def __call(func: FileConsentHandler[StateT]) -> FileConsentHandler[StateT]:
             async def __handler(context: TurnContext, state: StateT) -> None:
-                teams_context = TeamsTurnContext(context)
+                teams_context = TeamsTurnContext(context, self._app)
                 file_consent = FileConsentCardResponse.model_validate(
                     context.activity.value or {}
                 )
@@ -59,7 +77,7 @@ class FileConsent(Generic[StateT]):
                 auth_handlers=auth_handlers,
             )
             return func
-        
+
         return __call
 
     def accept(

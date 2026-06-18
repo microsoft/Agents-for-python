@@ -1,17 +1,30 @@
-from .teams_activity_handler import TeamsActivityHandler
-from .teams_agent_extension import (
-    TeamsAgentExtension,
-    MessageExtension,
-    TaskModule,
-    Meeting,
-)
+"""
+Microsoft Agents Hosting Teams package.
+
+Provides Teams-specific activity handlers, extensions, and utilities for building
+Microsoft Teams bots and agents using the AgentApplication or ActivityHandler models.
+"""
+
+from .teams_agent_extension import TeamsAgentExtension
+from .channel import Channel
+from .config import Config
+from .file_consent import FileConsent
+from .meeting import Meeting
+from .message import Message
+from .message_extension import MessageExtension
+from .task_module import TaskModule
+from .team import Team
 from .teams_info import TeamsInfo
 
 __all__ = [
-    "TeamsActivityHandler",
     "TeamsAgentExtension",
+    "Channel",
+    "Config",
+    "FileConsent",
+    "Meeting",
+    "Message",
     "MessageExtension",
     "TaskModule",
-    "Meeting",
+    "Team",
     "TeamsInfo",
 ]

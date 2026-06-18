@@ -1,6 +1,6 @@
 # Copyright (c) Microsoft Corporation. All rights reserved.
 # Licensed under the MIT License.
 
-from .configuration import Configuration
+from .config import Config
 
-__all__ = ["Configuration"]
+__all__ = ["Config"]

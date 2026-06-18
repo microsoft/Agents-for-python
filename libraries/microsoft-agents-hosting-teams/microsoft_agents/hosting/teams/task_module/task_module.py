@@ -1,12 +1,9 @@
 # Copyright (c) Microsoft Corporation. All rights reserved.
 # Licensed under the MIT License.
 
+"""Route registration helpers for Teams Task Module (task/fetch, task/submit) invokes."""
 
-from typing import (
-    Any,
-    Generic,
-    Optional
-)
+from typing import Any, Generic, Optional
 
 from microsoft_teams.api.models import (
     TaskModuleRequest,
@@ -14,11 +11,7 @@ from microsoft_teams.api.models import (
 
 from microsoft_agents.activity import ActivityTypes
 
-from microsoft_agents.hosting.core import (
-    AgentApplication,
-    RouteRank,
-    TurnContext
-)
+from microsoft_agents.hosting.core import AgentApplication, RouteRank, TurnContext
 
 from microsoft_agents.hosting.teams.teams_turn_context import TeamsTurnContext
 from microsoft_agents.hosting.teams.type_defs import (
@@ -31,10 +24,8 @@ from microsoft_agents.hosting.teams._utils import (
     _send_invoke_response,
 )
 
-from .route_handlers import (
-    FetchHandler,
-    SubmitHandler
-)
+from .route_handlers import FetchHandler, SubmitHandler
+
 
 class TaskModule(Generic[StateT]):
     """
@@ -43,10 +34,19 @@ class TaskModule(Generic[StateT]):
     """
 
     def __init__(self, app: AgentApplication[StateT]) -> None:
+        """Initialise with the owning :class:`AgentApplication`.
+
+        :param app: The application to register routes on.
+        """
         self._app = app
 
     @staticmethod
     def _get_verb(value: Optional[Any]) -> Optional[str]:
+        """Extract the verb from a task module request payload.
+
+        :param value: The raw activity value (expected to be a dict with a ``data`` sub-dict).
+        :return: The verb string if present, otherwise None.
+        """
         if not isinstance(value, dict):
             return None
         data = value.get("data")
@@ -77,7 +77,7 @@ class TaskModule(Generic[StateT]):
 
         def __call(func: FetchHandler[StateT]) -> FetchHandler[StateT]:
             async def __handler(context: TurnContext, state: StateT) -> None:
-                teams_context = TeamsTurnContext(context)
+                teams_context = TeamsTurnContext(context, self._app)
                 request = TaskModuleRequest.model_validate(context.activity.value or {})
                 response = await func(teams_context, state, request)
                 if response is not None:
@@ -117,7 +117,7 @@ class TaskModule(Generic[StateT]):
 
         def __call(func: SubmitHandler[StateT]) -> SubmitHandler[StateT]:
             async def __handler(context: TurnContext, state: StateT) -> None:
-                teams_context = TeamsTurnContext(context)
+                teams_context = TeamsTurnContext(context, self._app)
                 request = TaskModuleRequest.model_validate(context.activity.value or {})
                 response = await func(teams_context, state, request)
                 if response is not None:

@@ -1,9 +1,9 @@
 # Copyright (c) Microsoft Corporation. All rights reserved.
 # Licensed under the MIT License.
 
-from typing import Generic, Optional
+"""Route registration helpers for Teams channel conversation update events."""
 
-from microsoft_teams.api.models.channel_data import ChannelData
+from typing import Generic, Optional
 
 from microsoft_agents.activity import ActivityTypes
 from microsoft_agents.hosting.core import (
@@ -18,23 +18,24 @@ from microsoft_agents.hosting.teams.type_defs import (
     StateT,
 )
 from microsoft_agents.hosting.teams._utils import (
-    _send_invoke_response,
+    _get_channel_data,
     _get_channel_event_type,
 )
 
 from .route_handlers import ChannelUpdateHandler
 
-def _get_channel_data(context: TurnContext) -> ChannelData:
-    data = context.activity.channel_data
-    if data is None:
-        return ChannelData()
-    if isinstance(data, dict):
-        return ChannelData(**data)
-    return ChannelData.model_validate(data)
 
 class Channel(Generic[StateT]):
+    """Route registration for Teams channel conversation update events.
 
-    def __init__(self, app: AgentApplication[StateT]):
+    Access via :attr:`TeamsAgentExtension.channels`.
+    """
+
+    def __init__(self, app: AgentApplication[StateT]) -> None:
+        """Initialise with the owning :class:`AgentApplication`.
+
+        :param app: The application to register routes on.
+        """
         self._app = app
 
     def _create_decorator(
@@ -44,6 +45,14 @@ class Channel(Generic[StateT]):
         auth_handlers: Optional[list[str]] = None,
         rank: RouteRank = RouteRank.DEFAULT,
     ) -> _RouteDecorator[ChannelUpdateHandler[StateT]]:
+        """Build a route decorator that matches a specific Teams channel event type.
+
+        :param event_type: The ``eventType`` value in channel_data to match (e.g. ``"channelCreated"``).
+        :param auth_handlers: Optional auth handler names to run before the route.
+        :param rank: Route priority rank.
+        :return: A decorator that registers the handler.
+        """
+
         def __selector(context: TurnContext) -> bool:
             return (
                 context.activity.type == ActivityTypes.conversation_update
@@ -54,7 +63,7 @@ class Channel(Generic[StateT]):
         def __call(func: ChannelUpdateHandler[StateT]) -> ChannelUpdateHandler[StateT]:
 
             async def __handler(context: TurnContext, state: StateT) -> None:
-                teams_context = TeamsTurnContext(context)
+                teams_context = TeamsTurnContext(context, self._app)
                 channel_data = _get_channel_data(context)
                 await func(teams_context, state, channel_data)
 
@@ -64,7 +73,6 @@ class Channel(Generic[StateT]):
             return func
 
         return __call
-
 
     def created(
         self,
@@ -109,8 +117,8 @@ class Channel(Generic[StateT]):
         return self._create_decorator(
             "channelRestored", auth_handlers=auth_handlers, rank=rank
         )
-    
-    def on_members_added(
+
+    def members_added(
         self,
         *,
         auth_handlers: Optional[list[str]] = None,
@@ -129,7 +137,7 @@ class Channel(Generic[StateT]):
         def __call(func: ChannelUpdateHandler[StateT]) -> ChannelUpdateHandler[StateT]:
 
             async def __func(context: TurnContext, state: StateT) -> None:
-                teams_context = TeamsTurnContext(context)
+                teams_context = TeamsTurnContext(context, self._app)
                 channel_data = _get_channel_data(context)
                 await func(teams_context, state, channel_data)
 
@@ -141,7 +149,7 @@ class Channel(Generic[StateT]):
 
         return __call
 
-    def on_members_removed(
+    def members_removed(
         self,
         *,
         auth_handlers: Optional[list[str]] = None,
@@ -160,7 +168,7 @@ class Channel(Generic[StateT]):
         def __call(func: ChannelUpdateHandler[StateT]) -> ChannelUpdateHandler[StateT]:
 
             async def __func(context: TurnContext, state: StateT) -> None:
-                teams_context = TeamsTurnContext(context)
+                teams_context = TeamsTurnContext(context, self._app)
                 channel_data = _get_channel_data(context)
                 await func(teams_context, state, channel_data)
 

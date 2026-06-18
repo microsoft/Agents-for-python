@@ -10,7 +10,6 @@ from microsoft_agents.hosting.core.app.proactive.conversation_reference_builder 
     _service_url_for_channel,
 )
 
-
 # ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------

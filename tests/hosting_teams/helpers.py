@@ -1,0 +1,57 @@
+# Copyright (c) Microsoft Corporation. All rights reserved.
+# Licensed under the MIT License.
+
+"""Shared test helpers for microsoft-agents-hosting-teams tests."""
+
+import sys
+from unittest.mock import AsyncMock, MagicMock
+
+from microsoft_agents.activity import Activity, ActivityTypes
+from microsoft_agents.hosting.core import TurnContext
+from microsoft_agents.hosting.core.app import AgentApplication, RouteRank
+
+is_supported_version = sys.version_info >= (3, 12)
+
+
+def _make_app() -> AgentApplication:
+    app = MagicMock(spec=AgentApplication)
+    app._routes = []
+
+    def _add_route(
+        selector, handler, is_invoke=False, rank=RouteRank.DEFAULT, auth_handlers=None
+    ):
+        app._routes.append(
+            dict(
+                selector=selector,
+                handler=handler,
+                is_invoke=is_invoke,
+                rank=rank,
+                auth_handlers=auth_handlers,
+            )
+        )
+
+    app.add_route.side_effect = _add_route
+    return app
+
+
+def _make_context(
+    activity_type: str,
+    name: str = None,
+    value=None,
+    channel_id: str = "msteams",
+    channel_data: dict = None,
+    members_added=None,
+    members_removed=None,
+) -> TurnContext:
+    context = MagicMock(spec=TurnContext)
+    activity = MagicMock(spec=Activity)
+    activity.type = activity_type
+    activity.name = name
+    activity.value = value
+    activity.channel_id = channel_id
+    activity.channel_data = channel_data
+    activity.members_added = members_added
+    activity.members_removed = members_removed
+    context.activity = activity
+    context.send_activity = AsyncMock()
+    return context
