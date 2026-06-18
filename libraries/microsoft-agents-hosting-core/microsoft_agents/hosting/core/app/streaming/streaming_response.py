@@ -47,6 +47,18 @@ class StreamingResponse:
             context: Context for the current turn of conversation with the user.
         """
         self._context = context
+        self._is_streaming_channel = False
+        self._interval = 0.1
+        self._initialize_state()
+
+        # Set defaults based on channel
+        self._set_defaults(context)
+
+    def _initialize_state(self) -> None:
+        """
+        Initializes (or resets) all mutable streaming state to its default values.
+        Called from both __init__() and reset().
+        """
         self._sequence_number = 1
         self._stream_id: Optional[str] = None
         self._message = ""
@@ -55,17 +67,12 @@ class StreamingResponse:
         self._chunk_queued = False
         self._ended = False
         self._cancelled = False
-        self._is_streaming_channel = False
-        self._interval = 0.1
         self._attachments: Optional[list[Attachment]] = None
         self._citations: list[ClientCitation] = []
         self._sensitivity_label: Optional[SensitivityUsageInfo] = None
         self._enable_feedback_loop = False
         self._feedback_loop_type: Optional[Literal["default", "custom"]] = None
         self._enable_generated_by_ai_label = False
-
-        # Set defaults based on channel
-        self._set_defaults(context)
 
     def queue_informative_update(self, text: str) -> None:
         """
@@ -149,6 +156,34 @@ class StreamingResponse:
             attachments: List of attachments.
         """
         self._attachments = attachments
+
+    def add_attachment(self, attachment: Attachment) -> None:
+        """
+        Adds an attachment to the collection of attachments for the final message.
+
+        Attachments are only included in the final message sent by `end_stream()`.
+        They are not sent in intermediate typing activities.
+
+        Args:
+            attachment: The attachment to add. Must not be None.
+
+        Raises:
+            ValueError: If attachment is None.
+        """
+        if attachment is None:
+            raise ValueError("attachment cannot be None")
+
+        if self._attachments is None:
+            self._attachments = []
+        self._attachments.append(attachment)
+
+    async def reset(self) -> None:
+        """
+        Resets the streaming response to its initial state.
+        If the stream is still running, this will wait for completion.
+        """
+        await self.wait_for_queue()
+        self._initialize_state()
 
     def set_sensitivity_label(self, sensitivity_label: SensitivityUsageInfo) -> None:
         """
