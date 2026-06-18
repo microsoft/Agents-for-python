@@ -1,5 +1,4 @@
 from os import environ
-from typing import Dict
 from microsoft_agents.activity import load_configuration_from_env
 from microsoft_agents.hosting.core import AgentAuthConfiguration, AuthTypes
 
@@ -50,7 +49,7 @@ class TestAuthorizationConfiguration:
 
         mock_config = load_configuration_from_env(mock_environ)
 
-        raw_configurations: Dict[str, Dict] = mock_config.get("CONNECTIONS", {})
+        raw_configurations: dict[str, dict] = mock_config.get("CONNECTIONS", {})
 
         for name, settings in raw_configurations.items():
             auth_config = AgentAuthConfiguration(**settings["SETTINGS"])
@@ -115,3 +114,59 @@ class TestAuthorizationConfiguration:
             IDPMRESOURCE="https://custom-resource/.default"
         )
         assert auth_config.IDPM_RESOURCE == "https://custom-resource/.default"
+
+    def test_dotnet_aligned_property_aliases(self):
+        # The snake_case aliases mirror the .NET ConnectionSettingsBase property
+        # names and are thin read-only views over the UPPER_SNAKE attributes.
+        auth_config = AgentAuthConfiguration(
+            client_id="cid",
+            tenant_id="tid",
+            authority="https://login.microsoftonline.com",
+            scopes=["s1"],
+            ALT_BLUEPRINT_NAME="bp",
+        )
+        assert auth_config.client_id == "cid"
+        assert auth_config.tenant_id == "tid"
+        assert auth_config.authority == "https://login.microsoftonline.com"
+        assert auth_config.scopes == ["s1"]
+        assert auth_config.alternate_blueprint_connection_name == "bp"
+
+    def test_authority_endpoint_alias_key(self):
+        # .NET binds authority from "AuthorityEndpoint"; accept it as an alias.
+        auth_config = AgentAuthConfiguration(AUTHORITYENDPOINT="https://authority")
+        assert auth_config.AUTHORITY == "https://authority"
+        assert auth_config.authority == "https://authority"
+
+    def test_authority_key_preferred_over_authority_endpoint(self):
+        auth_config = AgentAuthConfiguration(
+            AUTHORITY="https://primary", AUTHORITYENDPOINT="https://secondary"
+        )
+        assert auth_config.AUTHORITY == "https://primary"
+
+    def test_alternate_blueprint_connection_name_alias_key(self):
+        # .NET names this "AlternateBlueprintConnectionName".
+        auth_config = AgentAuthConfiguration(ALTERNATEBLUEPRINTCONNECTIONNAME="bp-conn")
+        assert auth_config.ALT_BLUEPRINT_ID == "bp-conn"
+        assert auth_config.alternate_blueprint_connection_name == "bp-conn"
+
+    def test_alt_blueprint_name_key_preferred(self):
+        auth_config = AgentAuthConfiguration(
+            ALT_BLUEPRINT_NAME="legacy", ALTERNATEBLUEPRINTCONNECTIONNAME="new"
+        )
+        assert auth_config.ALT_BLUEPRINT_ID == "legacy"
+
+    def test_anonymous_allowed_false_string_is_false(self):
+        # Env values arrive as strings; bool("false") would be True and silently
+        # enable anonymous auth. Coercion must yield False.
+        auth_config = AgentAuthConfiguration(ANONYMOUS_ALLOWED="false")
+        assert auth_config.ANONYMOUS_ALLOWED is False
+
+    def test_anonymous_allowed_true_string_is_true(self):
+        auth_config = AgentAuthConfiguration(ANONYMOUS_ALLOWED="true")
+        assert auth_config.ANONYMOUS_ALLOWED is True
+
+    def test_anonymous_allowed_default_is_false(self):
+        assert AgentAuthConfiguration().ANONYMOUS_ALLOWED is False
+
+    def test_anonymous_allowed_bool_param(self):
+        assert AgentAuthConfiguration(anonymous_allowed=True).ANONYMOUS_ALLOWED is True

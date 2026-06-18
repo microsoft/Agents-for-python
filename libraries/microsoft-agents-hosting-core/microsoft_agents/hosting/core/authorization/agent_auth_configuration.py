@@ -3,6 +3,8 @@
 
 from __future__ import annotations
 
+from microsoft_agents.activity.config._coercion import coerce_bool
+
 from microsoft_agents.hosting.core.authorization.auth_types import AuthTypes
 
 
@@ -69,7 +71,13 @@ class AgentAuthConfiguration:
 
         self.AUTH_TYPE = auth_type or kwargs.get("AUTHTYPE", AuthTypes.client_secret)
         self.CLIENT_ID = client_id or kwargs.get("CLIENTID", None)
-        self.AUTHORITY = authority or kwargs.get("AUTHORITY", None)
+        # .NET binds the authority from the "AuthorityEndpoint" configuration key;
+        # accept it as an alias for parity while keeping the existing "AUTHORITY" key.
+        self.AUTHORITY = (
+            authority
+            or kwargs.get("AUTHORITY", None)
+            or kwargs.get("AUTHORITYENDPOINT", None)
+        )
         self.TENANT_ID = tenant_id or kwargs.get("TENANTID", None)
         self.CLIENT_SECRET = client_secret or kwargs.get("CLIENTSECRET", None)
         self.CERT_PFX_FILE = cert_pfx_file or kwargs.get("CERTPFXFILE", None)
@@ -88,10 +96,24 @@ class AgentAuthConfiguration:
         # Resource URL for Identity Proxy Manager (IDPM) token acquisition.
         # Only meaningful when AUTH_TYPE is AuthTypes.identity_proxy_manager.
         self.IDPM_RESOURCE = idpm_resource or kwargs.get("IDPMRESOURCE", None)
-        self.ALT_BLUEPRINT_ID = kwargs.get("ALT_BLUEPRINT_NAME", None)
-        self.ANONYMOUS_ALLOWED = anonymous_allowed or kwargs.get(
-            "ANONYMOUS_ALLOWED", False
+        # .NET names this "AlternateBlueprintConnectionName"; accept that key as an
+        # alias for the existing "ALT_BLUEPRINT_NAME" without removing the latter.
+        self.ALT_BLUEPRINT_ID = kwargs.get("ALT_BLUEPRINT_NAME", None) or kwargs.get(
+            "ALTERNATEBLUEPRINTCONNECTIONNAME", None
         )
+        # Env values arrive as strings, so coerce explicitly: ``bool("false")``
+        # would be ``True`` and silently enable anonymous auth when configured
+        # off. Coercion is fail-safe (unrecognized -> False).
+        self.ANONYMOUS_ALLOWED = coerce_bool(
+            anonymous_allowed or kwargs.get("ANONYMOUS_ALLOWED", False)
+        )
+
+        # Preserve any provider-specific settings that aren't first-class fields
+        # (e.g. the Entra sidecar's SERVICE_NAME, SIDECAR_BASE_URL) so custom
+        # providers can read them via getattr on this configuration.
+        for _key, _value in kwargs.items():
+            if not hasattr(self, _key):
+                setattr(self, _key, _value)
 
         # JWT-patch: always at least include self for backward compat
         self._connections = {str(self.CONNECTION_NAME): self}
@@ -106,6 +128,35 @@ class AgentAuthConfiguration:
             f"https://sts.windows.net/{self.TENANT_ID}/",
             f"https://login.microsoftonline.com/{self.TENANT_ID}/v2.0",
         ]
+
+    # .NET-aligned, read-only property aliases. These mirror the property names on
+    # the .NET ``ConnectionSettingsBase`` so provider code and cross-language readers
+    # can use a consistent snake_case surface. They are thin views over the existing
+    # UPPER_SNAKE attributes and do not change how configuration is stored.
+    @property
+    def client_id(self) -> str | None:
+        """Alias for :attr:`CLIENT_ID` (.NET ``ClientId``)."""
+        return self.CLIENT_ID
+
+    @property
+    def authority(self) -> str | None:
+        """Alias for :attr:`AUTHORITY` (.NET ``AuthorityEndpoint``)."""
+        return self.AUTHORITY
+
+    @property
+    def tenant_id(self) -> str | None:
+        """Alias for :attr:`TENANT_ID` (.NET ``TenantId``)."""
+        return self.TENANT_ID
+
+    @property
+    def scopes(self) -> list[str] | None:
+        """Alias for :attr:`SCOPES` (.NET ``Scopes``)."""
+        return self.SCOPES
+
+    @property
+    def alternate_blueprint_connection_name(self) -> str | None:
+        """Alias for :attr:`ALT_BLUEPRINT_ID` (.NET ``AlternateBlueprintConnectionName``)."""
+        return self.ALT_BLUEPRINT_ID
 
     def _jwt_patch_is_valid_aud(self, aud: str) -> bool:
         """
