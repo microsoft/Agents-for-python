@@ -11,7 +11,6 @@ from microsoft_agents.hosting.core.app.proactive import (
 )
 from microsoft_agents.hosting.core.authorization import ClaimsIdentity
 
-
 # ---------------------------------------------------------------------------
 # Helper
 # ---------------------------------------------------------------------------
