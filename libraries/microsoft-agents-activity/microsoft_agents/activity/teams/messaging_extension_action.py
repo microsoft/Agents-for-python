@@ -2,7 +2,6 @@
 # Licensed under the MIT License.
 
 from ..agents_model import AgentsModel
-from typing import Any, List
 
 from .task_module_request_context import TaskModuleRequestContext
 from .message_actions_payload import MessageActionsPayload
@@ -23,7 +22,7 @@ class MessagingExtensionAction(AgentsModel):
     :param bot_message_preview_action: Bot message preview action taken by user. Possible values include: 'edit', 'send'
     :type bot_message_preview_action: str
     :param bot_activity_preview: List of bot activity previews.
-    :type bot_activity_preview: List[Activity]
+    :type bot_activity_preview: list[Activity]
     :param message_payload: Message content sent as part of the command request.
     :type message_payload: MessageActionsPayload
     """
@@ -33,5 +32,5 @@ class MessagingExtensionAction(AgentsModel):
     command_id: str = None
     command_context: str = None
     bot_message_preview_action: str = None
-    bot_activity_preview: List[Activity] = None
+    bot_activity_preview: list[Activity] = None
     message_payload: MessageActionsPayload = None

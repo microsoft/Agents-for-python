@@ -107,7 +107,7 @@ class _OAuthFlow:
     def flow_state(self) -> _FlowState:
         return self._flow_state.model_copy()
 
-    async def get_user_token(self, magic_code: str = None) -> TokenResponse:
+    async def get_user_token(self, magic_code: str | None = None) -> TokenResponse:
         """Get the user token based on the context.
 
         Args:

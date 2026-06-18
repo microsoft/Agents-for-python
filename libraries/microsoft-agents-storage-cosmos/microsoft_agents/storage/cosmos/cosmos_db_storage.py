@@ -1,12 +1,11 @@
 # Copyright (c) Microsoft Corporation. All rights reserved.
 # Licensed under the MIT License.
 
-from typing import TypeVar, Union
+from typing import TypeVar
 import asyncio
 
 from azure.cosmos import (
     documents,
-    http_constants,
     CosmosDict,
 )
 from azure.cosmos.aio import (
@@ -46,8 +45,8 @@ class CosmosDBStorage(AsyncStorageBase):
 
         self._config: CosmosDBStorageConfig = config
         self._client: CosmosClient = self._create_client()
-        self._database: DatabaseProxy = None
-        self._container: ContainerProxy = None
+        self._database: DatabaseProxy | None = None
+        self._container: ContainerProxy | None = None
         self._compatability_mode_partition_key: bool = False
         # Lock used for synchronizing container creation
         self._lock: asyncio.Lock = asyncio.Lock()
@@ -88,8 +87,8 @@ class CosmosDBStorage(AsyncStorageBase):
         )
 
     async def _read_item(
-        self, key: str, *, target_cls: StoreItemT = None, **kwargs
-    ) -> tuple[Union[str, None], Union[StoreItemT, None]]:
+        self, key: str, *, target_cls: StoreItemT | None = None, **kwargs
+    ) -> tuple[str | None, StoreItemT | None]:
 
         if key == "":
             raise ValueError(str(storage_errors.CosmosDbKeyCannotBeEmpty))
