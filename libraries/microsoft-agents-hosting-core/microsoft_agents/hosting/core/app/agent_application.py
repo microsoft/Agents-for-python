@@ -604,7 +604,10 @@ class AgentApplication(Agent, Generic[StateT]):
             func: Callable[[TurnContext, StateT, str], Awaitable[None]],
         ) -> Callable[[TurnContext, StateT, str], Awaitable[None]]:
             async def __handler(context: TurnContext, state: StateT):
-                if isinstance(context.activity.value, dict) and "continuation" in context.activity.value:
+                if (
+                    isinstance(context.activity.value, dict)
+                    and "continuation" in context.activity.value
+                ):
                     await func(context, state, context.activity.value["continuation"])
                 else:
                     logger.warning("Invalid handoff action received")
