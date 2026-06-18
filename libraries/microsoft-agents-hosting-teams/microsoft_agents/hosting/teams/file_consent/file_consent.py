@@ -62,7 +62,7 @@ class FileConsent(Generic[StateT]):
         
         return __call
 
-    def on_file_consent_accept(
+    def accept(
         self,
         *,
         auth_handlers: Optional[list[str]] = None,
@@ -71,7 +71,7 @@ class FileConsent(Generic[StateT]):
         """Register a handler for fileConsent/invoke with action == 'accept'."""
         return self._create_decorator("accept", auth_handlers=auth_handlers, rank=rank)
 
-    def on_file_consent_decline(
+    def decline(
         self,
         *,
         auth_handlers: Optional[list[str]] = None,

@@ -55,7 +55,7 @@ class Configuration(Generic[StateT]):
 
         return __call
 
-    def on_config_fetch(
+    def fetch(
         self,
         *,
         auth_handlers: Optional[list[str]] = None,
@@ -64,7 +64,7 @@ class Configuration(Generic[StateT]):
         """Register a handler for config/fetch invokes."""
         return self._create_decorator("config/fetch", auth_handlers=auth_handlers, rank=rank)
     
-    def on_config_submit(
+    def submit(
         self,
         *,
         auth_handlers: Optional[list[str]] = None,

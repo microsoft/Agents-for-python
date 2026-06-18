@@ -78,7 +78,7 @@ class TeamsActivityHandler(ActivityHandler):
                         await self.on_teams_file_consent(turn_context, value)
                     )
                 elif name == "actionableMessage/executeAction":
-                    await self.on_teams_o365_connector_card_action(turn_context, value)
+                    await self.on_execute_action(turn_context, value)
                     return self._create_invoke_response()
                 elif name == "composeExtension/queryLink":
                     return self._create_invoke_response(
@@ -117,12 +117,12 @@ class TeamsActivityHandler(ActivityHandler):
                     )
                 elif name == "composeExtension/querySettingUrl":
                     return self._create_invoke_response(
-                        await self.on_teams_messaging_extension_configuration_query_setting_url(
+                        await self.on_teams_messaging_extension_config_query_setting_url(
                             turn_context, value
                         )
                     )
                 elif name == "composeExtension/setting":
-                    await self.on_teams_messaging_extension_configuration_setting(
+                    await self.on_teams_messaging_extension_config_setting(
                         turn_context, value
                     )
                     return self._create_invoke_response()
@@ -248,7 +248,7 @@ class TeamsActivityHandler(ActivityHandler):
         """
         raise NotImplementedError(str(teams_errors.TeamsNotImplemented))
 
-    async def on_teams_o365_connector_card_action(
+    async def on_execute_action(
         self, turn_context: TurnContext, query: O365ConnectorCardActionQuery
     ) -> None:
         """
@@ -406,7 +406,7 @@ class TeamsActivityHandler(ActivityHandler):
         """
         raise NotImplementedError(str(teams_errors.TeamsNotImplemented))
 
-    async def on_teams_messaging_extension_configuration_query_setting_url(
+    async def on_teams_messaging_extension_config_query_setting_url(
         self, turn_context: TurnContext, query: MessagingExtensionQuery
     ) -> MessagingExtensionResponse:
         """
@@ -418,7 +418,7 @@ class TeamsActivityHandler(ActivityHandler):
         """
         raise NotImplementedError(str(teams_errors.TeamsNotImplemented))
 
-    async def on_teams_messaging_extension_configuration_setting(
+    async def on_teams_messaging_extension_config_setting(
         self, turn_context: TurnContext, settings: Any
     ) -> None:
         """

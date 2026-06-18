@@ -6,15 +6,10 @@ from typing import Generic, Optional, Callable
 from microsoft_teams.api.models import (
     MessagingExtensionQuery,
     MessagingExtensionAction,
-    MessagingExtensionResponse,
-    O365ConnectorCardActionQuery,
-    AppBasedLinkQuery
+    AppBasedLinkQuery,
 )
 
-from microsoft_agents.activity import (
-    Activity,
-    ActivityTypes
-)
+from microsoft_agents.activity import ActivityTypes
 
 from microsoft_agents.hosting.core import (
     AgentApplication,
@@ -415,7 +410,7 @@ class MessageExtension(Generic[StateT]):
 
         return __call
 
-    def configure_settings(
+    def setting(
         self,
         handler: Optional[Callable] = None,
         *,

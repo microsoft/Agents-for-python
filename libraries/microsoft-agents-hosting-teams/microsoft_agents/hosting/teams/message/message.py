@@ -22,13 +22,13 @@ from microsoft_agents.hosting.teams.type_defs import (
     _RouteDecorator,
     StateT,
 )
-from microsoft_agetns.hosting.teams._utils import (
+from microsoft_agents.hosting.teams._utils import (
     _get_channel_event_type,
     _send_invoke_response,
 )
 
 from .route_handlers import (
-    O365ConnectorCardActionHandler,
+    ExecuteActionHandler,
     ReadReceiptHandler
 )
 
@@ -90,9 +90,7 @@ class Message(Generic[StateT]):
         """Register a handler for Teams softDeleteMessage events."""
         return self._create_basic_decorator("softDeleteMessage", auth_handlers=auth_handlers, rank=rank)
 
-    # ── Read receipt ───────────────────────────────────────────────────────
-
-    def on_read_receipt(
+    def read_receipt(
         self,
         *,
         auth_handlers: Optional[list[str]] = None,
@@ -118,12 +116,12 @@ class Message(Generic[StateT]):
 
         return __call
     
-    def o365_connector_card_action(
+    def execute_action(
         self,
         *,
         auth_handlers: Optional[list[str]] = None,
         rank: RouteRank = RouteRank.DEFAULT,
-    ) -> _RouteDecorator[O365ConnectorCardActionHandler[StateT]]:
+    ) -> _RouteDecorator[ExecuteActionHandler[StateT]]:
         """Register a handler for actionableMessage/executeAction invokes."""
 
         def __selector(context: TurnContext) -> bool:
@@ -132,7 +130,7 @@ class Message(Generic[StateT]):
                 and context.activity.name == "actionableMessage/executeAction"
             )
 
-        def __call(func: O365ConnectorCardActionHandler[StateT]) -> O365ConnectorCardActionHandler[StateT]:
+        def __call(func: ExecuteActionHandler[StateT]) -> ExecuteActionHandler[StateT]:
             async def __handler(context: TurnContext, state: StateT) -> None:
                 teams_context = TeamsTurnContext(context)
                 query = O365ConnectorCardActionQuery.model_validate(

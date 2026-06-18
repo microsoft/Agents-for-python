@@ -8,9 +8,10 @@ from typing import (
     Protocol,
 )
 
-from microsoft_agents.hosting.core import (
+from microsoft_agents.hosting.core import TurnContext
+from microsoft_agents.hosting.core.app._type_defs import (
     RouteHandler,
-    TurnContext,
+    HandoffHandler,
 )
 
 from .teams_turn_context import TeamsTurnContext
@@ -24,4 +25,14 @@ class TeamsRouteHandler(Protocol[StateT]):
         async def __func(context: TurnContext, state: StateT) -> None:
             teams_context = TeamsTurnContext(context)
             await handler(teams_context, state)
+        return __func
+    
+class TeamsHandoffHandler(Protocol[StateT]):
+    def __call__(self, context: TeamsTurnContext, state: StateT, handoff_data: str) -> Awaitable[None]: ...
+
+    @staticmethod
+    def wrap(handler: TeamsHandoffHandler[StateT]) -> HandoffHandler[StateT]:
+        async def __func(context: TurnContext, state: StateT, handoff_data: str) -> None:
+            teams_context = TeamsTurnContext(context)
+            await handler(teams_context, state, handoff_data)
         return __func

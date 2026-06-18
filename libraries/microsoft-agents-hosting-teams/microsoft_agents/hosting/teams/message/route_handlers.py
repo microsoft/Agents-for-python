@@ -10,7 +10,7 @@ from microsoft_teams.api.models.o365 import (
 from microsoft_agents.hosting.teams.teams_turn_context import TeamsTurnContext
 from microsoft_agents.hosting.teams.type_defs import StateT
 
-class O365ConnectorCardActionHandler(Protocol[StateT]):
+class ExecuteActionHandler(Protocol[StateT]):
     def __call__(
             self,
             context: TeamsTurnContext,
@@ -21,4 +21,5 @@ class ReadReceiptHandler(Protocol[StateT]):
     def __call__(
             self,
             context: TeamsTurnContext,
+            state: StateT,
             data: dict) -> Awaitable[None]: ...

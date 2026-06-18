@@ -43,7 +43,11 @@ from .oauth import Authorization
 from .typing_indicator import TypingIndicator
 from .telemetry import spans
 
-from ._type_defs import RouteHandler, RouteSelector
+from ._type_defs import (
+    RouteHandler,
+    HandoffHandler,
+    RouteSelector,
+)
 from ._routes import _RouteList, _Route, RouteRank, _agentic_selector
 from .proactive import Proactive, ProactiveOptions
 
@@ -537,10 +541,7 @@ class AgentApplication(Agent, Generic[StateT]):
 
     def handoff(
         self, *, auth_handlers: Optional[list[str]] = None, **kwargs
-    ) -> Callable[
-        [Callable[[TurnContext, StateT, str], Awaitable[None]]],
-        Callable[[TurnContext, StateT, str], Awaitable[None]],
-    ]:
+    ) -> Callable[[HandoffHandler[StateT]], HandoffHandler[StateT]]:
         """
         Register a handler to hand off conversations from one copilot to another.
 
@@ -563,8 +564,8 @@ class AgentApplication(Agent, Generic[StateT]):
             )
 
         def __call(
-            func: Callable[[TurnContext, StateT, str], Awaitable[None]],
-        ) -> Callable[[TurnContext, StateT, str], Awaitable[None]]:
+            func: HandoffHandler[StateT],
+        ) -> HandoffHandler[StateT]:
             async def __handler(context: TurnContext, state: StateT):
                 if not context.activity.value:
                     return False

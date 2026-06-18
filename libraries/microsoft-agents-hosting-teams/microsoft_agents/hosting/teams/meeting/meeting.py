@@ -43,15 +43,7 @@ class Meeting(Generic[StateT]):
     def __init__(self, app: AgentApplication[StateT]) -> None:
         self._app = app
 
-
-    #
-    # @meeting.on_start
-    # def on_start_handler(self, context: TeamsTurnContext, state: StateT, meeting: MeetingDetails) -> None:
-    #     pass
-
-    # meeting.on_start()(on_start_handler)
-
-    def on_start(
+    def start(
         self,
         *,
         auth_handlers: Optional[list[str]] = None,
@@ -81,7 +73,7 @@ class Meeting(Generic[StateT]):
 
         return __call
 
-    def on_end(
+    def end(
         self,
         *,
         auth_handlers: Optional[list[str]] = None,
@@ -111,7 +103,7 @@ class Meeting(Generic[StateT]):
 
         return __call
 
-    def on_participants_join(
+    def participants_join(
         self,
         *,
         auth_handlers: Optional[list[str]] = None,
@@ -144,7 +136,7 @@ class Meeting(Generic[StateT]):
 
         return __call
 
-    def on_participants_leave(
+    def participants_leave(
         self,
         *,
         auth_handlers: Optional[list[str]] = None,

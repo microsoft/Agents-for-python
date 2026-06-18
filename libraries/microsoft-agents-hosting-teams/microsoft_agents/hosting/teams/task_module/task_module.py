@@ -94,7 +94,7 @@ class TaskModule(Generic[StateT]):
 
         return __call
 
-    def on_submit(
+    def submit(
         self,
         verb: CommandSelector = None,
         *,

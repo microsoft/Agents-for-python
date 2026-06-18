@@ -9,6 +9,7 @@ from microsoft_agents.hosting.teams.teams_turn_context import TeamsTurnContext
 from microsoft_agents.hosting.teams.type_defs import StateT
 
 class ChannelUpdateHandler(Protocol[StateT]):
+    """A protocol for handling Teams channel update requests."""
     def __call__(
             self,
             context: TeamsTurnContext,
