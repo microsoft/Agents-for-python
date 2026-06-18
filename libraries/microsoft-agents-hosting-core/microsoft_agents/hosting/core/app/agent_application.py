@@ -558,6 +558,7 @@ class AgentApplication(Agent, Generic[StateT]):
         self,
         *,
         auth_handlers: Optional[list[str]] = None,
+        **kwargs: Any,
     ) -> Callable[
         [Callable[[TurnContext, StateT, str], Awaitable[None]]],
         Callable[[TurnContext, StateT, str], Awaitable[None]],
@@ -603,8 +604,10 @@ class AgentApplication(Agent, Generic[StateT]):
             func: Callable[[TurnContext, StateT, str], Awaitable[None]],
         ) -> Callable[[TurnContext, StateT, str], Awaitable[None]]:
             async def __handler(context: TurnContext, state: StateT):
-                if isinstance(context.activity.value, dict):
+                if isinstance(context.activity.value, dict) and "continuation" in context.activity.value:
                     await func(context, state, context.activity.value["continuation"])
+                else:
+                    logger.warning("Invalid handoff action received")
                 await context.send_activity(
                     Activity(
                         type=ActivityTypes.invoke_response,
