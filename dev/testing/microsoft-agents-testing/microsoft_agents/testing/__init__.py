@@ -52,6 +52,8 @@ from .core import (
     Unset,
 )
 
+from .source_scenario import SourceScenario
+
 from .aiohttp_scenario import (
     AgentEnvironment,
     AiohttpScenario,
@@ -107,5 +109,6 @@ __all__ = [
     "TranscriptFormatter",
     "print_activities",
     "print_conversation",
-    "print_json"
+    "print_json",
+    "SourceScenario"
 ]
