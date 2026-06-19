@@ -83,6 +83,12 @@ class TestValidateBaseUrl:
         with pytest.raises(SidecarAuthError):
             SidecarHttpClient.validate_base_url("file:///etc/passwd", True)
 
+    def test_rejects_non_http_scheme_with_valid_host(self):
+        # A non-http(s) scheme must be rejected even when the host is otherwise a
+        # valid loopback/private target (SSRF allowlist is scheme-aware).
+        with pytest.raises(SidecarAuthError):
+            SidecarHttpClient.validate_base_url("ftp://localhost:21", False)
+
     def test_rejects_userinfo(self):
         with pytest.raises(SidecarAuthError):
             SidecarHttpClient.validate_base_url(
@@ -134,6 +140,24 @@ class TestGetAuthorizationHeader:
         assert "optionsOverride.RequestAppToken=true" in url
         assert "optionsOverride.AcquireTokenOptions.Tenant=tenant-1" in url
         assert "optionsOverride.AcquireTokenOptions.ForceRefresh=true" in url
+        await client.aclose()
+
+    @pytest.mark.asyncio
+    async def test_username_only_query_param(self):
+        captured = {}
+
+        async def handler(request):
+            captured["url"] = str(request.url)
+            return httpx.Response(200, json={"authorizationHeader": "Bearer t"})
+
+        client = _make_client(handler)
+        options = SidecarRequestOptions(
+            agent_identity="agent-1", agent_username="user@contoso.com"
+        )
+        await client.get_authorization_header_unauthenticated("svc", options)
+        url = captured["url"]
+        assert "AgentUsername=user%40contoso.com" in url
+        assert "AgentUserId" not in url
         await client.aclose()
 
     @pytest.mark.asyncio
@@ -286,3 +310,88 @@ class TestGetAuthorizationHeader:
         client = _make_client(handler)
         assert await client.is_healthy() is False
         await client.aclose()
+
+    @pytest.mark.asyncio
+    async def test_403_raises_auth_error_with_empty_body(self):
+        # A non-mapped error status with an empty body still raises (generic auth
+        # error) and tolerates the missing problem-details payload.
+        async def handler(request):
+            return httpx.Response(403, text="")
+
+        client = _make_client(handler, retry_count=0)
+        with pytest.raises(SidecarAuthError):
+            await client.get_authorization_header_unauthenticated("svc")
+        await client.aclose()
+
+    @pytest.mark.asyncio
+    async def test_error_body_not_problem_details_json(self):
+        # A non-JSON error body must be handled gracefully (no problem details),
+        # still surfacing the status-derived error.
+        async def handler(request):
+            return httpx.Response(401, text="boom")
+
+        client = _make_client(handler, retry_count=0)
+        with pytest.raises(SidecarAuthError):
+            await client.get_authorization_header_unauthenticated("svc")
+        await client.aclose()
+
+    @pytest.mark.asyncio
+    async def test_error_body_json_but_not_object(self):
+        # A valid-JSON-but-non-object error body (e.g. an array) is not problem
+        # details and must not crash the error path.
+        async def handler(request):
+            return httpx.Response(401, text="[1, 2, 3]")
+
+        client = _make_client(handler, retry_count=0)
+        with pytest.raises(SidecarAuthError):
+            await client.get_authorization_header_unauthenticated("svc")
+        await client.aclose()
+
+    @pytest.mark.asyncio
+    async def test_raw_token_without_scheme_defaults_to_bearer(self):
+        async def handler(request):
+            return httpx.Response(200, json={"authorizationHeader": "abc.def.ghi"})
+
+        client = _make_client(handler)
+        result = await client.get_authorization_header_unauthenticated("svc")
+        assert result.scheme == "Bearer"
+        assert result.token == "abc.def.ghi"
+        await client.aclose()
+
+    @pytest.mark.asyncio
+    async def test_non_connect_transport_error_unavailable_without_retry(self):
+        # A transport error that is not a connect/timeout failure is treated as
+        # unavailable immediately, without consuming retries.
+        calls = {"n": 0}
+
+        async def handler(request):
+            calls["n"] += 1
+            raise httpx.ReadError("stream broke")
+
+        client = _make_client(handler, retry_count=3, retry_backoff_base=0)
+        with pytest.raises(SidecarUnavailableError):
+            await client.get_authorization_header_unauthenticated("svc")
+        assert calls["n"] == 1
+        await client.aclose()
+
+
+class TestClientOwnership:
+    """Lock in the resource-ownership contract of ``aclose()``."""
+
+    @pytest.mark.asyncio
+    async def test_owned_client_is_closed(self):
+        # When the client creates its own httpx.AsyncClient it must close it.
+        client = SidecarHttpClient("http://localhost:5178")
+        underlying = client._http_client
+        await client.aclose()
+        assert underlying.is_closed is True
+
+    @pytest.mark.asyncio
+    async def test_injected_client_is_not_closed(self):
+        # An injected client is owned by the caller; aclose() must leave it open.
+        transport = httpx.MockTransport(lambda request: httpx.Response(200, text="ok"))
+        injected = httpx.AsyncClient(transport=transport)
+        client = SidecarHttpClient("http://localhost:5178", http_client=injected)
+        await client.aclose()
+        assert injected.is_closed is False
+        await injected.aclose()

@@ -11,6 +11,10 @@ from microsoft_agents.authentication.entra_auth_sidecar import SidecarAuth
 from microsoft_agents.authentication.entra_auth_sidecar._models import (
     SidecarTokenResult,
 )
+import microsoft_agents.authentication.entra_auth_sidecar.sidecar_auth as sidecar_auth_module
+from microsoft_agents.authentication.entra_auth_sidecar.sidecar_auth import (
+    _CachedToken,
+)
 
 
 class FakeSidecarClient:
@@ -85,6 +89,12 @@ class TestSidecarAuthMapping:
         assert options.scopes == ["api://res/.default"]
 
     @pytest.mark.asyncio
+    async def test_get_agentic_instance_token_requires_id(self):
+        auth, _ = _make_auth()
+        with pytest.raises(ValueError):
+            await auth.get_agentic_instance_token("tenant-1", "")
+
+    @pytest.mark.asyncio
     async def test_get_agentic_user_token_guid_uses_user_id(self):
         auth, client = _make_auth()
         guid = "11111111-1111-1111-1111-111111111111"
@@ -119,6 +129,15 @@ class TestSidecarAuthMapping:
         auth, client = _make_auth()
         await auth.close()
         assert client.closed is True
+
+    def test_configuration_property_exposes_source_config(self):
+        # RestChannelServiceClientFactory reads connection settings back off this
+        # property, so it must return the exact configuration it was built from.
+        config = AgentAuthConfiguration(
+            auth_type="EntraAuthSideCar", client_id="blueprint-id"
+        )
+        auth = SidecarAuth(config, sidecar_client=FakeSidecarClient())
+        assert auth.configuration is config
 
 
 class TestSidecarAuthCache:
@@ -176,3 +195,34 @@ class TestSidecarAuthCache:
             "svc", SidecarRequestOptions(scopes=["b", "a"])
         )
         assert k1 == k2
+
+
+class TestSidecarAuthCacheEviction:
+    """Validate the bounded-cache eviction policy used to cap memory growth."""
+
+    def test_overflow_prunes_expired_entries_first(self, monkeypatch):
+        monkeypatch.setattr(sidecar_auth_module, "_MAX_CACHE_ENTRIES", 2)
+        auth, _ = _make_auth()
+        now = datetime.now(timezone.utc)
+        auth._token_cache["expired-1"] = _CachedToken("t", now - timedelta(seconds=1))
+        auth._token_cache["expired-2"] = _CachedToken("t", now - timedelta(seconds=1))
+
+        # Inserting a fresh entry exceeds the bound; expired entries are pruned,
+        # so the still-valid entry survives without resorting to eviction.
+        auth._cache_set("fresh", _CachedToken("t", now + timedelta(hours=1)))
+
+        assert set(auth._token_cache) == {"fresh"}
+
+    def test_overflow_evicts_nearest_expiry_when_none_expired(self, monkeypatch):
+        monkeypatch.setattr(sidecar_auth_module, "_MAX_CACHE_ENTRIES", 2)
+        auth, _ = _make_auth()
+        now = datetime.now(timezone.utc)
+        auth._token_cache["soon"] = _CachedToken("t", now + timedelta(minutes=1))
+        auth._token_cache["later"] = _CachedToken("t", now + timedelta(hours=1))
+
+        # Nothing is expired, so the entry closest to expiry is evicted to make
+        # room, keeping the longest-lived tokens cached.
+        auth._cache_set("newest", _CachedToken("t", now + timedelta(hours=2)))
+
+        assert "soon" not in auth._token_cache
+        assert set(auth._token_cache) == {"later", "newest"}

@@ -45,8 +45,6 @@ class SidecarHttpClient:
     with exponential backoff, and error handling.
     """
 
-    HTTP_CLIENT_NAME = "EntraSidecarClient"
-
     def __init__(
         self,
         base_url: str | None = None,
