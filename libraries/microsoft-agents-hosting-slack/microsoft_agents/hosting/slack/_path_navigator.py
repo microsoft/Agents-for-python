@@ -5,7 +5,7 @@ Licensed under the MIT License.
 
 from __future__ import annotations
 
-from typing import Any, Optional, Tuple
+from typing import Any, Optional
 
 
 def _parse_path(path: str) -> Optional[list[int | str]]:
@@ -60,7 +60,7 @@ def _parse_path(path: str) -> Optional[list[int | str]]:
     return segments
 
 
-def _resolve_segment(current: Any, segment: Any) -> Tuple[bool, Any]:
+def _resolve_segment(current: Any, segment: Any) -> tuple[bool, Any]:
     """Resolve one path segment against the current node.
 
     Returns ``(found, value)``. ``found`` is False when the segment cannot be
@@ -89,7 +89,7 @@ def _resolve_segment(current: Any, segment: Any) -> Tuple[bool, Any]:
     return False, None
 
 
-def try_get_path_value(data: Any, path: str) -> Tuple[bool, Any]:
+def try_get_path_value(data: Any, path: str) -> tuple[bool, Any]:
     """Walk ``path`` against ``data``. Returns ``(found, value)``."""
     if data is None:
         return False, None

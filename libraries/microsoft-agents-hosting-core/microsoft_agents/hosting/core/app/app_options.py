@@ -7,7 +7,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 from logging import Logger
-from typing import Callable, List, Optional
+from typing import Callable, Optional
 
 from microsoft_agents.hosting.core.app.oauth import AuthHandler
 from microsoft_agents.hosting.core.storage import Storage
@@ -81,7 +81,7 @@ class ApplicationOptions:
     will mark the bot's process as idle and shut it down.
     """
 
-    file_downloaders: List[InputFileDownloader] = field(default_factory=list)
+    file_downloaders: list[InputFileDownloader] = field(default_factory=list)
     """
     Optional. Array of input file download plugins to use. 
     """

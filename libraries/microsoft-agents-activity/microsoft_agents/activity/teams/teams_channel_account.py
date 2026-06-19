@@ -39,6 +39,6 @@ class TeamsChannelAccount(AgentsModel):
     user_role: str = None
 
     @property
-    def properties(self) -> dict[str, Any]:
+    def properties(self) -> dict[str, Any] | None:
         """Returns the set of properties that are not None."""
         return self.model_extra

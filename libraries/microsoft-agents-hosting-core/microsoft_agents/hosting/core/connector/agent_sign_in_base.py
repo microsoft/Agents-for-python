@@ -9,9 +9,9 @@ class AgentSignInBase(Protocol):
     async def get_sign_in_url(
         self,
         state: str,
-        code_challenge: str = None,
-        emulator_url: str = None,
-        final_redirect: str = None,
+        code_challenge: str | None = None,
+        emulator_url: str | None = None,
+        final_redirect: str | None = None,
     ) -> str:
         raise NotImplementedError()
 
@@ -19,8 +19,8 @@ class AgentSignInBase(Protocol):
     async def get_sign_in_resource(
         self,
         state: str,
-        code_challenge: str = None,
-        emulator_url: str = None,
-        final_redirect: str = None,
+        code_challenge: str | None = None,
+        emulator_url: str | None = None,
+        final_redirect: str | None = None,
     ) -> SignInResource:
         raise NotImplementedError()
