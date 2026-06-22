@@ -3,6 +3,10 @@
 
 """Teams-specific turn context wrapper."""
 
+from __future__ import annotations
+
+from microsoft_teams.api import ApiClient
+
 from microsoft_agents.activity import (
     Activity,
     ActivityTreatment,
@@ -10,6 +14,8 @@ from microsoft_agents.activity import (
     ResourceResponse,
 )
 from microsoft_agents.hosting.core import AgentApplication, TurnContext
+
+from ._teams_api_client import get_teams_api_client, _TEAMS_API_CLIENT_KEY
 
 
 class TeamsTurnContext(TurnContext):
@@ -26,10 +32,33 @@ class TeamsTurnContext(TurnContext):
         :param app: The agent application that is handling the turn.
         """
         super().__init__(context)
-        self._context = context
         self._app = app
-
         self._turn_state.update(context.turn_state)
+
+    @classmethod
+    async def create(
+        cls, context: TurnContext, app: AgentApplication
+    ) -> TeamsTurnContext:
+        """Create a Teams turn context from a plain turn context.
+
+        :param context: The base turn context provided by the core runtime.
+        :param app: The agent application that is handling the turn.
+        :return: A new Teams turn context.
+        """
+        instance = TeamsTurnContext(context, app)
+        await get_teams_api_client(context, app.auth._connection_manager)
+        return instance
+
+    @property
+    def api_client(self) -> ApiClient:
+        """Get the API client for the Teams turn context."""
+
+        api_client = self._turn_state.get(_TEAMS_API_CLIENT_KEY)
+        if not isinstance(api_client, ApiClient):
+            raise ValueError(
+                "Teams ApiClient unavailable. Use TeamsTurnContext.create() to create it."
+            )
+        return api_client
 
     @staticmethod
     def _make_targeted_activity(activity: Activity) -> Activity:
