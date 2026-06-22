@@ -2,7 +2,7 @@
 # Licensed under the MIT License.
 
 from os import environ
-from typing import Dict, Optional, Any
+from typing import Optional, Any
 from .direct_to_engine_connection_settings_protocol import (
     DirectToEngineConnectionSettingsProtocol,
 )
@@ -67,7 +67,7 @@ class ConnectionSettings(DirectToEngineConnectionSettingsProtocol):
         direct_connect_url: Optional[str] = None,
         use_experimental_endpoint: Optional[bool] = None,
         enable_diagnostics: Optional[bool] = None,
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """
         Populate connection settings from environment variables.
 

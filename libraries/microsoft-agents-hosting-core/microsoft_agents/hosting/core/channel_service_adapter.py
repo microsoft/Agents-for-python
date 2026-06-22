@@ -227,7 +227,7 @@ class ChannelServiceAdapter(ChannelAdapter, ABC):
         claims_identity: ClaimsIdentity,
         continuation_activity: Activity,
         callback: Callable[[TurnContext], Awaitable],
-        audience: str = None,
+        audience: str | None = None,
     ):
         """
         Continue a conversation with the provided claims identity.
@@ -393,7 +393,7 @@ class ChannelServiceAdapter(ChannelAdapter, ABC):
             otherwise, `None` is returned.
         """
         scopes: list[str] = claims_identity.get_token_scope()
-        outgoing_audience: str = None
+        outgoing_audience: str | None = None
 
         if claims_identity.is_agent_claim():
             outgoing_audience = claims_identity.get_token_audience()

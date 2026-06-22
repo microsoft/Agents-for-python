@@ -17,8 +17,8 @@ from microsoft_agents.activity import (
 def attachment_activity(
     attachment_layout: AttachmentLayoutTypes,
     attachments: list[Attachment],
-    text: str = None,
-    speak: str = None,
+    text: str | None = None,
+    speak: str | None = None,
     input_hint: InputHints | str = InputHints.accepting_input,
 ) -> Activity:
     message = Activity(
@@ -44,7 +44,7 @@ class MessageFactory:
     @staticmethod
     def text(
         text: str,
-        speak: str = None,
+        speak: str | None = None,
         input_hint: InputHints | str = InputHints.accepting_input,
     ) -> Activity:
         """
@@ -68,8 +68,8 @@ class MessageFactory:
     @staticmethod
     def suggested_actions(
         actions: list[CardAction],
-        text: str = None,
-        speak: str = None,
+        text: str | None = None,
+        speak: str | None = None,
         input_hint: InputHints | str = InputHints.accepting_input,
     ) -> Activity:
         """
@@ -101,9 +101,9 @@ class MessageFactory:
     @staticmethod
     def attachment(
         attachment: Attachment,
-        text: str = None,
-        speak: str = None,
-        input_hint: InputHints | str = None,
+        text: str | None = None,
+        speak: str | None = None,
+        input_hint: InputHints | str | None = None,
     ):
         """
         Returns a single message activity containing an attachment.
@@ -129,8 +129,8 @@ class MessageFactory:
     @staticmethod
     def list(
         attachments: list[Attachment],
-        text: str = None,
-        speak: str = None,
+        text: str | None = None,
+        speak: str | None = None,
         input_hint: InputHints | str = None,
     ) -> Activity:
         """
@@ -161,8 +161,8 @@ class MessageFactory:
     @staticmethod
     def carousel(
         attachments: list[Attachment],
-        text: str = None,
-        speak: str = None,
+        text: str | None = None,
+        speak: str | None = None,
         input_hint: InputHints | str = None,
     ) -> Activity:
         """
@@ -194,10 +194,10 @@ class MessageFactory:
     def content_url(
         url: str,
         content_type: str,
-        name: str = None,
-        text: str = None,
-        speak: str = None,
-        input_hint: InputHints | str = None,
+        name: str | None = None,
+        text: str | None = None,
+        speak: str | None = None,
+        input_hint: InputHints | str | None = None,
     ):
         """
         Returns a message that will display a single image or video to a user.

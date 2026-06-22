@@ -1,6 +1,7 @@
 # Copyright (c) Microsoft Corporation. All rights reserved.
 # Licensed under the MIT License.
-from typing import Dict, cast
+
+from typing import cast
 from microsoft_agents.hosting.core import TurnContext
 from .prompt_options import PromptOptions
 from .prompt_recognizer_result import PromptRecognizerResult
@@ -11,7 +12,7 @@ class PromptValidatorContext:
         self,
         turn_context: TurnContext,
         recognized: PromptRecognizerResult,
-        state: Dict[str, object],
+        state: dict[str, object],
         options: PromptOptions,
     ):
         """Creates contextual information passed to a custom `PromptValidator`.

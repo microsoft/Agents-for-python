@@ -5,9 +5,7 @@ Licensed under the MIT License.
 
 from __future__ import annotations
 
-from typing import Dict, List, Optional, TypeVar, Callable, Any, Generic
-
-from microsoft_agents.hosting.core.storage import Storage
+from typing import Optional, TypeVar, Callable, Any
 
 from microsoft_agents.hosting.core.turn_context import TurnContext
 from microsoft_agents.hosting.core.app.input_file import InputFile
@@ -32,7 +30,7 @@ class TempState(AgentState):
 
     def __init__(self):
         super().__init__(None, context_service_key=self.SCOPE_NAME)
-        self._state: Dict[str, Any] = {}
+        self._state: dict[str, Any] = {}
 
     @property
     def name(self) -> str:
@@ -40,12 +38,12 @@ class TempState(AgentState):
         return self.SCOPE_NAME
 
     @property
-    def input_files(self) -> List[InputFile]:
+    def input_files(self) -> list[InputFile]:
         """Downloaded files included in the Activity"""
         return self.get_value(self.INPUT_FILES_KEY, lambda: [])
 
     @input_files.setter
-    def input_files(self, value: List[InputFile]) -> None:
+    def input_files(self, value: list[InputFile]) -> None:
         self.set_value(self.INPUT_FILES_KEY, value)
 
     def clear(self, turn_context: TurnContext) -> None:

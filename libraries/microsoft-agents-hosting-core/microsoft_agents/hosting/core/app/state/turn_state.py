@@ -6,7 +6,7 @@ Licensed under the MIT License.
 from __future__ import annotations
 import logging
 
-from typing import Any, Dict, Optional, Type, TypeVar, cast, Callable, Awaitable
+from typing import Any, Optional, Type, TypeVar, Callable
 import asyncio
 
 from microsoft_agents.hosting.core.storage import Storage
@@ -41,7 +41,7 @@ class TurnState:
         Args:
             agent_states: Initial list of AgentState objects to manage.
         """
-        self._scopes: Dict[str, AgentState] = {}
+        self._scopes: dict[str, AgentState] = {}
 
         # Add all provided agent states
         for agent_state in agent_states:
@@ -115,7 +115,7 @@ class TurnState:
         name: str,
         default_value_factory: Optional[Callable[[], T]] = None,
         *,
-        target_cls: Type[T] = None,
+        target_cls: Type[T] | None = None,
     ) -> T:
         """
         Gets a value from state.

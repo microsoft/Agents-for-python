@@ -14,7 +14,7 @@ class TranscriptStore(TranscriptLogger):
         self,
         channel_id: str,
         conversation_id: str,
-        continuation_token: str = None,
+        continuation_token: str | None = None,
         start_date: datetime = datetime.min.replace(tzinfo=timezone.utc),
     ) -> tuple[list[Activity], str]:
         """
@@ -30,7 +30,7 @@ class TranscriptStore(TranscriptLogger):
 
     @abstractmethod
     async def list_transcripts(
-        self, channel_id: str, continuation_token: str = None
+        self, channel_id: str, continuation_token: str | None = None
     ) -> tuple[list[TranscriptInfo, str]]:
         """
         Asynchronously lists transcripts for a given channel.

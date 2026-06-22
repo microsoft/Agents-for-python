@@ -3,7 +3,7 @@
 
 """Teams information utilities for Microsoft Agents."""
 
-from typing import Optional, Tuple, Dict, Any, List
+from typing import Optional, Any
 
 from microsoft_agents.activity import Activity, Channels, ConversationParameters
 
@@ -145,7 +145,7 @@ class TeamsInfo:
         activity: Activity,
         teams_channel_id: str,
         app_id: Optional[str] = None,
-    ) -> Tuple[Dict[str, Any], str]:
+    ) -> tuple[dict[str, Any], str]:
         """
         Sends a message to a Teams channel.
 
@@ -225,7 +225,7 @@ class TeamsInfo:
     @staticmethod
     async def get_team_channels(
         context: TurnContext, team_id: Optional[str] = None
-    ) -> List[ChannelInfo]:
+    ) -> list[ChannelInfo]:
         """
         Gets the channels of a team.
 
@@ -425,7 +425,7 @@ class TeamsInfo:
         context: TurnContext,
         activity: Activity,
         tenant_id: str,
-        members: List[TeamsMember],
+        members: list[TeamsMember],
     ) -> TeamsBatchOperationResponse:
         """
         Sends a message to a list of users.
@@ -524,7 +524,7 @@ class TeamsInfo:
         context: TurnContext,
         activity: Activity,
         tenant_id: str,
-        members: List[TeamsMember],
+        members: list[TeamsMember],
     ) -> TeamsBatchOperationResponse:
         """
         Sends a message to a list of channels.

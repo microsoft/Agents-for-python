@@ -3,7 +3,7 @@
 
 """Channel service route definitions (framework-agnostic logic)."""
 
-from typing import Type, List, Union
+from typing import Type
 
 from microsoft_agents.activity import (
     AgentsModel,
@@ -47,7 +47,7 @@ class ChannelServiceRoutes:
         return target_model.model_validate(body)
 
     @staticmethod
-    def serialize_model(model_or_list: Union[AgentsModel, List[AgentsModel]]) -> dict:
+    def serialize_model(model_or_list: AgentsModel | list[AgentsModel]) -> dict:
         """Serialize model or list of models to JSON-compatible dict."""
         if isinstance(model_or_list, AgentsModel):
             return model_or_list.model_dump(

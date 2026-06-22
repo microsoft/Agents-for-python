@@ -8,7 +8,7 @@ from __future__ import annotations
 import asyncio
 import logging
 from dataclasses import dataclass, field
-from typing import Dict, Optional
+from typing import Optional
 
 from microsoft_agents.hosting.core import TurnContext
 from microsoft_agents.activity import Activity, ActivityTypes, Channels, EntityTypes
@@ -42,7 +42,7 @@ class TypingOptions:
 
     initial_delay_ms: int = DEFAULT_INITIAL_DELAY_MS
     interval_ms: int = DEFAULT_INTERVAL_MS
-    channel_strategies: Dict[str, TypingChannelStrategy] = field(default_factory=dict)
+    channel_strategies: dict[str, TypingChannelStrategy] = field(default_factory=dict)
 
     def __post_init__(self):
         # Apply default channel overrides (matching .NET's M365Copilot default)
