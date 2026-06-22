@@ -119,7 +119,7 @@ class TestMessageSoftDelete:
         self.ext = TeamsAgentExtension(self.app)
 
     def test_soft_delete_selector(self):
-        @self.ext.messages.soft_delete()
+        @self.ext.messages.delete()
         async def handler(ctx, state): ...
 
         selector = self.app._routes[0]["selector"]
@@ -152,7 +152,7 @@ class TestMessageSoftDelete:
         )
 
     def test_soft_delete_wrong_channel(self):
-        @self.ext.messages.soft_delete()
+        @self.ext.messages.delete()
         async def handler(ctx, state): ...
 
         selector = self.app._routes[0]["selector"]
@@ -300,7 +300,7 @@ class TestMessageDirectDecoratorStyle:
         assert self.app._routes[0]["selector"] is not None
 
     def test_soft_delete_direct(self):
-        @self.ext.messages.soft_delete  # type: ignore[arg-type]
+        @self.ext.messages.delete  # type: ignore[arg-type]
         async def handler(ctx, state): ...
 
         assert self.app._routes[0]["selector"] is not None

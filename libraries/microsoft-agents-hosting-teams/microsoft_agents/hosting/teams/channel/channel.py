@@ -3,6 +3,7 @@
 
 """Route registration helpers for Teams channel conversation update events."""
 
+import re
 from typing import Generic, Optional, overload
 
 from microsoft_agents.activity import ActivityTypes
@@ -40,7 +41,7 @@ class Channel(Generic[StateT]):
 
     def _create_decorator(
         self,
-        event_type: str,
+        event_type: str | re.Pattern,
         *,
         auth_handlers: Optional[list[str]] = None,
         rank: RouteRank = RouteRank.DEFAULT,
@@ -48,10 +49,18 @@ class Channel(Generic[StateT]):
         """Build a route decorator that matches a specific Teams channel event type."""
 
         def __selector(context: TurnContext) -> bool:
+            event_match = False
+            channel_event_type = _get_channel_event_type(context)
+            if channel_event_type:
+                if isinstance(event_type, re.Pattern):
+                    event_match = re.fullmatch(event_type, channel_event_type) is not None
+                else:
+                    event_match = event_type == channel_event_type
+
             return (
                 context.activity.type == ActivityTypes.conversation_update
                 and context.activity.channel_id == "msteams"
-                and _get_channel_event_type(context) == event_type
+                and event_match
             )
 
         def __call(func: ChannelUpdateHandler[StateT]) -> ChannelUpdateHandler[StateT]:
@@ -66,6 +75,29 @@ class Channel(Generic[StateT]):
             return func
 
         return __call
+    
+    @overload
+    def event(
+        self, handler: ChannelUpdateHandler[StateT]
+    ) -> ChannelUpdateHandler[StateT]: ...
+    @overload
+    def event(
+        self, *, auth_handlers: Optional[list[str]] = ..., rank: RouteRank = ...
+    ) -> _RouteDecorator[ChannelUpdateHandler[StateT]]: ...
+    def event(
+        self,
+        handler: Optional[ChannelUpdateHandler[StateT]] = None,
+        *,
+        auth_handlers: Optional[list[str]] = None,
+        rank: RouteRank = RouteRank.DEFAULT,
+    ) -> ChannelUpdateHandler[StateT] | _RouteDecorator[ChannelUpdateHandler[StateT]]:
+        """Register a handler for Teams team event conversation update events."""
+        decorator = self._create_decorator(
+            r"channel.*", auth_handlers=auth_handlers, rank=rank
+        )
+        if handler is not None:
+            return decorator(handler)
+        return decorator
 
     @overload
     def created(
@@ -135,16 +167,62 @@ class Channel(Generic[StateT]):
         if handler is not None:
             return decorator(handler)
         return decorator
-
+    
     @overload
-    def rest(
+    def shared(
         self, handler: ChannelUpdateHandler[StateT]
     ) -> ChannelUpdateHandler[StateT]: ...
     @overload
-    def rest(
+    def shared(
         self, *, auth_handlers: Optional[list[str]] = ..., rank: RouteRank = ...
     ) -> _RouteDecorator[ChannelUpdateHandler[StateT]]: ...
-    def rest(
+    def shared(
+        self,
+        handler: Optional[ChannelUpdateHandler[StateT]] = None,
+        *,
+        auth_handlers: Optional[list[str]] = None,
+        rank: RouteRank = RouteRank.DEFAULT,
+    ) -> ChannelUpdateHandler[StateT] | _RouteDecorator[ChannelUpdateHandler[StateT]]:
+        """Register a handler for Teams channelShared conversation update events."""
+        decorator = self._create_decorator(
+            "channelShared", auth_handlers=auth_handlers, rank=rank
+        )
+        if handler is not None:
+            return decorator(handler)
+        return decorator
+    
+    @overload
+    def unshared(
+        self, handler: ChannelUpdateHandler[StateT]
+    ) -> ChannelUpdateHandler[StateT]: ...
+    @overload
+    def unshared(
+        self, *, auth_handlers: Optional[list[str]] = ..., rank: RouteRank = ...
+    ) -> _RouteDecorator[ChannelUpdateHandler[StateT]]: ...
+    def unshared(
+        self,
+        handler: Optional[ChannelUpdateHandler[StateT]] = None,
+        *,
+        auth_handlers: Optional[list[str]] = None,
+        rank: RouteRank = RouteRank.DEFAULT,
+    ) -> ChannelUpdateHandler[StateT] | _RouteDecorator[ChannelUpdateHandler[StateT]]:
+        """Register a handler for Teams channelUnshared conversation update events."""
+        decorator = self._create_decorator(
+            "channelUnshared", auth_handlers=auth_handlers, rank=rank
+        )
+        if handler is not None:
+            return decorator(handler)
+        return decorator
+
+    @overload
+    def restored(
+        self, handler: ChannelUpdateHandler[StateT]
+    ) -> ChannelUpdateHandler[StateT]: ...
+    @overload
+    def restored(
+        self, *, auth_handlers: Optional[list[str]] = ..., rank: RouteRank = ...
+    ) -> _RouteDecorator[ChannelUpdateHandler[StateT]]: ...
+    def restored(
         self,
         handler: Optional[ChannelUpdateHandler[StateT]] = None,
         *,

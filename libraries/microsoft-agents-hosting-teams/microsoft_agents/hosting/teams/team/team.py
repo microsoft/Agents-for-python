@@ -3,6 +3,7 @@
 
 """Route registration helpers for Teams team conversation update events."""
 
+import re
 from typing import Generic, Optional, overload
 
 from microsoft_agents.activity import ActivityTypes
@@ -40,7 +41,7 @@ class Team(Generic[StateT]):
 
     def _create_decorator(
         self,
-        event_type: str,
+        event_type: str | re.Pattern,
         *,
         auth_handlers: Optional[list[str]] = None,
         rank: RouteRank = RouteRank.DEFAULT,
@@ -48,10 +49,19 @@ class Team(Generic[StateT]):
         """Build a route decorator for a specific Teams team event type."""
 
         def __selector(context: TurnContext) -> bool:
+
+            event_match = False
+            channel_event_type = _get_channel_event_type(context)
+            if channel_event_type:
+                if isinstance(event_type, re.Pattern):
+                    event_match = re.fullmatch(event_type, channel_event_type) is not None
+                else:
+                    event_match = event_type == channel_event_type
+
             return (
                 context.activity.type == ActivityTypes.conversation_update
                 and context.activity.channel_id == "msteams"
-                and _get_channel_event_type(context) == event_type
+                and event_match
             )
 
         def __call(func: TeamUpdateHandler[StateT]) -> TeamUpdateHandler[StateT]:
@@ -66,6 +76,29 @@ class Team(Generic[StateT]):
             return func
 
         return __call
+    
+    @overload
+    def event(
+        self, handler: TeamUpdateHandler[StateT]
+    ) -> TeamUpdateHandler[StateT]: ...
+    @overload
+    def event(
+        self, *, auth_handlers: Optional[list[str]] = ..., rank: RouteRank = ...
+    ) -> _RouteDecorator[TeamUpdateHandler[StateT]]: ...
+    def event(
+        self,
+        handler: Optional[TeamUpdateHandler[StateT]] = None,
+        *,
+        auth_handlers: Optional[list[str]] = None,
+        rank: RouteRank = RouteRank.DEFAULT,
+    ) -> TeamUpdateHandler[StateT] | _RouteDecorator[TeamUpdateHandler[StateT]]:
+        """Register a handler for Teams team event conversation update events."""
+        decorator = self._create_decorator(
+            r"team.*", auth_handlers=auth_handlers, rank=rank
+        )
+        if handler is not None:
+            return decorator(handler)
+        return decorator
 
     @overload
     def archived(

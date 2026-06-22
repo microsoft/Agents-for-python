@@ -88,9 +88,9 @@ class TestChannelLifecycle:
             is True
         )
 
-    def test_rest_selector_matches_channel_restored(self):
-        @self.ext.channels.rest()
-        async def handler(ctx, state, data): ...
+    def test_restored_selector(self):
+        @self.ext.channels.restored()
+        async def handler(context, state, data): ...
 
         selector = self.app._routes[0]["selector"]
         assert (
@@ -107,6 +107,54 @@ class TestChannelLifecycle:
                 _make_context(
                     ActivityTypes.conversation_update,
                     channel_data={"eventType": "channelRenamed"},
+                )
+            )
+            is False
+        )
+
+    def test_shared_selector(self):
+        @self.ext.channels.shared()
+        async def handler(context, state, data): ...
+
+        selector = self.app._routes[0]["selector"]
+        assert (
+            selector(
+                _make_context(
+                    ActivityTypes.conversation_update,
+                    channel_data={"eventType": "channelShared"},
+                )
+            )
+            is True
+        )
+        assert (
+            selector(
+                _make_context(
+                    ActivityTypes.conversation_update,
+                    channel_data={"eventType": "channelUnshared"},
+                )
+            )
+            is False
+        )
+
+    def test_unshared_selector(self):
+        @self.ext.channels.unshared()
+        async def handler(context, state, data): ...
+
+        selector = self.app._routes[0]["selector"]
+        assert (
+            selector(
+                _make_context(
+                    ActivityTypes.conversation_update,
+                    channel_data={"eventType": "channelUnshared"},
+                )
+            )
+            is True
+        )
+        assert (
+            selector(
+                _make_context(
+                    ActivityTypes.conversation_update,
+                    channel_data={"eventType": "channelShared"},
                 )
             )
             is False
@@ -265,6 +313,134 @@ class TestChannelMembers:
             await route_handler(ctx, MagicMock())
 
 
+class TestChannelEvent:
+
+    def setup_method(self):
+        self.app = _make_app()
+        self.ext = TeamsAgentExtension(self.app)
+
+    def _selector(self):
+        @self.ext.channels.event()
+        async def handler(context, state, data): ...
+
+        return self.app._routes[0]["selector"]
+
+    def test_event_matches_channel_created(self):
+        selector = self._selector()
+        assert (
+            selector(
+                _make_context(
+                    ActivityTypes.conversation_update,
+                    channel_data={"eventType": "channelCreated"},
+                )
+            )
+            is True
+        )
+
+    def test_event_matches_channel_deleted(self):
+        selector = self._selector()
+        assert (
+            selector(
+                _make_context(
+                    ActivityTypes.conversation_update,
+                    channel_data={"eventType": "channelDeleted"},
+                )
+            )
+            is True
+        )
+
+    def test_event_matches_channel_renamed(self):
+        selector = self._selector()
+        assert (
+            selector(
+                _make_context(
+                    ActivityTypes.conversation_update,
+                    channel_data={"eventType": "channelRenamed"},
+                )
+            )
+            is True
+        )
+
+    def test_event_matches_channel_restored(self):
+        selector = self._selector()
+        assert (
+            selector(
+                _make_context(
+                    ActivityTypes.conversation_update,
+                    channel_data={"eventType": "channelRestored"},
+                )
+            )
+            is True
+        )
+
+    def test_event_matches_channel_shared(self):
+        selector = self._selector()
+        assert (
+            selector(
+                _make_context(
+                    ActivityTypes.conversation_update,
+                    channel_data={"eventType": "channelShared"},
+                )
+            )
+            is True
+        )
+
+    def test_event_matches_channel_unshared(self):
+        selector = self._selector()
+        assert (
+            selector(
+                _make_context(
+                    ActivityTypes.conversation_update,
+                    channel_data={"eventType": "channelUnshared"},
+                )
+            )
+            is True
+        )
+
+    def test_event_no_match_non_channel_event(self):
+        selector = self._selector()
+        assert (
+            selector(
+                _make_context(
+                    ActivityTypes.conversation_update,
+                    channel_data={"eventType": "teamArchived"},
+                )
+            )
+            is False
+        )
+
+    def test_event_requires_msteams_channel(self):
+        selector = self._selector()
+        assert (
+            selector(
+                _make_context(
+                    ActivityTypes.conversation_update,
+                    channel_id="webchat",
+                    channel_data={"eventType": "channelCreated"},
+                )
+            )
+            is False
+        )
+
+    def test_event_requires_conversation_update(self):
+        selector = self._selector()
+        assert (
+            selector(
+                _make_context(
+                    ActivityTypes.message,
+                    channel_data={"eventType": "channelCreated"},
+                )
+            )
+            is False
+        )
+
+    def test_event_is_not_invoke(self):
+        @self.ext.channels.event()
+        async def handler(context, state, data): ...
+
+        assert self.app._routes[0]["is_invoke"] is False
+
+
 class TestChannelDirectDecoratorStyle:
 
     def setup_method(self):
@@ -289,8 +465,26 @@ class TestChannelDirectDecoratorStyle:
 
         assert self.app._routes[0]["selector"] is not None
 
-    def test_rest_direct(self):
-        @self.ext.channels.rest  # type: ignore[arg-type]
+    def test_restored_direct(self):
+        @self.ext.channels.restored  # type: ignore[arg-type]
+        async def handler(ctx, state, data): ...
+
+        assert self.app._routes[0]["selector"] is not None
+
+    def test_shared_direct(self):
+        @self.ext.channels.shared  # type: ignore[arg-type]
+        async def handler(ctx, state, data): ...
+
+        assert self.app._routes[0]["selector"] is not None
+
+    def test_unshared_direct(self):
+        @self.ext.channels.unshared  # type: ignore[arg-type]
+        async def handler(ctx, state, data): ...
+
+        assert self.app._routes[0]["selector"] is not None
+
+    def test_event_direct(self):
+        @self.ext.channels.event  # type: ignore[arg-type]
         async def handler(ctx, state, data): ...
 
         assert self.app._routes[0]["selector"] is not None

@@ -120,14 +120,14 @@ class Message(Generic[StateT]):
         return decorator
 
     @overload
-    def soft_delete(
+    def delete(
         self, handler: TeamsRouteHandler[StateT]
     ) -> TeamsRouteHandler[StateT]: ...
     @overload
-    def soft_delete(
+    def delete(
         self, *, auth_handlers: Optional[list[str]] = ..., rank: RouteRank = ...
     ) -> _RouteDecorator[TeamsRouteHandler[StateT]]: ...
-    def soft_delete(
+    def delete(
         self,
         handler: Optional[TeamsRouteHandler[StateT]] = None,
         *,

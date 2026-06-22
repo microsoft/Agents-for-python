@@ -172,6 +172,134 @@ class TestTeamLifecycle:
         assert self.app._routes[0]["is_invoke"] is False
 
 
+class TestTeamEvent:
+
+    def setup_method(self):
+        self.app = _make_app()
+        self.ext = TeamsAgentExtension(self.app)
+
+    def _selector(self):
+        @self.ext.teams.event()
+        async def handler(context, state, data): ...
+
+        return self.app._routes[0]["selector"]
+
+    def test_event_matches_team_archived(self):
+        selector = self._selector()
+        assert (
+            selector(
+                _make_context(
+                    ActivityTypes.conversation_update,
+                    channel_data={"eventType": "teamArchived"},
+                )
+            )
+            is True
+        )
+
+    def test_event_matches_team_renamed(self):
+        selector = self._selector()
+        assert (
+            selector(
+                _make_context(
+                    ActivityTypes.conversation_update,
+                    channel_data={"eventType": "teamRenamed"},
+                )
+            )
+            is True
+        )
+
+    def test_event_matches_team_deleted(self):
+        selector = self._selector()
+        assert (
+            selector(
+                _make_context(
+                    ActivityTypes.conversation_update,
+                    channel_data={"eventType": "teamDeleted"},
+                )
+            )
+            is True
+        )
+
+    def test_event_matches_team_hard_deleted(self):
+        selector = self._selector()
+        assert (
+            selector(
+                _make_context(
+                    ActivityTypes.conversation_update,
+                    channel_data={"eventType": "teamHardDeleted"},
+                )
+            )
+            is True
+        )
+
+    def test_event_matches_team_restored(self):
+        selector = self._selector()
+        assert (
+            selector(
+                _make_context(
+                    ActivityTypes.conversation_update,
+                    channel_data={"eventType": "teamRestored"},
+                )
+            )
+            is True
+        )
+
+    def test_event_matches_team_unarchived(self):
+        selector = self._selector()
+        assert (
+            selector(
+                _make_context(
+                    ActivityTypes.conversation_update,
+                    channel_data={"eventType": "teamUnarchived"},
+                )
+            )
+            is True
+        )
+
+    def test_event_no_match_non_team_event(self):
+        selector = self._selector()
+        assert (
+            selector(
+                _make_context(
+                    ActivityTypes.conversation_update,
+                    channel_data={"eventType": "membersAdded"},
+                )
+            )
+            is False
+        )
+
+    def test_event_requires_msteams_channel(self):
+        selector = self._selector()
+        assert (
+            selector(
+                _make_context(
+                    ActivityTypes.conversation_update,
+                    channel_id="webchat",
+                    channel_data={"eventType": "teamArchived"},
+                )
+            )
+            is False
+        )
+
+    def test_event_requires_conversation_update(self):
+        selector = self._selector()
+        assert (
+            selector(
+                _make_context(
+                    ActivityTypes.message,
+                    channel_data={"eventType": "teamArchived"},
+                )
+            )
+            is False
+        )
+
+    def test_event_is_not_invoke(self):
+        @self.ext.teams.event()
+        async def handler(ctx, state, data): ...
+
+        assert self.app._routes[0]["is_invoke"] is False
+
+
 class TestTeamDirectDecoratorStyle:
 
     def setup_method(self):
