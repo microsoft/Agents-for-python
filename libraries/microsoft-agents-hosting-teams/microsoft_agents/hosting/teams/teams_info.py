@@ -3,9 +3,16 @@
 
 """Teams information utilities for Microsoft Agents."""
 
-from typing import Optional, Any
+from typing import Optional
 
-from microsoft_agents.activity import Activity, Channels, ConversationParameters
+from microsoft_teams.api.models import ChannelData
+
+from microsoft_agents.activity import (
+    Activity,
+    Channels,
+    ConversationParameters,
+    ConversationReference,
+)
 
 from microsoft_agents.activity.teams import (
     TeamsChannelAccount,
@@ -26,20 +33,49 @@ from microsoft_agents.hosting.core.connector.teams import TeamsConnectorClient
 from microsoft_agents.hosting.core import (
     ChannelServiceAdapter,
     TurnContext,
-    error_resources,
 )
 from microsoft_agents.hosting.teams.errors import teams_errors
+
+from ._utils import _get_channel_data
+
+_DEFAULT_PAGE_SIZE = 16
 
 
 class TeamsInfo:
     """Teams information utilities for interacting with Teams-specific data."""
 
     @staticmethod
+    def _get_meeting_id(
+        channel_data: ChannelData, meeting_id: str | None = None
+    ) -> str:
+        if not meeting_id:
+            meeting_id = getattr(channel_data.meeting, "id", None)
+            if not meeting_id:
+                raise ValueError(str(teams_errors.TeamsMeetingIdRequired))
+        return meeting_id
+
+    @staticmethod
+    def _get_tenant_id(channel_data: ChannelData, tenant_id: str | None = None) -> str:
+        if not tenant_id:
+            tenant_id = getattr(channel_data.tenant, "id", None)
+            if not tenant_id:
+                raise ValueError(str(teams_errors.TeamsTenantIdRequired))
+        return tenant_id
+
+    @staticmethod
+    def _get_team_id(channel_data: ChannelData, team_id: str | None = None) -> str:
+        if not team_id:
+            team_id = getattr(channel_data.team, "id", None)
+            if not team_id:
+                raise ValueError(str(teams_errors.TeamsTeamIdRequired))
+        return team_id
+
+    @staticmethod
     async def get_meeting_participant(
         context: TurnContext,
-        meeting_id: Optional[str] = None,
-        participant_id: Optional[str] = None,
-        tenant_id: Optional[str] = None,
+        meeting_id: str | None = None,
+        participant_id: str | None = None,
+        tenant_id: str | None = None,
     ) -> TeamsMeetingParticipant:
         """
         Gets the meeting participant information.
@@ -56,26 +92,21 @@ class TeamsInfo:
         Raises:
             ValueError: If required parameters are missing.
         """
-        if not context:
-            raise ValueError(str(teams_errors.TeamsContextRequired))
+        channel_data: ChannelData = _get_channel_data(context)
 
-        activity = context.activity
-        teams_channel_data: dict = activity.channel_data
+        meeting_id = TeamsInfo._get_meeting_id(channel_data, meeting_id)
 
-        if meeting_id is None:
-            meeting_id = teams_channel_data.get("meeting", {}).get("id", None)
-
-        if not meeting_id:
-            raise ValueError(str(teams_errors.TeamsMeetingIdRequired))
-
-        if participant_id is None:
-            participant_id = getattr(activity.from_property, "aad_object_id", None)
+        if not tenant_id:
+            tenant_id = getattr(channel_data.tenant, "id", None)
+            if not tenant_id:
+                raise ValueError(str(teams_errors.TeamsTenantIdRequired))
 
         if not participant_id:
-            raise ValueError(str(teams_errors.TeamsParticipantIdRequired))
-
-        if tenant_id is None:
-            tenant_id = teams_channel_data.get("tenant", {}).get("id", None)
+            participant_id = getattr(
+                context.activity.from_property, "aad_object_id", None
+            )
+            if not participant_id:
+                raise ValueError(str(teams_errors.TeamsParticipantIdRequired))
 
         rest_client = TeamsInfo._get_rest_client(context)
         result = await rest_client.fetch_meeting_participant(
@@ -85,7 +116,7 @@ class TeamsInfo:
 
     @staticmethod
     async def get_meeting_info(
-        context: TurnContext, meeting_id: Optional[str] = None
+        context: TurnContext, meeting_id: str | None = None
     ) -> MeetingInfo:
         """
         Gets the meeting information.
@@ -100,12 +131,8 @@ class TeamsInfo:
         Raises:
             ValueError: If required parameters are missing.
         """
-        if not meeting_id:
-            teams_channel_data: dict = context.activity.channel_data
-            meeting_id = teams_channel_data.get("meeting", {}).get("id", None)
-
-        if not meeting_id:
-            raise ValueError(str(teams_errors.TeamsMeetingIdRequired))
+        channel_data: ChannelData = _get_channel_data(context)
+        meeting_id = TeamsInfo._get_meeting_id(channel_data, meeting_id)
 
         rest_client = TeamsInfo._get_rest_client(context)
         result = await rest_client.fetch_meeting_info(meeting_id)
@@ -113,7 +140,7 @@ class TeamsInfo:
 
     @staticmethod
     async def get_team_details(
-        context: TurnContext, team_id: Optional[str] = None
+        context: TurnContext, team_id: str | None = None
     ) -> TeamDetails:
         """
         Gets the team details.
@@ -128,12 +155,8 @@ class TeamsInfo:
         Raises:
             ValueError: If required parameters are missing.
         """
-        if not team_id:
-            teams_channel_data: dict = context.activity.channel_data
-            team_id = teams_channel_data.get("team", {}).get("id", None)
-
-        if not team_id:
-            raise ValueError(str(teams_errors.TeamsTeamIdRequired))
+        channel_data: ChannelData = _get_channel_data(context)
+        team_id = TeamsInfo._get_team_id(channel_data, team_id)
 
         rest_client = TeamsInfo._get_rest_client(context)
         result = await rest_client.fetch_team_details(team_id)
@@ -144,8 +167,8 @@ class TeamsInfo:
         context: TurnContext,
         activity: Activity,
         teams_channel_id: str,
-        app_id: Optional[str] = None,
-    ) -> tuple[dict[str, Any], str]:
+        app_id: str | None = None,
+    ) -> tuple[ConversationReference | None, str | None]:
         """
         Sends a message to a Teams channel.
 
@@ -161,14 +184,6 @@ class TeamsInfo:
         Raises:
             ValueError: If required parameters are missing.
         """
-        if not context:
-            raise ValueError(str(teams_errors.TeamsTurnContextRequired))
-
-        if not activity:
-            raise ValueError(str(teams_errors.TeamsActivityRequired))
-
-        if not teams_channel_id:
-            raise ValueError(str(teams_errors.TeamsChannelIdRequired))
 
         convo_params = ConversationParameters(
             is_group=True,
@@ -178,7 +193,7 @@ class TeamsInfo:
                 },
             },
             activity=activity,
-            agent=context.activity.recipient,
+            bot=context.activity.recipient,
         )
 
         conversation_reference = None
@@ -224,7 +239,7 @@ class TeamsInfo:
 
     @staticmethod
     async def get_team_channels(
-        context: TurnContext, team_id: Optional[str] = None
+        context: TurnContext, team_id: str | None = None
     ) -> list[ChannelInfo]:
         """
         Gets the channels of a team.
@@ -239,12 +254,8 @@ class TeamsInfo:
         Raises:
             ValueError: If required parameters are missing.
         """
-        if not team_id:
-            teams_channel_data: dict = context.activity.channel_data
-            team_id = teams_channel_data.get("team", {}).get("id", None)
-
-        if not team_id:
-            raise ValueError(str(teams_errors.TeamsTeamIdRequired))
+        channel_data = _get_channel_data(context)
+        team_id = TeamsInfo._get_team_id(channel_data, team_id)
 
         rest_client = TeamsInfo._get_rest_client(context)
         return await rest_client.fetch_channel_list(team_id)
@@ -252,8 +263,8 @@ class TeamsInfo:
     @staticmethod
     async def get_paged_members(
         context: TurnContext,
-        page_size: Optional[int] = None,
-        continuation_token: Optional[str] = None,
+        page_size: int = _DEFAULT_PAGE_SIZE,
+        continuation_token: str = "",
     ) -> TeamsPagedMembersResult:
         """
         Gets the paged members of a team or conversation.
@@ -269,8 +280,8 @@ class TeamsInfo:
         Raises:
             ValueError: If required parameters are missing.
         """
-        teams_channel_data: dict = context.activity.channel_data
-        team_id = teams_channel_data.get("team", {}).get("id", None)
+        channel_data = _get_channel_data(context)
+        team_id = getattr(channel_data.team, "id")
 
         if team_id:
             return await TeamsInfo.get_paged_team_members(
@@ -305,8 +316,8 @@ class TeamsInfo:
         Raises:
             ValueError: If required parameters are missing.
         """
-        teams_channel_data: dict = context.activity.channel_data
-        team_id = teams_channel_data.get("team", {}).get("id", None)
+        channel_data = _get_channel_data(context)
+        team_id = getattr(channel_data.team, "id")
 
         if team_id:
             return await TeamsInfo.get_team_member(context, team_id, user_id)
@@ -326,9 +337,9 @@ class TeamsInfo:
     @staticmethod
     async def get_paged_team_members(
         context: TurnContext,
-        team_id: Optional[str] = None,
-        page_size: Optional[int] = None,
-        continuation_token: Optional[str] = None,
+        team_id: str | None = None,
+        page_size: int = _DEFAULT_PAGE_SIZE,
+        continuation_token: str = "",
     ) -> TeamsPagedMembersResult:
         """
         Gets the paged members of a team.
@@ -345,12 +356,8 @@ class TeamsInfo:
         Raises:
             ValueError: If required parameters are missing.
         """
-        if not team_id:
-            teams_channel_data: dict = context.activity.channel_data
-            team_id = teams_channel_data.get("team", {}).get("id", None)
-
-        if not team_id:
-            raise ValueError(str(teams_errors.TeamsTeamIdRequired))
+        channel_data = _get_channel_data(context)
+        team_id = TeamsInfo._get_team_id(channel_data)
 
         rest_client = TeamsInfo._get_rest_client(context)
         paged_results = await rest_client.get_conversation_paged_member(
@@ -408,14 +415,8 @@ class TeamsInfo:
         Raises:
             ValueError: If required parameters are missing.
         """
-        activity = context.activity
-
-        if meeting_id is None:
-            teams_channel_data: dict = activity.channel_data
-            meeting_id = teams_channel_data.get("meeting", {}).get("id", None)
-
-        if not meeting_id:
-            raise ValueError(str(teams_errors.TeamsMeetingIdRequired))
+        channel_data = _get_channel_data(context)
+        meeting_id = TeamsInfo._get_meeting_id(channel_data)
 
         rest_client = TeamsInfo._get_rest_client(context)
         return await rest_client.send_meeting_notification(meeting_id, notification)
@@ -442,12 +443,6 @@ class TeamsInfo:
         Raises:
             ValueError: If required parameters are missing.
         """
-        if not activity:
-            raise ValueError(str(error_resources.ActivityRequired))
-        if not tenant_id:
-            raise ValueError(
-                error_resources.RequiredParameterMissing.format("tenant_id")
-            )
         if not members or len(members) == 0:
             raise ValueError("members list is required.")
 
@@ -474,13 +469,6 @@ class TeamsInfo:
         Raises:
             ValueError: If required parameters are missing.
         """
-        if not activity:
-            raise ValueError(str(error_resources.ActivityRequired))
-        if not tenant_id:
-            raise ValueError(
-                error_resources.RequiredParameterMissing.format("tenant_id")
-            )
-
         rest_client = TeamsInfo._get_rest_client(context)
         return await rest_client.send_message_to_all_users_in_tenant(
             activity, tenant_id
@@ -505,15 +493,6 @@ class TeamsInfo:
         Raises:
             ValueError: If required parameters are missing.
         """
-        if not activity:
-            raise ValueError(str(error_resources.ActivityRequired))
-        if not tenant_id:
-            raise ValueError(
-                error_resources.RequiredParameterMissing.format("tenant_id")
-            )
-        if not team_id:
-            raise ValueError(str(teams_errors.TeamsTeamIdRequired))
-
         rest_client = TeamsInfo._get_rest_client(context)
         return await rest_client.send_message_to_all_users_in_team(
             activity, tenant_id, team_id
@@ -541,12 +520,6 @@ class TeamsInfo:
         Raises:
             ValueError: If required parameters are missing.
         """
-        if not activity:
-            raise ValueError(str(error_resources.ActivityRequired))
-        if not tenant_id:
-            raise ValueError(
-                error_resources.RequiredParameterMissing.format("tenant_id")
-            )
         if not members or len(members) == 0:
             raise ValueError("members list is required.")
 
@@ -572,9 +545,6 @@ class TeamsInfo:
         Raises:
             ValueError: If required parameters are missing.
         """
-        if not operation_id:
-            raise ValueError("operation_id is required.")
-
         rest_client = TeamsInfo._get_rest_client(context)
         return await rest_client.get_operation_state(operation_id)
 
@@ -595,9 +565,6 @@ class TeamsInfo:
         Raises:
             ValueError: If required parameters are missing.
         """
-        if not operation_id:
-            raise ValueError("operation_id is required.")
-
         rest_client = TeamsInfo._get_rest_client(context)
         return await rest_client.get_failed_entries(operation_id)
 
@@ -618,9 +585,6 @@ class TeamsInfo:
         Raises:
             ValueError: If required parameters are missing.
         """
-        if not operation_id:
-            raise ValueError("operation_id is required.")
-
         rest_client = TeamsInfo._get_rest_client(context)
         return await rest_client.cancel_operation(operation_id)
 

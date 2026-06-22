@@ -67,6 +67,11 @@ class TeamsErrorResources:
         -62009,
     )
 
+    TeamsTenantIdRequired = ErrorMessage(
+        "tenant_id is required.",
+        -62010,
+    )
+
     def __init__(self):
         """Initialize TeamsErrorResources."""
         pass
