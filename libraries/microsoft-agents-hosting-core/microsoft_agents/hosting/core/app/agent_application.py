@@ -73,7 +73,7 @@ class AgentApplication(Agent, Generic[StateT]):
 
     _options: ApplicationOptions
     _adapter: Optional[ChannelServiceAdapter] = None
-    _auth: Optional[Authorization] = None
+    _auth: Authorization
     _proactive: Optional[Proactive] = None
     _internal_before_turn: list[Callable[[TurnContext, StateT], Awaitable[bool]]] = []
     _internal_after_turn: list[Callable[[TurnContext, StateT], Awaitable[bool]]] = []
@@ -163,6 +163,11 @@ class AgentApplication(Agent, Generic[StateT]):
         if authorization:
             self._auth = authorization
         else:
+            if not connection_manager:
+                raise ApplicationError("""
+                    connection_manager is required to initialize the Authorization
+                    """)
+
             auth_options = {
                 key: value
                 for key, value in configuration.items()

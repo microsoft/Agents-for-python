@@ -46,7 +46,7 @@ class TeamsTurnContext(TurnContext):
         :return: A new Teams turn context.
         """
         instance = TeamsTurnContext(context, app)
-        await get_teams_api_client(context, app.auth._connection_manager)
+        await get_teams_api_client(context, app.auth.connection_manager)
         return instance
 
     @property

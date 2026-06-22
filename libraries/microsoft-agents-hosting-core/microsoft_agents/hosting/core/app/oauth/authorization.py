@@ -125,6 +125,10 @@ class Authorization:
                 connection_manager=self._connection_manager,
                 auth_handler=auth_handler,
             )
+    
+    @property
+    def connection_manager(self) -> Connections:
+        return self._connection_manager
 
     @staticmethod
     def _sign_in_state_key(context: TurnContext) -> str:
