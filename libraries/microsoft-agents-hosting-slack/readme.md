@@ -4,6 +4,24 @@
 
 Integration library for building Slack agents using the Microsoft 365 Agents SDK. Provides direct-to-Slack responses (the full Slack Web API surface, beyond what Azure Bot Service exposes), a typed `SlackChannelData` envelope with dot-notation property access, and a `SlackStream` helper for `chat.startStream` / `chat.appendStream` / `chat.stopStream`.
 
+## Release Notes
+<table style="width:100%">
+  <tr>
+    <th style="width:20%">Version</th>
+    <th style="width:20%">Date</th>
+    <th style="width:60%">Release Notes</th>
+  </tr>
+  <tr>
+    <td>1.1.0</td>
+    <td>2026-06-19</td>
+    <td>
+      <a href="https://github.com/microsoft/Agents-for-python/blob/main/changelog.md#microsoft-365-agents-sdk-for-python---release-notes-v110">
+        1.1.0 Release Notes
+      </a>
+    </td>
+  </tr>
+</table>
+
 ## Installation
 
 ```bash
