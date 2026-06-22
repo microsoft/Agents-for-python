@@ -16,7 +16,6 @@ from typing import (
     Callable,
     Generic,
     Optional,
-    Pattern,
     TypeVar,
     cast,
     overload,
@@ -328,7 +327,7 @@ class AgentApplication(Agent, Generic[StateT]):
 
     def message(
         self,
-        select: str | Pattern[str] | list[str | Pattern[str]],
+        select: str | re.Pattern[str] | list[str | re.Pattern[str]],
         *,
         auth_handlers: Optional[list[str]] = None,
         **kwargs,
@@ -345,7 +344,7 @@ class AgentApplication(Agent, Generic[StateT]):
                     return True
 
         :param select: Literal text, compiled regex, or list of either used to match the incoming message.
-        :type select: str | Pattern[str] | list[str | Pattern[str]]
+        :type select: str | re.Pattern[str] | list[str | re.Pattern[str]]
         :param auth_handlers: Optional list of authorization handler IDs for the route.
         :type auth_handlers: Optional[list[str]]
         :param kwargs: Additional route configuration passed to :meth:`microsoft_agents.hosting.core.AgentApplication.add_route`.
@@ -359,14 +358,14 @@ class AgentApplication(Agent, Generic[StateT]):
 
             if isinstance(select, list):
                 for item in select:
-                    if isinstance(item, Pattern):
+                    if isinstance(item, re.Pattern):
                         if re.fullmatch(item, text) is not None:
                             return True
                     elif text == item:
                         return True
                 return False
 
-            if isinstance(select, Pattern):
+            if isinstance(select, re.Pattern):
                 return re.fullmatch(select, text) is not None
 
             return text == select
@@ -551,6 +550,9 @@ class AgentApplication(Agent, Generic[StateT]):
     def handoff(
         self,
         func: Callable[[TurnContext, StateT, str], Awaitable[None]],
+        *,
+        auth_handlers: Optional[list[str]] = None,
+        **kwargs,
     ) -> Callable[[TurnContext, StateT, str], Awaitable[None]]: ...
 
     @overload
