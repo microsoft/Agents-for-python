@@ -1,0 +1,20 @@
+[build-system]
+requires = ["setuptools"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "conversation-agent"
+version = "0.1.0"
+description = "Teams Conversation Agent sample — demonstrates channel/team lifecycle, member events, and message commands"
+authors = [{name = "Microsoft Corporation"}]
+license = "MIT"
+requires-python = ">=3.12"
+dependencies = [
+    "microsoft-agents-activity",
+    "microsoft-agents-hosting-core",
+    "microsoft-agents-authentication-msal",
+    "microsoft-agents-hosting-aiohttp",
+    "microsoft-agents-hosting-teams",
+    "python-dotenv",
+    "aiohttp",
+]

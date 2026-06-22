@@ -14,7 +14,10 @@ from microsoft_agents.hosting.core import (
     TurnContext,
 )
 
-from microsoft_agents.hosting.teams.route_handlers import TeamsRouteHandler
+from microsoft_agents.hosting.teams.route_handlers import (
+    TeamsRouteHandler,
+    wrap_teams_route_handler,
+)
 from microsoft_agents.hosting.teams.teams_turn_context import TeamsTurnContext
 from microsoft_agents.hosting.teams.type_defs import (
     _RouteDecorator,
@@ -61,7 +64,7 @@ class Message(Generic[StateT]):
         def __call(func: TeamsRouteHandler[StateT]) -> TeamsRouteHandler[StateT]:
             self._app.add_route(
                 __selector,
-                TeamsRouteHandler.wrap(func, self._app),
+                wrap_teams_route_handler(func, self._app),
                 rank=rank,
                 auth_handlers=auth_handlers,
             )

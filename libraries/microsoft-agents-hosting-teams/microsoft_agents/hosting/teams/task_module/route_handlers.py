@@ -19,6 +19,7 @@ class FetchHandler(Protocol[_StateContra]):
         context: TeamsTurnContext,
         state: _StateContra,
         request: TaskModuleRequest,
+        /,
     ) -> Awaitable[TaskModuleResponse]:
         """Handle a task module fetch invoke.
 
@@ -38,6 +39,7 @@ class SubmitHandler(Protocol[_StateContra]):
         context: TeamsTurnContext,
         state: _StateContra,
         request: TaskModuleRequest,
+        /,
     ) -> Awaitable[TaskModuleResponse]:
         """Handle a task module submit invoke.
 

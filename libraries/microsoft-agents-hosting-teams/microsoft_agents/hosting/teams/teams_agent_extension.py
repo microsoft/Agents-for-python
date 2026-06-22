@@ -31,7 +31,12 @@ from .file_consent import FileConsent
 from .meeting import Meeting
 from .message import Message
 from .message_extension import MessageExtension
-from .route_handlers import TeamsRouteHandler, TeamsHandoffHandler
+from .route_handlers import (
+    TeamsRouteHandler,
+    TeamsHandoffHandler,
+    wrap_teams_route_handler,
+    wrap_teams_handoff_handler,
+)
 from .task_module import TaskModule
 from .team import Team
 
@@ -136,7 +141,7 @@ class TeamsAgentExtension(Generic[StateT]):
         """Wrap a core route decorator so it accepts a :class:`TeamsRouteHandler`.
 
         The returned decorator converts the Teams handler via
-        :meth:`TeamsRouteHandler.wrap` before passing it to *decorator*, keeping the
+        :func:`wrap_teams_route_handler` before passing it to *decorator*, keeping the
         Teams context upgrade transparent to callers.
 
         :param decorator: A core route decorator from :class:`AgentApplication`.
@@ -144,7 +149,7 @@ class TeamsAgentExtension(Generic[StateT]):
         """
 
         def __call(func: TeamsRouteHandler[StateT]) -> RouteHandler[StateT]:
-            return decorator(TeamsRouteHandler.wrap(func, self._app))
+            return decorator(wrap_teams_route_handler(func, self._app))
 
         return __call
 
@@ -248,7 +253,7 @@ class TeamsAgentExtension(Generic[StateT]):
 
         def __call(func: TeamsHandoffHandler[StateT]) -> HandoffHandler[StateT]:
             return self._app.handoff(auth_handlers=auth_handlers, **kwargs)(
-                TeamsHandoffHandler.wrap(func, self._app)
+                wrap_teams_handoff_handler(func, self._app)
             )
 
         return __call

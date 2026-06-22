@@ -23,6 +23,7 @@ class ConfigHandler(Protocol[_StateContra]):
         context: TeamsTurnContext,
         state: _StateContra,
         config_data: Any,
+        /,
     ) -> Awaitable[ConfigResponse]:
         """Handle a configuration invoke.
 

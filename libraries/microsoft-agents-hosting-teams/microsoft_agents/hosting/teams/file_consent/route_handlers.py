@@ -23,6 +23,7 @@ class FileConsentHandler(Protocol[_StateContra]):
         context: TeamsTurnContext,
         state: _StateContra,
         file_consent: FileConsentCardResponse,
+        /,
     ) -> Awaitable[None]:
         """Handle a file consent invoke.
 

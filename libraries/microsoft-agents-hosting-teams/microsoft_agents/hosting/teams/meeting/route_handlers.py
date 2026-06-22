@@ -20,6 +20,7 @@ class MeetingStartHandler(Protocol[_StateContra]):
         context: TeamsTurnContext,
         state: _StateContra,
         meeting: MeetingDetails,
+        /,
     ) -> Awaitable[None]:
         """Handle a meeting start event.
 
@@ -38,6 +39,7 @@ class MeetingEndHandler(Protocol[_StateContra]):
         context: TeamsTurnContext,
         state: _StateContra,
         meeting: MeetingDetails,
+        /,
     ) -> Awaitable[None]:
         """Handle a meeting end event.
 
@@ -56,6 +58,7 @@ class MeetingParticipantsEventHandler(Protocol[_StateContra]):
         context: TeamsTurnContext,
         state: _StateContra,
         meeting: MeetingParticipantsEventDetails,
+        /,
     ) -> Awaitable[None]:
         """Handle a meeting participant join or leave event.
 

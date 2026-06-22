@@ -19,6 +19,7 @@ class TeamUpdateHandler(Protocol[_StateContra]):
         context: TeamsTurnContext,
         state: _StateContra,
         data: ChannelData,
+        /,
     ) -> Awaitable[None]:
         """Handle a team update event.
 

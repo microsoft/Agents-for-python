@@ -31,6 +31,7 @@ class FetchTaskHandler(Protocol[_StateContra]):
         context: TeamsTurnContext,
         state: _StateContra,
         action: MessagingExtensionAction,
+        /,
     ) -> Awaitable[MessagingExtensionActionResponse]:
         """Handle a fetch task invoke.
 
@@ -50,6 +51,7 @@ class SubmitActionHandler(Protocol[_StateContra]):
         context: TeamsTurnContext,
         state: _StateContra,
         action: MessagingExtensionAction,
+        /,
     ) -> Awaitable[MessagingExtensionResponse]:
         """Handle a submit action invoke.
 
@@ -69,6 +71,7 @@ class MessagePreviewEditHandler(Protocol[_StateContra]):
         context: TeamsTurnContext,
         state: _StateContra,
         activity_preview: Activity,
+        /,
     ) -> Awaitable[MessagingExtensionResponse]:
         """Handle a message preview edit request.
 
@@ -88,6 +91,7 @@ class MessagePreviewSendHandler(Protocol[_StateContra]):
         context: TeamsTurnContext,
         state: _StateContra,
         activity_preview: Activity,
+        /,
     ) -> Awaitable[MessagingExtensionResponse | None]:
         """Handle a message preview send request.
 
@@ -106,6 +110,7 @@ class QueryHandler(Protocol[_StateContra]):
         context: TeamsTurnContext,
         state: _StateContra,
         query: MessagingExtensionQuery,
+        /,
     ) -> Awaitable[MessagingExtensionResponse]:
         """Handle a message extension query invoke.
 
@@ -125,6 +130,7 @@ class SelectItemHandler(Protocol[_StateContra]):
         context: TeamsTurnContext,
         state: _StateContra,
         item: Any,
+        /,
     ) -> Awaitable[MessagingExtensionResponse]:
         """Handle a select item invoke.
 
@@ -144,6 +150,7 @@ class QueryLinkHandler(Protocol[_StateContra]):
         context: TeamsTurnContext,
         state: _StateContra,
         query: AppBasedLinkQuery,
+        /,
     ) -> Awaitable[MessagingExtensionResponse]:
         """Handle a link unfurling query.
 
@@ -163,6 +170,7 @@ class QueryUrlSettingHandler(Protocol[_StateContra]):
         context: TeamsTurnContext,
         state: _StateContra,
         query: MessagingExtensionQuery,
+        /,
     ) -> Awaitable[MessagingExtensionResponse]:
         """Handle a query setting URL invoke.
 
@@ -182,6 +190,7 @@ class ConfigureSettingsHandler(Protocol[_StateContra]):
         context: TeamsTurnContext,
         state: _StateContra,
         query: MessagingExtensionQuery,
+        /,
     ) -> Awaitable[MessagingExtensionResponse]:
         """Handle a configure settings invoke.
 
@@ -201,6 +210,7 @@ class CardButtonClickedHandler(Protocol[_StateContra]):
         context: TeamsTurnContext,
         state: _StateContra,
         card: Any,
+        /,
     ) -> Awaitable[None]:
         """Handle a card button clicked invoke.
 

@@ -281,7 +281,7 @@ class TeamsInfo:
             ValueError: If required parameters are missing.
         """
         channel_data = _get_channel_data(context)
-        team_id = getattr(channel_data.team, "id")
+        team_id = getattr(channel_data.team, "id", None)
 
         if team_id:
             return await TeamsInfo.get_paged_team_members(
@@ -317,7 +317,7 @@ class TeamsInfo:
             ValueError: If required parameters are missing.
         """
         channel_data = _get_channel_data(context)
-        team_id = getattr(channel_data.team, "id")
+        team_id = getattr(channel_data.team, "id", None)
 
         if team_id:
             return await TeamsInfo.get_team_member(context, team_id, user_id)

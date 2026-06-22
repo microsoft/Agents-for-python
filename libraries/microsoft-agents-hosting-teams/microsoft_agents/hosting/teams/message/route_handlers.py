@@ -19,6 +19,7 @@ class ExecuteActionHandler(Protocol[_StateContra]):
         context: TeamsTurnContext,
         state: _StateContra,
         query: O365ConnectorCardActionQuery,
+        /,
     ) -> Awaitable[None]:
         """Handle an O365 connector card action execution.
 
@@ -37,6 +38,7 @@ class ReadReceiptHandler(Protocol[_StateContra]):
         context: TeamsTurnContext,
         state: _StateContra,
         data: dict,
+        /,
     ) -> Awaitable[None]:
         """Handle a read receipt event.
 

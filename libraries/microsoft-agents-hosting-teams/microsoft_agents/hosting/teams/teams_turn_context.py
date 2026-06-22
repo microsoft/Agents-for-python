@@ -29,6 +29,8 @@ class TeamsTurnContext(TurnContext):
         self._context = context
         self._app = app
 
+        self._turn_state.update(context.turn_state)
+
     @staticmethod
     def _make_targeted_activity(activity: Activity) -> Activity:
         activity = activity.model_copy()
