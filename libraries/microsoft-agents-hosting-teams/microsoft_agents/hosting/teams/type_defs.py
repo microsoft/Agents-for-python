@@ -17,6 +17,7 @@ from .teams_turn_context import TeamsTurnContext
 TeamsRouteSelector = Callable[[TeamsTurnContext], bool]
 
 StateT = TypeVar("StateT", bound=TurnState)
+_StateContra = TypeVar("_StateContra", bound=TurnState, contravariant=True)
 RouteHandlerT = TypeVar("RouteHandlerT", bound=Callable)
 
 CommandSelector = str | Pattern[str] | None

@@ -8,10 +8,10 @@ from typing import Any, Awaitable, Protocol
 from microsoft_teams.api.models.config import ConfigResponse
 
 from microsoft_agents.hosting.teams.teams_turn_context import TeamsTurnContext
-from microsoft_agents.hosting.teams.type_defs import StateT
+from microsoft_agents.hosting.teams.type_defs import _StateContra
 
 
-class ConfigHandler(Protocol[StateT]):
+class ConfigHandler(Protocol[_StateContra]):
     """Protocol for a handler invoked on Teams config/fetch or config/submit activities.
 
     The handler returns a :class:`ConfigResponse` which is automatically sent back
@@ -21,7 +21,7 @@ class ConfigHandler(Protocol[StateT]):
     def __call__(
         self,
         context: TeamsTurnContext,
-        state: StateT,
+        state: _StateContra,
         config_data: Any,
     ) -> Awaitable[ConfigResponse]:
         """Handle a configuration invoke.

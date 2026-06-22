@@ -8,16 +8,16 @@ from typing import Awaitable, Protocol
 from microsoft_teams.api.models.o365 import O365ConnectorCardActionQuery
 
 from microsoft_agents.hosting.teams.teams_turn_context import TeamsTurnContext
-from microsoft_agents.hosting.teams.type_defs import StateT
+from microsoft_agents.hosting.teams.type_defs import _StateContra
 
 
-class ExecuteActionHandler(Protocol[StateT]):
+class ExecuteActionHandler(Protocol[_StateContra]):
     """Protocol for a handler invoked on actionableMessage/executeAction activities."""
 
     def __call__(
         self,
         context: TeamsTurnContext,
-        state: StateT,
+        state: _StateContra,
         query: O365ConnectorCardActionQuery,
     ) -> Awaitable[None]:
         """Handle an O365 connector card action execution.
@@ -29,13 +29,13 @@ class ExecuteActionHandler(Protocol[StateT]):
         ...
 
 
-class ReadReceiptHandler(Protocol[StateT]):
+class ReadReceiptHandler(Protocol[_StateContra]):
     """Protocol for a handler invoked on Teams read receipt events."""
 
     def __call__(
         self,
         context: TeamsTurnContext,
-        state: StateT,
+        state: _StateContra,
         data: dict,
     ) -> Awaitable[None]:
         """Handle a read receipt event.

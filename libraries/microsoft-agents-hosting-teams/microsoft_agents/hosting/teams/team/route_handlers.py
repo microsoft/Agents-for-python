@@ -8,16 +8,16 @@ from typing import Awaitable, Protocol
 from microsoft_teams.api.models.channel_data import ChannelData
 
 from microsoft_agents.hosting.teams.teams_turn_context import TeamsTurnContext
-from microsoft_agents.hosting.teams.type_defs import StateT
+from microsoft_agents.hosting.teams.type_defs import _StateContra
 
 
-class TeamUpdateHandler(Protocol[StateT]):
+class TeamUpdateHandler(Protocol[_StateContra]):
     """Protocol for a handler invoked on Teams team conversation update events."""
 
     def __call__(
         self,
         context: TeamsTurnContext,
-        state: StateT,
+        state: _StateContra,
         data: ChannelData,
     ) -> Awaitable[None]:
         """Handle a team update event.

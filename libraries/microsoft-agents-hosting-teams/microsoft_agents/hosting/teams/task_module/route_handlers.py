@@ -8,16 +8,16 @@ from typing import Awaitable, Protocol
 from microsoft_teams.api.models import TaskModuleRequest, TaskModuleResponse
 
 from microsoft_agents.hosting.teams.teams_turn_context import TeamsTurnContext
-from microsoft_agents.hosting.teams.type_defs import StateT
+from microsoft_agents.hosting.teams.type_defs import _StateContra
 
 
-class FetchHandler(Protocol[StateT]):
+class FetchHandler(Protocol[_StateContra]):
     """Protocol for a handler invoked on task/fetch activities."""
 
     def __call__(
         self,
         context: TeamsTurnContext,
-        state: StateT,
+        state: _StateContra,
         request: TaskModuleRequest,
     ) -> Awaitable[TaskModuleResponse]:
         """Handle a task module fetch invoke.
@@ -30,13 +30,13 @@ class FetchHandler(Protocol[StateT]):
         ...
 
 
-class SubmitHandler(Protocol[StateT]):
+class SubmitHandler(Protocol[_StateContra]):
     """Protocol for a handler invoked on task/submit activities."""
 
     def __call__(
         self,
         context: TeamsTurnContext,
-        state: StateT,
+        state: _StateContra,
         request: TaskModuleRequest,
     ) -> Awaitable[TaskModuleResponse]:
         """Handle a task module submit invoke.

@@ -53,7 +53,9 @@ class Channel(Generic[StateT]):
             channel_event_type = _get_channel_event_type(context)
             if channel_event_type:
                 if isinstance(event_type, re.Pattern):
-                    event_match = re.fullmatch(event_type, channel_event_type) is not None
+                    event_match = (
+                        re.fullmatch(event_type, channel_event_type) is not None
+                    )
                 else:
                     event_match = event_type == channel_event_type
 
@@ -75,7 +77,7 @@ class Channel(Generic[StateT]):
             return func
 
         return __call
-    
+
     @overload
     def event(
         self, handler: ChannelUpdateHandler[StateT]
@@ -167,7 +169,7 @@ class Channel(Generic[StateT]):
         if handler is not None:
             return decorator(handler)
         return decorator
-    
+
     @overload
     def shared(
         self, handler: ChannelUpdateHandler[StateT]
@@ -190,7 +192,7 @@ class Channel(Generic[StateT]):
         if handler is not None:
             return decorator(handler)
         return decorator
-    
+
     @overload
     def unshared(
         self, handler: ChannelUpdateHandler[StateT]

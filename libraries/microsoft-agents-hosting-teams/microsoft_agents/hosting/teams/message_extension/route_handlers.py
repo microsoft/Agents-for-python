@@ -20,16 +20,16 @@ from microsoft_teams.api.models import (
 from microsoft_agents.activity import Activity
 
 from microsoft_agents.hosting.teams.teams_turn_context import TeamsTurnContext
-from microsoft_agents.hosting.teams.type_defs import StateT
+from microsoft_agents.hosting.teams.type_defs import _StateContra
 
 
-class FetchTaskHandler(Protocol[StateT]):
+class FetchTaskHandler(Protocol[_StateContra]):
     """Protocol for a handler invoked on composeExtension/fetchTask activities."""
 
     def __call__(
         self,
         context: TeamsTurnContext,
-        state: StateT,
+        state: _StateContra,
         action: MessagingExtensionAction,
     ) -> Awaitable[MessagingExtensionActionResponse]:
         """Handle a fetch task invoke.
@@ -42,13 +42,13 @@ class FetchTaskHandler(Protocol[StateT]):
         ...
 
 
-class SubmitActionHandler(Protocol[StateT]):
+class SubmitActionHandler(Protocol[_StateContra]):
     """Protocol for a handler invoked on composeExtension/submitAction activities."""
 
     def __call__(
         self,
         context: TeamsTurnContext,
-        state: StateT,
+        state: _StateContra,
         action: MessagingExtensionAction,
     ) -> Awaitable[MessagingExtensionResponse]:
         """Handle a submit action invoke.
@@ -61,13 +61,13 @@ class SubmitActionHandler(Protocol[StateT]):
         ...
 
 
-class MessagePreviewEditHandler(Protocol[StateT]):
+class MessagePreviewEditHandler(Protocol[_StateContra]):
     """Protocol for a handler invoked on composeExtension/submitAction with botMessagePreviewAction == 'edit'."""
 
     def __call__(
         self,
         context: TeamsTurnContext,
-        state: StateT,
+        state: _StateContra,
         activity_preview: Activity,
     ) -> Awaitable[MessagingExtensionResponse]:
         """Handle a message preview edit request.
@@ -80,13 +80,13 @@ class MessagePreviewEditHandler(Protocol[StateT]):
         ...
 
 
-class MessagePreviewSendHandler(Protocol[StateT]):
+class MessagePreviewSendHandler(Protocol[_StateContra]):
     """Protocol for a handler invoked on composeExtension/submitAction with botMessagePreviewAction == 'send'."""
 
     def __call__(
         self,
         context: TeamsTurnContext,
-        state: StateT,
+        state: _StateContra,
         activity_preview: Activity,
     ) -> Awaitable[MessagingExtensionResponse | None]:
         """Handle a message preview send request.
@@ -98,13 +98,13 @@ class MessagePreviewSendHandler(Protocol[StateT]):
         ...
 
 
-class QueryHandler(Protocol[StateT]):
+class QueryHandler(Protocol[_StateContra]):
     """Protocol for a handler invoked on composeExtension/query activities."""
 
     def __call__(
         self,
         context: TeamsTurnContext,
-        state: StateT,
+        state: _StateContra,
         query: MessagingExtensionQuery,
     ) -> Awaitable[MessagingExtensionResponse]:
         """Handle a message extension query invoke.
@@ -117,13 +117,13 @@ class QueryHandler(Protocol[StateT]):
         ...
 
 
-class SelectItemHandler(Protocol[StateT]):
+class SelectItemHandler(Protocol[_StateContra]):
     """Protocol for a handler invoked on composeExtension/selectItem activities."""
 
     def __call__(
         self,
         context: TeamsTurnContext,
-        state: StateT,
+        state: _StateContra,
         item: Any,
     ) -> Awaitable[MessagingExtensionResponse]:
         """Handle a select item invoke.
@@ -136,13 +136,13 @@ class SelectItemHandler(Protocol[StateT]):
         ...
 
 
-class QueryLinkHandler(Protocol[StateT]):
+class QueryLinkHandler(Protocol[_StateContra]):
     """Protocol for a handler invoked on composeExtension/queryLink or anonymousQueryLink activities."""
 
     def __call__(
         self,
         context: TeamsTurnContext,
-        state: StateT,
+        state: _StateContra,
         query: AppBasedLinkQuery,
     ) -> Awaitable[MessagingExtensionResponse]:
         """Handle a link unfurling query.
@@ -155,13 +155,13 @@ class QueryLinkHandler(Protocol[StateT]):
         ...
 
 
-class QueryUrlSettingHandler(Protocol[StateT]):
+class QueryUrlSettingHandler(Protocol[_StateContra]):
     """Protocol for a handler invoked on composeExtension/querySettingUrl activities."""
 
     def __call__(
         self,
         context: TeamsTurnContext,
-        state: StateT,
+        state: _StateContra,
         query: MessagingExtensionQuery,
     ) -> Awaitable[MessagingExtensionResponse]:
         """Handle a query setting URL invoke.
@@ -174,13 +174,13 @@ class QueryUrlSettingHandler(Protocol[StateT]):
         ...
 
 
-class ConfigureSettingsHandler(Protocol[StateT]):
+class ConfigureSettingsHandler(Protocol[_StateContra]):
     """Protocol for a handler invoked on composeExtension/setting activities."""
 
     def __call__(
         self,
         context: TeamsTurnContext,
-        state: StateT,
+        state: _StateContra,
         query: MessagingExtensionQuery,
     ) -> Awaitable[MessagingExtensionResponse]:
         """Handle a configure settings invoke.
@@ -193,13 +193,13 @@ class ConfigureSettingsHandler(Protocol[StateT]):
         ...
 
 
-class CardButtonClickedHandler(Protocol[StateT]):
+class CardButtonClickedHandler(Protocol[_StateContra]):
     """Protocol for a handler invoked on composeExtension/onCardButtonClicked activities."""
 
     def __call__(
         self,
         context: TeamsTurnContext,
-        state: StateT,
+        state: _StateContra,
         card: Any,
     ) -> Awaitable[None]:
         """Handle a card button clicked invoke.

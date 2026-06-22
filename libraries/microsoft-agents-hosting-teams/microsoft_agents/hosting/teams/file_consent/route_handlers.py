@@ -8,10 +8,10 @@ from typing import Awaitable, Protocol
 from microsoft_teams.api.models import FileConsentCardResponse
 
 from microsoft_agents.hosting.teams.teams_turn_context import TeamsTurnContext
-from microsoft_agents.hosting.teams.type_defs import StateT
+from microsoft_agents.hosting.teams.type_defs import _StateContra
 
 
-class FileConsentHandler(Protocol[StateT]):
+class FileConsentHandler(Protocol[_StateContra]):
     """Protocol for a handler invoked on fileConsent/invoke activities.
 
     Called for both ``accept`` and ``decline`` actions; the routing layer sends
@@ -21,7 +21,7 @@ class FileConsentHandler(Protocol[StateT]):
     def __call__(
         self,
         context: TeamsTurnContext,
-        state: StateT,
+        state: _StateContra,
         file_consent: FileConsentCardResponse,
     ) -> Awaitable[None]:
         """Handle a file consent invoke.

@@ -54,7 +54,9 @@ class Team(Generic[StateT]):
             channel_event_type = _get_channel_event_type(context)
             if channel_event_type:
                 if isinstance(event_type, re.Pattern):
-                    event_match = re.fullmatch(event_type, channel_event_type) is not None
+                    event_match = (
+                        re.fullmatch(event_type, channel_event_type) is not None
+                    )
                 else:
                     event_match = event_type == channel_event_type
 
@@ -76,7 +78,7 @@ class Team(Generic[StateT]):
             return func
 
         return __call
-    
+
     @overload
     def event(
         self, handler: TeamUpdateHandler[StateT]

@@ -35,7 +35,7 @@ from .route_handlers import TeamsRouteHandler, TeamsHandoffHandler
 from .task_module import TaskModule
 from .team import Team
 
-from .type_defs import StateT, _RouteDecorator
+from .type_defs import StateT
 
 
 class _AppRouteDecorator(Protocol[StateT]):
@@ -131,7 +131,7 @@ class TeamsAgentExtension(Generic[StateT]):
     # AgentApplication route hooks
 
     def _wrap_decorator(
-        self, decorator: _RouteDecorator[RouteHandler[StateT]]
+        self, decorator: Callable[[RouteHandler[StateT]], RouteHandler[StateT]]
     ) -> Callable[[TeamsRouteHandler[StateT]], RouteHandler[StateT]]:
         """Wrap a core route decorator so it accepts a :class:`TeamsRouteHandler`.
 

@@ -9,16 +9,16 @@ from microsoft_teams.api.models.meetings import MeetingDetails
 from microsoft_agents.activity.teams import MeetingParticipantsEventDetails
 
 from microsoft_agents.hosting.teams.teams_turn_context import TeamsTurnContext
-from microsoft_agents.hosting.teams.type_defs import StateT
+from microsoft_agents.hosting.teams.type_defs import _StateContra
 
 
-class MeetingStartHandler(Protocol[StateT]):
+class MeetingStartHandler(Protocol[_StateContra]):
     """Protocol for a handler invoked when a Teams meeting starts."""
 
     def __call__(
         self,
         context: TeamsTurnContext,
-        state: StateT,
+        state: _StateContra,
         meeting: MeetingDetails,
     ) -> Awaitable[None]:
         """Handle a meeting start event.
@@ -30,13 +30,13 @@ class MeetingStartHandler(Protocol[StateT]):
         ...
 
 
-class MeetingEndHandler(Protocol[StateT]):
+class MeetingEndHandler(Protocol[_StateContra]):
     """Protocol for a handler invoked when a Teams meeting ends."""
 
     def __call__(
         self,
         context: TeamsTurnContext,
-        state: StateT,
+        state: _StateContra,
         meeting: MeetingDetails,
     ) -> Awaitable[None]:
         """Handle a meeting end event.
@@ -48,13 +48,13 @@ class MeetingEndHandler(Protocol[StateT]):
         ...
 
 
-class MeetingParticipantsEventHandler(Protocol[StateT]):
+class MeetingParticipantsEventHandler(Protocol[_StateContra]):
     """Protocol for a handler invoked when participants join or leave a Teams meeting."""
 
     def __call__(
         self,
         context: TeamsTurnContext,
-        state: StateT,
+        state: _StateContra,
         meeting: MeetingParticipantsEventDetails,
     ) -> Awaitable[None]:
         """Handle a meeting participant join or leave event.
