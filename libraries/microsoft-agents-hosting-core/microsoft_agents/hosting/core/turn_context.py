@@ -189,7 +189,7 @@ class TurnContext(TurnContextProtocol):
         activity_or_text: Activity | str,
         speak: str | None = None,
         input_hint: str | None = None,
-    ) -> ResourceResponse | None:
+    ) -> ResourceResponse:
         """
         Sends a single activity or message to the user.
         :param activity_or_text:
@@ -205,7 +205,7 @@ class TurnContext(TurnContextProtocol):
                 activity_or_text.speak = speak
 
         result = await self.send_activities([activity_or_text])
-        return result[0] if result else None
+        return result[0] if result else ResourceResponse()
 
     async def send_activities(
         self, activities: list[Activity]

@@ -3,6 +3,12 @@
 
 """Teams-specific turn context wrapper."""
 
+from microsoft_agents.activity import (
+    Activity,
+    ActivityTreatment,
+    ActivityTreatmentTypes,
+    ResourceResponse,
+)
 from microsoft_agents.hosting.core import AgentApplication, TurnContext
 
 
@@ -22,3 +28,24 @@ class TeamsTurnContext(TurnContext):
         super().__init__(context)
         self._context = context
         self._app = app
+
+    @staticmethod
+    def _make_targeted_activity(activity: Activity) -> Activity:
+        activity = activity.model_copy()
+        activity.entities = activity.entities or []
+        activity.entities.append(
+            ActivityTreatment(treatment=ActivityTreatmentTypes.TARGETED)
+        )
+        return activity
+
+    async def send_targeted_activity(self, activity: Activity) -> ResourceResponse:
+        return await self.send_activity(
+            TeamsTurnContext._make_targeted_activity(activity)
+        )
+
+    async def send_targeted_activities(
+        self, activities: list[Activity]
+    ) -> list[ResourceResponse]:
+        return await self.send_activities(
+            [TeamsTurnContext._make_targeted_activity(act) for act in activities]
+        )
