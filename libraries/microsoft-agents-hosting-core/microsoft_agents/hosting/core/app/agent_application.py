@@ -76,6 +76,7 @@ class AgentApplication(Agent, Generic[StateT]):
     _route_list: _RouteList[StateT]
     _error: Optional[Callable[[TurnContext, Exception], Awaitable[None]]] = None
     _turn_state_factory: Optional[Callable[[TurnContext], StateT]] = None
+    _connection_manager: Connections
 
     def __init__(
         self,
@@ -159,7 +160,15 @@ class AgentApplication(Agent, Generic[StateT]):
 
         # TODO: decide how to initialize the Authorization (params vs options vs kwargs)
         if authorization:
+            if connection_manager:
+                logger.error(
+                    "AgentApplication: connection_manager is not needed when authorization is provided."
+                )
+                raise ApplicationError(
+                    "The `AgentApplication` does not take a `connection_manager` when `authorization` is provided."
+                )
             self._auth = authorization
+            self._connection_manager = self._auth.connection_manager
         else:
             if not connection_manager:
                 logger.error(
@@ -178,9 +187,20 @@ class AgentApplication(Agent, Generic[StateT]):
             self._auth = Authorization(
                 storage=self._options.storage,
                 connection_manager=connection_manager,
-                handlers=options.authorization_handlers,
+                auth_handlers=options.authorization_handlers,
                 **auth_options,
             )
+            self._connection_manager = connection_manager
+
+    @property
+    def connection_manager(self) -> Connections:
+        """
+        The application's connection manager.
+
+        :return: The connection manager for the application.
+        :rtype: :class:`microsoft_agents.hosting.core.authorization.Connections`
+        """
+        return self._connection_manager
 
     @property
     def adapter(self) -> ChannelServiceAdapter:
