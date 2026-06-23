@@ -187,7 +187,7 @@ class AgentApplication(Agent, Generic[StateT]):
             self._auth = Authorization(
                 storage=self._options.storage,
                 connection_manager=connection_manager,
-                handlers=options.authorization_handlers,
+                auth_handlers=options.authorization_handlers,
                 **auth_options,
             )
             self._connection_manager = connection_manager
