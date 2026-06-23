@@ -23,7 +23,7 @@ from microsoft_agents.hosting.msteams.teams_turn_context import TeamsTurnContext
 from microsoft_agents.hosting.msteams.type_defs import _StateContra
 
 
-class FetchTaskHandler(Protocol[_StateContra]):
+class FetchActionHandler(Protocol[_StateContra]):
     """Protocol for a handler invoked on composeExtension/fetchTask activities."""
 
     def __call__(

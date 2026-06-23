@@ -339,14 +339,14 @@ class TestMessagePreviewSend:
             await route_handler(ctx, MagicMock())
 
 
-class TestMessageExtensionFetchTask:
+class TestMessageExtensionFetchAction:
 
     def setup_method(self):
         self.app = _make_app()
         self.ext = TeamsAgentExtension(self.app)
 
-    def test_fetch_task_matches_command_id(self):
-        @self.ext.message_extensions.fetch_task("myCmd")
+    def test_fetch_action_matches_command_id(self):
+        @self.ext.message_extensions.fetch_action("myCmd")
         async def handler(ctx, state, action): ...
 
         selector = self.app._routes[0]["selector"]
@@ -371,8 +371,8 @@ class TestMessageExtensionFetchTask:
             is False
         )
 
-    def test_fetch_task_no_command_id_matches_all(self):
-        @self.ext.message_extensions.fetch_task()
+    def test_fetch_action_no_command_id_matches_all(self):
+        @self.ext.message_extensions.fetch_action()
         async def handler(ctx, state, action): ...
 
         selector = self.app._routes[0]["selector"]
@@ -387,8 +387,8 @@ class TestMessageExtensionFetchTask:
             is True
         )
 
-    def test_fetch_task_is_invoke(self):
-        @self.ext.message_extensions.fetch_task()
+    def test_fetch_action_is_invoke(self):
+        @self.ext.message_extensions.fetch_action()
         async def handler(ctx, state, action): ...
 
         assert self.app._routes[0]["is_invoke"] is True

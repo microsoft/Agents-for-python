@@ -29,7 +29,7 @@ from microsoft_agents.hosting.msteams.type_defs import (
 from microsoft_agents.hosting.msteams._utils import _match_selector, _send_invoke_response
 
 from .route_handlers import (
-    FetchTaskHandler,
+    FetchActionHandler,
     QueryHandler,
     SubmitActionHandler,
     MessagePreviewEditHandler,
@@ -296,13 +296,13 @@ class MessageExtension(Generic[StateT]):
 
         return __call
 
-    def fetch_task(
+    def fetch_action(
         self,
         command_id: CommandSelector = None,
         *,
         auth_handlers: Optional[list[str]] = None,
         rank: RouteRank = RouteRank.DEFAULT,
-    ) -> _RouteDecorator[FetchTaskHandler[StateT]]:
+    ) -> _RouteDecorator[FetchActionHandler[StateT]]:
         """Register a handler for composeExtension/fetchTask invokes."""
 
         def __selector(context: TurnContext) -> bool:
@@ -314,7 +314,7 @@ class MessageExtension(Generic[StateT]):
                 and _match_selector(command_id, value.get("commandId"))
             )
 
-        def __call(func: FetchTaskHandler[StateT]) -> FetchTaskHandler[StateT]:
+        def __call(func: FetchActionHandler[StateT]) -> FetchActionHandler[StateT]:
             async def __handler(context: TurnContext, state: StateT) -> None:
                 teams_context = TeamsTurnContext(context, self._app)
                 action = MessagingExtensionAction.model_validate(

@@ -15,6 +15,8 @@ from .message_extension import MessageExtension
 from .task_module import TaskModule
 from .team import Team
 
+from .teams_api_client import get_teams_api_client
+
 __all__ = [
     "TeamsAgentExtension",
     "Channel",
@@ -25,4 +27,5 @@ __all__ = [
     "MessageExtension",
     "TaskModule",
     "Team",
+    "get_teams_api_client",
 ]

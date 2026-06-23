@@ -24,34 +24,45 @@ def get_teams_api_client(context: TurnContext) -> ApiClient:
         return api_client
     raise ValueError("Unable to retrieve Teams API client.")
 
-async def _set_teams_api_client(
+def set_teams_api_client(
         context: TurnContext,
         connection_manager: Connections
     ) -> None:
     """
-    Set the Teams API client in the context.
+    Set the Teams API client in the context if it is not already set.
 
     :param context: The turn context.
     :param connection_manager: The connection manager.
     """
-    token: str | None = None
-    if context.identity:
-        assert context.identity is not None
-        provider = connection_manager.get_token_provider(
-            context.identity, context.activity.service_url
-        )
-        token = await provider.get_access_token(
-            "https://api.botframework.com", ["https://api.botframework.com/.default"]
-        )
+
+    if _TEAMS_API_CLIENT_KEY in context.turn_state:
+        return
 
     headers = {
         "Accept": "application/json",
         "Content-Type": "application/json",
     }
 
-    options = ClientOptions(
-        base_url=context.activity.service_url, headers=headers, token=token
-    )
+    options: ClientOptions
+
+    if context.identity:
+        assert context.identity is not None
+        provider = connection_manager.get_token_provider(
+            context.identity, context.activity.service_url
+        )
+
+        async def token_factory() -> str:
+            return await provider.get_access_token(
+                "https://api.botframework.com", ["https://api.botframework.com/.default"]
+            )
+
+        options = ClientOptions(
+            base_url=context.activity.service_url,
+            headers=headers,
+            token=token_factory
+        )
+    else:
+        options = ClientOptions(base_url=context.activity.service_url, headers=headers)
 
     api_client = ApiClient(
         context.activity.service_url,

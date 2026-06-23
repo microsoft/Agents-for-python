@@ -46,8 +46,7 @@ from .team import Team
 
 from .type_defs import StateT
 
-from ._teams_api_client import _set_teams_api_client
-from ._utils import _try_get_channel_data
+from .teams_api_client import set_teams_api_client
 
 class _AppRouteDecorator(Protocol[StateT]):
     """Protocol for a decorator returned by :class:`TeamsAgentExtension` route methods."""
@@ -104,11 +103,12 @@ class TeamsAgentExtension(Generic[StateT]):
     def _configure_app(self):
         """Configure the underlying AgentApplication with Teams-specific routes."""
 
-        async def before_handler(context: TurnContext, state: StateT) -> bool:
+        async def on_before_turn(context: TurnContext, state: StateT) -> bool:
             if context.activity.channel_id == Channels.ms_teams:
-                await _set_teams_api_client(context, self._app.connection_manager)
-                context.activity.channel_data = _try_get_channel_data(context)
+                set_teams_api_client(context, self._app.connection_manager)
             return True
+        
+        self._app.before_turn(on_before_turn)
 
     @property
     def channels(self) -> Channel[StateT]:
