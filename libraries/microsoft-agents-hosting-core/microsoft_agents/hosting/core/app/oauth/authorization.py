@@ -39,7 +39,7 @@ class Authorization:
     """Class responsible for managing authorization flows."""
 
     _storage: Storage
-    _connection_manager: Connections
+    _connections: Connections
     _handlers: dict[str, _AuthorizationHandler]
 
     def __init__(
@@ -59,8 +59,8 @@ class Authorization:
 
         :param storage: The storage system to use for state management.
         :type storage: :class:`microsoft_agents.hosting.core.storage.Storage`
-        :param connection_manager: The connection manager for OAuth providers.
-        :type connection_manager: :class:`microsoft_agents.hosting.core.authorization.Connections`
+        :param connections: The connection manager for OAuth providers.
+        :type connections: :class:`microsoft_agents.hosting.core.authorization.Connections`
         :param auth_handlers: Configuration for OAuth providers.
         :type auth_handlers: dict[str, :class:`microsoft_agents.hosting.core.app.oauth.auth_handler.AuthHandler`], Optional
         :raises ValueError: When storage is None or no auth handlers provided.
@@ -69,7 +69,7 @@ class Authorization:
             raise ValueError("Storage is required for Authorization")
 
         self._storage = storage
-        self._connection_manager = connection_manager
+        self._connections = connection_manager
 
         self._sign_in_success_handler: Optional[
             Callable[[TurnContext, TurnState, Optional[str]], Awaitable[None]]
@@ -122,13 +122,13 @@ class Authorization:
 
             self._handlers[name] = AUTHORIZATION_TYPE_MAP[auth_type](
                 storage=self._storage,
-                connection_manager=self._connection_manager,
+                connections=self._connections,
                 auth_handler=auth_handler,
             )
     
     @property
-    def connection_manager(self) -> Connections:
-        return self._connection_manager
+    def connections(self) -> Connections:
+        return self._connections
 
     @staticmethod
     def _sign_in_state_key(context: TurnContext) -> str:

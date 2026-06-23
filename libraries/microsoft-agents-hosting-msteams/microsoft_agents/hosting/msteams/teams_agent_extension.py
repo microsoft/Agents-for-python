@@ -93,6 +93,12 @@ class TeamsAgentExtension(Generic[StateT]):
         self._task_module: TaskModule[StateT] = TaskModule(app)
         self._team: Team[StateT] = Team(app)
 
+        self._configure_app()
+
+    def _configure_app(self):
+        """Configure the underlying AgentApplication with Teams-specific routes."""
+        self._app.
+
     @property
     def channels(self) -> Channel[StateT]:
         """Route registration for Channel events."""
