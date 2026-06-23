@@ -2,7 +2,7 @@
 
 import re
 
-from typing import Any, Optional
+from typing import Any
 
 from http import HTTPStatus
 
@@ -17,6 +17,19 @@ from microsoft_agents.hosting.core import TurnContext
 
 from .type_defs import CommandSelector
 
+def _try_get_channel_data(context: TurnContext) -> ChannelData | None:
+    """Attempt to extract and parse Teams channel data from the activity's channel_data.
+
+    :param context: The current turn context.
+    :return: A :class:`ChannelData` instance parsed from channel_data, or None if absent.
+    """
+    data = context.activity.channel_data
+    if data is None:
+        return None
+    if isinstance(data, ChannelData):
+        return data
+    return ChannelData.model_validate(data)
+
 
 def _get_channel_data(context: TurnContext) -> ChannelData:
     """Extract and parse Teams channel data from the activity's channel_data.
@@ -26,15 +39,13 @@ def _get_channel_data(context: TurnContext) -> ChannelData:
     :raises ValueError: If channel_data is absent.
     :raises pydantic.ValidationError: If channel_data cannot be deserialized.
     """
-    data = context.activity.channel_data
-    if data is None:
+    channel_data = _try_get_channel_data(context)
+    if channel_data is None:
         raise ValueError("channel_data is required")
-    if isinstance(data, ChannelData):
-        return data
-    return ChannelData.model_validate(data)
+    return channel_data
 
 
-def _match_selector(selector: CommandSelector, value: Optional[str]) -> bool:
+def _match_selector(selector: CommandSelector, value: str | None) -> bool:
     """Return True if *value* matches *selector*.
 
     :param selector: A literal string, compiled regex, or None. None matches anything.
@@ -49,7 +60,7 @@ def _match_selector(selector: CommandSelector, value: Optional[str]) -> bool:
     return bool(re.fullmatch(selector, value))
 
 
-def _get_channel_event_type(context: TurnContext) -> Optional[str]:
+def _get_channel_event_type(context: TurnContext) -> str | None:
     """Extract the Teams channel event type from the activity's channel_data.
 
     :param context: The current turn context.

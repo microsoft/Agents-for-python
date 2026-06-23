@@ -14,7 +14,6 @@ from .message import Message
 from .message_extension import MessageExtension
 from .task_module import TaskModule
 from .team import Team
-from .teams_info import TeamsInfo
 
 __all__ = [
     "TeamsAgentExtension",
@@ -26,5 +25,4 @@ __all__ = [
     "MessageExtension",
     "TaskModule",
     "Team",
-    "TeamsInfo",
 ]

@@ -18,11 +18,15 @@ from typing import (
 
 from microsoft_agents.activity import (
     ActivityTypes,
+    Channels,
     ConversationUpdateTypes,
     MessageReactionTypes,
     MessageUpdateTypes,
 )
-from microsoft_agents.hosting.core import AgentApplication
+from microsoft_agents.hosting.core import (
+    AgentApplication,
+    TurnContext,
+)
 from microsoft_agents.hosting.core.app._type_defs import RouteHandler, HandoffHandler
 
 from .channel import Channel
@@ -42,6 +46,8 @@ from .team import Team
 
 from .type_defs import StateT
 
+from ._teams_api_client import _set_teams_api_client
+from ._utils import _try_get_channel_data
 
 class _AppRouteDecorator(Protocol[StateT]):
     """Protocol for a decorator returned by :class:`TeamsAgentExtension` route methods."""
@@ -97,7 +103,12 @@ class TeamsAgentExtension(Generic[StateT]):
 
     def _configure_app(self):
         """Configure the underlying AgentApplication with Teams-specific routes."""
-        self._app.
+
+        async def before_handler(context: TurnContext, state: StateT) -> bool:
+            if context.activity.channel_id == Channels.ms_teams:
+                await _set_teams_api_client(context, self._app.connection_manager)
+                context.activity.channel_data = _try_get_channel_data(context)
+            return True
 
     @property
     def channels(self) -> Channel[StateT]:
