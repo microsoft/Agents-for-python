@@ -71,9 +71,9 @@ class AgentApplication(Agent, Generic[StateT]):
     _adapter: Optional[ChannelServiceAdapter] = None
     _auth: Optional[Authorization] = None
     _proactive: Optional[Proactive] = None
-    _internal_before_turn: list[Callable[[TurnContext, StateT], Awaitable[bool]]] = []
-    _internal_after_turn: list[Callable[[TurnContext, StateT], Awaitable[bool]]] = []
-    _route_list: _RouteList[StateT] = _RouteList[StateT]()
+    _internal_before_turn: list[Callable[[TurnContext, StateT], Awaitable[bool]]]
+    _internal_after_turn: list[Callable[[TurnContext, StateT], Awaitable[bool]]]
+    _route_list: _RouteList[StateT]
     _error: Optional[Callable[[TurnContext, Exception], Awaitable[None]]] = None
     _turn_state_factory: Optional[Callable[[TurnContext], StateT]] = None
 
@@ -98,6 +98,8 @@ class AgentApplication(Agent, Generic[StateT]):
         :type kwargs: Any
         """
         self._route_list = _RouteList[StateT]()
+        self._internal_before_turn = []
+        self._internal_after_turn = []
 
         configuration = kwargs
 

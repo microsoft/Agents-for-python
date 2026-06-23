@@ -14,6 +14,8 @@ from microsoft_agents.hosting.core.app import (
     ApplicationOptions,
     TurnState,
 )
+from microsoft_agents.hosting.core.app.oauth import Authorization
+from tests._common.testing_objects import TestingConnectionManager as _ConnectionManager
 
 
 class _StubAdapter:
@@ -26,8 +28,13 @@ class _StubAdapter:
 
 
 def _make_app() -> AgentApplication[TurnState]:
+    storage = MemoryStorage()
     return AgentApplication[TurnState](
-        options=ApplicationOptions(storage=MemoryStorage())
+        options=ApplicationOptions(storage=storage),
+        authorization=Authorization(
+            storage=storage,
+            connection_manager=_ConnectionManager(),
+        ),
     )
 
 

@@ -129,6 +129,8 @@ class Authorization:
         """
         The connection manager for the authorization instance.
 
+        The connection manager is responsible for managing the connections to the various authentication providers.
+
         :return: The connection manager.
         :rtype: :class:`microsoft_agents.hosting.core.authorization.Connections`
         """
