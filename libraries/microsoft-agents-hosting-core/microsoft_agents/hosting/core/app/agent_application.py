@@ -199,6 +199,7 @@ class AgentApplication(Agent, Generic[StateT]):
 
         :return: The connection manager for the application.
         :rtype: :class:`microsoft_agents.hosting.core.authorization.Connections`
+        """
         return self._connection_manager
 
     @property
