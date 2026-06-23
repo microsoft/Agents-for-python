@@ -164,9 +164,9 @@ class AgentApplication(Agent, Generic[StateT]):
                     "AgentApplication: connection_manager is required for Authorization.",
                     stack_info=True,
                 )
-                raise ApplicationError("""
-                    The `AgentApplication` requires a `connection_manager` to initialize the `Authorization` instance.
-                    """)
+                raise ApplicationError(
+                    "The `AgentApplication` requires a `connection_manager` to initialize the `Authorization` instance."
+                )
 
             auth_options = {
                 key: value
@@ -254,12 +254,12 @@ class AgentApplication(Agent, Generic[StateT]):
         return self._proactive
 
     def before_turn(
-        self, handler: Callable[[TurnContext, TurnState], Awaitable[bool]]
-    ) -> Callable[[TurnContext, TurnState], Awaitable[bool]]:
+        self, handler: Callable[[TurnContext, StateT], Awaitable[bool]]
+    ) -> Callable[[TurnContext, StateT], Awaitable[bool]]:
         """
         Adds a handler to be called before each turn of the conversation.
 
-        :param handler: A function that takes a TurnContext and a TurnState and returns an Awaitable.
+        :param handler: A function that takes a TurnContext and a StateT and returns an Awaitable.
         :type handler: :class:`microsoft_agents.hosting.core.app._type_defs.RouteHandler`[StateT]
         :return: The added handler.
         :rtype: :class:`microsoft_agents.hosting.core.app._type_defs.RouteHandler`[StateT]
@@ -268,12 +268,12 @@ class AgentApplication(Agent, Generic[StateT]):
         return handler
 
     def after_turn(
-        self, handler: Callable[[TurnContext, TurnState], Awaitable[bool]]
-    ) -> Callable[[TurnContext, TurnState], Awaitable[bool]]:
+        self, handler: Callable[[TurnContext, StateT], Awaitable[bool]]
+    ) -> Callable[[TurnContext, StateT], Awaitable[bool]]:
         """
         Adds a handler to be called after each turn of the conversation.
 
-        :param handler: A function that takes a TurnContext and a TurnState and returns an Awaitable.
+        :param handler: A function that takes a TurnContext and a StateT and returns an Awaitable.
         :type handler: :class:`microsoft_agents.hosting.core.app._type_defs.RouteHandler`[StateT]
         :return: The added handler.
         :rtype: :class:`microsoft_agents.hosting.core.app._type_defs.RouteHandler`[StateT]
@@ -296,7 +296,7 @@ class AgentApplication(Agent, Generic[StateT]):
 
         :param selector: A function that takes a TurnContext and returns a boolean indicating whether the route should be selected.
         :type selector: Callable[[:class:`microsoft_agents.hosting.core.turn_context.TurnContext`], bool]
-        :param handler: A function that takes a TurnContext and a TurnState and returns an Awaitable.
+        :param handler: A function that takes a TurnContext and a StateT and returns an Awaitable.
         :type handler: :class:`microsoft_agents.hosting.core.app._type_defs.RouteHandler`[StateT]
         :param is_invoke: Whether the route is for an invoke activity, defaults to False
         :type is_invoke: bool, Optional

@@ -3,10 +3,8 @@ Copyright (c) Microsoft Corporation. All rights reserved.
 Licensed under the MIT License.
 """
 
-from datetime import datetime
 import logging
-from typing import TypeVar, Optional, Callable, Awaitable, Generic, cast
-import jwt
+from typing import Optional, Callable, Awaitable, cast
 
 from microsoft_agents.activity import Activity, Channels, SignInConstants, TokenResponse
 from microsoft_agents.activity.activity_types import ActivityTypes
@@ -132,7 +130,7 @@ class Authorization:
         The connection manager for the authorization instance.
 
         :return: The connection manager.
-        :rtype: :class:`microsoft_agents.hosting.core.app.connections.Connections`
+        :rtype: :class:`microsoft_agents.hosting.core.authorization.Connections`
         """
         return self._connection_manager
 
