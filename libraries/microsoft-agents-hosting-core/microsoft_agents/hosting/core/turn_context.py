@@ -95,12 +95,12 @@ class TurnContext(TurnContextProtocol):
             setattr(context, attribute, getattr(self, attribute))
 
     @property
-    def activity(self):
+    def activity(self) -> Activity:
         """
         The received activity.
         :return:
         """
-        return self._activity
+        return self._activity  # type: ignore[return-value]
 
     @activity.setter
     def activity(self, value):

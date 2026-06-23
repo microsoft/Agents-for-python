@@ -1,3 +1,27 @@
+# Microsoft 365 Agents SDK for Python - Release Notes v1.1.0
+
+**Release Date:** 2026-06-19
+**Previous Version:** 1.0.0 (Released May 22, 2026)
+
+## Major Features & Enhancements
+
+- **Slack Hosting Package**: New `microsoft-agents-hosting-slack` package for building Slack agents — direct-to-Slack responses across the full Slack Web API surface, a typed `SlackChannelData` envelope with dot-notation access, a `SlackAgentExtension` for channel-scoped handlers, and a `SlackStream` helper for incremental streaming (#390)
+- **IMDS Authentication**: Support for Azure Instance Metadata Service (IMDS) authentication in MSAL auth (#413)
+- **MSAL Azure Region**: Configurable Azure region on MSAL config for regional token endpoints (#409)
+
+## Bug Fixes
+
+- **Agentic Conversation ID**: Sanitize conversation ID for agentic requests on the agents channel (#402)
+- **Starlette Dependency**: Added explicit `starlette` dependency to pull in the fix for CVE-2026-48710 (#406)
+
+## Developer Experience
+
+- **Integration Testing**: Integration testing enhancements (#408)
+- **Testing Initialization Helper**: New testing initialization helper (#416)
+- **Typing Annotations**: Updated typing annotations across the codebase (#418)
+
+---
+
 # Microsoft 365 Agents SDK for Python - Release Notes v1.0.0
 
 **Release Date:** May 22, 2026
