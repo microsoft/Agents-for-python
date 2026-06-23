@@ -26,7 +26,6 @@ from microsoft_agents.hosting.core.app.proactive import (
 from microsoft_agents.hosting.core.authorization import ClaimsIdentity
 from microsoft_agents.hosting.core.channel_adapter import ChannelAdapter
 
-
 # ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------

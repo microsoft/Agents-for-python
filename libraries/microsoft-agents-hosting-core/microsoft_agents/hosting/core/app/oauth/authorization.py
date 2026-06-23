@@ -126,6 +126,16 @@ class Authorization:
                 auth_handler=auth_handler,
             )
 
+    @property
+    def connection_manager(self) -> Connections:
+        """
+        The connection manager for the authorization instance.
+
+        :return: The connection manager.
+        :rtype: :class:`microsoft_agents.hosting.core.app.connections.Connections`
+        """
+        return self._connection_manager
+
     @staticmethod
     def _sign_in_state_key(context: TurnContext) -> str:
         """Generate a unique storage key for the sign-in state based on the context.

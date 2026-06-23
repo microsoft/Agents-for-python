@@ -159,6 +159,15 @@ class AgentApplication(Agent, Generic[StateT]):
         if authorization:
             self._auth = authorization
         else:
+            if not connection_manager:
+                logger.error(
+                    "AgentApplication: connection_manager is required for Authorization.",
+                    stack_info=True,
+                )
+                raise ApplicationError("""
+                    The `AgentApplication` requires a `connection_manager` to initialize the `Authorization` instance.
+                    """)
+
             auth_options = {
                 key: value
                 for key, value in configuration.items()
@@ -243,6 +252,34 @@ class AgentApplication(Agent, Generic[StateT]):
                 no ProactiveOptions were configured in ApplicationOptions.
                 """)
         return self._proactive
+
+    def before_turn(
+        self, handler: Callable[[TurnContext, TurnState], Awaitable[bool]]
+    ) -> Callable[[TurnContext, TurnState], Awaitable[bool]]:
+        """
+        Adds a handler to be called before each turn of the conversation.
+
+        :param handler: A function that takes a TurnContext and a TurnState and returns an Awaitable.
+        :type handler: :class:`microsoft_agents.hosting.core.app._type_defs.RouteHandler`[StateT]
+        :return: The added handler.
+        :rtype: :class:`microsoft_agents.hosting.core.app._type_defs.RouteHandler`[StateT]
+        """
+        self._internal_before_turn.append(handler)
+        return handler
+
+    def after_turn(
+        self, handler: Callable[[TurnContext, TurnState], Awaitable[bool]]
+    ) -> Callable[[TurnContext, TurnState], Awaitable[bool]]:
+        """
+        Adds a handler to be called after each turn of the conversation.
+
+        :param handler: A function that takes a TurnContext and a TurnState and returns an Awaitable.
+        :type handler: :class:`microsoft_agents.hosting.core.app._type_defs.RouteHandler`[StateT]
+        :return: The added handler.
+        :rtype: :class:`microsoft_agents.hosting.core.app._type_defs.RouteHandler`[StateT]
+        """
+        self._internal_after_turn.append(handler)
+        return handler
 
     def add_route(
         self,
