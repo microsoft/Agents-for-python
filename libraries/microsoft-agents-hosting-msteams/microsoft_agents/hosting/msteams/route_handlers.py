@@ -23,7 +23,9 @@ from .type_defs import _StateContra
 class TeamsRouteHandler(Protocol[_StateContra]):
     """Protocol for a Teams route handler that receives a :class:`TeamsTurnContext`."""
 
-    def __call__(self, context: TeamsTurnContext, state: _StateContra, /) -> Awaitable[None]:
+    def __call__(
+        self, context: TeamsTurnContext, state: _StateContra, /
+    ) -> Awaitable[None]:
         """Handle a turn with Teams context.
 
         :param context: Teams-aware turn context.
@@ -77,7 +79,9 @@ def wrap_teams_handoff_handler(
     :return: A :class:`HandoffHandler` that upgrades the context before delegating.
     """
 
-    async def __func(context: TurnContext, state: _StateContra, handoff_data: str) -> None:
+    async def __func(
+        context: TurnContext, state: _StateContra, handoff_data: str
+    ) -> None:
         teams_context = TeamsTurnContext(context, app)
         await handler(teams_context, state, handoff_data)
 

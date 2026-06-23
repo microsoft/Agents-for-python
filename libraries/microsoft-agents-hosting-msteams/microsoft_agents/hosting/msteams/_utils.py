@@ -17,6 +17,7 @@ from microsoft_agents.hosting.core import TurnContext
 
 from .type_defs import CommandSelector
 
+
 def _try_get_channel_data(context: TurnContext) -> ChannelData | None:
     """Attempt to extract and parse Teams channel data from the activity's channel_data.
 

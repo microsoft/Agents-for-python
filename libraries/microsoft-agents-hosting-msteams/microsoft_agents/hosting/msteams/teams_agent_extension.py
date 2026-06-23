@@ -48,6 +48,7 @@ from .type_defs import StateT
 
 from .teams_api_client import set_teams_api_client
 
+
 class _AppRouteDecorator(Protocol[StateT]):
     """Protocol for a decorator returned by :class:`TeamsAgentExtension` route methods."""
 
@@ -107,7 +108,7 @@ class TeamsAgentExtension(Generic[StateT]):
             if context.activity.channel_id == Channels.ms_teams:
                 set_teams_api_client(context, self._app.connection_manager)
             return True
-        
+
         self._app.before_turn(on_before_turn)
 
     @property

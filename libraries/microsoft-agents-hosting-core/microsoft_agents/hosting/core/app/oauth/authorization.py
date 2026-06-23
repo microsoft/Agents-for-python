@@ -123,7 +123,7 @@ class Authorization:
                 connections=self._connections,
                 auth_handler=auth_handler,
             )
-    
+
     @property
     def connections(self) -> Connections:
         return self._connections

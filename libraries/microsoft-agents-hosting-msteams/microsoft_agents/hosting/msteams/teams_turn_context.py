@@ -17,6 +17,7 @@ from microsoft_agents.hosting.core import AgentApplication, TurnContext
 
 from .teams_api_client import get_teams_api_client, set_teams_api_client
 
+
 class TeamsTurnContext(TurnContext):
     """A context object for handling Teams-specific turn functionality.
 
@@ -24,7 +25,9 @@ class TeamsTurnContext(TurnContext):
     receive a typed context without changing the core routing engine.
     """
 
-    def __init__(self, context: TurnContext, app: AgentApplication, _sentinel=None) -> None:
+    def __init__(
+        self, context: TurnContext, app: AgentApplication, _sentinel=None
+    ) -> None:
         """Initialise the Teams turn context from a plain turn context.
 
         :param context: The base turn context provided by the core runtime.
@@ -34,6 +37,11 @@ class TeamsTurnContext(TurnContext):
         self._app = app
         self._turn_state.update(context.turn_state)
         set_teams_api_client(context, app.connection_manager)
+
+    @property
+    def activity(self) -> TeamsActivity:
+        """Get the Teams activity for the turn context."""
+        return TeamsActivity(self._activity)
 
     @property
     def api_client(self) -> ApiClient:

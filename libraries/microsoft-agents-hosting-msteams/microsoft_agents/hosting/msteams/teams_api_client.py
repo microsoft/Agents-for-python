@@ -11,6 +11,7 @@ from microsoft_agents.hosting.core import (
 
 _TEAMS_API_CLIENT_KEY = "TeamsApiClient"
 
+
 def get_teams_api_client(context: TurnContext) -> ApiClient:
     """
     Get the cached Teams API client from the context.
@@ -24,10 +25,8 @@ def get_teams_api_client(context: TurnContext) -> ApiClient:
         return api_client
     raise ValueError("Unable to retrieve Teams API client.")
 
-def set_teams_api_client(
-        context: TurnContext,
-        connection_manager: Connections
-    ) -> None:
+
+def set_teams_api_client(context: TurnContext, connection_manager: Connections) -> None:
     """
     Set the Teams API client in the context if it is not already set.
 
@@ -53,13 +52,12 @@ def set_teams_api_client(
 
         async def token_factory() -> str:
             return await provider.get_access_token(
-                "https://api.botframework.com", ["https://api.botframework.com/.default"]
+                "https://api.botframework.com",
+                ["https://api.botframework.com/.default"],
             )
 
         options = ClientOptions(
-            base_url=context.activity.service_url,
-            headers=headers,
-            token=token_factory
+            base_url=context.activity.service_url, headers=headers, token=token_factory
         )
     else:
         options = ClientOptions(base_url=context.activity.service_url, headers=headers)

@@ -26,7 +26,10 @@ from microsoft_agents.hosting.msteams.type_defs import (
     _RouteDecorator,
 )
 
-from microsoft_agents.hosting.msteams._utils import _match_selector, _send_invoke_response
+from microsoft_agents.hosting.msteams._utils import (
+    _match_selector,
+    _send_invoke_response,
+)
 
 from .route_handlers import (
     FetchActionHandler,
