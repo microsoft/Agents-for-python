@@ -16,9 +16,9 @@ from typing import (
     Callable,
     Generic,
     Optional,
-    Pattern,
     TypeVar,
     cast,
+    overload,
 )
 
 from microsoft_agents.activity import (
@@ -312,6 +312,8 @@ class AgentApplication(Agent, Generic[StateT]):
         """
 
         def __selector(context: TurnContext):
+            if isinstance(activity_type, list):
+                return context.activity.type in activity_type
             return activity_type == context.activity.type
 
         def __call(func: RouteHandler[StateT]) -> RouteHandler[StateT]:
@@ -325,7 +327,7 @@ class AgentApplication(Agent, Generic[StateT]):
 
     def message(
         self,
-        select: str | Pattern[str] | list[str | Pattern[str]],
+        select: str | re.Pattern[str] | list[str | re.Pattern[str]],
         *,
         auth_handlers: Optional[list[str]] = None,
         **kwargs,
@@ -342,7 +344,7 @@ class AgentApplication(Agent, Generic[StateT]):
                     return True
 
         :param select: Literal text, compiled regex, or list of either used to match the incoming message.
-        :type select: str | Pattern[str] | list[str | Pattern[str]]
+        :type select: str | re.Pattern[str] | list[str | re.Pattern[str]]
         :param auth_handlers: Optional list of authorization handler IDs for the route.
         :type auth_handlers: Optional[list[str]]
         :param kwargs: Additional route configuration passed to :meth:`microsoft_agents.hosting.core.AgentApplication.add_route`.
@@ -353,9 +355,18 @@ class AgentApplication(Agent, Generic[StateT]):
                 return False
 
             text = context.activity.text if context.activity.text else ""
-            if isinstance(select, Pattern):
-                hits = re.fullmatch(select, text)
-                return hits is not None
+
+            if isinstance(select, list):
+                for item in select:
+                    if isinstance(item, re.Pattern):
+                        if re.fullmatch(item, text) is not None:
+                            return True
+                    elif text == item:
+                        return True
+                return False
+
+            if isinstance(select, re.Pattern):
+                return re.fullmatch(select, text) is not None
 
             return text == select
 
@@ -535,12 +546,39 @@ class AgentApplication(Agent, Generic[StateT]):
 
         return __call
 
+    @overload
     def handoff(
-        self, *, auth_handlers: Optional[list[str]] = None, **kwargs
+        self,
+        func: Callable[[TurnContext, StateT, str], Awaitable[None]],
+        *,
+        auth_handlers: Optional[list[str]] = None,
+        **kwargs,
+    ) -> Callable[[TurnContext, StateT, str], Awaitable[None]]: ...
+
+    @overload
+    def handoff(
+        self,
+        *,
+        auth_handlers: Optional[list[str]] = None,
+        **kwargs: Any,
     ) -> Callable[
         [Callable[[TurnContext, StateT, str], Awaitable[None]]],
         Callable[[TurnContext, StateT, str], Awaitable[None]],
-    ]:
+    ]: ...
+
+    def handoff(
+        self,
+        func: Optional[Callable[[TurnContext, StateT, str], Awaitable[None]]] = None,
+        *,
+        auth_handlers: Optional[list[str]] = None,
+        **kwargs,
+    ) -> (
+        Callable[[TurnContext, StateT, str], Awaitable[None]]
+        | Callable[
+            [Callable[[TurnContext, StateT, str], Awaitable[None]]],
+            Callable[[TurnContext, StateT, str], Awaitable[None]],
+        ]
+    ):
         """
         Register a handler to hand off conversations from one copilot to another.
 
@@ -551,6 +589,8 @@ class AgentApplication(Agent, Generic[StateT]):
                 async def on_handoff(context: TurnContext, state: TurnState, continuation: str):
                     print(continuation)
 
+        :param func: Optional handler to register directly without using decorator syntax.
+        :type func: Optional[Callable[[TurnContext, StateT, str], Awaitable[None]]]
         :param auth_handlers: Optional list of authorization handler IDs for the route.
         :type auth_handlers: Optional[list[str]]
         :param kwargs: Additional route configuration passed to :meth:`microsoft_agents.hosting.core.AgentApplication.add_route`.
@@ -566,24 +606,29 @@ class AgentApplication(Agent, Generic[StateT]):
             func: Callable[[TurnContext, StateT, str], Awaitable[None]],
         ) -> Callable[[TurnContext, StateT, str], Awaitable[None]]:
             async def __handler(context: TurnContext, state: StateT):
-                if not context.activity.value:
-                    return False
-                await func(context, state, context.activity.value["continuation"])
+                if (
+                    isinstance(context.activity.value, dict)
+                    and "continuation" in context.activity.value
+                ):
+                    await func(context, state, context.activity.value["continuation"])
+                else:
+                    logger.warning("Invalid handoff action received")
                 await context.send_activity(
                     Activity(
                         type=ActivityTypes.invoke_response,
                         value=InvokeResponse(status=200),
                     )
                 )
-                return True
 
             logger.debug(
                 f"Registering handoff handler for route handler {func.__name__} with auth handlers: {auth_handlers}"
             )
 
-            self.add_route(__selector, func, auth_handlers=auth_handlers, **kwargs)
+            self.add_route(__selector, __handler, auth_handlers=auth_handlers, **kwargs)
             return func
 
+        if func is not None:
+            return __call(func)
         return __call
 
     def on_sign_in_success(
