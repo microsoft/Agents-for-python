@@ -161,7 +161,9 @@ class AgentApplication(Agent, Generic[StateT]):
         # TODO: decide how to initialize the Authorization (params vs options vs kwargs)
         if authorization:
             if connection_manager:
-                logger.error("AgentApplication: connection_manager is not needed when authorization is provided.")
+                logger.error(
+                    "AgentApplication: connection_manager is not needed when authorization is provided."
+                )
                 raise ApplicationError(
                     "The `AgentApplication` does not take a `connection_manager` when `authorization` is provided."
                 )
