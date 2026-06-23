@@ -71,9 +71,9 @@ class AgentApplication(Agent, Generic[StateT]):
     _adapter: Optional[ChannelServiceAdapter] = None
     _auth: Optional[Authorization] = None
     _proactive: Optional[Proactive] = None
-    _internal_before_turn: list[Callable[[TurnContext, StateT], Awaitable[bool]]] = []
-    _internal_after_turn: list[Callable[[TurnContext, StateT], Awaitable[bool]]] = []
-    _route_list: _RouteList[StateT] = _RouteList[StateT]()
+    _internal_before_turn: list[Callable[[TurnContext, StateT], Awaitable[bool]]]
+    _internal_after_turn: list[Callable[[TurnContext, StateT], Awaitable[bool]]]
+    _route_list: _RouteList[StateT]
     _error: Optional[Callable[[TurnContext, Exception], Awaitable[None]]] = None
     _turn_state_factory: Optional[Callable[[TurnContext], StateT]] = None
 
@@ -98,6 +98,8 @@ class AgentApplication(Agent, Generic[StateT]):
         :type kwargs: Any
         """
         self._route_list = _RouteList[StateT]()
+        self._internal_before_turn = []
+        self._internal_after_turn = []
 
         configuration = kwargs
 
@@ -159,6 +161,15 @@ class AgentApplication(Agent, Generic[StateT]):
         if authorization:
             self._auth = authorization
         else:
+            if not connection_manager:
+                logger.error(
+                    "AgentApplication: connection_manager is required for Authorization.",
+                    stack_info=True,
+                )
+                raise ApplicationError(
+                    "The `AgentApplication` requires a `connection_manager` to initialize the `Authorization` instance."
+                )
+
             auth_options = {
                 key: value
                 for key, value in configuration.items()
@@ -244,6 +255,34 @@ class AgentApplication(Agent, Generic[StateT]):
                 """)
         return self._proactive
 
+    def before_turn(
+        self, handler: Callable[[TurnContext, StateT], Awaitable[bool]]
+    ) -> Callable[[TurnContext, StateT], Awaitable[bool]]:
+        """
+        Adds a handler to be called before each turn of the conversation.
+
+        :param handler: A function that takes a TurnContext and a StateT and returns an Awaitable.
+        :type handler: Callable[[TurnContext, StateT], Awaitable[bool]]
+        :return: The added handler.
+        :rtype: Callable[[TurnContext, StateT], Awaitable[bool]]
+        """
+        self._internal_before_turn.append(handler)
+        return handler
+
+    def after_turn(
+        self, handler: Callable[[TurnContext, StateT], Awaitable[bool]]
+    ) -> Callable[[TurnContext, StateT], Awaitable[bool]]:
+        """
+        Adds a handler to be called after each turn of the conversation.
+
+        :param handler: A function that takes a TurnContext and a StateT and returns an Awaitable.
+        :type handler: Callable[[TurnContext, StateT], Awaitable[bool]]
+        :return: The added handler.
+        :rtype: Callable[[TurnContext, StateT], Awaitable[bool]]
+        """
+        self._internal_after_turn.append(handler)
+        return handler
+
     def add_route(
         self,
         selector: RouteSelector,
@@ -259,7 +298,7 @@ class AgentApplication(Agent, Generic[StateT]):
 
         :param selector: A function that takes a TurnContext and returns a boolean indicating whether the route should be selected.
         :type selector: Callable[[:class:`microsoft_agents.hosting.core.turn_context.TurnContext`], bool]
-        :param handler: A function that takes a TurnContext and a TurnState and returns an Awaitable.
+        :param handler: A function that takes a TurnContext and a StateT and returns an Awaitable.
         :type handler: :class:`microsoft_agents.hosting.core.app._type_defs.RouteHandler`[StateT]
         :param is_invoke: Whether the route is for an invoke activity, defaults to False
         :type is_invoke: bool, Optional
