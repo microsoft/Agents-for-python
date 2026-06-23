@@ -262,9 +262,9 @@ class AgentApplication(Agent, Generic[StateT]):
         Adds a handler to be called before each turn of the conversation.
 
         :param handler: A function that takes a TurnContext and a StateT and returns an Awaitable.
-        :type handler: :class:`microsoft_agents.hosting.core.app._type_defs.RouteHandler`[StateT]
+        :type handler: Callable[[TurnContext, StateT], Awaitable[bool]]
         :return: The added handler.
-        :rtype: :class:`microsoft_agents.hosting.core.app._type_defs.RouteHandler`[StateT]
+        :rtype: Callable[[TurnContext, StateT], Awaitable[bool]]
         """
         self._internal_before_turn.append(handler)
         return handler
@@ -276,9 +276,9 @@ class AgentApplication(Agent, Generic[StateT]):
         Adds a handler to be called after each turn of the conversation.
 
         :param handler: A function that takes a TurnContext and a StateT and returns an Awaitable.
-        :type handler: :class:`microsoft_agents.hosting.core.app._type_defs.RouteHandler`[StateT]
+        :type handler: Callable[[TurnContext, StateT], Awaitable[bool]]
         :return: The added handler.
-        :rtype: :class:`microsoft_agents.hosting.core.app._type_defs.RouteHandler`[StateT]
+        :rtype: Callable[[TurnContext, StateT], Awaitable[bool]]
         """
         self._internal_after_turn.append(handler)
         return handler
