@@ -14,8 +14,8 @@ from microsoft_teams.api.models import (
 )
 
 from microsoft_agents.hosting.core import TurnContext
-from microsoft_agents.hosting.teams.errors import teams_errors
 
+from .errors import teams_errors
 from ._teams_api_client import get_cached_teams_api_client
 from ._utils import _get_channel_data
 

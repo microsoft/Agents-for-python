@@ -8,8 +8,8 @@ from typing import Awaitable, Protocol
 from microsoft_teams.api.models.meetings import MeetingDetails
 from microsoft_agents.activity.teams import MeetingParticipantsEventDetails
 
-from microsoft_agents.hosting.teams.teams_turn_context import TeamsTurnContext
-from microsoft_agents.hosting.teams.type_defs import _StateContra
+from microsoft_agents.hosting.msteams.teams_turn_context import TeamsTurnContext
+from microsoft_agents.hosting.msteams.type_defs import _StateContra
 
 
 class MeetingStartHandler(Protocol[_StateContra]):

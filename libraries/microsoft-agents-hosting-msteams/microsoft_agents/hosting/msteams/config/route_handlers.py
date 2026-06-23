@@ -7,8 +7,8 @@ from typing import Any, Awaitable, Protocol
 
 from microsoft_teams.api.models.config import ConfigResponse
 
-from microsoft_agents.hosting.teams.teams_turn_context import TeamsTurnContext
-from microsoft_agents.hosting.teams.type_defs import _StateContra
+from microsoft_agents.hosting.msteams.teams_turn_context import TeamsTurnContext
+from microsoft_agents.hosting.msteams.type_defs import _StateContra
 
 
 class ConfigHandler(Protocol[_StateContra]):

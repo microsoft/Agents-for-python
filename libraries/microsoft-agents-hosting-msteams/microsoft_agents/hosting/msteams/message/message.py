@@ -14,16 +14,16 @@ from microsoft_agents.hosting.core import (
     TurnContext,
 )
 
-from microsoft_agents.hosting.teams.route_handlers import (
+from microsoft_agents.hosting.msteams.route_handlers import (
     TeamsRouteHandler,
     wrap_teams_route_handler,
 )
-from microsoft_agents.hosting.teams.teams_turn_context import TeamsTurnContext
-from microsoft_agents.hosting.teams.type_defs import (
+from microsoft_agents.hosting.msteams.teams_turn_context import TeamsTurnContext
+from microsoft_agents.hosting.msteams.type_defs import (
     _RouteDecorator,
     StateT,
 )
-from microsoft_agents.hosting.teams._utils import (
+from microsoft_agents.hosting.msteams._utils import (
     _get_channel_event_type,
     _send_invoke_response,
 )

@@ -3,7 +3,7 @@ requires = ["setuptools"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "microsoft-agents-hosting-teams"
+name = "microsoft-agents-hosting-msteams"
 dynamic = ["version", "dependencies"]
 description = "Integration library for Microsoft Agents with Teams"
 readme = {file = "readme.md", content-type = "text/markdown"}
