@@ -1,10 +1,5 @@
-"""
-Copyright (c) Microsoft Corporation. All rights reserved.
-Licensed under the MIT License.
-
-Teams-specific extension for :class:`AgentApplication` that exposes route
-registration helpers for every Teams invoke / event surface.
-"""
+# Copyright (c) Microsoft Corporation. All rights reserved.
+# Licensed under the MIT License.
 
 from __future__ import annotations
 
@@ -15,6 +10,8 @@ from typing import (
     Pattern,
     Protocol,
 )
+
+from msgraph import GraphServiceClient
 
 from microsoft_agents.activity import (
     ActivityTypes,
@@ -44,9 +41,9 @@ from .route_handlers import (
 from .task_module import TaskModule
 from .team import Team
 
-from .type_defs import StateT
-
+from .graph import create_graph_service_client
 from .teams_api_client import set_teams_api_client
+from .type_defs import StateT
 
 
 class _AppRouteDecorator(Protocol[StateT]):
@@ -275,3 +272,11 @@ class TeamsAgentExtension(Generic[StateT]):
             )
 
         return __call
+
+    def get_graph(
+        self,
+        context: TurnContext,
+        handler_name: str | None = None,
+        graph_base_url="https://graph.microsoft.com/v1.0",
+    ) -> GraphServiceClient:
+        return create_graph_service_client(self._app, context, handler_name)
