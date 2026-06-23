@@ -34,6 +34,7 @@ from microsoft_agents.hosting.core.turn_context import TurnContext
 
 from ..agent import Agent
 from ..authorization import Connections
+from ..header_propagation import AgenticHeaderProvider, HeaderPropagationContext
 from .app_error import ApplicationError
 from .app_options import ApplicationOptions
 
@@ -101,6 +102,14 @@ class AgentApplication(Agent, Generic[StateT]):
         self._route_list = _RouteList[StateT]()
         self._internal_before_turn = []
         self._internal_after_turn = []
+
+        # Human-friendly agent name surfaced on outgoing agentic headers.
+        # Falls back to the application class name when not explicitly provided.
+        raw_agent_name = kwargs.get("agent_name") or type(self).__name__
+        sanitized_agent_name = re.sub(
+            r"[^A-Za-z0-9 ._-]", "", str(raw_agent_name)
+        ).strip()
+        self._agent_name = sanitized_agent_name or type(self).__name__
 
         configuration = kwargs
 
@@ -182,7 +191,8 @@ class AgentApplication(Agent, Generic[StateT]):
             auth_options = {
                 key: value
                 for key, value in configuration.items()
-                if key not in ["storage", "connection_manager", "handlers"]
+                if key
+                not in ["storage", "connection_manager", "handlers", "agent_name"]
             }
             self._auth = Authorization(
                 storage=self._options.storage,
@@ -802,6 +812,15 @@ class AgentApplication(Agent, Generic[StateT]):
 
     async def _on_turn(self, context: TurnContext):
         try:
+            # Register Activity-derived header provider for agentic requests so
+            # that agent identity headers are propagated on outgoing requests
+            # made while processing this turn.
+            HeaderPropagationContext.reset()
+            if context.activity and context.activity.is_agentic_request():
+                HeaderPropagationContext.register(
+                    AgenticHeaderProvider(context.activity, self._agent_name)
+                )
+
             with spans.AppOnTurn(context) as on_turn_span:
                 use_typing = (
                     self._options.start_typing_timer

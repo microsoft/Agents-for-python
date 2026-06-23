@@ -170,10 +170,19 @@ class TestChannelServiceAdapter:
     async def test_process_activity_normal_no_service_url(
         self, mocker, user_token_client, adapter
     ):
+        """With lazy ConnectorClient creation the missing-service_url error is
+        deferred until the client is first requested, not raised during
+        process_activity itself."""
         user_token_client.get_access_token = mocker.AsyncMock(
             return_value="user_token_value"
         )
-        adapter.run_pipeline = mocker.AsyncMock()
+
+        captured_context = []
+
+        async def capturing_pipeline(context, callback):
+            captured_context.append(context)
+
+        adapter.run_pipeline = capturing_pipeline
 
         async def callback(context: TurnContext):
             return None
@@ -193,12 +202,21 @@ class TestChannelServiceAdapter:
             is_authenticated=True,
         )
 
-        with pytest.raises(Exception) as exc_info:
-            await adapter.process_activity(
-                claims_identity,
-                activity,
-                callback,
-            )
+        # process_activity now succeeds; the error is deferred to client creation.
+        await adapter.process_activity(
+            claims_identity,
+            activity,
+            callback,
+        )
+
+        assert len(captured_context) == 1
+        context = captured_context[0]
+        assert ChannelServiceAdapter._CONNECTOR_CLIENT_FACTORY_KEY in context.turn_state
+        assert ChannelServiceAdapter._AGENT_CONNECTOR_CLIENT_KEY not in context.turn_state
+
+        # Requesting the connector client triggers the deferred validation error.
+        with pytest.raises(Exception):
+            await adapter._get_or_create_connector_client(context)
 
     @pytest.mark.asyncio
     async def test_process_proactive(
