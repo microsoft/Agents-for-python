@@ -433,3 +433,50 @@ async def test_on_turn_after_turn_false_still_runs_after_activity_handler():
     await app.on_turn(StubTurnContext(_make_event_activity()))
 
     assert calls == ["event", "after"]
+
+
+# ---------------------------------------------------------------------------
+# connection_manager property and constructor guard
+# ---------------------------------------------------------------------------
+
+
+def test_init_raises_when_both_authorization_and_connection_manager_provided():
+    """Providing both authorization and connection_manager is ambiguous and should raise."""
+    with pytest.raises(ApplicationError):
+        AgentApplication[TurnState](
+            options=ApplicationOptions(storage=MemoryStorage()),
+            authorization=make_auth(),
+            connection_manager=_ConnectionManager(),
+        )
+
+
+def test_connection_manager_property_returns_manager_from_authorization():
+    """When authorization is provided, connection_manager property reflects auth's manager."""
+    cm = _ConnectionManager()
+    auth = Authorization(storage=MemoryStorage(), connection_manager=cm)
+    app = AgentApplication[TurnState](
+        options=ApplicationOptions(storage=MemoryStorage()),
+        authorization=auth,
+    )
+    assert app.connection_manager is cm
+
+
+def test_connection_manager_property_returns_directly_passed_manager():
+    """When connection_manager kwarg is used (no authorization), the property returns it."""
+    cm = _ConnectionManager()
+    app = AgentApplication[TurnState](
+        options=ApplicationOptions(storage=MemoryStorage()),
+        connection_manager=cm,
+    )
+    assert app.connection_manager is cm
+
+
+def test_init_with_connection_manager_only_creates_auth():
+    """Passing only connection_manager should auto-create an Authorization instance."""
+    cm = _ConnectionManager()
+    app = AgentApplication[TurnState](
+        options=ApplicationOptions(storage=MemoryStorage()),
+        connection_manager=cm,
+    )
+    assert app.auth is not None
+    assert app.connection_manager is cm
