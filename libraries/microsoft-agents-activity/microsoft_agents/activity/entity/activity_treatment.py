@@ -15,7 +15,7 @@ class ActivityTreatmentTypes(str, Enum):
 
 
 class ActivityTreatment(Entity):
-    """Activity treatment information (entity type: "activity_treatment").
+    """Activity treatment information (entity type: "activityTreatment").
 
     :param treatment: The type of treatment
     :type treatment: ~microsoft_agents.activity.ActivityTreatmentTypes

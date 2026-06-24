@@ -29,7 +29,12 @@ class _SDKAuthenticationProvider(AuthenticationProvider):
     requests as a bearer token.
     """
 
-    def __init__(self, app: AgentApplication, context: TurnContext, handler_name: str):
+    def __init__(
+        self,
+        app: AgentApplication,
+        context: TurnContext,
+        handler_name: str | None = None,
+    ):
         """Capture the context needed to resolve a token at request time.
 
         :param app: The agent application whose authorization issues tokens.
@@ -54,9 +59,11 @@ class _SDKAuthenticationProvider(AuthenticationProvider):
         if additional_authentication_context is None:
             additional_authentication_context = {}
 
-        token = await self._app.auth.get_token(self._context, self._handler_name)
-        if token:
-            request.headers["Authorization"] = f"Bearer {token}"
+        token_response = await self._app.auth.get_token(
+            self._context, self._handler_name
+        )
+        if token_response:
+            request.headers["Authorization"] = f"Bearer {token_response.token}"
 
 
 def _create_graph_service_client(

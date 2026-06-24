@@ -40,7 +40,7 @@ class TeamsTurnContext(TurnContext):
 
         self._set_teams_activity()
 
-        _set_teams_api_client(context, app.connection_manager)
+        _set_teams_api_client(self, app.connection_manager)
 
     def _set_teams_activity(self) -> None:
         """
