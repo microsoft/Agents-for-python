@@ -6,7 +6,7 @@
 import re
 from typing import Generic, Optional, overload
 
-from microsoft_agents.activity import ActivityTypes
+from microsoft_agents.activity import ActivityTypes, Channels
 from microsoft_agents.hosting.core import (
     AgentApplication,
     RouteRank,
@@ -62,7 +62,7 @@ class Team(Generic[StateT]):
 
             return (
                 context.activity.type == ActivityTypes.conversation_update
-                and context.activity.channel_id == "msteams"
+                and context.activity.channel_id == Channels.ms_teams
                 and event_match
             )
 

@@ -7,7 +7,7 @@ from typing import Generic, Optional, overload
 
 from microsoft_teams.api.models.o365 import O365ConnectorCardActionQuery
 
-from microsoft_agents.activity import ActivityTypes
+from microsoft_agents.activity import ActivityTypes, Channels
 from microsoft_agents.hosting.core import (
     AgentApplication,
     RouteRank,
@@ -57,7 +57,7 @@ class Message(Generic[StateT]):
         def __selector(context: TurnContext) -> bool:
             return (
                 context.activity.type == message_type
-                and context.activity.channel_id == "msteams"
+                and context.activity.channel_id == Channels.ms_teams
                 and _get_channel_event_type(context) == event_type
             )
 

@@ -17,10 +17,10 @@ pytestmark = pytest.mark.skipif(
 
 if is_supported_version:
     from microsoft_teams.api.models import FileConsentCardResponse
-    from microsoft_agents.hosting.teams import TeamsAgentExtension
+    from microsoft_agents.hosting.msteams import TeamsAgentExtension
 
 _PATCH = (
-    "microsoft_agents.hosting.teams.file_consent.file_consent._send_invoke_response"
+    "microsoft_agents.hosting.msteams.file_consent.file_consent._send_invoke_response"
 )
 
 

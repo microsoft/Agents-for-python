@@ -47,7 +47,7 @@ from ._teams_api_client import (
     _get_teams_api_client,
     _set_teams_api_client,
 )
-from ._utils import _get_channel_data
+from ._utils import _try_get_channel_data
 
 from .teams_activity import TeamsActivity
 from .type_defs import StateT
@@ -112,7 +112,7 @@ class TeamsAgentExtension(Generic[StateT]):
             if context.activity.channel_id == Channels.ms_teams:
                 _set_teams_api_client(context, self._app.connection_manager)
                 # caches the deserialized version of ChannelData
-                context.activity.channel_data = _get_channel_data(context.activity)
+                context.activity.channel_data = _try_get_channel_data(context.activity)
             return True
 
         self._app.before_turn(on_before_turn)

@@ -14,7 +14,7 @@ from microsoft_agents.hosting.core.app import AgentApplication, RouteRank
 is_supported_version = sys.version_info >= (3, 12)
 
 if is_supported_version:
-    from microsoft_agents.hosting.teams.teams_turn_context import TeamsTurnContext
+    from microsoft_agents.hosting.msteams.teams_turn_context import TeamsTurnContext
 
 
 def _make_app() -> Any:

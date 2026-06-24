@@ -27,6 +27,7 @@ from microsoft_agents.hosting.msteams.type_defs import (
 )
 
 from microsoft_agents.hosting.msteams._utils import (
+    _get_command_id,
     _match_selector,
     _send_invoke_response,
 )
@@ -88,15 +89,7 @@ class MessageExtension(Generic[StateT]):
                 return False
 
             value = context.activity.value
-            command_value: Optional[str] = None
-            if isinstance(value, dict):
-                command_value = value.get("commandId") or value.get("command_id")
-            elif value is not None:
-                command_value = getattr(value, "commandId", None) or getattr(
-                    value, "command_id", None
-                )
-
-            return _match_selector(command_id, command_value)
+            return _match_selector(command_id, _get_command_id(value))
 
         def __call(func: QueryHandler[StateT]) -> QueryHandler[StateT]:
             async def __handler(context: TurnContext, state: StateT) -> None:
@@ -180,17 +173,13 @@ class MessageExtension(Generic[StateT]):
             value = context.activity.value
             if isinstance(value, dict):
                 bot_message_preview_action = value.get("botMessagePreviewAction")
-                resolved_command_id = value.get("commandId") or value.get("command_id")
             else:
                 bot_message_preview_action = getattr(
                     value, "botMessagePreviewAction", None
                 )
-                resolved_command_id = getattr(value, "commandId", None) or getattr(
-                    value, "command_id", None
-                )
             if bot_message_preview_action:
                 return False
-            return _match_selector(command_id, resolved_command_id)
+            return _match_selector(command_id, _get_command_id(value))
 
         def __call(func: SubmitActionHandler[StateT]) -> SubmitActionHandler[StateT]:
             async def __handler(context: TurnContext, state: StateT) -> None:
@@ -505,8 +494,11 @@ class MessageExtension(Generic[StateT]):
         def __call(func: Callable) -> Callable:
             async def __handler(context: TurnContext, state: StateT) -> None:
                 teams_context = TeamsTurnContext(context, self._app)
-                await func(teams_context, state, context.activity.value)
-                await _send_invoke_response(context)
+                query = MessagingExtensionQuery.model_validate(
+                    context.activity.value or {}
+                )
+                res = await func(teams_context, state, query)
+                await _send_invoke_response(context, res)
 
             self._app.add_route(
                 __selector,

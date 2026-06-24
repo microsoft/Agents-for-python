@@ -5,6 +5,7 @@
 
 from typing import (
     Callable,
+    TYPE_CHECKING,
     TypeVar,
     Pattern,
     Protocol,
@@ -12,9 +13,10 @@ from typing import (
 
 from microsoft_agents.hosting.core import TurnState
 
-from .teams_turn_context import TeamsTurnContext
+if TYPE_CHECKING:
+    from .teams_turn_context import TeamsTurnContext
 
-TeamsRouteSelector = Callable[[TeamsTurnContext], bool]
+TeamsRouteSelector = Callable[["TeamsTurnContext"], bool]
 
 StateT = TypeVar("StateT", bound=TurnState)
 _StateContra = TypeVar("_StateContra", bound=TurnState, contravariant=True)

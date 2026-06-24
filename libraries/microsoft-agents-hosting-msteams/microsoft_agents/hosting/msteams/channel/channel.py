@@ -6,7 +6,7 @@
 import re
 from typing import Generic, Optional, overload
 
-from microsoft_agents.activity import ActivityTypes
+from microsoft_agents.activity import ActivityTypes, Channels
 from microsoft_agents.hosting.core import (
     AgentApplication,
     RouteRank,
@@ -61,7 +61,7 @@ class Channel(Generic[StateT]):
 
             return (
                 context.activity.type == ActivityTypes.conversation_update
-                and context.activity.channel_id == "msteams"
+                and context.activity.channel_id == Channels.ms_teams
                 and event_match
             )
 
@@ -259,7 +259,7 @@ class Channel(Generic[StateT]):
         def __selector(context: TurnContext) -> bool:
             return (
                 context.activity.type == ActivityTypes.conversation_update
-                and context.activity.channel_id == "msteams"
+                and context.activity.channel_id == Channels.ms_teams
                 and isinstance(context.activity.members_added, list)
                 and len(context.activity.members_added) > 0
             )
@@ -299,7 +299,7 @@ class Channel(Generic[StateT]):
         def __selector(context: TurnContext) -> bool:
             return (
                 context.activity.type == ActivityTypes.conversation_update
-                and context.activity.channel_id == "msteams"
+                and context.activity.channel_id == Channels.ms_teams
                 and isinstance(context.activity.members_removed, list)
                 and len(context.activity.members_removed) > 0
             )

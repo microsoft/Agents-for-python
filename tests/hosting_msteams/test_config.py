@@ -16,9 +16,9 @@ pytestmark = pytest.mark.skipif(
 )
 
 if is_supported_version:
-    from microsoft_agents.hosting.teams import TeamsAgentExtension
+    from microsoft_agents.hosting.msteams import TeamsAgentExtension
 
-_PATCH = "microsoft_agents.hosting.teams.config.config._send_invoke_response"
+_PATCH = "microsoft_agents.hosting.msteams.config.config._send_invoke_response"
 
 
 class TestConfig:

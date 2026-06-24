@@ -61,6 +61,23 @@ def _match_selector(selector: CommandSelector, value: str | None) -> bool:
     return bool(re.fullmatch(selector, value))
 
 
+def _get_command_id(value: Any) -> str | None:
+    """Extract the message extension command id from an activity value.
+
+    Handles both raw dicts (camelCase ``commandId`` or snake_case ``command_id``)
+    and parsed objects exposing either attribute, so command-id matching is
+    consistent across all message extension selectors.
+
+    :param value: The raw activity value.
+    :return: The command id if present, otherwise None.
+    """
+    if isinstance(value, dict):
+        return value.get("commandId") or value.get("command_id")
+    if value is not None:
+        return getattr(value, "commandId", None) or getattr(value, "command_id", None)
+    return None
+
+
 def _get_channel_event_type(context: TurnContext) -> str | None:
     """Extract the Teams channel event type from the activity's channel_data.
 
@@ -72,7 +89,7 @@ def _get_channel_event_type(context: TurnContext) -> str | None:
         return None
     if isinstance(data, dict):
         return data.get("eventType") or data.get("event_type")
-    return getattr(data, "event_type", None)
+    return getattr(data, "event_type", None) or getattr(data, "eventType", None)
 
 
 async def _send_invoke_response(context: TurnContext, body: Any = None) -> None:

@@ -30,7 +30,6 @@ class TeamsActivity(Activity):
     def get_selected_channel_id(self) -> str | None:
         """Get the ID of the selected channel from the activity, if it exists.
 
-        :param activity: The activity from which to get the selected channel ID.
         :return: The ID of the selected channel, or None if it doesn't exist.
         """
         channel_data = self._get_channel_data()
@@ -45,7 +44,6 @@ class TeamsActivity(Activity):
     def get_channel_id(self) -> str | None:
         """Get the ID of the channel from the activity, if it exists.
 
-        :param activity: The activity from which to get the channel ID.
         :return: The ID of the channel, or None if it doesn't exist.
         """
         channel_data = self._get_channel_data()
@@ -56,7 +54,6 @@ class TeamsActivity(Activity):
     def get_meeting_info(self) -> MeetingInfo | None:
         """Get the meeting info from the activity, if it exists.
 
-        :param activity: The activity from which to get the meeting info.
         :return: The meeting info, or None if it doesn't exist.
         """
         channel_data = self._get_channel_data()
@@ -78,14 +75,16 @@ class TeamsActivity(Activity):
     ):
         """Notify the user about the activity.
 
-        :param activity: The activity to notify the user about.
         :param alert_in_meeting: Whether to alert the user in a meeting.
         :param external_resource_url: The URL of an external resource to link to.
         """
         channel_data = self._get_channel_data()
         if not channel_data:
             channel_data = ChannelData()
-            self.channel_data = channel_data
+
+        # in both cases need to re-set it because _get_channel_data() can
+        # return a serialized version of the stored data
+        self.channel_data = channel_data
 
         channel_data.notification = NotificationInfo(
             alert=not alert_in_meeting,
@@ -98,7 +97,6 @@ class TeamsActivity(Activity):
     ) -> bool:
         """Enable a feedback loop for the activity.
 
-        :param activity: The activity for which to enable the feedback loop.
         :param feedback_loop_type: The type of feedback loop to enable.
         :return: True if the feedback loop was enabled, False otherwise.
         """

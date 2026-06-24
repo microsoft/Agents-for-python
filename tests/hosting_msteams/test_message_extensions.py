@@ -20,9 +20,9 @@ if is_supported_version:
         MessagingExtensionQuery,
         MessagingExtensionResponse,
     )
-    from microsoft_agents.hosting.teams import TeamsAgentExtension
+    from microsoft_agents.hosting.msteams import TeamsAgentExtension
 
-_PATCH = "microsoft_agents.hosting.teams.message_extension.message_extension._send_invoke_response"
+_PATCH = "microsoft_agents.hosting.msteams.message_extension.message_extension._send_invoke_response"
 
 
 class TestMessageExtensionQuery:

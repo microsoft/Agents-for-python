@@ -16,7 +16,7 @@ pytestmark = pytest.mark.skipif(
 )
 
 if is_supported_version:
-    from microsoft_agents.hosting.teams import TeamsAgentExtension
+    from microsoft_agents.hosting.msteams import TeamsAgentExtension
 
 
 class TestChannelLifecycle:

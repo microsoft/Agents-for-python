@@ -18,7 +18,7 @@ pytestmark = pytest.mark.skipif(
 if is_supported_version:
     from microsoft_teams.api.models.meetings import MeetingDetails
     from microsoft_agents.activity.teams import MeetingParticipantsEventDetails
-    from microsoft_agents.hosting.teams import TeamsAgentExtension
+    from microsoft_agents.hosting.msteams import TeamsAgentExtension
 
 
 def _meeting_details_value() -> dict:

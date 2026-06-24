@@ -47,7 +47,6 @@ def _set_teams_api_client(
     options: ClientOptions
 
     if context.identity:
-        assert context.identity is not None
         provider = connection_manager.get_token_provider(
             context.identity, context.activity.service_url
         )

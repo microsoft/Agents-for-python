@@ -13,15 +13,15 @@ pytestmark = pytest.mark.skipif(
 )
 
 if is_supported_version:
-    from microsoft_agents.hosting.teams import TeamsAgentExtension
-    from microsoft_agents.hosting.teams.channel import Channel
-    from microsoft_agents.hosting.teams.config import Config
-    from microsoft_agents.hosting.teams.file_consent import FileConsent
-    from microsoft_agents.hosting.teams.meeting import Meeting
-    from microsoft_agents.hosting.teams.message import Message
-    from microsoft_agents.hosting.teams.message_extension import MessageExtension
-    from microsoft_agents.hosting.teams.task_module import TaskModule
-    from microsoft_agents.hosting.teams.team import Team
+    from microsoft_agents.hosting.msteams import TeamsAgentExtension
+    from microsoft_agents.hosting.msteams.channel import Channel
+    from microsoft_agents.hosting.msteams.config import Config
+    from microsoft_agents.hosting.msteams.file_consent import FileConsent
+    from microsoft_agents.hosting.msteams.meeting import Meeting
+    from microsoft_agents.hosting.msteams.message import Message
+    from microsoft_agents.hosting.msteams.message_extension import MessageExtension
+    from microsoft_agents.hosting.msteams.task_module import TaskModule
+    from microsoft_agents.hosting.msteams.team import Team
 
 
 class TestTeamsAgentExtensionProperties:

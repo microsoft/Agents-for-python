@@ -17,9 +17,9 @@ pytestmark = pytest.mark.skipif(
 
 if is_supported_version:
     from microsoft_teams.api.models import O365ConnectorCardActionQuery
-    from microsoft_agents.hosting.teams import TeamsAgentExtension
+    from microsoft_agents.hosting.msteams import TeamsAgentExtension
 
-_PATCH = "microsoft_agents.hosting.teams.message.message._send_invoke_response"
+_PATCH = "microsoft_agents.hosting.msteams.message.message._send_invoke_response"
 
 
 class TestMessageEdit:

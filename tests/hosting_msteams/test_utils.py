@@ -17,7 +17,7 @@ pytestmark = pytest.mark.skipif(
 if is_supported_version:
     from microsoft_agents.activity import Activity, ActivityTypes
     from microsoft_teams.api.models.channel_data import ChannelData
-    from microsoft_agents.hosting.teams._utils import (
+    from microsoft_agents.hosting.msteams._utils import (
         _get_channel_data,
         _get_channel_event_type,
         _match_selector,

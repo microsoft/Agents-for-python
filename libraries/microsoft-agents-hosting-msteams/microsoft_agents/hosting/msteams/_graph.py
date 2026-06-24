@@ -3,7 +3,7 @@
 
 from typing import Any
 
-from kiota_abstractions import RequestInformation
+from kiota_abstractions.request_information import RequestInformation
 from kiota_abstractions.authentication import AuthenticationProvider
 
 from msgraph import GraphServiceClient, GraphRequestAdapter
@@ -24,7 +24,7 @@ class _SDKAuthenticationProvider(AuthenticationProvider):
     async def authenticate_request(
         self,
         request: RequestInformation,
-        additional_authentication_context: dict[str, Any] = {},
+        additional_authentication_context: dict[str, Any] | None = None,
     ) -> None:
         """Authenticates the application request
 
@@ -32,6 +32,9 @@ class _SDKAuthenticationProvider(AuthenticationProvider):
             request (RequestInformation): The request to authenticate
             additional_authentication_context (dict):
         """
+        if additional_authentication_context is None:
+            additional_authentication_context = {}
+
         token = await self._app.auth.get_token(self._context, self._handler_name)
         if token:
             request.headers["Authorization"] = f"Bearer {token}"
@@ -40,7 +43,7 @@ class _SDKAuthenticationProvider(AuthenticationProvider):
 def _create_graph_service_client(
     app: AgentApplication,
     context: TurnContext,
-    handler_name: str,
+    handler_name: str | None = None,
 ) -> GraphServiceClient:
     return GraphServiceClient(
         request_adapter=GraphRequestAdapter(
