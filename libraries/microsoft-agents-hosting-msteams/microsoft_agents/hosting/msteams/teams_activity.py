@@ -13,27 +13,27 @@ from microsoft_teams.api.models import (
 
 from microsoft_agents.activity import Activity
 
-
-def _get_channel_data(activity: Activity) -> ChannelData | None:
-    """Get the channel data from the activity, if it exists."""
-    if isinstance(activity.channel_data, ChannelData):
-        return activity.channel_data
-    elif isinstance(activity.channel_data, dict):
-        return ChannelData.model_validate(activity.channel_data)
-    return None
+from ._utils import _try_get_channel_data
 
 
 class TeamsActivity(Activity):
-    """A class for working with Teams activities."""
+    """A class for working with Teams activities.
 
-    @staticmethod
-    def get_selected_channel_id(self, activity: Activity) -> str | None:
+    note:
+        Because this class is dynamically swapped in, no new instance fields can be added.
+    """
+
+    def _get_channel_data(self) -> ChannelData | None:
+        """Get the channel data from the activity, if it exists."""
+        return _try_get_channel_data(self)
+
+    def get_selected_channel_id(self) -> str | None:
         """Get the ID of the selected channel from the activity, if it exists.
 
         :param activity: The activity from which to get the selected channel ID.
         :return: The ID of the selected channel, or None if it doesn't exist.
         """
-        channel_data = _get_channel_data(activity)
+        channel_data = self._get_channel_data()
         if (
             channel_data
             and channel_data.settings
@@ -42,41 +42,37 @@ class TeamsActivity(Activity):
             return channel_data.settings.selected_channel.id
         return None
 
-    @staticmethod
-    def get_channel_id(activity: Activity) -> str | None:
+    def get_channel_id(self) -> str | None:
         """Get the ID of the channel from the activity, if it exists.
 
         :param activity: The activity from which to get the channel ID.
         :return: The ID of the channel, or None if it doesn't exist.
         """
-        channel_data = _get_channel_data(activity)
+        channel_data = self._get_channel_data()
         if channel_data and channel_data.channel:
             return channel_data.channel.id
         return None
 
-    @staticmethod
-    def get_meeting_info(activity: Activity) -> MeetingInfo | None:
+    def get_meeting_info(self) -> MeetingInfo | None:
         """Get the meeting info from the activity, if it exists.
 
         :param activity: The activity from which to get the meeting info.
         :return: The meeting info, or None if it doesn't exist.
         """
-        channel_data = _get_channel_data(activity)
+        channel_data = self._get_channel_data()
         if channel_data:
             return channel_data.meeting
         return None
 
-    @staticmethod
-    def get_team_info(activity: Activity) -> TeamInfo | None:
+    def get_team_info(self) -> TeamInfo | None:
         """Get the team info from the activity, if it exists."""
-        channel_data = _get_channel_data(activity)
+        channel_data = self._get_channel_data()
         if channel_data:
             return channel_data.team
         return None
 
-    @staticmethod
     def notify_user(
-        activity: Activity,
+        self,
         alert_in_meeting: bool = False,
         external_resource_url: str | None = None,
     ):
@@ -86,10 +82,10 @@ class TeamsActivity(Activity):
         :param alert_in_meeting: Whether to alert the user in a meeting.
         :param external_resource_url: The URL of an external resource to link to.
         """
-        channel_data = _get_channel_data(activity)
+        channel_data = self._get_channel_data()
         if not channel_data:
             channel_data = ChannelData()
-            activity.channel_data = channel_data
+            self.channel_data = channel_data
 
         channel_data.notification = NotificationInfo(
             alert=not alert_in_meeting,
@@ -97,9 +93,8 @@ class TeamsActivity(Activity):
             external_resource_url=external_resource_url,
         )
 
-    @staticmethod
     def enable_feedback_loop(
-        activity: Activity, feedback_loop_type: Literal["default", "custom"] = "default"
+        self, feedback_loop_type: Literal["default", "custom"] = "default"
     ) -> bool:
         """Enable a feedback loop for the activity.
 
@@ -108,11 +103,11 @@ class TeamsActivity(Activity):
         :return: True if the feedback loop was enabled, False otherwise.
         """
 
-        channel_data = _get_channel_data(activity)
+        channel_data = self._get_channel_data()
         if channel_data is not None:
             return False
 
-        activity.channel_data = ChannelData(
+        self.channel_data = ChannelData(
             feedback_loop=FeedbackLoop(type=feedback_loop_type)
         )
         return True

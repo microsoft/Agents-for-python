@@ -68,7 +68,7 @@ class Channel(Generic[StateT]):
         def __call(func: ChannelUpdateHandler[StateT]) -> ChannelUpdateHandler[StateT]:
             async def __handler(context: TurnContext, state: StateT) -> None:
                 teams_context = TeamsTurnContext(context, self._app)
-                channel_data = _get_channel_data(context)
+                channel_data = _get_channel_data(teams_context.activity)
                 await func(teams_context, state, channel_data)
 
             self._app.add_route(
@@ -267,7 +267,7 @@ class Channel(Generic[StateT]):
         def __call(func: ChannelUpdateHandler[StateT]) -> ChannelUpdateHandler[StateT]:
             async def __func(context: TurnContext, state: StateT) -> None:
                 teams_context = TeamsTurnContext(context, self._app)
-                channel_data = _get_channel_data(context)
+                channel_data = _get_channel_data(teams_context.activity)
                 await func(teams_context, state, channel_data)
 
             self._app.add_route(
@@ -307,7 +307,7 @@ class Channel(Generic[StateT]):
         def __call(func: ChannelUpdateHandler[StateT]) -> ChannelUpdateHandler[StateT]:
             async def __func(context: TurnContext, state: StateT) -> None:
                 teams_context = TeamsTurnContext(context, self._app)
-                channel_data = _get_channel_data(context)
+                channel_data = _get_channel_data(teams_context.activity)
                 await func(teams_context, state, channel_data)
 
             self._app.add_route(

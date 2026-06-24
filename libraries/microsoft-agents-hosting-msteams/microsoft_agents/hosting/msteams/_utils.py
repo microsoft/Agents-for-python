@@ -18,13 +18,13 @@ from microsoft_agents.hosting.core import TurnContext
 from .type_defs import CommandSelector
 
 
-def _try_get_channel_data(context: TurnContext) -> ChannelData | None:
+def _try_get_channel_data(activity: Activity) -> ChannelData | None:
     """Attempt to extract and parse Teams channel data from the activity's channel_data.
 
-    :param context: The current turn context.
+    :param activity: The current activity.
     :return: A :class:`ChannelData` instance parsed from channel_data, or None if absent.
     """
-    data = context.activity.channel_data
+    data = activity.channel_data
     if data is None:
         return None
     if isinstance(data, ChannelData):
@@ -32,15 +32,15 @@ def _try_get_channel_data(context: TurnContext) -> ChannelData | None:
     return ChannelData.model_validate(data)
 
 
-def _get_channel_data(context: TurnContext) -> ChannelData:
+def _get_channel_data(activity: Activity) -> ChannelData:
     """Extract and parse Teams channel data from the activity's channel_data.
 
-    :param context: The current turn context.
+    :param activity: The current activity.
     :return: A :class:`ChannelData` instance parsed from channel_data.
     :raises ValueError: If channel_data is absent.
     :raises pydantic.ValidationError: If channel_data cannot be deserialized.
     """
-    channel_data = _try_get_channel_data(context)
+    channel_data = _try_get_channel_data(activity)
     if channel_data is None:
         raise ValueError("channel_data is required")
     return channel_data

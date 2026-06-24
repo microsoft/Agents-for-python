@@ -69,7 +69,7 @@ class Team(Generic[StateT]):
         def __call(func: TeamUpdateHandler[StateT]) -> TeamUpdateHandler[StateT]:
             async def __handler(context: TurnContext, state: StateT) -> None:
                 teams_context = TeamsTurnContext(context, self._app)
-                team_data = _get_channel_data(context)
+                team_data = _get_channel_data(teams_context.activity)
                 await func(teams_context, state, team_data)
 
             self._app.add_route(
