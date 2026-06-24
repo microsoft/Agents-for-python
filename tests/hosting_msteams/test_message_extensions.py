@@ -498,7 +498,7 @@ class TestMessageExtensionSetting:
         )
         with patch(_PATCH, new_callable=AsyncMock) as mock_send:
             await route_handler(ctx, MagicMock())
-            mock_send.assert_awaited_once_with(ctx)
+            mock_send.assert_awaited_once_with(ctx, None)
 
 
 class TestMessageExtensionCardButtonClicked:

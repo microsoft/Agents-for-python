@@ -52,6 +52,7 @@ def _make_context(
     activity.type = activity_type
     activity.name = name
     activity.value = value
+    activity.service_url = "https://smba.trafficmanager.net/teams/"
     activity.channel_id = channel_id
     activity.channel_data = channel_data
     activity.members_added = members_added

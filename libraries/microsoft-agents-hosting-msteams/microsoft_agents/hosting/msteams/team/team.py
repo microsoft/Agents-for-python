@@ -96,7 +96,7 @@ class Team(Generic[StateT]):
     ) -> TeamUpdateHandler[StateT] | _RouteDecorator[TeamUpdateHandler[StateT]]:
         """Register a handler for Teams team event conversation update events."""
         decorator = self._create_decorator(
-            r"team.*", auth_handlers=auth_handlers, rank=rank
+            re.compile(r"team.*"), auth_handlers=auth_handlers, rank=rank
         )
         if handler is not None:
             return decorator(handler)

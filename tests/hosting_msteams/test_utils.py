@@ -94,20 +94,20 @@ class TestGetChannelData:
     def test_raises_when_channel_data_is_none(self):
         ctx = _make_context(ActivityTypes.conversation_update)
         with pytest.raises(ValueError, match="channel_data"):
-            _get_channel_data(ctx)
+            _get_channel_data(ctx.activity)
 
     def test_returns_existing_channel_data_unchanged(self):
         channel_data = ChannelData()
         ctx = _make_context(ActivityTypes.conversation_update)
         ctx.activity.channel_data = channel_data
-        assert _get_channel_data(ctx) is channel_data
+        assert _get_channel_data(ctx.activity) is channel_data
 
     def test_model_validates_from_dict(self):
         ctx = _make_context(
             ActivityTypes.conversation_update,
             channel_data={"eventType": "channelCreated"},
         )
-        result = _get_channel_data(ctx)
+        result = _get_channel_data(ctx.activity)
         assert isinstance(result, ChannelData)
 
     def test_model_validates_camel_case_dict_keys(self):
@@ -115,7 +115,7 @@ class TestGetChannelData:
             ActivityTypes.conversation_update,
             channel_data={"eventType": "teamArchived"},
         )
-        result = _get_channel_data(ctx)
+        result = _get_channel_data(ctx.activity)
         assert isinstance(result, ChannelData)
 
 

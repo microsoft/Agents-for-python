@@ -95,7 +95,7 @@ class Channel(Generic[StateT]):
     ) -> ChannelUpdateHandler[StateT] | _RouteDecorator[ChannelUpdateHandler[StateT]]:
         """Register a handler for Teams team event conversation update events."""
         decorator = self._create_decorator(
-            r"channel.*", auth_handlers=auth_handlers, rank=rank
+            re.compile(r"channel.*"), auth_handlers=auth_handlers, rank=rank
         )
         if handler is not None:
             return decorator(handler)

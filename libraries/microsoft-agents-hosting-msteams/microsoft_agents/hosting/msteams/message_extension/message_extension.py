@@ -222,7 +222,7 @@ class MessageExtension(Generic[StateT]):
                 return False
             if value.get("botMessagePreviewAction") != "edit":
                 return False
-            return _match_selector(command_id, value.get("commandId"))
+            return _match_selector(command_id, _get_command_id(value))
 
         def __call(
             func: MessagePreviewEditHandler[StateT],
@@ -265,7 +265,7 @@ class MessageExtension(Generic[StateT]):
                 return False
             if value.get("botMessagePreviewAction") != "send":
                 return False
-            return _match_selector(command_id, value.get("commandId"))
+            return _match_selector(command_id, _get_command_id(value))
 
         def __call(
             func: MessagePreviewSendHandler[StateT],
@@ -303,7 +303,7 @@ class MessageExtension(Generic[StateT]):
                 context.activity.type == ActivityTypes.invoke
                 and context.activity.name == "composeExtension/fetchTask"
                 and isinstance(value, dict)
-                and _match_selector(command_id, value.get("commandId"))
+                and _match_selector(command_id, _get_command_id(value))
             )
 
         def __call(func: FetchActionHandler[StateT]) -> FetchActionHandler[StateT]:
