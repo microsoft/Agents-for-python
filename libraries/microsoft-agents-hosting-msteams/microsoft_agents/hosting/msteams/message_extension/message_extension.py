@@ -47,9 +47,12 @@ from .route_handlers import (
 
 
 def _extract_activity_preview(value: object) -> Activity:
-    """Extract and deserialize the first botActivityPreview entry from a composeExtension/submitAction value.
+    """Extract and deserialize the first botActivityPreview entry.
 
+    :param value: The raw composeExtension/submitAction activity value.
+    :return: The first activity preview parsed as an :class:`Activity`.
     :raises ValueError: If value is not a dict or no preview entries are present.
+    :raises pydantic.ValidationError: If the preview cannot be deserialized.
     """
     if not isinstance(value, dict):
         raise ValueError(
@@ -64,12 +67,16 @@ def _extract_activity_preview(value: object) -> Activity:
 
 
 class MessageExtension(Generic[StateT]):
-    """
-    Route registration for Teams Message Extension (composeExtension) invoke activities.
-    Access via TeamsAgentExtension.message_extension.
+    """Route registration for Teams Message Extension (composeExtension) invoke activities.
+
+    Access via :attr:`TeamsAgentExtension.message_extensions`.
     """
 
     def __init__(self, app: AgentApplication[StateT]) -> None:
+        """Initialise with the owning :class:`AgentApplication`.
+
+        :param app: The application to register routes on.
+        """
         self._app = app
 
     def query(
@@ -79,7 +86,13 @@ class MessageExtension(Generic[StateT]):
         auth_handlers: Optional[list[str]] = None,
         rank: RouteRank = RouteRank.DEFAULT,
     ) -> _RouteDecorator[QueryHandler[StateT]]:
-        """Register a handler for composeExtension/query invokes."""
+        """Register a handler for composeExtension/query invokes.
+
+        :param command_id: Optional command identifier or regex to match a specific Teams command.
+        :param auth_handlers: Optional auth handler names to run before the route.
+        :param rank: Route priority.
+        :return: A decorator that registers the handler and returns it.
+        """
 
         def __selector(context: TurnContext) -> bool:
             if (
@@ -116,10 +129,12 @@ class MessageExtension(Generic[StateT]):
     def select_item(
         self, handler: SelectItemHandler[StateT]
     ) -> SelectItemHandler[StateT]: ...
+
     @overload
     def select_item(
         self, *, auth_handlers: Optional[list[str]] = ..., rank: RouteRank = ...
     ) -> _RouteDecorator[SelectItemHandler[StateT]]: ...
+
     def select_item(
         self,
         handler: Optional[SelectItemHandler[StateT]] = None,
@@ -127,7 +142,13 @@ class MessageExtension(Generic[StateT]):
         auth_handlers: Optional[list[str]] = None,
         rank: RouteRank = RouteRank.DEFAULT,
     ) -> SelectItemHandler[StateT] | _RouteDecorator[SelectItemHandler[StateT]]:
-        """Register a handler for composeExtension/selectItem invokes."""
+        """Register a handler for composeExtension/selectItem invokes.
+
+        :param handler: Optional handler receiving the context, state, and selected item payload.
+        :param auth_handlers: Optional auth handler names to run before the route.
+        :param rank: Route priority.
+        :return: The registered handler when provided, otherwise a decorator that registers it.
+        """
 
         def __selector(context: TurnContext) -> bool:
             return (
@@ -162,7 +183,15 @@ class MessageExtension(Generic[StateT]):
         auth_handlers: Optional[list[str]] = None,
         rank: RouteRank = RouteRank.DEFAULT,
     ) -> _RouteDecorator[SubmitActionHandler[StateT]]:
-        """Register a handler for composeExtension/submitAction invokes (not bot message preview)."""
+        """Register a handler for composeExtension/submitAction invokes.
+
+        Excludes submitAction invokes that carry a bot message preview action.
+
+        :param command_id: Optional command identifier or regex to match a specific Teams command.
+        :param auth_handlers: Optional auth handler names to run before the route.
+        :param rank: Route priority.
+        :return: A decorator that registers the handler and returns it.
+        """
 
         def __selector(context: TurnContext) -> bool:
             if (
@@ -209,7 +238,13 @@ class MessageExtension(Generic[StateT]):
         auth_handlers: Optional[list[str]] = None,
         rank: RouteRank = RouteRank.DEFAULT,
     ) -> _RouteDecorator[MessagePreviewEditHandler[StateT]]:
-        """Register a handler for composeExtension/submitAction with botMessagePreviewAction == 'edit'."""
+        """Register a handler for composeExtension message preview edit invokes.
+
+        :param command_id: Optional command identifier or regex to match a specific Teams command.
+        :param auth_handlers: Optional auth handler names to run before the route.
+        :param rank: Route priority.
+        :return: A decorator that registers the handler and returns it.
+        """
 
         def __selector(context: TurnContext) -> bool:
             if (
@@ -252,7 +287,13 @@ class MessageExtension(Generic[StateT]):
         auth_handlers: Optional[list[str]] = None,
         rank: RouteRank = RouteRank.DEFAULT,
     ) -> _RouteDecorator[MessagePreviewSendHandler[StateT]]:
-        """Register a handler for composeExtension/submitAction with botMessagePreviewAction == 'send'."""
+        """Register a handler for composeExtension message preview send invokes.
+
+        :param command_id: Optional command identifier or regex to match a specific Teams command.
+        :param auth_handlers: Optional auth handler names to run before the route.
+        :param rank: Route priority.
+        :return: A decorator that registers the handler and returns it.
+        """
 
         def __selector(context: TurnContext) -> bool:
             if (
@@ -295,7 +336,13 @@ class MessageExtension(Generic[StateT]):
         auth_handlers: Optional[list[str]] = None,
         rank: RouteRank = RouteRank.DEFAULT,
     ) -> _RouteDecorator[FetchActionHandler[StateT]]:
-        """Register a handler for composeExtension/fetchTask invokes."""
+        """Register a handler for composeExtension/fetchTask invokes.
+
+        :param command_id: Optional command identifier or regex to match a specific Teams command.
+        :param auth_handlers: Optional auth handler names to run before the route.
+        :param rank: Route priority.
+        :return: A decorator that registers the handler and returns it.
+        """
 
         def __selector(context: TurnContext) -> bool:
             value = context.activity.value
@@ -331,10 +378,12 @@ class MessageExtension(Generic[StateT]):
     def query_link(
         self, handler: QueryLinkHandler[StateT]
     ) -> QueryLinkHandler[StateT]: ...
+
     @overload
     def query_link(
         self, *, auth_handlers: Optional[list[str]] = ..., rank: RouteRank = ...
     ) -> _RouteDecorator[QueryLinkHandler[StateT]]: ...
+
     def query_link(
         self,
         handler: Optional[QueryLinkHandler[StateT]] = None,
@@ -342,7 +391,13 @@ class MessageExtension(Generic[StateT]):
         auth_handlers: Optional[list[str]] = None,
         rank: RouteRank = RouteRank.DEFAULT,
     ) -> QueryLinkHandler[StateT] | _RouteDecorator[QueryLinkHandler[StateT]]:
-        """Register a handler for composeExtension/queryLink invokes."""
+        """Register a handler for composeExtension/queryLink invokes.
+
+        :param handler: Optional handler receiving the context, state, and app-based link query.
+        :param auth_handlers: Optional auth handler names to run before the route.
+        :param rank: Route priority.
+        :return: The registered handler when provided, otherwise a decorator that registers it.
+        """
 
         def __selector(context: TurnContext) -> bool:
             return (
@@ -375,10 +430,12 @@ class MessageExtension(Generic[StateT]):
     def anonymous_query_link(
         self, handler: QueryLinkHandler[StateT]
     ) -> QueryLinkHandler[StateT]: ...
+
     @overload
     def anonymous_query_link(
         self, *, auth_handlers: Optional[list[str]] = ..., rank: RouteRank = ...
     ) -> _RouteDecorator[QueryLinkHandler[StateT]]: ...
+
     def anonymous_query_link(
         self,
         handler: Optional[QueryLinkHandler[StateT]] = None,
@@ -386,7 +443,13 @@ class MessageExtension(Generic[StateT]):
         auth_handlers: Optional[list[str]] = None,
         rank: RouteRank = RouteRank.DEFAULT,
     ) -> QueryLinkHandler[StateT] | _RouteDecorator[QueryLinkHandler[StateT]]:
-        """Register a handler for composeExtension/anonymousQueryLink invokes."""
+        """Register a handler for composeExtension/anonymousQueryLink invokes.
+
+        :param handler: Optional handler receiving the context, state, and app-based link query.
+        :param auth_handlers: Optional auth handler names to run before the route.
+        :param rank: Route priority.
+        :return: The registered handler when provided, otherwise a decorator that registers it.
+        """
 
         def __selector(context: TurnContext) -> bool:
             return (
@@ -419,10 +482,12 @@ class MessageExtension(Generic[StateT]):
     def query_setting_url(
         self, handler: QueryUrlSettingHandler[StateT]
     ) -> QueryUrlSettingHandler[StateT]: ...
+
     @overload
     def query_setting_url(
         self, *, auth_handlers: Optional[list[str]] = ..., rank: RouteRank = ...
     ) -> _RouteDecorator[QueryUrlSettingHandler[StateT]]: ...
+
     def query_setting_url(
         self,
         handler: Optional[QueryUrlSettingHandler[StateT]] = None,
@@ -432,7 +497,13 @@ class MessageExtension(Generic[StateT]):
     ) -> (
         QueryUrlSettingHandler[StateT] | _RouteDecorator[QueryUrlSettingHandler[StateT]]
     ):
-        """Register a handler for composeExtension/querySettingUrl invokes."""
+        """Register a handler for composeExtension/querySettingUrl invokes.
+
+        :param handler: Optional handler receiving the context, state, and settings URL query.
+        :param auth_handlers: Optional auth handler names to run before the route.
+        :param rank: Route priority.
+        :return: The registered handler when provided, otherwise a decorator that registers it.
+        """
 
         def __selector(context: TurnContext) -> bool:
             return (
@@ -469,10 +540,12 @@ class MessageExtension(Generic[StateT]):
     def setting(
         self, handler: ConfigureSettingsHandler[StateT]
     ) -> ConfigureSettingsHandler[StateT]: ...
+
     @overload
     def setting(
         self, *, auth_handlers: Optional[list[str]] = ..., rank: RouteRank = ...
     ) -> _RouteDecorator[ConfigureSettingsHandler[StateT]]: ...
+
     def setting(
         self,
         handler: Optional[Callable] = None,
@@ -483,7 +556,13 @@ class MessageExtension(Generic[StateT]):
         ConfigureSettingsHandler[StateT]
         | _RouteDecorator[ConfigureSettingsHandler[StateT]]
     ):
-        """Register a handler for composeExtension/setting invokes."""
+        """Register a handler for composeExtension/setting invokes.
+
+        :param handler: Optional handler receiving the context, state, and settings query payload.
+        :param auth_handlers: Optional auth handler names to run before the route.
+        :param rank: Route priority.
+        :return: The registered handler when provided, otherwise a decorator that registers it.
+        """
 
         def __selector(context: TurnContext) -> bool:
             return (
@@ -517,10 +596,12 @@ class MessageExtension(Generic[StateT]):
     def card_button_clicked(
         self, handler: CardButtonClickedHandler[StateT]
     ) -> CardButtonClickedHandler[StateT]: ...
+
     @overload
     def card_button_clicked(
         self, *, auth_handlers: Optional[list[str]] = ..., rank: RouteRank = ...
     ) -> _RouteDecorator[CardButtonClickedHandler[StateT]]: ...
+
     def card_button_clicked(
         self,
         handler: Optional[CardButtonClickedHandler[StateT]] = None,
@@ -531,7 +612,13 @@ class MessageExtension(Generic[StateT]):
         CardButtonClickedHandler[StateT]
         | _RouteDecorator[CardButtonClickedHandler[StateT]]
     ):
-        """Register a handler for composeExtension/onCardButtonClicked invokes."""
+        """Register a handler for composeExtension/onCardButtonClicked invokes.
+
+        :param handler: Optional handler receiving the context, state, and card action payload.
+        :param auth_handlers: Optional auth handler names to run before the route.
+        :param rank: Route priority.
+        :return: The registered handler when provided, otherwise a decorator that registers it.
+        """
 
         def __selector(context: TurnContext) -> bool:
             return (

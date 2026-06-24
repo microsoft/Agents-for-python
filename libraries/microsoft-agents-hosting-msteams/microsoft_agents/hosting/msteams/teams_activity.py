@@ -1,6 +1,8 @@
 # Copyright (c) Microsoft Corporation. All rights reserved.
 # Licensed under the MIT License.
 
+"""Teams-aware :class:`Activity` subclass exposing Teams channel data helpers."""
+
 from typing import Literal
 
 from microsoft_teams.api.models import (
@@ -17,14 +19,21 @@ from ._utils import _try_get_channel_data
 
 
 class TeamsActivity(Activity):
-    """A class for working with Teams activities.
+    """An :class:`Activity` extended with Teams-specific accessors.
 
-    note:
-        Because this class is dynamically swapped in, no new instance fields can be added.
+    .. note::
+        Instances of this class are produced by reassigning ``__class__`` on an
+        existing :class:`Activity` (see :class:`TeamsTurnContext`), so no new
+        instance fields may be added here -- only methods that derive values
+        from the activity's existing ``channel_data``.
     """
 
     def _get_channel_data(self) -> ChannelData | None:
-        """Get the channel data from the activity, if it exists."""
+        """Return the parsed Teams channel data, or None if absent.
+
+        :return: The parsed :class:`ChannelData`, or None if the activity has no
+            channel data.
+        """
         return _try_get_channel_data(self)
 
     def get_selected_channel_id(self) -> str | None:
@@ -62,7 +71,10 @@ class TeamsActivity(Activity):
         return None
 
     def get_team_info(self) -> TeamInfo | None:
-        """Get the team info from the activity, if it exists."""
+        """Get the team info from the activity, if it exists.
+
+        :return: The team info, or None if it doesn't exist.
+        """
         channel_data = self._get_channel_data()
         if channel_data:
             return channel_data.team

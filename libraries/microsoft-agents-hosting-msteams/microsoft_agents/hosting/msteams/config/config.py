@@ -76,10 +76,12 @@ class Config(Generic[StateT]):
 
     @overload
     def fetch(self, handler: ConfigHandler[StateT]) -> ConfigHandler[StateT]: ...
+
     @overload
     def fetch(
         self, *, auth_handlers: Optional[list[str]] = ..., rank: RouteRank = ...
     ) -> _RouteDecorator[ConfigHandler[StateT]]: ...
+
     def fetch(
         self,
         handler: Optional[ConfigHandler[StateT]] = None,
@@ -87,7 +89,13 @@ class Config(Generic[StateT]):
         auth_handlers: Optional[list[str]] = None,
         rank: RouteRank = RouteRank.DEFAULT,
     ) -> ConfigHandler[StateT] | _RouteDecorator[ConfigHandler[StateT]]:
-        """Register a handler for config/fetch invokes."""
+        """Register a handler for config/fetch invokes.
+
+        :param handler: Optional handler to register directly; omit for decorator-style usage.
+        :param auth_handlers: Optional list of auth handler names to run before the route.
+        :param rank: Route priority rank.
+        :return: The registered handler, or a decorator when used without a handler.
+        """
         decorator = self._create_decorator(
             "config/fetch", auth_handlers=auth_handlers, rank=rank
         )
@@ -97,10 +105,12 @@ class Config(Generic[StateT]):
 
     @overload
     def submit(self, handler: ConfigHandler[StateT]) -> ConfigHandler[StateT]: ...
+
     @overload
     def submit(
         self, *, auth_handlers: Optional[list[str]] = ..., rank: RouteRank = ...
     ) -> _RouteDecorator[ConfigHandler[StateT]]: ...
+
     def submit(
         self,
         handler: Optional[ConfigHandler[StateT]] = None,
@@ -108,7 +118,13 @@ class Config(Generic[StateT]):
         auth_handlers: Optional[list[str]] = None,
         rank: RouteRank = RouteRank.DEFAULT,
     ) -> ConfigHandler[StateT] | _RouteDecorator[ConfigHandler[StateT]]:
-        """Register a handler for config/submit invokes."""
+        """Register a handler for config/submit invokes.
+
+        :param handler: Optional handler to register directly; omit for decorator-style usage.
+        :param auth_handlers: Optional list of auth handler names to run before the route.
+        :param rank: Route priority rank.
+        :return: The registered handler, or a decorator when used without a handler.
+        """
         decorator = self._create_decorator(
             "config/submit", auth_handlers=auth_handlers, rank=rank
         )

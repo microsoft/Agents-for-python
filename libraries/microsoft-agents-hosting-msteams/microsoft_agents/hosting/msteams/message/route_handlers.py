@@ -26,6 +26,7 @@ class ExecuteActionHandler(Protocol[_StateContra]):
         :param context: Teams-aware turn context.
         :param state: The current turn state.
         :param query: The parsed O365 connector card action query.
+        :return: An awaitable that completes when the handler finishes.
         """
         ...
 
@@ -45,5 +46,6 @@ class ReadReceiptHandler(Protocol[_StateContra]):
         :param context: Teams-aware turn context.
         :param state: The current turn state.
         :param data: Raw event payload from the activity value.
+        :return: An awaitable that completes when the handler finishes.
         """
         ...

@@ -27,6 +27,7 @@ class MeetingStartHandler(Protocol[_StateContra]):
         :param context: Teams-aware turn context.
         :param state: The current turn state.
         :param meeting: Details of the meeting that started.
+        :return: An awaitable that completes when the handler finishes.
         """
         ...
 
@@ -46,6 +47,7 @@ class MeetingEndHandler(Protocol[_StateContra]):
         :param context: Teams-aware turn context.
         :param state: The current turn state.
         :param meeting: Details of the meeting that ended.
+        :return: An awaitable that completes when the handler finishes.
         """
         ...
 
@@ -65,5 +67,6 @@ class MeetingParticipantsEventHandler(Protocol[_StateContra]):
         :param context: Teams-aware turn context.
         :param state: The current turn state.
         :param meeting: Details of the participants event.
+        :return: An awaitable that completes when the handler finishes.
         """
         ...

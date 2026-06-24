@@ -46,7 +46,13 @@ class Team(Generic[StateT]):
         auth_handlers: Optional[list[str]] = None,
         rank: RouteRank = RouteRank.DEFAULT,
     ) -> _RouteDecorator[TeamUpdateHandler[StateT]]:
-        """Build a route decorator for a specific Teams team event type."""
+        """Build a route decorator for a specific Teams team event type.
+
+        :param event_type: Literal event type or regex to match against Teams channel data.
+        :param auth_handlers: Optional auth handler names to run before the route.
+        :param rank: Route priority.
+        :return: A decorator that registers the handler and returns it.
+        """
 
         def __selector(context: TurnContext) -> bool:
 
@@ -83,10 +89,12 @@ class Team(Generic[StateT]):
     def event(
         self, handler: TeamUpdateHandler[StateT]
     ) -> TeamUpdateHandler[StateT]: ...
+
     @overload
     def event(
         self, *, auth_handlers: Optional[list[str]] = ..., rank: RouteRank = ...
     ) -> _RouteDecorator[TeamUpdateHandler[StateT]]: ...
+
     def event(
         self,
         handler: Optional[TeamUpdateHandler[StateT]] = None,
@@ -94,7 +102,13 @@ class Team(Generic[StateT]):
         auth_handlers: Optional[list[str]] = None,
         rank: RouteRank = RouteRank.DEFAULT,
     ) -> TeamUpdateHandler[StateT] | _RouteDecorator[TeamUpdateHandler[StateT]]:
-        """Register a handler for Teams team event conversation update events."""
+        """Register a handler for Teams team event conversation update events.
+
+        :param handler: Optional handler receiving the context, state, and parsed team channel data.
+        :param auth_handlers: Optional auth handler names to run before the route.
+        :param rank: Route priority.
+        :return: The registered handler when provided, otherwise a decorator that registers it.
+        """
         decorator = self._create_decorator(
             re.compile(r"team.*"), auth_handlers=auth_handlers, rank=rank
         )
@@ -106,10 +120,12 @@ class Team(Generic[StateT]):
     def archived(
         self, handler: TeamUpdateHandler[StateT]
     ) -> TeamUpdateHandler[StateT]: ...
+
     @overload
     def archived(
         self, *, auth_handlers: Optional[list[str]] = ..., rank: RouteRank = ...
     ) -> _RouteDecorator[TeamUpdateHandler[StateT]]: ...
+
     def archived(
         self,
         handler: Optional[TeamUpdateHandler[StateT]] = None,
@@ -117,7 +133,13 @@ class Team(Generic[StateT]):
         auth_handlers: Optional[list[str]] = None,
         rank: RouteRank = RouteRank.DEFAULT,
     ) -> TeamUpdateHandler[StateT] | _RouteDecorator[TeamUpdateHandler[StateT]]:
-        """Register a handler for Teams teamArchived conversation update events."""
+        """Register a handler for Teams teamArchived conversation update events.
+
+        :param handler: Optional handler receiving the context, state, and parsed team channel data.
+        :param auth_handlers: Optional auth handler names to run before the route.
+        :param rank: Route priority.
+        :return: The registered handler when provided, otherwise a decorator that registers it.
+        """
         decorator = self._create_decorator(
             "teamArchived", auth_handlers=auth_handlers, rank=rank
         )
@@ -129,10 +151,12 @@ class Team(Generic[StateT]):
     def deleted(
         self, handler: TeamUpdateHandler[StateT]
     ) -> TeamUpdateHandler[StateT]: ...
+
     @overload
     def deleted(
         self, *, auth_handlers: Optional[list[str]] = ..., rank: RouteRank = ...
     ) -> _RouteDecorator[TeamUpdateHandler[StateT]]: ...
+
     def deleted(
         self,
         handler: Optional[TeamUpdateHandler[StateT]] = None,
@@ -140,7 +164,13 @@ class Team(Generic[StateT]):
         auth_handlers: Optional[list[str]] = None,
         rank: RouteRank = RouteRank.DEFAULT,
     ) -> TeamUpdateHandler[StateT] | _RouteDecorator[TeamUpdateHandler[StateT]]:
-        """Register a handler for Teams teamDeleted conversation update events."""
+        """Register a handler for Teams teamDeleted conversation update events.
+
+        :param handler: Optional handler receiving the context, state, and parsed team channel data.
+        :param auth_handlers: Optional auth handler names to run before the route.
+        :param rank: Route priority.
+        :return: The registered handler when provided, otherwise a decorator that registers it.
+        """
         decorator = self._create_decorator(
             "teamDeleted", auth_handlers=auth_handlers, rank=rank
         )
@@ -152,10 +182,12 @@ class Team(Generic[StateT]):
     def hard_deleted(
         self, handler: TeamUpdateHandler[StateT]
     ) -> TeamUpdateHandler[StateT]: ...
+
     @overload
     def hard_deleted(
         self, *, auth_handlers: Optional[list[str]] = ..., rank: RouteRank = ...
     ) -> _RouteDecorator[TeamUpdateHandler[StateT]]: ...
+
     def hard_deleted(
         self,
         handler: Optional[TeamUpdateHandler[StateT]] = None,
@@ -163,7 +195,13 @@ class Team(Generic[StateT]):
         auth_handlers: Optional[list[str]] = None,
         rank: RouteRank = RouteRank.DEFAULT,
     ) -> TeamUpdateHandler[StateT] | _RouteDecorator[TeamUpdateHandler[StateT]]:
-        """Register a handler for Teams teamHardDeleted conversation update events."""
+        """Register a handler for Teams teamHardDeleted conversation update events.
+
+        :param handler: Optional handler receiving the context, state, and parsed team channel data.
+        :param auth_handlers: Optional auth handler names to run before the route.
+        :param rank: Route priority.
+        :return: The registered handler when provided, otherwise a decorator that registers it.
+        """
         decorator = self._create_decorator(
             "teamHardDeleted", auth_handlers=auth_handlers, rank=rank
         )
@@ -175,10 +213,12 @@ class Team(Generic[StateT]):
     def renamed(
         self, handler: TeamUpdateHandler[StateT]
     ) -> TeamUpdateHandler[StateT]: ...
+
     @overload
     def renamed(
         self, *, auth_handlers: Optional[list[str]] = ..., rank: RouteRank = ...
     ) -> _RouteDecorator[TeamUpdateHandler[StateT]]: ...
+
     def renamed(
         self,
         handler: Optional[TeamUpdateHandler[StateT]] = None,
@@ -186,7 +226,13 @@ class Team(Generic[StateT]):
         auth_handlers: Optional[list[str]] = None,
         rank: RouteRank = RouteRank.DEFAULT,
     ) -> TeamUpdateHandler[StateT] | _RouteDecorator[TeamUpdateHandler[StateT]]:
-        """Register a handler for Teams teamRenamed conversation update events."""
+        """Register a handler for Teams teamRenamed conversation update events.
+
+        :param handler: Optional handler receiving the context, state, and parsed team channel data.
+        :param auth_handlers: Optional auth handler names to run before the route.
+        :param rank: Route priority.
+        :return: The registered handler when provided, otherwise a decorator that registers it.
+        """
         decorator = self._create_decorator(
             "teamRenamed", auth_handlers=auth_handlers, rank=rank
         )
@@ -198,10 +244,12 @@ class Team(Generic[StateT]):
     def restored(
         self, handler: TeamUpdateHandler[StateT]
     ) -> TeamUpdateHandler[StateT]: ...
+
     @overload
     def restored(
         self, *, auth_handlers: Optional[list[str]] = ..., rank: RouteRank = ...
     ) -> _RouteDecorator[TeamUpdateHandler[StateT]]: ...
+
     def restored(
         self,
         handler: Optional[TeamUpdateHandler[StateT]] = None,
@@ -209,7 +257,13 @@ class Team(Generic[StateT]):
         auth_handlers: Optional[list[str]] = None,
         rank: RouteRank = RouteRank.DEFAULT,
     ) -> TeamUpdateHandler[StateT] | _RouteDecorator[TeamUpdateHandler[StateT]]:
-        """Register a handler for Teams teamRestored conversation update events."""
+        """Register a handler for Teams teamRestored conversation update events.
+
+        :param handler: Optional handler receiving the context, state, and parsed team channel data.
+        :param auth_handlers: Optional auth handler names to run before the route.
+        :param rank: Route priority.
+        :return: The registered handler when provided, otherwise a decorator that registers it.
+        """
         decorator = self._create_decorator(
             "teamRestored", auth_handlers=auth_handlers, rank=rank
         )
@@ -221,10 +275,12 @@ class Team(Generic[StateT]):
     def unarchived(
         self, handler: TeamUpdateHandler[StateT]
     ) -> TeamUpdateHandler[StateT]: ...
+
     @overload
     def unarchived(
         self, *, auth_handlers: Optional[list[str]] = ..., rank: RouteRank = ...
     ) -> _RouteDecorator[TeamUpdateHandler[StateT]]: ...
+
     def unarchived(
         self,
         handler: Optional[TeamUpdateHandler[StateT]] = None,
@@ -232,7 +288,13 @@ class Team(Generic[StateT]):
         auth_handlers: Optional[list[str]] = None,
         rank: RouteRank = RouteRank.DEFAULT,
     ) -> TeamUpdateHandler[StateT] | _RouteDecorator[TeamUpdateHandler[StateT]]:
-        """Register a handler for Teams teamUnarchived conversation update events."""
+        """Register a handler for Teams teamUnarchived conversation update events.
+
+        :param handler: Optional handler receiving the context, state, and parsed team channel data.
+        :param auth_handlers: Optional auth handler names to run before the route.
+        :param rank: Route priority.
+        :return: The registered handler when provided, otherwise a decorator that registers it.
+        """
         decorator = self._create_decorator(
             "teamUnarchived", auth_handlers=auth_handlers, rank=rank
         )

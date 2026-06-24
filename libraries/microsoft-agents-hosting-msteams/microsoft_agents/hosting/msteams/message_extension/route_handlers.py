@@ -77,7 +77,7 @@ class MessagePreviewEditHandler(Protocol[_StateContra]):
 
         :param context: Teams-aware turn context.
         :param state: The current turn state.
-        :param activity_preview: The raw botActivityPreview[0] dict from the invoke payload.
+        :param activity_preview: The parsed botActivityPreview[0] activity from the invoke payload.
         :return: A messaging extension response.
         """
         ...
@@ -97,7 +97,8 @@ class MessagePreviewSendHandler(Protocol[_StateContra]):
 
         :param context: Teams-aware turn context.
         :param state: The current turn state.
-        :param activity_preview: The raw botActivityPreview[0] dict from the invoke payload.
+        :param activity_preview: The parsed botActivityPreview[0] activity from the invoke payload.
+        :return: A messaging extension response, or None when no response body is required.
         """
         ...
 

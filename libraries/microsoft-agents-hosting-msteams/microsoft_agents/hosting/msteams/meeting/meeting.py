@@ -29,22 +29,28 @@ from .route_handlers import (
 
 
 class Meeting(Generic[StateT]):
-    """
-    Route registration for Teams Meeting event activities.
-    Access via TeamsAgentExtension.meetings.
+    """Route registration for Teams meeting lifecycle event activities.
+
+    Access via :attr:`TeamsAgentExtension.meetings`.
     """
 
     def __init__(self, app: AgentApplication[StateT]) -> None:
+        """Initialise with the owning :class:`AgentApplication`.
+
+        :param app: The application to register routes on.
+        """
         self._app = app
 
     @overload
     def start(
         self, handler: MeetingStartHandler[StateT]
     ) -> MeetingStartHandler[StateT]: ...
+
     @overload
     def start(
         self, *, auth_handlers: Optional[list[str]] = ..., rank: RouteRank = ...
     ) -> _RouteDecorator[MeetingStartHandler[StateT]]: ...
+
     def start(
         self,
         handler: Optional[MeetingStartHandler[StateT]] = None,
@@ -52,16 +58,26 @@ class Meeting(Generic[StateT]):
         auth_handlers: Optional[list[str]] = None,
         rank: RouteRank = RouteRank.DEFAULT,
     ) -> MeetingStartHandler[StateT] | _RouteDecorator[MeetingStartHandler[StateT]]:
-        """Register a handler for meeting start events."""
+        """Register a handler for Teams meeting start events.
+
+        :param handler: Optional handler to register directly; omit for decorator use.
+        :param auth_handlers: Optional list of auth handler names to run before the route.
+        :param rank: Route priority used when multiple routes match.
+        :return: The registered handler, or a decorator when used without a handler.
+        """
 
         def __selector(context: TurnContext) -> bool:
+            """Return True when the activity is a Teams meeting start event."""
             return (
                 context.activity.type == ActivityTypes.event
                 and context.activity.name == "application/vnd.microsoft.meetingStart"
             )
 
         def __call(func: MeetingStartHandler[StateT]) -> MeetingStartHandler[StateT]:
+            """Register the supplied meeting start handler."""
+
             async def __handler(context: TurnContext, state: StateT) -> None:
+                """Adapt the core turn context and dispatch to the meeting start handler."""
                 teams_context = TeamsTurnContext(context, self._app)
                 meeting = MeetingDetails.model_validate(context.activity.value or {})
                 await func(teams_context, state, meeting)
@@ -80,10 +96,12 @@ class Meeting(Generic[StateT]):
 
     @overload
     def end(self, handler: MeetingEndHandler[StateT]) -> MeetingEndHandler[StateT]: ...
+
     @overload
     def end(
         self, *, auth_handlers: Optional[list[str]] = ..., rank: RouteRank = ...
     ) -> _RouteDecorator[MeetingEndHandler[StateT]]: ...
+
     def end(
         self,
         handler: Optional[MeetingEndHandler[StateT]] = None,
@@ -91,16 +109,26 @@ class Meeting(Generic[StateT]):
         auth_handlers: Optional[list[str]] = None,
         rank: RouteRank = RouteRank.DEFAULT,
     ) -> MeetingEndHandler[StateT] | _RouteDecorator[MeetingEndHandler[StateT]]:
-        """Register a handler for meeting end events."""
+        """Register a handler for Teams meeting end events.
+
+        :param handler: Optional handler to register directly; omit for decorator use.
+        :param auth_handlers: Optional list of auth handler names to run before the route.
+        :param rank: Route priority used when multiple routes match.
+        :return: The registered handler, or a decorator when used without a handler.
+        """
 
         def __selector(context: TurnContext) -> bool:
+            """Return True when the activity is a Teams meeting end event."""
             return (
                 context.activity.type == ActivityTypes.event
                 and context.activity.name == "application/vnd.microsoft.meetingEnd"
             )
 
         def __call(func: MeetingEndHandler[StateT]) -> MeetingEndHandler[StateT]:
+            """Register the supplied meeting end handler."""
+
             async def __handler(context: TurnContext, state: StateT) -> None:
+                """Adapt the core turn context and dispatch to the meeting end handler."""
                 teams_context = TeamsTurnContext(context, self._app)
                 meeting = MeetingDetails.model_validate(context.activity.value or {})
                 await func(teams_context, state, meeting)
@@ -121,10 +149,12 @@ class Meeting(Generic[StateT]):
     def participants_join(
         self, handler: MeetingParticipantsEventHandler[StateT]
     ) -> MeetingParticipantsEventHandler[StateT]: ...
+
     @overload
     def participants_join(
         self, *, auth_handlers: Optional[list[str]] = ..., rank: RouteRank = ...
     ) -> _RouteDecorator[MeetingParticipantsEventHandler[StateT]]: ...
+
     def participants_join(
         self,
         handler: Optional[MeetingParticipantsEventHandler[StateT]] = None,
@@ -135,9 +165,16 @@ class Meeting(Generic[StateT]):
         MeetingParticipantsEventHandler[StateT]
         | _RouteDecorator[MeetingParticipantsEventHandler[StateT]]
     ):
-        """Register a handler for meeting participant join events."""
+        """Register a handler for Teams meeting participant join events.
+
+        :param handler: Optional handler to register directly; omit for decorator use.
+        :param auth_handlers: Optional list of auth handler names to run before the route.
+        :param rank: Route priority used when multiple routes match.
+        :return: The registered handler, or a decorator when used without a handler.
+        """
 
         def __selector(context: TurnContext) -> bool:
+            """Return True when the activity is a Teams participant join event."""
             return (
                 context.activity.type == ActivityTypes.event
                 and context.activity.name
@@ -147,7 +184,10 @@ class Meeting(Generic[StateT]):
         def __call(
             func: MeetingParticipantsEventHandler[StateT],
         ) -> MeetingParticipantsEventHandler[StateT]:
+            """Register the supplied meeting participants handler."""
+
             async def __handler(context: TurnContext, state: StateT) -> None:
+                """Adapt the core turn context and dispatch to the participants handler."""
                 teams_context = TeamsTurnContext(context, self._app)
                 details = MeetingParticipantsEventDetails.model_validate(
                     context.activity.value or {}
@@ -170,10 +210,12 @@ class Meeting(Generic[StateT]):
     def participants_leave(
         self, handler: MeetingParticipantsEventHandler[StateT]
     ) -> MeetingParticipantsEventHandler[StateT]: ...
+
     @overload
     def participants_leave(
         self, *, auth_handlers: Optional[list[str]] = ..., rank: RouteRank = ...
     ) -> _RouteDecorator[MeetingParticipantsEventHandler[StateT]]: ...
+
     def participants_leave(
         self,
         handler: Optional[MeetingParticipantsEventHandler[StateT]] = None,
@@ -184,9 +226,16 @@ class Meeting(Generic[StateT]):
         MeetingParticipantsEventHandler[StateT]
         | _RouteDecorator[MeetingParticipantsEventHandler[StateT]]
     ):
-        """Register a handler for meeting participant leave events."""
+        """Register a handler for Teams meeting participant leave events.
+
+        :param handler: Optional handler to register directly; omit for decorator use.
+        :param auth_handlers: Optional list of auth handler names to run before the route.
+        :param rank: Route priority used when multiple routes match.
+        :return: The registered handler, or a decorator when used without a handler.
+        """
 
         def __selector(context: TurnContext) -> bool:
+            """Return True when the activity is a Teams participant leave event."""
             return (
                 context.activity.type == ActivityTypes.event
                 and context.activity.name
@@ -196,7 +245,10 @@ class Meeting(Generic[StateT]):
         def __call(
             func: MeetingParticipantsEventHandler[StateT],
         ) -> MeetingParticipantsEventHandler[StateT]:
+            """Register the supplied meeting participants handler."""
+
             async def __handler(context: TurnContext, state: StateT) -> None:
+                """Adapt the core turn context and dispatch to the participants handler."""
                 teams_context = TeamsTurnContext(context, self._app)
                 details = MeetingParticipantsEventDetails.model_validate(
                     context.activity.value or {}

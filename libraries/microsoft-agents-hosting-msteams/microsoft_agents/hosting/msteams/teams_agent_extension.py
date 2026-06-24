@@ -1,6 +1,14 @@
 # Copyright (c) Microsoft Corporation. All rights reserved.
 # Licensed under the MIT License.
 
+"""The :class:`TeamsAgentExtension` entry point for Teams route registration.
+
+Attaches Teams-specific route namespaces (channels, teams, meetings, messages,
+message extensions, task modules, configuration, and file consent) to an
+:class:`AgentApplication`, wires the Teams before-turn hook, and exposes helpers
+for obtaining Teams API and Microsoft Graph clients.
+"""
+
 from __future__ import annotations
 
 from typing import (

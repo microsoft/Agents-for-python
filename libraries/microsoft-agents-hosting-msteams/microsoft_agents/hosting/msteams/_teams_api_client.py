@@ -1,6 +1,13 @@
 # Copyright (c) Microsoft Corporation. All rights reserved.
 # Licensed under the MIT License.
 
+"""Construction and caching of the Teams :class:`ApiClient` for a turn.
+
+The client is cached on the turn state so it is built at most once per turn, and
+is configured with a token factory derived from the turn's identity when one is
+available.
+"""
+
 from microsoft_teams.common import ClientOptions
 from microsoft_teams.api import ApiClient
 

@@ -30,5 +30,6 @@ class FileConsentHandler(Protocol[_StateContra]):
         :param context: Teams-aware turn context.
         :param state: The current turn state.
         :param file_consent: Parsed file consent card response from the invoke payload.
+        :return: An awaitable that completes when the handler finishes.
         """
         ...

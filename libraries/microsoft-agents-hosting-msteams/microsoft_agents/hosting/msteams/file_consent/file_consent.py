@@ -44,9 +44,16 @@ class FileConsent(Generic[StateT]):
         auth_handlers: Optional[list[str]] = None,
         rank: RouteRank = RouteRank.DEFAULT,
     ) -> _RouteDecorator[FileConsentHandler[StateT]]:
-        """Build a route decorator for a fileConsent/invoke action."""
+        """Build a route decorator for a fileConsent/invoke action.
+
+        :param action: File consent action value to match.
+        :param auth_handlers: Optional list of auth handler names to run before the route.
+        :param rank: Route priority used when multiple routes match.
+        :return: A decorator that registers a file consent handler.
+        """
 
         def __selector(context: TurnContext) -> bool:
+            """Return True when the activity is a matching file consent invoke."""
             return (
                 context.activity.type == ActivityTypes.invoke
                 and context.activity.name == "fileConsent/invoke"
@@ -55,7 +62,10 @@ class FileConsent(Generic[StateT]):
             )
 
         def __call(func: FileConsentHandler[StateT]) -> FileConsentHandler[StateT]:
+            """Register the supplied file consent handler."""
+
             async def __handler(context: TurnContext, state: StateT) -> None:
+                """Adapt the core turn context and dispatch to the file consent handler."""
                 teams_context = TeamsTurnContext(context, self._app)
                 file_consent = FileConsentCardResponse.model_validate(
                     context.activity.value or {}
@@ -78,10 +88,12 @@ class FileConsent(Generic[StateT]):
     def accept(
         self, handler: FileConsentHandler[StateT]
     ) -> FileConsentHandler[StateT]: ...
+
     @overload
     def accept(
         self, *, auth_handlers: Optional[list[str]] = ..., rank: RouteRank = ...
     ) -> _RouteDecorator[FileConsentHandler[StateT]]: ...
+
     def accept(
         self,
         handler: Optional[FileConsentHandler[StateT]] = None,
@@ -89,7 +101,13 @@ class FileConsent(Generic[StateT]):
         auth_handlers: Optional[list[str]] = None,
         rank: RouteRank = RouteRank.DEFAULT,
     ) -> FileConsentHandler[StateT] | _RouteDecorator[FileConsentHandler[StateT]]:
-        """Register a handler for fileConsent/invoke with action == 'accept'."""
+        """Register a handler for accepted Teams file consent invokes.
+
+        :param handler: Optional handler to register directly; omit for decorator use.
+        :param auth_handlers: Optional list of auth handler names to run before the route.
+        :param rank: Route priority used when multiple routes match.
+        :return: The registered handler, or a decorator when used without a handler.
+        """
         decorator = self._create_decorator(
             "accept", auth_handlers=auth_handlers, rank=rank
         )
@@ -101,10 +119,12 @@ class FileConsent(Generic[StateT]):
     def decline(
         self, handler: FileConsentHandler[StateT]
     ) -> FileConsentHandler[StateT]: ...
+
     @overload
     def decline(
         self, *, auth_handlers: Optional[list[str]] = ..., rank: RouteRank = ...
     ) -> _RouteDecorator[FileConsentHandler[StateT]]: ...
+
     def decline(
         self,
         handler: Optional[FileConsentHandler[StateT]] = None,
@@ -112,7 +132,13 @@ class FileConsent(Generic[StateT]):
         auth_handlers: Optional[list[str]] = None,
         rank: RouteRank = RouteRank.DEFAULT,
     ) -> FileConsentHandler[StateT] | _RouteDecorator[FileConsentHandler[StateT]]:
-        """Register a handler for fileConsent/invoke with action == 'decline'."""
+        """Register a handler for declined Teams file consent invokes.
+
+        :param handler: Optional handler to register directly; omit for decorator use.
+        :param auth_handlers: Optional list of auth handler names to run before the route.
+        :param rank: Route priority used when multiple routes match.
+        :return: The registered handler, or a decorator when used without a handler.
+        """
         decorator = self._create_decorator(
             "decline", auth_handlers=auth_handlers, rank=rank
         )

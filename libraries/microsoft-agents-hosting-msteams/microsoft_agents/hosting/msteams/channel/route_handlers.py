@@ -30,5 +30,6 @@ class ChannelUpdateHandler(Protocol[_StateContra]):
         :param context: Teams-aware turn context.
         :param state: The current turn state.
         :param data: Parsed channel data from the incoming activity.
+        :return: An awaitable that completes when the handler finishes.
         """
         ...

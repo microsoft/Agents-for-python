@@ -1,21 +1,13 @@
 # Copyright (c) Microsoft Corporation. All rights reserved.
 # Licensed under the MIT License.
 
-"""
-Teams error resources for Microsoft Agents SDK.
-
-Error codes are in the range -62000 to -62999.
-"""
+"""Teams error resource definitions for Microsoft Agents SDK error codes."""
 
 from microsoft_agents.activity.errors import ErrorMessage
 
 
 class TeamsErrorResources:
-    """
-    Error messages for Teams operations.
-
-    Error codes are organized in the range -62000 to -62999.
-    """
+    """Provide error messages for Teams operations using the -62000 to -62999 range."""
 
     TeamsBadRequest = ErrorMessage(
         "BadRequest",

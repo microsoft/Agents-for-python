@@ -62,6 +62,10 @@ class TeamsTurnContext(TurnContext):
 
     @property
     def activity(self) -> TeamsActivity:
+        """The current activity, typed as a :class:`TeamsActivity`.
+
+        :return: The turn's activity exposing Teams-specific accessors.
+        """
         return self._teams_activity
 
     @property

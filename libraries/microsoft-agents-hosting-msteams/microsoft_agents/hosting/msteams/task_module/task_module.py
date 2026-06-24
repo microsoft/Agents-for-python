@@ -26,9 +26,9 @@ from .route_handlers import FetchHandler, SubmitHandler
 
 
 class TaskModule(Generic[StateT]):
-    """
-    Route registration for Teams Task Module (task/fetch, task/submit) invoke activities.
-    Access via TeamsAgentExtension.task_modules.
+    """Route registration for Teams Task Module (task/fetch, task/submit) invoke activities.
+
+    Access via :attr:`TeamsAgentExtension.task_modules`.
     """
 
     def __init__(self, app: AgentApplication[StateT]) -> None:
@@ -61,8 +61,11 @@ class TaskModule(Generic[StateT]):
     ) -> _RouteDecorator[FetchHandler[StateT]]:
         """Register a handler for task/fetch invokes.
 
-        :param verb: Optional verb string or regex to match against task data.
+        :param verb: Optional verb string or regex to match a specific Teams task command.
             If None, matches all task/fetch invokes.
+        :param auth_handlers: Optional auth handler names to run before the route.
+        :param rank: Route priority.
+        :return: A decorator that registers the handler and returns it.
         """
 
         def __selector(context: TurnContext) -> bool:
@@ -101,8 +104,11 @@ class TaskModule(Generic[StateT]):
     ) -> _RouteDecorator[SubmitHandler[StateT]]:
         """Register a handler for task/submit invokes.
 
-        :param verb: Optional verb string or regex to match against task data.
+        :param verb: Optional verb string or regex to match a specific Teams task command.
             If None, matches all task/submit invokes.
+        :param auth_handlers: Optional auth handler names to run before the route.
+        :param rank: Route priority.
+        :return: A decorator that registers the handler and returns it.
         """
 
         def __selector(context: TurnContext) -> bool:

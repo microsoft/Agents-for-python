@@ -82,10 +82,12 @@ class Channel(Generic[StateT]):
     def event(
         self, handler: ChannelUpdateHandler[StateT]
     ) -> ChannelUpdateHandler[StateT]: ...
+
     @overload
     def event(
         self, *, auth_handlers: Optional[list[str]] = ..., rank: RouteRank = ...
     ) -> _RouteDecorator[ChannelUpdateHandler[StateT]]: ...
+
     def event(
         self,
         handler: Optional[ChannelUpdateHandler[StateT]] = None,
@@ -93,7 +95,13 @@ class Channel(Generic[StateT]):
         auth_handlers: Optional[list[str]] = None,
         rank: RouteRank = RouteRank.DEFAULT,
     ) -> ChannelUpdateHandler[StateT] | _RouteDecorator[ChannelUpdateHandler[StateT]]:
-        """Register a handler for Teams team event conversation update events."""
+        """Register a handler for Teams channel conversation update events.
+
+        :param handler: Optional handler to register directly; omit for decorator-style usage.
+        :param auth_handlers: Optional list of auth handler names to run before the route.
+        :param rank: Route priority rank.
+        :return: The registered handler, or a decorator when used without a handler.
+        """
         decorator = self._create_decorator(
             re.compile(r"channel.*"), auth_handlers=auth_handlers, rank=rank
         )
@@ -105,10 +113,12 @@ class Channel(Generic[StateT]):
     def created(
         self, handler: ChannelUpdateHandler[StateT]
     ) -> ChannelUpdateHandler[StateT]: ...
+
     @overload
     def created(
         self, *, auth_handlers: Optional[list[str]] = ..., rank: RouteRank = ...
     ) -> _RouteDecorator[ChannelUpdateHandler[StateT]]: ...
+
     def created(
         self,
         handler: Optional[ChannelUpdateHandler[StateT]] = None,
@@ -116,7 +126,13 @@ class Channel(Generic[StateT]):
         auth_handlers: Optional[list[str]] = None,
         rank: RouteRank = RouteRank.DEFAULT,
     ) -> ChannelUpdateHandler[StateT] | _RouteDecorator[ChannelUpdateHandler[StateT]]:
-        """Register a handler for Teams channelCreated conversation update events."""
+        """Register a handler for Teams channelCreated conversation update events.
+
+        :param handler: Optional handler to register directly; omit for decorator-style usage.
+        :param auth_handlers: Optional list of auth handler names to run before the route.
+        :param rank: Route priority rank.
+        :return: The registered handler, or a decorator when used without a handler.
+        """
         decorator = self._create_decorator(
             "channelCreated", auth_handlers=auth_handlers, rank=rank
         )
@@ -128,10 +144,12 @@ class Channel(Generic[StateT]):
     def deleted(
         self, handler: ChannelUpdateHandler[StateT]
     ) -> ChannelUpdateHandler[StateT]: ...
+
     @overload
     def deleted(
         self, *, auth_handlers: Optional[list[str]] = ..., rank: RouteRank = ...
     ) -> _RouteDecorator[ChannelUpdateHandler[StateT]]: ...
+
     def deleted(
         self,
         handler: Optional[ChannelUpdateHandler[StateT]] = None,
@@ -139,7 +157,13 @@ class Channel(Generic[StateT]):
         auth_handlers: Optional[list[str]] = None,
         rank: RouteRank = RouteRank.DEFAULT,
     ) -> ChannelUpdateHandler[StateT] | _RouteDecorator[ChannelUpdateHandler[StateT]]:
-        """Register a handler for Teams channelDeleted conversation update events."""
+        """Register a handler for Teams channelDeleted conversation update events.
+
+        :param handler: Optional handler to register directly; omit for decorator-style usage.
+        :param auth_handlers: Optional list of auth handler names to run before the route.
+        :param rank: Route priority rank.
+        :return: The registered handler, or a decorator when used without a handler.
+        """
         decorator = self._create_decorator(
             "channelDeleted", auth_handlers=auth_handlers, rank=rank
         )
@@ -151,10 +175,12 @@ class Channel(Generic[StateT]):
     def renamed(
         self, handler: ChannelUpdateHandler[StateT]
     ) -> ChannelUpdateHandler[StateT]: ...
+
     @overload
     def renamed(
         self, *, auth_handlers: Optional[list[str]] = ..., rank: RouteRank = ...
     ) -> _RouteDecorator[ChannelUpdateHandler[StateT]]: ...
+
     def renamed(
         self,
         handler: Optional[ChannelUpdateHandler[StateT]] = None,
@@ -162,7 +188,13 @@ class Channel(Generic[StateT]):
         auth_handlers: Optional[list[str]] = None,
         rank: RouteRank = RouteRank.DEFAULT,
     ) -> ChannelUpdateHandler[StateT] | _RouteDecorator[ChannelUpdateHandler[StateT]]:
-        """Register a handler for Teams channelRenamed conversation update events."""
+        """Register a handler for Teams channelRenamed conversation update events.
+
+        :param handler: Optional handler to register directly; omit for decorator-style usage.
+        :param auth_handlers: Optional list of auth handler names to run before the route.
+        :param rank: Route priority rank.
+        :return: The registered handler, or a decorator when used without a handler.
+        """
         decorator = self._create_decorator(
             "channelRenamed", auth_handlers=auth_handlers, rank=rank
         )
@@ -174,10 +206,12 @@ class Channel(Generic[StateT]):
     def shared(
         self, handler: ChannelUpdateHandler[StateT]
     ) -> ChannelUpdateHandler[StateT]: ...
+
     @overload
     def shared(
         self, *, auth_handlers: Optional[list[str]] = ..., rank: RouteRank = ...
     ) -> _RouteDecorator[ChannelUpdateHandler[StateT]]: ...
+
     def shared(
         self,
         handler: Optional[ChannelUpdateHandler[StateT]] = None,
@@ -185,7 +219,13 @@ class Channel(Generic[StateT]):
         auth_handlers: Optional[list[str]] = None,
         rank: RouteRank = RouteRank.DEFAULT,
     ) -> ChannelUpdateHandler[StateT] | _RouteDecorator[ChannelUpdateHandler[StateT]]:
-        """Register a handler for Teams channelShared conversation update events."""
+        """Register a handler for Teams channelShared conversation update events.
+
+        :param handler: Optional handler to register directly; omit for decorator-style usage.
+        :param auth_handlers: Optional list of auth handler names to run before the route.
+        :param rank: Route priority rank.
+        :return: The registered handler, or a decorator when used without a handler.
+        """
         decorator = self._create_decorator(
             "channelShared", auth_handlers=auth_handlers, rank=rank
         )
@@ -197,10 +237,12 @@ class Channel(Generic[StateT]):
     def unshared(
         self, handler: ChannelUpdateHandler[StateT]
     ) -> ChannelUpdateHandler[StateT]: ...
+
     @overload
     def unshared(
         self, *, auth_handlers: Optional[list[str]] = ..., rank: RouteRank = ...
     ) -> _RouteDecorator[ChannelUpdateHandler[StateT]]: ...
+
     def unshared(
         self,
         handler: Optional[ChannelUpdateHandler[StateT]] = None,
@@ -208,7 +250,13 @@ class Channel(Generic[StateT]):
         auth_handlers: Optional[list[str]] = None,
         rank: RouteRank = RouteRank.DEFAULT,
     ) -> ChannelUpdateHandler[StateT] | _RouteDecorator[ChannelUpdateHandler[StateT]]:
-        """Register a handler for Teams channelUnshared conversation update events."""
+        """Register a handler for Teams channelUnshared conversation update events.
+
+        :param handler: Optional handler to register directly; omit for decorator-style usage.
+        :param auth_handlers: Optional list of auth handler names to run before the route.
+        :param rank: Route priority rank.
+        :return: The registered handler, or a decorator when used without a handler.
+        """
         decorator = self._create_decorator(
             "channelUnshared", auth_handlers=auth_handlers, rank=rank
         )
@@ -220,10 +268,12 @@ class Channel(Generic[StateT]):
     def restored(
         self, handler: ChannelUpdateHandler[StateT]
     ) -> ChannelUpdateHandler[StateT]: ...
+
     @overload
     def restored(
         self, *, auth_handlers: Optional[list[str]] = ..., rank: RouteRank = ...
     ) -> _RouteDecorator[ChannelUpdateHandler[StateT]]: ...
+
     def restored(
         self,
         handler: Optional[ChannelUpdateHandler[StateT]] = None,
@@ -231,7 +281,13 @@ class Channel(Generic[StateT]):
         auth_handlers: Optional[list[str]] = None,
         rank: RouteRank = RouteRank.DEFAULT,
     ) -> ChannelUpdateHandler[StateT] | _RouteDecorator[ChannelUpdateHandler[StateT]]:
-        """Register a handler for Teams channelRestored conversation update events."""
+        """Register a handler for Teams channelRestored conversation update events.
+
+        :param handler: Optional handler to register directly; omit for decorator-style usage.
+        :param auth_handlers: Optional list of auth handler names to run before the route.
+        :param rank: Route priority rank.
+        :return: The registered handler, or a decorator when used without a handler.
+        """
         decorator = self._create_decorator(
             "channelRestored", auth_handlers=auth_handlers, rank=rank
         )
@@ -243,10 +299,12 @@ class Channel(Generic[StateT]):
     def members_added(
         self, handler: ChannelUpdateHandler[StateT]
     ) -> ChannelUpdateHandler[StateT]: ...
+
     @overload
     def members_added(
         self, *, auth_handlers: Optional[list[str]] = ..., rank: RouteRank = ...
     ) -> _RouteDecorator[ChannelUpdateHandler[StateT]]: ...
+
     def members_added(
         self,
         handler: Optional[ChannelUpdateHandler[StateT]] = None,
@@ -254,7 +312,13 @@ class Channel(Generic[StateT]):
         auth_handlers: Optional[list[str]] = None,
         rank: RouteRank = RouteRank.DEFAULT,
     ) -> ChannelUpdateHandler[StateT] | _RouteDecorator[ChannelUpdateHandler[StateT]]:
-        """Register a handler for Teams membersAdded conversation update events."""
+        """Register a handler for Teams membersAdded conversation update events.
+
+        :param handler: Optional handler to register directly; omit for decorator-style usage.
+        :param auth_handlers: Optional list of auth handler names to run before the route.
+        :param rank: Route priority rank.
+        :return: The registered handler, or a decorator when used without a handler.
+        """
 
         def __selector(context: TurnContext) -> bool:
             return (
@@ -283,10 +347,12 @@ class Channel(Generic[StateT]):
     def members_removed(
         self, handler: ChannelUpdateHandler[StateT]
     ) -> ChannelUpdateHandler[StateT]: ...
+
     @overload
     def members_removed(
         self, *, auth_handlers: Optional[list[str]] = ..., rank: RouteRank = ...
     ) -> _RouteDecorator[ChannelUpdateHandler[StateT]]: ...
+
     def members_removed(
         self,
         handler: Optional[ChannelUpdateHandler[StateT]] = None,
@@ -294,7 +360,13 @@ class Channel(Generic[StateT]):
         auth_handlers: Optional[list[str]] = None,
         rank: RouteRank = RouteRank.DEFAULT,
     ) -> ChannelUpdateHandler[StateT] | _RouteDecorator[ChannelUpdateHandler[StateT]]:
-        """Register a handler for Teams membersRemoved conversation update events."""
+        """Register a handler for Teams membersRemoved conversation update events.
+
+        :param handler: Optional handler to register directly; omit for decorator-style usage.
+        :param auth_handlers: Optional list of auth handler names to run before the route.
+        :param rank: Route priority rank.
+        :return: The registered handler, or a decorator when used without a handler.
+        """
 
         def __selector(context: TurnContext) -> bool:
             return (
