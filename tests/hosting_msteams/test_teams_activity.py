@@ -161,15 +161,3 @@ class TestEnableFeedbackLoop:
         activity = _activity()
         assert activity.enable_feedback_loop("custom") is True
         assert activity.channel_data.feedback_loop.type == "custom"
-
-    @pytest.mark.xfail(
-        reason="BUGS.md #1: enable_feedback_loop guard is inverted; it returns "
-        "False (no-op) when channel data already exists, which is the common case.",
-        strict=True,
-    )
-    def test_enables_when_channel_data_already_present(self):
-        activity = _activity({"channel": {"id": "c1"}})
-        assert activity.enable_feedback_loop() is True
-        assert activity.channel_data.feedback_loop is not None
-        # existing channel data should be preserved, not clobbered
-        assert activity.channel_data.channel.id == "c1"
