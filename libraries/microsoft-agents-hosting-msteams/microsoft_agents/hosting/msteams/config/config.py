@@ -3,7 +3,7 @@
 
 """Route registration helpers for Teams configuration (config/fetch, config/submit) invokes."""
 
-from typing import Generic, Optional
+from typing import Generic, Optional, overload
 
 from microsoft_agents.activity import ActivityTypes
 from microsoft_agents.hosting.core import (
@@ -74,24 +74,44 @@ class Config(Generic[StateT]):
 
         return __call
 
+    @overload
+    def fetch(self, handler: ConfigHandler[StateT]) -> ConfigHandler[StateT]: ...
+    @overload
+    def fetch(
+        self, *, auth_handlers: Optional[list[str]] = ..., rank: RouteRank = ...
+    ) -> _RouteDecorator[ConfigHandler[StateT]]: ...
     def fetch(
         self,
+        handler: Optional[ConfigHandler[StateT]] = None,
         *,
         auth_handlers: Optional[list[str]] = None,
         rank: RouteRank = RouteRank.DEFAULT,
-    ) -> _RouteDecorator[ConfigHandler[StateT]]:
+    ) -> ConfigHandler[StateT] | _RouteDecorator[ConfigHandler[StateT]]:
         """Register a handler for config/fetch invokes."""
-        return self._create_decorator(
+        decorator = self._create_decorator(
             "config/fetch", auth_handlers=auth_handlers, rank=rank
         )
+        if handler is not None:
+            return decorator(handler)
+        return decorator
 
+    @overload
+    def submit(self, handler: ConfigHandler[StateT]) -> ConfigHandler[StateT]: ...
+    @overload
+    def submit(
+        self, *, auth_handlers: Optional[list[str]] = ..., rank: RouteRank = ...
+    ) -> _RouteDecorator[ConfigHandler[StateT]]: ...
     def submit(
         self,
+        handler: Optional[ConfigHandler[StateT]] = None,
         *,
         auth_handlers: Optional[list[str]] = None,
         rank: RouteRank = RouteRank.DEFAULT,
-    ) -> _RouteDecorator[ConfigHandler[StateT]]:
+    ) -> ConfigHandler[StateT] | _RouteDecorator[ConfigHandler[StateT]]:
         """Register a handler for config/submit invokes."""
-        return self._create_decorator(
+        decorator = self._create_decorator(
             "config/submit", auth_handlers=auth_handlers, rank=rank
         )
+        if handler is not None:
+            return decorator(handler)
+        return decorator

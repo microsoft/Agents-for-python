@@ -37,7 +37,7 @@ class Authorization:
     """Class responsible for managing authorization flows."""
 
     _storage: Storage
-    _connections: Connections
+    _connection_manager: Connections
     _handlers: dict[str, _AuthorizationHandler]
 
     def __init__(
@@ -67,7 +67,7 @@ class Authorization:
             raise ValueError("Storage is required for Authorization")
 
         self._storage = storage
-        self._connections = connection_manager
+        self._connection_manager = connection_manager
 
         self._sign_in_success_handler: Optional[
             Callable[[TurnContext, TurnState, Optional[str]], Awaitable[None]]
@@ -120,13 +120,9 @@ class Authorization:
 
             self._handlers[name] = AUTHORIZATION_TYPE_MAP[auth_type](
                 storage=self._storage,
-                connections=self._connections,
+                connection_manager=self._connection_manager,
                 auth_handler=auth_handler,
             )
-
-    @property
-    def connections(self) -> Connections:
-        return self._connections
 
     @property
     def connection_manager(self) -> Connections:

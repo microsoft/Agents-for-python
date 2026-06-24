@@ -106,3 +106,97 @@ class TestConfig:
         with patch(_PATCH, new_callable=AsyncMock):
             await route_handler(ctx, MagicMock())
             assert user_handler.call_args[0][2] == payload
+
+    # --- direct decoration (no parentheses) ---
+
+    def test_fetch_direct_decoration_registers_route(self):
+        @self.ext.config.fetch
+        async def handler(ctx, state, data): ...
+
+        assert len(self.app._routes) == 1
+
+    def test_fetch_direct_decoration_selector(self):
+        @self.ext.config.fetch
+        async def handler(ctx, state, data): ...
+
+        selector = self.app._routes[0]["selector"]
+        assert (
+            selector(_make_context(ActivityTypes.invoke, name="config/fetch")) is True
+        )
+        assert (
+            selector(_make_context(ActivityTypes.invoke, name="config/submit")) is False
+        )
+
+    def test_fetch_direct_decoration_is_invoke(self):
+        @self.ext.config.fetch
+        async def handler(ctx, state, data): ...
+
+        assert self.app._routes[0]["is_invoke"] is True
+
+    def test_fetch_direct_decoration_returns_handler(self):
+        async def handler(ctx, state, data): ...
+
+        result = self.ext.config.fetch(handler)
+        assert result is handler
+
+    def test_submit_direct_decoration_registers_route(self):
+        @self.ext.config.submit
+        async def handler(ctx, state, data): ...
+
+        assert len(self.app._routes) == 1
+
+    def test_submit_direct_decoration_selector(self):
+        @self.ext.config.submit
+        async def handler(ctx, state, data): ...
+
+        selector = self.app._routes[0]["selector"]
+        assert (
+            selector(_make_context(ActivityTypes.invoke, name="config/submit")) is True
+        )
+        assert (
+            selector(_make_context(ActivityTypes.invoke, name="config/fetch")) is False
+        )
+
+    def test_submit_direct_decoration_is_invoke(self):
+        @self.ext.config.submit
+        async def handler(ctx, state, data): ...
+
+        assert self.app._routes[0]["is_invoke"] is True
+
+    def test_submit_direct_decoration_returns_handler(self):
+        async def handler(ctx, state, data): ...
+
+        result = self.ext.config.submit(handler)
+        assert result is handler
+
+    @pytest.mark.asyncio
+    async def test_fetch_direct_decoration_handler_sends_response(self):
+        response = {"type": "auth"}
+        user_handler = AsyncMock(return_value=response)
+
+        async def _handler(ctx, state, data):
+            return await user_handler(ctx, state, data)
+
+        self.ext.config.fetch(_handler)
+
+        route_handler = self.app._routes[0]["handler"]
+        ctx = _make_context(ActivityTypes.invoke, name="config/fetch", value={})
+        with patch(_PATCH, new_callable=AsyncMock) as mock_send:
+            await route_handler(ctx, MagicMock())
+            mock_send.assert_awaited_once_with(ctx, response)
+
+    @pytest.mark.asyncio
+    async def test_submit_direct_decoration_handler_sends_response(self):
+        response = {"type": "message"}
+        user_handler = AsyncMock(return_value=response)
+
+        async def _handler(ctx, state, data):
+            return await user_handler(ctx, state, data)
+
+        self.ext.config.submit(_handler)
+
+        route_handler = self.app._routes[0]["handler"]
+        ctx = _make_context(ActivityTypes.invoke, name="config/submit", value={})
+        with patch(_PATCH, new_callable=AsyncMock) as mock_send:
+            await route_handler(ctx, MagicMock())
+            mock_send.assert_awaited_once_with(ctx, response)
