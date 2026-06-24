@@ -85,7 +85,7 @@ class TurnContext(TurnContextProtocol):
         """
         for attribute in [
             "adapter",
-            "activity",
+            "_activity",
             "_responded",
             "_services",
             "_on_send_activities",

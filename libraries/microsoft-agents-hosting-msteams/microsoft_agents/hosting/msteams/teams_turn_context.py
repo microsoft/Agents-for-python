@@ -70,19 +70,17 @@ class TeamsTurnContext(TurnContext):
         return _get_teams_api_client(self)
 
     @staticmethod
-    def _make_targeted_activity(activity: Activity) -> Activity:
+    def _make_targeted_activity(activity: Activity) -> None:
         """
         Make an activity targeted.
 
         :param activity: The activity to make targeted.
-        :return: The targeted activity.
+        :return: None
         """
-        activity = activity.model_copy()
         activity.entities = activity.entities or []
         activity.entities.append(
             ActivityTreatment(treatment=ActivityTreatmentTypes.TARGETED)
         )
-        return activity
 
     async def send_targeted_activity(self, activity: Activity) -> ResourceResponse:
         """
@@ -91,9 +89,8 @@ class TeamsTurnContext(TurnContext):
         :param activity: The activity to send.
         :return: The resource response.
         """
-        return await self.send_activity(
-            TeamsTurnContext._make_targeted_activity(activity)
-        )
+        TeamsTurnContext._make_targeted_activity(activity)
+        return await self.send_activity(activity)
 
     async def send_targeted_activities(
         self, activities: list[Activity]
@@ -104,6 +101,6 @@ class TeamsTurnContext(TurnContext):
         :param activities: The list of activities to send.
         :return: A list of resource responses.
         """
-        return await self.send_activities(
-            [TeamsTurnContext._make_targeted_activity(act) for act in activities]
-        )
+        for activity in activities:
+            TeamsTurnContext._make_targeted_activity(activity)
+        return await self.send_activities(activities)

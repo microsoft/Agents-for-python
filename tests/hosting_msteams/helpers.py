@@ -11,7 +11,7 @@ from microsoft_agents.activity import Activity, ActivityTypes
 from microsoft_agents.hosting.core import TurnContext
 from microsoft_agents.hosting.core.app import AgentApplication, RouteRank
 
-is_supported_version = sys.version_info >= (3, 12)
+is_supported_version = sys.version_info >= (3, 11)
 
 if is_supported_version:
     from microsoft_agents.hosting.msteams.teams_turn_context import TeamsTurnContext

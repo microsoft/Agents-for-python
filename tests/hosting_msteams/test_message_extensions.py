@@ -4,6 +4,7 @@
 """Tests for TeamsAgentExtension.message_extensions (composeExtension invokes)."""
 
 import pytest
+from types import SimpleNamespace
 from unittest.mock import AsyncMock, MagicMock, patch
 
 from microsoft_agents.activity import ActivityTypes
@@ -12,11 +13,13 @@ from .helpers import _make_app, _make_context, is_supported_version
 
 pytestmark = pytest.mark.skipif(
     not is_supported_version,
-    reason="microsoft-agents-hosting-teams tests require Python 3.12+",
+    reason="microsoft-agents-hosting-teams tests require Python 3.11+",
 )
 
 if is_supported_version:
     from microsoft_teams.api.models import (
+        AppBasedLinkQuery,
+        MessagingExtensionAction,
         MessagingExtensionQuery,
         MessagingExtensionResponse,
     )
@@ -573,3 +576,200 @@ class TestMessageExtensionDirectDecoratorStyle:
         async def handler(ctx, state, value): ...
 
         assert self.app._routes[0]["selector"] is not None
+
+
+class TestMessageExtensionHandlerExecution:
+    """Exercises the handler closures (payload parsing + response sending), not
+    just the selectors, for the message-extension methods that lacked such tests."""
+
+    def setup_method(self):
+        self.app = _make_app()
+        self.ext = TeamsAgentExtension(self.app)
+
+    @pytest.mark.asyncio
+    async def test_select_item_passes_raw_value_and_sends_response(self):
+        response = MessagingExtensionResponse()
+        user_handler = AsyncMock(return_value=response)
+
+        @self.ext.message_extensions.select_item()
+        async def handler(ctx, state, value):
+            return await user_handler(ctx, state, value)
+
+        route_handler = self.app._routes[0]["handler"]
+        ctx = _make_context(
+            ActivityTypes.invoke,
+            name="composeExtension/selectItem",
+            value={"item": "42"},
+        )
+        with patch(_PATCH, new_callable=AsyncMock) as mock_send:
+            await route_handler(ctx, MagicMock())
+            # select_item forwards the raw, unvalidated value
+            assert user_handler.call_args[0][2] == {"item": "42"}
+            mock_send.assert_awaited_once_with(ctx, response)
+
+    @pytest.mark.asyncio
+    async def test_select_item_skips_send_when_handler_returns_none(self):
+        @self.ext.message_extensions.select_item()
+        async def handler(ctx, state, value):
+            return None
+
+        route_handler = self.app._routes[0]["handler"]
+        ctx = _make_context(
+            ActivityTypes.invoke, name="composeExtension/selectItem", value={}
+        )
+        with patch(_PATCH, new_callable=AsyncMock) as mock_send:
+            await route_handler(ctx, MagicMock())
+            mock_send.assert_not_awaited()
+
+    @pytest.mark.asyncio
+    async def test_submit_action_parses_action_and_sends_response(self):
+        response = MessagingExtensionResponse()
+        user_handler = AsyncMock(return_value=response)
+
+        @self.ext.message_extensions.submit_action()
+        async def handler(ctx, state, action):
+            return await user_handler(ctx, state, action)
+
+        route_handler = self.app._routes[0]["handler"]
+        ctx = _make_context(
+            ActivityTypes.invoke,
+            name="composeExtension/submitAction",
+            value={"commandId": "c", "commandContext": "compose"},
+        )
+        with patch(_PATCH, new_callable=AsyncMock) as mock_send:
+            await route_handler(ctx, MagicMock())
+            assert isinstance(user_handler.call_args[0][2], MessagingExtensionAction)
+            mock_send.assert_awaited_once_with(ctx, response)
+
+    def test_submit_action_selector_handles_non_dict_value(self):
+        # The selector reads botMessagePreviewAction via getattr when value is an
+        # object rather than a dict; a preview action must exclude this route.
+        @self.ext.message_extensions.submit_action()
+        async def handler(ctx, state, action): ...
+
+        selector = self.app._routes[0]["selector"]
+
+        preview_value = SimpleNamespace(botMessagePreviewAction="edit", commandId="c")
+        assert (
+            selector(
+                _make_context(
+                    ActivityTypes.invoke,
+                    name="composeExtension/submitAction",
+                    value=preview_value,
+                )
+            )
+            is False
+        )
+
+        non_preview_value = SimpleNamespace(botMessagePreviewAction=None, commandId="c")
+        assert (
+            selector(
+                _make_context(
+                    ActivityTypes.invoke,
+                    name="composeExtension/submitAction",
+                    value=non_preview_value,
+                )
+            )
+            is True
+        )
+
+    @pytest.mark.asyncio
+    async def test_fetch_action_parses_action_and_sends_response(self):
+        response = MessagingExtensionResponse()
+        user_handler = AsyncMock(return_value=response)
+
+        @self.ext.message_extensions.fetch_action()
+        async def handler(ctx, state, action):
+            return await user_handler(ctx, state, action)
+
+        route_handler = self.app._routes[0]["handler"]
+        ctx = _make_context(
+            ActivityTypes.invoke,
+            name="composeExtension/fetchTask",
+            value={"commandId": "c", "commandContext": "compose"},
+        )
+        with patch(_PATCH, new_callable=AsyncMock) as mock_send:
+            await route_handler(ctx, MagicMock())
+            assert isinstance(user_handler.call_args[0][2], MessagingExtensionAction)
+            mock_send.assert_awaited_once_with(ctx, response)
+
+    @pytest.mark.asyncio
+    async def test_query_link_parses_query_and_sends_response(self):
+        response = MessagingExtensionResponse()
+        user_handler = AsyncMock(return_value=response)
+
+        @self.ext.message_extensions.query_link()
+        async def handler(ctx, state, query):
+            return await user_handler(ctx, state, query)
+
+        route_handler = self.app._routes[0]["handler"]
+        ctx = _make_context(
+            ActivityTypes.invoke,
+            name="composeExtension/queryLink",
+            value={"url": "https://example.com"},
+        )
+        with patch(_PATCH, new_callable=AsyncMock) as mock_send:
+            await route_handler(ctx, MagicMock())
+            assert isinstance(user_handler.call_args[0][2], AppBasedLinkQuery)
+            assert user_handler.call_args[0][2].url == "https://example.com"
+            mock_send.assert_awaited_once_with(ctx, response)
+
+    @pytest.mark.asyncio
+    async def test_anonymous_query_link_parses_query_and_sends_response(self):
+        response = MessagingExtensionResponse()
+        user_handler = AsyncMock(return_value=response)
+
+        @self.ext.message_extensions.anonymous_query_link()
+        async def handler(ctx, state, query):
+            return await user_handler(ctx, state, query)
+
+        route_handler = self.app._routes[0]["handler"]
+        ctx = _make_context(
+            ActivityTypes.invoke,
+            name="composeExtension/anonymousQueryLink",
+            value={"url": "https://example.com"},
+        )
+        with patch(_PATCH, new_callable=AsyncMock) as mock_send:
+            await route_handler(ctx, MagicMock())
+            assert isinstance(user_handler.call_args[0][2], AppBasedLinkQuery)
+            mock_send.assert_awaited_once_with(ctx, response)
+
+    @pytest.mark.asyncio
+    async def test_query_setting_url_parses_query_and_sends_response(self):
+        response = MessagingExtensionResponse()
+        user_handler = AsyncMock(return_value=response)
+
+        @self.ext.message_extensions.query_setting_url()
+        async def handler(ctx, state, query):
+            return await user_handler(ctx, state, query)
+
+        route_handler = self.app._routes[0]["handler"]
+        ctx = _make_context(
+            ActivityTypes.invoke,
+            name="composeExtension/querySettingUrl",
+            value={"commandId": "c"},
+        )
+        with patch(_PATCH, new_callable=AsyncMock) as mock_send:
+            await route_handler(ctx, MagicMock())
+            assert isinstance(user_handler.call_args[0][2], MessagingExtensionQuery)
+            mock_send.assert_awaited_once_with(ctx, response)
+
+    @pytest.mark.asyncio
+    async def test_card_button_clicked_forwards_value_and_sends_empty_response(self):
+        user_handler = AsyncMock()
+
+        @self.ext.message_extensions.card_button_clicked()
+        async def handler(ctx, state, value):
+            await user_handler(ctx, state, value)
+
+        route_handler = self.app._routes[0]["handler"]
+        ctx = _make_context(
+            ActivityTypes.invoke,
+            name="composeExtension/onCardButtonClicked",
+            value={"id": "btn-1"},
+        )
+        with patch(_PATCH, new_callable=AsyncMock) as mock_send:
+            await route_handler(ctx, MagicMock())
+            # raw value is forwarded; an empty invoke response is always sent
+            assert user_handler.call_args[0][2] == {"id": "btn-1"}
+            mock_send.assert_awaited_once_with(ctx)

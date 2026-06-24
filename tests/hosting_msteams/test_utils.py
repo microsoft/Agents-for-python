@@ -11,7 +11,7 @@ from .helpers import _make_context, is_supported_version
 
 pytestmark = pytest.mark.skipif(
     not is_supported_version,
-    reason="microsoft-agents-hosting-teams tests require Python 3.12+",
+    reason="microsoft-agents-hosting-teams tests require Python 3.11+",
 )
 
 if is_supported_version:
