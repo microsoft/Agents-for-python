@@ -12,6 +12,7 @@ from typing import (
 )
 
 from msgraph import GraphServiceClient
+from microsoft_teams.api import ApiClient
 
 from microsoft_agents.activity import (
     ActivityTypes,
@@ -41,8 +42,11 @@ from .route_handlers import (
 from .task_module import TaskModule
 from .team import Team
 
-from .graph import create_graph_service_client
-from .teams_api_client import set_teams_api_client
+from ._graph import _create_graph_service_client
+from ._teams_api_client import (
+    _get_teams_api_client,
+    _set_teams_api_client,
+)
 from .type_defs import StateT
 
 
@@ -103,7 +107,7 @@ class TeamsAgentExtension(Generic[StateT]):
 
         async def on_before_turn(context: TurnContext, state: StateT) -> bool:
             if context.activity.channel_id == Channels.ms_teams:
-                set_teams_api_client(context, self._app.connection_manager)
+                _set_teams_api_client(context, self._app.connection_manager)
             return True
 
         self._app.before_turn(on_before_turn)
@@ -273,10 +277,20 @@ class TeamsAgentExtension(Generic[StateT]):
 
         return __call
 
-    def get_graph(
-        self,
-        context: TurnContext,
-        handler_name: str | None = None,
-        graph_base_url="https://graph.microsoft.com/v1.0",
+    def get_teams_api_client(self, context: TurnContext) -> ApiClient:
+        """Get the Teams API client.
+
+        :return: The Teams API client.
+        """
+        return _get_teams_api_client(context)
+
+    def get_graph_client(
+        self, context: TurnContext, handler_name: str | None = None
     ) -> GraphServiceClient:
-        return create_graph_service_client(self._app, context, handler_name)
+        """Get the Graph Service client.
+
+        :param context: The turn context.
+        :param handler_name: The name of the handler.
+        :return: The Graph Service client.
+        """
+        return _create_graph_service_client(self._app, context, handler_name)

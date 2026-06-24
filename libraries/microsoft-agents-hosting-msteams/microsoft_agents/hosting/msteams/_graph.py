@@ -37,7 +37,7 @@ class _SDKAuthenticationProvider(AuthenticationProvider):
             request.headers["Authorization"] = f"Bearer {token}"
 
 
-def create_graph_service_client(
+def _create_graph_service_client(
     app: AgentApplication,
     context: TurnContext,
     handler_name: str,
