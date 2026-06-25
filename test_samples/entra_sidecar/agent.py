@@ -43,7 +43,9 @@ agents_sdk_config = load_configuration_from_env(environ)
 # validation is DISABLED by default so the sample runs locally against the
 # sidecar without a real tenant/app registration. Set TOKENVALIDATION__ENABLED=true
 # (and a real CLIENTID/TENANTID) for any non-local deployment.
-TOKEN_VALIDATION_ENABLED = coerce_bool(environ.get("TOKENVALIDATION__ENABLED", "false"))
+TOKEN_VALIDATION_ENABLED = coerce_bool(
+    environ.get("TOKENVALIDATION__ENABLED", "false"), default=False
+)
 
 STORAGE = MemoryStorage()
 # No secrets/certificates required: the sidecar owns all credential management.

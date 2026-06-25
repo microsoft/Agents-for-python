@@ -105,7 +105,9 @@ class AgentAuthConfiguration:
         # would be ``True`` and silently enable anonymous auth when configured
         # off. Coercion is fail-safe (unrecognized -> False).
         self.ANONYMOUS_ALLOWED = coerce_bool(
-            anonymous_allowed or kwargs.get("ANONYMOUS_ALLOWED", False)
+            anonymous_allowed or kwargs.get("ANONYMOUS_ALLOWED", False),
+            default=False,
+            name="ANONYMOUS_ALLOWED",
         )
 
         # Preserve any provider-specific settings that aren't first-class fields

@@ -63,7 +63,9 @@ class SidecarConnectionSettings(ConnectionSettingsBase):
         # so coerce explicitly: ``bool("false")`` would otherwise be ``True`` and
         # silently disable the SSRF guard, and ``max(0, "5")`` would raise.
         self.bypass_local_network_restriction = coerce_bool(
-            bypass_local_network_restriction
+            bypass_local_network_restriction,
+            default=False,
+            name="BYPASS_LOCAL_NETWORK_RESTRICTION",
         )
         self.request_timeout = coerce_float(
             request_timeout, DEFAULT_REQUEST_TIMEOUT_SECONDS, "REQUEST_TIMEOUT"

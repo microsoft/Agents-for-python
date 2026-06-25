@@ -15,30 +15,40 @@ from __future__ import annotations
 
 from typing import Any
 
-_TRUTHY = ("1", "true", "yes", "on")
-_FALSY = ("", "0", "false", "no", "off")
+_TRUTHY = ("1", "true")
+_FALSY = ("0", "false")
 
 
-def coerce_bool(value: Any, default: bool = False) -> bool:
+def coerce_bool(value: Any, default: bool | None = None, name: str = "value") -> bool:
     """Coerce a config value (possibly an env string) to a bool.
 
     Environment variables always arrive as strings, so ``bool("false")`` would
-    be ``True``. Recognized truthy spellings are ``1/true/yes/on`` and falsy
-    spellings are ``""/0/false/no/off`` (case-insensitive). Any other value
-    falls back to ``default`` (fail-safe: keep the default rather than guess).
+    be ``True``. Recognized truthy spellings are ``1/true`` and falsy spellings
+    are ``0/false`` (case-insensitive).
+
+    An empty/whitespace-only string or ``None`` is treated as *unset* (not as an
+    explicit ``false``). For unset and unrecognized values: if ``default`` is
+    provided it is returned, otherwise a ``ValueError`` is raised naming the
+    offending setting -- mirroring :func:`coerce_int` and :func:`coerce_float`.
     """
-    if value is None:
-        return default
     if isinstance(value, bool):
         return value
     if isinstance(value, (int, float)):
         return bool(value)
-    text = str(value).strip().lower()
-    if text in _TRUTHY:
-        return True
-    if text in _FALSY:
-        return False
-    return default
+    if value is not None:
+        text = str(value).strip().lower()
+        if text in _TRUTHY:
+            return True
+        if text in _FALSY:
+            return False
+        if text:
+            if default is not None:
+                return default
+            raise ValueError(f"Invalid boolean for {name}: {value!r}")
+    # Unset (None or empty/whitespace-only string).
+    if default is not None:
+        return default
+    raise ValueError(f"Invalid boolean for {name}: {value!r}")
 
 
 def coerce_int(value: Any, default: int, name: str = "value") -> int:

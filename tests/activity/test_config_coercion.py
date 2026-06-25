@@ -11,18 +11,29 @@ from microsoft_agents.activity.config._coercion import (
 
 
 class TestCoerceBool:
-    @pytest.mark.parametrize("value", ["1", "true", "TRUE", "Yes", "on", " on "])
+    @pytest.mark.parametrize("value", ["1", "true", "TRUE", " true "])
     def test_truthy_strings(self, value):
         assert coerce_bool(value) is True
 
-    @pytest.mark.parametrize("value", ["", "0", "false", "FALSE", "no", "off"])
+    @pytest.mark.parametrize("value", ["0", "false", "FALSE", " false "])
     def test_falsy_strings(self, value):
         # Critically: bool("false") would be True; coerce_bool must return False.
         assert coerce_bool(value) is False
 
-    def test_none_returns_default(self):
-        assert coerce_bool(None) is False
+    def test_none_unset_requires_default(self):
+        # No default -> unset is an error, mirroring coerce_int/coerce_float.
+        with pytest.raises(ValueError):
+            coerce_bool(None)
         assert coerce_bool(None, default=True) is True
+        assert coerce_bool(None, default=False) is False
+
+    @pytest.mark.parametrize("value", ["", "   "])
+    def test_empty_string_is_unset(self, value):
+        # An empty/whitespace-only string is "unset", not an explicit False.
+        with pytest.raises(ValueError):
+            coerce_bool(value)
+        assert coerce_bool(value, default=True) is True
+        assert coerce_bool(value, default=False) is False
 
     def test_real_bools_passthrough(self):
         assert coerce_bool(True) is True
@@ -32,9 +43,19 @@ class TestCoerceBool:
         assert coerce_bool(1) is True
         assert coerce_bool(0) is False
 
-    def test_unrecognized_falls_back_to_default(self):
-        assert coerce_bool("maybe") is False
+    @pytest.mark.parametrize("value", ["yes", "on", "no", "off"])
+    def test_dropped_spellings_no_longer_parsed(self, value):
+        # yes/on/no/off are intentionally not parsed; they are now unrecognized.
+        with pytest.raises(ValueError):
+            coerce_bool(value)
+        assert coerce_bool(value, default=True) is True
+        assert coerce_bool(value, default=False) is False
+
+    def test_unrecognized_requires_default(self):
+        with pytest.raises(ValueError):
+            coerce_bool("maybe")
         assert coerce_bool("maybe", default=True) is True
+        assert coerce_bool("maybe", default=False) is False
 
 
 class TestCoerceInt:

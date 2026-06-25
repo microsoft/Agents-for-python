@@ -127,18 +127,21 @@ class TestScalarCoercion:
         settings = SidecarConnectionSettings(bypass_local_network_restriction="true")
         assert settings.bypass_local_network_restriction is True
 
-    @pytest.mark.parametrize("raw", ["0", "no", "off", "", "False", "OFF"])
+    @pytest.mark.parametrize("raw", ["0", "false", "False", "FALSE"])
     def test_bypass_falsy_strings(self, raw):
         settings = SidecarConnectionSettings(bypass_local_network_restriction=raw)
         assert settings.bypass_local_network_restriction is False
 
-    @pytest.mark.parametrize("raw", ["1", "yes", "on", "True", "ON"])
+    @pytest.mark.parametrize("raw", ["1", "true", "True", "TRUE"])
     def test_bypass_truthy_strings(self, raw):
         settings = SidecarConnectionSettings(bypass_local_network_restriction=raw)
         assert settings.bypass_local_network_restriction is True
 
-    def test_unrecognized_bypass_value_fails_safe_to_false(self):
-        settings = SidecarConnectionSettings(bypass_local_network_restriction="maybe")
+    @pytest.mark.parametrize("raw", ["maybe", "no", "off", "yes", "on", ""])
+    def test_unrecognized_or_unset_bypass_value_fails_safe_to_false(self, raw):
+        # The call site supplies default=False, so unrecognized/unset values
+        # (including the dropped yes/on/no/off spellings) fail safe to False.
+        settings = SidecarConnectionSettings(bypass_local_network_restriction=raw)
         assert settings.bypass_local_network_restriction is False
 
     def test_retry_count_string_coerced_to_int(self):
