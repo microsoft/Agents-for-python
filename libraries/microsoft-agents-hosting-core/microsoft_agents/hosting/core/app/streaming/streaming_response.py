@@ -47,8 +47,6 @@ class StreamingResponse:
             context: Context for the current turn of conversation with the user.
         """
         self._context = context
-        self._is_streaming_channel = False
-        self._interval = 0.1
         self._initialize_state()
 
         # Set defaults based on channel
@@ -59,6 +57,8 @@ class StreamingResponse:
         Initializes (or resets) all mutable streaming state to its default values.
         Called from both __init__() and reset().
         """
+        self._is_streaming_channel = False
+        self._interval = 0.1
         self._sequence_number = 1
         self._stream_id: Optional[str] = None
         self._message = ""
@@ -187,6 +187,7 @@ class StreamingResponse:
 
         # Set defaults based on channel
         self._set_defaults(self._context)
+
     def set_sensitivity_label(self, sensitivity_label: SensitivityUsageInfo) -> None:
         """
         Sets the sensitivity label to attach to the final chunk.
