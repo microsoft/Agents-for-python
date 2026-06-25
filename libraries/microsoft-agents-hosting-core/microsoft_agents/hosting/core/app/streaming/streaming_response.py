@@ -185,6 +185,8 @@ class StreamingResponse:
         await self.wait_for_queue()
         self._initialize_state()
 
+        # Set defaults based on channel
+        self._set_defaults(self._context)
     def set_sensitivity_label(self, sensitivity_label: SensitivityUsageInfo) -> None:
         """
         Sets the sensitivity label to attach to the final chunk.
