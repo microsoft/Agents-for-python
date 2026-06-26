@@ -1,0 +1,20 @@
+[build-system]
+requires = ["setuptools"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "task-modules"
+version = "0.1.0"
+description = "Teams Task Modules sample — card dialog, webpage dialog, multi-step form, and deep-link task module"
+authors = [{name = "Microsoft Corporation"}]
+license = "MIT"
+requires-python = ">=3.11"
+dependencies = [
+    "microsoft-agents-activity",
+    "microsoft-agents-hosting-core",
+    "microsoft-agents-authentication-msal",
+    "microsoft-agents-hosting-aiohttp",
+    "microsoft-agents-hosting-msteams @ file:../../../libraries/microsoft-agents-hosting-msteams",
+    "python-dotenv",
+    "aiohttp",
+]

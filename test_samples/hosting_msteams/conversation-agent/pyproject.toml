@@ -8,13 +8,13 @@ version = "0.1.0"
 description = "Teams Conversation Agent sample — demonstrates channel/team lifecycle, member events, and message commands"
 authors = [{name = "Microsoft Corporation"}]
 license = "MIT"
-requires-python = ">=3.12"
+requires-python = ">=3.11"
 dependencies = [
     "microsoft-agents-activity",
     "microsoft-agents-hosting-core",
     "microsoft-agents-authentication-msal",
     "microsoft-agents-hosting-aiohttp",
-    "microsoft-agents-hosting-teams",
+    "microsoft-agents-hosting-msteams",
     "python-dotenv",
     "aiohttp",
 ]
