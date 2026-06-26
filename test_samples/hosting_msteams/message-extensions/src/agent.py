@@ -258,12 +258,11 @@ async def on_query_settings_url(
 
 @teams.message_extensions.setting
 async def on_configure_settings(
-    context: TeamsTurnContext, state: TurnState, settings
+    context: TeamsTurnContext, state: TurnState, settings: MessagingExtensionQuery
 ) -> None:
-    state_value = settings.get("state") if isinstance(settings, dict) else settings
-    if state_value == "CancelledByUser":
+    if settings.state == "CancelledByUser":
         return
-    logger.info("Settings saved: %s", state_value)
+    logger.info("Settings saved: %s", settings.state)
 
 
 # ── composeExtension/fetchTask ───────────────────────────────────────────────

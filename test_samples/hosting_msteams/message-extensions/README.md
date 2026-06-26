@@ -17,12 +17,24 @@ Python port of the .NET `MessageExtensions` sample
 | fetch task | `@teams.message_extensions.fetch_action()` | Returns a "not implemented" task module dialog. |
 | message | `@teams.activity("message")` | Echoes text and explains how to use the extension. |
 
+## Environment variables
+
+| Variable | Required | Default | Description |
+|----------|----------|---------|-------------|
+| `CONNECTIONS__SERVICE_CONNECTION__SETTINGS__CLIENTID` | Yes | — | Azure Bot / Entra app registration client ID |
+| `CONNECTIONS__SERVICE_CONNECTION__SETTINGS__CLIENTSECRET` | Yes | — | Client secret for the above registration |
+| `CONNECTIONS__SERVICE_CONNECTION__SETTINGS__TENANTID` | Yes | — | Entra tenant ID |
+| `SETTINGS_URL` | No | `http://localhost:3978/settings` | Public URL of the settings page served by this agent. Teams loads this URL in the message-extension configuration pane, so it must be reachable from the internet — use your dev tunnel URL (e.g. `https://my-tunnel.devtunnels.ms/settings`). |
+
 ## Running
 
 1. Copy `env.TEMPLATE` to `.env` and fill in your Azure Bot registration
-   (`CLIENTID`, `CLIENTSECRET`, `TENANTID`). Optionally set `SETTINGS_URL`.
-2. Install the SDK libraries (see the repository `README.md`).
-3. Start the agent:
+   (`CLIENTID`, `CLIENTSECRET`, `TENANTID`).
+2. If you want the **settings** command to work, set `SETTINGS_URL` to the
+   `/settings` path on your dev tunnel (e.g.
+   `SETTINGS_URL=https://my-tunnel.devtunnels.ms/settings`).
+3. Install the SDK libraries (see the repository `README.md`).
+4. Start the agent:
 
    ```bash
    python -m src.main

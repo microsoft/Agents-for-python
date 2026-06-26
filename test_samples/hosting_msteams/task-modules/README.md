@@ -29,13 +29,24 @@ from JWT authorization because Teams loads it in an iframe without a bearer
 token. The page calls `microsoftTeams.dialog.url.submit(...)` which Teams
 delivers back as a `task/submit` invoke with verb `webpage_dialog`.
 
+## Environment variables
+
+| Variable | Required | Default | Description |
+|----------|----------|---------|-------------|
+| `CONNECTIONS__SERVICE_CONNECTION__SETTINGS__CLIENTID` | Yes | — | Azure Bot / Entra app registration client ID |
+| `CONNECTIONS__SERVICE_CONNECTION__SETTINGS__CLIENTSECRET` | Yes | — | Client secret for the above registration |
+| `CONNECTIONS__SERVICE_CONNECTION__SETTINGS__TENANTID` | Yes | — | Entra tenant ID |
+| `APP_BASE_URL` | No | `http://localhost:3978` | Public base URL of this agent. Used to build the webpage dialog URL (`{APP_BASE_URL}/dialog-form`). Teams loads that URL in an iframe, so it must be reachable from the internet — use your dev tunnel URL (e.g. `https://my-tunnel.devtunnels.ms`). |
+
 ## Running
 
 1. Copy `env.TEMPLATE` to `.env` and fill in your Azure Bot registration
-   (`CLIENTID`, `CLIENTSECRET`, `TENANTID`). Set `APP_BASE_URL` to your public
-   (dev tunnel) URL so the webpage dialog loads.
-2. Install the SDK libraries (see the repository `README.md`).
-3. Start the agent:
+   (`CLIENTID`, `CLIENTSECRET`, `TENANTID`).
+2. Set `APP_BASE_URL` to your dev tunnel URL (e.g.
+   `APP_BASE_URL=https://my-tunnel.devtunnels.ms`) so Teams can load the
+   **Webpage Dialog** task module in an iframe.
+3. Install the SDK libraries (see the repository `README.md`).
+4. Start the agent:
 
    ```bash
    python -m src.main
