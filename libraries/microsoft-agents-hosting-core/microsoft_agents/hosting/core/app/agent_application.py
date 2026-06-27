@@ -16,9 +16,9 @@ from typing import (
     Callable,
     Generic,
     Optional,
-    Pattern,
     TypeVar,
     cast,
+    overload,
 )
 
 from microsoft_agents.activity import (
@@ -71,11 +71,12 @@ class AgentApplication(Agent, Generic[StateT]):
     _adapter: Optional[ChannelServiceAdapter] = None
     _auth: Optional[Authorization] = None
     _proactive: Optional[Proactive] = None
-    _internal_before_turn: list[Callable[[TurnContext, StateT], Awaitable[bool]]] = []
-    _internal_after_turn: list[Callable[[TurnContext, StateT], Awaitable[bool]]] = []
-    _route_list: _RouteList[StateT] = _RouteList[StateT]()
+    _internal_before_turn: list[Callable[[TurnContext, StateT], Awaitable[bool]]]
+    _internal_after_turn: list[Callable[[TurnContext, StateT], Awaitable[bool]]]
+    _route_list: _RouteList[StateT]
     _error: Optional[Callable[[TurnContext, Exception], Awaitable[None]]] = None
     _turn_state_factory: Optional[Callable[[TurnContext], StateT]] = None
+    _connection_manager: Connections
 
     def __init__(
         self,
@@ -98,6 +99,8 @@ class AgentApplication(Agent, Generic[StateT]):
         :type kwargs: Any
         """
         self._route_list = _RouteList[StateT]()
+        self._internal_before_turn = []
+        self._internal_after_turn = []
 
         configuration = kwargs
 
@@ -157,8 +160,25 @@ class AgentApplication(Agent, Generic[StateT]):
 
         # TODO: decide how to initialize the Authorization (params vs options vs kwargs)
         if authorization:
+            if connection_manager:
+                logger.error(
+                    "AgentApplication: connection_manager is not needed when authorization is provided."
+                )
+                raise ApplicationError(
+                    "The `AgentApplication` does not take a `connection_manager` when `authorization` is provided."
+                )
             self._auth = authorization
+            self._connection_manager = self._auth.connection_manager
         else:
+            if not connection_manager:
+                logger.error(
+                    "AgentApplication: connection_manager is required for Authorization.",
+                    stack_info=True,
+                )
+                raise ApplicationError(
+                    "The `AgentApplication` requires a `connection_manager` to initialize the `Authorization` instance."
+                )
+
             auth_options = {
                 key: value
                 for key, value in configuration.items()
@@ -167,9 +187,20 @@ class AgentApplication(Agent, Generic[StateT]):
             self._auth = Authorization(
                 storage=self._options.storage,
                 connection_manager=connection_manager,
-                handlers=options.authorization_handlers,
+                auth_handlers=options.authorization_handlers,
                 **auth_options,
             )
+            self._connection_manager = connection_manager
+
+    @property
+    def connection_manager(self) -> Connections:
+        """
+        The application's connection manager.
+
+        :return: The connection manager for the application.
+        :rtype: :class:`microsoft_agents.hosting.core.authorization.Connections`
+        """
+        return self._connection_manager
 
     @property
     def adapter(self) -> ChannelServiceAdapter:
@@ -244,6 +275,34 @@ class AgentApplication(Agent, Generic[StateT]):
                 """)
         return self._proactive
 
+    def before_turn(
+        self, handler: Callable[[TurnContext, StateT], Awaitable[bool]]
+    ) -> Callable[[TurnContext, StateT], Awaitable[bool]]:
+        """
+        Adds a handler to be called before each turn of the conversation.
+
+        :param handler: A function that takes a TurnContext and a StateT and returns an Awaitable.
+        :type handler: Callable[[TurnContext, StateT], Awaitable[bool]]
+        :return: The added handler.
+        :rtype: Callable[[TurnContext, StateT], Awaitable[bool]]
+        """
+        self._internal_before_turn.append(handler)
+        return handler
+
+    def after_turn(
+        self, handler: Callable[[TurnContext, StateT], Awaitable[bool]]
+    ) -> Callable[[TurnContext, StateT], Awaitable[bool]]:
+        """
+        Adds a handler to be called after each turn of the conversation.
+
+        :param handler: A function that takes a TurnContext and a StateT and returns an Awaitable.
+        :type handler: Callable[[TurnContext, StateT], Awaitable[bool]]
+        :return: The added handler.
+        :rtype: Callable[[TurnContext, StateT], Awaitable[bool]]
+        """
+        self._internal_after_turn.append(handler)
+        return handler
+
     def add_route(
         self,
         selector: RouteSelector,
@@ -259,7 +318,7 @@ class AgentApplication(Agent, Generic[StateT]):
 
         :param selector: A function that takes a TurnContext and returns a boolean indicating whether the route should be selected.
         :type selector: Callable[[:class:`microsoft_agents.hosting.core.turn_context.TurnContext`], bool]
-        :param handler: A function that takes a TurnContext and a TurnState and returns an Awaitable.
+        :param handler: A function that takes a TurnContext and a StateT and returns an Awaitable.
         :type handler: :class:`microsoft_agents.hosting.core.app._type_defs.RouteHandler`[StateT]
         :param is_invoke: Whether the route is for an invoke activity, defaults to False
         :type is_invoke: bool, Optional
@@ -312,6 +371,8 @@ class AgentApplication(Agent, Generic[StateT]):
         """
 
         def __selector(context: TurnContext):
+            if isinstance(activity_type, list):
+                return context.activity.type in activity_type
             return activity_type == context.activity.type
 
         def __call(func: RouteHandler[StateT]) -> RouteHandler[StateT]:
@@ -325,7 +386,7 @@ class AgentApplication(Agent, Generic[StateT]):
 
     def message(
         self,
-        select: str | Pattern[str] | list[str | Pattern[str]],
+        select: str | re.Pattern[str] | list[str | re.Pattern[str]],
         *,
         auth_handlers: Optional[list[str]] = None,
         **kwargs,
@@ -342,7 +403,7 @@ class AgentApplication(Agent, Generic[StateT]):
                     return True
 
         :param select: Literal text, compiled regex, or list of either used to match the incoming message.
-        :type select: str | Pattern[str] | list[str | Pattern[str]]
+        :type select: str | re.Pattern[str] | list[str | re.Pattern[str]]
         :param auth_handlers: Optional list of authorization handler IDs for the route.
         :type auth_handlers: Optional[list[str]]
         :param kwargs: Additional route configuration passed to :meth:`microsoft_agents.hosting.core.AgentApplication.add_route`.
@@ -353,9 +414,18 @@ class AgentApplication(Agent, Generic[StateT]):
                 return False
 
             text = context.activity.text if context.activity.text else ""
-            if isinstance(select, Pattern):
-                hits = re.fullmatch(select, text)
-                return hits is not None
+
+            if isinstance(select, list):
+                for item in select:
+                    if isinstance(item, re.Pattern):
+                        if re.fullmatch(item, text) is not None:
+                            return True
+                    elif text == item:
+                        return True
+                return False
+
+            if isinstance(select, re.Pattern):
+                return re.fullmatch(select, text) is not None
 
             return text == select
 
@@ -535,12 +605,39 @@ class AgentApplication(Agent, Generic[StateT]):
 
         return __call
 
+    @overload
     def handoff(
-        self, *, auth_handlers: Optional[list[str]] = None, **kwargs
+        self,
+        func: Callable[[TurnContext, StateT, str], Awaitable[None]],
+        *,
+        auth_handlers: Optional[list[str]] = None,
+        **kwargs,
+    ) -> Callable[[TurnContext, StateT, str], Awaitable[None]]: ...
+
+    @overload
+    def handoff(
+        self,
+        *,
+        auth_handlers: Optional[list[str]] = None,
+        **kwargs: Any,
     ) -> Callable[
         [Callable[[TurnContext, StateT, str], Awaitable[None]]],
         Callable[[TurnContext, StateT, str], Awaitable[None]],
-    ]:
+    ]: ...
+
+    def handoff(
+        self,
+        func: Optional[Callable[[TurnContext, StateT, str], Awaitable[None]]] = None,
+        *,
+        auth_handlers: Optional[list[str]] = None,
+        **kwargs,
+    ) -> (
+        Callable[[TurnContext, StateT, str], Awaitable[None]]
+        | Callable[
+            [Callable[[TurnContext, StateT, str], Awaitable[None]]],
+            Callable[[TurnContext, StateT, str], Awaitable[None]],
+        ]
+    ):
         """
         Register a handler to hand off conversations from one copilot to another.
 
@@ -551,6 +648,8 @@ class AgentApplication(Agent, Generic[StateT]):
                 async def on_handoff(context: TurnContext, state: TurnState, continuation: str):
                     print(continuation)
 
+        :param func: Optional handler to register directly without using decorator syntax.
+        :type func: Optional[Callable[[TurnContext, StateT, str], Awaitable[None]]]
         :param auth_handlers: Optional list of authorization handler IDs for the route.
         :type auth_handlers: Optional[list[str]]
         :param kwargs: Additional route configuration passed to :meth:`microsoft_agents.hosting.core.AgentApplication.add_route`.
@@ -566,24 +665,29 @@ class AgentApplication(Agent, Generic[StateT]):
             func: Callable[[TurnContext, StateT, str], Awaitable[None]],
         ) -> Callable[[TurnContext, StateT, str], Awaitable[None]]:
             async def __handler(context: TurnContext, state: StateT):
-                if not context.activity.value:
-                    return False
-                await func(context, state, context.activity.value["continuation"])
+                if (
+                    isinstance(context.activity.value, dict)
+                    and "continuation" in context.activity.value
+                ):
+                    await func(context, state, context.activity.value["continuation"])
+                else:
+                    logger.warning("Invalid handoff action received")
                 await context.send_activity(
                     Activity(
                         type=ActivityTypes.invoke_response,
                         value=InvokeResponse(status=200),
                     )
                 )
-                return True
 
             logger.debug(
                 f"Registering handoff handler for route handler {func.__name__} with auth handlers: {auth_handlers}"
             )
 
-            self.add_route(__selector, func, auth_handlers=auth_handlers, **kwargs)
+            self.add_route(__selector, __handler, auth_handlers=auth_handlers, **kwargs)
             return func
 
+        if func is not None:
+            return __call(func)
         return __call
 
     def on_sign_in_success(
