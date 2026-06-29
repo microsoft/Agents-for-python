@@ -4,6 +4,7 @@ python -m venv venv
 
 pip install -e ./libraries/microsoft-agents-activity/ --config-settings editable_mode=compat
 pip install -e ./libraries/microsoft-agents-authentication-msal/ --config-settings editable_mode=compat
+pip install -e ./libraries/microsoft-agents-authentication-entra-auth-sidecar/ --config-settings editable_mode=compat
 pip install -e ./libraries/microsoft-agents-copilotstudio-client/ --config-settings editable_mode=compat
 pip install -e ./libraries/microsoft-agents-hosting-aiohttp/ --config-settings editable_mode=compat
 pip install -e ./libraries/microsoft-agents-hosting-core/ --config-settings editable_mode=compat

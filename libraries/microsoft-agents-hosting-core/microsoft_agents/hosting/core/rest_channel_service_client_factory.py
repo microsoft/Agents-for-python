@@ -1,7 +1,6 @@
 # Copyright (c) Microsoft Corporation. All rights reserved.
 # Licensed under the MIT License.
 
-from typing import Optional
 import logging
 
 from microsoft_agents.activity import RoleTypes
@@ -49,19 +48,24 @@ class RestChannelServiceClientFactory(ChannelServiceClientFactoryBase):
         connection = self._connection_manager.get_token_provider(
             context.identity, service_url
         )
-        if not hasattr(connection, "_msal_configuration"):
-            raise TypeError(
-                "Connection does not support MSAL configuration for agentic token retrieval"
-            )
 
-        if connection._msal_configuration.ALT_BLUEPRINT_ID:
+        # Provider-agnostic access to the connection's auth configuration. MSAL
+        # exposes it as ``_msal_configuration``; other providers (e.g. the Entra
+        # sidecar) expose it as ``configuration``. The only value needed here is
+        # the optional alternate-blueprint connection name.
+        configuration = getattr(connection, "_msal_configuration", None)
+        if configuration is None:
+            configuration = getattr(connection, "configuration", None)
+
+        alt_blueprint_id = (
+            getattr(configuration, "ALT_BLUEPRINT_ID", None) if configuration else None
+        )
+        if alt_blueprint_id:
             logger.debug(
                 "Using alternative blueprint ID for agentic token retrieval: %s",
-                connection._msal_configuration.ALT_BLUEPRINT_ID,
+                alt_blueprint_id,
             )
-            connection = self._connection_manager.get_connection(
-                connection._msal_configuration.ALT_BLUEPRINT_ID
-            )
+            connection = self._connection_manager.get_connection(alt_blueprint_id)
 
         agent_instance_id = context.activity.get_agentic_instance_id()
         if not agent_instance_id:
@@ -92,7 +96,7 @@ class RestChannelServiceClientFactory(ChannelServiceClientFactoryBase):
         claims_identity: ClaimsIdentity,
         service_url: str,
         audience: str,
-        scopes: Optional[list[str]] = None,
+        scopes: list[str] | None = None,
         use_anonymous: bool = False,
     ) -> ConnectorClientBase:
         if not claims_identity:
