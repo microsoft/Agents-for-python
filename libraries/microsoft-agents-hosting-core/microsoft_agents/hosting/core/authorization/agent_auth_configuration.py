@@ -65,7 +65,7 @@ class AgentAuthConfiguration:
         scopes: list[str] | None = None,
         azure_region: str | None = None,
         idpm_resource: str | None = None,
-        anonymous_allowed: bool = False,
+        anonymous_allowed: bool | None = None,
         **kwargs: str,
     ):
 
@@ -103,9 +103,15 @@ class AgentAuthConfiguration:
         )
         # Env values arrive as strings, so coerce explicitly: ``bool("false")``
         # would be ``True`` and silently enable anonymous auth when configured
-        # off. Coercion is fail-safe (unrecognized -> False).
+        # off. Coercion is fail-safe (unrecognized -> False). An explicitly
+        # provided ``anonymous_allowed`` (including ``False``) takes precedence
+        # over the ``ANONYMOUS_ALLOWED`` kwarg; ``None`` means "not provided".
         self.ANONYMOUS_ALLOWED = coerce_bool(
-            anonymous_allowed or kwargs.get("ANONYMOUS_ALLOWED", False),
+            (
+                anonymous_allowed
+                if anonymous_allowed is not None
+                else kwargs.get("ANONYMOUS_ALLOWED", False)
+            ),
             default=False,
             name="ANONYMOUS_ALLOWED",
         )

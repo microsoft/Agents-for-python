@@ -170,3 +170,16 @@ class TestAuthorizationConfiguration:
 
     def test_anonymous_allowed_bool_param(self):
         assert AgentAuthConfiguration(anonymous_allowed=True).ANONYMOUS_ALLOWED is True
+
+    def test_explicit_anonymous_allowed_false_overrides_kwarg(self):
+        # An explicit anonymous_allowed=False must win over a truthy kwarg rather
+        # than being treated as "unset" by an `or` fallback.
+        auth_config = AgentAuthConfiguration(
+            anonymous_allowed=False, ANONYMOUS_ALLOWED="true"
+        )
+        assert auth_config.ANONYMOUS_ALLOWED is False
+
+    def test_anonymous_allowed_kwarg_used_when_param_unset(self):
+        # When the constructor arg is not provided, the kwarg is honored.
+        auth_config = AgentAuthConfiguration(ANONYMOUS_ALLOWED="true")
+        assert auth_config.ANONYMOUS_ALLOWED is True

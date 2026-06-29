@@ -285,9 +285,11 @@ class SidecarHttpClient:
     @staticmethod
     def _raise_for_error(status: int, request_path: str, content: str) -> None:
         problem = SidecarHttpClient._try_parse_problem_details(content)
-        title = (
-            problem.title if problem and problem.title else f"Sidecar returned {status}"
-        )
+        title = problem.title if problem and problem.title else None
+        # The SidecarReturnedError format already embeds the status as
+        # "Sidecar returned {status}: {detail}", so the detail must not repeat it.
+        # Fall back to a generic phrase when no problem-details title is present.
+        message_detail = title or "no error details"
 
         # Never surface problem.detail or the raw body: the sidecar can echo request
         # parameters (UPN, object id, tenant) into them. Log and raise only the
@@ -296,10 +298,10 @@ class SidecarHttpClient:
             "Sidecar returned error. Status: %d, Path: %s, Title: %s",
             status,
             request_path,
-            problem.title if problem else "(none)",
+            message_detail,
         )
 
-        full_message = str(_Errors.SidecarReturnedError.format(status, title))
+        full_message = str(_Errors.SidecarReturnedError.format(status, message_detail))
         if status == _HTTP_NOT_FOUND_404:
             raise SidecarConfigurationError(full_message)
         if status == _HTTP_UNAUTHORIZED_401:

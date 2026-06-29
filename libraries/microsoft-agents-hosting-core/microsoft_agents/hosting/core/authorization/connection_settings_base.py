@@ -83,15 +83,22 @@ class ConnectionSettingsBase:
         call this and merge it with their own provider-specific kwargs so the
         base fields stay defined in a single place.
         """
+        # Accept both the underscored configuration keys and the SDK's env-style
+        # keys (e.g. ``load_configuration_from_env`` yields ``CLIENTID`` /
+        # ``TENANTID`` without underscores) so binding from a raw ``SETTINGS``
+        # mapping doesn't silently drop values.
         return dict(
-            client_id=_read(configuration, "CLIENT_ID", "client_id"),
-            authority=_read(configuration, "AUTHORITY", "authority"),
-            tenant_id=_read(configuration, "TENANT_ID", "tenant_id"),
+            client_id=_read(configuration, "CLIENT_ID", "CLIENTID", "client_id"),
+            authority=_read(
+                configuration, "AUTHORITY", "AUTHORITYENDPOINT", "authority"
+            ),
+            tenant_id=_read(configuration, "TENANT_ID", "TENANTID", "tenant_id"),
             scopes=_read(configuration, "SCOPES", "scopes"),
             alternate_blueprint_connection_name=_read(
                 configuration,
                 "ALT_BLUEPRINT_ID",
                 "ALT_BLUEPRINT_NAME",
+                "ALTERNATEBLUEPRINTCONNECTIONNAME",
                 "alternate_blueprint_connection_name",
             ),
         )

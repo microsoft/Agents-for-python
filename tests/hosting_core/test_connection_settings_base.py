@@ -74,3 +74,21 @@ class TestConnectionSettingsBase:
         assert settings.tenant_id == "tid"
         assert settings.scopes == ["s1"]
         assert settings.alternate_blueprint_connection_name == "bp"
+
+    def test_from_configuration_binds_from_env_style_mapping(self):
+        # load_configuration_from_env yields SETTINGS keys without underscores
+        # (CLIENTID/TENANTID/AUTHORITYENDPOINT/ALTERNATEBLUEPRINTCONNECTIONNAME);
+        # binding from such a raw mapping must not silently drop those values.
+        config = {
+            "CLIENTID": "cid",
+            "AUTHORITYENDPOINT": "https://authority",
+            "TENANTID": "tid",
+            "SCOPES": ["s1"],
+            "ALTERNATEBLUEPRINTCONNECTIONNAME": "bp",
+        }
+        settings = ConnectionSettingsBase.from_configuration(config)
+        assert settings.client_id == "cid"
+        assert settings.authority == "https://authority"
+        assert settings.tenant_id == "tid"
+        assert settings.scopes == ["s1"]
+        assert settings.alternate_blueprint_connection_name == "bp"

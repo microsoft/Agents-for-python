@@ -336,6 +336,22 @@ class TestGetAuthorizationHeader:
         await client.aclose()
 
     @pytest.mark.asyncio
+    async def test_error_without_problem_title_does_not_duplicate_status(self):
+        # When the body carries no RFC7807 title, the message must not become
+        # "Sidecar returned 403: Sidecar returned 403"; it uses a generic detail.
+        async def handler(request):
+            return httpx.Response(403, text="")
+
+        client = _make_client(handler, retry_count=0)
+        with pytest.raises(SidecarAuthError) as exc_info:
+            await client.get_authorization_header_unauthenticated("svc")
+        message = str(exc_info.value)
+        assert "Sidecar returned 403" in message
+        assert "no error details" in message
+        assert "Sidecar returned 403: Sidecar returned 403" not in message
+        await client.aclose()
+
+    @pytest.mark.asyncio
     async def test_error_body_json_but_not_object(self):
         # A valid-JSON-but-non-object error body (e.g. an array) is not problem
         # details and must not crash the error path.
