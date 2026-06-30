@@ -26,6 +26,10 @@ from microsoft_agents.hosting.core import (
     MessageFactory,
     TurnState,
 )
+from microsoft_agents.hosting.core.storage import (
+    ConsoleTranscriptLogger,
+    TranscriptLoggerMiddleware,
+)
 from microsoft_agents.hosting.msteams import TeamsAgentExtension
 from microsoft_agents.hosting.msteams.teams_turn_context import TeamsTurnContext
 
@@ -43,6 +47,7 @@ APP_BASE_URL = environ.get("APP_BASE_URL", "http://localhost:3978")
 STORAGE = MemoryStorage()
 CONNECTION_MANAGER = MsalConnectionManager(**agents_sdk_config)
 ADAPTER = CloudAdapter(connection_manager=CONNECTION_MANAGER)
+ADAPTER.use(TranscriptLoggerMiddleware(ConsoleTranscriptLogger()))
 AUTHORIZATION = Authorization(STORAGE, CONNECTION_MANAGER, **agents_sdk_config)
 
 AGENT_APP = AgentApplication[TurnState](
