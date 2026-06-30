@@ -14,7 +14,7 @@ dependencies = [
     "microsoft-agents-hosting-core",
     "microsoft-agents-authentication-msal",
     "microsoft-agents-hosting-aiohttp",
-    "microsoft-agents-hosting-msteams @ file:../../../libraries/microsoft-agents-hosting-msteams",
+    "microsoft-agents-hosting-msteams",
     "python-dotenv",
     "aiohttp",
 ]

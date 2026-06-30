@@ -17,7 +17,7 @@ real.
 
 import pytest
 
-from microsoft_agents.activity import Activity, ActivityTypes
+from microsoft_agents.activity import Activity, ActivityTypes, ResourceResponse
 from microsoft_agents.hosting.core import MemoryStorage, TurnContext
 from microsoft_agents.hosting.core.app import (
     AgentApplication,
@@ -46,7 +46,7 @@ class _StubAdapter:
 
     async def send_activities(self, context, activities):
         self.sent_activities.extend(activities)
-        return [None] * len(activities)
+        return [ResourceResponse()] * len(activities)
 
 
 def _make_app() -> "AgentApplication[TurnState]":
