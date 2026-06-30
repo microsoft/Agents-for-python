@@ -308,7 +308,7 @@ class TestCosmosDBStorageInit:
     def test_raises_error_when_no_auth_key_or_cred_provided(self, config):
         config.auth_key = None
         config.credential = None
-        with pytest.raises(ValueError):
+        with pytest.raises(ValueError, match="auth_key or credential is required"):
             CosmosDBStorage(config)
 
     @pytest.mark.asyncio
