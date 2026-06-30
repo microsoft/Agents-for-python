@@ -55,7 +55,7 @@ class CosmosDBStorage(AsyncStorageBase):
 
         if not self._config.cosmos_db_endpoint:
             raise ValueError(
-                storage_errors.InvalidConfiguration.format(
+                storage_errors.CosmosDbEndpointRequired.format(
                     "Cosmos DB Endpoint is required."
                 )
             )
@@ -84,7 +84,7 @@ class CosmosDBStorage(AsyncStorageBase):
             )
 
         raise ValueError(
-            storage_errors.InvalidConfiguration.format(
+            storage_errors.CosmosDbAuthKeyRequired.format(
                 "Either Cosmos DB Credential or Auth Key is required."
             )
         )

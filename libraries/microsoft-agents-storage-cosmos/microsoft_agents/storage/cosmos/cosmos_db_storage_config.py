@@ -19,7 +19,7 @@ class CosmosDBStorageConfig:
         container_throughput: int | None = None,
         key_suffix: str = "",
         compatibility_mode: bool = False,
-        credential: Union[AsyncTokenCredential, None] = None,
+        credential: AsyncTokenCredential | None = None,
         **kwargs,
     ):
         """Create the Config object.
@@ -36,7 +36,7 @@ class CosmosDBStorageConfig:
         :param compatibility_mode: True if keys should be truncated in order to support previous CosmosDb
             max key length of 255.
         :param credential: The TokenCredential to use for authentication.
-        :return CosmosDBConfig:
+        :return CosmosDBStorageConfig:
         """
         config_file: str = kwargs.get("filename", "")
         if config_file:
@@ -50,7 +50,7 @@ class CosmosDBStorageConfig:
             raise ValueError(
                 "The 'url' parameter is deprecated. Please use 'cosmos_db_endpoint' instead."
             )
-    
+
         self.auth_key: str = auth_key or kwargs.get("auth_key", "")
         self.database_id: str = database_id or kwargs.get("database_id", "")
         self.container_id: str = container_id or kwargs.get("container_id", "")
@@ -64,7 +64,7 @@ class CosmosDBStorageConfig:
         self.compatibility_mode: bool = compatibility_mode or kwargs.get(
             "compatibility_mode", False
         )
-        self.credential: Union[AsyncTokenCredential, None] = credential
+        self.credential: AsyncTokenCredential | None = credential
 
     @staticmethod
     def validate_cosmos_db_config(config: "CosmosDBStorageConfig") -> None:
