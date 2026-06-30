@@ -48,7 +48,9 @@ class CosmosDBStorageConfig:
 
         if "url" in kwargs:
             raise ValueError(
-                "The 'url' parameter is deprecated. Please use 'cosmos_db_endpoint' instead."
+                storage_errors.InvalidConfiguration.format(
+                    "The 'url' parameter is deprecated. Please use 'cosmos_db_endpoint' instead."
+                )
             )
 
         self.auth_key: str = auth_key or kwargs.get("auth_key", "")
