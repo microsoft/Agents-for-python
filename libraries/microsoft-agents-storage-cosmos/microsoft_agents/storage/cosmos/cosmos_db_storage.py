@@ -54,11 +54,7 @@ class CosmosDBStorage(AsyncStorageBase):
     def _create_client(self) -> CosmosClient:
 
         if not self._config.cosmos_db_endpoint:
-            raise ValueError(
-                storage_errors.CosmosDbEndpointRequired.format(
-                    "Cosmos DB Endpoint is required."
-                )
-            )
+            raise ValueError(str(storage_errors.CosmosDbEndpointRequired))
 
         if self._config.credential or self._config.auth_key:
             cred = (
@@ -83,11 +79,7 @@ class CosmosDBStorage(AsyncStorageBase):
                 },
             )
 
-        raise ValueError(
-            storage_errors.CosmosDbAuthKeyRequired.format(
-                "Either Cosmos DB Credential or Auth Key is required."
-            )
-        )
+        raise ValueError(str(storage_errors.CosmosDbAuthKeyRequired))
 
     def _sanitize(self, key: str) -> str:
         return sanitize_key(

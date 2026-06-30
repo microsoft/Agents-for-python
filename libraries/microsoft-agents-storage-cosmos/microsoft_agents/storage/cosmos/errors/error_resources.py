@@ -28,7 +28,7 @@ class StorageErrorResources:
     )
 
     CosmosDbAuthKeyRequired = ErrorMessage(
-        "CosmosDBStorage: auth_key is required.",
+        "CosmosDBStorage: auth_key or credential is required.",
         -61002,
     )
 
