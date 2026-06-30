@@ -302,7 +302,7 @@ class TestCosmosDBStorageInit:
 
     def test_raises_error_when_no_endpoint_provided(self, config):
         config.cosmos_db_endpoint = None
-        with pytest.raises(ValueError):
+        with pytest.raises(ValueError, match="cosmos_db_endpoint is required"):
             CosmosDBStorage(config)
 
     def test_raises_error_when_no_auth_key_or_cred_provided(self, config):
