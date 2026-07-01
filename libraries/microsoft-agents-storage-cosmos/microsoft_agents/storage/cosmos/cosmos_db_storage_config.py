@@ -1,4 +1,5 @@
 import json
+import warnings
 
 from azure.core.credentials_async import AsyncTokenCredential
 from microsoft_agents.storage.cosmos.errors import storage_errors
@@ -47,11 +48,11 @@ class CosmosDBStorageConfig:
         )
 
         if "url" in kwargs:
-            raise ValueError(
-                storage_errors.InvalidConfiguration.format(
-                    "The 'url' parameter is no longer supported. Please use 'cosmos_db_endpoint' instead."
-                )
+            warnings.warn(
+                "The 'url' parameter is deprecated. Please use 'cosmos_db_endpoint' instead.",
+                DeprecationWarning,
             )
+            self.cosmos_db_endpoint = kwargs.get("url", self.cosmos_db_endpoint)
 
         self.auth_key: str = auth_key or kwargs.get("auth_key", "")
         self.database_id: str = database_id or kwargs.get("database_id", "")
