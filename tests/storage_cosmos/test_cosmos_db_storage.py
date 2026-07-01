@@ -194,7 +194,6 @@ async def test_cosmos_db_storage_flow_existing_container_and_persistence(
 
 @pytest.mark.cosmos
 class TestCosmosDBStorage(QuickCRUDStorageTests):
-
     def get_compat_mode(self):
         return False
 
@@ -253,9 +252,9 @@ class TestCosmosDBStorage(QuickCRUDStorageTests):
         load_dotenv()
 
         cred = DefaultAzureCredential()
-        url = os.environ.get("TEST_COSMOS_DB_ENDPOINT")
+        cosmos_db_endpoint = os.environ.get("TEST_COSMOS_DB_ENDPOINT", "")
         config = CosmosDBStorageConfig(
-            url=url,
+            cosmos_db_endpoint=cosmos_db_endpoint,
             credential=cred,
             database_id="test-db",
             container_id="bot-storage",
@@ -284,7 +283,6 @@ class TestCosmosDBStorageWithCompat(TestCosmosDBStorage):
 # @pytest.mark.skipif(not EMULATOR_RUNNING, reason="Needs the emulator to run.")
 @pytest.mark.cosmos
 class TestCosmosDBStorageInit:
-
     def test_raises_error_when_suffix_provided_but_compat(self, config):
         config.auth_key = None
         config.compatibility_mode = True
@@ -300,6 +298,17 @@ class TestCosmosDBStorageInit:
     def test_raises_error_when_no_container_id_provided(self, config):
         config.container_id = None
         with pytest.raises(ValueError):
+            CosmosDBStorage(config)
+
+    def test_raises_error_when_no_endpoint_provided(self, config):
+        config.cosmos_db_endpoint = None
+        with pytest.raises(ValueError, match="cosmos_db_endpoint is required"):
+            CosmosDBStorage(config)
+
+    def test_raises_error_when_no_auth_key_or_cred_provided(self, config):
+        config.auth_key = None
+        config.credential = None
+        with pytest.raises(ValueError, match="auth_key or credential is required"):
             CosmosDBStorage(config)
 
     @pytest.mark.asyncio
