@@ -58,6 +58,7 @@ def _make_context(
     activity.members_added = members_added
     activity.members_removed = members_removed
     context.activity = activity
+    context.turn_state = {}
     context.send_activity = AsyncMock()
 
     mock_adapter = MagicMock()
