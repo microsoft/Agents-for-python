@@ -24,6 +24,9 @@ if is_supported_version:
         MessagingExtensionResponse,
     )
     from microsoft_agents.hosting.msteams import TeamsAgentExtension
+    from microsoft_agents.hosting.msteams.message_extension import (
+        route_handlers as message_extension_route_handlers,
+    )
 
 _PATCH = "microsoft_agents.hosting.msteams.message_extension.message_extension._send_invoke_response"
 
@@ -467,6 +470,11 @@ class TestMessageExtensionSetting:
     def setup_method(self):
         self.app = _make_app()
         self.ext = TeamsAgentExtension(self.app)
+
+    def test_setting_handler_protocol_name(self):
+        assert (
+            message_extension_route_handlers.SettingHandler.__name__ == "SettingHandler"
+        )
 
     def test_setting_selector(self):
         @self.ext.message_extensions.setting()

@@ -41,8 +41,8 @@ from .route_handlers import (
     SelectItemHandler,
     QueryLinkHandler,
     QueryUrlSettingHandler,
-    ConfigureSettingsHandler,
     CardButtonClickedHandler,
+    SettingHandler,
 )
 
 
@@ -537,25 +537,20 @@ class MessageExtension(Generic[StateT]):
         return __call
 
     @overload
-    def setting(
-        self, handler: ConfigureSettingsHandler[StateT]
-    ) -> ConfigureSettingsHandler[StateT]: ...
+    def setting(self, handler: SettingHandler[StateT]) -> SettingHandler[StateT]: ...
 
     @overload
     def setting(
-        self, *, auth_handlers: Optional[list[str]] = ..., rank: RouteRank = ...
-    ) -> _RouteDecorator[ConfigureSettingsHandler[StateT]]: ...
+        self, *, auth_handlers: list[str] | None = ..., rank: RouteRank = ...
+    ) -> _RouteDecorator[SettingHandler[StateT]]: ...
 
     def setting(
         self,
-        handler: Optional[Callable] = None,
+        handler: SettingHandler[StateT] | None = None,
         *,
-        auth_handlers: Optional[list[str]] = None,
+        auth_handlers: list[str] | None = None,
         rank: RouteRank = RouteRank.DEFAULT,
-    ) -> (
-        ConfigureSettingsHandler[StateT]
-        | _RouteDecorator[ConfigureSettingsHandler[StateT]]
-    ):
+    ) -> SettingHandler[StateT] | _RouteDecorator[SettingHandler[StateT]]:
         """Register a handler for composeExtension/setting invokes.
 
         :param handler: Optional handler receiving the context, state, and settings query payload.
@@ -570,7 +565,7 @@ class MessageExtension(Generic[StateT]):
                 and context.activity.name == "composeExtension/setting"
             )
 
-        def __call(func: Callable) -> Callable:
+        def __call(func: SettingHandler[StateT]) -> SettingHandler[StateT]:
             async def __handler(context: TurnContext, state: StateT) -> None:
                 teams_context = TeamsTurnContext(context, self._app)
                 query = MessagingExtensionQuery.model_validate(
@@ -599,14 +594,14 @@ class MessageExtension(Generic[StateT]):
 
     @overload
     def card_button_clicked(
-        self, *, auth_handlers: Optional[list[str]] = ..., rank: RouteRank = ...
+        self, *, auth_handlers: list[str] | None = ..., rank: RouteRank = ...
     ) -> _RouteDecorator[CardButtonClickedHandler[StateT]]: ...
 
     def card_button_clicked(
         self,
-        handler: Optional[CardButtonClickedHandler[StateT]] = None,
+        handler: CardButtonClickedHandler[StateT] | None = None,
         *,
-        auth_handlers: Optional[list[str]] = None,
+        auth_handlers: list[str] | None = None,
         rank: RouteRank = RouteRank.DEFAULT,
     ) -> (
         CardButtonClickedHandler[StateT]

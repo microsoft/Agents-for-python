@@ -183,7 +183,7 @@ class QueryUrlSettingHandler(Protocol[_StateContra]):
         ...
 
 
-class ConfigureSettingsHandler(Protocol[_StateContra]):
+class SettingHandler(Protocol[_StateContra]):
     """Protocol for a handler invoked on composeExtension/setting activities."""
 
     def __call__(
@@ -193,7 +193,7 @@ class ConfigureSettingsHandler(Protocol[_StateContra]):
         query: MessagingExtensionQuery,
         /,
     ) -> Awaitable[MessagingExtensionResponse]:
-        """Handle a configure settings invoke.
+        """Handle a setting invoke.
 
         :param context: Teams-aware turn context.
         :param state: The current turn state.
