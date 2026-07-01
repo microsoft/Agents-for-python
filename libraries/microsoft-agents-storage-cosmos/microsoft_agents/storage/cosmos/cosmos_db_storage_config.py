@@ -49,7 +49,7 @@ class CosmosDBStorageConfig:
         if "url" in kwargs:
             raise ValueError(
                 storage_errors.InvalidConfiguration.format(
-                    "The 'url' parameter is deprecated. Please use 'cosmos_db_endpoint' instead."
+                    "The 'url' parameter is no longer supported. Please use 'cosmos_db_endpoint' instead."
                 )
             )
 
