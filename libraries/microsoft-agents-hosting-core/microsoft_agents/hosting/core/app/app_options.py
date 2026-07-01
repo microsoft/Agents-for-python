@@ -10,6 +10,7 @@ from logging import Logger
 from typing import Callable, Optional
 
 from microsoft_agents.hosting.core.app.oauth import AuthHandler
+from microsoft_agents.hosting.core.authorization import Connections
 from microsoft_agents.hosting.core.storage import Storage
 
 # from .auth import AuthOptions
