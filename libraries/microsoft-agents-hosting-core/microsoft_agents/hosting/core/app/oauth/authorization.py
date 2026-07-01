@@ -57,8 +57,8 @@ class Authorization:
 
         :param storage: The storage system to use for state management.
         :type storage: :class:`microsoft_agents.hosting.core.storage.Storage`
-        :param connections: The connection manager for OAuth providers.
-        :type connections: :class:`microsoft_agents.hosting.core.authorization.Connections`
+        :param connection_manager: The connection manager for OAuth providers.
+        :type connection_manager: :class:`microsoft_agents.hosting.core.authorization.Connections`
         :param auth_handlers: Configuration for OAuth providers.
         :type auth_handlers: dict[str, :class:`microsoft_agents.hosting.core.app.oauth.auth_handler.AuthHandler`], Optional
         :raises ValueError: When storage is None or no auth handlers provided.
