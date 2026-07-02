@@ -344,7 +344,7 @@ class TestExchangeFromRequest:
         assert exchange.body == response_body
         assert exchange.invoke_response is not None
         assert exchange.invoke_response.status == 200
-        assert exchange.invoke_response.body == {}
+        assert exchange.invoke_response.body is None
 
     @pytest.mark.asyncio
     async def test_from_request_with_regular_message_response(self):

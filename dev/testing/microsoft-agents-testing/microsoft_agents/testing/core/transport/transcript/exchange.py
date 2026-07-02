@@ -156,7 +156,7 @@ class Exchange(BaseModel):
 
             elif request_activity.type == ActivityTypes.invoke:
                 body = await response.text()
-                body_json = json.loads(body) if body.strip() else {}
+                body_json = json.loads(body) if body.strip() else None
                 invoke_response = InvokeResponse.model_validate({"status": response.status, "body": body_json})
 
             elif request_activity.delivery_mode == DeliveryModes.stream:
