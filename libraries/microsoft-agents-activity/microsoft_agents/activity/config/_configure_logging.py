@@ -21,7 +21,7 @@ _NAME_TO_LEVEL = {
 
 
 class ColorFormatter(logging.Formatter):
-    """Custom logging formatter that adds color to log messages based on their severity level."""
+    """Logging formatter that can add ANSI color based on severity."""
 
     MAGENTA = "\033[1;35m"
     RED = "\033[1;31m"
@@ -30,22 +30,32 @@ class ColorFormatter(logging.Formatter):
     BLUE = "\033[1;34m"
     RESET = "\033[0m"
 
-    log_format = "{levelcolor}%(asctime)s - %(name)s - %(levelname)s - %(message)s (%(filename)s:%(lineno)d){reset}"
+    FMT = (
+        "%(asctime)s - %(name)s - %(levelname)s - %(message)s (%(filename)s:%(lineno)d)"
+    )
 
-    FORMATS = {
-        logging.CRITICAL: log_format.format(levelcolor=MAGENTA, reset=RESET),
-        logging.ERROR: log_format.format(levelcolor=RED, reset=RESET),
-        logging.WARNING: log_format.format(levelcolor=YELLOW, reset=RESET),
-        logging.INFO: log_format.format(levelcolor=GREEN, reset=RESET),
-        logging.DEBUG: log_format.format(levelcolor=BLUE, reset=RESET),
-        logging.NOTSET: log_format.format(levelcolor=RESET, reset=RESET),
-    }
+    def __init__(
+        self,
+        use_colors: bool = True,
+    ) -> None:
+        super().__init__(fmt=self.FMT)
+        self._plain_formatter = logging.Formatter(fmt=self.FMT)
+        if not use_colors:
+            self._formatters: dict[int, logging.Formatter] = {}
+            return
+        self._formatters = {
+            logging.CRITICAL: logging.Formatter(
+                f"{self.MAGENTA}{self.FMT}{self.RESET}"
+            ),
+            logging.ERROR: logging.Formatter(f"{self.RED}{self.FMT}{self.RESET}"),
+            logging.WARNING: logging.Formatter(f"{self.YELLOW}{self.FMT}{self.RESET}"),
+            logging.INFO: logging.Formatter(f"{self.GREEN}{self.FMT}{self.RESET}"),
+            logging.DEBUG: logging.Formatter(f"{self.BLUE}{self.FMT}{self.RESET}"),
+        }
 
-    def format(self, record):
-        """Formats the log record with color based on its severity level."""
-        log_fmt = self.FORMATS.get(record.levelno, self.FORMATS[logging.NOTSET])
-        formatter = logging.Formatter(log_fmt)
-        return formatter.format(record)
+    def format(self, record: logging.LogRecord) -> str:
+        formatter = self._formatters.get(record.levelno)
+        return (formatter or self._plain_formatter).format(record)
 
 
 def _configure_logging(logging_config: dict):
@@ -58,7 +68,9 @@ def _configure_logging(logging_config: dict):
     log_levels = logging_config.get("LOGLEVEL", {})
 
     console_handler = logging.StreamHandler()
-    console_handler.setFormatter(ColorFormatter())
+    console_handler.setFormatter(
+        ColorFormatter(use_colors=console_handler.stream.isatty())
+    )
 
     for key in log_levels:
         level_name = log_levels[key].upper()
