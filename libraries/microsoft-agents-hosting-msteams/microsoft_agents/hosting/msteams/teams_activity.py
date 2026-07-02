@@ -35,6 +35,16 @@ class TeamsActivity(Activity):
             channel data.
         """
         return _try_get_channel_data(self)
+    
+    def create_reply(self, text: str | None = None) -> TeamsActivity:
+        """Create a reply activity to this activity.
+
+        :param text: The text of the reply activity.
+        :return: A new :class:`TeamsActivity` that is a reply to this activity.
+        """
+        reply_activity = super().create_reply(text)
+        reply_activity.__class__ = TeamsActivity
+        return reply_activity
 
     def get_selected_channel_id(self) -> str | None:
         """Get the ID of the selected channel from the activity, if it exists.

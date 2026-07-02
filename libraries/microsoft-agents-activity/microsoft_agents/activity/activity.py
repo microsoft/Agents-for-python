@@ -6,7 +6,7 @@ from __future__ import annotations
 import logging
 from copy import copy
 from datetime import datetime, timezone
-from typing import Optional, Any
+from typing import Optional, Any, cast, Self
 
 from pydantic import (
     Field,
@@ -509,8 +509,10 @@ class Activity(AgentsModel, _ChannelIdFieldMixin):
         .. remarks::
             The new activity sets up routing information based on this activity.
         """
-        return pick_model(
-            Activity,
+        return cast(
+            Self,
+            pick_model(
+            self.__class__,
             type=ActivityTypes.message,
             timestamp=datetime.now(timezone.utc),
             from_property=SkipNone(
@@ -536,7 +538,7 @@ class Activity(AgentsModel, _ChannelIdFieldMixin):
             locale=locale if locale else SkipNone(self.locale),
             attachments=[],
             entities=[],
-        )
+        ))
 
     def create_trace(
         self,

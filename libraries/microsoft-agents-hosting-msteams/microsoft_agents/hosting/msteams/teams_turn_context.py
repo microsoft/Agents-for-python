@@ -195,3 +195,52 @@ class TeamsTurnContext(TurnContext):
             conversation=conv,
             activity=activity
         )
+
+    async def reply(self, text: str) -> ResourceResponse:
+        new_activity: TeamsActivity
+        if self.activity.id:
+            new_activity = (self.activity
+                .create_reply()
+                .add_quote(self.activity.id, self.activity.text)
+                .add_text(text)
+            )
+        else:
+            new_activity = self.activity.create_reply(text)
+
+        return await self.send_activity(new_activity)
+    
+    async def add_reaction(self, reaction_type: str, activity_id: str | None = None) -> ResourceResponse:
+        """
+        Add a reaction to the current activity.
+
+        :param reaction_type: The type of reaction to add.
+        :param activity_id: The ID of the activity to add the reaction to. If None, uses the current activity's ID.
+        :return: The resource response.
+        """
+        if not activity_id:
+            if not self.activity.id:
+                raise ValueError("Cannot add a reaction to an activity without an ID.")
+            activity_id = self.activity.id
+
+        return await self.api_client.conversations.reactions.add(
+            conversation_id=self.activity.conversation.id,
+            activity_id=activity_id,
+            reaction_type=reaction_type)
+    
+    async def delete_reaction(self, reaction_type: str, activity_id: str | None = None) -> ResourceResponse:
+        """
+        Delete a reaction from the current activity.
+
+        :param reaction_type: The type of reaction to delete.
+        :param activity_id: The ID of the activity to delete the reaction from. If None, uses the current activity's ID.
+        :return: The resource response.
+        """
+        if not activity_id:
+            if not self.activity.id:
+                raise ValueError("Cannot delete a reaction from an activity without an ID.")
+            activity_id = self.activity.id
+
+        return await self.api_client.conversations.reactions.delete(
+            conversation_id=self.activity.conversation.id,
+            activity_id=activity_id,
+            reaction_type=reaction_type)
