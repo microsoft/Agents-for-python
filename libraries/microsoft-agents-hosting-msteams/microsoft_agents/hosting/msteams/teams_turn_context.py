@@ -8,14 +8,30 @@ from __future__ import annotations
 from typing import cast
 
 from microsoft_teams.api import ApiClient
+from microsoft_teams.api.models import Account
 
 from microsoft_agents.activity import (
     Activity,
     ActivityTreatment,
     ActivityTreatmentTypes,
+    ChannelAccount,
+    Channels,
+    ConversationAccount,
+    ConversationParameters,
+    ConversationReference,
     ResourceResponse,
 )
-from microsoft_agents.hosting.core import AgentApplication, TurnContext
+from microsoft_agents.hosting.core import (
+    AgentApplication,
+    ClaimsIdentity,
+    TurnContext,
+    TurnState,
+)
+from microsoft_agents.hosting.core.app.proactive import (
+    CreateConversationOptions,
+    Conversation,
+    Proactive
+)
 
 from ._teams_api_client import _get_teams_api_client, _set_teams_api_client
 from .teams_activity import TeamsActivity
@@ -108,3 +124,74 @@ class TeamsTurnContext(TurnContext):
         for activity in activities:
             TeamsTurnContext._make_targeted_activity(activity)
         return await self.send_activities(activities)
+
+    async def create_conversation(self, account: Account, text: str) -> ResourceResponse:
+        """
+        Create a new conversation with a user.
+
+        :param account: The account of the user to create the conversation with.
+        :param text: The text to send in the initial message.
+        :return: The resource response.
+        """
+        assert self.identity is not None
+        aud = self.identity.get_app_id()
+        assert aud is not None
+        tenant_id = self.activity.conversation.tenant_id
+        assert tenant_id
+
+        options = CreateConversationOptions(
+            identity=Conversation.identity_from_claims(
+                dict(aud=aud)
+            ),
+            channel_id=Channels.ms_teams.value,
+            service_url=self.activity.service_url,
+            parameters=ConversationParameters(
+                is_group=False,
+                bot=ChannelAccount(
+                    id=aud
+                ),
+                members=[
+                    ChannelAccount(
+                        id=account.id.strip(),
+                        name=account.name
+                    )
+                ],
+                tenant_id=tenant_id,
+                channel_data={
+                    "channel": {
+                        "id": tenant_id,
+                    }
+                }
+            )
+        )
+
+        async def __handler(context: TurnContext, state: TurnState):
+            await context.send_activity(text)
+
+        await self._app.proactive.create_conversation(
+            self._app.adapter,
+            options,
+            __handler
+        )
+
+        return ResourceResponse()
+    
+    async def continue_conversation(self, conversation_id: str, activity: Activity) -> ResourceResponse:
+
+        assert self.identity
+
+        conv = Conversation(
+            self.identity,
+            ConversationReference(
+                bot=activity.recipient,
+                channel_id=Channels.ms_teams,
+                service_url=activity.service_url,
+                conversation=ConversationAccount(id=conversation_id)
+            )
+        )
+
+        await Proactive._send_activity_impl(
+            self._app.adapter,
+            conversation=conv,
+            activity=activity
+        )

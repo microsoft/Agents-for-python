@@ -52,6 +52,7 @@ class ConversationReference(AgentsModel, _ChannelIdFieldMixin):
     conversation: ConversationAccount
     locale: Optional[NonEmptyString] = None
     service_url: NonEmptyString = None
+    channel_id: Optional[NonEmptyString] = None
 
     def get_continuation_activity(self) -> "Activity":  # type: ignore
         from .activity import Activity
