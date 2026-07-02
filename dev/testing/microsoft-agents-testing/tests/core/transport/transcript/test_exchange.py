@@ -321,6 +321,32 @@ class TestExchangeFromRequest:
         assert exchange.invoke_response.body == {"result": "success"}
 
     @pytest.mark.asyncio
+    @pytest.mark.parametrize("response_body", ["", "   \n\t"])
+    async def test_from_request_with_empty_invoke_response_body(self, response_body):
+        """from_request should parse empty invoke response bodies."""
+        activity = Activity(
+            type=ActivityTypes.invoke,
+            name="testInvoke"
+        )
+
+        mock_response = self._create_mock_response(
+            status=200,
+            text=response_body
+        )
+
+        exchange = await Exchange.from_request(
+            request_activity=activity,
+            response_or_exception=mock_response
+        )
+
+        assert exchange.request == activity
+        assert exchange.status_code == 200
+        assert exchange.body == response_body
+        assert exchange.invoke_response is not None
+        assert exchange.invoke_response.status == 200
+        assert exchange.invoke_response.body == {}
+
+    @pytest.mark.asyncio
     async def test_from_request_with_regular_message_response(self):
         """from_request should handle regular message response."""
         activity = Activity(type=ActivityTypes.message, text="Hello")
