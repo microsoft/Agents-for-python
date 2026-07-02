@@ -23,24 +23,22 @@ _NAME_TO_LEVEL = {
 class ColorFormatter(logging.Formatter):
     """Custom logging formatter that adds color to log messages based on their severity level."""
 
-    BRIGHT_RED = "\033[1;31m"
-    RED = "\033[31m"
-    YELLOW = "\033[33m"
-    GREEN = "\033[32m"
-    BLUE = "\033[34m"
+    MAGENTA = "\033[1;35m"
+    RED = "\033[1;31m"
+    YELLOW = "\033[1;33m"
+    GREEN = "\033[1;32m"
+    BLUE = "\033[1;34m"
     RESET = "\033[0m"
 
-    log_format = (
-        "%(asctime)s - %(name)s - %(levelname)s - %(message)s (%(filename)s:%(lineno)d)"
-    )
+    log_format = "{levelcolor}%(asctime)s - %(name)s - %(levelname)s - %(message)s (%(filename)s:%(lineno)d){reset}"
 
     FORMATS = {
-        logging.CRITICAL: f"{BRIGHT_RED}{log_format}{RESET}",
-        logging.ERROR: f"{RED}{log_format}{RESET}",
-        logging.WARNING: f"{YELLOW}{log_format}{RESET}",
-        logging.INFO: f"{GREEN}{log_format}{RESET}",
-        logging.DEBUG: f"{BLUE}{log_format}{RESET}",
-        logging.NOTSET: f"{RESET}{log_format}{RESET}",
+        logging.CRITICAL: log_format.format(levelcolor=MAGENTA, reset=RESET),
+        logging.ERROR: log_format.format(levelcolor=RED, reset=RESET),
+        logging.WARNING: log_format.format(levelcolor=YELLOW, reset=RESET),
+        logging.INFO: log_format.format(levelcolor=GREEN, reset=RESET),
+        logging.DEBUG: log_format.format(levelcolor=BLUE, reset=RESET),
+        logging.NOTSET: log_format.format(levelcolor=RESET, reset=RESET),
     }
 
     def format(self, record):
