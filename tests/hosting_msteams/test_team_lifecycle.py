@@ -4,6 +4,7 @@
 """Tests for TeamsAgentExtension.teams (team lifecycle conversation update events)."""
 
 import pytest
+from unittest.mock import AsyncMock, MagicMock
 
 from microsoft_agents.activity import ActivityTypes
 
@@ -15,6 +16,8 @@ pytestmark = pytest.mark.skipif(
 )
 
 if is_supported_version:
+    from microsoft_teams.api.models.channel_data import TeamInfo
+
     from microsoft_agents.hosting.msteams import TeamsAgentExtension
 
 
@@ -170,6 +173,42 @@ class TestTeamLifecycle:
         async def handler(ctx, state, data): ...
 
         assert self.app._routes[0]["is_invoke"] is False
+
+    @pytest.mark.asyncio
+    async def test_archived_handler_passes_team_info(self):
+        user_handler = AsyncMock()
+
+        @self.ext.teams.archived()
+        async def handler(ctx, state, data):
+            await user_handler(ctx, state, data)
+
+        route_handler = self.app._routes[0]["handler"]
+        ctx = _make_context(
+            ActivityTypes.conversation_update,
+            channel_data={
+                "eventType": "teamArchived",
+                "team": {"id": "t1"},
+            },
+        )
+
+        await route_handler(ctx, MagicMock())
+
+        assert isinstance(user_handler.call_args[0][2], TeamInfo)
+        assert user_handler.call_args[0][2].id == "t1"
+
+    @pytest.mark.asyncio
+    async def test_archived_raises_when_team_info_missing(self):
+        @self.ext.teams.archived()
+        async def handler(ctx, state, data): ...
+
+        route_handler = self.app._routes[0]["handler"]
+        ctx = _make_context(
+            ActivityTypes.conversation_update,
+            channel_data={"eventType": "teamArchived"},
+        )
+
+        with pytest.raises(ValueError, match="channel_data.team"):
+            await route_handler(ctx, MagicMock())
 
 
 class TestTeamEvent:

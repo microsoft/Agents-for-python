@@ -5,7 +5,7 @@
 
 from typing import Awaitable, Protocol
 
-from microsoft_teams.api.models.channel_data import ChannelData
+from microsoft_teams.api.models.channel_data import ChannelInfo
 
 from microsoft_agents.hosting.msteams.teams_turn_context import TeamsTurnContext
 from microsoft_agents.hosting.msteams.type_defs import _StateContra
@@ -15,21 +15,21 @@ class ChannelUpdateHandler(Protocol[_StateContra]):
     """Protocol for a handler invoked on Teams channel update events.
 
     Handlers receive the Teams turn context, the current turn state, and the
-    parsed :class:`ChannelData` from the activity.
+    parsed :class:`ChannelInfo` from the activity's channel data.
     """
 
     def __call__(
         self,
         context: TeamsTurnContext,
         state: _StateContra,
-        data: ChannelData,
+        data: ChannelInfo,
         /,
     ) -> Awaitable[None]:
         """Handle a channel update event.
 
         :param context: Teams-aware turn context.
         :param state: The current turn state.
-        :param data: Parsed channel data from the incoming activity.
+        :param data: Parsed channel info from the incoming activity.
         :return: An awaitable that completes when the handler finishes.
         """
         ...

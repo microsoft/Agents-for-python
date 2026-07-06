@@ -19,8 +19,8 @@ from microsoft_agents.hosting.msteams.type_defs import (
     StateT,
 )
 from microsoft_agents.hosting.msteams._utils import (
-    _get_channel_data,
     _get_channel_event_type,
+    _get_channel_info,
 )
 
 from .route_handlers import ChannelUpdateHandler
@@ -68,8 +68,8 @@ class Channel(Generic[StateT]):
         def __call(func: ChannelUpdateHandler[StateT]) -> ChannelUpdateHandler[StateT]:
             async def __handler(context: TurnContext, state: StateT) -> None:
                 teams_context = TeamsTurnContext(context, self._app)
-                channel_data = _get_channel_data(teams_context.activity)
-                await func(teams_context, state, channel_data)
+                channel_info = _get_channel_info(teams_context.activity)
+                await func(teams_context, state, channel_info)
 
             self._app.add_route(
                 __selector, __handler, rank=rank, auth_handlers=auth_handlers
@@ -331,8 +331,8 @@ class Channel(Generic[StateT]):
         def __call(func: ChannelUpdateHandler[StateT]) -> ChannelUpdateHandler[StateT]:
             async def __func(context: TurnContext, state: StateT) -> None:
                 teams_context = TeamsTurnContext(context, self._app)
-                channel_data = _get_channel_data(teams_context.activity)
-                await func(teams_context, state, channel_data)
+                channel_info = _get_channel_info(teams_context.activity)
+                await func(teams_context, state, channel_info)
 
             self._app.add_route(
                 __selector, __func, rank=rank, auth_handlers=auth_handlers
@@ -379,8 +379,8 @@ class Channel(Generic[StateT]):
         def __call(func: ChannelUpdateHandler[StateT]) -> ChannelUpdateHandler[StateT]:
             async def __func(context: TurnContext, state: StateT) -> None:
                 teams_context = TeamsTurnContext(context, self._app)
-                channel_data = _get_channel_data(teams_context.activity)
-                await func(teams_context, state, channel_data)
+                channel_info = _get_channel_info(teams_context.activity)
+                await func(teams_context, state, channel_info)
 
             self._app.add_route(
                 __selector, __func, rank=rank, auth_handlers=auth_handlers

@@ -9,7 +9,7 @@ from typing import Any
 
 from http import HTTPStatus
 
-from microsoft_teams.api.models.channel_data import ChannelData
+from microsoft_teams.api.models.channel_data import ChannelData, ChannelInfo, TeamInfo
 
 from microsoft_agents.activity import (
     Activity,
@@ -47,6 +47,34 @@ def _get_channel_data(activity: Activity) -> ChannelData:
     if channel_data is None:
         raise ValueError("channel_data is required")
     return channel_data
+
+
+def _get_channel_info(activity: Activity) -> ChannelInfo:
+    """Extract Teams channel info from the activity's channel_data.
+
+    :param activity: The current activity.
+    :return: The parsed :class:`ChannelInfo` from channel_data.
+    :raises ValueError: If channel_data or channel_data.channel is absent.
+    :raises pydantic.ValidationError: If channel_data cannot be deserialized.
+    """
+    channel_data = _get_channel_data(activity)
+    if channel_data.channel is None:
+        raise ValueError("channel_data.channel is required")
+    return channel_data.channel
+
+
+def _get_team_info(activity: Activity) -> TeamInfo:
+    """Extract Teams team info from the activity's channel_data.
+
+    :param activity: The current activity.
+    :return: The parsed :class:`TeamInfo` from channel_data.
+    :raises ValueError: If channel_data or channel_data.team is absent.
+    :raises pydantic.ValidationError: If channel_data cannot be deserialized.
+    """
+    channel_data = _get_channel_data(activity)
+    if channel_data.team is None:
+        raise ValueError("channel_data.team is required")
+    return channel_data.team
 
 
 def _match_selector(selector: CommandSelector, value: str | None) -> bool:

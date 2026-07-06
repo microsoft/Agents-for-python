@@ -16,6 +16,8 @@ pytestmark = pytest.mark.skipif(
 )
 
 if is_supported_version:
+    from microsoft_teams.api.models.channel_data import ChannelInfo
+
     from microsoft_agents.hosting.msteams import TeamsAgentExtension
 
 
@@ -182,6 +184,28 @@ class TestChannelLifecycle:
 
         assert self.app._routes[0]["is_invoke"] is False
 
+    @pytest.mark.asyncio
+    async def test_created_handler_passes_channel_info(self):
+        user_handler = AsyncMock()
+
+        @self.ext.channels.created()
+        async def handler(ctx, state, data):
+            await user_handler(ctx, state, data)
+
+        route_handler = self.app._routes[0]["handler"]
+        ctx = _make_context(
+            ActivityTypes.conversation_update,
+            channel_data={
+                "eventType": "channelCreated",
+                "channel": {"id": "c1"},
+            },
+        )
+
+        await route_handler(ctx, MagicMock())
+
+        assert isinstance(user_handler.call_args[0][2], ChannelInfo)
+        assert user_handler.call_args[0][2].id == "c1"
+
 
 class TestChannelMembers:
 
@@ -262,9 +286,7 @@ class TestChannelMembers:
         )
 
     @pytest.mark.asyncio
-    async def test_members_added_handler_passes_channel_data(self):
-        from microsoft_teams.api.models.channel_data import ChannelData
-
+    async def test_members_added_handler_passes_channel_info(self):
         user_handler = AsyncMock()
 
         @self.ext.channels.members_added()
@@ -276,15 +298,17 @@ class TestChannelMembers:
         ctx = _make_context(
             ActivityTypes.conversation_update,
             members_added=[member],
-            channel_data={"eventType": "membersAdded"},
+            channel_data={
+                "eventType": "membersAdded",
+                "channel": {"id": "c1"},
+            },
         )
         await route_handler(ctx, MagicMock())
-        assert isinstance(user_handler.call_args[0][2], ChannelData)
+        assert isinstance(user_handler.call_args[0][2], ChannelInfo)
+        assert user_handler.call_args[0][2].id == "c1"
 
     @pytest.mark.asyncio
-    async def test_members_removed_handler_passes_channel_data(self):
-        from microsoft_teams.api.models.channel_data import ChannelData
-
+    async def test_members_removed_handler_passes_channel_info(self):
         user_handler = AsyncMock()
 
         @self.ext.channels.members_removed()
@@ -296,10 +320,14 @@ class TestChannelMembers:
         ctx = _make_context(
             ActivityTypes.conversation_update,
             members_removed=[member],
-            channel_data={"eventType": "membersRemoved"},
+            channel_data={
+                "eventType": "membersRemoved",
+                "channel": {"id": "c1"},
+            },
         )
         await route_handler(ctx, MagicMock())
-        assert isinstance(user_handler.call_args[0][2], ChannelData)
+        assert isinstance(user_handler.call_args[0][2], ChannelInfo)
+        assert user_handler.call_args[0][2].id == "c1"
 
     @pytest.mark.asyncio
     async def test_members_added_raises_when_channel_data_missing(self):
@@ -310,6 +338,21 @@ class TestChannelMembers:
         member = MagicMock()
         ctx = _make_context(ActivityTypes.conversation_update, members_added=[member])
         with pytest.raises(ValueError, match="channel_data"):
+            await route_handler(ctx, MagicMock())
+
+    @pytest.mark.asyncio
+    async def test_members_added_raises_when_channel_info_missing(self):
+        @self.ext.channels.members_added()
+        async def handler(ctx, state, data): ...
+
+        route_handler = self.app._routes[0]["handler"]
+        member = MagicMock()
+        ctx = _make_context(
+            ActivityTypes.conversation_update,
+            members_added=[member],
+            channel_data={"eventType": "membersAdded"},
+        )
+        with pytest.raises(ValueError, match="channel_data.channel"):
             await route_handler(ctx, MagicMock())
 
 

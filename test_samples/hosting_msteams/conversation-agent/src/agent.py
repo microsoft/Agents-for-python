@@ -16,7 +16,12 @@ from typing import Optional
 
 from dotenv import load_dotenv
 
-from microsoft_teams.api.models import ChannelData, TeamsChannelAccount
+from microsoft_teams.api.models import (
+    ChannelData,
+    ChannelInfo,
+    TeamInfo,
+    TeamsChannelAccount,
+)
 
 from microsoft_agents.activity import (
     ActionTypes,
@@ -230,27 +235,27 @@ async def on_members_removed(context: TeamsTurnContext, state: TurnState) -> Non
 
 @teams.channels.created
 async def on_channel_created(
-    context: TeamsTurnContext, state: TurnState, channel_data: ChannelData
+    context: TeamsTurnContext, state: TurnState, channel_info: ChannelInfo
 ) -> None:
-    name = channel_data.channel.name if channel_data.channel else "Unknown"
+    name = channel_info.name or "Unknown"
     card = HeroCard(text=f"{name} is the Channel created")
     await context.send_activity(MessageFactory.attachment(CardFactory.hero_card(card)))
 
 
 @teams.channels.renamed
 async def on_channel_renamed(
-    context: TeamsTurnContext, state: TurnState, channel_data: ChannelData
+    context: TeamsTurnContext, state: TurnState, channel_info: ChannelInfo
 ) -> None:
-    name = channel_data.channel.name if channel_data.channel else "Unknown"
+    name = channel_info.name or "Unknown"
     card = HeroCard(text=f"{name} is the new Channel name")
     await context.send_activity(MessageFactory.attachment(CardFactory.hero_card(card)))
 
 
 @teams.channels.deleted
 async def on_channel_deleted(
-    context: TeamsTurnContext, state: TurnState, channel_data: ChannelData
+    context: TeamsTurnContext, state: TurnState, channel_info: ChannelInfo
 ) -> None:
-    name = channel_data.channel.name if channel_data.channel else "Unknown"
+    name = channel_info.name or "Unknown"
     card = HeroCard(text=f"{name} is the Channel deleted")
     await context.send_activity(MessageFactory.attachment(CardFactory.hero_card(card)))
 
@@ -260,9 +265,9 @@ async def on_channel_deleted(
 
 @teams.teams.renamed
 async def on_team_renamed(
-    context: TeamsTurnContext, state: TurnState, channel_data: ChannelData
+    context: TeamsTurnContext, state: TurnState, team_info: TeamInfo
 ) -> None:
-    name = channel_data.team.name if channel_data.team else "Unknown"
+    name = team_info.name or "Unknown"
     card = HeroCard(text=f"{name} is the new Team name")
     await context.send_activity(MessageFactory.attachment(CardFactory.hero_card(card)))
 

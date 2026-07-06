@@ -301,14 +301,14 @@ async def on_participants_leave(context: TeamsTurnContext, state, details: Meeti
 ### Channel Events
 
 ```python
-from microsoft_teams.api.models import ChannelData
+from microsoft_teams.api.models import ChannelInfo
 
 @teams.channels.created
-async def on_channel_created(context: TeamsTurnContext, state, data: ChannelData):
-    print(f"New channel: {data.channel.name}")
+async def on_channel_created(context: TeamsTurnContext, state, channel: ChannelInfo):
+    print(f"New channel: {channel.name}")
 
 @teams.channels.renamed
-async def on_channel_renamed(context: TeamsTurnContext, state, data: ChannelData):
+async def on_channel_renamed(context: TeamsTurnContext, state, channel: ChannelInfo):
     ...
 
 # Also available: deleted, shared, unshared, restored, members_added, members_removed
@@ -319,8 +319,10 @@ async def on_channel_renamed(context: TeamsTurnContext, state, data: ChannelData
 ### Team Events
 
 ```python
+from microsoft_teams.api.models import TeamInfo
+
 @teams.teams.renamed
-async def on_team_renamed(context: TeamsTurnContext, state, data: ChannelData): ...
+async def on_team_renamed(context: TeamsTurnContext, state, team: TeamInfo): ...
 
 # Also available: archived, unarchived, deleted, hard_deleted, restored
 ```

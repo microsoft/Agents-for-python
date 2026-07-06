@@ -16,10 +16,16 @@ pytestmark = pytest.mark.skipif(
 
 if is_supported_version:
     from microsoft_agents.activity import Activity, ActivityTypes
-    from microsoft_teams.api.models.channel_data import ChannelData
+    from microsoft_teams.api.models.channel_data import (
+        ChannelData,
+        ChannelInfo,
+        TeamInfo,
+    )
     from microsoft_agents.hosting.msteams._utils import (
         _get_channel_data,
         _get_channel_event_type,
+        _get_channel_info,
+        _get_team_info,
         _match_selector,
         _send_invoke_response,
     )
@@ -117,6 +123,46 @@ class TestGetChannelData:
         )
         result = _get_channel_data(ctx.activity)
         assert isinstance(result, ChannelData)
+
+
+class TestGetChannelInfo:
+
+    def test_returns_channel_info_from_channel_data(self):
+        ctx = _make_context(
+            ActivityTypes.conversation_update,
+            channel_data={"channel": {"id": "c1"}},
+        )
+        result = _get_channel_info(ctx.activity)
+        assert isinstance(result, ChannelInfo)
+        assert result.id == "c1"
+
+    def test_raises_when_channel_info_is_missing(self):
+        ctx = _make_context(
+            ActivityTypes.conversation_update,
+            channel_data={"team": {"id": "t1"}},
+        )
+        with pytest.raises(ValueError, match="channel_data.channel"):
+            _get_channel_info(ctx.activity)
+
+
+class TestGetTeamInfo:
+
+    def test_returns_team_info_from_channel_data(self):
+        ctx = _make_context(
+            ActivityTypes.conversation_update,
+            channel_data={"team": {"id": "t1"}},
+        )
+        result = _get_team_info(ctx.activity)
+        assert isinstance(result, TeamInfo)
+        assert result.id == "t1"
+
+    def test_raises_when_team_info_is_missing(self):
+        ctx = _make_context(
+            ActivityTypes.conversation_update,
+            channel_data={"channel": {"id": "c1"}},
+        )
+        with pytest.raises(ValueError, match="channel_data.team"):
+            _get_team_info(ctx.activity)
 
 
 class TestSendInvokeResponse:
