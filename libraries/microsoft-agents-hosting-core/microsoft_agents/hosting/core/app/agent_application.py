@@ -440,7 +440,7 @@ class AgentApplication(Agent, Generic[StateT]):
 
     def conversation_update(
         self,
-        type: ConversationUpdateTypes,
+        type: ConversationUpdateTypes | str,
         *,
         auth_handlers: Optional[list[str]] = None,
         **kwargs,
@@ -494,7 +494,7 @@ class AgentApplication(Agent, Generic[StateT]):
 
     def message_reaction(
         self,
-        type: MessageReactionTypes,
+        type: MessageReactionTypes | str,
         *,
         auth_handlers: Optional[list[str]] = None,
         **kwargs,
@@ -544,7 +544,7 @@ class AgentApplication(Agent, Generic[StateT]):
 
     def message_update(
         self,
-        type: MessageUpdateTypes,
+        type: MessageUpdateTypes | str,
         *,
         auth_handlers: Optional[list[str]] = None,
         **kwargs,
