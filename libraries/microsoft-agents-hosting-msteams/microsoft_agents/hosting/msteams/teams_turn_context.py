@@ -36,7 +36,9 @@ class TeamsTurnContext(TurnContext):
         """
         super().__init__(context)
         self._app = app
-        self._turn_state.update(context.turn_state)
+        self._turn_state = context.turn_state
+
+        self._original = context
 
         self._set_teams_activity()
 
@@ -59,6 +61,18 @@ class TeamsTurnContext(TurnContext):
         """
         self._activity.__class__ = TeamsActivity
         self._teams_activity = cast(TeamsActivity, self._activity)
+
+    @property
+    def responded(self) -> bool:
+        return self._original.responded
+
+    @responded.setter
+    def responded(self, value: bool):
+        self._original.responded = value
+
+    @property
+    def streaming_response(self):
+        return self._original.streaming_response
 
     @property
     def activity(self) -> TeamsActivity:
