@@ -676,7 +676,7 @@ class Activity(AgentsModel, _ChannelIdFieldMixin):
         """
         Converts an entity to a specific entity type.
 
-        :param entity: The entity to convert.
+        :param raw_entity: The entity to convert.
         :param entity_cls: The class of the entity type to convert to.
         :return: The converted entity of the specified type.
         """
@@ -691,7 +691,7 @@ class Activity(AgentsModel, _ChannelIdFieldMixin):
         """
         Converts a list of entities to a list of a specific entity type.
 
-        :param entities: The list of entities to convert.
+        :param raw_entities: The list of entities to convert.
         :param entity_cls: The class of the entity type to convert to.
         :return: The list of converted entities of the specified type.
         """
