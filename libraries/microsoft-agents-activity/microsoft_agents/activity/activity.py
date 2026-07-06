@@ -6,7 +6,8 @@ from __future__ import annotations
 import logging
 from copy import copy
 from datetime import datetime, timezone
-from typing import Optional, Any
+from typing import Optional, Any, cast, Annotated, TypeVar
+from typing_extensions import Self
 
 from pydantic import (
     Field,
@@ -47,6 +48,8 @@ from ._type_aliases import NonEmptyString
 from microsoft_agents.activity.errors import activity_errors
 
 logger = logging.getLogger(__name__)
+
+_EntityT = TypeVar("_EntityT", bound=Entity)
 
 
 # TODO: A2A Agent 2 is responding with None as id, had to mark it as optional (investigate)
@@ -157,7 +160,7 @@ class Activity(AgentsModel, _ChannelIdFieldMixin):
     local_timestamp: datetime = None
     local_timezone: NonEmptyString = None
     service_url: NonEmptyString = None
-    from_property: ChannelAccount = Field(None, alias="from")
+    from_property: Annotated[ChannelAccount, Field(alias="from")] = None
     conversation: ConversationAccount = None
     recipient: ChannelAccount = None
     text_format: NonEmptyString = None
@@ -509,33 +512,36 @@ class Activity(AgentsModel, _ChannelIdFieldMixin):
         .. remarks::
             The new activity sets up routing information based on this activity.
         """
-        return pick_model(
-            Activity,
-            type=ActivityTypes.message,
-            timestamp=datetime.now(timezone.utc),
-            from_property=SkipNone(
-                ChannelAccount.pick_properties(self.recipient, ["id", "name"])
+        return cast(
+            Self,
+            pick_model(
+                self.__class__,
+                type=ActivityTypes.message,
+                timestamp=datetime.now(timezone.utc),
+                from_property=SkipNone(
+                    ChannelAccount.pick_properties(self.recipient, ["id", "name"])
+                ),
+                recipient=SkipNone(
+                    ChannelAccount.pick_properties(self.from_property, ["id", "name"])
+                ),
+                reply_to_id=(
+                    SkipNone(self.id)
+                    if self.type != ActivityTypes.conversation_update
+                    or self.channel_id not in ["directline", "webchat"]
+                    else None
+                ),
+                service_url=self.service_url,
+                channel_id=self.channel_id,
+                conversation=SkipNone(
+                    ConversationAccount.pick_properties(
+                        self.conversation, ["is_group", "id", "name"]
+                    )
+                ),
+                text=text if text else "",
+                locale=locale if locale else SkipNone(self.locale),
+                attachments=[],
+                entities=[],
             ),
-            recipient=SkipNone(
-                ChannelAccount.pick_properties(self.from_property, ["id", "name"])
-            ),
-            reply_to_id=(
-                SkipNone(self.id)
-                if type != ActivityTypes.conversation_update
-                or self.channel_id not in ["directline", "webchat"]
-                else None
-            ),
-            service_url=self.service_url,
-            channel_id=self.channel_id,
-            conversation=SkipNone(
-                ConversationAccount.pick_properties(
-                    self.conversation, ["is_group", "id", "name"]
-                )
-            ),
-            text=text if text else "",
-            locale=locale if locale else SkipNone(self.locale),
-            attachments=[],
-            entities=[],
         )
 
     def create_trace(
@@ -558,33 +564,36 @@ class Activity(AgentsModel, _ChannelIdFieldMixin):
         if not value_type and value:
             value_type = type(value).__name__
 
-        return pick_model(
-            Activity,
-            type=ActivityTypes.trace,
-            timestamp=datetime.now(timezone.utc),
-            from_property=SkipNone(
-                ChannelAccount.pick_properties(self.recipient, ["id", "name"])
+        return cast(
+            Self,
+            pick_model(
+                self.__class__,
+                type=ActivityTypes.trace,
+                timestamp=datetime.now(timezone.utc),
+                from_property=SkipNone(
+                    ChannelAccount.pick_properties(self.recipient, ["id", "name"])
+                ),
+                recipient=SkipNone(
+                    ChannelAccount.pick_properties(self.from_property, ["id", "name"])
+                ),
+                reply_to_id=(
+                    SkipNone(self.id)  # preserve unset
+                    if self.type != ActivityTypes.conversation_update
+                    or self.channel_id not in ["directline", "webchat"]
+                    else None
+                ),
+                service_url=self.service_url,
+                channel_id=self.channel_id,
+                conversation=SkipNone(
+                    ConversationAccount.pick_properties(
+                        self.conversation, ["is_group", "id", "name"]
+                    )
+                ),
+                name=SkipNone(name),
+                label=SkipNone(label),
+                value_type=SkipNone(value_type),
+                value=SkipNone(value),
             ),
-            recipient=SkipNone(
-                ChannelAccount.pick_properties(self.from_property, ["id", "name"])
-            ),
-            reply_to_id=(
-                SkipNone(self.id)  # preserve unset
-                if type != ActivityTypes.conversation_update
-                or self.channel_id not in ["directline", "webchat"]
-                else None
-            ),
-            service_url=self.service_url,
-            channel_id=self.channel_id,
-            conversation=SkipNone(
-                ConversationAccount.pick_properties(
-                    self.conversation, ["is_group", "id", "name"]
-                )
-            ),
-            name=SkipNone(name),
-            label=SkipNone(label),
-            value_type=SkipNone(value_type),
-            value=SkipNone(value),
         ).as_trace_activity()
 
     @staticmethod
@@ -593,7 +602,7 @@ class Activity(AgentsModel, _ChannelIdFieldMixin):
         value: object = None,
         value_type: str | None = None,
         label: str | None = None,
-    ):
+    ) -> Activity:
         """
         Creates an instance of the :class:`microsoft_agents.activity.Activity` class as a TraceActivity object.
 
@@ -607,13 +616,16 @@ class Activity(AgentsModel, _ChannelIdFieldMixin):
         if not value_type and value:
             value_type = type(value).__name__
 
-        return pick_model(
+        return cast(
             Activity,
-            type=ActivityTypes.trace,
-            name=name,
-            label=SkipNone(label),
-            value_type=SkipNone(value_type),
-            value=SkipNone(value),
+            pick_model(
+                Activity,
+                type=ActivityTypes.trace,
+                name=name,
+                label=SkipNone(label),
+                value_type=SkipNone(value_type),
+                value=SkipNone(value),
+            ),
         )
 
     @staticmethod
@@ -636,25 +648,58 @@ class Activity(AgentsModel, _ChannelIdFieldMixin):
             Composite values are split only on the first ``:``.
         :returns: A conversation reference for the conversation that contains this activity.
         """
-        return pick_model(
+        return cast(
             ConversationReference,
-            activity_id=(
-                SkipNone(self.id)
-                if self.type != ActivityTypes.conversation_update
-                or self.channel_id not in ["directline", "webchat"]
-                else None
+            pick_model(
+                ConversationReference,
+                activity_id=(
+                    SkipNone(self.id)
+                    if self.type != ActivityTypes.conversation_update
+                    or self.channel_id not in ["directline", "webchat"]
+                    else None
+                ),
+                user=copy(self.from_property),
+                agent=copy(self.recipient),
+                conversation=copy(self.conversation),
+                channel_id=(
+                    self.channel_id.split(":", 1)[0]
+                    if force_base_channel and self.channel_id is not None
+                    else self.channel_id
+                ),
+                locale=self.locale,
+                service_url=self.service_url,
             ),
-            user=copy(self.from_property),
-            agent=copy(self.recipient),
-            conversation=copy(self.conversation),
-            channel_id=(
-                self.channel_id.split(":", 1)[0]
-                if force_base_channel and self.channel_id is not None
-                else self.channel_id
-            ),
-            locale=self.locale,
-            service_url=self.service_url,
         )
+
+    @staticmethod
+    def _convert_entity(raw_entity: Entity, entity_cls: type[_EntityT]) -> _EntityT:
+        """
+        Converts an entity to a specific entity type.
+
+        :param raw_entity: The entity to convert.
+        :param entity_cls: The class of the entity type to convert to.
+        :return: The converted entity of the specified type.
+        """
+        if isinstance(raw_entity, entity_cls):
+            return raw_entity
+        return entity_cls.model_validate(raw_entity.model_dump())
+
+    @staticmethod
+    def _convert_entity_list(
+        raw_entities: list[Entity], entity_cls: type[_EntityT]
+    ) -> list[_EntityT]:
+        """
+        Converts a list of entities to a list of a specific entity type.
+
+        :param raw_entities: The list of entities to convert.
+        :param entity_cls: The class of the entity type to convert to.
+        :return: The list of converted entities of the specified type.
+        """
+
+        entities: list[_EntityT] = []
+        for e in raw_entities:
+            entities.append(Activity._convert_entity(e, entity_cls))
+        return entities
 
     def get_product_info_entity(self) -> Optional[ProductInfo]:
         if not self.entities:
@@ -662,7 +707,12 @@ class Activity(AgentsModel, _ChannelIdFieldMixin):
         target = EntityTypes.PRODUCT_INFO.lower()
         # validated entities can be Entity, and that prevents us from
         # making assumptions about the casing of the 'type' attribute
-        return next(filter(lambda e: e.type.lower() == target, self.entities), None)
+        raw_product_info = next(
+            filter(lambda e: e.type.lower() == target, self.entities), None
+        )
+        if raw_product_info is None:
+            return None
+        return Activity._convert_entity(raw_product_info, ProductInfo)
 
     def get_mentions(self) -> list[Mention]:
         """
@@ -676,7 +726,11 @@ class Activity(AgentsModel, _ChannelIdFieldMixin):
         """
         if not self.entities:
             return []
-        return [x for x in self.entities if x.type.lower() == EntityTypes.MENTION]
+        raw_mentions = [
+            x for x in self.entities if x.type.lower() == EntityTypes.MENTION
+        ]
+
+        return Activity._convert_entity_list(raw_mentions, Mention)
 
     def get_reply_conversation_reference(
         self, reply: ResourceResponse
