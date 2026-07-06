@@ -403,7 +403,7 @@ class TestActivityConversationOps:
         mentions = activity.get_mentions()
         assert mentions == [
             Mention(text="Hello"),
-            Entity(type="mention", text="Another mention"),
+            Mention(text="Another mention"),
         ]
 
     @pytest.mark.parametrize(
@@ -418,8 +418,7 @@ class TestActivityConversationOps:
                     Entity(type="other"),
                     Entity(type="mention", text="Another mention"),
                 ],
-                Entity(
-                    type="ProductInfo",
+                ProductInfo(
                     id="product_123",
                 ),
             ],
@@ -442,7 +441,7 @@ class TestActivityConversationOps:
                     ),
                     Entity(type="mention", text="Another mention"),
                 ],
-                Entity(type="ProductInfo", id="product_123"),
+                ProductInfo(id="product_123"),
             ],
             [[], None],
         ],

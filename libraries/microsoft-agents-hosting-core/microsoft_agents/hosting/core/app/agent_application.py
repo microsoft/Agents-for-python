@@ -440,7 +440,7 @@ class AgentApplication(Agent, Generic[StateT]):
 
     def conversation_update(
         self,
-        type: ConversationUpdateTypes,
+        type: ConversationUpdateTypes | str,
         *,
         auth_handlers: Optional[list[str]] = None,
         **kwargs,
@@ -457,35 +457,37 @@ class AgentApplication(Agent, Generic[StateT]):
                     return True
 
         :param type: Conversation update category that must match the incoming activity.
-        :type type: microsoft_agents.activity.ConversationUpdateTypes
+        :type type: microsoft_agents.activity.ConversationUpdateTypes | str
         :param auth_handlers: Optional list of authorization handler IDs for the route.
         :type auth_handlers: Optional[list[str]]
         :param kwargs: Additional route configuration passed to :meth:`microsoft_agents.hosting.core.AgentApplication.add_route`.
         """
 
+        update_type = type.value if isinstance(type, ConversationUpdateTypes) else type
+
         def __selector(context: TurnContext):
             if context.activity.type != ActivityTypes.conversation_update:
                 return False
 
-            if type == "membersAdded":
+            if update_type == "membersAdded":
                 if isinstance(context.activity.members_added, list):
                     return len(context.activity.members_added) > 0
                 return False
 
-            if type == "membersRemoved":
+            if update_type == "membersRemoved":
                 if isinstance(context.activity.members_removed, list):
                     return len(context.activity.members_removed) > 0
                 return False
 
             if isinstance(context.activity.channel_data, object):
                 data = vars(context.activity.channel_data)
-                return data["event_type"] == type
+                return data["event_type"] == update_type
 
             return False
 
         def __call(func: RouteHandler[StateT]) -> RouteHandler[StateT]:
             logger.debug(
-                f"Registering conversation update handler for route handler {func.__name__} with type: {type} with auth handlers: {auth_handlers}"
+                f"Registering conversation update handler for route handler {func.__name__} with type: {update_type} with auth handlers: {auth_handlers}"
             )
             self.add_route(__selector, func, auth_handlers=auth_handlers, **kwargs)
             return func
@@ -494,7 +496,7 @@ class AgentApplication(Agent, Generic[StateT]):
 
     def message_reaction(
         self,
-        type: MessageReactionTypes,
+        type: MessageReactionTypes | str,
         *,
         auth_handlers: Optional[list[str]] = None,
         **kwargs,
@@ -511,22 +513,24 @@ class AgentApplication(Agent, Generic[StateT]):
                     return True
 
         :param type: Reaction category that must match the incoming activity.
-        :type type: microsoft_agents.activity.MessageReactionTypes
+        :type type: microsoft_agents.activity.MessageReactionTypes | str
         :param auth_handlers: Optional list of authorization handler IDs for the route.
         :type auth_handlers: Optional[list[str]]
         :param kwargs: Additional route configuration passed to :meth:`microsoft_agents.hosting.core.AgentApplication.add_route`.
         """
 
+        reaction_type = type.value if isinstance(type, MessageReactionTypes) else type
+
         def __selector(context: TurnContext):
             if context.activity.type != ActivityTypes.message_reaction:
                 return False
 
-            if type == "reactionsAdded":
+            if reaction_type == "reactionsAdded":
                 if isinstance(context.activity.reactions_added, list):
                     return len(context.activity.reactions_added) > 0
                 return False
 
-            if type == "reactionsRemoved":
+            if reaction_type == "reactionsRemoved":
                 if isinstance(context.activity.reactions_removed, list):
                     return len(context.activity.reactions_removed) > 0
                 return False
@@ -535,7 +539,7 @@ class AgentApplication(Agent, Generic[StateT]):
 
         def __call(func: RouteHandler[StateT]) -> RouteHandler[StateT]:
             logger.debug(
-                f"Registering message reaction handler for route handler {func.__name__} with type: {type} with auth handlers: {auth_handlers}"
+                f"Registering message reaction handler for route handler {func.__name__} with type: {reaction_type} with auth handlers: {auth_handlers}"
             )
             self.add_route(__selector, func, auth_handlers=auth_handlers, **kwargs)
             return func
@@ -544,7 +548,7 @@ class AgentApplication(Agent, Generic[StateT]):
 
     def message_update(
         self,
-        type: MessageUpdateTypes,
+        type: MessageUpdateTypes | str,
         *,
         auth_handlers: Optional[list[str]] = None,
         **kwargs,
@@ -561,44 +565,46 @@ class AgentApplication(Agent, Generic[StateT]):
                     return True
 
         :param type: Message update category that must match the incoming activity.
-        :type type: microsoft_agents.activity.MessageUpdateTypes
+        :type type: microsoft_agents.activity.MessageUpdateTypes | str
         :param auth_handlers: Optional list of authorization handler IDs for the route.
         :type auth_handlers: Optional[list[str]]
         :param kwargs: Additional route configuration passed to :meth:`microsoft_agents.hosting.core.AgentApplication.add_route`.
         """
 
+        update_type = type.value if isinstance(type, MessageUpdateTypes) else type
+
         def __selector(context: TurnContext):
-            if type == "editMessage":
+            if update_type == "editMessage":
                 if (
                     context.activity.type == ActivityTypes.message_update
                     and isinstance(context.activity.channel_data, dict)
                 ):
                     data = context.activity.channel_data
-                    return data["event_type"] == type
+                    return data["event_type"] == update_type
                 return False
 
-            if type == "softDeleteMessage":
+            if update_type == "softDeleteMessage":
                 if (
                     context.activity.type == ActivityTypes.message_delete
                     and isinstance(context.activity.channel_data, dict)
                 ):
                     data = context.activity.channel_data
-                    return data["event_type"] == type
+                    return data["event_type"] == update_type
                 return False
 
-            if type == "undeleteMessage":
+            if update_type == "undeleteMessage":
                 if (
                     context.activity.type == ActivityTypes.message_update
                     and isinstance(context.activity.channel_data, dict)
                 ):
                     data = context.activity.channel_data
-                    return data["event_type"] == type
+                    return data["event_type"] == update_type
                 return False
             return False
 
         def __call(func: RouteHandler[StateT]) -> RouteHandler[StateT]:
             logger.debug(
-                f"Registering message update handler for route handler {func.__name__} with type: {type} with auth handlers: {auth_handlers}"
+                f"Registering message update handler for route handler {func.__name__} with type: {update_type} with auth handlers: {auth_handlers}"
             )
             self.add_route(__selector, func, auth_handlers=auth_handlers, **kwargs)
             return func
