@@ -6,7 +6,8 @@ from __future__ import annotations
 import logging
 from copy import copy
 from datetime import datetime, timezone
-from typing import Optional, Any, Self, cast, Annotated, TypeVar
+from typing import Optional, Any, cast, Annotated, TypeVar
+from typing_extensions import Self
 
 from pydantic import (
     Field,
@@ -525,7 +526,7 @@ class Activity(AgentsModel, _ChannelIdFieldMixin):
                 ),
                 reply_to_id=(
                     SkipNone(self.id)
-                    if type != ActivityTypes.conversation_update
+                    if self.type != ActivityTypes.conversation_update
                     or self.channel_id not in ["directline", "webchat"]
                     else None
                 ),
@@ -577,7 +578,7 @@ class Activity(AgentsModel, _ChannelIdFieldMixin):
                 ),
                 reply_to_id=(
                     SkipNone(self.id)  # preserve unset
-                    if type != ActivityTypes.conversation_update
+                    if self.type != ActivityTypes.conversation_update
                     or self.channel_id not in ["directline", "webchat"]
                     else None
                 ),
@@ -676,7 +677,8 @@ class Activity(AgentsModel, _ChannelIdFieldMixin):
         Converts an entity to a specific entity type.
 
         :param entity: The entity to convert.
-        :return: The specified entity type.
+        :param entity_cls: The class of the entity type to convert to.
+        :return: The converted entity of the specified type.
         """
         if isinstance(raw_entity, entity_cls):
             return raw_entity
@@ -690,7 +692,8 @@ class Activity(AgentsModel, _ChannelIdFieldMixin):
         Converts a list of entities to a list of a specific entity type.
 
         :param entities: The list of entities to convert.
-        :return: A list of the specified entity type.
+        :param entity_cls: The class of the entity type to convert to.
+        :return: The list of converted entities of the specified type.
         """
 
         entities: list[_EntityT] = []

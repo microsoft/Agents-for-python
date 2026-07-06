@@ -457,7 +457,7 @@ class AgentApplication(Agent, Generic[StateT]):
                     return True
 
         :param type: Conversation update category that must match the incoming activity.
-        :type type: microsoft_agents.activity.ConversationUpdateTypes
+        :type type: microsoft_agents.activity.ConversationUpdateTypes | str
         :param auth_handlers: Optional list of authorization handler IDs for the route.
         :type auth_handlers: Optional[list[str]]
         :param kwargs: Additional route configuration passed to :meth:`microsoft_agents.hosting.core.AgentApplication.add_route`.
@@ -511,7 +511,7 @@ class AgentApplication(Agent, Generic[StateT]):
                     return True
 
         :param type: Reaction category that must match the incoming activity.
-        :type type: microsoft_agents.activity.MessageReactionTypes
+        :type type: microsoft_agents.activity.MessageReactionTypes | str
         :param auth_handlers: Optional list of authorization handler IDs for the route.
         :type auth_handlers: Optional[list[str]]
         :param kwargs: Additional route configuration passed to :meth:`microsoft_agents.hosting.core.AgentApplication.add_route`.
@@ -561,7 +561,7 @@ class AgentApplication(Agent, Generic[StateT]):
                     return True
 
         :param type: Message update category that must match the incoming activity.
-        :type type: microsoft_agents.activity.MessageUpdateTypes
+        :type type: microsoft_agents.activity.MessageUpdateTypes | str
         :param auth_handlers: Optional list of authorization handler IDs for the route.
         :type auth_handlers: Optional[list[str]]
         :param kwargs: Additional route configuration passed to :meth:`microsoft_agents.hosting.core.AgentApplication.add_route`.
