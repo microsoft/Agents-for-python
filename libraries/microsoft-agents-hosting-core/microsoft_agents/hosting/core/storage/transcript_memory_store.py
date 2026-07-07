@@ -12,7 +12,7 @@ class TranscriptMemoryStore(TranscriptLogger):
     """
     An in-memory implementation of the TranscriptLogger for storing and retrieving activities.
 
-    This class is thread-safe and stores all activities in a list. It supports logging activities,
+    This class is async-safe and stores all activities in a list. It supports logging activities,
     retrieving activities for a specific channel and conversation, and filtering by timestamp.
     Activities with a None timestamp are treated as the earliest possible datetime.
 
