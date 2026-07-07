@@ -20,19 +20,12 @@ from ..channel_service_adapter import ChannelServiceAdapter
 from .state.turn_state import TurnState
 from .proactive.proactive_options import ProactiveOptions
 
-# from .teams_adapter import TeamsAdapter
-
 
 @dataclass
 class ApplicationOptions:
     adapter: Optional[ChannelServiceAdapter] = None
     """
     Optional. Options used to initialize your `BotAdapter`
-    """
-
-    # auth: Optional[AuthOptions] = None
-    """
-    Optional. Auth settings.
     """
 
     bot_app_id: str = ""
@@ -43,11 +36,6 @@ class ApplicationOptions:
     storage: Optional[Storage] = None
     """
     Optional. `Storage` provider to use for the application.
-    """
-
-    logger: Logger = Logger(__name__)
-    """
-    Optional. `Logger` that will be used in this application.
     """
 
     remove_recipient_mention: bool = True
