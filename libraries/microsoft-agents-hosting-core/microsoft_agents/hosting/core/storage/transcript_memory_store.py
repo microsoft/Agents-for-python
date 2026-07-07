@@ -1,9 +1,8 @@
 # Copyright (c) Microsoft Corporation. All rights reserved.
 # Licensed under the MIT License.
 
-from threading import Lock
+from asyncio import Lock
 from datetime import datetime, timezone
-from typing import List
 from .transcript_logger import TranscriptLogger, PagedResult
 from .transcript_info import TranscriptInfo
 from microsoft_agents.activity import Activity
@@ -43,7 +42,7 @@ class TranscriptMemoryStore(TranscriptLogger):
         if not activity.conversation.id:
             raise ValueError("Activity.Conversation.id cannot be None")
 
-        with self.lock:
+        async with self.lock:
             self._transcript.append(activity)
 
     async def get_transcript_activities(
@@ -68,7 +67,7 @@ class TranscriptMemoryStore(TranscriptLogger):
         if not conversation_id:
             raise ValueError("conversation_id cannot be None")
 
-        with self.lock:
+        async with self.lock:
             # Get the activities that match on channel and conversation id
             relevant_activities = [
                 a
@@ -115,7 +114,7 @@ class TranscriptMemoryStore(TranscriptLogger):
         if not conversation_id:
             raise ValueError("conversation_id cannot be None")
 
-        with self.lock:
+        async with self.lock:
             self._transcript = [
                 a
                 for a in self._transcript
@@ -140,7 +139,7 @@ class TranscriptMemoryStore(TranscriptLogger):
         if not channel_id:
             raise ValueError("channel_id cannot be None")
 
-        with self.lock:
+        async with self.lock:
             relevant_activities = [
                 a for a in self._transcript if a.channel_id == channel_id
             ]
