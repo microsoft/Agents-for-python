@@ -336,11 +336,61 @@ class TestMsalAuthIdentityProxyManager:
         )
 
     @pytest.mark.asyncio
+    async def test_get_agentic_application_token_user_managed_identity(self, mocker):
+        """UserManagedIdentity acquires the agentic token via DefaultAzureCredential
+        using the federated ``fmi_path`` exchange (no monkey-patch required)."""
+        import sys
+        import types
+
+        config = AgentAuthConfiguration(
+            auth_type=AuthTypes.user_managed_identity,
+            client_id="test-client-id",
+        )
+        auth = MsalAuth(config)
+
+        mock_client = mocker.Mock(spec=ManagedIdentityClient)
+        mocker.patch.object(auth, "_get_client", return_value=mock_client)
+
+        # Inject a fake azure.identity.aio.DefaultAzureCredential so the test does
+        # not require azure-identity to be installed.
+        captured = {}
+
+        class _FakeToken:
+            token = "umi-fmi-token"
+
+        class _FakeCredential:
+            def __init__(self, **kwargs):
+                captured["kwargs"] = kwargs
+
+            async def get_token(self, scope):
+                captured["scope"] = scope
+                return _FakeToken()
+
+            async def close(self):
+                captured["closed"] = True
+
+        fake_module = types.ModuleType("azure.identity.aio")
+        fake_module.DefaultAzureCredential = _FakeCredential
+        mocker.patch.dict(sys.modules, {"azure.identity.aio": fake_module})
+
+        token = await auth.get_agentic_application_token(
+            "test-tenant-id", "test-agent-app-instance-id"
+        )
+
+        assert token == "umi-fmi-token"
+        assert captured["kwargs"]["identity_config"] == {
+            "fmi_path": "test-agent-app-instance-id"
+        }
+        assert captured["kwargs"]["managed_identity_client_id"] == "test-client-id"
+        assert captured["scope"] == "api://AzureAdTokenExchange/.default"
+        assert captured.get("closed") is True
+
+    @pytest.mark.asyncio
     async def test_get_agentic_application_token_unsupported_client_raises(
         self, mocker
     ):
         config = AgentAuthConfiguration(
-            auth_type=AuthTypes.user_managed_identity,
+            auth_type=AuthTypes.system_managed_identity,
             client_id="test-client-id",
         )
         auth = MsalAuth(config)

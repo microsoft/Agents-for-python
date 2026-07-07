@@ -388,9 +388,72 @@ class MsalAuth(AccessTokenProviderBase):
 
             return None
 
+        if (
+            self._msal_configuration.AUTH_TYPE == AuthTypes.user_managed_identity
+            and isinstance(msal_auth_client, ManagedIdentityClient)
+        ):
+            return await self._acquire_agentic_token_via_managed_identity(
+                agent_app_instance_id
+            )
+
         raise RuntimeError(
-            "Agentic token acquisition supports ConfidentialClientApplication, or ManagedIdentityClient when AUTH_TYPE is AuthTypes.identity_proxy_manager."
+            "Agentic token acquisition supports ConfidentialClientApplication, or ManagedIdentityClient "
+            "when AUTH_TYPE is AuthTypes.identity_proxy_manager or AuthTypes.user_managed_identity."
         )
+
+    async def _acquire_agentic_token_via_managed_identity(
+        self, agent_app_instance_id: str
+    ) -> Optional[str]:
+        """Acquire an agentic application token for a user-assigned managed identity.
+
+        MSAL's ``ManagedIdentityClient`` does not support the federated ``fmi_path``
+        token exchange required for agentic application tokens. This uses
+        azure-identity's ``DefaultAzureCredential``, which accepts
+        ``identity_config={"fmi_path": ...}`` and handles the managed-identity
+        (IMDS / App Service) endpoints, to perform the federated exchange.
+
+        :param agent_app_instance_id: The agent application instance ID, used as the
+            federated identity ``fmi_path``.
+        :type agent_app_instance_id: str
+        :return: The agentic application token, or None if acquisition failed.
+        :rtype: Optional[str]
+        """
+        try:
+            from azure.identity.aio import DefaultAzureCredential
+        except ImportError as exc:
+            raise ImportError(
+                "Acquiring an agentic application token for AuthTypes.user_managed_identity "
+                "requires the 'azure-identity' package. Install it with: pip install azure-identity."
+            ) from exc
+
+        credential_kwargs: dict = {
+            "identity_config": {"fmi_path": agent_app_instance_id},
+        }
+        client_id = getattr(self._msal_configuration, "CLIENT_ID", None)
+        if client_id:
+            credential_kwargs["managed_identity_client_id"] = client_id
+
+        logger.info(
+            "Acquiring agentic application token via DefaultAzureCredential for agent_app_instance_id=%s",
+            agent_app_instance_id,
+        )
+
+        credential = DefaultAzureCredential(**credential_kwargs)
+        try:
+            token = await credential.get_token("api://AzureAdTokenExchange/.default")
+            return token.token
+        except Exception:  # noqa: BLE001 - failures are logged and surfaced as None
+            logger.exception(
+                "Failed to acquire agentic application token via DefaultAzureCredential "
+                "for agent_app_instance_id=%s",
+                agent_app_instance_id,
+            )
+            return None
+        finally:
+            try:
+                await credential.close()
+            except Exception:  # noqa: BLE001 - best-effort cleanup
+                logger.debug("Error closing DefaultAzureCredential", exc_info=True)
 
     async def get_agentic_instance_token(
         self, tenant_id: str, agent_app_instance_id: str
