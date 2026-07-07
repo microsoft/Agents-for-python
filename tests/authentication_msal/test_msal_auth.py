@@ -213,6 +213,147 @@ class TestMsalAuthTenantResolution:
         )
 
 
+class TestMsalAuthAzureRegion:
+    """
+    Test suite for resolving the Azure regional token service (ESTS-R).
+    """
+
+    def test_resolve_azure_region_when_configured(self):
+        config = AgentAuthConfiguration(azure_region="westus")
+        assert MsalAuth._resolve_azure_region(config) == "westus"
+
+    def test_resolve_azure_region_none_when_unset(self):
+        config = AgentAuthConfiguration()
+        assert MsalAuth._resolve_azure_region(config) is None
+
+    def test_resolve_azure_region_none_when_whitespace(self):
+        config = AgentAuthConfiguration(azure_region="   ")
+        assert MsalAuth._resolve_azure_region(config) is None
+
+    def test_create_client_application_passes_azure_region(self, mocker):
+        config = AgentAuthConfiguration(
+            auth_type=AuthTypes.client_secret,
+            tenant_id="12345678-1234-1234-1234-123456789abc",
+            client_id="test-client-id",
+            client_secret="test-client-secret",
+            azure_region="westus",
+        )
+        mock_cca = mocker.patch(
+            "microsoft_agents.authentication.msal.msal_auth.ConfidentialClientApplication"
+        )
+        auth = MsalAuth(config)
+        auth._create_client_application()
+        assert mock_cca.call_args.kwargs["azure_region"] == "westus"
+
+    def test_create_client_application_azure_region_defaults_none(self, mocker):
+        config = AgentAuthConfiguration(
+            auth_type=AuthTypes.client_secret,
+            tenant_id="12345678-1234-1234-1234-123456789abc",
+            client_id="test-client-id",
+            client_secret="test-client-secret",
+        )
+        mock_cca = mocker.patch(
+            "microsoft_agents.authentication.msal.msal_auth.ConfidentialClientApplication"
+        )
+        auth = MsalAuth(config)
+        auth._create_client_application()
+        assert mock_cca.call_args.kwargs["azure_region"] is None
+
+
+class TestMsalAuthIdentityProxyManager:
+    """
+    Test suite for the Identity Proxy Manager (IDPM) authentication type.
+    """
+
+    def test_resolve_idpm_resource_defaults_when_unset(self):
+        config = AgentAuthConfiguration(
+            auth_type=AuthTypes.identity_proxy_manager,
+            client_id="test-client-id",
+        )
+        assert (
+            MsalAuth._resolve_idpm_resource(config)
+            == "api://AzureAdTokenExchange/.default"
+        )
+
+    def test_resolve_idpm_resource_uses_custom_resource(self):
+        config = AgentAuthConfiguration(
+            auth_type=AuthTypes.identity_proxy_manager,
+            client_id="test-client-id",
+            idpm_resource="https://custom-resource/.default",
+        )
+        assert (
+            MsalAuth._resolve_idpm_resource(config)
+            == "https://custom-resource/.default"
+        )
+
+    def test_resolve_idpm_resource_raises_on_invalid_uri(self):
+        config = AgentAuthConfiguration(
+            auth_type=AuthTypes.identity_proxy_manager,
+            client_id="test-client-id",
+            idpm_resource="not-a-valid-uri",
+        )
+        with pytest.raises(ValueError):
+            MsalAuth._resolve_idpm_resource(config)
+
+    def test_create_client_application_returns_managed_identity_client(self, mocker):
+        config = AgentAuthConfiguration(
+            auth_type=AuthTypes.identity_proxy_manager,
+            client_id="test-client-id",
+        )
+        mock_mic = mocker.patch(
+            "microsoft_agents.authentication.msal.msal_auth.ManagedIdentityClient"
+        )
+        mock_umi = mocker.patch(
+            "microsoft_agents.authentication.msal.msal_auth.UserAssignedManagedIdentity"
+        )
+        auth = MsalAuth(config)
+        auth._create_client_application()
+        mock_umi.assert_called_once_with(client_id="test-client-id")
+        mock_mic.assert_called_once()
+
+    @pytest.mark.asyncio
+    async def test_get_agentic_application_token_identity_proxy_manager(self, mocker):
+        config = AgentAuthConfiguration(
+            auth_type=AuthTypes.identity_proxy_manager,
+            client_id="test-client-id",
+            idpm_resource="https://custom-resource/.default",
+        )
+        auth = MsalAuth(config)
+
+        mock_client = mocker.Mock(spec=ManagedIdentityClient)
+        mock_client.acquire_token_for_client.return_value = {
+            "access_token": "idpm-token"
+        }
+        mocker.patch.object(auth, "_get_client", return_value=mock_client)
+
+        token = await auth.get_agentic_application_token(
+            "test-tenant-id", "test-agent-app-instance-id"
+        )
+
+        assert token == "idpm-token"
+        mock_client.acquire_token_for_client.assert_called_once_with(
+            resource="https://custom-resource/.default"
+        )
+
+    @pytest.mark.asyncio
+    async def test_get_agentic_application_token_unsupported_client_raises(
+        self, mocker
+    ):
+        config = AgentAuthConfiguration(
+            auth_type=AuthTypes.user_managed_identity,
+            client_id="test-client-id",
+        )
+        auth = MsalAuth(config)
+
+        mock_client = mocker.Mock(spec=ManagedIdentityClient)
+        mocker.patch.object(auth, "_get_client", return_value=mock_client)
+
+        with pytest.raises(RuntimeError):
+            await auth.get_agentic_application_token(
+                "test-tenant-id", "test-agent-app-instance-id"
+            )
+
+
 # class TestMsalAuthAgentic:
 
 #     @pytest.mark.asyncio

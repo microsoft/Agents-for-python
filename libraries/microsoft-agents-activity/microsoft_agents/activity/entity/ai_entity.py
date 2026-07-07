@@ -2,7 +2,7 @@
 # Licensed under the MIT License.
 
 from enum import Enum
-from typing import List, Optional, Literal
+from typing import Optional, Literal
 
 from pydantic import Field
 from ..agents_model import AgentsModel
@@ -84,7 +84,7 @@ class ClientCitationAppearance(AgentsModel, _SchemaMixin):
     abstract: str = ""
     encoding_format: Optional[str] = None
     image: Optional[ClientCitationImage] = None
-    keywords: Optional[List[str]] = None
+    keywords: Optional[list[str]] = None
     usage_info: Optional[SensitivityUsageInfo] = None
 
 
@@ -112,6 +112,6 @@ class AIEntity(Entity):
     type: str = "https://schema.org/Message"
     id: str = ""
 
-    additional_type: List[str] = Field(default_factory=lambda: ["AIGeneratedContent"])
-    citation: Optional[List[ClientCitation]] = None
+    additional_type: list[str] = Field(default_factory=lambda: ["AIGeneratedContent"])
+    citation: Optional[list[ClientCitation]] = None
     usage_info: Optional[SensitivityUsageInfo] = None

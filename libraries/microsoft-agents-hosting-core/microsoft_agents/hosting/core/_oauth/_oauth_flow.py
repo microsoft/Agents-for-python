@@ -107,7 +107,7 @@ class _OAuthFlow:
     def flow_state(self) -> _FlowState:
         return self._flow_state.model_copy()
 
-    async def get_user_token(self, magic_code: str = None) -> TokenResponse:
+    async def get_user_token(self, magic_code: str | None = None) -> TokenResponse:
         """Get the user token based on the context.
 
         Args:
@@ -187,7 +187,7 @@ class _OAuthFlow:
 
         token_exchange_state = TokenExchangeState(
             connection_name=self._abs_oauth_connection_name,
-            conversation=activity.get_conversation_reference(),
+            conversation=activity.get_conversation_reference(force_base_channel=True),
             relates_to=activity.relates_to,
             ms_app_id=self._ms_app_id,
         )
@@ -195,7 +195,7 @@ class _OAuthFlow:
         res = await self._user_token_client.user_token._get_token_or_sign_in_resource(
             activity.from_property.id,
             self._abs_oauth_connection_name,
-            activity.channel_id,
+            token_exchange_state.conversation.channel_id,
             token_exchange_state.get_encoded_state(),
         )
 

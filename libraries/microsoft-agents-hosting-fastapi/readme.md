@@ -10,6 +10,24 @@ This library provides FastAPI integration for Microsoft Agents, enabling you to 
     <th style="width:60%">Release Notes</th>
   </tr>
   <tr>
+    <td>1.1.0</td>
+    <td>2026-06-19</td>
+    <td>
+      <a href="https://github.com/microsoft/Agents-for-python/blob/main/changelog.md#microsoft-365-agents-sdk-for-python---release-notes-v110">
+        1.1.0 Release Notes
+      </a>
+    </td>
+  </tr>
+  <tr>
+    <td>1.0.0</td>
+    <td>2026-05-22</td>
+    <td>
+      <a href="https://github.com/microsoft/Agents-for-python/blob/main/changelog.md#microsoft-365-agents-sdk-for-python---release-notes-v100">
+        1.0.0 Release Notes
+      </a>
+    </td>
+  </tr>
+  <tr>
     <td>0.9.0</td>
     <td>2026-04-15</td>
     <td>

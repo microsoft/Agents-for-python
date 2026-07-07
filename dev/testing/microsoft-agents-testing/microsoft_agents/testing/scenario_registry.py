@@ -27,12 +27,14 @@ from __future__ import annotations
 
 import sys
 import importlib
+import json
 from pathlib import Path
 from fnmatch import fnmatch
 from dataclasses import dataclass
 from collections.abc import Iterator
 
-from .core import Scenario
+from .core import Scenario, ExternalScenario
+from .source_scenario import SourceScenario
 
 @dataclass(frozen=True)
 class ScenarioEntry:
@@ -106,6 +108,40 @@ class ScenarioRegistry:
             scenario=scenario,
             description=description,
         )
+
+    def load_json(self, file_path: str) -> None:
+        """Load scenarios from a JSON file."""
+
+        with open(file_path, "r", encoding="utf-8") as f:
+            data = json.load(f)
+
+        agent_defs = data.get("agents", {})
+
+        for name, body in agent_defs.items():
+
+            path_str = body.get("path", "")
+            desc = body.get("description", "")
+            script = body.get("script", "")
+
+            if path_str.startswith(("http://", "https://")):
+                self.register(
+                    name,
+                    ExternalScenario(path_str),
+                    description=desc,
+                )
+            else:
+
+                if not script:
+                    raise ValueError("A 'script' field is required for source scenarios")
+
+                path = (Path(file_path).resolve().parent / path_str).resolve()
+                if not path.exists():
+                    raise FileNotFoundError(f"Agent path not found: {path}")
+                self.register(
+                    name,
+                    SourceScenario(path, script),
+                    description=desc,
+                )
 
     def get_entry(self, name: str) -> ScenarioEntry:
         """Get the full entry (scenario + metadata) by name."""
@@ -227,3 +263,23 @@ def load_scenarios(module_path: str) -> int:
     after_count = len(scenario_registry)
 
     return after_count - before_count
+
+def resolve_scenario(scenario_or_str: Scenario | str ) -> Scenario:
+    """Resolve a scenario from a Scenario instance or a registered name.
+    
+    If a string is provided, looks up the scenario in the registry.
+    
+    :param scenario_or_str: A Scenario instance or a string key for lookup.
+    :return: The resolved Scenario instance.
+    :raises ValueError: If the string key is not found in the registry.
+    """
+    if isinstance(scenario_or_str, Scenario):
+        return scenario_or_str
+    elif isinstance(scenario_or_str, str):
+        if scenario_or_str.startswith("http://") or scenario_or_str.startswith("https://"):
+            # If it's a URL, create an ExternalScenario on the fly
+            return ExternalScenario(scenario_or_str)
+        else:
+            return scenario_registry.get(scenario_or_str)
+    else:
+        raise TypeError("Input must be a Scenario instance or a string key.")

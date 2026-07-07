@@ -17,16 +17,14 @@ def load_environment(
     env_path: str | None = None,
 ) -> tuple[dict, str]:
     """Load environment variables from a .env file.
-    
+
     Args:
         env_path: Path to the .env file. Defaults to ".env" in current directory.
-        override: Whether to override existing environment variables.
-        
+
     Returns:
-        The resolved path to the loaded .env file.
-        
-    Raises:
-        FileNotFoundError: If the specified .env file does not exist.
+        A tuple of (env_dict, resolved_path) where env_dict contains the key/value
+        pairs from the file and resolved_path is the absolute path that was loaded.
+        Both values are empty/blank strings if the file does not exist.
     """
     path = Path(env_path) if env_path else Path(".env")
     

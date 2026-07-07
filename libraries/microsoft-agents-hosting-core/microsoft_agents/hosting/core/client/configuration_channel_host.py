@@ -24,8 +24,8 @@ class ConfigurationChannelHost(ChannelHostProtocol):
         self.connections = connections
         self.configuration = configuration
         self.channels: dict[str, ChannelInfoProtocol] = {}
-        self.host_endpoint: str = None
-        self.host_app_id: str = None
+        self.host_endpoint: str | None = None
+        self.host_app_id: str | None = None
 
         channel_host_configuration = configuration.CHANNEL_HOST_CONFIGURATION()
 

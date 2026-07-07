@@ -66,6 +66,43 @@ class TestActivityConversationOps:
         assert activity.locale == conversation_reference.locale
         assert activity.service_url == conversation_reference.service_url
 
+    def test_get_conversation_reference_force_base_channel(self, activity):
+        activity.channel_id = "msteams:copilot-web"
+
+        conversation_reference = activity.get_conversation_reference(
+            force_base_channel=True
+        )
+
+        assert conversation_reference.channel_id == "msteams"
+
+    @pytest.mark.parametrize(
+        "channel_id, expected_base_channel",
+        [
+            ("msteams", "msteams"),
+            ("msteams:copilot-web", "msteams"),
+            ("msteams:copilot:web", "msteams"),
+        ],
+    )
+    def test_get_conversation_reference_force_base_channel_variants(
+        self, activity, channel_id, expected_base_channel
+    ):
+        activity.channel_id = channel_id
+
+        conversation_reference = activity.get_conversation_reference(
+            force_base_channel=True
+        )
+
+        assert conversation_reference.channel_id == expected_base_channel
+
+    def test_get_conversation_reference_does_not_force_base_channel(self, activity):
+        activity.channel_id = "msteams:copilot-web"
+
+        conversation_reference = activity.get_conversation_reference(
+            force_base_channel=False
+        )
+
+        assert conversation_reference.channel_id == "msteams:copilot-web"
+
     def test_get_reply_conversation_reference(self, activity):
         reply = ResourceResponse(id="1234")
         conversation_reference = activity.get_reply_conversation_reference(reply)
@@ -366,7 +403,7 @@ class TestActivityConversationOps:
         mentions = activity.get_mentions()
         assert mentions == [
             Mention(text="Hello"),
-            Entity(type="mention", text="Another mention"),
+            Mention(text="Another mention"),
         ]
 
     @pytest.mark.parametrize(
@@ -381,8 +418,7 @@ class TestActivityConversationOps:
                     Entity(type="other"),
                     Entity(type="mention", text="Another mention"),
                 ],
-                Entity(
-                    type="ProductInfo",
+                ProductInfo(
                     id="product_123",
                 ),
             ],
@@ -405,7 +441,7 @@ class TestActivityConversationOps:
                     ),
                     Entity(type="mention", text="Another mention"),
                 ],
-                Entity(type="ProductInfo", id="product_123"),
+                ProductInfo(id="product_123"),
             ],
             [[], None],
         ],

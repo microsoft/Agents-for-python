@@ -3,7 +3,7 @@
 
 from abc import abstractmethod
 from collections.abc import Callable
-from typing import Protocol, Type, Union
+from typing import Protocol, Type
 
 from microsoft_agents.hosting.core.storage import StoreItem
 
@@ -15,9 +15,9 @@ class StatePropertyAccessor(Protocol):
     async def get(
         self,
         turn_context: TurnContext,
-        default_value_or_factory: Union[Callable, StoreItem] = None,
+        default_value_or_factory: Callable | StoreItem | None = None,
         *,
-        target_cls: Type[StoreItem] = None
+        target_cls: Type[StoreItem] | None = None
     ) -> object:
         """
         Get the property value from the source

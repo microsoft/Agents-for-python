@@ -9,7 +9,6 @@ description = "Core library for Microsoft Agents"
 readme = {file = "README.md", content-type = "text/markdown"}
 authors = [{name = "Microsoft Corporation"}]
 license = "MIT"
-license-files = ["LICENSE"]
 requires-python = ">=3.10"
 classifiers = [
     "Programming Language :: Python :: 3",
@@ -27,6 +26,7 @@ dependencies = [
     "microsoft-agents-hosting-core",
     "microsoft-agents-hosting-aiohttp",
     "microsoft-agents-authentication-msal",
+    "psutil",
     "pydantic",
     "pytest",
     "pytest-aiohttp",
@@ -44,3 +44,6 @@ agt = "microsoft_agents.testing.cli:main"
 
 [project.entry-points.pytest11]
 agent_test = "microsoft_agents.testing.pytest_plugin"
+
+[tool.setuptools.package-data]
+"microsoft_agents.testing" = ["presets/**/*"]

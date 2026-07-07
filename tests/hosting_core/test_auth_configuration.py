@@ -75,3 +75,43 @@ class TestAuthorizationConfiguration:
         assert auth_config.CONNECTION_NAME is None
         assert auth_config.AUTHORITY is None
         assert auth_config.SCOPES is None
+        assert auth_config.AZURE_REGION is None
+
+    def test_azure_region_from_parameter(self):
+        auth_config = AgentAuthConfiguration(azure_region="westus")
+        assert auth_config.AZURE_REGION == "westus"
+
+    def test_azure_region_from_kwargs(self):
+        auth_config = AgentAuthConfiguration(AZUREREGION="eastus")
+        assert auth_config.AZURE_REGION == "eastus"
+
+    def test_azure_region_legacy_regional_authority_fallback(self):
+        # When AZUREREGION is not provided, fall back to the legacy
+        # RegionalAuthority configuration key.
+        auth_config = AgentAuthConfiguration(REGIONALAUTHORITY="westeurope")
+        assert auth_config.AZURE_REGION == "westeurope"
+
+    def test_azure_region_prefers_azure_region_over_legacy(self):
+        auth_config = AgentAuthConfiguration(
+            AZUREREGION="eastus", REGIONALAUTHORITY="westeurope"
+        )
+        assert auth_config.AZURE_REGION == "eastus"
+
+    def test_idpm_resource_defaults_none(self):
+        auth_config = AgentAuthConfiguration()
+        assert auth_config.IDPM_RESOURCE is None
+
+    def test_idpm_resource_from_parameter(self):
+        auth_config = AgentAuthConfiguration(
+            auth_type=AuthTypes.identity_proxy_manager,
+            client_id="test-client-id",
+            idpm_resource="https://custom-resource/.default",
+        )
+        assert auth_config.AUTH_TYPE == AuthTypes.identity_proxy_manager
+        assert auth_config.IDPM_RESOURCE == "https://custom-resource/.default"
+
+    def test_idpm_resource_from_kwargs(self):
+        auth_config = AgentAuthConfiguration(
+            IDPMRESOURCE="https://custom-resource/.default"
+        )
+        assert auth_config.IDPM_RESOURCE == "https://custom-resource/.default"

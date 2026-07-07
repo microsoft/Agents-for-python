@@ -11,7 +11,7 @@ from __future__ import annotations
 
 import json
 from typing import cast, TypeVar
-from datetime import datetime
+from datetime import datetime, timedelta
 
 import aiohttp
 from pydantic import BaseModel, Field
@@ -25,6 +25,12 @@ from microsoft_agents.activity import (
 
 # supported Response types, currently only aiohttp.ClientResponse
 ResponseT = TypeVar("ResponseT", bound=aiohttp.ClientResponse)
+
+def _load_activity(activity_dict: dict) -> Activity:
+    new_activity_dict = {
+        key: value for key, value in activity_dict.items() if value != ""
+    }
+    return Activity(**new_activity_dict)
 
 class Exchange(BaseModel):
     """A complete send-receive exchange with an agent.
@@ -41,15 +47,23 @@ class Exchange(BaseModel):
     body: str | None = None
     invoke_response: InvokeResponse | None = None
     
-    # Error if the request failed
+    # Error message if the request failed
     error: str | None = None
     
     # Activities received (from expect_replies or callbacks)
     responses: list[Activity] = Field(default_factory=list)
     response_at: datetime | None = None
+
+    @property
+    def is_error(self) -> bool:
+        """Check if the exchange has an error.
+
+        :return: True if the exchange has an error, False otherwise.
+        """
+        return self.error is not None
     
     @property
-    def latency(self) -> datetime | None:
+    def latency(self) -> timedelta | None:
         """Calculate the time delta between request and response.
 
         :return: A timedelta object, or None if either timestamp is missing.
@@ -120,7 +134,8 @@ class Exchange(BaseModel):
             text = await response_or_exception.text()
             return Exchange(
                 request=request_activity,
-                error=text,
+                error=text or str(status),
+                status_code=status,
                 **kwargs
             )
         
@@ -136,7 +151,8 @@ class Exchange(BaseModel):
             if request_activity.delivery_mode == DeliveryModes.expect_replies:
                 body = await response.text()
                 activity_list = json.loads(body)["activities"]
-                activities = [ Activity.model_validate(activity) for activity in activity_list ]
+
+                activities = [ _load_activity(activity) for activity in activity_list ]
 
             elif request_activity.type == ActivityTypes.invoke:
                 body = await response.text()

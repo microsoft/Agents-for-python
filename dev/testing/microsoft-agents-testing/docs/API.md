@@ -7,7 +7,9 @@ from microsoft_agents.testing import (
     ScenarioConfig, ClientConfig, ActivityTemplate,
     Expect, Select,
     Transcript, Exchange,
-    ConversationTranscriptFormatter, ActivityTranscriptFormatter, DetailLevel,
+    ConversationTranscriptFormatter, ActivityTranscriptFormatter,
+    JsonTranscriptFormatter,
+    print_conversation, print_activities, print_json,
     scenario_registry, ScenarioEntry, load_scenarios,
 )
 ```
@@ -382,76 +384,69 @@ Hierarchical collection of exchanges with parent/child scoping.
 
 ## Transcript Formatters
 
+All formatters implement `BaseTranscriptFormatter` and can be used as `formatter.format(transcript)` or called directly as `formatter(transcript)`.
+
 ### ConversationTranscriptFormatter
 
-Chat-style output (message activities only).
+Renders a transcript as a human-readable conversation string. Each activity becomes a timestamped line sorted across the full transcript:
+
+- `[HH:MM:SS.mmm] You: <text>` — user messages
+- `[HH:MM:SS.mmm] Agent: <text>` — agent messages
+- `[HH:MM:SS.mmm]   --- Agent [<type>] ---` — non-message activity types
+- `[HH:MM:SS.mmm] [X] Error: <message>` — errors
 
 ```python
-ConversationTranscriptFormatter(
-    show_other_types: bool = False,
-    detail: DetailLevel = DetailLevel.STANDARD,
-    show_errors: bool = True,
-    user_label: str = "You",
-    agent_label: str = "Agent",
-    time_format: TimeFormat = TimeFormat.CLOCK,
-)
+ConversationTranscriptFormatter()
 ```
 
 ```
-[0.000s] You: Hello!
-  (253ms)
-[0.253s] Agent: Hi there! How can I help?
+[19:42:07.742] You: Hello!
+[19:42:07.995] Agent: Hi there! How can I help?
 ```
 
 ### ActivityTranscriptFormatter
 
-All activities with selectable fields.
+Renders a transcript as a **flat JSON array of `Activity` objects**, interleaving requests and their responses in chronological order. Use this when you need the raw activity stream without exchange grouping.
 
 ```python
-ActivityTranscriptFormatter(
-    fields: list[str] | None = DEFAULT_ACTIVITY_FIELDS,
-    detail: DetailLevel = DetailLevel.STANDARD,
-    detail: DetailLevel = DetailLevel.STANDARD,
-    show_errors: bool = True,
-    time_format: TimeFormat = TimeFormat.CLOCK,
-)
+ActivityTranscriptFormatter(model_dump_args: dict | None = None)
 ```
 
+| Parameter | Default | Description |
+|-----------|---------|-------------|
+| `model_dump_args` | `None` | Keyword arguments forwarded to `Activity.model_dump_json` (e.g. `{"exclude_unset": True, "exclude_none": True}`) |
+
+```python
+formatter = ActivityTranscriptFormatter(model_dump_args={"exclude_none": True})
+print(formatter.format(client.transcript))
+# → [{"type":"message","text":"Hello!"},{"type":"message","text":"Hi there!"}]
 ```
-=== Exchange [0.253s] ===
-  RECV:
-    type: message
-    text: Hi there! How can I help?
-  Status: 200
-  Latency: 253.1ms
+
+### JsonTranscriptFormatter
+
+Renders a transcript as a **JSON array of `Exchange` objects** (request + responses + metadata). Use this to preserve the exchange structure. Use `ActivityTranscriptFormatter` instead for a flat activity list.
+
+```python
+JsonTranscriptFormatter(model_dump_args: dict | None = None)
 ```
 
-### Enums
+| Parameter | Default | Description |
+|-----------|---------|-------------|
+| `model_dump_args` | `None` | Keyword arguments forwarded to `Exchange.model_dump_json` (e.g. `{"exclude_unset": True, "exclude_none": True}`) |
 
-**`DetailLevel`**
-
-| Value | Output includes |
-|-------|----------------|
-| `MINIMAL` | Message text only |
-| `STANDARD` | Text with labels (default) |
-| `DETAILED` | Adds timestamps and latency |
-| `FULL` | Header, footer, summary stats |
-
-**`TimeFormat`**
-
-| Value | Example | Description |
-|-------|---------|-------------|
-| `CLOCK` | `[19:42:07.995]` | Wall clock time |
-| `RELATIVE` | `[+1.064s]` | Seconds from start, `+` prefix |
-| `ELAPSED` | `[1.064s]` | Seconds from start |
+```python
+formatter = JsonTranscriptFormatter(model_dump_args={"exclude_none": True})
+print(formatter.format(client.transcript))
+```
 
 ### Convenience Functions
 
 ```python
-from microsoft_agents.testing import print_conversation, print_activities
+from microsoft_agents.testing import print_conversation, print_activities, print_json
 
-print_conversation(client.transcript)
-print_activities(client.transcript, fields=["type", "text"])
+print_conversation(client.transcript)   # ConversationTranscriptFormatter
+print_activities(client.transcript)     # ActivityTranscriptFormatter
+print_json(client.transcript)           # JsonTranscriptFormatter
 ```
 
 ---
@@ -529,6 +524,103 @@ class TestAgent:
     async def test_state(self, agent_client, storage):
         await agent_client.send("Hello", wait=0.2)
         # inspect storage directly
+```
+
+---
+
+## CLI
+
+The `agt` CLI provides interactive commands for testing agents from the terminal without writing test code.
+
+```bash
+agt [--env FILE] [--connection NAME] [--verbose]
+```
+
+| Global Option | Default | Description |
+|---------------|---------|-------------|
+| `--env / -e` | `.env` | Path to the `.env` credentials file |
+| `--connection / -c` | `SERVICE_CONNECTION` | Named connection for auth credentials |
+| `--verbose / -v` | — | Enable verbose output |
+
+---
+
+### `agt env`
+
+Commands for inspecting and setting up the test environment.
+
+#### `agt env show`
+
+Prints Python version, platform, working directory, number of registered scenarios, and the **keys** (not values) of variables loaded from the `.env` file.
+
+```bash
+agt env show
+agt --env /path/to/other.env env show
+```
+
+#### `agt env help`
+
+Prints the required `.env` variable names for authentication so you can scaffold the file.
+
+```bash
+agt env help
+```
+
+---
+
+### `agt scenario`
+
+Commands for interacting with agents via scenarios. All subcommands accept `--url` or `--agent` to specify the target.
+
+| Option | Description |
+|--------|-------------|
+| `--url / -u URL` | Connect to an agent at a URL (http or https); creates an `ExternalScenario` |
+| `--agent / -a NAME` | Use a named scenario from `scenario_registry` |
+| `--module MODULE` | Python module to import first (triggers scenario registrations) |
+
+#### `agt scenario list [PATTERN]`
+
+Lists scenarios registered in `scenario_registry`. Accepts an optional glob `PATTERN` (default `*`).
+
+```bash
+agt scenario list          # all registered scenarios
+agt scenario list "agt.*"  # built-in scenarios only
+```
+
+#### `agt scenario chat`
+
+Starts an interactive REPL session with an agent. Type `/exit` or `/quit` to end the session. Prints a session summary (message count) on exit.
+
+```bash
+agt scenario chat --url http://localhost:3978/api/messages
+agt scenario chat --agent agt.basic
+```
+
+#### `agt scenario load`
+
+Sends the same message or activity to an agent `--num` times concurrently and reports latency statistics. Requests that exceed `--timeout` milliseconds are recorded as timeout errors.
+
+```bash
+agt scenario load --url http://localhost:3978/api/messages \
+    --message "Hello!" --num 50 --timeout 5000
+```
+
+| Option | Default | Description |
+|--------|---------|-------------|
+| `--message / -m` | — | Text message to send |
+| `--json-file / -j` | — | JSON activity file to send |
+| `--num / -n` | *(required)* | Number of concurrent requests |
+| `--timeout / -t` | `5000` | Milliseconds per request before it is recorded as a timeout error |
+
+Output reports per-request errors followed by aggregate statistics:
+
+```
+Request 3 failed with error: Request timed out
+Completed 49 requests.
+Failed 1 requests.
+Average latency: 245.12 ms
+Minimum latency: 180.33 ms
+Maximum latency: 398.77 ms
+90th percentile latency: 320.15 ms
 ```
 
 ---

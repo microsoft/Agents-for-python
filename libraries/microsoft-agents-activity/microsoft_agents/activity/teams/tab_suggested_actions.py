@@ -2,8 +2,6 @@
 # Licensed under the MIT License.
 
 from ..agents_model import AgentsModel
-from typing import List
-
 from ..card_action import CardAction
 
 
@@ -14,4 +12,4 @@ class TabSuggestedActions(AgentsModel):
     :type actions: list[CardAction]
     """
 
-    actions: List[CardAction] = None
+    actions: list[CardAction] = None

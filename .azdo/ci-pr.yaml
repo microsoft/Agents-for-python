@@ -78,10 +78,11 @@ steps:
     else
       echo "Skipping microsoft_agents_hosting_teams: requires Python 3.12+"
     fi
+    python -m pip install ./dist/microsoft_agents_hosting_slack*.whl
     python -m pip install ./dist/microsoft_agents_storage_blob*.whl
     python -m pip install ./dist/microsoft_agents_storage_cosmos*.whl
   displayName: 'Install wheels'
 
 - script: |
-    pytest
+    pytest -W "ignore:SelectableGroups dict interface is deprecated. Use select.:DeprecationWarning"
   displayName: 'Test with pytest'

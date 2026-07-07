@@ -7,12 +7,13 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 from logging import Logger
-from typing import Callable, List, Optional
+from typing import Callable, Optional
 
 from microsoft_agents.hosting.core.app.oauth import AuthHandler
 from microsoft_agents.hosting.core.storage import Storage
 
 # from .auth import AuthOptions
+from .typing_indicator import TypingOptions
 from .input_file import InputFileDownloader
 from ..channel_service_adapter import ChannelServiceAdapter
 
@@ -62,6 +63,13 @@ class ApplicationOptions:
     the request. Defaults to true.
     """
 
+    typing: Optional[TypingOptions] = None
+    """
+    Optional. Typing indicator timing options. Controls initial delay, interval,
+    and per-channel strategies. If not provided, defaults are used when
+    ``start_typing_timer`` is true.
+    """
+
     long_running_messages: bool = False
     """
     Optional. If true, the bot supports long running messages that can take longer then the 10 - 15
@@ -73,7 +81,7 @@ class ApplicationOptions:
     will mark the bot's process as idle and shut it down.
     """
 
-    file_downloaders: List[InputFileDownloader] = field(default_factory=list)
+    file_downloaders: list[InputFileDownloader] = field(default_factory=list)
     """
     Optional. Array of input file download plugins to use. 
     """
@@ -94,6 +102,6 @@ class ApplicationOptions:
     proactive: Optional[ProactiveOptions] = None
     """
     Optional. Options for the proactive messaging subsystem.
-    When set, :attr:`AgentApplication.proactive` is available for storing
+    When set, :attr:`microsoft_agents.hosting.core.AgentApplication.proactive` is available for storing
     conversations and initiating proactive turns.
     """

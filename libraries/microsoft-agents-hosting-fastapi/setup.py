@@ -14,5 +14,6 @@ setup(
     install_requires=[
         f"microsoft-agents-hosting-core=={package_version}",
         "fastapi>=0.104.0",
+        "starlette>=1.0.1",  # CVE-2026-48710 fix
     ],
 )

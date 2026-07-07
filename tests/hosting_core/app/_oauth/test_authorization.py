@@ -187,6 +187,10 @@ class TestAuthorizationSetup(TestEnv):
             auth_handler_id, **handler_config
         )
 
+    def test_connection_manager_property(self, connection_manager, storage):
+        auth = Authorization(storage, connection_manager, **ENV_DICT)
+        assert auth.connection_manager is connection_manager
+
     def test_sign_in_state_key(self, mocker, connection_manager, storage):
         auth = Authorization(storage, connection_manager, **ENV_DICT)
         context = self.TurnContext(mocker)

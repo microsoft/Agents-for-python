@@ -31,7 +31,7 @@ class HttpAgentChannel(ChannelProtocol):
         conversation_id: str,
         activity: Activity,
         *,
-        response_body_type: type[AgentsModel] = None,
+        response_body_type: type[AgentsModel] | None = None,
         **kwargs,
     ) -> InvokeResponse:
         if not endpoint:

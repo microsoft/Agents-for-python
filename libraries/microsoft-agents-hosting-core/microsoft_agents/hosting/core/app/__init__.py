@@ -11,7 +11,7 @@ from .app_options import ApplicationOptions
 from .input_file import InputFile, InputFileDownloader
 from .query import Query
 from ._routes import _RouteList, _Route, RouteRank
-from .typing_indicator import TypingIndicator
+from .typing_indicator import TypingChannelStrategy, TypingIndicator, TypingOptions
 from ._type_defs import RouteHandler, RouteSelector, StateT
 
 # Auth
@@ -46,7 +46,9 @@ __all__ = [
     "Query",
     "Route",
     "RouteHandler",
+    "TypingChannelStrategy",
     "TypingIndicator",
+    "TypingOptions",
     "StatePropertyAccessor",
     "ConversationState",
     "state",

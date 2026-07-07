@@ -10,7 +10,6 @@ from microsoft_agents.hosting.core.app.proactive.conversation_reference_builder 
     _service_url_for_channel,
 )
 
-
 # ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------
@@ -22,9 +21,8 @@ def _buildable(channel_id="msteams", conv_id="conv-1"):
     The implementation passes name explicitly to ChannelAccount, so an agent
     with a name must always be present before calling .build().
     """
-    return (
-        ConversationReferenceBuilder.create(channel_id, conv_id)
-        .with_agent("28:app-id", "Bot")
+    return ConversationReferenceBuilder.create(channel_id, conv_id).with_agent(
+        "28:app-id", "Bot"
     )
 
 
@@ -35,16 +33,27 @@ def _buildable(channel_id="msteams", conv_id="conv-1"):
 
 class TestServiceUrlForChannel:
     def test_teams_returns_smba_url(self):
-        assert _service_url_for_channel("msteams") == "https://smba.trafficmanager.net/teams/"
+        assert (
+            _service_url_for_channel("msteams")
+            == "https://smba.trafficmanager.net/teams/"
+        )
 
     def test_directline_returns_generic_url(self):
-        assert _service_url_for_channel("directline") == "https://directline.botframework.com/"
+        assert (
+            _service_url_for_channel("directline")
+            == "https://directline.botframework.com/"
+        )
 
     def test_webchat_returns_generic_url(self):
-        assert _service_url_for_channel("webchat") == "https://webchat.botframework.com/"
+        assert (
+            _service_url_for_channel("webchat") == "https://webchat.botframework.com/"
+        )
 
     def test_unknown_channel_uses_pattern(self):
-        assert _service_url_for_channel("mychannel") == "https://mychannel.botframework.com/"
+        assert (
+            _service_url_for_channel("mychannel")
+            == "https://mychannel.botframework.com/"
+        )
 
 
 # ---------------------------------------------------------------------------
@@ -183,11 +192,7 @@ class TestConversationReferenceBuilderBuild:
         assert ref.service_url == "https://directline.botframework.com/"
 
     def test_build_respects_explicit_service_url(self):
-        ref = (
-            _buildable()
-            .with_service_url("https://custom/")
-            .build()
-        )
+        ref = _buildable().with_service_url("https://custom/").build()
         assert ref.service_url == "https://custom/"
 
     def test_build_sets_agent_account(self):
@@ -200,11 +205,7 @@ class TestConversationReferenceBuilderBuild:
         assert ref.agent.name == "My Bot"
 
     def test_build_sets_user_account(self):
-        ref = (
-            _buildable()
-            .with_user("user-oid", "Alice")
-            .build()
-        )
+        ref = _buildable().with_user("user-oid", "Alice").build()
         assert ref.user.id == "user-oid"
         assert ref.user.name == "Alice"
 

@@ -43,6 +43,8 @@ class ExternalScenario(Scenario):
         super().__init__(config)
         if not endpoint:
             raise ValueError("endpoint must be provided.")
+        if endpoint.endswith("/"):
+            endpoint = endpoint[:-1]  # Remove trailing slash for consistency
         self._endpoint = endpoint
 
     @asynccontextmanager
