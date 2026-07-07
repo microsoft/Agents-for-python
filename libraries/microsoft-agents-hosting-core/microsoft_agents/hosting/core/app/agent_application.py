@@ -47,8 +47,6 @@ from ._type_defs import RouteHandler, RouteSelector
 from ._routes import _RouteList, _Route, RouteRank, _agentic_selector
 from .proactive import Proactive, ProactiveOptions
 
-from ._utils import _log_app_config
-
 logger = logging.getLogger(__name__)
 
 StateT = TypeVar("StateT", bound=TurnState)
@@ -105,8 +103,6 @@ class AgentApplication(Agent, Generic[StateT]):
         self._internal_after_turn = []
 
         configuration = kwargs
-
-        _log_app_config(logger, options, **kwargs)
 
         if not options:
             # TODO: consolidate configuration story
