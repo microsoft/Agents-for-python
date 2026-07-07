@@ -45,7 +45,7 @@ from .telemetry import spans
 
 from ._type_defs import RouteHandler, RouteSelector
 from ._routes import _RouteList, _Route, RouteRank, _agentic_selector
-from .proactive import Proactive, ProactiveOptions
+from .proactive import Proactive
 
 logger = logging.getLogger(__name__)
 
@@ -103,11 +103,6 @@ class AgentApplication(Agent, Generic[StateT]):
         self._internal_after_turn = []
 
         configuration = kwargs
-
-        logger.debug(f"Initializing AgentApplication with options: {options}")
-        logger.debug(
-            f"Initializing AgentApplication with configuration: {configuration}"
-        )
 
         if not options:
             # TODO: consolidate configuration story

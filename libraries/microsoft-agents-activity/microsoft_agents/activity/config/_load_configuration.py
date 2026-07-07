@@ -1,9 +1,13 @@
 # Copyright (c) Microsoft Corporation. All rights reserved.
 # Licensed under the MIT License.
 
+import logging
+
 from typing import Any
 
 from ._configure_logging import _configure_logging
+
+logger = logging.getLogger(__name__)
 
 
 def load_configuration_from_env(env_vars: dict[str, Any]) -> dict:
@@ -33,5 +37,5 @@ def load_configuration_from_env(env_vars: dict[str, Any]) -> dict:
     return {
         "AGENTAPPLICATION": result.get("AGENTAPPLICATION", {}),
         "CONNECTIONS": result.get("CONNECTIONS", {}),
-        "CONNECTIONSMAP": result.get("CONNECTIONSMAP", {}),
+        "CONNECTIONSMAP": result.get("CONNECTIONSMAP", []),
     }

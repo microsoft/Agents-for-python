@@ -1,8 +1,10 @@
 # Copyright (c) Microsoft Corporation. All rights reserved.
 # Licensed under the MIT License.
 
+import logging
 import re
-from typing import Dict, Optional
+
+from typing import Optional
 from microsoft_agents.hosting.core import (
     AgentAuthConfiguration,
     AccessTokenProviderBase,
@@ -11,6 +13,9 @@ from microsoft_agents.hosting.core import (
 )
 
 from .msal_auth import MsalAuth
+from ._utils import _log_config
+
+logger = logging.getLogger(__name__)
 
 
 class MsalConnectionManager(Connections):
@@ -34,8 +39,14 @@ class MsalConnectionManager(Connections):
         :raises ValueError: If no service connection configuration is provided.
         """
 
-        self._connections: dict[str, MsalAuth] = {}
-        self._connections_map = connections_map or kwargs.get("CONNECTIONSMAP", {})
+        self._connections = {}
+        self._connections_map = connections_map or kwargs.get("CONNECTIONSMAP", [])
+        if not isinstance(self._connections_map, list) or (
+            len(self._connections_map) > 0
+            and not isinstance(self._connections_map[0], dict)
+        ):
+            raise ValueError("CONNECTIONSMAP must be a list of dictionaries.")
+
         self._config_map: dict[str, AgentAuthConfiguration] = {}
 
         if connections_configurations:
@@ -60,6 +71,8 @@ class MsalConnectionManager(Connections):
 
         if not self._connections.get("SERVICE_CONNECTION", None):
             raise ValueError("No service connection configuration provided.")
+
+        _log_config(logger, self._config_map, self._connections_map)
 
     def get_connection(self, connection_name: Optional[str]) -> AccessTokenProviderBase:
         """
