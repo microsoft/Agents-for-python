@@ -1,7 +1,6 @@
 import time
 
 import pytest
-from types import SimpleNamespace
 
 from opentelemetry.trace import StatusCode
 
@@ -10,13 +9,6 @@ from tests._common.fixtures.telemetry import (  # unused imports are needed for 
     test_exporter,
     test_metric_reader,
 )
-from tests._common.telemetry_utils import (
-    find_metric,
-    sum_counter,
-    sum_hist_count,
-)
-
-from microsoft_agents.hosting.core import TurnContext
 from microsoft_agents.hosting.core.telemetry import (
     agents_telemetry,
     SimpleSpanWrapper,
@@ -240,3 +232,23 @@ class TestSimpleSpanWrapper:
         with pytest.raises(CustomError, match="custom msg"):
             with MinimalSpanWrapper("propagate"):
                 raise CustomError("custom msg")
+
+    def test_simple_span_wrapper_can_be_used_directly(self, test_exporter):
+        """SimpleSpanWrapper itself creates a valid span without subclassing."""
+        with SimpleSpanWrapper("direct_simple"):
+            pass
+
+        spans = test_exporter.get_finished_spans()
+        assert len(spans) == 1
+        assert spans[0].name == "direct_simple"
+
+    def test_custom_attributes_set_when_span_body_fails(self, test_exporter):
+        """Attributes returned by _get_attributes are still set on failed spans."""
+        with pytest.raises(ValueError, match="boom"):
+            with MySpanWrapper("failed_with_attrs"):
+                raise ValueError("boom")
+
+        span = test_exporter.get_finished_spans()[0]
+        assert span.attributes["custom_attribute"] == "custom_value"
+        assert span.attributes["callback_called"] is True
+        assert span.attributes["exception_message"] == "boom"

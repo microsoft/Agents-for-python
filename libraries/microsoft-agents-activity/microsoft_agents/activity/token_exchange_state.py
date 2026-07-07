@@ -3,7 +3,7 @@
 
 import base64
 import json
-from typing import Optional
+from typing import Optional, Annotated
 from pydantic import Field
 
 from .conversation_reference import ConversationReference
@@ -29,7 +29,7 @@ class TokenExchangeState(AgentsModel):
     connection_name: NonEmptyString = None
     conversation: ConversationReference = None
     relates_to: Optional[ConversationReference] = None
-    agent_url: NonEmptyString = Field(None, alias="bot_url")
+    agent_url: Annotated[NonEmptyString, Field(None, alias="bot_url")] = None
     ms_app_id: NonEmptyString = None
 
     def get_encoded_state(self) -> str:
