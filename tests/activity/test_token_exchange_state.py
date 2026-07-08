@@ -2,7 +2,6 @@ import base64
 import json
 
 import pytest
-from pydantic import ValidationError
 
 from microsoft_agents.activity import (
     ChannelAccount,
