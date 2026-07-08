@@ -44,7 +44,7 @@ class ConversationReference(AgentsModel, _ChannelIdFieldMixin):
     # optionals here are due to webchat
     activity_id: Optional[NonEmptyString] = None
     user: Optional[ChannelAccount] = None
-    agent: Annotated[ChannelAccount, Field(None, alias="bot")] = None
+    agent: Annotated[ChannelAccount, Field(alias="bot")] = None
     conversation: ConversationAccount
     locale: Optional[NonEmptyString] = None
     service_url: NonEmptyString = None
