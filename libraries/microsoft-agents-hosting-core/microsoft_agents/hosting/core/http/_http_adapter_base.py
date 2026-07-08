@@ -58,12 +58,23 @@ class HttpAdapterBase(ChannelServiceAdapter, ABC):
 
         self.on_turn_error = on_turn_error
 
-        channel_service_client_factory = (
-            channel_service_client_factory
-            or RestChannelServiceClientFactory(connection_manager)
-        )
+        factory: ChannelServiceClientFactoryBase
 
-        super().__init__(channel_service_client_factory)
+        if channel_service_client_factory:
+            factory = channel_service_client_factory
+        else:
+            if not connection_manager:
+                raise ValueError(
+                    "HttpAdapterBase.__init__: Either channel_service_client_factory or connection_manager must be provided."
+                )
+            factory = RestChannelServiceClientFactory(connection_manager)
+
+        if not channel_service_client_factory and not connection_manager:
+            raise ValueError(
+                "HttpAdapterBase.__init__: Either channel_service_client_factory or connection_manager must be provided."
+            )
+
+        super().__init__(factory)
 
     async def process_request(
         self, request: HttpRequestProtocol, agent: Agent

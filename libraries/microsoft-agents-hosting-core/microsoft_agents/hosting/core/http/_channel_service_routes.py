@@ -3,7 +3,7 @@
 
 """Channel service route definitions (framework-agnostic logic)."""
 
-from typing import Type, TypeVar
+from typing import Type, TypeVar, overload
 
 from microsoft_agents.activity import (
     AgentsModel,
@@ -49,6 +49,12 @@ class ChannelServiceRoutes:
         return target_model.model_validate(body)
 
     @staticmethod
+    @overload
+    def serialize_model(model_or_list: AgentsModelT) -> dict: ...
+    @staticmethod
+    @overload
+    def serialize_model(model_or_list: list[AgentsModelT]) -> list[dict]: ...
+    @staticmethod
     def serialize_model(
         model_or_list: AgentsModelT | list[AgentsModelT],
     ) -> dict | list[dict]:
@@ -64,9 +70,7 @@ class ChannelServiceRoutes:
             ]
 
     # Route handler methods
-    async def send_to_conversation(
-        self, request: HttpRequestProtocol
-    ) -> dict | list[dict]:
+    async def send_to_conversation(self, request: HttpRequestProtocol) -> dict:
         """Handle POST /v3/conversations/{conversation_id}/activities."""
         activity = await self.deserialize_from_body(request, Activity)
         conversation_id = request.get_path_param("conversation_id")
@@ -77,9 +81,7 @@ class ChannelServiceRoutes:
         )
         return self.serialize_model(result)
 
-    async def reply_to_activity(
-        self, request: HttpRequestProtocol
-    ) -> dict | list[dict]:
+    async def reply_to_activity(self, request: HttpRequestProtocol) -> dict:
         """Handle POST /v3/conversations/{conversation_id}/activities/{activity_id}."""
         activity = await self.deserialize_from_body(request, Activity)
         conversation_id = request.get_path_param("conversation_id")
@@ -92,7 +94,7 @@ class ChannelServiceRoutes:
         )
         return self.serialize_model(result)
 
-    async def update_activity(self, request: HttpRequestProtocol) -> dict | list[dict]:
+    async def update_activity(self, request: HttpRequestProtocol) -> dict:
         """Handle PUT /v3/conversations/{conversation_id}/activities/{activity_id}."""
         activity = await self.deserialize_from_body(request, Activity)
         conversation_id = request.get_path_param("conversation_id")
@@ -105,7 +107,7 @@ class ChannelServiceRoutes:
         )
         return self.serialize_model(result)
 
-    async def delete_activity(self, request: HttpRequestProtocol) -> None:
+    async def delete_activity(self, request: HttpRequestProtocol) -> dict:
         """Handle DELETE /v3/conversations/{conversation_id}/activities/{activity_id}."""
         conversation_id = request.get_path_param("conversation_id")
         activity_id = request.get_path_param("activity_id")
@@ -114,10 +116,9 @@ class ChannelServiceRoutes:
             conversation_id,
             activity_id,
         )
+        return {}
 
-    async def get_activity_members(
-        self, request: HttpRequestProtocol
-    ) -> dict | list[dict]:
+    async def get_activity_members(self, request: HttpRequestProtocol) -> list[dict]:
         """Handle GET /v3/conversations/{conversation_id}/activities/{activity_id}/members."""
         conversation_id = request.get_path_param("conversation_id")
         activity_id = request.get_path_param("activity_id")
@@ -128,9 +129,7 @@ class ChannelServiceRoutes:
         )
         return self.serialize_model(result)
 
-    async def create_conversation(
-        self, request: HttpRequestProtocol
-    ) -> dict | list[dict]:
+    async def create_conversation(self, request: HttpRequestProtocol) -> dict:
         """Handle POST /."""
         conversation_parameters = await self.deserialize_from_body(
             request, ConversationParameters
@@ -140,9 +139,7 @@ class ChannelServiceRoutes:
         )
         return self.serialize_model(result)
 
-    async def get_conversations(
-        self, request: HttpRequestProtocol
-    ) -> dict | list[dict]:
+    async def get_conversations(self, request: HttpRequestProtocol) -> dict:
         """Handle GET /."""
         # TODO: continuation token? conversation_id?
         result = await self.handler.on_get_conversations(
@@ -152,7 +149,7 @@ class ChannelServiceRoutes:
 
     async def get_conversation_members(
         self, request: HttpRequestProtocol
-    ) -> dict | list[dict]:
+    ) -> list[dict]:
         """Handle GET /v3/conversations/{conversation_id}/members."""
         conversation_id = request.get_path_param("conversation_id")
         result = await self.handler.on_get_conversation_members(
@@ -161,9 +158,7 @@ class ChannelServiceRoutes:
         )
         return self.serialize_model(result)
 
-    async def get_conversation_member(
-        self, request: HttpRequestProtocol
-    ) -> dict | list[dict]:
+    async def get_conversation_member(self, request: HttpRequestProtocol) -> dict:
         """Handle GET /v3/conversations/{conversation_id}/members/{member_id}."""
         conversation_id = request.get_path_param("conversation_id")
         member_id = request.get_path_param("member_id")
@@ -176,7 +171,7 @@ class ChannelServiceRoutes:
 
     async def get_conversation_paged_members(
         self, request: HttpRequestProtocol
-    ) -> dict | list[dict]:
+    ) -> dict:
         """Handle GET /v3/conversations/{conversation_id}/pagedmembers."""
         conversation_id = request.get_path_param("conversation_id")
         # TODO: continuation token? page size?
@@ -186,7 +181,7 @@ class ChannelServiceRoutes:
         )
         return self.serialize_model(result)
 
-    async def delete_conversation_member(self, request: HttpRequestProtocol) -> None:
+    async def delete_conversation_member(self, request: HttpRequestProtocol) -> dict:
         """Handle DELETE /v3/conversations/{conversation_id}/members/{member_id}."""
         conversation_id = request.get_path_param("conversation_id")
         member_id = request.get_path_param("member_id")
@@ -195,6 +190,7 @@ class ChannelServiceRoutes:
             conversation_id,
             member_id,
         )
+        return {}
 
     async def send_conversation_history(
         self, request: HttpRequestProtocol
