@@ -30,6 +30,8 @@ class TeamsChannelAccount(AgentsModel):
     model_config = ConfigDict(extra="allow")
 
     id: str = None
+    aad_object_id: str = None
+    role: str = None
     name: str = None
     given_name: str = None
     surname: str = None
