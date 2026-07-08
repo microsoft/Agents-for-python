@@ -163,9 +163,11 @@ class TeamsActivityHandler(ActivityHandler):
                         await self.on_teams_tab_submit(turn_context, tab_submit)
                     )
                 else:
-                    return (
-                        await super().on_invoke_activity(turn_context)
-                        or InvokeResponse()
+                    return await super().on_invoke_activity(
+                        turn_context
+                    ) or InvokeResponse(
+                        status=500,
+                        body={"error": f"Invoke activity not handled for name: {name}"},
                     )
         except Exception as err:
             if str(err) == str(teams_errors.TeamsNotImplemented):
@@ -502,24 +504,6 @@ class TeamsActivityHandler(ActivityHandler):
         """
         raise NotImplementedError(str(teams_errors.TeamsNotImplemented))
 
-    @staticmethod
-    def _get_list_team_members(
-        members: list[ChannelAccount],
-    ) -> list[TeamsChannelAccount]:
-        """
-        Converts a list of ChannelAccount to a list of TeamsChannelAccount.
-
-        :param members: The list of ChannelAccount.
-        :return: A list of TeamsChannelAccount.
-        """
-        teams_members = []
-        for member in members:
-            teams_member = TeamsChannelAccount.model_validate(
-                member.model_dump(by_alias=True, exclude_unset=True)
-            )
-            teams_members.append(teams_member)
-        return teams_members
-
     async def on_conversation_update_activity(self, turn_context: TurnContext):
         """
         Dispatches conversation update activity.
@@ -726,6 +710,8 @@ class TeamsActivityHandler(ActivityHandler):
         """
         Handles Teams members added.
 
+        :param teams_members_added: The list of TeamsChannelAccount objects representing the members added to the conversation.
+        :param team_info: The team info object.
         :param turn_context: The context object for the turn.
         :return: None
         """
@@ -762,6 +748,8 @@ class TeamsActivityHandler(ActivityHandler):
         """
         Handles Teams members removed.
 
+        :param teams_members_removed: The list of TeamsChannelAccount objects representing the members removed from the conversation.
+        :param team_info: The team info object.
         :param turn_context: The context object for the turn.
         :return: None
         """
@@ -773,6 +761,8 @@ class TeamsActivityHandler(ActivityHandler):
         """
         Handles Teams channel created.
 
+        :param channel_info: The channel info object.
+        :param team_info: The team info object.
         :param turn_context: The context object for the turn.
         :return: None
         """
@@ -784,6 +774,8 @@ class TeamsActivityHandler(ActivityHandler):
         """
         Handles Teams channel deleted.
 
+        :param channel_info: The channel info object.
+        :param team_info: The team info object.
         :param turn_context: The context object for the turn.
         :return: None
         """
@@ -795,6 +787,8 @@ class TeamsActivityHandler(ActivityHandler):
         """
         Handles Teams channel renamed.
 
+        :param channel_info: The channel info object.
+        :param team_info: The team info object.
         :param turn_context: The context object for the turn.
         :return: None
         """
@@ -806,6 +800,7 @@ class TeamsActivityHandler(ActivityHandler):
         """
         Handles Teams team archived.
 
+        :param team_info: The team info object.
         :param turn_context: The context object for the turn.
         :return: None
         """
@@ -817,6 +812,7 @@ class TeamsActivityHandler(ActivityHandler):
         """
         Handles Teams team deleted.
 
+        :param team_info: The team info object.
         :param turn_context: The context object for the turn.
         :return: None
         """
@@ -828,6 +824,7 @@ class TeamsActivityHandler(ActivityHandler):
         """
         Handles Teams team hard deleted.
 
+        :param team_info: The team info object.
         :param turn_context: The context object for the turn.
         :return: None
         """
@@ -839,6 +836,8 @@ class TeamsActivityHandler(ActivityHandler):
         """
         Handles Teams channel restored.
 
+        :param channel_info: The channel info object.
+        :param team_info: The team info object.
         :param turn_context: The context object for the turn.
         :return: None
         """
@@ -850,6 +849,7 @@ class TeamsActivityHandler(ActivityHandler):
         """
         Handles Teams team renamed.
 
+        :param team_info: The team info object.
         :param turn_context: The context object for the turn.
         :return: None
         """
@@ -861,6 +861,7 @@ class TeamsActivityHandler(ActivityHandler):
         """
         Handles Teams team restored.
 
+        :param team_info: The team info object.
         :param turn_context: The context object for the turn.
         :return: None
         """
@@ -872,6 +873,7 @@ class TeamsActivityHandler(ActivityHandler):
         """
         Handles Teams team unarchived.
 
+        :param team_info: The team info object.
         :param turn_context: The context object for the turn.
         :return: None
         """
@@ -931,6 +933,7 @@ class TeamsActivityHandler(ActivityHandler):
         """
         Handles Teams meeting start.
 
+        :param meeting: The meeting start event details.
         :param turn_context: The context object for the turn.
         :return: None
         """
@@ -942,6 +945,7 @@ class TeamsActivityHandler(ActivityHandler):
         """
         Handles Teams meeting end.
 
+        :param meeting: The meeting end event details.
         :param turn_context: The context object for the turn.
         :return: None
         """
@@ -953,6 +957,7 @@ class TeamsActivityHandler(ActivityHandler):
         """
         Handles Teams read receipt.
 
+        :param read_receipt: The read receipt info.
         :param turn_context: The context object for the turn.
         :return: None
         """
@@ -964,6 +969,7 @@ class TeamsActivityHandler(ActivityHandler):
         """
         Handles Teams meeting participants join.
 
+        :param meeting: The meeting participants event details.
         :param turn_context: The context object for the turn.
         :return: None
         """
@@ -975,6 +981,7 @@ class TeamsActivityHandler(ActivityHandler):
         """
         Handles Teams meeting participants leave.
 
+        :param meeting: The meeting participants event details.
         :param turn_context: The context object for the turn.
         :return: None
         """
