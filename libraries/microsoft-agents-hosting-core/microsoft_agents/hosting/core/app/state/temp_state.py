@@ -69,7 +69,7 @@ class TempState(AgentState):
         default_value_factory: Optional[Callable[[], T]] = None,
         *,
         target_cls: type[T] | None = None,
-    ) -> T:
+    ) -> T | None:
         """Gets a value from state, using a factory if not found."""
         if name not in self._state and default_value_factory is not None:
             value = default_value_factory()
