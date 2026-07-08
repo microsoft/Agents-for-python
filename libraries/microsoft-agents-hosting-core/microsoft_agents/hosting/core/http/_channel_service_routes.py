@@ -5,7 +5,6 @@
 
 from typing import Type, TypeVar, overload
 
-
 from microsoft_agents.activity import (
     AgentsModel,
     Activity,
