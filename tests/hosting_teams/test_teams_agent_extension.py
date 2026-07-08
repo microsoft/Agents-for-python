@@ -39,7 +39,9 @@ def _make_app() -> AgentApplication:
     app = MagicMock(spec=AgentApplication)
     app._routes = []
 
-    def _add_route(selector, handler, is_invoke=False, rank=RouteRank.DEFAULT, auth_handlers=None):
+    def _add_route(
+        selector, handler, is_invoke=False, rank=RouteRank.DEFAULT, auth_handlers=None
+    ):
         app._routes.append(
             dict(
                 selector=selector,
@@ -111,12 +113,12 @@ class TestTaskModule:
 
         selector = self.app._routes[0]["selector"]
         ctx_match = _make_context(
-            ActivityTypes.invoke, name="task/fetch",
-            value={"data": {"verb": "myVerb"}}
+            ActivityTypes.invoke, name="task/fetch", value={"data": {"verb": "myVerb"}}
         )
         ctx_no_match = _make_context(
-            ActivityTypes.invoke, name="task/fetch",
-            value={"data": {"verb": "otherVerb"}}
+            ActivityTypes.invoke,
+            name="task/fetch",
+            value={"data": {"verb": "otherVerb"}},
         )
         assert selector(ctx_match) is True
         assert selector(ctx_no_match) is False
@@ -128,12 +130,14 @@ class TestTaskModule:
 
         selector = self.app._routes[0]["selector"]
         ctx_match = _make_context(
-            ActivityTypes.invoke, name="task/fetch",
-            value={"data": {"verb": "mySpecialVerb"}}
+            ActivityTypes.invoke,
+            name="task/fetch",
+            value={"data": {"verb": "mySpecialVerb"}},
         )
         ctx_no_match = _make_context(
-            ActivityTypes.invoke, name="task/fetch",
-            value={"data": {"verb": "otherVerb"}}
+            ActivityTypes.invoke,
+            name="task/fetch",
+            value={"data": {"verb": "otherVerb"}},
         )
         assert selector(ctx_match) is True
         assert selector(ctx_no_match) is False
@@ -163,12 +167,12 @@ class TestTaskModule:
 
         selector = self.app._routes[0]["selector"]
         ctx_match = _make_context(
-            ActivityTypes.invoke, name="task/submit",
-            value={"data": {"verb": "submitVerb"}}
+            ActivityTypes.invoke,
+            name="task/submit",
+            value={"data": {"verb": "submitVerb"}},
         )
         ctx_no_match = _make_context(
-            ActivityTypes.invoke, name="task/submit",
-            value={"data": {"verb": "other"}}
+            ActivityTypes.invoke, name="task/submit", value={"data": {"verb": "other"}}
         )
         assert selector(ctx_match) is True
         assert selector(ctx_no_match) is False
@@ -202,8 +206,9 @@ class TestTaskModule:
         route_handler = self.app._routes[0]["handler"]
         state = MagicMock()
         ctx = _make_context(
-            ActivityTypes.invoke, name="task/fetch",
-            value={"data": {"verb": "myVerb"}, "context": None}
+            ActivityTypes.invoke,
+            name="task/fetch",
+            value={"data": {"verb": "myVerb"}, "context": None},
         )
         with patch(
             "microsoft_agents.hosting.teams.teams_agent_extension._send_invoke_response",
@@ -223,8 +228,9 @@ class TestTaskModule:
 
         route_handler = self.app._routes[0]["handler"]
         ctx = _make_context(
-            ActivityTypes.invoke, name="task/fetch",
-            value={"data": None, "context": None}
+            ActivityTypes.invoke,
+            name="task/fetch",
+            value={"data": None, "context": None},
         )
         with patch(
             "microsoft_agents.hosting.teams.teams_agent_extension._send_invoke_response",
@@ -249,12 +255,18 @@ class TestMessageExtension:
         ctx_match = _make_context(
             ActivityTypes.invoke,
             name="composeExtension/query",
-            value={"commandId": "searchCmd", "parameters": [{"name": "searchQuery", "value": "pizza"}]},
+            value={
+                "commandId": "searchCmd",
+                "parameters": [{"name": "searchQuery", "value": "pizza"}],
+            },
         )
         ctx_no_match = _make_context(
             ActivityTypes.invoke,
             name="composeExtension/query",
-            value={"commandId": "other", "parameters": [{"name": "searchQuery", "value": "searchCmd"}]},
+            value={
+                "commandId": "other",
+                "parameters": [{"name": "searchQuery", "value": "searchCmd"}],
+            },
         )
         assert selector(ctx_match) is True
         assert selector(ctx_no_match) is False
@@ -378,7 +390,9 @@ class TestMessageExtension:
         async def handler(ctx, state, query): ...
 
         selector = self.app._routes[0]["selector"]
-        ctx = _make_context(ActivityTypes.invoke, name="composeExtension/anonymousQueryLink")
+        ctx = _make_context(
+            ActivityTypes.invoke, name="composeExtension/anonymousQueryLink"
+        )
         assert selector(ctx) is True
 
     @pytestmark
@@ -407,7 +421,9 @@ class TestMessageExtension:
         async def handler(ctx, state, data): ...
 
         selector = self.app._routes[0]["selector"]
-        ctx = _make_context(ActivityTypes.invoke, name="composeExtension/onCardButtonClicked")
+        ctx = _make_context(
+            ActivityTypes.invoke, name="composeExtension/onCardButtonClicked"
+        )
         assert selector(ctx) is True
 
     @pytestmark
@@ -465,8 +481,12 @@ class TestMeeting:
         async def handler(ctx, state, meeting): ...
 
         selector = self.app._routes[0]["selector"]
-        ctx = _make_context(ActivityTypes.event, name="application/vnd.microsoft.meetingStart")
-        ctx_other = _make_context(ActivityTypes.event, name="application/vnd.microsoft.meetingEnd")
+        ctx = _make_context(
+            ActivityTypes.event, name="application/vnd.microsoft.meetingStart"
+        )
+        ctx_other = _make_context(
+            ActivityTypes.event, name="application/vnd.microsoft.meetingEnd"
+        )
         assert selector(ctx) is True
         assert selector(ctx_other) is False
 
@@ -476,7 +496,9 @@ class TestMeeting:
         async def handler(ctx, state, meeting): ...
 
         selector = self.app._routes[0]["selector"]
-        ctx = _make_context(ActivityTypes.event, name="application/vnd.microsoft.meetingEnd")
+        ctx = _make_context(
+            ActivityTypes.event, name="application/vnd.microsoft.meetingEnd"
+        )
         assert selector(ctx) is True
 
     @pytestmark
@@ -645,7 +667,9 @@ class TestTeamsAgentExtensionTopLevel:
         async def handler(ctx, state, receipt): ...
 
         selector = self.app._routes[0]["selector"]
-        ctx = _make_context(ActivityTypes.event, name="application/vnd.microsoft.readReceipt")
+        ctx = _make_context(
+            ActivityTypes.event, name="application/vnd.microsoft.readReceipt"
+        )
         assert selector(ctx) is True
 
     @pytestmark
@@ -763,7 +787,9 @@ class TestTeamsAgentExtensionTopLevel:
         async def handler(ctx, state, query): ...
 
         selector = self.app._routes[0]["selector"]
-        ctx = _make_context(ActivityTypes.invoke, name="actionableMessage/executeAction")
+        ctx = _make_context(
+            ActivityTypes.invoke, name="actionableMessage/executeAction"
+        )
         assert selector(ctx) is True
 
     @pytestmark
