@@ -29,7 +29,7 @@ class TokenExchangeState(AgentsModel):
     connection_name: NonEmptyString = None
     conversation: ConversationReference = None
     relates_to: Optional[ConversationReference] = None
-    agent_url: Annotated[NonEmptyString, Field(None, alias="bot_url")] = None
+    agent_url: Annotated[NonEmptyString, Field(alias="bot_url")] = None
     ms_app_id: NonEmptyString = None
 
     def get_encoded_state(self) -> str:
