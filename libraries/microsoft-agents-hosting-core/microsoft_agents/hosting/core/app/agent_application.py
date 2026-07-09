@@ -127,11 +127,9 @@ class AgentApplication(Agent, Generic[StateT]):
                 "ApplicationOptions.storage is required and was not configured.",
                 stack_info=True,
             )
-            raise ApplicationError(
-                """
+            raise ApplicationError("""
                 The `ApplicationOptions.storage` property is required and was not configured.
-                """
-            )
+                """)
 
         if options.long_running_messages and (
             not options.adapter or not options.bot_app_id
@@ -140,12 +138,10 @@ class AgentApplication(Agent, Generic[StateT]):
                 "ApplicationOptions.long_running_messages requires an adapter and bot_app_id.",
                 stack_info=True,
             )
-            raise ApplicationError(
-                """
+            raise ApplicationError("""
                 The `ApplicationOptions.long_running_messages` property is unavailable because 
                 no adapter or `bot_app_id` was configured.
-                """
-            )
+                """)
 
         if options.adapter:
             self._adapter = options.adapter
@@ -221,12 +217,10 @@ class AgentApplication(Agent, Generic[StateT]):
                 "AgentApplication.adapter(): self._adapter is not configured.",
                 stack_info=True,
             )
-            raise ApplicationError(
-                """
+            raise ApplicationError("""
                 The AgentApplication.adapter property is unavailable because it was 
                 not configured when creating the AgentApplication.
-                """
-            )
+                """)
 
         return self._adapter
 
@@ -244,12 +238,10 @@ class AgentApplication(Agent, Generic[StateT]):
                 "AgentApplication.auth(): self._auth is not configured.",
                 stack_info=True,
             )
-            raise ApplicationError(
-                """
+            raise ApplicationError("""
                 The `AgentApplication.auth` property is unavailable because
                 no Auth options were configured.
-                """
-            )
+                """)
 
         return self._auth
 
@@ -277,12 +269,10 @@ class AgentApplication(Agent, Generic[StateT]):
                 "AgentApplication.proactive(): proactive options are not configured.",
                 stack_info=True,
             )
-            raise ApplicationError(
-                """
+            raise ApplicationError("""
                 The `AgentApplication.proactive` property is unavailable because
                 no ProactiveOptions were configured in ApplicationOptions.
-                """
-            )
+                """)
         return self._proactive
 
     def before_turn(
@@ -628,8 +618,7 @@ class AgentApplication(Agent, Generic[StateT]):
         *,
         auth_handlers: Optional[list[str]] = None,
         **kwargs,
-    ) -> Callable[[TurnContext, StateT, str], Awaitable[None]]:
-        ...
+    ) -> Callable[[TurnContext, StateT, str], Awaitable[None]]: ...
 
     @overload
     def handoff(
@@ -640,8 +629,7 @@ class AgentApplication(Agent, Generic[StateT]):
     ) -> Callable[
         [Callable[[TurnContext, StateT, str], Awaitable[None]]],
         Callable[[TurnContext, StateT, str], Awaitable[None]],
-    ]:
-        ...
+    ]: ...
 
     def handoff(
         self,
@@ -736,12 +724,10 @@ class AgentApplication(Agent, Generic[StateT]):
                 f"Failed to register sign-in success handler for route handler {func.__name__}",
                 stack_info=True,
             )
-            raise ApplicationError(
-                """
+            raise ApplicationError("""
                 The `AgentApplication.on_sign_in_success` method is unavailable because
                 no Auth options were configured.
-                """
-            )
+                """)
         return func
 
     def on_sign_in_failure(
@@ -772,12 +758,10 @@ class AgentApplication(Agent, Generic[StateT]):
                 f"Failed to register sign-in failure handler for route handler {func.__name__}",
                 stack_info=True,
             )
-            raise ApplicationError(
-                """
+            raise ApplicationError("""
                 The `AgentApplication.on_sign_in_failure` method is unavailable because
                 no Auth options were configured.
-                """
-            )
+                """)
         return func
 
     def error(
