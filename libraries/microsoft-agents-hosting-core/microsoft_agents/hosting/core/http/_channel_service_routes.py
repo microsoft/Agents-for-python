@@ -111,12 +111,15 @@ class ChannelServiceRoutes:
         """Handle DELETE /v3/conversations/{conversation_id}/activities/{activity_id}."""
         conversation_id = request.get_path_param("conversation_id")
         activity_id = request.get_path_param("activity_id")
-        await self.handler.on_delete_activity(
+        res = await self.handler.on_delete_activity(
             request.get_claims_identity(),
             conversation_id,
             activity_id,
         )
-        return {}
+        if res:
+            return self.serialize_model(res)
+        else:
+            return {}
 
     async def get_activity_members(self, request: HttpRequestProtocol) -> list[dict]:
         """Handle GET /v3/conversations/{conversation_id}/activities/{activity_id}/members."""
@@ -192,9 +195,7 @@ class ChannelServiceRoutes:
         )
         return {}
 
-    async def send_conversation_history(
-        self, request: HttpRequestProtocol
-    ) -> dict | list[dict]:
+    async def send_conversation_history(self, request: HttpRequestProtocol) -> dict:
         """Handle POST /v3/conversations/{conversation_id}/activities/history."""
         conversation_id = request.get_path_param("conversation_id")
         transcript = await self.deserialize_from_body(request, Transcript)
@@ -205,9 +206,7 @@ class ChannelServiceRoutes:
         )
         return self.serialize_model(result)
 
-    async def upload_attachment(
-        self, request: HttpRequestProtocol
-    ) -> dict | list[dict]:
+    async def upload_attachment(self, request: HttpRequestProtocol) -> dict:
         """Handle POST /v3/conversations/{conversation_id}/attachments."""
         conversation_id = request.get_path_param("conversation_id")
         attachment_data = await self.deserialize_from_body(request, AttachmentData)

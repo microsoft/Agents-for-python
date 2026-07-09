@@ -69,11 +69,6 @@ class HttpAdapterBase(ChannelServiceAdapter, ABC):
                 )
             factory = RestChannelServiceClientFactory(connection_manager)
 
-        if not channel_service_client_factory and not connection_manager:
-            raise ValueError(
-                "HttpAdapterBase.__init__: Either channel_service_client_factory or connection_manager must be provided."
-            )
-
         super().__init__(factory)
 
     async def process_request(
