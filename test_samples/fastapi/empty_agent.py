@@ -2,21 +2,39 @@
 # Licensed under the MIT License.
 
 import uvicorn
-from fastapi import FastAPI, Request, Depends
+from fastapi import FastAPI, Request
+from dotenv import load_dotenv
+
+from os import environ
+
 from microsoft_agents.hosting.core import (
+    Authorization,
     AgentApplication,
     TurnState,
     TurnContext,
     MemoryStorage,
 )
+from microsoft_agents.activity import load_configuration_from_env
 from microsoft_agents.hosting.fastapi import (
     CloudAdapter,
     start_agent_process,
     JwtAuthorizationMiddleware,
 )
-
+from microsoft_agents.authentication.msal import MsalConnectionManager
 # Create the agent application
-AGENT_APP = AgentApplication[TurnState](storage=MemoryStorage(), adapter=CloudAdapter())
+
+load_dotenv()
+
+agents_sdk_config = load_configuration_from_env(environ)
+
+STORAGE = MemoryStorage()
+CONNECTION_MANAGER = MsalConnectionManager(**agents_sdk_config)
+ADAPTER = CloudAdapter(connection_manager=CONNECTION_MANAGER)
+AUTHORIZATION = Authorization(STORAGE, CONNECTION_MANAGER, **agents_sdk_config)
+
+AGENT_APP = AgentApplication[TurnState](
+    storage=STORAGE, adapter=ADAPTER, authorization=AUTHORIZATION, **agents_sdk_config
+)
 
 # Create FastAPI app
 app = FastAPI(title="Empty Agent Sample", version="1.0.0")
@@ -61,7 +79,9 @@ async def messages_get():
 
 
 if __name__ == "__main__":
-    import os
+        
+    app.state.agent_configuration = (CONNECTION_MANAGER.get_default_connection_configuration())
+    app.add_middleware(JwtAuthorizationMiddleware)
 
-    port = int(os.environ.get("PORT", 3978))
+    port = int(environ.get("PORT", 3978))
     uvicorn.run(app, host="0.0.0.0", port=port)
