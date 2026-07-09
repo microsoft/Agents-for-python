@@ -21,14 +21,14 @@ from microsoft_agents.hosting.core.authorization.telemetry import constants as a
 from microsoft_agents.hosting.core.connector.telemetry import constants as connector_constants
 from microsoft_agents.hosting.core.storage.telemetry import constants as storage_constants
 
-from tests.scenarios import load_scenario
+from dev.integration.tests.scenarios import load_scenario
 
-from tests.utils.telemetry_fixtures import ( # unused imports are needed for fixtures
+from dev.integration.tests.utils.telemetry_fixtures import ( # unused imports are needed for fixtures
     test_telemetry,
     test_exporter,
     test_metric_reader,
 )
-from tests.utils.telemetry_utils import (
+from dev.integration.tests.utils.telemetry_utils import (
     sum_counter,
     sum_hist_count,
     find_metric

@@ -25,7 +25,7 @@ import pytest
 from microsoft_agents.activity import Activity, Attachment, ActivityTypes
 from microsoft_agents.testing import AgentClient, ScenarioConfig, ClientConfig, ActivityTemplate
 
-from tests.activity_handler.dialogs.scenario import create_dialog_scenario
+from dev.integration.tests.activity_handler.dialogs.scenario import create_dialog_scenario
 
 # ---------------------------------------------------------------------------
 # Shared activity template — identifies the test user and conversation
