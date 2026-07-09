@@ -7,7 +7,7 @@ from microsoft_agents.testing import (
     ScenarioConfig,
 )
 
-from dev.integration.tests.scenarios import load_scenario
+from tests.scenarios import load_scenario
 
 _TEMPLATE = {
     "channel_id": "webchat",

@@ -29,8 +29,8 @@ from microsoft_agents.testing import (
     ActivityTemplate,
 )
 
-from dev.integration.tests.activity_handler.dialogs.sample.dialog_agent import DialogAgent
-from dev.integration.tests.activity_handler.dialogs.sample.booking_dialog import BookingDialog
+from .sample.dialog_agent import DialogAgent
+from .sample.booking_dialog import BookingDialog
 
 # ---------------------------------------------------------------------------
 # Shared scenario

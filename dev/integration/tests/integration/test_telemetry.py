@@ -1,18 +1,7 @@
 import pytest
 
-from opentelemetry import trace, metrics
-from opentelemetry.sdk.trace import TracerProvider
-from opentelemetry.sdk.trace.export import SimpleSpanProcessor
-from opentelemetry.sdk.trace.export.in_memory_span_exporter import InMemorySpanExporter
-from opentelemetry.sdk.metrics import MeterProvider
-from opentelemetry.sdk.metrics.export import InMemoryMetricReader
-
 from microsoft_agents.activity import DeliveryModes
-from microsoft_agents.hosting.core.telemetry import (
-    attributes,
-    SERVICE_NAME,
-    SERVICE_VERSION
-)
+from microsoft_agents.hosting.core.telemetry import attributes
 from microsoft_agents.hosting.core.telemetry.adapter import constants as adapter_constants
 from microsoft_agents.hosting.core.telemetry.turn_context import constants as turn_context_constants
 from microsoft_agents.hosting.core.app.telemetry import constants as app_constants
@@ -21,14 +10,14 @@ from microsoft_agents.hosting.core.authorization.telemetry import constants as a
 from microsoft_agents.hosting.core.connector.telemetry import constants as connector_constants
 from microsoft_agents.hosting.core.storage.telemetry import constants as storage_constants
 
-from dev.integration.tests.scenarios import load_scenario
+from tests.scenarios import load_scenario
 
-from dev.integration.tests.utils.telemetry_fixtures import ( # unused imports are needed for fixtures
+from tests.utils.telemetry_fixtures import ( # unused imports are needed for fixtures
     test_telemetry,
     test_exporter,
     test_metric_reader,
 )
-from dev.integration.tests.utils.telemetry_utils import (
+from tests.utils.telemetry_utils import (
     sum_counter,
     sum_hist_count,
     find_metric
