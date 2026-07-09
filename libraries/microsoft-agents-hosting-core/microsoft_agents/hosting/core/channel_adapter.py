@@ -241,7 +241,7 @@ class ChannelAdapter(ABC, ChannelAdapterProtocol):
 
         if context.activity is not None:
             try:
-                return await self.middleware_set.on_turn(context, callback)
+                await self.middleware_set.on_turn(context, callback)
             except Exception as error:
                 if self.on_turn_error is not None:
                     await self.on_turn_error(context, error)
