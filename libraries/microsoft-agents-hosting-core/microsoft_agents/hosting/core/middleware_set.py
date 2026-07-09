@@ -30,14 +30,14 @@ class MiddlewareSet(Middleware):
     """
 
     def __init__(self):
-        super(MiddlewareSet, self).__init__()
+        super().__init__()
         self._middleware: list[Middleware] = []
 
     def use(self, *middleware: Middleware):
         """
         Registers middleware plugin(s) with the agent or set.
-        :param middleware :
-        :return:
+        :param middleware : The middleware plugin(s) to register.
+        :return: The `MiddlewareSet` instance to allow chaining of `use` calls.
         """
         for idx, mid in enumerate(middleware):
             if hasattr(mid, "on_turn") and callable(mid.on_turn):
@@ -48,20 +48,6 @@ class MiddlewareSet(Middleware):
                     % idx
                 )
         return self
-
-    async def receive_activity(self, context: TurnContext):
-        await self._receive_activity_internal(context, None)
-
-    async def on_turn(
-        self, context: TurnContext, logic: Callable[[TurnContext], Awaitable]
-    ):
-        await self._receive_activity_internal(context, None)
-        await logic(context)
-
-    async def receive_activity_with_status(
-        self, context: TurnContext, callback: Callable[[TurnContext], Awaitable] | None
-    ):
-        return await self._receive_activity_internal(context, callback)
 
     async def _receive_activity_internal(
         self,
@@ -85,3 +71,15 @@ class MiddlewareSet(Middleware):
             return await next_middleware.on_turn(context, call_next_middleware)
         except Exception as error:
             raise error
+
+    async def on_turn(
+        self, context: TurnContext, logic: Callable[[TurnContext], Awaitable] | None
+    ):
+        """Handles an incoming activity by passing it through the middleware pipeline and then to the final logic.
+
+        :param context: The turn context.
+        :param logic: The final logic to be executed after the middleware pipeline.
+        """
+        await self._receive_activity_internal(context, None)
+        if logic:
+            await logic(context)
