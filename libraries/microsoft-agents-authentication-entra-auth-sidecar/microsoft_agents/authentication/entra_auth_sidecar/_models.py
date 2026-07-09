@@ -8,7 +8,9 @@ from microsoft_agents.activity.config._coercion import (
     coerce_int,
     coerce_float,
 )
-from microsoft_agents.hosting.core import ConnectionSettingsBase
+from microsoft_agents.hosting.core.authorization.connection_settings_base import (
+    _ConnectionSettingsBase,
+)
 
 DEFAULT_SERVICE_NAME = "default"
 DEFAULT_BLUEPRINT_SERVICE_NAME = "agenticblueprint"
@@ -17,14 +19,15 @@ DEFAULT_REQUEST_TIMEOUT_SECONDS = 30.0
 DEFAULT_RETRY_COUNT = 3
 
 
-class SidecarConnectionSettings(ConnectionSettingsBase):
+class SidecarConnectionSettings(_ConnectionSettingsBase):
     """
     Connection settings for the sidecar-based token provider.
 
-    Extends :class:`microsoft_agents.hosting.core.ConnectionSettingsBase` with the
-    sidecar-specific fields, mirroring the .NET
+    Extends
+    :class:`microsoft_agents.hosting.core.authorization.connection_settings_base._ConnectionSettingsBase`
+    with the sidecar-specific fields, mirroring the .NET
     ``Microsoft.Agents.Authentication.EntraAuthSidecar.SidecarConnectionSettings``
-    which derives from ``ConnectionSettingsBase``. Bound from an
+    which derives from ``_ConnectionSettingsBase``. Bound from an
     :class:`microsoft_agents.hosting.core.AgentAuthConfiguration` (or its raw
     ``SETTINGS`` keyword arguments). No secrets/certificates are required: the
     sidecar owns all credential management.
@@ -52,12 +55,13 @@ class SidecarConnectionSettings(ConnectionSettingsBase):
             scopes=self._normalize_scopes(scopes),
             alternate_blueprint_connection_name=alternate_blueprint_connection_name,
         )
-        # An explicitly blank value (e.g. binding yields "") must never produce an
-        # invalid sidecar endpoint path, so normalize to the defaults here.
-        self.service_name = service_name or DEFAULT_SERVICE_NAME
+        # An explicitly blank or whitespace-only value (e.g. binding yields "" or
+        # "   ") must never produce an invalid sidecar endpoint path, so strip and
+        # normalize to the defaults here.
+        self.service_name = (service_name or "").strip() or DEFAULT_SERVICE_NAME
         self.blueprint_service_name = (
-            blueprint_service_name or DEFAULT_BLUEPRINT_SERVICE_NAME
-        )
+            blueprint_service_name or ""
+        ).strip() or DEFAULT_BLUEPRINT_SERVICE_NAME
         self.sidecar_base_url = sidecar_base_url
         # Config values can arrive as strings from ``load_configuration_from_env``,
         # so coerce explicitly: ``bool("false")`` would otherwise be ``True`` and
@@ -99,9 +103,13 @@ class SidecarConnectionSettings(ConnectionSettingsBase):
         tolerating both attribute-style and the SDK's upper-case kwargs style.
         """
 
+        extras = getattr(configuration, "provider_settings", None) or {}
+
         def _get(*names, default=None):
             for name in names:
                 value = getattr(configuration, name, None)
+                if value is None:
+                    value = extras.get(name)
                 if value is not None:
                     return value
             return default

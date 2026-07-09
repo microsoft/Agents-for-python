@@ -30,7 +30,7 @@ def _read(configuration: Any, *names: str, default: Any = None) -> Any:
     return default
 
 
-class ConnectionSettingsBase:
+class _ConnectionSettingsBase:
     """Common, provider-agnostic connection settings shared by all providers.
 
     Mirrors the .NET ``Microsoft.Agents.Authentication.ConnectionSettingsBase``
@@ -106,6 +106,6 @@ class ConnectionSettingsBase:
     @classmethod
     def from_configuration(
         cls, configuration: "AgentAuthConfiguration"
-    ) -> "ConnectionSettingsBase":
+    ) -> "_ConnectionSettingsBase":
         """Build base settings from an :class:`AgentAuthConfiguration`."""
         return cls(**cls.base_kwargs_from_configuration(configuration))

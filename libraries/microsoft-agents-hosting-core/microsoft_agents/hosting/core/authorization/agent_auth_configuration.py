@@ -43,6 +43,12 @@ class AgentAuthConfiguration:
     IDPM_RESOURCE: str | None
     ANONYMOUS_ALLOWED: bool = False
 
+    # Provider-specific settings that aren't first-class fields (e.g. the Entra
+    # sidecar's SERVICE_NAME, SIDECAR_BASE_URL). Preserved here as a single dict
+    # rather than as dynamic attributes so the extra surface is explicit and
+    # discoverable. Custom providers read these via ``provider_settings``.
+    provider_settings: dict[str, str]
+
     # Multi-connection support: Maintains a map of all configured connections
     # to enable JWT validation across connections. This allows tokens issued
     # for any configured connection to be validated, supporting multi-tenant
@@ -118,10 +124,10 @@ class AgentAuthConfiguration:
 
         # Preserve any provider-specific settings that aren't first-class fields
         # (e.g. the Entra sidecar's SERVICE_NAME, SIDECAR_BASE_URL) so custom
-        # providers can read them via getattr on this configuration.
-        for _key, _value in kwargs.items():
-            if not hasattr(self, _key):
-                setattr(self, _key, _value)
+        # providers can read them via ``provider_settings`` on this configuration.
+        self.provider_settings = {
+            key: value for key, value in kwargs.items() if not hasattr(self, key)
+        }
 
         # JWT-patch: always at least include self for backward compat
         self._connections = {str(self.CONNECTION_NAME): self}

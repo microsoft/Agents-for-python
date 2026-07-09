@@ -13,11 +13,9 @@ from microsoft_agents.hosting.core.authorization import (
     ClaimsIdentity,
     Connections,
     AccessTokenProviderBase,
-    AnonymousTokenProvider,
     AgentAuthConfiguration,
 )
 from microsoft_agents.hosting.core.connector.teams import TeamsConnectorClient
-from microsoft_agents.hosting.core.connector.client import UserTokenClient
 
 from tests._common.data import DEFAULT_TEST_VALUES
 
@@ -182,7 +180,7 @@ class TestRestChannelServiceClientFactory:
 
         # test
 
-        res = await factory.create_connector_client(
+        await factory.create_connector_client(
             context if context_flag else None,
             claims_identity,
             service_url,
@@ -250,7 +248,7 @@ class TestRestChannelServiceClientFactory:
 
         # test
 
-        res = await factory.create_connector_client(
+        await factory.create_connector_client(
             context if context_flag else None,
             claims_identity,
             service_url,
@@ -308,7 +306,7 @@ class TestRestChannelServiceClientFactory:
 
         # test
 
-        res = await factory.create_connector_client(
+        await factory.create_connector_client(
             context,
             claims_identity,
             service_url,
@@ -463,7 +461,7 @@ class TestRestChannelServiceClientFactory:
 
         # test
 
-        res = await factory.create_connector_client(
+        await factory.create_connector_client(
             context,
             claims_identity,
             service_url,

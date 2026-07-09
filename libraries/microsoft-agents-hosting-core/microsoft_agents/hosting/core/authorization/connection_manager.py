@@ -48,11 +48,18 @@ class ConnectionManager(Connections):
 
         self._provider_factory = provider_factory
         self._connections = {}
-        self._connections_map = (
+        # load_configuration_from_env yields CONNECTIONSMAP as a dict ({} when
+        # unconfigured, or a name->entry map), while the class treats it as a
+        # list[dict[str, str]] everywhere else. Normalize to a list so the
+        # runtime shape is consistent regardless of how the config was produced.
+        raw_connections_map = (
             connections_map
             if connections_map is not None
             else kwargs.get("CONNECTIONSMAP", [])
         )
+        if isinstance(raw_connections_map, dict):
+            raw_connections_map = list(raw_connections_map.values())
+        self._connections_map = raw_connections_map or []
         self._config_map = {}
 
         if connections_configurations:

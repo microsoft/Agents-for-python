@@ -62,9 +62,11 @@ class TestSettingsFromConfiguration:
         assert settings.blueprint_service_name == "agenticblueprint"
 
     def test_inherits_connection_settings_base(self):
-        from microsoft_agents.hosting.core import ConnectionSettingsBase
+        from microsoft_agents.hosting.core.authorization.connection_settings_base import (  # noqa: E501
+            _ConnectionSettingsBase,
+        )
 
-        assert issubclass(SidecarConnectionSettings, ConnectionSettingsBase)
+        assert issubclass(SidecarConnectionSettings, _ConnectionSettingsBase)
 
     def test_binds_base_fields_from_configuration(self):
         config = AgentAuthConfiguration(
@@ -82,14 +84,14 @@ class TestSettingsFromConfiguration:
 
 
 class TestAgentAuthConfigurationPreservesExtraSettings:
-    def test_unknown_kwargs_preserved_as_attributes(self):
+    def test_unknown_kwargs_preserved_in_provider_settings(self):
         config = AgentAuthConfiguration(
             auth_type="EntraAuthSideCar",
             SERVICE_NAME="botframework",
             SIDECAR_BASE_URL="http://localhost:5178",
         )
-        assert getattr(config, "SERVICE_NAME") == "botframework"
-        assert getattr(config, "SIDECAR_BASE_URL") == "http://localhost:5178"
+        assert config.provider_settings["SERVICE_NAME"] == "botframework"
+        assert config.provider_settings["SIDECAR_BASE_URL"] == "http://localhost:5178"
 
 
 class TestEnvConfigEndToEnd:

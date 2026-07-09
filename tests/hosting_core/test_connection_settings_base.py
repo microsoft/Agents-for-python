@@ -3,7 +3,9 @@
 
 from microsoft_agents.hosting.core import (
     AgentAuthConfiguration,
-    ConnectionSettingsBase,
+)
+from microsoft_agents.hosting.core.authorization.connection_settings_base import (
+    _ConnectionSettingsBase,
 )
 
 
@@ -11,7 +13,7 @@ class TestConnectionSettingsBase:
     """Validate the provider-agnostic base settings and its binding helpers."""
 
     def test_defaults_are_none(self):
-        settings = ConnectionSettingsBase()
+        settings = _ConnectionSettingsBase()
         assert settings.client_id is None
         assert settings.authority is None
         assert settings.tenant_id is None
@@ -19,7 +21,7 @@ class TestConnectionSettingsBase:
         assert settings.alternate_blueprint_connection_name is None
 
     def test_explicit_values(self):
-        settings = ConnectionSettingsBase(
+        settings = _ConnectionSettingsBase(
             client_id="cid",
             authority="https://authority",
             tenant_id="tid",
@@ -40,7 +42,7 @@ class TestConnectionSettingsBase:
             scopes=["s1"],
             ALT_BLUEPRINT_NAME="bp",
         )
-        settings = ConnectionSettingsBase.from_configuration(config)
+        settings = _ConnectionSettingsBase.from_configuration(config)
         assert settings.client_id == "cid"
         assert settings.tenant_id == "tid"
         assert settings.authority == "https://authority"
@@ -53,7 +55,7 @@ class TestConnectionSettingsBase:
             AUTHORITYENDPOINT="https://authority",
             ALTERNATEBLUEPRINTCONNECTIONNAME="bp",
         )
-        kwargs = ConnectionSettingsBase.base_kwargs_from_configuration(config)
+        kwargs = _ConnectionSettingsBase.base_kwargs_from_configuration(config)
         assert kwargs["client_id"] == "cid"
         assert kwargs["authority"] == "https://authority"
         assert kwargs["alternate_blueprint_connection_name"] == "bp"
@@ -68,7 +70,7 @@ class TestConnectionSettingsBase:
             "SCOPES": ["s1"],
             "ALT_BLUEPRINT_ID": "bp",
         }
-        settings = ConnectionSettingsBase.from_configuration(config)
+        settings = _ConnectionSettingsBase.from_configuration(config)
         assert settings.client_id == "cid"
         assert settings.authority == "https://authority"
         assert settings.tenant_id == "tid"
@@ -86,7 +88,7 @@ class TestConnectionSettingsBase:
             "SCOPES": ["s1"],
             "ALTERNATEBLUEPRINTCONNECTIONNAME": "bp",
         }
-        settings = ConnectionSettingsBase.from_configuration(config)
+        settings = _ConnectionSettingsBase.from_configuration(config)
         assert settings.client_id == "cid"
         assert settings.authority == "https://authority"
         assert settings.tenant_id == "tid"
