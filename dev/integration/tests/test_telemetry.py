@@ -17,7 +17,7 @@ from tests.utils.telemetry_fixtures import ( # unused imports are needed for fix
     test_exporter,
     test_metric_reader,
 )
-from tests.utils.telemetry_utils import (
+from .utils.telemetry_utils import (
     sum_counter,
     sum_hist_count,
     find_metric
