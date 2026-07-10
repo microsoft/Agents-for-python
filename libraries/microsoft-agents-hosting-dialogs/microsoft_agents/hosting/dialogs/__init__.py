@@ -18,6 +18,8 @@ from .dialog_set import DialogSet
 from .dialog_state import DialogState
 from .models.dialog_turn_result import DialogTurnResult
 from .models.dialog_turn_status import DialogTurnStatus
+from .dialog_manager import DialogManager
+from .dialog_manager_result import DialogManagerResult
 from .dialog import Dialog
 from .dialog_component_registration import DialogsComponentRegistration
 from .persisted_state_keys import PersistedStateKeys
@@ -49,6 +51,8 @@ __all__ = [
     "DialogState",
     "DialogTurnResult",
     "DialogTurnStatus",
+    "DialogManager",
+    "DialogManagerResult",
     "Dialog",
     "DialogsComponentRegistration",
     "WaterfallDialog",
