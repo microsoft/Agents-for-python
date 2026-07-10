@@ -26,6 +26,23 @@ from tests._common.data import DEFAULT_TEST_VALUES
 
 DEFAULTS = DEFAULT_TEST_VALUES()
 
+AS_ACTIVITY_TYPE_CASES = [
+    (ActivityTypes.contact_relation_update, "as_contact_relation_update_activity"),
+    (ActivityTypes.conversation_update, "as_conversation_update_activity"),
+    (ActivityTypes.end_of_conversation, "as_end_of_conversation_activity"),
+    (ActivityTypes.event, "as_event_activity"),
+    (ActivityTypes.handoff, "as_handoff_activity"),
+    (ActivityTypes.installation_update, "as_installation_update_activity"),
+    (ActivityTypes.invoke, "as_invoke_activity"),
+    (ActivityTypes.message, "as_message_activity"),
+    (ActivityTypes.message_delete, "as_message_delete_activity"),
+    (ActivityTypes.message_reaction, "as_message_reaction_activity"),
+    (ActivityTypes.message_update, "as_message_update_activity"),
+    (ActivityTypes.suggestion, "as_suggestion_activity"),
+    (ActivityTypes.trace, "as_trace_activity"),
+    (ActivityTypes.typing, "as_typing_activity"),
+]
+
 
 def helper_validate_recipient_and_from(
     activity: Activity, create_recipient: bool, create_from: bool
@@ -239,6 +256,8 @@ class TestActivityConversationOps:
     @pytest.mark.parametrize(
         "activity_type, activity_type_name",
         [
+            (ActivityTypes.contact_relation_update, "contact_relation_update"),
+            (ActivityTypes.conversation_update, "conversation_update"),
             (ActivityTypes.end_of_conversation, "end_of_conversation"),
             (ActivityTypes.event, "event"),
             (ActivityTypes.handoff, "handoff"),
@@ -452,6 +471,40 @@ class TestActivityConversationOps:
         assert retrieved_product_info == expected
 
 
+class TestActivityAsTypeHelpers:
+    @pytest.mark.parametrize(
+        "activity_type, method_name",
+        AS_ACTIVITY_TYPE_CASES,
+    )
+    def test_as_activity_type_returns_self_for_matching_type(
+        self, activity_type, method_name
+    ):
+        activity = Activity(type=activity_type)
+
+        assert getattr(activity, method_name)() is activity
+
+    @pytest.mark.parametrize(
+        "activity_type, method_name",
+        AS_ACTIVITY_TYPE_CASES,
+    )
+    def test_as_activity_type_returns_none_for_non_matching_type(
+        self, activity_type, method_name
+    ):
+        non_matching_type = (
+            ActivityTypes.event
+            if activity_type != ActivityTypes.event
+            else ActivityTypes.message
+        )
+        activity = Activity(type=non_matching_type)
+
+        assert getattr(activity, method_name)() is None
+
+    def test_as_activity_type_returns_self_for_slash_qualified_type(self):
+        activity = Activity(type="event/custom")
+
+        assert activity.as_event_activity() is activity
+
+
 class TestActivityAgenticOps:
     @pytest.fixture(params=[RoleTypes.user, RoleTypes.skill, RoleTypes.agent])
     def non_agentic_role(self, request):
@@ -521,3 +574,56 @@ class TestActivityAgenticOps:
             ),
         )
         assert activity.get_agentic_user() is None
+
+    def test_get_agentic_tenant_id_from_recipient(self, agentic_role):
+        activity = Activity(
+            type="message",
+            recipient=ChannelAccount(
+                role=agentic_role,
+                tenant_id="recipient-tenant-id",
+            ),
+            conversation=ConversationAccount(
+                id="conversation-id",
+                tenant_id="conversation-tenant-id",
+            ),
+        )
+
+        assert activity.get_agentic_tenant_id() == "recipient-tenant-id"
+
+    def test_get_agentic_tenant_id_from_conversation_when_recipient_missing_tenant(
+        self, agentic_role
+    ):
+        activity = Activity(
+            type="message",
+            recipient=ChannelAccount(role=agentic_role),
+            conversation=ConversationAccount(
+                id="conversation-id",
+                tenant_id="conversation-tenant-id",
+            ),
+        )
+
+        assert activity.get_agentic_tenant_id() == "conversation-tenant-id"
+
+    def test_get_agentic_tenant_id_not_agentic(self, non_agentic_role):
+        activity = Activity(
+            type="message",
+            recipient=ChannelAccount(
+                role=non_agentic_role,
+                tenant_id="recipient-tenant-id",
+            ),
+            conversation=ConversationAccount(
+                id="conversation-id",
+                tenant_id="conversation-tenant-id",
+            ),
+        )
+
+        assert activity.get_agentic_tenant_id() is None
+
+    def test_get_agentic_tenant_id_returns_none_when_no_tenant(self, agentic_role):
+        activity = Activity(
+            type="message",
+            recipient=ChannelAccount(role=agentic_role),
+            conversation=ConversationAccount(id="conversation-id"),
+        )
+
+        assert activity.get_agentic_tenant_id() is None
