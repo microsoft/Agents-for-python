@@ -53,7 +53,7 @@ class TestStateClass:
         assert test_state.__deleted__ == []
 
     def test_state_property_access(self):
-        """Test that state properties can be accessed using both dict and attribute syntax."""
+        """Test state properties can be accessed using dict and attribute syntax."""
         test_state = StateForTesting()
 
         # Test attribute syntax
@@ -63,7 +63,7 @@ class TestStateClass:
         assert test_state["test_property"] == "default_value"
 
     def test_state_property_modification(self):
-        """Test that state properties can be modified using both dict and attribute syntax."""
+        """Test state properties can be modified using dict and attribute syntax."""
         test_state = StateForTesting()
 
         # Test attribute syntax
@@ -88,6 +88,25 @@ class TestStateClass:
         del test_state["test_property"]
         assert "test_property" not in test_state
 
+    def test_state_missing_attribute_raises_attribute_error(self):
+        """Test missing attribute access raises AttributeError."""
+        test_state = StateForTesting()
+
+        with pytest.raises(AttributeError, match="missing"):
+            test_state.missing
+
+    def test_state_private_attributes_and_callables_are_not_dict_values(self):
+        """Test private attributes and callables stay as object attributes."""
+        test_state = StateForTesting()
+
+        test_state._private_value = "private"
+        test_state.helper = lambda: "callable"
+
+        assert test_state._private_value == "private"
+        assert test_state.helper() == "callable"
+        assert "_private_value" not in test_state
+        assert "helper" not in test_state
+
     def test_state_deleted_tracking(self):
         """Test that state tracks deleted properties for storage updates."""
         test_state = StateForTesting()
@@ -102,6 +121,25 @@ class TestStateClass:
 
         # Check if the nested key is tracked for deletion
         assert "nested-key" in test_state.__deleted__
+
+    def test_state_deleted_tracking_is_removed_when_deleted_key_is_set_again(self):
+        """Test deleted tracking is removed if the deleted storage key is set again."""
+        test_state = StateForTesting()
+
+        test_state.__deleted__ = ["deleted-key"]
+        test_state["deleted-key"] = "replacement"
+
+        assert "deleted-key" not in test_state.__deleted__
+        assert test_state["deleted-key"] == "replacement"
+
+    def test_state_str_serializes_store_items(self):
+        """Test string representation uses StoreItem serialization."""
+        test_state = StateForTesting()
+        del test_state.test_property
+
+        result = str(test_state)
+
+        assert "'store_item': {'initial': 'value'}" in result
 
     def test_create_property(self):
         """Test creating a state property accessor."""
