@@ -233,8 +233,6 @@ class ChannelAdapter(ABC, ChannelAdapterProtocol):
         :type context: :class:`microsoft_agents.hosting.core.turn_context.TurnContext`
         :param callback: A callback method to run at the end of the pipeline.
         :type callback: Callable[[TurnContext], Awaitable]
-        :return: Result produced by the middleware pipeline.
-        :rtype: typing.Any
         """
         if context is None:
             raise TypeError(context.__class__.__name__)
