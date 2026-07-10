@@ -147,8 +147,8 @@ class AgentState:
         :rtype: bool
         """
 
-        _cached_state = self.get_cached_state(turn_context)
-        return force or not _cached_state or not _cached_state.state
+        self._cached_state = self.get_cached_state(turn_context)
+        return force or not self._cached_state or not self._cached_state.state
 
     async def save(self, turn_context: TurnContext, force: bool = False) -> None:
         """
@@ -183,6 +183,7 @@ class AgentState:
         cache_value = CachedAgentState()
         cache_value.hash = ""
         self._cached_state = cache_value
+        turn_context.turn_state[self._context_service_key] = self._cached_state
 
     async def delete(self, turn_context: TurnContext) -> None:
         """
@@ -260,9 +261,7 @@ class AgentState:
         :return: None
         """
         if not property_name:
-            raise TypeError(
-                "AgentState.delete_property(): property_name cannot be None."
-            )
+            raise TypeError("AgentState.delete_value(): property_name cannot be None.")
 
         if self._cached_state.state.get(property_name):
             del self._cached_state.state[property_name]
@@ -279,9 +278,7 @@ class AgentState:
         :return: None
         """
         if not property_name:
-            raise TypeError(
-                "AgentState.delete_property(): property_name cannot be None."
-            )
+            raise TypeError("AgentState.set_value(): property_name cannot be None.")
         self._cached_state.state[property_name] = value
 
 
