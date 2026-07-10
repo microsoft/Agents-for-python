@@ -31,14 +31,11 @@ class DialogSet:
                         raise KeyError
                 except KeyError:
                     raise TypeError("DialogSet(): dialog_state cannot be None.")
-                # Only ComponentDialog / DialogContainer / DialogManager can initialize with None dialog_state
+                # Only ComponentDialog / DialogContainer can initialize with None dialog_state
                 from .component_dialog import ComponentDialog
-                from .dialog_manager import DialogManager
                 from .dialog_container import DialogContainer
 
-                if not isinstance(
-                    self_obj, (ComponentDialog, DialogContainer, DialogManager)
-                ):
+                if not isinstance(self_obj, (ComponentDialog, DialogContainer)):
                     raise TypeError("DialogSet(): dialog_state cannot be None.")
             finally:
                 # make sure to clean up the frame at the end to avoid ref cycles
