@@ -4,11 +4,11 @@ Licensed under the MIT License.
 """
 
 import asyncio
-from unittest.mock import AsyncMock, patch
+from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
-from microsoft_agents.activity import Activity, ActivityTypes
+from microsoft_agents.activity import Activity, ActivityTypes, TokenResponse
 from microsoft_agents.hosting.core import MemoryStorage
 from microsoft_agents.hosting.core.app import (
     AgentApplication,
@@ -75,6 +75,98 @@ class StubTurnContext:
 
     async def send_activity(self, activity):
         self.responded = True
+
+
+@pytest.mark.asyncio
+async def test_token_exchange_invoke_returns_before_continuation_replay_completes():
+    """Token exchange must not keep the invoke open while the message is replayed."""
+    app = _make_integration_app()
+    replay_started = asyncio.Event()
+    release_replay = asyncio.Event()
+    replay_completed = asyncio.Event()
+
+    continuation = Activity(
+        type=ActivityTypes.message,
+        id="message-id",
+        text="hello",
+        channel_id="msteams:COPILOT",
+        conversation={"id": "conversation"},
+        from_property={"id": "user"},
+        recipient={"id": "agent"},
+        service_url="https://message.example.org",
+    )
+    invoke = Activity(
+        type=ActivityTypes.invoke,
+        id="invoke-id",
+        name="signin/tokenExchange",
+        channel_id="msteams:COPILOT",
+        conversation={"id": "conversation"},
+        from_property={"id": "user"},
+        recipient={"id": "agent"},
+        service_url="https://invoke.example.org",
+    )
+    context = StubTurnContext(invoke)
+    context.identity = MagicMock()
+    token_response = TokenResponse(token="access-token")
+    app._auth._handlers["handler"] = MagicMock()
+    Authorization._cache_token(context, "handler", token_response)
+    turn_state = MagicMock()
+    call_order = []
+
+    async def save_turn_state(_context):
+        call_order.append("save")
+
+    turn_state.save = AsyncMock(side_effect=save_turn_state)
+
+    async def replay_turn(replay_context):
+        assert (
+            Authorization._get_cached_token(replay_context, "handler") is token_response
+        )
+        replay_started.set()
+        await release_replay.wait()
+        replay_completed.set()
+
+    async def continue_conversation(identity, replay_activity, callback):
+        call_order.append("continue")
+        replay_context = StubTurnContext(replay_activity, context.adapter)
+        replay_context.identity = identity
+        await callback(replay_context)
+
+    context.adapter.continue_conversation_with_claims = AsyncMock(
+        side_effect=continue_conversation
+    )
+
+    original_on_turn = app._on_turn
+    app.on_turn = AsyncMock(side_effect=replay_turn)
+    app._on_turn = AsyncMock(side_effect=replay_turn)
+    app._auth._on_turn_auth_intercept = AsyncMock(return_value=(True, continuation))
+
+    with patch.object(
+        app, "_initialize_state", new_callable=AsyncMock, return_value=turn_state
+    ):
+        await asyncio.wait_for(original_on_turn(context), timeout=0.1)
+
+    await asyncio.wait_for(replay_started.wait(), timeout=0.1)
+    assert not replay_completed.is_set()
+    turn_state.save.assert_awaited_once_with(context)
+    context.adapter.continue_conversation_with_claims.assert_awaited_once()
+    replay_args = context.adapter.continue_conversation_with_claims.call_args.args
+    assert replay_args[0] is context.identity
+    replay_activity = replay_args[1]
+    assert replay_args[2] != app._on_turn
+    assert replay_activity is not continuation
+    assert replay_activity.id == "message-id"
+    assert replay_activity.type == ActivityTypes.message
+    assert replay_activity.channel_id == "msteams:COPILOT"
+    assert replay_activity.service_url == "https://invoke.example.org"
+    assert context.activity.type == ActivityTypes.invoke
+    assert context.activity.id == "invoke-id"
+    assert context.activity.channel_id == "msteams:COPILOT"
+    assert call_order[:2] == ["save", "continue"]
+    app.on_turn.assert_not_awaited()
+
+    release_replay.set()
+    await asyncio.wait_for(replay_completed.wait(), timeout=0.1)
 
 
 def make_auth():

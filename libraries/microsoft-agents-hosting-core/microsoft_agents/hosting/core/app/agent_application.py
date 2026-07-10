@@ -4,9 +4,10 @@ Licensed under the MIT License.
 """
 
 from __future__ import annotations
+import asyncio
 import logging
 from contextlib import nullcontext
-from copy import copy
+from copy import copy, deepcopy
 from functools import partial
 
 import re
@@ -101,6 +102,7 @@ class AgentApplication(Agent, Generic[StateT]):
         self._route_list = _RouteList[StateT]()
         self._internal_before_turn = []
         self._internal_after_turn = []
+        self._background_tasks: set[asyncio.Task[None]] = set()
 
         configuration = kwargs
 
@@ -835,14 +837,14 @@ class AgentApplication(Agent, Generic[StateT]):
                         )
                         if auth_intercepts:
                             if continuation_activity:
-                                new_context = copy(context)
-                                new_context.activity = continuation_activity
                                 logger.info(
                                     "Resending continuation activity %s",
                                     continuation_activity.text,
                                 )
-                                await self.on_turn(new_context)
                                 await turn_state.save(context)
+                                self._start_auth_continuation(
+                                    context, continuation_activity
+                                )
                             return
 
                     logger.debug("Running before turn middleware")
@@ -865,6 +867,46 @@ class AgentApplication(Agent, Generic[StateT]):
                 exc_info=True,
             )
             await self._on_error(context, err)
+
+    def _start_auth_continuation(
+        self, context: TurnContext, continuation_activity: Activity
+    ) -> None:
+        """Replay a completed OAuth flow without holding its invoke request open."""
+        if context.identity is None:
+            raise ApplicationError(
+                "Cannot replay an OAuth continuation without a claims identity."
+            )
+
+        replay_activity = deepcopy(continuation_activity)
+        original_activity_id = replay_activity.id
+        replay_activity.apply_conversation_reference(
+            context.activity.get_conversation_reference(), is_incoming=True
+        )
+        replay_activity.id = original_activity_id
+
+        async def replay_turn(replay_context: TurnContext) -> None:
+            self._auth._copy_cached_tokens(context, replay_context)
+            await self._on_turn(replay_context)
+
+        async def replay() -> None:
+            await context.adapter.continue_conversation_with_claims(
+                context.identity,
+                replay_activity,
+                replay_turn,
+            )
+
+        task = asyncio.create_task(replay())
+        self._background_tasks.add(task)
+        task.add_done_callback(self._auth_continuation_done)
+
+    def _auth_continuation_done(self, task: asyncio.Task[None]) -> None:
+        self._background_tasks.discard(task)
+        if task.cancelled():
+            return
+        try:
+            task.result()
+        except Exception:  # noqa: BLE001
+            logger.exception("OAuth continuation replay failed")
 
     def _remove_mentions(self, context: TurnContext):
         if (

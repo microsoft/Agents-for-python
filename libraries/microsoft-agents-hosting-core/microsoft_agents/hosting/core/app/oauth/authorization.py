@@ -201,6 +201,15 @@ class Authorization:
         key = Authorization._cache_key(context, handler_id)
         context.turn_state[key] = token_response
 
+    def _copy_cached_tokens(
+        self, source_context: TurnContext, target_context: TurnContext
+    ) -> None:
+        """Copy completed OAuth tokens into a new context for the same user turn."""
+        for handler_id in self._handlers:
+            token_response = Authorization._get_cached_token(source_context, handler_id)
+            if token_response is not None:
+                Authorization._cache_token(target_context, handler_id, token_response)
+
     @staticmethod
     def _delete_cached_token(context: TurnContext, handler_id: str) -> None:
         key = Authorization._cache_key(context, handler_id)
