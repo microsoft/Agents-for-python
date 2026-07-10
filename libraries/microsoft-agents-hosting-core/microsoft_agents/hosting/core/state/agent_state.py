@@ -129,11 +129,26 @@ class AgentState:
         """
         storage_key = self.get_storage_key(turn_context)
 
-        if force or not self._cached_state:
+        if self._should_load(turn_context, force):
             items = await self._storage.read([storage_key], target_cls=CachedAgentState)
             val = items.get(storage_key, CachedAgentState())
             self._cached_state = val
             turn_context.turn_state[self._context_service_key] = val
+
+    def _should_load(self, turn_context: TurnContext, force: bool = False) -> bool:
+        """
+        Determines whether the state should be loaded from storage.
+
+        :param turn_context: The context object for this turn
+        :type turn_context: :class:`microsoft_agents.hosting.core.turn_context.TurnContext`
+        :param force: Optional, true to bypass the cache
+        :type force: bool
+        :return: True if the state should be loaded from storage, False otherwise
+        :rtype: bool
+        """
+
+        _cached_state = self.get_cached_state(turn_context)
+        return force or not _cached_state or not _cached_state.state
 
     async def save(self, turn_context: TurnContext, force: bool = False) -> None:
         """
