@@ -99,6 +99,18 @@ class TestGenericConnectionManager:
             claims, "https://microsoftXcom/foo"
         ) is cm.get_connection("MISC")
 
+    def test_invalid_service_url_regex_raises_clear_value_error(self):
+        # A malformed SERVICEURL regex must surface as a clear ValueError, not an
+        # opaque re.error crashing provider selection.
+        config = {
+            "CONNECTIONS": {"SERVICE_CONNECTION": {"SETTINGS": {"CLIENTID": "x"}}},
+            "CONNECTIONSMAP": [{"CONNECTION": "SERVICE_CONNECTION", "SERVICEURL": "["}],
+        }
+        cm = self._make(**config)
+        claims = ClaimsIdentity(claims={}, is_authenticated=False)
+        with pytest.raises(ValueError, match="Invalid SERVICEURL regex"):
+            cm.get_token_provider(claims, "https://example.com")
+
     def test_token_provider_no_map_returns_default(self):
         config = {k: v for k, v in ENV_CONFIG.items() if k != "CONNECTIONSMAP"}
         cm = self._make(**config)

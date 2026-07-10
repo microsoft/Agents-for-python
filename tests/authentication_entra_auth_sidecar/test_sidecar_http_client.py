@@ -118,6 +118,12 @@ class TestValidateBaseUrl:
             )
         assert "s3cr3tpassw0rd" not in str(exc.value)
 
+    def test_invalid_port_without_userinfo_raises_sidecar_error(self):
+        # A bad port with no userinfo must fail as SidecarAuthError at validation
+        # time, not slip through and raise a bare ValueError later.
+        with pytest.raises(SidecarAuthError):
+            SidecarHttpClient.validate_base_url("http://localhost:999999", False)
+
 
 class TestGetAuthorizationHeader:
     @pytest.mark.asyncio

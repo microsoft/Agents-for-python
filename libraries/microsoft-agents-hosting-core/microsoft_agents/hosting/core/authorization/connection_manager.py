@@ -124,6 +124,25 @@ class ConnectionManager(Connections):
             )
         return connection
 
+    @staticmethod
+    def _service_url_matches(pattern: str, service_url: str) -> bool:
+        """Return whether a SERVICEURL map pattern matches the service URL.
+
+        ``"*"``/empty match any URL. Otherwise the pattern is treated as a regex
+        and matched with an unanchored search, mirroring the .NET
+        ``ConfigurationConnections`` which uses ``Regex.Match``.
+
+        :raises ValueError: If the pattern is not a valid regex.
+        """
+        if pattern == "*" or pattern == "":
+            return True
+        try:
+            return re.search(pattern, service_url, re.IGNORECASE) is not None
+        except re.error as exc:
+            raise ValueError(
+                f"Invalid SERVICEURL regex '{pattern}' in connections map: {exc}"
+            ) from exc
+
     def get_token_provider(
         self, claims_identity: ClaimsIdentity, service_url: str
     ) -> AccessTokenProviderBase:
@@ -153,25 +172,12 @@ class ConnectionManager(Connections):
             if item_aud:
                 audience_match = item_aud.lower() == aud.lower()
 
-            if audience_match:
-                item_service_url = item.get("SERVICEURL", "")
-                if item_service_url == "*" or item_service_url == "":
-                    connection_name = item.get("CONNECTION")
-                    connection = self.get_connection(connection_name)
-                    if connection:
-                        return connection
-
-                else:
-                    # SERVICEURL entries are regexes matched against the service
-                    # URL, mirroring the .NET ConfigurationConnections which uses
-                    # ``Regex.Match`` (an unanchored search). "*"/empty are handled
-                    # above as match-any.
-                    res = re.search(item_service_url, service_url, re.IGNORECASE)
-                    if res:
-                        connection_name = item.get("CONNECTION")
-                        connection = self.get_connection(connection_name)
-                        if connection:
-                            return connection
+            if audience_match and self._service_url_matches(
+                item.get("SERVICEURL", ""), service_url
+            ):
+                connection = self.get_connection(item.get("CONNECTION"))
+                if connection:
+                    return connection
 
         raise ValueError(
             f"No connection found for audience '{aud}' and serviceUrl '{service_url}'."

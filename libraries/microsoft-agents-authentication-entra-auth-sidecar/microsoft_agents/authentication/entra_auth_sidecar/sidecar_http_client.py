@@ -137,6 +137,17 @@ class SidecarHttpClient:
                 str(_Errors.InvalidBaseUrl.format(_redact_url(resolved_url)))
             )
 
+        # ``urlparse`` is lazy: an out-of-range port only raises when ``.port`` is
+        # accessed. Force that evaluation here so a bad port fails consistently
+        # as a SidecarAuthError at validation time instead of a surprising
+        # ValueError later during request construction.
+        try:
+            _ = parsed.port
+        except ValueError:
+            raise SidecarAuthError(
+                str(_Errors.InvalidBaseUrl.format(_redact_url(resolved_url)))
+            )
+
         if parsed.username or parsed.password:
             raise SidecarAuthError(
                 str(
