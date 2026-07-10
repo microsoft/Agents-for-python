@@ -69,6 +69,16 @@ class MiddlewareSet(Middleware):
 
         return await next_middleware.on_turn(context, call_next_middleware)
 
+    async def receive_activity_with_status(
+        self, context: TurnContext, logic: Callable[[TurnContext], Awaitable] | None
+    ):
+        """Handles an incoming activity by passing it through the middleware pipeline and then to the final logic, returning a status.
+
+        :param context: The turn context.
+        :param logic: The final logic to be executed after the middleware pipeline.
+        """
+        await self._receive_activity_internal(context, logic)
+
     async def on_turn(
         self, context: TurnContext, logic: Callable[[TurnContext], Awaitable] | None
     ):
@@ -77,4 +87,6 @@ class MiddlewareSet(Middleware):
         :param context: The turn context.
         :param logic: The final logic to be executed after the middleware pipeline.
         """
-        return await self._receive_activity_internal(context, logic)
+        await self._receive_activity_internal(context, None)
+        if logic:
+            await logic(context)
