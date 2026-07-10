@@ -148,7 +148,7 @@ class AgentState:
         """
 
         self._cached_state = self.get_cached_state(turn_context)
-        return force or not self._cached_state or not self._cached_state.state
+        return force or self._cached_state is None
 
     async def save(self, turn_context: TurnContext, force: bool = False) -> None:
         """
