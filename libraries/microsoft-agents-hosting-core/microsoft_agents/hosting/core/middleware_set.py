@@ -72,7 +72,7 @@ class MiddlewareSet(Middleware):
     async def receive_activity_with_status(
         self, context: TurnContext, logic: Callable[[TurnContext], Awaitable] | None
     ):
-        """Handles an incoming activity by passing it through the middleware pipeline and then to the final logic, returning a status.
+        """Handles an incoming activity by passing it through the middleware pipeline and then to the final logic.
 
         :param context: The turn context.
         :param logic: The final logic to be executed after the middleware pipeline.
