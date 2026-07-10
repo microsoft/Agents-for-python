@@ -159,17 +159,21 @@ async def test_middleware_can_pass_updated_context_to_next_step():
 
 
 @pytest.mark.asyncio
-async def test_on_turn_runs_middleware_without_final_logic():
+async def test_on_turn_runs_middleware_before_noop_logic():
     events: list[str] = []
     context = create_turn_context("context")
     middleware_set = MiddlewareSet().use(RecordingMiddleware("middleware", events))
 
-    result = await middleware_set.on_turn(context, None)
+    async def logic(context: TurnContext):
+        events.append(f"logic:{context_text(context)}")
+
+    result = await middleware_set.on_turn(context, logic)
 
     assert result is None
     assert events == [
         "middleware:before:context",
         "middleware:after:context",
+        "logic:context",
     ]
 
 
