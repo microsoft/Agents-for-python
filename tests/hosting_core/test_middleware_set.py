@@ -71,9 +71,9 @@ async def test_use_registers_all_middleware_and_returns_self():
     assert events == [
         "first:before:context",
         "second:before:context",
+        "callback:context",
         "second:after:context",
         "first:after:context",
-        "callback:context",
     ]
 
 
@@ -90,7 +90,7 @@ def test_use_rejects_invalid_middleware():
 
 
 @pytest.mark.asyncio
-async def test_on_turn_does_not_return_logic_result():
+async def test_on_turn_returns_logic_result():
     events: list[str] = []
     context = create_turn_context("context")
     middleware_set = MiddlewareSet().use(RecordingMiddleware("middleware", events))
@@ -101,11 +101,11 @@ async def test_on_turn_does_not_return_logic_result():
 
     result = await middleware_set.on_turn(context, logic)
 
-    assert result is None
+    assert result == "logic-result"
     assert events == [
         "middleware:before:context",
-        "middleware:after:context",
         "logic:context",
+        "middleware:after:context",
     ]
 
 
@@ -126,11 +126,10 @@ async def test_middleware_can_short_circuit_pipeline():
 
     result = await middleware_set.on_turn(context, logic)
 
-    assert result is None
+    assert result == "short-circuit-result"
     assert events == [
         "first:before:context",
         "first:short-circuit",
-        "logic:context",
     ]
 
 
@@ -152,9 +151,9 @@ async def test_middleware_can_pass_updated_context_to_next_step():
     assert events == [
         "first:before:original-context",
         "second:before:updated-context",
+        "logic:updated-context",
         "second:after:updated-context",
         "first:after:original-context",
-        "logic:original-context",
     ]
 
 
@@ -174,7 +173,7 @@ async def test_on_turn_runs_middleware_without_final_logic():
 
 
 @pytest.mark.asyncio
-async def test_on_turn_runs_logic_after_middleware_set_unwinds():
+async def test_on_turn_runs_logic_inside_middleware_pipeline():
     events: list[str] = []
     context = create_turn_context("context")
     middleware_set = MiddlewareSet().use(
@@ -188,13 +187,13 @@ async def test_on_turn_runs_logic_after_middleware_set_unwinds():
 
     result = await middleware_set.on_turn(context, logic)
 
-    assert result is None
+    assert result == "logic-result"
     assert events == [
         "first:before:context",
         "second:before:context",
+        "logic:context",
         "second:after:context",
         "first:after:context",
-        "logic:context",
     ]
 
 
@@ -215,15 +214,15 @@ async def test_middleware_set_can_be_nested_as_middleware():
 
     result = await outer_set.on_turn(context, logic)
 
-    assert result is None
+    assert result == "logic-result"
     assert events == [
         "outer-before:before:context",
         "inner:before:context",
-        "inner:after:context",
         "outer-after:before:context",
-        "outer-after:after:context",
-        "outer-before:after:context",
         "logic:context",
+        "outer-after:after:context",
+        "inner:after:context",
+        "outer-before:after:context",
     ]
 
 

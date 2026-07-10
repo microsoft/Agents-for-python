@@ -67,10 +67,7 @@ class MiddlewareSet(Middleware):
                 ctx, callback, next_middleware_index + 1
             )
 
-        try:
-            return await next_middleware.on_turn(context, call_next_middleware)
-        except Exception as error:
-            raise error
+        return await next_middleware.on_turn(context, call_next_middleware)
 
     async def on_turn(
         self, context: TurnContext, logic: Callable[[TurnContext], Awaitable] | None
@@ -80,6 +77,4 @@ class MiddlewareSet(Middleware):
         :param context: The turn context.
         :param logic: The final logic to be executed after the middleware pipeline.
         """
-        await self._receive_activity_internal(context, None)
-        if logic:
-            await logic(context)
+        return await self._receive_activity_internal(context, logic)
