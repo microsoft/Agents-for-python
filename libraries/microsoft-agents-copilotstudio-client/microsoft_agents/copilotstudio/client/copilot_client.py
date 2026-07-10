@@ -3,7 +3,7 @@
 
 import aiohttp
 import logging
-from typing import AsyncIterable, Callable, Optional
+from typing import AsyncIterable, Optional
 
 from microsoft_agents.activity import Activity, ActivityTypes, ConversationAccount
 

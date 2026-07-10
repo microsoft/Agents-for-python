@@ -104,11 +104,6 @@ class AgentApplication(Agent, Generic[StateT]):
 
         configuration = kwargs
 
-        logger.debug(f"Initializing AgentApplication with options: {options}")
-        logger.debug(
-            f"Initializing AgentApplication with configuration: {configuration}"
-        )
-
         if not options:
             # TODO: consolidate configuration story
             # Take the options from the kwargs and create an ApplicationOptions instance
