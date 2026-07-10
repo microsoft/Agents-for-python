@@ -2,7 +2,6 @@
 # Licensed under the MIT License.
 
 from abc import ABC
-from typing import Protocol, runtime_checkable
 
 from ._type_aliases import JSON
 

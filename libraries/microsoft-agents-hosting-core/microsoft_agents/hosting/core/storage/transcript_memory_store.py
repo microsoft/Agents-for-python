@@ -3,7 +3,6 @@
 
 from threading import Lock
 from datetime import datetime, timezone
-from typing import List
 from .transcript_logger import TranscriptLogger, PagedResult
 from .transcript_info import TranscriptInfo
 from microsoft_agents.activity import Activity
