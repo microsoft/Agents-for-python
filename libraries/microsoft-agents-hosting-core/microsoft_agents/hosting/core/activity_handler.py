@@ -3,7 +3,6 @@
 
 from __future__ import annotations
 from http import HTTPStatus
-from typing import Awaitable
 from pydantic import BaseModel
 
 from microsoft_agents.activity import TurnContextProtocol
