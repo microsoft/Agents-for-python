@@ -99,6 +99,25 @@ class TestValidateBaseUrl:
         with pytest.raises(SidecarAuthError):
             SidecarHttpClient.validate_base_url("not-a-url", False)
 
+    def test_userinfo_not_leaked_in_error(self):
+        # A base URL that embeds credentials must not echo the password back in
+        # the (commonly logged) validation error.
+        with pytest.raises(SidecarAuthError) as exc:
+            SidecarHttpClient.validate_base_url(
+                "http://user:s3cr3tpassw0rd@localhost:5178", False
+            )
+        assert "s3cr3tpassw0rd" not in str(exc.value)
+
+    def test_userinfo_with_invalid_port_raises_sidecar_error_without_leak(self):
+        # An out-of-range port makes urlparse's lazy ``.port`` raise ValueError;
+        # redaction must still yield a SidecarAuthError (not a bare ValueError)
+        # and must not leak the embedded password.
+        with pytest.raises(SidecarAuthError) as exc:
+            SidecarHttpClient.validate_base_url(
+                "http://user:s3cr3tpassw0rd@localhost:999999/path", False
+            )
+        assert "s3cr3tpassw0rd" not in str(exc.value)
+
 
 class TestGetAuthorizationHeader:
     @pytest.mark.asyncio

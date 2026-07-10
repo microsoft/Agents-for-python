@@ -3,6 +3,8 @@
 
 from __future__ import annotations
 
+from collections.abc import Mapping
+
 from microsoft_agents.activity.config._coercion import (
     coerce_bool,
     coerce_int,
@@ -97,17 +99,28 @@ class SidecarConnectionSettings(_ConnectionSettingsBase):
     @classmethod
     def from_configuration(cls, configuration) -> "SidecarConnectionSettings":
         """
-        Build settings from an :class:`AgentAuthConfiguration`.
+        Build settings from an :class:`AgentAuthConfiguration` (or a raw SETTINGS
+        mapping).
 
-        Reads sidecar-specific values from the configuration object when present,
-        tolerating both attribute-style and the SDK's upper-case kwargs style.
+        The common base fields (client id, authority, tenant, scopes, alternate
+        blueprint) are bound via
+        :meth:`_ConnectionSettingsBase.base_kwargs_from_configuration` so the
+        shared alias handling lives in one place; only the sidecar-specific
+        fields are read here. Both attribute-style configuration objects and raw
+        mappings are tolerated.
         """
+        base_kwargs = cls.base_kwargs_from_configuration(configuration)
 
+        is_mapping = isinstance(configuration, Mapping)
         extras = getattr(configuration, "provider_settings", None) or {}
 
         def _get(*names, default=None):
             for name in names:
-                value = getattr(configuration, name, None)
+                value = (
+                    configuration.get(name)
+                    if is_mapping
+                    else getattr(configuration, name, None)
+                )
                 if value is None:
                     value = extras.get(name)
                 if value is not None:
@@ -131,15 +144,7 @@ class SidecarConnectionSettings(_ConnectionSettingsBase):
                 default=DEFAULT_REQUEST_TIMEOUT_SECONDS,
             ),
             retry_count=_get("RETRY_COUNT", "retry_count", default=DEFAULT_RETRY_COUNT),
-            scopes=_get("SCOPES", "scopes"),
-            client_id=_get("CLIENT_ID", "client_id"),
-            tenant_id=_get("TENANT_ID", "tenant_id"),
-            authority=_get("AUTHORITY", "authority"),
-            alternate_blueprint_connection_name=_get(
-                "ALT_BLUEPRINT_ID",
-                "ALT_BLUEPRINT_NAME",
-                "alternate_blueprint_connection_name",
-            ),
+            **base_kwargs,
         )
 
 

@@ -8,7 +8,7 @@ import ipaddress
 import json
 import logging
 import os
-from urllib.parse import quote, urlparse
+from urllib.parse import quote, urlparse, urlunparse
 
 import httpx
 
@@ -27,6 +27,37 @@ from .errors import (
 from .errors.error_resources import SidecarAuthErrorResources as _Errors
 
 logger = logging.getLogger(__name__)
+
+
+def _redact_url(url: str) -> str:
+    """Strip any embedded userinfo (``user:password@``) from a URL.
+
+    URL-validation errors are surfaced in exceptions that are commonly logged,
+    so a base URL carrying credentials must not be echoed back verbatim.
+    """
+    try:
+        parsed = urlparse(url)
+        # ``urlparse`` is lazy: ``.username``/``.password``/``.port`` only
+        # validate (and can raise ``ValueError``, e.g. an out-of-range port) when
+        # accessed, so every access must stay inside this guard.
+        if parsed.username or parsed.password:
+            host = parsed.hostname or ""
+            if parsed.port:
+                host = f"{host}:{parsed.port}"
+            return urlunparse(
+                (
+                    parsed.scheme,
+                    host,
+                    parsed.path,
+                    parsed.params,
+                    parsed.query,
+                    parsed.fragment,
+                )
+            )
+    except ValueError:
+        return "<redacted-url>"
+    return url
+
 
 DEFAULT_TIMEOUT_SECONDS = 30.0
 _HTTP_TIMEOUT_408 = 408
@@ -97,14 +128,22 @@ class SidecarHttpClient:
         """
         parsed = urlparse(resolved_url) if resolved_url else None
         if not parsed or not parsed.scheme or not parsed.hostname:
-            raise SidecarAuthError(str(_Errors.InvalidBaseUrl.format(resolved_url)))
+            raise SidecarAuthError(
+                str(_Errors.InvalidBaseUrl.format(_redact_url(resolved_url)))
+            )
 
         if parsed.scheme not in ("http", "https"):
-            raise SidecarAuthError(str(_Errors.InvalidBaseUrl.format(resolved_url)))
+            raise SidecarAuthError(
+                str(_Errors.InvalidBaseUrl.format(_redact_url(resolved_url)))
+            )
 
         if parsed.username or parsed.password:
             raise SidecarAuthError(
-                str(_Errors.BaseUrlMustNotContainUserInfo.format(resolved_url))
+                str(
+                    _Errors.BaseUrlMustNotContainUserInfo.format(
+                        _redact_url(resolved_url)
+                    )
+                )
             )
 
         if bypass_local_network_restriction:
@@ -114,7 +153,7 @@ class SidecarHttpClient:
             return
 
         raise SidecarAuthError(
-            str(_Errors.BaseUrlNotLoopbackOrPrivate.format(resolved_url))
+            str(_Errors.BaseUrlNotLoopbackOrPrivate.format(_redact_url(resolved_url)))
         )
 
     @staticmethod

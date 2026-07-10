@@ -81,6 +81,24 @@ class TestGenericConnectionManager:
         claims = ClaimsIdentity(claims={}, is_authenticated=False)
         assert cm.get_token_provider(claims, "agentic") is cm.get_connection("AGENTIC")
 
+    def test_service_url_is_regex_unanchored(self):
+        # SERVICEURL is a regex matched with re.search (mirrors .NET Regex.Match),
+        # so a bare substring pattern matches anywhere in the service URL.
+        cm = self._make(**ENV_CONFIG)
+        claims = ClaimsIdentity(claims={}, is_authenticated=False)
+        assert cm.get_token_provider(
+            claims, "https://host/agentic/path"
+        ) is cm.get_connection("AGENTIC")
+
+    def test_service_url_regex_dot_is_wildcard(self):
+        # '.' in a SERVICEURL regex is a wildcard (regex semantics, matching .NET),
+        # so "https://microsoft.com/*" also matches a host like "microsoftXcom".
+        cm = self._make(**ENV_CONFIG)
+        claims = ClaimsIdentity(claims={}, is_authenticated=False)
+        assert cm.get_token_provider(
+            claims, "https://microsoftXcom/foo"
+        ) is cm.get_connection("MISC")
+
     def test_token_provider_no_map_returns_default(self):
         config = {k: v for k, v in ENV_CONFIG.items() if k != "CONNECTIONSMAP"}
         cm = self._make(**config)

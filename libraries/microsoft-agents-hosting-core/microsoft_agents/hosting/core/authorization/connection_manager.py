@@ -48,10 +48,12 @@ class ConnectionManager(Connections):
 
         self._provider_factory = provider_factory
         self._connections = {}
-        # load_configuration_from_env yields CONNECTIONSMAP as a dict ({} when
-        # unconfigured, or a name->entry map), while the class treats it as a
-        # list[dict[str, str]] everywhere else. Normalize to a list so the
-        # runtime shape is consistent regardless of how the config was produced.
+        # ``load_configuration_from_env`` yields CONNECTIONSMAP as a list when it
+        # is configured (it collapses the parsed name->entry dict to a list) and
+        # as an empty dict ({}) only when unset. Normalize to a list so the guard
+        # also handles a raw dict passed via direct/manual construction and the
+        # empty-unset case, keeping the runtime shape consistent with the
+        # list[dict[str, str]] the class expects everywhere else.
         raw_connections_map = (
             connections_map
             if connections_map is not None
@@ -160,7 +162,11 @@ class ConnectionManager(Connections):
                         return connection
 
                 else:
-                    res = re.match(item_service_url, service_url, re.IGNORECASE)
+                    # SERVICEURL entries are regexes matched against the service
+                    # URL, mirroring the .NET ConfigurationConnections which uses
+                    # ``Regex.Match`` (an unanchored search). "*"/empty are handled
+                    # above as match-any.
+                    res = re.search(item_service_url, service_url, re.IGNORECASE)
                     if res:
                         connection_name = item.get("CONNECTION")
                         connection = self.get_connection(connection_name)

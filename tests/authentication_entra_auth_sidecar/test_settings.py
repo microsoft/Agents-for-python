@@ -82,6 +82,17 @@ class TestSettingsFromConfiguration:
         assert settings.authority == "https://authority"
         assert settings.alternate_blueprint_connection_name == "bp-conn"
 
+    def test_binds_from_raw_mapping(self):
+        # A raw SETTINGS mapping (e.g. a parsed env dict) must bind both the base
+        # fields (via the shared base helper) and the sidecar-specific fields,
+        # not silently fall back to defaults.
+        settings = SidecarConnectionSettings.from_configuration(
+            {"SERVICE_NAME": "svc", "CLIENTID": "cid", "SCOPES": ["s"]}
+        )
+        assert settings.service_name == "svc"
+        assert settings.client_id == "cid"
+        assert settings.scopes == ["s"]
+
 
 class TestAgentAuthConfigurationPreservesExtraSettings:
     def test_unknown_kwargs_preserved_in_provider_settings(self):
@@ -92,6 +103,25 @@ class TestAgentAuthConfigurationPreservesExtraSettings:
         )
         assert config.provider_settings["SERVICE_NAME"] == "botframework"
         assert config.provider_settings["SIDECAR_BASE_URL"] == "http://localhost:5178"
+
+    def test_recognized_core_keys_not_copied_into_provider_settings(self):
+        config = AgentAuthConfiguration(
+            auth_type="EntraAuthSideCar",
+            CLIENTID="app-id",
+            CLIENTSECRET="super-secret",
+            TENANTID="tenant",
+            SERVICE_NAME="botframework",
+        )
+        # Recognized core alias keys — including the client secret — must never
+        # be duplicated into the provider bag (avoids leaking sensitive values).
+        assert "CLIENTSECRET" not in config.provider_settings
+        assert "CLIENTID" not in config.provider_settings
+        assert "TENANTID" not in config.provider_settings
+        # ...but they are still bound to their first-class fields.
+        assert config.CLIENT_SECRET == "super-secret"
+        assert config.CLIENT_ID == "app-id"
+        # ...and genuinely provider-specific keys are still preserved.
+        assert config.provider_settings["SERVICE_NAME"] == "botframework"
 
 
 class TestEnvConfigEndToEnd:

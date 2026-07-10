@@ -3,9 +3,36 @@
 
 from __future__ import annotations
 
+from typing import Any
+
 from microsoft_agents.activity.config._coercion import coerce_bool
 
 from microsoft_agents.hosting.core.authorization.auth_types import AuthTypes
+
+# Env-style configuration keys that ``__init__`` recognizes and binds into
+# first-class fields (via the ``kwargs.get("...")`` aliases below). These are
+# excluded from ``provider_settings`` so that core config — including sensitive
+# values like ``CLIENTSECRET`` — is never duplicated into the provider bag.
+_RECOGNIZED_CONFIG_KEYS = frozenset(
+    {
+        "AUTHTYPE",
+        "CLIENTID",
+        "AUTHORITY",
+        "AUTHORITYENDPOINT",
+        "TENANTID",
+        "CLIENTSECRET",
+        "CERTPFXFILE",
+        "CONNECTIONNAME",
+        "FEDERATEDCLIENTID",
+        "SCOPES",
+        "AZUREREGION",
+        "REGIONALAUTHORITY",
+        "IDPMRESOURCE",
+        "ALT_BLUEPRINT_NAME",
+        "ALTERNATEBLUEPRINTCONNECTIONNAME",
+        "ANONYMOUS_ALLOWED",
+    }
+)
 
 
 class AgentAuthConfiguration:
@@ -47,7 +74,7 @@ class AgentAuthConfiguration:
     # sidecar's SERVICE_NAME, SIDECAR_BASE_URL). Preserved here as a single dict
     # rather than as dynamic attributes so the extra surface is explicit and
     # discoverable. Custom providers read these via ``provider_settings``.
-    provider_settings: dict[str, str]
+    provider_settings: dict[str, Any]
 
     # Multi-connection support: Maintains a map of all configured connections
     # to enable JWT validation across connections. This allows tokens issued
@@ -72,7 +99,7 @@ class AgentAuthConfiguration:
         azure_region: str | None = None,
         idpm_resource: str | None = None,
         anonymous_allowed: bool | None = None,
-        **kwargs: str,
+        **kwargs: Any,
     ):
 
         self.AUTH_TYPE = auth_type or kwargs.get("AUTHTYPE", AuthTypes.client_secret)
@@ -122,11 +149,15 @@ class AgentAuthConfiguration:
             name="ANONYMOUS_ALLOWED",
         )
 
-        # Preserve any provider-specific settings that aren't first-class fields
-        # (e.g. the Entra sidecar's SERVICE_NAME, SIDECAR_BASE_URL) so custom
-        # providers can read them via ``provider_settings`` on this configuration.
+        # Preserve genuinely provider-specific settings that aren't first-class
+        # fields (e.g. the Entra sidecar's SERVICE_NAME, SIDECAR_BASE_URL) so
+        # custom providers can read them via ``provider_settings``. Recognized
+        # core alias keys (bound into first-class fields above) are excluded so
+        # core config — including ``CLIENTSECRET`` — is never copied into this bag.
         self.provider_settings = {
-            key: value for key, value in kwargs.items() if not hasattr(self, key)
+            key: value
+            for key, value in kwargs.items()
+            if not hasattr(self, key) and key not in _RECOGNIZED_CONFIG_KEYS
         }
 
         # JWT-patch: always at least include self for backward compat

@@ -31,10 +31,11 @@ class SidecarTokenExpiry:
             try:
                 claims = jwt.decode(token, options={"verify_signature": False})
                 exp = claims.get("exp")
-                if exp:
+                if exp is not None:
                     return datetime.fromtimestamp(int(exp), tz=timezone.utc)
-            except (jwt.PyJWTError, ValueError, TypeError):
-                # Opaque/non-JWT token - fall back below.
+            except (jwt.PyJWTError, ValueError, TypeError, OverflowError, OSError):
+                # Opaque/non-JWT token, or an out-of-range/invalid ``exp`` - fall
+                # back below.
                 pass
 
         return now + FALLBACK_LIFETIME
