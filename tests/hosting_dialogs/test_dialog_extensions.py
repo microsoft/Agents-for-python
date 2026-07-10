@@ -121,7 +121,7 @@ class TestDialogExtensions:
             await DialogExtensions.run_dialog(
                 dialog, context, convo_state.create_property("DialogState")
             )
-            await convo_state.save(context)  # TEMP experiment
+            await convo_state.save(context)
 
         return DialogTestAdapter(logic)
 
