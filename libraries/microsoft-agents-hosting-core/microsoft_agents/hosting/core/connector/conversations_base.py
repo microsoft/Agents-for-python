@@ -5,7 +5,6 @@ from abc import abstractmethod
 from typing import Protocol, Optional
 
 from microsoft_agents.activity import (
-    AttachmentInfo,
     ConversationResourceResponse,
     ConversationsResult,
     ConversationParameters,

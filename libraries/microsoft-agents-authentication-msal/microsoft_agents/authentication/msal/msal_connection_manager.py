@@ -2,7 +2,7 @@
 # Licensed under the MIT License.
 
 import re
-from typing import Dict, Optional
+from typing import Optional
 from microsoft_agents.hosting.core import (
     AgentAuthConfiguration,
     AccessTokenProviderBase,
