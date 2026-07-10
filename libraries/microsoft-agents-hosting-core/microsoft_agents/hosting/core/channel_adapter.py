@@ -232,7 +232,7 @@ class ChannelAdapter(ABC, ChannelAdapterProtocol):
         :param context: The context object for the turn.
         :type context: :class:`microsoft_agents.hosting.core.turn_context.TurnContext`
         :param callback: A callback method to run at the end of the pipeline.
-        :type callback: Callable[[TurnContext], Awaitable]
+        :type callback: Callable[[TurnContext], Awaitable] | None
         """
         if context is None:
             raise TypeError(context.__class__.__name__)
