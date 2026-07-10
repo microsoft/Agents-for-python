@@ -4,21 +4,17 @@
 from __future__ import annotations
 
 from uuid import uuid4 as uuid
-from typing import Optional
-import logging
+from typing import Optional, Annotated
 
 from pydantic import Field
 
 from .channel_account import ChannelAccount
 from ._channel_id_field_mixin import _ChannelIdFieldMixin
-from .channel_id import ChannelId
 from .conversation_account import ConversationAccount
 from .agents_model import AgentsModel
 from ._type_aliases import NonEmptyString
 from .activity_types import ActivityTypes
 from .activity_event_names import ActivityEventNames
-
-logger = logging.getLogger(__name__)
 
 
 class ConversationReference(AgentsModel, _ChannelIdFieldMixin):
@@ -48,7 +44,7 @@ class ConversationReference(AgentsModel, _ChannelIdFieldMixin):
     # optionals here are due to webchat
     activity_id: Optional[NonEmptyString] = None
     user: Optional[ChannelAccount] = None
-    agent: ChannelAccount = Field(None, alias="bot")
+    agent: Annotated[ChannelAccount, Field(alias="bot")] = None
     conversation: ConversationAccount
     locale: Optional[NonEmptyString] = None
     service_url: NonEmptyString = None
