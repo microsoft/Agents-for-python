@@ -261,7 +261,9 @@ class AgentState:
         :return: None
         """
         if not property_name:
-            raise TypeError("AgentState.delete_value(): property_name cannot be None or empty.")
+            raise TypeError(
+                "AgentState.delete_value(): property_name cannot be None or empty."
+            )
 
         if self._cached_state.state.get(property_name):
             del self._cached_state.state[property_name]
@@ -278,7 +280,9 @@ class AgentState:
         :return: None
         """
         if not property_name:
-            raise TypeError("AgentState.set_value(): property_name cannot be None or empty.")
+            raise TypeError(
+                "AgentState.set_value(): property_name cannot be None or empty."
+            )
         self._cached_state.state[property_name] = value
 
 
