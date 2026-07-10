@@ -163,12 +163,7 @@ class TeamsActivityHandler(ActivityHandler):
                         await self.on_teams_tab_submit(turn_context, tab_submit)
                     )
                 else:
-                    return await super().on_invoke_activity(
-                        turn_context
-                    ) or InvokeResponse(
-                        status=500,
-                        body={"error": f"Invoke activity not handled for name: {name}"},
-                    )
+                    return await super().on_invoke_activity(turn_context)
         except Exception as err:
             if str(err) == str(teams_errors.TeamsNotImplemented):
                 return InvokeResponse(status=int(HTTPStatus.NOT_IMPLEMENTED))
