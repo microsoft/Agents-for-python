@@ -11,6 +11,10 @@ class TeamsChannelAccount(AgentsModel):
 
     :param id: Channel id for the user or bot on this channel (Example: ``joe@smith.com``, or ``@joesmith`` or ``123456``)
     :type id: str
+    :param aad_object_id: Azure Active Directory object id for the user.
+    :type aad_object_id: str
+    :param role: Role of the user in the channel.
+    :type role: str
     :param name: Display friendly name
     :type name: str
     :param given_name: Given name part of the user name.
