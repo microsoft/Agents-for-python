@@ -7,7 +7,6 @@ from opentelemetry.trace import Span
 
 from microsoft_agents.hosting.core.telemetry import (
     attributes,
-    AttributeMap,
     SimpleSpanWrapper,
     format_scopes,
 )
