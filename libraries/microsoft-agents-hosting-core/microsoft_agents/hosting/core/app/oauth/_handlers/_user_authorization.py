@@ -5,7 +5,6 @@ Licensed under the MIT License.
 
 from __future__ import annotations
 import logging
-import jwt
 from typing import Optional
 
 from microsoft_agents.activity import (
