@@ -2,7 +2,8 @@
 # Licensed under the MIT License.
 
 from abc import abstractmethod
-from typing import Awaitable, Callable, Protocol, Self
+from typing import Awaitable, Callable, Protocol
+from typing_extensions import Self
 
 from .turn_context import TurnContext
 
