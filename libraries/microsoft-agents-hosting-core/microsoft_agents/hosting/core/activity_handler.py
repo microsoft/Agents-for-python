@@ -538,7 +538,7 @@ class ActivityHandler(Agent):
         raise _InvokeResponseException(HTTPStatus.NOT_IMPLEMENTED)
 
     @staticmethod
-    def _create_invoke_response(body: BaseModel = None) -> InvokeResponse:
+    def _create_invoke_response(body: BaseModel | None = None) -> InvokeResponse:
         serialized_body = (
             body.model_dump(mode="json", by_alias=True, exclude_none=True)
             if body
