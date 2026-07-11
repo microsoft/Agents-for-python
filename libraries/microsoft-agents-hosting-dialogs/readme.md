@@ -17,6 +17,7 @@ This library is part of the **Microsoft 365 Agents SDK for Python** - a comprehe
 - **Prompts**: Built-in prompts for text, numbers, choices, confirmations, dates, attachments, and OAuth
 - **Choice recognition**: Locale-aware choice matching and recognition
 - **Dialog memory**: Scoped memory management (conversation, user, dialog, class, settings)
+- **DialogManager**: High-level dialog orchestration with state management
 
 ## Installation
 
