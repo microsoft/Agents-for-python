@@ -10,9 +10,9 @@ from microsoft_agents.hosting.core.authorization.telemetry import constants as a
 from microsoft_agents.hosting.core.connector.telemetry import constants as connector_constants
 from microsoft_agents.hosting.core.storage.telemetry import constants as storage_constants
 
-from tests.scenarios import load_scenario
+from .scenarios import load_scenario
 
-from tests.utils.telemetry_fixtures import ( # unused imports are needed for fixtures
+from .utils.telemetry_fixtures import ( # unused imports are needed for fixtures
     test_telemetry,
     test_exporter,
     test_metric_reader,

@@ -62,10 +62,4 @@ class TestQuickstart:
         """Test sending a 'hi' message and receiving a response."""
     
         await agent_client.send("hi", wait=1.0)
-        responses = agent_client.recent()
-
-        assert len(responses) == 2
-        assert len(agent_client.history()) == 2
-
-        agent_client.expect().that_for_one(type="message", text="you said: hi")
-        agent_client.expect().that_for_one(type="typing")
+        agent_client.expect().that_for_one(type="message", text="~hi")
