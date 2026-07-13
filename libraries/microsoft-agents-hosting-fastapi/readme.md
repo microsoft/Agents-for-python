@@ -96,7 +96,8 @@ from microsoft_agents.hosting.fastapi import start_agent_process, CloudAdapter
 from microsoft_agents.hosting.core.app import AgentApplication
 
 app = FastAPI()
-adapter = CloudAdapter()
+connection_manager = MsalConnectionManager(**agents_sdk_config)
+adapter = CloudAdapter(connection_manager=connection_manager)
 agent_app = AgentApplication()
 
 @app.post("/api/messages")
