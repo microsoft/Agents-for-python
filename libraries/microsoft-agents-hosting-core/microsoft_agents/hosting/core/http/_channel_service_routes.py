@@ -184,11 +184,13 @@ class ChannelServiceRoutes:
         """Handle DELETE /v3/conversations/{conversation_id}/members/{member_id}."""
         conversation_id = request.get_path_param("conversation_id")
         member_id = request.get_path_param("member_id")
-        await self.handler.on_delete_conversation_member(
+        result = await self.handler.on_delete_conversation_member(
             request.get_claims_identity(),
             conversation_id,
             member_id,
         )
+        if result:
+            return self.serialize_model(result)
         return {}
 
     async def send_conversation_history(self, request: HttpRequestProtocol) -> dict:
