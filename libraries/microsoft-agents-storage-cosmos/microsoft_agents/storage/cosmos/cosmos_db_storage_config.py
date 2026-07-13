@@ -1,10 +1,12 @@
 import json
-import warnings
+import logging
 
 from azure.core.credentials_async import AsyncTokenCredential
 from microsoft_agents.storage.cosmos.errors import storage_errors
 
 from .key_ops import sanitize_key
+
+logger = logging.getLogger(__name__)
 
 
 class CosmosDBStorageConfig:
@@ -32,7 +34,7 @@ class CosmosDBStorageConfig:
         :param cosmos_client_options: The options for the CosmosClient. Currently only supports connection_policy and
             consistency_level
         :param container_throughput: The throughput set when creating the Container. Defaults to 400.
-        :param key_suffix: The suffix to be added to every key. The keySuffix must contain only valid ComosDb
+        :param key_suffix: The suffix to be added to every key. The keySuffix must contain only valid CosmosDb
             key characters. (e.g. not: '\\', '?', '/', '#', '*')
         :param compatibility_mode: True if keys should be truncated in order to support previous CosmosDb
             max key length of 255.
@@ -48,10 +50,8 @@ class CosmosDBStorageConfig:
         )
 
         if "url" in kwargs:
-            warnings.warn(
-                "The 'url' parameter is deprecated. Please use 'cosmos_db_endpoint' instead.",
-                DeprecationWarning,
-                stacklevel=2,
+            logger.warning(
+                "The 'url' parameter is deprecated. Please use 'cosmos_db_endpoint' instead."
             )
             if not self.cosmos_db_endpoint:
                 self.cosmos_db_endpoint = kwargs.get("url", "")
