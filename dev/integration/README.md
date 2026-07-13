@@ -4,8 +4,12 @@
 
 This directory contains integration tests for the Python SDK.
 
-## Directory structure
+## How to run
 
-`integration`: general-purpose tests that run with automated, locally-running agents
-`scenarios`: agent scenarios used for testing
-`sdk`: integration for specific SDK components. This directory mirrors the structure of the Python SDK libraries.
+Fill in the `.env` file based on `env.TEMPLATE`.
+
+Run with
+
+```bash
+uv run pytest
+```
