@@ -107,19 +107,15 @@ class ChannelServiceRoutes:
         )
         return self.serialize_model(result)
 
-    async def delete_activity(self, request: HttpRequestProtocol) -> dict:
+    async def delete_activity(self, request: HttpRequestProtocol) -> None:
         """Handle DELETE /v3/conversations/{conversation_id}/activities/{activity_id}."""
         conversation_id = request.get_path_param("conversation_id")
         activity_id = request.get_path_param("activity_id")
-        res = await self.handler.on_delete_activity(
+        await self.handler.on_delete_activity(
             request.get_claims_identity(),
             conversation_id,
             activity_id,
         )
-        if res:
-            return self.serialize_model(res)
-        else:
-            return {}
 
     async def get_activity_members(self, request: HttpRequestProtocol) -> list[dict]:
         """Handle GET /v3/conversations/{conversation_id}/activities/{activity_id}/members."""
