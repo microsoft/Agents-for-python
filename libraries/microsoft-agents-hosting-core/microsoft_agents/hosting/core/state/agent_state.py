@@ -185,11 +185,14 @@ class AgentState:
         :type force: bool
         """
 
-        if force or (self._cached_state is not None and self._cached_state.is_changed):
+        # Avoid self._cached_state updating during the save operation
+        cached_state = self._cached_state
+
+        if force or (cached_state is not None and cached_state.is_changed):
             storage_key = self.get_storage_key(turn_context)
-            changes: dict[str, StoreItem] = {storage_key: self._cached_state}
+            changes: dict[str, StoreItem] = {storage_key: cached_state}
             await self._storage.write(changes)
-            self._cached_state.hash = self._cached_state.compute_hash()
+            cached_state.hash = cached_state.compute_hash()
 
     def clear(self, turn_context: TurnContext | None = None) -> None:
         """
