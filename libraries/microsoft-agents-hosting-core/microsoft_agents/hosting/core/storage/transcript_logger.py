@@ -112,7 +112,7 @@ class TranscriptLoggerMiddleware(Middleware):
         self.logger = logger
 
     async def on_turn(
-        self, context: TurnContext, logic: Callable[[TurnContext], Awaitable]
+        self, context: TurnContext, logic: Callable[[TurnContext], Awaitable] | None
     ):
         """Initialization for middleware.
         :param context: Context for the current turn of conversation with the user.
@@ -201,7 +201,7 @@ class TranscriptLoggerMiddleware(Middleware):
         context.on_delete_activity(delete_activity_handler)
 
         if logic:
-            await logic()
+            await logic(context)
 
         # Flush transcript at end of turn
         while not transcript.empty():

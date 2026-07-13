@@ -104,11 +104,6 @@ class AgentApplication(Agent, Generic[StateT]):
 
         configuration = kwargs
 
-        logger.debug(f"Initializing AgentApplication with options: {options}")
-        logger.debug(
-            f"Initializing AgentApplication with configuration: {configuration}"
-        )
-
         if not options:
             # TODO: consolidate configuration story
             # Take the options from the kwargs and create an ApplicationOptions instance
@@ -915,7 +910,6 @@ class AgentApplication(Agent, Generic[StateT]):
         else:
             logger.debug("Using default turn state factory")
             turn_state = TurnState.with_storage(self._options.storage)
-            await turn_state.load(context, self._options.storage)
 
         turn_state = cast(StateT, turn_state)
 
