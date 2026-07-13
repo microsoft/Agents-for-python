@@ -6,8 +6,8 @@
 from microsoft_agents.hosting.core import ConversationState, UserState, Storage
 from microsoft_agents.testing import ActivityHandlerScenario, ScenarioConfig
 
-from tests.activity_handler.dialogs.sample.dialog_agent import DialogAgent
-from tests.activity_handler.dialogs.sample.user_profile_dialog import UserProfileDialog
+from .sample.dialog_agent import DialogAgent
+from .sample.user_profile_dialog import UserProfileDialog
 
 
 def _create_handler(
