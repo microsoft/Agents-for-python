@@ -51,8 +51,10 @@ class CosmosDBStorageConfig:
             warnings.warn(
                 "The 'url' parameter is deprecated. Please use 'cosmos_db_endpoint' instead.",
                 DeprecationWarning,
+                stacklevel=2,
             )
-            self.cosmos_db_endpoint = kwargs.get("url", self.cosmos_db_endpoint)
+            if not self.cosmos_db_endpoint:
+                self.cosmos_db_endpoint = kwargs.get("url", "")
 
         self.auth_key: str = auth_key or kwargs.get("auth_key", "")
         self.database_id: str = database_id or kwargs.get("database_id", "")
