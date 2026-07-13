@@ -37,17 +37,17 @@ def _redact_url(url: str) -> str:
     """
     try:
         parsed = urlparse(url)
-        # ``urlparse`` is lazy: ``.username``/``.password``/``.port`` only
-        # validate (and can raise ``ValueError``, e.g. an out-of-range port) when
-        # accessed, so every access must stay inside this guard.
+        # ``.username``/``.password`` only need reading to detect userinfo. Drop
+        # it by keeping the netloc after the last ``@`` so the host:port (incl.
+        # IPv6 brackets, e.g. ``[::1]:5178``) is preserved verbatim. ``urlparse``
+        # can still raise ``ValueError`` (e.g. a malformed IPv6 literal), so the
+        # guard stays.
         if parsed.username or parsed.password:
-            host = parsed.hostname or ""
-            if parsed.port:
-                host = f"{host}:{parsed.port}"
+            host_port = parsed.netloc.rsplit("@", 1)[-1]
             return urlunparse(
                 (
                     parsed.scheme,
-                    host,
+                    host_port,
                     parsed.path,
                     parsed.params,
                     parsed.query,
@@ -250,9 +250,10 @@ class SidecarHttpClient:
         if options.agent_user_id:
             query_params.append(f"AgentUserId={quote(options.agent_user_id, safe='')}")
 
+        # ``SidecarRequestOptions`` already trims scopes and drops blanks, so
+        # each entry here is a clean, non-empty scope.
         for scope in options.scopes or []:
-            if scope and scope.strip():
-                query_params.append(f"optionsOverride.Scopes={quote(scope, safe='')}")
+            query_params.append(f"optionsOverride.Scopes={quote(scope, safe='')}")
 
         if options.request_app_token is True:
             query_params.append("optionsOverride.RequestAppToken=true")

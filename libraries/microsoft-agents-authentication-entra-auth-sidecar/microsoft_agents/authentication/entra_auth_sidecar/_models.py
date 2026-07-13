@@ -169,7 +169,11 @@ class SidecarRequestOptions:
         # Agentic user object ID. Maps to ``AgentUserId``.
         self.agent_user_id = agent_user_id
         # Override the configured downstream API scopes. Maps to ``optionsOverride.Scopes``.
-        self.scopes = scopes
+        # Normalize once at this boundary (trim, drop blanks) so downstream URL
+        # building and cache-key construction can treat scopes as a clean list.
+        self.scopes = (
+            ([s.strip() for s in scopes if s and s.strip()] or None) if scopes else None
+        )
         # Request an app-only token. Maps to ``optionsOverride.RequestAppToken=true``.
         self.request_app_token = request_app_token
         # Override the tenant. Maps to ``optionsOverride.AcquireTokenOptions.Tenant``.

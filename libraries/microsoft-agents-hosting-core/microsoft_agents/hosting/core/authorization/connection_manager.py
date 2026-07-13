@@ -35,13 +35,13 @@ class ConnectionManager(Connections):
         """
         Initialize the connection manager.
 
-        :arg provider_factory: Factory that creates an
+        :param provider_factory: Factory that creates an
             :class:`microsoft_agents.hosting.core.AccessTokenProviderBase` from an
             :class:`microsoft_agents.hosting.core.AgentAuthConfiguration`.
         :type provider_factory: Callable[[AgentAuthConfiguration], AccessTokenProviderBase]
-        :arg connections_configurations: A dictionary of connection configurations.
+        :param connections_configurations: A dictionary of connection configurations.
         :type connections_configurations: dict[str, :class:`microsoft_agents.hosting.core.AgentAuthConfiguration`]
-        :arg connections_map: A list of connection mappings.
+        :param connections_map: A list of connection mappings.
         :type connections_map: list[dict[str, str]]
         :raises ValueError: If no service connection configuration is provided.
         """
@@ -93,7 +93,7 @@ class ConnectionManager(Connections):
         """
         Get the OAuth connection for the agent.
 
-        :arg connection_name: The name of the connection.
+        :param connection_name: The name of the connection.
         :type connection_name: str | None
         :return: The OAuth connection for the agent.
         :rtype: :class:`microsoft_agents.hosting.core.AccessTokenProviderBase`
@@ -149,9 +149,9 @@ class ConnectionManager(Connections):
         """
         Get the OAuth token provider for the agent.
 
-        :arg claims_identity: The claims identity of the bot.
+        :param claims_identity: The claims identity of the bot.
         :type claims_identity: :class:`microsoft_agents.hosting.core.ClaimsIdentity`
-        :arg service_url: The service URL of the bot.
+        :param service_url: The service URL of the bot.
         :type service_url: str
         :return: The OAuth token provider for the agent.
         :rtype: :class:`microsoft_agents.hosting.core.AccessTokenProviderBase`
@@ -175,9 +175,7 @@ class ConnectionManager(Connections):
             if audience_match and self._service_url_matches(
                 item.get("SERVICEURL", ""), service_url
             ):
-                connection = self.get_connection(item.get("CONNECTION"))
-                if connection:
-                    return connection
+                return self.get_connection(item.get("CONNECTION"))
 
         raise ValueError(
             f"No connection found for audience '{aud}' and serviceUrl '{service_url}'."

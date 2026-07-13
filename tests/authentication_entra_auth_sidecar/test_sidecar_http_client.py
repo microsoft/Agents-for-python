@@ -125,6 +125,19 @@ class TestValidateBaseUrl:
             SidecarHttpClient.validate_base_url("http://localhost:999999", False)
 
 
+class TestRedactUrl:
+    def test_preserves_ipv6_brackets_when_stripping_userinfo(self):
+        # Redaction must keep IPv6 brackets intact so the host stays unambiguous
+        # (``[::1]:5178``), not collapse to ``::1:5178``.
+        from microsoft_agents.authentication.entra_auth_sidecar.sidecar_http_client import (  # noqa: E501
+            _redact_url,
+        )
+
+        redacted = _redact_url("http://user:pass@[::1]:5178/path")
+        assert redacted == "http://[::1]:5178/path"
+        assert "user" not in redacted and "pass" not in redacted
+
+
 class TestGetAuthorizationHeader:
     @pytest.mark.asyncio
     async def test_success_strips_scheme(self):
@@ -165,6 +178,24 @@ class TestGetAuthorizationHeader:
         assert "optionsOverride.RequestAppToken=true" in url
         assert "optionsOverride.AcquireTokenOptions.Tenant=tenant-1" in url
         assert "optionsOverride.AcquireTokenOptions.ForceRefresh=true" in url
+        await client.aclose()
+
+    @pytest.mark.asyncio
+    async def test_whitespace_padded_scope_sent_trimmed(self):
+        # A scope with surrounding whitespace must be sent trimmed, not URL-encoded
+        # with leading/trailing %20 (which the sidecar would reject).
+        captured = {}
+
+        async def handler(request):
+            captured["url"] = str(request.url)
+            return httpx.Response(200, json={"authorizationHeader": "******"})
+
+        client = _make_client(handler)
+        options = SidecarRequestOptions(scopes=["  api://x/.default  "])
+        await client.get_authorization_header_unauthenticated("svc", options)
+        url = captured["url"]
+        assert "optionsOverride.Scopes=api%3A%2F%2Fx%2F.default" in url
+        assert "%20" not in url
         await client.aclose()
 
     @pytest.mark.asyncio

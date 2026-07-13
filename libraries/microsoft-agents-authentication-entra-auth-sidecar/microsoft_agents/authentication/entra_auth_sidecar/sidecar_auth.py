@@ -107,7 +107,7 @@ class SidecarAuth(AccessTokenProviderBase):
         options = SidecarRequestOptions(
             scopes=scopes,
             request_app_token=True,
-            force_refresh=True if force_refresh else None,
+            force_refresh=force_refresh,
         )
         return await self._get_cached_token(self._service_name, options)
 
@@ -247,7 +247,7 @@ class SidecarAuth(AccessTokenProviderBase):
     @staticmethod
     def _build_cache_key(service_name: str, options: SidecarRequestOptions) -> str:
         if options.scopes:
-            scopes = " ".join(sorted({s for s in options.scopes if s and s.strip()}))
+            scopes = " ".join(sorted(set(options.scopes)))
         else:
             scopes = ""
         return "|".join(

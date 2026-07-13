@@ -28,9 +28,9 @@ class MsalConnectionManager(ConnectionManager):
         """
         Initialize the MSAL connection manager.
 
-        :arg connections_configurations: A dictionary of connection configurations.
+        :param connections_configurations: A dictionary of connection configurations.
         :type connections_configurations: dict[str, :class:`microsoft_agents.hosting.core.AgentAuthConfiguration`]
-        :arg connections_map: A list of connection mappings.
+        :param connections_map: A list of connection mappings.
         :type connections_map: list[dict[str, str]]
         :raises ValueError: If no service connection configuration is provided.
         """

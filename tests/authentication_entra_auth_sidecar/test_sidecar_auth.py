@@ -196,6 +196,21 @@ class TestSidecarAuthCache:
         )
         assert k1 == k2
 
+    def test_cache_key_scope_whitespace_normalized(self):
+        from microsoft_agents.authentication.entra_auth_sidecar._models import (
+            SidecarRequestOptions,
+        )
+
+        # Logically identical scope sets that differ only in surrounding
+        # whitespace must map to the same cache key.
+        k1 = SidecarAuth._build_cache_key(
+            "svc", SidecarRequestOptions(scopes=["  scope  "])
+        )
+        k2 = SidecarAuth._build_cache_key(
+            "svc", SidecarRequestOptions(scopes=["scope"])
+        )
+        assert k1 == k2
+
 
 class TestSidecarAuthCacheEviction:
     """Validate the bounded-cache eviction policy used to cap memory growth."""
