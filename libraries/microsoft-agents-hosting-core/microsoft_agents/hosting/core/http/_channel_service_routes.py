@@ -58,7 +58,7 @@ class ChannelServiceRoutes:
     def serialize_model(
         model_or_list: AgentsModelT | list[AgentsModelT],
     ) -> dict | list[dict]:
-        """Serialize model or list of models to JSON-compatible dict."""
+        """Serialize model or list of models to JSON-compatible dict or list of dicts."""
         if isinstance(model_or_list, AgentsModel):
             return model_or_list.model_dump(
                 mode="json", exclude_unset=True, by_alias=True
