@@ -349,6 +349,22 @@ class TestGetAuthorizationHeader:
         await client.aclose()
 
     @pytest.mark.asyncio
+    async def test_transient_status_exhausts_to_unavailable(self):
+        # A 5xx that persists through every retry is an availability problem, so
+        # it must surface as SidecarUnavailableError (not a generic auth error).
+        calls = {"n": 0}
+
+        async def handler(request):
+            calls["n"] += 1
+            return httpx.Response(503, text="busy")
+
+        client = _make_client(handler, retry_count=2, retry_backoff_base=0)
+        with pytest.raises(SidecarUnavailableError):
+            await client.get_authorization_header_unauthenticated("svc")
+        assert calls["n"] == 3
+        await client.aclose()
+
+    @pytest.mark.asyncio
     async def test_is_healthy_true(self):
         async def handler(request):
             assert request.url.path == "/healthz"

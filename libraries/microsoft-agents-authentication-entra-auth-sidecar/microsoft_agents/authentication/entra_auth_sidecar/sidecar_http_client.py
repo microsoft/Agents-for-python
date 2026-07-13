@@ -304,17 +304,36 @@ class SidecarHttpClient:
             status = response.status_code
             if not response.is_success:
                 error_content = response.text
-                if self._is_transient_status(status) and attempt < max_attempts:
-                    logger.warning(
-                        "Sidecar returned transient status %d from %s "
-                        "(attempt %d/%d); retrying.",
+                if self._is_transient_status(status):
+                    if attempt < max_attempts:
+                        logger.warning(
+                            "Sidecar returned transient status %d from %s "
+                            "(attempt %d/%d); retrying.",
+                            status,
+                            request_path,
+                            attempt,
+                            max_attempts,
+                        )
+                        await self._delay_before_retry(attempt)
+                        continue
+                    # A transient status that survived every retry is an
+                    # availability problem, not an auth failure. Surface it as
+                    # SidecarUnavailableError so callers can distinguish outages,
+                    # mirroring the connection/timeout exhaustion path above.
+                    logger.error(
+                        "Sidecar returned transient status %d from %s after "
+                        "%d attempt(s).",
                         status,
                         request_path,
                         attempt,
-                        max_attempts,
                     )
-                    await self._delay_before_retry(attempt)
-                    continue
+                    raise SidecarUnavailableError(
+                        str(
+                            _Errors.SidecarRequestFailed.format(
+                                attempt, f"HTTP {status}"
+                            )
+                        )
+                    )
 
                 self._raise_for_error(status, request_path, error_content)
 
