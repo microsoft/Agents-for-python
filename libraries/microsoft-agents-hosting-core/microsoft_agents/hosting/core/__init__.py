@@ -6,7 +6,7 @@ from .channel_api_handler_protocol import ChannelApiHandlerProtocol
 from .channel_service_adapter import ChannelServiceAdapter
 from .channel_service_client_factory_base import ChannelServiceClientFactoryBase
 from .message_factory import MessageFactory
-from .middleware_set import Middleware
+from .middleware_set import Middleware, MiddlewareSet
 from .rest_channel_service_client_factory import RestChannelServiceClientFactory
 from .turn_context import TurnContext
 
@@ -176,6 +176,7 @@ __all__ = [
     "MemoryStorage",
     "AgenticUserAuthorization",
     "Authorization",
+    "MiddlewareSet",
     "error_resources",
     "ErrorMessage",
     "ErrorResources",
