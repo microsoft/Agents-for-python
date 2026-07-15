@@ -230,7 +230,10 @@ class _UserAuthorization(_AuthorizationHandler):
                     ).model_dump(exclude_unset=True),
                 )
             )
-        elif flow_state.tag == _FlowStateTag.COMPLETE and context.activity.type == ActivityTypes.invoke:
+        elif (
+            flow_state.tag == _FlowStateTag.COMPLETE
+            and context.activity.type == ActivityTypes.invoke
+        ):
             await context.send_activity(
                 Activity(
                     type=ActivityTypes.invoke_response,

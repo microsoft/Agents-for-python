@@ -51,7 +51,7 @@ class ConsoleTranscriptLogger(TranscriptLogger):
         if not activity:
             raise TypeError("Activity is required")
 
-        json_data = activity.model_dump_json(exclude_unset=True)
+        json_data = activity.model_dump_json()
         parsed = json.loads(json_data)
         print(json.dumps(parsed, indent=4))
 

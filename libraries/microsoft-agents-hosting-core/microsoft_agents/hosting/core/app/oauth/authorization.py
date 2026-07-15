@@ -321,7 +321,7 @@ class Authorization:
         Returns an _AuthInterceptResult indicating whether the turn should be skipped and if a continuation activity is present.
 
         :param context: The context object for the current turn.
-        :type context: :class:`microsoft_agents.hosting.core.turn_context.TurnContext
+        :type context: :class:`microsoft_agents.hosting.core.turn_context.TurnContext`
         :param state: The turn state for the current turn.
         :type state: :class:`microsoft_agents.hosting.core.app.state.turn_state.TurnState`
         :return: An _AuthInterceptResult indicating whether the turn should be skipped and if a continuation activity is present.
