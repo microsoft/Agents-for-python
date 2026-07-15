@@ -1020,26 +1020,54 @@ class AgentApplication(Agent, Generic[StateT]):
     ):
         """Handle the case where the turn should be skipped due to an auth intercept result."""
 
-        async def __replay(ctx: TurnContext, act: Activity):
+        if not context.identity:
+            logger.error(
+                "Cannot replay turn because context.identity is not set. Ensure that the adapter is configured to set the identity."
+            )
+            raise ApplicationError(
+                "Cannot replay turn because context.identity is not set. Ensure that the adapter is configured to set the identity."
+            )
+
+        async def __replay_turn(replay_context: TurnContext):
+
+            for key, val in context.turn_state.items():
+                if replay_context.turn_state.get(key, None) is None:
+                    replay_context.turn_state[key] = val
+
+            await self._on_turn(replay_context)
+
+        async def __replay(act: Activity):
 
             await self._adapter.continue_conversation_with_claims(
-                ctx.identity,
+                context.identity,
                 act,
-                self.on_turn,
+                __replay_turn,
             )
 
             context.activity = act
+
+        def __log_task_result(task: asyncio.Task):
+            try:
+                task.result()
+            except Exception as e:
+                logger.error(
+                    f"Error occurred while replaying the turn.",
+                    exc_info=True,
+                )
 
         if result.should_replay:
 
             await turn_state.save(context)
 
-            if result.continuation_activity:
-                logger.info("Replaying the turn with saved continuation activity")
-                asyncio.create_task(__replay(context, result.continuation_activity))
-            else:
-                logger.info("Replaying the turn")
-                asyncio.create_task(__replay(context, context.activity))
+            task: asyncio.Task
+
+            activity = result.continuation_activity or context.activity
+            logger.info(
+                "Replaying the turn with current or saved continuation activity"
+            )
+            task = asyncio.create_task(__replay(activity))
+            task.add_done_callback(__log_task_result)
+
         return
 
     async def _on_error(self, context: TurnContext, err: ApplicationError) -> None:

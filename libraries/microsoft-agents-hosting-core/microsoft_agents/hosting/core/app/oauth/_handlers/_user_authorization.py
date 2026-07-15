@@ -237,7 +237,7 @@ class _UserAuthorization(_AuthorizationHandler):
             await context.send_activity(
                 Activity(
                     type=ActivityTypes.invoke_response,
-                    value=InvokeResponse(status=200),
+                    value=InvokeResponse(status=200).model_dump(exclude_unset=True),
                 )
             )
 
