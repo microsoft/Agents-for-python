@@ -9,6 +9,7 @@ import pytest
 
 from microsoft_agents.activity import (
     Activity,
+    Attachment,
     ChannelId,
     Channels,
     DeliveryModes,
@@ -519,3 +520,74 @@ async def test_feedback_loop_type_without_enable_does_not_emit_feedback_loop_obj
 
     assert not streaminfo.feedback_loop
     assert not streaminfo.feedback_loop_enabled
+
+
+@pytest.mark.asyncio
+async def test_add_attachment_included_in_final_message(mocker):
+    context = _create_turn_context(
+        mocker,
+        delivery_mode=DeliveryModes.stream,
+        return_value=ResourceResponse(id="stream-att-1"),
+    )
+    response = StreamingResponse(context)
+    attachment = Attachment(content_type="text/plain", name="test.txt", content="hello")
+
+    response.add_attachment(attachment)
+    response.queue_text_chunk("with attachment")
+    await response.end_stream()
+
+    final = context.send_activity.await_args_list[-1].args[0]
+    assert final.attachments is not None
+    assert len(final.attachments) == 1
+    assert final.attachments[0] is attachment
+
+
+def test_add_attachment_raises_on_none(mocker):
+    context = _create_turn_context(mocker, delivery_mode=DeliveryModes.stream)
+    response = StreamingResponse(context)
+
+    with pytest.raises(ValueError, match="attachment cannot be None"):
+        response.add_attachment(None)
+
+
+@pytest.mark.asyncio
+async def test_add_attachment_cleared_on_reset(mocker):
+    context = _create_turn_context(
+        mocker,
+        delivery_mode=DeliveryModes.stream,
+        return_value=[
+            ResourceResponse(id="stream-att-2"),
+            ResourceResponse(id="stream-att-2"),
+        ],
+    )
+    response = StreamingResponse(context)
+
+    response.add_attachment(Attachment(content_type="text/plain", content="data"))
+    response.queue_text_chunk("first stream")
+    await response.end_stream()
+
+    await response.reset()
+
+    response.queue_text_chunk("second stream")
+    await response.end_stream()
+
+    post_reset_final = context.send_activity.await_args_list[-1].args[0]
+    assert not post_reset_final.attachments or len(post_reset_final.attachments) == 0
+
+
+@pytest.mark.asyncio
+async def test_add_attachment_accumulates_multiple(mocker):
+    context = _create_turn_context(
+        mocker,
+        delivery_mode=DeliveryModes.stream,
+        return_value=ResourceResponse(id="stream-att-3"),
+    )
+    response = StreamingResponse(context)
+
+    response.add_attachment(Attachment(content_type="text/plain", content="one"))
+    response.add_attachment(Attachment(content_type="image/png", content="two"))
+    response.queue_text_chunk("multiple attachments")
+    await response.end_stream()
+
+    final = context.send_activity.await_args_list[-1].args[0]
+    assert len(final.attachments) == 2
