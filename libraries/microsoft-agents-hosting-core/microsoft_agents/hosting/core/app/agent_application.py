@@ -1019,7 +1019,7 @@ class AgentApplication(Agent, Generic[StateT]):
         self, context: TurnContext, turn_state: StateT, result: _AuthInterceptResult
     ):
         """Handle the case where the turn should be skipped due to an auth intercept result."""
-        
+
         async def __replay(ctx: TurnContext, act: Activity):
 
             new_context = TurnContext(ctx)
