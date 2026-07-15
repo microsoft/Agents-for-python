@@ -5,6 +5,7 @@ Licensed under the MIT License.
 
 import logging
 from typing import Optional, Callable, Awaitable, cast
+from dataclasses import dataclass
 
 from microsoft_agents.activity import Activity, Channels, SignInConstants, TokenResponse
 from microsoft_agents.activity.activity_types import ActivityTypes
@@ -31,6 +32,15 @@ AUTHORIZATION_TYPE_MAP = {
     "agenticuserauthorization": AgenticUserAuthorization,
     "connectoruserauthorization": ConnectorUserAuthorization,
 }
+
+
+@dataclass
+class _AuthInterceptResult:
+    """Dataclass representing the result of an authentication intercept."""
+
+    should_skip_turn: bool
+    should_replay: bool
+    continuation_activity: Activity | None = None
 
 
 class Authorization:
@@ -305,20 +315,17 @@ class Authorization:
 
     async def _on_turn_auth_intercept(
         self, context: TurnContext, state: TurnState
-    ) -> tuple[bool, Optional[Activity]]:
+    ) -> _AuthInterceptResult:
         """Intercepts the turn to check for active authentication flows.
 
-        Returns true if the rest of the turn should be skipped because auth did not finish.
-        Returns false if the turn should continue processing as normal.
-        If auth completes and a new turn should be started, returns the continuation activity
-        from the cached _SignInState.
+        Returns an _AuthInterceptResult indicating whether the turn should be skipped and if a continuation activity is present.
 
         :param context: The context object for the current turn.
-        :type context: :class:`microsoft_agents.hosting.core.turn_context.TurnContext`
+        :type context: :class:`microsoft_agents.hosting.core.turn_context.TurnContext
         :param state: The turn state for the current turn.
         :type state: :class:`microsoft_agents.hosting.core.app.state.turn_state.TurnState`
-        :return: A tuple indicating whether the turn should be skipped and the continuation activity if applicable.
-        :rtype: tuple[bool, Optional[:class:`microsoft_agents.activity.Activity`]]
+        :return: An _AuthInterceptResult indicating whether the turn should be skipped and if a continuation activity is present.
+        :rtype: :class:`microsoft_agents.hosting.core.app.oauth.authorization._AuthInterceptResult`
         """
         sign_in_state = await self._load_sign_in_state(context)
 
@@ -331,17 +338,33 @@ class Authorization:
                 if sign_in_response.tag == _FlowStateTag.COMPLETE:
                     if not sign_in_state:
                         # flow just completed, no continuation activity
-                        return False, None
+                        return _AuthInterceptResult(
+                            should_skip_turn=context.activity.type
+                            == ActivityTypes.invoke,
+                            should_replay=True,
+                            continuation_activity=None,
+                        )
                     assert sign_in_state.continuation_activity is not None
                     continuation_activity = (
                         sign_in_state.continuation_activity.model_copy()
                     )
                     # flow complete, start new turn with continuation activity
-                    return True, continuation_activity
+
+                    return _AuthInterceptResult(
+                        should_skip_turn=True,
+                        should_replay=True,
+                        continuation_activity=continuation_activity,
+                    )
                 # auth flow still in progress, the turn should be skipped
-                return True, None
+                return _AuthInterceptResult(
+                    should_skip_turn=True,
+                    should_replay=False,
+                    continuation_activity=None,
+                )
         # no active auth flow, continue processing
-        return False, None
+        return _AuthInterceptResult(
+            should_skip_turn=False, should_replay=False, continuation_activity=None
+        )
 
     async def get_token(
         self, context: TurnContext, auth_handler_id: Optional[str] = None

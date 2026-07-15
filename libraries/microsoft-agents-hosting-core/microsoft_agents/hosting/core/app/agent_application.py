@@ -41,13 +41,13 @@ from .app_options import ApplicationOptions
 
 from .state import TurnState
 from ..channel_service_adapter import ChannelServiceAdapter
-from .oauth import Authorization
+from .oauth.authorization import Authorization, _AuthInterceptResult
 from .typing_indicator import TypingIndicator
 from .telemetry import spans
 
 from ._type_defs import RouteHandler, RouteSelector
 from ._routes import _RouteList, _Route, RouteRank, _agentic_selector
-from .proactive import Proactive, ProactiveOptions
+from .proactive import Proactive
 
 logger = logging.getLogger(__name__)
 
@@ -829,33 +829,15 @@ class AgentApplication(Agent, Generic[StateT]):
                         ActivityTypes.invoke,
                     ]:
 
-                        (
-                            auth_intercepts,
-                            continuation_activity,
-                        ) = await self._auth._on_turn_auth_intercept(
-                            context, turn_state
+                        auth_intercept_result = (
+                            await self._auth._on_turn_auth_intercept(
+                                context, turn_state
+                            )
                         )
-                        if auth_intercepts:
-                            if continuation_activity:
-                                await turn_state.save(context)
-                                logger.info(
-                                    "Queueing continuation activity %s",
-                                    continuation_activity.text,
-                                )
-                                self._queue_auth_continuation(
-                                    context, continuation_activity
-                                )
-                            else:
-                                await turn_state.save(context)
-                                logger.info(
-                                    "No continuation activity to queue, copying current activity"
-                                )
-                                new_context = TurnContext(context)
-                                for key, value in context.turn_state.items():
-                                    new_context.turn_state[key] = value
-                                self._queue_auth_continuation(
-                                    new_context, context.activity
-                                )
+                        if auth_intercept_result.should_skip_turn:
+                            await self._handle_turn_skip(
+                                context, turn_state, auth_intercept_result
+                            )
                             return  # allows immediate sending of invoke response
 
                     logger.debug("Running before turn middleware")
@@ -1032,6 +1014,25 @@ class AgentApplication(Agent, Generic[StateT]):
             )
 
         return await func(context)
+
+    async def _handle_turn_skip(
+        self, context: TurnContext, turn_state: StateT, result: _AuthInterceptResult
+    ):
+
+        if result.should_replay:
+
+            await turn_state.save(context)
+
+            if result.continuation_activity:
+                logger.info("Replaying the turn with saved continuation activity")
+                self._queue_auth_continuation(context, result.continuation_activity)
+            else:
+                logger.info("Replaying the turn")
+                new_context = TurnContext(context)
+                for key, value in context.turn_state.items():
+                    new_context.turn_state[key] = value
+                self._queue_auth_continuation(new_context, context.activity)
+        return
 
     def _queue_auth_continuation(
         self, context: TurnContext, continuation_activity: Activity
