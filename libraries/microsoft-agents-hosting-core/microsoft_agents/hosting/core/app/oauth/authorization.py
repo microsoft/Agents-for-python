@@ -341,7 +341,7 @@ class Authorization:
                         is_invoke = context.activity.type == ActivityTypes.invoke
                         return _AuthInterceptResult(
                             should_skip_turn=is_invoke,
-                            should_replay=is_invoke,
+                            should_replay=False,
                             continuation_activity=None,
                         )
                     assert sign_in_state.continuation_activity is not None
