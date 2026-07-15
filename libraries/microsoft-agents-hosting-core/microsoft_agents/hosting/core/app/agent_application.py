@@ -1061,7 +1061,7 @@ class AgentApplication(Agent, Generic[StateT]):
 
             task: asyncio.Task
 
-            activity = result.continuation_activity or context.activity
+            activity = result.continuation_activity or context.activity.model_copy(deep=True)
             logger.info(
                 "Replaying the turn with current or saved continuation activity"
             )
