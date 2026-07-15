@@ -793,21 +793,14 @@ class Activity(AgentsModel, _ChannelIdFieldMixin):
         if self.type is None:
             return False
 
-        type_attribute = f"ActivityTypes.{str(self.type)}".lower()
-        activity_type = str(activity_type).lower()
+        type_value = str(getattr(self.type, "value", self.type)).lower()
+        activity_type_value = str(
+            getattr(activity_type, "value", activity_type)
+        ).lower()
 
-        result = type_attribute.startswith(activity_type)
-
-        if result:
-            result = len(type_attribute) == len(activity_type)
-
-            if not result:
-                result = (
-                    len(type_attribute) > len(activity_type)
-                    and type_attribute[len(activity_type)] == "/"
-                )
-
-        return result
+        return type_value == activity_type_value or type_value.startswith(
+            f"{activity_type_value}/"
+        )
 
     def add_ai_metadata(
         self,

@@ -1,7 +1,7 @@
 # Copyright (c) Microsoft Corporation. All rights reserved.
 # Licensed under the MIT License.
 
-from abc import ABC, abstractmethod
+from abc import abstractmethod
 from datetime import datetime, timezone
 from microsoft_agents.activity import Activity
 from .transcript_info import TranscriptInfo
