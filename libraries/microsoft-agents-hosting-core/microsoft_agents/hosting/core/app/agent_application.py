@@ -43,7 +43,11 @@ from .oauth import Authorization
 from .typing_indicator import TypingIndicator
 from .telemetry import spans
 
-from ._type_defs import RouteHandler, RouteSelector
+from ._type_defs import (
+    RouteHandler,
+    HandoffHandler,
+    RouteSelector,
+)
 from ._routes import _RouteList, _Route, RouteRank, _agentic_selector
 from .proactive import Proactive, ProactiveOptions
 
@@ -69,7 +73,7 @@ class AgentApplication(Agent, Generic[StateT]):
 
     _options: ApplicationOptions
     _adapter: Optional[ChannelServiceAdapter] = None
-    _auth: Optional[Authorization] = None
+    _auth: Authorization
     _proactive: Optional[Proactive] = None
     _internal_before_turn: list[Callable[[TurnContext, StateT], Awaitable[bool]]]
     _internal_after_turn: list[Callable[[TurnContext, StateT], Awaitable[bool]]]
@@ -609,11 +613,11 @@ class AgentApplication(Agent, Generic[StateT]):
     @overload
     def handoff(
         self,
-        func: Callable[[TurnContext, StateT, str], Awaitable[None]],
+        func: HandoffHandler[StateT],
         *,
         auth_handlers: Optional[list[str]] = None,
         **kwargs,
-    ) -> Callable[[TurnContext, StateT, str], Awaitable[None]]: ...
+    ) -> HandoffHandler[StateT]: ...
 
     @overload
     def handoff(
@@ -622,21 +626,21 @@ class AgentApplication(Agent, Generic[StateT]):
         auth_handlers: Optional[list[str]] = None,
         **kwargs: Any,
     ) -> Callable[
-        [Callable[[TurnContext, StateT, str], Awaitable[None]]],
-        Callable[[TurnContext, StateT, str], Awaitable[None]],
+        [HandoffHandler[StateT]],
+        HandoffHandler[StateT],
     ]: ...
 
     def handoff(
         self,
-        func: Optional[Callable[[TurnContext, StateT, str], Awaitable[None]]] = None,
+        func: Optional[HandoffHandler[StateT]] = None,
         *,
         auth_handlers: Optional[list[str]] = None,
         **kwargs,
     ) -> (
-        Callable[[TurnContext, StateT, str], Awaitable[None]]
+        HandoffHandler[StateT]
         | Callable[
-            [Callable[[TurnContext, StateT, str], Awaitable[None]]],
-            Callable[[TurnContext, StateT, str], Awaitable[None]],
+            [HandoffHandler[StateT]],
+            HandoffHandler[StateT],
         ]
     ):
         """
@@ -650,7 +654,7 @@ class AgentApplication(Agent, Generic[StateT]):
                     print(continuation)
 
         :param func: Optional handler to register directly without using decorator syntax.
-        :type func: Optional[Callable[[TurnContext, StateT, str], Awaitable[None]]]
+        :type func: Optional[HandoffHandler[StateT]]
         :param auth_handlers: Optional list of authorization handler IDs for the route.
         :type auth_handlers: Optional[list[str]]
         :param kwargs: Additional route configuration passed to :meth:`microsoft_agents.hosting.core.AgentApplication.add_route`.
@@ -663,8 +667,8 @@ class AgentApplication(Agent, Generic[StateT]):
             )
 
         def __call(
-            func: Callable[[TurnContext, StateT, str], Awaitable[None]],
-        ) -> Callable[[TurnContext, StateT, str], Awaitable[None]]:
+            func: HandoffHandler[StateT],
+        ) -> HandoffHandler[StateT]:
             async def __handler(context: TurnContext, state: StateT):
                 if (
                     isinstance(context.activity.value, dict)

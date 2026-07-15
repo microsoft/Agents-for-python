@@ -27,6 +27,8 @@ class TurnContext(TurnContextProtocol):
     # Same constant as in the BF Adapter, duplicating here to avoid circular dependency
     _INVOKE_RESPONSE_KEY = "TurnContext.InvokeResponse"
 
+    _activity: Activity
+
     def __init__(
         self,
         adapter_or_context,
@@ -43,7 +45,7 @@ class TurnContext(TurnContextProtocol):
             self._identity = adapter_or_context.identity
         else:
             self.adapter = adapter_or_context
-            self._activity = request
+            self._activity = request  # exception thrown if None further down
             self.responses: list[Activity] = []
             self._services: dict = {}
             self._on_send_activities: Callable[
@@ -60,7 +62,7 @@ class TurnContext(TurnContextProtocol):
 
         if self.adapter is None:
             raise TypeError("TurnContext must be instantiated with an adapter.")
-        if self.activity is None:
+        if self._activity is None:
             raise TypeError(
                 "TurnContext must be instantiated with a request parameter of type Activity."
             )
@@ -83,7 +85,7 @@ class TurnContext(TurnContextProtocol):
         """
         for attribute in [
             "adapter",
-            "activity",
+            "_activity",
             "_responded",
             "_services",
             "_on_send_activities",
@@ -187,7 +189,7 @@ class TurnContext(TurnContextProtocol):
         activity_or_text: Activity | str,
         speak: str | None = None,
         input_hint: str | None = None,
-    ) -> ResourceResponse | None:
+    ) -> ResourceResponse:
         """
         Sends a single activity or message to the user.
         :param activity_or_text:
@@ -203,7 +205,7 @@ class TurnContext(TurnContextProtocol):
                 activity_or_text.speak = speak
 
         result = await self.send_activities([activity_or_text])
-        return result[0] if result else None
+        return result[0] if result else ResourceResponse()
 
     async def send_activities(
         self, activities: list[Activity]
