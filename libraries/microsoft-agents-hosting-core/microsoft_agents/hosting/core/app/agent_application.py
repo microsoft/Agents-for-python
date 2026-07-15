@@ -1020,14 +1020,6 @@ class AgentApplication(Agent, Generic[StateT]):
     ):
         """Handle the case where the turn should be skipped due to an auth intercept result."""
 
-        if not context.identity:
-            logger.error(
-                "Cannot replay turn because context.identity is not set. Ensure that the adapter is configured to set the identity."
-            )
-            raise ApplicationError(
-                "Cannot replay turn because context.identity is not set. Ensure that the adapter is configured to set the identity."
-            )
-
         async def __replay_turn(replay_context: TurnContext):
 
             for key, val in context.turn_state.items():
@@ -1044,8 +1036,6 @@ class AgentApplication(Agent, Generic[StateT]):
                 __replay_turn,
             )
 
-            context.activity = act
-
         def __log_task_result(task: asyncio.Task):
             try:
                 task.result()
@@ -1056,6 +1046,14 @@ class AgentApplication(Agent, Generic[StateT]):
                 )
 
         if result.should_replay:
+
+            if not context.identity:
+                logger.error(
+                    "Cannot replay turn because context.identity is not set. Ensure that the adapter is configured to set the identity."
+                )
+                raise ApplicationError(
+                    "Cannot replay turn because context.identity is not set. Ensure that the adapter is configured to set the identity."
+                )
 
             await turn_state.save(context)
 

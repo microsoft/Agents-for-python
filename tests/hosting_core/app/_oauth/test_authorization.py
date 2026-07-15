@@ -648,6 +648,7 @@ class TestAuthorizationUsage(TestEnv):
 
         assert not res.continuation_activity
         assert not res.should_skip_turn
+        assert not res.should_replay
 
         final_state = await authorization._load_sign_in_state(context)
 
@@ -687,6 +688,7 @@ class TestAuthorizationUsage(TestEnv):
 
         assert not res.continuation_activity
         assert res.should_skip_turn
+        assert not res.should_replay
 
         final_state = await authorization._load_sign_in_state(context)
         assert sign_in_state_eq(final_state, initial_state)
@@ -719,6 +721,7 @@ class TestAuthorizationUsage(TestEnv):
 
         assert res.continuation_activity == old_activity
         assert res.should_skip_turn
+        assert not res.should_replay
 
         final_state = await authorization._load_sign_in_state(context)
         assert sign_in_state_eq(final_state, initial_state)

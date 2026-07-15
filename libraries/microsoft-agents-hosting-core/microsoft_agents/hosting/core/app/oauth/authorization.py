@@ -318,7 +318,7 @@ class Authorization:
     ) -> _AuthInterceptResult:
         """Intercepts the turn to check for active authentication flows.
 
-        Returns an _AuthInterceptResult indicating whether the turn should be skipped and if a continuation activity is present.
+        Returns an _AuthInterceptResult indicating whether the turn should be skipped, replayed, and if a continuation activity is present.
 
         :param context: The context object for the current turn.
         :type context: :class:`microsoft_agents.hosting.core.turn_context.TurnContext`
