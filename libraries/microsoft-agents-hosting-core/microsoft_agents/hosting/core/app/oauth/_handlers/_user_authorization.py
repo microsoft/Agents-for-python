@@ -230,6 +230,14 @@ class _UserAuthorization(_AuthorizationHandler):
                     ).model_dump(exclude_unset=True),
                 )
             )
+        elif flow_state.tag == _FlowStateTag.COMPLETE:
+            logger.info("Sign-in flow completed successfully.")
+            await context.send_activity(
+                Activity(
+                    type=ActivityTypes.invoke_response,
+                    value=InvokeResponse(status=200),
+                )
+            )
 
     async def _sign_in(
         self,

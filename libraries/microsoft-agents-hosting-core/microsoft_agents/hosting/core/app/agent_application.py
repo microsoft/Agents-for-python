@@ -4,6 +4,8 @@ Licensed under the MIT License.
 """
 
 from __future__ import annotations
+
+import asyncio
 import logging
 from contextlib import nullcontext
 from copy import copy
@@ -835,15 +837,26 @@ class AgentApplication(Agent, Generic[StateT]):
                         )
                         if auth_intercepts:
                             if continuation_activity:
-                                new_context = copy(context)
-                                new_context.activity = continuation_activity
+                                await turn_state.save(context)
                                 logger.info(
-                                    "Resending continuation activity %s",
+                                    "Queueing continuation activity %s",
                                     continuation_activity.text,
                                 )
-                                await self.on_turn(new_context)
+                                self._queue_auth_continuation(
+                                    context, continuation_activity
+                                )
+                            else:
                                 await turn_state.save(context)
-                            return
+                                logger.info(
+                                    "No continuation activity to queue, copying current activity"
+                                )
+                                new_context = TurnContext(context)
+                                for key, value in context.turn_state.items():
+                                    new_context.turn_state[key] = value
+                                self._queue_auth_continuation(
+                                    new_context, context.activity
+                                )
+                            return  # allows immediate sending of invoke response
 
                     logger.debug("Running before turn middleware")
                     if not await self._run_before_turn_middleware(context, turn_state):
@@ -1019,6 +1032,54 @@ class AgentApplication(Agent, Generic[StateT]):
             )
 
         return await func(context)
+
+    def _queue_auth_continuation(
+        self, context: TurnContext, continuation_activity: Activity
+    ) -> None:
+        task = asyncio.create_task(
+            self._replay_auth_continuation(context, continuation_activity)
+        )
+        task.add_done_callback(self._log_auth_continuation_failure)
+
+    async def _replay_auth_continuation(
+        self, context: TurnContext, continuation_activity: Activity
+    ) -> None:
+        adapter = context.adapter
+        claims_identity = context.identity
+
+        if claims_identity and hasattr(adapter, "continue_conversation_with_claims"):
+            oauth_scope_key = getattr(adapter, "OAUTH_SCOPE_KEY", None)
+            audience = (
+                context.turn_state.get(oauth_scope_key) if oauth_scope_key else None
+            )
+            await adapter.continue_conversation_with_claims(
+                claims_identity,
+                continuation_activity,
+                self.on_turn,
+                audience,
+            )
+            return
+
+        new_context = copy(context)
+        new_context.activity = continuation_activity
+        await self.on_turn(new_context)
+
+    @staticmethod
+    def _log_auth_continuation_failure(task: asyncio.Task) -> None:
+        if task.cancelled():
+            logger.warning("OAuth continuation replay was cancelled.")
+            return
+
+        exception = task.exception()
+        if exception:
+            logger.error(
+                "OAuth continuation replay failed.",
+                exc_info=(
+                    type(exception),
+                    exception,
+                    exception.__traceback__,
+                ),
+            )
 
     async def _on_error(self, context: TurnContext, err: ApplicationError) -> None:
         if self._error:
