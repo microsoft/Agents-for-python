@@ -34,7 +34,7 @@ AUTHORIZATION_TYPE_MAP = {
 }
 
 
-@dataclass
+@dataclass(frozen=True)
 class _AuthInterceptResult:
     """Dataclass representing the result of an authentication intercept."""
 
@@ -338,9 +338,8 @@ class Authorization:
                 if sign_in_response.tag == _FlowStateTag.COMPLETE:
                     if not sign_in_state:
                         # flow just completed, no continuation activity
-                        is_invoke = context.activity.type == ActivityTypes.invoke
                         return _AuthInterceptResult(
-                            should_skip_turn=is_invoke,
+                            should_skip_turn=False,
                             should_replay=False,
                             continuation_activity=None,
                         )
