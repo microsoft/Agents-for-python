@@ -189,6 +189,7 @@ class SampleModel(BaseModel):
     name: str
     value: int
     active: bool = True
+    attachments: list[str] | None = None
 
 
 class NestedModel(BaseModel):
@@ -353,6 +354,17 @@ class TestModelPredicateEvalWithCallables:
         ]
         result = predicate.eval(models)
         assert result.result_bools == [True, False]
+
+    def test_eval_with_root_callable_returning_empty_list(self):
+        """eval treats an empty list returned by a root callable as false."""
+        predicate = ModelPredicate.from_args(lambda x: x.attachments)
+        models = [
+            SampleModel(name="a", value=1, attachments=None),
+            SampleModel(name="b", value=2, attachments=[]),
+            SampleModel(name="c", value=3, attachments=["card"]),
+        ]
+        result = predicate.eval(models)
+        assert result.result_bools == [False, False, True]
 
     def test_eval_with_mixed_value_and_callable(self):
         """eval works with mixed value and callable predicates."""
