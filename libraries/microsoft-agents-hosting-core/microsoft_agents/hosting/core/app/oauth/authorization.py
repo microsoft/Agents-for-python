@@ -3,12 +3,11 @@ Copyright (c) Microsoft Corporation. All rights reserved.
 Licensed under the MIT License.
 """
 
-from datetime import datetime
 import logging
-from typing import TypeVar, Optional, Callable, Awaitable, Generic, cast
-import jwt
+from typing import Optional, Callable, Awaitable, cast
 
-from microsoft_agents.activity import Activity, TokenResponse
+from microsoft_agents.activity import Activity, Channels, SignInConstants, TokenResponse
+from microsoft_agents.activity.activity_types import ActivityTypes
 
 from ...turn_context import TurnContext
 from ...storage import Storage
@@ -124,6 +123,18 @@ class Authorization:
                 connection_manager=self._connection_manager,
                 auth_handler=auth_handler,
             )
+
+    @property
+    def connection_manager(self) -> Connections:
+        """
+        The connection manager for the authorization instance.
+
+        The connection manager is responsible for managing the connections to the various authentication providers.
+
+        :return: The connection manager.
+        :rtype: :class:`microsoft_agents.hosting.core.authorization.Connections`
+        """
+        return self._connection_manager
 
     @staticmethod
     def _sign_in_state_key(context: TurnContext) -> str:
@@ -261,9 +272,17 @@ class Authorization:
             await self._delete_sign_in_state(context)
 
         elif sign_in_response.tag in [_FlowStateTag.BEGIN, _FlowStateTag.CONTINUE]:
-            # store continuation activity and wait for next turn
-            sign_in_state.continuation_activity = context.activity
-            await self._save_sign_in_state(context, sign_in_state)
+            # Handling special case for Teams SSO, ConsentRequired
+            if not (
+                context.activity.channel_id.channel == Channels.ms_teams
+                and sign_in_state.continuation_activity
+                and context.activity.type == ActivityTypes.invoke
+                and context.activity.name
+                == SignInConstants.token_exchange_operation_name
+            ):
+                # store continuation activity and wait for next turn
+                sign_in_state.continuation_activity = context.activity
+                await self._save_sign_in_state(context, sign_in_state)
 
         return sign_in_response
 

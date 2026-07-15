@@ -1,19 +1,19 @@
 # Copyright (c) Microsoft Corporation. All rights reserved.
 # Licensed under the MIT License.
 
-from typing import Protocol, TypeVar, Type, Union
-from abc import ABC, abstractmethod
+from typing import Protocol, TypeVar, Type
+from abc import abstractmethod
 from asyncio import gather
 
-from ._type_aliases import JSON
 from .store_item import StoreItem
+from .telemetry import spans
 
 StoreItemT = TypeVar("StoreItemT", bound=StoreItem)
 
 
 class Storage(Protocol):
     async def read(
-        self, keys: list[str], *, target_cls: Type[StoreItemT] = None, **kwargs
+        self, keys: list[str], *, target_cls: Type[StoreItemT] | None = None, **kwargs
     ) -> dict[str, StoreItemT]:
         """Reads multiple items from storage.
 
@@ -53,8 +53,8 @@ class AsyncStorageBase(Storage):
 
     @abstractmethod
     async def _read_item(
-        self, key: str, *, target_cls: Type[StoreItemT] = None, **kwargs
-    ) -> tuple[Union[str, None], Union[StoreItemT, None]]:
+        self, key: str, *, target_cls: Type[StoreItemT] | None = None, **kwargs
+    ) -> tuple[str | None, StoreItemT | None]:
         """Reads a single item from storage by key.
 
         Returns a tuple of (key, StoreItem) if found, or (None, None) if not found.
@@ -62,19 +62,20 @@ class AsyncStorageBase(Storage):
         pass
 
     async def read(
-        self, keys: list[str], *, target_cls: Type[StoreItemT] = None, **kwargs
+        self, keys: list[str], *, target_cls: Type[StoreItemT] | None = None, **kwargs
     ) -> dict[str, StoreItemT]:
         if not keys:
             raise ValueError("Storage.read(): Keys are required when reading.")
         if not target_cls:
             raise ValueError("Storage.read(): target_cls cannot be None.")
 
-        await self.initialize()
+        with spans.StorageRead(len(keys)):
+            await self.initialize()
 
-        items: list[tuple[Union[str, None], Union[StoreItemT, None]]] = await gather(
-            *[self._read_item(key, target_cls=target_cls, **kwargs) for key in keys]
-        )
-        return {key: value for key, value in items if key is not None}
+            items: list[tuple[str | None, StoreItemT | None]] = await gather(
+                *[self._read_item(key, target_cls=target_cls, **kwargs) for key in keys]
+            )
+            return {key: value for key, value in items if key is not None}
 
     @abstractmethod
     async def _write_item(self, key: str, value: StoreItemT) -> None:
@@ -85,9 +86,12 @@ class AsyncStorageBase(Storage):
         if not changes:
             raise ValueError("Storage.write(): Changes are required when writing.")
 
-        await self.initialize()
+        with spans.StorageWrite(len(changes)):
+            await self.initialize()
 
-        await gather(*[self._write_item(key, value) for key, value in changes.items()])
+            await gather(
+                *[self._write_item(key, value) for key, value in changes.items()]
+            )
 
     @abstractmethod
     async def _delete_item(self, key: str) -> None:
@@ -98,6 +102,7 @@ class AsyncStorageBase(Storage):
         if not keys:
             raise ValueError("Storage.delete(): Keys are required when deleting.")
 
-        await self.initialize()
+        with spans.StorageDelete(len(keys)):
+            await self.initialize()
 
-        await gather(*[self._delete_item(key) for key in keys])
+            await gather(*[self._delete_item(key) for key in keys])

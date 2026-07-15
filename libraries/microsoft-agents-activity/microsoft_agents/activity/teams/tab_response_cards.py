@@ -2,7 +2,6 @@
 # Licensed under the MIT License.from ..agents_model import AgentsModel
 
 from ..agents_model import AgentsModel
-from typing import List
 
 from .tab_response_card import TabResponseCard
 
@@ -14,4 +13,4 @@ class TabResponseCards(AgentsModel):
     :type cards: list[TabResponseCard]
     """
 
-    cards: List[TabResponseCard] = None
+    cards: list[TabResponseCard] = None

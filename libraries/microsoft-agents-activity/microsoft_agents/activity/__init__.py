@@ -44,6 +44,9 @@ from .entity import (
     Place,
     ProductInfo,
     Thing,
+    StreamInfo,
+    ActivityTreatment,
+    ActivityTreatmentTypes,
 )
 from .error import Error
 from .error_response import ErrorResponse
@@ -133,6 +136,7 @@ __all__ = [
     "ExpectedReplies",
     "Entity",
     "AIEntity",
+    "EntityTypes",
     "ClientCitation",
     "ClientCitationAppearance",
     "ClientCitationImage",
@@ -154,6 +158,7 @@ __all__ = [
     "OAuthCard",
     "PagedMembersResult",
     "Place",
+    "StreamInfo",
     "ProductInfo",
     "ReceiptCard",
     "ReceiptItem",
@@ -196,5 +201,7 @@ __all__ = [
     "load_configuration_from_env",
     "ChannelAdapterProtocol",
     "TurnContextProtocol",
+    "ActivityTreatment",
+    "ActivityTreatmentTypes",
     "TokenOrSignInResourceResponse",
 ]

@@ -1,0 +1,174 @@
+# Copyright (c) Microsoft Corporation. All rights reserved.
+# Licensed under the MIT License.
+
+from __future__ import annotations
+
+import inspect
+from hashlib import sha256
+from typing import TYPE_CHECKING
+
+from microsoft_agents.hosting.core import TurnContext, StatePropertyAccessor
+
+from ._telemetry_client import AgentTelemetryClient, NullTelemetryClient
+from .dialog import Dialog
+from .dialog_state import DialogState
+
+if TYPE_CHECKING:
+    from .dialog_context import DialogContext
+
+
+class DialogSet:
+    def __init__(self, dialog_state: StatePropertyAccessor | None = None):
+        # pylint: disable=import-outside-toplevel
+        if dialog_state is None:
+            current_frame = inspect.currentframe()
+            frame = current_frame.f_back if current_frame is not None else None
+            try:
+                # try to access the caller's "self"
+                try:
+                    self_obj = frame.f_locals["self"] if frame is not None else None
+                    if self_obj is None:
+                        raise KeyError
+                except KeyError:
+                    raise TypeError("DialogSet(): dialog_state cannot be None.")
+                # Only ComponentDialog / DialogContainer / DialogManager can initialize with None dialog_state
+                from .component_dialog import ComponentDialog
+                from .dialog_manager import DialogManager
+                from .dialog_container import DialogContainer
+
+                if not isinstance(
+                    self_obj, (ComponentDialog, DialogContainer, DialogManager)
+                ):
+                    raise TypeError("DialogSet(): dialog_state cannot be None.")
+            finally:
+                # make sure to clean up the frame at the end to avoid ref cycles
+                del frame
+
+        self._dialog_state = dialog_state
+        self.__telemetry_client = NullTelemetryClient()
+
+        self._dialogs: dict[str, Dialog] = {}
+        self._version: str | None = None
+
+    @property
+    def telemetry_client(self) -> AgentTelemetryClient:
+        """
+        Gets the telemetry client for logging events.
+        """
+        return self.__telemetry_client
+
+    @telemetry_client.setter
+    def telemetry_client(self, value: AgentTelemetryClient) -> None:
+        """
+        Sets the telemetry client for all dialogs in this set.
+        """
+        if value is None:
+            self.__telemetry_client = NullTelemetryClient()
+        else:
+            self.__telemetry_client = value
+
+        for dialog in self._dialogs.values():
+            dialog.telemetry_client = self.__telemetry_client
+        self._version = None
+
+    def get_version(self) -> str:
+        """
+        Gets a unique string which represents the combined versions of all dialogs in this dialogset.
+        Version will change when any of the child dialogs version changes.
+        """
+        if not self._version:
+            version = ""
+            for _, dialog in self._dialogs.items():
+                aux_version = dialog.get_version()
+                if aux_version:
+                    version += aux_version
+
+            self._version = sha256(version.encode()).hexdigest()
+
+        return self._version
+
+    def add(self, dialog: Dialog):
+        """
+        Adds a new dialog to the set and returns the added dialog.
+        :param dialog: The dialog to add.
+        """
+        if dialog is None or not isinstance(dialog, Dialog):
+            raise TypeError(
+                "DialogSet.add(): dialog cannot be None and must be a Dialog or derived class."
+            )
+
+        if dialog.id in self._dialogs:
+            raise TypeError(
+                "DialogSet.add(): A dialog with an id of '%s' already added."
+                % dialog.id
+            )
+
+        self._dialogs[dialog.id] = dialog
+        self._version = None
+
+        return self
+
+    async def create_context(self, turn_context: TurnContext) -> "DialogContext":
+        """Creates a DialogContext for this set using the given TurnContext.
+
+        Loads persisted dialog state via the StatePropertyAccessor provided at construction
+        and wraps it in a new DialogContext. Raises RuntimeError if the set was created
+        without a StatePropertyAccessor (e.g. from within a ComponentDialog).
+
+        :param turn_context: The current turn context.
+        :return: A DialogContext backed by the loaded dialog state.
+        """
+        # This import prevents circular dependency issues
+        # pylint: disable=import-outside-toplevel
+        from .dialog_context import DialogContext
+
+        if turn_context is None:
+            raise TypeError("DialogSet.create_context(): turn_context cannot be None.")
+
+        if not self._dialog_state:
+            raise RuntimeError(
+                "DialogSet.create_context(): DialogSet created with a null IStatePropertyAccessor."
+            )
+
+        from typing import cast as _cast  # pylint: disable=import-outside-toplevel
+
+        state: DialogState = _cast(
+            DialogState,
+            await self._dialog_state.get(turn_context, lambda: DialogState()),
+        )
+
+        return DialogContext(self, turn_context, state)
+
+    async def find(self, dialog_id: str | None) -> Dialog | None:
+        """
+        Finds a dialog that was previously added to the set using add(dialog)
+        :param dialog_id: ID of the dialog/prompt to look up.
+        :return: The dialog if found, otherwise null.
+        """
+        if not dialog_id:
+            raise TypeError("DialogSet.find(): dialog_id cannot be None.")
+
+        if dialog_id in self._dialogs:
+            return self._dialogs[dialog_id]
+
+        return None
+
+    def find_dialog(self, dialog_id: str | None) -> Dialog | None:
+        """
+        Finds a dialog that was previously added to the set using add(dialog).
+        Synchronous version of find().
+        :param dialog_id: ID of the dialog/prompt to look up.
+        :return: The dialog if found, otherwise null.
+        """
+        if not dialog_id:
+            raise TypeError("DialogSet.find_dialog(): dialog_id cannot be None.")
+
+        if dialog_id in self._dialogs:
+            return self._dialogs[dialog_id]
+
+        return None
+
+    def __str__(self):
+        if not self._dialogs:
+            return "dialog set empty!"
+        return " ".join(map(str, self._dialogs.keys()))

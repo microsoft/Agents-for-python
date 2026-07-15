@@ -37,8 +37,10 @@ def make_jwt(
     if app_id:
         payload["appid"] = app_id
     if include_exp:
-        payload["exp"] = (datetime.now(timezone.utc) + timedelta(seconds=exp_delta_seconds)).timestamp()
-    
+        payload["exp"] = (
+            datetime.now(timezone.utc) + timedelta(seconds=exp_delta_seconds)
+        ).timestamp()
+
     return jwt.encode(payload, token, algorithm="HS256")
 
 
@@ -59,13 +61,13 @@ def create_testing_TurnContext(
     turn_context.activity.from_property.id = user_id
     turn_context.activity.type = ActivityTypes.message
     turn_context.adapter.AGENT_IDENTITY_KEY = "__agent_identity_key"
-    
+
     # Create identity with security token
     identity = mocker.Mock()
     if security_token is not None:
         identity.security_token = security_token
     turn_context.identity = identity
-    
+
     agent_identity = mocker.Mock()
     agent_identity.claims = {"aud": DEFAULTS.ms_app_id}
     turn_context.turn_state = {
@@ -106,7 +108,9 @@ class TestEnv(FlowStateFixtures):
         ]["SETTINGS"]
 
     @pytest.fixture
-    def connector_authorization(self, connection_manager, storage, auth_handler_settings):
+    def connector_authorization(
+        self, connection_manager, storage, auth_handler_settings
+    ):
         return ConnectorUserAuthorization(
             storage,
             connection_manager,
@@ -137,7 +141,6 @@ class TestEnv(FlowStateFixtures):
 
 class TestConnectorUserAuthorization(TestEnv):
 
-
     @pytest.mark.asyncio
     async def test_sign_in_without_obo_when_token_not_exchangeable(
         self,
@@ -148,7 +151,7 @@ class TestConnectorUserAuthorization(TestEnv):
         """Test that _sign_in raises error when token is not exchangeable but OBO is configured."""
         security_token = make_jwt(aud=None)  # Non-exchangeable token
         context = self.TurnContext(mocker, security_token=security_token)
-        
+
         # When token is not exchangeable but OBO is configured (connection and scopes are set),
         # it should raise ValueError
         with pytest.raises(ValueError, match="not exchangeable"):
@@ -165,7 +168,7 @@ class TestConnectorUserAuthorization(TestEnv):
         """Test that _sign_in raises ValueError when context has no identity."""
         context = self.TurnContext(mocker)
         context.identity = None
-        
+
         with pytest.raises(ValueError, match="no security token found"):
             await connector_authorization._sign_in(context)
 
@@ -178,8 +181,8 @@ class TestConnectorUserAuthorization(TestEnv):
         """Test that _sign_in raises ValueError when identity has no security_token attribute."""
         context = self.TurnContext(mocker)
         # Remove the security_token attribute entirely
-        delattr(context.identity, 'security_token')
-        
+        delattr(context.identity, "security_token")
+
         with pytest.raises(ValueError, match="no security token found"):
             await connector_authorization._sign_in(context)
 
@@ -192,7 +195,7 @@ class TestConnectorUserAuthorization(TestEnv):
         """Test that _sign_in raises ValueError when security_token is None."""
         context = self.TurnContext(mocker)
         context.identity.security_token = None
-        
+
         with pytest.raises(ValueError, match="security token is None"):
             await connector_authorization._sign_in(context)
 
@@ -205,7 +208,7 @@ class TestConnectorUserAuthorization(TestEnv):
         """Test that get_refreshed_token raises ValueError for expired token."""
         expired_token = make_expired_jwt()
         context = self.TurnContext(mocker, security_token=expired_token)
-        
+
         with pytest.raises(ValueError, match="Unexpected connector token expiration"):
             await connector_authorization.get_refreshed_token(context)
 
@@ -219,14 +222,13 @@ class TestConnectorUserAuthorization(TestEnv):
         security_token = make_jwt()
         context = self.TurnContext(mocker, security_token=security_token)
         mock_provider(mocker, exchange_token=None)  # OBO returns None
-        
+
         token_response = await connector_authorization.get_refreshed_token(
             context, "some_connection", ["scope1"]
         )
-        
+
         # Should return None when OBO fails
         assert token_response is None
-
 
     @pytest.mark.asyncio
     async def test_sign_out_is_noop(
@@ -236,10 +238,10 @@ class TestConnectorUserAuthorization(TestEnv):
     ):
         """Test that _sign_out is a no-op for connector authorization."""
         context = self.TurnContext(mocker, security_token=make_jwt())
-        
+
         # Should not raise any exceptions
         await connector_authorization._sign_out(context)
-        
+
         # Verify it completes successfully (no assertions needed, just verify no exception)
 
     @pytest.mark.asyncio
@@ -252,14 +254,12 @@ class TestConnectorUserAuthorization(TestEnv):
         security_token = make_jwt()
         context = self.TurnContext(mocker, security_token=security_token)
         token_response = TokenResponse(token=security_token)
-        
+
         # Don't mock provider since we shouldn't reach it
-        
+
         with pytest.raises(ValueError, match="Unable to get authority configuration"):
             # Call with no connection or scopes (OBO not configured)
-            await connector_authorization._handle_obo(
-                context, token_response, None, []
-            )
+            await connector_authorization._handle_obo(context, token_response, None, [])
 
     @pytest.mark.asyncio
     async def test_handle_obo_with_non_exchangeable_token(
@@ -271,7 +271,7 @@ class TestConnectorUserAuthorization(TestEnv):
         security_token = make_jwt(aud=None)
         context = self.TurnContext(mocker, security_token=security_token)
         token_response = TokenResponse(token=security_token)
-        
+
         with pytest.raises(ValueError, match="not exchangeable"):
             await connector_authorization._handle_obo(
                 context, token_response, "some_connection", ["scope1"]
@@ -287,10 +287,10 @@ class TestConnectorUserAuthorization(TestEnv):
         security_token = make_jwt()
         context = self.TurnContext(mocker, security_token=security_token)
         token_response = TokenResponse(token=security_token)
-        
+
         # Mock get_connection to return None
         mocker.patch.object(MsalConnectionManager, "get_connection", return_value=None)
-        
+
         with pytest.raises(ValueError, match="not found"):
             await connector_authorization._handle_obo(
                 context, token_response, "nonexistent_connection", ["scope1"]
@@ -305,14 +305,16 @@ class TestConnectorUserAuthorization(TestEnv):
         """Test that _create_token_response extracts expiration from JWT."""
         security_token = make_jwt(exp_delta_seconds=7200)
         context = self.TurnContext(mocker, security_token=security_token)
-        
+
         token_response = connector_authorization._create_token_response(context)
-        
+
         assert token_response.token == security_token
         assert token_response.expiration is not None
-        
+
         # Verify expiration is in the future
-        expiration = datetime.fromisoformat(token_response.expiration.replace("Z", "+00:00"))
+        expiration = datetime.fromisoformat(
+            token_response.expiration.replace("Z", "+00:00")
+        )
         assert expiration > datetime.now(timezone.utc)
 
     @pytest.mark.asyncio
@@ -324,7 +326,7 @@ class TestConnectorUserAuthorization(TestEnv):
         """Test that _create_token_response handles JWT without expiration claim."""
         security_token = make_jwt(include_exp=False)
         context = self.TurnContext(mocker, security_token=security_token)
-        
+
         # Should succeed but not have expiration
         token_response = connector_authorization._create_token_response(context)
         assert token_response.token == security_token
@@ -340,22 +342,24 @@ class TestConnectorUserAuthorization(TestEnv):
         """Test that get_refreshed_token signs out when OBO exchange fails with exception."""
         security_token = make_jwt()
         context = self.TurnContext(mocker, security_token=security_token)
-        
+
         # Mock provider to raise an exception
         provider = mock_instance(
             mocker, MsalAuth, {"acquire_token_on_behalf_of": Exception("OBO failed")}
         )
-        mocker.patch.object(MsalConnectionManager, "get_connection", return_value=provider)
+        mocker.patch.object(
+            MsalConnectionManager, "get_connection", return_value=provider
+        )
         provider.acquire_token_on_behalf_of.side_effect = Exception("OBO failed")
-        
+
         # Mock _sign_out to verify it's called
         sign_out_mock = mocker.patch.object(connector_authorization, "_sign_out")
-        
+
         with pytest.raises(Exception, match="OBO failed"):
             await connector_authorization.get_refreshed_token(
                 context, "some_connection", ["scope1"]
             )
-        
+
         # Verify sign_out was called
         sign_out_mock.assert_called_once_with(context)
 
@@ -368,21 +372,23 @@ class TestConnectorUserAuthorization(TestEnv):
         """Test that _sign_in signs out when OBO exchange fails with exception."""
         security_token = make_jwt()
         context = self.TurnContext(mocker, security_token=security_token)
-        
+
         # Mock provider to raise an exception
         provider = mock_instance(
             mocker, MsalAuth, {"acquire_token_on_behalf_of": Exception("OBO failed")}
         )
-        mocker.patch.object(MsalConnectionManager, "get_connection", return_value=provider)
+        mocker.patch.object(
+            MsalConnectionManager, "get_connection", return_value=provider
+        )
         provider.acquire_token_on_behalf_of.side_effect = Exception("OBO failed")
-        
+
         # Mock _sign_out to verify it's called
         sign_out_mock = mocker.patch.object(connector_authorization, "_sign_out")
-        
+
         with pytest.raises(Exception, match="OBO failed"):
             await connector_authorization._sign_in(
                 context, "some_connection", ["scope1"]
             )
-        
+
         # Verify sign_out was called
         sign_out_mock.assert_called_once_with(context)

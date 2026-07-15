@@ -15,7 +15,8 @@ setup(
         f"microsoft-agents-activity=={package_version}",
         "pyjwt>=2.10.1",
         "isodate>=0.6.1",
-        "azure-core>=1.30.0",
         "python-dotenv>=1.1.1",
+        "opentelemetry-api>=1.27.0",
+        "opentelemetry-sdk>=1.27.0",
     ],
 )

@@ -11,6 +11,10 @@ class TeamsChannelAccount(AgentsModel):
 
     :param id: Channel id for the user or bot on this channel (Example: ``joe@smith.com``, or ``@joesmith`` or ``123456``)
     :type id: str
+    :param aad_object_id: Azure Active Directory object id for the user.
+    :type aad_object_id: str
+    :param role: Role of the user in the channel.
+    :type role: str
     :param name: Display friendly name
     :type name: str
     :param given_name: Given name part of the user name.
@@ -30,6 +34,8 @@ class TeamsChannelAccount(AgentsModel):
     model_config = ConfigDict(extra="allow")
 
     id: str = None
+    aad_object_id: str = None
+    role: str = None
     name: str = None
     given_name: str = None
     surname: str = None
@@ -39,6 +45,6 @@ class TeamsChannelAccount(AgentsModel):
     user_role: str = None
 
     @property
-    def properties(self) -> dict[str, Any]:
+    def properties(self) -> dict[str, Any] | None:
         """Returns the set of properties that are not None."""
         return self.model_extra

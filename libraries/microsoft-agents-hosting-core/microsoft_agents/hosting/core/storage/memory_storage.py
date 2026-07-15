@@ -1,7 +1,7 @@
 # Copyright (c) Microsoft Corporation. All rights reserved.
 # Licensed under the MIT License.
 
-from threading import Lock
+from asyncio import Lock
 from typing import TypeVar
 
 from ._type_aliases import JSON
@@ -12,7 +12,7 @@ StoreItemT = TypeVar("StoreItemT", bound=StoreItem)
 
 
 class MemoryStorage(Storage):
-    def __init__(self, state: dict[str, JSON] = None):
+    def __init__(self, state: dict[str, JSON] | None = None):
         self._memory: dict[str, JSON] = state or {}
         self._lock = Lock()
 
@@ -26,7 +26,7 @@ class MemoryStorage(Storage):
             raise ValueError("Storage.read(): target_cls cannot be None.")
 
         result: dict[str, StoreItem] = {}
-        with self._lock:
+        async with self._lock:
             for key in keys:
                 if key == "":
                     raise ValueError("MemoryStorage.read(): key cannot be empty")
@@ -48,7 +48,7 @@ class MemoryStorage(Storage):
         if not changes:
             raise ValueError("MemoryStorage.write(): changes cannot be None")
 
-        with self._lock:
+        async with self._lock:
             for key in changes:
                 if key == "":
                     raise ValueError("MemoryStorage.write(): key cannot be empty")
@@ -58,7 +58,7 @@ class MemoryStorage(Storage):
         if not keys:
             raise ValueError("Storage.delete(): Keys are required when deleting.")
 
-        with self._lock:
+        async with self._lock:
             for key in keys:
                 if key == "":
                     raise ValueError("MemoryStorage.delete(): key cannot be empty")

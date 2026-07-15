@@ -27,7 +27,14 @@ AGENTIC_ENV_DICT = AGENTIC_TEST_ENV_DICT()
 
 class TestUtils:
     def setup_method(self, mocker):
-        self.TurnContext = create_testing_TurnContext_magic
+
+        def my_func(context):
+            context.activity.recipient.tenant_id = DEFAULTS.tenant_id
+            return context
+
+        self.TurnContext = lambda *args, **kwargs: my_func(
+            create_testing_TurnContext_magic(*args, **kwargs)
+        )
 
     @pytest.fixture
     def storage(self):
@@ -155,7 +162,7 @@ class TestAgenticUserAuthorization(TestUtils):
         token = await agentic_auth.get_agentic_instance_token(context)
         assert token == TokenResponse(token=DEFAULTS.token)
         mock_provider.get_agentic_instance_token.assert_called_once_with(
-            DEFAULTS.agentic_instance_id
+            DEFAULTS.tenant_id, DEFAULTS.agentic_instance_id
         )
 
     @pytest.mark.asyncio
@@ -187,7 +194,7 @@ class TestAgenticUserAuthorization(TestUtils):
         token = await agentic_auth.get_agentic_user_token(context, ["user.Read"])
         assert token == TokenResponse(token=DEFAULTS.token)
         mock_provider.get_agentic_user_token.assert_called_once_with(
-            DEFAULTS.agentic_instance_id, "some_id", ["user.Read"]
+            DEFAULTS.tenant_id, DEFAULTS.agentic_instance_id, "some_id", ["user.Read"]
         )
 
     @pytest.mark.asyncio
@@ -232,7 +239,10 @@ class TestAgenticUserAuthorization(TestUtils):
         assert res.tag == _FlowStateTag.COMPLETE
 
         mock_provider.get_agentic_user_token.assert_called_once_with(
-            DEFAULTS.agentic_instance_id, "some_id", expected_scopes_list
+            DEFAULTS.tenant_id,
+            DEFAULTS.agentic_instance_id,
+            "some_id",
+            expected_scopes_list,
         )
 
     @pytest.mark.asyncio
@@ -277,7 +287,10 @@ class TestAgenticUserAuthorization(TestUtils):
         assert res.tag == _FlowStateTag.FAILURE
 
         mock_provider.get_agentic_user_token.assert_called_once_with(
-            DEFAULTS.agentic_instance_id, "some_id", expected_scopes_list
+            DEFAULTS.tenant_id,
+            DEFAULTS.agentic_instance_id,
+            "some_id",
+            expected_scopes_list,
         )
 
     @pytest.mark.asyncio
@@ -323,7 +336,10 @@ class TestAgenticUserAuthorization(TestUtils):
         assert res == TokenResponse(token="my_token")
 
         mock_provider.get_agentic_user_token.assert_called_once_with(
-            DEFAULTS.agentic_instance_id, "some_id", expected_scopes_list
+            DEFAULTS.tenant_id,
+            DEFAULTS.agentic_instance_id,
+            "some_id",
+            expected_scopes_list,
         )
 
     @pytest.mark.asyncio
@@ -368,5 +384,8 @@ class TestAgenticUserAuthorization(TestUtils):
         )
         assert res == TokenResponse()
         mock_provider.get_agentic_user_token.assert_called_once_with(
-            DEFAULTS.agentic_instance_id, "some_id", expected_scopes_list
+            DEFAULTS.tenant_id,
+            DEFAULTS.agentic_instance_id,
+            "some_id",
+            expected_scopes_list,
         )

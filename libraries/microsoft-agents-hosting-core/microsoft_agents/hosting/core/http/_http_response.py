@@ -3,7 +3,7 @@
 
 """HTTP response abstraction."""
 
-from typing import Any, Optional, Dict
+from typing import Any, Optional
 from dataclasses import dataclass
 
 
@@ -13,7 +13,7 @@ class HttpResponse:
 
     status_code: int
     body: Optional[Any] = None
-    headers: Optional[Dict[str, str]] = None
+    headers: Optional[dict[str, str]] = None
     content_type: Optional[str] = "application/json"
 
 

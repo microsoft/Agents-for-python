@@ -12,6 +12,7 @@ class DEFAULT_TEST_VALUES:
         self.bot_url = "https://botframework.com"
         self.ms_app_id = "__ms_app_id"
         self.service_url = "https://service.url/"
+        self.tenant_id = "test-tenant-id"
 
         # Auth Handler Settings
         self.abs_oauth_connection_name = "connection_name"

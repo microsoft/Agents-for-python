@@ -3,7 +3,13 @@ import jwt
 
 from typing import Optional
 
-from microsoft_agents.activity import Activity, ActivityTypes, TokenResponse
+from microsoft_agents.activity import (
+    Activity,
+    ActivityTypes,
+    Channels,
+    SignInConstants,
+    TokenResponse,
+)
 
 from microsoft_agents.hosting.core.app.oauth import (
     _SignInResponse,
@@ -181,6 +187,10 @@ class TestAuthorizationSetup(TestEnv):
             auth_handler_id, **handler_config
         )
 
+    def test_connection_manager_property(self, connection_manager, storage):
+        auth = Authorization(storage, connection_manager, **ENV_DICT)
+        assert auth.connection_manager is connection_manager
+
     def test_sign_in_state_key(self, mocker, connection_manager, storage):
         auth = Authorization(storage, connection_manager, **ENV_DICT)
         context = self.TurnContext(mocker)
@@ -202,7 +212,9 @@ class TestAuthorizationUsage(TestEnv):
             [
                 {DEFAULTS.auth_handler_id: DEFAULTS.token},
                 {},
-                _SignInState(active_handler_id="some_value_bGoa+V7g/yqDXvKRqq+JTFn4uQZbPiQJo4pf9RzJV0E="),
+                _SignInState(
+                    active_handler_id="some_value_bGoa+V7g/yqDXvKRqq+JTFn4uQZbPiQJo4pf9RzJV0E="
+                ),
                 DEFAULTS.auth_handler_id,
             ],
             [
@@ -217,7 +229,9 @@ class TestAuthorizationUsage(TestEnv):
                     DEFAULTS.auth_handler_id: "value",
                 },
                 {DEFAULTS.auth_handler_id: "value"},
-                _SignInState(active_handler_id="some_value_bGoa+V7g/yqDXvKRqq+JTFn4uQZbPiQJo4pf9RzJV0E="),
+                _SignInState(
+                    active_handler_id="some_value_bGoa+V7g/yqDXvKRqq+JTFn4uQZbPiQJo4pf9RzJV0E="
+                ),
                 DEFAULTS.agentic_auth_handler_id,
             ],
         ],
@@ -717,3 +731,122 @@ class TestAuthorizationUsage(TestEnv):
         final_state = await authorization._load_sign_in_state(context)
         assert sign_in_state_eq(final_state, initial_state)
         assert context.turn_state == expected_cache
+
+
+class TestTeamsSSOConsentRequired(TestEnv):
+    """Tests for the Teams SSO ConsentRequired special case in _start_or_continue_sign_in.
+
+    When a pending signin/tokenExchange invoke arrives on Teams and a continuation_activity
+    already exists in the sign-in state, the state must NOT be updated so the original
+    activity is preserved for the eventual resume turn.
+    """
+
+    @pytest.fixture(params=[_FlowStateTag.BEGIN, _FlowStateTag.CONTINUE])
+    def pending_tag(self, request):
+        return request.param
+
+    @pytest.mark.asyncio
+    async def test_skips_state_update_for_teams_sso_consent_required(
+        self, mocker, storage, authorization, pending_tag
+    ):
+        """All four conditions met → continuation_activity is NOT overwritten."""
+        original_continuation = Activity(type=ActivityTypes.message, text="original")
+        teams_invoke_activity = Activity(
+            type=ActivityTypes.invoke,
+            channel_id=Channels.ms_teams,
+            from_property={"id": DEFAULTS.user_id},
+            name=SignInConstants.token_exchange_operation_name,
+        )
+        context = create_testing_TurnContext(mocker, activity=teams_invoke_activity)
+        initial_state = _SignInState(
+            active_handler_id=DEFAULTS.auth_handler_id,
+            continuation_activity=original_continuation,
+        )
+        await authorization._save_sign_in_state(context, initial_state)
+        mock_variants(mocker, sign_in_return=_SignInResponse(tag=pending_tag))
+
+        res = await authorization._start_or_continue_sign_in(
+            context, None, DEFAULTS.auth_handler_id
+        )
+
+        assert res.tag == pending_tag
+        final_state = await authorization._load_sign_in_state(context)
+        assert final_state is not None
+        assert final_state.continuation_activity == original_continuation
+        assert final_state.active_handler_id == DEFAULTS.auth_handler_id
+
+    @pytest.mark.asyncio
+    @pytest.mark.parametrize(
+        "channel_id, activity_type, activity_name, has_existing_continuation",
+        [
+            # Teams + invoke + tokenExchange but NO existing continuation_activity → saves
+            (
+                Channels.ms_teams,
+                ActivityTypes.invoke,
+                SignInConstants.token_exchange_operation_name,
+                False,
+            ),
+            # Non-Teams channel with all other conditions met → saves
+            (
+                "directline",
+                ActivityTypes.invoke,
+                SignInConstants.token_exchange_operation_name,
+                True,
+            ),
+            # Teams channel with non-invoke activity type → saves
+            (
+                Channels.ms_teams,
+                ActivityTypes.message,
+                None,
+                True,
+            ),
+            # Teams invoke with a name other than token_exchange → saves
+            (
+                Channels.ms_teams,
+                ActivityTypes.invoke,
+                SignInConstants.verify_state_operation_name,
+                True,
+            ),
+        ],
+    )
+    async def test_saves_state_when_consent_required_condition_not_fully_met(
+        self,
+        mocker,
+        storage,
+        authorization,
+        pending_tag,
+        channel_id,
+        activity_type,
+        activity_name,
+        has_existing_continuation,
+    ):
+        """When any single condition of the Teams SSO guard is false, the state IS saved."""
+        activity_kwargs = dict(
+            type=activity_type,
+            channel_id=channel_id,
+            from_property={"id": DEFAULTS.user_id},
+        )
+        if activity_name is not None:
+            activity_kwargs["name"] = activity_name
+        activity = Activity(**activity_kwargs)
+        context = create_testing_TurnContext(mocker, activity=activity)
+
+        original_continuation = (
+            Activity(type=ActivityTypes.message, text="original")
+            if has_existing_continuation
+            else None
+        )
+        initial_state = _SignInState(
+            active_handler_id=DEFAULTS.auth_handler_id,
+            continuation_activity=original_continuation,
+        )
+        await authorization._save_sign_in_state(context, initial_state)
+        mock_variants(mocker, sign_in_return=_SignInResponse(tag=pending_tag))
+
+        await authorization._start_or_continue_sign_in(
+            context, None, DEFAULTS.auth_handler_id
+        )
+
+        final_state = await authorization._load_sign_in_state(context)
+        assert final_state is not None
+        assert final_state.continuation_activity == context.activity

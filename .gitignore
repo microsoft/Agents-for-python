@@ -128,3 +128,6 @@ cython_debug/
 
 # Binary files
 bin/
+
+# Claude
+.claude/

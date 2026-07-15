@@ -1,0 +1,20 @@
+[build-system]
+requires = ["setuptools"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "message-extensions"
+version = "0.1.0"
+description = "Teams Message Extensions sample — search/action commands, link unfurling, settings, and fetch task"
+authors = [{name = "Microsoft Corporation"}]
+license = "MIT"
+requires-python = ">=3.11"
+dependencies = [
+    "microsoft-agents-activity",
+    "microsoft-agents-hosting-core",
+    "microsoft-agents-authentication-msal",
+    "microsoft-agents-hosting-aiohttp",
+    "microsoft-agents-hosting-msteams",
+    "python-dotenv",
+    "aiohttp",
+]

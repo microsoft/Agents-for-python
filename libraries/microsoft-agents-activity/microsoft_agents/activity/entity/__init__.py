@@ -1,6 +1,7 @@
 # Copyright (c) Microsoft Corporation. All rights reserved.
 # Licensed under the MIT License.
 
+from .activity_treatment import ActivityTreatment, ActivityTreatmentTypes
 from .mention import Mention
 from .entity import Entity
 from .entity_types import EntityTypes
@@ -16,6 +17,7 @@ from .ai_entity import (
 from .geo_coordinates import GeoCoordinates
 from .place import Place
 from .product_info import ProductInfo
+from .stream_info import StreamInfo
 from .thing import Thing
 
 __all__ = [
@@ -29,8 +31,11 @@ __all__ = [
     "Mention",
     "SensitivityUsageInfo",
     "SensitivityPattern",
+    "StreamInfo",
     "GeoCoordinates",
     "Place",
     "ProductInfo",
     "Thing",
+    "ActivityTreatment",
+    "ActivityTreatmentTypes",
 ]

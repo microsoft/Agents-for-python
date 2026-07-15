@@ -5,10 +5,11 @@ Licensed under the MIT License.
 
 from __future__ import annotations
 import logging
-import jwt
 from typing import Optional
 
 from microsoft_agents.activity import (
+    Activity,
+    ActivityTypes,
     Attachment,
     ActionTypes,
     CardAction,
@@ -16,6 +17,14 @@ from microsoft_agents.activity import (
     TokenResponse,
 )
 
+from microsoft_agents.activity.invoke_response import InvokeResponse
+from microsoft_agents.activity.token_exchange_invoke_request import (
+    TokenExchangeInvokeRequest,
+)
+from microsoft_agents.activity.token_exchange_invoke_response import (
+    TokenExchangeInvokeResponse,
+)
+from microsoft_agents.hosting.core._oauth._flow_state import _FlowErrorTag
 from microsoft_agents.hosting.core.card_factory import CardFactory
 from microsoft_agents.hosting.core.message_factory import MessageFactory
 from microsoft_agents.hosting.core.connector.client import UserTokenClient
@@ -29,6 +38,7 @@ from microsoft_agents.hosting.core._oauth import (
 )
 from .._sign_in_response import _SignInResponse
 from ._authorization_handler import _AuthorizationHandler
+from ..telemetry import spans
 
 logger = logging.getLogger(__name__)
 
@@ -119,21 +129,26 @@ class _UserAuthorization(_AuthorizationHandler):
         connection_name = exchange_connection or self._handler.obo_connection_name
         exchange_scopes = exchange_scopes or self._handler.scopes
 
-        if not connection_name or not exchange_scopes:
-            return input_token_response
-
-        if not input_token_response.is_exchangeable():
-            return input_token_response
-
-        token_provider = self._connection_manager.get_connection(connection_name)
-        if not token_provider:
-            raise ValueError(f"Connection '{connection_name}' not found")
-
-        token = await token_provider.acquire_token_on_behalf_of(
+        with spans.AzureBotToken(
+            auth_handler_id=self._id,
+            connection_name=connection_name,
             scopes=exchange_scopes,
-            user_assertion=input_token_response.token,
-        )
-        return TokenResponse(token=token) if token else TokenResponse()
+        ):
+            if not connection_name or not exchange_scopes:
+                return input_token_response
+
+            if not input_token_response.is_exchangeable():
+                return input_token_response
+
+            token_provider = self._connection_manager.get_connection(connection_name)
+            if not token_provider:
+                raise ValueError(f"Connection '{connection_name}' not found")
+
+            token = await token_provider.acquire_token_on_behalf_of(
+                scopes=exchange_scopes,
+                user_assertion=input_token_response.token,
+            )
+            return TokenResponse(token=token) if token else TokenResponse()
 
     async def _sign_out(
         self,
@@ -147,10 +162,11 @@ class _UserAuthorization(_AuthorizationHandler):
         :param auth_handler_id: Optional ID of the auth handler to use for sign out. If None,
             signs out from all the handlers.
         """
-        flow, flow_storage_client = await self._load_flow(context)
-        logger.info("Signing out from handler: %s", self._id)
-        await flow.sign_out()
-        await flow_storage_client.delete(self._id)
+        with spans.AzureBotSignOut(auth_handler_id=self._id):
+            flow, flow_storage_client = await self._load_flow(context)
+            logger.info("Signing out from handler: %s", self._id)
+            await flow.sign_out()
+            await flow_storage_client.delete(self._id)
 
     async def _handle_flow_response(
         self, context: TurnContext, flow_response: _FlowResponse
@@ -194,6 +210,26 @@ class _UserAuthorization(_AuthorizationHandler):
             else:
                 logger.warning("Sign-in flow failed for unknown reasons.")
                 await context.send_activity("Sign-in failed. Please try again.")
+        elif (
+            flow_state.tag == _FlowStateTag.CONTINUE
+            and flow_response.flow_error_tag == _FlowErrorTag.PRECONDITION_FAILED
+        ):
+            token_exchange_request = TokenExchangeInvokeRequest().model_validate(
+                context.activity.value
+            )
+            await context.send_activity(
+                Activity(
+                    type=ActivityTypes.invoke_response,
+                    value=InvokeResponse(
+                        status=412,
+                        body=TokenExchangeInvokeResponse(
+                            id=token_exchange_request.id,
+                            connection_name=flow_state.connection,
+                            failure_detail="The Agent is unable to exchange token. Proceed with regular login.",
+                        ),
+                    ).model_dump(exclude_unset=True),
+                )
+            )
 
     async def _sign_in(
         self,
@@ -212,31 +248,40 @@ class _UserAuthorization(_AuthorizationHandler):
         :return: The _SignInResponse containing the token response and flow state tag.
         :rtype: _SignInResponse
         """
-        flow, flow_storage_client = await self._load_flow(context)
-        flow_response: _FlowResponse = await flow.begin_or_continue_flow(
-            context.activity
-        )
-
-        logger.info("Saving OAuth flow state to storage")
-        await flow_storage_client.write(flow_response.flow_state)
-        await self._handle_flow_response(context, flow_response)
-
-        if flow_response.token_response:
-            # attempt exchange if needed
-            # if not needed, returns the same token
-            token_response = await self._handle_obo(
-                context,
-                flow_response.token_response,
-                exchange_connection,
-                exchange_scopes,
+        with spans.AzureBotSignIn(
+            auth_handler_id=self._id,
+            connection_name=exchange_connection,
+            scopes=exchange_scopes,
+        ):
+            flow, flow_storage_client = await self._load_flow(context)
+            flow_response: _FlowResponse = await flow.begin_or_continue_flow(
+                context.activity
             )
 
-            return _SignInResponse(
-                token_response=token_response,
-                tag=_FlowStateTag.COMPLETE if token_response else _FlowStateTag.FAILURE,
-            )
+            logger.info("Saving OAuth flow state to storage")
+            await flow_storage_client.write(flow_response.flow_state)
+            await self._handle_flow_response(context, flow_response)
 
-        return _SignInResponse(tag=flow_response.flow_state.tag)
+            if flow_response.token_response:
+                # attempt exchange if needed
+                # if not needed, returns the same token
+                token_response = await self._handle_obo(
+                    context,
+                    flow_response.token_response,
+                    exchange_connection,
+                    exchange_scopes,
+                )
+
+                return _SignInResponse(
+                    token_response=token_response,
+                    tag=(
+                        _FlowStateTag.COMPLETE
+                        if token_response
+                        else _FlowStateTag.FAILURE
+                    ),
+                )
+
+            return _SignInResponse(tag=flow_response.flow_state.tag)
 
     async def get_refreshed_token(
         self,

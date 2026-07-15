@@ -16,8 +16,7 @@ class TestAuthorizationConfiguration:
             tenant_id="test-tenant-id",
             client_id="test-client-id",
             client_secret="test-client-secret",
-            cert_pem_file="test-cert.pem",
-            cert_key_file="test-cert.key",
+            cert_pfx_file="test-cert.pfx",
             connection_name="test-connection",
             authority="https://login.microsoftonline.com",
             scopes=["test-scope-1", "test-scope-2"],
@@ -27,8 +26,7 @@ class TestAuthorizationConfiguration:
         assert auth_config.TENANT_ID == "test-tenant-id"
         assert auth_config.CLIENT_ID == "test-client-id"
         assert auth_config.CLIENT_SECRET == "test-client-secret"
-        assert auth_config.CERT_PEM_FILE == "test-cert.pem"
-        assert auth_config.CERT_KEY_FILE == "test-cert.key"
+        assert auth_config.CERT_PFX_FILE == "test-cert.pfx"
         assert auth_config.CONNECTION_NAME == "test-connection"
         assert auth_config.AUTHORITY == "https://login.microsoftonline.com"
         assert auth_config.SCOPES == ["test-scope-1", "test-scope-2"]
@@ -69,11 +67,51 @@ class TestAuthorizationConfiguration:
     def test_empty_settings(self):
         auth_config = AgentAuthConfiguration()
         assert auth_config.AUTH_TYPE == AuthTypes.client_secret
-        assert auth_config.TENANT_ID == None
-        assert auth_config.CLIENT_ID == None
-        assert auth_config.CLIENT_SECRET == None
-        assert auth_config.CERT_PEM_FILE == None
-        assert auth_config.CERT_KEY_FILE == None
-        assert auth_config.CONNECTION_NAME == None
-        assert auth_config.AUTHORITY == None
-        assert auth_config.SCOPES == None
+        assert auth_config.TENANT_ID is None
+        assert auth_config.CLIENT_ID is None
+        assert auth_config.CLIENT_SECRET is None
+        assert auth_config.CERT_PFX_FILE is None
+        assert auth_config.FEDERATED_CLIENT_ID is None
+        assert auth_config.CONNECTION_NAME is None
+        assert auth_config.AUTHORITY is None
+        assert auth_config.SCOPES is None
+        assert auth_config.AZURE_REGION is None
+
+    def test_azure_region_from_parameter(self):
+        auth_config = AgentAuthConfiguration(azure_region="westus")
+        assert auth_config.AZURE_REGION == "westus"
+
+    def test_azure_region_from_kwargs(self):
+        auth_config = AgentAuthConfiguration(AZUREREGION="eastus")
+        assert auth_config.AZURE_REGION == "eastus"
+
+    def test_azure_region_legacy_regional_authority_fallback(self):
+        # When AZUREREGION is not provided, fall back to the legacy
+        # RegionalAuthority configuration key.
+        auth_config = AgentAuthConfiguration(REGIONALAUTHORITY="westeurope")
+        assert auth_config.AZURE_REGION == "westeurope"
+
+    def test_azure_region_prefers_azure_region_over_legacy(self):
+        auth_config = AgentAuthConfiguration(
+            AZUREREGION="eastus", REGIONALAUTHORITY="westeurope"
+        )
+        assert auth_config.AZURE_REGION == "eastus"
+
+    def test_idpm_resource_defaults_none(self):
+        auth_config = AgentAuthConfiguration()
+        assert auth_config.IDPM_RESOURCE is None
+
+    def test_idpm_resource_from_parameter(self):
+        auth_config = AgentAuthConfiguration(
+            auth_type=AuthTypes.identity_proxy_manager,
+            client_id="test-client-id",
+            idpm_resource="https://custom-resource/.default",
+        )
+        assert auth_config.AUTH_TYPE == AuthTypes.identity_proxy_manager
+        assert auth_config.IDPM_RESOURCE == "https://custom-resource/.default"
+
+    def test_idpm_resource_from_kwargs(self):
+        auth_config = AgentAuthConfiguration(
+            IDPMRESOURCE="https://custom-resource/.default"
+        )
+        assert auth_config.IDPM_RESOURCE == "https://custom-resource/.default"

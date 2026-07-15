@@ -61,10 +61,8 @@ class JwtAuthorizationMiddleware:
                 await response(scope, receive, send)
                 return
         else:
-            if not auth_config or not auth_config.CLIENT_ID:
-                request.state.claims_identity = (
-                    await token_validator.get_anonymous_claims()
-                )
+            if auth_config.ANONYMOUS_ALLOWED:
+                request.state.claims_identity = token_validator.get_anonymous_claims()
             else:
                 response = JSONResponse(
                     {"error": "Authorization header not found"},

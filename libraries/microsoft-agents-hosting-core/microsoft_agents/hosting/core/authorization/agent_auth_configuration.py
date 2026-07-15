@@ -1,7 +1,7 @@
 # Copyright (c) Microsoft Corporation. All rights reserved.
 # Licensed under the MIT License.
 
-from typing import Optional
+from __future__ import annotations
 
 from microsoft_agents.hosting.core.authorization.auth_types import AuthTypes
 
@@ -14,39 +14,57 @@ class AgentAuthConfiguration:
     CLIENT_ID: The client ID for the Azure AD application.
     AUTH_TYPE: The type of authentication to use (microsoft_agents.hosting.core.authorization.auth_types.AuthTypes).
     CLIENT_SECRET: The client secret for the Azure AD application (if using client secret authentication).
-    CERT_PEM_FILE: The path to the PEM file for certificate authentication (if using certificate authentication).
-    CERT_KEY_FILE: The path to the key file for certificate authentication (if using certificate authentication).
+    CERT_PFX_FILE: The path to the PFX certificate file (if using certificate authentication).
     CONNECTION_NAME: The name of the connection
+    FEDERATED_CLIENT_ID: The client ID for federated credentials (if using federated credentials authentication).
     SCOPES: The scopes to request
-    AUTHORITY: The authority URL for the Azure AD (if different from the default).f
+    AUTHORITY: The authority URL for the Azure AD (if different from the default).
     ALT_BLUEPRINT_ID: An optional alternative blueprint ID used when constructing a connector client.
+    AZURE_REGION: The Azure regional token service to use for token acquisition (ESTS-R).
+        This feature is currently available to first-party applications only.
+    IDPM_RESOURCE: The resource URL for Identity Proxy Manager (IDPM) token acquisition.
+        Only meaningful when AUTH_TYPE is AuthTypes.identity_proxy_manager. When not set,
+        it defaults to "api://AzureAdTokenExchange/.default".
     """
 
-    TENANT_ID: Optional[str]
-    CLIENT_ID: Optional[str]
+    TENANT_ID: str | None
     AUTH_TYPE: AuthTypes
-    CLIENT_SECRET: Optional[str]
-    CERT_PEM_FILE: Optional[str]
-    CERT_KEY_FILE: Optional[str]
-    CONNECTION_NAME: Optional[str]
-    SCOPES: Optional[list[str]]
-    AUTHORITY: Optional[str]
-    ALT_BLUEPRINT_ID: Optional[str]
+    CLIENT_ID: str | None
+    CLIENT_SECRET: str | None
+    CERT_PFX_FILE: str | None
+    CONNECTION_NAME: str | None
+    FEDERATED_CLIENT_ID: str | None
+    SCOPES: list[str] | None
+    AUTHORITY: str | None
+    ALT_BLUEPRINT_ID: str | None
+    AZURE_REGION: str | None
+    IDPM_RESOURCE: str | None
     ANONYMOUS_ALLOWED: bool = False
+
+    # Multi-connection support: Maintains a map of all configured connections
+    # to enable JWT validation across connections. This allows tokens issued
+    # for any configured connection to be validated, supporting multi-tenant
+    # scenarios where connections share a security boundary.
+    #
+    # Note: This is an internal implementation detail. External code should
+    # not directly access _connections.
+    _connections: dict[str, AgentAuthConfiguration]
 
     def __init__(
         self,
-        auth_type: AuthTypes = None,
-        client_id: str = None,
-        tenant_id: Optional[str] = None,
-        client_secret: Optional[str] = None,
-        cert_pem_file: Optional[str] = None,
-        cert_key_file: Optional[str] = None,
-        connection_name: Optional[str] = None,
-        authority: Optional[str] = None,
-        scopes: Optional[list[str]] = None,
+        auth_type: AuthTypes | None = None,
+        client_id: str | None = None,
+        tenant_id: str | None = None,
+        client_secret: str | None = None,
+        cert_pfx_file: str | None = None,
+        connection_name: str | None = None,
+        federated_client_id: str | None = None,
+        authority: str | None = None,
+        scopes: list[str] | None = None,
+        azure_region: str | None = None,
+        idpm_resource: str | None = None,
         anonymous_allowed: bool = False,
-        **kwargs: Optional[dict[str, str]],
+        **kwargs: str,
     ):
 
         self.AUTH_TYPE = auth_type or kwargs.get("AUTHTYPE", AuthTypes.client_secret)
@@ -54,14 +72,29 @@ class AgentAuthConfiguration:
         self.AUTHORITY = authority or kwargs.get("AUTHORITY", None)
         self.TENANT_ID = tenant_id or kwargs.get("TENANTID", None)
         self.CLIENT_SECRET = client_secret or kwargs.get("CLIENTSECRET", None)
-        self.CERT_PEM_FILE = cert_pem_file or kwargs.get("CERTPEMFILE", None)
-        self.CERT_KEY_FILE = cert_key_file or kwargs.get("CERTKEYFILE", None)
+        self.CERT_PFX_FILE = cert_pfx_file or kwargs.get("CERTPFXFILE", None)
         self.CONNECTION_NAME = connection_name or kwargs.get("CONNECTIONNAME", None)
+        self.FEDERATED_CLIENT_ID = federated_client_id or kwargs.get(
+            "FEDERATEDCLIENTID", None
+        )
         self.SCOPES = scopes or kwargs.get("SCOPES", None)
+        # Azure regional token service. Falls back to the legacy "REGIONALAUTHORITY"
+        # configuration key when "AZUREREGION" is not provided.
+        self.AZURE_REGION = (
+            azure_region
+            or kwargs.get("AZUREREGION", None)
+            or kwargs.get("REGIONALAUTHORITY", None)
+        )
+        # Resource URL for Identity Proxy Manager (IDPM) token acquisition.
+        # Only meaningful when AUTH_TYPE is AuthTypes.identity_proxy_manager.
+        self.IDPM_RESOURCE = idpm_resource or kwargs.get("IDPMRESOURCE", None)
         self.ALT_BLUEPRINT_ID = kwargs.get("ALT_BLUEPRINT_NAME", None)
         self.ANONYMOUS_ALLOWED = anonymous_allowed or kwargs.get(
             "ANONYMOUS_ALLOWED", False
         )
+
+        # JWT-patch: always at least include self for backward compat
+        self._connections = {str(self.CONNECTION_NAME): self}
 
     @property
     def ISSUERS(self) -> list[str]:
@@ -73,3 +106,14 @@ class AgentAuthConfiguration:
             f"https://sts.windows.net/{self.TENANT_ID}/",
             f"https://login.microsoftonline.com/{self.TENANT_ID}/v2.0",
         ]
+
+    def _jwt_patch_is_valid_aud(self, aud: str) -> bool:
+        """
+        JWT-patch: Checks if the given audience is valid for any of the connections.
+        """
+        for conn in self._connections.values():
+            if not conn.CLIENT_ID:
+                continue
+            if aud.lower() == conn.CLIENT_ID.lower():
+                return True
+        return False

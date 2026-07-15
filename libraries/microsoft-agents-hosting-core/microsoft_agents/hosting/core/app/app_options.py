@@ -6,19 +6,19 @@ Licensed under the MIT License.
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from logging import Logger
-from typing import Callable, List, Optional
+from typing import Callable, Optional
 
 from microsoft_agents.hosting.core.app.oauth import AuthHandler
+from microsoft_agents.hosting.core.authorization import Connections
 from microsoft_agents.hosting.core.storage import Storage
 
 # from .auth import AuthOptions
+from .typing_indicator import TypingOptions
 from .input_file import InputFileDownloader
 from ..channel_service_adapter import ChannelServiceAdapter
 
 from .state.turn_state import TurnState
-
-# from .teams_adapter import TeamsAdapter
+from .proactive.proactive_options import ProactiveOptions
 
 
 @dataclass
@@ -26,11 +26,6 @@ class ApplicationOptions:
     adapter: Optional[ChannelServiceAdapter] = None
     """
     Optional. Options used to initialize your `BotAdapter`
-    """
-
-    # auth: Optional[AuthOptions] = None
-    """
-    Optional. Auth settings.
     """
 
     bot_app_id: str = ""
@@ -41,11 +36,6 @@ class ApplicationOptions:
     storage: Optional[Storage] = None
     """
     Optional. `Storage` provider to use for the application.
-    """
-
-    logger: Logger = Logger(__name__)
-    """
-    Optional. `Logger` that will be used in this application.
     """
 
     remove_recipient_mention: bool = True
@@ -61,6 +51,13 @@ class ApplicationOptions:
     the request. Defaults to true.
     """
 
+    typing: Optional[TypingOptions] = None
+    """
+    Optional. Typing indicator timing options. Controls initial delay, interval,
+    and per-channel strategies. If not provided, defaults are used when
+    ``start_typing_timer`` is true.
+    """
+
     long_running_messages: bool = False
     """
     Optional. If true, the bot supports long running messages that can take longer then the 10 - 15
@@ -72,7 +69,7 @@ class ApplicationOptions:
     will mark the bot's process as idle and shut it down.
     """
 
-    file_downloaders: List[InputFileDownloader] = field(default_factory=list)
+    file_downloaders: list[InputFileDownloader] = field(default_factory=list)
     """
     Optional. Array of input file download plugins to use. 
     """
@@ -88,4 +85,11 @@ class ApplicationOptions:
     """
     Optional. Authorization handler for OAuth flows.
     If not provided, no OAuth flows will be supported.
+    """
+
+    proactive: Optional[ProactiveOptions] = None
+    """
+    Optional. Options for the proactive messaging subsystem.
+    When set, :attr:`microsoft_agents.hosting.core.AgentApplication.proactive` is available for storing
+    conversations and initiating proactive turns.
     """

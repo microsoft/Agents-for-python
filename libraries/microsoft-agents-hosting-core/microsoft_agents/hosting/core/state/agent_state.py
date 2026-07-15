@@ -5,12 +5,15 @@ from __future__ import annotations
 
 from abc import abstractmethod
 from copy import deepcopy
-from typing import Callable, Dict, Union, Type
+import logging
+from typing import Callable, Type
 
 from microsoft_agents.hosting.core.storage import Storage, StoreItem
 
 from .state_property_accessor import StatePropertyAccessor
 from ..turn_context import TurnContext
+
+logger = logging.getLogger(__name__)
 
 
 class CachedAgentState(StoreItem):
@@ -18,7 +21,7 @@ class CachedAgentState(StoreItem):
     Internal cached Agent state.
     """
 
-    def __init__(self, state: Dict[str, StoreItem | dict] = None):
+    def __init__(self, state: dict[str, StoreItem | dict] | None = None):
         if state:
             self.state = state
             self.hash = self.compute_hash()
@@ -46,6 +49,10 @@ class CachedAgentState(StoreItem):
             for key, value in self.state.items()
         }
         return serialized
+
+    def clear(self) -> None:
+        self.state = {}
+        self.hash = ""
 
     @staticmethod
     def from_json_to_store_item(json_data: dict) -> StoreItem:
@@ -85,18 +92,25 @@ class AgentState:
         self.state_key = "state"
         self._storage = storage
         self._context_service_key = context_service_key
-        self._cached_state: CachedAgentState = None
+        self._cached_state: CachedAgentState | None = None
 
-    def get_cached_state(self, turn_context: TurnContext) -> CachedAgentState:
+    def get_cached_state(
+        self, turn_context: TurnContext | None = None
+    ) -> CachedAgentState:
         """
         Gets the cached agent state instance that wraps the raw cached data for this "AgentState"
         from the turn context.
 
-        :param turn_context: The context object for this turn.
+        :param turn_context: Deprecated. The context object for this turn. This parameter is no
+            longer required and will be removed in a future release.
         :type turn_context: :class:`microsoft_agents.hosting.core.turn_context.TurnContext`
         :return: The cached agent state instance.
         """
-        return turn_context.turn_state.get(self._context_service_key)
+        if turn_context:
+            logger.warning(
+                "AgentState.get_cached_state(): turn_context is deprecated and no longer required for get_cached_state(); it will be removed in a future release"
+            )
+        return self._cached_state
 
     def create_property(self, name: str) -> StatePropertyAccessor:
         """
@@ -113,10 +127,20 @@ class AgentState:
             )
         return BotStatePropertyAccessor(self, name)
 
-    def get(self, turn_context: TurnContext) -> Dict[str, StoreItem]:
-        cached = self.get_cached_state(turn_context)
+    def get(self, turn_context: TurnContext | None = None) -> dict[str, StoreItem]:
+        """
+        Gets the raw cached state dictionary for this "AgentState".
 
-        return getattr(cached, "state", None)
+        :param turn_context: Deprecated. The context object for this turn. This parameter is no
+            longer required and will be removed in a future release.
+        :type turn_context: :class:`microsoft_agents.hosting.core.turn_context.TurnContext`
+        :return: The cached state dictionary.
+        """
+        if turn_context:
+            logger.warning(
+                "AgentState.get(): turn_context is deprecated and no longer required for get(); it will be removed in a future release"
+            )
+        return getattr(self._cached_state, "state", None)
 
     async def load(self, turn_context: TurnContext, force: bool = False) -> None:
         """
@@ -129,11 +153,26 @@ class AgentState:
         """
         storage_key = self.get_storage_key(turn_context)
 
-        if force or not self._cached_state:
+        if self._should_load(turn_context, force):
             items = await self._storage.read([storage_key], target_cls=CachedAgentState)
             val = items.get(storage_key, CachedAgentState())
             self._cached_state = val
             turn_context.turn_state[self._context_service_key] = val
+
+    def _should_load(self, turn_context: TurnContext, force: bool = False) -> bool:
+        """
+        Determines whether the state should be loaded from storage.
+
+        :param turn_context: The context object for this turn
+        :type turn_context: :class:`microsoft_agents.hosting.core.turn_context.TurnContext`
+        :param force: Optional, true to bypass the cache
+        :type force: bool
+        :return: True if the state should be loaded from storage, False otherwise
+        :rtype: bool
+        """
+
+        self._cached_state = turn_context.turn_state.get(self._context_service_key)
+        return force or self._cached_state is None
 
     async def save(self, turn_context: TurnContext, force: bool = False) -> None:
         """
@@ -146,17 +185,21 @@ class AgentState:
         :type force: bool
         """
 
-        if force or (self._cached_state is not None and self._cached_state.is_changed):
-            storage_key = self.get_storage_key(turn_context)
-            changes: Dict[str, StoreItem] = {storage_key: self._cached_state}
-            await self._storage.write(changes)
-            self._cached_state.hash = self._cached_state.compute_hash()
+        # Avoid self._cached_state updating during the save operation
+        cached_state = self._cached_state
 
-    def clear(self, turn_context: TurnContext):
+        if force or (cached_state is not None and cached_state.is_changed):
+            storage_key = self.get_storage_key(turn_context)
+            changes: dict[str, StoreItem] = {storage_key: cached_state}
+            await self._storage.write(changes)
+            cached_state.hash = cached_state.compute_hash()
+
+    def clear(self, turn_context: TurnContext | None = None) -> None:
         """
         Clears any state currently stored in this state scope.
 
-        :param turn_context: The context object for this turn
+        :param turn_context: Deprecated. The context object for this turn. This parameter is no
+            longer required and will be removed in a future release.
         :type turn_context: :class:`microsoft_agents.hosting.core.turn_context.TurnContext`
 
         :return: None
@@ -165,9 +208,14 @@ class AgentState:
             This function must be called in order for the cleared state to be persisted to the underlying store.
         """
         #  Explicitly setting the hash will mean IsChanged is always true. And that will force a Save.
-        cache_value = CachedAgentState()
-        cache_value.hash = ""
-        self._cached_state = cache_value
+        if turn_context:
+            logger.warning(
+                "AgentState.clear(): turn_context is deprecated and no longer required for clear(); it will be removed in a future release"
+            )
+        if self._cached_state is None:
+            logger.warning("AgentState.clear(): No cached state to clear.")
+            return
+        self._cached_state.clear()
 
     async def delete(self, turn_context: TurnContext) -> None:
         """
@@ -185,14 +233,14 @@ class AgentState:
 
     @abstractmethod
     def get_storage_key(
-        self, turn_context: TurnContext, *, target_cls: Type[StoreItem] = None
+        self, turn_context: TurnContext, *, target_cls: Type[StoreItem] | None = None
     ) -> str:
         raise NotImplementedError()
 
     def get_value(
         self,
         property_name: str,
-        default_value_factory: Callable[[], StoreItem] = None,
+        default_value_factory: Callable[[], StoreItem] | None = None,
         *,
         target_cls: Type[StoreItem] = None,
     ) -> StoreItem:
@@ -219,7 +267,11 @@ class AgentState:
 
         if not value and default_value_factory is not None:
             # If the value is None and a factory is provided, call the factory to get a default value
-            return default_value_factory()
+            default = default_value_factory()
+            # Store the default value in the cache so modifications to it are tracked
+            if self._cached_state is not None:
+                self._cached_state.state[property_name] = default
+            return default
 
         if target_cls and value:
             # Attempt to deserialize the value if it is not None
@@ -242,7 +294,7 @@ class AgentState:
         """
         if not property_name:
             raise TypeError(
-                "AgentState.delete_property(): property_name cannot be None."
+                "AgentState.delete_value(): property_name cannot be None or empty."
             )
 
         if self._cached_state.state.get(property_name):
@@ -261,7 +313,7 @@ class AgentState:
         """
         if not property_name:
             raise TypeError(
-                "AgentState.delete_property(): property_name cannot be None."
+                "AgentState.set_value(): property_name cannot be None or empty."
             )
         self._cached_state.state[property_name] = value
 
@@ -308,9 +360,9 @@ class BotStatePropertyAccessor(StatePropertyAccessor):
     async def get(
         self,
         turn_context: TurnContext,
-        default_value_or_factory: Union[Callable, StoreItem] = None,
+        default_value_or_factory: Callable | StoreItem | None = None,
         *,
-        target_cls: Type[StoreItem] = None,
+        target_cls: Type[StoreItem] | None = None,
     ) -> StoreItem:
         """
         Gets the property value.

@@ -2,7 +2,7 @@
 # Licensed under the MIT License.
 
 import re
-from typing import Dict, List, Optional
+from typing import Optional
 from microsoft_agents.hosting.core import (
     AgentAuthConfiguration,
     AccessTokenProviderBase,
@@ -14,47 +14,49 @@ from .msal_auth import MsalAuth
 
 
 class MsalConnectionManager(Connections):
-    _connections: Dict[str, MsalAuth]
-    _connections_map: List[Dict[str, str]]
+    _connections: dict[str, MsalAuth]
+    _connections_map: list[dict[str, str]]
     _service_connection_configuration: AgentAuthConfiguration
 
     def __init__(
         self,
-        connections_configurations: Optional[Dict[str, AgentAuthConfiguration]] = None,
-        connections_map: Optional[List[Dict[str, str]]] = None,
+        connections_configurations: Optional[dict[str, AgentAuthConfiguration]] = None,
+        connections_map: Optional[list[dict[str, str]]] = None,
         **kwargs,
     ):
         """
         Initialize the MSAL connection manager.
 
         :arg connections_configurations: A dictionary of connection configurations.
-        :type connections_configurations: Dict[str, :class:`microsoft_agents.hosting.core.AgentAuthConfiguration`]
+        :type connections_configurations: dict[str, :class:`microsoft_agents.hosting.core.AgentAuthConfiguration`]
         :arg connections_map: A list of connection mappings.
-        :type connections_map: List[Dict[str, str]]
+        :type connections_map: list[dict[str, str]]
         :raises ValueError: If no service connection configuration is provided.
         """
 
-        self._connections: Dict[str, MsalAuth] = {}
+        self._connections: dict[str, MsalAuth] = {}
         self._connections_map = connections_map or kwargs.get("CONNECTIONSMAP", {})
-        self._service_connection_configuration: AgentAuthConfiguration = None
+        self._config_map: dict[str, AgentAuthConfiguration] = {}
 
         if connections_configurations:
             for (
                 connection_name,
-                connection_settings,
+                agent_auth_config,
             ) in connections_configurations.items():
-                self._connections[connection_name] = MsalAuth(
-                    AgentAuthConfiguration(**connection_settings)
-                )
+                self._connections[connection_name] = MsalAuth(agent_auth_config)
+                self._config_map[connection_name] = agent_auth_config
         else:
-            raw_configurations: Dict[str, Dict] = kwargs.get("CONNECTIONS", {})
+            raw_configurations: dict[str, dict] = kwargs.get("CONNECTIONS", {})
             for connection_name, connection_settings in raw_configurations.items():
                 parsed_configuration = AgentAuthConfiguration(
                     **connection_settings.get("SETTINGS", {})
                 )
                 self._connections[connection_name] = MsalAuth(parsed_configuration)
-                if connection_name == "SERVICE_CONNECTION":
-                    self._service_connection_configuration = parsed_configuration
+                self._config_map[connection_name] = parsed_configuration
+
+        # JWT-patch
+        for connection_name, config in self._config_map.items():
+            config._connections = self._config_map
 
         if not self._connections.get("SERVICE_CONNECTION", None):
             raise ValueError("No service connection configuration provided.")
@@ -68,8 +70,17 @@ class MsalConnectionManager(Connections):
         :return: The OAuth connection for the agent.
         :rtype: :class:`microsoft_agents.hosting.core.AccessTokenProviderBase`
         """
-        # should never be None
-        return self._connections.get(connection_name, None)
+        original_name = connection_name
+        connection_name = connection_name or "SERVICE_CONNECTION"
+        connection = self._connections.get(connection_name, None)
+        if not connection:
+            if original_name:
+                raise ValueError(f"No connection found for '{original_name}'.")
+            else:
+                raise ValueError(
+                    "No default service connection found. Expected 'SERVICE_CONNECTION'."
+                )
+        return connection
 
     def get_default_connection(self) -> AccessTokenProviderBase:
         """
@@ -78,8 +89,12 @@ class MsalConnectionManager(Connections):
         :return: The default OAuth connection for the agent.
         :rtype: :class:`microsoft_agents.hosting.core.AccessTokenProviderBase`
         """
-        # should never be None
-        return self._connections.get("SERVICE_CONNECTION", None)
+        connection = self._connections.get("SERVICE_CONNECTION", None)
+        if not connection:
+            raise ValueError(
+                "No default service connection found. Expected 'SERVICE_CONNECTION'."
+            )
+        return connection
 
     def get_token_provider(
         self, claims_identity: ClaimsIdentity, service_url: str
@@ -137,4 +152,9 @@ class MsalConnectionManager(Connections):
         :return: The default connection configuration for the agent.
         :rtype: :class:`microsoft_agents.hosting.core.AgentAuthConfiguration`
         """
-        return self._service_connection_configuration
+        config = self._config_map.get("SERVICE_CONNECTION")
+        if not config:
+            raise ValueError(
+                "No default service connection configuration found. Expected 'SERVICE_CONNECTION'."
+            )
+        return config

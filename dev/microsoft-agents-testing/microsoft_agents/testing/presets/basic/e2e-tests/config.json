@@ -1,0 +1,9 @@
+{
+    "agents": {
+        "my_agent": {
+            "path": "../my_agent",
+            "setup": "uv sync",
+            "run": "uv run python -m src.main"
+        }
+    }
+}

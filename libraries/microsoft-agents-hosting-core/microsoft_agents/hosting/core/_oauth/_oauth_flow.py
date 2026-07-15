@@ -107,7 +107,7 @@ class _OAuthFlow:
     def flow_state(self) -> _FlowState:
         return self._flow_state.model_copy()
 
-    async def get_user_token(self, magic_code: str = None) -> TokenResponse:
+    async def get_user_token(self, magic_code: str | None = None) -> TokenResponse:
         """Get the user token based on the context.
 
         Args:
@@ -187,7 +187,7 @@ class _OAuthFlow:
 
         token_exchange_state = TokenExchangeState(
             connection_name=self._abs_oauth_connection_name,
-            conversation=activity.get_conversation_reference(),
+            conversation=activity.get_conversation_reference(force_base_channel=True),
             relates_to=activity.relates_to,
             ms_app_id=self._ms_app_id,
         )
@@ -195,7 +195,7 @@ class _OAuthFlow:
         res = await self._user_token_client.user_token._get_token_or_sign_in_resource(
             activity.from_property.id,
             self._abs_oauth_connection_name,
-            activity.channel_id,
+            token_exchange_state.conversation.channel_id,
             token_exchange_state.get_encoded_state(),
         )
 
@@ -247,16 +247,32 @@ class _OAuthFlow:
 
     async def _continue_from_invoke_token_exchange(
         self, activity: Activity
-    ) -> TokenResponse:
+    ) -> tuple[TokenResponse, _FlowErrorTag]:
         """Handles the continuation of the flow from an invoke activity for token exchange."""
         token_exchange_request = activity.value
-        token_response = await self._user_token_client.user_token.exchange_token(
-            user_id=self._user_id,
-            connection_name=self._abs_oauth_connection_name,
-            channel_id=self._channel_id,
-            body=token_exchange_request,
-        )
-        return token_response
+        try:
+            token_response = await self._user_token_client.user_token.exchange_token(
+                user_id=self._user_id,
+                connection_name=self._abs_oauth_connection_name,
+                channel_id=self._channel_id,
+                body=token_exchange_request,
+            )
+            return token_response, _FlowErrorTag.NONE
+        except Exception as e:
+            # A 400 with 'ConsentRequired' means the user hasn't consented yet.
+            # Return None so the caller can send a 412 back to Teams, which will
+            # prompt the user for consent and retry the token exchange.
+            # Any other error is a critical failure and should propagate.
+            if getattr(e, "status", None) == 400 and "Consent Required" in getattr(
+                e, "message", ""
+            ):
+                logger.info(
+                    "Token exchange requires consent for user %s, returning None to trigger consent prompt",
+                    self._user_id,
+                )
+
+                return None, _FlowErrorTag.PRECONDITION_FAILED
+            raise
 
     async def continue_flow(self, activity: Activity) -> _FlowResponse:
         """Continues the OAuth flow based on the incoming activity.
@@ -289,7 +305,15 @@ class _OAuthFlow:
             activity.type == ActivityTypes.invoke
             and activity.name == "signin/tokenExchange"
         ):
-            token_response = await self._continue_from_invoke_token_exchange(activity)
+            token_response, flow_error_tag = (
+                await self._continue_from_invoke_token_exchange(activity)
+            )
+        elif (
+            activity.type == ActivityTypes.invoke and activity.name == "signin/failure"
+        ):
+            logger.debug("Handling signin/failure invoke activity")
+            token_response = None
+            flow_error_tag = _FlowErrorTag.OTHER
         else:
             raise ValueError(f"Unknown activity type {activity.type}")
 
@@ -299,7 +323,8 @@ class _OAuthFlow:
         if flow_error_tag != _FlowErrorTag.NONE:
             logger.debug("Flow error occurred: %s", flow_error_tag)
             self._flow_state.tag = _FlowStateTag.CONTINUE
-            self._use_attempt()
+            if flow_error_tag != _FlowErrorTag.PRECONDITION_FAILED:
+                self._use_attempt()
         else:
             self._flow_state.tag = _FlowStateTag.COMPLETE
             self._flow_state.expiration = (

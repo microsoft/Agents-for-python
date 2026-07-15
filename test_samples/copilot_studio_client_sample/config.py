@@ -18,6 +18,9 @@ class McsConnectionSettings(ConnectionSettings):
         cloud: Optional[PowerPlatformCloud] = None,
         copilot_agent_type: Optional[AgentType] = None,
         custom_power_platform_cloud: Optional[str] = None,
+        direct_connect_url: Optional[str] = None,
+        use_experimental_endpoint: Optional[bool] = None,
+        enable_diagnostics: Optional[bool] = None,
     ) -> None:
         self.app_client_id = app_client_id or environ.get("APP_CLIENT_ID")
         self.tenant_id = tenant_id or environ.get("TENANT_ID")
@@ -27,21 +30,17 @@ class McsConnectionSettings(ConnectionSettings):
         if not self.tenant_id:
             raise ValueError("Tenant ID must be provided")
 
-        environment_id = environment_id or environ.get("ENVIRONMENT_ID")
-        agent_identifier = agent_identifier or environ.get("AGENT_IDENTIFIER")
-        cloud = cloud or PowerPlatformCloud[environ.get("CLOUD", "UNKNOWN")]
-        copilot_agent_type = (
-            copilot_agent_type
-            or AgentType[environ.get("COPILOT_agent_type", "PUBLISHED")]
-        )
-        custom_power_platform_cloud = custom_power_platform_cloud or environ.get(
-            "CUSTOM_POWER_PLATFORM_CLOUD", None
+        # Use the parent class's method to populate settings from environment
+        settings = ConnectionSettings.populate_from_environment(
+            environment_id=environment_id,
+            agent_identifier=agent_identifier,
+            cloud=cloud,
+            copilot_agent_type=copilot_agent_type,
+            custom_power_platform_cloud=custom_power_platform_cloud,
+            direct_connect_url=direct_connect_url,
+            use_experimental_endpoint=use_experimental_endpoint,
+            enable_diagnostics=enable_diagnostics,
         )
 
-        super().__init__(
-            environment_id,
-            agent_identifier,
-            cloud,
-            copilot_agent_type,
-            custom_power_platform_cloud,
-        )
+        # Initialize the parent class with the populated settings
+        super().__init__(**settings)

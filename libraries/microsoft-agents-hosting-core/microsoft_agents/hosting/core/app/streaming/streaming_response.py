@@ -1,22 +1,25 @@
 # Copyright (c) Microsoft Corporation. All rights reserved.
 # Licensed under the MIT License.
 
+import uuid
 import asyncio
 import logging
-from typing import List, Optional, Callable, Literal, TYPE_CHECKING
+from typing import Optional, Callable, Literal, cast
 
 from microsoft_agents.activity import (
     Activity,
-    Entity,
+    AIEntity,
+    EntityTypes,
     Attachment,
     Channels,
     ClientCitation,
     DeliveryModes,
     SensitivityUsageInfo,
+    ClientCitationAppearance,
+    StreamInfo,
 )
 
-if TYPE_CHECKING:
-    from microsoft_agents.hosting.core.turn_context import TurnContext
+from microsoft_agents.hosting.core.errors import error_resources
 
 from .citation import Citation
 from .citation_util import CitationUtil
@@ -44,61 +47,48 @@ class StreamingResponse:
             context: Context for the current turn of conversation with the user.
         """
         self._context = context
+        self._initialize_state()
+
+        # Set defaults based on channel
+        self._set_defaults(context)
+
+    def _initialize_state(self) -> None:
+        """
+        Initializes (or resets) all mutable streaming state to its default values.
+        Called from both __init__() and reset().
+        """
+        self._is_streaming_channel = False
+        self._interval = 0.1
         self._sequence_number = 1
         self._stream_id: Optional[str] = None
         self._message = ""
-        self._attachments: Optional[List[Attachment]] = None
-        self._ended = False
-        self._cancelled = False
-
-        # Queue for outgoing activities
-        self._queue: List[Callable[[], Activity]] = []
+        self._queue: list[Callable[[], Activity | None]] = []
         self._queue_sync: Optional[asyncio.Task] = None
         self._chunk_queued = False
-
-        # Powered by AI feature flags
+        self._ended = False
+        self._cancelled = False
+        self._attachments: Optional[list[Attachment]] = None
+        self._citations: list[ClientCitation] = []
+        self._sensitivity_label: Optional[SensitivityUsageInfo] = None
         self._enable_feedback_loop = False
         self._feedback_loop_type: Optional[Literal["default", "custom"]] = None
         self._enable_generated_by_ai_label = False
-        self._citations: Optional[List[ClientCitation]] = []
-        self._sensitivity_label: Optional[SensitivityUsageInfo] = None
-
-        # Channel information
-        self._is_streaming_channel: bool = False
-        self._channel_id: Channels = None
-        self._interval: float = 0.1  # Default interval for sending updates
-        self._set_defaults(context)
-
-    @property
-    def stream_id(self) -> Optional[str]:
-        """
-        Gets the stream ID of the current response.
-        Assigned after the initial update is sent.
-        """
-        return self._stream_id
-
-    @property
-    def citations(self) -> Optional[List[ClientCitation]]:
-        """Gets the citations of the current response."""
-        return self._citations
-
-    @property
-    def updates_sent(self) -> int:
-        """Gets the number of updates sent for the stream."""
-        return self._sequence_number - 1
 
     def queue_informative_update(self, text: str) -> None:
         """
         Queues an informative update to be sent to the client.
 
+        Informative updates do not contain the message content that the user will
+        read but rather an indication that the agent is processing the request.
+
         Args:
-            text: Text of the update to send.
+            text: The informative text to send to the client.
         """
-        if not self._is_streaming_channel:
+        if self._cancelled or not self._is_streaming_channel:
             return
 
         if self._ended:
-            raise RuntimeError("The stream has already ended.")
+            raise RuntimeError(str(error_resources.StreamAlreadyEnded))
 
         # Queue a typing activity
         def create_activity():
@@ -106,8 +96,7 @@ class StreamingResponse:
                 type="typing",
                 text=text,
                 entities=[
-                    Entity(
-                        type="streaminfo",
+                    StreamInfo(
                         stream_type="informative",
                         stream_sequence=self._sequence_number,
                     )
@@ -119,7 +108,7 @@ class StreamingResponse:
         self._queue_activity(create_activity)
 
     def queue_text_chunk(
-        self, text: str, citations: Optional[List[Citation]] = None
+        self, text: str, citations: Optional[list[Citation]] = None
     ) -> None:
         """
         Queues a chunk of partial message text to be sent to the client.
@@ -134,7 +123,7 @@ class StreamingResponse:
         if self._cancelled:
             return
         if self._ended:
-            raise RuntimeError("The stream has already ended.")
+            raise RuntimeError(str(error_resources.StreamAlreadyEnded))
 
         # Update full message text
         self._message += text
@@ -150,7 +139,7 @@ class StreamingResponse:
         Ends the stream by sending the final message to the client.
         """
         if self._ended:
-            raise RuntimeError("The stream has already ended.")
+            raise RuntimeError(str(error_resources.StreamAlreadyEnded))
 
         # Queue final message
         self._ended = True
@@ -159,7 +148,7 @@ class StreamingResponse:
         # Wait for the queue to drain
         await self.wait_for_queue()
 
-    def set_attachments(self, attachments: List[Attachment]) -> None:
+    def set_attachments(self, attachments: list[Attachment]) -> None:
         """
         Sets the attachments to attach to the final chunk.
 
@@ -167,6 +156,37 @@ class StreamingResponse:
             attachments: List of attachments.
         """
         self._attachments = attachments
+
+    def add_attachment(self, attachment: Attachment) -> None:
+        """
+        Adds an attachment to the collection of attachments for the final message.
+
+        Attachments are only included in the final message sent by `end_stream()`.
+        They are not sent in intermediate typing activities.
+
+        Args:
+            attachment: The attachment to add. Must not be None.
+
+        Raises:
+            ValueError: If attachment is None.
+        """
+        if attachment is None:
+            raise ValueError("attachment cannot be None")
+
+        if self._attachments is None:
+            self._attachments = []
+        self._attachments.append(attachment)
+
+    async def reset(self) -> None:
+        """
+        Resets the streaming response to its initial state.
+        If the stream is still running, this will wait for completion.
+        """
+        await self.wait_for_queue()
+        self._initialize_state()
+
+        # Set defaults based on channel
+        self._set_defaults(self._context)
 
     def set_sensitivity_label(self, sensitivity_label: SensitivityUsageInfo) -> None:
         """
@@ -177,7 +197,7 @@ class StreamingResponse:
         """
         self._sensitivity_label = sensitivity_label
 
-    def set_citations(self, citations: List[Citation]) -> None:
+    def set_citations(self, citations: list[Citation]) -> None:
         """
         Sets the citations for the full message.
 
@@ -192,13 +212,12 @@ class StreamingResponse:
 
             for citation in citations:
                 client_citation = ClientCitation(
-                    type="Claim",
                     position=curr_pos + 1,
-                    appearance={
-                        "type": "DigitalDocument",
-                        "name": citation.title or f"Document #{curr_pos + 1}",
-                        "abstract": CitationUtil.snippet(citation.content, 477),
-                    },
+                    appearance=ClientCitationAppearance(
+                        name=citation.title or f"Document #{curr_pos + 1}",
+                        abstract=CitationUtil.snippet(citation.content, 480),
+                        url=citation.url,
+                    ),
                 )
                 curr_pos += 1
                 self._citations.append(client_citation)
@@ -249,17 +268,29 @@ class StreamingResponse:
             await self._queue_sync
 
     def _set_defaults(self, context: "TurnContext"):
-        if Channels.ms_teams == context.activity.channel_id.channel:
-            self._is_streaming_channel = True
-            self._interval = 1.0
-        elif Channels.direct_line == context.activity.channel_id.channel:
+
+        channel = (
+            context.activity.channel_id.channel if context.activity.channel_id else None
+        )
+
+        if channel == Channels.ms_teams:
+            if context.activity.is_agentic_request():
+                # Agentic requests do not support streaming responses at this time.
+                # TODO : Enable streaming for agentic requests when supported.
+                self._is_streaming_channel = False
+            else:
+                self._is_streaming_channel = True
+                self._interval = 1.0
+        elif channel in [Channels.webchat, Channels.direct_line]:
             self._is_streaming_channel = True
             self._interval = 0.5
+            self._stream_id = str(uuid.uuid4())
         elif context.activity.delivery_mode == DeliveryModes.stream:
             self._is_streaming_channel = True
             self._interval = 0.1
-
-        self._channel_id = context.activity.channel_id
+            self._stream_id = str(uuid.uuid4())
+        else:
+            self._is_streaming_channel = False
 
     def _queue_next_chunk(self) -> None:
         """
@@ -272,7 +303,7 @@ class StreamingResponse:
         # Queue a chunk of text to be sent
         self._chunk_queued = True
 
-        def create_activity():
+        def create_activity() -> Activity | None:
             self._chunk_queued = False
             if self._ended:
                 # Send final message
@@ -281,9 +312,7 @@ class StreamingResponse:
                     text=self._message or "end stream response",
                     attachments=self._attachments or [],
                     entities=[
-                        Entity(
-                            type="streaminfo",
-                            stream_id=self._stream_id,
+                        StreamInfo(
                             stream_type="final",
                             stream_sequence=self._sequence_number,
                         )
@@ -295,8 +324,7 @@ class StreamingResponse:
                     type="typing",
                     text=self._message,
                     entities=[
-                        Entity(
-                            type="streaminfo",
+                        StreamInfo(
                             stream_type="streaming",
                             stream_sequence=self._sequence_number,
                         )
@@ -309,7 +337,7 @@ class StreamingResponse:
 
         self._queue_activity(create_activity)
 
-    def _queue_activity(self, factory: Callable[[], Activity]) -> None:
+    def _queue_activity(self, factory: Callable[[], Activity | None]) -> None:
         """
         Queues an activity to be sent to the client.
         """
@@ -331,15 +359,15 @@ class StreamingResponse:
                 if activity:
                     await self._send_activity(activity)
         except Exception as err:
-            if (
-                "403" in str(err)
-                and self._context.activity.channel_id == Channels.ms_teams
+            if "403" in str(err) and (
+                self._context.activity.channel_id is not None
+                and self._context.activity.channel_id.channel == Channels.ms_teams
             ):
                 logger.warning("Teams channel stopped the stream.")
                 self._cancelled = True
             else:
                 logger.error(
-                    f"Error occurred when sending activity while streaming: {err}"
+                    f"Error occurred when sending activity while streaming: {type(err).__name__}"
                 )
                 raise
         finally:
@@ -353,20 +381,22 @@ class StreamingResponse:
             activity: The activity to send.
         """
 
-        streaminfo_entity = None
+        streaminfo_entity: StreamInfo | None = None
 
         if not activity.entities:
-            streaminfo_entity = Entity(type="streaminfo")
+            streaminfo_entity = StreamInfo(stream_sequence=self._sequence_number)
+            self._sequence_number += 1
             activity.entities = [streaminfo_entity]
         else:
             for entity in activity.entities:
-                if hasattr(entity, "type") and entity.type == "streaminfo":
-                    streaminfo_entity = entity
+                if entity.type == EntityTypes.STREAM_INFO:
+                    streaminfo_entity = cast(StreamInfo, entity)
                     break
 
             if not streaminfo_entity:
                 # If no streaminfo entity exists, create one
-                streaminfo_entity = Entity(type="streaminfo")
+                streaminfo_entity = StreamInfo(stream_sequence=self._sequence_number)
+                self._sequence_number += 1
                 activity.entities.append(streaminfo_entity)
 
         # Set activity ID to the assigned stream ID
@@ -374,17 +404,21 @@ class StreamingResponse:
             activity.id = self._stream_id
             streaminfo_entity.stream_id = self._stream_id
 
-        if self._citations and len(self._citations) > 0 and not self._ended:
+        # the activity.add_ai_metadata call further down will add citations.
+        # The extra condition here is to avoid duplication
+        if (
+            self._citations
+            and not self._ended
+            and not self._enable_generated_by_ai_label
+        ):
             # Filter out the citations unused in content.
             curr_citations = CitationUtil.get_used_citations(
                 self._message, self._citations
             )
             if curr_citations:
                 activity.entities.append(
-                    Entity(
+                    AIEntity(
                         type="https://schema.org/Message",
-                        schema_type="Message",
-                        context="https://schema.org",
                         id="",
                         citation=curr_citations,
                     )
@@ -400,7 +434,10 @@ class StreamingResponse:
                 streaminfo_entity.feedback_loop_enabled = self._enable_feedback_loop
         # Add in Generated by AI
         if self._enable_generated_by_ai_label:
-            activity.add_ai_metadata(self._citations, self._sensitivity_label)
+            curr_citations = CitationUtil.get_used_citations(
+                self._message, self._citations
+            )
+            activity.add_ai_metadata(curr_citations, self._sensitivity_label)
 
         # Send activity
         response = await self._context.send_activity(activity)

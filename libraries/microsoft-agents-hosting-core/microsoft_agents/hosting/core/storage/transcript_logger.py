@@ -5,11 +5,10 @@ import random
 import string
 import json
 
-from typing import Any, Optional
 from abc import ABC, abstractmethod
 from datetime import datetime, timezone
 from queue import Queue
-from typing import Awaitable, Callable, List, Optional
+from typing import Awaitable, Callable, Optional
 from dataclasses import dataclass
 
 from microsoft_agents.activity import Activity, ChannelAccount
@@ -24,7 +23,7 @@ T = TypeVar("T")
 
 @dataclass
 class PagedResult(Generic[T]):
-    items: List[T]
+    items: list[T]
     continuation_token: Optional[str] = None
 
 
@@ -113,7 +112,7 @@ class TranscriptLoggerMiddleware(Middleware):
         self.logger = logger
 
     async def on_turn(
-        self, context: TurnContext, logic: Callable[[TurnContext], Awaitable]
+        self, context: TurnContext, logic: Callable[[TurnContext], Awaitable] | None
     ):
         """Initialization for middleware.
         :param context: Context for the current turn of conversation with the user.
@@ -139,7 +138,7 @@ class TranscriptLoggerMiddleware(Middleware):
         # pylint: disable=unused-argument
         async def send_activities_handler(
             ctx: TurnContext,
-            activities: List[Activity],
+            activities: list[Activity],
             next_send: Callable[[], Awaitable[None]],
         ):
             # Run full pipeline
@@ -202,7 +201,7 @@ class TranscriptLoggerMiddleware(Middleware):
         context.on_delete_activity(delete_activity_handler)
 
         if logic:
-            await logic()
+            await logic(context)
 
         # Flush transcript at end of turn
         while not transcript.empty():

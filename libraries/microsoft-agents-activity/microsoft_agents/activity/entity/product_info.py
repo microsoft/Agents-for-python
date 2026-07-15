@@ -16,5 +16,5 @@ class ProductInfo(Entity):
     :type id: str
     """
 
-    type: Literal[EntityTypes.PRODUCT_INFO] = EntityTypes.PRODUCT_INFO
+    type: Literal[EntityTypes.PRODUCT_INFO.value] = EntityTypes.PRODUCT_INFO.value
     id: str = None

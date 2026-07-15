@@ -5,6 +5,7 @@ Licensed under the MIT License.
 
 from __future__ import annotations
 import logging
+from contextlib import nullcontext
 from copy import copy
 from functools import partial
 
@@ -15,10 +16,9 @@ from typing import (
     Callable,
     Generic,
     Optional,
-    Pattern,
     TypeVar,
-    Union,
     cast,
+    overload,
 )
 
 from microsoft_agents.activity import (
@@ -30,7 +30,8 @@ from microsoft_agents.activity import (
     InvokeResponse,
 )
 
-from ..turn_context import TurnContext
+from microsoft_agents.hosting.core.turn_context import TurnContext
+
 from ..agent import Agent
 from ..authorization import Connections
 from .app_error import ApplicationError
@@ -40,9 +41,15 @@ from .state import TurnState
 from ..channel_service_adapter import ChannelServiceAdapter
 from .oauth import Authorization
 from .typing_indicator import TypingIndicator
+from .telemetry import spans
 
-from ._type_defs import RouteHandler, RouteSelector
+from ._type_defs import (
+    RouteHandler,
+    HandoffHandler,
+    RouteSelector,
+)
 from ._routes import _RouteList, _Route, RouteRank, _agentic_selector
+from .proactive import Proactive, ProactiveOptions
 
 logger = logging.getLogger(__name__)
 
@@ -66,12 +73,14 @@ class AgentApplication(Agent, Generic[StateT]):
 
     _options: ApplicationOptions
     _adapter: Optional[ChannelServiceAdapter] = None
-    _auth: Optional[Authorization] = None
-    _internal_before_turn: list[Callable[[TurnContext, StateT], Awaitable[bool]]] = []
-    _internal_after_turn: list[Callable[[TurnContext, StateT], Awaitable[bool]]] = []
-    _route_list: _RouteList[StateT] = _RouteList[StateT]()
+    _auth: Authorization
+    _proactive: Optional[Proactive] = None
+    _internal_before_turn: list[Callable[[TurnContext, StateT], Awaitable[bool]]]
+    _internal_after_turn: list[Callable[[TurnContext, StateT], Awaitable[bool]]]
+    _route_list: _RouteList[StateT]
     _error: Optional[Callable[[TurnContext, Exception], Awaitable[None]]] = None
     _turn_state_factory: Optional[Callable[[TurnContext], StateT]] = None
+    _connection_manager: Connections
 
     def __init__(
         self,
@@ -94,13 +103,10 @@ class AgentApplication(Agent, Generic[StateT]):
         :type kwargs: Any
         """
         self._route_list = _RouteList[StateT]()
+        self._internal_before_turn = []
+        self._internal_after_turn = []
 
         configuration = kwargs
-
-        logger.debug(f"Initializing AgentApplication with options: {options}")
-        logger.debug(
-            f"Initializing AgentApplication with configuration: {configuration}"
-        )
 
         if not options:
             # TODO: consolidate configuration story
@@ -145,10 +151,33 @@ class AgentApplication(Agent, Generic[StateT]):
             or partial(TurnState.with_storage, self._options.storage)
         )
 
+        if options.proactive:
+            proactive_opts = copy(options.proactive)
+            if not proactive_opts.storage:
+                proactive_opts.storage = self._options.storage
+            self._proactive = Proactive(self, proactive_opts)
+
         # TODO: decide how to initialize the Authorization (params vs options vs kwargs)
         if authorization:
+            if connection_manager:
+                logger.error(
+                    "AgentApplication: connection_manager is not needed when authorization is provided."
+                )
+                raise ApplicationError(
+                    "The `AgentApplication` does not take a `connection_manager` when `authorization` is provided."
+                )
             self._auth = authorization
+            self._connection_manager = self._auth.connection_manager
         else:
+            if not connection_manager:
+                logger.error(
+                    "AgentApplication: connection_manager is required for Authorization.",
+                    stack_info=True,
+                )
+                raise ApplicationError(
+                    "The `AgentApplication` requires a `connection_manager` to initialize the `Authorization` instance."
+                )
+
             auth_options = {
                 key: value
                 for key, value in configuration.items()
@@ -157,9 +186,20 @@ class AgentApplication(Agent, Generic[StateT]):
             self._auth = Authorization(
                 storage=self._options.storage,
                 connection_manager=connection_manager,
-                handlers=options.authorization_handlers,
+                auth_handlers=options.authorization_handlers,
                 **auth_options,
             )
+            self._connection_manager = connection_manager
+
+    @property
+    def connection_manager(self) -> Connections:
+        """
+        The application's connection manager.
+
+        :return: The connection manager for the application.
+        :rtype: :class:`microsoft_agents.hosting.core.authorization.Connections`
+        """
+        return self._connection_manager
 
     @property
     def adapter(self) -> ChannelServiceAdapter:
@@ -214,6 +254,54 @@ class AgentApplication(Agent, Generic[StateT]):
         """
         return self._options
 
+    @property
+    def proactive(self) -> Proactive:
+        """
+        The application's proactive messaging manager.
+
+        :return: The proactive messaging manager.
+        :rtype: :class:`microsoft_agents.hosting.core.app.proactive.proactive.Proactive`
+        :raises ApplicationError: If proactive options were not configured.
+        """
+        if not self._proactive:
+            logger.error(
+                "AgentApplication.proactive(): proactive options are not configured.",
+                stack_info=True,
+            )
+            raise ApplicationError("""
+                The `AgentApplication.proactive` property is unavailable because
+                no ProactiveOptions were configured in ApplicationOptions.
+                """)
+        return self._proactive
+
+    def before_turn(
+        self, handler: Callable[[TurnContext, StateT], Awaitable[bool]]
+    ) -> Callable[[TurnContext, StateT], Awaitable[bool]]:
+        """
+        Adds a handler to be called before each turn of the conversation.
+
+        :param handler: A function that takes a TurnContext and a StateT and returns an Awaitable.
+        :type handler: Callable[[TurnContext, StateT], Awaitable[bool]]
+        :return: The added handler.
+        :rtype: Callable[[TurnContext, StateT], Awaitable[bool]]
+        """
+        self._internal_before_turn.append(handler)
+        return handler
+
+    def after_turn(
+        self, handler: Callable[[TurnContext, StateT], Awaitable[bool]]
+    ) -> Callable[[TurnContext, StateT], Awaitable[bool]]:
+        """
+        Adds a handler to be called after each turn of the conversation.
+
+        :param handler: A function that takes a TurnContext and a StateT and returns an Awaitable.
+        :type handler: Callable[[TurnContext, StateT], Awaitable[bool]]
+        :return: The added handler.
+        :rtype: Callable[[TurnContext, StateT], Awaitable[bool]]
+        """
+        self._internal_after_turn.append(handler)
+        return handler
+
     def add_route(
         self,
         selector: RouteSelector,
@@ -229,7 +317,7 @@ class AgentApplication(Agent, Generic[StateT]):
 
         :param selector: A function that takes a TurnContext and returns a boolean indicating whether the route should be selected.
         :type selector: Callable[[:class:`microsoft_agents.hosting.core.turn_context.TurnContext`], bool]
-        :param handler: A function that takes a TurnContext and a TurnState and returns an Awaitable.
+        :param handler: A function that takes a TurnContext and a StateT and returns an Awaitable.
         :type handler: :class:`microsoft_agents.hosting.core.app._type_defs.RouteHandler`[StateT]
         :param is_invoke: Whether the route is for an invoke activity, defaults to False
         :type is_invoke: bool, Optional
@@ -258,7 +346,7 @@ class AgentApplication(Agent, Generic[StateT]):
 
     def activity(
         self,
-        activity_type: Union[str, ActivityTypes, list[Union[str, ActivityTypes]]],
+        activity_type: str | ActivityTypes | list[str | ActivityTypes],
         *,
         auth_handlers: Optional[list[str]] = None,
         **kwargs,
@@ -275,13 +363,15 @@ class AgentApplication(Agent, Generic[StateT]):
                     return True
 
         :param activity_type: Activity type or collection of types that should trigger the handler.
-        :type activity_type: Union[str, microsoft_agents.activity.ActivityTypes, list[Union[str, microsoft_agents.activity.ActivityTypes]]]
+        :type activity_type: str | microsoft_agents.activity.ActivityTypes | list[str | microsoft_agents.activity.ActivityTypes]
         :param auth_handlers: Optional list of authorization handler IDs for the route.
         :type auth_handlers: Optional[list[str]]
-        :param kwargs: Additional route configuration passed to :meth:`add_route`.
+        :param kwargs: Additional route configuration passed to :meth:`microsoft_agents.hosting.core.AgentApplication.add_route`.
         """
 
         def __selector(context: TurnContext):
+            if isinstance(activity_type, list):
+                return context.activity.type in activity_type
             return activity_type == context.activity.type
 
         def __call(func: RouteHandler[StateT]) -> RouteHandler[StateT]:
@@ -295,7 +385,7 @@ class AgentApplication(Agent, Generic[StateT]):
 
     def message(
         self,
-        select: Union[str, Pattern[str], list[Union[str, Pattern[str]]]],
+        select: str | re.Pattern[str] | list[str | re.Pattern[str]],
         *,
         auth_handlers: Optional[list[str]] = None,
         **kwargs,
@@ -312,10 +402,10 @@ class AgentApplication(Agent, Generic[StateT]):
                     return True
 
         :param select: Literal text, compiled regex, or list of either used to match the incoming message.
-        :type select: Union[str, Pattern[str], list[Union[str, Pattern[str]]]]
+        :type select: str | re.Pattern[str] | list[str | re.Pattern[str]]
         :param auth_handlers: Optional list of authorization handler IDs for the route.
         :type auth_handlers: Optional[list[str]]
-        :param kwargs: Additional route configuration passed to :meth:`add_route`.
+        :param kwargs: Additional route configuration passed to :meth:`microsoft_agents.hosting.core.AgentApplication.add_route`.
         """
 
         def __selector(context: TurnContext):
@@ -323,9 +413,18 @@ class AgentApplication(Agent, Generic[StateT]):
                 return False
 
             text = context.activity.text if context.activity.text else ""
-            if isinstance(select, Pattern):
-                hits = re.fullmatch(select, text)
-                return hits is not None
+
+            if isinstance(select, list):
+                for item in select:
+                    if isinstance(item, re.Pattern):
+                        if re.fullmatch(item, text) is not None:
+                            return True
+                    elif text == item:
+                        return True
+                return False
+
+            if isinstance(select, re.Pattern):
+                return re.fullmatch(select, text) is not None
 
             return text == select
 
@@ -340,7 +439,7 @@ class AgentApplication(Agent, Generic[StateT]):
 
     def conversation_update(
         self,
-        type: ConversationUpdateTypes,
+        type: ConversationUpdateTypes | str,
         *,
         auth_handlers: Optional[list[str]] = None,
         **kwargs,
@@ -357,35 +456,37 @@ class AgentApplication(Agent, Generic[StateT]):
                     return True
 
         :param type: Conversation update category that must match the incoming activity.
-        :type type: microsoft_agents.activity.ConversationUpdateTypes
+        :type type: microsoft_agents.activity.ConversationUpdateTypes | str
         :param auth_handlers: Optional list of authorization handler IDs for the route.
         :type auth_handlers: Optional[list[str]]
-        :param kwargs: Additional route configuration passed to :meth:`add_route`.
+        :param kwargs: Additional route configuration passed to :meth:`microsoft_agents.hosting.core.AgentApplication.add_route`.
         """
+
+        update_type = type.value if isinstance(type, ConversationUpdateTypes) else type
 
         def __selector(context: TurnContext):
             if context.activity.type != ActivityTypes.conversation_update:
                 return False
 
-            if type == "membersAdded":
+            if update_type == "membersAdded":
                 if isinstance(context.activity.members_added, list):
                     return len(context.activity.members_added) > 0
                 return False
 
-            if type == "membersRemoved":
+            if update_type == "membersRemoved":
                 if isinstance(context.activity.members_removed, list):
                     return len(context.activity.members_removed) > 0
                 return False
 
             if isinstance(context.activity.channel_data, object):
                 data = vars(context.activity.channel_data)
-                return data["event_type"] == type
+                return data["event_type"] == update_type
 
             return False
 
         def __call(func: RouteHandler[StateT]) -> RouteHandler[StateT]:
             logger.debug(
-                f"Registering conversation update handler for route handler {func.__name__} with type: {type} with auth handlers: {auth_handlers}"
+                f"Registering conversation update handler for route handler {func.__name__} with type: {update_type} with auth handlers: {auth_handlers}"
             )
             self.add_route(__selector, func, auth_handlers=auth_handlers, **kwargs)
             return func
@@ -394,7 +495,7 @@ class AgentApplication(Agent, Generic[StateT]):
 
     def message_reaction(
         self,
-        type: MessageReactionTypes,
+        type: MessageReactionTypes | str,
         *,
         auth_handlers: Optional[list[str]] = None,
         **kwargs,
@@ -411,22 +512,24 @@ class AgentApplication(Agent, Generic[StateT]):
                     return True
 
         :param type: Reaction category that must match the incoming activity.
-        :type type: microsoft_agents.activity.MessageReactionTypes
+        :type type: microsoft_agents.activity.MessageReactionTypes | str
         :param auth_handlers: Optional list of authorization handler IDs for the route.
         :type auth_handlers: Optional[list[str]]
-        :param kwargs: Additional route configuration passed to :meth:`add_route`.
+        :param kwargs: Additional route configuration passed to :meth:`microsoft_agents.hosting.core.AgentApplication.add_route`.
         """
+
+        reaction_type = type.value if isinstance(type, MessageReactionTypes) else type
 
         def __selector(context: TurnContext):
             if context.activity.type != ActivityTypes.message_reaction:
                 return False
 
-            if type == "reactionsAdded":
+            if reaction_type == "reactionsAdded":
                 if isinstance(context.activity.reactions_added, list):
                     return len(context.activity.reactions_added) > 0
                 return False
 
-            if type == "reactionsRemoved":
+            if reaction_type == "reactionsRemoved":
                 if isinstance(context.activity.reactions_removed, list):
                     return len(context.activity.reactions_removed) > 0
                 return False
@@ -435,7 +538,7 @@ class AgentApplication(Agent, Generic[StateT]):
 
         def __call(func: RouteHandler[StateT]) -> RouteHandler[StateT]:
             logger.debug(
-                f"Registering message reaction handler for route handler {func.__name__} with type: {type} with auth handlers: {auth_handlers}"
+                f"Registering message reaction handler for route handler {func.__name__} with type: {reaction_type} with auth handlers: {auth_handlers}"
             )
             self.add_route(__selector, func, auth_handlers=auth_handlers, **kwargs)
             return func
@@ -444,7 +547,7 @@ class AgentApplication(Agent, Generic[StateT]):
 
     def message_update(
         self,
-        type: MessageUpdateTypes,
+        type: MessageUpdateTypes | str,
         *,
         auth_handlers: Optional[list[str]] = None,
         **kwargs,
@@ -461,56 +564,85 @@ class AgentApplication(Agent, Generic[StateT]):
                     return True
 
         :param type: Message update category that must match the incoming activity.
-        :type type: microsoft_agents.activity.MessageUpdateTypes
+        :type type: microsoft_agents.activity.MessageUpdateTypes | str
         :param auth_handlers: Optional list of authorization handler IDs for the route.
         :type auth_handlers: Optional[list[str]]
-        :param kwargs: Additional route configuration passed to :meth:`add_route`.
+        :param kwargs: Additional route configuration passed to :meth:`microsoft_agents.hosting.core.AgentApplication.add_route`.
         """
 
+        update_type = type.value if isinstance(type, MessageUpdateTypes) else type
+
         def __selector(context: TurnContext):
-            if type == "editMessage":
+            if update_type == "editMessage":
                 if (
                     context.activity.type == ActivityTypes.message_update
                     and isinstance(context.activity.channel_data, dict)
                 ):
                     data = context.activity.channel_data
-                    return data["event_type"] == type
+                    return data["event_type"] == update_type
                 return False
 
-            if type == "softDeleteMessage":
+            if update_type == "softDeleteMessage":
                 if (
                     context.activity.type == ActivityTypes.message_delete
                     and isinstance(context.activity.channel_data, dict)
                 ):
                     data = context.activity.channel_data
-                    return data["event_type"] == type
+                    return data["event_type"] == update_type
                 return False
 
-            if type == "undeleteMessage":
+            if update_type == "undeleteMessage":
                 if (
                     context.activity.type == ActivityTypes.message_update
                     and isinstance(context.activity.channel_data, dict)
                 ):
                     data = context.activity.channel_data
-                    return data["event_type"] == type
+                    return data["event_type"] == update_type
                 return False
             return False
 
         def __call(func: RouteHandler[StateT]) -> RouteHandler[StateT]:
             logger.debug(
-                f"Registering message update handler for route handler {func.__name__} with type: {type} with auth handlers: {auth_handlers}"
+                f"Registering message update handler for route handler {func.__name__} with type: {update_type} with auth handlers: {auth_handlers}"
             )
             self.add_route(__selector, func, auth_handlers=auth_handlers, **kwargs)
             return func
 
         return __call
 
+    @overload
     def handoff(
-        self, *, auth_handlers: Optional[list[str]] = None, **kwargs
+        self,
+        func: HandoffHandler[StateT],
+        *,
+        auth_handlers: Optional[list[str]] = None,
+        **kwargs,
+    ) -> HandoffHandler[StateT]: ...
+
+    @overload
+    def handoff(
+        self,
+        *,
+        auth_handlers: Optional[list[str]] = None,
+        **kwargs: Any,
     ) -> Callable[
-        [Callable[[TurnContext, StateT, str], Awaitable[None]]],
-        Callable[[TurnContext, StateT, str], Awaitable[None]],
-    ]:
+        [HandoffHandler[StateT]],
+        HandoffHandler[StateT],
+    ]: ...
+
+    def handoff(
+        self,
+        func: Optional[HandoffHandler[StateT]] = None,
+        *,
+        auth_handlers: Optional[list[str]] = None,
+        **kwargs,
+    ) -> (
+        HandoffHandler[StateT]
+        | Callable[
+            [HandoffHandler[StateT]],
+            HandoffHandler[StateT],
+        ]
+    ):
         """
         Register a handler to hand off conversations from one copilot to another.
 
@@ -521,9 +653,11 @@ class AgentApplication(Agent, Generic[StateT]):
                 async def on_handoff(context: TurnContext, state: TurnState, continuation: str):
                     print(continuation)
 
+        :param func: Optional handler to register directly without using decorator syntax.
+        :type func: Optional[HandoffHandler[StateT]]
         :param auth_handlers: Optional list of authorization handler IDs for the route.
         :type auth_handlers: Optional[list[str]]
-        :param kwargs: Additional route configuration passed to :meth:`add_route`.
+        :param kwargs: Additional route configuration passed to :meth:`microsoft_agents.hosting.core.AgentApplication.add_route`.
         """
 
         def __selector(context: TurnContext) -> bool:
@@ -533,27 +667,32 @@ class AgentApplication(Agent, Generic[StateT]):
             )
 
         def __call(
-            func: Callable[[TurnContext, StateT, str], Awaitable[None]],
-        ) -> Callable[[TurnContext, StateT, str], Awaitable[None]]:
+            func: HandoffHandler[StateT],
+        ) -> HandoffHandler[StateT]:
             async def __handler(context: TurnContext, state: StateT):
-                if not context.activity.value:
-                    return False
-                await func(context, state, context.activity.value["continuation"])
+                if (
+                    isinstance(context.activity.value, dict)
+                    and "continuation" in context.activity.value
+                ):
+                    await func(context, state, context.activity.value["continuation"])
+                else:
+                    logger.warning("Invalid handoff action received")
                 await context.send_activity(
                     Activity(
                         type=ActivityTypes.invoke_response,
                         value=InvokeResponse(status=200),
                     )
                 )
-                return True
 
             logger.debug(
                 f"Registering handoff handler for route handler {func.__name__} with auth handlers: {auth_handlers}"
             )
 
-            self.add_route(__selector, func, auth_handlers=auth_handlers, **kwargs)
+            self.add_route(__selector, __handler, auth_handlers=auth_handlers, **kwargs)
             return func
 
+        if func is not None:
+            return __call(func)
         return __call
 
     def on_sign_in_success(
@@ -667,61 +806,69 @@ class AgentApplication(Agent, Generic[StateT]):
         await self._start_long_running_call(context, self._on_turn)
 
     async def _on_turn(self, context: TurnContext):
-        typing = None
         try:
-            if context.activity.type != ActivityTypes.typing:
-                if self._options.start_typing_timer:
-                    typing = TypingIndicator(context)
-                    typing.start()
+            with spans.AppOnTurn(context) as on_turn_span:
+                use_typing = (
+                    self._options.start_typing_timer
+                    and context.activity.type != ActivityTypes.typing
+                )
+                typing_context = (
+                    TypingIndicator(
+                        context,
+                        typing_options=self._options.typing,
+                    )
+                    if use_typing
+                    else nullcontext()
+                )
 
-            self._remove_mentions(context)
+                async with typing_context:
+                    self._remove_mentions(context)
 
-            logger.debug("Initializing turn state")
-            turn_state = await self._initialize_state(context)
-            if (
-                context.activity.type == ActivityTypes.message
-                or context.activity.type == ActivityTypes.invoke
-            ):
+                    logger.debug("Initializing turn state")
+                    turn_state = await self._initialize_state(context)
+                    if context.activity.type in [
+                        ActivityTypes.message,
+                        ActivityTypes.invoke,
+                    ]:
 
-                (
-                    auth_intercepts,
-                    continuation_activity,
-                ) = await self._auth._on_turn_auth_intercept(context, turn_state)
-                if auth_intercepts:
-                    if continuation_activity:
-                        new_context = copy(context)
-                        new_context.activity = continuation_activity
-                        logger.info(
-                            "Resending continuation activity %s",
-                            continuation_activity.text,
+                        (
+                            auth_intercepts,
+                            continuation_activity,
+                        ) = await self._auth._on_turn_auth_intercept(
+                            context, turn_state
                         )
-                        await self.on_turn(new_context)
+                        if auth_intercepts:
+                            if continuation_activity:
+                                new_context = copy(context)
+                                new_context.activity = continuation_activity
+                                logger.info(
+                                    "Resending continuation activity %s",
+                                    continuation_activity.text,
+                                )
+                                await self.on_turn(new_context)
+                                await turn_state.save(context)
+                            return
+
+                    logger.debug("Running before turn middleware")
+                    if not await self._run_before_turn_middleware(context, turn_state):
+                        return
+
+                    logger.debug("Running file downloads")
+                    await self._handle_file_downloads(context, turn_state)
+
+                    logger.debug("Running activity handlers")
+                    await self._on_activity(context, turn_state, on_turn_span)
+
+                    logger.debug("Running after turn middleware")
+                    if await self._run_after_turn_middleware(context, turn_state):
                         await turn_state.save(context)
                     return
-
-            logger.debug("Running before turn middleware")
-            if not await self._run_before_turn_middleware(context, turn_state):
-                return
-
-            logger.debug("Running file downloads")
-            await self._handle_file_downloads(context, turn_state)
-
-            logger.debug("Running activity handlers")
-            await self._on_activity(context, turn_state)
-
-            logger.debug("Running after turn middleware")
-            if await self._run_after_turn_middleware(context, turn_state):
-                await turn_state.save(context)
-            return
         except ApplicationError as err:
             logger.error(
                 f"An application error occurred in the AgentApplication: {err}",
                 exc_info=True,
             )
             await self._on_error(context, err)
-        finally:
-            if typing:
-                typing.stop()
 
     def _remove_mentions(self, context: TurnContext):
         if (
@@ -767,7 +914,6 @@ class AgentApplication(Agent, Generic[StateT]):
         else:
             logger.debug("Using default turn state factory")
             turn_state = TurnState.with_storage(self._options.storage)
-            await turn_state.load(context, self._options.storage)
 
         turn_state = cast(StateT, turn_state)
 
@@ -777,23 +923,28 @@ class AgentApplication(Agent, Generic[StateT]):
         return turn_state
 
     async def _run_before_turn_middleware(self, context: TurnContext, state: StateT):
-        for before_turn in self._internal_before_turn:
-            is_ok = await before_turn(context, state)
-            if not is_ok:
-                await state.save(context)
-                return False
-        return True
+        with spans.AppBeforeTurn():
+            for before_turn in self._internal_before_turn:
+                is_ok = await before_turn(context, state)
+                if not is_ok:
+                    await state.save(context)
+                    return False
+            return True
 
     async def _handle_file_downloads(self, context: TurnContext, state: StateT):
-        if self._options.file_downloaders and len(self._options.file_downloaders) > 0:
-            input_files = state.temp.input_files if state.temp.input_files else []
-            for file_downloader in self._options.file_downloaders:
-                logger.info(
-                    f"Using file downloader: {file_downloader.__class__.__name__}"
-                )
-                files = await file_downloader.download_files(context)
-                input_files.extend(files)
-            state.temp.input_files = input_files
+        with spans.AppDownloadFiles(context):
+            if (
+                self._options.file_downloaders
+                and len(self._options.file_downloaders) > 0
+            ):
+                input_files = state.temp.input_files if state.temp.input_files else []
+                for file_downloader in self._options.file_downloaders:
+                    logger.info(
+                        f"Using file downloader: {file_downloader.__class__.__name__}"
+                    )
+                    files = await file_downloader.download_files(context)
+                    input_files.extend(files)
+                state.temp.input_files = input_files
 
     def _contains_non_text_attachments(self, context: TurnContext):
         non_text_attachments = filter(
@@ -803,18 +954,31 @@ class AgentApplication(Agent, Generic[StateT]):
         return len(list(non_text_attachments)) > 0
 
     async def _run_after_turn_middleware(self, context: TurnContext, state: StateT):
-        for after_turn in self._internal_after_turn:
-            is_ok = await after_turn(context, state)
-            if not is_ok:
-                await state.save(context)
-                return False
-        return True
+        with spans.AppAfterTurn():
+            for after_turn in self._internal_after_turn:
+                is_ok = await after_turn(context, state)
+                if not is_ok:
+                    await state.save(context)
+                    return False
+            return True
 
-    async def _on_activity(self, context: TurnContext, state: StateT):
+    async def _on_activity(
+        self,
+        context: TurnContext,
+        state: StateT,
+        on_turn_span: spans.AppOnTurn | None = None,
+    ):
+
+        route_matched: bool = False
+        route_authorized: bool = False
+
         for route in self._route_list:
             if route.selector(context):
+                route_matched = True
                 if not route.auth_handlers:
-                    await route.handler(context, state)
+                    route_authorized = True
+                    with spans.AppRouteHandler(route.is_invoke, route.is_agentic):
+                        await route.handler(context, state)
                 else:
                     sign_in_complete = True
                     for auth_handler_id in route.auth_handlers:
@@ -827,11 +991,19 @@ class AgentApplication(Agent, Generic[StateT]):
                             break
 
                     if sign_in_complete:
-                        await route.handler(context, state)
-                return
-        logger.warning(
-            f"No route found for activity type: {context.activity.type} with text: {context.activity.text}"
-        )
+                        route_authorized = True
+                        with spans.AppRouteHandler(route.is_invoke, route.is_agentic):
+                            await route.handler(context, state)
+                break
+
+        if not route_matched:
+            logger.warning(
+                f"No route found for activity type: {context.activity.type} with text: {context.activity.text}"
+            )
+        if on_turn_span is not None:
+            on_turn_span.share(
+                route_authorized=route_authorized, route_matched=route_matched
+            )
 
     async def _start_long_running_call(
         self, context: TurnContext, func: Callable[[TurnContext], Awaitable]

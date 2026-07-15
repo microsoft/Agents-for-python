@@ -12,4 +12,10 @@ StateT = TypeVar("StateT", bound=TurnState)
 
 
 class RouteHandler(Protocol[StateT]):
-    def __call__(self, context: TurnContext, state: StateT) -> Awaitable[None]: ...
+    def __call__(self, context: TurnContext, state: StateT, /) -> Awaitable[None]: ...
+
+
+class HandoffHandler(Protocol[StateT]):
+    def __call__(
+        self, context: TurnContext, state: StateT, handoff_data: str
+    ) -> Awaitable[None]: ...

@@ -7,7 +7,7 @@ from __future__ import annotations
 
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
-from typing import List, Optional
+from typing import Optional
 
 from microsoft_agents.hosting.core import TurnContext
 
@@ -34,16 +34,16 @@ class InputFileDownloader(ABC):
     Abstract base class for a plugin responsible for downloading files provided by the user.
 
     Implementations should download any files referenced by the incoming activity and return a
-    list of :class:`InputFile` instances representing the downloaded content.
+    list of :class:`microsoft_agents.hosting.core.app.input_file.InputFile` instances representing the downloaded content.
     """
 
     @abstractmethod
-    async def download_files(self, context: TurnContext) -> List[InputFile]:
+    async def download_files(self, context: TurnContext) -> list[InputFile]:
         """
         Download any files referenced by the incoming activity for the current turn.
 
         :param context: The turn context for the current request.
         :type context: :class:`microsoft_agents.hosting.core.turn_context.TurnContext`
-        :return: A list of downloaded :class:`InputFile` objects.
+        :return: A list of downloaded :class:`microsoft_agents.hosting.core.app.input_file.InputFile` objects.
         :rtype: list[:class:`microsoft_agents.hosting.core.app.input_file.InputFile`]
         """

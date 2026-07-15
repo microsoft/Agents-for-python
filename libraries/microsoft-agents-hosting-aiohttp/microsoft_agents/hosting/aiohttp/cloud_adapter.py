@@ -69,6 +69,7 @@ class CloudAdapter(HttpAdapterBase, AgentHttpAdapter):
         Returns:
             aiohttp Response object.
         """
+
         # Adapt request to protocol
         adapted_request = AiohttpRequestAdapter(request)
 

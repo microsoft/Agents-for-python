@@ -3,10 +3,24 @@
 
 from typing import Any
 
-from pydantic import model_serializer, model_validator
+from pydantic import (
+    model_serializer,
+    model_validator,
+    SerializationInfo,
+    ModelWrapValidatorHandler,
+    SerializerFunctionWrapHandler,
+)
 from pydantic.alias_generators import to_camel, to_snake
 
 from ..agents_model import AgentsModel, ConfigDict
+from ._schema_mixin import validate_schema_model, serialize_schema_model
+
+
+def _to_camel_exclude_at(k: str) -> str:
+    """Helper function to convert keys to camelCase while preserving keys that start with '@'."""
+    if k.startswith("@"):
+        return k  # preserve keys starting with '@'
+    return to_camel(k)
 
 
 class Entity(AgentsModel):
@@ -16,7 +30,12 @@ class Entity(AgentsModel):
     :type type: str
     """
 
-    model_config = ConfigDict(extra="allow")
+    model_config = ConfigDict(
+        extra="allow",
+        alias_generator=to_camel,
+        validate_by_name=True,
+        validate_by_alias=True,
+    )
 
     type: str
 
@@ -25,17 +44,33 @@ class Entity(AgentsModel):
         """Returns the set of properties that are not None."""
         return self.model_extra
 
-    @model_validator(mode="before")
+    @model_validator(mode="wrap")
     @classmethod
-    def to_snake_for_all(cls, data):
-        ret = {to_snake(k): v for k, v in data.items()}
-        return ret
+    def _validate_model(cls, data: Any, handler: ModelWrapValidatorHandler):
+        """Custom validator to handle both camelCase and snake_case keys, as well as @type, @context, and @id."""
 
-    @model_serializer(mode="plain")
-    def to_camel_for_all(self, config):
-        if config.by_alias:
-            new_data = {}
-            for k, v in self:
-                new_data[to_camel(k)] = v
-            return new_data
-        return {k: v for k, v in self}
+        if isinstance(data, dict):
+            new_data = {to_snake(k): v for k, v in data.items()}
+            return validate_schema_model(new_data, handler)
+        return validate_schema_model(data, handler)
+
+    @model_serializer(mode="wrap")
+    def _serialize_model(
+        self, handler: SerializerFunctionWrapHandler, info: SerializationInfo
+    ) -> dict[str, object]:
+        """Custom serializer to convert keys to camelCase and include @type, @context, and @id as needed.
+
+        Forces the inclusion of the 'type' field in the serialized output, as it is a required field for Entity.
+        """
+
+        data = serialize_schema_model(self, handler, info)
+        new_data: dict
+
+        if info.by_alias:
+            new_data = {_to_camel_exclude_at(k): v for k, v in data.items()}
+        else:
+            new_data = {k: v for k, v in data.items()}
+
+        new_data["type"] = self.type  # ensure type is always included
+
+        return new_data

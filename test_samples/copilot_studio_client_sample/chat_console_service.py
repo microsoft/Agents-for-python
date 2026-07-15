@@ -1,22 +1,40 @@
-from microsoft_agents.copilotstudio.client import CopilotClient
+from microsoft_agents.copilotstudio.client import CopilotClient, StartRequest
 from microsoft_agents.activity import Activity, ActivityTypes
 
 
 class ChatConsoleService:
 
-    def __init__(self, copilot_client: CopilotClient):
+    def __init__(self, copilot_client: CopilotClient, use_start_request: bool = False):
         self._copilot_client = copilot_client
+        self._use_start_request = use_start_request
 
     async def start_service(self):
         print("agent> ")
 
         # Attempt to connect to the copilot studio hosted agent here
         # if successful, this will loop though all events that the Copilot Studio agent sends to the client setup the conversation.
-        async for activity in self._copilot_client.start_conversation():
-            if not activity:
-                raise Exception("ChatConsoleService.start_service: Activity is None")
-
-            self._print_activity(activity)
+        if self._use_start_request:
+            # Use the new StartRequest model with optional locale
+            start_request = StartRequest(
+                emit_start_conversation_event=True,
+                locale="en-US",  # Optional: specify locale
+            )
+            async for activity in self._copilot_client.start_conversation_with_request(
+                start_request
+            ):
+                if not activity:
+                    raise Exception(
+                        "ChatConsoleService.start_service: Activity is None"
+                    )
+                self._print_activity(activity)
+        else:
+            # Use the simple start_conversation method
+            async for activity in self._copilot_client.start_conversation():
+                if not activity:
+                    raise Exception(
+                        "ChatConsoleService.start_service: Activity is None"
+                    )
+                self._print_activity(activity)
 
         # Once we are connected and have initiated the conversation,  begin the message loop with the Console.
         while True:

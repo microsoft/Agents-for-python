@@ -1,6 +1,131 @@
+# Microsoft 365 Agents SDK for Python - Release Notes v1.1.0
+
+**Release Date:** 2026-06-19
+**Previous Version:** 1.0.0 (Released May 22, 2026)
+
+## Major Features & Enhancements
+
+- **Slack Hosting Package**: New `microsoft-agents-hosting-slack` package for building Slack agents — direct-to-Slack responses across the full Slack Web API surface, a typed `SlackChannelData` envelope with dot-notation access, a `SlackAgentExtension` for channel-scoped handlers, and a `SlackStream` helper for incremental streaming (#390)
+- **IMDS Authentication**: Support for Azure Instance Metadata Service (IMDS) authentication in MSAL auth (#413)
+- **MSAL Azure Region**: Configurable Azure region on MSAL config for regional token endpoints (#409)
+
+## Bug Fixes
+
+- **Agentic Conversation ID**: Sanitize conversation ID for agentic requests on the agents channel (#402)
+- **Starlette Dependency**: Added explicit `starlette` dependency to pull in the fix for CVE-2026-48710 (#406)
+
+## Developer Experience
+
+- **Integration Testing**: Integration testing enhancements (#408)
+- **Testing Initialization Helper**: New testing initialization helper (#416)
+- **Typing Annotations**: Updated typing annotations across the codebase (#418)
+
+---
+
+# Microsoft 365 Agents SDK for Python - Release Notes v1.0.0
+
+**Release Date:** May 22, 2026
+**Previous Version:** 0.9.0 (Released April 15, 2026)
+
+## Major Features & Enhancements
+
+- **Dialogs Library**: New `microsoft-agents-hosting-dialogs` package porting the BotFramework dialog system (WaterfallDialog, ComponentDialog, DialogSet, DialogContext) and prompts (TextPrompt, NumberPrompt, ChoicePrompt, ConfirmPrompt, DateTimePrompt, AttachmentPrompt, OAuthPrompt) to the new SDK (#378)
+- **Teams SSO Consent**: Support for the Teams SSO `Consent Required` flow (#380)
+- **Teams Extension Updates**: `TeamsAgentExtension` and related types re-exported at the `microsoft_agents.hosting.teams` package root, integration with `microsoft-teams-api` 2.x Pydantic models, and new runnable samples for message extensions, task modules, and meeting events (#385)
+- **Copilot Web OAuth Base-Channel Support**: New optional `force_base_channel` parameter on `Activity.get_conversation_reference()` and `_OAuthFlow.begin_flow()` so OAuth token exchange uses the base channel (e.g. `msteams`) when receiving composite channel IDs like `msteams:copilot-web` (#392)
+- **Per-Channel Typing Indicator**: New `TypingChannelStrategy` and `TypingOptions` for configurable per-channel typing behavior, surfaced via `ApplicationOptions` and a streaming fix (#398)
+- **Proactive Telemetry**: OpenTelemetry spans across all proactive operations (store, get, delete, send activity, continue, create conversation) with new `CONVERSATION_FOUND` and `MEMBERS_COUNT` attributes (#399)
+
+## Developer Experience
+
+- **API Reference Docstrings**: Docstrings updated from short-form to fully qualified object names for Learn API reference generation (#381)
+- **SuggestedActions Factory**: New factory for the `to` property of `SuggestedActions` (#370)
+- **Dialogs Test Layout**: `hosting-dialogs` tests moved back under the top-level `tests/` directory for consistency with other packages (#379)
+- **Build Dependencies**: Temporary fix for build testing dependencies (#404)
+
+---
+
+# Microsoft 365 Agents SDK for Python - Release Notes v0.9.0
+
+**Release Date:** April 15, 2026
+**Previous Version:** 0.8.0 (Released February 23, 2026)
+
+## Major Features & Enhancements
+
+- **OpenTelemetry Support**: Full distributed tracing and metrics support with traces spanning adapter, app, auth, OAuth, storage, and turn-context layers. Includes a new OTel sample and comprehensive test coverage (#341)
+- **Proactive Messaging**: New `proactive` module in `AgentApplication` with `Conversation`, `ConversationBuilder`, and `ConversationReferenceBuilder` abstractions for initiating outbound conversations (#350)
+- **FederatedCredentials Auth Type**: Support for Managed Identity with Federated Identity Credential (FIC) authentication type in MSAL auth (#353)
+- **PFX Certificate Auth**: Support for PFX files in MSAL Certificate authentication type (#349)
+
+## Bug Fixes
+
+- **MCS Connector**: Fixed incorrect connector creation in `RestChannelServiceClientFactory` for MCS channels (#360)
+- **FastAPI JWT Middleware**: Fixed parity with aiohttp by correcting async handling in JWT authorization middleware (#343)
+- **OpenTelemetry Testing Utility**: Fixed `DeltaMetricReader` test utility (#362)
+
+## Developer Experience
+
+- **Streaming Consolidation**: Moved `StreamingResponse`, `Citation`, and `CitationUtil` from `hosting-aiohttp` and `hosting-fastapi` into `hosting-core`, eliminating duplication (#339)
+- **PyJWKClient Caching**: Added thread-safe JWK client caching with a dedicated `JwkClientManager` class to reduce redundant token-key fetches (#338)
+- **Connector Validation**: Improved response-data validation in `ConversationsOperations` methods with added test coverage (#317)
+
+## Documentation
+
+- **Packages Overview**: Added missing `microsoft-agents-hosting-fastapi` entry to the README packages overview (#346)
+
+---
+
+# Microsoft 365 Agents SDK for Python - Release Notes v0.8.0
+
+**Release Date:** February 23, 2026
+**Previous Version:** 0.7.0 (Released January 21, 2026)
+
+## Major Features & Enhancements
+
+- **Microsoft Copilot Studio (MCS) Connector**: Full MCS connector support with OAuth OBO token exchange, new `connector_user` role type, and `copilot_studio` channel enum value (#295)
+- **Enhanced Multi-Tenant Authentication**: Dynamic MSAL client resolution with robust authority and tenant handling for multi-tenant scenarios. Updated MSAL version (#301, #307)
+- **Integration Testing Framework Overhaul**: Replaced legacy data-driven test infrastructure with a modern scenario-based framework. Introduces `Scenario`, `ClientFactory`, and `AgentClient` abstractions; a fluent assertion API with per-item field-mismatch reporting; a new CLI with `env`, `chat`, `post`, and `scenario run` commands; and a `@pytest.mark.agent_test` plugin exposing agent internals as fixtures (#315)
+- **Copilot Studio Client – DirectConnect URL Support**: Added `direct_connect_url` parameter to `ConnectionSettings` for simplified single-URL connection setup, bypassing environment-ID lookup. Includes automatic cloud-based token-audience resolution from the URL (#325)
+
+## New Models & APIs
+
+- **`StartRequest`**: Advanced conversation-start options with optional `locale` and `conversation_id` parameters (#325)
+- **`SubscribeEvent` / `SubscribeRequest` / `SubscribeResponse`**: Models for real-time event streaming with SSE resumption support (#325)
+- **`UserAgentHelper`**: Utility class that automatically injects SDK version and platform information into HTTP `User-Agent` headers (#325)
+- **`ConnectionSettings.populate_from_environment()`**: Static method that loads `ConnectionSettings` from environment variables (#325)
+- **`use_experimental_endpoint` / `enable_diagnostics`**: New `ConnectionSettings` flags for experimental endpoint capture and HTTP diagnostic logging (#325)
+
+## Bug Fixes
+
+- **FastAPI JWT Middleware**: Removed incorrect `await` from synchronous `get_anonymous_claims()` call in FastAPI JWT middleware (#299)
+
+## Developer Experience
+
+- **JWT Token Decode Demo**: New Adaptive Card integration demonstrating JWT token decode functionality (#307)
+
+---
+
+# Microsoft 365 Agents SDK for Python - Release Notes v0.7.0
+
+**Release Date:** January 21, 2026
+**Previous Version:** 0.6.1 (Released December 2, 2025)
+
+## Enhancements
+
+- **Authentication & Token Management**: Centralized token scope handling with new `get_token_scope` method in `ClaimsIdentity` for consistent scope determination across ChannelServiceAdapter and RestChannelServiceClientFactory (#290)
+- **Storage Backend Improvements**: AsyncTokenCredential support for CosmosDB and Blob Storage configurations, with enhanced async resource cleanup and improved error handling (#283)
+- **Copilot Studio Integration**: Configurable `aiohttp.ClientSession` creation through `ConnectionSettings.client_session_kwargs` parameter for custom HTTP client behavior (#278)
+- **Configuration & Logging**: Log configuration support via `.env` file with new `configure_logging` function (#230)
+
+## Documentation
+
+- Installation instructions simplified by removing test PyPI references (#284)
+
+---
+
 # Microsoft 365 Agents SDK for Python - Release Notes v0.6.1
 
-**Release Date:** December 1, 2025  
+**Release Date:** December 2, 2025
 **Previous Version:** 0.6.0 (Released November 18, 2025)
 
 ## Changes Documented
