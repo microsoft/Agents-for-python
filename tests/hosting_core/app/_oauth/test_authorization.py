@@ -18,15 +18,12 @@ from microsoft_agents.hosting.core.app.oauth import (
     Authorization,
     AgenticUserAuthorization,
 )
-from microsoft_agents.hosting.core.app.oauth.authorization import _AuthInterceptResult
 
 from microsoft_agents.hosting.core._oauth import _FlowStateTag
 
 from microsoft_agents.hosting.core import (
     AuthHandler,
-    Storage,
     MemoryStorage,
-    TurnContext,
 )
 
 from tests._common.storage.utils import StorageBaseline

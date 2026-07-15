@@ -1022,12 +1022,7 @@ class AgentApplication(Agent, Generic[StateT]):
 
         async def __replay(ctx: TurnContext, act: Activity):
 
-            new_context = TurnContext(ctx)
-            for key, value in ctx.turn_state.items():
-                new_context.turn_state[key] = value
-            new_context.activity = act
-
-            await self.adapter.continue_conversation_with_claims(
+            await self._adapter.continue_conversation_with_claims(
                 ctx.identity,
                 act,
                 self.on_turn,

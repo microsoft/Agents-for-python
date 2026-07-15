@@ -338,10 +338,10 @@ class Authorization:
                 if sign_in_response.tag == _FlowStateTag.COMPLETE:
                     if not sign_in_state:
                         # flow just completed, no continuation activity
+                        is_invoke = (context.activity.type == ActivityTypes.invoke,)
                         return _AuthInterceptResult(
-                            should_skip_turn=context.activity.type
-                            == ActivityTypes.invoke,
-                            should_replay=True,
+                            should_skip_turn=is_invoke,
+                            should_replay=is_invoke,
                             continuation_activity=None,
                         )
                     assert sign_in_state.continuation_activity is not None
