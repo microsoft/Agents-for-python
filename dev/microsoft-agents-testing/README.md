@@ -96,7 +96,10 @@ client.expect().that_for_any(text="~Hello")          # assert
 ```
 
 Every method has an `ex_` variant (`ex_send`, `ex_invoke`, etc.) that returns
-the raw `Exchange` objects instead of just the response activities.
+the raw `Exchange` objects instead of just the response activities. The fluent
+shortcuts are typed by collection: `expect()`/`select()` return
+`ActivityExpect`/`ActivitySelect`, while `ex_expect()`/`ex_select()` return
+`ExchangeExpect`/`ExchangeSelect`.
 
 ## Expect & Select
 
@@ -112,6 +115,19 @@ client.expect().that_for_exactly(2, type="message")    # exactly 2 messages
 client.expect().that_for_any(text=lambda x: len(x) > 10)  # lambda predicate
 ```
 
+Use `contains` for nested model, dict, and iterable values. It requires a
+callable, dictionary filter, or keyword criteria; `contains()` and
+`contains({})` are invalid because an unfiltered predicate would match
+everything.
+
+```python
+from microsoft_agents.testing.utils import contains
+
+client.expect().that_for_any(
+    attachments=contains(content_type="application/vnd.microsoft.card.hero")
+)
+```
+
 `Select` filters and slices before you assert or extract:
 
 ```python
@@ -125,15 +141,14 @@ Select(client.history()).where(type="message").expect().that(text="~hello")
 Every request and response is recorded in a `Transcript`. When a test fails
 you can print the conversation to see exactly what happened.
 
-`ConversationTranscriptFormatter` gives a chat-style view;
-`ActivityTranscriptFormatter` shows all activities with selectable fields.
-Both support `DetailLevel` (`MINIMAL`, `STANDARD`, `DETAILED`, `FULL`) and
-`TimeFormat` (`CLOCK`, `RELATIVE`, `ELAPSED`).
+`ConversationTranscriptFormatter` gives a chat-style view,
+`ActivityTranscriptFormatter` shows a flat JSON activity stream, and
+`JsonTranscriptFormatter` shows exchange-grouped JSON.
 
 ```python
-from microsoft_agents.testing import ConversationTranscriptFormatter, DetailLevel
+from microsoft_agents.testing import ConversationTranscriptFormatter
 
-ConversationTranscriptFormatter(detail=DetailLevel.FULL).print(client.transcript)
+print(ConversationTranscriptFormatter().format(client.transcript))
 ```
 
 ```
@@ -181,9 +196,11 @@ class TestEcho: ...
 
 | Document | Contents |
 |----------|----------|
-| [MOTIVATION.md](MOTIVATION.md) | Before/after code comparison |
-| [API.md](API.md) | Public API reference |
-| [SAMPLES.md](SAMPLES.md) | Guide to the runnable samples |
+| [MOTIVATION.md](docs/MOTIVATION.md) | Before/after code comparison |
+| [API.md](docs/API.md) | Public API reference |
+| [CLI.md](docs/CLI.md) | `agt` command guide |
+| [UTILITIES.md](docs/UTILITIES.md) | `contains`, `poll`, `send`, and `ex_send` helper guide |
+| [SAMPLES.md](docs/SAMPLES.md) | Guide to the runnable samples |
 
 ## License
 

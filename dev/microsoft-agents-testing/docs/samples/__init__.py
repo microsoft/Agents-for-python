@@ -9,11 +9,11 @@ Start with ``quickstart.py`` and work through in order.
 Samples
 -------
 quickstart.py
-    Minimal example — send a message, print the reply.  Shows
+    Minimal example - send a message, print the reply.  Shows
     AiohttpScenario, scenario.client(), and send_expect_replies().
 
 interactive.py
-    REPL loop — chat with an in-process agent, print the transcript
+    REPL loop - chat with an in-process agent, print the transcript
     on exit.
 
 scenario_registry_demo.py
@@ -22,11 +22,11 @@ scenario_registry_demo.py
 
 transcript_formatting.py
     Visualise conversations for debugging: ConversationTranscriptFormatter,
-    ActivityTranscriptFormatter, DetailLevel, TimeFormat, selectable fields,
-    and convenience functions.
+    ActivityTranscriptFormatter, JsonTranscriptFormatter, and convenience
+    functions.
 
 pytest_plugin_usage.py
-    Zero-boilerplate pytest tests using @pytest.mark.agent_test — class
+    Zero-boilerplate pytest tests using @pytest.mark.agent_test - class
     and function markers, fixtures (agent_client, agent_environment, etc.),
     registered scenario names, and Select/Expect through the client.
 

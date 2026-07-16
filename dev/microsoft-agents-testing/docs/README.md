@@ -96,7 +96,10 @@ client.expect().that_for_any(text="~Hello")          # assert
 ```
 
 Every method has an `ex_` variant (`ex_send`, `ex_invoke`, etc.) that returns
-the raw `Exchange` objects instead of just the response activities.
+the raw `Exchange` objects instead of just the response activities. The fluent
+shortcuts are typed by collection: `expect()`/`select()` return
+`ActivityExpect`/`ActivitySelect`, while `ex_expect()`/`ex_select()` return
+`ExchangeExpect`/`ExchangeSelect`.
 
 ## Expect & Select
 
@@ -110,6 +113,19 @@ client.expect().that_for_any(text="~hello")            # any reply contains "hel
 client.expect().that_for_none(text="~error")           # no reply contains "error"
 client.expect().that_for_exactly(2, type="message")    # exactly 2 messages
 client.expect().that_for_any(text=lambda x: len(x) > 10)  # lambda predicate
+```
+
+Use `contains` for nested model, dict, and iterable values. It requires a
+callable, dictionary filter, or keyword criteria; `contains()` and
+`contains({})` are invalid because an unfiltered predicate would match
+everything.
+
+```python
+from microsoft_agents.testing.utils import contains
+
+client.expect().that_for_any(
+    attachments=contains(content_type="application/vnd.microsoft.card.hero")
+)
 ```
 
 `Select` filters and slices before you assert or extract:
@@ -220,6 +236,8 @@ Use `--agent NAME` instead of `--url` to target a named scenario from `scenario_
 |----------|----------|
 | [MOTIVATION.md](MOTIVATION.md) | Before/after code comparison |
 | [API.md](API.md) | Public API reference |
+| [CLI.md](CLI.md) | `agt` command guide |
+| [UTILITIES.md](UTILITIES.md) | `contains`, `poll`, `send`, and `ex_send` helper guide |
 | [SAMPLES.md](SAMPLES.md) | Guide to the runnable samples |
 
 ## License

@@ -28,6 +28,12 @@ from .transport import (
     Exchange,
     Sender
 )
+from .type_defs import (
+    ActivityExpect,
+    ActivitySelect,
+    ExchangeExpect,
+    ExchangeSelect,
+)
 from .utils import activities_from_ex
 
 # Default field values applied to all outgoing activities
@@ -151,37 +157,37 @@ class AgentClient:
     ### Utilities
     ###
 
-    def ex_select(self, history: bool = False) -> Select:
+    def ex_select(self, history: bool = False) -> ExchangeSelect:
         """Create a Select instance for filtering exchanges.
         
         :param history: If True, includes full history; otherwise, recent only.
         :return: A Select instance for fluent filtering.
         """
-        return Select(self._ex_collect(history=history))
+        return ExchangeSelect(self._ex_collect(history=history))
 
-    def select(self, history: bool = False) -> Select:
+    def select(self, history: bool = False) -> ActivitySelect:
         """Create a Select instance for filtering activities.
         
         :param history: If True, includes full history; otherwise, recent only.
         :return: A Select instance for fluent filtering.
         """
-        return Select(self._collect(history=history))
+        return ActivitySelect(self._collect(history=history))
     
-    def ex_expect(self, history: bool = False) -> Expect:
+    def ex_expect(self, history: bool = False) -> ExchangeExpect:
         """Create an Expect instance for asserting on exchanges.
         
         :param history: If True, includes full history; otherwise, recent only.
         :return: An Expect instance for fluent assertions.
         """
-        return Expect(self._ex_collect(history=history))
+        return ExchangeExpect(self._ex_collect(history=history))
 
-    def expect(self, history: bool = False) -> Expect:
+    def expect(self, history: bool = False) -> ActivityExpect:
         """Create an Expect instance for asserting on activities.
         
         :param history: If True, includes full history; otherwise, recent only.
         :return: An Expect instance for fluent assertions.
         """
-        return Expect(self._collect(history=history))
+        return ActivityExpect(self._collect(history=history))
         
     ###
     ### Sending API

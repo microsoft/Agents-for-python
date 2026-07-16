@@ -5,7 +5,8 @@ from microsoft_agents.testing import (
     AiohttpScenario, ExternalScenario, Scenario, AgentEnvironment,
     AgentClient,
     ScenarioConfig, ClientConfig, ActivityTemplate,
-    Expect, Select,
+    Expect, Select, ActivityExpect, ActivitySelect,
+    ExchangeExpect, ExchangeSelect,
     Transcript, Exchange,
     ConversationTranscriptFormatter, ActivityTranscriptFormatter,
     JsonTranscriptFormatter,
@@ -166,14 +167,22 @@ await client.send(activity, wait=0.5)
 
 | Method | Returns | Description |
 |--------|---------|-------------|
-| `expect(history=False)` | `Expect` | Assert on response activities |
-| `select(history=False)` | `Select` | Filter response activities |
-| `ex_expect(history=False)` | `Expect` | Assert on exchanges |
-| `ex_select(history=False)` | `Select` | Filter exchanges |
+| `expect(history=False)` | `ActivityExpect` | Assert on response activities |
+| `select(history=False)` | `ActivitySelect` | Filter response activities |
+| `ex_expect(history=False)` | `ExchangeExpect` | Assert on exchanges |
+| `ex_select(history=False)` | `ExchangeSelect` | Filter exchanges |
 
 ```python
+from microsoft_agents.testing.utils import contains
+
 # Assert any reply contains "hello" (case-sensitive substring)
 client.expect().that_for_any(text="~hello")
+
+# Search nested model, dict, and iterable values.
+# A callable, dictionary filter, or keyword criteria is required.
+client.expect().that_for_any(
+    attachments=contains(content_type="application/vnd.microsoft.card.hero")
+)
 
 # Filter then assert
 client.select().where(type="message").expect().that(text="~world")
@@ -252,7 +261,12 @@ with diagnostic context on failure.
 
 ```python
 Expect(items: Iterable[dict | BaseModel])
+ActivityExpect(items: Iterable[Activity])
+ExchangeExpect(items: Iterable[Exchange])
 ```
+
+`AgentClient.expect()` returns `ActivityExpect`; `AgentClient.ex_expect()`
+returns `ExchangeExpect`.
 
 | Method | Passes when… |
 |--------|-------------|
@@ -304,7 +318,12 @@ Chainable filtering over a collection.
 
 ```python
 Select(items: Iterable[dict | BaseModel])
+ActivitySelect(items: Iterable[Activity])
+ExchangeSelect(items: Iterable[Exchange])
 ```
+
+`AgentClient.select()` returns `ActivitySelect`; `AgentClient.ex_select()`
+returns `ExchangeSelect`.
 
 | Method | Description |
 |--------|-------------|
@@ -607,7 +626,7 @@ agt scenario load --url http://localhost:3978/api/messages \
 | Option | Default | Description |
 |--------|---------|-------------|
 | `--message / -m` | — | Text message to send |
-| `--json-file / -j` | — | JSON activity file to send |
+| `--json_file / -j` | — | JSON activity file to send |
 | `--num / -n` | *(required)* | Number of concurrent requests |
 | `--timeout / -t` | `5000` | Milliseconds per request before it is recorded as a timeout error |
 

@@ -13,8 +13,14 @@ class ExchangeExpect(ExpectBase[Exchange]):
 
 class ActivitySelect(SelectBase[Activity]):
     """Select class specifically for filtering and asserting on activity collections."""
-    pass
+
+    def expect(self) -> ActivityExpect:
+        """Get an ActivityExpect instance for assertions on the current selection."""
+        return ActivityExpect(self._items)
 
 class ExchangeSelect(SelectBase[Exchange]):
     """Select class specifically for filtering and asserting on Exchange model collections."""
-    pass
+
+    def expect(self) -> ExchangeExpect:
+        """Get an ExchangeExpect instance for assertions on the current selection."""
+        return ExchangeExpect(self._items)

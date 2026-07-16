@@ -8,6 +8,7 @@ Runnable scripts in `docs/samples/`. Each is self-contained.
 | `interactive.py` | REPL chat with transcript on exit |
 | `scenario_registry_demo.py` | Registering and discovering named scenarios |
 | `transcript_formatting.py` | `ConversationTranscriptFormatter`, `ActivityTranscriptFormatter`, `JsonTranscriptFormatter` |
+| `utilities.py` | `contains`, `poll`, `send`, and `ex_send` helpers |
 | `pytest_plugin_usage.py` | `@pytest.mark.agent_test`, fixtures |
 | `multi_client.py` | Multiple users, `ActivityTemplate`, child clients |
 
@@ -24,7 +25,7 @@ async with scenario.client() as client:
 ```
 
 ```bash
-python docs/samples/quickstart.py
+python -m docs.samples.quickstart
 ```
 
 ---
@@ -34,7 +35,7 @@ python docs/samples/quickstart.py
 REPL loop. Type messages, see replies. Prints the full transcript on exit.
 
 ```bash
-python docs/samples/interactive.py
+python -m docs.samples.interactive
 ```
 
 ---
@@ -51,7 +52,7 @@ local = scenario_registry.discover("local.*")
 ```
 
 ```bash
-python docs/samples/scenario_registry_demo.py
+python -m docs.samples.scenario_registry_demo
 ```
 
 ---
@@ -73,11 +74,40 @@ from microsoft_agents.testing import (
 )
 
 print_conversation(client.transcript)
-print(ActivityTranscriptFormatter(model_dump_args={"exclude_none": True}).format(client.transcript))
+print(
+    ActivityTranscriptFormatter(
+        model_dump_args={"exclude_unset": True, "exclude_none": True}
+    ).format(client.transcript)
+)
 ```
 
 ```bash
-python docs/samples/transcript_formatting.py
+python -m docs.samples.transcript_formatting
+```
+
+---
+
+## utilities.py
+
+Demonstrates the utility helpers for nested predicates, polling asynchronous
+side effects, and one-shot sends to a running agent URL.
+
+- `contains` — searches nested model, dict, and iterable values
+- `poll` — waits until a synchronous condition becomes true
+- `send` — returns response `Activity` objects from an agent URL
+- `ex_send` — returns full `Exchange` objects from an agent URL
+
+```python
+from microsoft_agents.testing.utils import contains, poll, send, ex_send
+
+client.expect().that_for_any(
+    attachments=contains(content_type="application/vnd.microsoft.card.hero")
+)
+await poll(lambda: state["saved"], timeout=1.0, interval=0.01)
+```
+
+```bash
+python -m docs.samples.utilities
 ```
 
 ---
@@ -118,7 +148,7 @@ async with scenario.run() as factory:
 ```
 
 ```bash
-python docs/samples/multi_client.py
+python -m docs.samples.multi_client
 ```
 
 ---
@@ -148,7 +178,7 @@ agt scenario load --url http://localhost:3978/api/messages \
 
 # Send a custom activity from a JSON file
 agt scenario load --url http://localhost:3978/api/messages \
-    --json-file activity.json --num 20
+    --json_file activity.json --num 20
 ```
 
 Reports per-request errors and aggregate latency (average, min, max, p90).
