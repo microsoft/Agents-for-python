@@ -78,7 +78,7 @@ class TestUnset:
             result = "truthy"
         else:
             result = "falsy"
-        
+
         assert result == "falsy"
 
     def test_unset_identity(self):

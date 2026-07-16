@@ -21,6 +21,7 @@ from ..core import (
     pass_config,
 )
 
+
 @click.command("env")
 @pass_output
 @pass_config

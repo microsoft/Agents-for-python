@@ -8,10 +8,8 @@ from .transcript_formatter import BaseTranscriptFormatter
 from .utils import _format_timestamp
 
 from microsoft_agents.activity import Activity, ActivityTypes
-from microsoft_agents.testing.core import (
-    Transcript,
-    Exchange
-)
+from microsoft_agents.testing.core import Transcript, Exchange
+
 
 @dataclass
 class _ActivityObservation:
@@ -27,6 +25,7 @@ class _ActivityObservation:
         """Check if the observation represents an error."""
         return self.error is not None
 
+
 class ConversationTranscriptFormatter(BaseTranscriptFormatter):
     """Formats a transcript as a human-readable conversation string.
 
@@ -38,25 +37,30 @@ class ConversationTranscriptFormatter(BaseTranscriptFormatter):
     Lines are sorted by activity timestamp.
     """
 
-    def _get_exchange_observations(self, exchange: Exchange) -> list[_ActivityObservation]:
+    def _get_exchange_observations(
+        self, exchange: Exchange
+    ) -> list[_ActivityObservation]:
         """Return observations for a single exchange, preserving request/response order."""
         obs = []
         if exchange.request:
             assert exchange.request_at is not None
-            obs.append(_ActivityObservation(
-                activity=exchange.request,
-                at=exchange.request_at,
-                error=exchange.error
-            ))
+            obs.append(
+                _ActivityObservation(
+                    activity=exchange.request,
+                    at=exchange.request_at,
+                    error=exchange.error,
+                )
+            )
         if exchange.responses:
             assert exchange.response_at is not None
             for response in exchange.responses:
-                obs.append(_ActivityObservation(
-                    activity=response,
-                    at=response.timestamp or exchange.response_at
-                ))
+                obs.append(
+                    _ActivityObservation(
+                        activity=response, at=response.timestamp or exchange.response_at
+                    )
+                )
         return obs
-    
+
     def _get_observations(self, transcript: Transcript) -> list[_ActivityObservation]:
         """Collect and sort all observations across the full transcript by timestamp."""
         obs = []

@@ -158,9 +158,9 @@ class TestContains:
             ],
         )
 
-        assert contains(
-            {}, content_type="application/vnd.microsoft.card.hero"
-        )(activity)
+        assert contains({}, content_type="application/vnd.microsoft.card.hero")(
+            activity
+        )
 
     def test_requires_filter_or_keyword_criteria(self):
         """contains() rejects the unfiltered case instead of matching everything."""
@@ -286,9 +286,11 @@ class TestContains:
             ActivityLike(name="empty", attachments=[]),
         ]
 
-        selected = Select(activities).where(
-            contains(content_type="application/vnd.microsoft.card.hero")
-        ).get()
+        selected = (
+            Select(activities)
+            .where(contains(content_type="application/vnd.microsoft.card.hero"))
+            .get()
+        )
 
         assert [cast(ActivityLike, activity).name for activity in selected] == ["hero"]
 

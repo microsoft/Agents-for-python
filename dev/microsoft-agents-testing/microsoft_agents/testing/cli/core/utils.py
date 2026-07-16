@@ -19,6 +19,7 @@ from microsoft_agents.testing.scenario_registry import load_scenarios, scenario_
 from .cli_config import CLIConfig
 from .output import Output
 
+
 def _resolve_scenario(
     agent_name_or_url: str | None,
     module_path: str | None,
@@ -37,7 +38,7 @@ def _resolve_scenario(
     :param out: Output helper for debug messages.
     :return: A resolved Scenario, or None if resolution fails.
     """
-    
+
     scenario_config = ScenarioConfig(
         env_file_path=config.env_path,
     )
@@ -46,14 +47,16 @@ def _resolve_scenario(
         # BUG: Only URLs starting with "https://" are detected as external
         # endpoints. Plain "http://" URLs (e.g., http://localhost:3978/...)
         # fall through to the registry lookup and will fail to resolve.
-        if agent_name_or_url.startswith("https://") or agent_name_or_url.startswith("http://"):   
+        if agent_name_or_url.startswith("https://") or agent_name_or_url.startswith(
+            "http://"
+        ):
             out.debug(f"Using external agent at: {agent_name_or_url}")
-            return ExternalScenario(agent_name_or_url, config=scenario_config) 
+            return ExternalScenario(agent_name_or_url, config=scenario_config)
         else:
             if module_path:
                 load_scenarios(module_path)
                 out.debug(f"Scenarios loaded from module: {module_path}")
-            
+
             try:
                 return scenario_registry.get(agent_name_or_url)
             except KeyError as e:

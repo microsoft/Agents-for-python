@@ -14,6 +14,7 @@ from microsoft_agents.hosting.core import AgentAuthConfiguration
 
 from .transport import Exchange
 
+
 def activities_from_ex(exchanges: list[Exchange]) -> list[Activity]:
     """Extract all response activities from a list of exchanges.
 
@@ -27,6 +28,7 @@ def activities_from_ex(exchanges: list[Exchange]) -> list[Activity]:
     for exchange in exchanges:
         activities.extend(exchange.responses)
     return activities
+
 
 def sdk_config_connection(
     sdk_config: dict, connection_name: str = "SERVICE_CONNECTION"
@@ -75,7 +77,9 @@ def generate_token(app_id: str, app_secret: str, tenant_id: str) -> str:
     return res.json().get("access_token")
 
 
-def generate_token_from_config(sdk_config: dict, connection_name: str = "SERVICE_CONNECTION") -> str:
+def generate_token_from_config(
+    sdk_config: dict, connection_name: str = "SERVICE_CONNECTION"
+) -> str:
     """Generates a token using a provided config object.
 
     :param sdk_config: Configuration dictionary containing connection settings.
@@ -83,7 +87,9 @@ def generate_token_from_config(sdk_config: dict, connection_name: str = "SERVICE
     :return: Generated access token as a string.
     """
 
-    settings: AgentAuthConfiguration = sdk_config_connection(sdk_config, connection_name)
+    settings: AgentAuthConfiguration = sdk_config_connection(
+        sdk_config, connection_name
+    )
 
     client_id = settings.CLIENT_ID
     client_secret = settings.CLIENT_SECRET

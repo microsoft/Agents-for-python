@@ -16,13 +16,14 @@ from pydantic import BaseModel
 
 from .transform import DictionaryTransform, ModelTransform
 
+
 @dataclass
 class ModelPredicateResult:
     """Result of evaluating a predicate against a list of models.
-    
+
     Contains the source data, the transformation applied, and per-item
     boolean results indicating which items matched the predicate.
-    
+
     Attributes:
         source: The original list of dictionaries that were evaluated.
         dict_transform: The transformation mapping that was applied.
@@ -35,10 +36,18 @@ class ModelPredicateResult:
     result_bools: list[bool]
     result_dicts: list[dict]
 
-    def __init__(self, source: Sequence[dict | BaseModel], dict_transform: dict, result_dicts: list[dict]) -> None:
+    def __init__(
+        self,
+        source: Sequence[dict | BaseModel],
+        dict_transform: dict,
+        result_dicts: list[dict],
+    ) -> None:
         if isinstance(source, Sequence) and source and isinstance(source[0], BaseModel):
             source = cast(Sequence[BaseModel], source)
-            self.source = cast(Sequence[dict], [s.model_dump(exclude_unset=True, mode="json") for s in source])
+            self.source = cast(
+                Sequence[dict],
+                [s.model_dump(exclude_unset=True, mode="json") for s in source],
+            )
         else:
             self.source = cast(Sequence[dict], source)
         self.dict_transform = dict_transform
@@ -82,9 +91,10 @@ class ModelPredicateResult:
 
         return current
 
+
 class ModelPredicate:
     """Evaluates predicates against models to produce boolean results.
-    
+
     Wraps a DictionaryTransform to evaluate it against one or more models,
     producing a ModelPredicateResult with per-item match information.
     """
@@ -92,8 +102,10 @@ class ModelPredicate:
     def __init__(self, dict_transform: DictionaryTransform) -> None:
         self._dt = dict_transform
         self._transform = ModelTransform(dict_transform)
-    
-    def eval(self, source:  dict | BaseModel | Sequence[BaseModel | dict]) -> ModelPredicateResult:
+
+    def eval(
+        self, source: dict | BaseModel | Sequence[BaseModel | dict]
+    ) -> ModelPredicateResult:
         """Evaluate the predicate against one or more models.
 
         :param source: A single model or a list of models to evaluate.
@@ -103,9 +115,11 @@ class ModelPredicate:
             source = cast(Sequence[dict] | Sequence[BaseModel], [source])
         res = self._transform.eval(source)
         return ModelPredicateResult(source, self._dt.map, res)
-        
+
     @staticmethod
-    def from_args(arg: dict | Callable | None | ModelPredicate, **kwargs) -> ModelPredicate:
+    def from_args(
+        arg: dict | Callable | None | ModelPredicate, **kwargs
+    ) -> ModelPredicate:
         """Create a ModelPredicate from flexible argument types.
 
         Accepts an existing ModelPredicate, a dictionary, a callable,
@@ -117,7 +131,5 @@ class ModelPredicate:
         """
         if isinstance(arg, ModelPredicate):
             return arg
-        
-        return ModelPredicate(
-            DictionaryTransform.from_args(arg, **kwargs)
-        )
+
+        return ModelPredicate(DictionaryTransform.from_args(arg, **kwargs))

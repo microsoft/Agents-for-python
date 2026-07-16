@@ -18,6 +18,7 @@ from .unset import Unset
 T = TypeVar("T")
 P = TypeVar("P")
 
+
 @overload
 def resolve(obj: SafeObject[T]) -> T: ...
 @overload
@@ -28,13 +29,15 @@ def resolve(obj: SafeObject[T] | P) -> T | P:
         return object.__getattribute__(obj, "__value__")
     return obj
 
+
 def parent(obj: SafeObject[T]) -> SafeObject | None:
     """Get the parent SafeObject of the given SafeObject, or None if there is no parent."""
     return object.__getattribute__(obj, "__parent__")
 
+
 class SafeObject(Generic[T], Readonly):
     """A wrapper that provides safe access to object attributes and items.
-    
+
     SafeObject allows accessing nested attributes and items without raising
     exceptions for missing keys. Instead, it returns Unset for missing values,
     enabling safe chained access like `obj.user.profile.name` even when
@@ -43,7 +46,7 @@ class SafeObject(Generic[T], Readonly):
 
     def __init__(self, value: Any, parent_object: SafeObject | None = None):
         """Initialize a SafeObject with a value and an optional parent SafeObject.
-        
+
         :param value: The value to wrap.
         :param parent: The parent SafeObject, if any.
         """
@@ -60,10 +63,9 @@ class SafeObject(Generic[T], Readonly):
             parent_object = None
         object.__setattr__(self, "__parent__", parent_object)
 
-
     def __new__(cls, value: Any, parent_object: SafeObject | None = None):
         """Create a new SafeObject or return the value directly if it's already a SafeObject.
-        
+
         :param value: The value to wrap.
         :param parent: The parent SafeObject, if any.
 
@@ -75,7 +77,7 @@ class SafeObject(Generic[T], Readonly):
 
     def __getattr__(self, name: str) -> Any:
         """Get an attribute of the wrapped object safely.
-        
+
         :param name: The name of the attribute to access.
         :return: The attribute value wrapped in a SafeObject.
         """
@@ -86,7 +88,7 @@ class SafeObject(Generic[T], Readonly):
             return cls(value.get(name, Unset), self)
         attr = getattr(value, name, Unset)
         return cls(attr, self)
-    
+
     def __getitem__(self, key) -> Any:
         """Get an item of the wrapped object safely.
 
@@ -112,13 +114,13 @@ class SafeObject(Generic[T], Readonly):
     def __str__(self) -> str:
         """Get the string representation of the wrapped object."""
         return str(resolve(self))
-    
+
     def __repr__(self) -> str:
         """Get the detailed string representation of the SafeObject."""
         value = resolve(self)
         cls = object.__getattribute__(self, "__class__")
         return f"{cls.__name__}({value!r})"
-    
+
     def __eq__(self, other) -> bool:
         """Check if the wrapped object is equal to another object."""
         value = resolve(self)
@@ -126,7 +128,7 @@ class SafeObject(Generic[T], Readonly):
         if isinstance(other, SafeObject):
             other_value = resolve(other)
         return value == other_value
-    
+
     def __call__(self, *args, **kwargs) -> Any:
         """Call the wrapped object if it is callable."""
         value = resolve(self)

@@ -19,8 +19,10 @@ from microsoft_agents.testing.formatting import (
     print_conversation,
     print_json,
 )
-from microsoft_agents.testing.formatting.utils import _exchange_sort_key, _format_timestamp
-
+from microsoft_agents.testing.formatting.utils import (
+    _exchange_sort_key,
+    _format_timestamp,
+)
 
 T0 = datetime(2026, 2, 6, 10, 0, 0, 0)
 T1 = T0 + timedelta(seconds=1, milliseconds=234)
@@ -121,13 +123,18 @@ class TestExchangeSortKey:
 
 class TestFormatTimestamp:
     def test_formats_hours_minutes_seconds_millis(self):
-        assert _format_timestamp(datetime(2026, 2, 6, 14, 30, 45, 123456)) == "14:30:45.123"
+        assert (
+            _format_timestamp(datetime(2026, 2, 6, 14, 30, 45, 123456))
+            == "14:30:45.123"
+        )
 
     def test_returns_placeholder_for_none(self):
         assert _format_timestamp(None) == "??:??.???"
 
     def test_truncates_microseconds_to_milliseconds(self):
-        assert _format_timestamp(datetime(2026, 1, 1, 0, 0, 0, 999999)) == "00:00:00.999"
+        assert (
+            _format_timestamp(datetime(2026, 1, 1, 0, 0, 0, 999999)) == "00:00:00.999"
+        )
 
     def test_midnight(self):
         assert _format_timestamp(datetime(2026, 1, 1, 0, 0, 0, 0)) == "00:00:00.000"
@@ -176,8 +183,10 @@ class TestJsonTranscriptFormatter:
 
     def test_responses_included(self):
         ex = _make_exchange(
-            request=_user("Hi"), responses=[_agent("Hey")],
-            request_at=T0, response_at=T1
+            request=_user("Hi"),
+            responses=[_agent("Hey")],
+            request_at=T0,
+            response_at=T1,
         )
         data = json.loads(JsonTranscriptFormatter().format(_transcript(ex)))
         assert data[0]["responses"][0]["text"] == "Hey"
@@ -190,7 +199,9 @@ class TestJsonTranscriptFormatter:
     def test_model_dump_args_forwarded(self):
         ex = _make_exchange(request_at=T0)
         data = json.loads(
-            JsonTranscriptFormatter(model_dump_args={"exclude_none": True}).format(_transcript(ex))
+            JsonTranscriptFormatter(model_dump_args={"exclude_none": True}).format(
+                _transcript(ex)
+            )
         )
         # With exclude_none, the null request field should be absent
         assert "request" not in data[0]
@@ -225,7 +236,8 @@ class TestActivityTranscriptFormatter:
         ex = _make_exchange(
             request=_user("Hi"),
             responses=[_agent("Hey"), _agent("How are you?")],
-            request_at=T0, response_at=T1,
+            request_at=T0,
+            response_at=T1,
         )
         data = json.loads(ActivityTranscriptFormatter().format(_transcript(ex)))
         assert [d["text"] for d in data] == ["Hi", "Hey", "How are you?"]
@@ -289,7 +301,9 @@ class TestConversationTranscriptFormatter:
 
     def test_activity_without_from_property_labeled_agent(self):
         ex = Exchange(
-            request=Activity.model_validate({"type": ActivityTypes.message, "text": "No from"}),
+            request=Activity.model_validate(
+                {"type": ActivityTypes.message, "text": "No from"}
+            ),
             request_at=T0,
             responses=[],
         )
@@ -297,7 +311,9 @@ class TestConversationTranscriptFormatter:
         assert "Agent: No from" in result
 
     def test_error_exchange_shows_error_marker(self):
-        ex = Exchange(request=_user("Hi"), request_at=T0, responses=[], error="Connection refused")
+        ex = Exchange(
+            request=_user("Hi"), request_at=T0, responses=[], error="Connection refused"
+        )
         result = ConversationTranscriptFormatter().format(_transcript(ex))
         assert "[X] Error: Connection refused" in result
 

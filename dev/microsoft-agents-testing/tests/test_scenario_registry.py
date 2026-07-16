@@ -16,10 +16,10 @@ from microsoft_agents.testing.scenario_registry import (
 )
 from microsoft_agents.testing.core import ExternalScenario
 
-
 # ============================================================================
 # ScenarioEntry Tests
 # ============================================================================
+
 
 class TestScenarioEntry:
     """Tests for ScenarioEntry dataclass."""
@@ -78,6 +78,7 @@ class TestScenarioEntry:
 # ScenarioRegistry Tests
 # ============================================================================
 
+
 class TestScenarioRegistry:
     """Tests for ScenarioRegistry class."""
 
@@ -115,7 +116,9 @@ class TestScenarioRegistry:
 
         registry.register("test.echo", scenario1)
 
-        with pytest.raises(ValueError, match="Scenario 'test.echo' is already registered"):
+        with pytest.raises(
+            ValueError, match="Scenario 'test.echo' is already registered"
+        ):
             registry.register("test.echo", scenario2)
 
     def test_register_non_scenario_raises_type_error(self):
@@ -189,6 +192,7 @@ class TestScenarioRegistry:
 # ============================================================================
 # ScenarioRegistry Discovery Tests
 # ============================================================================
+
 
 class TestScenarioRegistryDiscovery:
     """Tests for ScenarioRegistry.discover() method."""
@@ -287,6 +291,7 @@ class TestScenarioRegistryDiscovery:
 # ScenarioRegistry Container Protocol Tests
 # ============================================================================
 
+
 class TestScenarioRegistryContainer:
     """Tests for ScenarioRegistry container protocol methods."""
 
@@ -358,6 +363,7 @@ class TestScenarioRegistryContainer:
 # Global scenario_registry Tests
 # ============================================================================
 
+
 class TestGlobalScenarioRegistry:
     """Tests for the global scenario_registry instance."""
 
@@ -387,6 +393,7 @@ class TestGlobalScenarioRegistry:
 # load_scenarios Tests with Temporary Files
 # ============================================================================
 
+
 class TestLoadScenarios:
     """Tests for load_scenarios function using temporary files."""
 
@@ -403,8 +410,7 @@ class TestLoadScenarios:
         with tempfile.TemporaryDirectory() as tmpdir:
             # Create a scenario file
             scenario_file = Path(tmpdir) / "test_scenarios.py"
-            scenario_file.write_text(
-                """
+            scenario_file.write_text("""
 from microsoft_agents.testing.scenario_registry import scenario_registry
 from microsoft_agents.testing.core import ExternalScenario
 
@@ -413,8 +419,7 @@ scenario_registry.register(
     ExternalScenario(endpoint="http://localhost:3978/api/messages"),
     description="Loaded from file",
 )
-"""
-            )
+""")
 
             count = load_scenarios(str(scenario_file))
 
@@ -427,8 +432,7 @@ scenario_registry.register(
         """load_scenarios() returns count of newly registered scenarios."""
         with tempfile.TemporaryDirectory() as tmpdir:
             scenario_file = Path(tmpdir) / "multi_scenarios.py"
-            scenario_file.write_text(
-                """
+            scenario_file.write_text("""
 from microsoft_agents.testing.scenario_registry import scenario_registry
 from microsoft_agents.testing.core import ExternalScenario
 
@@ -444,8 +448,7 @@ scenario_registry.register(
     "loaded.three",
     ExternalScenario(endpoint="http://localhost:3980/api/messages"),
 )
-"""
-            )
+""")
 
             count = load_scenarios(str(scenario_file))
 
@@ -464,8 +467,7 @@ scenario_registry.register(
         """load_scenarios() handles file paths with forward slashes."""
         with tempfile.TemporaryDirectory() as tmpdir:
             scenario_file = Path(tmpdir) / "slash_scenarios.py"
-            scenario_file.write_text(
-                """
+            scenario_file.write_text("""
 from microsoft_agents.testing.scenario_registry import scenario_registry
 from microsoft_agents.testing.core import ExternalScenario
 
@@ -473,8 +475,7 @@ scenario_registry.register(
     "slash.echo",
     ExternalScenario(endpoint="http://localhost:3978/api/messages"),
 )
-"""
-            )
+""")
 
             # Use forward slashes in path
             forward_slash_path = str(scenario_file).replace("\\", "/")
@@ -487,8 +488,7 @@ scenario_registry.register(
         """load_scenarios() handles file paths with backslashes."""
         with tempfile.TemporaryDirectory() as tmpdir:
             scenario_file = Path(tmpdir) / "backslash_scenarios.py"
-            scenario_file.write_text(
-                """
+            scenario_file.write_text("""
 from microsoft_agents.testing.scenario_registry import scenario_registry
 from microsoft_agents.testing.core import ExternalScenario
 
@@ -496,8 +496,7 @@ scenario_registry.register(
     "backslash.echo",
     ExternalScenario(endpoint="http://localhost:3978/api/messages"),
 )
-"""
-            )
+""")
 
             # Use backslashes in path (Windows style)
             backslash_path = str(scenario_file).replace("/", "\\")
@@ -514,8 +513,7 @@ scenario_registry.register(
 
         with tempfile.TemporaryDirectory() as tmpdir:
             scenario_file = Path(tmpdir) / "new_scenarios.py"
-            scenario_file.write_text(
-                """
+            scenario_file.write_text("""
 from microsoft_agents.testing.scenario_registry import scenario_registry
 from microsoft_agents.testing.core import ExternalScenario
 
@@ -523,8 +521,7 @@ scenario_registry.register(
     "new.echo",
     ExternalScenario(endpoint="http://localhost:3979/api/messages"),
 )
-"""
-            )
+""")
 
             count = load_scenarios(str(scenario_file))
 
@@ -535,11 +532,9 @@ scenario_registry.register(
         """load_scenarios() returns 0 when file has syntax error."""
         with tempfile.TemporaryDirectory() as tmpdir:
             scenario_file = Path(tmpdir) / "broken_scenarios.py"
-            scenario_file.write_text(
-                """
+            scenario_file.write_text("""
 this is not valid python syntax!!!
-"""
-            )
+""")
 
             count = load_scenarios(str(scenario_file))
 
@@ -549,11 +544,9 @@ this is not valid python syntax!!!
         """load_scenarios() returns 0 when file has import error."""
         with tempfile.TemporaryDirectory() as tmpdir:
             scenario_file = Path(tmpdir) / "import_error_scenarios.py"
-            scenario_file.write_text(
-                """
+            scenario_file.write_text("""
 from nonexistent_module import something
-"""
-            )
+""")
 
             count = load_scenarios(str(scenario_file))
 
@@ -565,8 +558,7 @@ from nonexistent_module import something
 
         with tempfile.TemporaryDirectory() as tmpdir:
             scenario_file = Path(tmpdir) / "cleanup_scenarios.py"
-            scenario_file.write_text(
-                """
+            scenario_file.write_text("""
 from microsoft_agents.testing.scenario_registry import scenario_registry
 from microsoft_agents.testing.core import ExternalScenario
 
@@ -574,8 +566,7 @@ scenario_registry.register(
     "cleanup.echo",
     ExternalScenario(endpoint="http://localhost:3978/api/messages"),
 )
-"""
-            )
+""")
 
             load_scenarios(str(scenario_file))
 
@@ -590,8 +581,7 @@ scenario_registry.register(
             subdir = Path(tmpdir) / "subdir" / "nested"
             subdir.mkdir(parents=True)
             scenario_file = subdir / "deep_scenarios.py"
-            scenario_file.write_text(
-                """
+            scenario_file.write_text("""
 from microsoft_agents.testing.scenario_registry import scenario_registry
 from microsoft_agents.testing.core import ExternalScenario
 
@@ -599,8 +589,7 @@ scenario_registry.register(
     "deep.echo",
     ExternalScenario(endpoint="http://localhost:3978/api/messages"),
 )
-"""
-            )
+""")
 
             count = load_scenarios(str(scenario_file))
 
@@ -613,8 +602,7 @@ scenario_registry.register(
 
         with tempfile.TemporaryDirectory() as tmpdir:
             scenario_file = Path(tmpdir) / "relative_scenarios.py"
-            scenario_file.write_text(
-                """
+            scenario_file.write_text("""
 from microsoft_agents.testing.scenario_registry import scenario_registry
 from microsoft_agents.testing.core import ExternalScenario
 
@@ -622,8 +610,7 @@ scenario_registry.register(
     "relative.echo",
     ExternalScenario(endpoint="http://localhost:3978/api/messages"),
 )
-"""
-            )
+""")
 
             # Change to temp directory and use relative path
             original_cwd = os.getcwd()
@@ -641,6 +628,7 @@ scenario_registry.register(
 # load_scenarios Module Path Tests
 # ============================================================================
 
+
 class TestLoadScenariosModulePath:
     """Tests for load_scenarios with module paths."""
 
@@ -652,7 +640,9 @@ class TestLoadScenariosModulePath:
         """Clear the global registry after each test."""
         scenario_registry.clear()
         # Clean up any test modules from sys.modules
-        modules_to_remove = [k for k in sys.modules.keys() if k.startswith("test_module_")]
+        modules_to_remove = [
+            k for k in sys.modules.keys() if k.startswith("test_module_")
+        ]
         for mod in modules_to_remove:
             del sys.modules[mod]
 
@@ -662,8 +652,7 @@ class TestLoadScenariosModulePath:
             # Create a module
             module_dir = Path(tmpdir)
             module_file = module_dir / "test_module_scenarios.py"
-            module_file.write_text(
-                """
+            module_file.write_text("""
 from microsoft_agents.testing.scenario_registry import scenario_registry
 from microsoft_agents.testing.core import ExternalScenario
 
@@ -671,8 +660,7 @@ scenario_registry.register(
     "module.echo",
     ExternalScenario(endpoint="http://localhost:3978/api/messages"),
 )
-"""
-            )
+""")
 
             # Add to sys.path temporarily
             sys.path.insert(0, tmpdir)

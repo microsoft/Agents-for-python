@@ -6,8 +6,16 @@
 import pytest
 from pydantic import BaseModel
 
-from microsoft_agents.activity import Activity, ActivityTypes, ChannelAccount, ConversationAccount
-from microsoft_agents.testing.core.fluent.model_template import ModelTemplate, ActivityTemplate
+from microsoft_agents.activity import (
+    Activity,
+    ActivityTypes,
+    ChannelAccount,
+    ConversationAccount,
+)
+from microsoft_agents.testing.core.fluent.model_template import (
+    ModelTemplate,
+    ActivityTemplate,
+)
 
 
 class SimpleModel(BaseModel):
@@ -129,7 +137,9 @@ class TestModelTemplateCreate:
 
     def test_create_with_nested_defaults(self):
         """create() merges nested defaults correctly."""
-        template = ModelTemplate(NestedModel, title="Default", **{"metadata.key1": "v1"})
+        template = ModelTemplate(
+            NestedModel, title="Default", **{"metadata.key1": "v1"}
+        )
         model = template.create({"metadata": {"key2": "v2"}})
         # Original overwrites defaults since it's a complete dictionary
         assert model.title == "Default"
@@ -204,7 +214,7 @@ class TestModelTemplateMultipleCreates:
         template = ModelTemplate(SimpleModel, name="default", value=42)
         model1 = template.create({"name": "one"})
         model2 = template.create({"name": "two"})
-        
+
         assert model1.name == "one"
         assert model2.name == "two"
         assert model1 is not model2
@@ -213,11 +223,12 @@ class TestModelTemplateMultipleCreates:
         """Template defaults are unchanged after create()."""
         template = ModelTemplate(SimpleModel, name="default", value=42)
         template.create({"name": "custom"})
-        
+
         # Create another to verify defaults
         model = template.create()
         assert model.name == "default"
         assert model.value == 42
+
 
 class TestActivityTemplateInit:
     """Tests for ActivityTemplate initialization."""
@@ -343,7 +354,7 @@ class TestActivityTemplateWithNestedModels:
         """ActivityTemplate handles from_property correctly."""
         template = ActivityTemplate(
             type=ActivityTypes.message,
-            from_property={"id": "user123", "name": "Test User"}
+            from_property={"id": "user123", "name": "Test User"},
         )
         activity = template.create()
         assert activity.from_property is not None
@@ -354,7 +365,7 @@ class TestActivityTemplateWithNestedModels:
         """ActivityTemplate handles conversation property correctly."""
         template = ActivityTemplate(
             type=ActivityTypes.message,
-            conversation={"id": "conv123", "name": "Test Conversation"}
+            conversation={"id": "conv123", "name": "Test Conversation"},
         )
         activity = template.create()
         assert activity.conversation is not None
@@ -364,8 +375,7 @@ class TestActivityTemplateWithNestedModels:
     def test_create_with_recipient(self):
         """ActivityTemplate handles recipient property correctly."""
         template = ActivityTemplate(
-            type=ActivityTypes.message,
-            recipient={"id": "bot123", "name": "Test Bot"}
+            type=ActivityTypes.message, recipient={"id": "bot123", "name": "Test Bot"}
         )
         activity = template.create()
         assert activity.recipient is not None
@@ -376,8 +386,7 @@ class TestActivityTemplateWithNestedModels:
         """ActivityTemplate handles ChannelAccount model correctly."""
         channel_account = ChannelAccount(id="user123", name="Test User")
         template = ActivityTemplate(
-            type=ActivityTypes.message,
-            from_property=channel_account
+            type=ActivityTypes.message, from_property=channel_account
         )
         activity = template.create()
         assert activity.from_property.id == "user123"
@@ -387,8 +396,7 @@ class TestActivityTemplateWithNestedModels:
         """ActivityTemplate handles ConversationAccount model correctly."""
         conversation = ConversationAccount(id="conv123", name="Test Conversation")
         template = ActivityTemplate(
-            type=ActivityTypes.message,
-            conversation=conversation
+            type=ActivityTypes.message, conversation=conversation
         )
         activity = template.create()
         assert activity.conversation.id == "conv123"
@@ -455,7 +463,9 @@ class TestActivityTemplateFromAliases:
             **{"from_property.id": "default-id", "from_property.name": "Default User"}
         )
 
-        activity = template.create({"from": {"id": "override-id", "name": "Override User"}})
+        activity = template.create(
+            {"from": {"id": "override-id", "name": "Override User"}}
+        )
         assert activity.from_property is not None
         assert activity.from_property.id == "override-id"
         assert activity.from_property.name == "Override User"
@@ -539,21 +549,25 @@ class TestActivityTemplateWithComplexData:
         """ActivityTemplate creates activities with attachments correctly."""
         template = ActivityTemplate(
             type=ActivityTypes.message,
-            attachments=[{
-                "content_type": "application/vnd.microsoft.card.hero",
-                "content": {"title": "Hero Card", "text": "Some text"}
-            }]
+            attachments=[
+                {
+                    "content_type": "application/vnd.microsoft.card.hero",
+                    "content": {"title": "Hero Card", "text": "Some text"},
+                }
+            ],
         )
         activity = template.create()
         assert activity.attachments is not None
         assert len(activity.attachments) == 1
-        assert activity.attachments[0].content_type == "application/vnd.microsoft.card.hero"
+        assert (
+            activity.attachments[0].content_type
+            == "application/vnd.microsoft.card.hero"
+        )
 
     def test_create_activity_with_channel_data(self):
         """ActivityTemplate creates activities with channel_data correctly."""
         template = ActivityTemplate(
-            type=ActivityTypes.message,
-            channel_data={"custom_key": "custom_value"}
+            type=ActivityTypes.message, channel_data={"custom_key": "custom_value"}
         )
         activity = template.create()
         assert activity.channel_data is not None
@@ -564,7 +578,7 @@ class TestActivityTemplateWithComplexData:
         template = ActivityTemplate(
             type=ActivityTypes.invoke,
             name="invoke/action",
-            value={"action": "test", "data": [1, 2, 3]}
+            value={"action": "test", "data": [1, 2, 3]},
         )
         activity = template.create()
         assert activity.value is not None
@@ -574,18 +588,14 @@ class TestActivityTemplateWithComplexData:
     def test_create_activity_with_service_url(self):
         """ActivityTemplate creates activities with service_url correctly."""
         template = ActivityTemplate(
-            type=ActivityTypes.message,
-            service_url="https://test.botframework.com"
+            type=ActivityTypes.message, service_url="https://test.botframework.com"
         )
         activity = template.create()
         assert activity.service_url == "https://test.botframework.com"
 
     def test_create_activity_with_channel_id(self):
         """ActivityTemplate creates activities with channel_id correctly."""
-        template = ActivityTemplate(
-            type=ActivityTypes.message,
-            channel_id="emulator"
-        )
+        template = ActivityTemplate(type=ActivityTypes.message, channel_id="emulator")
         activity = template.create()
         assert activity.channel_id == "emulator"
 
@@ -606,6 +616,6 @@ class TestActivityTemplateImmutability:
         template = ActivityTemplate(type=ActivityTypes.message, text="Original")
         activity = template.create()
         activity.text = "Modified"
-        
+
         new_activity = template.create()
         assert new_activity.text == "Original"

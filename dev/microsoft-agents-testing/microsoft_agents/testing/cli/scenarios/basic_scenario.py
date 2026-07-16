@@ -12,6 +12,7 @@ from microsoft_agents.testing.aiohttp_scenario import (
     AgentEnvironment,
 )
 
+
 async def basic_scenario_init(env: AgentEnvironment):
     """Initialize the basic echo agent.
 
@@ -27,6 +28,7 @@ async def basic_scenario_init(env: AgentEnvironment):
     async def handler(context: TurnContext, state: TurnState):
         """Echo handler: replies with the user's message."""
         await context.send_activity("Echo: " + context.activity.text)
+
 
 # Pre-built scenario instances for CLI registration
 basic_scenario = AiohttpScenario(basic_scenario_init)

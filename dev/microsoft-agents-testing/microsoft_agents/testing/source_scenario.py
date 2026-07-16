@@ -20,6 +20,7 @@ from microsoft_agents.testing.core import ClientFactory
 
 from .constants import DEFAULT_LOCAL_AGENT_ENDPOINT
 
+
 def _terminate_tree(process: subprocess.Popen, timeout: float = 5.0) -> None:
     """Terminate `process` and all of its descendants.
 
@@ -57,7 +58,7 @@ class SourceScenario(ExternalScenario):
         agent_path: str | Path,
         script: str,
         delay: float = 0.0,
-        config: ScenarioConfig | None = None
+        config: ScenarioConfig | None = None,
     ) -> None:
         super().__init__(DEFAULT_LOCAL_AGENT_ENDPOINT, config)
         self._agent_path = Path(agent_path)
@@ -74,7 +75,14 @@ class SourceScenario(ExternalScenario):
             raise FileNotFoundError("Could not find pwsh or powershell in PATH")
 
         process = subprocess.Popen(
-            [runner, "-NoProfile", "-ExecutionPolicy", "Bypass", "-Command", self._script],
+            [
+                runner,
+                "-NoProfile",
+                "-ExecutionPolicy",
+                "Bypass",
+                "-Command",
+                self._script,
+            ],
             stdout=subprocess.PIPE,
             stderr=subprocess.PIPE,
             cwd=agent_path,
