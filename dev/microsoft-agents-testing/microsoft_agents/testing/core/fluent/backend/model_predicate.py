@@ -55,7 +55,7 @@ class ModelPredicateResult:
         if predicate_paths:
             return all(bool(self._get_path(result, path)) for path in predicate_paths)
 
-        res: Sequence[bool] = []
+        res: list[bool] = []
 
         if isinstance(result, dict):
             iterable = result.values()

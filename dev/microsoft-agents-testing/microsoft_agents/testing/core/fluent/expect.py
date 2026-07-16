@@ -9,7 +9,7 @@ various quantifiers (all, any, none, exactly one, exactly n).
 
 from __future__ import annotations
 
-from typing import Callable, Iterable, Self, TypeVar, Generic, Sequence
+from typing import Callable, Self, TypeVar, Generic, Sequence
 
 from pydantic import BaseModel
 
@@ -51,7 +51,7 @@ class ExpectBase(Generic[ModelT]):
     def __init__(self, items: Sequence[ModelT]) -> None:
         """Initialize Expect with a collection of items.
         
-        :param items: An iterable of dicts or BaseModel instances.
+        :param items: A Sequence of dicts or BaseModel instances.
         """
         self._items = list(items)
         self._describer = Describe()

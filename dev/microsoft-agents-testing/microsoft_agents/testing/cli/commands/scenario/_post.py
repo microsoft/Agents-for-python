@@ -22,7 +22,7 @@ from ._utils import load_activity
 @with_scenario
 @click.option("--message", "-m", required=False, help="Text message to send to the agent.")
 @click.option(
-    "--json-file",
+    "--json_file",
     "-j",
     "json_file",
     required=False,
