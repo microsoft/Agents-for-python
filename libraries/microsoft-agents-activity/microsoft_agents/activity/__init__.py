@@ -45,6 +45,8 @@ from .entity import (
     ProductInfo,
     Thing,
     StreamInfo,
+    ActivityTreatment,
+    ActivityTreatmentTypes,
 )
 from .error import Error
 from .error_response import ErrorResponse
@@ -199,5 +201,7 @@ __all__ = [
     "load_configuration_from_env",
     "ChannelAdapterProtocol",
     "TurnContextProtocol",
+    "ActivityTreatment",
+    "ActivityTreatmentTypes",
     "TokenOrSignInResourceResponse",
 ]
