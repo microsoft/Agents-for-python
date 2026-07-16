@@ -12,7 +12,7 @@ from __future__ import annotations
 from .readonly import Readonly
 
 
-class Unset(Readonly):
+class _Unset(Readonly):
     """Singleton representing an unset/missing value.
     
     All attribute access, item access, and method calls return the Unset
@@ -53,4 +53,4 @@ class Unset(Readonly):
         """Returns an empty iterator to prevent iteration hangs."""
         return iter([])
         
-Unset = Unset()
+Unset = _Unset()

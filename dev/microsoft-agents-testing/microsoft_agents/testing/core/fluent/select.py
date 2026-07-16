@@ -10,15 +10,15 @@ from collections, with integration to Expect for assertions.
 from __future__ import annotations
 
 import random
-from typing import TypeVar, Iterable, Callable, cast
+from typing import TypeVar, Callable, Generic, Sequence, Self
 from pydantic import BaseModel
 
 from .backend import ModelPredicate, DictionaryTransform
 from .expect import Expect
 
-T = TypeVar("T", bound=BaseModel)
+ModelT = TypeVar("ModelT", bound=dict | BaseModel)
 
-class Select:
+class SelectBase(Generic[ModelT]):
     """
     Unified selection and assertion for models.
 
@@ -44,24 +44,23 @@ class Select:
 
     def __init__(
             self,
-            items: Iterable[dict] | Iterable[BaseModel],
+            items: Sequence[ModelT],
         ) -> None:
-        self._items = cast(list[dict] | list[BaseModel], list(items))
+        self._items = list(items)
 
     def expect(self) -> Expect:
         """Get an Expect instance for assertions on the current selection."""
         return Expect(self._items)
 
-    def _child(self, items: Iterable[dict] | Iterable[BaseModel]) -> Select:
+    def _child(self, items: Sequence[ModelT]) -> Self:
         """Create a child Select with new items, inheriting selector and quantifier."""
-        child = Select(items)
-        return child
+        return self.__class__(items)
 
     ###
     ### Selectors
     ###
 
-    def _where(self, _filter: dict | Callable | None = None, _reverse: bool=False, **kwargs) -> Select:
+    def _where(self, _filter: dict | Callable | None = None, _reverse: bool=False, **kwargs) -> Self:
         """Filter items by criteria. Chainable."""
         mp = ModelPredicate.from_args(_filter, **kwargs)
 
@@ -73,7 +72,7 @@ class Select:
 
         return self._child(filtered_items)
 
-    def where(self, _filter: dict | Callable | None = None, **kwargs) -> Select:
+    def where(self, _filter: dict | Callable | None = None, **kwargs) -> Self:
         """Filter items matching criteria. Chainable.
 
         :param _filter: A dict of field checks or a callable predicate.
@@ -82,44 +81,47 @@ class Select:
         """
         return self._where(_filter, **kwargs)
 
-    def where_not(self, _filter: dict | Callable | None = None, **kwargs) -> Select:
+    def where_not(self, _filter: dict | Callable | None = None, **kwargs) -> Self:
         """Exclude items by criteria. Chainable."""
         return self._where(_filter, _reverse=True, **kwargs)
     
-    def order_by(self, key: str | Callable | None, reverse: bool = False, **kwargs) -> Select:
+    def order_by(self, key: str | Callable | None, reverse: bool = False, **kwargs) -> Self:
         """Order items by a specific key or callable. Chainable."""
 
         dt = DictionaryTransform.from_args(key, **kwargs)
         
         return self._child(
-            sorted(
-                self._items,
-                key=dt.eval,
-                reverse=reverse,
+            list(
+                sorted(
+                    self._items,
+                    key=dt.eval,
+                    reverse=reverse,
+                )
             )
         )
     
-    def merge(self, other: Select) -> Select:
+    def merge(self, other: Self) -> Self:
         """Merge with another Select's items."""
-        return self._child(self._items + other._items)
+        l = self._items + other._items
+        return self._child(l)
     
     def _bool_list(self) -> list[bool]:
         """Return a list of True values matching the number of selected items."""
         return [ True for _ in self._items ]
     
-    def first(self, n: int = 1) -> Select:
+    def first(self, n: int = 1) -> Self:
         """Select the first n items."""
         return self._child(self._items[:n])
     
-    def last(self, n: int = 1) -> Select:
+    def last(self, n: int = 1) -> Self:
         """Select the last n items."""
         return self._child(self._items[-n:])
     
-    def at(self, n: int) -> Select:
+    def at(self, n: int) -> Self:
         """Set selector to 'exactly n'."""
         return self._child(self._items[n:n+1])
     
-    def sample(self, n: int) -> Select:
+    def sample(self, n: int) -> Self:
         """Randomly sample n items."""
         if n < 0:
             raise ValueError("Sample size n must be non-negative.")
@@ -142,3 +144,7 @@ class Select:
     def empty(self) -> bool:
         """Check if no items are in the current selection."""
         return len(self._items) == 0
+
+class Select(SelectBase[dict | BaseModel]):
+    """Select class for filtering and asserting on model collections."""
+    pass

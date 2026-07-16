@@ -9,7 +9,7 @@ various quantifiers (all, any, none, exactly one, exactly n).
 
 from __future__ import annotations
 
-from typing import Callable, Iterable, Self, TypeVar
+from typing import Callable, Iterable, Self, TypeVar, Generic, Sequence
 
 from pydantic import BaseModel
 
@@ -27,7 +27,7 @@ from .backend.describe import Describe
 ModelT = TypeVar("ModelT", bound=dict | BaseModel)
 
 
-class Expect:
+class ExpectBase(Generic[ModelT]):
     """
     Assertion class that raises on failure.
     
@@ -48,7 +48,7 @@ class Expect:
         Select(responses).where(type="message").expect.that(text="hello")
     """
 
-    def __init__(self, items: Iterable[ModelT]) -> None:
+    def __init__(self, items: Sequence[ModelT]) -> None:
         """Initialize Expect with a collection of items.
         
         :param items: An iterable of dicts or BaseModel instances.
@@ -187,3 +187,7 @@ class Expect:
         if actual_count != expected_count:
             raise AssertionError(f"Expected {expected_count} items, found {actual_count}.")
         return self
+    
+class Expect(ExpectBase[dict | BaseModel]):
+    """Concrete Expect class for use with Select and other collections."""
+    pass

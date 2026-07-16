@@ -33,8 +33,8 @@ from .backend import (
     Unset,
 )
 
-from .expect import Expect
-from .select import Select
+from .expect import Expect, ExpectBase
+from .select import Select, SelectBase
 from .model_template import ModelTemplate, ActivityTemplate
 from .utils import normalize_model_data
 
@@ -52,7 +52,9 @@ __all__ = [
     "for_n",
     "ActivityTemplate",
     "Expect",
+    "ExpectBase",
     "Select",
+    "SelectBase",
     "ModelTemplate",
     "flatten",
     "expand",

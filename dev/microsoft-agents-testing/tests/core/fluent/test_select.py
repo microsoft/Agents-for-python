@@ -99,6 +99,30 @@ class TestSelectWhere:
         result = Select(items).where({"value": lambda x: x > 7}).get()
         assert len(result) == 2
 
+    def test_where_filters_by_value_callable(self):
+        """where() passes resolved values to callable predicates named value."""
+        items = [
+            {"name": "a", "value": 10},
+            {"name": "b", "value": 5},
+            {"name": "c", "value": 20},
+        ]
+        result = Select(items).where({"value": lambda value: value > 7}).get()
+        assert [item["name"] for item in result] == ["a", "c"]
+
+    def test_where_filters_by_root_callable_truthiness(self):
+        """where() filters using truthiness from root callable results."""
+        class ActivityLike(BaseModel):
+            name: str
+            attachments: list[str] | None = None
+
+        items = [
+            ActivityLike(name="none", attachments=None),
+            ActivityLike(name="empty", attachments=[]),
+            ActivityLike(name="card", attachments=["hero-card"]),
+        ]
+        result = Select(items).where(lambda x: x.attachments).get()
+        assert [item.name for item in result] == ["card"]
+
     def test_where_returns_select(self):
         """where() returns a Select instance for chaining."""
         result = Select([{"a": 1}]).where({"a": 1})
