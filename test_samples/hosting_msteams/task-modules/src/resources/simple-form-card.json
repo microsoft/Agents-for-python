@@ -1,0 +1,29 @@
+{
+  "type": "AdaptiveCard",
+  "$schema": "http://adaptivecards.io/schemas/adaptive-card.json",
+  "version": "1.5",
+  "body": [
+    {
+      "type": "TextBlock",
+      "text": "Simple Form",
+      "size": "Large",
+      "weight": "Bolder"
+    },
+    {
+      "type": "Input.Text",
+      "id": "name",
+      "label": "Your Name",
+      "isRequired": true,
+      "placeholder": "Enter your name"
+    }
+  ],
+  "actions": [
+    {
+      "type": "Action.Submit",
+      "title": "Submit",
+      "data": {
+        "verb": "simple_form"
+      }
+    }
+  ]
+}
