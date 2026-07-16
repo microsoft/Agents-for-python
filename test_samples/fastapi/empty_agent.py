@@ -18,9 +18,10 @@ from microsoft_agents.activity import load_configuration_from_env
 from microsoft_agents.hosting.fastapi import (
     CloudAdapter,
     start_agent_process,
-    JwtAuthorizationMiddleware,
+    jwt_authorization_decorator,
 )
 from microsoft_agents.authentication.msal import MsalConnectionManager
+
 # Create the agent application
 
 load_dotenv()
@@ -38,7 +39,9 @@ AGENT_APP = AgentApplication[TurnState](
 
 # Create FastAPI app
 app = FastAPI(title="Empty Agent Sample", version="1.0.0")
-app.add_middleware(JwtAuthorizationMiddleware)
+app.state.agent_configuration = (
+    CONNECTION_MANAGER.get_default_connection_configuration()
+)
 
 
 # Agent handlers
@@ -60,6 +63,7 @@ async def on_message(context: TurnContext, _):
 
 # FastAPI routes
 @app.post("/api/messages")
+@jwt_authorization_decorator
 async def messages_handler(
     request: Request,
 ):
@@ -79,9 +83,6 @@ async def messages_get():
 
 
 if __name__ == "__main__":
-        
-    app.state.agent_configuration = (CONNECTION_MANAGER.get_default_connection_configuration())
-    app.add_middleware(JwtAuthorizationMiddleware)
 
     port = int(environ.get("PORT", 3978))
-    uvicorn.run(app, host="0.0.0.0", port=port)
+    uvicorn.run(app, host="127.0.0.1", port=port)

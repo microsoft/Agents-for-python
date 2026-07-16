@@ -1,6 +1,12 @@
+# Copyright (c) Microsoft Corporation. All rights reserved.
+# Licensed under the MIT License.
+
+import functools
+import logging
+
 from fastapi import Request
 from fastapi.responses import JSONResponse
-import logging
+
 from starlette.types import ASGIApp, Receive, Scope, Send
 from microsoft_agents.hosting.core import (
     AgentAuthConfiguration,
@@ -30,9 +36,17 @@ class JwtAuthorizationMiddleware:
 
         app = scope.get("app")
         state = getattr(app, "state", None) if app else None
-        auth_config: AgentAuthConfiguration = getattr(
+        auth_config: AgentAuthConfiguration | None = getattr(
             state, "agent_configuration", None
         )
+
+        if not auth_config:
+            response = JSONResponse(
+                {"error": "Agent Authentication configuration not found"},
+                status_code=500,
+            )
+            await response(scope, receive, send)
+            return
 
         request = Request(scope, receive=receive)
         token_validator = JwtTokenValidator(auth_config)
@@ -72,3 +86,55 @@ class JwtAuthorizationMiddleware:
                 return
 
         await self.app(scope, receive, send)
+
+
+def jwt_authorization_decorator(func):
+    """
+    JWT Authorization Decorator for FastAPI endpoints. Until a SDK solution is made available,
+    this decorator can be applied to any FastAPI route handler to enforce JWT validation using the Microsoft Agents SDK's JwtTokenValidator.
+    """
+
+    @functools.wraps(func)
+    async def wrapper(request: Request):
+        if request is None:
+            return JSONResponse({"error": "Request object not found"}, status_code=500)
+
+        auth_config: AgentAuthConfiguration | None = getattr(
+            request.app.state, "agent_configuration", None
+        )
+
+        if auth_config is None:
+            return JSONResponse(
+                {"error": "Agent Authentication configuration not found"},
+                status_code=500,
+            )
+
+        token_validator = JwtTokenValidator(auth_config)
+        auth_header = request.headers.get("Authorization")
+
+        if auth_header:
+            parts = auth_header.split(" ")
+            if len(parts) == 2 and parts[0].lower() == "bearer":
+                token = parts[1]
+                try:
+                    claims = await token_validator.validate_token(token)
+                    request.state.claims_identity = claims
+                except ValueError:
+                    return JSONResponse(
+                        {"error": "Invalid token or authentication failed."},
+                        status_code=401,
+                    )
+            else:
+                return JSONResponse(
+                    {"error": "Invalid authorization header format"},
+                    status_code=401,
+                )
+        else:
+            return JSONResponse(
+                {"error": "Authorization header not found"},
+                status_code=401,
+            )
+
+        return await func(request)
+
+    return wrapper
