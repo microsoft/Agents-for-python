@@ -106,7 +106,8 @@ shortcuts are typed by collection: `expect()`/`select()` return
 Fluent API for asserting on and filtering response collections. `Expect`
 raises `AssertionError` with diagnostic context — it shows what was expected,
 what was received, and which items were checked. Prefix a value with `~` for
-substring matching, or pass a lambda for custom logic. The variable named `x` has a special meaning and is passed in dynamically during evaluation.
+substring matching, or pass a lambda for custom logic. Lambda parameters named
+`x`, `actual`, or `value` receive the resolved value during evaluation.
 
 ```python
 client.expect().that_for_any(text="~hello")            # any reply contains "hello"
@@ -236,6 +237,7 @@ Use `--agent NAME` instead of `--url` to target a named scenario from `scenario_
 |----------|----------|
 | [MOTIVATION.md](MOTIVATION.md) | Before/after code comparison |
 | [API.md](API.md) | Public API reference |
+| [ASSERTIONS.md](ASSERTIONS.md) | Fluent `Expect`, `Select`, predicates, lambdas, and assertion internals |
 | [CLI.md](CLI.md) | `agt` command guide |
 | [UTILITIES.md](UTILITIES.md) | `contains`, `poll`, `send`, and `ex_send` helper guide |
 | [SAMPLES.md](SAMPLES.md) | Guide to the runnable samples |

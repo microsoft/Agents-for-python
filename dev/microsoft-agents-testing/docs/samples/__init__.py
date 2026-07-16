@@ -25,6 +25,10 @@ transcript_formatting.py
     ActivityTranscriptFormatter, JsonTranscriptFormatter, and convenience
     functions.
 
+deep_dive_assertions.py
+    Fluent assertion engine walkthrough: Expect, Select, matching rules,
+    lambdas, typed wrappers, and contains.
+
 pytest_plugin_usage.py
     Zero-boilerplate pytest tests using @pytest.mark.agent_test - class
     and function markers, fixtures (agent_client, agent_environment, etc.),

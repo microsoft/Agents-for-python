@@ -99,6 +99,16 @@ class TestSelectWhere:
         result = Select(items).where({"value": lambda x: x > 7}).get()
         assert len(result) == 2
 
+    def test_where_filters_by_value_callable(self):
+        """where() passes resolved values to callable predicates named value."""
+        items = [
+            {"name": "a", "value": 10},
+            {"name": "b", "value": 5},
+            {"name": "c", "value": 20},
+        ]
+        result = Select(items).where({"value": lambda value: value > 7}).get()
+        assert [item["name"] for item in result] == ["a", "c"]
+
     def test_where_filters_by_root_callable_truthiness(self):
         """where() filters using truthiness from root callable results."""
         class ActivityLike(BaseModel):

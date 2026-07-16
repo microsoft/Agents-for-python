@@ -85,7 +85,7 @@ class DictionaryTransform:
         """Invoke a predicate function with the resolved value for a key.
 
         Uses introspection to determine whether the function expects
-        its argument as 'actual' or 'x'.
+        its argument as 'actual', 'x', or 'value'.
 
         :param actual: The source dictionary.
         :param key: The dot-notation key to resolve from the dictionary.
@@ -102,6 +102,8 @@ class DictionaryTransform:
             args["actual"] = self._get(actual, key)
         elif "x" in func_args:
             args["x"] = self._get(actual, key)
+        elif "value" in func_args:
+            args["value"] = self._get(actual, key)
             
         return func(**args)
         

@@ -8,6 +8,7 @@ Runnable scripts in `docs/samples/`. Each is self-contained.
 | `interactive.py` | REPL chat with transcript on exit |
 | `scenario_registry_demo.py` | Registering and discovering named scenarios |
 | `transcript_formatting.py` | `ConversationTranscriptFormatter`, `ActivityTranscriptFormatter`, `JsonTranscriptFormatter` |
+| `deep_dive_assertions.py` | Fluent assertion engine: `Expect`, `Select`, lambdas, typed wrappers, and internals |
 | `utilities.py` | `contains`, `poll`, `send`, and `ex_send` helpers |
 | `pytest_plugin_usage.py` | `@pytest.mark.agent_test`, fixtures |
 | `multi_client.py` | Multiple users, `ActivityTemplate`, child clients |
@@ -83,6 +84,33 @@ print(
 
 ```bash
 python -m docs.samples.transcript_formatting
+```
+
+---
+
+## deep_dive_assertions.py
+
+Walks through the general-purpose fluent assertion engine without requiring a
+running agent.
+
+- `Expect` and `Select` over dictionaries
+- exact, substring, dictionary, dot-notation, and root callable criteria
+- lambda predicates and the `x` / `actual` / `value` convention
+- Pydantic model support
+- `ActivityExpect`, `ActivitySelect`, `ExchangeExpect`, and `ExchangeSelect`
+- `contains`
+
+```python
+from microsoft_agents.testing import Expect, Select
+
+items = [{"type": "message", "text": "welcome"}]
+
+Expect(items).that_for_any(type="message", text="~welcome")
+Select(items).where(type="message").expect().is_not_empty()
+```
+
+```bash
+python -m docs.samples.deep_dive_assertions
 ```
 
 ---
