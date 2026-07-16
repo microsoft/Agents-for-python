@@ -591,7 +591,7 @@ class TestAgentClientSelectExpect:
     @pytest.mark.asyncio
     async def test_select_returns_select_instance(self):
         """select() returns a Select instance."""
-        from microsoft_agents.testing.core.fluent import Select
+        from microsoft_agents.testing.core import ActivitySelect
         
         sender = StubSender()
         sender.with_responses(Activity(type=ActivityTypes.message, text="Reply"))
@@ -600,12 +600,27 @@ class TestAgentClientSelectExpect:
         await client.send("Hello")
         
         result = client.select()
-        assert isinstance(result, Select)
+        assert isinstance(result, ActivitySelect)
+
+    @pytest.mark.asyncio
+    async def test_expect_returns_activity_expect_instance(self):
+        """expect() returns an ActivityExpect instance."""
+        from microsoft_agents.testing.core import ActivityExpect
+
+        sender = StubSender()
+        sender.with_responses(Activity(type=ActivityTypes.message, text="Reply"))
+
+        client = AgentClient(sender=sender)
+        await client.send("Hello")
+
+        result = client.expect()
+        assert isinstance(result, ActivityExpect)
+        result.that_for_one(text="Reply")
 
     @pytest.mark.asyncio
     async def test_ex_select_returns_select_with_exchanges(self):
         """ex_select() returns a Select instance with exchanges."""
-        from microsoft_agents.testing.core.fluent import Select
+        from microsoft_agents.testing.core import ExchangeSelect
         
         sender = StubSender()
         sender.with_responses(Activity(type=ActivityTypes.message, text="Reply"))
@@ -614,7 +629,22 @@ class TestAgentClientSelectExpect:
         await client.send("Hello")
         
         result = client.ex_select()
-        assert isinstance(result, Select)
+        assert isinstance(result, ExchangeSelect)
+
+    @pytest.mark.asyncio
+    async def test_ex_expect_returns_exchange_expect_instance(self):
+        """ex_expect() returns an ExchangeExpect instance."""
+        from microsoft_agents.testing.core import ExchangeExpect
+
+        sender = StubSender()
+        sender.with_responses(Activity(type=ActivityTypes.message, text="Reply"))
+
+        client = AgentClient(sender=sender)
+        await client.send("Hello")
+
+        result = client.ex_expect()
+        assert isinstance(result, ExchangeExpect)
+        result.that_for_one(status_code=200)
 
 
 # ============================================================================

@@ -2,13 +2,13 @@
 # Copyright (c) Microsoft Corporation. All rights reserved.
 # Licensed under the MIT License.
 
-"""Interactive REPL — chat with an in-process echo agent.
+"""Interactive REPL - chat with an in-process echo agent.
 
 Features demonstrated:
-  - AiohttpScenario  — host an agent in-process, no external server needed.
-  - AgentClient      — send messages & receive replies.
-  - Transcript       — automatic exchange recording.
-  - ConversationTranscriptFormatter — pretty-print the session on exit.
+  - AiohttpScenario  - host an agent in-process, no external server needed.
+  - AgentClient      - send messages and receive replies.
+  - Transcript       - automatic exchange recording.
+  - ConversationTranscriptFormatter - pretty-print the session on exit.
 
 Run::
 
@@ -22,12 +22,11 @@ from microsoft_agents.testing import (
     AiohttpScenario,
     AgentEnvironment,
     ConversationTranscriptFormatter,
-    DetailLevel,
 )
 
 
 # ---------------------------------------------------------------------------
-# 1) Define the agent — a simple echo handler
+# 1) Define the agent - a simple echo handler
 # ---------------------------------------------------------------------------
 
 async def init_echo_agent(env: AgentEnvironment) -> None:
@@ -65,9 +64,7 @@ async def main() -> None:
 
         # Print the full conversation transcript on exit
         print("\n--- Session transcript ---")
-        ConversationTranscriptFormatter(detail=DetailLevel.DETAILED).print(
-            client.transcript
-        )
+        print(ConversationTranscriptFormatter().format(client.transcript))
 
 
 if __name__ == "__main__":

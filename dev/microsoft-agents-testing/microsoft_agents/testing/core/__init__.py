@@ -14,7 +14,9 @@ agent test scenarios, including:
 """
 
 from .fluent import (
+    ExpectBase,
     Expect,
+    SelectBase,
     Select,
     ModelTemplate,
     ActivityTemplate,
@@ -32,6 +34,13 @@ from .transport import (
     Sender,
 )
 
+from .type_defs import (
+    ActivityExpect,
+    ActivitySelect,
+    ExchangeExpect,
+    ExchangeSelect,
+)
+
 from .agent_client import AgentClient
 from ._aiohttp_client_factory import _AiohttpClientFactory
 from .scenario import Scenario, ScenarioConfig, ClientFactory
@@ -47,6 +56,12 @@ from .utils import (
 __all__ = [
     "Expect",
     "Select",
+    "ExpectBase",
+    "SelectBase",
+    "ActivityExpect",
+    "ActivitySelect",
+    "ExchangeExpect",
+    "ExchangeSelect",
     "ModelTemplate",
     "ActivityTemplate",
     "ModelTransform",

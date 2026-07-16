@@ -68,6 +68,16 @@ class TestExpectThat:
         items = [{"value": 10}, {"value": 20}]
         Expect(items).that(value=lambda x: x > 5)
 
+    def test_that_with_value_callable(self):
+        """that() passes resolved values to callable predicates named value."""
+        items = [{"value": 10}, {"value": 20}]
+        Expect(items).that(value=lambda value: value > 5)
+
+    def test_that_with_root_value_callable(self):
+        """that() passes root items to root callable predicates named value."""
+        items = [{"value": 10}, {"value": 20}]
+        Expect(items).that(lambda value: value["value"] > 5)
+
     def test_that_with_callable_fails(self):
         """that() raises AssertionError when callable fails."""
         items = [{"value": 10}, {"value": 2}]

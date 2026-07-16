@@ -2,16 +2,16 @@
 # Copyright (c) Microsoft Corporation. All rights reserved.
 # Licensed under the MIT License.
 
-"""Pytest Plugin — use @pytest.mark.agent_test for zero-boilerplate tests.
+"""Pytest Plugin - use @pytest.mark.agent_test for zero-boilerplate tests.
 
 Features demonstrated:
-  - @pytest.mark.agent_test(scenario) — class-level and function-level markers.
-  - agent_client fixture              — sends messages, collects replies.
-  - agent_environment fixture         — inspect the agent's internals.
-  - Derived fixtures                  — agent_application, storage, adapter,
+  - @pytest.mark.agent_test(scenario) - class-level and function-level markers.
+  - agent_client fixture              - sends messages, collects replies.
+  - agent_environment fixture         - inspect the agent's internals.
+  - Derived fixtures                  - agent_application, storage, adapter,
                                         authorization, connection_manager.
-  - Registered scenario names         — pass a string name instead of an object.
-  - Expect / Select via client        — fluent assertions right on the client.
+  - Registered scenario names         - pass a string name instead of an object.
+  - Expect / Select via client        - fluent assertions right on the client.
 
 Run::
 
@@ -25,8 +25,12 @@ import pytest
 
 from microsoft_agents.hosting.core import TurnContext, TurnState, AgentApplication
 from microsoft_agents.testing import (
+    ActivityExpect,
+    ActivitySelect,
     AiohttpScenario,
     AgentEnvironment,
+    ExchangeExpect,
+    ExchangeSelect,
     scenario_registry,
 )
 
@@ -45,7 +49,7 @@ echo_scenario = AiohttpScenario(init_echo, use_jwt_middleware=False)
 
 
 # ---------------------------------------------------------------------------
-# 1) Class-level marker — every test in the class gets the same scenario
+# 1) Class-level marker - every test in the class gets the same scenario
 # ---------------------------------------------------------------------------
 
 @pytest.mark.agent_test(echo_scenario)
@@ -71,7 +75,7 @@ class TestClassLevelMarker:
 
 
 # ---------------------------------------------------------------------------
-# 2) Function-level marker — different scenarios per test
+# 2) Function-level marker - different scenarios per test
 # ---------------------------------------------------------------------------
 
 class TestFunctionLevelMarker:
@@ -84,7 +88,7 @@ class TestFunctionLevelMarker:
 
 
 # ---------------------------------------------------------------------------
-# 3) Registered scenario name — look up by string
+# 3) Registered scenario name - look up by string
 # ---------------------------------------------------------------------------
 
 # Register the scenario so it can be referenced by name
@@ -119,9 +123,19 @@ class TestFluentAssertionsThroughClient:
         await agent_client.send_expect_replies("BBB")
 
         # expect(history=True) asserts over all responses so far
-        agent_client.expect(history=True).that_for_any(text="Echo: AAA")
-        agent_client.expect(history=True).that_for_any(text="Echo: BBB")
+        expect: ActivityExpect = agent_client.expect(history=True)
+        expect.that_for_any(text="Echo: AAA")
+        expect.that_for_any(text="Echo: BBB")
 
         # select(history=True) lets you filter first
-        msgs = agent_client.select(history=True).where(type="message").get()
+        select: ActivitySelect = agent_client.select(history=True)
+        msgs = select.where(type="message").get()
         assert len(msgs) >= 2
+
+        # ex_expect/ex_select assert over full Exchange objects
+        ex_expect: ExchangeExpect = agent_client.ex_expect(history=True)
+        ex_expect.that_for_any(status_code=200)
+
+        ex_select: ExchangeSelect = agent_client.ex_select(history=True)
+        successful = ex_select.where(status_code=200).get()
+        assert len(successful) >= 2

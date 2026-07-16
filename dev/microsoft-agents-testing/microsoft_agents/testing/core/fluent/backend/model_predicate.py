@@ -9,16 +9,12 @@ to match items against specified criteria.
 
 from __future__ import annotations
 
-from typing import Callable, cast
+from typing import Any, Callable, cast, Sequence
 from dataclasses import dataclass
 
 from pydantic import BaseModel
 
 from .transform import DictionaryTransform, ModelTransform
-from .quantifier import (
-    Quantifier,
-    for_all,
-)
 
 @dataclass
 class ModelPredicateResult:
@@ -34,24 +30,32 @@ class ModelPredicateResult:
         result_dicts: Detailed results per item showing which fields matched.
     """
 
-    source: list[dict]
+    source: Sequence[dict]
     dict_transform: dict
     result_bools: list[bool]
     result_dicts: list[dict]
 
-    def __init__(self, source: list[dict] | list[BaseModel], dict_transform: dict, result_dicts: list[dict]) -> None:
-        if isinstance(source, list) and source and isinstance(source[0], BaseModel):
-            source = cast(list[BaseModel], source)
-            self.source = cast(list[dict], [s.model_dump(exclude_unset=True, mode="json") for s in source])
+    def __init__(self, source: Sequence[dict | BaseModel], dict_transform: dict, result_dicts: list[dict]) -> None:
+        if isinstance(source, Sequence) and source and isinstance(source[0], BaseModel):
+            source = cast(Sequence[BaseModel], source)
+            self.source = cast(Sequence[dict], [s.model_dump(exclude_unset=True, mode="json") for s in source])
         else:
-            self.source = cast(list[dict], source)
+            self.source = cast(Sequence[dict], source)
         self.dict_transform = dict_transform
         self.result_dicts = result_dicts
-        self.result_bools = [ self._truthy(d) for d in self.result_dicts ]
+        predicate_paths = list(self.dict_transform.keys())
+        self.result_bools = [
+            self._truthy(d, predicate_paths=predicate_paths) for d in self.result_dicts
+        ]
 
-    def _truthy(self, result: dict | list) -> bool:
+    def _truthy(
+        self, result: dict | Sequence, predicate_paths: Sequence[str] | None = None
+    ) -> bool:
 
-        res: list[bool] = []
+        if predicate_paths:
+            return all(bool(self._get_path(result, path)) for path in predicate_paths)
+
+        res: Sequence[bool] = []
 
         if isinstance(result, dict):
             iterable = result.values()
@@ -66,6 +70,18 @@ class ModelPredicateResult:
 
         return all(res)
 
+    def _get_path(self, result: dict | Sequence, path: str) -> Any:
+        if isinstance(result, dict) and path in result:
+            return result[path]
+
+        current: Any = result
+        for key in path.split("."):
+            if not isinstance(current, dict) or key not in current:
+                return False
+            current = current[key]
+
+        return current
+
 class ModelPredicate:
     """Evaluates predicates against models to produce boolean results.
     
@@ -77,14 +93,14 @@ class ModelPredicate:
         self._dt = dict_transform
         self._transform = ModelTransform(dict_transform)
     
-    def eval(self, source:  dict | BaseModel | list[dict] | list[BaseModel]) -> ModelPredicateResult:
+    def eval(self, source:  dict | BaseModel | Sequence[BaseModel | dict]) -> ModelPredicateResult:
         """Evaluate the predicate against one or more models.
 
         :param source: A single model or a list of models to evaluate.
         :return: A ModelPredicateResult with per-item match results.
         """
-        if not isinstance(source, list):
-            source = cast(list[dict] | list[BaseModel], [source])
+        if not isinstance(source, Sequence):
+            source = cast(Sequence[dict] | Sequence[BaseModel], [source])
         res = self._transform.eval(source)
         return ModelPredicateResult(source, self._dt.map, res)
         

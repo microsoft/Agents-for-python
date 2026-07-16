@@ -2,13 +2,13 @@
 # Copyright (c) Microsoft Corporation. All rights reserved.
 # Licensed under the MIT License.
 
-"""Quickstart — the simplest possible agent test, no pytest required.
+"""Quickstart - the simplest possible agent test, no pytest required.
 
 Features demonstrated:
-  - AiohttpScenario      — in-process agent hosting.
-  - scenario.client()    — async context manager that starts the agent,
+  - AiohttpScenario      - in-process agent hosting.
+  - scenario.client()    - async context manager that starts the agent,
                             yields an AgentClient, and tears everything down.
-  - send_expect_replies() — send a message and get the inline replies.
+  - send_expect_replies() - send a message and get the inline replies.
 
 Run::
 

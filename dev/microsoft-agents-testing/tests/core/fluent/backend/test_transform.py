@@ -183,6 +183,14 @@ class TestDictionaryTransformInvoke:
         result = transform._invoke(actual, "a", func)
         assert result == 6
 
+    def test_invoke_with_value_arg(self):
+        """_invoke passes value as 'value' argument."""
+        transform = DictionaryTransform(None)
+        actual = {"a": 5}
+        func = lambda value: value + 2
+        result = transform._invoke(actual, "a", func)
+        assert result == 7
+
     def test_invoke_with_missing_key(self):
         """_invoke passes Unset for missing keys."""
         transform = DictionaryTransform(None)
