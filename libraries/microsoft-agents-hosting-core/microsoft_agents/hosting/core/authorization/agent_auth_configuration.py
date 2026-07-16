@@ -3,7 +3,36 @@
 
 from __future__ import annotations
 
+from typing import Any
+
+from microsoft_agents.activity.config._coercion import coerce_bool
+
 from microsoft_agents.hosting.core.authorization.auth_types import AuthTypes
+
+# Env-style configuration keys that ``__init__`` recognizes and binds into
+# first-class fields (via the ``kwargs.get("...")`` aliases below). These are
+# excluded from ``provider_settings`` so that core config — including sensitive
+# values like ``CLIENTSECRET`` — is never duplicated into the provider bag.
+_RECOGNIZED_CONFIG_KEYS = frozenset(
+    {
+        "AUTHTYPE",
+        "CLIENTID",
+        "AUTHORITY",
+        "AUTHORITYENDPOINT",
+        "TENANTID",
+        "CLIENTSECRET",
+        "CERTPFXFILE",
+        "CONNECTIONNAME",
+        "FEDERATEDCLIENTID",
+        "SCOPES",
+        "AZUREREGION",
+        "REGIONALAUTHORITY",
+        "IDPMRESOURCE",
+        "ALT_BLUEPRINT_NAME",
+        "ALTERNATEBLUEPRINTCONNECTIONNAME",
+        "ANONYMOUS_ALLOWED",
+    }
+)
 
 
 class AgentAuthConfiguration:
@@ -41,6 +70,12 @@ class AgentAuthConfiguration:
     IDPM_RESOURCE: str | None
     ANONYMOUS_ALLOWED: bool = False
 
+    # Provider-specific settings that aren't first-class fields (e.g. the Entra
+    # sidecar's SERVICE_NAME, SIDECAR_BASE_URL). Preserved here as a single dict
+    # rather than as dynamic attributes so the extra surface is explicit and
+    # discoverable. Custom providers read these via ``provider_settings``.
+    provider_settings: dict[str, Any]
+
     # Multi-connection support: Maintains a map of all configured connections
     # to enable JWT validation across connections. This allows tokens issued
     # for any configured connection to be validated, supporting multi-tenant
@@ -63,13 +98,19 @@ class AgentAuthConfiguration:
         scopes: list[str] | None = None,
         azure_region: str | None = None,
         idpm_resource: str | None = None,
-        anonymous_allowed: bool = False,
-        **kwargs: str,
+        anonymous_allowed: bool | None = None,
+        **kwargs: Any,
     ):
 
         self.AUTH_TYPE = auth_type or kwargs.get("AUTHTYPE", AuthTypes.client_secret)
         self.CLIENT_ID = client_id or kwargs.get("CLIENTID", None)
-        self.AUTHORITY = authority or kwargs.get("AUTHORITY", None)
+        # .NET binds the authority from the "AuthorityEndpoint" configuration key;
+        # accept it as an alias for parity while keeping the existing "AUTHORITY" key.
+        self.AUTHORITY = (
+            authority
+            or kwargs.get("AUTHORITY", None)
+            or kwargs.get("AUTHORITYENDPOINT", None)
+        )
         self.TENANT_ID = tenant_id or kwargs.get("TENANTID", None)
         self.CLIENT_SECRET = client_secret or kwargs.get("CLIENTSECRET", None)
         self.CERT_PFX_FILE = cert_pfx_file or kwargs.get("CERTPFXFILE", None)
@@ -88,10 +129,36 @@ class AgentAuthConfiguration:
         # Resource URL for Identity Proxy Manager (IDPM) token acquisition.
         # Only meaningful when AUTH_TYPE is AuthTypes.identity_proxy_manager.
         self.IDPM_RESOURCE = idpm_resource or kwargs.get("IDPMRESOURCE", None)
-        self.ALT_BLUEPRINT_ID = kwargs.get("ALT_BLUEPRINT_NAME", None)
-        self.ANONYMOUS_ALLOWED = anonymous_allowed or kwargs.get(
-            "ANONYMOUS_ALLOWED", False
+        # .NET names this "AlternateBlueprintConnectionName"; accept that key as an
+        # alias for the existing "ALT_BLUEPRINT_NAME" without removing the latter.
+        self.ALT_BLUEPRINT_ID = kwargs.get("ALT_BLUEPRINT_NAME", None) or kwargs.get(
+            "ALTERNATEBLUEPRINTCONNECTIONNAME", None
         )
+        # Env values arrive as strings, so coerce explicitly: ``bool("false")``
+        # would be ``True`` and silently enable anonymous auth when configured
+        # off. Coercion is fail-safe (unrecognized -> False). An explicitly
+        # provided ``anonymous_allowed`` (including ``False``) takes precedence
+        # over the ``ANONYMOUS_ALLOWED`` kwarg; ``None`` means "not provided".
+        self.ANONYMOUS_ALLOWED = coerce_bool(
+            (
+                anonymous_allowed
+                if anonymous_allowed is not None
+                else kwargs.get("ANONYMOUS_ALLOWED", False)
+            ),
+            default=False,
+            name="ANONYMOUS_ALLOWED",
+        )
+
+        # Preserve genuinely provider-specific settings that aren't first-class
+        # fields (e.g. the Entra sidecar's SERVICE_NAME, SIDECAR_BASE_URL) so
+        # custom providers can read them via ``provider_settings``. Recognized
+        # core alias keys (bound into first-class fields above) are excluded so
+        # core config — including ``CLIENTSECRET`` — is never copied into this bag.
+        self.provider_settings = {
+            key: value
+            for key, value in kwargs.items()
+            if not hasattr(self, key) and key not in _RECOGNIZED_CONFIG_KEYS
+        }
 
         # JWT-patch: always at least include self for backward compat
         self._connections = {str(self.CONNECTION_NAME): self}
@@ -106,6 +173,35 @@ class AgentAuthConfiguration:
             f"https://sts.windows.net/{self.TENANT_ID}/",
             f"https://login.microsoftonline.com/{self.TENANT_ID}/v2.0",
         ]
+
+    # .NET-aligned, read-only property aliases. These mirror the property names on
+    # the .NET ``ConnectionSettingsBase`` so provider code and cross-language readers
+    # can use a consistent snake_case surface. They are thin views over the existing
+    # UPPER_SNAKE attributes and do not change how configuration is stored.
+    @property
+    def client_id(self) -> str | None:
+        """Alias for :attr:`CLIENT_ID` (.NET ``ClientId``)."""
+        return self.CLIENT_ID
+
+    @property
+    def authority(self) -> str | None:
+        """Alias for :attr:`AUTHORITY` (.NET ``AuthorityEndpoint``)."""
+        return self.AUTHORITY
+
+    @property
+    def tenant_id(self) -> str | None:
+        """Alias for :attr:`TENANT_ID` (.NET ``TenantId``)."""
+        return self.TENANT_ID
+
+    @property
+    def scopes(self) -> list[str] | None:
+        """Alias for :attr:`SCOPES` (.NET ``Scopes``)."""
+        return self.SCOPES
+
+    @property
+    def alternate_blueprint_connection_name(self) -> str | None:
+        """Alias for :attr:`ALT_BLUEPRINT_ID` (.NET ``AlternateBlueprintConnectionName``)."""
+        return self.ALT_BLUEPRINT_ID
 
     def _jwt_patch_is_valid_aud(self, aud: str) -> bool:
         """

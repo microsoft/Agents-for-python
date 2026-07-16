@@ -59,6 +59,7 @@ jobs:
         python -m pip install ./dist/microsoft_agents_activity*.whl
         python -m pip install ./dist/microsoft_agents_hosting_core*.whl
         python -m pip install ./dist/microsoft_agents_authentication_msal*.whl
+        python -m pip install ./dist/microsoft_agents_authentication_entra_auth_sidecar*.whl
         python -m pip install ./dist/microsoft_agents_copilotstudio_client*.whl
         python -m pip install ./dist/microsoft_agents_hosting_aiohttp*.whl
         python -m pip install ./dist/microsoft_agents_hosting_dialogs*.whl
