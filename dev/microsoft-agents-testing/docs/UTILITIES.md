@@ -12,14 +12,16 @@ test tasks that do not need the full fluent API every time:
 
 ```python
 from microsoft_agents.testing.utils import contains, ex_send, poll, send
+from microsoft_agents.testing.utils.contains import Contains
 ```
 
 ## `contains`
 
-`contains` creates a predicate that walks nested Pydantic models, dictionaries,
-and iterables until it finds a matching value. Use it when the value you need is
-inside a property such as `attachments`, `channel_data`, entities, or a nested
-card payload.
+`contains` is a convenience factory that returns a `Contains` predicate.
+`Contains` is a callable object that walks nested Pydantic models,
+dictionaries, and iterables until it finds a matching value. Use it when the
+value you need is inside a property such as `attachments`, `channel_data`,
+entities, or a nested card payload.
 
 ```python
 client.expect().that_for_any(
@@ -27,7 +29,24 @@ client.expect().that_for_any(
 )
 ```
 
-It accepts the same criteria shapes as the fluent predicate APIs:
+### `Contains` class
+
+Use the `contains(...)` function for most tests. Import `Contains` directly when
+you want to name, reuse, or configure the predicate before passing it to
+`Expect`, `Select`, or plain Python code.
+
+```python
+from microsoft_agents.testing.utils.contains import Contains
+
+has_hero_card = Contains(content_type="application/vnd.microsoft.card.hero")
+
+client.expect().that_for_any(attachments=has_hero_card)
+hero_replies = client.select().where(has_hero_card).get()
+assert has_hero_card(client.history()[0])
+```
+
+`Contains` and `contains` accept the same criteria shapes as the fluent
+predicate APIs:
 
 ```python
 contains(lambda value: value == "tenant-1")
@@ -36,16 +55,82 @@ contains(content_type="application/vnd.microsoft.card.hero")
 contains({"content_type": "thumbnail"}, content_type="hero")
 ```
 
+The same examples work with the class:
+
+```python
+Contains(lambda value: value == "tenant-1")
+Contains({"content_type": "application/vnd.microsoft.card.hero"})
+Contains(content_type="application/vnd.microsoft.card.hero")
+```
+
 Keyword criteria are merged with dictionary criteria, with keyword values taking
 precedence for duplicate keys. `contains()` and `contains({})` are invalid
 because an unfiltered predicate would match everything. Passing `None` as the
 filter is also invalid.
 
+### Matching behavior
+
+`Contains` checks the current value first, then recursively visits nested values:
+
+| Source value | Traversal behavior |
+|--------------|--------------------|
+| Pydantic model | Visits model field values |
+| `dict` | Visits dictionary values |
+| Iterable | Visits each item, except strings and bytes |
+| Scalar | Stops traversal if the predicate does not match |
+
+For SDK Pydantic models, criteria can use Python field names such as
+`content_type`, even when serialized payloads use aliases such as
+`contentType`.
+
+### Depth limits
+
 Use `.depth(n)` to limit traversal. The root object is depth `0`; nested model
 fields, dictionary values, and iterable items increment the depth by one.
+`depth()` returns a new `Contains` instance and does not mutate the original.
 
 ```python
-contains(content_type="hero").depth(2)
+deep_search = contains(content_type="hero")
+shallow_search = deep_search.depth(1)
+```
+
+Depth limits are useful when a broad value predicate could match too deep in a
+large payload. For example, `depth(1)` checks the root object and its immediate
+children only.
+
+### Common usage patterns
+
+Search within a specific property:
+
+```python
+client.expect().that_for_any(
+    attachments=contains(content_type="application/vnd.microsoft.card.hero")
+)
+```
+
+Search anywhere in an activity:
+
+```python
+client.expect().that_for_any(
+    contains(lambda value: value == "tenant-1")
+)
+```
+
+Filter before asserting:
+
+```python
+hero_messages = client.select().where(
+    contains(content_type="application/vnd.microsoft.card.hero")
+)
+hero_messages.expect().is_not_empty()
+```
+
+Reuse a named predicate:
+
+```python
+has_error_text = Contains(lambda value: isinstance(value, str) and "error" in value)
+
+client.expect().that_for_none(has_error_text)
 ```
 
 ## `poll`
@@ -90,4 +175,3 @@ Run the utilities sample for an end-to-end demonstration:
 ```bash
 python -m docs.samples.utilities
 ```
-
