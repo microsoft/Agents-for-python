@@ -230,6 +230,16 @@ class _UserAuthorization(_AuthorizationHandler):
                     ).model_dump(exclude_unset=True),
                 )
             )
+        elif (
+            flow_state.tag == _FlowStateTag.COMPLETE
+            and context.activity.type == ActivityTypes.invoke
+        ):
+            await context.send_activity(
+                Activity(
+                    type=ActivityTypes.invoke_response,
+                    value=InvokeResponse(status=200).model_dump(exclude_unset=True),
+                )
+            )
 
     async def _sign_in(
         self,
