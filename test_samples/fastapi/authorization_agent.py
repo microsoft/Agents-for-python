@@ -21,7 +21,7 @@ from microsoft_agents.activity import load_configuration_from_env, ActivityTypes
 from microsoft_agents.hosting.fastapi import (
     CloudAdapter,
     start_agent_process,
-    JwtAuthorizationMiddleware,
+    jwt_authorization_decorator,
 )
 from microsoft_agents.authentication.msal import MsalConnectionManager
 
@@ -141,11 +141,11 @@ app = FastAPI(title="Authorization Agent Sample", version="1.0.0")
 app.state.agent_configuration = (
     CONNECTION_MANAGER.get_default_connection_configuration()
 )
-app.add_middleware(JwtAuthorizationMiddleware)
 
 
 # FastAPI routes
 @app.post("/api/messages")
+@jwt_authorization_decorator
 async def messages_handler(
     request: Request,
 ):
