@@ -7,6 +7,25 @@ Entra ID Agent Container** (the *sidecar*). Instead of acquiring tokens directly
 the SDK delegates token acquisition to the sidecar's HTTP API, so the agent process never
 handles secrets, certificates, or keys.
 
+## Release Notes
+
+<table style="width:100%">
+  <tr>
+    <th style="width:20%">Version</th>
+    <th style="width:20%">Date</th>
+    <th style="width:60%">Release Notes</th>
+  </tr>
+  <tr>
+    <td>1.2.0</td>
+    <td>2026-07-17</td>
+    <td>
+      <a href="https://github.com/microsoft/Agents-for-python/blob/main/changelog.md#microsoft-365-agents-sdk-for-python---release-notes-v120">
+        1.2.0 Release Notes
+      </a>
+    </td>
+  </tr>
+</table>
+
 ## Why a sidecar?
 
 - **Credential-free agent code** — all credential management (Managed Identity, Workload
