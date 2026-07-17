@@ -100,37 +100,34 @@ def _summarize_auth_configs(config_map: dict[str, AgentAuthConfiguration]) -> st
     :rtype: str
     """
     summary = []
-    for config in config_map.values():
+    for connection_name, config in config_map.items():
         summary.append(
-            json.dumps(
-                pick_model_dict(
-                    CONNECTION_NAME=SkipNone(config.CONNECTION_NAME),
-                    CLIENTID=SkipNone(_redact_str_or_none(config.CLIENT_ID, peek=True)),
-                    TENANTID=SkipNone(_redact_str_or_none(config.TENANT_ID, peek=True)),
-                    CLIENTSECRET=SkipNone(_redact_str_or_none(config.CLIENT_SECRET)),
-                    AUTHORITY=SkipNone(_redact_url_or_none(config.AUTHORITY)),
-                    SCOPES=SkipNone(_redact_scopes(config.SCOPES)),
-                    FEDERATED_CLIENT_ID=SkipNone(
-                        _redact_str_or_none(config.FEDERATED_CLIENT_ID, peek=True)
-                    ),
-                    CERT_PFX_FILE=SkipNone(_redact_str_or_none(config.CERT_PFX_FILE)),
-                    ALT_BLUEPRINT_ID=SkipNone(
-                        _redact_str_or_none(config.ALT_BLUEPRINT_ID, peek=True)
-                    ),
-                    IDPM_RESOURCE=SkipNone(_redact_url_or_none(config.IDPM_RESOURCE)),
-                    AZURE_REGION=SkipNone(_redact_url_or_none(config.AZURE_REGION)),
-                    ANONYMOUS_ALLOWED=str(config.ANONYMOUS_ALLOWED),
-                )
+            pick_model_dict(
+                CONNECTION=connection_name,
+                CONNECTION_NAME=SkipNone(config.CONNECTION_NAME),
+                CLIENTID=SkipNone(_redact_str_or_none(config.CLIENT_ID, peek=True)),
+                TENANTID=SkipNone(_redact_str_or_none(config.TENANT_ID, peek=True)),
+                CLIENTSECRET=SkipNone(_redact_str_or_none(config.CLIENT_SECRET)),
+                AUTHORITY=SkipNone(_redact_url_or_none(config.AUTHORITY)),
+                SCOPES=SkipNone(_redact_scopes(config.SCOPES)),
+                FEDERATED_CLIENT_ID=SkipNone(
+                    _redact_str_or_none(config.FEDERATED_CLIENT_ID, peek=True)
+                ),
+                CERT_PFX_FILE=SkipNone(_redact_str_or_none(config.CERT_PFX_FILE)),
+                ALT_BLUEPRINT_ID=SkipNone(
+                    _redact_str_or_none(config.ALT_BLUEPRINT_ID, peek=True)
+                ),
+                IDPM_RESOURCE=SkipNone(_redact_url_or_none(config.IDPM_RESOURCE)),
+                AZURE_REGION=SkipNone(_redact_url_or_none(config.AZURE_REGION)),
+                ANONYMOUS_ALLOWED=str(config.ANONYMOUS_ALLOWED),
             )
         )
-    return "\n".join(summary)
+    return json.dumps(summary, indent=2)
 
 
 def _summarize_connections_map(connections_map: list[dict[str, str]]) -> str:
-
     connections_map_output = []
     for mapping in connections_map:
-
         obj = {
             "CONNECTION": mapping.get("CONNECTION", ""),
         }
@@ -139,12 +136,12 @@ def _summarize_connections_map(connections_map: list[dict[str, str]]) -> str:
             obj["AUDIENCE"] = mapping["AUDIENCE"]
 
         if "SERVICEURL" in mapping:
-
             service_url = mapping.get("SERVICEURL", "").strip()
             if service_url != "*":
                 service_url = _redact_url(service_url)
+            obj["SERVICEURL"] = service_url
 
-        connections_map_output.append(mapping)
+        connections_map_output.append(obj)
 
     return json.dumps(connections_map_output, indent=2)
 
@@ -168,5 +165,8 @@ def _log_config(
     connections_output = _summarize_auth_configs(config_map)
     connections_map_output = _summarize_connections_map(connections_map)
 
-    output = f"\n\nConnections: \n\n{connections_output}\n\nConnections Map: {connections_map_output}\n\n"
-    logger.info(output)
+    logger.info(
+        "\nConnections:\n%s\n\nConnections Map:\n%s",
+        connections_output,
+        connections_map_output,
+    )
