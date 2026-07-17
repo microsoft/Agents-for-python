@@ -37,6 +37,15 @@ This library is part of the **Microsoft 365 Agents SDK for Python** — a compre
     </td>
   </tr>
   <tr>
+    <td>0.9.1</td>
+    <td>2026-05-04</td>
+    <td>
+      <a href="https://github.com/microsoft/Agents-for-python/blob/main/changelog.md#microsoft-365-agents-sdk-for-python---release-notes-v091">
+        0.9.1 Release Notes
+      </a>
+    </td>
+  </tr>
+  <tr>
     <td>0.9.0</td>
     <td>2026-04-15</td>
     <td>
