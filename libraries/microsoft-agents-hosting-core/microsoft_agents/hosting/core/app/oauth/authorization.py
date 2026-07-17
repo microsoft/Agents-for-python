@@ -93,16 +93,15 @@ class Authorization:
         )
         if not auth_handlers:
             # get from config
-            handlers_config: dict[str, dict] = auth_configuration.get("HANDLERS")
-            if not auth_handlers and handlers_config:
-                auth_handlers = {
-                    handler_name: AuthHandler(
-                        name=handler_name,
-                        auth_type=config.get("TYPE", None),
-                        **config.get("SETTINGS", {}),
-                    )
-                    for handler_name, config in handlers_config.items()
-                }
+            handlers_config: dict[str, dict] = auth_configuration.get("HANDLERS") or {}
+            auth_handlers = {
+                handler_name: AuthHandler(
+                    name=handler_name,
+                    auth_type=config.get("TYPE", ""),
+                    **config.get("SETTINGS", {}),
+                )
+                for handler_name, config in handlers_config.items()
+            }
 
         self._handler_settings = auth_handlers
         self._auto_sign_in = auto_sign_in or bool(
