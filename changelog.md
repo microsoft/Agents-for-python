@@ -1,3 +1,40 @@
+# Microsoft 365 Agents SDK for Python - Release Notes v1.2.0
+
+**Release Date:** 2026-07-17
+**Previous Version:** 1.1.0 (Released 2026-06-19)
+
+This release adds first-class Microsoft Teams hosting APIs and a credential-free Entra ID authentication provider, while improving turn processing, OAuth token handling, streaming responses, and async runtime behavior.
+
+## Major Features & Enhancements
+
+- **Teams Hosting Package**: Added the new `microsoft-agents-hosting-msteams` package for building Teams agents with typed, decorator-based routing. It introduces `TeamsAgentExtension`, `TeamsTurnContext`, route namespaces for Teams invoke and event activities, and Teams API client access from handlers (#434)
+- **Entra Auth Sidecar Package**: Added the new `microsoft-agents-authentication-entra-auth-sidecar` package for credential-free Entra ID Agent ID authentication through the Microsoft Entra ID Agent Container sidecar. It includes `SidecarAuth`, `SidecarHttpClient`, `SidecarConnectionSettings`, in-memory token caching, transient retry handling, and SSRF-safe sidecar URL validation (#424)
+- **AgentApplication Lifecycle Hooks**: Added `before_turn` and `after_turn` hooks for app-level logic around route execution without requiring full middleware. Hooks can short-circuit processing, participate in state saving, and support scenarios such as app-level guards, telemetry enrichment, and turn cleanup (#431)
+- **AgentApplication Routing and Connections**: Improved route registration and exposed `AgentApplication.connection_manager` for code that needs access to configured connections (#429, #432)
+- **Detached SSO Token Exchange**: Teams SSO token exchange invoke activities are now handled independently from regular route dispatch, reducing duplicate route logic and making SSO callbacks more reliable (#469)
+
+## New Models & APIs
+
+- **StreamingResponse Attachments and Reset**: Added `StreamingResponse.add_attachment()` for final-message attachments and `StreamingResponse.reset()` for returning the helper to its initial state after a stream completes (#426)
+- **Activity Method Type Handling**: Improved `Activity` helper methods for typed activity data and entity conversions, including support for the new `ActivityTreatment` entity type (#441)
+- **Configuration Coercion Helpers**: Added shared boolean, integer, and float coercion helpers so environment-derived configuration values are interpreted consistently (#424)
+
+## Bug Fixes
+
+- **State Loading**: Removed duplicate `turn_state.load()` calls and corrected when state is loaded during `AgentApplication` initialization (#455, #460)
+- **Middleware Pipeline**: Fixed `MiddlewareSet` registration and turn invocation so multiple middleware components are registered and invoked in order (#461)
+- **Composite Channels**: Normalized composite channel IDs for all user token operations, improving OAuth behavior for Copilot Web and Teams channel IDs such as `msteams:copilot-web` (#457)
+- **Teams Activity Hooks**: Fixed `TeamsActivityHandler` hook dispatch so Teams-specific handlers receive the required arguments (#450)
+- **Concurrency**: Replaced runtime use of `threading.Lock` with `asyncio.Lock` in async execution paths to avoid blocking the event loop (#442)
+- **Dependencies**: Removed the unused `azure-core` dependency from `microsoft-agents-hosting-core` (#467)
+
+## Developer Experience
+
+- **Logging**: Added color-coded log messages and simplified `ApplicationOptions` by removing the logger option in favor of standard module-level logging (#439, #443)
+- **Samples and Documentation**: Fixed the FastAPI sample startup path and added missing dialogs package links to README release tables (#417, #458)
+
+---
+
 # Microsoft 365 Agents SDK for Python - Release Notes v1.1.0
 
 **Release Date:** 2026-06-19
