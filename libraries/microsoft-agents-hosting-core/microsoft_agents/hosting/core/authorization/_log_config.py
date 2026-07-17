@@ -10,7 +10,7 @@ from microsoft_agents.activity._model_utils import pick_model_dict, SkipNone
 
 from .agent_auth_configuration import AgentAuthConfiguration
 
-_REDACTION_PEEK_LENGTH = 2
+_REDACTION_PEEK_LENGTH = 3
 _REDACTION_THRESH = _REDACTION_PEEK_LENGTH + 6
 
 
@@ -168,5 +168,5 @@ def _log_config(
     connections_output = _summarize_auth_configs(config_map)
     connections_map_output = _summarize_connections_map(connections_map)
 
-    output = f"Connections: \n{connections_output}\nConnections Map: {connections_map_output}"
+    output = f"\n\nConnections: \n\n{connections_output}\n\nConnections Map: {connections_map_output}\n\n"
     logger.info(output)
