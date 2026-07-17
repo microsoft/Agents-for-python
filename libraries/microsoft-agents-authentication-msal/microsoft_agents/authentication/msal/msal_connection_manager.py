@@ -8,6 +8,7 @@ from microsoft_agents.hosting.core import (
 
 from .msal_auth import MsalAuth
 
+
 class MsalConnectionManager(ConnectionManager):
     """
     Connection manager that uses :class:`MsalAuth` as the token provider.

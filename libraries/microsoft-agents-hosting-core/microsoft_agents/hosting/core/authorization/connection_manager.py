@@ -15,6 +15,7 @@ from ._log_config import _log_config
 
 logger = logging.getLogger(__name__)
 
+
 class ConnectionManager(Connections):
     """
     Generic, provider-agnostic connection manager.
@@ -94,7 +95,7 @@ class ConnectionManager(Connections):
 
         if not self._connections.get("SERVICE_CONNECTION", None):
             raise ValueError("No service connection configuration provided.")
-        
+
         _log_config(logger, self._config_map, self._connections_map)
 
     def get_connection(self, connection_name: str | None) -> AccessTokenProviderBase:
