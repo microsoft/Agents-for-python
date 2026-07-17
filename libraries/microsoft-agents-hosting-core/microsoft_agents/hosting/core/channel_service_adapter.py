@@ -3,7 +3,6 @@
 
 from __future__ import annotations
 
-from asyncio import sleep
 from abc import ABC
 from copy import Error
 from http import HTTPStatus
@@ -27,7 +26,6 @@ from microsoft_agents.activity import (
 )
 from microsoft_agents.hosting.core.connector import (
     ConnectorClientBase,
-    UserTokenClientBase,
     ConnectorClient,
     UserTokenClient,
 )

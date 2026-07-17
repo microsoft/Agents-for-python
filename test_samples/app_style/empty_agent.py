@@ -14,6 +14,10 @@ from microsoft_agents.hosting.core import (
     TurnContext,
     MemoryStorage,
 )
+from microsoft_agents.hosting.core.storage import (
+    ConsoleTranscriptLogger,
+    TranscriptLoggerMiddleware,
+)
 from microsoft_agents.hosting.aiohttp import CloudAdapter
 from microsoft_agents.hosting.core.app.oauth.authorization import Authorization
 
@@ -26,6 +30,8 @@ agents_sdk_config = load_configuration_from_env(environ)
 STORAGE = MemoryStorage()
 CONNECTION_MANAGER = MsalConnectionManager(**agents_sdk_config)
 ADAPTER = CloudAdapter(connection_manager=CONNECTION_MANAGER)
+ADAPTER.use(TranscriptLoggerMiddleware(ConsoleTranscriptLogger()))
+
 AUTHORIZATION = Authorization(STORAGE, CONNECTION_MANAGER, **agents_sdk_config)
 
 AGENT_APP = AgentApplication[TurnState](

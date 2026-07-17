@@ -6,7 +6,7 @@ from .channel_api_handler_protocol import ChannelApiHandlerProtocol
 from .channel_service_adapter import ChannelServiceAdapter
 from .channel_service_client_factory_base import ChannelServiceClientFactoryBase
 from .message_factory import MessageFactory
-from .middleware_set import Middleware
+from .middleware_set import Middleware, MiddlewareSet
 from .rest_channel_service_client_factory import RestChannelServiceClientFactory
 from .turn_context import TurnContext
 
@@ -54,6 +54,7 @@ from .authorization.access_token_provider_base import AccessTokenProviderBase
 from .authorization.authentication_constants import AuthenticationConstants
 from .authorization.anonymous_token_provider import AnonymousTokenProvider
 from .authorization.connections import Connections
+from .authorization.connection_manager import ConnectionManager
 from .authorization.agent_auth_configuration import AgentAuthConfiguration
 from .authorization.claims_identity import ClaimsIdentity
 from .authorization.jwt_token_validator import JwtTokenValidator
@@ -142,6 +143,7 @@ __all__ = [
     "AuthenticationConstants",
     "AnonymousTokenProvider",
     "Connections",
+    "ConnectionManager",
     "AgentAuthConfiguration",
     "ClaimsIdentity",
     "JwtTokenValidator",
@@ -174,6 +176,7 @@ __all__ = [
     "MemoryStorage",
     "AgenticUserAuthorization",
     "Authorization",
+    "MiddlewareSet",
     "error_resources",
     "ErrorMessage",
     "ErrorResources",

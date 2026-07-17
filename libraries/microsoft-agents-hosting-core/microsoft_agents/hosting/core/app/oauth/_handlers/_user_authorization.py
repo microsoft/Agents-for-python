@@ -5,7 +5,6 @@ Licensed under the MIT License.
 
 from __future__ import annotations
 import logging
-import jwt
 from typing import Optional
 
 from microsoft_agents.activity import (
@@ -229,6 +228,16 @@ class _UserAuthorization(_AuthorizationHandler):
                             failure_detail="The Agent is unable to exchange token. Proceed with regular login.",
                         ),
                     ).model_dump(exclude_unset=True),
+                )
+            )
+        elif (
+            flow_state.tag == _FlowStateTag.COMPLETE
+            and context.activity.type == ActivityTypes.invoke
+        ):
+            await context.send_activity(
+                Activity(
+                    type=ActivityTypes.invoke_response,
+                    value=InvokeResponse(status=200).model_dump(exclude_unset=True),
                 )
             )
 

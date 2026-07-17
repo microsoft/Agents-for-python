@@ -3,15 +3,23 @@
 
 from abc import abstractmethod
 from typing import Awaitable, Callable, Protocol
+from typing_extensions import Self
 
 from .turn_context import TurnContext
 
 
 class Middleware(Protocol):
+
     @abstractmethod
     async def on_turn(
         self, context: TurnContext, logic: Callable[[TurnContext], Awaitable]
     ):
+        """
+        Called for each turn of the conversation.
+
+        :param context: The turn context.
+        :param logic: The next middleware in the pipeline or the final logic to be executed.
+        """
         pass
 
 
@@ -23,56 +31,69 @@ class MiddlewareSet(Middleware):
     """
 
     def __init__(self):
-        super(MiddlewareSet, self).__init__()
+        super().__init__()
         self._middleware: list[Middleware] = []
 
-    def use(self, *middleware: Middleware):
+    def use(self, *middleware: Middleware) -> Self:
         """
         Registers middleware plugin(s) with the agent or set.
-        :param middleware :
-        :return:
+        :param middleware : The middleware plugin(s) to register.
+        :return: The `MiddlewareSet` instance to allow chaining of `use` calls.
+        :rtype: Self
         """
         for idx, mid in enumerate(middleware):
             if hasattr(mid, "on_turn") and callable(mid.on_turn):
                 self._middleware.append(mid)
-                return self
-            raise TypeError(
-                'MiddlewareSet.use(): invalid middleware at index "%s" being added.'
-                % idx
+            else:
+                raise TypeError(
+                    'MiddlewareSet.use(): invalid middleware at index "%s" being added.'
+                    % idx
+                )
+        return self
+
+    async def _receive_activity_internal(
+        self,
+        context: TurnContext,
+        callback: Callable[[TurnContext], Awaitable] | None,
+        next_middleware_index: int = 0,
+    ):
+        """Recursively invokes middleware in the set, passing the context and callback through the pipeline.
+
+        :param context: The turn context.
+        :param callback: The final logic to be executed after the middleware pipeline.
+        :param next_middleware_index: The index of the next middleware to invoke.
+        """
+        if next_middleware_index == len(self._middleware):
+            if callback is not None:
+                await callback(context)
+            return
+
+        next_middleware = self._middleware[next_middleware_index]
+
+        async def call_next_middleware(ctx: TurnContext):
+            await self._receive_activity_internal(
+                ctx, callback, next_middleware_index + 1
             )
 
-    async def receive_activity(self, context: TurnContext):
-        await self.receive_activity_internal(context, None)
+        await next_middleware.on_turn(context, call_next_middleware)
+
+    async def receive_activity_with_status(
+        self, context: TurnContext, logic: Callable[[TurnContext], Awaitable] | None
+    ):
+        """Handles an incoming activity by passing it through the middleware pipeline and then to the final logic.
+
+        :param context: The turn context.
+        :param logic: The final logic to be executed after the middleware pipeline.
+        """
+        await self._receive_activity_internal(context, logic)
 
     async def on_turn(
         self, context: TurnContext, logic: Callable[[TurnContext], Awaitable]
     ):
-        await self.receive_activity_internal(context, None)
-        await logic()
+        """Handles an incoming activity by passing it through the middleware pipeline and then to the final logic.
 
-    async def receive_activity_with_status(
-        self, context: TurnContext, callback: Callable[[TurnContext], Awaitable]
-    ):
-        return await self.receive_activity_internal(context, callback)
-
-    async def receive_activity_internal(
-        self,
-        context: TurnContext,
-        callback: Callable[[TurnContext], Awaitable],
-        next_middleware_index: int = 0,
-    ):
-        if next_middleware_index == len(self._middleware):
-            if callback is not None:
-                return await callback(context)
-            return None
-        next_middleware = self._middleware[next_middleware_index]
-
-        async def call_next_middleware():
-            return await self.receive_activity_internal(
-                context, callback, next_middleware_index + 1
-            )
-
-        try:
-            return await next_middleware.on_turn(context, call_next_middleware)
-        except Exception as error:
-            raise error
+        :param context: The turn context.
+        :param logic: The final logic to be executed after the middleware pipeline.
+        """
+        await self._receive_activity_internal(context, None)
+        await logic(context)
