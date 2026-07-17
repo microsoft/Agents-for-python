@@ -78,8 +78,8 @@ This release adds first-class Microsoft Teams hosting APIs and a credential-free
 
 # Microsoft 365 Agents SDK for Python - Release Notes v0.9.1
 
-**Release Date:** May 4, 2026
-**Previous Version:** 0.9.0 (Released April 15, 2026)
+**Release Date:** 2026-05-04
+**Previous Version:** 0.9.0 (Released 2026-04-15)
 
 ## Enhancements
 
