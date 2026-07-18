@@ -22,6 +22,7 @@ from microsoft_agents.activity import (
 )
 from microsoft_agents.activity.channel_id import ChannelId
 from microsoft_agents.hosting.core.connector import ConnectorClientBase
+from ...header_propagation import HeaderPropagationContext
 from ..attachments_base import AttachmentsBase
 from ..conversations_base import ConversationsBase
 from ..get_product_info import get_product_info
@@ -714,6 +715,16 @@ class ConnectorClient(ConnectorClientBase):
             "Content-Type": "application/json",
             "User-Agent": get_product_info(),
         }
+
+        # Apply any per-turn propagated headers (e.g. agentic identity headers
+        # registered while processing the current turn).
+        propagated_headers = HeaderPropagationContext.collect_headers()
+        if propagated_headers:
+            headers.update(propagated_headers)
+            logger.debug(
+                "Applying propagated headers: %s", list(propagated_headers.keys())
+            )
+
         # Create session with the base URL
         session = session or ClientSession(
             base_url=endpoint,

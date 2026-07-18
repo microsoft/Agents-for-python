@@ -41,6 +41,7 @@ from .turn_context import TurnContext
 
 class ChannelServiceAdapter(ChannelAdapter, ABC):
     _AGENT_CONNECTOR_CLIENT_KEY = "ConnectorClient"
+    _CONNECTOR_CLIENT_FACTORY_KEY = "ConnectorClientFactory"
 
     def __init__(self, channel_service_client_factory: ChannelServiceClientFactoryBase):
         """
@@ -91,12 +92,7 @@ class ChannelServiceAdapter(ChannelAdapter, ABC):
                 # no-op
                 pass
             else:
-                connector_client = cast(
-                    ConnectorClientBase,
-                    context.turn_state.get(self._AGENT_CONNECTOR_CLIENT_KEY),
-                )
-                if not connector_client:
-                    raise Error("Unable to extract ConnectorClient from turn context.")
+                connector_client = await self._get_or_create_connector_client(context)
 
                 with spans.AdapterSendActivities([activity]):
                     if activity.reply_to_id:
@@ -140,12 +136,7 @@ class ChannelServiceAdapter(ChannelAdapter, ABC):
 
         with spans.AdapterUpdateActivity(activity):
 
-            connector_client = cast(
-                ConnectorClientBase,
-                context.turn_state.get(self._AGENT_CONNECTOR_CLIENT_KEY),
-            )
-            if not connector_client:
-                raise Error("Unable to extract ConnectorClient from turn context.")
+            connector_client = await self._get_or_create_connector_client(context)
 
             return await connector_client.conversations.update_activity(
                 activity.conversation.id, activity.id, activity
@@ -171,12 +162,7 @@ class ChannelServiceAdapter(ChannelAdapter, ABC):
 
         with spans.AdapterDeleteActivity(context.activity):
 
-            connector_client = cast(
-                ConnectorClientBase,
-                context.turn_state.get(self._AGENT_CONNECTOR_CLIENT_KEY),
-            )
-            if not connector_client:
-                raise Error("Unable to extract ConnectorClient from turn context.")
+            connector_client = await self._get_or_create_connector_client(context)
 
             await connector_client.conversations.delete_activity(
                 reference.conversation.id, reference.activity_id
@@ -363,6 +349,45 @@ class ChannelServiceAdapter(ChannelAdapter, ABC):
             return False
         return True
 
+    async def _get_or_create_connector_client(
+        self, context: TurnContext
+    ) -> ConnectorClientBase:
+        """Returns the cached ConnectorClient for the turn, creating it on first call.
+
+        Creating the client lazily (rather than eagerly in ``process_activity``)
+        ensures that any per-turn header providers registered while the pipeline
+        is running (e.g. :class:`AgenticHeaderProvider`) are already in place
+        when the :class:`ConnectorClient` reads them from
+        :class:`HeaderPropagationContext` during construction.
+
+        :param context: The current turn context.
+        :type context: :class:`microsoft_agents.hosting.core.turn_context.TurnContext`
+        :return: The connector client for this turn.
+        :rtype: :class:`microsoft_agents.hosting.core.connector.ConnectorClientBase`
+        :raises Error: If no connector client and no factory params are stored.
+        """
+        client = context.turn_state.get(self._AGENT_CONNECTOR_CLIENT_KEY)
+        if client is not None:
+            return cast(ConnectorClientBase, client)
+
+        factory_args = context.turn_state.get(self._CONNECTOR_CLIENT_FACTORY_KEY)
+        if factory_args is None:
+            raise Error("Unable to extract ConnectorClient from turn context.")
+
+        claims_identity, service_url, audience, scopes, use_anonymous_auth_callback = (
+            factory_args
+        )
+        client = await self._channel_service_client_factory.create_connector_client(
+            context,
+            claims_identity,
+            service_url,
+            audience,
+            scopes,
+            use_anonymous_auth_callback,
+        )
+        context.turn_state[self._AGENT_CONNECTOR_CLIENT_KEY] = client
+        return cast(ConnectorClientBase, client)
+
     async def process_activity(
         self,
         claims_identity: ClaimsIdentity,
@@ -422,23 +447,23 @@ class ChannelServiceAdapter(ChannelAdapter, ABC):
         )
         context.turn_state[self.USER_TOKEN_CLIENT_KEY] = user_token_client
 
-        # Create the connector client to use for outbound requests.
-        connector_client: Optional[ConnectorClient] = None
+        # Defer connector client creation until first use so that any
+        # per-turn header providers (e.g. AgenticHeaderProvider) registered
+        # inside the pipeline are applied when the client is constructed.
         if self._resolve_if_connector_client_is_needed(activity):
-            connector_client = (
-                await self._channel_service_client_factory.create_connector_client(
-                    context,
-                    claims_identity,
-                    activity.service_url,
-                    outgoing_audience,
-                    scopes,
-                    use_anonymous_auth_callback,
-                )
+            context.turn_state[self._CONNECTOR_CLIENT_FACTORY_KEY] = (
+                claims_identity,
+                activity.service_url,
+                outgoing_audience,
+                scopes,
+                use_anonymous_auth_callback,
             )
-            context.turn_state[self._AGENT_CONNECTOR_CLIENT_KEY] = connector_client
 
         await self.run_pipeline(context, callback)
 
+        connector_client: Optional[ConnectorClient] = context.turn_state.get(
+            self._AGENT_CONNECTOR_CLIENT_KEY
+        )
         if connector_client:
             await connector_client.close()
         await user_token_client.close()
