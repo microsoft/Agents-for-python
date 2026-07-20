@@ -23,9 +23,7 @@ from microsoft_agents.hosting.core._oauth import _FlowStateTag
 
 from microsoft_agents.hosting.core import (
     AuthHandler,
-    Storage,
     MemoryStorage,
-    TurnContext,
 )
 
 from tests._common.storage.utils import StorageBaseline
@@ -646,12 +644,11 @@ class TestAuthorizationUsage(TestEnv):
     ):
         await authorization._delete_sign_in_state(context)
 
-        intercepts, continuation_activity = await authorization._on_turn_auth_intercept(
-            context, None
-        )
+        res = await authorization._on_turn_auth_intercept(context, None)
 
-        assert not continuation_activity
-        assert not intercepts
+        assert not res.continuation_activity
+        assert not res.should_skip_turn
+        assert not res.should_replay
 
         final_state = await authorization._load_sign_in_state(context)
 
@@ -687,12 +684,11 @@ class TestAuthorizationUsage(TestEnv):
             context, copy_sign_in_state(initial_state)
         )
 
-        intercepts, continuation_activity = await authorization._on_turn_auth_intercept(
-            context, auth_handler_id
-        )
+        res = await authorization._on_turn_auth_intercept(context, auth_handler_id)
 
-        assert not continuation_activity
-        assert intercepts
+        assert not res.continuation_activity
+        assert res.should_skip_turn
+        assert not res.should_replay
 
         final_state = await authorization._load_sign_in_state(context)
         assert sign_in_state_eq(final_state, initial_state)
@@ -721,12 +717,11 @@ class TestAuthorizationUsage(TestEnv):
             context, copy_sign_in_state(initial_state)
         )
 
-        intercepts, continuation_activity = await authorization._on_turn_auth_intercept(
-            context, auth_handler_id
-        )
+        res = await authorization._on_turn_auth_intercept(context, auth_handler_id)
 
-        assert continuation_activity == old_activity
-        assert intercepts
+        assert res.continuation_activity == old_activity
+        assert res.should_skip_turn
+        assert res.should_replay
 
         final_state = await authorization._load_sign_in_state(context)
         assert sign_in_state_eq(final_state, initial_state)

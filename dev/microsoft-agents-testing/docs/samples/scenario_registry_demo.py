@@ -2,14 +2,14 @@
 # Copyright (c) Microsoft Corporation. All rights reserved.
 # Licensed under the MIT License.
 
-"""Scenario Registry — register, discover, and look up named scenarios.
+"""Scenario Registry - register, discover, and look up named scenarios.
 
 Features demonstrated:
-  - scenario_registry.register()  — register a scenario under a name.
-  - scenario_registry.get()       — retrieve a scenario by name.
-  - scenario_registry.discover()  — glob-pattern discovery across namespaces.
-  - Dot-notation namespacing      — organise scenarios as "namespace.name".
-  - load_scenarios()              — bulk-register from an importable module.
+  - scenario_registry.register()  - register a scenario under a name.
+  - scenario_registry.get()       - retrieve a scenario by name.
+  - scenario_registry.discover()  - glob-pattern discovery across namespaces.
+  - Dot-notation namespacing      - organise scenarios as "namespace.name".
+  - load_scenarios()              - bulk-register from an importable module.
 
 Run::
 
@@ -66,24 +66,24 @@ scenario_registry.register(
 
 async def main() -> None:
 
-    # ── get() — retrieve a single scenario by exact name ────────────
+    # get() - retrieve a single scenario by exact name
     echo = scenario_registry.get("samples.echo")
     async with echo.client() as client:
         replies = await client.send_expect_replies("World")
         print(f"Echo agent replied: {replies[0].text}")
 
-    # ── discover() — find scenarios matching a glob pattern ─────────
+    # discover() - find scenarios matching a glob pattern
     all_samples = scenario_registry.discover("samples.*")
     print(f"\nDiscovered {len(all_samples)} scenario(s) in 'samples' namespace:")
     for name, entry in all_samples.items():
         print(f"  {name:25s}  {entry.description}")
 
-    # ── Iterate all registered scenarios ────────────────────────────
+    # Iterate all registered scenarios
     print(f"\nAll registered scenarios ({len(scenario_registry)}):")
     for entry in scenario_registry:
         print(f"  {entry.name:25s}  namespace={entry.namespace!r}")
 
-    # ── Membership check ────────────────────────────────────────────
+    # Membership check
     assert "samples.echo" in scenario_registry
     assert "nonexistent" not in scenario_registry
 

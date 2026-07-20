@@ -2,14 +2,14 @@
 # Copyright (c) Microsoft Corporation. All rights reserved.
 # Licensed under the MIT License.
 
-"""Multi-Client & Advanced Patterns — multiple users, child clients, templates.
+"""Multi-Client & Advanced Patterns - multiple users, child clients, templates.
 
 Features demonstrated:
-  - scenario.run() + ClientFactory — create multiple independent clients.
-  - ClientConfig                   — per-client auth tokens, headers, templates.
-  - ActivityTemplate               — set default fields on every outgoing activity.
-  - AgentClient.child()            — scoped transcript isolation.
-  - Transcript hierarchy           — parent/child exchange propagation.
+  - scenario.run() + ClientFactory - create multiple independent clients.
+  - ClientConfig                   - per-client auth tokens, headers, templates.
+  - ActivityTemplate               - set default fields on every outgoing activity.
+  - AgentClient.child()            - scoped transcript isolation.
+  - Transcript hierarchy           - parent/child exchange propagation.
 
 Run::
 
@@ -24,14 +24,12 @@ from microsoft_agents.testing import (
     AgentEnvironment,
     ClientConfig,
     ActivityTemplate,
-    Transcript,
     ConversationTranscriptFormatter,
-    DetailLevel,
 )
 
 
 # ---------------------------------------------------------------------------
-# Agent — identifies who is talking
+# Agent - identifies who is talking
 # ---------------------------------------------------------------------------
 
 async def init_agent(env: AgentEnvironment) -> None:
@@ -51,7 +49,7 @@ scenario = AiohttpScenario(init_agent, use_jwt_middleware=False)
 
 async def demo_multi_client() -> None:
     """Create two clients with different identities in the same scenario run."""
-    print("── 1. Multiple clients via scenario.run() ──\n")
+    print("-- 1. Multiple clients via scenario.run() --\n")
 
     async with scenario.run() as factory:
         # Each factory() call creates an independent client.
@@ -89,12 +87,12 @@ async def demo_multi_client() -> None:
 
 
 # ---------------------------------------------------------------------------
-# 2) ActivityTemplate — set defaults for all outgoing activities
+# 2) ActivityTemplate - set defaults for all outgoing activities
 # ---------------------------------------------------------------------------
 
 async def demo_activity_template() -> None:
     """Show how templates apply default fields automatically."""
-    print("── 2. ActivityTemplate defaults ──\n")
+    print("-- 2. ActivityTemplate defaults --\n")
 
     config = ClientConfig(
         activity_template=ActivityTemplate(
@@ -112,7 +110,7 @@ async def demo_activity_template() -> None:
         replies = await client.send_expect_replies("template test")
         print(f"Agent replied: {replies[0].text}")
 
-        # The template enriched the outgoing activity with defaults —
+        # The template enriched the outgoing activity with defaults -
         # we can verify via the transcript's recorded request.
         exchange = client.ex_history()[0]
         req = exchange.request
@@ -126,12 +124,12 @@ async def demo_activity_template() -> None:
 
 
 # ---------------------------------------------------------------------------
-# 3) Child clients — transcript scoping
+# 3) Child clients - transcript scoping
 # ---------------------------------------------------------------------------
 
 async def demo_child_client() -> None:
     """AgentClient.child() creates a scoped transcript branch."""
-    print("── 3. Child clients & transcript hierarchy ──\n")
+    print("-- 3. Child clients & transcript hierarchy --\n")
 
     async with scenario.client() as parent:
         await parent.send_expect_replies("Parent message 1")
@@ -140,8 +138,6 @@ async def demo_child_client() -> None:
         await child.send_expect_replies("Child message 1")
         await child.send_expect_replies("Child message 2")
 
-        await parent.send_expect_replies("Parent message 2")
-
         # Parent transcript sees everything (its own + propagated from child)
         print(f"Parent transcript exchanges: {len(parent.transcript)}")
 
@@ -149,14 +145,13 @@ async def demo_child_client() -> None:
         print(f"Child transcript exchanges : {len(child.transcript)}")
 
         print("\n--- Parent view ---")
-        ConversationTranscriptFormatter(
-            user_label="User", agent_label="Agent", detail=DetailLevel.STANDARD
-        ).print(parent.transcript)
+        print(ConversationTranscriptFormatter().format(parent.transcript))
 
         print("\n--- Child view ---")
-        ConversationTranscriptFormatter(
-            user_label="User", agent_label="Agent", detail=DetailLevel.STANDARD
-        ).print(child.transcript)
+        print(ConversationTranscriptFormatter().format(child.transcript))
+
+        reply = (await parent.send_expect_replies("Parent message 2"))[0]
+        print(f"\nParent can continue independently: {reply.text}")
 
     print()
 

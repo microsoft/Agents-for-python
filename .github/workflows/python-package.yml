@@ -59,6 +59,7 @@ jobs:
         python -m pip install ./dist/microsoft_agents_activity*.whl
         python -m pip install ./dist/microsoft_agents_hosting_core*.whl
         python -m pip install ./dist/microsoft_agents_authentication_msal*.whl
+        python -m pip install ./dist/microsoft_agents_authentication_entra_auth_sidecar*.whl
         python -m pip install ./dist/microsoft_agents_copilotstudio_client*.whl
         python -m pip install ./dist/microsoft_agents_hosting_aiohttp*.whl
         python -m pip install ./dist/microsoft_agents_hosting_dialogs*.whl
@@ -66,6 +67,11 @@ jobs:
           python -m pip install ./dist/microsoft_agents_hosting_msteams*.whl
         else
           echo "Skipping microsoft_agents_hosting_msteams: requires Python 3.11+"
+        fi
+        if python -c "import sys; sys.exit(0 if sys.version_info >= (3, 12) else 1)"; then
+          python -m pip install ./dist/microsoft_agents_hosting_teams*.whl
+        else
+          echo "Skipping microsoft_agents_hosting_teams: requires Python 3.12+"
         fi
         python -m pip install ./dist/microsoft_agents_hosting_slack*.whl
         python -m pip install ./dist/microsoft_agents_storage_blob*.whl

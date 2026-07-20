@@ -1,7 +1,7 @@
 """Verify the assertion failure outputs shown in MOTIVATION.md.
 
 Run with: pytest tests/test_motivation_assertions.py -v
-Both tests are expected to FAIL — the point is to compare the error messages.
+Both tests are expected to FAIL - the point is to compare the error messages.
 """
 
 import re
@@ -44,7 +44,7 @@ REPLIES = [
         type="message",
         channel_id="msteams",
         locale="en-US",
-        text="Your order confirmed — Order #123456",
+        text="Your order confirmed - Order #123456",
         from_property=ChannelAccount(id="bot-2", name="HelperBot"),  # wrong name
         conversation=ConversationAccount(id="thread-002"),
     ),

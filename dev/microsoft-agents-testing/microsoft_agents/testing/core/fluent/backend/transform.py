@@ -10,11 +10,11 @@ transformations to dictionary and model data structures.
 from __future__ import annotations
 
 import inspect
-from typing import Any, Callable, overload, TypeVar, cast
+from typing import Any, Callable, overload, TypeVar, cast, Sequence
 
 from pydantic import BaseModel
 
-from .types import Unset, SafeObject, resolve, parent
+from .types import SafeObject, resolve
 from .utils import expand, flatten
 
 T = TypeVar("T")
@@ -85,7 +85,7 @@ class DictionaryTransform:
         """Invoke a predicate function with the resolved value for a key.
 
         Uses introspection to determine whether the function expects
-        its argument as 'actual' or 'x'.
+        its argument as 'actual', 'x', or 'value'.
 
         :param actual: The source dictionary.
         :param key: The dot-notation key to resolve from the dictionary.
@@ -102,6 +102,8 @@ class DictionaryTransform:
             args["actual"] = self._get(actual, key)
         elif "x" in func_args:
             args["x"] = self._get(actual, key)
+        elif "value" in func_args:
+            args["value"] = self._get(actual, key)
             
         return func(**args)
         
@@ -166,8 +168,8 @@ class ModelTransform:
     @overload
     def eval(self, source: dict | BaseModel) -> dict: ...
     @overload
-    def eval(self, source: list[dict] | list[BaseModel]) -> list[dict]: ...
-    def eval(self, source: dict | BaseModel | list[dict] | list[BaseModel]) -> list[dict] | dict:
+    def eval(self, source: Sequence[dict | BaseModel]) -> list[dict]: ...
+    def eval(self, source: dict | BaseModel | Sequence[dict | BaseModel]) -> list[dict] | dict:
         """Evaluate the underlying DictionaryTransform against one or more models.
 
         Pydantic models are dumped to dictionaries before evaluation.
@@ -175,19 +177,19 @@ class ModelTransform:
         :param source: A single model/dict or a list of models/dicts.
         :return: Evaluation result(s) as dictionaries of boolean outcomes.
         """
-        if not isinstance(source, list):
-            source = cast(list[dict] | list[BaseModel], [source])
+        if not isinstance(source, Sequence):
+            source = cast(Sequence[dict] | Sequence[BaseModel], [source])
             items = source
         else:
-            items = cast(list[dict] | list[BaseModel], source)
+            items = cast(Sequence[dict] | Sequence[BaseModel], source)
 
         if len(items) > 0 and isinstance(items[0], BaseModel):
-            items = cast(list[BaseModel], items)
+            items = cast(Sequence[BaseModel], items)
             items = [
                 item.model_dump(exclude_unset=True, exclude_none=True, by_alias=True)
                 for item in items
             ]
-        items = cast(list[dict], items)
+        items = cast(Sequence[dict], items)
 
         results = []
         for i, item in enumerate(items):
