@@ -130,13 +130,12 @@ class ChannelServiceAdapter(ChannelAdapter, ABC):
         :type activity: :class:`microsoft_agents.activity.Activity`
         :return: Resource response for the updated activity.
         :rtype: :class:`microsoft_agents.activity.ResourceResponse`
-        :raises TypeError: If context or activity are None/invalid.
+        :raises TypeError: If activity ID is None.
+        :raises RuntimeError: If unable to extract ConnectorClient from turn context.
         """
-        if not context:
-            raise TypeError("Expected TurnContext but got None instead")
 
-        if activity is None:
-            raise TypeError("Expected Activity but got None instead")
+        if activity.id is None:
+            raise TypeError("Activity ID is required to update an activity.")
 
         with spans.AdapterUpdateActivity(activity):
 
@@ -145,7 +144,7 @@ class ChannelServiceAdapter(ChannelAdapter, ABC):
                 context.turn_state.get(self._AGENT_CONNECTOR_CLIENT_KEY),
             )
             if not connector_client:
-                raise Error("Unable to extract ConnectorClient from turn context.")
+                raise RuntimeError("Unable to extract ConnectorClient from turn context.")
 
             return await connector_client.conversations.update_activity(
                 activity.conversation.id, activity.id, activity
@@ -161,13 +160,12 @@ class ChannelServiceAdapter(ChannelAdapter, ABC):
         :type context: :class:`microsoft_agents.hosting.core.turn_context.TurnContext`
         :param reference: Reference to the conversation and activity to delete.
         :type reference: :class:`microsoft_agents.activity.ConversationReference`
-        :raises TypeError: If context or reference are None/invalid.
+        :raises TypeError: If reference.activity_id is None.
+        :raises RuntimeError: If unable to extract ConnectorClient from turn context.
         """
-        if not context:
-            raise TypeError("Expected TurnContext but got None instead")
 
-        if not reference:
-            raise TypeError("Expected ConversationReference but got None instead")
+        if not reference.activity_id:
+            raise TypeError("Activity ID is required to delete an activity.")
 
         with spans.AdapterDeleteActivity(context.activity):
 
@@ -176,7 +174,7 @@ class ChannelServiceAdapter(ChannelAdapter, ABC):
                 context.turn_state.get(self._AGENT_CONNECTOR_CLIENT_KEY),
             )
             if not connector_client:
-                raise Error("Unable to extract ConnectorClient from turn context.")
+                raise RuntimeError("Unable to extract ConnectorClient from turn context.")
 
             await connector_client.conversations.delete_activity(
                 reference.conversation.id, reference.activity_id
@@ -272,7 +270,7 @@ class ChannelServiceAdapter(ChannelAdapter, ABC):
         claims_identity.claims[AuthenticationConstants.SERVICE_URL_CLAIM] = service_url
 
         # Create the connector client to use for outbound requests.
-        connector_client: ConnectorClient = (
+        connector_client: ConnectorClientBase = (
             await self._channel_service_client_factory.create_connector_client(
                 None, claims_identity, service_url, audience
             )
@@ -300,7 +298,7 @@ class ChannelServiceAdapter(ChannelAdapter, ABC):
         context.turn_state[self._AGENT_CONNECTOR_CLIENT_KEY] = connector_client
 
         # Create a UserTokenClient instance for the application to use. (For example, in the OAuthPrompt.)
-        user_token_client: UserTokenClient = (
+        user_token_client = (
             await self._channel_service_client_factory.create_user_token_client(
                 context, claims_identity
             )
@@ -329,7 +327,7 @@ class ChannelServiceAdapter(ChannelAdapter, ABC):
             activity=continuation_activity,
         )
 
-        user_token_client: UserTokenClient = (
+        user_token_client = (
             await self._channel_service_client_factory.create_user_token_client(
                 context, claims_identity
             )
@@ -337,7 +335,7 @@ class ChannelServiceAdapter(ChannelAdapter, ABC):
         context.turn_state[self.USER_TOKEN_CLIENT_KEY] = user_token_client
 
         # Create the connector client to use for outbound requests.
-        connector_client: ConnectorClient = (
+        connector_client = (
             await self._channel_service_client_factory.create_connector_client(
                 context, claims_identity, continuation_activity.service_url, audience
             )
@@ -368,7 +366,7 @@ class ChannelServiceAdapter(ChannelAdapter, ABC):
         claims_identity: ClaimsIdentity,
         activity: Activity,
         callback: Callable[[TurnContext], Awaitable],
-    ):
+    ) -> InvokeResponse | None:
         """
         Creates a turn context and runs the middleware pipeline for an incoming activity.
 
@@ -415,7 +413,7 @@ class ChannelServiceAdapter(ChannelAdapter, ABC):
         )
 
         # Create a UserTokenClient instance for the OAuth flow.
-        user_token_client: UserTokenClient = (
+        user_token_client = (
             await self._channel_service_client_factory.create_user_token_client(
                 context, claims_identity, use_anonymous_auth_callback
             )
@@ -423,7 +421,7 @@ class ChannelServiceAdapter(ChannelAdapter, ABC):
         context.turn_state[self.USER_TOKEN_CLIENT_KEY] = user_token_client
 
         # Create the connector client to use for outbound requests.
-        connector_client: Optional[ConnectorClient] = None
+        connector_client: ConnectorClientBase | None = None
         if self._resolve_if_connector_client_is_needed(activity):
             connector_client = (
                 await self._channel_service_client_factory.create_connector_client(
@@ -503,7 +501,7 @@ class ChannelServiceAdapter(ChannelAdapter, ABC):
     def _create_turn_context(
         self,
         claims_identity: ClaimsIdentity,
-        oauth_scope: str,
+        oauth_scope: str | None,
         callback: Callable[[TurnContext], Awaitable],
         activity: Optional[Activity] = None,
     ) -> TurnContext:
@@ -518,7 +516,7 @@ class ChannelServiceAdapter(ChannelAdapter, ABC):
 
         return context
 
-    def _process_turn_results(self, context: TurnContext) -> Optional[InvokeResponse]:
+    def _process_turn_results(self, context: TurnContext) -> InvokeResponse | None:
         """Process the results of a turn and return the appropriate response.
 
         :param context: The turn context
@@ -541,11 +539,11 @@ class ChannelServiceAdapter(ChannelAdapter, ABC):
         if context.activity.type == ActivityTypes.invoke:
 
             with spans.AdapterSendActivities([context.activity]):
-                activity_invoke_response: Activity = context.turn_state.get(
+                activity_invoke_response: Activity | None = cast(Activity | None, context.turn_state.get(
                     self.INVOKE_RESPONSE_KEY
-                )
+                ))
                 if not activity_invoke_response:
-                    return InvokeResponse(status=HTTPStatus.OK)
+                    return InvokeResponse(status=HTTPStatus.NOT_IMPLEMENTED)
 
                 return InvokeResponse.model_validate(activity_invoke_response.value)
 

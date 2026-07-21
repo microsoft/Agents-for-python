@@ -9,6 +9,7 @@ from .user_token_base import UserTokenBase
 
 
 class UserTokenClientBase(Protocol):
+
     @property
     @abstractmethod
     def agent_sign_in(self) -> AgentSignInBase:
@@ -18,3 +19,9 @@ class UserTokenClientBase(Protocol):
     @abstractmethod
     def user_token(self) -> UserTokenBase:
         pass
+
+
+    @abstractmethod
+    async def close(self) -> None:
+        """Close the client and release any resources."""
+        raise NotImplementedError("Subclasses must implement the close method.")

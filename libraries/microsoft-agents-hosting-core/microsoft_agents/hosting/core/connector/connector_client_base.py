@@ -23,3 +23,8 @@ class ConnectorClientBase(Protocol):
     @abstractmethod
     def conversations(self) -> ConversationsBase:
         pass
+
+    @abstractmethod
+    async def close(self) -> None:
+        """Close the client and release any resources."""
+        raise NotImplementedError("Subclasses must implement the close method.")

@@ -3,21 +3,23 @@
 from __future__ import annotations
 
 import re
-from typing import Optional
+from typing import Optional, Awaitable, Any
 
-from copy import copy, deepcopy
+from copy import deepcopy
 from collections.abc import Callable
 from datetime import datetime, timezone
-from microsoft_agents.activity import TurnContextProtocol
+
 from microsoft_agents.activity import (
     Activity,
     ActivityTypes,
     ConversationReference,
+    DeliveryModes,
     InputHints,
     Mention,
     ResourceResponse,
-    DeliveryModes,
+    TurnContextProtocol,
 )
+from microsoft_agents.activity._model_utils import pick_model, SkipNone
 from microsoft_agents.activity.entity.entity_types import EntityTypes
 from microsoft_agents.hosting.core.authorization.claims_identity import ClaimsIdentity
 import microsoft_agents.hosting.core.telemetry.turn_context.spans as spans
@@ -40,32 +42,35 @@ class TurnContext(TurnContextProtocol):
         :param adapter_or_context:
         :param request:
         """
+        _activity: Activity | None = None
         if isinstance(adapter_or_context, TurnContext):
             adapter_or_context.copy_to(self)
             self._identity = adapter_or_context.identity
+            _activity = self._activity
         else:
             self.adapter = adapter_or_context
-            self._activity = request  # exception thrown if None further down
+            _activity = request
             self.responses: list[Activity] = []
             self._services: dict = {}
-            self._on_send_activities: Callable[
-                ["TurnContext", list[Activity], Callable], list[ResourceResponse]
-            ] = []
-            self._on_update_activity: Callable[
-                ["TurnContext", Activity, Callable], ResourceResponse
-            ] = []
-            self._on_delete_activity: Callable[
-                ["TurnContext", ConversationReference, Callable], None
-            ] = []
+            self._on_send_activities: list[Callable[
+                [TurnContext, list[Activity], Callable], list[ResourceResponse]
+            ]] = []
+            self._on_update_activity: list[Callable[
+                [TurnContext, Activity, Callable], ResourceResponse
+            ]] = []
+            self._on_delete_activity: list[Callable[
+                [TurnContext, ConversationReference, Callable], None
+            ]] = []
             self._responded: bool = False
             self._identity = identity
 
         if self.adapter is None:
             raise TypeError("TurnContext must be instantiated with an adapter.")
-        if self._activity is None:
+        if _activity is None:
             raise TypeError(
                 "TurnContext must be instantiated with a request parameter of type Activity."
             )
+        self._activity = _activity
 
         self._turn_state = {}
 
@@ -319,9 +324,14 @@ class TurnContext(TurnContextProtocol):
         self._on_delete_activity.append(handler)
         return self
 
-    async def _emit(self, plugins, arg, logic):
-        handlers = copy(plugins)
-
+    async def _emit(
+        self,
+        plugins: list[Callable],
+        arg: Any,
+        logic: Awaitable[Any],
+    ) -> Any:
+        handlers = list(plugins)
+        
         async def emit_next(i: int):
             context = self
             try:
@@ -346,13 +356,14 @@ class TurnContext(TurnContextProtocol):
         value_type: str | None = None,
         label: str | None = None,
     ) -> ResourceResponse:
-        trace_activity = Activity(
+        trace_activity = pick_model(
+            Activity,
             type=ActivityTypes.trace,
             timestamp=datetime.now(timezone.utc),
             name=name,
             value=value,
-            value_type=value_type,
-            label=label,
+            value_type=SkipNone(value_type),
+            label=SkipNone(label),
         )
 
         return await self.send_activity(trace_activity)

@@ -7,6 +7,7 @@ from .channel_account import ChannelAccount
 from .activity import Activity
 from .agents_model import AgentsModel
 from ._type_aliases import NonEmptyString
+from .conversation_account import ConversationAccount
 
 
 class ConversationParameters(AgentsModel):
@@ -38,3 +39,4 @@ class ConversationParameters(AgentsModel):
     activity: Activity = None
     channel_data: object = None
     tenant_id: NonEmptyString = None
+    conversation: ConversationAccount | None = None
