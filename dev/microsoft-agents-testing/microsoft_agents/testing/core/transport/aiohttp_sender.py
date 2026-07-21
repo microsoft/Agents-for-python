@@ -20,11 +20,11 @@ from .transcript import Transcript, Exchange
 
 class AiohttpSender(Sender):
     """Sender implementation using aiohttp ClientSession.
-    
+
     Posts activities to the agent's /api/messages endpoint and captures
     the response in an Exchange object.
     """
-    
+
     def __init__(self, endpoint, session: ClientSession):
         self._endpoint = endpoint
         self._session = session
@@ -33,15 +33,17 @@ class AiohttpSender(Sender):
     def endpoint(self) -> str:
         return self._endpoint
 
-    async def send(self, activity: Activity, transcript: Transcript | None = None, **kwargs) -> Exchange:
+    async def send(
+        self, activity: Activity, transcript: Transcript | None = None, **kwargs
+    ) -> Exchange:
         """Send an activity and return the Exchange containing the response.
-        
+
         :param activity: The Activity to send.
         :param transcript: Optional Transcript to record the exchange.
         :param timeout: Optional timeout for the request.
         :return: An Exchange object containing the response.
         """
-        
+
         exchange: Exchange
         response_or_exception = None
         request_at = datetime.now(timezone.utc)
@@ -51,13 +53,15 @@ class AiohttpSender(Sender):
                 json=activity.model_dump(
                     by_alias=True, exclude_unset=True, exclude_none=True, mode="json"
                 ),
-                **kwargs
+                **kwargs,
             ) as response:
                 response_at = datetime.now(timezone.utc)
                 response_or_exception = response
 
                 if response.status >= 300:
-                    raise ClientError(f"Received non-success status code: {response.status}")
+                    raise ClientError(
+                        f"Received non-success status code: {response.status}"
+                    )
 
                 exchange = await Exchange.from_request(
                     request_activity=activity,
@@ -65,11 +69,11 @@ class AiohttpSender(Sender):
                     request_at=request_at,
                     response_at=response_at,
                     status=response.status,
-                    **kwargs
+                    **kwargs,
                 )
-        
+
         except ClientError as e:
-            
+
             if response_or_exception is not None:
                 raise  # If we got a response but it was an error status, re-raise the exception
 
@@ -81,9 +85,9 @@ class AiohttpSender(Sender):
                 response_or_exception=response_or_exception,
                 request_at=request_at,
                 response_at=response_at,
-                **kwargs
+                **kwargs,
             )
-        
+
         if transcript is not None:
             transcript.record(exchange)
         return exchange

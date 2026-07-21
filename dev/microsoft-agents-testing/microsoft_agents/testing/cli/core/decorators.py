@@ -15,6 +15,7 @@ import click
 
 from .utils import _resolve_scenario
 
+
 def pass_config(func: Callable) -> Callable:
     """Decorator that injects CLIConfig from the click context.
 
@@ -23,6 +24,7 @@ def pass_config(func: Callable) -> Callable:
     :param func: The function to decorate.
     :return: The wrapped function.
     """
+
     @click.pass_context
     @wraps(func)
     def wrapper(ctx: click.Context, *args: Any, **kwargs: Any) -> Any:
@@ -30,7 +32,9 @@ def pass_config(func: Callable) -> Callable:
         if config is None:
             raise RuntimeError("CLIConfig not found in context")
         return func(config=config, *args, **kwargs)
+
     return wrapper
+
 
 def pass_output(func: Callable) -> Callable:
     """Decorator that injects the Output helper from the click context.
@@ -40,6 +44,7 @@ def pass_output(func: Callable) -> Callable:
     :param func: The function to decorate.
     :return: The wrapped function.
     """
+
     @click.pass_context
     @wraps(func)
     def wrapper(ctx: click.Context, *args: Any, **kwargs: Any) -> Any:
@@ -47,22 +52,26 @@ def pass_output(func: Callable) -> Callable:
         if out is None:
             raise RuntimeError("Output not found in context")
         return func(out=out, *args, **kwargs)
+
     return wrapper
+
 
 def async_command(func: Callable) -> Callable:
     """Decorator to run an async function as a click command.
-    
+
     Example:
         @click.command()
         @async_command
         async def my_command():
             await some_async_operation()
     """
-    
+
     @wraps(func)
     def wrapper(*args: Any, **kwargs: Any) -> Any:
         return asyncio.run(func(*args, **kwargs))
+
     return wrapper
+
 
 def with_scenario(func: Callable) -> Callable:
     """Decorator for commands that can interact with agents via scenarios.
@@ -96,15 +105,17 @@ def with_scenario(func: Callable) -> Callable:
 
        Example: ``agt scenario chat --agent agt.basic``
     """
-    
+
     @click.option(
-        "--url", "-u",
+        "--url",
+        "-u",
         "agent_url",
         default=None,
         help="URL of the external agent to connect to.",
     )
     @click.option(
-        "--agent", "-a",
+        "--agent",
+        "-a",
         "agent_name",
         default=None,
         help="Name of the agent to use.",
@@ -128,19 +139,19 @@ def with_scenario(func: Callable) -> Callable:
         # Get config and output directly from context
         config = ctx.obj.get("config")
         out = ctx.obj.get("out")
-        
+
         if config is None:
             raise RuntimeError("CLIConfig not found in context")
         if out is None:
             raise RuntimeError("Output not found in context")
-        
+
         if agent_url and agent_name:
             out.error("Only one of --url or --agent can be specified.", exit=True)
         elif not agent_url and not agent_name:
             out.error("Either --url or --agent must be specified.", exit=True)
 
         agent_name_or_url = agent_url or agent_name
-        
+
         # Determine which scenario to use based on CLI arguments
         scenario = _resolve_scenario(
             agent_name_or_url=agent_name_or_url,
@@ -156,10 +167,10 @@ def with_scenario(func: Callable) -> Callable:
                 config=config,
                 out=out,
             )
-            
+
             if not scenario:
                 out.error("Failed to locate the scenario. Please check your options.")
                 raise click.Abort()
         return func(scenario=scenario, *args, **kwargs)
-    
+
     return wrapper

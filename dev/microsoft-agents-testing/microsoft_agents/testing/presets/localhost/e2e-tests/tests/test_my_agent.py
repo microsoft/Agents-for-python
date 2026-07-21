@@ -2,6 +2,7 @@ import pytest
 
 from microsoft_agents.testing import AgentClient
 
+
 @pytest.mark.agent_test("my_agent")
 async def test_my_agent(agent_client: AgentClient):
 

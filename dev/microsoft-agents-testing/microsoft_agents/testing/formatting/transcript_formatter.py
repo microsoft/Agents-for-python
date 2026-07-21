@@ -5,6 +5,7 @@ from typing import Protocol
 
 from microsoft_agents.testing.core import Transcript
 
+
 class TranscriptFormatter(Protocol):
     """Protocol for transcript formatters."""
 

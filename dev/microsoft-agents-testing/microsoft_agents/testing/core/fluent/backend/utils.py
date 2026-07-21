@@ -9,6 +9,7 @@ using dot-notation for nested key access.
 
 from copy import deepcopy
 
+
 def flatten(data: dict, parent_key: str = "", level_sep: str = ".") -> dict:
     """Flatten a nested dictionary into a single-level dictionary.
     Nested keys are concatenated using the specified level separator.
@@ -25,16 +26,19 @@ def flatten(data: dict, parent_key: str = "", level_sep: str = ".") -> dict:
         new_key = f"{parent_key}{level_sep}{key}" if parent_key else key
 
         if isinstance(value, dict):
-            items.extend(flatten(value, parent_key=new_key, level_sep=level_sep).items())
+            items.extend(
+                flatten(value, parent_key=new_key, level_sep=level_sep).items()
+            )
         else:
             items.append((new_key, value))
 
     return dict(items)
 
+
 def expand(data: dict, level_sep: str = ".") -> dict:
     """Expand a (partially) flattened dictionary into a nested dictionary.
     Keys with dots (.) are treated as paths representing nested dictionaries.
-    
+
     :param data: The (partially) flattened dictionary to expand.
     :return: The expanded nested dictionary.
     """
@@ -52,9 +56,13 @@ def expand(data: dict, level_sep: str = ".") -> dict:
             path = key[index + 1 :]
 
             if root in new_data and not isinstance(new_data[root], (dict, list)):
-                raise RuntimeError(f"Conflicting key found during expansion: {root} and {key}")
+                raise RuntimeError(
+                    f"Conflicting key found during expansion: {root} and {key}"
+                )
             elif root in new_data and path in new_data[root]:
-                raise RuntimeError(f"Conflicting key found during expansion: {root}.{path} and {key}")
+                raise RuntimeError(
+                    f"Conflicting key found during expansion: {root}.{path} and {key}"
+                )
 
             if root not in new_data:
                 new_data[root] = {}
@@ -64,7 +72,9 @@ def expand(data: dict, level_sep: str = ".") -> dict:
         else:
             root = key
             if root in new_data:
-                raise RuntimeError(f"Conflicting key found during expansion: {root} and {key}")
+                raise RuntimeError(
+                    f"Conflicting key found during expansion: {root} and {key}"
+                )
 
             new_data[root] = value
 
@@ -74,8 +84,8 @@ def expand(data: dict, level_sep: str = ".") -> dict:
 
     return new_data
 
-def _merge(original: dict, other: dict, overwrite_leaves: bool = True) -> None:
 
+def _merge(original: dict, other: dict, overwrite_leaves: bool = True) -> None:
     """Merge two dictionaries recursively.
 
     :param original: The first dictionary.
@@ -93,8 +103,8 @@ def _merge(original: dict, other: dict, overwrite_leaves: bool = True) -> None:
             # since they're not both dicts, just overwrite
             original[key] = other[key]
 
-def _resolve_kwargs(data: dict | None = None, **kwargs) -> dict:
 
+def _resolve_kwargs(data: dict | None = None, **kwargs) -> dict:
     """Combine a dictionary and keyword arguments into a single dictionary.
 
     The new dictionary is created by deep copying the input dictionary (if provided)
@@ -110,8 +120,8 @@ def _resolve_kwargs(data: dict | None = None, **kwargs) -> dict:
     _merge(new_data, kdict, overwrite_leaves=True)
     return new_data
 
-def _resolve_kwargs_expanded(data: dict | None = None, **kwargs) -> dict:
 
+def _resolve_kwargs_expanded(data: dict | None = None, **kwargs) -> dict:
     """Combine a dictionary and keyword arguments into a single dictionary.
 
     The new dictionary is created by deep copying the input dictionary (if provided)
@@ -127,6 +137,7 @@ def _resolve_kwargs_expanded(data: dict | None = None, **kwargs) -> dict:
     _merge(new_data, kdict, overwrite_leaves=True)
     return new_data
 
+
 def deep_update(original: dict, updates: dict | None = None, **kwargs) -> None:
     """Update a dictionary with new values.
 
@@ -138,6 +149,7 @@ def deep_update(original: dict, updates: dict | None = None, **kwargs) -> None:
 
     updates = _resolve_kwargs(updates, **kwargs)
     _merge(original, updates, overwrite_leaves=True)
+
 
 def set_defaults(original: dict, defaults: dict | None = None, **kwargs) -> None:
     """Set default values in a dictionary.

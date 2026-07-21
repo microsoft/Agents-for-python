@@ -16,7 +16,7 @@ class TestTranscriptInitialization:
     def test_transcript_default_initialization(self):
         """Transcript should initialize with empty history and no parent."""
         transcript = Transcript()
-        
+
         assert transcript._parent is None
         assert transcript._children == []
         assert transcript._history == []
@@ -26,7 +26,7 @@ class TestTranscriptInitialization:
         """Transcript should accept a parent transcript."""
         parent = Transcript()
         child = Transcript(parent=parent)
-        
+
         assert child._parent is parent
 
 
@@ -38,10 +38,10 @@ class TestTranscriptHistory:
         transcript = Transcript()
         exchange = Exchange(request=Activity(type=ActivityTypes.message, text="Hello"))
         transcript.record(exchange)
-        
+
         history = transcript.history()
         history.append(Exchange())  # Modify the returned list
-        
+
         # Internal history should not be affected
         assert len(transcript.history()) == 1
 
@@ -50,11 +50,11 @@ class TestTranscriptHistory:
         transcript = Transcript()
         exchange1 = Exchange(request=Activity(type=ActivityTypes.message, text="Hello"))
         exchange2 = Exchange(request=Activity(type=ActivityTypes.message, text="World"))
-        
+
         transcript.record(exchange1)
         transcript.record(exchange2)
         assert len(transcript.history()) == 2
-        
+
         transcript.clear()
         assert transcript.history() == []
 
@@ -66,9 +66,9 @@ class TestTranscriptRecord:
         """record() should add an exchange to the transcript."""
         transcript = Transcript()
         exchange = Exchange(request=Activity(type=ActivityTypes.message, text="Hello"))
-        
+
         transcript.record(exchange)
-        
+
         assert len(transcript.history()) == 1
         assert transcript.history()[0] == exchange
 
@@ -76,13 +76,15 @@ class TestTranscriptRecord:
         """record() should maintain order of exchanges."""
         transcript = Transcript()
         exchange1 = Exchange(request=Activity(type=ActivityTypes.message, text="First"))
-        exchange2 = Exchange(request=Activity(type=ActivityTypes.message, text="Second"))
+        exchange2 = Exchange(
+            request=Activity(type=ActivityTypes.message, text="Second")
+        )
         exchange3 = Exchange(request=Activity(type=ActivityTypes.message, text="Third"))
-        
+
         transcript.record(exchange1)
         transcript.record(exchange2)
         transcript.record(exchange3)
-        
+
         history = transcript.history()
         assert len(history) == 3
         assert history[0].request.text == "First"
@@ -97,10 +99,10 @@ class TestTranscriptPropagation:
         """Exchanges should propagate up to parent transcript."""
         parent = Transcript()
         child = Transcript(parent=parent)
-        
+
         exchange = Exchange(request=Activity(type=ActivityTypes.message, text="Hello"))
         child.record(exchange)
-        
+
         # Exchange should be in both child and parent
         assert len(child.history()) == 1
         assert len(parent.history()) == 1
@@ -111,10 +113,10 @@ class TestTranscriptPropagation:
         grandparent = Transcript()
         parent = Transcript(parent=grandparent)
         child = Transcript(parent=parent)
-        
+
         exchange = Exchange(request=Activity(type=ActivityTypes.message, text="Hello"))
         child.record(exchange)
-        
+
         # Exchange should be in all transcripts
         assert len(child.history()) == 1
         assert len(parent.history()) == 1
@@ -125,14 +127,14 @@ class TestTranscriptPropagation:
         parent = Transcript()
         child1 = Transcript(parent=parent)
         child2 = Transcript(parent=parent)
-        
+
         # Need to register children with parent
         parent._children.append(child1)
         parent._children.append(child2)
-        
+
         exchange = Exchange(request=Activity(type=ActivityTypes.message, text="Hello"))
         parent.record(exchange)
-        
+
         # Exchange should be in parent and both children
         assert len(parent.history()) == 1
         assert len(child1.history()) == 1
@@ -143,13 +145,13 @@ class TestTranscriptPropagation:
         grandparent = Transcript()
         parent = Transcript()
         child = Transcript()
-        
+
         grandparent._children.append(parent)
         parent._children.append(child)
-        
+
         exchange = Exchange(request=Activity(type=ActivityTypes.message, text="Hello"))
         grandparent.record(exchange)
-        
+
         # Exchange should be in all transcripts
         assert len(grandparent.history()) == 1
         assert len(parent.history()) == 1
@@ -160,13 +162,13 @@ class TestTranscriptPropagation:
         parent = Transcript()
         child1 = Transcript(parent=parent)
         child2 = Transcript(parent=parent)
-        
+
         # Only add children for downward propagation test
         # child1 and child2 have parent set for upward propagation
-        
+
         exchange = Exchange(request=Activity(type=ActivityTypes.message, text="Hello"))
         child1.record(exchange)
-        
+
         # Exchange should be in child1 and parent only
         assert len(child1.history()) == 1
         assert len(parent.history()) == 1
@@ -180,14 +182,14 @@ class TestTranscriptGetRoot:
     def test_get_root_returns_self_when_no_parent(self):
         """get_root() should return self when there is no parent."""
         transcript = Transcript()
-        
+
         assert transcript.get_root() is transcript
 
     def test_get_root_returns_parent_when_one_level(self):
         """get_root() should return parent when one level deep."""
         parent = Transcript()
         child = Transcript(parent=parent)
-        
+
         assert child.get_root() is parent
 
     def test_get_root_returns_grandparent_when_two_levels(self):
@@ -195,7 +197,7 @@ class TestTranscriptGetRoot:
         grandparent = Transcript()
         parent = Transcript(parent=grandparent)
         child = Transcript(parent=parent)
-        
+
         assert child.get_root() is grandparent
         assert parent.get_root() is grandparent
 
@@ -206,7 +208,7 @@ class TestTranscriptGetRoot:
         level2 = Transcript(parent=level1)
         level3 = Transcript(parent=level2)
         level4 = Transcript(parent=level3)
-        
+
         assert level4.get_root() is root
         assert level3.get_root() is root
         assert level2.get_root() is root
@@ -220,7 +222,7 @@ class TestTranscriptChild:
         """child() should create a new Transcript instance."""
         parent = Transcript()
         child = parent.child()
-        
+
         assert isinstance(child, Transcript)
         assert child is not parent
 
@@ -228,16 +230,18 @@ class TestTranscriptChild:
         """child() should set the parent reference correctly."""
         parent = Transcript()
         child = parent.child()
-        
+
         assert child._parent is parent
 
     def test_child_is_independent_initially(self):
         """Child transcript should start with empty history."""
         parent = Transcript()
-        parent.record(Exchange(request=Activity(type=ActivityTypes.message, text="Before")))
-        
+        parent.record(
+            Exchange(request=Activity(type=ActivityTypes.message, text="Before"))
+        )
+
         child = parent.child()
-        
+
         # Child should have empty history initially
         assert child.history() == []
 
@@ -245,10 +249,10 @@ class TestTranscriptChild:
         """Exchanges recorded in child should propagate to parent."""
         parent = Transcript()
         child = parent.child()
-        
+
         exchange = Exchange(request=Activity(type=ActivityTypes.message, text="Hello"))
         child.record(exchange)
-        
+
         assert len(child.history()) == 1
         assert len(parent.history()) == 1
 
@@ -258,10 +262,10 @@ class TestTranscriptChild:
         level1 = root.child()
         level2 = level1.child()
         level3 = level2.child()
-        
+
         exchange = Exchange(request=Activity(type=ActivityTypes.message, text="Deep"))
         level3.record(exchange)
-        
+
         # All ancestors should have the exchange
         assert len(level3.history()) == 1
         assert len(level2.history()) == 1
@@ -279,23 +283,23 @@ class TestTranscriptIntegration:
         #   a      b
         #  / \      \
         # c   d      e
-        
+
         root = Transcript()
         a = Transcript(parent=root)
         b = Transcript(parent=root)
         c = Transcript(parent=a)
         d = Transcript(parent=a)
         e = Transcript(parent=b)
-        
+
         # Record in leaf node 'c'
         exchange = Exchange(request=Activity(type=ActivityTypes.message, text="From C"))
         c.record(exchange)
-        
+
         # Should propagate to c, a, root
         assert len(c.history()) == 1
         assert len(a.history()) == 1
         assert len(root.history()) == 1
-        
+
         # Should NOT propagate to siblings or other branches
         assert len(d.history()) == 0
         assert len(b.history()) == 0
@@ -305,17 +309,17 @@ class TestTranscriptIntegration:
         """Multiple exchanges should maintain order in history."""
         root = Transcript()
         child = Transcript(parent=root)
-        
+
         for i in range(5):
             exchange = Exchange(
                 request=Activity(type=ActivityTypes.message, text=f"Message {i}")
             )
             child.record(exchange)
-        
+
         # Both should have same order
         for i, ex in enumerate(child.history()):
             assert ex.request.text == f"Message {i}"
-        
+
         for i, ex in enumerate(root.history()):
             assert ex.request.text == f"Message {i}"
 
@@ -323,11 +327,11 @@ class TestTranscriptIntegration:
         """Clearing child history should not affect parent."""
         root = Transcript()
         child = Transcript(parent=root)
-        
+
         exchange = Exchange(request=Activity(type=ActivityTypes.message, text="Test"))
         child.record(exchange)
-        
+
         child.clear()
-        
+
         assert len(child.history()) == 0
         assert len(root.history()) == 1

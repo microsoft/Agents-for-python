@@ -63,15 +63,14 @@ class TestRunScriptPwshDetection:
 
         mock_process = _stub_process()
 
-        with patch("shutil.which", side_effect=_fake_which), \
-             patch("subprocess.Popen", return_value=mock_process) as mock_popen, \
-             patch(
-                 "microsoft_agents.testing.source_scenario.asyncio.sleep",
-                 new_callable=AsyncMock,
-             ), \
-             patch(
-                 "microsoft_agents.testing.source_scenario._terminate_tree"
-             ):
+        with patch("shutil.which", side_effect=_fake_which), patch(
+            "subprocess.Popen", return_value=mock_process
+        ) as mock_popen, patch(
+            "microsoft_agents.testing.source_scenario.asyncio.sleep",
+            new_callable=AsyncMock,
+        ), patch(
+            "microsoft_agents.testing.source_scenario._terminate_tree"
+        ):
             async with scenario._run_script():
                 captured["cmd"] = mock_popen.call_args[0][0]
 
@@ -89,15 +88,14 @@ class TestRunScriptPwshDetection:
 
         mock_process = _stub_process()
 
-        with patch("shutil.which", side_effect=_fake_which), \
-             patch("subprocess.Popen", return_value=mock_process) as mock_popen, \
-             patch(
-                 "microsoft_agents.testing.source_scenario.asyncio.sleep",
-                 new_callable=AsyncMock,
-             ), \
-             patch(
-                 "microsoft_agents.testing.source_scenario._terminate_tree"
-             ):
+        with patch("shutil.which", side_effect=_fake_which), patch(
+            "subprocess.Popen", return_value=mock_process
+        ) as mock_popen, patch(
+            "microsoft_agents.testing.source_scenario.asyncio.sleep",
+            new_callable=AsyncMock,
+        ), patch(
+            "microsoft_agents.testing.source_scenario._terminate_tree"
+        ):
             async with scenario._run_script():
                 captured["cmd"] = mock_popen.call_args[0][0]
 
@@ -110,15 +108,14 @@ class TestRunScriptPwshDetection:
 
         mock_process = _stub_process()
 
-        with patch("shutil.which", return_value="/usr/bin/pwsh"), \
-             patch("subprocess.Popen", return_value=mock_process) as mock_popen, \
-             patch(
-                 "microsoft_agents.testing.source_scenario.asyncio.sleep",
-                 new_callable=AsyncMock,
-             ), \
-             patch(
-                 "microsoft_agents.testing.source_scenario._terminate_tree"
-             ):
+        with patch("shutil.which", return_value="/usr/bin/pwsh"), patch(
+            "subprocess.Popen", return_value=mock_process
+        ) as mock_popen, patch(
+            "microsoft_agents.testing.source_scenario.asyncio.sleep",
+            new_callable=AsyncMock,
+        ), patch(
+            "microsoft_agents.testing.source_scenario._terminate_tree"
+        ):
             async with scenario._run_script():
                 pass
 
@@ -154,20 +151,20 @@ class TestSourceScenarioLifecycle:
                 )
 
                 async with scenario._run_script():
-                    assert captured[-1].poll() is None, (
-                        f"Scenario {run_index} exited before the context began"
-                    )
+                    assert (
+                        captured[-1].poll() is None
+                    ), f"Scenario {run_index} exited before the context began"
                     await asyncio.sleep(5)
-                    assert captured[-1].poll() is None, (
-                        f"Scenario {run_index} exited on its own during the 5s window"
-                    )
+                    assert (
+                        captured[-1].poll() is None
+                    ), f"Scenario {run_index} exited on its own during the 5s window"
 
                 deadline = time.monotonic() + 2.0
                 while time.monotonic() < deadline and captured[-1].poll() is None:
                     await asyncio.sleep(0.05)
-                assert captured[-1].poll() is not None, (
-                    f"Scenario {run_index} subprocess still running after context exit"
-                )
+                assert (
+                    captured[-1].poll() is not None
+                ), f"Scenario {run_index} subprocess still running after context exit"
 
         assert len(captured) == 2, "Expected exactly two scripts to be launched"
 

@@ -111,6 +111,7 @@ class TestSelectWhere:
 
     def test_where_filters_by_root_callable_truthiness(self):
         """where() filters using truthiness from root callable results."""
+
         class ActivityLike(BaseModel):
             name: str
             attachments: list[str] | None = None

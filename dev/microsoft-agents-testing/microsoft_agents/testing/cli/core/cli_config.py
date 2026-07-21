@@ -27,28 +27,29 @@ def load_environment(
         Both values are empty/blank strings if the file does not exist.
     """
     path = Path(env_path) if env_path else Path(".env")
-    
+
     if not path.exists():
         return {}, ""
-    
+
     resolved_path = str(path.resolve())
-    
+
     env = dotenv_values(str(resolved_path))
 
     return env, resolved_path
 
+
 def _upper(d: dict) -> dict:
     """Convert all keys in the dictionary to uppercase."""
-    return { key.upper(): value for key, value in d.items() }
+    return {key.upper(): value for key, value in d.items()}
 
 
 class CLIConfig:
     """Configuration manager for the CLI.
-    
+
     Loads and manages configuration from environment files and process
     environment variables, providing access to authentication credentials
     and service URLs.
-    
+
     Attributes:
         env_path: Path to the loaded .env file, if any.
         env: Dictionary of loaded environment variables.
@@ -76,13 +77,16 @@ class CLIConfig:
         self._agent_url: str | None = None
         self._service_url: str | None = None
 
-        self._load(self._env, {
-            f"CONNECTIONS__{self._connection}__SETTINGS__CLIENTID": "_app_id",
-            f"CONNECTIONS__{self._connection}__SETTINGS__CLIENTSECRET": "_app_secret",
-            f"CONNECTIONS__{self._connection}__SETTINGS__TENANTID": "_tenant_id",
-            "AGENT_URL": "_agent_url",
-            "SERVICE_URL": "_service_url",
-        })
+        self._load(
+            self._env,
+            {
+                f"CONNECTIONS__{self._connection}__SETTINGS__CLIENTID": "_app_id",
+                f"CONNECTIONS__{self._connection}__SETTINGS__CLIENTSECRET": "_app_secret",
+                f"CONNECTIONS__{self._connection}__SETTINGS__TENANTID": "_tenant_id",
+                "AGENT_URL": "_agent_url",
+                "SERVICE_URL": "_service_url",
+            },
+        )
 
     @property
     def env_path(self) -> str | None:
@@ -93,32 +97,32 @@ class CLIConfig:
     def env(self) -> dict:
         """The loaded environment variables."""
         return self._env
-    
+
     @property
     def app_id(self) -> str | None:
         """The application (client) ID."""
         return self._app_id
-    
+
     @property
     def app_secret(self) -> str | None:
         """The application (client) secret."""
         return self._app_secret
-    
+
     @property
     def tenant_id(self) -> str | None:
         """The tenant ID."""
         return self._tenant_id
-    
+
     @property
     def agent_url(self) -> str | None:
         """The agent service URL."""
         return self._agent_url
-    
+
     @property
     def service_url(self) -> str | None:
         """The service URL."""
         return self._service_url
-    
+
     def _load(self, source_dict: dict, key_attr_map: dict) -> None:
         """Load configuration values from a source dictionary into instance attributes.
 

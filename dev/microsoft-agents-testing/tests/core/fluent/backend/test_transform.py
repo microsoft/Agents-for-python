@@ -85,9 +85,10 @@ class TestDictionaryTransformMapProperty:
 
     def test_map_property_preserves_custom_callables(self):
         """map property preserves custom callable functions."""
+
         def custom_func(x):
             return x > 0
-        
+
         transform = DictionaryTransform({"check": custom_func})
         assert transform.map["check"] is custom_func
 
@@ -298,6 +299,7 @@ class TestDictionaryTransformFromArgs:
 
 class SampleModel(BaseModel):
     """A sample Pydantic model for testing."""
+
     name: str
     value: int
     nested: dict | None = None
@@ -366,10 +368,12 @@ class TestIntegration:
 
     def test_mixed_predicates(self):
         """Mixed value and callable predicates work together."""
-        transform = DictionaryTransform({
-            "name": "test",
-            "value": lambda x: x > 0,
-        })
+        transform = DictionaryTransform(
+            {
+                "name": "test",
+                "value": lambda x: x > 0,
+            }
+        )
         actual = {"name": "test", "value": 10}
         result = transform.eval(actual)
         assert result == {"name": True, "value": True}

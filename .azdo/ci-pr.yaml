@@ -79,6 +79,11 @@ steps:
     else
       echo "Skipping microsoft_agents_hosting_msteams: requires Python 3.11+"
     fi
+    if python -c "import sys; sys.exit(0 if sys.version_info >= (3, 12) else 1)"; then
+      python -m pip install ./dist/microsoft_agents_hosting_teams*.whl
+    else
+      echo "Skipping microsoft_agents_hosting_teams: requires Python 3.12+"
+    fi
     python -m pip install ./dist/microsoft_agents_hosting_slack*.whl
     python -m pip install ./dist/microsoft_agents_storage_blob*.whl
     python -m pip install ./dist/microsoft_agents_storage_cosmos*.whl
