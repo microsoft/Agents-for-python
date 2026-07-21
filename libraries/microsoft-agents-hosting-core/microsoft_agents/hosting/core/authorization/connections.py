@@ -27,9 +27,7 @@ class Connections(Protocol):
 
     @abstractmethod
     def get_token_provider(
-        self,
-        claims_identity: ClaimsIdentity,
-        service_url: str,
+        self, claims_identity: ClaimsIdentity, service_url: str
     ) -> AccessTokenProviderBase:
         """
         Get the OAuth token provider for the agent.
