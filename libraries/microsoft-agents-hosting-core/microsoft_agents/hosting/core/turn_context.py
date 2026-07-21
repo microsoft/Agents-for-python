@@ -3,7 +3,6 @@
 
 from __future__ import annotations
 
-import re
 from typing import Optional, Awaitable, TypeVar, Protocol
 
 from copy import deepcopy
@@ -20,7 +19,6 @@ from microsoft_agents.activity import (
     TurnContextProtocol,
 )
 from microsoft_agents.activity._model_utils import pick_model, SkipNone
-from microsoft_agents.activity.entity.entity_types import EntityTypes
 from microsoft_agents.hosting.core.authorization.claims_identity import ClaimsIdentity
 import microsoft_agents.hosting.core.telemetry.turn_context.spans as spans
 
@@ -437,33 +435,31 @@ class TurnContext(TurnContextProtocol):
 
     @staticmethod
     def remove_recipient_mention(activity: Activity) -> str:
-        return TurnContext.remove_mention_text(activity, activity.recipient.id)
+        """
+        Removes the recipient's mention text from the activity's text.
+
+        :param activity: The activity to remove the recipient mention from.
+        :return: The updated activity text.
+        """
+        return activity.remove_recipient_mention()
 
     @staticmethod
     def remove_mention_text(activity: Activity, identifier: str) -> str:
         """
-        Remove a mention matching the given account identifier from activity.text.
+        Removes the mention text for the given account id from the activity's text.
+
+        :param activity: The activity to remove the mention text from.
+        :param identifier: The id of the account whose mention text should be removed.
+        :return: The updated activity text.
         """
-        mentions = TurnContext.get_mentions(activity)
-        for mention in mentions:
-            if mention.mentioned and mention.mentioned.id == identifier:
-                mention_name_match = re.match(
-                    r"<at(.*)>(.*?)<\/at>",
-                    re.escape(mention.text or ""),
-                    re.IGNORECASE,
-                )
-                if mention_name_match:
-                    activity.text = re.sub(
-                        mention_name_match.groups()[1], "", activity.text
-                    )
-                    activity.text = re.sub(r"<at><\/at>", "", activity.text)
-        return activity.text
+        return activity.remove_mention_text(identifier)
 
     @staticmethod
     def get_mentions(activity: Activity) -> list[Mention]:
-        """Get all mentions from the activity.
+        """
+        Returns all the mentions in the activity.
 
-        :param activity: The activity to get mentions from.
-        :return: A list of Mention objects.
+        :param activity: the activity to get mentions from
+        :return: A list of Mention objects representing all mentions in the activity.
         """
         return activity.get_mentions()
