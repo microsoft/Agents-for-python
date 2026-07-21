@@ -2,9 +2,7 @@
 # Licensed under the MIT License.
 
 from abc import abstractmethod
-from typing import Protocol, overload
-
-from microsoft_agents.activity import Activity
+from typing import Protocol
 
 from .agent_auth_configuration import AgentAuthConfiguration
 from .access_token_provider_base import AccessTokenProviderBase
@@ -31,7 +29,7 @@ class Connections(Protocol):
     def get_token_provider(
         self,
         claims_identity: ClaimsIdentity,
-        service_url: str | None = None,
+        service_url: str,
     ) -> AccessTokenProviderBase:
         """
         Get the OAuth token provider for the agent.
