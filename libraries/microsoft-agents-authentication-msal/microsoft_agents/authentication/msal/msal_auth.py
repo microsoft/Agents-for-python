@@ -61,6 +61,15 @@ class MsalAuth(AccessTokenProviderBase):
             f"Initializing MsalAuth with configuration: {self._msal_configuration}"
         )
 
+    @property
+    def configuration(self) -> AgentAuthConfiguration:
+        """
+        The configuration for the access token provider.
+
+        :return: The configuration as an AgentAuthConfiguration object.
+        """
+        return self._msal_configuration
+
     async def get_access_token(
         self, resource_url: str, scopes: list[str], force_refresh: bool = False
     ) -> str:

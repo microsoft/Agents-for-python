@@ -6,6 +6,11 @@ import logging
 
 from collections.abc import Callable
 
+from microsoft_agents.activity import (
+    Activity,
+    RoleTypes
+)
+
 from .agent_auth_configuration import AgentAuthConfiguration
 from .access_token_provider_base import AccessTokenProviderBase
 from .claims_identity import ClaimsIdentity
@@ -151,7 +156,7 @@ class ConnectionManager(Connections):
             raise ValueError(
                 f"Invalid SERVICEURL regex '{pattern}' in connections map: {exc}"
             ) from exc
-
+        
     def get_token_provider(
         self, claims_identity: ClaimsIdentity, service_url: str
     ) -> AccessTokenProviderBase:
@@ -188,6 +193,40 @@ class ConnectionManager(Connections):
 
         raise ValueError(
             f"No connection found for audience '{aud}' and serviceUrl '{service_url}'."
+        )
+    
+    def get_token_provider_from_activity(
+            self,
+            claims_identity: ClaimsIdentity,
+            activity: Activity
+            ) -> AccessTokenProviderBase:
+        """
+        Get the OAuth token provider for the agent from an activity.
+
+        :param claims_identity: The claims identity of the bot.
+        :type claims_identity: :class:`microsoft_agents.hosting.core.ClaimsIdentity`
+        :param activity: The activity of the bot.
+        :type activity: dict
+        :return: The OAuth token provider for the agent.
+        :rtype: :class:`microsoft_agents.hosting.core.AccessTokenProviderBase`
+        :raises ValueError: If no connection is found for the given audience and service URL.
+        """
+        connection: AccessTokenProviderBase | None = None
+        try:
+            connection = self.get_token_provider(claims_identity, activity.service_url)
+        finally:
+            if (connection is not None and (
+                activity.recipient.role == RoleTypes.agentic_identity or
+                activity.recipient.role == RoleTypes.agentic_user
+            )):
+                if connection.configuration.ALT_BLUEPRINT_ID:
+                    connection = self.get_connection(connection.configuration.ALT_BLUEPRINT_ID)
+                
+        if connection:
+            return connection
+        
+        raise RuntimeError(
+            "The connection returned by get_token_provider is not compatible with the activity's recipient role."
         )
 
     def get_default_connection_configuration(self) -> AgentAuthConfiguration:
