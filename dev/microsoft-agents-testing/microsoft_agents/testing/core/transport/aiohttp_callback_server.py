@@ -110,7 +110,7 @@ class AiohttpCallbackServer(CallbackServer):
                 raise e
 
             exchange = Exchange(error=str(e), response_at=response_at)
-            response = Response(status=500, text=str(e))
+            response = Response(status=500, text="An internal error has occurred.")
 
         self._transcript.record(exchange)
         return response
