@@ -20,6 +20,7 @@ from microsoft_agents.testing.cli.core import (
 
 from .env_group import env_group
 
+
 @env_group.command("show")
 @pass_output
 @pass_config

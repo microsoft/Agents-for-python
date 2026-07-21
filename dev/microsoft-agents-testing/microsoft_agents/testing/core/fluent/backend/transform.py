@@ -19,21 +19,22 @@ from .utils import expand, flatten
 
 T = TypeVar("T")
 
+
 class DictionaryTransform:
     """Transform that applies callable predicates to dictionary values.
-    
+
     Supports dot-notation keys for nested access (e.g., 'user.profile.name').
     String values starting with '~' are converted to substring match predicates.
-    
+
     Example::
-    
+
         dt = DictionaryTransform({"type": "message", "text": "~hello"})
         result = dt.eval({"type": "message", "text": "hello world"})
         # result == {"type": True, "text": True}
     """
 
-    DT_ROOT_CALLABLE_KEY = '__DT_ROOT_CALLABLE_KEY'
-    
+    DT_ROOT_CALLABLE_KEY = "__DT_ROOT_CALLABLE_KEY"
+
     def __init__(self, arg: dict | Callable | None, **kwargs) -> None:
 
         if not isinstance(arg, (dict, Callable)) and arg is not None:
@@ -66,7 +67,7 @@ class DictionaryTransform:
 
     @property
     def map(self) -> dict[str, Callable[..., Any]]:
-        return self._map 
+        return self._map
 
     @staticmethod
     def _get(actual: dict, key: str) -> Any:
@@ -77,11 +78,11 @@ class DictionaryTransform:
         return resolve(current)
 
     def _invoke(
-            self,
-            actual: dict,
-            key: str,
-            func: Callable[..., T],
-        ) -> T:
+        self,
+        actual: dict,
+        key: str,
+        func: Callable[..., T],
+    ) -> T:
         """Invoke a predicate function with the resolved value for a key.
 
         Uses introspection to determine whether the function expects
@@ -94,7 +95,7 @@ class DictionaryTransform:
         """
 
         args = {}
-        
+
         sig = inspect.getfullargspec(func)
         func_args = sig.args
 
@@ -104,10 +105,10 @@ class DictionaryTransform:
             args["x"] = self._get(actual, key)
         elif "value" in func_args:
             args["value"] = self._get(actual, key)
-            
+
         return func(**args)
-        
-    def eval(self, actual: dict, root_callable_arg: Any=None) -> dict:
+
+    def eval(self, actual: dict, root_callable_arg: Any = None) -> dict:
         """Evaluate all predicate functions against the given dictionary.
 
         Each key in the transform map is resolved from ``actual`` using
@@ -119,7 +120,7 @@ class DictionaryTransform:
         :param root_callable_arg: Optional object passed as the value for
                                   the root-level callable key.
         :return: A dictionary mapping each key to its predicate result.
-        """       
+        """
         result = {}
 
         # Create a wrapper dict to avoid modifying the original object
@@ -128,9 +129,9 @@ class DictionaryTransform:
             eval_context = dict(actual)
         else:
             eval_context = {}
-        
+
         if root_callable_arg is not None:
-            eval_context[DictionaryTransform.DT_ROOT_CALLABLE_KEY] = root_callable_arg 
+            eval_context[DictionaryTransform.DT_ROOT_CALLABLE_KEY] = root_callable_arg
         else:
             eval_context[DictionaryTransform.DT_ROOT_CALLABLE_KEY] = actual
         for key, func in self._map.items():
@@ -141,9 +142,11 @@ class DictionaryTransform:
         return expand(result)
 
     @staticmethod
-    def from_args(arg: dict | DictionaryTransform | Callable | Any, **kwargs) -> DictionaryTransform:
+    def from_args(
+        arg: dict | DictionaryTransform | Callable | Any, **kwargs
+    ) -> DictionaryTransform:
         """Creates a DictionaryTransform from arbitrary arguments.
-        
+
         :param args: Positional arguments to create the predicate from.
         :param kwargs: Keyword arguments to create the predicate from.
         :return: A DictionaryTransform instance.
@@ -151,13 +154,16 @@ class DictionaryTransform:
         if isinstance(arg, DictionaryTransform) and not kwargs:
             return arg
         elif isinstance(arg, DictionaryTransform):
-            raise NotImplementedError("Merging DictionaryTransform instance with keyword arguments is not implemented.")
+            raise NotImplementedError(
+                "Merging DictionaryTransform instance with keyword arguments is not implemented."
+            )
         else:
             return DictionaryTransform(arg, **kwargs)
 
+
 class ModelTransform:
     """Apply a DictionaryTransform to BaseModel or dict instances.
-    
+
     Handles conversion of Pydantic models to dictionaries before
     applying the underlying DictionaryTransform.
     """
@@ -169,7 +175,9 @@ class ModelTransform:
     def eval(self, source: dict | BaseModel) -> dict: ...
     @overload
     def eval(self, source: Sequence[dict | BaseModel]) -> list[dict]: ...
-    def eval(self, source: dict | BaseModel | Sequence[dict | BaseModel]) -> list[dict] | dict:
+    def eval(
+        self, source: dict | BaseModel | Sequence[dict | BaseModel]
+    ) -> list[dict] | dict:
         """Evaluate the underlying DictionaryTransform against one or more models.
 
         Pydantic models are dumped to dictionaries before evaluation.
@@ -194,5 +202,5 @@ class ModelTransform:
         results = []
         for i, item in enumerate(items):
             results.append(self._dict_transform.eval(item, source[i]))
-        
+
         return results

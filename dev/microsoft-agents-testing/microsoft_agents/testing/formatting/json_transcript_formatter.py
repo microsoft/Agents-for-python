@@ -6,6 +6,7 @@ from .utils import _exchange_sort_key
 
 from microsoft_agents.testing.core import Transcript
 
+
 class JsonTranscriptFormatter(BaseTranscriptFormatter):
     """Formats a transcript as a JSON array of Exchange objects.
 
@@ -25,5 +26,7 @@ class JsonTranscriptFormatter(BaseTranscriptFormatter):
         """Return a JSON array string of all exchanges in chronological order."""
         exchanges = sorted(transcript.history(), key=_exchange_sort_key)
 
-        parts = [exchange.model_dump_json(**self._model_dump_args) for exchange in exchanges]
+        parts = [
+            exchange.model_dump_json(**self._model_dump_args) for exchange in exchanges
+        ]
         return "[" + ",".join(parts) + "]"

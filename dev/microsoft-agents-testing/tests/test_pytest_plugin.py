@@ -15,7 +15,6 @@ from microsoft_agents.hosting.core import TurnContext, TurnState, AgentApplicati
 
 from microsoft_agents.testing.aiohttp_scenario import AiohttpScenario, AgentEnvironment
 
-
 # ============================================================================
 # Helper: Create a simple echo agent scenario
 # ============================================================================
@@ -23,6 +22,7 @@ from microsoft_agents.testing.aiohttp_scenario import AiohttpScenario, AgentEnvi
 
 async def init_echo_agent(env: AgentEnvironment) -> None:
     """Initialize a simple echo agent for testing."""
+
     @env.agent_application.activity("message")
     async def on_message(context: TurnContext, state: TurnState):
         await context.send_activity(f"Echo: {context.activity.text}")
@@ -59,7 +59,7 @@ class TestAgentClientFixture:
     async def test_agent_client_has_transcript(self, agent_client):
         """agent_client maintains a transcript of exchanges."""
         await agent_client.send("Test message", wait=0.2)
-        
+
         # Transcript should have at least one exchange
         assert agent_client.transcript is not None
 
@@ -69,7 +69,7 @@ class TestAgentClientFixture:
         await agent_client.send("First")
         await agent_client.send("Second")
         await agent_client.send("Third", wait=0.2)
-        
+
         agent_client.expect().that_for_any(text="Echo: First")
         agent_client.expect().that_for_any(text="Echo: Second")
         agent_client.expect().that_for_any(text="Echo: Third")
@@ -162,7 +162,7 @@ class TestCombinedFixtures:
         """agent_client and agent_environment can be used together."""
         # Verify environment is available
         assert agent_environment.agent_application is not None
-        
+
         # Use client to send a message
         await agent_client.send("Hello from combined test!", wait=0.2)
         agent_client.expect().that_for_any(text="Echo: Hello from combined test!")
@@ -187,7 +187,7 @@ class TestCombinedFixtures:
         assert storage is not None
         assert adapter is not None
         assert connection_manager is not None
-        
+
         # Derived fixtures should match environment components
         assert agent_application is agent_environment.agent_application
         assert authorization is agent_environment.authorization
@@ -203,6 +203,7 @@ class TestCombinedFixtures:
 
 async def init_counter_agent(env: AgentEnvironment) -> None:
     """Initialize an agent that counts messages using storage."""
+
     @env.agent_application.activity("message")
     async def on_message(context: TurnContext, state: TurnState):
         # Use state to count messages
@@ -225,11 +226,11 @@ class TestStatefulAgentWithFixtures:
     async def test_storage_persists_across_messages(self, agent_client, storage):
         """Storage fixture provides access to the same storage instance used by agent."""
         assert storage is not None
-        
+
         await agent_client.send("one")
         await agent_client.send("two")
         await agent_client.send("three", wait=0.2)
-        
+
         agent_client.expect().that_for_any(text="Message #1")
         agent_client.expect().that_for_any(text="Message #2")
         agent_client.expect().that_for_any(text="Message #3")
@@ -270,7 +271,7 @@ class TestUrlStringMarker:
         from unittest.mock import Mock
         from microsoft_agents.testing.pytest_plugin import _get_scenario_from_marker
         from microsoft_agents.testing.core import ExternalScenario
-        
+
         marker = Mock()
         marker.args = ("http://localhost:3978/api/messages",)
         item = Mock()
@@ -294,7 +295,7 @@ class TestMarkerValidation:
         """@pytest.mark.agent_test requires an argument."""
         from unittest.mock import Mock
         from microsoft_agents.testing.pytest_plugin import _get_scenario_from_marker
-        
+
         marker = Mock()
         marker.args = ()
         item = Mock()
@@ -307,7 +308,7 @@ class TestMarkerValidation:
         """@pytest.mark.agent_test rejects non-string/non-Scenario arguments."""
         from unittest.mock import Mock
         from microsoft_agents.testing.pytest_plugin import _get_scenario_from_marker
-        
+
         marker = Mock()
         marker.args = (12345,)
         item = Mock()

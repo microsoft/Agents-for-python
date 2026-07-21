@@ -119,4 +119,3 @@ class TestExchangeSelect:
 
         assert isinstance(expect, ExchangeExpect)
         expect.that_for_one(status_code=200)
-

@@ -7,6 +7,7 @@ from .utils import _exchange_sort_key
 from microsoft_agents.activity import Activity
 from microsoft_agents.testing.core import Transcript
 
+
 class ActivityTranscriptFormatter(BaseTranscriptFormatter):
     """Formats a transcript as a flat JSON array of Activity objects.
 
@@ -34,6 +35,8 @@ class ActivityTranscriptFormatter(BaseTranscriptFormatter):
                 activities.append(exchange.request)
             if exchange.responses:
                 activities.extend(exchange.responses)
-        
-        parts = [activity.model_dump_json(**self._model_dump_args) for activity in activities]
+
+        parts = [
+            activity.model_dump_json(**self._model_dump_args) for activity in activities
+        ]
         return "[" + ",".join(parts) + "]"

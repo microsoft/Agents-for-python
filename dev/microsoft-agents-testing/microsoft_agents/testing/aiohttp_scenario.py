@@ -20,11 +20,18 @@ from dotenv import dotenv_values
 
 from microsoft_agents.activity import load_configuration_from_env
 from microsoft_agents.hosting.core import (
-    AgentApplication, Authorization, ChannelServiceAdapter,
-    Connections, MemoryStorage, Storage, TurnState,
+    AgentApplication,
+    Authorization,
+    ChannelServiceAdapter,
+    Connections,
+    MemoryStorage,
+    Storage,
+    TurnState,
 )
 from microsoft_agents.hosting.aiohttp import (
-    CloudAdapter, start_agent_process, jwt_authorization_middleware,
+    CloudAdapter,
+    start_agent_process,
+    jwt_authorization_middleware,
 )
 from microsoft_agents.authentication.msal import MsalConnectionManager
 
@@ -36,13 +43,14 @@ from .core import (
     ScenarioConfig,
 )
 
+
 @dataclass
 class AgentEnvironment:
     """Components available when an in-process agent is running.
-    
+
     Provides access to the agent's infrastructure components for
     configuration and inspection during tests.
-    
+
     Attributes:
         config: SDK configuration dictionary.
         agent_application: The running AgentApplication instance.
@@ -51,6 +59,7 @@ class AgentEnvironment:
         storage: State storage instance (typically MemoryStorage).
         connections: Connection manager for external services.
     """
+
     config: dict
     agent_application: AgentApplication
     authorization: Authorization
@@ -58,24 +67,25 @@ class AgentEnvironment:
     storage: Storage
     connections: Connections
 
+
 class AiohttpScenario(Scenario):
     """Test scenario that hosts an agent in-process using aiohttp.
-    
+
     Use this scenario for integration testing where you want to test the
     full agent stack without external dependencies. The agent runs within
     the test process, allowing direct access to its components.
-    
+
     Example::
-    
+
         async def init_agent(env: AgentEnvironment):
             @env.agent_application.activity(ActivityTypes.message)
             async def handler(context, state):
                 await context.send_activity(f"Echo: {context.activity.text}")
-        
+
         scenario = AiohttpScenario(init_agent)
         async with scenario.client() as client:
             replies = await client.send("Hello!")
-    
+
     :param init_agent: Async function to initialize the agent with handlers.
     :param config: Optional scenario configuration.
     :param use_jwt_middleware: Whether to use JWT auth middleware.
@@ -88,10 +98,10 @@ class AiohttpScenario(Scenario):
         use_jwt_middleware: bool = True,
     ) -> None:
         super().__init__(config)
-        
+
         if not init_agent:
             raise ValueError("init_agent must be provided.")
-        
+
         self._init_agent = init_agent
         self._use_jwt_middleware = use_jwt_middleware
         self._env: AgentEnvironment | None = None
@@ -100,7 +110,9 @@ class AiohttpScenario(Scenario):
     def agent_environment(self) -> AgentEnvironment:
         """Get the agent environment (only valid while scenario is running)."""
         if not self._env:
-            raise RuntimeError("Agent environment not available. Is the scenario running?")
+            raise RuntimeError(
+                "Agent environment not available. Is the scenario running?"
+            )
         return self._env
 
     async def _init_agent_environment(self) -> dict:
@@ -112,10 +124,10 @@ class AiohttpScenario(Scenario):
 
         :return: The SDK configuration dictionary.
         """
-        
+
         env_vars = dotenv_values(self._config.env_file_path or ".env")
         sdk_config = load_configuration_from_env(env_vars)
-        
+
         storage = MemoryStorage()
         connection_manager = MsalConnectionManager(**sdk_config)
         adapter = CloudAdapter(connection_manager=connection_manager)
@@ -123,7 +135,7 @@ class AiohttpScenario(Scenario):
         agent_application = AgentApplication[TurnState](
             storage=storage, adapter=adapter, authorization=authorization, **sdk_config
         )
-        
+
         self._env = AgentEnvironment(
             config=sdk_config,
             agent_application=agent_application,
@@ -132,10 +144,10 @@ class AiohttpScenario(Scenario):
             storage=storage,
             connections=connection_manager,
         )
-        
+
         await self._init_agent(self._env)
         return sdk_config
-    
+
     def _create_application(self) -> Application:
         """Create and configure the aiohttp Application.
 
@@ -145,23 +157,27 @@ class AiohttpScenario(Scenario):
         :return: A configured aiohttp Application.
         """
         assert self._env is not None
-        
+
         # Create aiohttp app
         middlewares = [jwt_authorization_middleware] if self._use_jwt_middleware else []
         app = Application(middlewares=middlewares)
         adapter = cast(CloudAdapter, self._env.adapter)
+
         async def entry_point(request: Request) -> Response:
             return await start_agent_process(
                 request,
                 agent_application=self._env.agent_application,
                 adapter=adapter,
             )
+
         app.router.add_post(
             "/api/messages",
             entry_point,
         )
 
-        app["agent_configuration"] = self._env.connections.get_default_connection_configuration()
+        app["agent_configuration"] = (
+            self._env.connections.get_default_connection_configuration()
+        )
         app["agent_app"] = self._env.agent_application
         app["adapter"] = adapter
 
@@ -170,17 +186,17 @@ class AiohttpScenario(Scenario):
     @asynccontextmanager
     async def run(self) -> AsyncIterator[ClientFactory]:
         """Start the scenario and yield a client factory."""
-        
+
         sdk_config = await self._init_agent_environment()
         app = self._create_application()
-        
+
         # Start response server
         callback_server = AiohttpCallbackServer(self._config.callback_server_port)
 
         async with callback_server.listen() as transcript:
             async with TestServer(app, port=3978) as server:
                 agent_endpoint = f"http://127.0.0.1:{server.port}/api/messages"
-                
+
                 factory = _AiohttpClientFactory(
                     agent_endpoint=agent_endpoint,
                     response_endpoint=callback_server.service_endpoint,
@@ -188,7 +204,7 @@ class AiohttpScenario(Scenario):
                     default_config=self._config.client_config,
                     transcript=transcript,
                 )
-                
+
                 try:
                     yield factory
                 finally:

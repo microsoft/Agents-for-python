@@ -9,13 +9,14 @@ from microsoft_agents.testing import (
     AgentClient,
 )
 
+
 async def main():
 
     async def init(env: AgentEnvironment):
         @env.agent_application.activity("message")
         async def echo_handler(context, state):
             await context.send_activity(f"Echo: {context.activity.text}")
-        
+
     scenario = AiohttpScenario(
         init,
     )
@@ -23,9 +24,6 @@ async def main():
     async with scenario.client() as client:
         replies = await client.send("Hello!")
         client.expect().that(text="Echo: Hello!")
-        
-
-
 
     env = AiohttpEnvironment()
     await env.init_env(await QuickstartSample.get_config())

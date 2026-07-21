@@ -77,7 +77,7 @@ from .formatting import (
     TranscriptFormatter,
     print_activities,
     print_conversation,
-    print_json
+    print_json,
 )
 
 from .scenario_registry import (
@@ -122,5 +122,5 @@ __all__ = [
     "print_activities",
     "print_conversation",
     "print_json",
-    "SourceScenario"
+    "SourceScenario",
 ]

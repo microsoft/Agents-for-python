@@ -3,13 +3,11 @@
 
 import click
 
-from microsoft_agents.testing.cli.core import (
-    pass_output,
-    Output
-)
+from microsoft_agents.testing.cli.core import pass_output, Output
 from microsoft_agents.testing.scenario_registry import scenario_registry
 
 from .scenario_group import scenario_group
+
 
 @scenario_group.command("list")
 @click.argument("pattern", default="*")

@@ -22,12 +22,12 @@ from .transcript import Transcript, Exchange
 
 class AiohttpCallbackServer(CallbackServer):
     """CallbackServer implementation using aiohttp TestServer.
-    
+
     Starts a local HTTP server that agents can post responses to.
     Use as an async context manager via the `listen()` method.
-    
+
     Example::
-    
+
         server = AiohttpCallbackServer(port=9378)
         async with server.listen() as transcript:
             # Send activities to agent with service_url = server.service_endpoint
@@ -44,7 +44,7 @@ class AiohttpCallbackServer(CallbackServer):
 
         self._app: Application = Application()
         self._app.router.add_post("/v3/conversations/{path:.*}", self._handle_request)
-        
+
         self._transcript: Transcript | None = None
 
     @property
@@ -53,7 +53,9 @@ class AiohttpCallbackServer(CallbackServer):
         return f"http://localhost:{self._port}/v3/conversations/"
 
     @asynccontextmanager
-    async def listen(self, transcript: Transcript | None = None) -> AsyncIterator[Transcript]:
+    async def listen(
+        self, transcript: Transcript | None = None
+    ) -> AsyncIterator[Transcript]:
         """Starts the callback server and yields a Transcript.
 
         :param transcript: An optional Transcript to collect incoming Activities.
@@ -64,7 +66,7 @@ class AiohttpCallbackServer(CallbackServer):
 
         if self._transcript is not None:
             raise RuntimeError("Response server is already listening for responses.")
-        
+
         if transcript is not None:
             self._transcript = transcript
         else:
@@ -74,10 +76,10 @@ class AiohttpCallbackServer(CallbackServer):
             yield self._transcript
 
         self._transcript = None
-    
+
     async def _handle_request(self, request: Request) -> Response:
         """Handles incoming POST requests and collects Activities.
-        
+
         :param request: The incoming HTTP request.
         :return: An HTTP response indicating success or failure.
         :rtype: Response
@@ -106,12 +108,9 @@ class AiohttpCallbackServer(CallbackServer):
         except Exception as e:
             if not Exchange.is_allowed_exception(e):
                 raise e
-            
+
             exchange = Exchange(error=str(e), response_at=response_at)
-            response = Response(
-                status=500,
-                text=str(e)
-            )
-        
+            response = Response(status=500, text="An internal error has occurred.")
+
         self._transcript.record(exchange)
         return response
