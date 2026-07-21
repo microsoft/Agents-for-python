@@ -140,7 +140,7 @@ class SelectBase(Generic[ModelT]):
     ### TERMINAL OPERATIONS
     ###
 
-    def get(self) -> list[dict | BaseModel]:
+    def get(self) -> list[ModelT]:
         """Get the selected items as a list."""
         return self._items
 
