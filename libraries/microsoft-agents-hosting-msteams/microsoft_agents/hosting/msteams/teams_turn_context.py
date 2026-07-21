@@ -7,6 +7,8 @@ from __future__ import annotations
 
 from typing import cast
 
+from msgraph import GraphServiceClient
+
 from microsoft_teams.api import ApiClient
 
 from microsoft_agents.activity import (
@@ -15,8 +17,18 @@ from microsoft_agents.activity import (
     ActivityTreatmentTypes,
     ResourceResponse,
 )
-from microsoft_agents.hosting.core import AgentApplication, TurnContext
+from microsoft_agents.hosting.core import (
+    AccessTokenProviderBase,
+    AgentApplication,
+    TurnContext,
+)
 
+from ._graph import (
+    _DEFAULT_GRAPH_BASE_URL,
+    _create_user_graph_service_client,
+    _common_get_app_graph_client,
+    _common_get_app_graph_client_for_connection,
+)
 from ._teams_api_client import _get_teams_api_client, _set_teams_api_client
 from .teams_activity import TeamsActivity
 
@@ -122,3 +134,47 @@ class TeamsTurnContext(TurnContext):
         for activity in activities:
             TeamsTurnContext._make_targeted_activity(activity)
         return await self.send_activities(activities)
+
+    def get_graph_client(self, hanlder_name: str | None = None) -> GraphServiceClient:
+        """
+        Get a Graph client for the current turn context.
+
+        :return: A :class:`GraphServiceClient` that authenticates each request via
+            the agent's authorization.
+        """
+        return _create_user_graph_service_client(self._app, self, hanlder_name)
+
+    def get_app_graph_client(
+        self,
+        graph_base_url: str = _DEFAULT_GRAPH_BASE_URL,
+    ) -> GraphServiceClient:
+        """
+        Get a Graph client for the current turn context.
+
+        :param connection_name: Optional connection name to select a specific token provider.
+        :param graph_base_url: The base URL for the Microsoft Graph API.
+
+        :return: A :class:`GraphServiceClient` that authenticates each request via
+            the agent's authorization.
+        """
+        return _common_get_app_graph_client(
+            self._app, self, graph_base_url=graph_base_url
+        )
+
+    def get_app_graph_client_for_connection(
+        self,
+        connection_name: str,
+        graph_base_url: str = _DEFAULT_GRAPH_BASE_URL,
+    ) -> GraphServiceClient:
+        """
+        Get a Graph client for the current turn context using a specific connection.
+
+        :param connection_name: The name of the connection to use for authentication.
+        :param graph_base_url: The base URL for the Microsoft Graph API.
+
+        :return: A :class:`GraphServiceClient` that authenticates each request via
+            the agent's authorization.
+        """
+        return _common_get_app_graph_client_for_connection(
+            self._app, connection_name, graph_base_url=graph_base_url
+        )
