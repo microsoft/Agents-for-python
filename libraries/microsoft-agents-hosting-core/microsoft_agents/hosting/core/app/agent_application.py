@@ -10,6 +10,7 @@ import logging
 from contextlib import nullcontext
 from copy import copy
 from functools import partial
+from warnings import deprecated
 
 import re
 from typing import (
@@ -74,22 +75,22 @@ class AgentApplication(Agent, Generic[StateT]):
     typing: TypingIndicator
 
     _options: ApplicationOptions
-    _adapter: Optional[ChannelServiceAdapter] = None
+    _adapter: ChannelServiceAdapter | None = None
     _auth: Authorization
-    _proactive: Optional[Proactive] = None
+    _proactive: Proactive | None = None
     _internal_before_turn: list[Callable[[TurnContext, StateT], Awaitable[bool]]]
     _internal_after_turn: list[Callable[[TurnContext, StateT], Awaitable[bool]]]
     _route_list: _RouteList[StateT]
-    _error: Optional[Callable[[TurnContext, Exception], Awaitable[None]]] = None
-    _turn_state_factory: Optional[Callable[[TurnContext], StateT]] = None
+    _error: Callable[[TurnContext, Exception], Awaitable[None]] | None = None
+    _turn_state_factory: Callable[[], StateT] | None = None
     _connection_manager: Connections
 
     def __init__(
         self,
-        options: Optional[ApplicationOptions] = None,
+        options: ApplicationOptions | None = None,
         *,
-        connection_manager: Optional[Connections] = None,
-        authorization: Optional[Authorization] = None,
+        connection_manager: Connections | None = None,
+        authorization: Authorization | None = None,
         **kwargs,
     ) -> None:
         """
@@ -131,6 +132,8 @@ class AgentApplication(Agent, Generic[StateT]):
             raise ApplicationError("""
                 The `ApplicationOptions.storage` property is required and was not configured.
                 """)
+        
+        self._storage = self._options.storage
 
         if options.long_running_messages and (
             not options.adapter or not options.bot_app_id
@@ -150,13 +153,13 @@ class AgentApplication(Agent, Generic[StateT]):
         self._turn_state_factory = (
             options.turn_state_factory
             or kwargs.get("turn_state_factory", None)
-            or partial(TurnState.with_storage, self._options.storage)
+            or partial(StateT.with_storage, self._storage)
         )
 
         if options.proactive:
             proactive_opts = copy(options.proactive)
             if not proactive_opts.storage:
-                proactive_opts.storage = self._options.storage
+                proactive_opts.storage = self._storage
             self._proactive = Proactive(self, proactive_opts)
 
         # TODO: decide how to initialize the Authorization (params vs options vs kwargs)
@@ -186,7 +189,7 @@ class AgentApplication(Agent, Generic[StateT]):
                 if key not in ["storage", "connection_manager", "handlers"]
             }
             self._auth = Authorization(
-                storage=self._options.storage,
+                storage=self._storage,
                 connection_manager=connection_manager,
                 auth_handlers=options.authorization_handlers,
                 **auth_options,
@@ -378,7 +381,7 @@ class AgentApplication(Agent, Generic[StateT]):
 
         def __call(func: RouteHandler[StateT]) -> RouteHandler[StateT]:
             logger.debug(
-                f"Registering activity handler for route handler {func.__name__} with type: {activity_type} with auth handlers: {auth_handlers}"
+                f"Registering activity handler for route handler {func.__qualname__} with type: {activity_type} with auth handlers: {auth_handlers}"
             )
             self.add_route(__selector, func, auth_handlers=auth_handlers, **kwargs)
             return func
@@ -432,7 +435,7 @@ class AgentApplication(Agent, Generic[StateT]):
 
         def __call(func: RouteHandler[StateT]) -> RouteHandler[StateT]:
             logger.debug(
-                f"Registering message handler for route handler {func.__name__} with select: {select} with auth handlers: {auth_handlers}"
+                f"Registering message handler for route handler {func.__qualname__} with select: {select} with auth handlers: {auth_handlers}"
             )
             self.add_route(__selector, func, auth_handlers=auth_handlers, **kwargs)
             return func
@@ -488,7 +491,7 @@ class AgentApplication(Agent, Generic[StateT]):
 
         def __call(func: RouteHandler[StateT]) -> RouteHandler[StateT]:
             logger.debug(
-                f"Registering conversation update handler for route handler {func.__name__} with type: {update_type} with auth handlers: {auth_handlers}"
+                f"Registering conversation update handler for route handler {func.__qualname__} with type: {update_type} with auth handlers: {auth_handlers}"
             )
             self.add_route(__selector, func, auth_handlers=auth_handlers, **kwargs)
             return func
@@ -540,7 +543,7 @@ class AgentApplication(Agent, Generic[StateT]):
 
         def __call(func: RouteHandler[StateT]) -> RouteHandler[StateT]:
             logger.debug(
-                f"Registering message reaction handler for route handler {func.__name__} with type: {reaction_type} with auth handlers: {auth_handlers}"
+                f"Registering message reaction handler for route handler {func.__qualname__} with type: {reaction_type} with auth handlers: {auth_handlers}"
             )
             self.add_route(__selector, func, auth_handlers=auth_handlers, **kwargs)
             return func
@@ -605,7 +608,7 @@ class AgentApplication(Agent, Generic[StateT]):
 
         def __call(func: RouteHandler[StateT]) -> RouteHandler[StateT]:
             logger.debug(
-                f"Registering message update handler for route handler {func.__name__} with type: {update_type} with auth handlers: {auth_handlers}"
+                f"Registering message update handler for route handler {func.__qualname__} with type: {update_type} with auth handlers: {auth_handlers}"
             )
             self.add_route(__selector, func, auth_handlers=auth_handlers, **kwargs)
             return func
@@ -687,7 +690,7 @@ class AgentApplication(Agent, Generic[StateT]):
                 )
 
             logger.debug(
-                f"Registering handoff handler for route handler {func.__name__} with auth handlers: {auth_handlers}"
+                f"Registering handoff handler for route handler {func.__qualname__} with auth handlers: {auth_handlers}"
             )
 
             self.add_route(__selector, __handler, auth_handlers=auth_handlers, **kwargs)
@@ -793,7 +796,7 @@ class AgentApplication(Agent, Generic[StateT]):
 
         return func
 
-    def turn_state_factory(self, func: Callable[[TurnContext], Awaitable[StateT]]):
+    def turn_state_factory(self, func: Callable[[], StateT]):
         """
         Custom Turn State Factory
         """
@@ -872,6 +875,7 @@ class AgentApplication(Agent, Generic[StateT]):
         ):
             context.activity.text = context.remove_recipient_mention(context.activity)
 
+    @deprecated("Use `load_configuration_from_env` instead.")
     @staticmethod
     def parse_env_vars_configuration(vars: dict[str, Any]) -> dict:
         """
@@ -908,12 +912,12 @@ class AgentApplication(Agent, Generic[StateT]):
             turn_state = self._turn_state_factory()
         else:
             logger.debug("Using default turn state factory")
-            turn_state = TurnState.with_storage(self._options.storage)
+            turn_state = TurnState.with_storage(self._storage)
 
         turn_state = cast(StateT, turn_state)
 
         logger.debug("Loading turn state from storage")
-        await turn_state.load(context, self._options.storage)
+        await turn_state.load(context, self._storage)
         turn_state.temp.input = context.activity.text
         return turn_state
 

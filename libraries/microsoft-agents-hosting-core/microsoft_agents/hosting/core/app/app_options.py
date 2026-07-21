@@ -20,7 +20,6 @@ from ..channel_service_adapter import ChannelServiceAdapter
 from .state.turn_state import TurnState
 from .proactive.proactive_options import ProactiveOptions
 
-
 @dataclass
 class ApplicationOptions:
     adapter: Optional[ChannelServiceAdapter] = None
