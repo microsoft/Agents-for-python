@@ -1,10 +1,12 @@
-# Microsoft Agents Hosting Core
+# Microsoft Agents Hosting - Teams
 
-[![PyPI version](https://img.shields.io/pypi/v/microsoft-agents-hosting-core)](https://pypi.org/project/microsoft-agents-hosting-core/)
+[![PyPI version](https://img.shields.io/pypi/v/microsoft-agents-hosting-teams)](https://pypi.org/project/microsoft-agents-hosting-teams/)
 
-The core hosting library for Microsoft 365 Agents SDK. This library provides the fundamental building blocks for creating conversational AI agents, including activity processing, state management, authentication, and channel communication.
+Integration library for building Microsoft Teams agents using the Microsoft 365 Agents SDK. This library provides specialized handlers and utilities for Teams-specific functionality like messaging extensions, task modules, adaptive cards, and meeting events.
 
-This is the heart of the Microsoft 365 Agents SDK - think of it as the engine that powers your conversational agents. It handles the complex orchestration of conversations, manages state across turns, and provides the infrastructure needed to build production-ready agents that work across Microsoft 365 platforms.
+This library extends the core hosting capabilities with Teams-specific features. It handles Teams' unique interaction patterns like messaging extensions, tab applications, task modules, and meeting integrations. Think of it as the bridge that makes your agent "Teams-native" rather than just a generic chatbot.
+
+This library is still in flux, as the interfaces to Teams continue to evolve.
 
 # What is this?
 This library is part of the **Microsoft 365 Agents SDK for Python** - a comprehensive framework for building enterprise-grade conversational AI agents. The SDK enables developers to create intelligent agents that work across multiple platforms including Microsoft Teams, M365 Copilot, Copilot Studio, and web chat, with support for third-party integrations like Slack, Facebook Messenger, and Twilio.
@@ -40,15 +42,6 @@ This library is part of the **Microsoft 365 Agents SDK for Python** - a comprehe
     <td>
       <a href="https://github.com/microsoft/Agents-for-python/blob/main/changelog.md#microsoft-365-agents-sdk-for-python---release-notes-v100">
         1.0.0 Release Notes
-      </a>
-    </td>
-  </tr>
-  <tr>
-    <td>0.9.1</td>
-    <td>2026-05-04</td>
-    <td>
-      <a href="https://github.com/microsoft/Agents-for-python/blob/main/changelog.md#microsoft-365-agents-sdk-for-python---release-notes-v091">
-        0.9.1 Release Notes
       </a>
     </td>
   </tr>
@@ -133,100 +126,37 @@ Additionally we provide a Copilot Studio Client, to interact with Agents created
 ## Installation
 
 ```bash
-pip install microsoft-agents-hosting-core
+pip install microsoft-agents-hosting-teams
 ```
-## Simple Echo Agent
-See the [Quickstart sample](https://github.com/microsoft/Agents/tree/main/samples/python/quickstart) for full working code.
-
-```python
-agents_sdk_config = load_configuration_from_env(environ)
-
-STORAGE = MemoryStorage()
-CONNECTION_MANAGER = MsalConnectionManager(**agents_sdk_config)
-ADAPTER = CloudAdapter(connection_manager=CONNECTION_MANAGER)
-AUTHORIZATION = Authorization(STORAGE, CONNECTION_MANAGER, **agents_sdk_config)
-
-AGENT_APP = AgentApplication[TurnState](
-    storage=STORAGE, adapter=ADAPTER, authorization=AUTHORIZATION, **agents_sdk_config
-)
-
-@AGENT_APP.activity("message")
-async def on_message(context: TurnContext, state: TurnState):
-    await context.send_activity(f"You said: {context.activity.text}")
-
-...
-
-start_server(
-    agent_application=AGENT_APP,
-    auth_configuration=CONNECTION_MANAGER.get_default_connection_configuration(),
-)
-```
-
-## Core Concepts
-
-### AgentApplication vs ActivityHandler
-
-**AgentApplication** - Modern, fluent API for building agents:
-- Decorator-based routing (`@agent_app.activity("message")`)
-- Built-in state management and middleware
-- AI-ready with authorization support
-- Type-safe with generics
-
-**ActivityHandler** - Traditional inheritance-based approach:
-- Override methods for different activity types
-- More familiar to Bot Framework developers
-- Lower-level control over activity processing
-
-### Route-based Message Handling
-
-```python
-@AGENT_APP.message(re.compile(r"^hello$"))
-async def on_hello(context: TurnContext, _state: TurnState):
-    await context.send_activity("Hello!")
-
-
-@AGENT_APP.activity("message")
-async def on_message(context: TurnContext, _state: TurnState):
-    await context.send_activity(f"you said: {context.activity.text}")
-```
-
-### Error Handling
-
-```python
-@AGENT_APP.error
-async def on_error(context: TurnContext, error: Exception):
-    # NOTE: In production environment, you should consider logging this to Azure
-    #       application insights.
-    print(f"\n [on_turn_error] unhandled error: {error}", file=sys.stderr)
-    traceback.print_exc()
-
-    # Send a message to the user
-    await context.send_activity("The bot encountered an error or bug.")
-```
-
 
 ## Key Classes Reference
 
-### Core Classes
-- **`AgentApplication`** - Main application class with fluent API
-- **`ActivityHandler`** - Base class for inheritance-based agents
-- **`TurnContext`** - Context for each conversation turn
-- **`TurnState`** - State management across conversation turns
+- **`TeamsActivityHandler`** - Main handler class with Teams-specific event methods
+- **`TeamsInfo`** - Utility class for Teams operations (members, meetings, channels)
+- **`MessagingExtensionQuery/Response`** - Handle search and messaging extensions
+- **`TaskModuleRequest/Response`** - Interactive dialogs and forms
+- **`TabRequest/Response`** - Tab application interactions
 
-### State Management
-- **`ConversationState`** - Conversation-scoped state
-- **`UserState`** - User-scoped state across conversations
-- **`TempState`** - Temporary state for current turn
-- **`MemoryStorage`** - In-memory storage (development)
+## Features Supported
 
-### Messaging
-- **`MessageFactory`** - Create different types of messages
-- **`CardFactory`** - Create rich card attachments
-- **`InputFile`** - Handle file attachments
+✅ **Messaging Extensions** - Search and action-based extensions  
+✅ **Task Modules** - Interactive dialogs and forms  
+✅ **Adaptive Cards** - Rich card interactions  
+✅ **Meeting Events** - Start, end, participant changes  
+✅ **Team Management** - Member operations, channel messaging  
+✅ **File Handling** - Upload/download with consent flow  
+✅ **Tab Apps** - Personal and team tab interactions  
+✅ **Proactive Messaging** - Send messages to channels/users  
 
-### Authorization
-- **`Authorization`** - Authentication and authorization manager
-- **`ClaimsIdentity`** - User identity and claims
+## Migration from Bot Framework
+
+| Bot Framework Teams | Microsoft Agents Teams |
+|-------------------|------------------------|
+| `TeamsActivityHandler` | `TeamsActivityHandler` |
+| `TeamsInfo` | `TeamsInfo` |
+| `on_teams_members_added` | `on_teams_members_added_activity` |
+| `MessagingExtensionQuery` | `MessagingExtensionQuery` |
+| `TaskModuleRequest` | `TaskModuleRequest` |
 
 # Quick Links
 
