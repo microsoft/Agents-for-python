@@ -16,6 +16,7 @@ from .attachment_info import AttachmentInfo
 from .attachment_view import AttachmentView
 from .audio_card import AudioCard
 from .basic_card import BasicCard
+from .card import Card
 from .card_action import CardAction
 from .card_image import CardImage
 from .channels import Channels
@@ -120,6 +121,7 @@ __all__ = [
     "AttachmentView",
     "AudioCard",
     "BasicCard",
+    "Card",
     "CardAction",
     "CardImage",
     "Channels",
