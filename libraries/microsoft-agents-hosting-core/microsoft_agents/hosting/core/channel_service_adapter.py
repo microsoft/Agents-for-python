@@ -64,10 +64,9 @@ class ChannelServiceAdapter(ChannelAdapter, ABC):
         :type activities: list[:class:`microsoft_agents.activity.Activity`]
         :return: List of resource responses for the sent activities.
         :rtype: list[:class:`microsoft_agents.activity.ResourceResponse`]
-        :raises TypeError: If context or activities are None/invalid.
         """
         if len(activities) == 0:
-            raise TypeError("Expecting one or more activities, but the list was empty.")
+            return []
 
         responses = []
 
@@ -126,7 +125,7 @@ class ChannelServiceAdapter(ChannelAdapter, ABC):
         :type activity: :class:`microsoft_agents.activity.Activity`
         :return: Resource response for the updated activity.
         :rtype: :class:`microsoft_agents.activity.ResourceResponse`
-        :raises TypeError: If context or activity are None/invalid.
+        :raises TypeError: activity.id is None
         """
 
         if activity.id is None:
@@ -157,7 +156,7 @@ class ChannelServiceAdapter(ChannelAdapter, ABC):
         :type context: :class:`microsoft_agents.hosting.core.turn_context.TurnContext`
         :param reference: Reference to the conversation and activity to delete.
         :type reference: :class:`microsoft_agents.activity.ConversationReference`
-        :raises TypeError: If context or reference are None/invalid.
+        :raises TypeError: reference.conversation or reference.activity_id is None
         """
         if not reference.conversation or not reference.activity_id:
             raise TypeError(
@@ -257,12 +256,6 @@ class ChannelServiceAdapter(ChannelAdapter, ABC):
             raise TypeError(
                 "CloudAdapter.create_conversation(): service_url is required."
             )
-        if not conversation_parameters:
-            raise TypeError(
-                "CloudAdapter.create_conversation(): conversation_parameters is required."
-            )
-        if not callback:
-            raise TypeError("CloudAdapter.create_conversation(): callback is required.")
 
         # Create a ClaimsIdentity, to create the connector and for adding to the turn context.
         claims_identity = self.create_claims_identity(agent_app_id)
@@ -462,9 +455,7 @@ class ChannelServiceAdapter(ChannelAdapter, ABC):
 
     @staticmethod
     def _validate_continuation_activity(continuation_activity: Activity):
-        if not continuation_activity:
-            raise TypeError("CloudAdapter: continuation_activity is required.")
-
+        
         if not continuation_activity.conversation:
             raise TypeError(
                 "CloudAdapter: continuation_activity.conversation is required."

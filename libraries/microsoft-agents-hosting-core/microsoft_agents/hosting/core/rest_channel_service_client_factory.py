@@ -103,8 +103,6 @@ class RestChannelServiceClientFactory(ChannelServiceClientFactoryBase):
         scopes: list[str] | None = None,
         use_anonymous: bool = False,
     ) -> ConnectorClientBase:
-        if not claims_identity:
-            raise TypeError("claims_identity is required")
         if not service_url:
             raise TypeError(
                 "RestChannelServiceClientFactory.create_connector_client: service_url can't be None or Empty"
@@ -164,10 +162,8 @@ class RestChannelServiceClientFactory(ChannelServiceClientFactoryBase):
         :param claims_identity: The ClaimsIdentity of the user.
         :param use_anonymous: Whether to use an anonymous token provider.
         """
-        if not context or not claims_identity:
-            raise ValueError("context and claims_identity are required")
 
-        scopes = claims_identity.get_token_scope() if claims_identity else []
+        scopes = claims_identity.get_token_scope()
 
         with spans.AdapterCreateUserTokenClient(
             token_service_endpoint=self._token_service_endpoint,
