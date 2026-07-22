@@ -719,7 +719,7 @@ class Activity(AgentsModel):
         if not self.entities:
             return []
         raw_mentions = [
-            x for x in self.entities if x.type.lower() == EntityTypes.MENTION
+            x for x in self.entities if x.type.lower() == EntityTypes.MENTION.value
         ]
 
         return Activity._convert_entity_list(raw_mentions, Mention)
