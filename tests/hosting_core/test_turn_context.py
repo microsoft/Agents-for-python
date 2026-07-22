@@ -455,8 +455,8 @@ class TestTurnContext:
 
         text = TurnContext.remove_recipient_mention(activity)
 
-        assert text == " test activity"
-        assert activity.text == " test activity"
+        assert text == "test activity"
+        assert activity.text == "test activity"
 
     def test_should_remove_at_mention_with_regex_characters(self):
         activity = Activity(
@@ -475,8 +475,8 @@ class TestTurnContext:
 
         text = TurnContext.remove_recipient_mention(activity)
 
-        assert text == " test activity"
-        assert activity.text == " test activity"
+        assert text == "test activity"
+        assert activity.text == "test activity"
 
     def test_should_remove_custom_mention_from_activity(self):
         activity = Activity(
