@@ -1,6 +1,9 @@
 # Copyright (c) Microsoft Corporation. All rights reserved.
 # Licensed under the MIT License.
 
+from typing import TypeVar
+from typing_extensions import deprecated
+
 from microsoft_agents.activity import (
     AnimationCard,
     Attachment,
@@ -14,8 +17,12 @@ from microsoft_agents.activity import (
     VideoCard,
 )
 
+ContentTypesT = TypeVar("ContentTypesT", bound=ContentTypes)
+
 
 class CardFactory:
+    _content_types: type[ContentTypes] = ContentTypes
+
     @staticmethod
     def adaptive_card(card: dict) -> Attachment:
         """
@@ -160,3 +167,10 @@ class CardFactory:
             )
 
         return Attachment(content_type=ContentTypes.video_card, content=card)
+
+    @property
+    @deprecated(
+        "CardFactory.content_types is being relocated to microsoft_agents.activity.ContentTypes."
+    )
+    def content_types(self) -> type[ContentTypes]:
+        return self._content_types
