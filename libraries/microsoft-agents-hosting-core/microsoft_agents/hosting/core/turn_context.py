@@ -4,7 +4,7 @@
 from __future__ import annotations
 
 import re
-from typing import Optional, Awaitable, Any, TypeVar, Generic, Protocol
+from typing import Optional, Awaitable, TypeVar, Protocol
 
 from copy import deepcopy
 from collections.abc import Callable
@@ -349,7 +349,15 @@ class TurnContext(TurnContextProtocol):
         handlers: list[Callable[[TurnContext, _ArgT, _AsyncFunc[T]], Awaitable[T]]],
         arg: _ArgT,
         logic: _AsyncFunc[T],
-    ) -> Any:
+    ) -> T:
+        """Emits an event to the registered handlers, allowing them to intercept and modify the behavior of the logic function.
+
+        :param handlers: The list of registered handlers to invoke.
+        :param arg: The argument to pass to the handlers.
+        :param logic: The logic function to invoke after all handlers have been called.
+        :return: The result of the logic function, potentially modified by the handlers.
+        """
+
         handlers = list(handlers)
 
         async def emit_next(i: int) -> T:
@@ -404,15 +412,13 @@ class TurnContext(TurnContextProtocol):
         activity.service_url = reference.service_url
         activity.conversation = reference.conversation
         if is_incoming:
-            if reference.user:
-                activity.from_property = reference.user
+            activity.from_property = reference.user
             activity.recipient = reference.agent
             if reference.activity_id:
                 activity.id = reference.activity_id
         else:
             activity.from_property = reference.agent
-            if reference.user:
-                activity.recipient = reference.user
+            activity.recipient = reference.user
             if reference.activity_id:
                 activity.reply_to_id = reference.activity_id
 
@@ -440,7 +446,7 @@ class TurnContext(TurnContextProtocol):
         """
         mentions = TurnContext.get_mentions(activity)
         for mention in mentions:
-            if mention.mentioned.id == identifier:
+            if mention.mentioned and mention.mentioned.id == identifier:
                 mention_name_match = re.match(
                     r"<at(.*)>(.*?)<\/at>",
                     re.escape(mention.text or ""),
