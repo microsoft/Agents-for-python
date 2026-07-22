@@ -9,6 +9,7 @@ from aiohttp import ClientResponseError, ClientSession
 
 from microsoft_agents.hosting.core.connector import UserTokenClientBase
 from microsoft_agents.activity import (
+    ChannelId,
     TokenOrSignInResourceResponse,
     TokenResponse,
     TokenStatus,
@@ -120,6 +121,8 @@ class UserToken(UserTokenBase):
         code: Optional[str] = None,
     ) -> TokenResponse:
 
+        channel_id = ChannelId.get_channel(channel_id)
+
         with spans.GetUserToken(
             connection_name=connection_name, user_id=user_id, channel_id=channel_id
         ) as span:
@@ -154,6 +157,8 @@ class UserToken(UserTokenBase):
         fwd_url: str = "",
     ) -> TokenOrSignInResourceResponse:
         """Get token or sign-in resource for a user."""
+
+        channel_id = ChannelId.get_channel(channel_id)
 
         with spans.GetTokenOrSignInResource(
             connection_name=connection_name, user_id=user_id, channel_id=channel_id
@@ -192,6 +197,8 @@ class UserToken(UserTokenBase):
     ) -> dict[str, TokenResponse]:
         """Get AAD tokens for a user."""
 
+        channel_id = ChannelId.get_channel(channel_id)
+
         with spans.GetAadTokens(
             connection_name=connection_name, user_id=user_id, channel_id=channel_id
         ) as span:
@@ -221,6 +228,8 @@ class UserToken(UserTokenBase):
     ) -> None:
         """Sign out user from a connection."""
 
+        channel_id = ChannelId.get_channel(channel_id)
+
         with spans.SignOut(
             user_id=user_id, connection_name=connection_name, channel_id=channel_id
         ) as span:
@@ -248,6 +257,8 @@ class UserToken(UserTokenBase):
         include: Optional[str] = None,
     ) -> list[TokenStatus]:
         """Get token status for a user."""
+
+        channel_id = ChannelId.get_channel(channel_id)
 
         with spans.GetTokenStatus(user_id=user_id, channel_id=channel_id) as span:
             params = {"userId": user_id}
@@ -280,6 +291,8 @@ class UserToken(UserTokenBase):
         body: Optional[dict] = None,
     ) -> TokenResponse:
         """Exchange token for a user."""
+
+        channel_id = ChannelId.get_channel(channel_id)
 
         with spans.ExchangeToken(
             connection_name=connection_name, user_id=user_id, channel_id=channel_id

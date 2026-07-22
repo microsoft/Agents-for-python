@@ -83,28 +83,10 @@ class DialogManager:
         # Register DialogManager with TurnState.
         context.turn_state[DialogManager.__name__] = self
 
-        # Resolve ConversationState
-        conversation_state_name = ConversationState.__name__
-        if self.conversation_state is None:
-            if conversation_state_name not in context.turn_state:
-                raise Exception(
-                    f"Unable to get an instance of {conversation_state_name} from turn_context. "
-                    f"Please ensure ConversationState is available in turn_state."
-                )
-            self.conversation_state = cast(
-                ConversationState, context.turn_state[conversation_state_name]
-            )
-        else:
-            context.turn_state[conversation_state_name] = self.conversation_state
-
-        # Resolve UserState (optional)
-        user_state_name = UserState.__name__
-        if self.user_state is None:
-            self.user_state = cast(
-                UserState | None, context.turn_state.get(user_state_name, None)
-            )
-        else:
-            context.turn_state[user_state_name] = self.user_state
+        if self.conversation_state is not None:
+            await self.conversation_state.load(context, False)
+            if self.user_state is not None:
+                await self.user_state.load(context, False)
 
         # Create property accessors
         last_access_property = self.conversation_state.create_property(self.last_access)

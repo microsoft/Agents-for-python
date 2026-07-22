@@ -54,6 +54,7 @@ from .authorization.access_token_provider_base import AccessTokenProviderBase
 from .authorization.authentication_constants import AuthenticationConstants
 from .authorization.anonymous_token_provider import AnonymousTokenProvider
 from .authorization.connections import Connections
+from .authorization.connection_manager import ConnectionManager
 from .authorization.agent_auth_configuration import AgentAuthConfiguration
 from .authorization.claims_identity import ClaimsIdentity
 from .authorization.jwt_token_validator import JwtTokenValidator
@@ -142,6 +143,7 @@ __all__ = [
     "AuthenticationConstants",
     "AnonymousTokenProvider",
     "Connections",
+    "ConnectionManager",
     "AgentAuthConfiguration",
     "ClaimsIdentity",
     "JwtTokenValidator",

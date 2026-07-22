@@ -20,7 +20,6 @@ from .card_action import CardAction
 from .card_image import CardImage
 from .channels import Channels
 from .channel_account import ChannelAccount
-from ._channel_id_field_mixin import _ChannelIdFieldMixin
 from .channel_id import ChannelId
 from .conversation_account import ConversationAccount
 from .conversation_members import ConversationMembers
@@ -45,6 +44,8 @@ from .entity import (
     ProductInfo,
     Thing,
     StreamInfo,
+    ActivityTreatment,
+    ActivityTreatmentTypes,
 )
 from .error import Error
 from .error_response import ErrorResponse
@@ -124,7 +125,6 @@ __all__ = [
     "Channels",
     "ChannelAccount",
     "ChannelId",
-    "_ChannelIdFieldMixin",
     "ConversationAccount",
     "ConversationMembers",
     "ConversationParameters",
@@ -199,5 +199,7 @@ __all__ = [
     "load_configuration_from_env",
     "ChannelAdapterProtocol",
     "TurnContextProtocol",
+    "ActivityTreatment",
+    "ActivityTreatmentTypes",
     "TokenOrSignInResourceResponse",
 ]
