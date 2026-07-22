@@ -4,7 +4,7 @@
 from __future__ import annotations
 
 import re
-from typing import Optional, Awaitable, Any
+from typing import Optional, Awaitable, Any, TypeVar, Generic, Protocol
 
 from copy import deepcopy
 from collections.abc import Callable
@@ -33,8 +33,16 @@ OnUpdateActivityHandler = Callable[
     Awaitable[ResourceResponse],
 ]
 OnDeleteActivityHandler = Callable[
-    ["TurnContext", ConversationReference, Callable[[], Awaitable]], Awaitable[None]
+    ["TurnContext", ConversationReference, Callable[[], Awaitable[None]]],
+    Awaitable[None],
 ]
+
+T = TypeVar("T")
+_ArgT = TypeVar("_ArgT")
+
+
+class _AsyncFunc(Protocol[T]):
+    def __call__(self) -> Awaitable[T]: ...
 
 
 class TurnContext(TurnContextProtocol):
@@ -248,7 +256,7 @@ class TurnContext(TurnContextProtocol):
             ]
 
             # send activities through adapter
-            async def logic():
+            async def logic() -> list[ResourceResponse]:
                 nonlocal sent_non_trace_activity
 
                 if self.activity.delivery_mode == DeliveryModes.expect_replies:
@@ -272,7 +280,7 @@ class TurnContext(TurnContextProtocol):
                     self.responded = True
                 return responses
 
-            return await self._emit(self._on_send_activities, output, logic())
+            return await self._emit(self._on_send_activities, output, logic)
 
     async def update_activity(self, activity: Activity):
         """
@@ -285,7 +293,7 @@ class TurnContext(TurnContextProtocol):
         return await self._emit(
             self._on_update_activity,
             TurnContext.apply_conversation_reference(activity, reference),
-            self.adapter.update_activity(self, activity),
+            lambda: self.adapter.update_activity(self, activity),
         )
 
     async def delete_activity(self, id_or_reference: str | ConversationReference):
@@ -299,10 +307,11 @@ class TurnContext(TurnContextProtocol):
             reference.activity_id = id_or_reference
         else:
             reference = id_or_reference
+
         return await self._emit(
             self._on_delete_activity,
             reference,
-            self.adapter.delete_activity(self, reference),
+            lambda: self.adapter.delete_activity(self, reference),
         )
 
     def on_send_activities(self, handler: OnSendActivitiesHandler) -> TurnContext:
@@ -325,7 +334,7 @@ class TurnContext(TurnContextProtocol):
         self._on_update_activity.append(handler)
         return self
 
-    def on_delete_activity(self, handler: OnDeleteActivityHandler) -> "TurnContext":
+    def on_delete_activity(self, handler: OnDeleteActivityHandler) -> TurnContext:
         """
         Registers a handler to be notified of and potentially intercept an activity being deleted.
         :param handler: the handler to register
@@ -336,26 +345,26 @@ class TurnContext(TurnContextProtocol):
         return self
 
     async def _emit(
-        self, plugins: list[Callable], arg: Any, logic: Awaitable[Any]
+        self,
+        handlers: list[Callable[[TurnContext, _ArgT, _AsyncFunc[T]], Awaitable[T]]],
+        arg: _ArgT,
+        logic: _AsyncFunc[T],
     ) -> Any:
-        handlers = list(plugins)
+        handlers = list(handlers)
 
-        async def emit_next(i: int):
-            context = self
-            try:
-                if i < len(handlers):
+        async def emit_next(i: int) -> T:
+            call_next: _AsyncFunc[T]
+            if i + 1 < len(handlers):
+                call_next = lambda: emit_next(i + 1)
+            else:
+                call_next = logic
 
-                    async def next_handler():
-                        await emit_next(i + 1)
+            return await handlers[i](self, arg, call_next)
 
-                    await handlers[i](context, arg, next_handler)
+        if len(handlers) > 0:
+            return await emit_next(0)
 
-            except Exception as error:
-                raise error
-
-        await emit_next(0)
-        # logic does not use parentheses because it's a coroutine
-        return await logic
+        return await logic()
 
     async def send_trace_activity(
         self,
@@ -427,19 +436,14 @@ class TurnContext(TurnContextProtocol):
     @staticmethod
     def remove_mention_text(activity: Activity, identifier: str) -> str:
         """
-        TODO: manual test for this function as it was replaced from manual code to re.escape
-
-        Previously: This was a copy of the re.escape function in Python 3.8.  This was done
-        because the 3.6.x version didn't escape in the same way and handling
-        agent names with regex characters in it would fail in TurnContext.remove_mention_text
-        without escaping the text.
+        Remove a mention matching the given account identifier from activity.text.
         """
         mentions = TurnContext.get_mentions(activity)
         for mention in mentions:
-            if mention.additional_properties["mentioned"]["id"] == identifier:
+            if mention.mentioned.id == identifier:
                 mention_name_match = re.match(
                     r"<at(.*)>(.*?)<\/at>",
-                    re.escape(mention.additional_properties.get("text", "")),
+                    re.escape(mention.text or ""),
                     re.IGNORECASE,
                 )
                 if mention_name_match:
