@@ -3,7 +3,7 @@
 
 import logging
 
-from dataclasses import dataclass
+from jwt import PyJWTError
 
 from microsoft_agents.hosting.core.http import HttpResponse
 
@@ -54,7 +54,7 @@ async def _authorize_request(
     try:
         claims = await validator.validate_token(parts[1])
         return claims
-    except ValueError as e:
+    except (PyJWTError, ValueError) as e:
         logger.warning("JWT validation error: %s", e)
         return HttpResponse(
             body={"error": "Invalid token or authentication failed."},

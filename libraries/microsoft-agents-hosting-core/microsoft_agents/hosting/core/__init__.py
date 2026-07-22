@@ -15,9 +15,9 @@ from .http import (
     HttpRequestProtocol,
     HttpResponse,
     HttpResponseFactory,
-    HttpAdapterBase,
     ChannelServiceRoutes,
 )
+from ._http_adapter_base import HttpAdapterBase
 
 # Application Style
 from .app._type_defs import RouteHandler, RouteSelector, StateT

@@ -5,10 +5,9 @@ from typing import Optional
 
 from aiohttp.web import Request, Response, json_response
 
-from microsoft_agents.hosting.core import Agent
+from microsoft_agents.hosting.core import Agent, HttpAdapterBase
 from microsoft_agents.hosting.core.authorization import Connections
 from microsoft_agents.hosting.core.http import (
-    HttpAdapterBase,
     HttpResponse,
 )
 from microsoft_agents.hosting.core import ChannelServiceClientFactoryBase

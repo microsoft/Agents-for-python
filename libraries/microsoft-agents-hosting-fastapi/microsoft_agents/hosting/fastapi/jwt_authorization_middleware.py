@@ -9,13 +9,9 @@ from fastapi.responses import JSONResponse
 
 from starlette.types import ASGIApp, Receive, Scope, Send
 
-from microsoft_agents.hosting.core import (
-    AgentAuthConfiguration,
-    ClaimsIdentity,
-    JwtTokenValidator,
-    HttpResponse,
-)
+from microsoft_agents.hosting.core import AgentAuthConfiguration
 from microsoft_agents.hosting.core.authorization.jwt import _authorize_request
+from microsoft_agents.hosting.core.http import HttpResponse
 
 logger = logging.getLogger(__name__)
 
@@ -50,10 +46,11 @@ class JwtAuthorizationMiddleware:
         )
 
         if isinstance(res, HttpResponse):
-            response = JSONResponse(body=res.body, status_code=res.status_code)
+            response = JSONResponse(content=res.body, status_code=res.status_code)
             await response(scope, receive, send)
             return
 
+        request.state.claims_identity = res
         await self.app(scope, receive, send)
 
 
@@ -76,7 +73,8 @@ def jwt_authorization_decorator(func):
 
         res = await _authorize_request(auth_header, auth_config)
         if isinstance(res, HttpResponse):
-            return JSONResponse(body=res.body, status_code=res.status_code)
+            return JSONResponse(content=res.body, status_code=res.status_code)
+        request.state.claims_identity = res
         return await func(request, *args, **kwargs)
 
     return wrapper
