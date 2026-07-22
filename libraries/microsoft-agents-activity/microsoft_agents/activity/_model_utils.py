@@ -2,9 +2,11 @@
 # Licensed under the MIT License.
 
 from abc import ABC
-from typing import Any, Callable
+from typing import Any, Callable, TypeVar
 
 from .agents_model import AgentsModel
+
+AgentsModelT = TypeVar("AgentsModelT", bound=AgentsModel)
 
 
 class ModelFieldHelper(ABC):
@@ -55,7 +57,7 @@ def pick_model_dict(**kwargs):
     return model_dict
 
 
-def pick_model(model_class: type[AgentsModel], **kwargs) -> AgentsModel:
+def pick_model(model_class: type[AgentsModelT], **kwargs) -> AgentsModelT:
     """Picks model fields from the given keyword arguments.
 
     Usage:
