@@ -13,7 +13,8 @@ import pytest
 from microsoft_agents.activity import Activity, ActivityTypes
 from microsoft_agents.hosting.core import TurnContext
 from microsoft_agents.hosting.core.app import AgentApplication, RouteRank
-from microsoft_agents.hosting.slack import SlackAgentExtension, SlackApi
+from microsoft_agents.hosting.slack import SlackAgentExtension
+from microsoft_agents.hosting.slack.api import SlackApi
 
 
 def _make_app() -> MagicMock:
