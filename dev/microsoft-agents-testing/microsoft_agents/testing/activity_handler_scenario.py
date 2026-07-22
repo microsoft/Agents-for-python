@@ -16,7 +16,10 @@ from contextlib import asynccontextmanager
 
 from aiohttp.web import Application, Request, Response, middleware
 from aiohttp.test_utils import TestServer
+from dotenv import dotenv_values
 
+from microsoft_agents.activity import load_configuration_from_env
+from microsoft_agents.authentication.msal import MsalConnectionManager
 from microsoft_agents.hosting.core import (
     ActivityHandler,
     ConversationState,
@@ -44,7 +47,7 @@ class ActivityHandlerEnvironment:
         storage: In-memory state storage shared by all state objects.
         conversation_state: Conversation-scoped state accessor.
         user_state: User-scoped state accessor.
-        adapter: CloudAdapter instance (anonymous auth, no real credentials).
+        adapter: CloudAdapter instance configured from the scenario environment.
         handler: The ActivityHandler instance under test.
     """
 
@@ -60,8 +63,9 @@ class ActivityHandlerScenario(Scenario):
 
     Use this scenario when your agent extends ``ActivityHandler`` rather than
     ``AgentApplication``.  The scenario creates ``MemoryStorage``,
-    ``ConversationState``, ``UserState``, and a ``CloudAdapter`` (no auth), then
-    wires them up and hosts the handler on an ephemeral aiohttp test server.
+    ``ConversationState``, ``UserState``, and a ``CloudAdapter`` backed by the
+    configured service connection, then wires them up and hosts the handler on
+    an ephemeral aiohttp test server.
 
     Example::
 
@@ -104,10 +108,14 @@ class ActivityHandlerScenario(Scenario):
 
     async def _setup(self) -> None:
         """Create storage, state objects, adapter, and handler."""
+        env_vars = dotenv_values(self._config.env_file_path or ".env")
+        sdk_config = load_configuration_from_env(env_vars)
+
         storage = MemoryStorage()
         conv_state = ConversationState(storage)
         user_state = UserState(storage)
-        adapter = CloudAdapter()
+        connection_manager = MsalConnectionManager(**sdk_config)
+        adapter = CloudAdapter(connection_manager=connection_manager)
 
         result = self._create_handler(conv_state, user_state, storage)
         if hasattr(result, "__await__"):
