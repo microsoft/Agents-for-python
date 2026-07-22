@@ -873,10 +873,10 @@ class AgentApplication(Agent, Generic[StateT]):
         ):
             context.activity.text = context.remove_recipient_mention(context.activity)
 
+    @staticmethod
     @deprecated(
         "Use `load_configuration_from_env` from `microsoft_agents.activity` instead."
     )
-    @staticmethod
     def parse_env_vars_configuration(vars: dict[str, Any]) -> dict:
         """
         Parses environment variables and returns a dictionary with the relevant configuration.
