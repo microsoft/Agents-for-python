@@ -116,6 +116,9 @@ class DialogUserTokenClient:
         )
         self.agent_sign_in = _MockAgentSignIn()
 
+    async def close(self) -> None:
+        return None
+
     def add_user_token(
         self,
         connection_name: str,
