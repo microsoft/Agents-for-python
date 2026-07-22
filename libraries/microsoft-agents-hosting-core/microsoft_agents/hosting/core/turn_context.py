@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import re
-from typing import Optional, TYPE_CHECKING
+from typing import Optional
 
 from copy import copy, deepcopy
 from collections.abc import Callable

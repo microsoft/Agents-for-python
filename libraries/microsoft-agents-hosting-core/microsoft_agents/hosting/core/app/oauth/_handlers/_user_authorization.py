@@ -81,7 +81,10 @@ class _UserAuthorization(_AuthorizationHandler):
         channel_id = context.activity.channel_id
         user_id = context.activity.from_property.id
 
-        ms_app_id = context.identity.claims["aud"]
+        identity = context.identity
+        if identity is None:
+            raise ValueError("ClaimsIdentity is required on TurnContext for OAuth flow.")
+        ms_app_id = identity.claims["aud"]
 
         # try to load existing state
         flow_storage_client = _FlowStorageClient(channel_id, user_id, self._storage)
