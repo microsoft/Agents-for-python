@@ -7,6 +7,7 @@ from typing import TypeVar, cast, Any
 
 T = TypeVar("T")
 
+
 class _ServiceSet:
     """
     Analog of .NET's TurnContextStateCollection
