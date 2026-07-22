@@ -7,7 +7,13 @@ import logging
 from typing import Optional, Callable, Awaitable, cast
 from dataclasses import dataclass
 
-from microsoft_agents.activity import Activity, Channels, SignInConstants, TokenResponse
+from microsoft_agents.activity import (
+    Activity,
+    Channels,
+    ChannelId,
+    SignInConstants,
+    TokenResponse,
+)
 from microsoft_agents.activity.activity_types import ActivityTypes
 
 from ...turn_context import TurnContext
@@ -283,7 +289,7 @@ class Authorization:
         elif sign_in_response.tag in [_FlowStateTag.BEGIN, _FlowStateTag.CONTINUE]:
             # Handling special case for Teams SSO, ConsentRequired
             if not (
-                context.activity.channel_id.channel == Channels.ms_teams
+                ChannelId.get_channel(context.activity.channel_id) == Channels.ms_teams.value
                 and sign_in_state.continuation_activity
                 and context.activity.type == ActivityTypes.invoke
                 and context.activity.name
