@@ -1,6 +1,5 @@
 # Copyright (c) Microsoft Corporation. All rights reserved.
 # Licensed under the MIT License.
-import json
 
 from aiohttp.web import RouteTableDef, Request, Response
 
@@ -47,8 +46,10 @@ def channel_service_route_table(
     routes = RouteTableDef()
     service_routes = ChannelServiceRoutes(handler, base_url)
 
-    def json_response(data: dict) -> Response:
-        return Response(body=json.dumps(data), content_type="application/json")
+    def json_response(data: dict | list[dict]) -> Response:
+        import json
+
+        return Response(text=json.dumps(data), content_type="application/json")
 
     @routes.post(base_url + "/v3/conversations/{conversation_id}/activities")
     async def send_to_conversation(request: Request):

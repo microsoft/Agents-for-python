@@ -222,8 +222,8 @@ class TestConnectorUserAuthorization(TestEnv):
             context, "some_connection", ["scope1"]
         )
 
-        # Should return None when OBO fails
-        assert token_response is None
+        # Should return an empty TokenResponse when OBO fails
+        assert token_response == TokenResponse()
 
     @pytest.mark.asyncio
     async def test_sign_out_is_noop(

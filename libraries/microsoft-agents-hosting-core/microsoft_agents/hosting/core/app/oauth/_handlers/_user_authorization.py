@@ -5,7 +5,7 @@ Licensed under the MIT License.
 
 from __future__ import annotations
 import logging
-from typing import Optional
+from typing import cast
 
 from microsoft_agents.activity import (
     Activity,
@@ -24,6 +24,8 @@ from microsoft_agents.activity.token_exchange_invoke_request import (
 from microsoft_agents.activity.token_exchange_invoke_response import (
     TokenExchangeInvokeResponse,
 )
+
+from microsoft_agents.hosting.core.authorization import ClaimsIdentity
 from microsoft_agents.hosting.core._oauth._flow_state import _FlowErrorTag
 from microsoft_agents.hosting.core.card_factory import CardFactory
 from microsoft_agents.hosting.core.message_factory import MessageFactory
@@ -91,7 +93,7 @@ class _UserAuthorization(_AuthorizationHandler):
         # try to load existing state
         flow_storage_client = _FlowStorageClient(channel_id, user_id, self._storage)
         logger.info("Loading OAuth flow state from storage")
-        flow_state: _FlowState = await flow_storage_client.read(self._id)
+        flow_state: _FlowState | None = await flow_storage_client.read(self._id)
         if not flow_state:
             logger.info("No existing flow state found, creating new flow state")
             flow_state = _FlowState(
@@ -110,8 +112,8 @@ class _UserAuthorization(_AuthorizationHandler):
         self,
         context: TurnContext,
         input_token_response: TokenResponse,
-        exchange_connection: Optional[str] = None,
-        exchange_scopes: Optional[list[str]] = None,
+        exchange_connection: str | None = None,
+        exchange_scopes: list[str] | None = None,
     ) -> TokenResponse:
         """
         Exchanges a token for another token with different scopes.
@@ -249,8 +251,8 @@ class _UserAuthorization(_AuthorizationHandler):
     async def _sign_in(
         self,
         context: TurnContext,
-        exchange_connection: Optional[str] = None,
-        exchange_scopes: Optional[list[str]] = None,
+        exchange_connection: str | None = None,
+        exchange_scopes: list[str] | None = None,
     ) -> _SignInResponse:
         """Begins or continues an OAuth flow.
 
@@ -301,17 +303,17 @@ class _UserAuthorization(_AuthorizationHandler):
     async def get_refreshed_token(
         self,
         context: TurnContext,
-        exchange_connection: Optional[str] = None,
-        exchange_scopes: Optional[list[str]] = None,
+        exchange_connection: str | None = None,
+        exchange_scopes: list[str] | None = None,
     ) -> TokenResponse:
         """Attempts to get a refreshed token for the user with the given scopes
 
         :param context: The turn context for the current turn of conversation.
         :type context: TurnContext
         :param exchange_connection: Optional name of the connection to use for token exchange. If None, default connection will be used.
-        :type exchange_connection: Optional[str], Optional
+        :type exchange_connection: str | None, Optional
         :param exchange_scopes: Optional list of scopes to request during token exchange. If None, default scopes will be used.
-        :type exchange_scopes: Optional[list[str]], Optional
+        :type exchange_scopes: list[str] | None, Optional
         """
         flow, _ = await self._load_flow(context)
         input_token_response = await flow.get_user_token()

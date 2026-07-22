@@ -14,6 +14,7 @@ from microsoft_agents.activity import (
     ActivityTypes,
     CallerIdConstants,
     Channels,
+    ChannelId,
     ConversationAccount,
     ConversationReference,
     ConversationResourceResponse,
@@ -500,7 +501,7 @@ class ChannelServiceAdapter(ChannelAdapter, ABC):
         # Create a conversation update activity to represent the result.
         activity = Activity.create_event_activity()
         activity.name = ActivityEventNames.create_conversation
-        activity.channel_id = channel_id
+        activity.channel_id = ChannelId(channel_id)
         activity.service_url = service_url
         activity.id = create_conversation_result.activity_id or str(uuid4())
         activity.conversation = ConversationAccount(

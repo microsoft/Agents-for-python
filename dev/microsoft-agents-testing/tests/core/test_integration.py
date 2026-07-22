@@ -139,8 +139,8 @@ class MockAgentServer:
                 text=json.dumps({"id": "msg-1"}),
             )
 
-        except Exception as e:
-            return Response(status=500, text=str(e))
+        except Exception:
+            return Response(status=500, text="Internal server error")
 
     def _get_responses(self, activity: Activity) -> list[dict]:
         """Get configured responses for an activity."""
