@@ -168,9 +168,5 @@ class CardFactory:
 
         return Attachment(content_type=ContentTypes.video_card, content=card)
 
-    @property
-    @deprecated(
-        "CardFactory.content_types is being relocated to microsoft_agents.activity.ContentTypes."
-    )
-    def content_types(self) -> type[ContentTypes]:
-        return self._content_types
+    # Deprecated alias; use microsoft_agents.activity.ContentTypes instead.
+    content_types: type[ContentTypes] = ContentTypes
