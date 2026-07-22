@@ -113,15 +113,6 @@ class UserToken(UserTokenBase):
     def __init__(self, client: ClientSession):
         self.client = client
 
-    @staticmethod
-    def _base_channel_id(channel_id: Optional[str]) -> Optional[str]:
-        """Return the Bot Framework channel without an optional sub-channel."""
-        if not channel_id or not channel_id.strip():
-            return channel_id
-
-        base_channel_id = ChannelId(channel_id).channel
-        return base_channel_id or channel_id
-
     async def get_token(
         self,
         user_id: str,
@@ -130,7 +121,7 @@ class UserToken(UserTokenBase):
         code: Optional[str] = None,
     ) -> TokenResponse:
 
-        channel_id = self._base_channel_id(channel_id)
+        channel_id = ChannelId.get_channel(channel_id)
 
         with spans.GetUserToken(
             connection_name=connection_name, user_id=user_id, channel_id=channel_id
@@ -167,7 +158,7 @@ class UserToken(UserTokenBase):
     ) -> TokenOrSignInResourceResponse:
         """Get token or sign-in resource for a user."""
 
-        channel_id = self._base_channel_id(channel_id)
+        channel_id = ChannelId.get_channel(channel_id)
 
         with spans.GetTokenOrSignInResource(
             connection_name=connection_name, user_id=user_id, channel_id=channel_id
@@ -206,7 +197,7 @@ class UserToken(UserTokenBase):
     ) -> dict[str, TokenResponse]:
         """Get AAD tokens for a user."""
 
-        channel_id = self._base_channel_id(channel_id)
+        channel_id = ChannelId.get_channel(channel_id)
 
         with spans.GetAadTokens(
             connection_name=connection_name, user_id=user_id, channel_id=channel_id
@@ -237,7 +228,7 @@ class UserToken(UserTokenBase):
     ) -> None:
         """Sign out user from a connection."""
 
-        channel_id = self._base_channel_id(channel_id)
+        channel_id = ChannelId.get_channel(channel_id)
 
         with spans.SignOut(
             user_id=user_id, connection_name=connection_name, channel_id=channel_id
@@ -267,7 +258,7 @@ class UserToken(UserTokenBase):
     ) -> list[TokenStatus]:
         """Get token status for a user."""
 
-        channel_id = self._base_channel_id(channel_id)
+        channel_id = ChannelId.get_channel(channel_id)
 
         with spans.GetTokenStatus(user_id=user_id, channel_id=channel_id) as span:
             params = {"userId": user_id}
@@ -301,7 +292,7 @@ class UserToken(UserTokenBase):
     ) -> TokenResponse:
         """Exchange token for a user."""
 
-        channel_id = self._base_channel_id(channel_id)
+        channel_id = ChannelId.get_channel(channel_id)
 
         with spans.ExchangeToken(
             connection_name=connection_name, user_id=user_id, channel_id=channel_id
