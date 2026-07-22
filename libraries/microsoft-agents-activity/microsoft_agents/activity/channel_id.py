@@ -14,35 +14,28 @@ from microsoft_agents.activity.errors import activity_errors
 class ChannelId(str):
     """A ChannelId represents a channel and optional sub-channel in the format 'channel:sub_channel'."""
 
+    _channel: str
+    _sub_channel: str | None
+
     def __init__(
         self,
-        value: Optional[str] = None,
+        value: str | None = None,
         *,
-        channel: Optional[str] = None,
-        sub_channel: Optional[str] = None,
+        channel: str | None = None,
+        sub_channel: str | None = None,
     ) -> None:
-        """Initialize a ChannelId instance.
+        """Accept the public constructor signature after __new__ initializes the instance.
 
-        :param value: The full channel ID string in the format 'channel:sub_channel'. Must be provided if channel is not provided.
-        :param channel: The main channel string. Must be provided if value is not provided.
-        :param sub_channel: The sub-channel string.
-        :raises ValueError: If the input parameters are invalid. value and channel cannot both be provided.
+        ChannelId subclasses str, an immutable type, so the string value and derived
+        channel parts must be assigned in __new__ when the instance is created.
         """
-        super().__init__()
-        if not channel:
-            split = self.strip().split(":", 1)
-            self._channel = split[0].strip()
-            self._sub_channel = split[1].strip() if len(split) == 2 else None
-        else:
-            self._channel = channel
-            self._sub_channel = sub_channel
 
     def __new__(
         cls,
-        value: Optional[str] = None,
+        value: str | None = None,
         *,
-        channel: Optional[str] = None,
-        sub_channel: Optional[str] = None,
+        channel: str | None = None,
+        sub_channel: str | None = None,
     ) -> ChannelId:
         """Create a new ChannelId instance.
 
@@ -52,30 +45,47 @@ class ChannelId(str):
         :return: A new ChannelId instance.
         :raises ValueError: If the input parameters are invalid. value and channel cannot both be provided.
         """
+        if isinstance(value, cls) and channel is None and sub_channel is None:
+            return value
+
+        value, channel, sub_channel = cls._normalize(value, channel, sub_channel)
+
+        instance = str.__new__(cls, value)
+        instance._channel = channel
+        instance._sub_channel = sub_channel
+        return instance
+
+    @staticmethod
+    def _normalize(
+        value: Optional[str],
+        channel: Optional[str],
+        sub_channel: Optional[str],
+    ) -> tuple[str, str, Optional[str]]:
+        """Normalize constructor arguments into string, channel, and sub-channel."""
         if isinstance(value, str):
             if channel or sub_channel:
                 raise ValueError(str(activity_errors.ChannelIdValueConflict))
 
             value = value.strip()
-            if value:
-                return str.__new__(cls, value)
-            raise TypeError(str(activity_errors.ChannelIdValueMustBeNonEmpty))
-        else:
-            if (
-                not isinstance(channel, str)
-                or len(channel.strip()) == 0
-                or ":" in channel
-            ):
-                raise TypeError(
-                    "channel must be a non empty string, and must not contain the ':' character"
-                )
-            if sub_channel is not None and (not isinstance(sub_channel, str)):
-                raise TypeError("sub_channel must be a string if provided")
-            channel = channel.strip()
-            sub_channel = sub_channel.strip() if sub_channel else None
-            if sub_channel:
-                return str.__new__(cls, f"{channel}:{sub_channel}")
-            return str.__new__(cls, channel)
+            if not value:
+                raise TypeError(str(activity_errors.ChannelIdValueMustBeNonEmpty))
+
+            split = value.split(":", 1)
+            channel = split[0].strip()
+            sub_channel = split[1].strip() if len(split) == 2 else None
+            return value, channel, sub_channel
+
+        if not isinstance(channel, str) or len(channel.strip()) == 0 or ":" in channel:
+            raise TypeError(
+                "channel must be a non empty string, and must not contain the ':' character"
+            )
+        if sub_channel is not None and (not isinstance(sub_channel, str)):
+            raise TypeError("sub_channel must be a string if provided")
+        channel = channel.strip()
+        sub_channel = sub_channel.strip() if sub_channel else None
+        if sub_channel:
+            return f"{channel}:{sub_channel}", channel, sub_channel
+        return channel, channel, None
 
     @property
     def channel(self) -> str:
@@ -83,7 +93,7 @@ class ChannelId(str):
         return self._channel  # type: ignore[return-value]
 
     @property
-    def sub_channel(self) -> Optional[str]:
+    def sub_channel(self) -> str | None:
         """The sub-channel, e.g. 'work' in 'email:work'. May be None."""
         return self._sub_channel
 
@@ -93,3 +103,20 @@ class ChannelId(str):
         cls, source_type: Any, handler: GetCoreSchemaHandler
     ) -> CoreSchema:
         return core_schema.no_info_after_validator_function(cls, handler(str))
+
+    @staticmethod
+    def get_sub_channel(channel_id: str | ChannelId | None) -> str | None:
+        """Return the sub-channel from a ChannelId or string."""
+        if not channel_id or not channel_id.strip():
+            return None
+        if isinstance(channel_id, ChannelId):
+            return channel_id.sub_channel
+        return channel_id.split(":", 1)[1].strip() if ":" in channel_id else None
+
+    @staticmethod
+    def get_channel(channel_id: str | ChannelId | None) -> str | None:
+        """Return the Bot Framework channel without an optional sub-channel."""
+        if not channel_id or not channel_id.strip():
+            return channel_id
+        parsed = channel_id.split(":", 1)[0].strip() if ":" in channel_id else None
+        return parsed or channel_id

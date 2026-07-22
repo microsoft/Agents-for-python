@@ -20,7 +20,6 @@ from .card_action import CardAction
 from .card_image import CardImage
 from .channels import Channels
 from .channel_account import ChannelAccount
-from ._channel_id_field_mixin import _ChannelIdFieldMixin
 from .channel_id import ChannelId
 from .conversation_account import ConversationAccount
 from .conversation_members import ConversationMembers
@@ -126,7 +125,6 @@ __all__ = [
     "Channels",
     "ChannelAccount",
     "ChannelId",
-    "_ChannelIdFieldMixin",
     "ConversationAccount",
     "ConversationMembers",
     "ConversationParameters",
