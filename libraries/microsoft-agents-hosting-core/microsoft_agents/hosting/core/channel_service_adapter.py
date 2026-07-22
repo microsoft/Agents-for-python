@@ -40,6 +40,7 @@ from .turn_context import TurnContext
 
 
 class ChannelServiceAdapter(ChannelAdapter, ABC):
+    _AGENT_CONNECTOR_CLIENT_KEY = "ConnectorClient"
 
     def __init__(self, channel_service_client_factory: ChannelServiceClientFactoryBase):
         """
@@ -293,6 +294,9 @@ class ChannelServiceAdapter(ChannelAdapter, ABC):
             create_activity,
         )
         context.services.set(ConnectorClientBase, connector_client)
+        context.turn_state[self._AGENT_CONNECTOR_CLIENT_KEY] = (
+            connector_client  # for back-compat
+        )
 
         # Create a UserTokenClient instance for the application to use. (For example, in the OAuthPrompt.)
         user_token_client = (
@@ -301,6 +305,9 @@ class ChannelServiceAdapter(ChannelAdapter, ABC):
             )
         )
         context.services.set(UserTokenClientBase, user_token_client)
+        context.turn_state[self.USER_TOKEN_CLIENT_KEY] = (
+            user_token_client  # for back-compat
+        )
 
         # Run the pipeline
         await self.run_pipeline(context, callback)
@@ -329,6 +336,9 @@ class ChannelServiceAdapter(ChannelAdapter, ABC):
             )
         )
         context.services.set(UserTokenClientBase, user_token_client)
+        context.turn_state[self.USER_TOKEN_CLIENT_KEY] = (
+            user_token_client  # for back-compat
+        )
 
         # Create the connector client to use for outbound requests.
         connector_client: ConnectorClient = (
@@ -337,6 +347,9 @@ class ChannelServiceAdapter(ChannelAdapter, ABC):
             )
         )
         context.services.set(ConnectorClientBase, connector_client)
+        context.turn_state[self._AGENT_CONNECTOR_CLIENT_KEY] = (
+            connector_client  # for back-compat
+        )
 
         # Run the pipeline
         await self.run_pipeline(context, callback)
@@ -414,6 +427,9 @@ class ChannelServiceAdapter(ChannelAdapter, ABC):
             )
         )
         context.services.set(UserTokenClientBase, user_token_client)
+        context.turn_state[self.USER_TOKEN_CLIENT_KEY] = (
+            user_token_client  # for back-compat
+        )
 
         # Create the connector client to use for outbound requests.
         connector_client: Optional[ConnectorClient] = None
@@ -429,6 +445,9 @@ class ChannelServiceAdapter(ChannelAdapter, ABC):
                 )
             )
             context.services.set(ConnectorClientBase, connector_client)
+            context.turn_state[self._AGENT_CONNECTOR_CLIENT_KEY] = (
+                connector_client  # for back-compat
+            )
 
         await self.run_pipeline(context, callback)
 
@@ -501,6 +520,7 @@ class ChannelServiceAdapter(ChannelAdapter, ABC):
     ) -> TurnContext:
         context = TurnContext(self, activity, claims_identity)
         context.turn_state[self.OAUTH_SCOPE_KEY] = oauth_scope
+        context.turn_state[self.AGENT_IDENTITY_KEY] = claims_identity  # for back-compat
         return context
 
     def _process_turn_results(self, context: TurnContext) -> Optional[InvokeResponse]:

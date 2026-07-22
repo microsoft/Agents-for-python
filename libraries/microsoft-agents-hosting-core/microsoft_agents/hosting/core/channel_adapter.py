@@ -19,8 +19,10 @@ from .middleware_set import MiddlewareSet
 
 
 class ChannelAdapter(ABC, ChannelAdapterProtocol):
-    OAUTH_SCOPE_KEY = "Microsoft.Agents.Builder.ChannelAdapter.OAuthScope"
+    AGENT_IDENTITY_KEY = "AgentIdentity"
+    USER_TOKEN_CLIENT_KEY = "UserTokenClient"
     INVOKE_RESPONSE_KEY = "ChannelAdapter.InvokeResponse"
+    OAUTH_SCOPE_KEY = "Microsoft.Agents.Builder.ChannelAdapter.OAuthScope"
 
     on_turn_error: Callable[[TurnContext, Exception], Awaitable] | None = None
 
