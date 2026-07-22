@@ -72,14 +72,12 @@ class MediaCard(AgentsModel):
     value: object = None
 
     @overload
-    def add_media(self, media: MediaUrl) -> "MediaCard":
-        ...
+    def add_media(self, media: MediaUrl) -> "MediaCard": ...
 
     @overload
     def add_media(
         self, *, url: NonEmptyString, profile: NonEmptyString | None = None
-    ) -> "MediaCard":
-        ...
+    ) -> "MediaCard": ...
 
     def add_media(
         self,

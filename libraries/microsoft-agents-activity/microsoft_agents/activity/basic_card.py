@@ -47,14 +47,12 @@ class BasicCard(AgentsModel):
     tap: CardAction = None
 
     @overload
-    def add_image(self, image: CardImage) -> "BasicCard":
-        ...
+    def add_image(self, image: CardImage) -> "BasicCard": ...
 
     @overload
     def add_image(
         self, *, url: NonEmptyString, alt: NonEmptyString | None = None
-    ) -> "BasicCard":
-        ...
+    ) -> "BasicCard": ...
 
     def add_image(
         self,
@@ -83,8 +81,7 @@ class BasicCard(AgentsModel):
         return self
 
     @overload
-    def add_button(self, button: CardAction) -> "BasicCard":
-        ...
+    def add_button(self, button: CardAction) -> "BasicCard": ...
 
     @overload
     def add_button(
@@ -93,8 +90,7 @@ class BasicCard(AgentsModel):
         title: NonEmptyString,
         type: NonEmptyString = ActionTypes.im_back,
         value: object | None = None,
-    ) -> "BasicCard":
-        ...
+    ) -> "BasicCard": ...
 
     def add_button(
         self,

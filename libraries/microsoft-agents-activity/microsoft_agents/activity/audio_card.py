@@ -70,14 +70,12 @@ class AudioCard(Card):
         return Attachment(content_type=ContentTypes.audio_card, content=self)
 
     @overload
-    def add_media(self, media: MediaUrl) -> "AudioCard":
-        ...
+    def add_media(self, media: MediaUrl) -> "AudioCard": ...
 
     @overload
     def add_media(
         self, *, url: NonEmptyString, profile: NonEmptyString | None = None
-    ) -> "AudioCard":
-        ...
+    ) -> "AudioCard": ...
 
     def add_media(
         self,

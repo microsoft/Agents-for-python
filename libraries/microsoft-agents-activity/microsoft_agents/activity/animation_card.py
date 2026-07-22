@@ -70,14 +70,12 @@ class AnimationCard(Card):
         return Attachment(content_type=ContentTypes.animation_card, content=self)
 
     @overload
-    def add_media(self, media: MediaUrl) -> "AnimationCard":
-        ...
+    def add_media(self, media: MediaUrl) -> "AnimationCard": ...
 
     @overload
     def add_media(
         self, *, url: NonEmptyString, profile: NonEmptyString | None = None
-    ) -> "AnimationCard":
-        ...
+    ) -> "AnimationCard": ...
 
     def add_media(
         self,

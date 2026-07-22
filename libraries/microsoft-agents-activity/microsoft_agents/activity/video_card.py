@@ -70,14 +70,12 @@ class VideoCard(Card):
         return Attachment(content_type=ContentTypes.video_card, content=self)
 
     @overload
-    def add_media(self, media: MediaUrl) -> "VideoCard":
-        ...
+    def add_media(self, media: MediaUrl) -> "VideoCard": ...
 
     @overload
     def add_media(
         self, *, url: NonEmptyString, profile: NonEmptyString | None = None
-    ) -> "VideoCard":
-        ...
+    ) -> "VideoCard": ...
 
     def add_media(
         self,

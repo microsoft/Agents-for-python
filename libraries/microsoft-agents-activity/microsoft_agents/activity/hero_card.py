@@ -47,14 +47,12 @@ class HeroCard(Card):
         return Attachment(content_type=ContentTypes.hero_card, content=self)
 
     @overload
-    def add_image(self, image: CardImage) -> "HeroCard":
-        ...
+    def add_image(self, image: CardImage) -> "HeroCard": ...
 
     @overload
     def add_image(
         self, *, url: NonEmptyString, alt: NonEmptyString | None = None
-    ) -> "HeroCard":
-        ...
+    ) -> "HeroCard": ...
 
     def add_image(
         self,
@@ -83,8 +81,7 @@ class HeroCard(Card):
         return self
 
     @overload
-    def add_button(self, button: CardAction) -> "HeroCard":
-        ...
+    def add_button(self, button: CardAction) -> "HeroCard": ...
 
     @overload
     def add_button(
@@ -93,8 +90,7 @@ class HeroCard(Card):
         title: NonEmptyString,
         type: NonEmptyString = ActionTypes.im_back,
         value: object | None = None,
-    ) -> "HeroCard":
-        ...
+    ) -> "HeroCard": ...
 
     def add_button(
         self,

@@ -47,14 +47,12 @@ class ThumbnailCard(Card):
         return Attachment(content_type=ContentTypes.thumbnail_card, content=self)
 
     @overload
-    def add_image(self, image: CardImage) -> "ThumbnailCard":
-        ...
+    def add_image(self, image: CardImage) -> "ThumbnailCard": ...
 
     @overload
     def add_image(
         self, *, url: NonEmptyString, alt: NonEmptyString | None = None
-    ) -> "ThumbnailCard":
-        ...
+    ) -> "ThumbnailCard": ...
 
     def add_image(
         self,
@@ -83,8 +81,7 @@ class ThumbnailCard(Card):
         return self
 
     @overload
-    def add_button(self, button: CardAction) -> "ThumbnailCard":
-        ...
+    def add_button(self, button: CardAction) -> "ThumbnailCard": ...
 
     @overload
     def add_button(
@@ -93,8 +90,7 @@ class ThumbnailCard(Card):
         title: NonEmptyString,
         type: NonEmptyString = ActionTypes.im_back,
         value: object | None = None,
-    ) -> "ThumbnailCard":
-        ...
+    ) -> "ThumbnailCard": ...
 
     def add_button(
         self,
