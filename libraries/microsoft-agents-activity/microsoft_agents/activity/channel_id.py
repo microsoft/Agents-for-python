@@ -3,7 +3,7 @@
 
 from __future__ import annotations
 
-from typing import Optional, Any
+from typing import Any
 
 from pydantic_core import CoreSchema, core_schema
 from pydantic import GetCoreSchemaHandler
@@ -16,10 +16,10 @@ class ChannelId(str):
 
     def __init__(
         self,
-        value: Optional[str] = None,
+        value: str | None = None,
         *,
-        channel: Optional[str] = None,
-        sub_channel: Optional[str] = None,
+        channel: str | None = None,
+        sub_channel: str | None = None,
     ) -> None:
         """Initialize a ChannelId instance.
 
@@ -39,10 +39,10 @@ class ChannelId(str):
 
     def __new__(
         cls,
-        value: Optional[str] = None,
+        value: str | None = None,
         *,
-        channel: Optional[str] = None,
-        sub_channel: Optional[str] = None,
+        channel: str | None = None,
+        sub_channel: str | None = None,
     ) -> ChannelId:
         """Create a new ChannelId instance.
 
@@ -83,7 +83,7 @@ class ChannelId(str):
         return self._channel  # type: ignore[return-value]
 
     @property
-    def sub_channel(self) -> Optional[str]:
+    def sub_channel(self) -> str | None:
         """The sub-channel, e.g. 'work' in 'email:work'. May be None."""
         return self._sub_channel
 
@@ -93,3 +93,21 @@ class ChannelId(str):
         cls, source_type: Any, handler: GetCoreSchemaHandler
     ) -> CoreSchema:
         return core_schema.no_info_after_validator_function(cls, handler(str))
+
+    @staticmethod
+    def get_channel(s: str | ChannelId) -> str:
+        """Return the main channel from a ChannelId string."""
+        if not s:
+            return s
+        if isinstance(s, ChannelId):
+            return s.channel
+        return ChannelId(s).channel
+    
+    @staticmethod
+    def get_sub_channel(s: str | ChannelId) -> str | None:
+        """Return the sub-channel from a ChannelId string."""
+        if not s:
+            return None
+        if isinstance(s, ChannelId):
+            return s.sub_channel
+        return ChannelId(s).sub_channel

@@ -2,7 +2,8 @@
 # Licensed under the MIT License.
 
 from enum import Enum
-from typing_extensions import Self
+
+from .channel_id import ChannelId
 
 
 class Channels(str, Enum):
@@ -70,9 +71,8 @@ class Channels(str, Enum):
     copilot_studio = "pva-studio"
     """Microsoft Copilot Studio channel."""
 
-    # TODO: validate the need of Self annotations in the following methods
     @staticmethod
-    def supports_suggested_actions(channel_id: Self, button_cnt: int = 100) -> bool:
+    def supports_suggested_actions(channel_id: str | ChannelId, button_count: int = 100) -> bool:
         """Determine if a number of Suggested Actions are supported by a Channel.
 
         Args:
@@ -83,29 +83,30 @@ class Channels(str, Enum):
             bool: True if the Channel supports the button_cnt total Suggested Actions, False if the Channel does not
              support that number of Suggested Actions.
         """
+        channel = ChannelId.get_channel(channel_id)
 
         max_actions = {
             # https://developers.facebook.com/docs/messenger-platform/send-messages/quick-replies
-            Channels.facebook: 10,
-            Channels.skype: 10,
+            Channels.facebook.value: 10,
+            Channels.skype.value: 10,
             # https://developers.line.biz/en/reference/messaging-api/#items-object
-            Channels.line: 13,
+            Channels.line.value: 13,
             # https://dev.kik.com/#/docs/messaging#text-response-object
-            Channels.kik: 20,
-            Channels.telegram: 100,
-            Channels.emulator: 100,
-            Channels.direct_line: 100,
-            Channels.direct_line_speech: 100,
-            Channels.webchat: 100,
+            Channels.kik.value: 20,
+            Channels.telegram.value: 100,
+            Channels.emulator.value: 100,
+            Channels.direct_line.value: 100,
+            Channels.direct_line_speech.value: 100,
+            Channels.webchat.value: 100,
         }
         return (
-            button_cnt <= max_actions[channel_id]
+            button_count <= max_actions[channel]
             if channel_id in max_actions
             else False
         )
 
     @staticmethod
-    def supports_card_actions(channel_id: Self, button_cnt: int = 100) -> bool:
+    def supports_card_actions(channel_id: str | ChannelId, button_count: int = 100) -> bool:
         """Determine if a number of Card Actions are supported by a Channel.
 
         Args:
@@ -117,21 +118,23 @@ class Channels(str, Enum):
              that number of Card Actions.
         """
 
+        channel = ChannelId.get_channel(channel_id)
+
         max_actions = {
-            Channels.facebook: 3,
-            Channels.skype: 3,
-            Channels.ms_teams: 3,
-            Channels.line: 99,
-            Channels.slack: 100,
-            Channels.telegram: 100,
-            Channels.emulator: 100,
-            Channels.direct_line: 100,
-            Channels.direct_line_speech: 100,
-            Channels.webchat: 100,
+            Channels.facebook.value: 3,
+            Channels.skype.value: 3,
+            Channels.ms_teams.value: 3,
+            Channels.line.value: 99,
+            Channels.slack.value: 100,
+            Channels.telegram.value: 100,
+            Channels.emulator.value: 100,
+            Channels.direct_line.value: 100,
+            Channels.direct_line_speech.value: 100,
+            Channels.webchat.value: 100,
         }
         return (
-            button_cnt <= max_actions[channel_id]
-            if channel_id in max_actions
+            button_count <= max_actions[channel]
+            if channel in max_actions
             else False
         )
 
@@ -150,15 +153,14 @@ class Channels(str, Enum):
 
     @staticmethod
     def max_action_title_length(  # pylint: disable=unused-argument
-        channel_id: Self,
+        channel_id: str | ChannelId,
     ) -> int:
         """Maximum length allowed for Action Titles.
 
         Args:
-            channel_id (str): The Channel to determine Maximum Action Title Length.
+            channel_id (str | ChannelId): The Channel to determine Maximum Action Title Length.
 
         Returns:
             int: The total number of characters allowed for an Action Title on a specific Channel.
         """
-
         return 20

@@ -41,16 +41,18 @@ class TokenResponse(AgentsModel):
         try:
             # Decode without verification to check the audience
             payload = jwt.decode(self.token, options={"verify_signature": False})
-
-            idtyp = payload.get("idtyp")
-            if idtyp == "user":
-                return False
-
-            aud = payload.get("aud")
-            app_id = self._get_app_id_from_token_payload(payload)
-            return isinstance(aud, str) and app_id in aud
         except Exception:
             return False
+
+        idtyp = payload.get("idtyp")
+        if idtyp == "user":
+            return False
+
+        aud = payload.get("aud")
+        app_id = self._get_app_id_from_token_payload(payload)
+        if app_id is not None:
+            return isinstance(aud, str) and app_id in aud
+        return False
 
     @staticmethod
     def _get_app_id_from_token_payload(token_payload: dict) -> Optional[str]:

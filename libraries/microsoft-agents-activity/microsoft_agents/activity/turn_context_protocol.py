@@ -3,7 +3,7 @@
 
 from __future__ import annotations
 
-from typing import Protocol, Callable, Optional, Generic, TypeVar
+from typing import Protocol, Callable, Optional, TypeVar
 from abc import abstractmethod
 
 from microsoft_agents.activity import (
@@ -18,9 +18,9 @@ from microsoft_agents.activity import (
 T = TypeVar("T", bound=Activity)
 
 
-class TurnContextProtocol(Protocol, Generic[T]):
+class TurnContextProtocol(Protocol):
     adapter: "ChannelAdapterProtocol"
-    activity: Activity | T
+    activity: Activity
     responded: bool
     turn_state: dict
 

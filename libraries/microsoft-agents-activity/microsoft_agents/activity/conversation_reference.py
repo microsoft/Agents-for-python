@@ -17,6 +17,9 @@ from ._type_aliases import NonEmptyString
 from .activity_types import ActivityTypes
 from .activity_event_names import ActivityEventNames
 
+if TYPE_CHECKING:
+    from .activity import Activity
+
 
 class ConversationReference(AgentsModel, _ChannelIdFieldMixin):
     """An object relating to a particular point in a conversation."""
@@ -58,8 +61,7 @@ class ConversationReference(AgentsModel, _ChannelIdFieldMixin):
             """
             ...
 
-    def get_continuation_activity(self) -> "Activity":  # type: ignore
-        from .activity import Activity
+    def get_continuation_activity(self) -> Activity:
 
         return Activity(
             type=ActivityTypes.event,

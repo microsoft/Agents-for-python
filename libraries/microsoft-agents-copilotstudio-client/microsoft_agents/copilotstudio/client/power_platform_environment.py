@@ -330,7 +330,7 @@ class PowerPlatformEnvironment:
 
     @staticmethod
     def get_endpoint_suffix(cloud: PowerPlatformCloud, cloud_base_address: str) -> str:
-        return {
+        val = {
             PowerPlatformCloud.LOCAL: "api.powerplatform.localhost",
             PowerPlatformCloud.EXP: "api.exp.powerplatform.com",
             PowerPlatformCloud.DEV: "api.dev.powerplatform.com",
@@ -347,7 +347,10 @@ class PowerPlatformEnvironment:
             PowerPlatformCloud.EX: "api.powerplatform.eaglex.ic.gov",
             PowerPlatformCloud.RX: "api.powerplatform.microsoft.scloud",
             PowerPlatformCloud.OTHER: cloud_base_address,
-        }.get(cloud, ValueError(f"Invalid cloud category value: {cloud}"))
+        }.get(cloud)
+        if not val:
+            raise ValueError(f"Invalid cloud category value: {cloud}")
+        return val
 
     @staticmethod
     def get_id_suffix_length(cloud: PowerPlatformCloud) -> int:
