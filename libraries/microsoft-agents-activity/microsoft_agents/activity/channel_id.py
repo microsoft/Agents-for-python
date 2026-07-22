@@ -72,6 +72,8 @@ class ChannelId(str):
 
             split = value.split(":", 1)
             channel = split[0].strip()
+            if not channel:
+                raise ValueError(str(activity_errors.ChannelIdValueMustBeNonEmpty))
             sub_channel = (split[1].strip() or None) if len(split) == 2 else None
             return value, channel, sub_channel
 
