@@ -111,7 +111,9 @@ class ChannelId(str):
             return None
         if isinstance(channel_id, ChannelId):
             return channel_id.sub_channel
-        return channel_id.split(":", 1)[1].strip() if ":" in channel_id else None
+        value = channel_id.strip()
+        sub = value.split(":", 1)[1].strip() if ":" in value else None
+        return sub or None
 
     @staticmethod
     def get_channel(channel_id: str | ChannelId | None) -> str | None:
