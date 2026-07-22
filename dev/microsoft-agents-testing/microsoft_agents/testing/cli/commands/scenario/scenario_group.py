@@ -9,6 +9,7 @@ agent test scenarios from the command line.
 
 import click
 
+
 @click.group(name="scenario")
 def scenario_group():
     """Manage test scenarios."""

@@ -5,6 +5,7 @@
 
 from abc import ABC
 from traceback import format_exc
+from http import HTTPStatus
 
 from microsoft_agents.activity import Activity, DeliveryModes
 from microsoft_agents.hosting.core.authorization import ClaimsIdentity, Connections
@@ -58,12 +59,18 @@ class HttpAdapterBase(ChannelServiceAdapter, ABC):
 
         self.on_turn_error = on_turn_error
 
-        channel_service_client_factory = (
-            channel_service_client_factory
-            or RestChannelServiceClientFactory(connection_manager)
-        )
+        factory: ChannelServiceClientFactoryBase
 
-        super().__init__(channel_service_client_factory)
+        if channel_service_client_factory:
+            factory = channel_service_client_factory
+        else:
+            if not connection_manager:
+                raise ValueError(
+                    "HttpAdapterBase.__init__: Either channel_service_client_factory or connection_manager must be provided."
+                )
+            factory = RestChannelServiceClientFactory(connection_manager)
+
+        super().__init__(factory)
 
     async def process_request(
         self, request: HttpRequestProtocol, agent: Agent
@@ -128,8 +135,12 @@ class HttpAdapterBase(ChannelServiceAdapter, ABC):
                 ):
                     with spans.AdapterWriteResponse(activity):
                         # Invoke and ExpectReplies cannot be performed async
+                        invoke_response_status = (
+                            invoke_response.status if invoke_response else None
+                        )
                         return HttpResponseFactory.json(
-                            invoke_response.body, invoke_response.status
+                            invoke_response.body if invoke_response else None,
+                            invoke_response_status or HTTPStatus.NOT_IMPLEMENTED,
                         )
 
                 return HttpResponseFactory.accepted()

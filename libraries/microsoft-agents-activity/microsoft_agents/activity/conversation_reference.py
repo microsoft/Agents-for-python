@@ -9,7 +9,7 @@ from typing import Optional, Annotated
 from pydantic import Field
 
 from .channel_account import ChannelAccount
-from ._channel_id_field_mixin import _ChannelIdFieldMixin
+from .channel_id import ChannelId
 from .conversation_account import ConversationAccount
 from .agents_model import AgentsModel
 from ._type_aliases import NonEmptyString
@@ -17,7 +17,7 @@ from .activity_types import ActivityTypes
 from .activity_event_names import ActivityEventNames
 
 
-class ConversationReference(AgentsModel, _ChannelIdFieldMixin):
+class ConversationReference(AgentsModel):
     """An object relating to a particular point in a conversation.
 
     :param activity_id: (Optional) ID of the activity to refer to
@@ -46,6 +46,7 @@ class ConversationReference(AgentsModel, _ChannelIdFieldMixin):
     user: Optional[ChannelAccount] = None
     agent: Annotated[ChannelAccount, Field(alias="bot")] = None
     conversation: ConversationAccount
+    channel_id: Optional[ChannelId] = None
     locale: Optional[NonEmptyString] = None
     service_url: NonEmptyString = None
 

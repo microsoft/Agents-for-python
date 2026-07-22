@@ -6,7 +6,9 @@
 import pytest
 
 from microsoft_agents.testing.core.fluent.backend.describe import Describe
-from microsoft_agents.testing.core.fluent.backend.model_predicate import ModelPredicateResult
+from microsoft_agents.testing.core.fluent.backend.model_predicate import (
+    ModelPredicateResult,
+)
 from microsoft_agents.testing.core.fluent.backend.quantifier import (
     for_all,
     for_any,
@@ -338,28 +340,36 @@ class TestIntegration:
     def test_full_workflow_passing(self):
         """Full workflow with passing results."""
         describe = Describe()
-        mpr = ModelPredicateResult({}, {}, [
-            {"name": True, "value": True},
-            {"name": True, "value": True},
-        ])
-        
+        mpr = ModelPredicateResult(
+            {},
+            {},
+            [
+                {"name": True, "value": True},
+                {"name": True, "value": True},
+            ],
+        )
+
         description = describe.describe(mpr, for_all)
         failures = describe.describe_failures(mpr)
-        
+
         assert "✓" in description
         assert failures == []
 
     def test_full_workflow_failing(self):
         """Full workflow with failing results."""
         describe = Describe()
-        mpr = ModelPredicateResult({}, {}, [
-            {"name": True, "value": True},
-            {"name": False, "value": True},
-        ])
-        
+        mpr = ModelPredicateResult(
+            {},
+            {},
+            [
+                {"name": True, "value": True},
+                {"name": False, "value": True},
+            ],
+        )
+
         description = describe.describe(mpr, for_all)
         failures = describe.describe_failures(mpr)
-        
+
         assert "✗" in description
         assert len(failures) == 1
         assert "name" in failures[0]
@@ -367,12 +377,16 @@ class TestIntegration:
     def test_complex_nested_failures(self):
         """Complex nested structure failure descriptions."""
         describe = Describe()
-        mpr = ModelPredicateResult({}, {}, [
-            {"user": {"profile": {"name": False, "active": True}}},
-        ])
-        
+        mpr = ModelPredicateResult(
+            {},
+            {},
+            [
+                {"user": {"profile": {"name": False, "active": True}}},
+            ],
+        )
+
         failures = describe.describe_failures(mpr)
-        
+
         assert len(failures) == 1
         assert "user.profile.name" in failures[0]
 
@@ -383,16 +397,16 @@ class TestDescribeFailuresWithFunctionSource:
     def test_describe_failures_includes_function_source(self):
         """describe_failures includes function source for failed keys."""
         describe = Describe()
-        
+
         def check_positive(x):
             return x > 0
-        
+
         source = [{"value": -5}]
         dict_transform = {"value": check_positive}
         mpr = ModelPredicateResult(source, dict_transform, [{"value": False}])
-        
+
         result = describe.describe_failures(mpr)
-        
+
         assert len(result) == 1
         assert "value" in result[0]
         assert "check_positive" in result[0]
@@ -403,13 +417,13 @@ class TestDescribeFailuresWithFunctionSource:
     def test_describe_failures_includes_lambda_source(self):
         """describe_failures includes lambda source for failed keys."""
         describe = Describe()
-        
+
         source = [{"count": 5}]
         dict_transform = {"count": lambda x: x >= 10}
         mpr = ModelPredicateResult(source, dict_transform, [{"count": False}])
-        
+
         result = describe.describe_failures(mpr)
-        
+
         assert len(result) == 1
         assert "count" in result[0]
         assert "lambda" in result[0]
@@ -419,19 +433,21 @@ class TestDescribeFailuresWithFunctionSource:
     def test_describe_failures_multiple_keys_with_sources(self):
         """describe_failures includes sources for multiple failed keys."""
         describe = Describe()
-        
+
         def is_active(x):
             return x is True
-        
+
         source = [{"name": "wrong", "active": False}]
         dict_transform = {
             "name": lambda x: x == "test",
             "active": is_active,
         }
-        mpr = ModelPredicateResult(source, dict_transform, [{"name": False, "active": False}])
-        
+        mpr = ModelPredicateResult(
+            source, dict_transform, [{"name": False, "active": False}]
+        )
+
         result = describe.describe_failures(mpr)
-        
+
         assert len(result) == 1
         assert "name" in result[0]
         assert "active" in result[0]
@@ -441,14 +457,14 @@ class TestDescribeFailuresWithFunctionSource:
     def test_describe_failures_handles_missing_function(self):
         """describe_failures handles keys without functions gracefully."""
         describe = Describe()
-        
+
         # Create a mpr where dict_transform doesn't have the key
         source = [{"missing": "value"}]
         dict_transform = {}
         mpr = ModelPredicateResult(source, dict_transform, [{"missing": False}])
-        
+
         result = describe.describe_failures(mpr)
-        
+
         assert len(result) == 1
         assert "missing" in result[0]
         assert "<no function>" in result[0]
@@ -456,14 +472,14 @@ class TestDescribeFailuresWithFunctionSource:
     def test_describe_failures_handles_non_callable(self):
         """describe_failures handles non-callable values gracefully."""
         describe = Describe()
-        
+
         # Manually set a non-callable in dict_transform
         source = [{"key": "actual_value"}]
         dict_transform = {"key": "not_callable"}
         mpr = ModelPredicateResult(source, dict_transform, [{"key": False}])
-        
+
         result = describe.describe_failures(mpr)
-        
+
         assert len(result) == 1
         assert "key" in result[0]
         assert "<no function>" in result[0]
@@ -471,16 +487,18 @@ class TestDescribeFailuresWithFunctionSource:
     def test_describe_failures_with_nested_keys_and_sources(self):
         """describe_failures includes sources for nested failed keys."""
         describe = Describe()
-        
+
         def check_name(x):
             return x == "expected"
-        
+
         source = [{"user": {"profile": {"name": "actual_name"}}}]
         dict_transform = {"user.profile.name": check_name}
-        mpr = ModelPredicateResult(source, dict_transform, [{"user": {"profile": {"name": False}}}])
-        
+        mpr = ModelPredicateResult(
+            source, dict_transform, [{"user": {"profile": {"name": False}}}]
+        )
+
         result = describe.describe_failures(mpr)
-        
+
         assert len(result) == 1
         assert "user.profile.name" in result[0]
         assert "check_name" in result[0]
@@ -489,30 +507,30 @@ class TestDescribeFailuresWithFunctionSource:
     def test_describe_failures_no_failures_with_dict_transform(self):
         """describe_failures returns empty list when all pass, even with dict_transform."""
         describe = Describe()
-        
+
         source = [{"value": 10}]
         dict_transform = {"value": lambda x: x > 0}
         mpr = ModelPredicateResult(source, dict_transform, [{"value": True}])
-        
+
         result = describe.describe_failures(mpr)
-        
+
         assert result == []
 
     def test_describe_failures_formats_multiline_function(self):
         """describe_failures handles multiline function definitions."""
         describe = Describe()
-        
+
         def complex_check(x):
             if x is None:
                 return False
             return x > 0
-        
+
         source = [{"value": -1}]
         dict_transform = {"value": complex_check}
         mpr = ModelPredicateResult(source, dict_transform, [{"value": False}])
-        
+
         result = describe.describe_failures(mpr)
-        
+
         assert len(result) == 1
         assert "complex_check" in result[0]
         # The source should be included even for multiline functions
@@ -521,15 +539,15 @@ class TestDescribeFailuresWithFunctionSource:
     def test_describe_failures_shows_expected_value(self):
         """describe_failures shows expected value from lambda defaults."""
         describe = Describe()
-        
+
         # DictionaryTransform creates lambdas like: lambda x, _v=val: x == _v
         expected_val = "expected_value"
         source = [{"key": "actual_value"}]
         dict_transform = {"key": lambda x, _v=expected_val: x == _v}
         mpr = ModelPredicateResult(source, dict_transform, [{"key": False}])
-        
+
         result = describe.describe_failures(mpr)
-        
+
         assert len(result) == 1
         assert "expected:" in result[0]
         assert "expected_value" in result[0]
@@ -539,13 +557,13 @@ class TestDescribeFailuresWithFunctionSource:
     def test_describe_failures_shows_expected_and_actual_for_numeric(self):
         """describe_failures shows expected and actual numeric values."""
         describe = Describe()
-        
+
         source = [{"count": 5}]
         dict_transform = {"count": lambda x, _v=10: x == _v}
         mpr = ModelPredicateResult(source, dict_transform, [{"count": False}])
-        
+
         result = describe.describe_failures(mpr)
-        
+
         assert len(result) == 1
         assert "expected:" in result[0]
         assert "10" in result[0]

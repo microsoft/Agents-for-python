@@ -4,11 +4,7 @@
 from .activity_transcript_formatter import ActivityTranscriptFormatter
 from .conversation_transcript_formatter import ConversationTranscriptFormatter
 from .json_transcript_formatter import JsonTranscriptFormatter
-from .print import (
-    print_json,
-    print_conversation,
-    print_activities
-)
+from .print import print_json, print_conversation, print_activities
 from .transcript_formatter import BaseTranscriptFormatter, TranscriptFormatter
 
 __all__ = [
@@ -19,5 +15,5 @@ __all__ = [
     "print_json",
     "print_conversation",
     "print_activities",
-    "TranscriptFormatter"
+    "TranscriptFormatter",
 ]

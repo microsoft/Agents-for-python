@@ -7,7 +7,13 @@ import logging
 from typing import Optional, Callable, Awaitable, cast
 from dataclasses import dataclass
 
-from microsoft_agents.activity import Activity, Channels, SignInConstants, TokenResponse
+from microsoft_agents.activity import (
+    Activity,
+    Channels,
+    ChannelId,
+    SignInConstants,
+    TokenResponse,
+)
 from microsoft_agents.activity.activity_types import ActivityTypes
 
 from ...turn_context import TurnContext
@@ -93,16 +99,15 @@ class Authorization:
         )
         if not auth_handlers:
             # get from config
-            handlers_config: dict[str, dict] = auth_configuration.get("HANDLERS")
-            if not auth_handlers and handlers_config:
-                auth_handlers = {
-                    handler_name: AuthHandler(
-                        name=handler_name,
-                        auth_type=config.get("TYPE", None),
-                        **config.get("SETTINGS", {}),
-                    )
-                    for handler_name, config in handlers_config.items()
-                }
+            handlers_config: dict[str, dict] = auth_configuration.get("HANDLERS") or {}
+            auth_handlers = {
+                handler_name: AuthHandler(
+                    name=handler_name,
+                    auth_type=config.get("TYPE", ""),
+                    **config.get("SETTINGS", {}),
+                )
+                for handler_name, config in handlers_config.items()
+            }
 
         self._handler_settings = auth_handlers
         self._auto_sign_in = auto_sign_in or bool(
@@ -284,7 +289,8 @@ class Authorization:
         elif sign_in_response.tag in [_FlowStateTag.BEGIN, _FlowStateTag.CONTINUE]:
             # Handling special case for Teams SSO, ConsentRequired
             if not (
-                context.activity.channel_id.channel == Channels.ms_teams
+                ChannelId.get_channel(context.activity.channel_id)
+                == Channels.ms_teams.value
                 and sign_in_state.continuation_activity
                 and context.activity.type == ActivityTypes.invoke
                 and context.activity.name

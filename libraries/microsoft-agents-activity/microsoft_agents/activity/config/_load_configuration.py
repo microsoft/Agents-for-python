@@ -33,5 +33,5 @@ def load_configuration_from_env(env_vars: dict[str, Any]) -> dict:
     return {
         "AGENTAPPLICATION": result.get("AGENTAPPLICATION", {}),
         "CONNECTIONS": result.get("CONNECTIONS", {}),
-        "CONNECTIONSMAP": result.get("CONNECTIONSMAP", {}),
+        "CONNECTIONSMAP": result.get("CONNECTIONSMAP", []),
     }

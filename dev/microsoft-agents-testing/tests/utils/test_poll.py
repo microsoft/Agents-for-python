@@ -22,7 +22,9 @@ class TestPoll:
     @pytest.mark.asyncio
     async def test_raises_when_timeout_less_than_interval(self):
         """poll() raises ValueError when timeout is less than interval."""
-        with pytest.raises(ValueError, match="Timeout must be greater than or equal to interval"):
+        with pytest.raises(
+            ValueError, match="Timeout must be greater than or equal to interval"
+        ):
             await poll(lambda: True, timeout=0.05, interval=0.5)
 
     @pytest.mark.asyncio

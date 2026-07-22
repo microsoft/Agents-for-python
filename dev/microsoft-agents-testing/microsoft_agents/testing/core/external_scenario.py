@@ -22,23 +22,23 @@ from .transport import AiohttpCallbackServer
 
 class ExternalScenario(Scenario):
     """Scenario for testing an externally-hosted agent.
-    
+
     Use this scenario when testing against an agent that is already running,
     either locally on a different port or deployed to a remote environment.
-    
+
     The scenario sets up a callback server to receive agent responses and
     handles authentication using credentials from the environment.
-    
+
     Example::
-    
+
         scenario = ExternalScenario("http://localhost:3978/api/messages")
         async with scenario.client() as client:
             replies = await client.send("Hello!")
-    
+
     :param agent_url: The URL of the agent's message endpoint.
     :param config: Optional scenario configuration.
     """
-    
+
     def __init__(self, endpoint: str, config: ScenarioConfig | None = None) -> None:
         super().__init__(config)
         if not endpoint:
@@ -53,7 +53,7 @@ class ExternalScenario(Scenario):
 
         env_vars = dotenv_values(self._config.env_file_path or ".env")
         sdk_config = load_configuration_from_env(env_vars)
-        
+
         callback_server = AiohttpCallbackServer(self._config.callback_server_port)
 
         async with callback_server.listen() as transcript:
@@ -66,7 +66,7 @@ class ExternalScenario(Scenario):
                 default_config=self._config.client_config,
                 transcript=transcript,
             )
-            
+
             try:
                 yield factory
             finally:

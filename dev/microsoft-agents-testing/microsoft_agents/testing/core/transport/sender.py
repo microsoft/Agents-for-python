@@ -20,15 +20,17 @@ from .transcript import Transcript, Exchange
 
 class Sender(ABC):
     """Abstract client for sending activities to an agent endpoint.
-    
+
     Implementations handle the HTTP communication and response parsing,
     returning Exchange objects that capture the full request-response cycle.
     """
 
     @abstractmethod
-    async def send(self, activity: Activity, transcript: Transcript | None = None, **kwargs) -> Exchange:
+    async def send(
+        self, activity: Activity, transcript: Transcript | None = None, **kwargs
+    ) -> Exchange:
         """Send an activity and return the Exchange containing the response.
-        
+
         :param activity: The Activity to send.
         :param transcript: Optional Transcript to record the exchange.
         :param timeout: Optional timeout for the request.

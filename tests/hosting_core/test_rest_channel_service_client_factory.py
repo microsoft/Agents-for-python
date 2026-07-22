@@ -51,6 +51,7 @@ class TestRestChannelServiceClientFactory:
                 id="bot1",
                 agentic_app_id="agentic_app_id",
                 agentic_user_id="agentic_user_id",
+                tenant_id="tenant_id",
                 role=RoleTypes.agentic_user,
             ),
             service_url="https://service.url/",
@@ -69,6 +70,7 @@ class TestRestChannelServiceClientFactory:
             recipient=ChannelAccount(
                 id="bot1",
                 agentic_app_id="agentic_app_id",
+                tenant_id="tenant_id",
                 role=RoleTypes.agentic_identity,
             ),
             service_url="https://service.url/",
@@ -292,7 +294,7 @@ class TestRestChannelServiceClientFactory:
         if alt_blueprint:
             auth_config.ALT_BLUEPRINT_ID = "alt_blueprint_id"
             connection_manager.get_connection = mocker.Mock(return_value=token_provider)
-        token_provider._msal_configuration = auth_config
+        token_provider.configuration = auth_config
 
         factory = RestChannelServiceClientFactory(connection_manager)
 
@@ -325,7 +327,7 @@ class TestRestChannelServiceClientFactory:
             )
         assert token_provider.get_agentic_instance_token.call_count == 1
         token_provider.get_agentic_instance_token.assert_called_once_with(
-            None, "agentic_app_id"
+            "tenant_id", "agentic_app_id"
         )
         TeamsConnectorClient.__new__.assert_called_once_with(
             TeamsConnectorClient, endpoint=DEFAULTS.service_url, token=DEFAULTS.token
@@ -376,15 +378,15 @@ class TestRestChannelServiceClientFactory:
         # verify the alternate blueprint redirect happened via ``configuration``
         connection_manager.get_connection.assert_called_once_with("alt_blueprint_id")
         token_provider.get_agentic_instance_token.assert_called_once_with(
-            None, "agentic_app_id"
+            "tenant_id", "agentic_app_id"
         )
 
     @pytest.mark.asyncio
     async def test_create_connector_client_agentic_no_configuration(
         self, mocker, activity_agentic_identity
     ):
-        """A provider exposing neither config attribute must not raise; it should
-        simply skip the alternate-blueprint redirect."""
+        """A provider without an alternate blueprint configured must not raise; it
+        should simply skip the alternate-blueprint redirect."""
         # setup
         mock_connector_client = mocker.Mock(spec=TeamsConnectorClient)
         mocker.patch.object(
@@ -397,6 +399,7 @@ class TestRestChannelServiceClientFactory:
         token_provider.get_agentic_instance_token = mocker.AsyncMock(
             return_value=(DEFAULTS.token, DEFAULTS.token)
         )
+        token_provider.configuration = AgentAuthConfiguration()
 
         connection_manager = mocker.Mock(spec=Connections)
         connection_manager.get_token_provider = mocker.Mock(return_value=token_provider)
@@ -419,7 +422,7 @@ class TestRestChannelServiceClientFactory:
         # verify: no redirect attempted, token still acquired
         connection_manager.get_connection.assert_not_called()
         token_provider.get_agentic_instance_token.assert_called_once_with(
-            None, "agentic_app_id"
+            "tenant_id", "agentic_app_id"
         )
 
     @pytest.mark.parametrize("alt_blueprint", [True, False])
@@ -447,7 +450,7 @@ class TestRestChannelServiceClientFactory:
         if alt_blueprint:
             auth_config.ALT_BLUEPRINT_ID = "alt_blueprint_id"
             connection_manager.get_connection = mocker.Mock(return_value=token_provider)
-        token_provider._msal_configuration = auth_config
+        token_provider.configuration = auth_config
 
         factory = RestChannelServiceClientFactory(connection_manager)
 
@@ -480,7 +483,7 @@ class TestRestChannelServiceClientFactory:
             )
         assert token_provider.get_agentic_user_token.call_count == 1
         token_provider.get_agentic_user_token.assert_called_once_with(
-            None,
+            "tenant_id",
             "agentic_app_id",
             "agentic_user_id",
             [AuthenticationConstants.APX_PRODUCTION_SCOPE],

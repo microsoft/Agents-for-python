@@ -11,6 +11,7 @@ from typing import cast
 from pydantic import BaseModel
 from .backend import expand, flatten
 
+
 def rename_from_property(data: dict) -> None:
     """Rename keys starting with 'from.' to 'from_property.' for compatibility."""
     mods = {}
@@ -25,6 +26,7 @@ def rename_from_property(data: dict) -> None:
     for old_key, new_key in mods.items():
         data[new_key] = data.pop(old_key)
 
+
 def normalize_model_data(source: BaseModel | dict) -> dict:
     """Normalize a BaseModel or dictionary to an expanded dictionary.
 
@@ -38,10 +40,11 @@ def normalize_model_data(source: BaseModel | dict) -> dict:
     if isinstance(source, BaseModel):
         source = cast(dict, source.model_dump(exclude_unset=True, mode="json"))
         return source
-    
+
     expanded = expand(source)
     rename_from_property(expanded)
     return expanded
+
 
 def flatten_model_data(source: BaseModel | dict) -> dict:
     """Flatten model data to a single-level dictionary with dot-notation keys.
@@ -56,7 +59,7 @@ def flatten_model_data(source: BaseModel | dict) -> dict:
     if isinstance(source, BaseModel):
         source = cast(dict, source.model_dump(exclude_unset=True, mode="json"))
         return flatten(source)
-    
+
     flattened = flatten(source)
     rename_from_property(flattened)
     return flattened

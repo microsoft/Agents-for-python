@@ -1,10 +1,12 @@
 # Copyright (c) Microsoft Corporation. All rights reserved.
 # Licensed under the MIT License.
 
+from __future__ import annotations
+
 import uuid
 import asyncio
 import logging
-from typing import Optional, Callable, Literal, cast
+from typing import Optional, Callable, Literal, cast, TYPE_CHECKING
 
 from microsoft_agents.activity import (
     Activity,
@@ -24,6 +26,9 @@ from microsoft_agents.hosting.core.errors import error_resources
 from .citation import Citation
 from .citation_util import CitationUtil
 
+if TYPE_CHECKING:
+    from microsoft_agents.hosting.core.turn_context import TurnContext
+
 logger = logging.getLogger(__name__)
 
 
@@ -39,7 +44,7 @@ class StreamingResponse:
     Once `end_stream()` is called, the stream is considered ended and no further updates can be sent.
     """
 
-    def __init__(self, context: "TurnContext"):
+    def __init__(self, context: TurnContext):
         """
         Creates a new StreamingResponse instance.
 
@@ -267,7 +272,7 @@ class StreamingResponse:
         if self._queue_sync:
             await self._queue_sync
 
-    def _set_defaults(self, context: "TurnContext"):
+    def _set_defaults(self, context: TurnContext):
 
         channel = (
             context.activity.channel_id.channel if context.activity.channel_id else None

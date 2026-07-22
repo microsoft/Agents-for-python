@@ -7,6 +7,7 @@ from .channel_account import ChannelAccount
 from .activity import Activity
 from .agents_model import AgentsModel
 from ._type_aliases import NonEmptyString
+from .conversation_account import ConversationAccount
 
 
 class ConversationParameters(AgentsModel):
@@ -29,6 +30,8 @@ class ConversationParameters(AgentsModel):
     :type channel_data: object
     :param tenant_id: (Optional) The tenant ID in which the conversation should be created
     :type tenant_id: str
+    :param conversation: (Optional) The conversation account to use when creating the new conversation
+    :type conversation: ~microsoft_agents.activity.ConversationAccount
     """
 
     is_group: bool = None
@@ -38,3 +41,4 @@ class ConversationParameters(AgentsModel):
     activity: Activity = None
     channel_data: object = None
     tenant_id: NonEmptyString = None
+    conversation: ConversationAccount = None

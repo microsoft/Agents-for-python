@@ -40,7 +40,9 @@ class Describe:
             return "none"
         if len(indices) <= 5:
             return f"[{', '.join(str(i) for i in indices)}]"
-        return f"[{', '.join(str(i) for i in indices[:5])}, ... +{len(indices) - 5} more]"
+        return (
+            f"[{', '.join(str(i) for i in indices[:5])}, ... +{len(indices) - 5} more]"
+        )
 
     def _describe_for_any(self, mpr: ModelPredicateResult, passed: bool) -> str:
         """Describe result for 'any' quantifier."""
@@ -83,24 +85,28 @@ class Describe:
         """Describe result for 'exactly n' quantifier."""
         true_count = sum(1 for r in mpr.result_bools if r)
         if passed:
-            return f"✓ Exactly {n} items matched. {self._count_summary(mpr.result_bools)}."
+            return (
+                f"✓ Exactly {n} items matched. {self._count_summary(mpr.result_bools)}."
+            )
         else:
             return f"✗ Expected exactly {n} items to match, but {true_count} matched. {self._count_summary(mpr.result_bools)}."
 
-    def _describe_default(self, mpr: ModelPredicateResult, passed: bool, quantifier_name: str) -> str:
+    def _describe_default(
+        self, mpr: ModelPredicateResult, passed: bool, quantifier_name: str
+    ) -> str:
         """Describe result for unknown/custom quantifiers."""
         status = "✓ Passed" if passed else "✗ Failed"
         return f"{status} for quantifier '{quantifier_name}'. {self._count_summary(mpr.result_bools)}."
 
     def describe(self, mpr: ModelPredicateResult, quantifier: Quantifier) -> str:
         """Generate a human-readable description of the predicate evaluation result.
-        
+
         :param mpr: The ModelPredicateResult containing evaluation results.
         :param quantifier: The quantifier function used for evaluation.
         :return: A descriptive string explaining the result.
         """
         passed = quantifier(mpr.result_bools)
-        quantifier_name = getattr(quantifier, '__name__', str(quantifier))
+        quantifier_name = getattr(quantifier, "__name__", str(quantifier))
 
         if quantifier is for_any:
             return self._describe_for_any(mpr, passed)
@@ -115,12 +121,14 @@ class Describe:
 
     def describe_failures(self, mpr: ModelPredicateResult) -> list[str]:
         """Generate detailed descriptions for each failed item.
-        
+
         :param mpr: The ModelPredicateResult containing evaluation results.
         :return: A list of failure descriptions, one per failed item.
         """
         failures = []
-        for i, (result_bool, result_dict) in enumerate(zip(mpr.result_bools, mpr.result_dicts)):
+        for i, (result_bool, result_dict) in enumerate(
+            zip(mpr.result_bools, mpr.result_dicts)
+        ):
             if not result_bool:
                 failed_keys = [k for k, v in flatten(result_dict).items() if not v]
                 if failed_keys:
@@ -129,14 +137,14 @@ class Describe:
                     item_source = mpr.source[i] if i < len(mpr.source) else {}
                     for key in failed_keys:
                         func = mpr.dict_transform.get(key)
-                        
+
                         # Get actual value from source
                         actual_value = self._get_nested_value(item_source, key)
-                        
+
                         if func and callable(func):
                             # Try to get the expected value from lambda defaults (_v=val)
                             expected_value = self._get_expected_value(func)
-                            
+
                             try:
                                 source_code = inspect.getsource(func)
                                 if expected_value is not None:
@@ -172,20 +180,23 @@ class Describe:
                                 f"    source: <no function>\n"
                                 f"    actual: {actual_value!r}"
                             )
-                    failures.append(f"Item {i}: failed on keys {failed_keys}\n" + "\n".join(key_details))
+                    failures.append(
+                        f"Item {i}: failed on keys {failed_keys}\n"
+                        + "\n".join(key_details)
+                    )
                 else:
                     failures.append(f"Item {i}: failed")
         return failures
 
     def _get_expected_value(self, func: Callable) -> Any:
         """Extract the expected value (_v) from a lambda's defaults.
-        
+
         :param func: The callable function to inspect.
         :return: The expected value if found, None otherwise.
         """
         try:
             # Check function defaults for _v parameter
-            if hasattr(func, '__defaults__') and func.__defaults__:
+            if hasattr(func, "__defaults__") and func.__defaults__:
                 # The _v=val pattern stores val in __defaults__
                 return func.__defaults__[0]
         except (AttributeError, IndexError):
@@ -194,7 +205,7 @@ class Describe:
 
     def _get_nested_value(self, source: dict | list, key: str) -> Any:
         """Get a nested value from source using dot-notation key.
-        
+
         :param source: The source dictionary or list.
         :param key: The dot-notation key (e.g., 'user.profile.name').
         :return: The value at the key path, or '<missing>' if not found.
@@ -202,7 +213,7 @@ class Describe:
         if isinstance(source, list):
             # For lists, we can't use dot notation directly
             return source
-        
+
         keys = key.split(".")
         current = source
         for k in keys:

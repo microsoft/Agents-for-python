@@ -2,12 +2,18 @@
 # Licensed under the MIT License.
 
 import re
+import logging
+
 from collections.abc import Callable
 
 from .agent_auth_configuration import AgentAuthConfiguration
 from .access_token_provider_base import AccessTokenProviderBase
 from .claims_identity import ClaimsIdentity
 from .connections import Connections
+
+from ._log_config import _log_config
+
+logger = logging.getLogger(__name__)
 
 
 class ConnectionManager(Connections):
@@ -59,6 +65,7 @@ class ConnectionManager(Connections):
             if connections_map is not None
             else kwargs.get("CONNECTIONSMAP", [])
         )
+
         if isinstance(raw_connections_map, dict):
             raw_connections_map = list(raw_connections_map.values())
         self._connections_map = raw_connections_map or []
@@ -88,6 +95,8 @@ class ConnectionManager(Connections):
 
         if not self._connections.get("SERVICE_CONNECTION", None):
             raise ValueError("No service connection configuration provided.")
+
+        _log_config(logger, self._config_map, self._connections_map)
 
     def get_connection(self, connection_name: str | None) -> AccessTokenProviderBase:
         """
