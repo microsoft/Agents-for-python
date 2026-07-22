@@ -8,6 +8,11 @@ from .channel_info_protocol import ChannelInfoProtocol
 
 
 class ChannelHostProtocol(Protocol):
+
+    host_endpoint: str
+    host_app_id: str
+    channels: dict[str, ChannelInfoProtocol]
+
     def __init__(
         self,
         host_endpoint: str,

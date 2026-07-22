@@ -51,6 +51,7 @@ class TestRestChannelServiceClientFactory:
                 id="bot1",
                 agentic_app_id="agentic_app_id",
                 agentic_user_id="agentic_user_id",
+                tenant_id="tenant_id",
                 role=RoleTypes.agentic_user,
             ),
             service_url="https://service.url/",
@@ -69,6 +70,7 @@ class TestRestChannelServiceClientFactory:
             recipient=ChannelAccount(
                 id="bot1",
                 agentic_app_id="agentic_app_id",
+                tenant_id="tenant_id",
                 role=RoleTypes.agentic_identity,
             ),
             service_url="https://service.url/",
@@ -325,7 +327,7 @@ class TestRestChannelServiceClientFactory:
             )
         assert token_provider.get_agentic_instance_token.call_count == 1
         token_provider.get_agentic_instance_token.assert_called_once_with(
-            None, "agentic_app_id"
+            "tenant_id", "agentic_app_id"
         )
         TeamsConnectorClient.__new__.assert_called_once_with(
             TeamsConnectorClient, endpoint=DEFAULTS.service_url, token=DEFAULTS.token
@@ -376,7 +378,7 @@ class TestRestChannelServiceClientFactory:
         # verify the alternate blueprint redirect happened via ``configuration``
         connection_manager.get_connection.assert_called_once_with("alt_blueprint_id")
         token_provider.get_agentic_instance_token.assert_called_once_with(
-            None, "agentic_app_id"
+            "tenant_id", "agentic_app_id"
         )
 
     @pytest.mark.asyncio
@@ -420,7 +422,7 @@ class TestRestChannelServiceClientFactory:
         # verify: no redirect attempted, token still acquired
         connection_manager.get_connection.assert_not_called()
         token_provider.get_agentic_instance_token.assert_called_once_with(
-            None, "agentic_app_id"
+            "tenant_id", "agentic_app_id"
         )
 
     @pytest.mark.parametrize("alt_blueprint", [True, False])
@@ -481,7 +483,7 @@ class TestRestChannelServiceClientFactory:
             )
         assert token_provider.get_agentic_user_token.call_count == 1
         token_provider.get_agentic_user_token.assert_called_once_with(
-            None,
+            "tenant_id",
             "agentic_app_id",
             "agentic_user_id",
             [AuthenticationConstants.APX_PRODUCTION_SCOPE],

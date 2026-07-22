@@ -24,7 +24,6 @@ from microsoft_agents.hosting.core.app.proactive import (
     ProactiveOptions,
 )
 from microsoft_agents.hosting.core.authorization import ClaimsIdentity
-from microsoft_agents.hosting.core.channel_adapter import ChannelAdapter
 
 # ---------------------------------------------------------------------------
 # Helpers
@@ -165,7 +164,7 @@ class TestProactiveStoreConversation:
         ctx = MagicMock(spec=TurnContext)
         ctx.activity = MagicMock()
         ctx.activity.get_conversation_reference.return_value = ref
-        ctx.turn_state = {ChannelAdapter.AGENT_IDENTITY_KEY: identity}
+        ctx.identity = identity
 
         await proactive.store_conversation(ctx)
         result = await proactive.get_conversation("ctx-conv")
