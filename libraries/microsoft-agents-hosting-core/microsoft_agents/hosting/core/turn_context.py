@@ -1,5 +1,6 @@
 # Copyright (c) Microsoft Corporation. All rights reserved.
 # Licensed under the MIT License.
+
 from __future__ import annotations
 
 import re
@@ -12,6 +13,7 @@ from microsoft_agents.activity import (
     Activity,
     ActivityTypes,
     ConversationReference,
+    DeliveryModes,
     InputHints,
     Mention,
     ResourceResponse,
@@ -22,6 +24,18 @@ from microsoft_agents.activity.entity.entity_types import EntityTypes
 from microsoft_agents.hosting.core.authorization.claims_identity import ClaimsIdentity
 import microsoft_agents.hosting.core.telemetry.turn_context.spans as spans
 
+OnSendActivitiesHandler = Callable[
+    ["TurnContext", list[Activity], Callable[[], Awaitable[list[ResourceResponse]]]],
+    Awaitable[list[ResourceResponse]],
+]
+OnUpdateActivityHandler = Callable[
+    ["TurnContext", Activity, Callable[[], Awaitable[ResourceResponse]]],
+    Awaitable[ResourceResponse],
+]
+OnDeleteActivityHandler = Callable[
+    ["TurnContext", ConversationReference, Callable[[], Awaitable]], Awaitable[None]
+]
+
 
 class TurnContext(TurnContextProtocol):
     # Same constant as in the BF Adapter, duplicating here to avoid circular dependency
@@ -29,15 +43,9 @@ class TurnContext(TurnContextProtocol):
 
     _activity: Activity
 
-    _on_send_activities: list[
-        Callable[[TurnContext, list[Activity], Callable], list[ResourceResponse]]
-    ]
-    _on_update_activity: list[
-        Callable[[TurnContext, Activity, Callable], ResourceResponse]
-    ]
-    _on_delete_activity: list[
-        Callable[[TurnContext, ConversationReference, Callable], None]
-    ]
+    _on_send_activities: list[OnSendActivitiesHandler]
+    _on_update_activity: list[OnUpdateActivityHandler]
+    _on_delete_activity: list[OnDeleteActivityHandler]
 
     def __init__(
         self,
@@ -297,28 +305,31 @@ class TurnContext(TurnContextProtocol):
             self.adapter.delete_activity(self, reference),
         )
 
-    def on_send_activities(self, handler) -> "TurnContext":
+    def on_send_activities(self, handler: OnSendActivitiesHandler) -> TurnContext:
         """
         Registers a handler to be notified of and potentially intercept the sending of activities.
-        :param handler:
+        :param handler: the handler to register
+        :type handler: OnSendActivitiesHandler
         :return:
         """
         self._on_send_activities.append(handler)
         return self
 
-    def on_update_activity(self, handler) -> "TurnContext":
+    def on_update_activity(self, handler: OnUpdateActivityHandler) -> TurnContext:
         """
         Registers a handler to be notified of and potentially intercept an activity being updated.
-        :param handler:
+        :param handler: the handler to register
+        :type handler: OnUpdateActivityHandler
         :return:
         """
         self._on_update_activity.append(handler)
         return self
 
-    def on_delete_activity(self, handler) -> "TurnContext":
+    def on_delete_activity(self, handler: OnDeleteActivityHandler) -> "TurnContext":
         """
         Registers a handler to be notified of and potentially intercept an activity being deleted.
-        :param handler:
+        :param handler: the handler to register
+        :type handler: OnDeleteActivityHandler
         :return:
         """
         self._on_delete_activity.append(handler)
@@ -379,17 +390,20 @@ class TurnContext(TurnContextProtocol):
         :return:
         """
         activity.channel_id = reference.channel_id
-        activity.locale = reference.locale
+        if reference.locale:
+            activity.locale = reference.locale
         activity.service_url = reference.service_url
         activity.conversation = reference.conversation
         if is_incoming:
-            activity.from_property = reference.user
+            if reference.user:
+                activity.from_property = reference.user
             activity.recipient = reference.agent
             if reference.activity_id:
                 activity.id = reference.activity_id
         else:
             activity.from_property = reference.agent
-            activity.recipient = reference.user
+            if reference.user:
+                activity.recipient = reference.user
             if reference.activity_id:
                 activity.reply_to_id = reference.activity_id
 
