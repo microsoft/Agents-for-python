@@ -1,63 +1,45 @@
+# Copyright (c) Microsoft Corporation. All rights reserved.
+# Licensed under the MIT License.
+
 import functools
+
 from aiohttp.web import Request, middleware, json_response
 
-from microsoft_agents.hosting.core.authorization import (
-    AgentAuthConfiguration,
-    JwtTokenValidator,
-)
+from microsoft_agents.hosting.core.authorization import AgentAuthConfiguration
+from microsoft_agents.hosting.core.authorization.jwt import _authorize_request
+from microsoft_agents.hosting.core.http import HttpResponse
 
 
-@middleware
-async def jwt_authorization_middleware(request: Request, handler):
-
+async def _jwt_authorization_middleware(request: Request, handler):
+    """
+    JWT Authorization Middleware for aiohttp endpoints. Until a SDK solution is made available,
+    this middleware can be applied to any aiohttp route handler to enforce JWT validation using the Microsoft Agents SDK's JwtTokenValidator.
+    """
     auth_config: AgentAuthConfiguration = request.app["agent_configuration"]
-    token_validator = JwtTokenValidator(auth_config)
     auth_header = request.headers.get("Authorization")
 
-    if auth_header:
-        # Extract the token from the Authorization header
-        token = auth_header.split(" ")[1]
-        try:
-            claims = await token_validator.validate_token(token)
-            request["claims_identity"] = claims
-        except ValueError as e:
-            print(f"JWT validation error: {e}")
-            return json_response({"error": str(e)}, status=401)
-    else:
-        if auth_config.ANONYMOUS_ALLOWED:
-            request["claims_identity"] = token_validator.get_anonymous_claims()
-        else:
-            return json_response(
-                {"error": "Authorization header not found"}, status=401
-            )
+    res = await _authorize_request(auth_header, auth_config)
 
+    if isinstance(res, HttpResponse):
+        return json_response(res.body, status=res.status_code)
+
+    request["claims_identity"] = res
     return await handler(request)
 
 
+jwt_authorization_middleware = middleware(_jwt_authorization_middleware)
+
+
 def jwt_authorization_decorator(func):
+    """
+    Decorator for aiohttp route handlers to enforce JWT validation using the Microsoft Agents SDK's JwtTokenValidator.
+
+    :param func: The aiohttp route handler function to be decorated.
+    :return: The decorated aiohttp route handler function.
+    """
+
     @functools.wraps(func)
     async def wrapper(request):
-        auth_config: AgentAuthConfiguration = request.app["agent_configuration"]
-        token_validator = JwtTokenValidator(auth_config)
-        auth_header = request.headers.get("Authorization")
-        if auth_header:
-            # Extract the token from the Authorization header
-            token = auth_header.split(" ")[1]
-            try:
-                claims = await token_validator.validate_token(token)
-                request["claims_identity"] = claims
-            except ValueError as e:
-                print(f"JWT validation error: {e}")
-                return json_response({"error": str(e)}, status=401)
-        else:
-            if not auth_config.CLIENT_ID:
-                # TODO: Refine anonymous strategy
-                request["claims_identity"] = token_validator.get_anonymous_claims()
-            else:
-                return json_response(
-                    {"error": "Authorization header not found"}, status=401
-                )
-
-        return await func(request)
+        return await _jwt_authorization_middleware(request, func)
 
     return wrapper

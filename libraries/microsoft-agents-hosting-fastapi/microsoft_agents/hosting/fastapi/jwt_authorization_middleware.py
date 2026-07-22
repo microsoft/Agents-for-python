@@ -8,10 +8,14 @@ from fastapi import Request
 from fastapi.responses import JSONResponse
 
 from starlette.types import ASGIApp, Receive, Scope, Send
+
 from microsoft_agents.hosting.core import (
     AgentAuthConfiguration,
+    ClaimsIdentity,
     JwtTokenValidator,
+    HttpResponse,
 )
+from microsoft_agents.hosting.core.authorization.jwt import _authorize_request
 
 logger = logging.getLogger(__name__)
 
@@ -40,50 +44,15 @@ class JwtAuthorizationMiddleware:
             state, "agent_configuration", None
         )
 
-        if not auth_config:
-            response = JSONResponse(
-                {"error": "Agent Authentication configuration not found"},
-                status_code=500,
-            )
+        request = Request(scope, receive=receive)
+        res = await _authorize_request(
+            request.headers.get("Authorization"), auth_config
+        )
+
+        if isinstance(res, HttpResponse):
+            response = JSONResponse(body=res.body, status_code=res.status_code)
             await response(scope, receive, send)
             return
-
-        request = Request(scope, receive=receive)
-        token_validator = JwtTokenValidator(auth_config)
-        auth_header = request.headers.get("Authorization")
-
-        if auth_header:
-            parts = auth_header.split(" ")
-            if len(parts) == 2 and parts[0].lower() == "bearer":
-                token = parts[1]
-                try:
-                    claims = await token_validator.validate_token(token)
-                    request.state.claims_identity = claims
-                except ValueError as e:
-                    logger.warning("JWT validation error: %s", e)
-                    response = JSONResponse(
-                        {"error": "Invalid token or authentication failed."},
-                        status_code=401,
-                    )
-                    await response(scope, receive, send)
-                    return
-            else:
-                response = JSONResponse(
-                    {"error": "Invalid authorization header format"},
-                    status_code=401,
-                )
-                await response(scope, receive, send)
-                return
-        else:
-            if auth_config.ANONYMOUS_ALLOWED:
-                request.state.claims_identity = token_validator.get_anonymous_claims()
-            else:
-                response = JSONResponse(
-                    {"error": "Authorization header not found"},
-                    status_code=401,
-                )
-                await response(scope, receive, send)
-                return
 
         await self.app(scope, receive, send)
 
@@ -95,7 +64,7 @@ def jwt_authorization_decorator(func):
     """
 
     @functools.wraps(func)
-    async def wrapper(request: Request):
+    async def wrapper(request: Request, *args, **kwargs):
         if request is None:
             return JSONResponse({"error": "Request object not found"}, status_code=500)
 
@@ -103,38 +72,11 @@ def jwt_authorization_decorator(func):
             request.app.state, "agent_configuration", None
         )
 
-        if auth_config is None:
-            return JSONResponse(
-                {"error": "Agent Authentication configuration not found"},
-                status_code=500,
-            )
-
-        token_validator = JwtTokenValidator(auth_config)
         auth_header = request.headers.get("Authorization")
 
-        if auth_header:
-            parts = auth_header.split(" ")
-            if len(parts) == 2 and parts[0].lower() == "bearer":
-                token = parts[1]
-                try:
-                    claims = await token_validator.validate_token(token)
-                    request.state.claims_identity = claims
-                except ValueError:
-                    return JSONResponse(
-                        {"error": "Invalid token or authentication failed."},
-                        status_code=401,
-                    )
-            else:
-                return JSONResponse(
-                    {"error": "Invalid authorization header format"},
-                    status_code=401,
-                )
-        else:
-            return JSONResponse(
-                {"error": "Authorization header not found"},
-                status_code=401,
-            )
-
-        return await func(request)
+        res = await _authorize_request(auth_header, auth_config)
+        if isinstance(res, HttpResponse):
+            return JSONResponse(body=res.body, status_code=res.status_code)
+        return await func(request, *args, **kwargs)
 
     return wrapper
