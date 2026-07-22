@@ -75,8 +75,19 @@ class AgenticUserAuthorization(_AuthorizationHandler):
         )
         agentic_instance_id = context.activity.get_agentic_instance_id()
         assert agentic_instance_id
+
+        tenant_id = context.activity.get_agentic_tenant_id()
+        if not tenant_id:
+            logger.error(
+                "Unable to retrieve agentic instance token: missing agentic tenant Id. Agentic Instance ID: %s",
+                agentic_instance_id,
+            )
+            raise ValueError(
+                f"Unable to retrieve agentic instance token: missing agentic tenant Id. Agentic Instance ID: {agentic_instance_id}"
+            )
+
         instance_token, _ = await connection.get_agentic_instance_token(
-            context.activity.get_agentic_tenant_id(), agentic_instance_id
+            tenant_id, agentic_instance_id
         )
         return (
             TokenResponse(token=instance_token) if instance_token else TokenResponse()
@@ -130,9 +141,19 @@ class AgenticUserAuthorization(_AuthorizationHandler):
             raise ValueError(
                 f"Unable to retrieve agentic user token: missing agentic User Id or agentic instance Id. agentic_user_id: {agentic_user_id}, Agentic Instance ID: {agentic_instance_id}"
             )
+        
+        tenant_id = context.activity.get_agentic_tenant_id()
+        if not tenant_id:
+            logger.error(
+                "Unable to retrieve agentic user token: missing agentic tenant Id. Agentic Instance ID: %s",
+                agentic_instance_id,
+            )
+            raise ValueError(
+                f"Unable to retrieve agentic user token: missing agentic tenant Id. Agentic Instance ID: {agentic_instance_id}"
+            )
 
         token = await connection.get_agentic_user_token(
-            context.activity.get_agentic_tenant_id(),
+            tenant_id,
             agentic_instance_id,
             agentic_user_id,
             scopes,
