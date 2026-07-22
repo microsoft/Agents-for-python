@@ -120,5 +120,8 @@ class ChannelId(str):
         """Return the Bot Framework channel without an optional sub-channel."""
         if not channel_id or not channel_id.strip():
             return channel_id
+        if isinstance(channel_id, ChannelId):
+            return channel_id.channel
+        channel_id = channel_id.strip()
         parsed = channel_id.split(":", 1)[0].strip() if ":" in channel_id else None
         return parsed or channel_id

@@ -40,6 +40,7 @@ class TestChannelId:
         assert ChannelId.get_sub_channel("msteams:") is None
         assert ChannelId.get_sub_channel(" msteams: sub ") == "sub"
         assert ChannelId.get_sub_channel(None) is None
+
     def test_init_multiple_args(self):
         with pytest.raises(ValueError):
             ChannelId("email:support", channel="a", sub_channel="b")
