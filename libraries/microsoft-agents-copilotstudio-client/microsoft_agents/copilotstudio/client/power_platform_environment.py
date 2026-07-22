@@ -348,7 +348,7 @@ class PowerPlatformEnvironment:
             PowerPlatformCloud.RX: "api.powerplatform.microsoft.scloud",
             PowerPlatformCloud.OTHER: cloud_base_address,
         }.get(cloud)
-        
+
         if not res:
             raise ValueError(f"Invalid cloud category value: {cloud}")
         return res
