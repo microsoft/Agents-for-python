@@ -1,6 +1,6 @@
 # Copyright (c) Microsoft Corporation. All rights reserved.
 # Licensed under the MIT License.
-
+import pytest
 from microsoft_agents.activity import (
     ActionTypes,
     AdaptiveCardCard,
@@ -53,6 +53,7 @@ class TestHeroCardBuilders:
 
 
 class TestThumbnailAndBasicCardBuilders:
+    @pytest.mark.filterwarnings("ignore::DeprecationWarning")
     def test_thumbnail_and_basic_card_builders(self):
         thumb = ThumbnailCard(title="t").add_image(url="u").add_button(title="b")
         assert thumb.title == "t"
@@ -70,6 +71,7 @@ class TestThumbnailAndBasicCardBuilders:
 
 
 class TestMediaCardBuilders:
+    @pytest.mark.filterwarnings("ignore::DeprecationWarning")
     def test_media_card_builders_add_media_and_buttons(self):
         animation = (
             AnimationCard(title="a")
@@ -118,7 +120,7 @@ class TestReceiptCardBuilders:
 class TestAdaptiveCardCardBuilders:
     def test_adaptive_card_card_from_json_to_attachment(self):
         json_content = '{"type":"AdaptiveCard","version":"1.4"}'
-        card = AdaptiveCardCard(json_content)
+        card = AdaptiveCardCard(content=json_content)
 
         assert card.content == json_content
 
@@ -128,7 +130,7 @@ class TestAdaptiveCardCardBuilders:
 
     def test_adaptive_card_card_serializes_content_as_nested_json(self):
         json_content = '{"type":"AdaptiveCard","version":"1.4"}'
-        activity = AdaptiveCardCard(json_content).to_message()
+        activity = AdaptiveCardCard(content=json_content).to_message()
 
         data = activity.model_dump(mode="json", by_alias=True, exclude_none=True)
 

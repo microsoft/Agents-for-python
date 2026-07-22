@@ -20,7 +20,7 @@ class SuggestedActions(AgentsModel):
     """
 
     to: list[NonEmptyString] = Field(default_factory=list)
-    actions: list[CardAction]
+    actions: list[CardAction] = None
 
     def add_action(self, action: CardAction) -> "SuggestedActions":
         """

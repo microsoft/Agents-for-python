@@ -21,14 +21,6 @@ class AdaptiveCardCard(Card):
 
     content: NonEmptyString = None
 
-    def __init__(self, json_content: str):
-        """
-        Initializes a new instance from an Adaptive Card JSON string.
-
-        :param json_content: The Adaptive Card content as a JSON string.
-        """
-        self.content = json_content
-
     def to_attachment(self) -> Attachment:
         """
         Creates a new Attachment that wraps this card.

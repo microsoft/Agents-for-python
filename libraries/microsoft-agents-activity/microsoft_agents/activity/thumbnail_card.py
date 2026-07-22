@@ -9,7 +9,7 @@ from .card import Card
 from .card_image import CardImage
 from .card_action import CardAction
 from .content_types import ContentTypes
-from ._model_utils import pick_model
+from ._model_utils import pick_model, SkipNone
 from ._type_aliases import NonEmptyString
 
 
@@ -74,7 +74,7 @@ class ThumbnailCard(Card):
                 raise ValueError(
                     "Either provide a CardImage instance or the url parameter."
                 )
-            image = pick_model(CardImage, url=url, alt=alt)
+            image = pick_model(CardImage, url=url, alt=SkipNone(alt))
 
         self.images = self.images or []
         self.images.append(image)
@@ -88,7 +88,7 @@ class ThumbnailCard(Card):
         self,
         *,
         title: NonEmptyString,
-        type: NonEmptyString = ActionTypes.im_back,
+        card_type: NonEmptyString = ActionTypes.im_back,
         value: object | None = None,
     ) -> "ThumbnailCard": ...
 
@@ -97,7 +97,7 @@ class ThumbnailCard(Card):
         button: CardAction | None = None,
         *,
         title: NonEmptyString | None = None,
-        type: NonEmptyString = ActionTypes.im_back,
+        card_type: NonEmptyString = ActionTypes.im_back,
         value: object | None = None,
     ) -> "ThumbnailCard":
         """
@@ -105,7 +105,7 @@ class ThumbnailCard(Card):
 
         :param button: The button to add.
         :param title: The title of the button, used when no button instance is provided.
-        :param type: The action type of the button built from a title.
+        :param card_type: The action type of the button built from a title.
         :param value: The value of the button built from a title. Defaults to the title.
         :returns: This card, to allow for method chaining.
         """
@@ -115,7 +115,7 @@ class ThumbnailCard(Card):
                     "Either provide a CardAction instance or the title parameter."
                 )
             button = CardAction(
-                type=type, title=title, value=value if value is not None else title
+                type=card_type, title=title, value=value if value is not None else title
             )
 
         self.buttons = self.buttons or []

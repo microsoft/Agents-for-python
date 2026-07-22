@@ -9,7 +9,7 @@ from .card import Card
 from .card_action import CardAction
 from .card_image import CardImage
 from .content_types import ContentTypes
-from ._model_utils import pick_model
+from ._model_utils import pick_model, SkipNone
 from ._type_aliases import NonEmptyString
 
 
@@ -74,7 +74,7 @@ class HeroCard(Card):
                 raise ValueError(
                     "Either provide a CardImage instance or the url parameter."
                 )
-            image = pick_model(CardImage, url=url, alt=alt)
+            image = pick_model(CardImage, url=url, alt=SkipNone(alt))
 
         self.images = self.images or []
         self.images.append(image)
