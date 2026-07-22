@@ -15,7 +15,11 @@ class FakeProvider(AccessTokenProviderBase):
     """Minimal provider that records the configuration it was built from."""
 
     def __init__(self, configuration: AgentAuthConfiguration):
-        self.configuration = configuration
+        self._configuration = configuration
+
+    @property
+    def configuration(self) -> AgentAuthConfiguration:
+        return self._configuration
 
     async def get_access_token(self, resource_url, scopes, force_refresh=False):
         return "fake-token"

@@ -294,7 +294,7 @@ class TestRestChannelServiceClientFactory:
         if alt_blueprint:
             auth_config.ALT_BLUEPRINT_ID = "alt_blueprint_id"
             connection_manager.get_connection = mocker.Mock(return_value=token_provider)
-        token_provider._msal_configuration = auth_config
+        token_provider.configuration = auth_config
 
         factory = RestChannelServiceClientFactory(connection_manager)
 
@@ -385,8 +385,8 @@ class TestRestChannelServiceClientFactory:
     async def test_create_connector_client_agentic_no_configuration(
         self, mocker, activity_agentic_identity
     ):
-        """A provider exposing neither config attribute must not raise; it should
-        simply skip the alternate-blueprint redirect."""
+        """A provider without an alternate blueprint configured must not raise; it
+        should simply skip the alternate-blueprint redirect."""
         # setup
         mock_connector_client = mocker.Mock(spec=TeamsConnectorClient)
         mocker.patch.object(
@@ -399,6 +399,7 @@ class TestRestChannelServiceClientFactory:
         token_provider.get_agentic_instance_token = mocker.AsyncMock(
             return_value=(DEFAULTS.token, DEFAULTS.token)
         )
+        token_provider.configuration = AgentAuthConfiguration()
 
         connection_manager = mocker.Mock(spec=Connections)
         connection_manager.get_token_provider = mocker.Mock(return_value=token_provider)
@@ -449,7 +450,7 @@ class TestRestChannelServiceClientFactory:
         if alt_blueprint:
             auth_config.ALT_BLUEPRINT_ID = "alt_blueprint_id"
             connection_manager.get_connection = mocker.Mock(return_value=token_provider)
-        token_provider._msal_configuration = auth_config
+        token_provider.configuration = auth_config
 
         factory = RestChannelServiceClientFactory(connection_manager)
 

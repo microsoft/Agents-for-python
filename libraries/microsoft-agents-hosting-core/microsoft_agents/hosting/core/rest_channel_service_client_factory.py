@@ -49,17 +49,9 @@ class RestChannelServiceClientFactory(ChannelServiceClientFactoryBase):
             context.identity, service_url
         )
 
-        # Provider-agnostic access to the connection's auth configuration. MSAL
-        # exposes it as ``_msal_configuration``; other providers (e.g. the Entra
-        # sidecar) expose it as ``configuration``. The only value needed here is
-        # the optional alternate-blueprint connection name.
-        configuration = getattr(connection, "_msal_configuration", None)
-        if configuration is None:
-            configuration = getattr(connection, "configuration", None)
+        configuration = connection.configuration
+        alt_blueprint_id = configuration.ALT_BLUEPRINT_ID
 
-        alt_blueprint_id = (
-            getattr(configuration, "ALT_BLUEPRINT_ID", None) if configuration else None
-        )
         if alt_blueprint_id:
             logger.debug(
                 "Using alternative blueprint ID for agentic token retrieval: %s",
