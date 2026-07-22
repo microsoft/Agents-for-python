@@ -6,6 +6,7 @@ from .action_types import ActionTypes
 from .activity import Activity
 from .activity_event_names import ActivityEventNames
 from .activity_types import ActivityTypes
+from .adaptive_card_card import AdaptiveCardCard
 from .adaptive_card_invoke_action import AdaptiveCardInvokeAction
 from .adaptive_card_invoke_response import AdaptiveCardInvokeResponse
 from .adaptive_card_invoke_value import AdaptiveCardInvokeValue
@@ -111,6 +112,7 @@ __all__ = [
     "Activity",
     "ActionTypes",
     "ActivityEventNames",
+    "AdaptiveCardCard",
     "AdaptiveCardInvokeAction",
     "AdaptiveCardInvokeResponse",
     "AdaptiveCardInvokeValue",
