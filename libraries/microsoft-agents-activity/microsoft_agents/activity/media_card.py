@@ -9,6 +9,7 @@ from .thumbnail_url import ThumbnailUrl
 from .media_url import MediaUrl
 from .card_action import CardAction
 from .agents_model import AgentsModel
+from ._model_utils import pick_model
 from ._type_aliases import NonEmptyString
 
 
@@ -100,10 +101,7 @@ class MediaCard(AgentsModel):
                 raise ValueError(
                     "Either provide a MediaUrl instance or the url parameter."
                 )
-            if profile is None:
-                media = MediaUrl(url=url)
-            else:
-                media = MediaUrl(url=url, profile=profile)
+            media = pick_model(MediaUrl, url=url, profile=profile)
 
         self.media = self.media or []
         self.media.append(media)

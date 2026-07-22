@@ -9,6 +9,7 @@ from .action_types import ActionTypes
 from .agents_model import AgentsModel
 from .card_image import CardImage
 from .card_action import CardAction
+from ._model_utils import pick_model
 from ._type_aliases import NonEmptyString
 
 
@@ -75,10 +76,7 @@ class BasicCard(AgentsModel):
                 raise ValueError(
                     "Either provide a CardImage instance or the url parameter."
                 )
-            if alt is None:
-                image = CardImage(url=url)
-            else:
-                image = CardImage(url=url, alt=alt)
+            image = pick_model(CardImage, url=url, alt=alt)
 
         self.images = self.images or []
         self.images.append(image)
