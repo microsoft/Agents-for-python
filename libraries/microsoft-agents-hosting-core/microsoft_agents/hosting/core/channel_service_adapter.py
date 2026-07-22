@@ -455,7 +455,7 @@ class ChannelServiceAdapter(ChannelAdapter, ABC):
 
     @staticmethod
     def _validate_continuation_activity(continuation_activity: Activity):
-        
+
         if not continuation_activity.conversation:
             raise TypeError(
                 "CloudAdapter: continuation_activity.conversation is required."
