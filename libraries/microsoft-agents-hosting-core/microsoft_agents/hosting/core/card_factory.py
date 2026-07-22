@@ -1,9 +1,6 @@
 # Copyright (c) Microsoft Corporation. All rights reserved.
 # Licensed under the MIT License.
 
-from typing import TypeVar
-from typing_extensions import deprecated
-
 from microsoft_agents.activity import (
     AnimationCard,
     Attachment,
@@ -16,8 +13,6 @@ from microsoft_agents.activity import (
     ThumbnailCard,
     VideoCard,
 )
-
-ContentTypesT = TypeVar("ContentTypesT", bound=ContentTypes)
 
 
 class CardFactory:
