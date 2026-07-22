@@ -14,7 +14,7 @@ class _ServiceSet:
     """
 
     def __init__(self, service_set: _ServiceSet | None = None) -> None:
-        self._state: dict[str, Any] = {}
+        self._state: dict[type, Any] = {}
         if service_set is not None:
             self._state.update(service_set._state)
 
@@ -24,13 +24,11 @@ class _ServiceSet:
         :param key:
         :return:
         """
-        lookup_key = key.__name__
-
-        val = self._state.get(lookup_key)
+        val = self._state.get(key)
         if val is not None:
             if not isinstance(val, key):
                 raise TypeError(
-                    f"Value for key '{lookup_key}' is not of type {key.__name__}"
+                    f"Value for key '{key.__name__}' is not of type {type(val).__name__}"
                 )
             return cast(T, val)
         return None
@@ -41,7 +39,7 @@ class _ServiceSet:
         :param key: Type of the value to check for.
         :return: True if the value exists, False otherwise.
         """
-        return key.__name__ in self._state
+        return key in self._state
 
     def set(self, key: type[T], value: T) -> None:
         """
@@ -49,4 +47,4 @@ class _ServiceSet:
         :param key: Type of the value to set.
         :param value: The value to set.
         """
-        self._state[key.__name__] = value
+        self._state[key] = value

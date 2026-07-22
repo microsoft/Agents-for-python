@@ -24,11 +24,11 @@ if is_supported_version:
 
 
 class _FakeServices:
-    def __init__(self, value=None):
-        self._value = value
+    def __init__(self, values=None):
+        self._values = values or {}
 
     def get(self, key):
-        return self._value
+        return self._values.get(key)
 
 
 class _FakeContext:
@@ -42,7 +42,7 @@ class TestGetTeamsApiClient:
 
     def test_returns_cached_api_client(self):
         client = ApiClient("https://smba.trafficmanager.net/teams/")
-        ctx = _FakeContext(_FakeServices(client))
+        ctx = _FakeContext(_FakeServices({ApiClient: client}))
         assert _get_teams_api_client(ctx) is client
 
     def test_raises_when_missing(self):
@@ -51,7 +51,7 @@ class TestGetTeamsApiClient:
             _get_teams_api_client(ctx)
 
     def test_raises_when_wrong_type(self):
-        ctx = _FakeContext(_FakeServices(object()))
+        ctx = _FakeContext(_FakeServices({ApiClient: object()}))
         with pytest.raises(ValueError, match="Teams API client"):
             _get_teams_api_client(ctx)
 
