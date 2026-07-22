@@ -3,6 +3,8 @@
 
 import functools
 
+from typing import cast
+
 from aiohttp.web import Request, middleware, json_response
 
 from microsoft_agents.hosting.core.authorization import AgentAuthConfiguration
@@ -15,7 +17,9 @@ async def _jwt_authorization_middleware(request: Request, handler):
     JWT Authorization Middleware for aiohttp endpoints. Until a SDK solution is made available,
     this middleware can be applied to any aiohttp route handler to enforce JWT validation using the Microsoft Agents SDK's JwtTokenValidator.
     """
-    auth_config: AgentAuthConfiguration = request.app["agent_configuration"]
+    auth_config = cast(
+        AgentAuthConfiguration | None, getattr(request.app, "agent_configuration", None)
+    )
     auth_header = request.headers.get("Authorization")
 
     res = await _authorize_request(auth_header, auth_config)

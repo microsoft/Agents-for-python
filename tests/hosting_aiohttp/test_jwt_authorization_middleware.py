@@ -27,9 +27,7 @@ async def test_aiohttp_middleware_stores_claims_and_calls_handler(aiohttp_client
     claims = ClaimsIdentity({"aud": "app-id"}, True)
 
     async def handler(request):
-        return web.json_response(
-            {"aud": request["claims_identity"].claims["aud"]}
-        )
+        return web.json_response({"aud": request["claims_identity"].claims["aud"]})
 
     app = web.Application(middlewares=[jwt_authorization_middleware])
     _set_agent_configuration(app, auth_config)
@@ -82,9 +80,7 @@ async def test_aiohttp_decorator_uses_authorization_helper(aiohttp_client):
 
     @jwt_authorization_decorator
     async def handler(request):
-        return web.json_response(
-            {"aud": request["claims_identity"].claims["aud"]}
-        )
+        return web.json_response({"aud": request["claims_identity"].claims["aud"]})
 
     app = web.Application()
     _set_agent_configuration(app, auth_config)

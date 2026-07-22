@@ -89,7 +89,9 @@ async def test_authorize_request_returns_401_when_token_validation_fails():
         "microsoft_agents.hosting.core.authorization.jwt._authorize_request.JwtTokenValidator",
         return_value=validator,
     ):
-        result = await _authorize_request("Bearer token-value", AgentAuthConfiguration())
+        result = await _authorize_request(
+            "Bearer token-value", AgentAuthConfiguration()
+        )
 
     assert isinstance(result, HttpResponse)
     assert result.status_code == 401

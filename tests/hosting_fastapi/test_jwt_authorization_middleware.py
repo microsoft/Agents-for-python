@@ -33,9 +33,7 @@ def _scope(auth_config: AgentAuthConfiguration, authorization: str | None = None
         "client": ("127.0.0.1", 1234),
         "server": ("testserver", 80),
         "scheme": "http",
-        "app": SimpleNamespace(
-            state=SimpleNamespace(agent_configuration=auth_config)
-        ),
+        "app": SimpleNamespace(state=SimpleNamespace(agent_configuration=auth_config)),
         "state": {},
     }
 
@@ -80,7 +78,9 @@ async def test_fastapi_middleware_stores_claims_and_calls_downstream_app():
         new=AsyncMock(return_value=claims),
     ) as authorize:
         scope = _scope(auth_config, "Bearer token")
-        await middleware(scope, _receive, lambda message: _record_send(messages, message))
+        await middleware(
+            scope, _receive, lambda message: _record_send(messages, message)
+        )
 
     assert downstream_called is True
     assert _status(messages) == 200
