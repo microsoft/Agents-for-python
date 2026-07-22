@@ -30,6 +30,8 @@ class ConversationParameters(AgentsModel):
     :type channel_data: object
     :param tenant_id: (Optional) The tenant ID in which the conversation should be created
     :type tenant_id: str
+    :param conversation: (Optional) The conversation account to use when creating the new conversation
+    :type conversation: ~microsoft_agents.activity.ConversationAccount
     """
 
     is_group: bool = None
