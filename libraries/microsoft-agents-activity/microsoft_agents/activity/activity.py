@@ -634,7 +634,7 @@ class Activity(AgentsModel):
             and self.get_account_mention(self.recipient.id) is not None
         )
 
-    def remove_recipient_mention(self) -> NonEmptyString:
+    def remove_recipient_mention(self) -> str:
         """
         Removes the recipient's mention text from the activity's text.
 
@@ -646,7 +646,7 @@ class Activity(AgentsModel):
         """
         return self.remove_mention_text(self.recipient.id if self.recipient else None)
 
-    def remove_mention_text(self, identifier: NonEmptyString | None) -> NonEmptyString:
+    def remove_mention_text(self, identifier: NonEmptyString | None) -> str:
         """
         Removes the mention text for the given account id from the activity's text.
 
