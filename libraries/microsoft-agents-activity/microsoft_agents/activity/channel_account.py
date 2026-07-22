@@ -25,7 +25,7 @@ class ChannelAccount(AgentsModel):
 
     model_config = ConfigDict(extra="allow")
 
-    id: NonEmptyString = None
+    id: Optional[NonEmptyString] = None
     name: str = None
     aad_object_id: Optional[NonEmptyString] = None
     role: Optional[NonEmptyString] = None
