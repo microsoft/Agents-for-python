@@ -64,9 +64,10 @@ class ChannelServiceAdapter(ChannelAdapter, ABC):
         :type activities: list[:class:`microsoft_agents.activity.Activity`]
         :return: List of resource responses for the sent activities.
         :rtype: list[:class:`microsoft_agents.activity.ResourceResponse`]
+        :raises ValueError: If the activities list is empty.
         """
         if len(activities) == 0:
-            return []
+            raise ValueError("send_activities: activities list cannot be empty")
 
         responses = []
 
