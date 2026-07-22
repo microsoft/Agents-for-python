@@ -29,6 +29,17 @@ class TestChannelId:
 
         assert ChannelId(channel_id) is channel_id
 
+    def test_get_channel_strips_and_drops_sub_channel(self):
+        assert ChannelId.get_channel(" msteams ") == "msteams"
+        assert ChannelId.get_channel("msteams:sub") == "msteams"
+        assert ChannelId.get_channel("msteams:") == "msteams"
+        assert ChannelId.get_channel(None) is None
+
+    def test_get_sub_channel_empty_is_none(self):
+        assert ChannelId.get_sub_channel("msteams:sub") == "sub"
+        assert ChannelId.get_sub_channel("msteams:") is None
+        assert ChannelId.get_sub_channel(" msteams: sub ") == "sub"
+        assert ChannelId.get_sub_channel(None) is None
     def test_init_multiple_args(self):
         with pytest.raises(ValueError):
             ChannelId("email:support", channel="a", sub_channel="b")
