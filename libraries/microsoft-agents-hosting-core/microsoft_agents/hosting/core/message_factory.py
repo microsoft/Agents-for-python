@@ -159,11 +159,7 @@ class MessageFactory:
                 AttachmentLayoutTypes.list, attachments, text, speak
             )
         return attachment_activity(
-            AttachmentLayoutTypes.list,
-            attachments,
-            text,
-            speak,
-            input_hint
+            AttachmentLayoutTypes.list, attachments, text, speak, input_hint
         )
 
     @staticmethod
