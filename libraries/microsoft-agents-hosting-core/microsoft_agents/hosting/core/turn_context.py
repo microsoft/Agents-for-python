@@ -324,7 +324,9 @@ class TurnContext(TurnContextProtocol):
         self._on_delete_activity.append(handler)
         return self
 
-    async def _emit(self, plugins: list[Callable], arg: Any, logic: Awaitable[Any]) -> Any:
+    async def _emit(
+        self, plugins: list[Callable], arg: Any, logic: Awaitable[Any]
+    ) -> Any:
         handlers = list(plugins)
 
         async def emit_next(i: int):
@@ -435,10 +437,9 @@ class TurnContext(TurnContextProtocol):
 
     @staticmethod
     def get_mentions(activity: Activity) -> list[Mention]:
-        result: list[Mention] = []
-        if activity.entities is not None:
-            for entity in activity.entities:
-                if entity.type.lower() == EntityTypes.MENTION:
-                    result.append(entity)
+        """Get all mentions from the activity.
 
-        return result
+        :param activity: The activity to get mentions from.
+        :return: A list of Mention objects.
+        """
+        return activity.get_mentions()
