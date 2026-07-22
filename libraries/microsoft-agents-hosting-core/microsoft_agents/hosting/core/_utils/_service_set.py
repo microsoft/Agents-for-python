@@ -14,6 +14,11 @@ class _ServiceSet:
     """
 
     def __init__(self, service_set: _ServiceSet | None = None) -> None:
+        """
+        Initializes a new instance of the _ServiceSet class.
+
+        :param service_set: An optional _ServiceSet instance to copy the state from.
+        """
         self._state: dict[type, Any] = {}
         if service_set is not None:
             self._state.update(service_set._state)
