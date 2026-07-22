@@ -90,7 +90,9 @@ class ChannelServiceAdapter(ChannelAdapter, ABC):
                     context.turn_state.get(self._AGENT_CONNECTOR_CLIENT_KEY),
                 )
                 if not connector_client:
-                    raise RuntimeError("Unable to extract ConnectorClient from turn context.")
+                    raise RuntimeError(
+                        "Unable to extract ConnectorClient from turn context."
+                    )
 
                 with spans.AdapterSendActivities([activity]):
                     if activity.reply_to_id:
@@ -126,7 +128,7 @@ class ChannelServiceAdapter(ChannelAdapter, ABC):
         :rtype: :class:`microsoft_agents.activity.ResourceResponse`
         :raises TypeError: If context or activity are None/invalid.
         """
-        
+
         if activity.id is None:
             raise TypeError("Expected Activity with an id but got None instead")
 
@@ -137,7 +139,9 @@ class ChannelServiceAdapter(ChannelAdapter, ABC):
                 context.turn_state.get(self._AGENT_CONNECTOR_CLIENT_KEY),
             )
             if not connector_client:
-                raise RuntimeError("Unable to extract ConnectorClient from turn context.")
+                raise RuntimeError(
+                    "Unable to extract ConnectorClient from turn context."
+                )
 
             return await connector_client.conversations.update_activity(
                 activity.conversation.id, activity.id, activity
@@ -167,7 +171,9 @@ class ChannelServiceAdapter(ChannelAdapter, ABC):
                 context.turn_state.get(self._AGENT_CONNECTOR_CLIENT_KEY),
             )
             if not connector_client:
-                raise RuntimeError("Unable to extract ConnectorClient from turn context.")
+                raise RuntimeError(
+                    "Unable to extract ConnectorClient from turn context."
+                )
 
             await connector_client.conversations.delete_activity(
                 reference.conversation.id, reference.activity_id
@@ -532,9 +538,9 @@ class ChannelServiceAdapter(ChannelAdapter, ABC):
         if context.activity.type == ActivityTypes.invoke:
 
             with spans.AdapterSendActivities([context.activity]):
-                activity_invoke_response: Activity | None = cast(Activity | None, context.turn_state.get(
-                    self.INVOKE_RESPONSE_KEY
-                ))
+                activity_invoke_response: Activity | None = cast(
+                    Activity | None, context.turn_state.get(self.INVOKE_RESPONSE_KEY)
+                )
                 if not activity_invoke_response:
                     return InvokeResponse(status=HTTPStatus.NOT_IMPLEMENTED)
 

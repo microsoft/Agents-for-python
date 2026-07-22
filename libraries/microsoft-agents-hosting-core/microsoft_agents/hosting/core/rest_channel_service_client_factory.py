@@ -70,7 +70,7 @@ class RestChannelServiceClientFactory(ChannelServiceClientFactoryBase):
         agent_instance_id = context.activity.get_agentic_instance_id()
         if not agent_instance_id:
             raise ValueError("Agent instance ID is required for agentic identity role")
-        
+
         tenant_id = context.activity.get_agentic_tenant_id()
         if not tenant_id:
             raise ValueError("Agentic tenant ID is required for agentic identity role")

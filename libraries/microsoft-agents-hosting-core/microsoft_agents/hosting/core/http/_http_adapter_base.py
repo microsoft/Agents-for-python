@@ -135,10 +135,12 @@ class HttpAdapterBase(ChannelServiceAdapter, ABC):
                 ):
                     with spans.AdapterWriteResponse(activity):
                         # Invoke and ExpectReplies cannot be performed async
-                        invoke_response_status = invoke_response.status if invoke_response else None
+                        invoke_response_status = (
+                            invoke_response.status if invoke_response else None
+                        )
                         return HttpResponseFactory.json(
                             invoke_response.body if invoke_response else None,
-                            invoke_response_status or HTTPStatus.NOT_IMPLEMENTED
+                            invoke_response_status or HTTPStatus.NOT_IMPLEMENTED,
                         )
 
                 return HttpResponseFactory.accepted()

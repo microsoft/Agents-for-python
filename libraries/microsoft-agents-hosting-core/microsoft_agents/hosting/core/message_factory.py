@@ -90,7 +90,9 @@ class MessageFactory:
         """
         suggested_actions = SuggestedActions(actions=actions)
         message = Activity(
-            type=ActivityTypes.message, input_hint=input_hint, suggested_actions=suggested_actions
+            type=ActivityTypes.message,
+            input_hint=input_hint,
+            suggested_actions=suggested_actions,
         )
         if text:
             message.text = text
