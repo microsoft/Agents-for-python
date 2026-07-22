@@ -3,7 +3,7 @@
 
 """Construction and caching of the Teams :class:`ApiClient` for a turn.
 
-The client is cached on the turn state so it is built at most once per turn, and
+The client is cached on turn context services so it is built at most once per turn, and
 is configured with a token factory derived from the turn's identity when one is
 available.
 """
@@ -16,8 +16,6 @@ from microsoft_agents.hosting.core import (
     TurnContext,
 )
 
-_TEAMS_API_CLIENT_KEY = "TeamsApiClient"
-
 
 def _get_teams_api_client(context: TurnContext) -> ApiClient:
     """
@@ -27,7 +25,7 @@ def _get_teams_api_client(context: TurnContext) -> ApiClient:
     :return: The cached Teams API client.
     :raises ValueError: If the Teams API client is not found.
     """
-    api_client = context.turn_state.get(_TEAMS_API_CLIENT_KEY)
+    api_client = context.services.get(ApiClient)
     if isinstance(api_client, ApiClient):
         return api_client
     raise ValueError("Unable to retrieve Teams API client.")
@@ -43,7 +41,7 @@ def _set_teams_api_client(
     :param connection_manager: The connection manager.
     """
 
-    if _TEAMS_API_CLIENT_KEY in context.turn_state:
+    if context.services.has(ApiClient):
         return
 
     headers = {
@@ -75,4 +73,4 @@ def _set_teams_api_client(
         options,
     )
 
-    context.turn_state[_TEAMS_API_CLIENT_KEY] = api_client
+    context.services.set(ApiClient, api_client)

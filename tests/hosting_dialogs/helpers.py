@@ -16,7 +16,7 @@ from microsoft_agents.activity import (
     SignInResource,
     TokenOrSignInResourceResponse,
 )
-from microsoft_agents.hosting.core import ChannelAdapter, TurnContext
+from microsoft_agents.hosting.core import TurnContext, UserTokenClientBase
 from microsoft_agents.hosting.core.authorization import ClaimsIdentity
 from tests._common.testing_objects import MockTestingAdapter
 
@@ -210,7 +210,7 @@ class DialogTestAdapter(MockTestingAdapter):
     """
     A test adapter compatible with the botbuilder TestAdapter API.
     Provides send() and assert_reply() methods for fluent test flows.
-    Also provides a proper UserTokenClient in turn_state for OAuthPrompt tests.
+    Also provides a proper UserTokenClient service for OAuthPrompt tests.
     """
 
     def __init__(self, callback: AgentCallbackHandler = None, **kwargs):
@@ -218,7 +218,7 @@ class DialogTestAdapter(MockTestingAdapter):
         self._callback = callback
         # Dialog-specific token client that implements the user_token API
         self._dialog_token_client = DialogUserTokenClient()
-        # OAuthPrompt reads claims["aud"] from the identity in turn_state
+        # OAuthPrompt reads claims["aud"] from the turn context identity.
         self.claims_identity = ClaimsIdentity({"aud": "test-app-id"}, True)
 
     def add_user_token(
@@ -269,17 +269,12 @@ class DialogTestAdapter(MockTestingAdapter):
         self, activity: Activity, identity: ClaimsIdentity = None
     ) -> TurnContext:
         """
-        Creates a turn context with the dialog token client in turn_state
+        Creates a turn context with the dialog token client service
         so OAuthPrompt can find it via _UserTokenAccess.
         """
         turn_context = super().create_turn_context(activity, identity)
-        turn_context.turn_state[ChannelAdapter.USER_TOKEN_CLIENT_KEY] = (
-            self._dialog_token_client
-        )
-        # OAuthPrompt reads claims["aud"] from this identity
-        turn_context.turn_state[ChannelAdapter.AGENT_IDENTITY_KEY] = (
-            identity or self.claims_identity
-        )
+        turn_context.services.set(UserTokenClientBase, self._dialog_token_client)
+        turn_context._identity = identity or self.claims_identity
         return turn_context
 
     def make_activity(self, text: str = None) -> Activity:

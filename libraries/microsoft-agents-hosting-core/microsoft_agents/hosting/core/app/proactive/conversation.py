@@ -65,7 +65,7 @@ class Conversation(StoreItem):
             and conversation reference.
         :rtype: :class:`microsoft_agents.hosting.core.app.proactive.Conversation`
         """
-        identity: ClaimsIdentity | None = context.turn_state.identity
+        identity: ClaimsIdentity | None = context.identity
         reference = context.activity.get_conversation_reference()
         return cls(identity or {}, reference)
 

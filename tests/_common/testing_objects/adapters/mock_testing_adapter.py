@@ -20,6 +20,7 @@ from microsoft_agents.activity import (
     InvokeResponse,
 )
 from microsoft_agents.hosting.core.channel_adapter import ChannelAdapter
+from microsoft_agents.hosting.core.connector import UserTokenClientBase
 from microsoft_agents.hosting.core.turn_context import TurnContext
 
 from ..testing_user_token_client import TestingUserTokenClient
@@ -496,7 +497,7 @@ class MockTestingAdapter(ChannelAdapter):
         """
         turn_context = TurnContext(self, activity)
 
-        turn_context.services["UserTokenClient"] = self._user_token_client
+        turn_context.services.set(UserTokenClientBase, self._user_token_client)
         turn_context._identity = identity or self.claims_identity
 
         return turn_context

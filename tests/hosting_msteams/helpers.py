@@ -17,6 +17,20 @@ if is_supported_version:
     from microsoft_agents.hosting.msteams.teams_turn_context import TeamsTurnContext
 
 
+class _FakeServiceSet:
+    def __init__(self):
+        self._state = {}
+
+    def get(self, key):
+        return self._state.get(key)
+
+    def has(self, key):
+        return key in self._state
+
+    def set(self, key, value):
+        self._state[key] = value
+
+
 def _make_app() -> Any:
     app = MagicMock(spec=AgentApplication)
     app._routes = []
@@ -64,7 +78,7 @@ def _make_context(
     mock_adapter = MagicMock()
     context.adapter = mock_adapter
     context._responded = False
-    context._services = {}
+    context._services = _FakeServiceSet()
     context._on_send_activities = []
     context._on_update_activity = []
     context._on_delete_activity = []
@@ -74,7 +88,7 @@ def _make_context(
         target.adapter = mock_adapter
         target._activity = activity
         target._responded = False
-        target._services = {}
+        target._services = _FakeServiceSet()
         target._on_send_activities = []
         target._on_update_activity = []
         target._on_delete_activity = []

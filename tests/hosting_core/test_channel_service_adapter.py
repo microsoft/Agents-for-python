@@ -157,14 +157,8 @@ class TestChannelServiceAdapter:
         assert context_arg.activity.conversation.id == "conversation123"
         assert context_arg.activity.channel_id == "channel_id"
         assert context_arg.activity.service_url == service_url
-        assert (
-            context_arg.turn_state[ChannelServiceAdapter.USER_TOKEN_CLIENT_KEY]
-            is user_token_client
-        )
-        assert (
-            ChannelServiceAdapter._AGENT_CONNECTOR_CLIENT_KEY
-            not in context_arg.turn_state
-        )
+        assert context_arg.services.get(UserTokenClientBase) is user_token_client
+        assert not context_arg.services.has(ConnectorClientBase)
 
     @pytest.mark.asyncio
     async def test_process_activity_normal_no_service_url(
@@ -244,11 +238,5 @@ class TestChannelServiceAdapter:
         assert context_arg.activity.conversation.id == "conversation123"
         assert context_arg.activity.channel_id == "channel_id"
         assert context_arg.activity.service_url == "service_url"
-        assert (
-            context_arg.turn_state[ChannelServiceAdapter.USER_TOKEN_CLIENT_KEY]
-            is user_token_client
-        )
-        assert (
-            context_arg.turn_state[ChannelServiceAdapter._AGENT_CONNECTOR_CLIENT_KEY]
-            is connector_client
-        )
+        assert context_arg.services.get(UserTokenClientBase) is user_token_client
+        assert context_arg.services.get(ConnectorClientBase) is connector_client

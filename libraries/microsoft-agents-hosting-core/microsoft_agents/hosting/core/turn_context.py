@@ -23,7 +23,7 @@ from microsoft_agents.hosting.core.authorization.claims_identity import ClaimsId
 
 import microsoft_agents.hosting.core.telemetry.turn_context.spans as spans
 
-from .state._service_set import _ServiceSet
+from ._service_set import _ServiceSet
 
 
 class TurnContext(TurnContextProtocol):
