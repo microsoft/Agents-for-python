@@ -83,7 +83,9 @@ class _UserAuthorization(_AuthorizationHandler):
 
         identity = context.identity
         if identity is None:
-            raise ValueError("ClaimsIdentity is required on TurnContext for OAuth flow.")
+            raise ValueError(
+                "ClaimsIdentity is required on TurnContext for OAuth flow."
+            )
         ms_app_id = identity.claims["aud"]
 
         # try to load existing state
