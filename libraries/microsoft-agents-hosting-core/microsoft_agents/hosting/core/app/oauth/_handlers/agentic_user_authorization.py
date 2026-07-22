@@ -141,7 +141,7 @@ class AgenticUserAuthorization(_AuthorizationHandler):
             raise ValueError(
                 f"Unable to retrieve agentic user token: missing agentic User Id or agentic instance Id. agentic_user_id: {agentic_user_id}, Agentic Instance ID: {agentic_instance_id}"
             )
-        
+
         tenant_id = context.activity.get_agentic_tenant_id()
         if not tenant_id:
             logger.error(

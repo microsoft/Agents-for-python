@@ -10,7 +10,7 @@ import logging
 from contextlib import nullcontext
 from copy import copy
 from functools import partial
-from warnings import deprecated
+from typing_extensions import deprecated
 
 import re
 from typing import (
@@ -151,7 +151,7 @@ class AgentApplication(Agent, Generic[StateT]):
         self._turn_state_factory = (
             options.turn_state_factory
             or kwargs.get("turn_state_factory", None)
-            or partial(StateT.with_storage, self._storage)
+            or partial(TurnState.with_storage, self._storage)
         )
 
         if options.proactive:
@@ -873,7 +873,9 @@ class AgentApplication(Agent, Generic[StateT]):
         ):
             context.activity.text = context.remove_recipient_mention(context.activity)
 
-    @deprecated("Use `load_configuration_from_env` from `microsoft_agents.activity` instead.")
+    @deprecated(
+        "Use `load_configuration_from_env` from `microsoft_agents.activity` instead."
+    )
     @staticmethod
     def parse_env_vars_configuration(vars: dict[str, Any]) -> dict:
         """

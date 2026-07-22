@@ -67,9 +67,10 @@ class _UserAuthorization(_AuthorizationHandler):
             context and the specified auth handler.
         :rtype: tuple[OAuthFlow, FlowStorageClient]
         """
-        user_token_client = cast(UserTokenClient | None, context.turn_state.get(
-            context.adapter.USER_TOKEN_CLIENT_KEY
-        ))
+        user_token_client = cast(
+            UserTokenClient | None,
+            context.turn_state.get(context.adapter.USER_TOKEN_CLIENT_KEY),
+        )
         if not user_token_client:
             raise ValueError(
                 "UserTokenClient is required in TurnState for OAuth flow handling."
@@ -85,9 +86,14 @@ class _UserAuthorization(_AuthorizationHandler):
         channel_id = context.activity.channel_id
         user_id = context.activity.from_property.id
 
-        identity = cast(ClaimsIdentity | None, context.turn_state.get(context.adapter.AGENT_IDENTITY_KEY))
+        identity = cast(
+            ClaimsIdentity | None,
+            context.turn_state.get(context.adapter.AGENT_IDENTITY_KEY),
+        )
         if not identity or "aud" not in identity.claims:
-            raise ValueError("ClaimsIdentity with 'aud' claim is required in TurnState for OAuth flow handling.")
+            raise ValueError(
+                "ClaimsIdentity with 'aud' claim is required in TurnState for OAuth flow handling."
+            )
 
         ms_app_id = identity.claims["aud"]
 
