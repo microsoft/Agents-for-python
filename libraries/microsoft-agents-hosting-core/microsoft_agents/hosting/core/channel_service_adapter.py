@@ -269,7 +269,7 @@ class ChannelServiceAdapter(ChannelAdapter, ABC):
         claims_identity.claims[AuthenticationConstants.SERVICE_URL_CLAIM] = service_url
 
         # Create the connector client to use for outbound requests.
-        connector_client: ConnectorClient = (
+        connector_client = (
             await self._channel_service_client_factory.create_connector_client(
                 None, claims_identity, service_url, audience
             )
@@ -330,7 +330,7 @@ class ChannelServiceAdapter(ChannelAdapter, ABC):
             activity=continuation_activity,
         )
 
-        user_token_client: UserTokenClient = (
+        user_token_client = (
             await self._channel_service_client_factory.create_user_token_client(
                 context, claims_identity
             )
@@ -341,7 +341,7 @@ class ChannelServiceAdapter(ChannelAdapter, ABC):
         )
 
         # Create the connector client to use for outbound requests.
-        connector_client: ConnectorClient = (
+        connector_client = (
             await self._channel_service_client_factory.create_connector_client(
                 context, claims_identity, continuation_activity.service_url, audience
             )
@@ -421,7 +421,7 @@ class ChannelServiceAdapter(ChannelAdapter, ABC):
         )
 
         # Create a UserTokenClient instance for the OAuth flow.
-        user_token_client: UserTokenClient = (
+        user_token_client = (
             await self._channel_service_client_factory.create_user_token_client(
                 context, claims_identity, use_anonymous_auth_callback
             )
