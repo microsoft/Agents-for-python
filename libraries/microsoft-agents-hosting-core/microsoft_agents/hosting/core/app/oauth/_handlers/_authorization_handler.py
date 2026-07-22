@@ -55,10 +55,14 @@ class _AuthorizationHandler(ABC):
 
         self._storage = storage
         self._connection_manager = connection_manager
-
+        
         if auth_handler:
             self._handler = auth_handler
         else:
+            if not auth_handler_settings:
+                raise ValueError(
+                    "auth_handler_settings must be provided if auth_handler is not."
+                )
             self._handler = AuthHandler._from_settings(auth_handler_settings)
 
         self._id = auth_handler_id or self._handler.name

@@ -6,7 +6,7 @@ from __future__ import annotations
 import logging
 from copy import copy
 from datetime import datetime, timezone
-from typing import Optional, Any, cast, Annotated, TypeVar
+from typing import Optional, Any, cast, Annotated, TypeVar, TYPE_CHECKING
 from typing_extensions import Self
 
 from pydantic import (
@@ -54,105 +54,7 @@ _EntityT = TypeVar("_EntityT", bound=Entity)
 
 # TODO: A2A Agent 2 is responding with None as id, had to mark it as optional (investigate)
 class Activity(AgentsModel, _ChannelIdFieldMixin):
-    """An Activity is the basic communication type for the protocol.
-
-    :param type: Contains the activity type. Possible values include:
-        'message', 'contactRelationUpdate', 'conversationUpdate', 'typing',
-        'endOfConversation', 'event', 'invoke', 'deleteUserData', 'messageUpdate',
-        'messageDelete', 'installationUpdate', 'messageReaction', 'suggestion',
-        'trace', 'handoff'
-    :type type: str or ~microsoft_agents.activity.ActivityTypes
-    :param id: Contains an ID that uniquely identifies the activity on the channel.
-    :type id: str
-    :param timestamp: Contains the date and time that the message was sent, in UTC, expressed in ISO-8601 format.
-    :type timestamp: datetime
-    :param local_timestamp: Contains the local date and time of the message expressed in ISO-8601 format.
-        For example, 2016-09-23T13:07:49.4714686-07:00.
-    :type local_timestamp: datetime
-    :param local_timezone: Contains the name of the local timezone of the message, expressed in IANA Time Zone database format.
-        For example, America/Los_Angeles.
-    :type local_timezone: str
-    :param service_url: Contains the URL that specifies the channel's service endpoint. Set by the channel.
-    :type service_url: str
-    :param channel_id: Contains an ID that uniquely identifies the channel (and possibly the sub-channel). Set by the channel.
-    :type channel_id: ~microsoft_agents.activity.ChannelId
-    :param from_property: Identifies the sender of the message.
-    :type from_property: ~microsoft_agents.activity.ChannelAccount
-    :param conversation: Identifies the conversation to which the activity belongs.
-    :type conversation: ~microsoft_agents.activity.ConversationAccount
-    :param recipient: Identifies the recipient of the message.
-    :type recipient: ~microsoft_agents.activity.ChannelAccount
-    :param text_format: Format of text fields Default:markdown. Possible values include: 'markdown', 'plain', 'xml'
-    :type text_format: str or ~microsoft_agents.activity.TextFormatTypes
-    :param attachment_layout: The layout hint for multiple attachments. Default: list. Possible values include: 'list', 'carousel'
-    :type attachment_layout: str or ~microsoft_agents.activity.AttachmentLayoutTypes
-    :param members_added: The collection of members added to the conversation.
-    :type members_added: list[~microsoft_agents.activity.ChannelAccount]
-    :param members_removed: The collection of members removed from the conversation.
-    :type members_removed: list[~microsoft_agents.activity.ChannelAccount]
-    :param reactions_added: The collection of reactions added to the conversation.
-    :type reactions_added: list[~microsoft_agents.activity.MessageReaction]
-    :param reactions_removed: The collection of reactions removed from the conversation.
-    :type reactions_removed: list[~microsoft_agents.activity.MessageReaction]
-    :param topic_name: The updated topic name of the conversation.
-    :type topic_name: str
-    :param history_disclosed: Indicates whether the prior history of the channel is disclosed.
-    :type history_disclosed: bool
-    :param locale: A locale name for the contents of the text field. The locale name is a combination of an ISO 639 two- or three-letter
-        culture code associated with a language and an ISO 3166 two-letter subculture code associated with a country or region.
-        The locale name can also correspond to a valid BCP-47 language tag.
-    :type locale: str
-    :param text: The text content of the message.
-    :type text: str
-    :param speak: The text to speak.
-    :type speak: str
-    :param input_hint: Indicates whether your agent is accepting, expecting, or ignoring user input after the message is delivered to the client.
-        Possible values include: 'acceptingInput', 'ignoringInput', 'expectingInput'
-    :type input_hint: str or ~microsoft_agents.activity.InputHints
-    :param summary: The text to display if the channel cannot render cards.
-    :type summary: str
-    :param suggested_actions: The suggested actions for the activity.
-    :type suggested_actions: ~microsoft_agents.activity.SuggestedActions
-    :param attachments: Attachments
-    :type attachments: list[~microsoft_agents.activity.Attachment]
-    :param entities: Represents the entities that were mentioned in the message.
-    :type entities: list[~microsoft_agents.activity.Entity]
-    :param channel_data: Contains channel-specific content.
-    :type channel_data: object
-    :param action: Indicates whether the recipient of a contactRelationUpdate was added or removed from the sender's contact list.
-    :type action: str
-    :param reply_to_id: Contains the ID of the message to which this message is a reply.
-    :type reply_to_id: str
-    :param label: A descriptive label for the activity.
-    :type label: str
-    :param value_type: The type of the activity's value object.
-    :type value_type: str
-    :param value: A value that is associated with the activity.
-    :type value: object
-    :param name: The name of the operation associated with an invoke or event activity.
-    :type name: str
-    :param relates_to: A reference to another conversation or activity.
-    :type relates_to: ~microsoft_agents.activity.ConversationReference
-    :param code: The a code for endOfConversation activities that indicates why the conversation ended. Possible values include: 'unknown',
-        'completedSuccessfully', 'userCancelled', 'botTimedOut', 'botIssuedInvalidMessage', 'channelFailed'
-    :type code: str or ~microsoft_agents.activity.EndOfConversationCodes
-    :param expiration: The time at which the activity should be considered to be "expired" and should not be presented to the recipient.
-    :type expiration: datetime
-    :param importance: The importance of the activity. Possible values include: 'low', 'normal', 'high'
-    :type importance: str or ~microsoft_agents.activity.ActivityImportance
-    :param delivery_mode: A delivery hint to signal to the recipient alternate delivery paths for the activity.
-        The default delivery mode is "default". Possible values include: 'normal', 'notification', 'expectReplies', 'ephemeral'
-    :type delivery_mode: str or ~microsoft_agents.activity.DeliveryModes
-    :param listen_for: List of phrases and references that speech and language priming systems should listen for
-    :type listen_for: list[str]
-    :param text_highlights: The collection of text fragments to highlight when the activity contains a ReplyToId value.
-    :type text_highlights: list[~microsoft_agents.activity.TextHighlight]
-    :param semantic_action: An optional programmatic action accompanying this request
-    :type semantic_action: ~microsoft_agents.activity.SemanticAction
-    :param caller_id: A string containing an IRI identifying the caller of an agent. This field is not intended to be transmitted over the wire,
-        but is instead populated by agents and clients based on cryptographically verifiable data that asserts the identity of the callers (e.g. tokens).
-    :type caller_id: str
-    """
+    """An Activity is the basic communication type for the protocol."""
 
     type: NonEmptyString
     id: Optional[NonEmptyString] = None
@@ -195,6 +97,115 @@ class Activity(AgentsModel, _ChannelIdFieldMixin):
     text_highlights: list[TextHighlight] = None
     semantic_action: SemanticAction = None
     caller_id: NonEmptyString = None
+
+    # def __init__(self, channel_id: str | ChannelId | None = None, *args, **kwargs):
+    #     kwargs["channel_id"] = channel_id
+    #     super().__init__(*args, **kwargs)
+
+    if TYPE_CHECKING:
+        def __init__(self,
+            *,
+            channel_id: ChannelId | str | None = None,
+            **kwargs) -> None:
+            """Initialize an Activity instance.
+            
+            :param type: Contains the activity type. Possible values include:
+                'message', 'contactRelationUpdate', 'conversationUpdate', 'typing',
+                'endOfConversation', 'event', 'invoke', 'deleteUserData', 'messageUpdate',
+                'messageDelete', 'installationUpdate', 'messageReaction', 'suggestion',
+                'trace', 'handoff'
+            :type type: str or ~microsoft_agents.activity.ActivityTypes
+            :param id: Contains an ID that uniquely identifies the activity on the channel.
+            :type id: str
+            :param timestamp: Contains the date and time that the message was sent, in UTC, expressed in ISO-8601 format.
+            :type timestamp: datetime
+            :param local_timestamp: Contains the local date and time of the message expressed in ISO-8601 format.
+                For example, 2016-09-23T13:07:49.4714686-07:00.
+            :type local_timestamp: datetime
+            :param local_timezone: Contains the name of the local timezone of the message, expressed in IANA Time Zone database format.
+                For example, America/Los_Angeles.
+            :type local_timezone: str
+            :param service_url: Contains the URL that specifies the channel's service endpoint. Set by the channel.
+            :type service_url: str
+            :param channel_id: Contains an ID that uniquely identifies the channel (and possibly the sub-channel). Set by the channel.
+            :type channel_id: ~microsoft_agents.activity.ChannelId
+            :param from_property: Identifies the sender of the message.
+            :type from_property: ~microsoft_agents.activity.ChannelAccount
+            :param conversation: Identifies the conversation to which the activity belongs.
+            :type conversation: ~microsoft_agents.activity.ConversationAccount
+            :param recipient: Identifies the recipient of the message.
+            :type recipient: ~microsoft_agents.activity.ChannelAccount
+            :param text_format: Format of text fields Default:markdown. Possible values include: 'markdown', 'plain', 'xml'
+            :type text_format: str or ~microsoft_agents.activity.TextFormatTypes
+            :param attachment_layout: The layout hint for multiple attachments. Default: list. Possible values include: 'list', 'carousel'
+            :type attachment_layout: str or ~microsoft_agents.activity.AttachmentLayoutTypes
+            :param members_added: The collection of members added to the conversation.
+            :type members_added: list[~microsoft_agents.activity.ChannelAccount]
+            :param members_removed: The collection of members removed from the conversation.
+            :type members_removed: list[~microsoft_agents.activity.ChannelAccount]
+            :param reactions_added: The collection of reactions added to the conversation.
+            :type reactions_added: list[~microsoft_agents.activity.MessageReaction]
+            :param reactions_removed: The collection of reactions removed from the conversation.
+            :type reactions_removed: list[~microsoft_agents.activity.MessageReaction]
+            :param topic_name: The updated topic name of the conversation.
+            :type topic_name: str
+            :param history_disclosed: Indicates whether the prior history of the channel is disclosed.
+            :type history_disclosed: bool
+            :param locale: A locale name for the contents of the text field. The locale name is a combination of an ISO 639 two- or three-letter
+                culture code associated with a language and an ISO 3166 two-letter subculture code associated with a country or region.
+                The locale name can also correspond to a valid BCP-47 language tag.
+            :type locale: str
+            :param text: The text content of the message.
+            :type text: str
+            :param speak: The text to speak.
+            :type speak: str
+            :param input_hint: Indicates whether your agent is accepting, expecting, or ignoring user input after the message is delivered to the client.
+                Possible values include: 'acceptingInput', 'ignoringInput', 'expectingInput'
+            :type input_hint: str or ~microsoft_agents.activity.InputHints
+            :param summary: The text to display if the channel cannot render cards.
+            :type summary: str
+            :param suggested_actions: The suggested actions for the activity.
+            :type suggested_actions: ~microsoft_agents.activity.SuggestedActions
+            :param attachments: Attachments
+            :type attachments: list[~microsoft_agents.activity.Attachment]
+            :param entities: Represents the entities that were mentioned in the message.
+            :type entities: list[~microsoft_agents.activity.Entity]
+            :param channel_data: Contains channel-specific content.
+            :type channel_data: object
+            :param action: Indicates whether the recipient of a contactRelationUpdate was added or removed from the sender's contact list.
+            :type action: str
+            :param reply_to_id: Contains the ID of the message to which this message is a reply.
+            :type reply_to_id: str
+            :param label: A descriptive label for the activity.
+            :type label: str
+            :param value_type: The type of the activity's value object.
+            :type value_type: str
+            :param value: A value that is associated with the activity.
+            :type value: object
+            :param name: The name of the operation associated with an invoke or event activity.
+            :type name: str
+            :param relates_to: A reference to another conversation or activity.
+            :type relates_to: ~microsoft_agents.activity.ConversationReference
+            :param code: The a code for endOfConversation activities that indicates why the conversation ended. Possible values include: 'unknown',
+                'completedSuccessfully', 'userCancelled', 'botTimedOut', 'botIssuedInvalidMessage', 'channelFailed'
+            :type code: str or ~microsoft_agents.activity.EndOfConversationCodes
+            :param expiration: The time at which the activity should be considered to be "expired" and should not be presented to the recipient.
+            :type expiration: datetime
+            :param importance: The importance of the activity. Possible values include: 'low', 'normal', 'high'
+            :type importance: str or ~microsoft_agents.activity.ActivityImportance
+            :param delivery_mode: A delivery hint to signal to the recipient alternate delivery paths for the activity.
+                The default delivery mode is "default". Possible values include: 'normal', 'notification', 'expectReplies', 'ephemeral'
+            :type delivery_mode: str or ~microsoft_agents.activity.DeliveryModes
+            :param listen_for: List of phrases and references that speech and language priming systems should listen for
+            :type listen_for: list[str]
+            :param text_highlights: The collection of text fragments to highlight when the activity contains a ReplyToId value.
+            :type text_highlights: list[~microsoft_agents.activity.TextHighlight]
+            :param semantic_action: An optional programmatic action accompanying this request
+            :type semantic_action: ~microsoft_agents.activity.SemanticAction
+            :param caller_id: A string containing an IRI identifying the caller of an agent. This field is not intended to be transmitted over the wire,
+                but is instead populated by agents and clients based on cryptographically verifiable data that asserts the identity of the callers (e.g. tokens).
+            :type caller_id: str
+            """
 
     @model_validator(mode="wrap")
     @classmethod

@@ -282,8 +282,9 @@ class Authorization:
 
         elif sign_in_response.tag in [_FlowStateTag.BEGIN, _FlowStateTag.CONTINUE]:
             # Handling special case for Teams SSO, ConsentRequired
+            channel = context.activity.channel_id.channel if context.activity.channel_id else None
             if not (
-                context.activity.channel_id.channel == Channels.ms_teams
+                channel == Channels.ms_teams
                 and sign_in_state.continuation_activity
                 and context.activity.type == ActivityTypes.invoke
                 and context.activity.name

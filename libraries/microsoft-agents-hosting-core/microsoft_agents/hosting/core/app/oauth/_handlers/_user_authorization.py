@@ -5,7 +5,7 @@ Licensed under the MIT License.
 
 from __future__ import annotations
 import logging
-from typing import Optional
+from typing import Optional, cast
 
 from microsoft_agents.activity import (
     Activity,
@@ -36,6 +36,7 @@ from microsoft_agents.hosting.core._oauth import (
     _FlowStorageClient,
     _FlowStateTag,
 )
+from microsoft_agents.hosting.core.authorization import ClaimsIdentity
 from .._sign_in_response import _SignInResponse
 from ._authorization_handler import _AuthorizationHandler
 from ..telemetry import spans
@@ -65,9 +66,13 @@ class _UserAuthorization(_AuthorizationHandler):
             context and the specified auth handler.
         :rtype: tuple[OAuthFlow, FlowStorageClient]
         """
-        user_token_client: UserTokenClient = context.turn_state.get(
-            context.adapter.USER_TOKEN_CLIENT_KEY
-        )
+        user_token_client: UserTokenClient | None = cast(UserTokenClient | None,
+            context.turn_state.get(
+                context.adapter.USER_TOKEN_CLIENT_KEY
+            ))
+
+        if not user_token_client:
+            raise ValueError("UserTokenClient is required in turn state")
 
         if (
             not context.activity.channel_id
@@ -79,14 +84,17 @@ class _UserAuthorization(_AuthorizationHandler):
         channel_id = context.activity.channel_id
         user_id = context.activity.from_property.id
 
-        ms_app_id = context.turn_state.get(context.adapter.AGENT_IDENTITY_KEY).claims[
-            "aud"
-        ]
+        identity = cast(ClaimsIdentity | None, context.turn_state.get(context.adapter.AGENT_IDENTITY_KEY))
+
+        if not identity:
+            raise ValueError("ClaimsIdentity is required in turn state")
+        
+        ms_app_id = identity.claims["aud"]
 
         # try to load existing state
         flow_storage_client = _FlowStorageClient(channel_id, user_id, self._storage)
         logger.info("Loading OAuth flow state from storage")
-        flow_state: _FlowState = await flow_storage_client.read(self._id)
+        flow_state: _FlowState | None = await flow_storage_client.read(self._id)
         if not flow_state:
             logger.info("No existing flow state found, creating new flow state")
             flow_state = _FlowState(

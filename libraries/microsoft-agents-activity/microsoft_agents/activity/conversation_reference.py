@@ -4,10 +4,11 @@
 from __future__ import annotations
 
 from uuid import uuid4 as uuid
-from typing import Optional, Annotated
+from typing import Optional, Annotated, TYPE_CHECKING
 
 from pydantic import Field
 
+from .channel_id import ChannelId
 from .channel_account import ChannelAccount
 from ._channel_id_field_mixin import _ChannelIdFieldMixin
 from .conversation_account import ConversationAccount
@@ -18,28 +19,7 @@ from .activity_event_names import ActivityEventNames
 
 
 class ConversationReference(AgentsModel, _ChannelIdFieldMixin):
-    """An object relating to a particular point in a conversation.
-
-    :param activity_id: (Optional) ID of the activity to refer to
-    :type activity_id: str
-    :param user: (Optional) User participating in this conversation
-    :type user: ~microsoft_agents.activity.ChannelAccount
-    :param agent: Agent participating in this conversation
-    :type agent: ~microsoft_agents.activity.ChannelAccount
-    :param conversation: Conversation reference
-    :type conversation: ~microsoft_agents.activity.ConversationAccount
-    :param channel_id: Channel ID
-    :type channel_id: ~microsoft_agents.activity.ChannelId
-    :param locale: A locale name for the contents of the text field.
-        The locale name is a combination of an ISO 639 two- or three-letter
-        culture code associated with a language and an ISO 3166 two-letter
-        subculture code associated with a country or region.
-        The locale name can also correspond to a valid BCP-47 language tag.
-    :type locale: str
-    :param service_url: Service endpoint where operations concerning the
-     referenced conversation may be performed
-    :type service_url: str
-    """
+    """An object relating to a particular point in a conversation."""
 
     # optionals here are due to webchat
     activity_id: Optional[NonEmptyString] = None
@@ -48,6 +28,35 @@ class ConversationReference(AgentsModel, _ChannelIdFieldMixin):
     conversation: ConversationAccount
     locale: Optional[NonEmptyString] = None
     service_url: NonEmptyString = None
+
+    if TYPE_CHECKING:
+        def __init__(self,
+            *,
+            channel_id: ChannelId | str | None = None,
+            **kwargs
+        ) -> None:
+            """ 
+            :param activity_id: (Optional) ID of the activity to refer to
+            :type activity_id: str
+            :param user: (Optional) User participating in this conversation
+            :type user: ~microsoft_agents.activity.ChannelAccount
+            :param agent: Agent participating in this conversation
+            :type agent: ~microsoft_agents.activity.ChannelAccount
+            :param conversation: Conversation reference
+            :type conversation: ~microsoft_agents.activity.ConversationAccount
+            :param channel_id: Channel ID
+            :type channel_id: ~microsoft_agents.activity.ChannelId
+            :param locale: A locale name for the contents of the text field.
+                The locale name is a combination of an ISO 639 two- or three-letter
+                culture code associated with a language and an ISO 3166 two-letter
+                subculture code associated with a country or region.
+                The locale name can also correspond to a valid BCP-47 language tag.
+            :type locale: str
+            :param service_url: Service endpoint where operations concerning the
+            referenced conversation may be performed
+            :type service_url: str
+            """
+            ...
 
     def get_continuation_activity(self) -> "Activity":  # type: ignore
         from .activity import Activity

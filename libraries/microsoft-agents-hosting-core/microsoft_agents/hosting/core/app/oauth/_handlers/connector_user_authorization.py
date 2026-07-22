@@ -196,7 +196,7 @@ class ConnectorUserAuthorization(_AuthorizationHandler):
             scopes=scopes,
             user_assertion=input_token_response.token,
         )
-        return TokenResponse(token=token) if token else None
+        return TokenResponse(token=token)
 
     def _create_token_response(self, context: TurnContext) -> TokenResponse:
         """

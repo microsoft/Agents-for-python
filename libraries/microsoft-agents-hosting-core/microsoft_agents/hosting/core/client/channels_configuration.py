@@ -39,4 +39,6 @@ class ChannelsConfiguration(Protocol):
 
     @staticmethod
     def CHANNEL_HOST_CONFIGURATION() -> ChannelHostConfiguration:
-        pass
+        raise NotImplementedError(
+            "ChannelsConfiguration.CHANNEL_HOST_CONFIGURATION() must be implemented"
+        )

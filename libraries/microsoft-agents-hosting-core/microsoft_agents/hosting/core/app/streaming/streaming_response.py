@@ -4,7 +4,9 @@
 import uuid
 import asyncio
 import logging
-from typing import Optional, Callable, Literal, cast
+from typing import Optional, Callable, Literal, cast, TYPE_CHECKING
+if TYPE_CHECKING:
+    from microsoft_agents.hosting.core.turn_context import TurnContext
 
 from microsoft_agents.activity import (
     Activity,
@@ -39,7 +41,7 @@ class StreamingResponse:
     Once `end_stream()` is called, the stream is considered ended and no further updates can be sent.
     """
 
-    def __init__(self, context: "TurnContext"):
+    def __init__(self, context: TurnContext):
         """
         Creates a new StreamingResponse instance.
 
@@ -267,7 +269,7 @@ class StreamingResponse:
         if self._queue_sync:
             await self._queue_sync
 
-    def _set_defaults(self, context: "TurnContext"):
+    def _set_defaults(self, context: TurnContext):
 
         channel = (
             context.activity.channel_id.channel if context.activity.channel_id else None

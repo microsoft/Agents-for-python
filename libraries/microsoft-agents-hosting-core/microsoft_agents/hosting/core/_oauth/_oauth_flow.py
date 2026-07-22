@@ -192,6 +192,11 @@ class _OAuthFlow:
             ms_app_id=self._ms_app_id,
         )
 
+        if not token_exchange_state.conversation.channel_id:
+            raise ValueError(
+                "OAuthFlow.begin_flow(): activity must have a channel_id in the conversation reference"
+            )
+
         res = await self._user_token_client.user_token._get_token_or_sign_in_resource(
             activity.from_property.id,
             self._abs_oauth_connection_name,
@@ -271,7 +276,7 @@ class _OAuthFlow:
                     self._user_id,
                 )
 
-                return None, _FlowErrorTag.PRECONDITION_FAILED
+                return TokenResponse(), _FlowErrorTag.PRECONDITION_FAILED
             raise
 
     async def continue_flow(self, activity: Activity) -> _FlowResponse:
