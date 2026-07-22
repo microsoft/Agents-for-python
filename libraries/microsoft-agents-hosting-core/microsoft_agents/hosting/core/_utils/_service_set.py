@@ -28,7 +28,7 @@ class _ServiceSet:
         if val is not None:
             if not isinstance(val, key):
                 raise TypeError(
-                    f"Value for key '{key.__name__}' is not of type {type(val).__name__}"
+                    f"Value for key '{key.__name__}' is not of type {key.__name__} (got {type(val).__name__})"
                 )
             return cast(T, val)
         return None
