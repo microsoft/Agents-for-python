@@ -5,7 +5,7 @@ Licensed under the MIT License.
 
 from __future__ import annotations
 
-from typing import Optional, TYPE_CHECKING
+from typing import TYPE_CHECKING
 
 from microsoft_agents.activity import ConversationReference
 from microsoft_agents.hosting.core.authorization import ClaimsIdentity
@@ -39,7 +39,7 @@ class Conversation(StoreItem):
 
     def __init__(
         self,
-        claims: "dict[str, str] | ClaimsIdentity",
+        claims: dict[str, str] | ClaimsIdentity,
         conversation_reference: ConversationReference,
     ) -> None:
         if isinstance(claims, ClaimsIdentity):
@@ -55,7 +55,7 @@ class Conversation(StoreItem):
     # ------------------------------------------------------------------
 
     @classmethod
-    def from_turn_context(cls, context: "TurnContext") -> "Conversation":
+    def from_turn_context(cls, context: TurnContext) -> Conversation:
         """
         Create a :class:`microsoft_agents.hosting.core.app.proactive.Conversation` from the current turn context.
 
@@ -74,7 +74,7 @@ class Conversation(StoreItem):
     # ------------------------------------------------------------------
 
     @staticmethod
-    def claims_from_identity(identity: ClaimsIdentity) -> "dict[str, str]":
+    def claims_from_identity(identity: ClaimsIdentity) -> dict[str, str]:
         """
         Return the subset of claims from *identity* that are relevant for proactive
         messaging (``aud``, ``azp``, ``appid``, ``idtyp``, ``ver``, ``iss``, ``tid``).
@@ -87,7 +87,7 @@ class Conversation(StoreItem):
         return {k: v for k, v in identity.claims.items() if k in _PERSISTED_CLAIM_KEYS}
 
     @staticmethod
-    def identity_from_claims(claims: "dict[str, str]") -> ClaimsIdentity:
+    def identity_from_claims(claims: dict[str, str]) -> ClaimsIdentity:
         """
         Reconstruct a :class:`~microsoft_agents.hosting.core.authorization.ClaimsIdentity`
         from a previously persisted claims dict.
@@ -138,7 +138,7 @@ class Conversation(StoreItem):
         }
 
     @staticmethod
-    def from_json_to_store_item(json_data: dict) -> "Conversation":
+    def from_json_to_store_item(json_data: dict) -> Conversation:
         reference = ConversationReference.model_validate(
             json_data.get("conversation_reference", {})
         )

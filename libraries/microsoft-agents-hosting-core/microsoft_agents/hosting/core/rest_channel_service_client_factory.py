@@ -49,17 +49,9 @@ class RestChannelServiceClientFactory(ChannelServiceClientFactoryBase):
             context.identity, service_url
         )
 
-        # Provider-agnostic access to the connection's auth configuration. MSAL
-        # exposes it as ``_msal_configuration``; other providers (e.g. the Entra
-        # sidecar) expose it as ``configuration``. The only value needed here is
-        # the optional alternate-blueprint connection name.
-        configuration = getattr(connection, "_msal_configuration", None)
-        if configuration is None:
-            configuration = getattr(connection, "configuration", None)
+        configuration = connection.configuration
+        alt_blueprint_id = configuration.ALT_BLUEPRINT_ID
 
-        alt_blueprint_id = (
-            getattr(configuration, "ALT_BLUEPRINT_ID", None) if configuration else None
-        )
         if alt_blueprint_id:
             logger.debug(
                 "Using alternative blueprint ID for agentic token retrieval: %s",
@@ -71,16 +63,20 @@ class RestChannelServiceClientFactory(ChannelServiceClientFactoryBase):
         if not agent_instance_id:
             raise ValueError("Agent instance ID is required for agentic identity role")
 
+        tenant_id = context.activity.get_agentic_tenant_id()
+        if not tenant_id:
+            raise ValueError("Agentic tenant ID is required for agentic activities")
+
         if context.activity.recipient.role == RoleTypes.agentic_identity:
             token, _ = await connection.get_agentic_instance_token(
-                context.activity.get_agentic_tenant_id(), agent_instance_id
+                tenant_id, agent_instance_id
             )
         else:
             agentic_user = context.activity.get_agentic_user()
             if not agentic_user:
                 raise ValueError("Agentic user is required for agentic user role")
             token = await connection.get_agentic_user_token(
-                context.activity.get_agentic_tenant_id(),
+                tenant_id,
                 agent_instance_id,
                 agentic_user,
                 [AuthenticationConstants.APX_PRODUCTION_SCOPE],
@@ -99,8 +95,6 @@ class RestChannelServiceClientFactory(ChannelServiceClientFactoryBase):
         scopes: list[str] | None = None,
         use_anonymous: bool = False,
     ) -> ConnectorClientBase:
-        if not claims_identity:
-            raise TypeError("claims_identity is required")
         if not service_url:
             raise TypeError(
                 "RestChannelServiceClientFactory.create_connector_client: service_url can't be None or Empty"
@@ -160,10 +154,8 @@ class RestChannelServiceClientFactory(ChannelServiceClientFactoryBase):
         :param claims_identity: The ClaimsIdentity of the user.
         :param use_anonymous: Whether to use an anonymous token provider.
         """
-        if not context or not claims_identity:
-            raise ValueError("context and claims_identity are required")
 
-        scopes = claims_identity.get_token_scope() if claims_identity else None
+        scopes = claims_identity.get_token_scope()
 
         with spans.AdapterCreateUserTokenClient(
             token_service_endpoint=self._token_service_endpoint,

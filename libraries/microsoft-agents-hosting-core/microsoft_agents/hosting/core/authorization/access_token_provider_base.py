@@ -1,11 +1,24 @@
 # Copyright (c) Microsoft Corporation. All rights reserved.
 # Licensed under the MIT License.
 
-from typing import Protocol, Optional
+from typing import Protocol
 from abc import abstractmethod
+
+from .agent_auth_configuration import AgentAuthConfiguration
 
 
 class AccessTokenProviderBase(Protocol):
+
+    @property
+    @abstractmethod
+    def configuration(self) -> AgentAuthConfiguration:
+        """
+        The configuration for the access token provider.
+
+        :return: The configuration for the access token provider.
+        """
+        raise NotImplementedError()
+
     @abstractmethod
     async def get_access_token(
         self, resource_url: str, scopes: list[str], force_refresh: bool = False
@@ -34,7 +47,7 @@ class AccessTokenProviderBase(Protocol):
 
     async def get_agentic_application_token(
         self, tenant_id: str, agent_app_instance_id: str
-    ) -> Optional[str]:
+    ) -> str | None:
         raise NotImplementedError()
 
     async def get_agentic_instance_token(
@@ -48,5 +61,5 @@ class AccessTokenProviderBase(Protocol):
         agent_app_instance_id: str,
         agentic_user_id: str,
         scopes: list[str],
-    ) -> Optional[str]:
+    ) -> str | None:
         raise NotImplementedError()
