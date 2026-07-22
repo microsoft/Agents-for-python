@@ -154,12 +154,12 @@ class MessageFactory:
         :param input_hint:
         :return:
         """
-        if not input_hint:
-            return attachment_activity(
-                AttachmentLayoutTypes.list, attachments, text, speak
-            )
         return attachment_activity(
-            AttachmentLayoutTypes.list, attachments, text, speak, input_hint
+            AttachmentLayoutTypes.list,
+            attachments,
+            text,
+            speak,
+            input_hint or "",
         )
 
     @staticmethod
