@@ -82,8 +82,8 @@ class OAuthPrompt(Dialog):
     @staticmethod
     def _get_user_token_client(context: TurnContext) -> UserTokenClientBase:
         val = context.services.get(UserTokenClientBase)
-        if not val:
-            raise Exception(
+        if val is None:
+            raise RuntimeError(
                 "OAuthPrompt._get_user_token_client(): UserTokenClientBase not found in context.services."
             )
         return val
