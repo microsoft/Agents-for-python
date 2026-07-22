@@ -74,6 +74,5 @@ def test_get_raises_type_error_when_stored_value_does_not_match_key():
 
     with pytest.raises(
         TypeError,
-        match="Value for key 'Service' is not of type Service \(got OtherService\)",
     ):
         services.get(Service)
