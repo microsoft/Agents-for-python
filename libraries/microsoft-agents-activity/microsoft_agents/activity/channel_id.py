@@ -72,7 +72,7 @@ class ChannelId(str):
 
             split = value.split(":", 1)
             channel = split[0].strip()
-            sub_channel = split[1].strip() if len(split) == 2 else None
+            sub_channel = (split[1].strip() or None) if len(split) == 2 else None
             return value, channel, sub_channel
 
         if not isinstance(channel, str) or len(channel.strip()) == 0 or ":" in channel:
