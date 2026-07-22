@@ -89,6 +89,24 @@ class TestActivityFluentBuilders:
         assert activity.entities[0].type == "myType"
 
 
+class TestSuggestedActionsBuilders:
+    def test_suggested_actions_fluent_adders(self):
+        suggested = (
+            SuggestedActions()
+            .add_recipients("r1", "r2")
+            .add_action(CardAction(type="imBack", title="a"))
+            .add_actions(
+                CardAction(type="imBack", title="b"),
+                CardAction(type="imBack", title="c"),
+            )
+        )
+
+        assert suggested.to == ["r1", "r2"]
+        assert len(suggested.actions) == 3
+        assert suggested.actions[0].title == "a"
+        assert suggested.actions[2].title == "c"
+
+
 class TestActivityMentions:
     def test_add_mention_adds_entity_and_text(self):
         account = ChannelAccount(id="u1", name="User One")
