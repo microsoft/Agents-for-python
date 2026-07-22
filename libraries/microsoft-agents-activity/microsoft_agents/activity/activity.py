@@ -16,7 +16,6 @@ from pydantic import (
     model_validator,
     SerializerFunctionWrapHandler,
     ModelWrapValidatorHandler,
-    computed_field,
     ValidationError,
 )
 
@@ -41,7 +40,6 @@ from .text_highlight import TextHighlight
 from .semantic_action import SemanticAction
 from .agents_model import AgentsModel
 from .role_types import RoleTypes
-from ._channel_id_field_mixin import _ChannelIdFieldMixin
 from .channel_id import ChannelId
 from ._model_utils import pick_model, SkipNone
 from ._type_aliases import NonEmptyString
@@ -53,7 +51,7 @@ _EntityT = TypeVar("_EntityT", bound=Entity)
 
 
 # TODO: A2A Agent 2 is responding with None as id, had to mark it as optional (investigate)
-class Activity(AgentsModel, _ChannelIdFieldMixin):
+class Activity(AgentsModel):
     """An Activity is the basic communication type for the protocol.
 
     :param type: Contains the activity type. Possible values include:
@@ -155,6 +153,7 @@ class Activity(AgentsModel, _ChannelIdFieldMixin):
     """
 
     type: NonEmptyString
+    channel_id: Optional[ChannelId] = None
     id: Optional[NonEmptyString] = None
     timestamp: datetime = None
     local_timestamp: datetime = None
@@ -210,10 +209,6 @@ class Activity(AgentsModel, _ChannelIdFieldMixin):
         try:
             # run Pydantic's standard validation first
             activity = handler(data)
-
-            # needed to assign to a computed field
-            # needed because we override the mixin validator
-            activity._set_validated_channel_id(data)
 
             # sync sub_channel with productInfo entity
             product_info = activity.get_product_info_entity()
@@ -279,9 +274,6 @@ class Activity(AgentsModel, _ChannelIdFieldMixin):
             del serialized["entities"][i]
             if not serialized["entities"]:  # after removal above, list may be empty
                 del serialized["entities"]
-
-        # necessary due to computed_field serialization
-        self._remove_serialized_unset_channel_id(serialized)
 
         return serialized
 
@@ -662,8 +654,8 @@ class Activity(AgentsModel, _ChannelIdFieldMixin):
                 agent=copy(self.recipient),
                 conversation=copy(self.conversation),
                 channel_id=(
-                    self.channel_id.split(":", 1)[0]
-                    if force_base_channel and self.channel_id is not None
+                    ChannelId.get_channel(self.channel_id)
+                    if force_base_channel
                     else self.channel_id
                 ),
                 locale=self.locale,
