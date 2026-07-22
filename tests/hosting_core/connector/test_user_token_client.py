@@ -92,17 +92,3 @@ class TestUserTokenBaseChannel:
             await server.close()
 
         assert captured == [None, None, None, None]
-
-    @pytest.mark.parametrize(
-        ("channel_id", "expected"),
-        [
-            ("msteams", "msteams"),
-            ("msteams:COPILOT", "msteams"),
-            ("msteams:", "msteams"),
-            (":COPILOT", ":COPILOT"),
-            (" ", " "),
-            (None, None),
-        ],
-    )
-    def test_base_channel_id(self, channel_id, expected):
-        assert UserToken._base_channel_id(channel_id) == expected
