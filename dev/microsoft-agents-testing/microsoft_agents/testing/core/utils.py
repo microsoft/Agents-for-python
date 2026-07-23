@@ -50,6 +50,12 @@ def sdk_config_connection(
     return AgentAuthConfiguration(**data)
 
 def load_sdk_config_connection(connection_name: str = "SERVICE_CONNECTION", env_path: str | Path = ".env") -> AgentAuthConfiguration:
+    """Load an AgentAuthConfiguration from a .env file.
+
+    :param connection_name: The connection name to look up in the .env file.
+    :param env_path: Path to the .env file (default is ".env").
+    :return: An AgentAuthConfiguration instance.
+    """
     raw_sdk_config = dotenv_values(str(env_path))
     raw_sdk_config = { k: v for k, v in raw_sdk_config.items() if not k.startswith("LOGGING")}
     sdk_config = load_configuration_from_env(raw_sdk_config)
