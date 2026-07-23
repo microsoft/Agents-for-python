@@ -17,7 +17,7 @@ async def _jwt_authorization_middleware(request: Request, handler):
     JWT Authorization Middleware for aiohttp endpoints.
     """
     auth_config = cast(
-        AgentAuthConfiguration | None, getattr(request.app, "agent_configuration", None)
+        AgentAuthConfiguration | None, request.app["agent_configuration"]
     )
     auth_header = request.headers.get("Authorization")
 

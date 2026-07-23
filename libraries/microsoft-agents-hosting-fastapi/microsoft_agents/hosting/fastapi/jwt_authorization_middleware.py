@@ -3,6 +3,7 @@
 
 import functools
 import logging
+import inspect
 
 from fastapi import Request
 from fastapi.responses import JSONResponse
@@ -76,5 +77,8 @@ def jwt_authorization_decorator(func):
             return JSONResponse(content=res.body, status_code=res.status_code)
         request.state.claims_identity = res
         return await func(request, *args, **kwargs)
+
+    # FastAPI relies on inspect.signature for dependency injection and docs.
+    wrapper.__signature__ = inspect.signature(func)  # type: ignore[attr-defined]
 
     return wrapper

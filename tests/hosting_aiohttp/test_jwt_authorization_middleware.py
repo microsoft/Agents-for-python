@@ -5,6 +5,7 @@ from unittest.mock import AsyncMock, patch
 
 import pytest
 from aiohttp import web
+from aiohttp.web_exceptions import NotAppKeyWarning
 
 from microsoft_agents.hosting.aiohttp.jwt_authorization_middleware import (
     jwt_authorization_decorator,
@@ -18,7 +19,8 @@ from microsoft_agents.hosting.core.http import HttpResponse
 
 
 def _set_agent_configuration(app: web.Application, auth_config: AgentAuthConfiguration):
-    app.agent_configuration = auth_config
+    with pytest.warns(NotAppKeyWarning):
+        app["agent_configuration"] = auth_config
 
 
 @pytest.mark.asyncio

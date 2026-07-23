@@ -1,11 +1,12 @@
 # Copyright (c) Microsoft Corporation. All rights reserved.
 # Licensed under the MIT License.
 
+import inspect
 from unittest.mock import AsyncMock, patch
 from types import SimpleNamespace
 
 import pytest
-from fastapi import Request
+from fastapi import Depends, Request
 
 from microsoft_agents.hosting.core.authorization import (
     AgentAuthConfiguration,
@@ -155,3 +156,50 @@ async def test_fastapi_decorator_converts_http_response():
     assert response.status_code == 401
     assert response.body == b'{"error":"Authorization header not found"}'
     authorize.assert_awaited_once_with(None, auth_config)
+
+
+def test_fastapi_decorator_preserves_route_signature():
+    async def route(
+        request: Request,
+        conversation_id: str,
+        include_history: bool = False,
+    ) -> dict:
+        return {}
+
+    decorated = jwt_authorization_decorator(route)
+
+    assert inspect.signature(decorated, follow_wrapped=False) == inspect.signature(
+        route
+    )
+
+
+def test_fastapi_decorator_preserves_route_signature_with_dependencies():
+    def get_user_id() -> str:
+        return "user-id"
+
+    async def route(
+        request: Request,
+        user_id: str = Depends(get_user_id),
+    ) -> dict:
+        return {}
+
+    decorated = jwt_authorization_decorator(route)
+
+    assert inspect.signature(decorated, follow_wrapped=False) == inspect.signature(
+        route
+    )
+
+
+def test_fastapi_decorator_does_not_change_original_route_signature():
+    async def route(
+        request: Request,
+        conversation_id: str,
+        user_id: str = Depends(lambda: "user-id"),
+    ) -> dict:
+        return {}
+
+    original_signature = inspect.signature(route)
+
+    jwt_authorization_decorator(route)
+
+    assert inspect.signature(route) == original_signature
