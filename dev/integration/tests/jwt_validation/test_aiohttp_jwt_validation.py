@@ -52,7 +52,7 @@ def _create_app(
 ):
     middlewares = [jwt_authorization_middleware] if use_global_middleware else []
     app = web.Application(middlewares=middlewares)
-    app.agent_configuration = auth_config
+    app["agent_configuration"] = auth_config
     handler = (
         _claims_handler
         if use_global_middleware
