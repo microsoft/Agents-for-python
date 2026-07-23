@@ -2,7 +2,6 @@
 # Licensed under the MIT License.
 
 import functools
-import logging
 import inspect
 
 from fastapi import Request
@@ -13,8 +12,6 @@ from starlette.types import ASGIApp, Receive, Scope, Send
 from microsoft_agents.hosting.core import AgentAuthConfiguration
 from microsoft_agents.hosting.core.authorization.jwt import _authorize_request
 from microsoft_agents.hosting.core.http import HttpResponse
-
-logger = logging.getLogger(__name__)
 
 
 class JwtAuthorizationMiddleware:
