@@ -1,6 +1,7 @@
 # Copyright (c) Microsoft Corporation. All rights reserved.
 # Licensed under the MIT License.
 
+import importlib
 from unittest.mock import AsyncMock, patch
 
 import pytest
@@ -16,6 +17,10 @@ from microsoft_agents.hosting.core.authorization import (
     ClaimsIdentity,
 )
 from microsoft_agents.hosting.core.http import HttpResponse
+
+_jwt_middleware_module = importlib.import_module(
+    "microsoft_agents.hosting.aiohttp.jwt_authorization_middleware"
+)
 
 
 def _set_agent_configuration(app: web.Application, auth_config: AgentAuthConfiguration):
@@ -35,8 +40,9 @@ async def test_aiohttp_middleware_stores_claims_and_calls_handler(aiohttp_client
     _set_agent_configuration(app, auth_config)
     app.router.add_get("/", handler)
 
-    with patch(
-        "microsoft_agents.hosting.aiohttp.jwt_authorization_middleware._authorize_request",
+    with patch.object(
+        _jwt_middleware_module,
+        "_authorize_request",
         new=AsyncMock(return_value=claims),
     ) as authorize:
         client = await aiohttp_client(app)
@@ -58,8 +64,9 @@ async def test_aiohttp_middleware_converts_http_response(aiohttp_client):
     _set_agent_configuration(app, auth_config)
     app.router.add_get("/", handler)
 
-    with patch(
-        "microsoft_agents.hosting.aiohttp.jwt_authorization_middleware._authorize_request",
+    with patch.object(
+        _jwt_middleware_module,
+        "_authorize_request",
         new=AsyncMock(
             return_value=HttpResponse(
                 body={"error": "Invalid token or authentication failed."},
@@ -88,8 +95,9 @@ async def test_aiohttp_decorator_uses_authorization_helper(aiohttp_client):
     _set_agent_configuration(app, auth_config)
     app.router.add_get("/", handler)
 
-    with patch(
-        "microsoft_agents.hosting.aiohttp.jwt_authorization_middleware._authorize_request",
+    with patch.object(
+        _jwt_middleware_module,
+        "_authorize_request",
         new=AsyncMock(return_value=claims),
     ) as authorize:
         client = await aiohttp_client(app)
@@ -112,8 +120,9 @@ async def test_aiohttp_decorator_converts_http_response(aiohttp_client):
     _set_agent_configuration(app, auth_config)
     app.router.add_get("/", handler)
 
-    with patch(
-        "microsoft_agents.hosting.aiohttp.jwt_authorization_middleware._authorize_request",
+    with patch.object(
+        _jwt_middleware_module,
+        "_authorize_request",
         new=AsyncMock(
             return_value=HttpResponse(
                 body={"error": "Authorization header not found"},

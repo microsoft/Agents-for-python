@@ -1,6 +1,7 @@
 # Copyright (c) Microsoft Corporation. All rights reserved.
 # Licensed under the MIT License.
 
+import importlib
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
@@ -12,12 +13,14 @@ from microsoft_agents.hosting.core.authorization import (
 from microsoft_agents.hosting.core.authorization.jwt import _authorize_request
 from microsoft_agents.hosting.core.http import HttpResponse
 
+_authorize_request_module = importlib.import_module(
+    "microsoft_agents.hosting.core.authorization.jwt._authorize_request"
+)
+
 
 @pytest.mark.asyncio
 async def test_authorize_request_returns_500_when_config_is_missing():
-    with patch(
-        "microsoft_agents.hosting.core.authorization.jwt._authorize_request.JwtTokenValidator"
-    ) as validator_cls:
+    with patch.object(_authorize_request_module, "JwtTokenValidator") as validator_cls:
         result = await _authorize_request("Bearer token", None)
 
     assert isinstance(result, HttpResponse)
@@ -42,8 +45,9 @@ async def test_authorize_request_returns_anonymous_claims_when_header_is_missing
     validator = MagicMock()
     validator.get_anonymous_claims.return_value = claims
 
-    with patch(
-        "microsoft_agents.hosting.core.authorization.jwt._authorize_request.JwtTokenValidator",
+    with patch.object(
+        _authorize_request_module,
+        "JwtTokenValidator",
         return_value=validator,
     ) as validator_cls:
         result = await _authorize_request(None, auth_config)
@@ -69,8 +73,9 @@ async def test_authorize_request_validates_bearer_token():
     validator = MagicMock()
     validator.validate_token = AsyncMock(return_value=claims)
 
-    with patch(
-        "microsoft_agents.hosting.core.authorization.jwt._authorize_request.JwtTokenValidator",
+    with patch.object(
+        _authorize_request_module,
+        "JwtTokenValidator",
         return_value=validator,
     ) as validator_cls:
         result = await _authorize_request("Bearer token-value", auth_config)
@@ -85,8 +90,9 @@ async def test_authorize_request_returns_401_when_token_validation_fails():
     validator = MagicMock()
     validator.validate_token = AsyncMock(side_effect=ValueError("bad token"))
 
-    with patch(
-        "microsoft_agents.hosting.core.authorization.jwt._authorize_request.JwtTokenValidator",
+    with patch.object(
+        _authorize_request_module,
+        "JwtTokenValidator",
         return_value=validator,
     ):
         result = await _authorize_request(
