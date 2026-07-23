@@ -56,8 +56,8 @@ class JwtAuthorizationMiddleware:
 
 def jwt_authorization_decorator(func):
     """
-    JWT Authorization Decorator for FastAPI endpoints. Until a SDK solution is made available,
-    this decorator can be applied to any FastAPI route handler to enforce JWT validation using the Microsoft Agents SDK's JwtTokenValidator.
+    :param func: The FastAPI route handler function to be decorated.
+    :return: The decorated FastAPI route handler function.
     """
 
     @functools.wraps(func)

@@ -20,12 +20,9 @@ async def _authorize_request(
     """
     Authorizes a request based on the provided JWT token in the Authorization header.
 
-    Args:
-        authorization_header: The value of the Authorization header from the request.
-        auth_config: The agent authentication configuration.
-
-    Returns:
-        _JwtAuthorizationResult: The result of the authorization attempt.
+    :param authorization_header: The value of the Authorization header from the request.
+    :param auth_config: The AgentAuthConfiguration instance containing authentication settings.
+    :return: A ClaimsIdentity object if the token is valid, or an HttpResponse with an error message and status code if the token is invalid or missing.
     """
 
     if auth_config is None:
