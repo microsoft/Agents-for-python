@@ -50,7 +50,7 @@ AGENT_APP = AgentApplication[TurnState](
 
 
 @AGENT_APP.message(re.compile(r"^/(status|auth status|check status)", re.IGNORECASE))
-async def status(context: TurnContext, state: TurnState) -> bool:
+async def status(context: TurnContext, state: TurnState):
     """
     Internal method to check authorization status for all configured handlers.
     Returns True if at least one handler has a valid token.
