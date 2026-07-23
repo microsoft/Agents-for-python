@@ -18,7 +18,7 @@ from microsoft_agents.hosting.core.http import HttpResponse
 
 
 def _set_agent_configuration(app: web.Application, auth_config: AgentAuthConfiguration):
-    app._state["agent_configuration"] = auth_config
+    app.agent_configuration = auth_config
 
 
 @pytest.mark.asyncio
