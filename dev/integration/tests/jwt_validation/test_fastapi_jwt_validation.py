@@ -1,146 +1,150 @@
 # Copyright (c) Microsoft Corporation. All rights reserved.
 # Licensed under the MIT License.
 
+from pathlib import Path
+
 import pytest
+from dotenv import dotenv_values
 from fastapi import FastAPI, Request
+from fastapi.testclient import TestClient
 
-from microsoft_agents.hosting.fastapi import JwtAuthorizationMiddleware
+from microsoft_agents.activity import load_configuration_from_env
+from microsoft_agents.hosting.core.authorization import AgentAuthConfiguration
+from microsoft_agents.hosting.fastapi import (
+    JwtAuthorizationMiddleware,
+    jwt_authorization_decorator,
+)
+from microsoft_agents.testing.core.utils import sdk_config_connection
 
-from ._helpers import load_auth_config
+from tests.utils.config import REAL_SERVICE_CONNECTION_ENV_VARS
+from tests.utils.pytest import skip_if_no_var
+
+from ._helpers import (
+    acquire_real_service_connection_token,
+    auth_config_with_invalid_audience,
+)
+
+_requires_real_service_connection = skip_if_no_var(
+    *REAL_SERVICE_CONNECTION_ENV_VARS, load_root_env_file=True
+)
+_JWT_VALIDATION_DIR = Path(__file__).parent
+_ANONYMOUS_AUTH_CONFIG = sdk_config_connection(
+    load_configuration_from_env(
+        dotenv_values(_JWT_VALIDATION_DIR / "jwt_anonymous.env")
+    )
+)
+_REQUIRED_AUTH_CONFIG = sdk_config_connection(
+    load_configuration_from_env(dotenv_values(_JWT_VALIDATION_DIR / "jwt_required.env"))
+)
 
 
-def _scope(app: FastAPI, authorization: str | None = None):
-    headers = []
-    if authorization is not None:
-        headers.append((b"authorization", authorization.encode()))
+def _claims_payload(request: Request):
+    identity = request.state.claims_identity
     return {
-        "type": "http",
-        "asgi": {"version": "3.0"},
-        "method": "GET",
-        "path": "/",
-        "raw_path": b"/",
-        "query_string": b"",
-        "headers": headers,
-        "client": ("127.0.0.1", 1234),
-        "server": ("testserver", 80),
-        "scheme": "http",
-        "app": app,
-        "state": {},
+        "authenticated": identity.is_authenticated,
+        "authentication_type": identity.authentication_type,
     }
 
 
-async def _receive():
-    return {"type": "http.request", "body": b"", "more_body": False}
-
-
-async def _send_json(send, status: int, body: bytes):
-    await send(
-        {
-            "type": "http.response.start",
-            "status": status,
-            "headers": [(b"content-type", b"application/json")],
-        }
-    )
-    await send({"type": "http.response.body", "body": body})
-
-
-async def _record_send(messages, message):
-    messages.append(message)
-
-
-def _status(messages):
-    return next(
-        message["status"]
-        for message in messages
-        if message["type"] == "http.response.start"
-    )
-
-
-def _body(messages):
-    return b"".join(
-        message.get("body", b"")
-        for message in messages
-        if message["type"] == "http.response.body"
-    )
-
-
-@pytest.mark.asyncio
-async def test_fastapi_jwt_allows_anonymous_request_from_env_config():
+def _create_app(
+    *, use_global_middleware: bool, auth_config: AgentAuthConfiguration
+):
     app = FastAPI()
-    app.state.agent_configuration = load_auth_config("jwt_anonymous.env")
-    messages = []
+    app.state.agent_configuration = auth_config
 
-    async def downstream(scope, receive, send):
-        request = Request(scope, receive=receive)
-        identity = request.state.claims_identity
-        await _send_json(
-            send,
-            200,
-            (
-                b'{"authenticated":'
-                + str(identity.is_authenticated).lower().encode()
-                + b',"authentication_type":"'
-                + identity.authentication_type.encode()
-                + b'"}'
-            ),
+    if use_global_middleware:
+        app.add_middleware(JwtAuthorizationMiddleware)
+
+        @app.get("/")
+        async def handler(request: Request):
+            return _claims_payload(request)
+
+    else:
+
+        @app.get("/")
+        @jwt_authorization_decorator
+        async def handler(request: Request):
+            return _claims_payload(request)
+
+    return app
+
+
+def test_fastapi_global_middleware_allows_anonymous_request_from_env_config():
+    client = TestClient(
+        _create_app(use_global_middleware=True, auth_config=_ANONYMOUS_AUTH_CONFIG)
+    )
+
+    response = client.get("/")
+
+    assert response.status_code == 200
+    assert response.json() == {
+        "authenticated": False,
+        "authentication_type": "Anonymous",
+    }
+
+
+def test_fastapi_global_middleware_rejects_invalid_bearer_token():
+    client = TestClient(
+        _create_app(use_global_middleware=True, auth_config=_REQUIRED_AUTH_CONFIG)
+    )
+
+    response = client.get("/", headers={"Authorization": "Bearer not-a-jwt"})
+
+    assert response.status_code == 401
+    assert response.json() == {"error": "Invalid token or authentication failed."}
+
+
+@_requires_real_service_connection
+@pytest.mark.asyncio
+async def test_fastapi_global_middleware_accepts_real_service_connection_token():
+    token, auth_config = await acquire_real_service_connection_token()
+    client = TestClient(
+        _create_app(use_global_middleware=True, auth_config=auth_config)
+    )
+
+    response = client.get("/", headers={"Authorization": f"Bearer {token}"})
+
+    assert response.status_code == 200
+    assert response.json()["authenticated"] is True
+
+
+@_requires_real_service_connection
+@pytest.mark.asyncio
+async def test_fastapi_global_middleware_rejects_real_token_with_invalid_audience():
+    token, auth_config = await acquire_real_service_connection_token()
+    client = TestClient(
+        _create_app(
+            use_global_middleware=True,
+            auth_config=auth_config_with_invalid_audience(auth_config),
         )
-
-    middleware = JwtAuthorizationMiddleware(downstream)
-    await middleware(
-        _scope(app),
-        _receive,
-        lambda message: _record_send(messages, message),
     )
 
-    assert _status(messages) == 200
-    assert _body(messages) == (
-        b'{"authenticated":false,"authentication_type":"Anonymous"}'
+    response = client.get("/", headers={"Authorization": f"Bearer {token}"})
+
+    assert response.status_code == 401
+    assert response.json() == {"error": "Invalid token or authentication failed."}
+
+
+def test_fastapi_decorator_allows_anonymous_request_from_env_config():
+    client = TestClient(
+        _create_app(use_global_middleware=False, auth_config=_ANONYMOUS_AUTH_CONFIG)
     )
 
+    response = client.get("/")
 
-@pytest.mark.asyncio
-async def test_fastapi_jwt_rejects_missing_authorization_header():
-    app = FastAPI()
-    app.state.agent_configuration = load_auth_config("jwt_required.env")
-    messages = []
-    downstream_called = False
+    assert response.status_code == 200
+    assert response.json() == {
+        "authenticated": False,
+        "authentication_type": "Anonymous",
+    }
 
-    async def downstream(scope, receive, send):
-        nonlocal downstream_called
-        downstream_called = True
-        await _send_json(send, 200, b'{"called":true}')
 
-    middleware = JwtAuthorizationMiddleware(downstream)
-    await middleware(
-        _scope(app),
-        _receive,
-        lambda message: _record_send(messages, message),
+def test_fastapi_decorator_rejects_invalid_bearer_token():
+    client = TestClient(
+        _create_app(use_global_middleware=False, auth_config=_REQUIRED_AUTH_CONFIG)
     )
 
-    assert downstream_called is False
-    assert _status(messages) == 401
-    assert _body(messages) == b'{"error":"Authorization header not found"}'
+    response = client.get("/", headers={"Authorization": "Bearer not-a-jwt"})
 
-
-@pytest.mark.asyncio
-async def test_fastapi_jwt_rejects_invalid_bearer_token():
-    app = FastAPI()
-    app.state.agent_configuration = load_auth_config("jwt_required.env")
-    messages = []
-    downstream_called = False
-
-    async def downstream(scope, receive, send):
-        nonlocal downstream_called
-        downstream_called = True
-        await _send_json(send, 200, b'{"called":true}')
-
-    middleware = JwtAuthorizationMiddleware(downstream)
-    await middleware(
-        _scope(app, "Bearer not-a-jwt"),
-        _receive,
-        lambda message: _record_send(messages, message),
-    )
-
-    assert downstream_called is False
-    assert _status(messages) == 401
-    assert _body(messages) == b'{"error":"Invalid token or authentication failed."}'
+    assert response.status_code == 401
+    assert response.json() == {"error": "Invalid token or authentication failed."}

@@ -5,6 +5,7 @@ requires-python = ">=3.13"
 dependencies = [
     "pytest",
     "pytest-asyncio",
+    "microsoft-agents-authentication-msal",
     "microsoft-agents-hosting-aiohttp",
     "microsoft-agents-hosting-dialogs",
     "microsoft-agents-hosting-fastapi",
