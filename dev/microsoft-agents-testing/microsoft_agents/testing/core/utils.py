@@ -9,7 +9,11 @@ and activity manipulation.
 
 import requests
 
-from microsoft_agents.activity import Activity
+from pathlib import Path
+
+from dotenv import dotenv_values
+
+from microsoft_agents.activity import Activity, load_configuration_from_env
 from microsoft_agents.hosting.core import AgentAuthConfiguration
 
 from .transport import Exchange
@@ -45,6 +49,11 @@ def sdk_config_connection(
     data = sdk_config["CONNECTIONS"][connection_name]["SETTINGS"]
     return AgentAuthConfiguration(**data)
 
+def load_sdk_config_connection(connection_name: str = "SERVICE_CONNECTION", env_path: str | Path = ".env") -> AgentAuthConfiguration:
+    raw_sdk_config = dotenv_values(str(env_path))
+    raw_sdk_config = { k: v for k, v in raw_sdk_config.items() if not k.startswith("LOGGING")}
+    sdk_config = load_configuration_from_env(raw_sdk_config)
+    return sdk_config_connection(sdk_config, connection_name)
 
 # TODO: Use MsalAuth to generate token instead of raw HTTP requests
 # TODO: Support other forms of auth (certificates, managed identity, etc.)
@@ -94,6 +103,21 @@ def generate_token_from_config(
     client_id = settings.CLIENT_ID
     client_secret = settings.CLIENT_SECRET
     tenant_id = settings.TENANT_ID
+
+    if not client_id or not client_secret or not tenant_id:
+        raise ValueError("Incorrect configuration provided for token generation.")
+    return generate_token(client_id, client_secret, tenant_id)
+
+def generate_token_from_auth_config(auth_config: AgentAuthConfiguration) -> str:
+    """Generates a token using a provided AgentAuthConfiguration.
+
+    :param auth_config: An instance of AgentAuthConfiguration containing connection settings.
+    :return: Generated access token as a string.
+    """
+
+    client_id = auth_config.CLIENT_ID
+    client_secret = auth_config.CLIENT_SECRET
+    tenant_id = auth_config.TENANT_ID
 
     if not client_id or not client_secret or not tenant_id:
         raise ValueError("Incorrect configuration provided for token generation.")
