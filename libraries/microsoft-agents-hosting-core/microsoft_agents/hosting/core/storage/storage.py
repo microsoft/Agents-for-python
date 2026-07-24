@@ -76,7 +76,7 @@ class AsyncStorageBase(Storage):
         :param keys: A list of keys to read.
         :param target_cls: The class of the StoreItem to deserialize the data into.
         :return: A dictionary of key to StoreItem.
-        :raises ValueError: If keys is empty or target_cls is not a subclass of StoreItem.
+        :raises ValueError: If keys is empty.
         """
         if not keys:
             raise ValueError("Storage.read(): Keys are required when reading.")

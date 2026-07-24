@@ -15,12 +15,10 @@ async def ignore_error(
     """
     Ignores errors based on the provided filter function.
 
-    promise: the awaitable to execute
-    ignore_error_filter: a function that takes an Exception and returns True if the error should be
-    ignored, False otherwise.
-
-    Returns the result of the promise if successful, or None if the error is ignored.
-    Raises the error if it is not ignored.
+    :param promise: An awaitable that may raise an exception.
+    :param ignore_error_filter: A function that takes an Exception and returns True if the error should be ignored.
+    :return: The result of the promise if successful, or None if the error is ignored.
+    :raises Exception: Re-raises the exception if it is not ignored.
     """
     try:
         return await promise
@@ -34,8 +32,8 @@ def is_status_code_error(*ignored_codes: int) -> ErrorFilter:
     """
     Creates an error filter function that ignores errors with specific status codes.
 
-    ignored_codes: a list of status codes to ignore
-    Returns a function that takes an Exception and returns True if the error's status code is in ignored_codes.
+    :param ignored_codes: A list of status codes to ignore.
+    :return: A function that takes an Exception and returns True if the error's status code is in the ignored list.
     """
 
     def func(err: Exception) -> bool:

@@ -98,7 +98,7 @@ class CosmosDBStorage(AsyncStorageBase):
         """Read an item from the storage.
 
         :param key: The key of the item to read.
-        :param target_cls: The class of the item to read.
+        :param target_cls: The type of the item to read.
         :return: A tuple containing the real key and the item, or (None, None) if not found.
         :raises ValueError: If the key is empty.
         """

@@ -31,7 +31,7 @@ class MemoryStorage(Storage):
         :param keys: A list of keys to read from the storage.
         :param target_cls: The class type of the items to be read. Must be a subclass of StoreItem.
         :return: A dictionary mapping keys to their corresponding StoreItem instances.
-        :raises ValueError: If keys are empty or target_cls is not a subclass of StoreItem.
+        :raises ValueError: If keys are empty.
         """
 
         if not keys:

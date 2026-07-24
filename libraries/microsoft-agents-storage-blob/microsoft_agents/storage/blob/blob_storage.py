@@ -73,12 +73,12 @@ class BlobStorage(AsyncStorageBase):
             self._initialized = True
 
     async def _read_item(
-        self, key: str, *, target_cls: StoreItemT, **kwargs
+        self, key: str, *, target_cls: type[StoreItemT], **kwargs
     ) -> tuple[str | None, StoreItemT | None]:
         """Reads an item from blob storage.
 
         :param key: The key of the item to read.
-        :param target_cls: The class type of the StoreItem to deserialize into.
+        :param target_cls: The type of the StoreItem to deserialize into.
         :return: A tuple containing the key and the deserialized StoreItem, or (None, None) if not found.
         """
         item = await ignore_error(
