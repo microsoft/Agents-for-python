@@ -52,6 +52,11 @@ class CosmosDBStorage(AsyncStorageBase):
         self._lock: asyncio.Lock = asyncio.Lock()
 
     def _create_client(self) -> CosmosClient:
+        """Create a CosmosClient based on the configuration.
+
+        :return: A CosmosClient instance.
+        :raises ValueError: If the configuration is invalid.
+        """
         if self._config.url:
             if not self._config.credential:
                 raise ValueError(
@@ -82,19 +87,27 @@ class CosmosDBStorage(AsyncStorageBase):
         )
 
     def _sanitize(self, key: str) -> str:
+        """Sanitize the key for use in CosmosDB."""
         return sanitize_key(
             key, self._config.key_suffix, self._config.compatibility_mode
         )
 
     async def _read_item(
-        self, key: str, *, target_cls: StoreItemT | None = None, **kwargs
+        self, key: str, *, target_cls: type[StoreItemT], **kwargs
     ) -> tuple[str | None, StoreItemT | None]:
+        """Read an item from the storage.
+
+        :param key: The key of the item to read.
+        :param target_cls: The class of the item to read.
+        :return: A tuple containing the real key and the item, or (None, None) if not found.
+        :raises ValueError: If the key is empty.
+        """
 
         if key == "":
             raise ValueError(str(storage_errors.CosmosDbKeyCannotBeEmpty))
 
         escaped_key: str = self._sanitize(key)
-        read_item_response: CosmosDict = await ignore_error(
+        read_item_response: CosmosDict | None = await ignore_error(
             self._container.read_item(
                 escaped_key, self._get_partition_key(escaped_key)
             ),
@@ -103,10 +116,18 @@ class CosmosDBStorage(AsyncStorageBase):
         if read_item_response is None:
             return None, None
 
-        doc: JSON = read_item_response.get("document")
+        doc: JSON | None = read_item_response.get("document")
+        if doc is None:
+            return read_item_response["realId"], None
         return read_item_response["realId"], target_cls.from_json_to_store_item(doc)
 
     async def _write_item(self, key: str, item: StoreItem) -> None:
+        """Write an item to the storage.
+
+        :param key: The key of the item to write.
+        :param item: The item to write.
+        :raises ValueError: If the key is empty.
+        """
         if key == "":
             raise ValueError(str(storage_errors.CosmosDbKeyCannotBeEmpty))
 
@@ -120,6 +141,11 @@ class CosmosDBStorage(AsyncStorageBase):
         await self._container.upsert_item(body=doc)
 
     async def _delete_item(self, key: str) -> None:
+        """Delete an item from the storage.
+
+        :param key: The key of the item to delete.
+        :raises ValueError: If the key is empty.
+        """
         if key == "":
             raise ValueError(str(storage_errors.CosmosDbKeyCannotBeEmpty))
 
@@ -133,6 +159,7 @@ class CosmosDBStorage(AsyncStorageBase):
         )
 
     async def _create_container(self) -> None:
+        """Create the container if it does not exist."""
         partition_key = {
             "paths": ["/id"],
             "kind": documents.PartitionKind.Hash,
@@ -164,6 +191,7 @@ class CosmosDBStorage(AsyncStorageBase):
                 )
 
     async def initialize(self) -> None:
+        """Initialize the storage provider."""
         if not self._container:
             async with self._lock:
                 # in case another async task attempted to initialize just before acquiring the lock
@@ -178,7 +206,13 @@ class CosmosDBStorage(AsyncStorageBase):
                 await self._create_container()
 
     def _get_partition_key(self, key: str):
+        """Get the partition key for the given key, considering compatibility mode.
+
+        :param key: The key for which to get the partition key.
+        :return: The partition key value.
+        """
         return NonePartitionKeyValue if self._compatability_mode_partition_key else key
 
     async def _close(self) -> None:
+        """Close the storage provider."""
         await self._client.close()

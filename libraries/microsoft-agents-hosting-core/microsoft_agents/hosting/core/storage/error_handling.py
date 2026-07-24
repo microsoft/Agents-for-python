@@ -1,13 +1,17 @@
 # Copyright (c) Microsoft Corporation. All rights reserved.
 # Licensed under the MIT License.
 
-from collections.abc import Callable, Awaitable
 from typing import TypeVar
+from collections.abc import Callable, Awaitable
 
-error_filter = TypeVar("error_filter", bound=Callable[[Exception], bool])
+ErrorFilter = Callable[[Exception], bool]
+
+T = TypeVar("T")
 
 
-async def ignore_error(promise: Awaitable, ignore_error_filter: error_filter):
+async def ignore_error(
+    promise: Awaitable[T], ignore_error_filter: ErrorFilter
+) -> T | None:
     """
     Ignores errors based on the provided filter function.
 
@@ -26,7 +30,7 @@ async def ignore_error(promise: Awaitable, ignore_error_filter: error_filter):
         raise err
 
 
-def is_status_code_error(*ignored_codes: list[int]) -> error_filter:
+def is_status_code_error(*ignored_codes: int) -> ErrorFilter:
     """
     Creates an error filter function that ignores errors with specific status codes.
 
@@ -35,7 +39,8 @@ def is_status_code_error(*ignored_codes: list[int]) -> error_filter:
     """
 
     def func(err: Exception) -> bool:
-        if hasattr(err, "status_code") and err.status_code in ignored_codes:
+        status_code = getattr(err, "status_code", None)
+        if status_code is not None and status_code in ignored_codes:
             return True
         return False
 
