@@ -51,7 +51,6 @@ from microsoft_agents.hosting.core.storage import (
 from microsoft_agents.hosting.msteams import TeamsAgentExtension
 from microsoft_agents.hosting.msteams.teams_turn_context import TeamsTurnContext
 
-logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 load_dotenv()
 
