@@ -10,7 +10,7 @@ T = TypeVar("T")
 
 class _ServiceSet:
     """
-    Analog of .NET's TurnContextStateCollection
+    A class that represents a collection of services, allowing for the storage and retrieval of service instances by their type.
     """
 
     def __init__(self, service_set: _ServiceSet | None = None) -> None:

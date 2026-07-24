@@ -137,9 +137,6 @@ class ChannelServiceAdapter(ChannelAdapter, ABC):
                 raise RuntimeError(
                     "Unable to extract ConnectorClient from turn context."
                 )
-                raise RuntimeError(
-                    "Unable to extract ConnectorClient from turn context."
-                )
 
             return await connector_client.conversations.update_activity(
                 activity.conversation.id, activity.id, activity
@@ -166,9 +163,6 @@ class ChannelServiceAdapter(ChannelAdapter, ABC):
 
             connector_client = context.services.get(ConnectorClientBase)
             if not connector_client:
-                raise RuntimeError(
-                    "Unable to extract ConnectorClient from turn context."
-                )
                 raise RuntimeError(
                     "Unable to extract ConnectorClient from turn context."
                 )
