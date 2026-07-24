@@ -304,15 +304,21 @@ class TeamsAgentExtension(Generic[StateT]):
         return _get_teams_api_client(context)
 
     def get_graph_client(
-        self, context: TurnContext, handler_name: str | None = None
+        self,
+        context: TurnContext,
+        handler_name: str | None = None,
+        graph_base_url: str = _DEFAULT_GRAPH_BASE_URL,
     ) -> GraphServiceClient:
         """Get the Graph Service client.
 
         :param context: The turn context.
         :param handler_name: The name of the handler.
+        :param graph_base_url: The base URL for the Microsoft Graph API.
         :return: The Graph Service client.
         """
-        return _create_user_graph_service_client(self._app, context, handler_name)
+        return _create_user_graph_service_client(
+            self._app, context, handler_name, graph_base_url=graph_base_url
+        )
 
     def get_app_graph_client(
         self, context: TurnContext, graph_base_url: str = _DEFAULT_GRAPH_BASE_URL
@@ -320,7 +326,6 @@ class TeamsAgentExtension(Generic[StateT]):
         """Get the Graph Service client for the agent application.
 
         :param context: The turn context.
-        :param connection_name: The name of the connection to use for authentication.
         :param graph_base_url: The base URL for the Microsoft Graph API.
         :return: The Graph Service client.
         """
@@ -333,7 +338,6 @@ class TeamsAgentExtension(Generic[StateT]):
     ) -> GraphServiceClient:
         """Get the Graph Service client for the agent application using a specific connection.
 
-        :param context: The turn context.
         :param connection_name: The name of the connection to use for authentication.
         :param graph_base_url: The base URL for the Microsoft Graph API.
         :return: The Graph Service client.

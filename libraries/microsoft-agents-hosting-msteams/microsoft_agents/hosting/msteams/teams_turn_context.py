@@ -134,14 +134,23 @@ class TeamsTurnContext(TurnContext):
             TeamsTurnContext._make_targeted_activity(activity)
         return await self.send_activities(activities)
 
-    def get_graph_client(self, hanlder_name: str | None = None) -> GraphServiceClient:
+    def get_graph_client(
+        self,
+        handler_name: str | None = None,
+        graph_base_url: str = _DEFAULT_GRAPH_BASE_URL,
+    ) -> GraphServiceClient:
         """
         Get a Graph client for the current turn context.
+
+        :param handler_name: Optional name of the handler to use for authentication.
+        :param graph_base_url: The base URL for the Microsoft Graph API.
 
         :return: A :class:`GraphServiceClient` that authenticates each request via
             the agent's authorization.
         """
-        return _create_user_graph_service_client(self._app, self, hanlder_name)
+        return _create_user_graph_service_client(
+            self._app, self, handler_name, graph_base_url=graph_base_url
+        )
 
     def get_app_graph_client(
         self,
@@ -150,7 +159,6 @@ class TeamsTurnContext(TurnContext):
         """
         Get a Graph client for the current turn context.
 
-        :param connection_name: Optional connection name to select a specific token provider.
         :param graph_base_url: The base URL for the Microsoft Graph API.
 
         :return: A :class:`GraphServiceClient` that authenticates each request via

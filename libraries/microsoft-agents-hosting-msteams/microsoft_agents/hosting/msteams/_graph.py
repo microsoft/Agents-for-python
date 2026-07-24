@@ -112,6 +112,7 @@ def _create_user_graph_service_client(
     app: AgentApplication,
     context: TurnContext,
     handler_name: str | None = None,
+    graph_base_url: str = _DEFAULT_GRAPH_BASE_URL,
 ) -> GraphServiceClient:
     """Create a Graph client authenticated for the current turn.
 
@@ -121,11 +122,11 @@ def _create_user_graph_service_client(
     :return: A :class:`GraphServiceClient` that authenticates each request via
         the agent's authorization.
     """
-    return GraphServiceClient(
-        request_adapter=GraphRequestAdapter(
-            _SDKUserAuthenticationProvider(app.auth, context, handler_name)
-        )
+    adapter = GraphRequestAdapter(
+        _SDKUserAuthenticationProvider(app.auth, context, handler_name)
     )
+    adapter.base_url = graph_base_url.rstrip("/") + "/"
+    return GraphServiceClient(request_adapter=adapter)
 
 
 def _create_app_graph_service_client(
