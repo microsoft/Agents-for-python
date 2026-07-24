@@ -432,7 +432,7 @@ class Activity(AgentsModel):
         """
         return self if self.__is_activity(ActivityTypes.typing) else None
 
-    def with_text(self, text: str) -> "Activity":
+    def with_text(self, text: str) -> Self:
         """
         Sets the text content of the activity.
 
@@ -442,7 +442,7 @@ class Activity(AgentsModel):
         self.text = text
         return self
 
-    def with_speak(self, speak: str) -> "Activity":
+    def with_speak(self, speak: str) -> Self:
         """
         Sets the text to speak for the activity.
 
@@ -452,7 +452,7 @@ class Activity(AgentsModel):
         self.speak = speak
         return self
 
-    def with_input_hint(self, input_hint: str) -> "Activity":
+    def with_input_hint(self, input_hint: str) -> Self:
         """
         Sets the input hint for the activity.
 
@@ -462,7 +462,7 @@ class Activity(AgentsModel):
         self.input_hint = input_hint
         return self
 
-    def with_summary(self, summary: str) -> "Activity":
+    def with_summary(self, summary: str) -> Self:
         """
         Sets the summary of the activity.
 
@@ -472,7 +472,7 @@ class Activity(AgentsModel):
         self.summary = summary
         return self
 
-    def with_locale(self, locale: str) -> "Activity":
+    def with_locale(self, locale: str) -> Self:
         """
         Sets the locale of the activity.
 
@@ -482,7 +482,7 @@ class Activity(AgentsModel):
         self.locale = locale
         return self
 
-    def with_text_format(self, text_format: str) -> "Activity":
+    def with_text_format(self, text_format: str) -> Self:
         """
         Sets the text format of the activity.
 
@@ -492,7 +492,7 @@ class Activity(AgentsModel):
         self.text_format = text_format
         return self
 
-    def with_attachment_layout(self, attachment_layout: str) -> "Activity":
+    def with_attachment_layout(self, attachment_layout: str) -> Self:
         """
         Sets the attachment layout hint for the activity.
 
@@ -502,7 +502,7 @@ class Activity(AgentsModel):
         self.attachment_layout = attachment_layout
         return self
 
-    def with_delivery_mode(self, delivery_mode: str) -> "Activity":
+    def with_delivery_mode(self, delivery_mode: str) -> Self:
         """
         Sets the delivery mode of the activity.
 
@@ -512,7 +512,7 @@ class Activity(AgentsModel):
         self.delivery_mode = delivery_mode
         return self
 
-    def with_name(self, name: str) -> "Activity":
+    def with_name(self, name: str) -> Self:
         """
         Sets the name of the activity.
 
@@ -522,7 +522,7 @@ class Activity(AgentsModel):
         self.name = name
         return self
 
-    def with_value(self, value: object, value_type: str | None = None) -> "Activity":
+    def with_value(self, value: object, value_type: str | None = None) -> Self:
         """
         Sets the value of the activity, and optionally its value type.
 
@@ -535,7 +535,7 @@ class Activity(AgentsModel):
             self.value_type = value_type
         return self
 
-    def with_suggested_actions(self, suggested_actions: SuggestedActions) -> "Activity":
+    def with_suggested_actions(self, suggested_actions: SuggestedActions) -> Self:
         """
         Sets the suggested actions for the activity.
 
@@ -553,7 +553,7 @@ class Activity(AgentsModel):
         """
         self.text = (self.text or "") + text
 
-    def add_attachment(self, *attachments: Attachment) -> "Activity":
+    def add_attachment(self, *attachments: Attachment) -> Self:
         """
         Adds one or more attachments to the activity.
 
@@ -567,7 +567,7 @@ class Activity(AgentsModel):
         self.attachments.extend(attachments)
         return self
 
-    def add_entity(self, *entities: Entity) -> "Activity":
+    def add_entity(self, *entities: Entity) -> Self:
         """
         Adds one or more entities to the activity.
 
@@ -586,7 +586,7 @@ class Activity(AgentsModel):
         account: ChannelAccount,
         text: NonEmptyString | None = None,
         add_text: bool = True,
-    ) -> "Activity":
+    ) -> Self:
         """
         Adds a mention of the given account to the activity.
 
@@ -698,7 +698,7 @@ class Activity(AgentsModel):
 
         return False
 
-    def make_targeted_activity(self, user: ChannelAccount | None = None) -> "Activity":
+    def make_targeted_activity(self, user: ChannelAccount | None = None) -> Self:
         """
         Marks this activity as targeted, setting the recipient if provided.
 
@@ -864,7 +864,9 @@ class Activity(AgentsModel):
         """
         return Activity(type=ActivityTypes.message)
 
-    def create_reply(self, text: str | None = None, locale: str | None = None):
+    def create_reply(
+        self, text: str | None = None, locale: str | None = None
+    ) -> Activity:
         """
         Creates a new message activity as a response to this activity.
 
@@ -993,7 +995,7 @@ class Activity(AgentsModel):
         )
 
     @staticmethod
-    def create_typing_activity() -> "Activity":
+    def create_typing_activity() -> Activity:
         """
         Creates an instance of the :class:`microsoft_agents.activity.Activity` class as a TypingActivity object.
 

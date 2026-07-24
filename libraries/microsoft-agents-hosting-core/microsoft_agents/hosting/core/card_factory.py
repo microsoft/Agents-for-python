@@ -16,8 +16,6 @@ from microsoft_agents.activity import (
 
 
 class CardFactory:
-    _content_types: type[ContentTypes] = ContentTypes
-
     @staticmethod
     def adaptive_card(card: dict) -> Attachment:
         """
@@ -49,7 +47,7 @@ class CardFactory:
                 "unable to prepare attachment."
             )
 
-        return Attachment(content_type=ContentTypes.animation_card, content=card)
+        return card.to_attachment()
 
     @staticmethod
     def audio_card(card: AudioCard) -> Attachment:
@@ -64,7 +62,7 @@ class CardFactory:
                 "unable to prepare attachment."
             )
 
-        return Attachment(content_type=ContentTypes.audio_card, content=card)
+        return card.to_attachment()
 
     @staticmethod
     def hero_card(card: HeroCard) -> Attachment:
@@ -81,7 +79,7 @@ class CardFactory:
                 "unable to prepare attachment."
             )
 
-        return Attachment(content_type=ContentTypes.hero_card, content=card)
+        return card.to_attachment()
 
     @staticmethod
     def oauth_card(card: OAuthCard) -> Attachment:
@@ -97,7 +95,7 @@ class CardFactory:
                 "unable to prepare attachment."
             )
 
-        return Attachment(content_type=ContentTypes.oauth_card, content=card)
+        return card.to_attachment()
 
     @staticmethod
     def receipt_card(card: ReceiptCard) -> Attachment:
@@ -112,7 +110,7 @@ class CardFactory:
                 "unable to prepare attachment."
             )
 
-        return Attachment(content_type=ContentTypes.receipt_card, content=card)
+        return card.to_attachment()
 
     @staticmethod
     def signin_card(card: SigninCard) -> Attachment:
@@ -128,7 +126,7 @@ class CardFactory:
                 "unable to prepare attachment."
             )
 
-        return Attachment(content_type=ContentTypes.signin_card, content=card)
+        return card.to_attachment()
 
     @staticmethod
     def thumbnail_card(card: ThumbnailCard) -> Attachment:
@@ -146,7 +144,7 @@ class CardFactory:
                 "unable to prepare attachment."
             )
 
-        return Attachment(content_type=ContentTypes.thumbnail_card, content=card)
+        return card.to_attachment()
 
     @staticmethod
     def video_card(card: VideoCard) -> Attachment:
@@ -161,7 +159,7 @@ class CardFactory:
                 "unable to prepare attachment."
             )
 
-        return Attachment(content_type=ContentTypes.video_card, content=card)
+        return card.to_attachment()
 
     # Deprecated alias; use microsoft_agents.activity.ContentTypes instead.
     content_types: type[ContentTypes] = ContentTypes
