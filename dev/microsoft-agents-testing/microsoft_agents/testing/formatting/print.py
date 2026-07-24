@@ -6,7 +6,8 @@ from microsoft_agents.testing.core import Transcript
 from .activity_transcript_formatter import ActivityTranscriptFormatter
 from .conversation_transcript_formatter import ConversationTranscriptFormatter
 from .json_transcript_formatter import JsonTranscriptFormatter
-    
+
+
 def print_json(transcript: Transcript) -> None:
     """Print transcript as JSON.
 
@@ -17,6 +18,7 @@ def print_json(transcript: Transcript) -> None:
     """
     print(JsonTranscriptFormatter()(transcript))
 
+
 def print_conversation(transcript: Transcript) -> None:
     """Print transcript as a conversation.
 
@@ -26,6 +28,7 @@ def print_conversation(transcript: Transcript) -> None:
         transcript: The transcript to print.
     """
     print(ConversationTranscriptFormatter()(transcript))
+
 
 def print_activities(transcript: Transcript) -> None:
     """Print transcript with all activity details.

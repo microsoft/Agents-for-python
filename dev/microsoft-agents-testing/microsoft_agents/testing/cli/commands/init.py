@@ -20,9 +20,7 @@ _PRESETS_ROOT = _pkg_files("microsoft_agents.testing") / "presets"
 def _discover_presets() -> dict:
     try:
         return {
-            entry.name: entry
-            for entry in _PRESETS_ROOT.iterdir()
-            if entry.is_dir()
+            entry.name: entry for entry in _PRESETS_ROOT.iterdir() if entry.is_dir()
         }
     except (FileNotFoundError, NotADirectoryError):
         return {}
@@ -50,7 +48,12 @@ def _copy_traversable(src, dest: Path) -> None:
 # ---------------------------------------------------------------------------
 @click.command(name="init")
 @click.argument("preset", required=False, default=None)
-@click.option("--force", is_flag=True, default=False, help="Overwrite any existing files from the preset.")
+@click.option(
+    "--force",
+    is_flag=True,
+    default=False,
+    help="Overwrite any existing files from the preset.",
+)
 @pass_output
 def init_group(out: Output, preset: str, force: bool) -> None:
     """Scaffold a test harness from a preset template.
@@ -105,6 +108,10 @@ def init_group(out: Output, preset: str, force: bool) -> None:
         if item.is_dir() and (cwd / item.name / "env.TEMPLATE").exists()
     ]
     for template in env_templates:
-        out.info(f"\t{template.parent.name}/env.TEMPLATE  →  {template.parent.name}/.env")
+        out.info(
+            f"\t{template.parent.name}/env.TEMPLATE  →  {template.parent.name}/.env"
+        )
     out.info("")
-    out.info("Populate each .env with your app credentials and configuration before running.")
+    out.info(
+        "Populate each .env with your app credentials and configuration before running."
+    )

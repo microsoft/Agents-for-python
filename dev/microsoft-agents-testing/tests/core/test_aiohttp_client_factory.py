@@ -14,10 +14,10 @@ from microsoft_agents.testing.core.fluent import ActivityTemplate
 from microsoft_agents.testing.core.transport import Transcript
 from microsoft_agents.testing.core.agent_client import AgentClient
 
-
 # ============================================================================
 # _AiohttpClientFactory Initialization Tests
 # ============================================================================
+
 
 class TestAiohttpClientFactoryInitialization:
     """Tests for _AiohttpClientFactory initialization."""
@@ -28,7 +28,7 @@ class TestAiohttpClientFactoryInitialization:
         config = ClientConfig()
         transcript = Transcript()
         sdk_config = {"CONNECTIONS": {}}
-        
+
         factory = _AiohttpClientFactory(
             agent_endpoint="http://localhost:3978",
             response_endpoint="http://localhost:9378/api/callback",
@@ -37,7 +37,7 @@ class TestAiohttpClientFactoryInitialization:
             default_config=config,
             transcript=transcript,
         )
-        
+
         assert factory._agent_endpoint == "http://localhost:3978"
         assert factory._response_endpoint == "http://localhost:9378/api/callback"
         assert factory._sdk_config is sdk_config
@@ -55,13 +55,14 @@ class TestAiohttpClientFactoryInitialization:
             default_config=ClientConfig(),
             transcript=Transcript(),
         )
-        
+
         assert factory._sessions == []
 
 
 # ============================================================================
 # _AiohttpClientFactory Tests
 # ============================================================================
+
 
 class TestAiohttpClientFactoryCreateClient:
     """Tests for _AiohttpClientFactory method."""
@@ -82,7 +83,7 @@ class TestAiohttpClientFactoryCreateClient:
     async def test_create_client_returns_agent_client(self, factory):
         """create_client returns an AgentClient instance."""
         client = await factory()
-        
+
         try:
             assert isinstance(client, AgentClient)
         finally:
@@ -92,9 +93,9 @@ class TestAiohttpClientFactoryCreateClient:
     async def test_create_client_tracks_session(self, factory):
         """create_client adds created session to sessions list."""
         assert len(factory._sessions) == 0
-        
+
         await factory()
-        
+
         try:
             assert len(factory._sessions) == 1
             assert isinstance(factory._sessions[0], ClientSession)
@@ -107,7 +108,7 @@ class TestAiohttpClientFactoryCreateClient:
         await factory()
         await factory()
         await factory()
-        
+
         try:
             assert len(factory._sessions) == 3
         finally:
@@ -118,7 +119,7 @@ class TestAiohttpClientFactoryCreateClient:
         """create_client uses default config when no config is passed."""
         # Just verify it doesn't raise and creates a client
         client = await factory()
-        
+
         try:
             assert isinstance(client, AgentClient)
         finally:
@@ -131,9 +132,9 @@ class TestAiohttpClientFactoryCreateClient:
             headers={"X-Custom": "custom-value"},
             auth_token="custom-token",
         )
-        
+
         client = await factory(config=custom_config)
-        
+
         try:
             assert isinstance(client, AgentClient)
             # Verify session was created with custom headers
@@ -147,7 +148,7 @@ class TestAiohttpClientFactoryCreateClient:
     async def test_create_client_sets_content_type_header(self, factory):
         """create_client always sets Content-Type header."""
         await factory()
-        
+
         try:
             session = factory._sessions[0]
             assert "Content-Type" in session._default_headers
@@ -159,23 +160,27 @@ class TestAiohttpClientFactoryCreateClient:
     async def test_create_client_with_auth_token_sets_authorization(self, factory):
         """create_client sets Authorization header when auth_token is provided."""
         config = ClientConfig(auth_token="test-bearer-token")
-        
+
         await factory(config=config)
-        
+
         try:
             session = factory._sessions[0]
             assert "Authorization" in session._default_headers
-            assert session._default_headers["Authorization"] == "Bearer test-bearer-token"
+            assert (
+                session._default_headers["Authorization"] == "Bearer test-bearer-token"
+            )
         finally:
             await factory.cleanup()
 
     @pytest.mark.asyncio
     async def test_create_client_merges_custom_headers(self, factory):
         """create_client merges custom headers with defaults."""
-        config = ClientConfig(headers={"X-Request-Id": "123", "Accept": "application/json"})
-        
+        config = ClientConfig(
+            headers={"X-Request-Id": "123", "Accept": "application/json"}
+        )
+
         await factory(config=config)
-        
+
         try:
             session = factory._sessions[0]
             assert session._default_headers["Content-Type"] == "application/json"
@@ -189,9 +194,9 @@ class TestAiohttpClientFactoryCreateClient:
         """create_client uses custom activity_template from config."""
         custom_template = ActivityTemplate(text="Custom message")
         config = ClientConfig(activity_template=custom_template)
-        
+
         client = await factory(config=config)
-        
+
         try:
             assert isinstance(client, AgentClient)
             # The client should use a template derived from the custom template
@@ -202,6 +207,7 @@ class TestAiohttpClientFactoryCreateClient:
 # ============================================================================
 # _AiohttpClientfactory Authorization Tests
 # ============================================================================
+
 
 class TestAiohttpClientFactoryAuthorization:
     """Tests for authorization handling in create_client."""
@@ -217,11 +223,11 @@ class TestAiohttpClientFactoryAuthorization:
             default_config=ClientConfig(),
             transcript=Transcript(),
         )
-        
+
         config = ClientConfig(headers={"Authorization": "Bearer explicit-token"})
-        
+
         await factory(config=config)
-        
+
         try:
             session = factory._sessions[0]
             assert session._default_headers["Authorization"] == "Bearer explicit-token"
@@ -239,14 +245,16 @@ class TestAiohttpClientFactoryAuthorization:
             default_config=ClientConfig(),
             transcript=Transcript(),
         )
-        
+
         config = ClientConfig(auth_token="token-from-config")
-        
+
         await factory(config=config)
-        
+
         try:
             session = factory._sessions[0]
-            assert session._default_headers["Authorization"] == "Bearer token-from-config"
+            assert (
+                session._default_headers["Authorization"] == "Bearer token-from-config"
+            )
         finally:
             await factory.cleanup()
 
@@ -261,9 +269,9 @@ class TestAiohttpClientFactoryAuthorization:
             default_config=ClientConfig(),
             transcript=Transcript(),
         )
-        
+
         await factory()
-        
+
         try:
             session = factory._sessions[0]
             # No Authorization header should be set
@@ -276,7 +284,7 @@ class TestAiohttpClientFactoryAuthorization:
         """SDK config token generation failure is handled gracefully."""
         # Provide invalid SDK config that will cause token generation to fail
         invalid_sdk_config = {"CONNECTIONS": {"SERVICE_CONNECTION": {"SETTINGS": {}}}}
-        
+
         factory = _AiohttpClientFactory(
             agent_endpoint="http://localhost:3978",
             response_endpoint="http://localhost:9378/api/callback",
@@ -285,10 +293,10 @@ class TestAiohttpClientFactoryAuthorization:
             default_config=ClientConfig(),
             transcript=Transcript(),
         )
-        
+
         # Should not raise even though SDK config is invalid
         client = await factory()
-        
+
         try:
             assert isinstance(client, AgentClient)
         finally:
@@ -298,6 +306,7 @@ class TestAiohttpClientFactoryAuthorization:
 # ============================================================================
 # _AiohttpClientFactory.cleanup Tests
 # ============================================================================
+
 
 class TestAiohttpClientFactoryCleanup:
     """Tests for _AiohttpClientFactory.cleanup method."""
@@ -313,16 +322,16 @@ class TestAiohttpClientFactoryCleanup:
             default_config=ClientConfig(),
             transcript=Transcript(),
         )
-        
+
         # Create multiple clients
         await factory()
         await factory()
-        
+
         sessions = list(factory._sessions)
         assert len(sessions) == 2
-        
+
         await factory.cleanup()
-        
+
         # All sessions should be closed
         for session in sessions:
             assert session.closed
@@ -338,14 +347,14 @@ class TestAiohttpClientFactoryCleanup:
             default_config=ClientConfig(),
             transcript=Transcript(),
         )
-        
+
         await factory()
         await factory()
-        
+
         assert len(factory._sessions) == 2
-        
+
         await factory.cleanup()
-        
+
         assert factory._sessions == []
 
     @pytest.mark.asyncio
@@ -359,10 +368,10 @@ class TestAiohttpClientFactoryCleanup:
             default_config=ClientConfig(),
             transcript=Transcript(),
         )
-        
+
         # Should not raise
         await factory.cleanup()
-        
+
         assert factory._sessions == []
 
     @pytest.mark.asyncio
@@ -376,18 +385,19 @@ class TestAiohttpClientFactoryCleanup:
             default_config=ClientConfig(),
             transcript=Transcript(),
         )
-        
+
         await factory()
-        
+
         await factory.cleanup()
         await factory.cleanup()  # Second call should not raise
-        
+
         assert factory._sessions == []
 
 
 # ============================================================================
 # _AiohttpClientFactory Template Handling Tests
 # ============================================================================
+
 
 class TestAiohttpClientFactoryTemplateHandling:
     """Tests for template handling in _AiohttpClientFactory."""
@@ -396,7 +406,7 @@ class TestAiohttpClientFactoryTemplateHandling:
     async def test_default_template_used_when_config_has_none(self):
         """Default template is used when config has no activity_template."""
         default_template = ActivityTemplate(type="message", text="Default")
-        
+
         factory = _AiohttpClientFactory(
             agent_endpoint="http://localhost:3978",
             response_endpoint="http://localhost:9378/api/callback",
@@ -405,9 +415,9 @@ class TestAiohttpClientFactoryTemplateHandling:
             default_config=ClientConfig(),
             transcript=Transcript(),
         )
-        
+
         client = await factory()
-        
+
         try:
             assert isinstance(client, AgentClient)
         finally:
@@ -419,7 +429,7 @@ class TestAiohttpClientFactoryTemplateHandling:
         default_template = ActivityTemplate(type="message", text="Default")
         custom_template = ActivityTemplate(type="event", text="Custom")
         config = ClientConfig(activity_template=custom_template)
-        
+
         factory = _AiohttpClientFactory(
             agent_endpoint="http://localhost:3978",
             response_endpoint="http://localhost:9378/api/callback",
@@ -428,9 +438,9 @@ class TestAiohttpClientFactoryTemplateHandling:
             default_config=ClientConfig(),
             transcript=Transcript(),
         )
-        
+
         client = await factory(config=config)
-        
+
         try:
             assert isinstance(client, AgentClient)
         finally:
@@ -440,6 +450,7 @@ class TestAiohttpClientFactoryTemplateHandling:
 # ============================================================================
 # Integration-style Tests
 # ============================================================================
+
 
 class TestAiohttpClientFactoryIntegration:
     """Integration-style tests for _AiohttpClientFactory."""
@@ -455,24 +466,20 @@ class TestAiohttpClientFactoryIntegration:
             default_config=ClientConfig(headers={"X-Default": "value"}),
             transcript=Transcript(),
         )
-        
+
         # Create clients with different configs
         client1 = await factory()
-        client2 = await factory(
-            config=ClientConfig(auth_token="token-1")
-        )
-        client3 = await factory(
-            config=ClientConfig(headers={"X-Custom": "custom"})
-        )
-        
+        client2 = await factory(config=ClientConfig(auth_token="token-1"))
+        client3 = await factory(config=ClientConfig(headers={"X-Custom": "custom"}))
+
         assert len(factory._sessions) == 3
         assert isinstance(client1, AgentClient)
         assert isinstance(client2, AgentClient)
         assert isinstance(client3, AgentClient)
-        
+
         # Cleanup all
         await factory.cleanup()
-        
+
         assert len(factory._sessions) == 0
         for session in [factory._sessions]:
             pass  # All sessions should be closed and list cleared
@@ -488,9 +495,9 @@ class TestAiohttpClientFactoryIntegration:
             default_config=ClientConfig(),
             transcript=Transcript(),
         )
-        
+
         await factory()
-        
+
         try:
             session = factory._sessions[0]
             assert session._base_url is None

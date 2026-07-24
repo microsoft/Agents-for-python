@@ -1,26 +1,48 @@
 # Copyright (c) Microsoft Corporation. All rights reserved.
 # Licensed under the MIT License.
+
 from __future__ import annotations
 
 import re
-from typing import Optional
+from typing import Optional, Awaitable, TypeVar, Protocol
 
-from copy import copy, deepcopy
+from copy import deepcopy
 from collections.abc import Callable
 from datetime import datetime, timezone
-from microsoft_agents.activity import TurnContextProtocol
 from microsoft_agents.activity import (
     Activity,
     ActivityTypes,
     ConversationReference,
+    DeliveryModes,
     InputHints,
     Mention,
     ResourceResponse,
-    DeliveryModes,
+    TurnContextProtocol,
 )
+from microsoft_agents.activity._model_utils import pick_model, SkipNone
 from microsoft_agents.activity.entity.entity_types import EntityTypes
 from microsoft_agents.hosting.core.authorization.claims_identity import ClaimsIdentity
 import microsoft_agents.hosting.core.telemetry.turn_context.spans as spans
+
+OnSendActivitiesHandler = Callable[
+    ["TurnContext", list[Activity], Callable[[], Awaitable[list[ResourceResponse]]]],
+    Awaitable[list[ResourceResponse]],
+]
+OnUpdateActivityHandler = Callable[
+    ["TurnContext", Activity, Callable[[], Awaitable[ResourceResponse]]],
+    Awaitable[ResourceResponse],
+]
+OnDeleteActivityHandler = Callable[
+    ["TurnContext", ConversationReference, Callable[[], Awaitable[None]]],
+    Awaitable[None],
+]
+
+T = TypeVar("T")
+_ArgT = TypeVar("_ArgT")
+
+
+class _AsyncFunc(Protocol[T]):
+    def __call__(self) -> Awaitable[T]: ...
 
 
 class TurnContext(TurnContextProtocol):
@@ -28,6 +50,10 @@ class TurnContext(TurnContextProtocol):
     _INVOKE_RESPONSE_KEY = "TurnContext.InvokeResponse"
 
     _activity: Activity
+
+    _on_send_activities: list[OnSendActivitiesHandler]
+    _on_update_activity: list[OnUpdateActivityHandler]
+    _on_delete_activity: list[OnDeleteActivityHandler]
 
     def __init__(
         self,
@@ -37,8 +63,9 @@ class TurnContext(TurnContextProtocol):
     ):
         """
         Creates a new TurnContext instance.
-        :param adapter_or_context:
-        :param request:
+        :param adapter_or_context: The adapter instance or an existing TurnContext.
+        :param request: The incoming Activity.
+        :param identity: The ClaimsIdentity associated with the request.
         """
         if isinstance(adapter_or_context, TurnContext):
             adapter_or_context.copy_to(self)
@@ -48,15 +75,9 @@ class TurnContext(TurnContextProtocol):
             self._activity = request  # exception thrown if None further down
             self.responses: list[Activity] = []
             self._services: dict = {}
-            self._on_send_activities: Callable[
-                ["TurnContext", list[Activity], Callable], list[ResourceResponse]
-            ] = []
-            self._on_update_activity: Callable[
-                ["TurnContext", Activity, Callable], ResourceResponse
-            ] = []
-            self._on_delete_activity: Callable[
-                ["TurnContext", ConversationReference, Callable], None
-            ] = []
+            self._on_send_activities = []
+            self._on_update_activity = []
+            self._on_delete_activity = []
             self._responded: bool = False
             self._identity = identity
 
@@ -235,7 +256,7 @@ class TurnContext(TurnContextProtocol):
             ]
 
             # send activities through adapter
-            async def logic():
+            async def logic() -> list[ResourceResponse]:
                 nonlocal sent_non_trace_activity
 
                 if self.activity.delivery_mode == DeliveryModes.expect_replies:
@@ -259,7 +280,7 @@ class TurnContext(TurnContextProtocol):
                     self.responded = True
                 return responses
 
-            return await self._emit(self._on_send_activities, output, logic())
+            return await self._emit(self._on_send_activities, output, logic)
 
     async def update_activity(self, activity: Activity):
         """
@@ -272,7 +293,7 @@ class TurnContext(TurnContextProtocol):
         return await self._emit(
             self._on_update_activity,
             TurnContext.apply_conversation_reference(activity, reference),
-            self.adapter.update_activity(self, activity),
+            lambda: self.adapter.update_activity(self, activity),
         )
 
     async def delete_activity(self, id_or_reference: str | ConversationReference):
@@ -286,58 +307,72 @@ class TurnContext(TurnContextProtocol):
             reference.activity_id = id_or_reference
         else:
             reference = id_or_reference
+
         return await self._emit(
             self._on_delete_activity,
             reference,
-            self.adapter.delete_activity(self, reference),
+            lambda: self.adapter.delete_activity(self, reference),
         )
 
-    def on_send_activities(self, handler) -> "TurnContext":
+    def on_send_activities(self, handler: OnSendActivitiesHandler) -> TurnContext:
         """
         Registers a handler to be notified of and potentially intercept the sending of activities.
-        :param handler:
+        :param handler: the handler to register
+        :type handler: OnSendActivitiesHandler
         :return:
         """
         self._on_send_activities.append(handler)
         return self
 
-    def on_update_activity(self, handler) -> "TurnContext":
+    def on_update_activity(self, handler: OnUpdateActivityHandler) -> TurnContext:
         """
         Registers a handler to be notified of and potentially intercept an activity being updated.
-        :param handler:
+        :param handler: the handler to register
+        :type handler: OnUpdateActivityHandler
         :return:
         """
         self._on_update_activity.append(handler)
         return self
 
-    def on_delete_activity(self, handler) -> "TurnContext":
+    def on_delete_activity(self, handler: OnDeleteActivityHandler) -> TurnContext:
         """
         Registers a handler to be notified of and potentially intercept an activity being deleted.
-        :param handler:
+        :param handler: the handler to register
+        :type handler: OnDeleteActivityHandler
         :return:
         """
         self._on_delete_activity.append(handler)
         return self
 
-    async def _emit(self, plugins, arg, logic):
-        handlers = copy(plugins)
+    async def _emit(
+        self,
+        handlers: list[Callable[[TurnContext, _ArgT, _AsyncFunc[T]], Awaitable[T]]],
+        arg: _ArgT,
+        logic: _AsyncFunc[T],
+    ) -> T:
+        """Emits an event to the registered handlers, allowing them to intercept and modify the behavior of the logic function.
 
-        async def emit_next(i: int):
-            context = self
-            try:
-                if i < len(handlers):
+        :param handlers: The list of registered handlers to invoke.
+        :param arg: The argument to pass to the handlers.
+        :param logic: The logic function to invoke after all handlers have been called.
+        :return: The result of the logic function, potentially modified by the handlers.
+        """
 
-                    async def next_handler():
-                        await emit_next(i + 1)
+        handlers = list(handlers)
 
-                    await handlers[i](context, arg, next_handler)
+        async def emit_next(i: int) -> T:
+            call_next: _AsyncFunc[T]
+            if i + 1 < len(handlers):
+                call_next = lambda: emit_next(i + 1)
+            else:
+                call_next = logic
 
-            except Exception as error:
-                raise error
+            return await handlers[i](self, arg, call_next)
 
-        await emit_next(0)
-        # logic does not use parentheses because it's a coroutine
-        return await logic
+        if len(handlers) > 0:
+            return await emit_next(0)
+
+        return await logic()
 
     async def send_trace_activity(
         self,
@@ -346,13 +381,14 @@ class TurnContext(TurnContextProtocol):
         value_type: str | None = None,
         label: str | None = None,
     ) -> ResourceResponse:
-        trace_activity = Activity(
+        trace_activity = pick_model(
+            Activity,
             type=ActivityTypes.trace,
             timestamp=datetime.now(timezone.utc),
             name=name,
             value=value,
-            value_type=value_type,
-            label=label,
+            value_type=SkipNone(value_type),
+            label=SkipNone(label),
         )
 
         return await self.send_activity(trace_activity)
@@ -371,7 +407,8 @@ class TurnContext(TurnContextProtocol):
         :return:
         """
         activity.channel_id = reference.channel_id
-        activity.locale = reference.locale
+        if reference.locale:
+            activity.locale = reference.locale
         activity.service_url = reference.service_url
         activity.conversation = reference.conversation
         if is_incoming:
@@ -405,19 +442,14 @@ class TurnContext(TurnContextProtocol):
     @staticmethod
     def remove_mention_text(activity: Activity, identifier: str) -> str:
         """
-        TODO: manual test for this function as it was replaced from manual code to re.escape
-
-        Previously: This was a copy of the re.escape function in Python 3.8.  This was done
-        because the 3.6.x version didn't escape in the same way and handling
-        agent names with regex characters in it would fail in TurnContext.remove_mention_text
-        without escaping the text.
+        Remove a mention matching the given account identifier from activity.text.
         """
         mentions = TurnContext.get_mentions(activity)
         for mention in mentions:
-            if mention.additional_properties["mentioned"]["id"] == identifier:
+            if mention.mentioned and mention.mentioned.id == identifier:
                 mention_name_match = re.match(
                     r"<at(.*)>(.*?)<\/at>",
-                    re.escape(mention.additional_properties.get("text", "")),
+                    re.escape(mention.text or ""),
                     re.IGNORECASE,
                 )
                 if mention_name_match:
@@ -429,10 +461,9 @@ class TurnContext(TurnContextProtocol):
 
     @staticmethod
     def get_mentions(activity: Activity) -> list[Mention]:
-        result: list[Mention] = []
-        if activity.entities is not None:
-            for entity in activity.entities:
-                if entity.type.lower() == EntityTypes.MENTION:
-                    result.append(entity)
+        """Get all mentions from the activity.
 
-        return result
+        :param activity: The activity to get mentions from.
+        :return: A list of Mention objects.
+        """
+        return activity.get_mentions()

@@ -22,31 +22,36 @@ from .scenarios import SCENARIOS
 # Register built-in CLI scenarios under the "agt." namespace
 for scenario in SCENARIOS:
     scenario_name, scenario_obj, scenario_desc = scenario
-    scenario_registry.register(f"agt.{scenario_name}", scenario_obj, description=scenario_desc)
+    scenario_registry.register(
+        f"agt.{scenario_name}", scenario_obj, description=scenario_desc
+    )
 
 
 @click.group()
 @click.option(
-    "--env", "-e",
+    "--env",
+    "-e",
     "env_path",
-    default=".env", 
+    default=".env",
     help="Path to environment file.",
     type=click.Path(),
 )
 @click.option(
-    "--connection", "-c",
-    default="SERVICE_CONNECTION", 
+    "--connection",
+    "-c",
+    default="SERVICE_CONNECTION",
     help="Named connection to use for auth credentials.",
 )
 @click.option(
-    "--verbose", "-v",
+    "--verbose",
+    "-v",
     is_flag=True,
     help="Enable verbose output.",
 )
 @click.pass_context
 def cli(ctx: click.Context, env_path: str, connection: str, verbose: bool) -> None:
     """Microsoft Agents Testing CLI.
-    
+
     A command-line tool for testing and interacting with M365 Agents.
     """
     ctx.ensure_object(dict)
@@ -59,11 +64,12 @@ def cli(ctx: click.Context, env_path: str, connection: str, verbose: bool) -> No
     if env_path != ".env" and config.env_path is None:
         out.error("Specified environment file not found.")
         raise click.Abort()
-    
+
     out.debug(f"Using environment file: {config.env_path}")
-    
+
     ctx.obj["config"] = config
     ctx.obj["out"] = out
+
 
 # Register all commands with the CLI group
 for command in COMMANDS:

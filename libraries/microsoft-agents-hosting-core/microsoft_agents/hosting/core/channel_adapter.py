@@ -1,6 +1,8 @@
 # Copyright (c) Microsoft Corporation. All rights reserved.
 # Licensed under the MIT License.
 
+from __future__ import annotations
+
 from abc import ABC, abstractmethod
 from collections.abc import Callable
 from typing import Awaitable
@@ -8,6 +10,7 @@ from microsoft_agents.hosting.core.authorization import ClaimsIdentity
 from microsoft_agents.activity import ChannelAdapterProtocol
 from microsoft_agents.activity import (
     Activity,
+    ChannelId,
     ConversationAccount,
     ConversationReference,
     ConversationParameters,
@@ -15,7 +18,7 @@ from microsoft_agents.activity import (
 )
 
 from .turn_context import TurnContext
-from .middleware_set import MiddlewareSet
+from .middleware_set import MiddlewareSet, Middleware
 
 
 class ChannelAdapter(ABC, ChannelAdapterProtocol):
@@ -78,7 +81,7 @@ class ChannelAdapter(ABC, ChannelAdapterProtocol):
         """
         raise NotImplementedError()
 
-    def use(self, middleware):
+    def use(self, middleware: Middleware) -> ChannelAdapter:
         """
         Registers a middleware handler with the adapter.
 
@@ -202,11 +205,11 @@ class ChannelAdapter(ABC, ChannelAdapterProtocol):
 
         # Create a conversation update activity
         conversation_update = Activity(
-            type=ActivityTypes.CONVERSATION_UPDATE,
-            channel_id=channel_id,
+            type=ActivityTypes.conversation_update,
+            channel_id=ChannelId(channel_id),
             service_url=service_url,
             conversation=conversation_parameters.conversation,
-            recipient=conversation_parameters.bot,
+            recipient=conversation_parameters.agent,
             from_property=conversation_parameters.members[0],
             members_added=conversation_parameters.members,
         )

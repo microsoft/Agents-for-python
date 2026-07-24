@@ -26,30 +26,33 @@ from microsoft_agents.activity import (
 # supported Response types, currently only aiohttp.ClientResponse
 ResponseT = TypeVar("ResponseT", bound=aiohttp.ClientResponse)
 
+
 def _load_activity(activity_dict: dict) -> Activity:
     new_activity_dict = {
         key: value for key, value in activity_dict.items() if value != ""
     }
     return Activity(**new_activity_dict)
 
+
 class Exchange(BaseModel):
     """A complete send-receive exchange with an agent.
-    
+
     Captures the outgoing activity, the HTTP response, and any
     activities received (inline replies or async callbacks).
     """
+
     # The activity that was sent
     request: Activity | None = None
     request_at: datetime | None = None
-    
+
     # HTTP response metadata
     status_code: int | None = None
     body: str | None = None
     invoke_response: InvokeResponse | None = None
-    
+
     # Error message if the request failed
     error: str | None = None
-    
+
     # Activities received (from expect_replies or callbacks)
     responses: list[Activity] = Field(default_factory=list)
     response_at: datetime | None = None
@@ -61,7 +64,7 @@ class Exchange(BaseModel):
         :return: True if the exchange has an error, False otherwise.
         """
         return self.error is not None
-    
+
     @property
     def latency(self) -> timedelta | None:
         """Calculate the time delta between request and response.
@@ -71,7 +74,7 @@ class Exchange(BaseModel):
         if self.request_at is not None and self.response_at is not None:
             return self.response_at - self.request_at
         return None
-    
+
     @property
     def latency_ms(self) -> float | None:
         """Calculate the latency in milliseconds.
@@ -82,11 +85,11 @@ class Exchange(BaseModel):
         if delta is not None:
             return delta.total_seconds() * 1000.0
         return None
-    
+
     def __repr__(self) -> str:
         req_type = self.request.type if self.request else "None"
         return f"Exchange(request={req_type}, status={self.status_code}, responses={len(self.responses)})"
-    
+
     @staticmethod
     def is_allowed_exception(exception: Exception) -> bool:
         """Check if an exception is a recoverable transport error.
@@ -97,14 +100,16 @@ class Exchange(BaseModel):
         :param exception: The exception to check.
         :return: True if the exception is a known recoverable error.
         """
-        return isinstance(exception, (aiohttp.ClientTimeout, aiohttp.ClientConnectionError))
-    
+        return isinstance(
+            exception, (aiohttp.ClientTimeout, aiohttp.ClientConnectionError)
+        )
+
     @staticmethod
     async def from_request(
         request_activity: Activity,
         response_or_exception: Exception | ResponseT,
         status: int | None = None,
-        **kwargs
+        **kwargs,
     ) -> Exchange:
         """Create an Exchange from a request activity and its outcome.
 
@@ -120,11 +125,11 @@ class Exchange(BaseModel):
         :return: A populated Exchange instance.
         :raises: Re-raises exceptions that are not in the allowed list.
         """
-        
+
         if isinstance(response_or_exception, Exception):
             if not Exchange.is_allowed_exception(response_or_exception):
                 raise response_or_exception
-            
+
             return Exchange(
                 request=request_activity,
                 error=str(response_or_exception),
@@ -136,11 +141,11 @@ class Exchange(BaseModel):
                 request=request_activity,
                 error=text or str(status),
                 status_code=status,
-                **kwargs
+                **kwargs,
             )
-        
+
         if isinstance(response_or_exception, aiohttp.ClientResponse):
-            
+
             response = cast(aiohttp.ClientResponse, response_or_exception)
 
             body: str | None = None
@@ -152,12 +157,14 @@ class Exchange(BaseModel):
                 body = await response.text()
                 activity_list = json.loads(body)["activities"]
 
-                activities = [ _load_activity(activity) for activity in activity_list ]
+                activities = [_load_activity(activity) for activity in activity_list]
 
             elif request_activity.type == ActivityTypes.invoke:
                 body = await response.text()
                 body_json = json.loads(body) if body.strip() else None
-                invoke_response = InvokeResponse.model_validate({"status": response.status, "body": body_json})
+                invoke_response = InvokeResponse.model_validate(
+                    {"status": response.status, "body": body_json}
+                )
 
             elif request_activity.delivery_mode == DeliveryModes.stream:
                 # Parse Server-Sent Events (SSE) stream for activity events
@@ -179,8 +186,10 @@ class Exchange(BaseModel):
                 body=body,
                 responses=activities,
                 invoke_response=invoke_response,
-                **kwargs
+                **kwargs,
             )
-            
+
         else:
-            raise ValueError("response_or_exception must be an Exception or aiohttp.ClientResponse")
+            raise ValueError(
+                "response_or_exception must be an Exception or aiohttp.ClientResponse"
+            )

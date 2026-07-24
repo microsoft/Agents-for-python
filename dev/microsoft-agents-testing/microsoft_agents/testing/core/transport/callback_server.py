@@ -16,14 +16,16 @@ from .transcript import Transcript
 
 class CallbackServer(ABC):
     """Abstract server that receives Activities sent by agents.
-    
+
     Implementations start an HTTP server that agents can post responses to,
     collecting them into a Transcript for later assertion.
     """
-    
+
     @abstractmethod
     @asynccontextmanager
-    async def listen(self, transcript: Transcript | None = None) -> AsyncIterator[Transcript]:
+    async def listen(
+        self, transcript: Transcript | None = None
+    ) -> AsyncIterator[Transcript]:
         """Starts the response server and yields a Transcript.
 
         :param transcript: An optional Transcript to collect incoming Activities.
@@ -33,4 +35,3 @@ class CallbackServer(ABC):
         :raises: RuntimeError if the server is already listening.
         """
         ...
-    

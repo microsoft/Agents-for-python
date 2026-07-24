@@ -18,6 +18,7 @@ from .expect import Expect
 
 ModelT = TypeVar("ModelT", bound=dict | BaseModel)
 
+
 class SelectBase(Generic[ModelT]):
     """
     Unified selection and assertion for models.
@@ -43,9 +44,9 @@ class SelectBase(Generic[ModelT]):
     """
 
     def __init__(
-            self,
-            items: Sequence[ModelT],
-        ) -> None:
+        self,
+        items: Sequence[ModelT],
+    ) -> None:
         self._items = list(items)
 
     def expect(self) -> Expect:
@@ -60,15 +61,19 @@ class SelectBase(Generic[ModelT]):
     ### Selectors
     ###
 
-    def _where(self, _filter: dict | Callable | None = None, _reverse: bool=False, **kwargs) -> Self:
+    def _where(
+        self, _filter: dict | Callable | None = None, _reverse: bool = False, **kwargs
+    ) -> Self:
         """Filter items by criteria. Chainable."""
         mp = ModelPredicate.from_args(_filter, **kwargs)
 
         mpr = mp.eval(self._items)
         results = mpr.result_bools
-        
+
         mapping = zip(self._items, results)
-        filtered_items = [item for item, keep in mapping if keep != _reverse] # keep if not _reverse else not keep
+        filtered_items = [
+            item for item, keep in mapping if keep != _reverse
+        ]  # keep if not _reverse else not keep
 
         return self._child(filtered_items)
 
@@ -84,12 +89,14 @@ class SelectBase(Generic[ModelT]):
     def where_not(self, _filter: dict | Callable | None = None, **kwargs) -> Self:
         """Exclude items by criteria. Chainable."""
         return self._where(_filter, _reverse=True, **kwargs)
-    
-    def order_by(self, key: str | Callable | None, reverse: bool = False, **kwargs) -> Self:
+
+    def order_by(
+        self, key: str | Callable | None, reverse: bool = False, **kwargs
+    ) -> Self:
         """Order items by a specific key or callable. Chainable."""
 
         dt = DictionaryTransform.from_args(key, **kwargs)
-        
+
         return self._child(
             list(
                 sorted(
@@ -99,52 +106,54 @@ class SelectBase(Generic[ModelT]):
                 )
             )
         )
-    
+
     def merge(self, other: Self) -> Self:
         """Merge with another Select's items."""
         l = self._items + other._items
         return self._child(l)
-    
+
     def _bool_list(self) -> list[bool]:
         """Return a list of True values matching the number of selected items."""
-        return [ True for _ in self._items ]
-    
+        return [True for _ in self._items]
+
     def first(self, n: int = 1) -> Self:
         """Select the first n items."""
         return self._child(self._items[:n])
-    
+
     def last(self, n: int = 1) -> Self:
         """Select the last n items."""
         return self._child(self._items[-n:])
-    
+
     def at(self, n: int) -> Self:
         """Set selector to 'exactly n'."""
-        return self._child(self._items[n:n+1])
-    
+        return self._child(self._items[n : n + 1])
+
     def sample(self, n: int) -> Self:
         """Randomly sample n items."""
         if n < 0:
             raise ValueError("Sample size n must be non-negative.")
-        
+
         n = min(n, len(self._items))
         return self._child(random.sample(self._items, n))
-    
+
     ###
     ### TERMINAL OPERATIONS
     ###
 
-    def get(self) -> list[dict | BaseModel]:
+    def get(self) -> list[ModelT]:
         """Get the selected items as a list."""
         return self._items
-    
+
     def count(self) -> int:
         """Get the count of selected items."""
         return len(self._items)
-    
+
     def empty(self) -> bool:
         """Check if no items are in the current selection."""
         return len(self._items) == 0
 
+
 class Select(SelectBase[dict | BaseModel]):
     """Select class for filtering and asserting on model collections."""
+
     pass

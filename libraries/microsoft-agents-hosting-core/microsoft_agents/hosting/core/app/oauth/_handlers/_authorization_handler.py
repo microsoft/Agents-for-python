@@ -59,6 +59,10 @@ class _AuthorizationHandler(ABC):
         if auth_handler:
             self._handler = auth_handler
         else:
+            if not auth_handler_settings:
+                raise ValueError(
+                    "auth_handler_settings must be provided if auth_handler is None."
+                )
             self._handler = AuthHandler._from_settings(auth_handler_settings)
 
         self._id = auth_handler_id or self._handler.name

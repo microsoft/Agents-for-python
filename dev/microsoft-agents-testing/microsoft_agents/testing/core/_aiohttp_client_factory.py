@@ -21,15 +21,15 @@ from .utils import generate_token_from_config
 
 class _AiohttpClientFactory:
     """Internal factory for creating AgentClient instances using aiohttp.
-    
+
     This factory manages HTTP session lifecycle and handles authentication
     token generation. It is used internally by scenario implementations.
-    
+
     Note:
         This is an internal class. Use Scenario.run() or Scenario.client()
         instead of instantiating this directly.
     """
-    
+
     def __init__(
         self,
         agent_endpoint: str,
@@ -46,14 +46,14 @@ class _AiohttpClientFactory:
         self._default_config = default_config or ClientConfig()
         self._transcript = transcript
         self._sessions: list[ClientSession] = []  # track for cleanup
-    
+
     async def __call__(self, config: ClientConfig | None = None) -> AgentClient:
         """Create a new client with the given configuration."""
         config = config or self._default_config
-        
+
         # Build headers
         headers = {"Content-Type": "application/json", **config.headers}
-        
+
         # Handle auth
         if config.auth_token:
             headers["Authorization"] = f"Bearer {config.auth_token}"
@@ -64,21 +64,21 @@ class _AiohttpClientFactory:
                 headers["Authorization"] = f"Bearer {token}"
             except Exception:
                 pass  # No auth available
-        
+
         # Create session
         session = ClientSession(headers=headers)
         self._sessions.append(session)
-        
+
         # Build activity template with user identity
         template = config.activity_template or self._default_template
         template = template.with_updates(
             service_url=self._response_endpoint,
         )
-        
+
         # Create sender and client
         sender = AiohttpSender(self._agent_endpoint, session)
         return AgentClient(sender, self._transcript, template=template)
-    
+
     async def cleanup(self):
         """Close all HTTP sessions created by this factory.
 

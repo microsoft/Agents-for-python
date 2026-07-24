@@ -3,7 +3,7 @@
 
 """Channel service route definitions (framework-agnostic logic)."""
 
-from typing import Type
+from typing import Type, TypeVar, overload
 
 from microsoft_agents.activity import (
     AgentsModel,
@@ -15,6 +15,8 @@ from microsoft_agents.activity import (
 from microsoft_agents.hosting.core import ChannelApiHandlerProtocol
 
 from ._http_request_protocol import HttpRequestProtocol
+
+AgentsModelT = TypeVar("AgentsModelT", bound=AgentsModel)
 
 
 class ChannelServiceRoutes:
@@ -36,8 +38,8 @@ class ChannelServiceRoutes:
 
     @staticmethod
     async def deserialize_from_body(
-        request: HttpRequestProtocol, target_model: Type[AgentsModel]
-    ) -> AgentsModel:
+        request: HttpRequestProtocol, target_model: Type[AgentsModelT]
+    ) -> AgentsModelT:
         """Deserialize request body to target model."""
         content_type = request.headers.get("Content-Type", "")
         if "application/json" not in content_type:
@@ -47,8 +49,16 @@ class ChannelServiceRoutes:
         return target_model.model_validate(body)
 
     @staticmethod
-    def serialize_model(model_or_list: AgentsModel | list[AgentsModel]) -> dict:
-        """Serialize model or list of models to JSON-compatible dict."""
+    @overload
+    def serialize_model(model_or_list: AgentsModelT) -> dict: ...
+    @staticmethod
+    @overload
+    def serialize_model(model_or_list: list[AgentsModelT]) -> list[dict]: ...
+    @staticmethod
+    def serialize_model(
+        model_or_list: AgentsModelT | list[AgentsModelT],
+    ) -> dict | list[dict]:
+        """Serialize model or list of models to JSON-compatible dict or list of dicts."""
         if isinstance(model_or_list, AgentsModel):
             return model_or_list.model_dump(
                 mode="json", exclude_unset=True, by_alias=True
@@ -107,7 +117,7 @@ class ChannelServiceRoutes:
             activity_id,
         )
 
-    async def get_activity_members(self, request: HttpRequestProtocol) -> dict:
+    async def get_activity_members(self, request: HttpRequestProtocol) -> list[dict]:
         """Handle GET /v3/conversations/{conversation_id}/activities/{activity_id}/members."""
         conversation_id = request.get_path_param("conversation_id")
         activity_id = request.get_path_param("activity_id")
@@ -136,7 +146,9 @@ class ChannelServiceRoutes:
         )
         return self.serialize_model(result)
 
-    async def get_conversation_members(self, request: HttpRequestProtocol) -> dict:
+    async def get_conversation_members(
+        self, request: HttpRequestProtocol
+    ) -> list[dict]:
         """Handle GET /v3/conversations/{conversation_id}/members."""
         conversation_id = request.get_path_param("conversation_id")
         result = await self.handler.on_get_conversation_members(
@@ -177,7 +189,9 @@ class ChannelServiceRoutes:
             conversation_id,
             member_id,
         )
-        return self.serialize_model(result)
+        if result:
+            return self.serialize_model(result)
+        return {}
 
     async def send_conversation_history(self, request: HttpRequestProtocol) -> dict:
         """Handle POST /v3/conversations/{conversation_id}/activities/history."""

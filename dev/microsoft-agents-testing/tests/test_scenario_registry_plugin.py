@@ -18,7 +18,6 @@ from microsoft_agents.testing.pytest_plugin import _get_scenario_from_marker
 from microsoft_agents.testing.core import ExternalScenario
 from microsoft_agents.testing import scenario_registry
 
-
 # ============================================================================
 # Helpers: Define scenarios in this module (separate from test_pytest_plugin)
 # ============================================================================
@@ -26,6 +25,7 @@ from microsoft_agents.testing import scenario_registry
 
 async def init_echo_agent(env: AgentEnvironment) -> None:
     """Initialize a simple echo agent for testing."""
+
     @env.agent_application.activity("message")
     async def on_message(context: TurnContext, state: TurnState):
         await context.send_activity(f"Echo: {context.activity.text}")

@@ -24,7 +24,6 @@ from microsoft_agents.testing.aiohttp_scenario import AiohttpScenario, AgentEnvi
 from microsoft_agents.testing.core import ScenarioConfig
 from microsoft_agents.testing.core.fluent import Expect, Select
 
-
 # ============================================================================
 # Simple Echo Agent Tests
 # ============================================================================
@@ -48,7 +47,7 @@ class TestEchoAgent:
         )
 
         async with scenario.client() as client:
-            await client.send("Hello, Agent!", wait=.2)
+            await client.send("Hello, Agent!", wait=0.2)
             client.expect().that_for_any(text="Echo: Hello, Agent!")
 
     @pytest.mark.asyncio
@@ -94,6 +93,7 @@ class TestEchoAgent:
             await client.send("")
 
             client.expect().that_for_any(text="Echo: ")
+
 
 # ============================================================================
 # Multi-Response Agent Tests
@@ -147,7 +147,9 @@ class TestMultiResponseAgent:
 
             # Should have both typing and message activities
             client.expect().that_for_any(type=ActivityTypes.typing)
-            client.expect().that_for_any(type=ActivityTypes.message, text="Here is my response!")
+            client.expect().that_for_any(
+                type=ActivityTypes.message, text="Here is my response!"
+            )
 
 
 # ============================================================================
@@ -471,7 +473,11 @@ class TestMultipleClients:
             @env.agent_application.activity("message")
             async def on_message(context: TurnContext, state: TurnState):
                 messages_received.append(context.activity.text)
-                user_id = context.activity.from_property.id if context.activity.from_property else "unknown"
+                user_id = (
+                    context.activity.from_property.id
+                    if context.activity.from_property
+                    else "unknown"
+                )
                 await context.send_activity(f"Hello, {user_id}!")
 
         scenario = AiohttpScenario(

@@ -10,12 +10,10 @@ from microsoft_agents.testing.cli.core import (
     Output,
     with_scenario,
 )
-from microsoft_agents.testing.core import (
-    Scenario,
-    ExternalScenario
-)
+from microsoft_agents.testing.core import Scenario, ExternalScenario
 
 from .scenario_group import scenario_group
+
 
 @scenario_group.command("run")
 @async_command
@@ -31,9 +29,11 @@ async def run(out: Output, scenario: Scenario) -> None:
     :param scenario: The resolved Scenario instance.
     """
     if isinstance(scenario, ExternalScenario):
-        out.error("Running an ExternalScenario is not supported in this command. Please use specific commands designed for interaction, such as 'chat' or 'post'.")
+        out.error(
+            "Running an ExternalScenario is not supported in this command. Please use specific commands designed for interaction, such as 'chat' or 'post'."
+        )
         raise click.Abort()
-    
+
     try:
         async with scenario.run():
             out.newline()
@@ -44,6 +44,6 @@ async def run(out: Output, scenario: Scenario) -> None:
             await asyncio.Event().wait()
     except asyncio.CancelledError:
         pass
-    
+
     out.newline()
     out.success("Scenario stopped.")

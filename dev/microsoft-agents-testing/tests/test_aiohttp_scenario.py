@@ -8,7 +8,6 @@ import pytest
 from microsoft_agents.testing.aiohttp_scenario import AiohttpScenario, AgentEnvironment
 from microsoft_agents.testing.core import Scenario, ScenarioConfig
 
-
 # ============================================================================
 # AgentEnvironment Tests
 # ============================================================================
@@ -186,7 +185,8 @@ class TestAiohttpScenarioProperties:
         scenario = AiohttpScenario(init_agent=init_agent)
 
         with pytest.raises(
-            RuntimeError, match="Agent environment not available. Is the scenario running?"
+            RuntimeError,
+            match="Agent environment not available. Is the scenario running?",
         ):
             _ = scenario.agent_environment
 

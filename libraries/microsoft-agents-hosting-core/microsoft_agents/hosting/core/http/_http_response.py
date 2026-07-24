@@ -28,7 +28,7 @@ class HttpResponseFactory:
     @staticmethod
     def accepted() -> HttpResponse:
         """Create 202 Accepted response."""
-        return HttpResponse(status_code=202)
+        return HttpResponse(status_code=202, content_type=None)
 
     @staticmethod
     def json(body: Any, status_code: int = 200) -> HttpResponse:

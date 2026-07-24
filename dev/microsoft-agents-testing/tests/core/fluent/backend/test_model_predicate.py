@@ -19,10 +19,10 @@ from microsoft_agents.testing.core.fluent.backend.quantifier import (
     for_n,
 )
 
-
 # ============================================================================
 # ModelPredicateResult Tests
 # ============================================================================
+
 
 class TestModelPredicateResult:
     """Tests for the ModelPredicateResult class."""
@@ -50,11 +50,15 @@ class TestModelPredicateResult:
 
     def test_init_with_multiple_dicts(self):
         """Initializing with multiple dicts produces multiple bools."""
-        result = ModelPredicateResult({}, {}, [
-            {"a": True},
-            {"a": False},
-            {"a": True, "b": True},
-        ])
+        result = ModelPredicateResult(
+            {},
+            {},
+            [
+                {"a": True},
+                {"a": False},
+                {"a": True, "b": True},
+            ],
+        )
         assert result.result_bools == [True, False, True]
 
     def test_init_with_nested_dict_all_true(self):
@@ -95,7 +99,9 @@ class TestModelPredicateResultDictTransform:
     def test_dict_transform_stores_transform_map(self):
         """dict_transform stores the transform map from DictionaryTransform."""
         dict_transform = {"name": lambda x: x == "test", "value": lambda x: x > 0}
-        result = ModelPredicateResult({}, dict_transform, [{"name": True, "value": True}])
+        result = ModelPredicateResult(
+            {}, dict_transform, [{"name": True, "value": True}]
+        )
         assert result.dict_transform == dict_transform
 
     def test_dict_transform_is_accessible(self):
@@ -115,7 +121,9 @@ class TestModelPredicateResultDictTransform:
         """dict_transform stores flattened keys."""
         func = lambda x: x == "value"
         dict_transform = {"user.profile.name": func}
-        result = ModelPredicateResult({}, dict_transform, [{"user": {"profile": {"name": True}}}])
+        result = ModelPredicateResult(
+            {}, dict_transform, [{"user": {"profile": {"name": True}}}]
+        )
         assert "user.profile.name" in result.dict_transform
         assert result.dict_transform["user.profile.name"] is func
 
@@ -123,7 +131,7 @@ class TestModelPredicateResultDictTransform:
         """ModelPredicate.eval stores dict_transform in result."""
         predicate = ModelPredicate.from_args({"name": "test", "value": lambda x: x > 0})
         result = predicate.eval({"name": "test", "value": 10})
-        
+
         assert "name" in result.dict_transform
         assert "value" in result.dict_transform
         assert callable(result.dict_transform["name"])
@@ -131,12 +139,13 @@ class TestModelPredicateResultDictTransform:
 
     def test_dict_transform_preserves_callables(self):
         """dict_transform preserves original callable functions."""
+
         def custom_check(x):
             return x == "expected"
-        
+
         dict_transform = {"key": custom_check}
         result = ModelPredicateResult([], dict_transform, [{"key": True}])
-        
+
         assert result.dict_transform["key"] is custom_check
         assert result.dict_transform["key"]("expected") is True
         assert result.dict_transform["key"]("other") is False
@@ -154,11 +163,11 @@ class TestModelPredicateResultSource:
     def test_source_from_pydantic_models(self):
         """source converts Pydantic models to dicts."""
         from pydantic import BaseModel
-        
+
         class TestModel(BaseModel):
             name: str
             value: int
-        
+
         models = [TestModel(name="test", value=42)]
         result = ModelPredicateResult(models, {}, [{"name": True}])
         assert result.source == [{"name": "test", "value": 42}]
@@ -168,7 +177,7 @@ class TestModelPredicateResultSource:
         predicate = ModelPredicate.from_args({"name": "test"})
         source = {"name": "test", "value": 10}
         result = predicate.eval(source)
-        
+
         assert result.source == [source]
 
     def test_source_multiple_items(self):
@@ -183,6 +192,7 @@ class TestModelPredicateResultSource:
 # Sample Models for Testing
 # ============================================================================
 
+
 class SampleModel(BaseModel):
     """A sample Pydantic model for testing."""
 
@@ -194,13 +204,14 @@ class SampleModel(BaseModel):
 
 class NestedModel(BaseModel):
     """A Pydantic model with nested structure."""
-    
+
     outer: dict
 
 
 # ============================================================================
 # ModelPredicate Initialization Tests
 # ============================================================================
+
 
 class TestModelPredicateInit:
     """Tests for ModelPredicate initialization."""
@@ -221,6 +232,7 @@ class TestModelPredicateInit:
 # ============================================================================
 # ModelPredicate.eval Tests with Dicts
 # ============================================================================
+
 
 class TestModelPredicateEvalWithDicts:
     """Tests for ModelPredicate.eval with dictionary sources."""
@@ -273,6 +285,7 @@ class TestModelPredicateEvalWithDicts:
 # ModelPredicate.eval Tests with Pydantic Models
 # ============================================================================
 
+
 class TestModelPredicateEvalWithPydanticModels:
     """Tests for ModelPredicate.eval with Pydantic model sources."""
 
@@ -314,6 +327,7 @@ class TestModelPredicateEvalWithPydanticModels:
 # ============================================================================
 # ModelPredicate.eval Tests with Callables
 # ============================================================================
+
 
 class TestModelPredicateEvalWithCallables:
     """Tests for ModelPredicate.eval with callable predicates."""
@@ -368,9 +382,7 @@ class TestModelPredicateEvalWithCallables:
 
     def test_eval_with_mixed_value_and_callable(self):
         """eval works with mixed value and callable predicates."""
-        predicate = ModelPredicate.from_args(
-            {"name": "test", "value": lambda x: x > 0}
-        )
+        predicate = ModelPredicate.from_args({"name": "test", "value": lambda x: x > 0})
         result = predicate.eval({"name": "test", "value": 10})
         assert result.result_bools == [True]
 
@@ -378,6 +390,7 @@ class TestModelPredicateEvalWithCallables:
 # ============================================================================
 # ModelPredicate.from_args Tests
 # ============================================================================
+
 
 class TestModelPredicateFromArgs:
     """Tests for the ModelPredicate.from_args factory method."""
@@ -427,6 +440,7 @@ class TestModelPredicateFromArgs:
 # ============================================================================
 # ModelPredicate with Quantifiers Tests
 # ============================================================================
+
 
 class TestModelPredicateWithQuantifiers:
     """Tests demonstrating ModelPredicate results with quantifiers."""
@@ -502,22 +516,19 @@ class TestModelPredicateWithQuantifiers:
 # Nested Predicate Tests
 # ============================================================================
 
+
 class TestNestedPredicates:
     """Tests for nested predicate evaluation."""
 
     def test_nested_dict_predicate(self):
         """Nested dict predicates are evaluated correctly."""
-        predicate = ModelPredicate.from_args(
-            {"user": {"name": "test", "active": True}}
-        )
+        predicate = ModelPredicate.from_args({"user": {"name": "test", "active": True}})
         result = predicate.eval({"user": {"name": "test", "active": True}})
         assert result.result_bools == [True]
 
     def test_nested_dict_predicate_not_matching(self):
         """Nested dict predicate returns False when not matching."""
-        predicate = ModelPredicate.from_args(
-            {"user": {"name": "test"}}
-        )
+        predicate = ModelPredicate.from_args({"user": {"name": "test"}})
         result = predicate.eval({"user": {"name": "other"}})
         assert result.result_bools == [False]
 
@@ -537,6 +548,7 @@ class TestNestedPredicates:
 # ============================================================================
 # Edge Cases Tests
 # ============================================================================
+
 
 class TestEdgeCases:
     """Tests for edge cases and special scenarios."""

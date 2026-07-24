@@ -41,7 +41,6 @@ from .core import (
 from .aiohttp_scenario import AgentEnvironment
 from .scenario_registry import resolve_scenario
 
-
 # Store the scenario per test item
 _SCENARIO_KEY = "_agent_test_scenario"
 
@@ -89,11 +88,12 @@ def pytest_runtest_setup(item: pytest.Item) -> None:
 # Fixtures
 # =============================================================================
 
+
 @pytest.fixture
 async def agent_client(request: pytest.FixtureRequest):
     """
     Provides an AgentClient for communicating with the agent under test.
-    
+
     Only available when the test is decorated with @pytest.mark.agent_test.
     """
     scenario: Scenario | str | None = getattr(request.node, _SCENARIO_KEY, None)
@@ -102,25 +102,26 @@ async def agent_client(request: pytest.FixtureRequest):
     else:
         pytest.skip("agent_client fixture requires @pytest.mark.agent_test marker")
         return
-    
+
     async with scenario.client() as client:
         yield client
         # After test completes, attach conversation to the test item
         # This makes it available to pytest's reporting hooks
         request.node._agent_client_transcript = client.transcript
 
+
 @pytest.fixture
 def agent_environment(request: pytest.FixtureRequest) -> AgentEnvironment:
     """
     Provides access to the AgentEnvironment (only for in-process scenarios).
-    
+
     Only available when using AiohttpScenario or similar in-process scenarios.
     """
     scenario: Scenario | None = getattr(request.node, _SCENARIO_KEY, None)
-    
+
     if scenario is None:
         pytest.skip("agent_environment fixture requires @pytest.mark.agent_test marker")
-    
+
     if not hasattr(scenario, "agent_environment"):
         pytest.skip(
             "agent_environment fixture is only available for in-process scenarios "

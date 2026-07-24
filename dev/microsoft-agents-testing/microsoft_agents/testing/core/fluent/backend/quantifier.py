@@ -12,14 +12,14 @@ from typing import Protocol
 
 class Quantifier(Protocol):
     """Protocol for quantifier functions.
-    
+
     A quantifier takes a list of boolean results and returns whether
     the overall assertion passes based on its logic (all, any, none, etc.).
     """
-    
+
     @staticmethod
-    def __call__(items: list[bool]) -> bool:
-        ...
+    def __call__(items: list[bool]) -> bool: ...
+
 
 def for_all(items: list[bool]) -> bool:
     """Return True if all items are True."""
@@ -43,10 +43,12 @@ def for_one(items: list[bool]) -> bool:
 
 def for_n(n: int) -> Quantifier:
     """Return a quantifier that passes if exactly n items are True.
-    
+
     :param n: The exact number of True values required.
     :return: A quantifier function.
     """
+
     def _for_n(items: list[bool]) -> bool:
         return sum(1 for item in items if item) == n
+
     return _for_n
