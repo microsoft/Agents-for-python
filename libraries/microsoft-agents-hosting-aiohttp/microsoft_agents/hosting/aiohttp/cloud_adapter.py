@@ -13,30 +13,7 @@ from microsoft_agents.hosting.core.http import (
 from microsoft_agents.hosting.core import ChannelServiceClientFactoryBase
 
 from .agent_http_adapter import AgentHttpAdapter
-
-
-class AiohttpRequestAdapter:
-    """Adapter to make aiohttp Request compatible with HttpRequestProtocol."""
-
-    def __init__(self, request: Request):
-        self._request = request
-
-    @property
-    def method(self) -> str:
-        return self._request.method
-
-    @property
-    def headers(self):
-        return self._request.headers
-
-    async def json(self):
-        return await self._request.json()
-
-    def get_claims_identity(self):
-        return self._request.get("claims_identity")
-
-    def get_path_param(self, name: str) -> str:
-        return self._request.match_info[name]
+from ._aiohttp_request_adapter import AiohttpRequestAdapter
 
 
 class CloudAdapter(HttpAdapterBase, AgentHttpAdapter):

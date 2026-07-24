@@ -1,0 +1,20 @@
+[build-system]
+requires = ["setuptools"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "graph-clients"
+version = "0.1.0"
+description = "Teams Graph clients sample — demonstrates app-only and delegated Microsoft Graph clients"
+authors = [{name = "Microsoft Corporation"}]
+license = "MIT"
+requires-python = ">=3.11"
+dependencies = [
+    "microsoft-agents-activity",
+    "microsoft-agents-hosting-core",
+    "microsoft-agents-authentication-msal",
+    "microsoft-agents-hosting-aiohttp",
+    "microsoft-agents-hosting-msteams",
+    "python-dotenv",
+    "aiohttp",
+]

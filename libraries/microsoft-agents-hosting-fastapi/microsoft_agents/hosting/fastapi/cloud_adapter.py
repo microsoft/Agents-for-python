@@ -14,30 +14,7 @@ from microsoft_agents.hosting.core.http import (
 from microsoft_agents.hosting.core import ChannelServiceClientFactoryBase
 
 from .agent_http_adapter import AgentHttpAdapter
-
-
-class FastApiRequestAdapter:
-    """Adapter to make FastAPI Request compatible with HttpRequestProtocol."""
-
-    def __init__(self, request: Request):
-        self._request = request
-
-    @property
-    def method(self) -> str:
-        return self._request.method
-
-    @property
-    def headers(self):
-        return self._request.headers
-
-    async def json(self):
-        return await self._request.json()
-
-    def get_claims_identity(self):
-        return getattr(self._request.state, "claims_identity", None)
-
-    def get_path_param(self, name: str) -> str:
-        return self._request.path_params.get(name, "")
+from ._fastapi_request_adapter import FastApiRequestAdapter
 
 
 class CloudAdapter(HttpAdapterBase, AgentHttpAdapter):
@@ -46,8 +23,8 @@ class CloudAdapter(HttpAdapterBase, AgentHttpAdapter):
     def __init__(
         self,
         *,
-        connection_manager: Connections = None,
-        channel_service_client_factory: ChannelServiceClientFactoryBase = None,
+        connection_manager: Connections | None = None,
+        channel_service_client_factory: ChannelServiceClientFactoryBase | None = None,
     ):
         """
         Initializes a new instance of the CloudAdapter class.
