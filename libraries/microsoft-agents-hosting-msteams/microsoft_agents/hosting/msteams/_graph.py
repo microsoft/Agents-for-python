@@ -42,9 +42,9 @@ class _SDKUserAuthenticationProvider(AuthenticationProvider):
     ):
         """Capture the context needed to resolve a token at request time.
 
-        :param app: The agent application whose authorization issues tokens.
+        :param auth: The agent application's authorization.
         :param context: The current turn context.
-        :param handler_name: The auth handler name used to acquire the token.
+        :param handler_name: Optional name of the handler to use for authentication.
         """
         self._auth = auth
         self._context = context
@@ -153,7 +153,7 @@ def _create_app_graph_service_client(
 def _common_get_app_graph_client(
     app: AgentApplication,
     context: TurnContext,
-    graph_base_url: str = "https://graph.microsoft.com/v1.0",
+    graph_base_url: str = _DEFAULT_GRAPH_BASE_URL,
 ) -> GraphServiceClient:
     """Get a Graph client authenticated for the agent application.
 
@@ -174,7 +174,7 @@ def _common_get_app_graph_client(
 def _common_get_app_graph_client_for_connection(
     app: AgentApplication,
     connection_name: str | None = None,
-    graph_base_url: str = "https://graph.microsoft.com/v1.0",
+    graph_base_url: str = _DEFAULT_GRAPH_BASE_URL,
 ) -> GraphServiceClient:
     """Get a Graph client authenticated for the agent application.
 
