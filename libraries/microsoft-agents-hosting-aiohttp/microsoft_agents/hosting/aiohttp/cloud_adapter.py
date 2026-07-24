@@ -14,6 +14,7 @@ from microsoft_agents.hosting.core.http import (
 from microsoft_agents.hosting.core import ChannelServiceClientFactoryBase
 
 from .agent_http_adapter import AgentHttpAdapter
+from ._aiohttp_request_adapter import AiohttpRequestAdapter
 
 
 class CloudAdapter(HttpAdapterBase, AgentHttpAdapter):
