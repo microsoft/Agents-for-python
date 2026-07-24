@@ -134,10 +134,10 @@ def _create_app_graph_service_client(
 ) -> GraphServiceClient:
     """Create a Graph client authenticated for the agent application.
 
-    :param app: The agent application whose authorization issues tokens.
-    :param handler_name: Optional auth handler name used to acquire the token.
+    :param token_provider: The access token provider for the agent application.
+    :param graph_base_url: The base URL for the Graph API.
     :return: A :class:`GraphServiceClient` that authenticates each request via
-        the agent's authorization.
+        the token provider.
     """
     url_parsed = urlparse(graph_base_url)
     resource_url = f"{url_parsed.scheme}://{url_parsed.netloc}"
@@ -158,7 +158,6 @@ def _common_get_app_graph_client(
 
     :param app: The agent application whose authorization issues tokens.
     :param context: The current turn context.
-    :param connection_name: Optional connection name to select a specific token provider.
     :param graph_base_url: The base URL for the Graph API.
     :return: A :class:`GraphServiceClient` that authenticates each request via
         the agent's authorization.
@@ -182,7 +181,7 @@ def _common_get_app_graph_client_for_connection(
     :param connection_name: Optional connection name to select a specific token provider.
     :param graph_base_url: The base URL for the Graph API.
     :return: A :class:`GraphServiceClient` that authenticates each request via
-        the agent's authorization.
+        the token provider from the connection.
     """
     token_provider: AccessTokenProviderBase
     if not connection_name:

@@ -3,9 +3,9 @@ requires = ["setuptools"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "conversation-agent"
+name = "graph-clients"
 version = "0.1.0"
-description = "Teams Conversation Agent sample — demonstrates channel/team lifecycle, member events, and message commands"
+description = "Teams Graph clients sample — demonstrates app-only and delegated Microsoft Graph clients"
 authors = [{name = "Microsoft Corporation"}]
 license = "MIT"
 requires-python = ">=3.11"
