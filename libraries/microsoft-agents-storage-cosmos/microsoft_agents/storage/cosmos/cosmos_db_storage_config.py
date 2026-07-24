@@ -1,9 +1,12 @@
 import json
+import logging
 
 from azure.core.credentials_async import AsyncTokenCredential
 from microsoft_agents.storage.cosmos.errors import storage_errors
 
 from .key_ops import sanitize_key
+
+logger = logging.getLogger(__name__)
 
 
 class CosmosDBStorageConfig:
@@ -19,7 +22,6 @@ class CosmosDBStorageConfig:
         container_throughput: int | None = None,
         key_suffix: str = "",
         compatibility_mode: bool = False,
-        url: str = "",
         credential: AsyncTokenCredential | None = None,
         **kwargs,
     ):
@@ -32,13 +34,12 @@ class CosmosDBStorageConfig:
         :param cosmos_client_options: The options for the CosmosClient. Currently only supports connection_policy and
             consistency_level
         :param container_throughput: The throughput set when creating the Container. Defaults to 400.
-        :param key_suffix: The suffix to be added to every key. The keySuffix must contain only valid ComosDb
+        :param key_suffix: The suffix to be added to every key. The keySuffix must contain only valid CosmosDb
             key characters. (e.g. not: '\\', '?', '/', '#', '*')
         :param compatibility_mode: True if keys should be truncated in order to support previous CosmosDb
             max key length of 255.
-        :param url: The URL to the CosmosDB resource.
         :param credential: The TokenCredential to use for authentication.
-        :return CosmosDBConfig:
+        :return CosmosDBStorageConfig:
         """
         config_file: str = kwargs.get("filename", "")
         if config_file:
@@ -47,6 +48,14 @@ class CosmosDBStorageConfig:
         self.cosmos_db_endpoint: str = cosmos_db_endpoint or kwargs.get(
             "cosmos_db_endpoint", ""
         )
+
+        if "url" in kwargs:
+            logger.warning(
+                "The 'url' parameter is deprecated. Please use 'cosmos_db_endpoint' instead."
+            )
+            if not self.cosmos_db_endpoint:
+                self.cosmos_db_endpoint = kwargs.get("url", "")
+
         self.auth_key: str = auth_key or kwargs.get("auth_key", "")
         self.database_id: str = database_id or kwargs.get("database_id", "")
         self.container_id: str = container_id or kwargs.get("container_id", "")
@@ -60,7 +69,6 @@ class CosmosDBStorageConfig:
         self.compatibility_mode: bool = compatibility_mode or kwargs.get(
             "compatibility_mode", False
         )
-        self.url = url or kwargs.get("url", "")
         self.credential: AsyncTokenCredential | None = credential
 
     @staticmethod
