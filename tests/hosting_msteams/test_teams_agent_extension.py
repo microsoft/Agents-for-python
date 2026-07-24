@@ -14,12 +14,10 @@ pytestmark = pytest.mark.skipif(
 
 if is_supported_version:
     from microsoft_agents.activity import Activity, Channels
+    from microsoft_teams.api import ApiClient
     from microsoft_teams.api.models import ChannelData
 
     from microsoft_agents.hosting.msteams import TeamsAgentExtension
-    from microsoft_agents.hosting.msteams._teams_api_client import (
-        _TEAMS_API_CLIENT_KEY,
-    )
     from microsoft_agents.hosting.msteams.channel import Channel
     from microsoft_agents.hosting.msteams.config import Config
     from microsoft_agents.hosting.msteams.file_consent import FileConsent
@@ -30,13 +28,24 @@ if is_supported_version:
     from microsoft_agents.hosting.msteams.team import Team
 
 
+class _FakeServiceSet:
+    def __init__(self):
+        self._state = {}
+
+    def has(self, key):
+        return key in self._state
+
+    def set(self, key, value):
+        self._state[key] = value
+
+
 class _FakeContext:
     """Minimal context stand-in for exercising the before_turn hook directly."""
 
     def __init__(self, activity, identity=None):
         self.activity = activity
         self.identity = identity
-        self.turn_state = {}
+        self.services = _FakeServiceSet()
 
 
 class TestTeamsAgentExtensionProperties:
@@ -99,7 +108,7 @@ class TestBeforeTurnHook:
         assert result is True
         # channel_data left as the raw dict; no Teams API client cached
         assert activity.channel_data == {"channel": {"id": "c"}}
-        assert _TEAMS_API_CLIENT_KEY not in ctx.turn_state
+        assert not ctx.services.has(ApiClient)
 
     @pytest.mark.asyncio
     async def test_teams_channel_deserializes_channel_data(self):
@@ -116,7 +125,7 @@ class TestBeforeTurnHook:
         assert result is True
         assert isinstance(activity.channel_data, ChannelData)
         assert activity.channel_data.channel.id == "c1"
-        assert _TEAMS_API_CLIENT_KEY in ctx.turn_state
+        assert ctx.services.has(ApiClient)
 
     @pytest.mark.asyncio
     async def test_teams_channel_without_channel_data_sets_none(self):

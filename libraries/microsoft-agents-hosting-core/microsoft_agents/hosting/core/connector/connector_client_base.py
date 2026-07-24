@@ -2,12 +2,13 @@
 # Licensed under the MIT License.
 
 from abc import abstractmethod
-from typing import Protocol
+from typing import Protocol, runtime_checkable
 
 from .attachments_base import AttachmentsBase
 from .conversations_base import ConversationsBase
 
 
+@runtime_checkable
 class ConnectorClientBase(Protocol):
     @property
     @abstractmethod
@@ -23,3 +24,8 @@ class ConnectorClientBase(Protocol):
     @abstractmethod
     def conversations(self) -> ConversationsBase:
         pass
+
+    @abstractmethod
+    async def close(self) -> None:
+        """Close the client and release any resources."""
+        raise NotImplementedError("close method must be implemented by subclasses.")

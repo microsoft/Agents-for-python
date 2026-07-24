@@ -137,13 +137,8 @@ class DialogManager:
         Determines if this turn is a request from a parent bot to this skill.
         """
 
-        claims_identity = turn_context.turn_state.get(
-            ChannelAdapter.AGENT_IDENTITY_KEY, None
-        )
-        return (
-            isinstance(claims_identity, ClaimsIdentity)
-            and claims_identity.is_agent_claim()
-        )
+        claims_identity = turn_context.identity
+        return claims_identity is not None and claims_identity.is_agent_claim()
 
     @staticmethod
     def should_send_end_of_conversation_to_parent(

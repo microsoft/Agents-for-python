@@ -6,6 +6,8 @@ from .get_product_info import get_product_info
 from .client.connector_client import ConnectorClient
 from .client.user_token_client import UserTokenClient
 
+from .user_token_client_base import UserTokenClientBase
+
 # Teams API
 from .teams.teams_connector_client import TeamsConnectorClient
 
@@ -20,4 +22,5 @@ __all__ = [
     "MCSConnectorClient",
     "ConnectorClientBase",
     "get_product_info",
+    "UserTokenClientBase",
 ]

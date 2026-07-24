@@ -17,7 +17,7 @@ from microsoft_agents.activity import (
     SignInResource,
 )
 
-from ..connector.client import UserTokenClient
+from ..connector import UserTokenClientBase
 from ._flow_state import _FlowState, _FlowStateTag, _FlowErrorTag
 
 logger = logging.getLogger(__name__)
@@ -47,7 +47,7 @@ class _OAuthFlow:
     """
 
     def __init__(
-        self, flow_state: _FlowState, user_token_client: UserTokenClient, **kwargs
+        self, flow_state: _FlowState, user_token_client: UserTokenClientBase, **kwargs
     ):
         """
         Arguments:

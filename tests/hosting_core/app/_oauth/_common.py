@@ -1,6 +1,6 @@
 from microsoft_agents.activity import Activity, ActivityTypes
 
-from microsoft_agents.hosting.core import TurnContext
+from microsoft_agents.hosting.core import TurnContext, UserTokenClientBase
 
 from tests._common.data import DEFAULT_TEST_VALUES
 from tests._common.testing_objects import mock_UserTokenClient
@@ -36,14 +36,14 @@ def create_testing_TurnContext(
         )
     else:
         turn_context.activity = activity
-    turn_context.adapter.USER_TOKEN_CLIENT_KEY = "__user_token_client"
-    turn_context.adapter.AGENT_IDENTITY_KEY = "__agent_identity_key"
     agent_identity = mocker.Mock()
     agent_identity.claims = {"aud": DEFAULTS.ms_app_id}
-    turn_context.turn_state = {
-        "__user_token_client": user_token_client,
-        "__agent_identity_key": agent_identity,
-    }
+    turn_context.identity = agent_identity
+    turn_context.services = mocker.Mock()
+    turn_context.services.get.side_effect = lambda key: (
+        user_token_client if key is UserTokenClientBase else None
+    )
+    turn_context.turn_state = {}
     return turn_context
 
 
@@ -66,13 +66,12 @@ def create_testing_TurnContext_magic(
         turn_context.activity.type = ActivityTypes.message
     else:
         turn_context.activity = activity
-    turn_context.adapter.USER_TOKEN_CLIENT_KEY = "__user_token_client"
-    turn_context.adapter.AGENT_IDENTITY_KEY = "__agent_identity_key"
     agent_identity = mocker.Mock()
     agent_identity.claims = {"aud": DEFAULTS.ms_app_id}
-    turn_context.turn_state = mocker.Mock()
-    turn_context.turn_state = {
-        "__user_token_client": user_token_client,
-        "__agent_identity_key": agent_identity,
-    }
+    turn_context.identity = agent_identity
+    turn_context.services = mocker.Mock()
+    turn_context.services.get.side_effect = lambda key: (
+        user_token_client if key is UserTokenClientBase else None
+    )
+    turn_context.turn_state = {}
     return turn_context

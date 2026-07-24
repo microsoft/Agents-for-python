@@ -22,7 +22,10 @@ from microsoft_agents.activity import (
 from microsoft_agents.activity._model_utils import pick_model, SkipNone
 from microsoft_agents.activity.entity.entity_types import EntityTypes
 from microsoft_agents.hosting.core.authorization.claims_identity import ClaimsIdentity
+
 import microsoft_agents.hosting.core.telemetry.turn_context.spans as spans
+
+from ._utils._service_set import _ServiceSet
 
 OnSendActivitiesHandler = Callable[
     ["TurnContext", list[Activity], Callable[[], Awaitable[list[ResourceResponse]]]],
@@ -74,7 +77,7 @@ class TurnContext(TurnContextProtocol):
             self.adapter = adapter_or_context
             self._activity = request  # exception thrown if None further down
             self.responses: list[Activity] = []
-            self._services: dict = {}
+            self._services: _ServiceSet = _ServiceSet()
             self._on_send_activities = []
             self._on_update_activity = []
             self._on_delete_activity = []
@@ -151,7 +154,7 @@ class TurnContext(TurnContextProtocol):
         self._responded = True
 
     @property
-    def services(self):
+    def services(self) -> _ServiceSet:
         """
         Map of services and other values cached for the lifetime of the turn.
         :return:
@@ -174,36 +177,6 @@ class TurnContext(TurnContextProtocol):
     @property
     def identity(self) -> Optional[ClaimsIdentity]:
         return self._identity
-
-    def get(self, key: str) -> object:
-        if not key or not isinstance(key, str):
-            raise TypeError('"key" must be a valid string.')
-        try:
-            return self._services[key]
-        except KeyError:
-            raise KeyError("%s not found in TurnContext._services." % key)
-
-    def has(self, key: str) -> bool:
-        """
-        Returns True is set() has been called for a key. The cached value may be of type 'None'.
-        :param key:
-        :return:
-        """
-        if key in self._services:
-            return True
-        return False
-
-    def set(self, key: str, value: object) -> None:
-        """
-        Caches a value for the lifetime of the current turn.
-        :param key:
-        :param value:
-        :return:
-        """
-        if not key or not isinstance(key, str):
-            raise KeyError('"key" must be a valid string.')
-
-        self._services[key] = value
 
     async def send_activity(
         self,
