@@ -23,6 +23,9 @@ from microsoft_agents.hosting.core import (
     UserState,
     MemoryStorage,
     Storage,
+    ConnectionManager,
+    AgentAuthConfiguration,
+    AnonymousTokenProvider,
 )
 from microsoft_agents.hosting.core.authorization import ClaimsIdentity
 from microsoft_agents.hosting.aiohttp import CloudAdapter
@@ -107,7 +110,16 @@ class ActivityHandlerScenario(Scenario):
         storage = MemoryStorage()
         conv_state = ConversationState(storage)
         user_state = UserState(storage)
-        adapter = CloudAdapter()
+        adapter = CloudAdapter(
+            connection_manager = ConnectionManager(
+                provider_factory=lambda c: AnonymousTokenProvider(),
+                connections_configurations={
+                    "SERVICE_CONNECTION": AgentAuthConfiguration(
+                        anonymous_allowed=True,
+                    )
+                }
+            )
+        )
 
         result = self._create_handler(conv_state, user_state, storage)
         if hasattr(result, "__await__"):

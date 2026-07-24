@@ -31,7 +31,7 @@ class StateForTesting(State):
         if not storage:
             return cls(__key__="test")
 
-        data: Dict[str, Any] = await storage.read(["test"])
+        data: Dict[str, Any] = await storage.read(["test"], target_cls=MockStoreItem)
 
         if "test" in data:
             if isinstance(data["test"], StoreItem):

@@ -7,6 +7,7 @@ from .channel_service_route_table import channel_service_route_table
 from .cloud_adapter import CloudAdapter
 from .jwt_authorization_middleware import (
     JwtAuthorizationMiddleware,
+    jwt_authorization_decorator,
 )
 
 # Import streaming utilities from core for backward compatibility
@@ -21,6 +22,7 @@ __all__ = [
     "AgentHttpAdapter",
     "CloudAdapter",
     "JwtAuthorizationMiddleware",
+    "jwt_authorization_decorator",
     "channel_service_route_table",
     "Citation",
     "CitationUtil",
