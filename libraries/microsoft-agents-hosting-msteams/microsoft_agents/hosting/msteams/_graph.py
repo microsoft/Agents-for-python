@@ -161,7 +161,7 @@ def _common_get_app_graph_client(
     :param context: The current turn context.
     :param graph_base_url: The base URL for the Graph API.
     :return: A :class:`GraphServiceClient` that authenticates each request via
-        the agent's authorization.
+        the agent's connections.
     """
     if not context.identity:
         raise ValueError("TurnContext.identity is required to get a Graph client.")
