@@ -162,7 +162,7 @@ class TeamsTurnContext(TurnContext):
         :param graph_base_url: The base URL for the Microsoft Graph API.
 
         :return: A :class:`GraphServiceClient` that authenticates each request via
-            the agent's authorization.
+            the agent's connections.
         """
         return _common_get_app_graph_client(
             self._app, self, graph_base_url=graph_base_url
