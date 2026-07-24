@@ -65,8 +65,8 @@ class _SDKUserAuthenticationProvider(AuthenticationProvider):
             additional_authentication_context = {}
 
         token_response = await self._auth.get_token(self._context, self._handler_name)
-        if token_response:
-            request.headers["Authorization"] = f"Bearer {token_response.token}"
+        if token_response and token_response.token:
+            request.headers.add("Authorization", f"Bearer {token_response.token}")
 
 
 class _SDKAuthenticationProvider(AuthenticationProvider):
@@ -105,7 +105,7 @@ class _SDKAuthenticationProvider(AuthenticationProvider):
             self._resource_url, self._scopes
         )
         if token:
-            request.headers["Authorization"] = f"Bearer {token}"
+            request.headers.add("Authorization", f"Bearer {token}")
 
 
 def _create_user_graph_service_client(
@@ -142,11 +142,11 @@ def _create_app_graph_service_client(
     url_parsed = urlparse(graph_base_url)
     resource_url = f"{url_parsed.scheme}://{url_parsed.netloc}"
     scopes = [f"{resource_url}/.default"]
-    return GraphServiceClient(
-        request_adapter=GraphRequestAdapter(
-            _SDKAuthenticationProvider(token_provider, resource_url, scopes)
-        )
+    request_adapter = GraphRequestAdapter(
+        _SDKAuthenticationProvider(token_provider, resource_url, scopes)
     )
+    request_adapter.base_url = graph_base_url.rstrip("/") + "/"
+    return GraphServiceClient(request_adapter=request_adapter)
 
 
 def _common_get_app_graph_client(

@@ -146,19 +146,3 @@ async def _send_invoke_response(context: TurnContext, body: Any = None) -> None:
             value=InvokeResponse(status=int(HTTPStatus.OK), body=serialized_body),
         )
     )
-
-
-def _get_app_graph_client(
-    app: AgentApplication,
-    context: TurnContext,
-    graph_base_url: str,
-    connection_name: str | None = None,
-) -> GraphServiceClient:
-    """Get a Graph client authenticated for the agent application.
-
-    :param context: The current turn context.
-    :param graph_base_url: The base URL for the Graph API.
-    :param connection_name: Optional connection name to select a specific token provider.
-    :return: A :class:`GraphServiceClient` that authenticates each request via
-        the agent's authorization.
-    """

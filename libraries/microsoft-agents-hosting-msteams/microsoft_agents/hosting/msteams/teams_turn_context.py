@@ -18,7 +18,6 @@ from microsoft_agents.activity import (
     ResourceResponse,
 )
 from microsoft_agents.hosting.core import (
-    AccessTokenProviderBase,
     AgentApplication,
     TurnContext,
 )
