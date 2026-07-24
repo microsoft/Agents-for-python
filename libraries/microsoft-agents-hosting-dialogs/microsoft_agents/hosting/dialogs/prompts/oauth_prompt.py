@@ -12,13 +12,13 @@ from microsoft_agents.activity import (
     ActivityTypes,
     ActionTypes,
     CardAction,
+    ContentTypes,
     InputHints,
     SigninCard,
     SignInConstants,
     OAuthCard,
     TokenResponse,
     TokenExchangeInvokeRequest,
-    TokenExchangeInvokeResponse,
     InvokeResponse,
 )
 from microsoft_agents.hosting.core import (
@@ -37,7 +37,6 @@ from microsoft_agents.hosting.core._oauth import (
     _FlowStateTag,
     _FlowResponse,
 )
-from opentelemetry import context
 
 from ..dialog import Dialog
 from ..dialog_context import DialogContext
@@ -282,7 +281,7 @@ class OAuthPrompt(Dialog):
 
         if OAuthPrompt._channel_suppports_oauth_card(context.activity.channel_id or ""):
             if not any(
-                att.content_type == CardFactory.content_types.oauth_card
+                att.content_type == ContentTypes.oauth_card
                 for att in prompt.attachments
             ):
                 card_action_type = ActionTypes.signin
@@ -344,7 +343,7 @@ class OAuthPrompt(Dialog):
                 )
         else:
             if not any(
-                att.content_type == CardFactory.content_types.signin_card
+                att.content_type == ContentTypes.signin_card
                 for att in prompt.attachments
             ):
                 if not hasattr(context.adapter, "get_oauth_sign_in_link"):

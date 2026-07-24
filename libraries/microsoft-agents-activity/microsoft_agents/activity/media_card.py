@@ -1,15 +1,30 @@
 # Copyright (c) Microsoft Corporation. All rights reserved.
 # Licensed under the MIT License.
 
+from typing import overload
+
+from typing_extensions import deprecated
+
 from .thumbnail_url import ThumbnailUrl
 from .media_url import MediaUrl
 from .card_action import CardAction
 from .agents_model import AgentsModel
+from ._model_utils import pick_model, SkipNone
 from ._type_aliases import NonEmptyString
 
 
+@deprecated(
+    "MediaCard is a structural base without an Activity Protocol content type. "
+    "Use AnimationCard, AudioCard, or VideoCard instead. "
+    "Will be removed in a future release."
+)
 class MediaCard(AgentsModel):
     """Media card.
+
+    .. deprecated::
+        MediaCard is a structural base without an Activity Protocol content type.
+        Use AnimationCard, AudioCard, or VideoCard instead. Will be removed in a
+        future release.
 
     :param title: Title of this card
     :type title: str
@@ -55,3 +70,48 @@ class MediaCard(AgentsModel):
     aspect: NonEmptyString = None
     duration: NonEmptyString = None
     value: object = None
+
+    @overload
+    def add_media(self, media: MediaUrl) -> "MediaCard": ...
+
+    @overload
+    def add_media(
+        self, *, url: NonEmptyString, profile: NonEmptyString | None = None
+    ) -> "MediaCard": ...
+
+    def add_media(
+        self,
+        media: MediaUrl | None = None,
+        *,
+        url: NonEmptyString | None = None,
+        profile: NonEmptyString | None = None,
+    ) -> "MediaCard":
+        """
+        Adds a media URL and returns this card.
+
+        :param media: The media URL to add.
+        :param url: The URL of the media, used when no media instance is provided.
+        :param profile: The profile of the media built from a URL.
+        :returns: This card, to allow for method chaining.
+        """
+        if media is None:
+            if url is None:
+                raise ValueError(
+                    "Either provide a MediaUrl instance or the url parameter."
+                )
+            media = pick_model(MediaUrl, url=url, profile=SkipNone(profile))
+
+        self.media = self.media or []
+        self.media.append(media)
+        return self
+
+    def add_button(self, button: CardAction) -> "MediaCard":
+        """
+        Adds a button and returns this card.
+
+        :param button: The button to add.
+        :returns: This card, to allow for method chaining.
+        """
+        self.buttons = self.buttons or []
+        self.buttons.append(button)
+        return self

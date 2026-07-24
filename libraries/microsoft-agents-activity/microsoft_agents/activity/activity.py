@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 import logging
+import re
 from copy import copy
 from datetime import datetime, timezone
 from typing import Optional, Any, cast, Annotated, TypeVar
@@ -30,6 +31,8 @@ from .entity import (
     Entity,
     EntityTypes,
     Mention,
+    ActivityTreatment,
+    ActivityTreatmentTypes,
     AIEntity,
     ClientCitation,
     ProductInfo,
@@ -429,6 +432,375 @@ class Activity(AgentsModel):
         """
         return self if self.__is_activity(ActivityTypes.typing) else None
 
+    def with_text(self, text: str) -> Self:
+        """
+        Sets the text content of the activity.
+
+        :param text: The text content of the message.
+        :returns: This activity, to allow for method chaining.
+        """
+        self.text = text
+        return self
+
+    def with_speak(self, speak: str) -> Self:
+        """
+        Sets the text to speak for the activity.
+
+        :param speak: The text to speak.
+        :returns: This activity, to allow for method chaining.
+        """
+        self.speak = speak
+        return self
+
+    def with_input_hint(self, input_hint: str) -> Self:
+        """
+        Sets the input hint for the activity.
+
+        :param input_hint: Indicates whether the agent is accepting, expecting, or ignoring user input.
+        :returns: This activity, to allow for method chaining.
+        """
+        self.input_hint = input_hint
+        return self
+
+    def with_summary(self, summary: str) -> Self:
+        """
+        Sets the summary of the activity.
+
+        :param summary: The text to display if the channel cannot render cards.
+        :returns: This activity, to allow for method chaining.
+        """
+        self.summary = summary
+        return self
+
+    def with_locale(self, locale: str) -> Self:
+        """
+        Sets the locale of the activity.
+
+        :param locale: A locale name for the contents of the text field.
+        :returns: This activity, to allow for method chaining.
+        """
+        self.locale = locale
+        return self
+
+    def with_text_format(self, text_format: str) -> Self:
+        """
+        Sets the text format of the activity.
+
+        :param text_format: Format of the text fields. Possible values include: 'markdown', 'plain', 'xml'.
+        :returns: This activity, to allow for method chaining.
+        """
+        self.text_format = text_format
+        return self
+
+    def with_attachment_layout(self, attachment_layout: str) -> Self:
+        """
+        Sets the attachment layout hint for the activity.
+
+        :param attachment_layout: The layout hint for multiple attachments. Possible values include: 'list', 'carousel'.
+        :returns: This activity, to allow for method chaining.
+        """
+        self.attachment_layout = attachment_layout
+        return self
+
+    def with_delivery_mode(self, delivery_mode: str) -> Self:
+        """
+        Sets the delivery mode of the activity.
+
+        :param delivery_mode: The delivery mode for the activity.
+        :returns: This activity, to allow for method chaining.
+        """
+        self.delivery_mode = delivery_mode
+        return self
+
+    def with_name(self, name: str) -> Self:
+        """
+        Sets the name of the activity.
+
+        :param name: The name of the operation associated with an invoke or event activity.
+        :returns: This activity, to allow for method chaining.
+        """
+        self.name = name
+        return self
+
+    def with_value(self, value: object, value_type: str | None = None) -> Self:
+        """
+        Sets the value of the activity, and optionally its value type.
+
+        :param value: A value that is associated with the activity.
+        :param value_type: The type of the activity's value object. Only set when provided.
+        :returns: This activity, to allow for method chaining.
+        """
+        self.value = value
+        if value_type is not None:
+            self.value_type = value_type
+        return self
+
+    def with_suggested_actions(self, suggested_actions: SuggestedActions) -> Self:
+        """
+        Sets the suggested actions for the activity.
+
+        :param suggested_actions: The suggested actions for the activity.
+        :returns: This activity, to allow for method chaining.
+        """
+        self.suggested_actions = suggested_actions
+        return self
+
+    def add_text(self, text: str) -> None:
+        """
+        Appends text to the existing text content of the activity.
+
+        :param text: The text to append to the activity's text.
+        """
+        self.text = (self.text or "") + text
+
+    def add_attachment(self, *attachments: Attachment) -> Self:
+        """
+        Adds one or more attachments to the activity.
+
+        :param attachments: The attachments to add to the activity.
+        :returns: This activity, to allow for method chaining.
+        """
+        if not attachments:
+            return self
+
+        self.attachments = self.attachments or []
+        self.attachments.extend(attachments)
+        return self
+
+    def add_entity(self, *entities: Entity) -> Self:
+        """
+        Adds one or more entities to the activity.
+
+        :param entities: The entities to add to the activity.
+        :returns: This activity, to allow for method chaining.
+        """
+        if not entities:
+            return self
+
+        self.entities = self.entities or []
+        self.entities.extend(entities)
+        return self
+
+    def add_mention(
+        self,
+        account: ChannelAccount,
+        text: NonEmptyString | None = None,
+        add_text: bool = True,
+    ) -> Self:
+        """
+        Adds a mention of the given account to the activity.
+
+        :param account: The account to mention.
+        :param text: The text of the mention. Defaults to the account's name.
+        :param add_text: Whether to prepend the mention markup to the activity's text.
+        :returns: This activity, to allow for method chaining.
+        """
+        mention_text = text if text is not None else (account.name if account else None)
+        if mention_text is None:
+            logger.warning("Adding a mention with no text or account name.")
+
+        markup = f"<at>{mention_text}</at>"
+
+        if add_text:
+            self.text = markup if not self.text else f"{markup} {self.text}"
+
+        return self.add_entity(Mention(mentioned=account, text=markup))
+
+    def get_account_mention(self, account_id: NonEmptyString) -> Optional[Mention]:
+        """
+        Resolves the mention for the given account id, if any.
+
+        :param account_id: The id of the account to find a mention for.
+        :returns: The matching mention; or None, if none is found.
+        """
+        if not self.entities or account_id is None:
+            return None
+
+        for mention in self.get_mentions():
+            if mention.mentioned and mention.mentioned.id == account_id:
+                return mention
+
+        return None
+
+    def is_recipient_mentioned(self) -> bool:
+        """
+        Indicates whether the recipient of this activity was mentioned.
+
+        :returns: True if the recipient was mentioned; otherwise, False.
+        """
+        return (
+            self.recipient is not None
+            and self.recipient.id is not None
+            and self.get_account_mention(self.recipient.id) is not None
+        )
+
+    def remove_recipient_mention(self) -> str:
+        """
+        Removes the recipient's mention text from the activity's text.
+
+        :returns: The updated activity text.
+
+        .. remarks::
+            This method is defined on the :class:`microsoft_agents.activity.Activity` class, but is only intended for
+            use with a message activity, where the activity Activity.Type is set to ActivityTypes.Message.
+        """
+        return self.remove_mention_text(self.recipient.id if self.recipient else None)
+
+    def remove_mention_text(self, identifier: NonEmptyString | None) -> str:
+        """
+        Removes the mention text for the given account id from the activity's text.
+
+        For example, given the message `<at>echoAgent</at> Hi Agent`, this removes
+        `<at>echoAgent</at>`, leaving `Hi Agent`.
+
+        :param identifier: The id of the account whose mention text should be removed.
+        :returns: The updated activity text.
+
+        .. remarks::
+            The format of a mention entity is dependent on the channel, but in all cases
+            the Mention.text is expected to contain the exact text for the user as it
+            appears in Activity.text.
+        """
+        if not identifier:
+            return self.text
+
+        for mention in self.get_mentions():
+            if not mention.mentioned or mention.mentioned.id != identifier:
+                continue
+
+            if mention.text is None:
+                pattern = f"<at>{re.escape(mention.mentioned.name)}</at>"
+            else:
+                pattern = re.escape(mention.text)
+
+            self.text = re.sub(
+                pattern, "", self.text or "", flags=re.IGNORECASE
+            ).strip()
+
+        return self.text
+
+    def is_targeted_activity(self) -> bool:
+        """
+        Indicates whether this activity is targeted.
+
+        :returns: True if this activity carries a targeted treatment; otherwise, False.
+        """
+        if not self.entities:
+            return False
+
+        for entity in self.entities:
+            if (
+                entity.type == EntityTypes.ACTIVITY_TREATMENT
+                and isinstance(entity, ActivityTreatment)
+                and entity.treatment == ActivityTreatmentTypes.TARGETED
+            ):
+                return True
+
+        return False
+
+    def make_targeted_activity(self, user: ChannelAccount | None = None) -> Self:
+        """
+        Marks this activity as targeted, setting the recipient if provided.
+
+        :param user: The account to target. Defaults to the current recipient.
+        :returns: This activity, to allow for method chaining.
+        :raises ValueError: If both the activity's recipient and the user argument are None.
+        """
+        if self.is_targeted_activity():
+            return self
+
+        if self.recipient is None and user is None:
+            raise ValueError(str(activity_errors.InvalidTargetedActivityRecipient))
+
+        self.entities = self.entities or []
+        self.entities.append(
+            ActivityTreatment(treatment=ActivityTreatmentTypes.TARGETED)
+        )
+
+        self.recipient = user if user is not None else self.recipient
+
+        return self
+
+    def is_message(self) -> bool:
+        """
+        Indicates whether this activity is a message activity.
+
+        :return: True if this activity is a message activity; otherwise, False.
+        """
+        return self.__is_activity(ActivityTypes.message)
+
+    def is_event(self) -> bool:
+        """
+        Indicates whether this activity is an event activity.
+
+        :return: True if this activity is an event activity; otherwise, False.
+        """
+        return self.__is_activity(ActivityTypes.event)
+
+    def is_invoke(self) -> bool:
+        """
+        Indicates whether this activity is an invoke activity.
+
+        :return: True if this activity is an invoke activity; otherwise, False.
+        """
+        return self.__is_activity(ActivityTypes.invoke)
+
+    def is_typing(self) -> bool:
+        """
+        Indicates whether this activity is a typing activity.
+
+        :return: True if this activity is a typing activity; otherwise, False.
+        """
+        return self.__is_activity(ActivityTypes.typing)
+
+    def is_conversation_update(self) -> bool:
+        """
+        Indicates whether this activity is a conversation update activity.
+
+        :return: True if this activity is a conversation update activity; otherwise, False.
+        """
+        return self.__is_activity(ActivityTypes.conversation_update)
+
+    def is_end_of_conversation(self) -> bool:
+        """
+        Indicates whether this activity is an end of conversation activity.
+
+        :return: True if this activity is an end of conversation activity; otherwise, False.
+        """
+        return self.__is_activity(ActivityTypes.end_of_conversation)
+
+    def is_handoff(self) -> bool:
+        """
+        Indicates whether this activity is a handoff activity.
+
+        :return: True if this activity is a handoff activity; otherwise, False.
+        """
+        return self.__is_activity(ActivityTypes.handoff)
+
+    def is_trace(self) -> bool:
+        """
+        Indicates whether this activity is a trace activity.
+
+        :return: True if this activity is a trace activity; otherwise, False.
+        """
+        return self.__is_activity(ActivityTypes.trace)
+
+    def is_command(self) -> bool:
+        """
+        Indicates whether this activity is a command activity.
+
+        :return: True if this activity is a command activity; otherwise, False.
+        """
+        return self.__is_activity(ActivityTypes.command)
+
+    def is_command_result(self) -> bool:
+        """
+        Indicates whether this activity is a command result activity.
+
+        :return: True if this activity is a command result activity; otherwise, False.
+        """
+        return self.__is_activity(ActivityTypes.command_result)
+
     @staticmethod
     def create_contact_relation_update_activity():
         """
@@ -492,7 +864,9 @@ class Activity(AgentsModel):
         """
         return Activity(type=ActivityTypes.message)
 
-    def create_reply(self, text: str | None = None, locale: str | None = None):
+    def create_reply(
+        self, text: str | None = None, locale: str | None = None
+    ) -> Activity:
         """
         Creates a new message activity as a response to this activity.
 
@@ -621,7 +995,7 @@ class Activity(AgentsModel):
         )
 
     @staticmethod
-    def create_typing_activity() -> "Activity":
+    def create_typing_activity() -> Activity:
         """
         Creates an instance of the :class:`microsoft_agents.activity.Activity` class as a TypingActivity object.
 
@@ -713,8 +1087,8 @@ class Activity(AgentsModel):
         :returns: The array of mentions; or an empty array, if none are found.
 
         .. remarks::
-            This method is defined on the :class:`microsoft_agents.activity.Activity` class, but is only intended for use with a message activity,
-            where the activity Activity.Type is set to ActivityTypes.Message.
+            This method is defined on the :class:`microsoft_agents.activity.Activity` class, but is only intended for use with
+            a message activity, where the activity Activity.Type is set to ActivityTypes.Message.
         """
         if not self.entities:
             return []
@@ -728,7 +1102,8 @@ class Activity(AgentsModel):
         self, reply: ResourceResponse
     ) -> ConversationReference:
         """
-        Create a ConversationReference based on this Activity's Conversation info and the ResourceResponse from sending an activity.
+        Create a ConversationReference based on this Activity's Conversation info and the ResourceResponse from sending an
+        activity.
 
         :param reply: ResourceResponse returned from send_activity.
 

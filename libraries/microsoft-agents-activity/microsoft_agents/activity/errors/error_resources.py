@@ -47,6 +47,12 @@ class ActivityErrorResources:
         -64005,
     )
 
+    InvalidTargetedActivityRecipient = ErrorMessage(
+        "Cannot mark activity as targeted because both the Activity.recipient "
+        "and `user` argument are None. At least one must be provided.",
+        -64006,
+    )
+
     def __init__(self):
         """Initialize ActivityErrorResources."""
         pass
