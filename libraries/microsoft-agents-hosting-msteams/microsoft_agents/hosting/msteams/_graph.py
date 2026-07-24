@@ -120,7 +120,7 @@ def _create_user_graph_service_client(
     :param context: The current turn context.
     :param handler_name: Optional auth handler name used to acquire the token.
     :return: A :class:`GraphServiceClient` that authenticates each request via
-        the agent's authorization.
+        the agent's connections.
     """
     adapter = GraphRequestAdapter(
         _SDKUserAuthenticationProvider(app.auth, context, handler_name)
@@ -161,7 +161,7 @@ def _common_get_app_graph_client(
     :param context: The current turn context.
     :param graph_base_url: The base URL for the Graph API.
     :return: A :class:`GraphServiceClient` that authenticates each request via
-        the agent's authorization.
+        the agent's connections.
     """
     if not context.identity:
         raise ValueError("TurnContext.identity is required to get a Graph client.")
