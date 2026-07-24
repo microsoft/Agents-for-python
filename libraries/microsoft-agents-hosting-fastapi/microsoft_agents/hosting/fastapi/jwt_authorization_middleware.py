@@ -1,13 +1,17 @@
+# Copyright (c) Microsoft Corporation. All rights reserved.
+# Licensed under the MIT License.
+
+import functools
+import inspect
+
 from fastapi import Request
 from fastapi.responses import JSONResponse
-import logging
-from starlette.types import ASGIApp, Receive, Scope, Send
-from microsoft_agents.hosting.core import (
-    AgentAuthConfiguration,
-    JwtTokenValidator,
-)
 
-logger = logging.getLogger(__name__)
+from starlette.types import ASGIApp, Receive, Scope, Send
+
+from microsoft_agents.hosting.core import AgentAuthConfiguration
+from microsoft_agents.hosting.core.authorization.jwt import _authorize_request
+from microsoft_agents.hosting.core.http import HttpResponse
 
 
 class JwtAuthorizationMiddleware:
@@ -30,45 +34,48 @@ class JwtAuthorizationMiddleware:
 
         app = scope.get("app")
         state = getattr(app, "state", None) if app else None
-        auth_config: AgentAuthConfiguration = getattr(
+        auth_config: AgentAuthConfiguration | None = getattr(
             state, "agent_configuration", None
         )
 
         request = Request(scope, receive=receive)
-        token_validator = JwtTokenValidator(auth_config)
+        res = await _authorize_request(
+            request.headers.get("Authorization"), auth_config
+        )
+
+        if isinstance(res, HttpResponse):
+            response = JSONResponse(content=res.body, status_code=res.status_code)
+            await response(scope, receive, send)
+            return
+
+        request.state.claims_identity = res
+        await self.app(scope, receive, send)
+
+
+def jwt_authorization_decorator(func):
+    """
+    :param func: The FastAPI route handler function to be decorated.
+    :return: The decorated FastAPI route handler function.
+    """
+
+    @functools.wraps(func)
+    async def wrapper(request: Request, *args, **kwargs):
+        if request is None:
+            return JSONResponse({"error": "Request object not found"}, status_code=500)
+
+        auth_config: AgentAuthConfiguration | None = getattr(
+            request.app.state, "agent_configuration", None
+        )
+
         auth_header = request.headers.get("Authorization")
 
-        if auth_header:
-            parts = auth_header.split(" ")
-            if len(parts) == 2 and parts[0].lower() == "bearer":
-                token = parts[1]
-                try:
-                    claims = await token_validator.validate_token(token)
-                    request.state.claims_identity = claims
-                except ValueError as e:
-                    logger.warning("JWT validation error: %s", e)
-                    response = JSONResponse(
-                        {"error": "Invalid token or authentication failed."},
-                        status_code=401,
-                    )
-                    await response(scope, receive, send)
-                    return
-            else:
-                response = JSONResponse(
-                    {"error": "Invalid authorization header format"},
-                    status_code=401,
-                )
-                await response(scope, receive, send)
-                return
-        else:
-            if auth_config.ANONYMOUS_ALLOWED:
-                request.state.claims_identity = token_validator.get_anonymous_claims()
-            else:
-                response = JSONResponse(
-                    {"error": "Authorization header not found"},
-                    status_code=401,
-                )
-                await response(scope, receive, send)
-                return
+        res = await _authorize_request(auth_header, auth_config)
+        if isinstance(res, HttpResponse):
+            return JSONResponse(content=res.body, status_code=res.status_code)
+        request.state.claims_identity = res
+        return await func(request, *args, **kwargs)
 
-        await self.app(scope, receive, send)
+    # FastAPI relies on inspect.signature for dependency injection and docs.
+    wrapper.__signature__ = inspect.signature(func)  # type: ignore[attr-defined]
+
+    return wrapper
