@@ -1,10 +1,10 @@
+from microsoft_agents.activity import Activity
 from microsoft_agents.hosting.core import (
     Connections,
     AccessTokenProviderBase,
     ClaimsIdentity,
     AgentAuthConfiguration,
 )
-from microsoft_agents.activity import Activity
 
 from .testing_token_provider import TestingTokenProvider
 
