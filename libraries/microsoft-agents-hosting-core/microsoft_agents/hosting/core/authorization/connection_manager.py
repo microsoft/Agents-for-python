@@ -6,7 +6,7 @@ import logging
 
 from collections.abc import Callable
 
-from microsoft_agents.activity import Activity, RoleTypes
+from microsoft_agents.activity import Activity
 
 from .agent_auth_configuration import AgentAuthConfiguration
 from .access_token_provider_base import AccessTokenProviderBase
@@ -205,17 +205,9 @@ class ConnectionManager(Connections):
         :return: The access token provider for the agent.
         """
         provider = self.get_token_provider(claims_identity, activity.service_url)
-        if provider is not None and (
-            activity.is_agentic_request() and provider.configuration.ALT_BLUEPRINT_ID
-        ):
+        if activity.is_agentic_request() and provider.configuration.ALT_BLUEPRINT_ID:
             provider = self.get_connection(provider.configuration.ALT_BLUEPRINT_ID)
-
-        if provider:
-            return provider
-
-        raise RuntimeError(
-            f"No token provider found for activity with service URL '{activity.service_url}' and claims identity '{claims_identity.get_app_id()}'."
-        )
+        return provider
 
     def get_default_connection_configuration(self) -> AgentAuthConfiguration:
         """
