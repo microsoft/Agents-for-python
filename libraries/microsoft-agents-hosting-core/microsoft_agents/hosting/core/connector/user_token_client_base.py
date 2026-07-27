@@ -78,7 +78,7 @@ class UserTokenClientBase(Protocol):
         )
 
     @abstractmethod
-    async def get_aad_token(
+    async def get_aad_tokens(
         self,
         user_id: str,
         connection_name: str,
@@ -86,7 +86,7 @@ class UserTokenClientBase(Protocol):
         channel_id: str,
     ) -> dict[str, TokenResponse]:
         raise NotImplementedError(
-            "get_aad_token method must be implemented by subclasses."
+            "get_aad_tokens method must be implemented by subclasses."
         )
 
     @abstractmethod

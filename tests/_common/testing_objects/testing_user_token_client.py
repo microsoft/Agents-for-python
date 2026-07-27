@@ -18,6 +18,7 @@ from microsoft_agents.activity import (
     ResourceResponse,
     RoleTypes,
     InvokeResponse,
+    TokenResponse,
 )
 from microsoft_agents.hosting.core.channel_adapter import ChannelAdapter
 from microsoft_agents.hosting.core.turn_context import TurnContext
@@ -85,3 +86,31 @@ class TestingUserTokenClient(UserTokenClient):
         exchangeable_item: str,
     ) -> str:
         return f"{connection_name}:{channel_id}:{user_id}:{exchangeable_item}"
+
+    async def get_aad_tokens(
+        self,
+        user_id: str,
+        connection_name: str,
+        resource_urls: list[str],
+        channel_id: str,
+    ) -> dict[str, TokenResponse]:
+        """
+        Get fake AAD tokens for resource URLs using the stored user token.
+
+        The testing adapter stores one token per user/connection/channel. For
+        AAD-token requests, mirror that token across each requested resource URL.
+        """
+        key = self._get_key(connection_name, channel_id, user_id)
+        entry = self._store.get(key)
+        if not entry:
+            return {}
+
+        token, _ = entry
+        return {
+            resource_url: TokenResponse(
+                connection_name=connection_name,
+                token=token,
+                channel_id=channel_id,
+            )
+            for resource_url in resource_urls
+        }
