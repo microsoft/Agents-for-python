@@ -6,7 +6,6 @@ from typing import Protocol, runtime_checkable
 
 from microsoft_agents.activity import (
     Activity,
-    ChannelId,
     SignInResource,
     TokenExchangeRequest,
     TokenOrSignInResourceResponse,

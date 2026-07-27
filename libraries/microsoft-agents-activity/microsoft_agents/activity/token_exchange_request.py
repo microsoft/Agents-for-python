@@ -8,10 +8,10 @@ from ._type_aliases import NonEmptyString
 class TokenExchangeRequest(AgentsModel):
     """TokenExchangeRequest.
 
-    Either the token to exhange or the uri to exchange.
+    Either the token to exchange or the uri to exchange.
 
-    :param id: The id for the exchange request.
-    :param token: the token to be exchanged.
+    :param uri: The URI for the exchange request.
+    :param token: The token to be exchanged.
     """
 
     uri: NonEmptyString | None = None

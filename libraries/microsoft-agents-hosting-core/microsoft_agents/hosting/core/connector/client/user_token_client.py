@@ -159,8 +159,10 @@ class UserTokenClient(UserTokenClientBase):
         :return: The sign-in resource.
         """
         if not self._app_id:
-            raise ValueError("App ID must be provided in the creation of UserTokenClient to get sign-in resource.")
-        
+            raise ValueError(
+                "App ID must be provided in the creation of UserTokenClient to get sign-in resource."
+            )
+
         state = UserTokenClient._create_token_exchange_state(
             self._app_id, connection_name, activity
         )
@@ -274,7 +276,9 @@ class UserTokenClient(UserTokenClientBase):
                 "Activity must have a channel_id to get token or sign-in resource."
             )
         if not self._app_id:
-            raise ValueError("App ID must be provided in the creation of UserTokenClient to get sign-in resource.")
+            raise ValueError(
+                "App ID must be provided in the creation of UserTokenClient to get sign-in resource."
+            )
 
         state = UserTokenClient._create_token_exchange_state(
             self._app_id, connection_name, activity
