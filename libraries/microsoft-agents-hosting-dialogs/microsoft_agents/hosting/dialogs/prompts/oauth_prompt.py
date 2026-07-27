@@ -18,7 +18,7 @@ from microsoft_agents.activity import (
     OAuthCard,
     TokenResponse,
     TokenExchangeInvokeRequest,
-    TokenExchangeInvokeResponse,
+    TokenExchangeRequest,
     InvokeResponse,
 )
 from microsoft_agents.hosting.core import (
@@ -429,11 +429,11 @@ class OAuthPrompt(Dialog):
 
         user_token_client = OAuthPrompt._get_user_token_client(context)
 
-        return await user_token_client.user_token.exchange_token(
+        return await user_token_client.exchange_token(
             user_id,
             self._settings.connection_name,
             channel_id,
-            {"token": input_token_response.token},
+            TokenExchangeRequest(token=input_token_response.token),
         )
 
     async def _continue_flow(

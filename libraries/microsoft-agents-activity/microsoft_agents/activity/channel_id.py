@@ -3,7 +3,7 @@
 
 from __future__ import annotations
 
-from typing import Optional, Any
+from typing import Optional, Any, overload
 
 from pydantic_core import CoreSchema, core_schema
 from pydantic import GetCoreSchemaHandler
@@ -117,6 +117,15 @@ class ChannelId(str):
         sub = value.split(":", 1)[1].strip() if ":" in value else None
         return sub or None
 
+    @overload
+    @staticmethod
+    def get_channel(channel_id: ChannelId) -> str: ...
+    @overload
+    @staticmethod
+    def get_channel(channel_id: str) -> str: ...
+    @overload
+    @staticmethod
+    def get_channel(channel_id: None) -> None: ...
     @staticmethod
     def get_channel(channel_id: str | ChannelId | None) -> str | None:
         """Return the Bot Framework channel without an optional sub-channel."""

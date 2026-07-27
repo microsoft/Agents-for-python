@@ -70,6 +70,7 @@ from .thumbnail_card import ThumbnailCard
 from .thumbnail_url import ThumbnailUrl
 from .token_exchange_invoke_request import TokenExchangeInvokeRequest
 from .token_exchange_invoke_response import TokenExchangeInvokeResponse
+from .token_exchange_request import TokenExchangeRequest
 from .token_exchange_state import TokenExchangeState
 from .token_or_sign_in_resource_response import TokenOrSignInResourceResponse
 from .token_request import TokenRequest
@@ -170,6 +171,7 @@ __all__ = [
     "ThumbnailUrl",
     "TokenExchangeInvokeRequest",
     "TokenExchangeInvokeResponse",
+    "TokenExchangeRequest",
     "TokenExchangeState",
     "TokenRequest",
     "TokenResponse",
