@@ -55,8 +55,9 @@ class _RecordingConnectionManager:
         self.calls = []
 
     def get_token_provider(self, identity, service_url):
-        self.calls.append(("get_token_provider", identity, service_url))
-        return self.turn_provider
+        raise AssertionError(
+            "Graph clients should resolve context providers from the full activity"
+        )
 
     def get_connection(self, connection_name):
         self.calls.append(("get_connection", connection_name))
@@ -65,6 +66,10 @@ class _RecordingConnectionManager:
     def get_default_connection(self):
         self.calls.append(("get_default_connection",))
         return self.default_provider
+
+    def get_token_provider_from_activity(self, identity, activity):
+        self.calls.append(("get_token_provider_from_activity", identity, activity))
+        return self.turn_provider
 
 
 @pytest.mark.asyncio
@@ -119,7 +124,7 @@ async def test_app_graph_client_uses_default_scope_for_custom_graph_cloud():
     assert "authorization" in native_request.headers
 
 
-def test_context_app_graph_client_resolves_connection_from_turn_identity_and_service_url():
+def test_context_app_graph_client_resolves_connection_from_turn_identity_and_activity():
     connection_manager = _RecordingConnectionManager()
     app = SimpleNamespace(connection_manager=connection_manager)
     identity = SimpleNamespace()
@@ -133,9 +138,9 @@ def test_context_app_graph_client_resolves_connection_from_turn_identity_and_ser
     assert graph.request_adapter.base_url == "https://graph.microsoft.com/v1.0/"
     assert connection_manager.calls == [
         (
-            "get_token_provider",
+            "get_token_provider_from_activity",
             identity,
-            "https://smba.trafficmanager.net/teams/",
+            context.activity,
         )
     ]
 
