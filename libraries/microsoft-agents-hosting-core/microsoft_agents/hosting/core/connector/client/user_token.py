@@ -213,7 +213,11 @@ class UserToken(UserTokenBase):
                 "channelId": channel_id,
             }
 
-            logger.info("Exchanging token with params: %s and body: %s", params, body)
+            logger.info(
+                "Exchanging token with params: %s (body keys: %s)",
+                params,
+                list(body.keys()) if isinstance(body, dict) else None,
+            )
             async with self.client.post(
                 "api/usertoken/exchange", params=params, json=body
             ) as response:
