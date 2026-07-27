@@ -4,6 +4,8 @@
 from abc import abstractmethod
 from typing import Protocol, Callable, Awaitable, Optional
 
+from typing_extensions import Self
+
 from .turn_context_protocol import TurnContextProtocol
 from microsoft_agents.activity import (
     Activity,
@@ -35,7 +37,7 @@ class ChannelAdapterProtocol(Protocol):
         pass
 
     @abstractmethod
-    def use(self, middleware: object) -> "ChannelAdapterProtocol":
+    def use(self, middleware: object) -> Self:
         pass
 
     @abstractmethod

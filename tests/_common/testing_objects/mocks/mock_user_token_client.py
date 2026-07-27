@@ -65,9 +65,7 @@ def mock_UserTokenClient(
             state,
         )
 
-    mock_user_token_client.get_user_token = mocker.AsyncMock(
-        side_effect=get_user_token
-    )
+    mock_user_token_client.get_user_token = mocker.AsyncMock(side_effect=get_user_token)
     mock_user_token_client.sign_out_user = mocker.AsyncMock(side_effect=sign_out_user)
     mock_user_token_client.exchange_token = mocker.AsyncMock(side_effect=exchange_token)
     mock_user_token_client.get_token_or_sign_in_resource = mocker.AsyncMock(

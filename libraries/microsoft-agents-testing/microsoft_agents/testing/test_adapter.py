@@ -14,8 +14,6 @@ import asyncio
 
 from typing import Awaitable, Any
 
-from uuid import uuid4
-
 from datetime import datetime, timezone
 
 from microsoft_agents.activity import (
@@ -64,7 +62,9 @@ class TestAdapter(ChannelAdapter):
     beyond assigning IDs/timestamps and queueing replies.
     """
 
-    claims_identity: ClaimsIdentity | None
+    __test__ = False
+
+    claims_identity: ClaimsIdentity
     _activity_queue: list[Activity]
     _queued_requests: list[asyncio.Future[Activity]]
 
@@ -85,6 +85,8 @@ class TestAdapter(ChannelAdapter):
             omitted, the adapter uses :class:`MockUserTokenClient`.
         """
 
+        super().__init__()
+
         channel_id = channel_id or Channels.test
 
         self._id_counter = 0
@@ -101,6 +103,7 @@ class TestAdapter(ChannelAdapter):
 
         self._activity_queue = []
         self._queued_requests = []
+        self.claims_identity = ClaimsIdentity({}, True)
 
     @property
     def conversation(self) -> ConversationReference:
@@ -365,16 +368,19 @@ class TestAdapter(ChannelAdapter):
     async def get_next_reply_async(self) -> Activity | None:
         """Return the next captured activity from the queue.
 
-        This asynchronous form mirrors the adapter interface used by test
-        helpers. In the current Python implementation it returns immediately
-        with the next queued reply, or ``None`` when no reply is available.
+        This mirrors the .NET TestAdapter pattern: if no waiter is already
+        queued, an available reply is dequeued and returned immediately.
+        Otherwise a future is queued and completed by the next captured reply.
+        Timeout and cancellation are owned by callers such as ``TestFlow``.
         """
         if not self._queued_requests:
-            return self.get_next_reply()
+            result = self.get_next_reply()
+            if result is not None:
+                return result
 
-        future = asyncio.Future()
+        loop = asyncio.get_running_loop()
+        future: asyncio.Future[Activity] = loop.create_future()
         self._queued_requests.append(future)
-
         return await future
 
     def create_activity(
@@ -407,11 +413,6 @@ class TestAdapter(ChannelAdapter):
         processes it through the normal test pipeline. A claims identity must be
         configured on :attr:`claims_identity` before calling this method.
         """
-        if not self.claims_identity:
-            raise ValueError(
-                "ClaimsIdentity is not set. Please set it before sending activities."
-            )
-
         return await self.process_activity(
             self.claims_identity,
             self.create_activity(user_says),

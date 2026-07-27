@@ -16,7 +16,7 @@ from microsoft_agents.activity import (
 )
 from microsoft_agents.hosting.core import UserTokenClientBase
 
-from .types import (
+from ._types import (
     UserTokenKey,
     ExchangeableTokenKey,
     TokenMagicCode,
