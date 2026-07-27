@@ -43,7 +43,13 @@ class UserToken(UserTokenBase):
             if code:
                 params["code"] = code
 
-            logger.info("User_token.get_token(): Getting token with params: %s", params)
+            safe_params = dict(params)
+            if "code" in safe_params:
+                safe_params["code"] = "<redacted>"
+
+            logger.info(
+                "UserToken.get_token(): Getting token with params: %s", safe_params
+            )
             async with self.client.get(
                 "api/usertoken/GetToken", params=params
             ) as response:
