@@ -277,7 +277,7 @@ class UserTokenClient(UserTokenClientBase):
             )
         if not self._app_id:
             raise ValueError(
-                "App ID must be provided in the creation of UserTokenClient to get sign-in resource."
+                "App ID must be provided in the creation of UserTokenClient to get the token or sign-in resource."
             )
 
         state = UserTokenClient._create_token_exchange_state(

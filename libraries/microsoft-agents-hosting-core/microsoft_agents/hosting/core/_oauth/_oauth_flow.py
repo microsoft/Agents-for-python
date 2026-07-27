@@ -245,7 +245,7 @@ class _OAuthFlow:
             return token_response, _FlowErrorTag.NONE
         except Exception as e:
             # A 400 with 'ConsentRequired' means the user hasn't consented yet.
-            # Return None so the caller can send a 412 back to Teams, which will
+            # Return TokenResponse() so the caller can send a 412 back to Teams, which will
             # prompt the user for consent and retry the token exchange.
             # Any other error is a critical failure and should propagate.
             if getattr(e, "status", None) == 400 and "Consent Required" in getattr(

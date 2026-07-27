@@ -70,7 +70,7 @@ class UserTokenClientBase(Protocol):
         self,
         user_id: str,
         channel_id: str,
-        include_filter: str | None = None,
+        include: str | None = None,
     ) -> list[TokenStatus]:
         raise NotImplementedError(
             "get_token_status method must be implemented by subclasses."
