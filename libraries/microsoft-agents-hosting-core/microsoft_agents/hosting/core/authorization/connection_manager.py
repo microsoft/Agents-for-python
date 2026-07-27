@@ -6,6 +6,8 @@ import logging
 
 from collections.abc import Callable
 
+from microsoft_agents.activity import Activity, RoleTypes
+
 from .agent_auth_configuration import AgentAuthConfiguration
 from .access_token_provider_base import AccessTokenProviderBase
 from .claims_identity import ClaimsIdentity
@@ -188,6 +190,31 @@ class ConnectionManager(Connections):
 
         raise ValueError(
             f"No connection found for audience '{aud}' and serviceUrl '{service_url}'."
+        )
+
+    def get_token_provider_from_activity(
+        self,
+        claims_identity: ClaimsIdentity,
+        activity: Activity,
+    ) -> AccessTokenProviderBase:
+        """
+        Get the OAuth token provider for the agent from an activity.
+
+        :param claims_identity: The claims identity of the agent.
+        :param activity: The activity from which to get the token provider.
+        :return: The access token provider for the agent.
+        """
+        provider = self.get_token_provider(claims_identity, activity.service_url)
+        if provider is not None and (
+            activity.is_agentic_request() and provider.configuration.ALT_BLUEPRINT_ID
+        ):
+            provider = self.get_connection(provider.configuration.ALT_BLUEPRINT_ID)
+
+        if provider:
+            return provider
+
+        raise RuntimeError(
+            f"No token provider found for activity with service URL '{activity.service_url}' and claims identity '{claims_identity.get_app_id()}'."
         )
 
     def get_default_connection_configuration(self) -> AgentAuthConfiguration:

@@ -4,6 +4,7 @@ from microsoft_agents.hosting.core import (
     ClaimsIdentity,
     AgentAuthConfiguration,
 )
+from microsoft_agents.activity import Activity
 
 from .testing_token_provider import TestingTokenProvider
 
@@ -56,6 +57,17 @@ class TestingConnectionManager(Connections):
             AccessTokenProviderBase: The default TestingTokenProvider
         """
         return self.get_default_connection()
+
+    def get_token_provider_from_activity(
+        self, claims_identity: ClaimsIdentity, activity: Activity
+    ) -> AccessTokenProviderBase:
+        """
+        Get a token provider based on claims identity and activity.
+
+        In this test implementation, returns the default connection regardless
+        of the provided parameters.
+        """
+        return self.get_token_provider(claims_identity, activity.service_url)
 
     def get_default_connection_configuration(self) -> AgentAuthConfiguration:
         """

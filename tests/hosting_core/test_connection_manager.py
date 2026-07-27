@@ -3,6 +3,7 @@
 
 import pytest
 
+from microsoft_agents.activity import Activity, ChannelAccount, RoleTypes
 from microsoft_agents.hosting.core import (
     AgentAuthConfiguration,
     AccessTokenProviderBase,
@@ -48,10 +49,36 @@ ENV_CONFIG = {
     ],
 }
 
+ALT_BLUEPRINT_CONFIG = {
+    "CONNECTIONS": {
+        "SERVICE_CONNECTION": {
+            "SETTINGS": {
+                "CLIENTID": "client-service",
+                "ALTERNATEBLUEPRINTCONNECTIONNAME": "ALT_BLUEPRINT",
+            }
+        },
+        "ALT_BLUEPRINT": {"SETTINGS": {"CLIENTID": "client-alt-blueprint"}},
+    }
+}
+
 
 class TestGenericConnectionManager:
     def _make(self, **kwargs):
         return ConnectionManager(provider_factory=FakeProvider, **kwargs)
+
+    def _activity(
+        self,
+        service_url: str = "https://service.url/",
+        recipient_role: RoleTypes | None = RoleTypes.agent,
+    ) -> Activity:
+        activity = {
+            "type": "message",
+            "channel_id": "msteams",
+            "service_url": service_url,
+        }
+        if recipient_role is not None:
+            activity["recipient"] = ChannelAccount(id="bot1", role=recipient_role)
+        return Activity(**activity)
 
     def test_uses_provider_factory(self):
         cm = self._make(**ENV_CONFIG)
@@ -123,6 +150,64 @@ class TestGenericConnectionManager:
             cm.get_token_provider(claims, "https://example.com")
             is cm.get_default_connection()
         )
+
+    def test_token_provider_from_activity_uses_activity_service_url(self):
+        cm = self._make(**ENV_CONFIG)
+        claims = ClaimsIdentity(claims={}, is_authenticated=False)
+        activity = self._activity(service_url="https://host/agentic/path")
+
+        assert cm.get_token_provider_from_activity(
+            claims, activity
+        ) is cm.get_connection("AGENTIC")
+
+    def test_token_provider_from_activity_regular_role_ignores_alternate_blueprint(
+        self,
+    ):
+        cm = self._make(**ALT_BLUEPRINT_CONFIG)
+        claims = ClaimsIdentity(claims={}, is_authenticated=False)
+        activity = self._activity(recipient_role=RoleTypes.agent)
+
+        assert cm.get_token_provider_from_activity(
+            claims, activity
+        ) is cm.get_connection("SERVICE_CONNECTION")
+
+    @pytest.mark.parametrize(
+        "recipient_role",
+        [RoleTypes.agentic_identity, RoleTypes.agentic_user],
+    )
+    def test_token_provider_from_activity_agentic_role_uses_alternate_blueprint(
+        self, recipient_role
+    ):
+        cm = self._make(**ALT_BLUEPRINT_CONFIG)
+        claims = ClaimsIdentity(claims={}, is_authenticated=False)
+        activity = self._activity(recipient_role=recipient_role)
+
+        assert cm.get_token_provider_from_activity(
+            claims, activity
+        ) is cm.get_connection("ALT_BLUEPRINT")
+
+    def test_token_provider_from_activity_agentic_without_alternate_uses_mapped_provider(
+        self,
+    ):
+        cm = self._make(**ENV_CONFIG)
+        claims = ClaimsIdentity(claims={}, is_authenticated=False)
+        activity = self._activity(
+            service_url="https://host/agentic/path",
+            recipient_role=RoleTypes.agentic_identity,
+        )
+
+        assert cm.get_token_provider_from_activity(
+            claims, activity
+        ) is cm.get_connection("AGENTIC")
+
+    def test_token_provider_from_activity_without_recipient_is_not_agentic(self):
+        cm = self._make(**ALT_BLUEPRINT_CONFIG)
+        claims = ClaimsIdentity(claims={}, is_authenticated=False)
+        activity = self._activity(recipient_role=None)
+
+        assert cm.get_token_provider_from_activity(
+            claims, activity
+        ) is cm.get_connection("SERVICE_CONNECTION")
 
     @pytest.mark.parametrize(
         "claims, service_url",

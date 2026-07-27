@@ -165,8 +165,8 @@ def _common_get_app_graph_client(
     """
     if not context.identity:
         raise ValueError("TurnContext.identity is required to get a Graph client.")
-    token_provider = app.connection_manager.get_token_provider(
-        context.identity, context.activity.service_url
+    token_provider = app.connection_manager.get_token_provider_from_activity(
+        context.identity, context.activity
     )
     return _create_app_graph_service_client(token_provider, graph_base_url)
 
