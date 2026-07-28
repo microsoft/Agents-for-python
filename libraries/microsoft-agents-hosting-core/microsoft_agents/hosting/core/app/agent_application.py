@@ -4,10 +4,13 @@ Licensed under the MIT License.
 """
 
 from __future__ import annotations
+
+import asyncio
 import logging
 from contextlib import nullcontext
 from copy import copy
 from functools import partial
+from typing_extensions import deprecated
 
 import re
 from typing import (
@@ -15,7 +18,6 @@ from typing import (
     Awaitable,
     Callable,
     Generic,
-    Optional,
     TypeVar,
     cast,
     overload,
@@ -39,13 +41,17 @@ from .app_options import ApplicationOptions
 
 from .state import TurnState
 from ..channel_service_adapter import ChannelServiceAdapter
-from .oauth import Authorization
+from .oauth.authorization import Authorization, _AuthInterceptResult
 from .typing_indicator import TypingIndicator
 from .telemetry import spans
 
-from ._type_defs import RouteHandler, RouteSelector
+from ._type_defs import (
+    RouteHandler,
+    HandoffHandler,
+    RouteSelector,
+)
 from ._routes import _RouteList, _Route, RouteRank, _agentic_selector
-from .proactive import Proactive, ProactiveOptions
+from .proactive import Proactive
 
 logger = logging.getLogger(__name__)
 
@@ -68,22 +74,22 @@ class AgentApplication(Agent, Generic[StateT]):
     typing: TypingIndicator
 
     _options: ApplicationOptions
-    _adapter: Optional[ChannelServiceAdapter] = None
-    _auth: Optional[Authorization] = None
-    _proactive: Optional[Proactive] = None
+    _adapter: ChannelServiceAdapter | None = None
+    _auth: Authorization
+    _proactive: Proactive | None = None
     _internal_before_turn: list[Callable[[TurnContext, StateT], Awaitable[bool]]]
     _internal_after_turn: list[Callable[[TurnContext, StateT], Awaitable[bool]]]
     _route_list: _RouteList[StateT]
-    _error: Optional[Callable[[TurnContext, Exception], Awaitable[None]]] = None
-    _turn_state_factory: Optional[Callable[[TurnContext], StateT]] = None
+    _error: Callable[[TurnContext, Exception], Awaitable[None]] | None = None
+    _turn_state_factory: Callable[[], StateT] | None = None
     _connection_manager: Connections
 
     def __init__(
         self,
-        options: Optional[ApplicationOptions] = None,
+        options: ApplicationOptions | None = None,
         *,
-        connection_manager: Optional[Connections] = None,
-        authorization: Optional[Authorization] = None,
+        connection_manager: Connections | None = None,
+        authorization: Authorization | None = None,
         **kwargs,
     ) -> None:
         """
@@ -103,11 +109,6 @@ class AgentApplication(Agent, Generic[StateT]):
         self._internal_after_turn = []
 
         configuration = kwargs
-
-        logger.debug(f"Initializing AgentApplication with options: {options}")
-        logger.debug(
-            f"Initializing AgentApplication with configuration: {configuration}"
-        )
 
         if not options:
             # TODO: consolidate configuration story
@@ -130,6 +131,7 @@ class AgentApplication(Agent, Generic[StateT]):
             raise ApplicationError("""
                 The `ApplicationOptions.storage` property is required and was not configured.
                 """)
+        self._storage = self._options.storage
 
         if options.long_running_messages and (
             not options.adapter or not options.bot_app_id
@@ -149,13 +151,13 @@ class AgentApplication(Agent, Generic[StateT]):
         self._turn_state_factory = (
             options.turn_state_factory
             or kwargs.get("turn_state_factory", None)
-            or partial(TurnState.with_storage, self._options.storage)
+            or partial(TurnState.with_storage, self._storage)
         )
 
         if options.proactive:
             proactive_opts = copy(options.proactive)
             if not proactive_opts.storage:
-                proactive_opts.storage = self._options.storage
+                proactive_opts.storage = self._storage
             self._proactive = Proactive(self, proactive_opts)
 
         # TODO: decide how to initialize the Authorization (params vs options vs kwargs)
@@ -185,7 +187,7 @@ class AgentApplication(Agent, Generic[StateT]):
                 if key not in ["storage", "connection_manager", "handlers"]
             }
             self._auth = Authorization(
-                storage=self._options.storage,
+                storage=self._storage,
                 connection_manager=connection_manager,
                 auth_handlers=options.authorization_handlers,
                 **auth_options,
@@ -614,11 +616,11 @@ class AgentApplication(Agent, Generic[StateT]):
     @overload
     def handoff(
         self,
-        func: Callable[[TurnContext, StateT, str], Awaitable[None]],
+        func: HandoffHandler[StateT],
         *,
         auth_handlers: Optional[list[str]] = None,
         **kwargs,
-    ) -> Callable[[TurnContext, StateT, str], Awaitable[None]]: ...
+    ) -> HandoffHandler[StateT]: ...
 
     @overload
     def handoff(
@@ -627,21 +629,21 @@ class AgentApplication(Agent, Generic[StateT]):
         auth_handlers: Optional[list[str]] = None,
         **kwargs: Any,
     ) -> Callable[
-        [Callable[[TurnContext, StateT, str], Awaitable[None]]],
-        Callable[[TurnContext, StateT, str], Awaitable[None]],
+        [HandoffHandler[StateT]],
+        HandoffHandler[StateT],
     ]: ...
 
     def handoff(
         self,
-        func: Optional[Callable[[TurnContext, StateT, str], Awaitable[None]]] = None,
+        func: Optional[HandoffHandler[StateT]] = None,
         *,
         auth_handlers: Optional[list[str]] = None,
         **kwargs,
     ) -> (
-        Callable[[TurnContext, StateT, str], Awaitable[None]]
+        HandoffHandler[StateT]
         | Callable[
-            [Callable[[TurnContext, StateT, str], Awaitable[None]]],
-            Callable[[TurnContext, StateT, str], Awaitable[None]],
+            [HandoffHandler[StateT]],
+            HandoffHandler[StateT],
         ]
     ):
         """
@@ -655,7 +657,7 @@ class AgentApplication(Agent, Generic[StateT]):
                     print(continuation)
 
         :param func: Optional handler to register directly without using decorator syntax.
-        :type func: Optional[Callable[[TurnContext, StateT, str], Awaitable[None]]]
+        :type func: Optional[HandoffHandler[StateT]]
         :param auth_handlers: Optional list of authorization handler IDs for the route.
         :type auth_handlers: Optional[list[str]]
         :param kwargs: Additional route configuration passed to :meth:`microsoft_agents.hosting.core.AgentApplication.add_route`.
@@ -668,8 +670,8 @@ class AgentApplication(Agent, Generic[StateT]):
             )
 
         def __call(
-            func: Callable[[TurnContext, StateT, str], Awaitable[None]],
-        ) -> Callable[[TurnContext, StateT, str], Awaitable[None]]:
+            func: HandoffHandler[StateT],
+        ) -> HandoffHandler[StateT]:
             async def __handler(context: TurnContext, state: StateT):
                 if (
                     isinstance(context.activity.value, dict)
@@ -792,7 +794,7 @@ class AgentApplication(Agent, Generic[StateT]):
 
         return func
 
-    def turn_state_factory(self, func: Callable[[TurnContext], Awaitable[StateT]]):
+    def set_turn_state_factory(self, func: Callable[[], StateT]):
         """
         Custom Turn State Factory
         """
@@ -832,23 +834,16 @@ class AgentApplication(Agent, Generic[StateT]):
                         ActivityTypes.invoke,
                     ]:
 
-                        (
-                            auth_intercepts,
-                            continuation_activity,
-                        ) = await self._auth._on_turn_auth_intercept(
-                            context, turn_state
+                        auth_intercept_result = (
+                            await self._auth._on_turn_auth_intercept(
+                                context, turn_state
+                            )
                         )
-                        if auth_intercepts:
-                            if continuation_activity:
-                                new_context = copy(context)
-                                new_context.activity = continuation_activity
-                                logger.info(
-                                    "Resending continuation activity %s",
-                                    continuation_activity.text,
-                                )
-                                await self.on_turn(new_context)
-                                await turn_state.save(context)
-                            return
+                        if auth_intercept_result.should_skip_turn:
+                            await self._handle_turn_skip(
+                                context, turn_state, auth_intercept_result
+                            )
+                            return  # allows immediate sending of invoke response
 
                     logger.debug("Running before turn middleware")
                     if not await self._run_before_turn_middleware(context, turn_state):
@@ -879,6 +874,9 @@ class AgentApplication(Agent, Generic[StateT]):
             context.activity.text = context.remove_recipient_mention(context.activity)
 
     @staticmethod
+    @deprecated(
+        "Use `load_configuration_from_env` from `microsoft_agents.activity` instead."
+    )
     def parse_env_vars_configuration(vars: dict[str, Any]) -> dict:
         """
         Parses environment variables and returns a dictionary with the relevant configuration.
@@ -914,13 +912,12 @@ class AgentApplication(Agent, Generic[StateT]):
             turn_state = self._turn_state_factory()
         else:
             logger.debug("Using default turn state factory")
-            turn_state = TurnState.with_storage(self._options.storage)
-            await turn_state.load(context, self._options.storage)
+            turn_state = TurnState.with_storage(self._storage)
 
         turn_state = cast(StateT, turn_state)
 
         logger.debug("Loading turn state from storage")
-        await turn_state.load(context, self._options.storage)
+        await turn_state.load(context, self._storage)
         turn_state.temp.input = context.activity.text
         return turn_state
 
@@ -1025,6 +1022,61 @@ class AgentApplication(Agent, Generic[StateT]):
             )
 
         return await func(context)
+
+    async def _handle_turn_skip(
+        self, context: TurnContext, turn_state: StateT, result: _AuthInterceptResult
+    ):
+        """Handle the case where the turn should be skipped due to an auth intercept result."""
+
+        async def __replay_turn(replay_context: TurnContext):
+
+            for key, val in context.turn_state.items():
+                if replay_context.turn_state.get(key, None) is None:
+                    replay_context.turn_state[key] = val
+
+            await self._on_turn(replay_context)
+
+        async def __replay(act: Activity):
+
+            await self._adapter.continue_conversation_with_claims(
+                context.identity,
+                act,
+                __replay_turn,
+            )
+
+        def __log_task_result(task: asyncio.Task):
+            try:
+                task.result()
+            except Exception as e:
+                logger.error(
+                    f"Error occurred while replaying the turn.",
+                    exc_info=True,
+                )
+
+        if result.should_replay:
+
+            if not context.identity:
+                logger.error(
+                    "Cannot replay turn because context.identity is not set. Ensure that the adapter is configured to set the identity."
+                )
+                raise ApplicationError(
+                    "Cannot replay turn because context.identity is not set. Ensure that the adapter is configured to set the identity."
+                )
+
+            await turn_state.save(context)
+
+            task: asyncio.Task
+
+            activity = result.continuation_activity or context.activity.model_copy(
+                deep=True
+            )
+            logger.info(
+                "Replaying the turn with current or saved continuation activity"
+            )
+            task = asyncio.create_task(__replay(activity))
+            task.add_done_callback(__log_task_result)
+
+        return
 
     async def _on_error(self, context: TurnContext, err: ApplicationError) -> None:
         if self._error:

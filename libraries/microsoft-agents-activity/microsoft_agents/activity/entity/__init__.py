@@ -1,6 +1,7 @@
 # Copyright (c) Microsoft Corporation. All rights reserved.
 # Licensed under the MIT License.
 
+from .activity_treatment import ActivityTreatment, ActivityTreatmentTypes
 from .mention import Mention
 from .entity import Entity
 from .entity_types import EntityTypes
@@ -35,4 +36,6 @@ __all__ = [
     "Place",
     "ProductInfo",
     "Thing",
+    "ActivityTreatment",
+    "ActivityTreatmentTypes",
 ]

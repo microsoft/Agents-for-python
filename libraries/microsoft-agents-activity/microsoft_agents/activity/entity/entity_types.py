@@ -7,6 +7,7 @@ from enum import Enum
 class EntityTypes(str, Enum):
     """Well-known enumeration of entity types."""
 
+    ACTIVITY_TREATMENT = "activityTreatment"
     GEO_COORDINATES = "GeoCoordinates"
     MENTION = "mention"
     PLACE = "Place"

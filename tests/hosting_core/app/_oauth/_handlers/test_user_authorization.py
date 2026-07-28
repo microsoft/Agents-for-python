@@ -5,7 +5,7 @@ from microsoft_agents.activity import ActivityTypes, TokenResponse
 
 from microsoft_agents.authentication.msal import MsalAuth, MsalConnectionManager
 
-from microsoft_agents.hosting.core import MemoryStorage
+from microsoft_agents.hosting.core import MemoryStorage, UserTokenClientBase
 from microsoft_agents.hosting.core.app.oauth import _UserAuthorization, _SignInResponse
 from microsoft_agents.hosting.core._oauth import (
     _FlowStorageClient,
@@ -63,14 +63,14 @@ def create_testing_TurnContext(
     turn_context.activity.channel_id = channel_id
     turn_context.activity.from_property.id = user_id
     turn_context.activity.type = ActivityTypes.message
-    turn_context.adapter.USER_TOKEN_CLIENT_KEY = "__user_token_client"
-    turn_context.adapter.AGENT_IDENTITY_KEY = "__agent_identity_key"
     agent_identity = mocker.Mock()
     agent_identity.claims = {"aud": DEFAULTS.ms_app_id}
-    turn_context.turn_state = {
-        "__user_token_client": user_token_client,
-        "__agent_identity_key": agent_identity,
-    }
+    turn_context.identity = agent_identity
+    turn_context.services = mocker.Mock()
+    turn_context.services.get.side_effect = lambda key: (
+        user_token_client if key is UserTokenClientBase else None
+    )
+    turn_context.turn_state = {}
     return turn_context
 
 

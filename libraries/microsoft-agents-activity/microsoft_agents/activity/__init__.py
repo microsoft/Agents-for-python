@@ -20,7 +20,6 @@ from .card_action import CardAction
 from .card_image import CardImage
 from .channels import Channels
 from .channel_account import ChannelAccount
-from ._channel_id_field_mixin import _ChannelIdFieldMixin
 from .channel_id import ChannelId
 from .conversation_account import ConversationAccount
 from .conversation_members import ConversationMembers
@@ -45,6 +44,8 @@ from .entity import (
     ProductInfo,
     Thing,
     StreamInfo,
+    ActivityTreatment,
+    ActivityTreatmentTypes,
 )
 from .error import Error
 from .error_response import ErrorResponse
@@ -69,6 +70,7 @@ from .thumbnail_card import ThumbnailCard
 from .thumbnail_url import ThumbnailUrl
 from .token_exchange_invoke_request import TokenExchangeInvokeRequest
 from .token_exchange_invoke_response import TokenExchangeInvokeResponse
+from .token_exchange_request import TokenExchangeRequest
 from .token_exchange_state import TokenExchangeState
 from .token_or_sign_in_resource_response import TokenOrSignInResourceResponse
 from .token_request import TokenRequest
@@ -124,7 +126,6 @@ __all__ = [
     "Channels",
     "ChannelAccount",
     "ChannelId",
-    "_ChannelIdFieldMixin",
     "ConversationAccount",
     "ConversationMembers",
     "ConversationParameters",
@@ -170,6 +171,7 @@ __all__ = [
     "ThumbnailUrl",
     "TokenExchangeInvokeRequest",
     "TokenExchangeInvokeResponse",
+    "TokenExchangeRequest",
     "TokenExchangeState",
     "TokenRequest",
     "TokenResponse",
@@ -199,5 +201,7 @@ __all__ = [
     "load_configuration_from_env",
     "ChannelAdapterProtocol",
     "TurnContextProtocol",
+    "ActivityTreatment",
+    "ActivityTreatmentTypes",
     "TokenOrSignInResourceResponse",
 ]

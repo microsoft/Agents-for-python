@@ -213,7 +213,7 @@ class TestMemoryScopes:
         # Create test context
         adapter = DialogTestAdapter()
         context = TurnContext(adapter, _begin_message)
-        context.turn_state["ConversationState"] = conversation_state
+        await conversation_state.load(context)
 
         dialog_context = await dialogs.create_context(context)
 
@@ -285,7 +285,7 @@ class TestMemoryScopes:
 
         # Create a DialogState property, DialogSet and register the dialogs.
         conversation_state = ConversationState(storage)
-        context.turn_state["ConversationState"] = conversation_state
+        await conversation_state.load(context)
         dialog_state = conversation_state.create_property("dialogs")
         dialogs = DialogSet(dialog_state)
         dialog = _TestDialog("test", "test message")

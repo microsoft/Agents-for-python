@@ -138,26 +138,18 @@ class DialogExtensions:
         """
         Determines if this turn is an incoming request from a parent bot to this skill.
         """
-        claims_identity = turn_context.turn_state.get(
-            ChannelAdapter.AGENT_IDENTITY_KEY, None
-        )
-        return (
-            isinstance(claims_identity, ClaimsIdentity)
-            and claims_identity.is_agent_claim()
-        )
+        claims_identity = turn_context.identity
+        return claims_identity is not None and claims_identity.is_agent_claim()
 
     @staticmethod
     async def _send_state_snapshot_trace(dialog_context: DialogContext):
         """
         Helper to send a trace activity with a memory snapshot of the active dialog DC.
         """
-        claims_identity = dialog_context.context.turn_state.get(
-            ChannelAdapter.AGENT_IDENTITY_KEY, None
-        )
+        claims_identity = dialog_context.context.identity
         trace_label = (
             "Skill State"
-            if isinstance(claims_identity, ClaimsIdentity)
-            and claims_identity.is_agent_claim()
+            if claims_identity is not None and claims_identity.is_agent_claim()
             else "Bot State"
         )
         # send trace of memory
@@ -178,13 +170,8 @@ class DialogExtensions:
         """
         Determines whether to send an EndOfConversation to the parent bot.
         """
-        claims_identity = turn_context.turn_state.get(
-            ChannelAdapter.AGENT_IDENTITY_KEY, None
-        )
-        if (
-            isinstance(claims_identity, ClaimsIdentity)
-            and claims_identity.is_agent_claim()
-        ):
+        claims_identity = turn_context.identity
+        if claims_identity is not None and claims_identity.is_agent_claim():
             return True
 
         return False

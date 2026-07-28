@@ -1,3 +1,40 @@
+# Microsoft 365 Agents SDK for Python - Release Notes v1.2.0
+
+**Release Date:** 2026-07-17
+**Previous Version:** 1.1.0 (Released 2026-06-19)
+
+This release adds first-class Microsoft Teams hosting APIs and a credential-free Entra ID authentication provider, while improving turn processing, OAuth token handling, streaming responses, and async runtime behavior.
+
+## Major Features & Enhancements
+
+- **Teams Hosting Package**: Added the new `microsoft-agents-hosting-msteams` package for building Teams agents with typed, decorator-based routing. It introduces `TeamsAgentExtension`, `TeamsTurnContext`, route namespaces for Teams invoke and event activities, and Teams API client access from handlers (#434)
+- **Entra Auth Sidecar Package**: Added the new `microsoft-agents-authentication-entra-auth-sidecar` package for credential-free Entra ID Agent ID authentication through the Microsoft Entra ID Agent Container sidecar. It includes `SidecarAuth`, `SidecarHttpClient`, `SidecarConnectionSettings`, in-memory token caching, transient retry handling, and SSRF-safe sidecar URL validation (#424)
+- **AgentApplication Lifecycle Hooks**: Added `before_turn` and `after_turn` hooks for app-level logic around route execution without requiring full middleware. Hooks can short-circuit processing, participate in state saving, and support scenarios such as app-level guards, telemetry enrichment, and turn cleanup (#431)
+- **AgentApplication Routing and Connections**: Improved route registration and exposed `AgentApplication.connection_manager` for code that needs access to configured connections (#429, #432)
+- **Detached SSO Token Exchange**: Teams SSO token exchange invoke activities are now handled independently from regular route dispatch, reducing duplicate route logic and making SSO callbacks more reliable (#469)
+
+## New Models & APIs
+
+- **StreamingResponse Attachments and Reset**: Added `StreamingResponse.add_attachment()` for final-message attachments and `StreamingResponse.reset()` for returning the helper to its initial state after a stream completes (#426)
+- **Activity Method Type Handling**: Improved `Activity` helper methods for typed activity data and entity conversions, including support for the new `ActivityTreatment` entity type (#441)
+- **Configuration Coercion Helpers**: Added shared boolean, integer, and float coercion helpers so environment-derived configuration values are interpreted consistently (#424)
+
+## Bug Fixes
+
+- **State Loading**: Removed duplicate `turn_state.load()` calls and corrected when state is loaded during `AgentApplication` initialization (#455, #460)
+- **Middleware Pipeline**: Fixed `MiddlewareSet` registration and turn invocation so multiple middleware components are registered and invoked in order (#461)
+- **Composite Channels**: Normalized composite channel IDs for all user token operations, improving OAuth behavior for Copilot Web and Teams channel IDs such as `msteams:copilot-web` (#457)
+- **Teams Activity Hooks**: Fixed `TeamsActivityHandler` hook dispatch so Teams-specific handlers receive the required arguments (#450)
+- **Concurrency**: Replaced runtime use of `threading.Lock` with `asyncio.Lock` in async execution paths to avoid blocking the event loop (#442)
+- **Dependencies**: Removed the unused `azure-core` dependency from `microsoft-agents-hosting-core` (#467)
+
+## Developer Experience
+
+- **Logging**: Added color-coded log messages and simplified `ApplicationOptions` by removing the logger option in favor of standard module-level logging (#439, #443)
+- **Samples and Documentation**: Fixed the FastAPI sample startup path and added missing dialogs package links to README release tables (#417, #458)
+
+---
+
 # Microsoft 365 Agents SDK for Python - Release Notes v1.1.0
 
 **Release Date:** 2026-06-19
@@ -16,8 +53,6 @@
 
 ## Developer Experience
 
-- **Integration Testing**: Integration testing enhancements (#408)
-- **Testing Initialization Helper**: New testing initialization helper (#416)
 - **Typing Annotations**: Updated typing annotations across the codebase (#418)
 
 ---
@@ -25,12 +60,11 @@
 # Microsoft 365 Agents SDK for Python - Release Notes v1.0.0
 
 **Release Date:** May 22, 2026
-**Previous Version:** 0.9.0 (Released April 15, 2026)
+**Previous Version:** 0.9.1 (Released May 4, 2026)
 
 ## Major Features & Enhancements
 
 - **Dialogs Library**: New `microsoft-agents-hosting-dialogs` package porting the BotFramework dialog system (WaterfallDialog, ComponentDialog, DialogSet, DialogContext) and prompts (TextPrompt, NumberPrompt, ChoicePrompt, ConfirmPrompt, DateTimePrompt, AttachmentPrompt, OAuthPrompt) to the new SDK (#378)
-- **Teams SSO Consent**: Support for the Teams SSO `Consent Required` flow (#380)
 - **Teams Extension Updates**: `TeamsAgentExtension` and related types re-exported at the `microsoft_agents.hosting.teams` package root, integration with `microsoft-teams-api` 2.x Pydantic models, and new runnable samples for message extensions, task modules, and meeting events (#385)
 - **Copilot Web OAuth Base-Channel Support**: New optional `force_base_channel` parameter on `Activity.get_conversation_reference()` and `_OAuthFlow.begin_flow()` so OAuth token exchange uses the base channel (e.g. `msteams`) when receiving composite channel IDs like `msteams:copilot-web` (#392)
 - **Per-Channel Typing Indicator**: New `TypingChannelStrategy` and `TypingOptions` for configurable per-channel typing behavior, surfaced via `ApplicationOptions` and a streaming fix (#398)
@@ -39,9 +73,18 @@
 ## Developer Experience
 
 - **API Reference Docstrings**: Docstrings updated from short-form to fully qualified object names for Learn API reference generation (#381)
+
+---
+
+# Microsoft 365 Agents SDK for Python - Release Notes v0.9.1
+
+**Release Date:** 2026-05-04
+**Previous Version:** 0.9.0 (Released 2026-04-15)
+
+## Enhancements
+
+- **Teams SSO Consent**: Support for the Teams SSO `Consent Required` flow (#380)
 - **SuggestedActions Factory**: New factory for the `to` property of `SuggestedActions` (#370)
-- **Dialogs Test Layout**: `hosting-dialogs` tests moved back under the top-level `tests/` directory for consistency with other packages (#379)
-- **Build Dependencies**: Temporary fix for build testing dependencies (#404)
 
 ---
 

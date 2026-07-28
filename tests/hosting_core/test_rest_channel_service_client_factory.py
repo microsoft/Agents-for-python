@@ -13,11 +13,9 @@ from microsoft_agents.hosting.core.authorization import (
     ClaimsIdentity,
     Connections,
     AccessTokenProviderBase,
-    AnonymousTokenProvider,
     AgentAuthConfiguration,
 )
 from microsoft_agents.hosting.core.connector.teams import TeamsConnectorClient
-from microsoft_agents.hosting.core.connector.client import UserTokenClient
 
 from tests._common.data import DEFAULT_TEST_VALUES
 
@@ -53,6 +51,7 @@ class TestRestChannelServiceClientFactory:
                 id="bot1",
                 agentic_app_id="agentic_app_id",
                 agentic_user_id="agentic_user_id",
+                tenant_id="tenant_id",
                 role=RoleTypes.agentic_user,
             ),
             service_url="https://service.url/",
@@ -71,6 +70,7 @@ class TestRestChannelServiceClientFactory:
             recipient=ChannelAccount(
                 id="bot1",
                 agentic_app_id="agentic_app_id",
+                tenant_id="tenant_id",
                 role=RoleTypes.agentic_identity,
             ),
             service_url="https://service.url/",
@@ -182,7 +182,7 @@ class TestRestChannelServiceClientFactory:
 
         # test
 
-        res = await factory.create_connector_client(
+        await factory.create_connector_client(
             context if context_flag else None,
             claims_identity,
             service_url,
@@ -250,7 +250,7 @@ class TestRestChannelServiceClientFactory:
 
         # test
 
-        res = await factory.create_connector_client(
+        await factory.create_connector_client(
             context if context_flag else None,
             claims_identity,
             service_url,
@@ -294,7 +294,7 @@ class TestRestChannelServiceClientFactory:
         if alt_blueprint:
             auth_config.ALT_BLUEPRINT_ID = "alt_blueprint_id"
             connection_manager.get_connection = mocker.Mock(return_value=token_provider)
-        token_provider._msal_configuration = auth_config
+        token_provider.configuration = auth_config
 
         factory = RestChannelServiceClientFactory(connection_manager)
 
@@ -308,7 +308,7 @@ class TestRestChannelServiceClientFactory:
 
         # test
 
-        res = await factory.create_connector_client(
+        await factory.create_connector_client(
             context,
             claims_identity,
             service_url,
@@ -327,10 +327,102 @@ class TestRestChannelServiceClientFactory:
             )
         assert token_provider.get_agentic_instance_token.call_count == 1
         token_provider.get_agentic_instance_token.assert_called_once_with(
-            None, "agentic_app_id"
+            "tenant_id", "agentic_app_id"
         )
         TeamsConnectorClient.__new__.assert_called_once_with(
             TeamsConnectorClient, endpoint=DEFAULTS.service_url, token=DEFAULTS.token
+        )
+
+    @pytest.mark.asyncio
+    async def test_create_connector_client_agentic_identity_non_msal_provider(
+        self, mocker, activity_agentic_identity
+    ):
+        """Providers without ``_msal_configuration`` (e.g. the Entra sidecar)
+        must still work via the generic ``configuration`` attribute."""
+        # setup
+        mock_connector_client = mocker.Mock(spec=TeamsConnectorClient)
+        mocker.patch.object(
+            TeamsConnectorClient,
+            "__new__",
+            side_effect=lambda cls, *args, **kwargs: mock_connector_client,
+        )
+
+        token_provider = mocker.Mock(spec=AccessTokenProviderBase)
+        token_provider.get_agentic_instance_token = mocker.AsyncMock(
+            return_value=(DEFAULTS.token, DEFAULTS.token)
+        )
+
+        connection_manager = mocker.Mock(spec=Connections)
+        connection_manager.get_token_provider = mocker.Mock(return_value=token_provider)
+
+        # Non-MSAL provider: exposes ``configuration`` with an alternate blueprint.
+        auth_config = AgentAuthConfiguration()
+        auth_config.ALT_BLUEPRINT_ID = "alt_blueprint_id"
+        token_provider.configuration = auth_config
+        connection_manager.get_connection = mocker.Mock(return_value=token_provider)
+
+        factory = RestChannelServiceClientFactory(connection_manager)
+
+        context = mocker.Mock(spec=TurnContext)
+        context.activity = activity_agentic_identity
+
+        # test
+        await factory.create_connector_client(
+            context,
+            mocker.Mock(spec=ClaimsIdentity),
+            DEFAULTS.service_url,
+            "https://service.audience/",
+            ["scope1", "scope2"],
+        )
+
+        # verify the alternate blueprint redirect happened via ``configuration``
+        connection_manager.get_connection.assert_called_once_with("alt_blueprint_id")
+        token_provider.get_agentic_instance_token.assert_called_once_with(
+            "tenant_id", "agentic_app_id"
+        )
+
+    @pytest.mark.asyncio
+    async def test_create_connector_client_agentic_no_configuration(
+        self, mocker, activity_agentic_identity
+    ):
+        """A provider without an alternate blueprint configured must not raise; it
+        should simply skip the alternate-blueprint redirect."""
+        # setup
+        mock_connector_client = mocker.Mock(spec=TeamsConnectorClient)
+        mocker.patch.object(
+            TeamsConnectorClient,
+            "__new__",
+            side_effect=lambda cls, *args, **kwargs: mock_connector_client,
+        )
+
+        token_provider = mocker.Mock(spec=AccessTokenProviderBase)
+        token_provider.get_agentic_instance_token = mocker.AsyncMock(
+            return_value=(DEFAULTS.token, DEFAULTS.token)
+        )
+        token_provider.configuration = AgentAuthConfiguration()
+
+        connection_manager = mocker.Mock(spec=Connections)
+        connection_manager.get_token_provider = mocker.Mock(return_value=token_provider)
+        connection_manager.get_connection = mocker.Mock()
+
+        factory = RestChannelServiceClientFactory(connection_manager)
+
+        context = mocker.Mock(spec=TurnContext)
+        context.activity = activity_agentic_identity
+
+        # test
+        await factory.create_connector_client(
+            context,
+            mocker.Mock(spec=ClaimsIdentity),
+            DEFAULTS.service_url,
+            "https://service.audience/",
+            ["scope1", "scope2"],
+        )
+
+        # verify: no redirect attempted, token still acquired
+        connection_manager.get_connection.assert_not_called()
+        token_provider.get_agentic_instance_token.assert_called_once_with(
+            "tenant_id", "agentic_app_id"
         )
 
     @pytest.mark.parametrize("alt_blueprint", [True, False])
@@ -358,7 +450,7 @@ class TestRestChannelServiceClientFactory:
         if alt_blueprint:
             auth_config.ALT_BLUEPRINT_ID = "alt_blueprint_id"
             connection_manager.get_connection = mocker.Mock(return_value=token_provider)
-        token_provider._msal_configuration = auth_config
+        token_provider.configuration = auth_config
 
         factory = RestChannelServiceClientFactory(connection_manager)
 
@@ -372,7 +464,7 @@ class TestRestChannelServiceClientFactory:
 
         # test
 
-        res = await factory.create_connector_client(
+        await factory.create_connector_client(
             context,
             claims_identity,
             service_url,
@@ -391,7 +483,7 @@ class TestRestChannelServiceClientFactory:
             )
         assert token_provider.get_agentic_user_token.call_count == 1
         token_provider.get_agentic_user_token.assert_called_once_with(
-            None,
+            "tenant_id",
             "agentic_app_id",
             "agentic_user_id",
             [AuthenticationConstants.APX_PRODUCTION_SCOPE],

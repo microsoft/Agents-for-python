@@ -14,6 +14,7 @@ from microsoft_agents.activity import Activity, ActivityTypes
 from microsoft_agents.hosting.core import TurnContext
 from microsoft_agents.hosting.core.app import AgentApplication, RouteRank
 from microsoft_agents.hosting.slack import SlackAgentExtension
+from microsoft_agents.hosting.slack.api import SlackApi
 
 
 def _make_app() -> MagicMock:
@@ -52,7 +53,8 @@ def _make_context(
     context = MagicMock(spec=TurnContext)
     context.activity = activity
     context.send_activity = AsyncMock()
-    context.has.return_value = False
+    context.services = MagicMock()
+    context.services.has.return_value = False
     return context
 
 
@@ -157,10 +159,12 @@ class TestCall:
         slack = SlackAgentExtension(app, slack_api=default_api)
 
         ctx = _make_context(ActivityTypes.message)
-        ctx.has.return_value = True
-        ctx.get.return_value = per_turn_api
+        ctx.services.has.return_value = True
+        ctx.services.get.return_value = per_turn_api
 
         out = await slack.call(ctx, "auth.test")
         assert out == "per-turn"
+        ctx.services.has.assert_called_once_with(SlackApi)
+        ctx.services.get.assert_called_once_with(SlackApi)
         per_turn_api.call.assert_awaited_once()
         default_api.call.assert_not_awaited()

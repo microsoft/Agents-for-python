@@ -1,8 +1,8 @@
 # Copyright (c) Microsoft Corporation. All rights reserved.
 # Licensed under the MIT License.
 
-from typing import Protocol, TypeVar, Type
-from abc import abstractmethod
+from typing import TypeVar
+from abc import ABC, abstractmethod
 from asyncio import gather
 
 from .store_item import StoreItem
@@ -11,26 +11,30 @@ from .telemetry import spans
 StoreItemT = TypeVar("StoreItemT", bound=StoreItem)
 
 
-class Storage(Protocol):
+class Storage(ABC):
+    """Abstract base class for storage implementations."""
+
+    @abstractmethod
     async def read(
-        self, keys: list[str], *, target_cls: Type[StoreItemT] | None = None, **kwargs
+        self, keys: list[str], *, target_cls: type[StoreItemT], **kwargs
     ) -> dict[str, StoreItemT]:
         """Reads multiple items from storage.
 
-        keys: A list of keys to read.
-        target_cls: The class to deserialize the stored JSON into.
-        Returns a dictionary of key to StoreItem.
-
-        missing keys are omitted from the result.
+        :param keys: A list of keys to read.
+        :param target_cls: The class of the StoreItem to deserialize the data into.
+        :return: A dictionary of key to StoreItem.
         """
         pass
 
-    async def write(self, changes: dict[str, StoreItemT]) -> None:
+    @abstractmethod
+    async def write(self, changes: dict[str, StoreItem]) -> None:
         """Writes multiple items to storage.
 
-        changes: A dictionary of key to StoreItem to write."""
+        :param changes: A dictionary of key to StoreItem to write.
+        """
         pass
 
+    @abstractmethod
     async def delete(self, keys: list[str]) -> None:
         """Deletes multiple items from storage.
 
@@ -53,21 +57,29 @@ class AsyncStorageBase(Storage):
 
     @abstractmethod
     async def _read_item(
-        self, key: str, *, target_cls: Type[StoreItemT] | None = None, **kwargs
+        self, key: str, *, target_cls: type[StoreItemT], **kwargs
     ) -> tuple[str | None, StoreItemT | None]:
         """Reads a single item from storage by key.
 
-        Returns a tuple of (key, StoreItem) if found, or (None, None) if not found.
+        :param key: The key to read.
+        :param target_cls: The class of the StoreItem to deserialize the data into.
+        :return: A tuple of key and StoreItem. If the item does not exist, returns (None, None).
         """
         pass
 
     async def read(
-        self, keys: list[str], *, target_cls: Type[StoreItemT] | None = None, **kwargs
+        self, keys: list[str], *, target_cls: type[StoreItemT], **kwargs
     ) -> dict[str, StoreItemT]:
+        """
+        Reads multiple items from storage.
+
+        :param keys: A list of keys to read.
+        :param target_cls: The class of the StoreItem to deserialize the data into.
+        :return: A dictionary of key to StoreItem.
+        :raises ValueError: If keys is empty.
+        """
         if not keys:
             raise ValueError("Storage.read(): Keys are required when reading.")
-        if not target_cls:
-            raise ValueError("Storage.read(): target_cls cannot be None.")
 
         with spans.StorageRead(len(keys)):
             await self.initialize()
@@ -75,14 +87,23 @@ class AsyncStorageBase(Storage):
             items: list[tuple[str | None, StoreItemT | None]] = await gather(
                 *[self._read_item(key, target_cls=target_cls, **kwargs) for key in keys]
             )
-            return {key: value for key, value in items if key is not None}
+            return {
+                key: value
+                for key, value in items
+                if key is not None and value is not None
+            }
 
     @abstractmethod
-    async def _write_item(self, key: str, value: StoreItemT) -> None:
+    async def _write_item(self, key: str, value: StoreItem) -> None:
         """Writes a single item to storage by key."""
         pass
 
-    async def write(self, changes: dict[str, StoreItemT]) -> None:
+    async def write(self, changes: dict[str, StoreItem]) -> None:
+        """Writes multiple items to storage.
+
+        :param changes: A dictionary of key to StoreItem to write.
+        :raises ValueError: If changes is empty.
+        """
         if not changes:
             raise ValueError("Storage.write(): Changes are required when writing.")
 
@@ -95,10 +116,18 @@ class AsyncStorageBase(Storage):
 
     @abstractmethod
     async def _delete_item(self, key: str) -> None:
-        """Deletes a single item from storage by key."""
+        """Deletes a single item from storage by key.
+
+        :param key: The key to delete.
+        """
         pass
 
     async def delete(self, keys: list[str]) -> None:
+        """Deletes multiple items from storage.
+
+        :param keys: A list of keys to delete.
+        :raises ValueError: If keys is empty.
+        """
         if not keys:
             raise ValueError("Storage.delete(): Keys are required when deleting.")
 

@@ -1,42 +1,19 @@
 # Copyright (c) Microsoft Corporation. All rights reserved.
 # Licensed under the MIT License.
+
 from typing import Optional
 
 from aiohttp.web import Request, Response, json_response
 
-from microsoft_agents.hosting.core import Agent
+from microsoft_agents.hosting.core import Agent, HttpAdapterBase
 from microsoft_agents.hosting.core.authorization import Connections
 from microsoft_agents.hosting.core.http import (
-    HttpAdapterBase,
     HttpResponse,
 )
 from microsoft_agents.hosting.core import ChannelServiceClientFactoryBase
 
 from .agent_http_adapter import AgentHttpAdapter
-
-
-class AiohttpRequestAdapter:
-    """Adapter to make aiohttp Request compatible with HttpRequestProtocol."""
-
-    def __init__(self, request: Request):
-        self._request = request
-
-    @property
-    def method(self) -> str:
-        return self._request.method
-
-    @property
-    def headers(self):
-        return self._request.headers
-
-    async def json(self):
-        return await self._request.json()
-
-    def get_claims_identity(self):
-        return self._request.get("claims_identity")
-
-    def get_path_param(self, name: str) -> str:
-        return self._request.match_info[name]
+from ._aiohttp_request_adapter import AiohttpRequestAdapter
 
 
 class CloudAdapter(HttpAdapterBase, AgentHttpAdapter):
@@ -45,8 +22,8 @@ class CloudAdapter(HttpAdapterBase, AgentHttpAdapter):
     def __init__(
         self,
         *,
-        connection_manager: Connections = None,
-        channel_service_client_factory: ChannelServiceClientFactoryBase = None,
+        connection_manager: Connections | None = None,
+        channel_service_client_factory: ChannelServiceClientFactoryBase | None = None,
     ):
         """
         Initializes a new instance of the CloudAdapter class.

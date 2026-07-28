@@ -1,35 +1,12 @@
 # Copyright (c) Microsoft Corporation. All rights reserved.
 # Licensed under the MIT License.
-import json
 
 from aiohttp.web import RouteTableDef, Request, Response
 
 from microsoft_agents.hosting.core import ChannelApiHandlerProtocol
 from microsoft_agents.hosting.core.http import ChannelServiceRoutes
 
-
-class AiohttpRequestAdapter:
-    """Adapter for aiohttp requests to use with ChannelServiceRoutes."""
-
-    def __init__(self, request: Request):
-        self._request = request
-
-    @property
-    def method(self) -> str:
-        return self._request.method
-
-    @property
-    def headers(self):
-        return self._request.headers
-
-    async def json(self):
-        return await self._request.json()
-
-    def get_claims_identity(self):
-        return self._request.get("claims_identity")
-
-    def get_path_param(self, name: str) -> str:
-        return self._request.match_info[name]
+from ._aiohttp_request_adapter import AiohttpRequestAdapter
 
 
 def channel_service_route_table(
@@ -47,8 +24,10 @@ def channel_service_route_table(
     routes = RouteTableDef()
     service_routes = ChannelServiceRoutes(handler, base_url)
 
-    def json_response(data: dict) -> Response:
-        return Response(body=json.dumps(data), content_type="application/json")
+    def json_response(data: dict | list[dict]) -> Response:
+        import json
+
+        return Response(text=json.dumps(data), content_type="application/json")
 
     @routes.post(base_url + "/v3/conversations/{conversation_id}/activities")
     async def send_to_conversation(request: Request):

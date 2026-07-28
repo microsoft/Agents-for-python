@@ -384,6 +384,7 @@ class TestAgentState:
         # Make a change
         prop_accessor = self.user_state.create_property("test_prop")
         await prop_accessor.set(self.context, _MockTestDataItem("test_value"))
+        cached_state = self.user_state.get_cached_state(self.context)
 
         # State should now be changed
         assert cached_state.is_changed

@@ -9,7 +9,6 @@ from unittest.mock import MagicMock
 from microsoft_agents.activity import ConversationAccount, ConversationReference
 from microsoft_agents.hosting.core.app.proactive import Conversation
 from microsoft_agents.hosting.core.authorization import ClaimsIdentity
-from microsoft_agents.hosting.core.channel_adapter import ChannelAdapter
 
 
 def _make_reference(
@@ -75,7 +74,7 @@ class TestConversationFromTurnContext:
 
         ctx = MagicMock()
         ctx.activity.get_conversation_reference.return_value = ref
-        ctx.turn_state = {ChannelAdapter.AGENT_IDENTITY_KEY: identity}
+        ctx.identity = identity
 
         conv = Conversation.from_turn_context(ctx)
 
@@ -87,7 +86,7 @@ class TestConversationFromTurnContext:
         ref = _make_reference("ctx-conv")
         ctx = MagicMock()
         ctx.activity.get_conversation_reference.return_value = ref
-        ctx.turn_state = {}
+        ctx.identity = None
 
         conv = Conversation.from_turn_context(ctx)
 

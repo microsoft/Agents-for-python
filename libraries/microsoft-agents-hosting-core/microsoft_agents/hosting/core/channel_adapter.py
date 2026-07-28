@@ -1,6 +1,8 @@
 # Copyright (c) Microsoft Corporation. All rights reserved.
 # Licensed under the MIT License.
 
+from __future__ import annotations
+
 from abc import ABC, abstractmethod
 from collections.abc import Callable
 from typing import Awaitable
@@ -8,6 +10,7 @@ from microsoft_agents.hosting.core.authorization import ClaimsIdentity
 from microsoft_agents.activity import ChannelAdapterProtocol
 from microsoft_agents.activity import (
     Activity,
+    ChannelId,
     ConversationAccount,
     ConversationReference,
     ConversationParameters,
@@ -15,17 +18,14 @@ from microsoft_agents.activity import (
 )
 
 from .turn_context import TurnContext
-from .middleware_set import MiddlewareSet
+from .middleware_set import MiddlewareSet, Middleware
 
 
 class ChannelAdapter(ABC, ChannelAdapterProtocol):
     AGENT_IDENTITY_KEY = "AgentIdentity"
-    OAUTH_SCOPE_KEY = "Microsoft.Agents.Builder.ChannelAdapter.OAuthScope"
-    INVOKE_RESPONSE_KEY = "ChannelAdapter.InvokeResponse"
-    CONNECTOR_FACTORY_KEY = "ConnectorFactory"
     USER_TOKEN_CLIENT_KEY = "UserTokenClient"
-    AGENT_CALLBACK_HANDLER_KEY = "AgentCallbackHandler"
-    CHANNEL_SERVICE_FACTORY_KEY = "ChannelServiceClientFactory"
+    INVOKE_RESPONSE_KEY = "ChannelAdapter.InvokeResponse"
+    OAUTH_SCOPE_KEY = "Microsoft.Agents.Builder.ChannelAdapter.OAuthScope"
 
     on_turn_error: Callable[[TurnContext, Exception], Awaitable] | None = None
 
@@ -78,7 +78,7 @@ class ChannelAdapter(ABC, ChannelAdapterProtocol):
         """
         raise NotImplementedError()
 
-    def use(self, middleware):
+    def use(self, middleware: Middleware) -> ChannelAdapter:
         """
         Registers a middleware handler with the adapter.
 
@@ -202,11 +202,11 @@ class ChannelAdapter(ABC, ChannelAdapterProtocol):
 
         # Create a conversation update activity
         conversation_update = Activity(
-            type=ActivityTypes.CONVERSATION_UPDATE,
-            channel_id=channel_id,
+            type=ActivityTypes.conversation_update,
+            channel_id=ChannelId(channel_id),
             service_url=service_url,
             conversation=conversation_parameters.conversation,
-            recipient=conversation_parameters.bot,
+            recipient=conversation_parameters.agent,
             from_property=conversation_parameters.members[0],
             members_added=conversation_parameters.members,
         )
@@ -232,16 +232,14 @@ class ChannelAdapter(ABC, ChannelAdapterProtocol):
         :param context: The context object for the turn.
         :type context: :class:`microsoft_agents.hosting.core.turn_context.TurnContext`
         :param callback: A callback method to run at the end of the pipeline.
-        :type callback: Callable[[TurnContext], Awaitable]
-        :return: Result produced by the middleware pipeline.
-        :rtype: typing.Any
+        :type callback: Callable[[TurnContext], Awaitable] | None
         """
         if context is None:
             raise TypeError(context.__class__.__name__)
 
         if context.activity is not None:
             try:
-                return await self.middleware_set.receive_activity_with_status(
+                await self.middleware_set.receive_activity_with_status(
                     context, callback
                 )
             except Exception as error:

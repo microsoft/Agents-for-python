@@ -11,7 +11,7 @@ import pytest
 from unittest.mock import AsyncMock, MagicMock
 from opentelemetry import trace
 
-from microsoft_agents.hosting.core.http._http_adapter_base import HttpAdapterBase
+from microsoft_agents.hosting.core import HttpAdapterBase
 from microsoft_agents.hosting.core.telemetry.adapter import constants
 from microsoft_agents.hosting.core.telemetry import attributes
 

@@ -3,7 +3,6 @@
 
 from uuid import uuid4
 from functools import partial
-from typing import Type
 
 from microsoft_agents.activity import AgentsModel
 from microsoft_agents.hosting.core.storage import Storage, StoreItem

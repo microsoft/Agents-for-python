@@ -4,315 +4,26 @@
 """User Token Client for Microsoft Agents."""
 
 import logging
-from typing import Optional
-from aiohttp import ClientResponseError, ClientSession
+from aiohttp import ClientSession
 
 from microsoft_agents.hosting.core.connector import UserTokenClientBase
 from microsoft_agents.activity import (
+    Activity,
     TokenOrSignInResourceResponse,
     TokenResponse,
     TokenStatus,
     SignInResource,
+    TokenExchangeRequest,
+    TokenExchangeState,
 )
 from ..get_product_info import get_product_info
-from ..telemetry import user_token_client_spans as spans
 from ..user_token_base import UserTokenBase
 from ..agent_sign_in_base import AgentSignInBase
 
+from .agent_sign_in import AgentSignIn
+from .user_token import UserToken
+
 logger = logging.getLogger(__name__)
-
-
-class AgentSignIn(AgentSignInBase):
-    """Implementation of agent sign-in operations."""
-
-    def __init__(self, client: ClientSession):
-        self.client = client
-
-    async def get_sign_in_url(
-        self,
-        state: str,
-        code_challenge: Optional[str] = None,
-        emulator_url: Optional[str] = None,
-        final_redirect: Optional[str] = None,
-    ) -> str:
-        """
-        Get sign-in URL.
-
-        :param state: State parameter for OAuth flow.
-        :param code_challenge: Code challenge for PKCE.
-        :param emulator_url: Emulator URL if used.
-        :param final_redirect: Final redirect URL.
-        :return: The sign-in URL.
-        """
-        params = {"state": state}
-        if code_challenge:
-            params["codeChallenge"] = code_challenge
-        if emulator_url:
-            params["emulatorUrl"] = emulator_url
-        if final_redirect:
-            params["finalRedirect"] = final_redirect
-
-        logger.info(
-            "AgentSignIn.get_sign_in_url(): Getting sign-in URL with params: %s",
-            params,
-        )
-        async with self.client.get(
-            "api/agentsignin/getSignInUrl", params=params
-        ) as response:
-            if response.status >= 300:
-                logger.error("Error getting sign-in URL: %s", response.status)
-                response.raise_for_status()
-
-            return await response.text()
-
-    async def get_sign_in_resource(
-        self,
-        state: str,
-        code_challenge: Optional[str] = None,
-        emulator_url: Optional[str] = None,
-        final_redirect: Optional[str] = None,
-    ) -> SignInResource:
-        """
-        Get sign-in resource.
-
-        :param state: State parameter for OAuth flow.
-        :param code_challenge: Code challenge for PKCE.
-        :param emulator_url: Emulator URL if used.
-        :param final_redirect: Final redirect URL.
-        :return: The sign-in resource.
-        """
-        with spans.GetSignInResource() as span:
-            params = {"state": state}
-            if code_challenge:
-                params["codeChallenge"] = code_challenge
-            if emulator_url:
-                params["emulatorUrl"] = emulator_url
-            if final_redirect:
-                params["finalRedirect"] = final_redirect
-
-            logger.info(
-                "AgentSignIn.get_sign_in_resource(): Getting sign-in resource with params: %s",
-                params,
-            )
-            async with self.client.get(
-                "api/botsignin/getSignInResource", params=params
-            ) as response:
-                span.share(http_method="GET", status_code=response.status)
-                if response.status >= 300:
-                    logger.error("Error getting sign-in resource: %s", response.status)
-                    response.raise_for_status()
-
-                data = await response.json()
-                return SignInResource.model_validate(data)
-
-
-class UserToken(UserTokenBase):
-    """Implementation of user token operations."""
-
-    def __init__(self, client: ClientSession):
-        self.client = client
-
-    async def get_token(
-        self,
-        user_id: str,
-        connection_name: str,
-        channel_id: Optional[str] = None,
-        code: Optional[str] = None,
-    ) -> TokenResponse:
-
-        with spans.GetUserToken(
-            connection_name=connection_name, user_id=user_id, channel_id=channel_id
-        ) as span:
-            params = {"userId": user_id, "connectionName": connection_name}
-
-            if channel_id:
-                params["channelId"] = channel_id
-            if code:
-                params["code"] = code
-
-            logger.info("User_token.get_token(): Getting token with params: %s", params)
-            async with self.client.get(
-                "api/usertoken/GetToken", params=params
-            ) as response:
-                span.share(http_method="GET", status_code=response.status)
-
-                if response.status >= 300:
-                    logger.error("Error getting token: %s", response.status)
-                    response.raise_for_status()
-
-                data = await response.json()
-                return TokenResponse.model_validate(data)
-
-    async def _get_token_or_sign_in_resource(
-        self,
-        user_id: str,
-        connection_name: str,
-        channel_id: str,
-        state: str,
-        code: str = "",
-        final_redirect: str = "",
-        fwd_url: str = "",
-    ) -> TokenOrSignInResourceResponse:
-        """Get token or sign-in resource for a user."""
-
-        with spans.GetTokenOrSignInResource(
-            connection_name=connection_name, user_id=user_id, channel_id=channel_id
-        ) as span:
-            params = {
-                "userId": user_id,
-                "connectionName": connection_name,
-                "channelId": channel_id,
-                "state": state,
-                "code": code,
-                "finalRedirect": final_redirect,
-                "fwdUrl": fwd_url,
-            }
-
-            logger.info("Getting token or sign-in resource with params: %s", params)
-            async with self.client.get(
-                "/api/usertoken/GetTokenOrSignInResource", params=params
-            ) as response:
-                span.share(http_method="GET", status_code=response.status)
-
-                if response.status != 200:
-                    logger.error(
-                        "Error getting token or sign-in resource: %s", response.status
-                    )
-                    response.raise_for_status()
-
-                data = await response.json()
-                return TokenOrSignInResourceResponse.model_validate(data)
-
-    async def get_aad_tokens(
-        self,
-        user_id: str,
-        connection_name: str,
-        channel_id: Optional[str] = None,
-        body: Optional[dict] = None,
-    ) -> dict[str, TokenResponse]:
-        """Get AAD tokens for a user."""
-
-        with spans.GetAadTokens(
-            connection_name=connection_name, user_id=user_id, channel_id=channel_id
-        ) as span:
-            params = {"userId": user_id, "connectionName": connection_name}
-
-            if channel_id:
-                params["channelId"] = channel_id
-
-            logger.info("Getting AAD tokens with params: %s and body: %s", params, body)
-            async with self.client.post(
-                "api/usertoken/GetAadTokens", params=params, json=body
-            ) as response:
-                span.share(http_method="POST", status_code=response.status)
-
-                if response.status >= 300:
-                    logger.error("Error getting AAD tokens: %s", response.status)
-                    response.raise_for_status()
-
-                data = await response.json()
-                return {k: TokenResponse.model_validate(v) for k, v in data.items()}
-
-    async def sign_out(
-        self,
-        user_id: str,
-        connection_name: Optional[str] = None,
-        channel_id: Optional[str] = None,
-    ) -> None:
-        """Sign out user from a connection."""
-
-        with spans.SignOut(
-            user_id=user_id, connection_name=connection_name, channel_id=channel_id
-        ) as span:
-            params = {"userId": user_id}
-
-            if connection_name:
-                params["connectionName"] = connection_name
-            if channel_id:
-                params["channelId"] = channel_id
-
-            logger.info("Signing out user %s with params: %s", user_id, params)
-            async with self.client.delete(
-                "api/usertoken/SignOut", params=params
-            ) as response:
-                span.share(http_method="DELETE", status_code=response.status)
-
-                if response.status >= 300:
-                    logger.error("Error signing out: %s", response.status)
-                    response.raise_for_status()
-
-    async def get_token_status(
-        self,
-        user_id: str,
-        channel_id: Optional[str] = None,
-        include: Optional[str] = None,
-    ) -> list[TokenStatus]:
-        """Get token status for a user."""
-
-        with spans.GetTokenStatus(user_id=user_id, channel_id=channel_id) as span:
-            params = {"userId": user_id}
-
-            if channel_id:
-                params["channelId"] = channel_id
-            if include:
-                params["include"] = include
-
-            logger.info(
-                "Getting token status for user %s with params: %s", user_id, params
-            )
-            async with self.client.get(
-                "api/usertoken/GetTokenStatus", params=params
-            ) as response:
-                span.share(http_method="GET", status_code=response.status)
-
-                if response.status >= 300:
-                    logger.error("Error getting token status: %s", response.status)
-                    response.raise_for_status()
-
-                data = await response.json()
-                return [TokenStatus.model_validate(status) for status in data]
-
-    async def exchange_token(
-        self,
-        user_id: str,
-        connection_name: str,
-        channel_id: str,
-        body: Optional[dict] = None,
-    ) -> TokenResponse:
-        """Exchange token for a user."""
-
-        with spans.ExchangeToken(
-            connection_name=connection_name, user_id=user_id, channel_id=channel_id
-        ) as span:
-            params = {
-                "userId": user_id,
-                "connectionName": connection_name,
-                "channelId": channel_id,
-            }
-
-            logger.info("Exchanging token with params: %s and body: %s", params, body)
-            async with self.client.post(
-                "api/usertoken/exchange", params=params, json=body
-            ) as response:
-                span.share(http_method="POST", status_code=response.status)
-
-                if response.status >= 300:
-                    response_text = await response.text("utf-8")
-                    logger.error(
-                        "Error exchanging token: %s %s",
-                        response.status,
-                        response_text,
-                    )
-                    raise ClientResponseError(
-                        response.request_info,
-                        response.history,
-                        status=response.status,
-                        message=response_text,
-                        headers=response.headers,
-                    )
-
-                data = await response.json()
-                return TokenResponse.model_validate(data)
 
 
 class UserTokenClient(UserTokenClientBase):
@@ -320,14 +31,29 @@ class UserTokenClient(UserTokenClientBase):
     UserTokenClient is a client for interacting with the Microsoft M365 Agents SDK User Token API.
     """
 
-    def __init__(self, endpoint: str, token: str, *, session: ClientSession = None):
+    def __init__(
+        self,
+        endpoint: str,
+        token: str,
+        *,
+        app_id: str | None = None,
+        session: ClientSession | None = None,
+    ):
         """
         Initialize a new instance of UserTokenClient.
 
         :param endpoint: The endpoint URL for the token service.
         :param token: The authentication token to use.
+        :param app_id: The application ID.
         :param session: The aiohttp ClientSession to use for HTTP requests.
         """
+        self._app_id = app_id
+        if not self._app_id:
+            logger.warning(
+                "App ID is not provided. Some operations may not work without an App ID."
+                " In the future, creation of UserTokenClient without an App ID will be deprecated."
+            )
+
         if not endpoint.endswith("/"):
             endpoint += "/"
 
@@ -373,6 +99,199 @@ class UserTokenClient(UserTokenClientBase):
         :return: The user token operations.
         """
         return self._user_token
+
+    @staticmethod
+    def _create_token_exchange_state(
+        app_id: str,
+        connection_name: str,
+        activity: Activity,
+    ) -> str:
+        """
+        Creates a token exchange state string.
+
+        :param app_id: The application ID.
+        :param connection_name: The connection name.
+        :param activity: The activity to use for the token exchange state.
+        :return: The token exchange state string.
+        """
+        return TokenExchangeState(
+            connection_name=connection_name,
+            conversation=activity.get_conversation_reference(force_base_channel=True),
+            relates_to=activity.relates_to,
+            ms_app_id=app_id,
+        ).get_encoded_state()
+
+    async def get_user_token(
+        self,
+        user_id: str,
+        connection_name: str,
+        channel_id: str,
+        magic_code: str | None = None,
+    ) -> TokenResponse:
+        """
+        Gets the user token for a user.
+
+        :param user_id: The ID of the user.
+        :param connection_name: The name of the connection.
+        :param channel_id: The channel ID associated with the user.
+        :param magic_code: The magic code for the token exchange, if any.
+        :return: The token response.
+        """
+        return await self._user_token.get_token(
+            user_id,
+            connection_name,
+            channel_id,
+            code=magic_code,
+        )
+
+    async def get_sign_in_resource(
+        self,
+        connection_name: str,
+        activity: Activity,
+        final_redirect: str | None = None,
+    ) -> SignInResource:
+        """
+        Gets the sign-in resource for a user.
+
+        :param connection_name: The name of the connection.
+        :param activity: The activity to use for the sign-in resource.
+        :param final_redirect: The final redirect URL after sign-in.
+        :return: The sign-in resource.
+        """
+        if not self._app_id:
+            raise ValueError(
+                "App ID must be provided in the creation of UserTokenClient to get sign-in resource."
+            )
+
+        state = UserTokenClient._create_token_exchange_state(
+            self._app_id, connection_name, activity
+        )
+        return await self._agent_sign_in.get_sign_in_resource(
+            state, final_redirect=final_redirect
+        )
+
+    async def sign_out_user(
+        self,
+        user_id: str,
+        connection_name: str,
+        channel_id: str,
+    ) -> None:
+        """
+        Signs out a user from the specified connection.
+
+        :param user_id: The ID of the user to sign out.
+        :param connection_name: The name of the connection to sign out from.
+        :param channel_id: The channel ID associated with the user.
+        """
+        await self._user_token.sign_out(
+            user_id,
+            connection_name,
+            channel_id,
+        )
+
+    async def get_token_status(
+        self,
+        user_id: str,
+        channel_id: str,
+        include: str | None = None,
+    ) -> list[TokenStatus]:
+        """
+        Gets the token status for a user.
+
+        :param user_id: The ID of the user.
+        :param channel_id: The channel ID associated with the user.
+        :param include: Optional filter for included token statuses.
+        :return: A list of token statuses.
+        """
+        return await self._user_token.get_token_status(
+            user_id,
+            channel_id,
+            include=include,
+        )
+
+    async def get_aad_tokens(
+        self,
+        user_id: str,
+        connection_name: str,
+        resource_urls: list[str],
+        channel_id: str,
+    ) -> dict[str, TokenResponse]:
+        """
+        Gets the AAD tokens for a user.
+
+        :param user_id: The ID of the user.
+        :param connection_name: The name of the connection.
+        :param resource_urls: A list of resource URLs to get tokens for.
+        :param channel_id: The channel ID associated with the user.
+        :return: A dictionary mapping resource URLs to token responses.
+        """
+        # todo: verify correctness of resource URL input
+        return await self._user_token.get_aad_tokens(
+            user_id, connection_name, channel_id, {"resourceUrls": resource_urls}
+        )
+
+    async def exchange_token(
+        self,
+        user_id: str,
+        connection_name: str,
+        channel_id: str,
+        exchange_request: TokenExchangeRequest,
+    ) -> TokenResponse:
+        """
+        Exchanges a token for a user.
+
+        :param user_id: The ID of the user.
+        :param connection_name: The name of the connection.
+        :param channel_id: The channel ID associated with the user.
+        :param exchange_request: The token exchange request.
+        :return: The token response.
+        """
+        return await self._user_token.exchange_token(
+            user_id,
+            connection_name,
+            channel_id,
+            exchange_request.model_dump(exclude_none=True),
+        )
+
+    async def get_token_or_sign_in_resource(
+        self,
+        connection_name: str,
+        activity: Activity,
+        code: str | None = None,
+        final_redirect: str | None = None,
+        fwd_url: str | None = None,
+    ) -> TokenOrSignInResourceResponse:
+        """
+        Gets the token or sign-in resource for a user.
+
+        :param connection_name: The name of the connection.
+        :param activity: The activity to use for the token or sign-in resource.
+        :param code: The magic code to use for the token exchange.
+        :param final_redirect: The final redirect URL after sign-in.
+        :param fwd_url: The forward URL to use for the token exchange.
+        :return: The token or sign-in resource.
+        """
+        if not activity.channel_id:
+            raise ValueError(
+                "Activity must have a channel_id to get token or sign-in resource."
+            )
+        if not self._app_id:
+            raise ValueError(
+                "App ID must be provided in the creation of UserTokenClient to get the token or sign-in resource."
+            )
+
+        state = UserTokenClient._create_token_exchange_state(
+            self._app_id, connection_name, activity
+        )
+        return await self._user_token._get_token_or_sign_in_resource(
+            user_id=activity.from_property.id,
+            connection_name=connection_name,
+            channel_id=activity.channel_id,
+            state=state,
+            code=code or "",
+            final_redirect=final_redirect or "",
+            fwd_url=fwd_url or "",
+        )
 
     async def close(self) -> None:
         """Close the HTTP session."""

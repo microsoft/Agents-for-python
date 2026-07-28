@@ -60,7 +60,6 @@ def create_testing_TurnContext(
     turn_context.activity.channel_id = channel_id
     turn_context.activity.from_property.id = user_id
     turn_context.activity.type = ActivityTypes.message
-    turn_context.adapter.AGENT_IDENTITY_KEY = "__agent_identity_key"
 
     # Create identity with security token
     identity = mocker.Mock()
@@ -68,11 +67,7 @@ def create_testing_TurnContext(
         identity.security_token = security_token
     turn_context.identity = identity
 
-    agent_identity = mocker.Mock()
-    agent_identity.claims = {"aud": DEFAULTS.ms_app_id}
-    turn_context.turn_state = {
-        "__agent_identity_key": agent_identity,
-    }
+    turn_context.turn_state = {}
     return turn_context
 
 
@@ -227,8 +222,8 @@ class TestConnectorUserAuthorization(TestEnv):
             context, "some_connection", ["scope1"]
         )
 
-        # Should return None when OBO fails
-        assert token_response is None
+        # Should return an empty TokenResponse when OBO fails
+        assert token_response == TokenResponse()
 
     @pytest.mark.asyncio
     async def test_sign_out_is_noop(

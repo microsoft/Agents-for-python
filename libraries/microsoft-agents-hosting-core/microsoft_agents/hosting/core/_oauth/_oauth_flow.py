@@ -12,12 +12,12 @@ from typing import Optional
 from microsoft_agents.activity import (
     Activity,
     ActivityTypes,
-    TokenExchangeState,
+    TokenExchangeRequest,
     TokenResponse,
     SignInResource,
 )
 
-from ..connector.client import UserTokenClient
+from ..connector import UserTokenClientBase
 from ._flow_state import _FlowState, _FlowStateTag, _FlowErrorTag
 
 logger = logging.getLogger(__name__)
@@ -38,16 +38,10 @@ class _OAuthFlow:
 
     This class is responsible for managing the entire OAuth flow, including
     obtaining user tokens, signing out users, and handling token exchanges.
-
-    Contract with other classes (usage of other classes is enforced in unit tests):
-        TurnContext.activity.channel_id
-        TurnContext.activity.from_property.id
-
-        UserTokenClient: user_token.get_token(), user_token.sign_out()
     """
 
     def __init__(
-        self, flow_state: _FlowState, user_token_client: UserTokenClient, **kwargs
+        self, flow_state: _FlowState, user_token_client: UserTokenClientBase, **kwargs
     ):
         """
         Arguments:
@@ -125,13 +119,11 @@ class _OAuthFlow:
             self._user_id,
             self._abs_oauth_connection_name,
         )
-        token_response: TokenResponse = (
-            await self._user_token_client.user_token.get_token(
-                user_id=self._user_id,
-                connection_name=self._abs_oauth_connection_name,
-                channel_id=self._channel_id,
-                code=magic_code,
-            )
+        token_response: TokenResponse = await self._user_token_client.get_user_token(
+            user_id=self._user_id,
+            connection_name=self._abs_oauth_connection_name,
+            channel_id=self._channel_id,
+            magic_code=magic_code,
         )
         if token_response:
             logger.info("User token obtained successfully: %s", token_response)
@@ -153,7 +145,7 @@ class _OAuthFlow:
             self._user_id,
             self._abs_oauth_connection_name,
         )
-        await self._user_token_client.user_token.sign_out(
+        await self._user_token_client.sign_out_user(
             user_id=self._user_id,
             connection_name=self._abs_oauth_connection_name,
             channel_id=self._channel_id,
@@ -185,18 +177,9 @@ class _OAuthFlow:
 
         logger.debug("Starting new OAuth flow")
 
-        token_exchange_state = TokenExchangeState(
+        res = await self._user_token_client.get_token_or_sign_in_resource(
             connection_name=self._abs_oauth_connection_name,
-            conversation=activity.get_conversation_reference(force_base_channel=True),
-            relates_to=activity.relates_to,
-            ms_app_id=self._ms_app_id,
-        )
-
-        res = await self._user_token_client.user_token._get_token_or_sign_in_resource(
-            activity.from_property.id,
-            self._abs_oauth_connection_name,
-            token_exchange_state.conversation.channel_id,
-            token_exchange_state.get_encoded_state(),
+            activity=activity,
         )
 
         if res.token_response:
@@ -251,16 +234,18 @@ class _OAuthFlow:
         """Handles the continuation of the flow from an invoke activity for token exchange."""
         token_exchange_request = activity.value
         try:
-            token_response = await self._user_token_client.user_token.exchange_token(
+            token_response = await self._user_token_client.exchange_token(
                 user_id=self._user_id,
                 connection_name=self._abs_oauth_connection_name,
                 channel_id=self._channel_id,
-                body=token_exchange_request,
+                exchange_request=TokenExchangeRequest.model_validate(
+                    token_exchange_request
+                ),
             )
             return token_response, _FlowErrorTag.NONE
         except Exception as e:
             # A 400 with 'ConsentRequired' means the user hasn't consented yet.
-            # Return None so the caller can send a 412 back to Teams, which will
+            # Return TokenResponse() so the caller can send a 412 back to Teams, which will
             # prompt the user for consent and retry the token exchange.
             # Any other error is a critical failure and should propagate.
             if getattr(e, "status", None) == 400 and "Consent Required" in getattr(
@@ -271,7 +256,7 @@ class _OAuthFlow:
                     self._user_id,
                 )
 
-                return None, _FlowErrorTag.PRECONDITION_FAILED
+                return TokenResponse(), _FlowErrorTag.PRECONDITION_FAILED
             raise
 
     async def continue_flow(self, activity: Activity) -> _FlowResponse:

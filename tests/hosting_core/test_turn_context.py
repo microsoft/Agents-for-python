@@ -52,6 +52,26 @@ class _SimpleTestingAdapter(ChannelAdapter):
         assert reference.activity_id == ACTIVITY.id
 
 
+class _RecordingAdapter(_SimpleTestingAdapter):
+    def __init__(self):
+        self.sent_batches = []
+        self.updated_activities = []
+        self.deleted_references = []
+
+    async def send_activities(self, context, activities) -> list[ResourceResponse]:
+        self.sent_batches.append(activities)
+        return [
+            ResourceResponse(id=f"sent-{index}") for index, _ in enumerate(activities)
+        ]
+
+    async def update_activity(self, context, activity):
+        self.updated_activities.append(activity)
+        return ResourceResponse(id=activity.id)
+
+    async def delete_activity(self, context, reference):
+        self.deleted_references.append(reference)
+
+
 class TestTurnContext:
     def test_should_create_context_with_request_and_adapter(self):
         TurnContext(_SimpleTestingAdapter(), ACTIVITY)
@@ -218,6 +238,71 @@ class TestTurnContext:
         assert called is True
 
     @pytest.mark.asyncio
+    async def test_on_send_activities_handler_can_await_next_and_return_result(self):
+        adapter = _RecordingAdapter()
+        context = TurnContext(adapter, ACTIVITY)
+        events = []
+
+        async def send_handler(context, activities, next_handler):
+            events.append(("before", len(adapter.sent_batches)))
+            responses = await next_handler()
+            events.append(("after", responses[0].id, len(adapter.sent_batches)))
+            return responses
+
+        context.on_send_activities(send_handler)
+
+        response = await context.send_activity("hello")
+
+        assert response.id == "sent-0"
+        assert events == [("before", 0), ("after", "sent-0", 1)]
+        assert context.responded is True
+
+    @pytest.mark.asyncio
+    async def test_on_send_activities_handlers_unwind_in_reverse_order(self):
+        adapter = _RecordingAdapter()
+        context = TurnContext(adapter, ACTIVITY)
+        events = []
+
+        async def first_handler(context, activities, next_handler):
+            events.append("first-before")
+            responses = await next_handler()
+            events.append("first-after")
+            return responses
+
+        async def second_handler(context, activities, next_handler):
+            events.append("second-before")
+            responses = await next_handler()
+            events.append("second-after")
+            return responses
+
+        context.on_send_activities(first_handler)
+        context.on_send_activities(second_handler)
+
+        await context.send_activity("hello")
+
+        assert events == [
+            "first-before",
+            "second-before",
+            "second-after",
+            "first-after",
+        ]
+
+    @pytest.mark.asyncio
+    async def test_on_send_activities_handler_can_short_circuit_adapter_send(self):
+        adapter = _RecordingAdapter()
+        context = TurnContext(adapter, ACTIVITY)
+
+        async def send_handler(context, activities, next_handler):
+            return [ResourceResponse(id="middleware-response")]
+
+        context.on_send_activities(send_handler)
+
+        response = await context.send_activity("hello")
+
+        assert response.id == "middleware-response"
+        assert adapter.sent_batches == []
+
+    @pytest.mark.asyncio
     async def test_should_call_on_update_activity_handler_before_update(self):
         context = TurnContext(_SimpleTestingAdapter(), ACTIVITY)
         called = False
@@ -235,6 +320,44 @@ class TestTurnContext:
         assert called is True
 
     @pytest.mark.asyncio
+    async def test_on_update_activity_handler_can_await_next_and_return_result(self):
+        adapter = _RecordingAdapter()
+        context = TurnContext(adapter, ACTIVITY)
+
+        async def update_handler(context, activity, next_handler):
+            result = await next_handler()
+            return ResourceResponse(id=f"wrapped-{result.id}")
+
+        context.on_update_activity(update_handler)
+        activity = MessageFactory.text("updated")
+        activity.id = "activity-to-update"
+
+        result = await context.update_activity(activity)
+
+        assert result.id == "wrapped-activity-to-update"
+        assert adapter.updated_activities[0].id == "activity-to-update"
+
+    @pytest.mark.asyncio
+    async def test_on_delete_activity_handler_next_invokes_adapter_delete(self):
+        adapter = _RecordingAdapter()
+        context = TurnContext(adapter, ACTIVITY)
+        called_next = False
+
+        async def delete_handler(context, reference, next_handler):
+            nonlocal called_next
+            assert adapter.deleted_references == []
+            await next_handler()
+            called_next = True
+            assert adapter.deleted_references[0].activity_id == ACTIVITY.id
+
+        context.on_delete_activity(delete_handler)
+
+        result = await context.delete_activity(ACTIVITY.id)
+
+        assert result is None
+        assert called_next is True
+
+    @pytest.mark.asyncio
     async def test_update_activity_should_apply_conversation_reference(self):
         activity_id = "activity ID"
         context = TurnContext(_SimpleTestingAdapter(), ACTIVITY)
@@ -246,7 +369,7 @@ class TestTurnContext:
             assert context is not None
             assert activity.id == activity_id
             assert activity.conversation.id == ACTIVITY.conversation.id
-            await next_handler_coroutine()
+            return await next_handler_coroutine()
 
         context.on_update_activity(update_handler)
         new_activity = MessageFactory.text("test text")

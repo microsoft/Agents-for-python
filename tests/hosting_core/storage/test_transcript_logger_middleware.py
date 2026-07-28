@@ -6,12 +6,12 @@ import os
 from microsoft_agents.activity import Activity, ActivityEventNames, ActivityTypes
 from microsoft_agents.hosting.core.authorization.claims_identity import ClaimsIdentity
 from microsoft_agents.hosting.core.middleware_set import TurnContext
-from microsoft_agents.hosting.core.storage.transcript_logger import (
+from microsoft_agents.hosting.core.storage.transcript.transcript_logger import (
     ConsoleTranscriptLogger,
     FileTranscriptLogger,
     TranscriptLoggerMiddleware,
 )
-from microsoft_agents.hosting.core.storage.transcript_memory_store import (
+from microsoft_agents.hosting.core.storage.transcript.transcript_memory_store import (
     TranscriptMemoryStore,
 )
 import pytest
@@ -49,6 +49,37 @@ async def test_should_round_trip_via_middleware():
     assert pagedResult.items[0].channel_id == channelName
     assert pagedResult.items[0].conversation.id == conversation_id
     assert pagedResult.items[0].text == a1.text
+    assert pagedResult.continuation_token is None
+
+
+@pytest.mark.asyncio
+async def test_should_log_outgoing_activity_sent_by_callback():
+    transcript_store = TranscriptMemoryStore()
+    conversation_id = "id.1"
+    transcript_middleware = TranscriptLoggerMiddleware(transcript_store)
+    channelName = "Channel1"
+
+    adapter = MockTestingAdapter(channelName)
+    adapter.use(transcript_middleware)
+    id = ClaimsIdentity({}, True)
+
+    async def callback(tc):
+        await tc.send_activity("bot response")
+
+    a1 = adapter.make_activity("user message")
+    a1.conversation.id = conversation_id
+
+    await adapter.process_activity(id, a1, callback)
+
+    pagedResult = await transcript_store.get_transcript_activities(
+        channelName, conversation_id
+    )
+
+    assert len(pagedResult.items) == 2
+    transcript_by_text = {activity.text: activity for activity in pagedResult.items}
+    assert "user message" in transcript_by_text
+    assert "bot response" in transcript_by_text
+    assert transcript_by_text["bot response"].from_property.id == "agent"
     assert pagedResult.continuation_token is None
 
 

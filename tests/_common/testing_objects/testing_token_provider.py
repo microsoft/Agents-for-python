@@ -1,4 +1,7 @@
-from microsoft_agents.hosting.core import AccessTokenProviderBase
+from microsoft_agents.hosting.core import (
+    AccessTokenProviderBase,
+    AgentAuthConfiguration,
+)
 
 
 class TestingTokenProvider(AccessTokenProviderBase):
@@ -19,6 +22,11 @@ class TestingTokenProvider(AccessTokenProviderBase):
             name: Identifier used to generate predictable token values
         """
         self.name = name
+        self._configuration = AgentAuthConfiguration()
+
+    @property
+    def configuration(self) -> AgentAuthConfiguration:
+        return self._configuration
 
     async def get_access_token(
         self, resource_url: str, scopes: list[str], force_refresh: bool = False

@@ -1,7 +1,6 @@
 # Copyright (c) Microsoft Corporation. All rights reserved.
 # Licensed under the MIT License.
 
-from typing import Optional
 import logging
 
 from microsoft_agents.activity import RoleTypes
@@ -49,34 +48,35 @@ class RestChannelServiceClientFactory(ChannelServiceClientFactoryBase):
         connection = self._connection_manager.get_token_provider(
             context.identity, service_url
         )
-        if not hasattr(connection, "_msal_configuration"):
-            raise TypeError(
-                "Connection does not support MSAL configuration for agentic token retrieval"
-            )
 
-        if connection._msal_configuration.ALT_BLUEPRINT_ID:
+        configuration = connection.configuration
+        alt_blueprint_id = configuration.ALT_BLUEPRINT_ID
+
+        if alt_blueprint_id:
             logger.debug(
                 "Using alternative blueprint ID for agentic token retrieval: %s",
-                connection._msal_configuration.ALT_BLUEPRINT_ID,
+                alt_blueprint_id,
             )
-            connection = self._connection_manager.get_connection(
-                connection._msal_configuration.ALT_BLUEPRINT_ID
-            )
+            connection = self._connection_manager.get_connection(alt_blueprint_id)
 
         agent_instance_id = context.activity.get_agentic_instance_id()
         if not agent_instance_id:
             raise ValueError("Agent instance ID is required for agentic identity role")
 
+        tenant_id = context.activity.get_agentic_tenant_id()
+        if not tenant_id:
+            raise ValueError("Agentic tenant ID is required for agentic activities")
+
         if context.activity.recipient.role == RoleTypes.agentic_identity:
             token, _ = await connection.get_agentic_instance_token(
-                context.activity.get_agentic_tenant_id(), agent_instance_id
+                tenant_id, agent_instance_id
             )
         else:
             agentic_user = context.activity.get_agentic_user()
             if not agentic_user:
                 raise ValueError("Agentic user is required for agentic user role")
             token = await connection.get_agentic_user_token(
-                context.activity.get_agentic_tenant_id(),
+                tenant_id,
                 agent_instance_id,
                 agentic_user,
                 [AuthenticationConstants.APX_PRODUCTION_SCOPE],
@@ -92,11 +92,9 @@ class RestChannelServiceClientFactory(ChannelServiceClientFactoryBase):
         claims_identity: ClaimsIdentity,
         service_url: str,
         audience: str,
-        scopes: Optional[list[str]] = None,
+        scopes: list[str] | None = None,
         use_anonymous: bool = False,
     ) -> ConnectorClientBase:
-        if not claims_identity:
-            raise TypeError("claims_identity is required")
         if not service_url:
             raise TypeError(
                 "RestChannelServiceClientFactory.create_connector_client: service_url can't be None or Empty"
@@ -156,10 +154,8 @@ class RestChannelServiceClientFactory(ChannelServiceClientFactoryBase):
         :param claims_identity: The ClaimsIdentity of the user.
         :param use_anonymous: Whether to use an anonymous token provider.
         """
-        if not context or not claims_identity:
-            raise ValueError("context and claims_identity are required")
 
-        scopes = claims_identity.get_token_scope() if claims_identity else None
+        scopes = claims_identity.get_token_scope()
 
         with spans.AdapterCreateUserTokenClient(
             token_service_endpoint=self._token_service_endpoint,
@@ -167,7 +163,11 @@ class RestChannelServiceClientFactory(ChannelServiceClientFactoryBase):
         ):
 
             if use_anonymous:
-                return UserTokenClient(endpoint=self._token_service_endpoint, token="")
+                return UserTokenClient(
+                    app_id=claims_identity.get_app_id(),
+                    endpoint=self._token_service_endpoint,
+                    token="",
+                )
 
             if context.activity.is_agentic_request():
                 token = await self._get_agentic_token(
@@ -187,6 +187,7 @@ class RestChannelServiceClientFactory(ChannelServiceClientFactoryBase):
                 raise ValueError("Failed to obtain token for user token client")
 
             return UserTokenClient(
+                app_id=claims_identity.get_app_id(),
                 endpoint=self._token_service_endpoint,
                 token=token,
             )

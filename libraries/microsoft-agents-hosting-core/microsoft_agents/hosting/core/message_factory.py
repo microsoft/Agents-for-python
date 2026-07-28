@@ -88,9 +88,11 @@ class MessageFactory:
         :param input_hint:
         :return:
         """
-        actions = SuggestedActions(actions=actions)
+        suggested_actions = SuggestedActions(actions=actions)
         message = Activity(
-            type=ActivityTypes.message, input_hint=input_hint, suggested_actions=actions
+            type=ActivityTypes.message,
+            input_hint=input_hint,
+            suggested_actions=suggested_actions,
         )
         if text:
             message.text = text
@@ -122,16 +124,14 @@ class MessageFactory:
         :param input_hint:
         :return:
         """
-        return attachment_activity(
-            AttachmentLayoutTypes.list, [attachment], text, speak, input_hint
-        )
+        return MessageFactory.list([attachment], text, speak, input_hint)
 
     @staticmethod
     def list(
         attachments: list[Attachment],
         text: str | None = None,
         speak: str | None = None,
-        input_hint: InputHints | str = None,
+        input_hint: InputHints | str | None = None,
     ) -> Activity:
         """
         Returns a message that will display a set of attachments in list form.
@@ -154,6 +154,10 @@ class MessageFactory:
         :param input_hint:
         :return:
         """
+        if not input_hint:
+            return attachment_activity(
+                AttachmentLayoutTypes.list, attachments, text, speak
+            )
         return attachment_activity(
             AttachmentLayoutTypes.list, attachments, text, speak, input_hint
         )
@@ -163,7 +167,7 @@ class MessageFactory:
         attachments: list[Attachment],
         text: str | None = None,
         speak: str | None = None,
-        input_hint: InputHints | str = None,
+        input_hint: InputHints | str | None = None,
     ) -> Activity:
         """
         Returns a message that will display a set of attachments using a carousel layout.
@@ -186,6 +190,10 @@ class MessageFactory:
         :param input_hint:
         :return:
         """
+        if not input_hint:
+            return attachment_activity(
+                AttachmentLayoutTypes.carousel, attachments, text, speak
+            )
         return attachment_activity(
             AttachmentLayoutTypes.carousel, attachments, text, speak, input_hint
         )
@@ -218,6 +226,4 @@ class MessageFactory:
         attachment = Attachment(content_type=content_type, content_url=url)
         if name:
             attachment.name = name
-        return attachment_activity(
-            AttachmentLayoutTypes.list, [attachment], text, speak, input_hint
-        )
+        return MessageFactory.attachment(attachment, text, speak, input_hint)

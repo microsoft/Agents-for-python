@@ -31,6 +31,7 @@ source venv/bin/activate  # On Windows: venv\Scripts\activate
 pip install -e ./libraries/microsoft-agents-activity/ --config-settings editable_mode=compat
 pip install -e ./libraries/microsoft-agents-hosting-core/ --config-settings editable_mode=compat
 pip install -e ./libraries/microsoft-agents-authentication-msal/ --config-settings editable_mode=compat
+pip install -e ./libraries/microsoft-agents-authentication-entra-auth-sidecar/ --config-settings editable_mode=compat
 pip install -e ./libraries/microsoft-agents-copilotstudio-client/ --config-settings editable_mode=compat
 pip install -e ./libraries/microsoft-agents-hosting-aiohttp/ --config-settings editable_mode=compat
 pip install -e ./libraries/microsoft-agents-hosting-teams/ --config-settings editable_mode=compat
@@ -124,7 +125,7 @@ The SDK follows a **layered, modular architecture** with clear separation of con
 │ hosting-teams, storage-blob, storage-cosmos                     │
 ├─────────────────────────────────────────────────────────────────┤
 │ Layer 3: Authentication                                          │
-│ authentication-msal                                              │
+│ authentication-msal, authentication-entra-auth-sidecar          │
 ├─────────────────────────────────────────────────────────────────┤
 │ Layer 2: Core Hosting Engine                                    │
 │ hosting-core (Agent, TurnContext, State, Routing)              │
@@ -143,6 +144,7 @@ Each library in `libraries/` is independently published to PyPI:
 | `microsoft-agents-activity` | Activity protocol types using Pydantic | `Activity`, `ConversationReference`, protocols |
 | `microsoft-agents-hosting-core` | Core agent runtime and lifecycle | `Agent`, `TurnContext`, `ActivityHandler`, `AgentApplication` |
 | `microsoft-agents-authentication-msal` | MSAL-based OAuth authentication | `MsalAuth`, `MsalConnectionManager` |
+| `microsoft-agents-authentication-entra-auth-sidecar` | Credential-free Entra ID Agent ID auth via the sidecar | `SidecarAuth`, `SidecarHttpClient` |
 | `microsoft-agents-hosting-aiohttp` | aiohttp web framework adapter | `CloudAdapter`, `start_agent_process()` |
 | `microsoft-agents-hosting-fastapi` | FastAPI web framework adapter | `CloudAdapter`, `start_agent_process()` |
 | `microsoft-agents-hosting-teams` | Teams-specific extensions | `TeamsActivityHandler`, `TeamsInfo` |
@@ -313,6 +315,7 @@ libraries/
   microsoft-agents-activity/
   microsoft-agents-hosting-core/
   microsoft-agents-authentication-msal/
+  microsoft-agents-authentication-entra-auth-sidecar/
   microsoft-agents-hosting-{aiohttp,fastapi,teams}/
   microsoft-agents-storage-{blob,cosmos}/
   microsoft-agents-copilotstudio-client/

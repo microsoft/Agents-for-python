@@ -5,7 +5,7 @@ import time
 import pytest
 from jwt import PyJWKClient
 
-from microsoft_agents.hosting.core.authorization.jwt_token_validator import (
+from microsoft_agents.hosting.core.authorization.jwt.jwt_token_validator import (
     _JwkClientManager,
 )
 

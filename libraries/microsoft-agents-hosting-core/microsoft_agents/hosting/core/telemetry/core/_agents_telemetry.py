@@ -11,8 +11,6 @@ from opentelemetry.metrics import Meter
 from opentelemetry import metrics, trace
 from opentelemetry.trace import Tracer, Span
 
-from microsoft_agents.activity import TurnContextProtocol
-
 from .resource import SERVICE_NAME, SERVICE_VERSION
 from .type_defs import SpanCallback
 

@@ -18,7 +18,7 @@ from microsoft_agents.activity import (
     OAuthCard,
     TokenResponse,
     TokenExchangeInvokeRequest,
-    TokenExchangeInvokeResponse,
+    TokenExchangeRequest,
     InvokeResponse,
 )
 from microsoft_agents.hosting.core import (
@@ -27,7 +27,7 @@ from microsoft_agents.hosting.core import (
     TurnContext,
     ChannelAdapter,
     ClaimsIdentity,
-    UserTokenClient,
+    UserTokenClientBase,
     MemoryStorage,
 )
 from microsoft_agents.hosting.core._oauth import (
@@ -80,8 +80,13 @@ class OAuthPrompt(Dialog):
         self._settings = settings
 
     @staticmethod
-    def _get_user_token_client(context: TurnContext) -> UserTokenClient:
-        return context.turn_state.get(context.adapter.USER_TOKEN_CLIENT_KEY)
+    def _get_user_token_client(context: TurnContext) -> UserTokenClientBase:
+        val = context.services.get(UserTokenClientBase)
+        if val is None:
+            raise RuntimeError(
+                "OAuthPrompt._get_user_token_client(): UserTokenClientBase not found in context.services."
+            )
+        return val
 
     def _get_app_id(self, context: TurnContext) -> str:
         if (
@@ -255,10 +260,7 @@ class OAuthPrompt(Dialog):
 
     @staticmethod
     def __create_caller_info(context: TurnContext) -> CallerInfo | None:
-        bot_identity = cast(
-            ClaimsIdentity | None,
-            context.turn_state.get(ChannelAdapter.AGENT_IDENTITY_KEY),
-        )
+        bot_identity = context.identity
         if bot_identity and bot_identity.is_agent_claim():
             return CallerInfo(
                 caller_service_url=context.activity.service_url,
@@ -288,10 +290,7 @@ class OAuthPrompt(Dialog):
                 card_action_type = ActionTypes.signin
                 sign_in_resource = flow_response.sign_in_resource
                 link = sign_in_resource.sign_in_link
-                bot_identity = cast(
-                    ClaimsIdentity | None,
-                    context.turn_state.get(ChannelAdapter.AGENT_IDENTITY_KEY),
-                )
+                bot_identity = context.identity
 
                 # use the SignInLink when in speech channel or bot is a skill or
                 # an extra OAuthAppCredentials is being passed in
@@ -430,11 +429,11 @@ class OAuthPrompt(Dialog):
 
         user_token_client = OAuthPrompt._get_user_token_client(context)
 
-        return await user_token_client.user_token.exchange_token(
+        return await user_token_client.exchange_token(
             user_id,
             self._settings.connection_name,
             channel_id,
-            {"token": input_token_response.token},
+            TokenExchangeRequest(token=input_token_response.token),
         )
 
     async def _continue_flow(

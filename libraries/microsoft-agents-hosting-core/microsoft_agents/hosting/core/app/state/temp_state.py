@@ -64,9 +64,13 @@ class TempState(AgentState):
             del self._state[name]
 
     def get_value(
-        self, name: str, default_value_factory: Optional[Callable[[], T]] = None
-    ) -> T:
-        """Gets a value from the state with the given name, using a factory for default values if not found"""
+        self,
+        name: str,
+        default_value_factory: Optional[Callable[[], T]] = None,
+        *,
+        target_cls: type[T] | None = None,
+    ) -> T | None:
+        """Gets a value from state, using a factory if not found."""
         if name not in self._state and default_value_factory is not None:
             value = default_value_factory()
             self.set_value(name, value)
