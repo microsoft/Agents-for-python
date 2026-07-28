@@ -12,7 +12,6 @@ from microsoft_agents.activity import (
     Activity,
     ActivityTypes,
     ChannelAccount,
-    InputHints,
     RoleTypes,
 )
 
@@ -20,7 +19,8 @@ from .test_adapter import TestAdapter
 from .type_def import AgentCallbackHandler
 
 ReplyValidator: TypeAlias = Callable[[Activity], None | Awaitable[None]]
-__test__ = False
+
+__test__ = False  # for pytest: don't collect this module as a test case
 
 
 class TestFlow:
@@ -37,7 +37,7 @@ class TestFlow:
     conversation scripts.
     """
 
-    __test__ = False
+    __test__ = False  # for pytest: don't collect this class as a test case
 
     def __init__(
         self,
@@ -179,17 +179,17 @@ class TestFlow:
             await self._await_previous()
             reply = await self._get_next_reply(timeout)
 
+            if reply is None:
+                raise AssertionError(
+                    description
+                    or f"Expected a reply within {timeout} seconds, but no reply was received."
+                )
+
             if callable(expected):
                 result = expected(reply)
                 if isawaitable(result):
                     await result
                 return
-
-            if reply is None:
-                raise AssertionError(
-                    description
-                    or f"Expected reply {self._describe_expected(expected)}, but no reply was received."
-                )
 
             if isinstance(expected, str):
                 if reply.text != expected:
@@ -324,19 +324,3 @@ class TestFlow:
                 description
                 or f"Expected reply speak '{expected.speak}', received '{actual.speak}'."
             )
-
-    @staticmethod
-    def _describe_expected(expected: str | Activity) -> str:
-        if isinstance(expected, str):
-            return f"text '{expected}'"
-        return f"activity type '{expected.type}'"
-
-
-def accepting_input_message(text: str) -> Activity:
-    """Create a message activity with the default accepting-input hint."""
-
-    return Activity(
-        type=ActivityTypes.message,
-        text=text,
-        input_hint=InputHints.accepting_input,
-    )

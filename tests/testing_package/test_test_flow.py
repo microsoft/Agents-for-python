@@ -2,44 +2,23 @@
 # Licensed under the MIT License.
 
 import asyncio
-import importlib.util
-import sys
-from pathlib import Path
 
 import pytest
 
 from microsoft_agents.activity import Activity, ActivityTypes, ChannelAccount, RoleTypes
 from microsoft_agents.hosting.core import TurnContext
-
-_TESTING_PACKAGE = (
-    Path(__file__).parents[2]
-    / "libraries"
-    / "microsoft-agents-testing"
-    / "microsoft_agents"
-    / "testing"
-)
-_SPEC = importlib.util.spec_from_file_location(
-    "_microsoft_agents_testing_lib",
-    _TESTING_PACKAGE / "__init__.py",
-    submodule_search_locations=[str(_TESTING_PACKAGE)],
-)
-_testing = importlib.util.module_from_spec(_SPEC)
-sys.modules[_SPEC.name] = _testing
-_SPEC.loader.exec_module(_testing)
-
-TestingAdapter = _testing.TestAdapter
-TestingFlow = _testing.TestFlow
+from microsoft_agents.testing import TestAdapter, TestFlow
 
 
 @pytest.mark.asyncio
 async def test_send_assert_reply_and_assert_no_more_replies():
-    adapter = TestingAdapter()
+    adapter = TestAdapter()
 
     async def callback(context: TurnContext):
         await context.send_activity(f"Echo: {context.activity.text}")
 
     await (
-        TestingFlow(adapter, callback)
+        TestFlow(adapter, callback)
         .send("hello")
         .assert_reply("Echo: hello")
         .assert_no_more_replies(timeout=0.01)
@@ -49,14 +28,14 @@ async def test_send_assert_reply_and_assert_no_more_replies():
 
 @pytest.mark.asyncio
 async def test_assert_reply_consumes_replies_in_order():
-    adapter = TestingAdapter()
+    adapter = TestAdapter()
 
     async def callback(context: TurnContext):
         await context.send_activity("first")
         await context.send_activity("second")
 
     await (
-        TestingFlow(adapter, callback)
+        TestFlow(adapter, callback)
         .send("go")
         .assert_reply("first")
         .assert_reply("second")
@@ -67,14 +46,12 @@ async def test_assert_reply_consumes_replies_in_order():
 
 @pytest.mark.asyncio
 async def test_assert_no_more_replies_fails_when_reply_is_queued():
-    adapter = TestingAdapter()
+    adapter = TestAdapter()
 
     async def callback(context: TurnContext):
         await context.send_activity("extra")
 
-    flow = (
-        TestingFlow(adapter, callback).send("go").assert_no_more_replies(timeout=0.01)
-    )
+    flow = TestFlow(adapter, callback).send("go").assert_no_more_replies(timeout=0.01)
 
     with pytest.raises(AssertionError, match="Expected no more replies"):
         await flow.start_test()
@@ -82,7 +59,7 @@ async def test_assert_no_more_replies_fails_when_reply_is_queued():
 
 @pytest.mark.asyncio
 async def test_chained_steps_start_as_tasks_but_wait_for_previous_steps():
-    adapter = TestingAdapter()
+    adapter = TestAdapter()
     events: list[str] = []
     first_started = asyncio.Event()
     release_first = asyncio.Event()
@@ -95,7 +72,7 @@ async def test_chained_steps_start_as_tasks_but_wait_for_previous_steps():
         await context.send_activity(f"reply:{context.activity.text}")
 
     flow = (
-        TestingFlow(adapter, callback)
+        TestFlow(adapter, callback)
         .send("one")
         .assert_reply("reply:one")
         .send("two")
@@ -113,7 +90,7 @@ async def test_chained_steps_start_as_tasks_but_wait_for_previous_steps():
 
 @pytest.mark.asyncio
 async def test_send_conversation_update_uses_default_member():
-    adapter = TestingAdapter()
+    adapter = TestAdapter()
 
     async def callback(context: TurnContext):
         assert context.activity.type == ActivityTypes.conversation_update
@@ -121,7 +98,7 @@ async def test_send_conversation_update_uses_default_member():
         await context.send_activity("welcome")
 
     await (
-        TestingFlow(adapter, callback)
+        TestFlow(adapter, callback)
         .send_conversation_update()
         .assert_reply("welcome")
         .start_test()
@@ -130,7 +107,7 @@ async def test_send_conversation_update_uses_default_member():
 
 @pytest.mark.asyncio
 async def test_test_activities_treats_agent_activities_as_expected_replies():
-    adapter = TestingAdapter()
+    adapter = TestAdapter()
 
     async def callback(context: TurnContext):
         await context.send_activity(f"Echo: {context.activity.text}")
@@ -148,12 +125,12 @@ async def test_test_activities_treats_agent_activities_as_expected_replies():
         ),
     ]
 
-    await TestingFlow(adapter, callback).test_activities(transcript).start_test()
+    await TestFlow(adapter, callback).test_activities(transcript).start_test()
 
 
 @pytest.mark.asyncio
 async def test_get_next_reply_async_returns_queued_reply_or_waits_for_next_reply():
-    adapter = TestingAdapter()
+    adapter = TestAdapter()
     context = adapter.create_turn_context(adapter.create_activity("inbound"))
 
     queued = Activity(type=ActivityTypes.message, text="already queued")

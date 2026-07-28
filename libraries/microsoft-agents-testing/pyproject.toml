@@ -20,10 +20,6 @@ classifiers = [
     "Programming Language :: Python :: 3.14",
     "Operating System :: OS Independent",
 ]
-dependencies = [
-    "pydantic>=2.10.4"
-    "microsoft-agents-hsotin
-]
 
 [project.urls]
 "Homepage" = "https://github.com/microsoft/Agents"
