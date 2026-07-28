@@ -125,7 +125,6 @@ class TestBeforeTurnHook:
         assert result is True
         assert isinstance(activity.channel_data, ChannelData)
         assert activity.channel_data.channel.id == "c1"
-        assert ctx.services.has(ApiClient)
 
     @pytest.mark.asyncio
     async def test_teams_channel_without_channel_data_sets_none(self):

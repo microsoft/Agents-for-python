@@ -3,6 +3,8 @@
 
 """Tests for TeamsTurnContext helpers that can be exercised without a live adapter."""
 
+from types import SimpleNamespace
+
 import pytest
 
 from .helpers import is_supported_version
@@ -17,9 +19,17 @@ if is_supported_version:
         Activity,
         ActivityTreatmentTypes,
         Entity,
+        ResourceResponse,
     )
+    from microsoft_teams.api import ApiClient
 
+    from microsoft_agents.hosting.core import TurnContext
     from microsoft_agents.hosting.msteams import TeamsTurnContext
+
+
+class _StubAdapter:
+    async def send_activities(self, context, activities):
+        return [ResourceResponse()] * len(activities)
 
 
 class TestMakeTargetedActivity:
@@ -52,3 +62,22 @@ class TestMakeTargetedActivity:
             if getattr(e, "treatment", None) == ActivityTreatmentTypes.TARGETED
         ]
         assert len(treatments) == 2
+
+
+class TestTeamsApiClient:
+
+    def test_api_client_returns_cached_client(self):
+        activity = Activity(
+            type="message",
+            channel_id="msteams",
+            service_url="https://smba.trafficmanager.net/teams/",
+        )
+        context = TurnContext(_StubAdapter(), activity)
+        client = object.__new__(ApiClient)
+        context.services.set(ApiClient, client)
+
+        teams_context = TeamsTurnContext(
+            context, SimpleNamespace(connection_manager=object())
+        )
+
+        assert teams_context.api_client is client
