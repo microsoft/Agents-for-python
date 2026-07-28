@@ -12,7 +12,7 @@ logger = logging.getLogger(__name__)
 
 
 class _ClientSessionWrapper:
-    """ClientSession wrapper that applies propagated headers per request."""
+    """ClientSession wrapper that merges propagated headers per request."""
 
     def __init__(self, session: ClientSession):
         self._session = session
@@ -33,9 +33,12 @@ class _ClientSessionWrapper:
 
     def _apply_headers(self, headers: dict) -> None:
         """
-        Apply propagated headers to the request headers.
+        Merge propagated headers into the request headers.
 
-        :param headers: Headers to apply.
+        Explicit request headers take precedence over propagated values with the
+        same name.
+
+        :param headers: Mutable request headers to augment.
         """
         propagated_headers = HeaderPropagationContext.collect_headers()
         if propagated_headers:
@@ -47,7 +50,7 @@ class _ClientSessionWrapper:
 
     def _call_with_headers(self, method: Callable, *args, **kwargs):
         """
-        Call the specified method on the underlying session with headers applied.
+        Call the underlying session method with propagated headers merged.
 
         :param method: The HTTP method to call.
         :param args: Positional arguments for the method.
@@ -84,7 +87,7 @@ class _BaseClient:
 
     def _wrapped_client(self) -> _ClientSessionWrapper:
         """
-        Returns the wrapped client session.
+        Returns a session wrapper that merges propagated headers per request.
 
         :return: The wrapped ClientSession.
         """

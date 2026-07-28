@@ -66,7 +66,16 @@ class AttachmentsOperations(AttachmentsBase, _BaseClient):
 
     def __init__(self, client: ClientSession):
         _BaseClient.__init__(self, client)
-        self.client = self._client
+
+    @property
+    def client(self) -> ClientSession:
+        """Get the underlying aiohttp ClientSession."""
+        return self._client
+
+    @client.setter
+    def client(self, value: ClientSession):
+        """Set the underlying aiohttp ClientSession."""
+        self._client = value
 
     async def get_attachment_info(self, attachment_id: str) -> AttachmentInfo:
         """

@@ -9,14 +9,14 @@ class HeaderValueProvider(ABC):
 
     Implementations are registered per-turn via
     :class:`microsoft_agents.hosting.core.header_propagation.HeaderPropagationContext`
-    and are queried each time an outgoing connector client is built.
+    and are queried each time an outgoing connector request is prepared.
     """
 
     @abstractmethod
     def get_headers(self) -> dict[str, str]:
         """Returns the headers to inject on outgoing requests.
 
-        Called each time an outgoing connector client collects propagated
+        Called each time an outgoing connector request collects propagated
         headers.
 
         :return: A mapping of header name to header value.
