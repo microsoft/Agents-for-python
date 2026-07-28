@@ -352,7 +352,7 @@ class MockUserTokenClient(UserTokenClientBase):
 
         if key in self._exchangable_tokens:
             token = self._exchangable_tokens[key]
-            if token is _RAISE_EXCEPTION:
+            if token == _RAISE_EXCEPTION:
                 raise Exception("Simulated exception during token exchange.")
 
             return TokenResponse(
