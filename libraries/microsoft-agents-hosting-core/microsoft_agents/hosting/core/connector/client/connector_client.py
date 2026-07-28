@@ -26,6 +26,7 @@ from ..attachments_base import AttachmentsBase
 from ..conversations_base import ConversationsBase
 from ..get_product_info import get_product_info
 from ..telemetry import connector_spans as spans
+from ._base_client import _BaseClient
 
 logger = logging.getLogger(__name__)
 
@@ -61,10 +62,11 @@ def normalize_outgoing_activity(data: Any) -> Any:
     return data
 
 
-class AttachmentsOperations(AttachmentsBase):
+class AttachmentsOperations(AttachmentsBase, _BaseClient):
 
     def __init__(self, client: ClientSession):
-        self.client = client
+        _BaseClient.__init__(self, client)
+        self.client = self._client
 
     async def get_attachment_info(self, attachment_id: str) -> AttachmentInfo:
         """
@@ -81,7 +83,8 @@ class AttachmentsOperations(AttachmentsBase):
             url = f"v3/attachments/{attachment_id}"
 
             logger.info("Getting attachment info for ID: %s", attachment_id)
-            async with self.client.get(url) as response:
+
+            async with self._wrapped_client().get(url) as response:
                 span.share(http_method="GET", status_code=response.status)
 
                 if response.status >= 300:
@@ -123,7 +126,8 @@ class AttachmentsOperations(AttachmentsBase):
             logger.info(
                 "Getting attachment for ID: %s, View ID: %s", attachment_id, view_id
             )
-            async with self.client.get(url) as response:
+
+            async with self._wrapped_client().get(url) as response:
                 span.share(http_method="GET", status_code=response.status)
 
                 if response.status >= 300:
@@ -136,11 +140,21 @@ class AttachmentsOperations(AttachmentsBase):
                 return BytesIO(data)
 
 
-class ConversationsOperations(ConversationsBase):
+class ConversationsOperations(ConversationsBase, _BaseClient):
 
     def __init__(self, client: ClientSession, **kwargs):
-        self.client = client
+        _BaseClient.__init__(self, client)
         self._max_conversation_id_length = kwargs.get("max_conversation_id_length", 150)
+
+    @property
+    def client(self) -> ClientSession:
+        """Get the underlying aiohttp ClientSession."""
+        return self._client
+
+    @client.setter
+    def client(self, value: ClientSession):
+        """Set the underlying aiohttp ClientSession."""
+        self._client = value
 
     def _normalize_conversation_id(
         self, conversation_id: str, activity: Optional[Activity] = None
@@ -189,7 +203,10 @@ class ConversationsOperations(ConversationsBase):
             logger.info(
                 "Getting conversations with continuation token: %s", continuation_token
             )
-            async with self.client.get("v3/conversations", params=params) as response:
+
+            async with self._wrapped_client().get(
+                "v3/conversations", params=params
+            ) as response:
                 span.share(http_method="GET", status_code=response.status)
 
                 if response.status >= 300:
@@ -214,7 +231,8 @@ class ConversationsOperations(ConversationsBase):
         """
         with spans.ConnectorCreateConversation() as span:
             logger.info("Creating a new conversation")
-            async with self.client.post(
+
+            async with self._wrapped_client().post(
                 "v3/conversations",
                 json=body.model_dump(by_alias=True, exclude_unset=True, mode="json"),
             ) as response:
@@ -260,7 +278,7 @@ class ConversationsOperations(ConversationsBase):
                 body.type,
             )
 
-            async with self.client.post(
+            async with self._wrapped_client().post(
                 url,
                 json=body.model_dump(
                     by_alias=True, exclude_unset=True, exclude_none=True, mode="json"
@@ -320,7 +338,8 @@ class ConversationsOperations(ConversationsBase):
                 conversation_id,
                 body.type,
             )
-            async with self.client.post(
+
+            async with self._wrapped_client().post(
                 url,
                 json=body.model_dump(by_alias=True, exclude_unset=True, mode="json"),
             ) as response:
@@ -368,7 +387,8 @@ class ConversationsOperations(ConversationsBase):
                 conversation_id,
                 body.type,
             )
-            async with self.client.put(
+
+            async with self._wrapped_client().put(
                 url,
                 json=body.model_dump(by_alias=True, exclude_unset=True),
             ) as response:
@@ -405,7 +425,8 @@ class ConversationsOperations(ConversationsBase):
                 activity_id,
                 conversation_id,
             )
-            async with self.client.delete(url) as response:
+
+            async with self._wrapped_client().delete(url) as response:
                 span.share(http_method="DELETE", status_code=response.status)
 
                 if response.status >= 300:
@@ -449,7 +470,10 @@ class ConversationsOperations(ConversationsBase):
                 conversation_id,
                 body.name,
             )
-            async with self.client.post(url, json=attachment_dict) as response:
+
+            async with self._wrapped_client().post(
+                url, json=attachment_dict
+            ) as response:
                 span.share(http_method="POST", status_code=response.status)
 
                 if response.status >= 300:
@@ -487,7 +511,8 @@ class ConversationsOperations(ConversationsBase):
             logger.info(
                 "Getting conversation members for conversation: %s", conversation_id
             )
-            async with self.client.get(url) as response:
+
+            async with self._wrapped_client().get(url) as response:
                 span.share(http_method="GET", status_code=response.status)
 
                 if response.status >= 300:
@@ -528,7 +553,8 @@ class ConversationsOperations(ConversationsBase):
                 member_id,
                 conversation_id,
             )
-            async with self.client.get(url) as response:
+
+            async with self._wrapped_client().get(url) as response:
                 span.share(http_method="GET", status_code=response.status)
 
                 if response.status >= 300:
@@ -566,7 +592,8 @@ class ConversationsOperations(ConversationsBase):
             member_id,
             conversation_id,
         )
-        async with self.client.delete(url) as response:
+
+        async with self._wrapped_client().delete(url) as response:
             if response.status >= 300:
                 logger.error(
                     "Error deleting conversation member: %s",
@@ -600,7 +627,8 @@ class ConversationsOperations(ConversationsBase):
             conversation_id,
             activity_id,
         )
-        async with self.client.get(url) as response:
+
+        async with self._wrapped_client().get(url) as response:
             if response.status >= 300:
                 logger.error(
                     "Error getting activity members: %s",
@@ -648,7 +676,8 @@ class ConversationsOperations(ConversationsBase):
             page_size,
             continuation_token,
         )
-        async with self.client.get(url, params=params) as response:
+
+        async with self._wrapped_client().get(url, params=params) as response:
             if response.status >= 300:
                 logger.error(
                     "Error getting conversation paged members: %s",
@@ -681,7 +710,7 @@ class ConversationsOperations(ConversationsBase):
         url = f"v3/conversations/{conversation_id}/activities/history"
 
         logger.info("Sending conversation history to conversation: %s", conversation_id)
-        async with self.client.post(url, json=body) as response:
+        async with self._wrapped_client().post(url, json=body) as response:
             if response.status >= 300:
                 logger.error(
                     "Error sending conversation history: %s",
@@ -699,7 +728,9 @@ class ConnectorClient(ConnectorClientBase):
     ConnectorClient is a client for interacting with the Microsoft M365 Agents SDK Connector API.
     """
 
-    def __init__(self, endpoint: str, token: str, *, session: ClientSession = None):
+    def __init__(
+        self, endpoint: str, token: str, *, session: ClientSession | None = None
+    ):
         """
         Initialize a new instance of ConnectorClient.
 
@@ -714,6 +745,7 @@ class ConnectorClient(ConnectorClientBase):
             "Content-Type": "application/json",
             "User-Agent": get_product_info(),
         }
+
         # Create session with the base URL
         session = session or ClientSession(
             base_url=endpoint,

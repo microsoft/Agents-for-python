@@ -13,15 +13,27 @@ from microsoft_agents.activity import (
 )
 from ..telemetry import user_token_client_spans as spans
 from ..user_token_base import UserTokenBase
+from ._base_client import _BaseClient
 
 logger = logging.getLogger(__name__)
 
 
-class UserToken(UserTokenBase):
+class UserToken(UserTokenBase, _BaseClient):
     """Implementation of user token operations."""
 
     def __init__(self, client: ClientSession):
-        self.client = client
+        _BaseClient.__init__(self, client)
+        self.client = self._client
+
+    @property
+    def client(self) -> ClientSession:
+        """Get the underlying aiohttp ClientSession."""
+        return self._client
+
+    @client.setter
+    def client(self, value: ClientSession):
+        """Set the underlying aiohttp ClientSession."""
+        self._client = value
 
     async def get_token(
         self,
@@ -50,7 +62,7 @@ class UserToken(UserTokenBase):
             logger.info(
                 "UserToken.get_token(): Getting token with params: %s", safe_params
             )
-            async with self.client.get(
+            async with self._wrapped_client().get(
                 "api/usertoken/GetToken", params=params
             ) as response:
                 span.share(http_method="GET", status_code=response.status)
@@ -90,7 +102,7 @@ class UserToken(UserTokenBase):
             }
 
             logger.info("Getting token or sign-in resource with params: %s", params)
-            async with self.client.get(
+            async with self._wrapped_client().get(
                 "/api/usertoken/GetTokenOrSignInResource", params=params
             ) as response:
                 span.share(http_method="GET", status_code=response.status)
@@ -124,7 +136,7 @@ class UserToken(UserTokenBase):
                 params["channelId"] = channel_id
 
             logger.info("Getting AAD tokens with params: %s and body: %s", params, body)
-            async with self.client.post(
+            async with self._wrapped_client().post(
                 "api/usertoken/GetAadTokens", params=params, json=body
             ) as response:
                 span.share(http_method="POST", status_code=response.status)
@@ -157,7 +169,7 @@ class UserToken(UserTokenBase):
                 params["channelId"] = channel_id
 
             logger.info("Signing out user %s with params: %s", user_id, params)
-            async with self.client.delete(
+            async with self._wrapped_client().delete(
                 "api/usertoken/SignOut", params=params
             ) as response:
                 span.share(http_method="DELETE", status_code=response.status)
@@ -187,7 +199,7 @@ class UserToken(UserTokenBase):
             logger.info(
                 "Getting token status for user %s with params: %s", user_id, params
             )
-            async with self.client.get(
+            async with self._wrapped_client().get(
                 "api/usertoken/GetTokenStatus", params=params
             ) as response:
                 span.share(http_method="GET", status_code=response.status)
@@ -224,7 +236,7 @@ class UserToken(UserTokenBase):
                 params,
                 list(body.keys()) if isinstance(body, dict) else None,
             )
-            async with self.client.post(
+            async with self._wrapped_client().post(
                 "api/usertoken/exchange", params=params, json=body
             ) as response:
                 span.share(http_method="POST", status_code=response.status)
