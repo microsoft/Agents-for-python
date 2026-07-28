@@ -76,7 +76,7 @@ class TestClientSessionWrapper:
         assert args == ("v3/conversations",)
         assert kwargs["headers"] == {
             "X-Request": "request-value",
-            "X-Override": "propagated-value",
+            "X-Override": "request-value",
             "X-Propagated": "propagated-value",
         }
 
