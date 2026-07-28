@@ -13,9 +13,47 @@ pytestmark = pytest.mark.skipif(
 )
 
 if is_supported_version:
+    from microsoft_teams.api import ApiClient
+
+    from microsoft_agents.hosting.msteams._teams_api_client import (
+        _get_teams_api_client,
+    )
     from microsoft_agents.hosting.msteams.errors.error_resources import (
         TeamsErrorResources,
     )
+
+
+class _FakeServices:
+    def __init__(self, values=None):
+        self._values = values or {}
+
+    def get(self, key):
+        return self._values.get(key)
+
+
+class _FakeContext:
+    """Minimal stand-in exposing only the ``services`` accessor reads."""
+
+    def __init__(self, services):
+        self.services = services
+
+
+class TestGetTeamsApiClient:
+
+    def test_returns_cached_api_client(self):
+        client = ApiClient("https://smba.trafficmanager.net/teams/")
+        ctx = _FakeContext(_FakeServices({ApiClient: client}))
+        assert _get_teams_api_client(ctx) is client
+
+    def test_raises_when_missing(self):
+        ctx = _FakeContext(_FakeServices())
+        with pytest.raises(ValueError, match="Teams API client"):
+            _get_teams_api_client(ctx)
+
+    def test_raises_when_wrong_type(self):
+        ctx = _FakeContext(_FakeServices({ApiClient: object()}))
+        with pytest.raises(ValueError, match="Teams API client"):
+            _get_teams_api_client(ctx)
 
 
 class TestTeamsErrorResources:

@@ -57,7 +57,10 @@ from ._graph import (
     _common_get_app_graph_client_for_connection,
 )
 
-from ._teams_api_client import _set_teams_api_client
+from ._teams_api_client import (
+    _get_teams_api_client,
+    _set_teams_api_client,
+)
 from ._utils import _try_get_channel_data
 
 from .teams_activity import TeamsActivity
@@ -121,6 +124,7 @@ class TeamsAgentExtension(Generic[StateT]):
 
         async def on_before_turn(context: TurnContext, state: StateT) -> bool:
             if context.activity.channel_id == Channels.ms_teams:
+                _set_teams_api_client(context, self._app.connection_manager)
                 # caches the deserialized version of ChannelData
                 context.activity.channel_data = _try_get_channel_data(context.activity)
             return True
@@ -297,10 +301,7 @@ class TeamsAgentExtension(Generic[StateT]):
 
         :return: The Teams API client.
         """
-        api_client = context.services.get(ApiClient)
-        if not api_client:
-            return _set_teams_api_client(context, self._app.connection_manager)
-        return api_client
+        return _get_teams_api_client(context)
 
     def get_graph_client(
         self,

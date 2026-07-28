@@ -12,8 +12,10 @@ from aiohttp.test_utils import TestServer
 from microsoft_agents.activity import Activity, Channels, ResourceResponse, RoleTypes
 from microsoft_agents.activity.channel_account import ChannelAccount
 from microsoft_agents.hosting.core.connector.client.connector_client import (
+    ConnectorClient,
     ConversationsOperations,
 )
+from microsoft_agents.hosting.core.header_propagation import HeaderPropagationContext
 
 
 def _create_app(routes):
@@ -21,6 +23,21 @@ def _create_app(routes):
     app = web.Application()
     app.router.add_routes(routes)
     return app
+
+
+class _HeaderProvider:
+    def __init__(self, headers: dict[str, str]):
+        self.headers = headers
+
+    def get_headers(self) -> dict[str, str]:
+        return dict(self.headers)
+
+
+@pytest.fixture(autouse=True)
+def reset_header_propagation_context():
+    HeaderPropagationContext.reset()
+    yield
+    HeaderPropagationContext.reset()
 
 
 class TestSendToConversation:
@@ -72,6 +89,42 @@ class TestSendToConversation:
             assert isinstance(result, ResourceResponse)
             assert result.id is None
         finally:
+            await server.close()
+
+
+class TestConnectorClientHeaderPropagation:
+    """Tests propagated headers through a full ConnectorClient operation."""
+
+    @pytest.mark.asyncio
+    async def test_send_to_conversation_uses_headers_registered_after_client_creation(
+        self,
+    ):
+        captured = {}
+
+        async def handler(request):
+            captured["headers"] = request.headers
+            return web.json_response({"id": "activity-id-123"})
+
+        app = _create_app(
+            [web.post("/v3/conversations/{conversation_id}/activities", handler)]
+        )
+        server = TestServer(app)
+        await server.start_server()
+
+        client = ConnectorClient(str(server.make_url("/")), token="")
+        try:
+            HeaderPropagationContext.register(
+                _HeaderProvider({"X-Agentic-Test": "propagated"})
+            )
+
+            result = await client.conversations.send_to_conversation(
+                "conv-1", Activity(type="message", text="hello")
+            )
+
+            assert result.id == "activity-id-123"
+            assert captured["headers"]["X-Agentic-Test"] == "propagated"
+        finally:
+            await client.close()
             await server.close()
 
 

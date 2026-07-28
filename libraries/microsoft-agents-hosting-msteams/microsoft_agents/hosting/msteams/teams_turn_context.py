@@ -28,7 +28,7 @@ from ._graph import (
     _common_get_app_graph_client,
     _common_get_app_graph_client_for_connection,
 )
-from ._teams_api_client import _set_teams_api_client
+from ._teams_api_client import _get_teams_api_client, _set_teams_api_client
 from .teams_activity import TeamsActivity
 
 
@@ -96,10 +96,7 @@ class TeamsTurnContext(TurnContext):
     @property
     def api_client(self) -> ApiClient:
         """Get the API client for the Teams turn context."""
-        api_client = self._services.get(ApiClient)
-        if not api_client:
-            return _set_teams_api_client(self, self._app.connection_manager)
-        return api_client
+        return _get_teams_api_client(self)
 
     @staticmethod
     def _make_targeted_activity(activity: Activity) -> None:

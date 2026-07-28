@@ -17,9 +17,23 @@ from microsoft_agents.hosting.core import (
 )
 
 
+def _get_teams_api_client(context: TurnContext) -> ApiClient:
+    """
+    Get the cached Teams API client from the context.
+
+    :param context: The turn context.
+    :return: The cached Teams API client.
+    :raises ValueError: If the Teams API client is not found.
+    """
+    api_client = context.services.get(ApiClient)
+    if isinstance(api_client, ApiClient):
+        return api_client
+    raise ValueError("Unable to retrieve Teams API client.")
+
+
 def _set_teams_api_client(
     context: TurnContext, connection_manager: Connections
-) -> ApiClient:
+) -> None:
     """
     Set the Teams API client in the context if it is not already set.
 
@@ -27,9 +41,8 @@ def _set_teams_api_client(
     :param connection_manager: The connection manager.
     """
 
-    api_client = context.services.get(ApiClient)
-    if api_client is not None:
-        return api_client
+    if context.services.has(ApiClient):
+        return
 
     headers = {
         "Accept": "application/json",
@@ -61,4 +74,3 @@ def _set_teams_api_client(
     )
 
     context.services.set(ApiClient, api_client)
-    return api_client
