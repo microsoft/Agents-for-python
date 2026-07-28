@@ -39,7 +39,8 @@ class _ClientSessionWrapper:
         """
         propagated_headers = HeaderPropagationContext.collect_headers()
         if propagated_headers:
-            headers.update(propagated_headers)
+            for name, value in propagated_headers.items():
+                headers.setdefault(name, value)
             logger.debug(
                 "Applying propagated headers: %s", list(propagated_headers.keys())
             )
