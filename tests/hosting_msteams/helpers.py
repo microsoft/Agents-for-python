@@ -15,6 +15,8 @@ from microsoft_agents.hosting.core.app import AgentApplication, RouteRank
 is_supported_version = sys.version_info >= (3, 11)
 
 if is_supported_version:
+    from microsoft_teams.api import ApiClient
+
     from microsoft_agents.hosting.msteams.teams_turn_context import TeamsTurnContext
 
 
@@ -84,8 +86,13 @@ def _make_context(
     activity.members_removed = members_removed
 
     context = TurnContext(_FakeAdapter(), activity, MagicMock())
+    _cache_teams_api_client(context)
     context.send_activity = AsyncMock()
     return context
+
+
+def _cache_teams_api_client(context: TurnContext) -> None:
+    context.services.set(ApiClient, object.__new__(ApiClient))
 
 
 def _make_teams_context() -> "TeamsTurnContext":
