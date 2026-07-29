@@ -4,23 +4,22 @@
 """Base HTTP adapter with shared processing logic."""
 
 from abc import ABC
-from traceback import format_exc
 from http import HTTPStatus
+from traceback import format_exc
 
 from microsoft_agents.activity import Activity, DeliveryModes
-from microsoft_agents.hosting.core.authorization import ClaimsIdentity, Connections
-from microsoft_agents.hosting.core import (
-    Agent,
-    ChannelServiceAdapter,
-    ChannelServiceClientFactoryBase,
-    MessageFactory,
-    RestChannelServiceClientFactory,
-    TurnContext,
-)
 from microsoft_agents.hosting.core.telemetry.adapter import spans
 
-from ._http_request_protocol import HttpRequestProtocol
-from ._http_response import HttpResponse, HttpResponseFactory
+from .agent import Agent
+from .authorization.claims_identity import ClaimsIdentity
+from .authorization.connections import Connections
+from .channel_service_adapter import ChannelServiceAdapter
+from .channel_service_client_factory_base import ChannelServiceClientFactoryBase
+from .http._http_request_protocol import HttpRequestProtocol
+from .http._http_response import HttpResponse, HttpResponseFactory
+from .message_factory import MessageFactory
+from .rest_channel_service_client_factory import RestChannelServiceClientFactory
+from .turn_context import TurnContext
 
 
 class HttpAdapterBase(ChannelServiceAdapter, ABC):

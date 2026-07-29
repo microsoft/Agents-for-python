@@ -9,8 +9,8 @@ from dataclasses import dataclass
 
 from jwt import PyJWKClient, PyJWK, decode, get_unverified_header
 
-from .agent_auth_configuration import AgentAuthConfiguration
-from .claims_identity import ClaimsIdentity
+from ..agent_auth_configuration import AgentAuthConfiguration
+from ..claims_identity import ClaimsIdentity
 
 logger = logging.getLogger(__name__)
 

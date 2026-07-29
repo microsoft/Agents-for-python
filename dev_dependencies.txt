@@ -1,5 +1,6 @@
 pytest
 pytest-asyncio
+pytest-aiohttp
 pytest-mock
 pre-commit
 click

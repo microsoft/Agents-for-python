@@ -50,7 +50,13 @@ from .route_handlers import (
 from .task_module import TaskModule
 from .team import Team
 
-from ._graph import _create_graph_service_client
+from ._graph import (
+    _DEFAULT_GRAPH_BASE_URL,
+    _create_user_graph_service_client,
+    _common_get_app_graph_client,
+    _common_get_app_graph_client_for_connection,
+)
+
 from ._teams_api_client import (
     _get_teams_api_client,
     _set_teams_api_client,
@@ -298,12 +304,44 @@ class TeamsAgentExtension(Generic[StateT]):
         return _get_teams_api_client(context)
 
     def get_graph_client(
-        self, context: TurnContext, handler_name: str | None = None
+        self,
+        context: TurnContext,
+        handler_name: str | None = None,
+        graph_base_url: str = _DEFAULT_GRAPH_BASE_URL,
     ) -> GraphServiceClient:
         """Get the Graph Service client.
 
         :param context: The turn context.
         :param handler_name: The name of the handler.
+        :param graph_base_url: The base URL for the Microsoft Graph API.
         :return: The Graph Service client.
         """
-        return _create_graph_service_client(self._app, context, handler_name)
+        return _create_user_graph_service_client(
+            self._app, context, handler_name, graph_base_url=graph_base_url
+        )
+
+    def get_app_graph_client(
+        self, context: TurnContext, graph_base_url: str = _DEFAULT_GRAPH_BASE_URL
+    ) -> GraphServiceClient:
+        """Get the Graph Service client for the agent application.
+
+        :param context: The turn context.
+        :param graph_base_url: The base URL for the Microsoft Graph API.
+        :return: The Graph Service client.
+        """
+        return _common_get_app_graph_client(
+            self._app, context, graph_base_url=graph_base_url
+        )
+
+    def get_app_graph_client_for_connection(
+        self, connection_name: str, graph_base_url: str = _DEFAULT_GRAPH_BASE_URL
+    ) -> GraphServiceClient:
+        """Get the Graph Service client for the agent application using a specific connection.
+
+        :param connection_name: The name of the connection to use for authentication.
+        :param graph_base_url: The base URL for the Microsoft Graph API.
+        :return: The Graph Service client.
+        """
+        return _common_get_app_graph_client_for_connection(
+            self._app, connection_name=connection_name, graph_base_url=graph_base_url
+        )

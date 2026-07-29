@@ -12,11 +12,13 @@ from typing import Callable, Union, Awaitable
 from microsoft_agents.activity import (
     Activity,
     ActivityTypes,
+    TokenExchangeRequest,
     TokenResponse,
     SignInResource,
     TokenOrSignInResourceResponse,
+    TokenStatus,
 )
-from microsoft_agents.hosting.core import ChannelAdapter, TurnContext
+from microsoft_agents.hosting.core import TurnContext, UserTokenClientBase
 from microsoft_agents.hosting.core.authorization import ClaimsIdentity
 from tests._common.testing_objects import MockTestingAdapter
 
@@ -71,7 +73,14 @@ class _MockUserToken:
         return None
 
     async def _get_token_or_sign_in_resource(
-        self, user_id, connection_name, channel_id, state, *_
+        self,
+        user_id,
+        connection_name,
+        channel_id,
+        state,
+        code="",
+        final_redirect="",
+        fwd_url="",
     ):
         key = self._key(connection_name, channel_id, user_id)
         entry = self._store.get(key)
@@ -111,10 +120,97 @@ class DialogUserTokenClient:
         self._store = {}
         self._exchange_store = {}
         self._throw_on_exchange = {}
-        self.user_token = _MockUserToken(
+        self._user_token = _MockUserToken(
             self._store, self._exchange_store, self._throw_on_exchange
         )
-        self.agent_sign_in = _MockAgentSignIn()
+        self._agent_sign_in = _MockAgentSignIn()
+
+    @property
+    def user_token(self) -> _MockUserToken:
+        return self._user_token
+
+    @property
+    def agent_sign_in(self) -> _MockAgentSignIn:
+        return self._agent_sign_in
+
+    async def close(self) -> None:
+        return None
+
+    async def get_user_token(
+        self,
+        user_id: str,
+        connection_name: str,
+        channel_id: str,
+        magic_code: str | None = None,
+    ) -> TokenResponse:
+        return await self.user_token.get_token(
+            user_id, connection_name, channel_id, code=magic_code
+        )
+
+    async def get_sign_in_resource(
+        self,
+        connection_name: str,
+        activity: Activity,
+        final_redirect: str | None = None,
+    ) -> SignInResource:
+        return await self.agent_sign_in.get_sign_in_resource()
+
+    async def sign_out_user(
+        self, user_id: str, connection_name: str, channel_id: str
+    ) -> None:
+        return await self.user_token.sign_out(user_id, connection_name, channel_id)
+
+    async def get_token_status(
+        self,
+        user_id: str,
+        channel_id: str,
+        include: str | None = None,
+    ) -> list[TokenStatus]:
+        return []
+
+    async def get_aad_tokens(
+        self,
+        user_id: str,
+        connection_name: str,
+        resource_urls: list[str],
+        channel_id: str,
+    ) -> dict[str, TokenResponse]:
+        token_response = await self.get_user_token(user_id, connection_name, channel_id)
+        if not token_response:
+            return {}
+        return {resource_url: token_response for resource_url in resource_urls}
+
+    async def exchange_token(
+        self,
+        user_id: str,
+        connection_name: str,
+        channel_id: str,
+        exchange_request: TokenExchangeRequest,
+    ) -> TokenResponse:
+        return await self.user_token.exchange_token(
+            user_id,
+            connection_name,
+            channel_id,
+            body=exchange_request.model_dump(exclude_none=True),
+        )
+
+    async def get_token_or_sign_in_resource(
+        self,
+        connection_name: str,
+        activity: Activity,
+        code: str | None = None,
+        final_redirect: str | None = None,
+        fwd_url: str | None = None,
+    ) -> TokenOrSignInResourceResponse:
+        return await self.user_token._get_token_or_sign_in_resource(
+            activity.from_property.id,
+            connection_name,
+            activity.channel_id,
+            "",
+            code or "",
+            final_redirect or "",
+            fwd_url or "",
+        )
 
     def add_user_token(
         self,
@@ -210,7 +306,7 @@ class DialogTestAdapter(MockTestingAdapter):
     """
     A test adapter compatible with the botbuilder TestAdapter API.
     Provides send() and assert_reply() methods for fluent test flows.
-    Also provides a proper UserTokenClient in turn_state for OAuthPrompt tests.
+    Also provides a proper UserTokenClient service for OAuthPrompt tests.
     """
 
     def __init__(self, callback: AgentCallbackHandler = None, **kwargs):
@@ -218,7 +314,7 @@ class DialogTestAdapter(MockTestingAdapter):
         self._callback = callback
         # Dialog-specific token client that implements the user_token API
         self._dialog_token_client = DialogUserTokenClient()
-        # OAuthPrompt reads claims["aud"] from the identity in turn_state
+        # OAuthPrompt reads claims["aud"] from the turn context identity.
         self.claims_identity = ClaimsIdentity({"aud": "test-app-id"}, True)
 
     def add_user_token(
@@ -269,17 +365,12 @@ class DialogTestAdapter(MockTestingAdapter):
         self, activity: Activity, identity: ClaimsIdentity = None
     ) -> TurnContext:
         """
-        Creates a turn context with the dialog token client in turn_state
+        Creates a turn context with the dialog token client service
         so OAuthPrompt can find it via _UserTokenAccess.
         """
         turn_context = super().create_turn_context(activity, identity)
-        turn_context.turn_state[ChannelAdapter.USER_TOKEN_CLIENT_KEY] = (
-            self._dialog_token_client
-        )
-        # OAuthPrompt reads claims["aud"] from this identity
-        turn_context.turn_state[ChannelAdapter.AGENT_IDENTITY_KEY] = (
-            identity or self.claims_identity
-        )
+        turn_context.services.set(UserTokenClientBase, self._dialog_token_client)
+        turn_context._identity = identity or self.claims_identity
         return turn_context
 
     def make_activity(self, text: str = None) -> Activity:

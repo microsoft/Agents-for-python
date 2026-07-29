@@ -12,7 +12,9 @@ from microsoft_agents.activity import (
     ConversationParameters,
     Transcript,
 )
-from microsoft_agents.hosting.core import ChannelApiHandlerProtocol
+from microsoft_agents.hosting.core.channel_api_handler_protocol import (
+    ChannelApiHandlerProtocol,
+)
 
 from ._http_request_protocol import HttpRequestProtocol
 

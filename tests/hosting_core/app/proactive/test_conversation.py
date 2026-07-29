@@ -86,7 +86,7 @@ class TestConversationFromTurnContext:
         ref = _make_reference("ctx-conv")
         ctx = MagicMock()
         ctx.activity.get_conversation_reference.return_value = ref
-        ctx.turn_state = {}
+        ctx.identity = None
 
         conv = Conversation.from_turn_context(ctx)
 

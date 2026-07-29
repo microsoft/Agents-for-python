@@ -11,7 +11,7 @@ from queue import Queue
 from typing import Awaitable, Callable, Optional
 from dataclasses import dataclass
 
-from microsoft_agents.activity import Activity, ChannelAccount
+from microsoft_agents.activity import Activity, ChannelAccount, ResourceResponse
 from microsoft_agents.activity.activity import ConversationReference
 from microsoft_agents.activity.activity_types import ActivityTypes
 from microsoft_agents.activity.conversation_reference import ActivityEventNames
@@ -139,8 +139,8 @@ class TranscriptLoggerMiddleware(Middleware):
         async def send_activities_handler(
             ctx: TurnContext,
             activities: list[Activity],
-            next_send: Callable[[], Awaitable[None]],
-        ):
+            next_send: Callable[[], Awaitable[list[ResourceResponse]]],
+        ) -> list[ResourceResponse]:
             # Run full pipeline
             responses = await next_send()
             for index, activity in enumerate(activities):

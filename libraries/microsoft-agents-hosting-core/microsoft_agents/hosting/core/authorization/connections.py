@@ -4,6 +4,8 @@
 from abc import abstractmethod
 from typing import Protocol
 
+from microsoft_agents.activity import Activity
+
 from .agent_auth_configuration import AgentAuthConfiguration
 from .access_token_provider_base import AccessTokenProviderBase
 from .claims_identity import ClaimsIdentity
@@ -39,6 +41,19 @@ class Connections(Protocol):
 
         :param claims_identity: The claims identity of the agent.
         :param service_url: The service URL for which to get the token provider.
+        :return: The access token provider for the agent.
+        """
+        raise NotImplementedError()
+
+    @abstractmethod
+    def get_token_provider_from_activity(
+        self, claims_identity: ClaimsIdentity, activity: Activity
+    ) -> AccessTokenProviderBase:
+        """
+        Get the OAuth token provider for the agent from an activity.
+
+        :param claims_identity: The claims identity of the agent.
+        :param activity: The activity from which to get the token provider.
         :return: The access token provider for the agent.
         """
         raise NotImplementedError()

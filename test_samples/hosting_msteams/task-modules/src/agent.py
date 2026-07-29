@@ -35,7 +35,6 @@ from microsoft_agents.hosting.msteams.teams_turn_context import TeamsTurnContext
 
 from .card_loader import load_card_json
 
-logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 load_dotenv()
 

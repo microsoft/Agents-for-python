@@ -1,3 +1,6 @@
+# Copyright (c) Microsoft Corporation. All rights reserved.
+# Licensed under the MIT License.
+
 from typing import Optional
 from aiohttp.web import Request, Response
 from microsoft_agents.hosting.core import error_resources

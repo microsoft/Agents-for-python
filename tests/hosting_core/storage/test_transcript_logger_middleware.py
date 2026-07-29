@@ -6,12 +6,12 @@ import os
 from microsoft_agents.activity import Activity, ActivityEventNames, ActivityTypes
 from microsoft_agents.hosting.core.authorization.claims_identity import ClaimsIdentity
 from microsoft_agents.hosting.core.middleware_set import TurnContext
-from microsoft_agents.hosting.core.storage.transcript_logger import (
+from microsoft_agents.hosting.core.storage.transcript.transcript_logger import (
     ConsoleTranscriptLogger,
     FileTranscriptLogger,
     TranscriptLoggerMiddleware,
 )
-from microsoft_agents.hosting.core.storage.transcript_memory_store import (
+from microsoft_agents.hosting.core.storage.transcript.transcript_memory_store import (
     TranscriptMemoryStore,
 )
 import pytest

@@ -29,7 +29,7 @@ from microsoft_agents.hosting.core.authorization import ClaimsIdentity
 from microsoft_agents.hosting.core._oauth._flow_state import _FlowErrorTag
 from microsoft_agents.hosting.core.card_factory import CardFactory
 from microsoft_agents.hosting.core.message_factory import MessageFactory
-from microsoft_agents.hosting.core.connector.client import UserTokenClient
+from microsoft_agents.hosting.core.connector import UserTokenClientBase
 from microsoft_agents.hosting.core.turn_context import TurnContext
 from microsoft_agents.hosting.core._oauth import (
     _OAuthFlow,
@@ -67,13 +67,10 @@ class _UserAuthorization(_AuthorizationHandler):
             context and the specified auth handler.
         :rtype: tuple[OAuthFlow, FlowStorageClient]
         """
-        user_token_client = cast(
-            UserTokenClient | None,
-            context.turn_state.get(context.adapter.USER_TOKEN_CLIENT_KEY),
-        )
+        user_token_client = context.services.get(UserTokenClientBase)
         if not user_token_client:
             raise ValueError(
-                "UserTokenClient is required in TurnState for OAuth flow handling."
+                "UserTokenClientBase service is not available in the context"
             )
 
         if (
@@ -86,15 +83,11 @@ class _UserAuthorization(_AuthorizationHandler):
         channel_id = context.activity.channel_id
         user_id = context.activity.from_property.id
 
-        identity = cast(
-            ClaimsIdentity | None,
-            context.turn_state.get(context.adapter.AGENT_IDENTITY_KEY),
-        )
-        if not identity or "aud" not in identity.claims:
+        identity = context.identity
+        if identity is None:
             raise ValueError(
-                "ClaimsIdentity with 'aud' claim is required in TurnState for OAuth flow handling."
+                "ClaimsIdentity is required on TurnContext for OAuth flow."
             )
-
         ms_app_id = identity.claims["aud"]
 
         # try to load existing state

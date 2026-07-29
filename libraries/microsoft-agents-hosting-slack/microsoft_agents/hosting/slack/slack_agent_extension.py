@@ -24,8 +24,6 @@ StateT = TypeVar("StateT", bound=TurnState)
 
 TextSelector = str | Pattern[str] | None
 
-_SLACK_API_SERVICE_KEY = "microsoft_agents.hosting.slack.SlackApi"
-
 
 def _matches_text(selector: TextSelector, text: Optional[str]) -> bool:
     if selector is None:
@@ -94,8 +92,8 @@ class SlackAgentExtension(Generic[StateT]):
         """Invoke a Slack Web API method, preferring a per-turn :class:`SlackApi`
         if one has been cached on ``turn_context.services``."""
         api = self._slack_api
-        if turn_context is not None and turn_context.has(_SLACK_API_SERVICE_KEY):
-            api = turn_context.get(_SLACK_API_SERVICE_KEY)  # type: ignore[assignment]
+        if turn_context is not None and turn_context.services.has(SlackApi):
+            api = turn_context.services.get(SlackApi)
         return await api.call(method, options, token)
 
     async def create_stream(
@@ -111,8 +109,8 @@ class SlackAgentExtension(Generic[StateT]):
             )
         resolved_thread_ts = thread_ts or channel_data.envelope.get("event.ts")
         api = self._slack_api
-        if turn_context.has(_SLACK_API_SERVICE_KEY):
-            api = turn_context.get(_SLACK_API_SERVICE_KEY)  # type: ignore[assignment]
+        if turn_context.services.has(SlackApi):
+            api = turn_context.services.get(SlackApi)
         stream = SlackStream(
             api,
             channel_data.envelope.get("event.channel"),

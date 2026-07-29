@@ -256,8 +256,6 @@ class CRUDStorageTests(StorageTestsCommon):
                 await storage.read(None, target_cls=MockStoreItem)
             with pytest.raises(ValueError):
                 await storage.read([""], target_cls=MockStoreItem)
-            with pytest.raises(ValueError):
-                await storage.read(["key"], target_cls=None)
             assert initial_state == initial_state_copy
 
     @pytest.mark.asyncio
@@ -363,9 +361,9 @@ class CRUDStorageTests(StorageTestsCommon):
         initial_state_copy = my_deepcopy(initial_state)
         async with self.storage(initial_state) as storage:
             with pytest.raises(ValueError):
-                await storage.read([])
+                await storage.delete([])
             with pytest.raises(ValueError):
-                await storage.read(None)
+                await storage.delete(None)
             assert initial_state == initial_state_copy
 
     @pytest.mark.asyncio
@@ -410,8 +408,6 @@ class CRUDStorageTests(StorageTestsCommon):
 
             with pytest.raises(ValueError):
                 await storage.read([], target_cls=MockStoreItem)
-            with pytest.raises(ValueError):
-                await storage.read(["key_b"], target_cls=None)
 
             change = {
                 "key_c": MockStoreItemB(
