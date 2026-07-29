@@ -7,15 +7,26 @@ from aiohttp import ClientSession
 from microsoft_agents.activity import SignInResource
 from ..telemetry import user_token_client_spans as spans
 from ..agent_sign_in_base import AgentSignInBase
+from ._base_client import _BaseClient
 
 logger = logging.getLogger(__name__)
 
 
-class AgentSignIn(AgentSignInBase):
+class AgentSignIn(AgentSignInBase, _BaseClient):
     """Implementation of agent sign-in operations."""
 
     def __init__(self, client: ClientSession):
-        self.client = client
+        _BaseClient.__init__(self, client)
+
+    @property
+    def client(self) -> ClientSession:
+        """Get the underlying aiohttp ClientSession."""
+        return self._client
+
+    @client.setter
+    def client(self, value: ClientSession):
+        """Set the underlying aiohttp ClientSession."""
+        self._client = value
 
     async def get_sign_in_url(
         self,
@@ -45,7 +56,8 @@ class AgentSignIn(AgentSignInBase):
             "AgentSignIn.get_sign_in_url(): Getting sign-in URL with params: %s",
             params,
         )
-        async with self.client.get(
+
+        async with self._wrapped_client().get(
             "api/agentsignin/getSignInUrl", params=params
         ) as response:
             if response.status >= 300:
@@ -83,7 +95,8 @@ class AgentSignIn(AgentSignInBase):
                 "AgentSignIn.get_sign_in_resource(): Getting sign-in resource with params: %s",
                 params,
             )
-            async with self.client.get(
+
+            async with self._wrapped_client().get(
                 "api/botsignin/getSignInResource", params=params
             ) as response:
                 span.share(http_method="GET", status_code=response.status)
