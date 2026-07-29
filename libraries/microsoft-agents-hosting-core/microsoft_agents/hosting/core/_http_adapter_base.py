@@ -107,8 +107,10 @@ class HttpAdapterBase(ChannelServiceAdapter, ABC):
             span.share(activity=activity)
 
             # Get claims identity (default to anonymous if not set by middleware)
-            claims_identity: ClaimsIdentity = (
-                request.get_claims_identity() or ClaimsIdentity({}, False)
+            claims_identity: (
+                ClaimsIdentity
+            ) = request.get_claims_identity() or ClaimsIdentity(
+                {}, False, authentication_type="Anonymous"
             )
 
             # Validate required activity fields
