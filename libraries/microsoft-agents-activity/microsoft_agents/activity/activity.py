@@ -545,13 +545,15 @@ class Activity(AgentsModel):
         self.suggested_actions = suggested_actions
         return self
 
-    def add_text(self, text: str) -> None:
+    def add_text(self, text: str) -> Self:
         """
         Appends text to the existing text content of the activity.
 
         :param text: The text to append to the activity's text.
+        :returns: This activity, to allow for method chaining.
         """
         self.text = (self.text or "") + text
+        return self
 
     def add_attachment(self, *attachments: Attachment) -> Self:
         """
