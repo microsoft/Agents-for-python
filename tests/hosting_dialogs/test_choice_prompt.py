@@ -26,7 +26,7 @@ from microsoft_agents.hosting.dialogs.prompts import (
     PromptOptions,
     PromptValidatorContext,
 )
-from microsoft_agents.activity import Activity, ActivityTypes
+from microsoft_agents.activity import Activity, ActivityTypes, ContentTypes
 from tests.hosting_dialogs.helpers import DialogTestAdapter
 
 _color_choices: List[Choice] = [
@@ -833,10 +833,7 @@ class TestChoicePrompt:
             activity: Activity, description
         ):  # pylint: disable=unused-argument
             assert len(activity.attachments) == 1
-            assert (
-                activity.attachments[0].content_type
-                == CardFactory.content_types.hero_card
-            )
+            assert activity.attachments[0].content_type == ContentTypes.hero_card
             assert activity.attachments[0].content.text == "Please choose a size."
             return True
 
@@ -892,14 +889,8 @@ class TestChoicePrompt:
             activity: Activity, description
         ):  # pylint: disable=unused-argument
             assert len(activity.attachments) == 2
-            assert (
-                activity.attachments[0].content_type
-                == CardFactory.content_types.adaptive_card
-            )
-            assert (
-                activity.attachments[1].content_type
-                == CardFactory.content_types.hero_card
-            )
+            assert activity.attachments[0].content_type == ContentTypes.adaptive_card
+            assert activity.attachments[1].content_type == ContentTypes.hero_card
             return True
 
         convo_state = ConversationState(MemoryStorage())

@@ -8,12 +8,12 @@ from microsoft_agents.activity import (
     ActivityTypes,
     ChannelAccount,
     ConversationAccount,
+    ContentTypes,
     InputHints,
     SignInConstants,
     TokenResponse,
 )
 from microsoft_agents.hosting.core import (
-    CardFactory,
     ConversationState,
     MemoryStorage,
     TurnContext,
@@ -76,10 +76,7 @@ class TestOAuthPrompt:
 
         async def inspector(activity: Activity, description: str = None):
             assert len(activity.attachments) == 1
-            assert (
-                activity.attachments[0].content_type
-                == CardFactory.content_types.oauth_card
-            )
+            assert activity.attachments[0].content_type == ContentTypes.oauth_card
 
             adapter.add_user_token(
                 connection_name, activity.channel_id, activity.recipient.id, token
@@ -133,10 +130,7 @@ class TestOAuthPrompt:
 
         def inspector(activity: Activity, description: str = None):
             assert len(activity.attachments) == 1
-            assert (
-                activity.attachments[0].content_type
-                == CardFactory.content_types.oauth_card
-            )
+            assert activity.attachments[0].content_type == ContentTypes.oauth_card
             adapter.add_user_token(
                 connection_name,
                 activity.channel_id,
@@ -184,10 +178,7 @@ class TestOAuthPrompt:
 
         def inspector(activity: Activity, description: str = None):
             assert len(activity.attachments) == 1
-            assert (
-                activity.attachments[0].content_type
-                == CardFactory.content_types.oauth_card
-            )
+            assert activity.attachments[0].content_type == ContentTypes.oauth_card
 
         step1 = await adapter.send(magic_code)
         await step1.assert_reply(inspector)
@@ -264,10 +255,7 @@ class TestOAuthPrompt:
 
         def inspector(activity: Activity, description: str = None):
             assert len(activity.attachments) == 1
-            assert (
-                activity.attachments[0].content_type
-                == CardFactory.content_types.oauth_card
-            )
+            assert activity.attachments[0].content_type == ContentTypes.oauth_card
             adapter.add_user_token(
                 connection_name,
                 activity.channel_id,
@@ -345,10 +333,7 @@ class TestOAuthPrompt:
 
         def inspector(activity_: Activity, description: str = None):
             assert len(activity_.attachments) == 1
-            assert (
-                activity_.attachments[0].content_type
-                == CardFactory.content_types.oauth_card
-            )
+            assert activity_.attachments[0].content_type == ContentTypes.oauth_card
             adapter.add_user_token(
                 connection_name,
                 activity_.channel_id,
