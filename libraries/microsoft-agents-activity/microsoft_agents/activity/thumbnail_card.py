@@ -1,13 +1,19 @@
 # Copyright (c) Microsoft Corporation. All rights reserved.
 # Licensed under the MIT License.
 
+from typing import overload
+
+from .action_types import ActionTypes
+from .attachment import Attachment
+from .card import Card
 from .card_image import CardImage
 from .card_action import CardAction
-from .agents_model import AgentsModel
+from .content_types import ContentTypes
+from ._model_utils import pick_model, SkipNone
 from ._type_aliases import NonEmptyString
 
 
-class ThumbnailCard(AgentsModel):
+class ThumbnailCard(Card):
     """A thumbnail card (card with a single, small thumbnail image).
 
     :param title: Title of the card
@@ -31,3 +37,101 @@ class ThumbnailCard(AgentsModel):
     images: list[CardImage] = None
     buttons: list[CardAction] = None
     tap: CardAction = None
+
+    def to_attachment(self) -> Attachment:
+        """
+        Creates a new Attachment that wraps this card.
+
+        :returns: The generated attachment.
+        """
+        return Attachment(content_type=ContentTypes.thumbnail_card, content=self)
+
+    @overload
+    def add_image(self, image: CardImage) -> "ThumbnailCard": ...
+
+    @overload
+    def add_image(
+        self, *, url: NonEmptyString, alt: NonEmptyString | None = None
+    ) -> "ThumbnailCard": ...
+
+    def add_image(
+        self,
+        image: CardImage | None = None,
+        *,
+        url: NonEmptyString | None = None,
+        alt: NonEmptyString | None = None,
+    ) -> "ThumbnailCard":
+        """
+        Adds an image and returns this card.
+
+        :param image: The image to add.
+        :param url: The URL of the image, used when no image instance is provided.
+        :param alt: The alternate text for the image built from a URL.
+        :returns: This card, to allow for method chaining.
+        """
+        if image is None:
+            if url is None:
+                raise ValueError(
+                    "Either provide a CardImage instance or the url parameter."
+                )
+            image = pick_model(CardImage, url=url, alt=SkipNone(alt))
+
+        self.images = self.images or []
+        self.images.append(image)
+        return self
+
+    @overload
+    def add_button(self, button: CardAction) -> "ThumbnailCard": ...
+
+    @overload
+    def add_button(
+        self,
+        *,
+        title: NonEmptyString,
+        card_type: NonEmptyString = ActionTypes.im_back,
+        value: object | None = None,
+    ) -> "ThumbnailCard": ...
+
+    def add_button(
+        self,
+        button: CardAction | None = None,
+        *,
+        title: NonEmptyString | None = None,
+        card_type: NonEmptyString = ActionTypes.im_back,
+        value: object | None = None,
+    ) -> "ThumbnailCard":
+        """
+        Adds a button and returns this card.
+
+        :param button: The button to add.
+        :param title: The title of the button, used when no button instance is provided.
+        :param card_type: The action type of the button built from a title.
+        :param value: The value of the button built from a title. Defaults to the title.
+        :returns: This card, to allow for method chaining.
+        """
+        if button is None:
+            if title is None:
+                raise ValueError(
+                    "Either provide a CardAction instance or the title parameter."
+                )
+            button = CardAction(
+                type=card_type, title=title, value=value if value is not None else title
+            )
+
+        self.buttons = self.buttons or []
+        self.buttons.append(button)
+        return self
+
+    def add_buttons(self, *buttons: CardAction) -> "ThumbnailCard":
+        """
+        Adds one or more buttons and returns this card.
+
+        :param buttons: The buttons to add.
+        :returns: This card, to allow for method chaining.
+        """
+        if not buttons:
+            return self
+
+        self.buttons = self.buttons or []
+        self.buttons.extend(buttons)
+        return self
