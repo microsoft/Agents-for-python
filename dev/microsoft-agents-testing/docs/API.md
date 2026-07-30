@@ -2,7 +2,8 @@
 
 ```python
 from microsoft_agents.testing import (
-    AiohttpScenario, ExternalScenario, Scenario, AgentEnvironment,
+    AiohttpScenario, ActivityHandlerScenario, ExternalScenario, Scenario,
+    AgentEnvironment, ActivityHandlerEnvironment,
     AgentClient,
     ScenarioConfig, ClientConfig, ActivityTemplate,
     Expect, Select, ActivityExpect, ActivitySelect,
@@ -26,33 +27,38 @@ Scenario.run()  →  ClientFactory  →  AgentClient
 | Scenario | Description |
 |----------|-------------|
 | `AiohttpScenario` | Hosts the agent in-process via aiohttp `TestServer` |
+| `ActivityHandlerScenario` | Hosts an `ActivityHandler` in-process via aiohttp `TestServer` |
 | `ExternalScenario` | Connects to an agent running at an HTTP URL |
 
 ### AiohttpScenario
 
 ```python
-AiohttpScenario(
-    init_agent: Callable[[AgentEnvironment], Awaitable[None]],
+AiohttpScenario.create(
+    setup: Callable[[AgentEnvironment], None],
     config: ScenarioConfig | None = None,
     use_jwt_middleware: bool = True,
+    sdk_config: dict | None = None,
+    omit_connections: bool | None = None,
 )
 ```
 
 | Parameter | Type | Default | Description |
 |-----------|------|---------|-------------|
-| `init_agent` | `async (AgentEnvironment) -> None` | *(required)* | Callback that registers handlers on the agent |
+| `setup` | `(AgentEnvironment) -> None` | *(required)* | Synchronous callback that registers handlers on the agent |
 | `config` | `ScenarioConfig \| None` | `None` | Scenario-level settings (ports, env file, etc.) |
 | `use_jwt_middleware` | `bool` | `True` | Enable JWT auth middleware; set `False` for local-only tests |
+| `sdk_config` | `dict \| None` | `None` | Pre-loaded SDK configuration; when omitted, loaded from the scenario env file |
+| `omit_connections` | `bool \| None` | `None` | Use anonymous connections instead of MSAL-backed connections; defaults to `True` when JWT middleware is disabled |
 
 **Usage:**
 
 ```python
-async def init_echo(env: AgentEnvironment):
+def init_echo(env: AgentEnvironment):
     @env.agent_application.activity("message")
     async def on_message(context, state):
         await context.send_activity(f"Echo: {context.activity.text}")
 
-scenario = AiohttpScenario(init_agent=init_echo, use_jwt_middleware=False)
+scenario = AiohttpScenario.create(init_echo, use_jwt_middleware=False)
 
 # Single-client convenience
 async with scenario.client() as client:
@@ -66,6 +72,47 @@ async with scenario.run() as factory:
     bob = await factory(ClientConfig(activity_template=ActivityTemplate(
         **{"from.id": "bob", "from.name": "Bob"}
     )))
+```
+
+### ActivityHandlerScenario
+
+```python
+ActivityHandlerScenario.create(
+    create_handler: Callable[[ActivityHandlerEnvironment], ActivityHandler],
+    config: ScenarioConfig | None = None,
+    use_jwt_middleware: bool = True,
+    sdk_config: dict | None = None,
+    omit_connections: bool | None = None,
+)
+```
+
+| Parameter | Type | Default | Description |
+|-----------|------|---------|-------------|
+| `create_handler` | `(ActivityHandlerEnvironment) -> ActivityHandler` | *(required)* | Synchronous factory that receives hosting components and returns the handler |
+| `config` | `ScenarioConfig \| None` | `None` | Scenario-level settings (ports, env file, etc.) |
+| `use_jwt_middleware` | `bool` | `True` | Enable JWT auth middleware; set `False` for local-only tests |
+| `sdk_config` | `dict \| None` | `None` | Pre-loaded SDK configuration; when omitted, loaded from the scenario env file |
+| `omit_connections` | `bool \| None` | `None` | Use anonymous connections instead of MSAL-backed connections; defaults to `True` when JWT middleware is disabled |
+
+Use `from_handler(...)` when the handler already exists:
+
+```python
+scenario = ActivityHandlerScenario.from_handler(
+    MyActivityHandler(),
+    use_jwt_middleware=False,
+)
+```
+
+**Usage:**
+
+```python
+def create_handler(env: ActivityHandlerEnvironment):
+    return MyActivityHandler(env.conversation_state, env.user_state)
+
+scenario = ActivityHandlerScenario.create(
+    create_handler,
+    use_jwt_middleware=False,
+)
 ```
 
 ### ExternalScenario
@@ -103,6 +150,21 @@ Available when using `AiohttpScenario`. Exposes the agent's internals.
 | `adapter` | `ChannelServiceAdapter` | Channel adapter |
 | `storage` | `Storage` | State storage (typically `MemoryStorage`) |
 | `connections` | `Connections` | Connection manager |
+
+### ActivityHandlerEnvironment
+
+Available when using `ActivityHandlerScenario`. Exposes the handler and its
+hosting components.
+
+| Attribute | Type | Description |
+|-----------|------|-------------|
+| `config` | `dict` | SDK configuration dictionary |
+| `storage` | `Storage` | State storage (typically `MemoryStorage`) |
+| `conversation_state` | `ConversationState` | Conversation-scoped state accessor |
+| `user_state` | `UserState` | User-scoped state accessor |
+| `adapter` | `CloudAdapter` | aiohttp CloudAdapter |
+| `connections` | `Connections` | Connection manager |
+| `handler` | `ActivityHandler \| None` | Handler under test; `None` until `create` assigns one |
 
 ### ScenarioConfig
 
