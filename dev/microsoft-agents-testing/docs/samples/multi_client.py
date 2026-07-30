@@ -32,7 +32,7 @@ from microsoft_agents.testing import (
 # Agent - identifies who is talking
 # ---------------------------------------------------------------------------
 
-async def init_agent(env: AgentEnvironment) -> None:
+def init_agent(env: AgentEnvironment) -> None:
     @env.agent_application.activity("message")
     async def on_message(ctx: TurnContext, state: TurnState):
         sender = ctx.activity.from_property
@@ -40,7 +40,7 @@ async def init_agent(env: AgentEnvironment) -> None:
         await ctx.send_activity(f"Hello {name}, you said: {ctx.activity.text}")
 
 
-scenario = AiohttpScenario(init_agent, use_jwt_middleware=False)
+scenario = AiohttpScenario.create(init_agent, use_jwt_middleware=False)
 
 
 # ---------------------------------------------------------------------------

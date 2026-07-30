@@ -31,14 +31,14 @@
 # # ============================================================================
 
 
-# async def init_echo_agent(env: AgentEnvironment) -> None:
+# def init_echo_agent(env: AgentEnvironment) -> None:
 #     """Initialize a simple echo agent that echoes back messages."""
 #     @env.agent_application.activity("message")
 #     async def on_message(context: TurnContext, state: TurnState):
 #         await context.send_activity(f"Echo: {context.activity.text}")
 
 
-# async def init_greeting_agent(env: AgentEnvironment) -> None:
+# def init_greeting_agent(env: AgentEnvironment) -> None:
 #     """Initialize an agent that greets users by name."""
 #     @env.agent_application.activity("message")
 #     async def on_message(context: TurnContext, state: TurnState):
@@ -50,7 +50,7 @@
 #             await context.send_activity("Say 'hello <name>' to get a greeting!")
 
 
-# async def init_multi_response_agent(env: AgentEnvironment) -> None:
+# def init_multi_response_agent(env: AgentEnvironment) -> None:
 #     """Initialize an agent that sends multiple responses."""
 #     @env.agent_application.activity("message")
 #     async def on_message(context: TurnContext, state: TurnState):
@@ -63,18 +63,18 @@
 # # Reusable Scenarios for pytest plugin tests
 # # ============================================================================
 
-# echo_scenario = AiohttpScenario(
-#     init_agent=init_echo_agent,
+# echo_scenario = AiohttpScenario.create(
+#     init_echo_agent,
 #     use_jwt_middleware=False,
 # )
 
-# greeting_scenario = AiohttpScenario(
-#     init_agent=init_greeting_agent,
+# greeting_scenario = AiohttpScenario.create(
+#     init_greeting_agent,
 #     use_jwt_middleware=False,
 # )
 
-# multi_response_scenario = AiohttpScenario(
-#     init_agent=init_multi_response_agent,
+# multi_response_scenario = AiohttpScenario.create(
+#     init_multi_response_agent,
 #     use_jwt_middleware=False,
 # )
 

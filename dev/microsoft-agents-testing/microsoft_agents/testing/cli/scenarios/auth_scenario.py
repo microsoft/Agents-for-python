@@ -68,7 +68,7 @@ def sign_out_route(auth_handler_id: str, agent: AgentApplication):
     return dynamic_function
 
 
-async def auth_scenario_init(env: AgentEnvironment):
+def auth_scenario_init(env: AgentEnvironment):
     """Initialize the authentication testing agent.
 
     Dynamically creates message routes for each configured auth handler,
@@ -119,4 +119,4 @@ async def auth_scenario_init(env: AgentEnvironment):
 
 
 # Pre-built scenario instance for CLI registration
-auth_scenario = AiohttpScenario(auth_scenario_init)
+auth_scenario = AiohttpScenario.create(auth_scenario_init)

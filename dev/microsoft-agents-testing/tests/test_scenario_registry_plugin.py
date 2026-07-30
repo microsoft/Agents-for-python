@@ -23,7 +23,7 @@ from microsoft_agents.testing import scenario_registry
 # ============================================================================
 
 
-async def init_echo_agent(env: AgentEnvironment) -> None:
+def init_echo_agent(env: AgentEnvironment) -> None:
     """Initialize a simple echo agent for testing."""
 
     @env.agent_application.activity("message")
@@ -31,9 +31,10 @@ async def init_echo_agent(env: AgentEnvironment) -> None:
         await context.send_activity(f"Echo: {context.activity.text}")
 
 
-_echo_scenario = AiohttpScenario(
-    init_agent=init_echo_agent,
+_echo_scenario = AiohttpScenario.create(
+    init_echo_agent,
     use_jwt_middleware=False,
+    omit_connections=True,
 )
 
 

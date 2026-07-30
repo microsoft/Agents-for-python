@@ -3,25 +3,28 @@
 
 """Scenario definition for ActivityHandler-based dialog integration tests."""
 
-from microsoft_agents.hosting.core import ConversationState, UserState, Storage
-from microsoft_agents.testing import ActivityHandlerScenario, ScenarioConfig
+from microsoft_agents.testing import (
+    ActivityHandlerEnvironment,
+    ActivityHandlerScenario,
+    ScenarioConfig,
+)
 
 from .sample.dialog_agent import DialogAgent
 from .sample.user_profile_dialog import UserProfileDialog
 
 
-def _create_handler(
-    conv_state: ConversationState,
-    user_state: UserState,
-    _storage: Storage,
-) -> DialogAgent:
+def _create_handler(env: ActivityHandlerEnvironment) -> DialogAgent:
     """Factory consumed by ActivityHandlerScenario."""
-    dialog = UserProfileDialog(user_state)
-    return DialogAgent(conv_state, user_state, dialog)
+    dialog = UserProfileDialog(env.user_state)
+    return DialogAgent(env.conversation_state, env.user_state, dialog)
 
 
 def create_dialog_scenario(
     config: ScenarioConfig | None = None,
 ) -> ActivityHandlerScenario:
     """Create a ready-to-use ActivityHandlerScenario for the UserProfileDialog."""
-    return ActivityHandlerScenario(_create_handler, config=config)
+    return ActivityHandlerScenario.create(
+        _create_handler,
+        config=config,
+        use_jwt_middleware=False,
+    )

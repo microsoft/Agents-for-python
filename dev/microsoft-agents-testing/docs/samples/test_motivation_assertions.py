@@ -1,13 +1,20 @@
 """Verify the assertion failure outputs shown in MOTIVATION.md.
 
-Run with: pytest tests/test_motivation_assertions.py -v
-Both tests are expected to FAIL - the point is to compare the error messages.
+Run with: pytest docs/samples/test_motivation_assertions.py -v
+Both tests are expected to fail - the point is to compare the error messages.
 """
 
 import re
-from dataclasses import dataclass, field
+from dataclasses import dataclass
+
+import pytest
 
 from microsoft_agents.testing.core.fluent import Expect
+
+pytestmark = pytest.mark.xfail(
+    reason="Demonstrates raw pytest vs Expect failure output.",
+    strict=True,
+)
 
 
 # Minimal stand-ins for Activity nested objects

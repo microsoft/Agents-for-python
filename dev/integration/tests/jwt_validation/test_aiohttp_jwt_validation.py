@@ -98,7 +98,7 @@ async def test_aiohttp_global_middleware_accepts_real_service_connection_token(
 ):
     token, auth_config = await acquire_real_service_connection_token()
     app = web.Application(middlewares=[jwt_authorization_middleware])
-    app.agent_configuration = auth_config
+    app["agent_configuration"] = auth_config
     app.router.add_get("/", _claims_handler)
     client = await aiohttp_client(app)
 
@@ -115,7 +115,7 @@ async def test_aiohttp_global_middleware_rejects_real_token_with_invalid_audienc
 ):
     token, auth_config = await acquire_real_service_connection_token()
     app = web.Application(middlewares=[jwt_authorization_middleware])
-    app.agent_configuration = auth_config_with_invalid_audience(auth_config)
+    app["agent_configuration"] = auth_config_with_invalid_audience(auth_config)
     app.router.add_get("/", _claims_handler)
     client = await aiohttp_client(app)
 

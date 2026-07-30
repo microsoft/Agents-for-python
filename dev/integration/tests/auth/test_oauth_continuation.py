@@ -14,11 +14,12 @@ from microsoft_agents.activity import (
     SignInConstants,
     SignInResource,
     TokenExchangeResource,
+    TokenExchangeRequest,
     TokenOrSignInResourceResponse,
     TokenPostResource,
     TokenResponse,
 )
-from microsoft_agents.hosting.core import TurnContext, TurnState
+from microsoft_agents.hosting.core import TurnContext, TurnState, UserTokenClientBase
 from microsoft_agents.testing import (
     ActivityTemplate,
     AgentClient,
@@ -158,7 +159,7 @@ class _FakeUserToken:
         )
 
 
-class _FakeUserTokenClient:
+class _FakeUserTokenClient(UserTokenClientBase):
     def __init__(self, state: _AuthFlowTestState):
         self._user_token = _FakeUserToken(state)
 
@@ -169,6 +170,99 @@ class _FakeUserTokenClient:
     @property
     def agent_sign_in(self):
         return None
+
+    async def get_user_token(
+        self,
+        user_id: str,
+        connection_name: str,
+        channel_id: str,
+        magic_code: str | None = None,
+    ) -> TokenResponse:
+        return await self._user_token.get_token(
+            user_id,
+            connection_name,
+            channel_id,
+            code=magic_code,
+        )
+
+    async def get_sign_in_resource(
+        self,
+        connection_name: str,
+        activity: Activity,
+        final_redirect: str | None = None,
+    ) -> SignInResource:
+        response = await self.get_token_or_sign_in_resource(
+            connection_name,
+            activity,
+            final_redirect=final_redirect,
+        )
+        return response.sign_in_resource
+
+    async def sign_out_user(
+        self,
+        user_id: str,
+        connection_name: str,
+        channel_id: str,
+    ) -> None:
+        await self._user_token.sign_out(user_id, connection_name, channel_id)
+
+    async def get_token_status(
+        self,
+        user_id: str,
+        channel_id: str,
+        include: str | None = None,
+    ) -> list:
+        return await self._user_token.get_token_status(
+            user_id,
+            channel_id,
+            include=include,
+        )
+
+    async def get_aad_tokens(
+        self,
+        user_id: str,
+        connection_name: str,
+        resource_urls: list[str],
+        channel_id: str,
+    ) -> dict[str, TokenResponse]:
+        return await self._user_token.get_aad_tokens(
+            user_id,
+            connection_name,
+            channel_id,
+            {"resourceUrls": resource_urls},
+        )
+
+    async def exchange_token(
+        self,
+        user_id: str,
+        connection_name: str,
+        channel_id: str,
+        exchange_request: TokenExchangeRequest,
+    ) -> TokenResponse:
+        return await self._user_token.exchange_token(
+            user_id,
+            connection_name,
+            channel_id,
+            exchange_request.model_dump(exclude_none=True),
+        )
+
+    async def get_token_or_sign_in_resource(
+        self,
+        connection_name: str,
+        activity: Activity,
+        code: str | None = None,
+        final_redirect: str | None = None,
+        fwd_url: str | None = None,
+    ) -> TokenOrSignInResourceResponse:
+        return await self._user_token._get_token_or_sign_in_resource(
+            user_id=activity.from_property.id,
+            connection_name=connection_name,
+            channel_id=activity.channel_id,
+            state="test-state",
+            code=code or "",
+            final_redirect=final_redirect or "",
+            fwd_url=fwd_url or "",
+        )
 
     async def close(self) -> None:
         return None
@@ -257,7 +351,7 @@ class _FakeChannelServiceClientFactory:
         return self._user_token_client
 
 
-async def init_agent(env: AgentEnvironment):
+def init_agent(env: AgentEnvironment):
     env.adapter._channel_service_client_factory = _FakeChannelServiceClientFactory(
         _auth_flow
     )
@@ -293,8 +387,8 @@ _TEMPLATE = ActivityTemplate(
     }
 )
 
-_SCENARIO = AiohttpScenario(
-    init_agent=init_agent,
+_SCENARIO = AiohttpScenario.create(
+    init_agent,
     config=ScenarioConfig(
         env_file_path=str(Path(__file__).with_name("auth.env")),
         client_config=ClientConfig(activity_template=_TEMPLATE),

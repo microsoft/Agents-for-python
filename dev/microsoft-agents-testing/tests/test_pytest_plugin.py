@@ -20,7 +20,7 @@ from microsoft_agents.testing.aiohttp_scenario import AiohttpScenario, AgentEnvi
 # ============================================================================
 
 
-async def init_echo_agent(env: AgentEnvironment) -> None:
+def init_echo_agent(env: AgentEnvironment) -> None:
     """Initialize a simple echo agent for testing."""
 
     @env.agent_application.activity("message")
@@ -29,9 +29,10 @@ async def init_echo_agent(env: AgentEnvironment) -> None:
 
 
 # Create a reusable scenario for the plugin tests
-echo_scenario = AiohttpScenario(
-    init_agent=init_echo_agent,
+echo_scenario = AiohttpScenario.create(
+    init_echo_agent,
     use_jwt_middleware=False,
+    omit_connections=True,
 )
 
 
@@ -201,7 +202,7 @@ class TestCombinedFixtures:
 # ============================================================================
 
 
-async def init_counter_agent(env: AgentEnvironment) -> None:
+def init_counter_agent(env: AgentEnvironment) -> None:
     """Initialize an agent that counts messages using storage."""
 
     @env.agent_application.activity("message")
@@ -212,9 +213,10 @@ async def init_counter_agent(env: AgentEnvironment) -> None:
         await context.send_activity(f"Message #{count}")
 
 
-counter_scenario = AiohttpScenario(
-    init_agent=init_counter_agent,
+counter_scenario = AiohttpScenario.create(
+    init_counter_agent,
     use_jwt_middleware=False,
+    omit_connections=True,
 )
 
 
