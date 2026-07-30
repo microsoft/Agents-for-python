@@ -179,9 +179,7 @@ class AiohttpScenario(Scenario):
         """
         env_vars = dotenv_values(config.env_file_path or ".env")
         sdk_config = load_configuration_from_env(env_vars) if sdk_config is None else sdk_config
-
-        storage = MemoryStorage()
-
+        
         connection_manager: Connections
         if omit_connections:
             connection_manager = ConnectionManager(
