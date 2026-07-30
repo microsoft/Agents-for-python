@@ -30,13 +30,13 @@ from microsoft_agents.testing import (
 # 1) Define a few agents
 # ---------------------------------------------------------------------------
 
-async def init_echo(env: AgentEnvironment) -> None:
+def init_echo(env: AgentEnvironment) -> None:
     @env.agent_application.activity("message")
     async def h(ctx: TurnContext, state: TurnState):
         await ctx.send_activity(f"Echo: {ctx.activity.text}")
 
 
-async def init_greeter(env: AgentEnvironment) -> None:
+def init_greeter(env: AgentEnvironment) -> None:
     @env.agent_application.activity("message")
     async def h(ctx: TurnContext, state: TurnState):
         await ctx.send_activity(f"Hello, {ctx.activity.text}!")
@@ -49,13 +49,13 @@ async def init_greeter(env: AgentEnvironment) -> None:
 # Names use dot-notation for namespacing
 scenario_registry.register(
     "samples.echo",
-    AiohttpScenario(init_echo, use_jwt_middleware=False),
+    AiohttpScenario.create(init_echo, use_jwt_middleware=False),
     description="Simple echo agent for demos",
 )
 
 scenario_registry.register(
     "samples.greeter",
-    AiohttpScenario(init_greeter, use_jwt_middleware=False),
+    AiohttpScenario.create(init_greeter, use_jwt_middleware=False),
     description="Greeter agent that says hello",
 )
 

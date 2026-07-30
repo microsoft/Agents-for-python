@@ -14,7 +14,7 @@ from microsoft_agents.testing import (
     AgentEnvironment,
 )
 
-async def init_agent(env: AgentEnvironment):
+def init_agent(env: AgentEnvironment):
     """Initialize the application for the quickstart sample."""
 
     app: AgentApplication[TurnState] = env.agent_application

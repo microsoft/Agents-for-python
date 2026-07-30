@@ -5,7 +5,7 @@ from __future__ import annotations
 
 from abc import ABC
 from http import HTTPStatus
-from typing import Awaitable, Callable, Optional
+from typing import Awaitable, Callable, Optional, cast
 from uuid import uuid4
 
 from microsoft_agents.activity import (

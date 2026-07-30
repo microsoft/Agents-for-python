@@ -130,11 +130,9 @@ Created by a scenario. All send methods accept a `str` or an `Activity`.
 |--------|---------|-------------|
 | `send(text, *, wait=0.0)` | `list[Activity]` | Send a message; `wait` pauses for POST-POST responses |
 | `send_expect_replies(text)` | `list[Activity]` | Send with `expect_replies` delivery mode |
-| `send_stream(text)` | `list[Activity]` | Send with `stream` delivery mode |
 | `invoke(activity)` | `InvokeResponse` | Send an invoke activity; raises on failure |
 | `ex_send(text, *, wait=0.0)` | `list[Exchange]` | Like `send` but returns raw `Exchange` objects |
 | `ex_send_expect_replies(text)` | `list[Exchange]` | Like `send_expect_replies` but returns Exchanges |
-| `ex_send_stream(text)` | `list[Exchange]` | Like `send_stream` but returns Exchanges |
 | `ex_invoke(activity)` | `Exchange` | Like `invoke` but returns the Exchange |
 
 `wait` pauses after sending to collect POST-POST responses.

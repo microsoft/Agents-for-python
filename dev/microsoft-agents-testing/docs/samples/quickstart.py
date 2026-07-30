@@ -25,13 +25,13 @@ from microsoft_agents.testing import AiohttpScenario, AgentEnvironment
 # Agent definition
 # ---------------------------------------------------------------------------
 
-async def init_echo(env: AgentEnvironment) -> None:
+def init_echo(env: AgentEnvironment) -> None:
     @env.agent_application.activity("message")
     async def on_message(ctx: TurnContext, state: TurnState) -> None:
         await ctx.send_activity(f"Echo: {ctx.activity.text}")
 
 
-scenario = AiohttpScenario(init_echo, use_jwt_middleware=False)
+scenario = AiohttpScenario.create(init_echo, use_jwt_middleware=False)
 
 
 # ---------------------------------------------------------------------------

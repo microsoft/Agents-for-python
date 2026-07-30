@@ -36,14 +36,15 @@ class TestEchoAgent:
     async def test_echo_agent_responds_to_message(self):
         """Echo agent echoes back the user's message."""
 
-        async def init_echo_agent(env: AgentEnvironment) -> None:
+        def init_echo_agent(env: AgentEnvironment) -> None:
             @env.agent_application.activity("message")
             async def on_message(context: TurnContext, state: TurnState):
                 await context.send_activity(f"Echo: {context.activity.text}")
 
-        scenario = AiohttpScenario(
-            init_agent=init_echo_agent,
+        scenario = AiohttpScenario.create(
+            init_echo_agent,
             use_jwt_middleware=False,
+            omit_connections=True,
         )
 
         async with scenario.client() as client:
@@ -54,14 +55,15 @@ class TestEchoAgent:
     async def test_echo_agent_handles_multiple_messages(self):
         """Echo agent handles multiple sequential messages."""
 
-        async def init_echo_agent(env: AgentEnvironment) -> None:
+        def init_echo_agent(env: AgentEnvironment) -> None:
             @env.agent_application.activity("message")
             async def on_message(context: TurnContext, state: TurnState):
                 await context.send_activity(f"Echo: {context.activity.text}")
 
-        scenario = AiohttpScenario(
-            init_agent=init_echo_agent,
+        scenario = AiohttpScenario.create(
+            init_echo_agent,
             use_jwt_middleware=False,
+            omit_connections=True,
         )
 
         async with scenario.client() as client:
@@ -78,15 +80,16 @@ class TestEchoAgent:
     async def test_echo_agent_with_empty_message(self):
         """Echo agent handles empty message text."""
 
-        async def init_echo_agent(env: AgentEnvironment) -> None:
+        def init_echo_agent(env: AgentEnvironment) -> None:
             @env.agent_application.activity("message")
             async def on_message(context: TurnContext, state: TurnState):
                 text = context.activity.text or ""
                 await context.send_activity(f"Echo: {text}")
 
-        scenario = AiohttpScenario(
-            init_agent=init_echo_agent,
+        scenario = AiohttpScenario.create(
+            init_echo_agent,
             use_jwt_middleware=False,
+            omit_connections=True,
         )
 
         async with scenario.client() as client:
@@ -107,16 +110,17 @@ class TestMultiResponseAgent:
     async def test_agent_sends_multiple_activities(self):
         """Agent can send multiple activities in response."""
 
-        async def init_multi_agent(env: AgentEnvironment) -> None:
+        def init_multi_agent(env: AgentEnvironment) -> None:
             @env.agent_application.activity("message")
             async def on_message(context: TurnContext, state: TurnState):
                 await context.send_activity("First response")
                 await context.send_activity("Second response")
                 await context.send_activity("Third response")
 
-        scenario = AiohttpScenario(
-            init_agent=init_multi_agent,
+        scenario = AiohttpScenario.create(
+            init_multi_agent,
             use_jwt_middleware=False,
+            omit_connections=True,
         )
 
         async with scenario.client() as client:
@@ -131,15 +135,16 @@ class TestMultiResponseAgent:
     async def test_agent_sends_typing_then_message(self):
         """Agent can send typing indicator followed by message."""
 
-        async def init_typing_agent(env: AgentEnvironment) -> None:
+        def init_typing_agent(env: AgentEnvironment) -> None:
             @env.agent_application.activity("message")
             async def on_message(context: TurnContext, state: TurnState):
                 await context.send_activity(Activity(type=ActivityTypes.typing))
                 await context.send_activity("Here is my response!")
 
-        scenario = AiohttpScenario(
-            init_agent=init_typing_agent,
+        scenario = AiohttpScenario.create(
+            init_typing_agent,
             use_jwt_middleware=False,
+            omit_connections=True,
         )
 
         async with scenario.client() as client:
@@ -164,7 +169,7 @@ class TestCommandRouterAgent:
     async def test_help_command(self):
         """Agent responds to /help command."""
 
-        async def init_router_agent(env: AgentEnvironment) -> None:
+        def init_router_agent(env: AgentEnvironment) -> None:
             @env.agent_application.message("/help")
             async def on_help(context: TurnContext, state: TurnState):
                 await context.send_activity(
@@ -175,9 +180,10 @@ class TestCommandRouterAgent:
             async def on_message(context: TurnContext, state: TurnState):
                 await context.send_activity(f"Unknown command: {context.activity.text}")
 
-        scenario = AiohttpScenario(
-            init_agent=init_router_agent,
+        scenario = AiohttpScenario.create(
+            init_router_agent,
             use_jwt_middleware=False,
+            omit_connections=True,
         )
 
         async with scenario.client() as client:
@@ -189,7 +195,7 @@ class TestCommandRouterAgent:
     async def test_multiple_commands(self):
         """Agent routes multiple different commands correctly."""
 
-        async def init_router_agent(env: AgentEnvironment) -> None:
+        def init_router_agent(env: AgentEnvironment) -> None:
             @env.agent_application.message("/hello")
             async def on_hello(context: TurnContext, state: TurnState):
                 await context.send_activity("Hello there!")
@@ -202,9 +208,10 @@ class TestCommandRouterAgent:
             async def on_message(context: TurnContext, state: TurnState):
                 await context.send_activity("I don't understand.")
 
-        scenario = AiohttpScenario(
-            init_agent=init_router_agent,
+        scenario = AiohttpScenario.create(
+            init_router_agent,
             use_jwt_middleware=False,
+            omit_connections=True,
         )
 
         async with scenario.client() as client:
@@ -233,15 +240,16 @@ class TestStatefulAgent:
         """Agent tracks how many messages it has received."""
         message_count = {"count": 0}
 
-        async def init_counter_agent(env: AgentEnvironment) -> None:
+        def init_counter_agent(env: AgentEnvironment) -> None:
             @env.agent_application.activity("message")
             async def on_message(context: TurnContext, state: TurnState):
                 message_count["count"] += 1
                 await context.send_activity(f"Message #{message_count['count']}")
 
-        scenario = AiohttpScenario(
-            init_agent=init_counter_agent,
+        scenario = AiohttpScenario.create(
+            init_counter_agent,
             use_jwt_middleware=False,
+            omit_connections=True,
         )
 
         async with scenario.client() as client:
@@ -258,7 +266,7 @@ class TestStatefulAgent:
         """Agent remembers the last message sent."""
         state = {"last_message": None}
 
-        async def init_memory_agent(env: AgentEnvironment) -> None:
+        def init_memory_agent(env: AgentEnvironment) -> None:
             @env.agent_application.activity("message")
             async def on_message(context: TurnContext, state_param: TurnState):
                 if state["last_message"]:
@@ -269,9 +277,10 @@ class TestStatefulAgent:
                     await context.send_activity("This is your first message!")
                 state["last_message"] = context.activity.text
 
-        scenario = AiohttpScenario(
-            init_agent=init_memory_agent,
+        scenario = AiohttpScenario.create(
+            init_memory_agent,
             use_jwt_middleware=False,
+            omit_connections=True,
         )
 
         async with scenario.client() as client:
@@ -299,7 +308,7 @@ class TestEndOfConversationAgent:
     async def test_agent_ends_conversation_on_bye(self):
         """Agent sends EndOfConversation activity on /bye command."""
 
-        async def init_eoc_agent(env: AgentEnvironment) -> None:
+        def init_eoc_agent(env: AgentEnvironment) -> None:
             @env.agent_application.message("/bye")
             async def on_bye(context: TurnContext, state: TurnState):
                 await context.send_activity("Goodbye!")
@@ -314,9 +323,10 @@ class TestEndOfConversationAgent:
             async def on_message(context: TurnContext, state: TurnState):
                 await context.send_activity("Hello! Say /bye to end.")
 
-        scenario = AiohttpScenario(
-            init_agent=init_eoc_agent,
+        scenario = AiohttpScenario.create(
+            init_eoc_agent,
             use_jwt_middleware=False,
+            omit_connections=True,
         )
 
         async with scenario.client() as client:
@@ -337,16 +347,17 @@ class TestSelectAndFilter:
     async def test_select_only_message_activities(self):
         """Use Select to filter only message activities."""
 
-        async def init_agent(env: AgentEnvironment) -> None:
+        def init_agent(env: AgentEnvironment) -> None:
             @env.agent_application.activity("message")
             async def on_message(context: TurnContext, state: TurnState):
                 await context.send_activity(Activity(type=ActivityTypes.typing))
                 await context.send_activity("Response 1")
                 await context.send_activity("Response 2")
 
-        scenario = AiohttpScenario(
-            init_agent=init_agent,
+        scenario = AiohttpScenario.create(
+            init_agent,
             use_jwt_middleware=False,
+            omit_connections=True,
         )
 
         async with scenario.client() as client:
@@ -362,16 +373,17 @@ class TestSelectAndFilter:
     async def test_select_first_and_last(self):
         """Use Select to get first and last responses."""
 
-        async def init_agent(env: AgentEnvironment) -> None:
+        def init_agent(env: AgentEnvironment) -> None:
             @env.agent_application.activity("message")
             async def on_message(context: TurnContext, state: TurnState):
                 await context.send_activity("First")
                 await context.send_activity("Middle")
                 await context.send_activity("Last")
 
-        scenario = AiohttpScenario(
-            init_agent=init_agent,
+        scenario = AiohttpScenario.create(
+            init_agent,
             use_jwt_middleware=False,
+            omit_connections=True,
         )
 
         async with scenario.client() as client:
@@ -387,15 +399,16 @@ class TestSelectAndFilter:
     async def test_select_where_not(self):
         """Use Select.where_not to exclude certain activities."""
 
-        async def init_agent(env: AgentEnvironment) -> None:
+        def init_agent(env: AgentEnvironment) -> None:
             @env.agent_application.activity("message")
             async def on_message(context: TurnContext, state: TurnState):
                 await context.send_activity(Activity(type=ActivityTypes.typing))
                 await context.send_activity("Hello!")
 
-        scenario = AiohttpScenario(
-            init_agent=init_agent,
+        scenario = AiohttpScenario.create(
+            init_agent,
             use_jwt_middleware=False,
+            omit_connections=True,
         )
 
         async with scenario.client() as client:
@@ -418,14 +431,15 @@ class TestAgentEnvironmentAccess:
     async def test_agent_environment_available_during_run(self):
         """agent_environment is accessible during scenario.run()."""
 
-        async def init_agent(env: AgentEnvironment) -> None:
+        def init_agent(env: AgentEnvironment) -> None:
             @env.agent_application.activity("message")
             async def on_message(context: TurnContext, state: TurnState):
                 await context.send_activity("OK")
 
-        scenario = AiohttpScenario(
-            init_agent=init_agent,
+        scenario = AiohttpScenario.create(
+            init_agent,
             use_jwt_middleware=False,
+            omit_connections=True,
         )
 
         async with scenario.run() as factory:
@@ -441,12 +455,13 @@ class TestAgentEnvironmentAccess:
     async def test_agent_environment_has_working_storage(self):
         """AgentEnvironment contains initialized storage."""
 
-        async def init_agent(env: AgentEnvironment) -> None:
+        def init_agent(env: AgentEnvironment) -> None:
             pass
 
-        scenario = AiohttpScenario(
-            init_agent=init_agent,
+        scenario = AiohttpScenario.create(
+            init_agent,
             use_jwt_middleware=False,
+            omit_connections=True,
         )
 
         async with scenario.run() as factory:
@@ -469,7 +484,7 @@ class TestMultipleClients:
         """Multiple clients can be created in a single run()."""
         messages_received = []
 
-        async def init_agent(env: AgentEnvironment) -> None:
+        def init_agent(env: AgentEnvironment) -> None:
             @env.agent_application.activity("message")
             async def on_message(context: TurnContext, state: TurnState):
                 messages_received.append(context.activity.text)
@@ -480,9 +495,10 @@ class TestMultipleClients:
                 )
                 await context.send_activity(f"Hello, {user_id}!")
 
-        scenario = AiohttpScenario(
-            init_agent=init_agent,
+        scenario = AiohttpScenario.create(
+            init_agent,
             use_jwt_middleware=False,
+            omit_connections=True,
         )
 
         async with scenario.run() as factory:
@@ -509,7 +525,7 @@ class TestErrorHandling:
         """Agent error handler catches exceptions."""
         errors_caught = []
 
-        async def init_agent(env: AgentEnvironment) -> None:
+        def init_agent(env: AgentEnvironment) -> None:
             @env.agent_application.activity("message")
             async def on_message(context: TurnContext, state: TurnState):
                 if context.activity.text == "crash":
@@ -521,9 +537,10 @@ class TestErrorHandling:
                 errors_caught.append(str(error))
                 await context.send_activity("An error occurred")
 
-        scenario = AiohttpScenario(
-            init_agent=init_agent,
+        scenario = AiohttpScenario.create(
+            init_agent,
             use_jwt_middleware=False,
+            omit_connections=True,
         )
 
         async with scenario.client() as client:
@@ -550,16 +567,17 @@ class TestCustomScenarioConfig:
     async def test_scenario_with_custom_callback_port(self):
         """Scenario works with custom callback server port."""
 
-        async def init_agent(env: AgentEnvironment) -> None:
+        def init_agent(env: AgentEnvironment) -> None:
             @env.agent_application.activity("message")
             async def on_message(context: TurnContext, state: TurnState):
                 await context.send_activity("Custom port works!")
 
         config = ScenarioConfig(callback_server_port=9555)
-        scenario = AiohttpScenario(
-            init_agent=init_agent,
+        scenario = AiohttpScenario.create(
+            init_agent,
             config=config,
             use_jwt_middleware=False,
+            omit_connections=True,
         )
 
         async with scenario.client() as client:
@@ -580,15 +598,16 @@ class TestExpectQuantifiers:
     async def test_that_for_all_messages_have_type(self):
         """All responses should have the message type."""
 
-        async def init_agent(env: AgentEnvironment) -> None:
+        def init_agent(env: AgentEnvironment) -> None:
             @env.agent_application.activity("message")
             async def on_message(context: TurnContext, state: TurnState):
                 await context.send_activity("Response 1")
                 await context.send_activity("Response 2")
 
-        scenario = AiohttpScenario(
-            init_agent=init_agent,
+        scenario = AiohttpScenario.create(
+            init_agent,
             use_jwt_middleware=False,
+            omit_connections=True,
         )
 
         async with scenario.client() as client:
@@ -602,14 +621,15 @@ class TestExpectQuantifiers:
     async def test_that_for_none_are_errors(self):
         """No responses should be error types."""
 
-        async def init_agent(env: AgentEnvironment) -> None:
+        def init_agent(env: AgentEnvironment) -> None:
             @env.agent_application.activity("message")
             async def on_message(context: TurnContext, state: TurnState):
                 await context.send_activity("Success!")
 
-        scenario = AiohttpScenario(
-            init_agent=init_agent,
+        scenario = AiohttpScenario.create(
+            init_agent,
             use_jwt_middleware=False,
+            omit_connections=True,
         )
 
         async with scenario.client() as client:
@@ -622,15 +642,16 @@ class TestExpectQuantifiers:
     async def test_that_for_one_matches(self):
         """Exactly one response matches criteria."""
 
-        async def init_agent(env: AgentEnvironment) -> None:
+        def init_agent(env: AgentEnvironment) -> None:
             @env.agent_application.activity("message")
             async def on_message(context: TurnContext, state: TurnState):
                 await context.send_activity("Hello!")
                 await context.send_activity("Goodbye!")
 
-        scenario = AiohttpScenario(
-            init_agent=init_agent,
+        scenario = AiohttpScenario.create(
+            init_agent,
             use_jwt_middleware=False,
+            omit_connections=True,
         )
 
         async with scenario.client() as client:

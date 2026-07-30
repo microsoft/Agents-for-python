@@ -30,7 +30,7 @@ def get_streaminfo(activity: Activity) -> Entity:
             return entity
     raise ValueError("No streaminfo entity found")
 
-async def init_agent(env: AgentEnvironment):
+def init_agent(env: AgentEnvironment):
 
     app = env.agent_application
 
@@ -49,7 +49,7 @@ async def init_agent(env: AgentEnvironment):
         context.streaming_response.queue_text_chunk(CHUNKS[-1])
         await context.streaming_response.end_stream()
 
-_SCENARIO = AiohttpScenario(init_agent=init_agent, use_jwt_middleware=False)
+_SCENARIO = AiohttpScenario.create(init_agent, use_jwt_middleware=False)
 
 @pytest.mark.asyncio
 @pytest.mark.agent_test(_SCENARIO)
@@ -119,4 +119,3 @@ async def test_basic_streaming_response_streaming_channel(agent_client: AgentCli
     assert final_streaminfo.stream_sequence == len(stream_activities)
     assert final_streaminfo.stream_type == "final"
     assert stream_activities[-1].text == FULL_TEXT.replace(" ", "")
-
