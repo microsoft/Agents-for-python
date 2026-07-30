@@ -26,9 +26,7 @@ from microsoft_agents.activity import (
 )
 from microsoft_agents.hosting.core.connector import (
     ConnectorClientBase,
-    ConnectorClient,
     UserTokenClientBase,
-    UserTokenClient,
 )
 from microsoft_agents.hosting.core.authorization import (
     AuthenticationConstants,

@@ -11,11 +11,12 @@ from microsoft_agents.activity import Activity, ResourceResponse
 from ..connector_client_base import ConnectorClientBase
 from ..attachments_base import AttachmentsBase
 from ..conversations_base import ConversationsBase
+from ..client._base_client import _BaseClient
 
 logger = logging.getLogger(__name__)
 
 
-class MCSConversations(ConversationsBase):
+class MCSConversations(ConversationsBase, _BaseClient):
     """
     Conversations implementation for Microsoft Copilot Studio Connector.
 
@@ -23,7 +24,7 @@ class MCSConversations(ConversationsBase):
     """
 
     def __init__(self, client: ClientSession, endpoint: str):
-        self._client = client
+        _BaseClient.__init__(self, client)
         self._endpoint = endpoint
 
     async def send_to_conversation(
@@ -48,7 +49,7 @@ class MCSConversations(ConversationsBase):
             activity.type,
         )
 
-        async with self._client.post(
+        async with self._wrapped_client().post(
             self._endpoint,
             json=activity.model_dump(by_alias=True, exclude_unset=True, mode="json"),
             headers={"Accept": "application/json", "Content-Type": "application/json"},

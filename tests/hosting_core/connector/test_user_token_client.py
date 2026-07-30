@@ -7,7 +7,26 @@ import pytest
 from aiohttp import ClientSession, web
 from aiohttp.test_utils import TestServer
 
-from microsoft_agents.hosting.core.connector.client.user_token_client import UserToken
+from microsoft_agents.hosting.core.connector.client.user_token_client import (
+    UserToken,
+    UserTokenClient,
+)
+from microsoft_agents.hosting.core.header_propagation import HeaderPropagationContext
+
+
+class _HeaderProvider:
+    def __init__(self, headers: dict[str, str]):
+        self.headers = headers
+
+    def get_headers(self) -> dict[str, str]:
+        return dict(self.headers)
+
+
+@pytest.fixture(autouse=True)
+def reset_header_propagation_context():
+    HeaderPropagationContext.reset()
+    yield
+    HeaderPropagationContext.reset()
 
 
 class TestUserTokenBaseChannel:
@@ -92,3 +111,34 @@ class TestUserTokenBaseChannel:
             await server.close()
 
         assert captured == [None, None, None, None]
+
+
+class TestUserTokenClientHeaderPropagation:
+    """Tests propagated headers through UserTokenClient operations."""
+
+    @pytest.mark.asyncio
+    async def test_get_user_token_uses_headers_registered_after_client_creation(self):
+        captured = {}
+
+        async def handler(request):
+            captured["headers"] = request.headers
+            return web.json_response({"token": "token"})
+
+        app = web.Application()
+        app.router.add_get("/api/usertoken/GetToken", handler)
+        server = TestServer(app)
+        await server.start_server()
+
+        client = UserTokenClient(str(server.make_url("/")), token="", app_id="app-id")
+        try:
+            HeaderPropagationContext.register(
+                _HeaderProvider({"X-Agentic-Test": "propagated"})
+            )
+
+            result = await client.get_user_token("user", "connection", "msteams")
+
+            assert result.token == "token"
+            assert captured["headers"]["X-Agentic-Test"] == "propagated"
+        finally:
+            await client.close()
+            await server.close()
