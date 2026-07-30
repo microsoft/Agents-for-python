@@ -4,41 +4,6 @@
 
 Integration library for building Slack agents using the Microsoft 365 Agents SDK. Provides direct-to-Slack responses (the full Slack Web API surface, beyond what Azure Bot Service exposes), a typed `SlackChannelData` envelope with dot-notation property access, and a `SlackStream` helper for `chat.startStream` / `chat.appendStream` / `chat.stopStream`.
 
-## Release Notes
-<table style="width:100%">
-  <tr>
-    <th style="width:20%">Version</th>
-    <th style="width:20%">Date</th>
-    <th style="width:60%">Release Notes</th>
-  </tr>
-  <tr>
-    <td>1.3.0</td>
-    <td>2026-07-30</td>
-    <td>
-      <a href="https://github.com/microsoft/Agents-for-python/blob/main/changelog.md#microsoft-365-agents-sdk-for-python---release-notes-v130">
-        1.3.0 Release Notes
-      </a>
-    </td>
-  </tr>
-  <tr>
-    <td>1.2.0</td>
-    <td>2026-07-17</td>
-    <td>
-      <a href="https://github.com/microsoft/Agents-for-python/blob/main/changelog.md#microsoft-365-agents-sdk-for-python---release-notes-v120">
-        1.2.0 Release Notes
-      </a>
-    </td>
-  </tr>
-  <tr>
-    <td>1.1.0</td>
-    <td>2026-06-19</td>
-    <td>
-      <a href="https://github.com/microsoft/Agents-for-python/blob/main/changelog.md#microsoft-365-agents-sdk-for-python---release-notes-v110">
-        1.1.0 Release Notes
-      </a>
-    </td>
-  </tr>
-</table>
 
 ## Release Notes
 
@@ -72,15 +37,6 @@ Integration library for building Slack agents using the Microsoft 365 Agents SDK
     <td>
       <a href="https://github.com/microsoft/Agents-for-python/blob/main/changelog.md#microsoft-365-agents-sdk-for-python---release-notes-v110">
         1.1.0 Release Notes
-      </a>
-    </td>
-  </tr>
-  <tr>
-    <td>1.0.0</td>
-    <td>2026-05-22</td>
-    <td>
-      <a href="https://github.com/microsoft/Agents-for-python/blob/main/changelog.md#microsoft-365-agents-sdk-for-python---release-notes-v100">
-        1.0.0 Release Notes
       </a>
     </td>
   </tr>
@@ -102,7 +58,7 @@ We offer the following PyPI packages to create conversational experiences based 
 | `microsoft-agents-storage-blob` | [![PyPI](https://img.shields.io/pypi/v/microsoft-agents-storage-blob)](https://pypi.org/project/microsoft-agents-storage-blob/) | Extension to use Azure Blob as storage. |
 | `microsoft-agents-storage-cosmos` | [![PyPI](https://img.shields.io/pypi/v/microsoft-agents-storage-cosmos)](https://pypi.org/project/microsoft-agents-storage-cosmos/) | Extension to use CosmosDB as storage. |
 | `microsoft-agents-authentication-msal` | [![PyPI](https://img.shields.io/pypi/v/microsoft-agents-authentication-msal)](https://pypi.org/project/microsoft-agents-authentication-msal/) | MSAL-based authentication for Microsoft Agents. |
-| `microsoft-agents-authentication-entra-auth-sidecar` | [![PyPI](https://img.shields.io/pypi/v/microsoft-agents-authentication-entra-auth-sidecar)](https://pypi.org/project/microsoft-agents-authentication-entra-auth-sidecar/) | Provides a sidecar for authentication with Entra |
+| `microsoft-agents-authentication-entra-auth-sidecar` | [![PyPI](https://img.shields.io/pypi/v/microsoft-agents-authentication-entra-auth-sidecar)](https://pypi.org/project/microsoft-agents-authentication-entra-auth-sidecar/) | Credential-free Entra ID Agent ID authentication via the sidecar. | 
 
 ## Installation
 

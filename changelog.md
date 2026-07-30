@@ -3,16 +3,19 @@
 **Release Date:** 2026-07-30
 **Previous Version:** 1.2.0 (Released 2026-07-17)
 
-This release focuses on API ergonomics and developer experience, adding agentic header propagation, fluent activity/card builders, type-based  TurnContext.services , and app-based Graph client factories. It also refines authentication and storage interfaces, refactors JWT auth middleware, and includes broad typing, logging, and tooling improvements.
+This release focuses on API ergonomics and developer experience, adding agentic header propagation, fluent activity/card builders, type-based `TurnContext.services` , and app-based Graph client factories. It also refines authentication and storage interfaces, refactors JWT auth middleware, and includes broad typing, logging, and tooling improvements.
 
 > [!NOTE]
 > Use `microsoft-agents-hosting-msteams` for new Teams agents.
 > `microsoft-agents-hosting-msteams` is the current, first-class Teams hosting package. It provides typed, decorator-based routing via `TeamsAgentExtension` and `TeamsTurnContext`, dedicated route namespaces for Teams invoke and event activities, and direct access to Teams API clients from your handlers — the same modern, `AgentApplication`-centric programming model used across the rest of the SDK.
-> The older `microsoft-agents-hosting-teams` package (built around `TeamsActivityHandler`, `TeamsCloudAdapter`, and `TeamsInfo`) is retained only for backward compatibility with existing agents. It is not receiving new features, and new development should migrate to  microsoft-agents-hosting-msteams .
+> The older `microsoft-agents-hosting-teams` package (built around `TeamsActivityHandler` and `TeamsInfo`) is retained only for backward compatibility with existing agents. It is not receiving new features, and new development should migrate to `microsoft-agents-hosting-msteams`.
+
+> [!IMPORTANT]
+> `TurnContext.services` has been repurposed, and `TurnContext.has()`, `TurnContext.get()`, and `TurnContext.set()` have been removed to align with this change
 
 ## Major Features & Enhancements
 
-- **Agentic Header Propagation**: Added a new `header_propagation` module with an agentic header provider that forwards headers on agent-to-agent calls, preserving request context across hops (#506)
+- **Agentic Header Propagation**: Added a new `header_propagation` module with an agentic header provider that forwards headers on outbound requests, preserving request context across hops (#506)
 - **Fluent Activity Builders and Card Base Class**: Added fluent builders for constructing activities, a `Card` base class, and `AdaptiveCardCard` to make building rich activities and cards easier (#495)
 - **TurnContext Services**: Added `TurnContext.services` with generic, type-based keying and retrieval so handlers can register and resolve per-turn services without stringly-typed keys (#491)
 - **App-Based Graph Client Factories**: Added factory methods for app-based Graph clients in the Teams hosting library, with an accompanying `graph-clients` sample (#481)
@@ -29,7 +32,6 @@ This release focuses on API ergonomics and developer experience, adding agentic 
 ## Bug Fixes
 
 - **PowerPlatformEnvironment**: `PowerPlatformEnvironment.get_endpoint_suffix` now raises an exception on failure instead of returning it (#489)
-- **Mock Integration Server**: Hid exception details in mock integration server responses (#482)
 - **Linting**: Fixed linting issues in `hosting/core/app` (#488)
 
 ## Developer Experience
@@ -39,7 +41,7 @@ This release focuses on API ergonomics and developer experience, adding agentic 
 - **TurnContext Improvements**: TurnContext middleware improvements and annotation corrections, plus removal of the `_ChannelIdFieldMixin` (#487, #490)
 - **Hosting Request Adapter Deduplication**: Deduplicated hosting request adapter code across web framework integrations (#499)
 - **Typing and API Consistency**: Type annotations and API consistency tweaks throughout the codebase (#493)
-- **Tooling**: Updated the black version for pre-commit and polished `dev/microsoft-agents-testing` (#496, #480)
+- **Tooling**: Updated the black version for pre-commit (#496)
 
 ---
 
