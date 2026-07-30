@@ -19,6 +19,15 @@ This library is part of the **Microsoft 365 Agents SDK for Python** — a compre
     <th style="width:60%">Release Notes</th>
   </tr>
   <tr>
+    <td>1.3.0</td>
+    <td>2026-07-30</td>
+    <td>
+      <a href="https://github.com/microsoft/Agents-for-python/blob/main/changelog.md#microsoft-365-agents-sdk-for-python---release-notes-v130">
+        1.3.0 Release Notes
+      </a>
+    </td>
+  </tr>
+  <tr>
     <td>1.2.0</td>
     <td>2026-07-17</td>
     <td>
@@ -112,16 +121,21 @@ This library is part of the **Microsoft 365 Agents SDK for Python** — a compre
 
 ## Packages Overview
 
+We offer the following PyPI packages to create conversational experiences based on Agents:
+
 | Package Name | PyPI Version | Description |
 |--------------|-------------|-------------|
 | `microsoft-agents-activity` | [![PyPI](https://img.shields.io/pypi/v/microsoft-agents-activity)](https://pypi.org/project/microsoft-agents-activity/) | Types and validators implementing the Activity protocol spec. |
 | `microsoft-agents-hosting-core` | [![PyPI](https://img.shields.io/pypi/v/microsoft-agents-hosting-core)](https://pypi.org/project/microsoft-agents-hosting-core/) | Core library for Microsoft Agents hosting. |
 | `microsoft-agents-hosting-aiohttp` | [![PyPI](https://img.shields.io/pypi/v/microsoft-agents-hosting-aiohttp)](https://pypi.org/project/microsoft-agents-hosting-aiohttp/) | Configures aiohttp to run the Agent. |
+| `microsoft-agents-hosting-fastapi` | [![PyPI](https://img.shields.io/pypi/v/microsoft-agents-hosting-fastapi)](https://pypi.org/project/microsoft-agents-hosting-fastapi/) | Configures fastapi to run the Agent. |
 | `microsoft-agents-hosting-msteams` | [![PyPI](https://img.shields.io/pypi/v/microsoft-agents-hosting-msteams)](https://pypi.org/project/microsoft-agents-hosting-msteams/) | Provides classes to host an Agent for Teams. |
 | `microsoft-agents-hosting-dialogs` | [![PyPI](https://img.shields.io/pypi/v/microsoft-agents-hosting-dialogs)](https://pypi.org/project/microsoft-agents-hosting-dialogs/) | Dialog system with waterfall dialogs, prompts, and multi-turn conversation management. |
+| `microsoft-agents-hosting-slack` | [![PyPI](https://img.shields.io/pypi/v/microsoft-agents-hosting-slack)](https://pypi.org/project/microsoft-agents-hosting-slack/) | Provides classes to host an Agent for Slack. |
 | `microsoft-agents-storage-blob` | [![PyPI](https://img.shields.io/pypi/v/microsoft-agents-storage-blob)](https://pypi.org/project/microsoft-agents-storage-blob/) | Extension to use Azure Blob as storage. |
 | `microsoft-agents-storage-cosmos` | [![PyPI](https://img.shields.io/pypi/v/microsoft-agents-storage-cosmos)](https://pypi.org/project/microsoft-agents-storage-cosmos/) | Extension to use CosmosDB as storage. |
 | `microsoft-agents-authentication-msal` | [![PyPI](https://img.shields.io/pypi/v/microsoft-agents-authentication-msal)](https://pypi.org/project/microsoft-agents-authentication-msal/) | MSAL-based authentication for Microsoft Agents. |
+| `microsoft-agents-authentication-entra-auth-sidecar` | [![PyPI](https://img.shields.io/pypi/v/microsoft-agents-authentication-entra-auth-sidecar)](https://pypi.org/project/microsoft-agents-authentication-entra-auth-sidecar/) | Credential-free Entra ID Agent ID authentication via the sidecar. | 
 
 Additionally we provide a Copilot Studio Client, to interact with Agents created in CopilotStudio:
 
@@ -464,6 +478,23 @@ async def on_profile(context: TeamsTurnContext, state):
 ```
 
 The `handler_name` argument names an OAuth connection configured in the app's `auth` settings. If omitted, the app's default auth handler is used.
+
+`get_graph_client` returns a Graph client that acts **on behalf of the signed-in user**. When you need to call Graph with the **agent's own application identity** (application permissions, no user sign-in required), use the app-based clients instead:
+
+```python
+@teams.message(r"^report")
+async def on_report(context: TeamsTurnContext, state):
+    # Uses the app's default connection
+    graph = teams.get_app_graph_client(context)
+
+    # Or target a specific connection by name
+    graph = teams.get_app_graph_client_for_connection("MyGraphConnection")
+
+    users = await graph.users.get()
+    await context.send_activity(f"Tenant has {len(users.value)} users")
+```
+
+All three factory methods also accept an optional `graph_base_url` argument if you need to target a non-default Graph endpoint (for example a sovereign cloud).
 
 ## Invoke response conventions
 

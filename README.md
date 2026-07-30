@@ -13,41 +13,6 @@ For more information please see the parent project information here [Microsoft 3
 
 The best way to get started with these packages is to look at the samples available in [https://github.com/microsoft/Agents](https://github.com/microsoft/Agents)
 
-## Important Notice - Import Changes
-
-> **⚠️ Breaking Change**: Recent updates have changed the Python import structure from `microsoft.agents` to `microsoft_agents` (using underscores instead of dots). Please update your imports accordingly.
-
-### Import Examples
-
-```python
-# Activity types and models
-from microsoft_agents.activity import Activity
-
-# Core hosting functionality
-from microsoft_agents.hosting.core import TurnContext
-
-# aiohttp hosting
-from microsoft_agents.hosting.aiohttp import start_agent_process
-
-# FastAPI hosting
-from microsoft_agents.hosting.fastapi import start_agent_process
-
-# Teams-specific functionality (compatible only with activity handler)
-from microsoft_agents.hosting.teams import TeamsActivityHandler
-
-# Azure Blob storage
-from microsoft_agents.storage.blob import BlobStorage
-
-# CosmosDB storage
-from microsoft_agents.storage.cosmos import CosmosDbStorage
-
-# MSAL authentication
-from microsoft_agents.authentication.msal import MsalAuth
-
-# Copilot Studio client
-from microsoft_agents.copilotstudio.client import CopilotClient
-```
-
 ## Packages Overview
 
 We offer the following PyPI packages to create conversational experiences based on Agents:
@@ -58,7 +23,7 @@ We offer the following PyPI packages to create conversational experiences based 
 | `microsoft-agents-hosting-core` | [![PyPI](https://img.shields.io/pypi/v/microsoft-agents-hosting-core)](https://pypi.org/project/microsoft-agents-hosting-core/) | Core library for Microsoft Agents hosting. | `botbuilder-core, botframework-connector` |
 | `microsoft-agents-hosting-aiohttp` | [![PyPI](https://img.shields.io/pypi/v/microsoft-agents-hosting-aiohttp)](https://pypi.org/project/microsoft-agents-hosting-aiohttp/) | Configures aiohttp to run the Agent. | `botbuilder-integration-aiohttp` |
 | `microsoft-agents-hosting-fastapi` | [![PyPI](https://img.shields.io/pypi/v/microsoft-agents-hosting-fastapi)](https://pypi.org/project/microsoft-agents-hosting-fastapi/) | Configures FastAPI to run the Agent. | N/A |
-| `microsoft-agents-hosting-teams` | [![PyPI](https://img.shields.io/pypi/v/microsoft-agents-hosting-teams)](https://pypi.org/project/microsoft-agents-hosting-teams/) | Provides classes to host an Agent for Teams. | N/A |
+| `microsoft-agents-hosting-msteams` | [![PyPI](https://img.shields.io/pypi/v/microsoft-agents-hosting-msteams)](https://pypi.org/project/microsoft-agents-hosting-msteams/) | Provides classes to host an Agent for Teams. | N/A |
 | `microsoft-agents-hosting-dialogs` | [![PyPI](https://img.shields.io/pypi/v/microsoft-agents-hosting-dialogs)](https://pypi.org/project/microsoft-agents-hosting-dialogs/) | Dialog system with waterfall dialogs, prompts, and multi-turn conversation management. | `botbuilder-dialogs` |
 | `microsoft-agents-storage-blob` | [![PyPI](https://img.shields.io/pypi/v/microsoft-agents-storage-blob)](https://pypi.org/project/microsoft-agents-storage-blob/) | Extension to use Azure Blob as storage. | `botbuilder-azure` |
 | `microsoft-agents-storage-cosmos` | [![PyPI](https://img.shields.io/pypi/v/microsoft-agents-storage-cosmos)](https://pypi.org/project/microsoft-agents-storage-cosmos/) | Extension to use CosmosDB as storage. | `botbuilder-azure` |
