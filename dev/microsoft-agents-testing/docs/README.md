@@ -27,12 +27,12 @@ care of hosting, auth tokens, and response plumbing.
 import pytest
 from microsoft_agents.testing import AiohttpScenario, AgentEnvironment
 
-async def init_echo(env: AgentEnvironment):
+def init_echo(env: AgentEnvironment):
     @env.agent_application.activity("message")
     async def on_message(context, state):
         await context.send_activity(f"Echo: {context.activity.text}")
 
-scenario = AiohttpScenario(init_agent=init_echo, use_jwt_middleware=False)
+scenario = AiohttpScenario.create(init_echo, use_jwt_middleware=False)
 
 @pytest.mark.agent_test(scenario)
 class TestEcho:
@@ -78,6 +78,7 @@ client to interact with the agent. Auth credentials and general SDK config setti
 | Scenario | Description |
 |----------|-------------|
 | `AiohttpScenario` | Hosts the agent in-process — fast, access to internals |
+| `ActivityHandlerScenario` | Hosts an `ActivityHandler` in-process via aiohttp |
 | `ExternalScenario` | Connects to a running agent at a URL |
 
 Swap one for the other and your assertions stay the same.
@@ -185,7 +186,7 @@ of these fixtures:
 | Fixture | Description |
 |---------|-------------|
 | `agent_client` | Send and assert |
-| `agent_environment` | Agent internals (in-process only) |
+| `agent_environment` | Agent internals (`AiohttpScenario` only) |
 | `agent_application` | `AgentApplication` instance |
 | `storage` | `MemoryStorage` |
 | `adapter` | `ChannelServiceAdapter` |

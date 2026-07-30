@@ -22,6 +22,7 @@ Turn flow summary (happy path)
 import pytest
 
 from microsoft_agents.testing import (
+    ActivityHandlerEnvironment,
     ActivityHandlerScenario,
     AgentClient,
     ClientConfig,
@@ -48,10 +49,14 @@ _TEMPLATE = ActivityTemplate(
 
 
 def _make_scenario(config: ScenarioConfig | None = None) -> ActivityHandlerScenario:
-    def _create_handler(conv_state, user_state, storage):
-        return DialogAgent(conv_state, user_state, BookingDialog())
+    def _create_handler(env: ActivityHandlerEnvironment):
+        return DialogAgent(env.conversation_state, env.user_state, BookingDialog())
 
-    return ActivityHandlerScenario(_create_handler, config=config)
+    return ActivityHandlerScenario.create(
+        _create_handler,
+        config=config,
+        use_jwt_middleware=False,
+    )
 
 
 _SCENARIO = _make_scenario(

@@ -32,7 +32,7 @@ from microsoft_agents.testing import (
 )
 
 
-async def init_multi_reply(env: AgentEnvironment) -> None:
+def init_multi_reply(env: AgentEnvironment) -> None:
     """Register an agent that sends multiple activity types."""
 
     @env.agent_application.activity("message")
@@ -50,7 +50,7 @@ def section(title: str) -> None:
 
 async def create_transcript():
     """Run the sample agent and return its transcript."""
-    scenario = AiohttpScenario(init_multi_reply, use_jwt_middleware=False)
+    scenario = AiohttpScenario.create(init_multi_reply, use_jwt_middleware=False)
     async with scenario.client() as client:
         await client.send_expect_replies("transcript formatting")
         return client.transcript

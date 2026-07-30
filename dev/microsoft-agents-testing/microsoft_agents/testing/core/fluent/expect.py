@@ -48,12 +48,16 @@ class ExpectBase(Generic[ModelT]):
         Select(responses).where(type="message").expect.that(text="hello")
     """
 
-    def __init__(self, items: Sequence[ModelT]) -> None:
+    def __init__(self, items: ModelT | Sequence[ModelT]) -> None:
         """Initialize Expect with a collection of items.
 
-        :param items: A Sequence of dicts or BaseModel instances.
+        :param items: A Sequence of dicts or BaseModel instances. Can also be a single dict or BaseModel, which will be wrapped in a list.
         """
-        self._items = list(items)
+        if isinstance(items, (dict, BaseModel)):
+            self._items = [items]
+        else:
+            self._items = list(items)
+            
         self._describer = Describe()
 
     # =========================================================================

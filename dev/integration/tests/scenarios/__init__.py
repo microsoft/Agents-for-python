@@ -24,7 +24,7 @@ def load_scenario(
     if name not in _SCENARIO_INITS:
         raise ValueError(f"Unknown scenario: {name}")
 
-    return AiohttpScenario(
+    return AiohttpScenario.create(
         _SCENARIO_INITS[name],
         config=config,
         use_jwt_middleware=use_jwt_middleware,

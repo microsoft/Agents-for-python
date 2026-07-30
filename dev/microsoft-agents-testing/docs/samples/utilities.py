@@ -26,7 +26,7 @@ HERO_CARD = "application/vnd.microsoft.card.hero"
 AGENT_URL = "http://127.0.0.1:3978/api/messages"
 
 
-async def init_agent(env: AgentEnvironment) -> None:
+def init_agent(env: AgentEnvironment) -> None:
     """Register an agent that replies with text and a nested attachment."""
 
     @env.agent_application.activity("message")
@@ -45,7 +45,7 @@ async def init_agent(env: AgentEnvironment) -> None:
         )
 
 
-scenario = AiohttpScenario(
+scenario = AiohttpScenario.create(
     init_agent,
     config=ScenarioConfig(callback_server_port=9379),
     use_jwt_middleware=False,
