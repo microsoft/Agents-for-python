@@ -3,7 +3,7 @@
 
 """Protocol for abstracting HTTP request objects across frameworks."""
 
-from typing import Protocol, Any, Optional
+from typing import Protocol, Any, Optional, Mapping
 
 
 class HttpRequestProtocol(Protocol):
@@ -19,7 +19,7 @@ class HttpRequestProtocol(Protocol):
         ...
 
     @property
-    def headers(self) -> dict[str, str]:
+    def headers(self) -> Mapping[str, str]:
         """Request headers."""
         ...
 

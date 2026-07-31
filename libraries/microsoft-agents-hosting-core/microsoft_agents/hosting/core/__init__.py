@@ -133,7 +133,7 @@ __all__ = [
     "InputFile",
     "InputFileDownloader",
     "Query",
-    "Route",
+    "_Route",
     "RouteHandler",
     "TypingIndicator",
     "Citation",
