@@ -25,16 +25,20 @@ class CloudAdapter(HttpAdapterBase, AgentHttpAdapter):
         *,
         connection_manager: Connections | None = None,
         channel_service_client_factory: ChannelServiceClientFactoryBase | None = None,
+        channel_service_client_factory_options: dict | None = None,
     ):
         """
         Initializes a new instance of the CloudAdapter class.
 
         :param connection_manager: Optional connection manager for OAuth.
-        :param channel_service_client_factory: The factory to use to create the channel service client.
+        :param channel_service_client_factory: Factory for creating channel service clients.
+        :param channel_service_client_factory_options: Optional dictionary of options to pass to the channel service client factory
+            This is only used if channel_service_client_factory is not provided and connection_manager is provided.
         """
         super().__init__(
             connection_manager=connection_manager,
             channel_service_client_factory=channel_service_client_factory,
+            channel_service_client_factory_options=channel_service_client_factory_options,
         )
 
     async def process(self, request: Request, agent: Agent) -> Optional[Response]:
