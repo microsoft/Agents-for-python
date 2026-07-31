@@ -64,8 +64,10 @@ class CloudAdapter(HttpAdapterBase, AgentHttpAdapter):
                 data=http_response.body,
                 status=http_response.status_code,
                 headers=http_response.headers,
+                content_type=http_response.content_type or "application/json",
             )
         return Response(
             status=http_response.status_code,
             headers=http_response.headers,
+            content_type=http_response.content_type or "application/json",
         )

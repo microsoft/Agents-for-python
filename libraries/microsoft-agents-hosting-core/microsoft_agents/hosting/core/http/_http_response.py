@@ -14,7 +14,7 @@ class HttpResponse:
     status_code: int
     body: Optional[Any] = None
     headers: Optional[dict[str, str]] = None
-    content_type: Optional[str] = "application/json"
+    content_type: str = "application/json"
 
 
 class HttpResponseFactory:
