@@ -11,12 +11,14 @@ from io import BytesIO
 
 from microsoft_agents.activity import (
     Activity,
+    AttachmentData,
     ChannelAccount,
     Channels,
     ConversationParameters,
     ConversationResourceResponse,
     ResourceResponse,
     RoleTypes,
+    Transcript,
     ConversationsResult,
     PagedMembersResult,
 )
@@ -26,6 +28,7 @@ from ..attachments_base import AttachmentsBase
 from ..conversations_base import ConversationsBase
 from ..get_product_info import get_product_info
 from ..telemetry import connector_spans as spans
+from .._utils import _handle_request_error
 from ._base_client import _BaseClient
 
 logger = logging.getLogger(__name__)
@@ -38,16 +41,6 @@ class AttachmentInfo:
         self.name = kwargs.get("name")
         self.type = kwargs.get("type")
         self.views = kwargs.get("views")
-
-
-class AttachmentData:
-    """Data for an attachment."""
-
-    def __init__(self, **kwargs):
-        self.name = kwargs.get("name")
-        self.original_base64 = kwargs.get("originalBase64")
-        self.type = kwargs.get("type")
-        self.thumbnail_base64 = kwargs.get("thumbnailBase64")
 
 
 def normalize_outgoing_activity(data: Any) -> Any:
@@ -96,13 +89,10 @@ class AttachmentsOperations(AttachmentsBase, _BaseClient):
             async with self._wrapped_client().get(url) as response:
                 span.share(http_method="GET", status_code=response.status)
 
-                if response.status >= 300:
-                    logger.error(
-                        "Error getting attachment info: %s",
-                        response.status,
-                        stack_info=True,
+                if response.status != 200:
+                    _handle_request_error(
+                        logger, response, resource=f"v3/attachments/<attachment_id>"
                     )
-                    response.raise_for_status()
 
                 data = await response.json()
                 return AttachmentInfo(**data)
@@ -139,11 +129,19 @@ class AttachmentsOperations(AttachmentsBase, _BaseClient):
             async with self._wrapped_client().get(url) as response:
                 span.share(http_method="GET", status_code=response.status)
 
-                if response.status >= 300:
-                    logger.error(
-                        "Error getting attachment: %s", response.status, stack_info=True
+                if response.status in (301, 302):
+                    logger.warning(
+                        "Redirect when getting attachment: %s",
+                        response.status,
+                        stack_info=True,
                     )
-                    response.raise_for_status()
+                    return BytesIO()
+                elif response.status >= 300:
+                    _handle_request_error(
+                        logger,
+                        response,
+                        resource=f"v3/attachments/<attachment_id>/views/<view_id>",
+                    )
 
                 data = await response.read()
                 return BytesIO(data)
@@ -218,13 +216,8 @@ class ConversationsOperations(ConversationsBase, _BaseClient):
             ) as response:
                 span.share(http_method="GET", status_code=response.status)
 
-                if response.status >= 300:
-                    logger.error(
-                        "Error getting conversations: %s",
-                        response.status,
-                        stack_info=True,
-                    )
-                    response.raise_for_status()
+                if response.status != 200:
+                    _handle_request_error(logger, response, resource="v3/conversations")
 
                 data = await response.json()
                 return ConversationsResult.model_validate(data)
@@ -246,13 +239,9 @@ class ConversationsOperations(ConversationsBase, _BaseClient):
                 json=body.model_dump(by_alias=True, exclude_unset=True, mode="json"),
             ) as response:
                 span.share(http_method="POST", status_code=response.status)
-                if response.status >= 300:
-                    logger.error(
-                        "Error creating conversation: %s",
-                        response.status,
-                        stack_info=True,
-                    )
-                    response.raise_for_status()
+
+                if response.status not in (200, 201, 202):
+                    _handle_request_error(logger, response, resource="v3/conversations")
 
                 data = await response.json()
                 return ConversationResourceResponse.model_validate(data)
@@ -297,13 +286,12 @@ class ConversationsOperations(ConversationsBase, _BaseClient):
 
                 response_text = await response.text("utf-8")
 
-                if response.status >= 300:
-                    logger.error(
-                        "Error replying to activity: %s",
-                        response_text or response.status,
-                        stack_info=True,
+                if response.status not in (200, 201, 202):
+                    _handle_request_error(
+                        logger,
+                        response,
+                        resource=f"v3/conversations/{conversation_id}/activities/{activity_id}",
                     )
-                    response.raise_for_status()
 
                 if not response_text:
                     resource_response = ResourceResponse()
@@ -354,13 +342,12 @@ class ConversationsOperations(ConversationsBase, _BaseClient):
             ) as response:
                 span.share(http_method="POST", status_code=response.status)
 
-                if response.status >= 300:
-                    logger.error(
-                        "Error sending to conversation: %s",
-                        response.status,
-                        stack_info=True,
+                if response.status not in (200, 201, 202):
+                    _handle_request_error(
+                        logger,
+                        response,
+                        resource=f"v3/conversations/{conversation_id}/activities",
                     )
-                    response.raise_for_status()
 
                 response_text = await response.text("utf-8")
                 if not response_text:
@@ -401,11 +388,12 @@ class ConversationsOperations(ConversationsBase, _BaseClient):
                 url,
                 json=body.model_dump(by_alias=True, exclude_unset=True),
             ) as response:
-                if response.status >= 300:
-                    logger.error(
-                        "Error updating activity: %s", response.status, stack_info=True
+                if response.status not in (200, 201, 202):
+                    _handle_request_error(
+                        logger,
+                        response,
+                        resource=f"v3/conversations/{conversation_id}/activities/{activity_id}",
                     )
-                    response.raise_for_status()
 
                 data = await response.json()
                 return ResourceResponse.model_validate(data)
@@ -438,11 +426,12 @@ class ConversationsOperations(ConversationsBase, _BaseClient):
             async with self._wrapped_client().delete(url) as response:
                 span.share(http_method="DELETE", status_code=response.status)
 
-                if response.status >= 300:
-                    logger.error(
-                        "Error deleting activity: %s", response.status, stack_info=True
+                if response.status not in (200, 202):
+                    _handle_request_error(
+                        logger,
+                        response,
+                        resource=f"v3/conversations/{conversation_id}/activities/{activity_id}",
                     )
-                    response.raise_for_status()
 
     async def upload_attachment(
         self, conversation_id: str, body: AttachmentData
@@ -466,14 +455,6 @@ class ConversationsOperations(ConversationsBase, _BaseClient):
             conversation_id = self._normalize_conversation_id(conversation_id)
             url = f"v3/conversations/{conversation_id}/attachments"
 
-            # Convert the AttachmentData to a dictionary
-            attachment_dict = {
-                "name": body.name,
-                "originalBase64": body.original_base64,
-                "type": body.type,
-                "thumbnailBase64": body.thumbnail_base64,
-            }
-
             logger.info(
                 "Uploading attachment to conversation: %s, Attachment name: %s",
                 conversation_id,
@@ -481,17 +462,17 @@ class ConversationsOperations(ConversationsBase, _BaseClient):
             )
 
             async with self._wrapped_client().post(
-                url, json=attachment_dict
+                url,
+                json=body.model_dump(by_alias=True, exclude_unset=True, mode="json"),
             ) as response:
                 span.share(http_method="POST", status_code=response.status)
 
-                if response.status >= 300:
-                    logger.error(
-                        "Error uploading attachment: %s",
-                        response.status,
-                        stack_info=True,
+                if response.status not in (200, 201, 202):
+                    _handle_request_error(
+                        logger,
+                        response,
+                        resource=f"v3/conversations/{conversation_id}/attachments",
                     )
-                    response.raise_for_status()
 
                 data = await response.json()
                 return ResourceResponse.model_validate(data)
@@ -524,13 +505,12 @@ class ConversationsOperations(ConversationsBase, _BaseClient):
             async with self._wrapped_client().get(url) as response:
                 span.share(http_method="GET", status_code=response.status)
 
-                if response.status >= 300:
-                    logger.error(
-                        "Error getting conversation members: %s",
-                        response.status,
-                        stack_info=True,
+                if response.status != 200:
+                    _handle_request_error(
+                        logger,
+                        response,
+                        resource=f"v3/conversations/{conversation_id}/members",
                     )
-                    response.raise_for_status()
 
                 data = await response.json()
                 return [ChannelAccount.model_validate(member) for member in data]
@@ -566,13 +546,12 @@ class ConversationsOperations(ConversationsBase, _BaseClient):
             async with self._wrapped_client().get(url) as response:
                 span.share(http_method="GET", status_code=response.status)
 
-                if response.status >= 300:
-                    logger.error(
-                        "Error getting conversation member: %s",
-                        response.status,
-                        stack_info=True,
+                if response.status != 200:
+                    _handle_request_error(
+                        logger,
+                        response,
+                        resource=f"v3/conversations/{conversation_id}/members/{member_id}",
                     )
-                    response.raise_for_status()
 
                 data = await response.json()
                 return ChannelAccount.model_validate(data)
@@ -603,13 +582,12 @@ class ConversationsOperations(ConversationsBase, _BaseClient):
         )
 
         async with self._wrapped_client().delete(url) as response:
-            if response.status >= 300:
-                logger.error(
-                    "Error deleting conversation member: %s",
-                    response.status,
-                    stack_info=True,
+            if response.status not in (200, 204):
+                _handle_request_error(
+                    logger,
+                    response,
+                    resource=f"v3/conversations/{conversation_id}/members/{member_id}",
                 )
-                response.raise_for_status()
 
     async def get_activity_members(
         self, conversation_id: str, activity_id: str
@@ -638,13 +616,12 @@ class ConversationsOperations(ConversationsBase, _BaseClient):
         )
 
         async with self._wrapped_client().get(url) as response:
-            if response.status >= 300:
-                logger.error(
-                    "Error getting activity members: %s",
-                    response.status,
-                    stack_info=True,
+            if response.status != 200:
+                _handle_request_error(
+                    logger,
+                    response,
+                    resource=f"v3/conversations/{conversation_id}/activities/{activity_id}/members",
                 )
-                response.raise_for_status()
 
             data = await response.json()
             return [ChannelAccount.model_validate(member) for member in data]
@@ -687,19 +664,18 @@ class ConversationsOperations(ConversationsBase, _BaseClient):
         )
 
         async with self._wrapped_client().get(url, params=params) as response:
-            if response.status >= 300:
-                logger.error(
-                    "Error getting conversation paged members: %s",
-                    response.status,
-                    stack_info=True,
+            if response.status != 200:
+                _handle_request_error(
+                    logger,
+                    response,
+                    resource=f"v3/conversations/{conversation_id}/pagedmembers",
                 )
-                response.raise_for_status()
 
             data = await response.json()
             return PagedMembersResult.model_validate(data)
 
     async def send_conversation_history(
-        self, conversation_id: str, body: Any
+        self, conversation_id: str, body: Transcript
     ) -> ResourceResponse:
         """
         Sends conversation history to a conversation.
@@ -719,14 +695,18 @@ class ConversationsOperations(ConversationsBase, _BaseClient):
         url = f"v3/conversations/{conversation_id}/activities/history"
 
         logger.info("Sending conversation history to conversation: %s", conversation_id)
-        async with self._wrapped_client().post(url, json=body) as response:
-            if response.status >= 300:
-                logger.error(
-                    "Error sending conversation history: %s",
-                    response.status,
-                    stack_info=True,
+        async with self._wrapped_client().post(
+            url,
+            json=body.model_dump(
+                by_alias=True, exclude_unset=True, exclude_none=True, mode="json"
+            ),
+        ) as response:
+            if response.status not in (200, 201, 202):
+                _handle_request_error(
+                    logger,
+                    response,
+                    resource=f"v3/conversations/{conversation_id}/activities/history",
                 )
-                response.raise_for_status()
 
             data = await response.json()
             return ResourceResponse.model_validate(data)
