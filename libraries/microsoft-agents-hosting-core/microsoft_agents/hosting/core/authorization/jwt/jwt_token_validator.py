@@ -10,6 +10,7 @@ from dataclasses import dataclass
 from jwt import PyJWKClient, PyJWK, decode, get_unverified_header
 
 from ..agent_auth_configuration import AgentAuthConfiguration
+from ..authentication_constants import AuthenticationConstants
 from ..claims_identity import ClaimsIdentity
 from .._entra_issuers import (
     BOTFRAMEWORK_JWKS_URIS,
@@ -61,7 +62,9 @@ class _JwkClientManager:
 
         def _helper():
             with jwk_cache_entry.lock:
-                return jwk_cache_entry.jwk_client.get_signing_key(header["kid"])
+                return jwk_cache_entry.jwk_client.get_signing_key(
+                    header[AuthenticationConstants.KEY_ID_HEADER]
+                )
 
         key = await asyncio.to_thread(_helper)
         return key
@@ -104,11 +107,15 @@ class JwtTokenValidator:
         # This is routing only -- final acceptance is checked against the
         # signature-verified claims below.
         routing_config = (
-            self.configuration._jwt_patch_find_connection(unverified_payload.get("aud"))
+            self.configuration._jwt_patch_find_connection(
+                unverified_payload.get(AuthenticationConstants.AUDIENCE_CLAIM)
+            )
             or self.configuration
         )
         jwks_uri = _build_jwks_uri(
-            unverified_payload.get("iss"), self.configuration, routing_config
+            unverified_payload.get(AuthenticationConstants.ISSUER_CLAIM),
+            self.configuration,
+            routing_config,
         )
         key = await self._jwk_client_manager.get_signing_key(jwks_uri, header)
 
@@ -120,7 +127,7 @@ class JwtTokenValidator:
             options={"verify_aud": False},
         )
 
-        aud = decoded_token.get("aud", "")
+        aud = decoded_token.get(AuthenticationConstants.AUDIENCE_CLAIM, "")
         if not self.configuration._jwt_patch_is_valid_aud(aud):
             logger.warning("JWT audience not accepted.")
             raise ValueError("Invalid audience.")
@@ -138,8 +145,13 @@ class JwtTokenValidator:
         # are unaffected, and a missing ``tid`` claim skips the check rather
         # than failing closed.
         if matched_config.VALIDATE_ISSUER:
-            _validate_issuer(decoded_token.get("iss"), matched_config)
-        _validate_tenant_binding(decoded_token.get("iss"), decoded_token.get("tid"))
+            _validate_issuer(
+                decoded_token.get(AuthenticationConstants.ISSUER_CLAIM), matched_config
+            )
+        _validate_tenant_binding(
+            decoded_token.get(AuthenticationConstants.ISSUER_CLAIM),
+            decoded_token.get(AuthenticationConstants.TENANT_ID_CLAIM),
+        )
 
         logger.debug("JWT token validated successfully.")
         return ClaimsIdentity(decoded_token, True, security_token=token)
@@ -184,7 +196,7 @@ def _build_jwks_uri(
 
     return (
         "https://login.microsoftonline.com/"
-        f"{root_config.TENANT_ID}/discovery/v2.0/keys"
+        f"{root_config.TENANT_ID or 'common'}/discovery/v2.0/keys"
     )
 
 

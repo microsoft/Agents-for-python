@@ -15,6 +15,8 @@ import re
 from typing import Any, NamedTuple
 from urllib.parse import urlparse
 
+from .authentication_constants import AuthenticationConstants
+
 # Well-known Microsoft first-party token issuer tenant IDs that are always
 # trusted, mirroring the default ``ValidIssuers`` set used by the .NET SDK.
 # These identify Microsoft infrastructure tenants used by Azure Bot Service,
@@ -27,21 +29,32 @@ WELL_KNOWN_PUBLIC_TENANT_IDS = (
 )
 WELL_KNOWN_GOV_TENANT_ID = "cab8a31a-1906-4287-a0d8-4eef66b95f6e"
 
-BOTFRAMEWORK_PUBLIC_ISSUER = "https://api.botframework.com"
-BOTFRAMEWORK_GOV_ISSUER = "https://api.botframework.us"
+BOTFRAMEWORK_PUBLIC_ISSUER = AuthenticationConstants.AGENTS_SDK_TOKEN_ISSUER
+BOTFRAMEWORK_GOV_ISSUER = AuthenticationConstants.GOV_AGENTS_SDK_TOKEN_ISSUER
 
 BOTFRAMEWORK_JWKS_URIS = {
-    BOTFRAMEWORK_PUBLIC_ISSUER: "https://login.botframework.com/v1/.well-known/keys",
-    BOTFRAMEWORK_GOV_ISSUER: "https://login.botframework.azure.us/v1/.well-known/keys",
+    BOTFRAMEWORK_PUBLIC_ISSUER: AuthenticationConstants.PUBLIC_ABS_JWKS_URL,
+    BOTFRAMEWORK_GOV_ISSUER: AuthenticationConstants.GOV_ABS_JWKS_URL,
 }
+
+
+def _issuer_pattern(template: str) -> re.Pattern[str]:
+    prefix, suffix = template.split("{0}")
+    return re.compile(rf"^(?i:{re.escape(prefix)})([^/]+){re.escape(suffix)}$")
+
 
 _GOV_AUTHORITY_RE = re.compile(r"login\.microsoftonline\.us", re.IGNORECASE)
 _ENTRA_TENANT_GUID_RE = re.compile(
     r"^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$", re.IGNORECASE
 )
-_V1_ISSUER_RE = re.compile(r"^https://sts\.windows\.net/([^/]+)/$", re.IGNORECASE)
-_V2_ISSUER_RE = re.compile(
-    r"^(?i:https://login\.microsoftonline\.(com|us)/)([^/]+)/v2\.0$"
+_V1_ISSUER_RE = _issuer_pattern(
+    AuthenticationConstants.VALID_TOKEN_ISSUER_URL_TEMPLATE_V1
+)
+_PUBLIC_V2_ISSUER_RE = _issuer_pattern(
+    AuthenticationConstants.VALID_TOKEN_ISSUER_URL_TEMPLATE_V2
+)
+_GOV_V2_ISSUER_RE = _issuer_pattern(
+    AuthenticationConstants.VALID_GOV_TOKEN_ISSUER_URL_TEMPLATE_V2
 )
 
 
@@ -111,11 +124,16 @@ def entra_issuer_info(iss: Any) -> EntraIssuerInfo | None:
             return EntraIssuerInfo(tenant.lower(), None)
         return None
 
-    v2_match = _V2_ISSUER_RE.match(iss)
-    if v2_match:
-        cloud, tenant = v2_match.group(1), v2_match.group(2)
+    for pattern, gov in (
+        (_PUBLIC_V2_ISSUER_RE, False),
+        (_GOV_V2_ISSUER_RE, True),
+    ):
+        v2_match = pattern.match(iss)
+        if not v2_match:
+            continue
+        tenant = v2_match.group(1)
         if _ENTRA_TENANT_GUID_RE.match(tenant):
-            return EntraIssuerInfo(tenant.lower(), cloud.lower() == "us")
+            return EntraIssuerInfo(tenant.lower(), gov)
     return None
 
 
@@ -134,15 +152,14 @@ def default_connection_issuers(
     tenant = effective_tenant(tenant_id, authority) or "common"
     gov = is_gov_authority(authority)
     bf_issuer = BOTFRAMEWORK_GOV_ISSUER if gov else BOTFRAMEWORK_PUBLIC_ISSUER
-    login_host = (
-        "https://login.microsoftonline.us"
-        if gov
-        else "https://login.microsoftonline.com"
-    )
     return [
         bf_issuer,
-        f"https://sts.windows.net/{tenant}/",
-        f"{login_host}/{tenant}/v2.0",
+        AuthenticationConstants.VALID_TOKEN_ISSUER_URL_TEMPLATE_V1.format(tenant),
+        (
+            AuthenticationConstants.VALID_GOV_TOKEN_ISSUER_URL_TEMPLATE_V2
+            if gov
+            else AuthenticationConstants.VALID_TOKEN_ISSUER_URL_TEMPLATE_V2
+        ).format(tenant),
     ]
 
 
@@ -153,13 +170,21 @@ def well_known_first_party_issuers(authority: str | None) -> list[str]:
     if is_gov_authority(authority):
         return [
             BOTFRAMEWORK_GOV_ISSUER,
-            f"https://sts.windows.net/{WELL_KNOWN_GOV_TENANT_ID}/",
-            f"https://login.microsoftonline.us/{WELL_KNOWN_GOV_TENANT_ID}/v2.0",
+            AuthenticationConstants.VALID_TOKEN_ISSUER_URL_TEMPLATE_V1.format(
+                WELL_KNOWN_GOV_TENANT_ID
+            ),
+            AuthenticationConstants.VALID_GOV_TOKEN_ISSUER_URL_TEMPLATE_V2.format(
+                WELL_KNOWN_GOV_TENANT_ID
+            ),
         ]
     issuers = [BOTFRAMEWORK_PUBLIC_ISSUER]
     for tenant in WELL_KNOWN_PUBLIC_TENANT_IDS:
-        issuers.append(f"https://sts.windows.net/{tenant}/")
-        issuers.append(f"https://login.microsoftonline.com/{tenant}/v2.0")
+        issuers.append(
+            AuthenticationConstants.VALID_TOKEN_ISSUER_URL_TEMPLATE_V1.format(tenant)
+        )
+        issuers.append(
+            AuthenticationConstants.VALID_TOKEN_ISSUER_URL_TEMPLATE_V2.format(tenant)
+        )
     return issuers
 
 

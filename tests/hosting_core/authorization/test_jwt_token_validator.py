@@ -271,9 +271,7 @@ class TestJwtTokenValidatorIssuerOptIn:
         assert identity.is_authenticated is True
 
     @pytest.mark.asyncio
-    async def test_noncanonical_entra_issuer_variants_skip_binding(
-        self, monkeypatch
-    ):
+    async def test_noncanonical_entra_issuer_variants_skip_binding(self, monkeypatch):
         private_key, public_key = generate_rsa_keypair()
         issuer_tenant = str(uuid.uuid4())
         mismatched_tid = str(uuid.uuid4())
@@ -766,6 +764,30 @@ class TestJwtTokenValidatorEffectiveTenant:
     ``.../{tenant-guid}``) taking precedence over a separately configured
     TENANT_ID for JWKS routing, multi-tenant detection, and default issuers.
     """
+
+    @pytest.mark.asyncio
+    async def test_public_jwks_routing_defaults_to_common_without_tenant(
+        self, monkeypatch
+    ):
+        private_key, public_key = generate_rsa_keypair()
+        config = AgentAuthConfiguration(client_id="client-1")
+        validator = JwtTokenValidator(config)
+        captured_uris = []
+        _patch_signing_key(monkeypatch, validator, public_key, captured_uris)
+
+        token = make_signed_jwt(
+            private_key,
+            {
+                "aud": "client-1",
+                "iss": "https://custom.example.com",
+            },
+        )
+
+        identity = await validator.validate_token(token)
+        assert identity.is_authenticated is True
+        assert captured_uris == [
+            "https://login.microsoftonline.com/common/discovery/v2.0/keys"
+        ]
 
     @pytest.mark.asyncio
     async def test_public_jwks_routing_ignores_authority_embedded_common_tenant(
