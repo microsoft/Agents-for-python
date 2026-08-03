@@ -15,6 +15,7 @@ from microsoft_agents.activity import (
     Mention,
     SuggestedActions,
     TextFormatTypes,
+    Unset,
 )
 
 
@@ -50,7 +51,7 @@ class TestActivityFluentBuilders:
         activity = Activity.create_message_activity().with_value("theValue")
 
         assert activity.value == "theValue"
-        assert activity.value_type is None
+        assert activity.value_type is Unset
 
     def test_with_suggested_actions(self):
         actions = SuggestedActions(
