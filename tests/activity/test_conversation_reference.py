@@ -1,6 +1,7 @@
 from uuid import UUID
 
 import pytest
+from pydantic import ValidationError
 
 from microsoft_agents.activity import (
     ActivityEventNames,
@@ -8,7 +9,6 @@ from microsoft_agents.activity import (
     ChannelAccount,
     ConversationAccount,
     ConversationReference,
-    Unset,
 )
 
 
@@ -50,10 +50,9 @@ def test_get_continuation_activity_generates_new_id_each_time():
     assert first_activity.id != second_activity.id
 
 
-def test_get_continuation_activity_uses_unset_when_user_is_missing():
+def test_get_continuation_activity_raises_when_user_is_missing():
     conversation_reference = _create_conversation_reference(user=None)
     conversation_reference.user = None
 
-    continuation_activity = conversation_reference.get_continuation_activity()
-
-    assert continuation_activity.from_property is Unset
+    with pytest.raises(ValidationError):
+        conversation_reference.get_continuation_activity()

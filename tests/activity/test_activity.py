@@ -18,7 +18,6 @@ from microsoft_agents.activity import (
     Thing,
     ProductInfo,
     RoleTypes,
-    Unset,
 )
 
 from tests.activity._common.my_channel_data import MyChannelData
@@ -250,8 +249,8 @@ class TestActivityConversationOps:
         elif value:
             assert trace.value_type == type(value).__name__
         else:
-            assert trace.value_type is Unset
-        assert trace.label == (label if label is not None else Unset)
+            assert trace.value_type is None
+        assert trace.label == label
         assert trace.name == "test"
 
     @pytest.mark.parametrize(
@@ -278,8 +277,8 @@ class TestActivityConversationOps:
         assert activity.type == expected_activity_type
 
         if expected_activity_type == ActivityTypes.message:
-            assert activity.attachments is Unset
-            assert activity.entities is Unset
+            assert activity.attachments is None
+            assert activity.entities is None
 
     @pytest.mark.parametrize(
         "name, value_type, value, label",
@@ -292,8 +291,8 @@ class TestActivityConversationOps:
         assert activity.type == ActivityTypes.trace
         assert activity.name == name
         assert activity.value_type == type(value).__name__
-        assert activity.value == (value if value is not None else Unset)
-        assert activity.label == (label if label is not None else Unset)
+        assert activity.value == value
+        assert activity.label == label
 
     @pytest.mark.parametrize(
         "activity_locale, text, create_recipient, create_from, create_reply_locale",
@@ -316,19 +315,19 @@ class TestActivityConversationOps:
         assert reply.service_url == "ServiceUrl123"
         assert reply.channel_id == "ChannelId123"
         assert reply.text == text or reply.text == ""
-        assert reply.locale == (create_reply_locale or activity_locale or Unset)
+        assert reply.locale == activity_locale or create_reply_locale
 
         if create_recipient:
             assert reply.from_property.id == "ChannelAccount_Id_2"
             assert reply.from_property.name == "ChannelAccount_Name_2"
         else:
-            assert reply.from_property is Unset
+            assert reply.from_property is None
 
         if create_from:
             assert reply.recipient.id == "ChannelAccount_Id_1"
             assert reply.recipient.name == "ChannelAccount_Name_1"
         else:
-            assert reply.recipient is Unset
+            assert reply.recipient is None
 
     @pytest.fixture(params=[None, {}, MyChannelData()])
     def channel_data(self, request):
