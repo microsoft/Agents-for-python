@@ -48,7 +48,7 @@ def test_app_on_turn_creates_span(test_exporter):
 
 
 def test_app_on_turn_span_attributes(test_exporter):
-    ctx = _make_context(id="act-1")
+    ctx = _make_context(id="act-1", name="message-received")
 
     with AppOnTurn(ctx):
         pass
@@ -56,6 +56,7 @@ def test_app_on_turn_span_attributes(test_exporter):
     span = test_exporter.get_finished_spans()[0]
     assert span.attributes[attributes.ACTIVITY_TYPE] == "message"
     assert span.attributes[attributes.ACTIVITY_ID] == "act-1"
+    assert span.attributes[attributes.ACTIVITY_NAME] == "message-received"
 
 
 def test_app_on_turn_span_attributes_missing_id(test_exporter):
@@ -67,6 +68,7 @@ def test_app_on_turn_span_attributes_missing_id(test_exporter):
     span = test_exporter.get_finished_spans()[0]
     assert span.attributes[attributes.ACTIVITY_TYPE] == "message"
     assert span.attributes[attributes.ACTIVITY_ID] == attributes.UNKNOWN
+    assert span.attributes[attributes.ACTIVITY_NAME] == attributes.UNKNOWN
 
 
 def test_app_on_turn_records_turn_metrics(test_exporter, test_metric_reader):

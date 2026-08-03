@@ -49,6 +49,8 @@ class AppOnTurn(SimpleSpanWrapper):
             attributes.ACTIVITY_TYPE: self._turn_context.activity.type,
             attributes.ACTIVITY_ID: self._turn_context.activity.id
             or attributes.UNKNOWN,
+            attributes.ACTIVITY_NAME: self._turn_context.activity.name
+            or attributes.UNKNOWN,
         }
 
     def share(self, route_authorized: bool, route_matched: bool) -> None:
