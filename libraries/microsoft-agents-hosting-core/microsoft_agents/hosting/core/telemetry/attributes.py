@@ -5,6 +5,7 @@ ACTIVITY_DELIVERY_MODE = "activity.delivery_mode"
 ACTIVITY_CHANNEL_ID = "activity.channel_id"
 ACTIVITY_ID = "activity.id"
 ACTIVITY_COUNT = "activities.count"
+ACTIVITY_NAME = "activity.name"
 ACTIVITY_TYPE = "activity.type"
 
 AGENTIC_USER_ID = "agentic.user_id"
