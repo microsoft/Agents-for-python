@@ -10,6 +10,7 @@ class AuthenticationConstants(ABC):
 
     # Token issuer for ABS tokens.
     AGENTS_SDK_TOKEN_ISSUER = "https://api.botframework.com"
+    GOV_AGENTS_SDK_TOKEN_ISSUER = "https://api.botframework.us"
 
     # Default OAuth Url used to get a token from IUserTokenClient.
     AGENTS_SDK_OAUTH_URL = "https://api.botframework.com"
@@ -25,15 +26,23 @@ class AuthenticationConstants(ABC):
     )
 
     # Enterprise Channel OpenId Metadata URL format.
-    ENTERPRISE_CHANNEL_OPENID_METADATA_URL_FORMAT = "https://{0}.enterprisechannel.botframework.com/v1/.well-known/openidconfiguration"
+    ENTERPRISE_CHANNEL_OPENID_METADATA_URL_FORMAT = (
+        "https://{0}.enterprisechannel.botframework.com/v1/.well-known/"
+        "openidconfiguration"
+    )
 
     # Gov ABS OpenId Metadata URL.
     GOV_ABS_OPENID_METADATA_URL = (
         "https://login.botframework.azure.us/v1/.well-known/openidconfiguration"
     )
+    PUBLIC_ABS_JWKS_URL = "https://login.botframework.com/v1/.well-known/keys"
+    GOV_ABS_JWKS_URL = "https://login.botframework.azure.us/v1/.well-known/keys"
 
     # Gov OpenId Metadata URL.
-    GOV_OPENID_METADATA_URL = "https://login.microsoftonline.us/cab8a31a-1906-4287-a0d8-4eef66b95f6e/v2.0/.well-known/openid-configuration"
+    GOV_OPENID_METADATA_URL = (
+        "https://login.microsoftonline.us/cab8a31a-1906-4287-a0d8-4eef66b95f6e/"
+        "v2.0/.well-known/openid-configuration"
+    )
 
     # The V1 Azure AD token issuer URL template that will contain the tenant id where
     # the token was issued from.
@@ -42,6 +51,7 @@ class AuthenticationConstants(ABC):
     # The V2 Azure AD token issuer URL template that will contain the tenant id where
     # the token was issued from.
     VALID_TOKEN_ISSUER_URL_TEMPLATE_V2 = "https://login.microsoftonline.com/{0}/v2.0"
+    VALID_GOV_TOKEN_ISSUER_URL_TEMPLATE_V2 = "https://login.microsoftonline.us/{0}/v2.0"
 
     # "azp" Claim.
     # Authorized party - the party to which the ID Token was issued.
