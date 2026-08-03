@@ -6,7 +6,7 @@ Licensed under the MIT License.
 import logging
 
 logging.warning(
-    "The `microsoft-agents-hosting-teams` package is obsolete. "
+    "The `microsoft-agents-hosting-teams` package is deprecated. "
     "Please start using the `microsoft-agents-hosting-msteams` package "
     "for better support and future updates. "
 )
