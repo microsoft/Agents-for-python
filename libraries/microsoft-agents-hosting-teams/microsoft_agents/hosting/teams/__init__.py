@@ -7,7 +7,7 @@ import logging
 
 logging.warning(
     "The `microsoft-agents-hosting-teams` package is obsolete. "
-    "Please start using the `microsoft_agents.hosting.msteams` package "
+    "Please start using the `microsoft-agents-hosting-msteams` package "
     "for better support and future updates. "
 )
 
