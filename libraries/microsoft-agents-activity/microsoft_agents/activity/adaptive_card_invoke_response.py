@@ -20,4 +20,4 @@ class AdaptiveCardInvokeResponse(AgentsModel):
 
     status_code: int = None
     type: NonEmptyString = None
-    value: dict[NonEmptyString, object] = None
+    value: object = None
