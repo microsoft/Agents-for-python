@@ -22,7 +22,8 @@ async def _authorize_request(
 
     :param authorization_header: The value of the Authorization header from the request.
     :param auth_config: The AgentAuthConfiguration instance containing authentication settings.
-    :return: A ClaimsIdentity object if the token is valid, or an HttpResponse with an error message and status code if the token is invalid or missing.
+    :return: A ClaimsIdentity object if the token is valid, or an HttpResponse with an
+        error message and status code if the token is invalid or missing.
     """
 
     if auth_config is None:
@@ -52,7 +53,9 @@ async def _authorize_request(
         claims = await validator.validate_token(parts[1])
         return claims
     except (PyJWTError, ValueError) as e:
-        logger.warning("JWT validation error: %s", e)
+        # Log only the exception type -- the message/claims are not surfaced
+        # to the caller (or the logs) to avoid leaking validation internals.
+        logger.warning("JWT validation error: %s", type(e).__name__)
         return HttpResponse(
             body={"error": "Invalid token or authentication failed."},
             status_code=401,

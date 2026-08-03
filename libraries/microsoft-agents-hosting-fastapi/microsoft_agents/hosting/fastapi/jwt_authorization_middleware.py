@@ -6,7 +6,6 @@ import inspect
 
 from fastapi import Request
 from fastapi.responses import JSONResponse
-
 from starlette.types import ASGIApp, Receive, Scope, Send
 
 from microsoft_agents.hosting.core import AgentAuthConfiguration

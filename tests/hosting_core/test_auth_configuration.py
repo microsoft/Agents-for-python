@@ -31,8 +31,8 @@ class TestAuthorizationConfiguration:
         assert auth_config.SCOPES == ["test-scope-1", "test-scope-2"]
         assert auth_config.ISSUERS == [
             "https://api.botframework.com",
-            f"https://sts.windows.net/test-tenant-id/",
-            f"https://login.microsoftonline.com/test-tenant-id/v2.0",
+            "https://sts.windows.net/test-tenant-id/",
+            "https://login.microsoftonline.com/test-tenant-id/v2.0",
         ]
 
     def test_load_configuration_from_env(self):
@@ -62,6 +62,32 @@ class TestAuthorizationConfiguration:
                 f"https://sts.windows.net/test-tenant-id-{name}/",
                 f"https://login.microsoftonline.com/test-tenant-id-{name}/v2.0",
             ]
+
+    def test_issuer_list_from_env(self):
+        mock_config = load_configuration_from_env(
+            {
+                "CONNECTIONS__SERVICE_CONNECTION__SETTINGS__ISSUERS__0": "https://issuer-one.example/",
+                "CONNECTIONS__SERVICE_CONNECTION__SETTINGS__ISSUERS__1": "https://issuer-two.example/",
+                "CONNECTIONS__SERVICE_CONNECTION__SETTINGS__VALIDATE_ISSUER": "true",
+            }
+        )
+
+        auth_config = AgentAuthConfiguration(
+            **mock_config["CONNECTIONS"]["SERVICE_CONNECTION"]["SETTINGS"]
+        )
+
+        assert auth_config.ISSUERS == [
+            "https://issuer-one.example/",
+            "https://issuer-two.example/",
+        ]
+        assert auth_config.VALIDATE_ISSUER is True
+
+    def test_scalar_issuer_string_is_single_entry(self):
+        auth_config = AgentAuthConfiguration(
+            ISSUERS="https://issuer.example/", VALIDATE_ISSUER="true"
+        )
+
+        assert auth_config.ISSUERS == ["https://issuer.example/"]
 
     def test_empty_settings(self):
         auth_config = AgentAuthConfiguration()
@@ -183,3 +209,141 @@ class TestAuthorizationConfiguration:
         # When the constructor arg is not provided, the kwarg is honored.
         auth_config = AgentAuthConfiguration(ANONYMOUS_ALLOWED="true")
         assert auth_config.ANONYMOUS_ALLOWED is True
+
+    def test_validate_issuer_default_false(self):
+        assert AgentAuthConfiguration().VALIDATE_ISSUER is False
+
+    def test_validate_issuer_true_bool_param(self):
+        auth_config = AgentAuthConfiguration(validate_issuer=True)
+        assert auth_config.VALIDATE_ISSUER is True
+
+    def test_validate_issuer_false_string_kwarg_is_false(self):
+        # Same fail-safe coercion as ANONYMOUS_ALLOWED: bool("false") would be
+        # True and silently enable issuer validation when configured off.
+        auth_config = AgentAuthConfiguration(VALIDATE_ISSUER="false")
+        assert auth_config.VALIDATE_ISSUER is False
+
+    def test_validate_issuer_true_string_kwarg_is_true(self):
+        auth_config = AgentAuthConfiguration(VALIDATE_ISSUER="true")
+        assert auth_config.VALIDATE_ISSUER is True
+
+    def test_validate_issuer_explicit_false_overrides_kwarg(self):
+        auth_config = AgentAuthConfiguration(
+            validate_issuer=False, VALIDATE_ISSUER="true"
+        )
+        assert auth_config.VALIDATE_ISSUER is False
+
+    def test_issuers_default_when_not_configured(self):
+        auth_config = AgentAuthConfiguration(tenant_id="tenant-1")
+        assert auth_config.ISSUERS == [
+            "https://api.botframework.com",
+            "https://sts.windows.net/tenant-1/",
+            "https://login.microsoftonline.com/tenant-1/v2.0",
+        ]
+
+    def test_issuers_explicit_list_overrides_default(self):
+        auth_config = AgentAuthConfiguration(
+            tenant_id="tenant-1",
+            issuers=["https://custom-issuer.example.com/"],
+        )
+        assert auth_config.ISSUERS == ["https://custom-issuer.example.com/"]
+
+    def test_issuers_kwarg_alias(self):
+        auth_config = AgentAuthConfiguration(
+            tenant_id="tenant-1", ISSUERS=["https://custom-issuer.example.com/"]
+        )
+        assert auth_config.ISSUERS == ["https://custom-issuer.example.com/"]
+
+    def test_issuers_param_preferred_over_kwarg(self):
+        auth_config = AgentAuthConfiguration(
+            tenant_id="tenant-1",
+            issuers=["https://primary.example.com/"],
+            ISSUERS=["https://secondary.example.com/"],
+        )
+        assert auth_config.ISSUERS == ["https://primary.example.com/"]
+
+    def test_issuers_default_uses_gov_cloud_when_authority_is_gov(self):
+        auth_config = AgentAuthConfiguration(
+            tenant_id="tenant-1", authority="https://login.microsoftonline.us"
+        )
+        assert auth_config.ISSUERS == [
+            "https://api.botframework.us",
+            "https://sts.windows.net/tenant-1/",
+            "https://login.microsoftonline.us/tenant-1/v2.0",
+        ]
+
+    def test_issuers_default_uses_authority_embedded_common_tenant(self):
+        # The authority-embedded tenant segment takes precedence over a
+        # separately configured (concrete) TENANT_ID, matching the JS
+        # reference's getEffectiveTenant/resolveAuthority precedence.
+        auth_config = AgentAuthConfiguration(
+            tenant_id="concrete-tenant-id",
+            authority="https://login.microsoftonline.com/common",
+        )
+        assert auth_config.ISSUERS == [
+            "https://api.botframework.com",
+            "https://sts.windows.net/common/",
+            "https://login.microsoftonline.com/common/v2.0",
+        ]
+
+    def test_issuers_default_uses_authority_embedded_concrete_tenant(self):
+        # A concrete tenant embedded in AUTHORITY must be used instead of a
+        # "common"/absent TENANT_ID, avoiding an incorrect "/common" or
+        # "/None" default issuer.
+        auth_config = AgentAuthConfiguration(
+            tenant_id="common",
+            authority="https://login.microsoftonline.com/concrete-tenant-id",
+        )
+        assert auth_config.ISSUERS == [
+            "https://api.botframework.com",
+            "https://sts.windows.net/concrete-tenant-id/",
+            "https://login.microsoftonline.com/concrete-tenant-id/v2.0",
+        ]
+
+    def test_issuers_default_falls_back_to_common_without_tenant_id_or_authority_path(
+        self,
+    ):
+        # Neither TENANT_ID nor an authority-embedded tenant segment is
+        # configured: the default must fall back to "common" rather than
+        # embedding a literal "None" in the issuer URLs.
+        auth_config = AgentAuthConfiguration(
+            authority="https://login.microsoftonline.com"
+        )
+        assert auth_config.ISSUERS == [
+            "https://api.botframework.com",
+            "https://sts.windows.net/common/",
+            "https://login.microsoftonline.com/common/v2.0",
+        ]
+
+    def test_issuers_and_validate_issuer_not_in_provider_settings(self):
+        # Recognized keys (bound into first-class fields) must never be
+        # duplicated into the provider-specific settings bag.
+        auth_config = AgentAuthConfiguration(
+            ISSUERS=["https://custom-issuer.example.com/"],
+            VALIDATE_ISSUER="true",
+            SOME_PROVIDER_KEY="keep-me",
+        )
+        assert "ISSUERS" not in auth_config.provider_settings
+        assert "VALIDATE_ISSUER" not in auth_config.provider_settings
+        assert auth_config.provider_settings == {"SOME_PROVIDER_KEY": "keep-me"}
+
+    def test_jwt_patch_is_valid_aud_rejects_non_string_audience(self):
+        # A non-string `aud` (e.g. the JWT-spec-permitted array form, or a
+        # malformed numeric/object claim) must be reported as invalid rather
+        # than raising AttributeError from `.lower()` on a non-string value.
+        auth_config = AgentAuthConfiguration(client_id="client-1")
+        assert auth_config._jwt_patch_is_valid_aud(["client-1"]) is False
+        assert auth_config._jwt_patch_is_valid_aud(12345) is False
+        assert auth_config._jwt_patch_is_valid_aud({"aud": "client-1"}) is False
+        # Sanity check: normal string behavior is unaffected.
+        assert auth_config._jwt_patch_is_valid_aud("client-1") is True
+
+    def test_jwt_patch_find_connection_treats_non_string_audience_as_no_match(self):
+        # Routing must not raise on a non-string `aud`; it should behave as
+        # "no matching connection" so callers fall back to default routing.
+        auth_config = AgentAuthConfiguration(client_id="client-1")
+        assert auth_config._jwt_patch_find_connection(["client-1"]) is None
+        assert auth_config._jwt_patch_find_connection(12345) is None
+        assert auth_config._jwt_patch_find_connection({"aud": "client-1"}) is None
+        # Sanity check: normal string behavior is unaffected.
+        assert auth_config._jwt_patch_find_connection("client-1") is auth_config
