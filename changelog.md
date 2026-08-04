@@ -2,6 +2,7 @@
 
 ## Major Features & Enhancements
 - Added support for Workload Identity
+- **Entra JWT Issuer Validation**: Added tenant ID cross-checking for Entra issuer claims and support for configuring issuer lists through environment variables (#515)
 
 ## New Models & APIs
 - **Regionalized UserTokenClient Support**: Added optional argument to `CloudAdapter` to configure Token Service endpoint used by `RestChannelServiceClientFactory` when creating `UserTokenClient` instances. 
