@@ -13,3 +13,4 @@ class AuthTypes(str, Enum):
     federated_credentials = "FederatedCredentials"
     identity_proxy_manager = "IdentityProxyManager"
     entra_auth_sidecar = "EntraAuthSideCar"
+    workload_identity = "WorkloadIdentity"
