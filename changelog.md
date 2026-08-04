@@ -1,5 +1,8 @@
 # Microsoft 365 Agents SDK for Python - Release Notes v1.4.0 (Unreleased)
 
+## Major Features & Enhancements
+- Added support for Workload Identity
+
 ## New Models & APIs
 - **Regionalized UserTokenClient Support**: Added optional argument to `CloudAdapter` to configure Token Service endpoint used by `RestChannelServiceClientFactory` when creating `UserTokenClient` instances. 
 

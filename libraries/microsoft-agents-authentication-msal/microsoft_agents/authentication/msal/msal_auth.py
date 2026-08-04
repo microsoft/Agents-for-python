@@ -282,6 +282,19 @@ class MsalAuth(AccessTokenProviderBase):
                     return result["access_token"]
 
                 client_credential = {"client_assertion": get_assertion}
+            elif self._msal_configuration.AUTH_TYPE == AuthTypes.workload_identity:
+                if not self._msal_configuration.FEDERATED_TOKEN_FILE:
+                    raise ValueError(
+                        "FEDERATED_TOKEN_FILE must be set in configuration."
+                    )
+
+                federated_token_file = self._msal_configuration.FEDERATED_TOKEN_FILE
+
+                def get_assertion() -> str:
+                    with open(federated_token_file, encoding="utf-8") as f:
+                        return f.read().strip()
+
+                client_credential = {"client_assertion": get_assertion}
             else:
                 logger.error(
                     f"Unsupported authentication type: {self._msal_configuration.AUTH_TYPE}"
