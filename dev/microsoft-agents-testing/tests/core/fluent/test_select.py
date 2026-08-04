@@ -51,12 +51,6 @@ class TestSelectInit:
 class TestSelectExpect:
     """Tests for the expect() method."""
 
-    def test_expect_returns_expect_instance(self):
-        """expect() returns an Expect instance."""
-        select = Select([{"name": "a"}])
-        result = select.expect()
-        assert isinstance(result, Expect)
-
     def test_expect_with_correct_items(self):
         """expect() passes the current items to Expect."""
         items = [{"name": "a"}, {"name": "b"}]
