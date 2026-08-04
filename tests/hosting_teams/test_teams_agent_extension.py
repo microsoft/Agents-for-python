@@ -5,21 +5,28 @@ Licensed under the MIT License.
 
 import re
 import sys
+from importlib.util import find_spec
 import pytest
 from unittest.mock import AsyncMock, MagicMock, patch
 
 is_supported_version = sys.version_info >= (3, 12)
+is_teams_installed = (
+    is_supported_version and find_spec("microsoft_agents.hosting.teams") is not None
+)
 
 pytestmark = pytest.mark.skipif(
-    not is_supported_version,
-    reason="microsoft-agents-hosting-teams tests require Python 3.12+",
+    not is_teams_installed,
+    reason=(
+        "microsoft-agents-hosting-teams tests require Python 3.12+ and the "
+        "microsoft-agents-hosting-teams package"
+    ),
 )
 
 from microsoft_agents.activity import Activity, ActivityTypes
 from microsoft_agents.hosting.core import TurnContext
 from microsoft_agents.hosting.core.app import AgentApplication, RouteRank
 
-if is_supported_version:
+if is_teams_installed:
     from microsoft_agents.activity.teams import (
         MeetingParticipantsEventDetails,
         ReadReceiptInfo,
