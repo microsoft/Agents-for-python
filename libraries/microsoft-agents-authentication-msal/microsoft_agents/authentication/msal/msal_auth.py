@@ -291,8 +291,8 @@ class MsalAuth(AccessTokenProviderBase):
                 federated_token_file = self._msal_configuration.FEDERATED_TOKEN_FILE
 
                 def get_assertion() -> str:
-                    with open(federated_token_file, "rb") as f:
-                        return f.read().decode("utf-8")
+                    with open(federated_token_file, encoding="utf-8") as f:
+                        return f.read().strip()
 
                 client_credential = {"client_assertion": get_assertion}
             else:

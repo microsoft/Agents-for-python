@@ -82,6 +82,8 @@ class AgentAuthConfiguration:
         enforced by JwtTokenValidator (per issue #626) whenever the verified
         token's issuer is a recognized Entra issuer with a GUID tenant,
         regardless of this flag.
+    ANONYMOUS_ALLOWED: Whether anonymous access is allowed (default False).
+    FEDERATED_TOKEN_FILE: The path to the federated token file (if using federated credentials authentication).
     """
 
     TENANT_ID: str | None

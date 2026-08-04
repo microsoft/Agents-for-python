@@ -263,7 +263,7 @@ class TestMsalAuthAzureRegion:
 class TestMsalAuthWorkloadIdentity:
     def test_create_client_application_reads_projected_token(self, mocker, tmp_path):
         token_file = tmp_path / "workload-token"
-        token_file.write_text("first-token", encoding="utf-8")
+        token_file.write_text("  first-token\r\n", encoding="utf-8")
         config = AgentAuthConfiguration(
             auth_type=AuthTypes.workload_identity,
             tenant_id="12345678-1234-1234-1234-123456789abc",
@@ -281,7 +281,7 @@ class TestMsalAuthWorkloadIdentity:
         ]
         assert client_assertion() == "first-token"
 
-        token_file.write_text("refreshed-token", encoding="utf-8")
+        token_file.write_text("\trefreshed-token\n", encoding="utf-8")
         assert client_assertion() == "refreshed-token"
 
     def test_create_client_application_requires_token_file(self):
