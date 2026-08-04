@@ -27,6 +27,7 @@ _RECOGNIZED_CONFIG_KEYS = frozenset(
         "CERTPFXFILE",
         "CONNECTIONNAME",
         "FEDERATEDCLIENTID",
+        "FEDERATEDTOKENFILE",
         "SCOPES",
         "AZUREREGION",
         "REGIONALAUTHORITY",

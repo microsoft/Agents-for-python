@@ -102,6 +102,21 @@ class TestAuthorizationConfiguration:
         assert auth_config.SCOPES is None
         assert auth_config.AZURE_REGION is None
 
+    def test_workload_identity_token_file_from_kwargs(self):
+        auth_config = AgentAuthConfiguration(
+            AUTHTYPE="WorkloadIdentity",
+            CLIENTID="test-client-id",
+            TENANTID="test-tenant-id",
+            FEDERATEDTOKENFILE="/var/run/secrets/azure/tokens/azure-identity-token",
+        )
+
+        assert auth_config.AUTH_TYPE == AuthTypes.workload_identity
+        assert (
+            auth_config.FEDERATED_TOKEN_FILE
+            == "/var/run/secrets/azure/tokens/azure-identity-token"
+        )
+        assert "FEDERATEDTOKENFILE" not in auth_config.provider_settings
+
     def test_azure_region_from_parameter(self):
         auth_config = AgentAuthConfiguration(azure_region="westus")
         assert auth_config.AZURE_REGION == "westus"
