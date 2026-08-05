@@ -20,6 +20,6 @@ class AdaptiveCardInvokeValue(AgentsModel):
     :type state: str
     """
 
-    action: AdaptiveCardInvokeAction = None
-    authentication: TokenExchangeInvokeRequest = None
+    action: AdaptiveCardInvokeAction
+    authentication: TokenExchangeInvokeRequest
     state: NonEmptyString = None

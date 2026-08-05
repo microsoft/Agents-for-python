@@ -1,9 +1,10 @@
 # Copyright (c) Microsoft Corporation. All rights reserved.
 # Licensed under the MIT License.
 
+from __future__ import annotations
+
 from dataclasses import asdict
 from http import HTTPStatus
-import re
 from typing import TYPE_CHECKING, Callable, Pattern
 
 import pydantic
@@ -61,9 +62,14 @@ class AdaptiveCard:
             ):
                 return False
 
-            verb_value = None
-            if isinstance(activity.value, dict):
-                verb_value = activity.value.get("verb", None)
+            try:
+                invoke_value = AdaptiveCardInvokeValue.model_validate(activity.value)
+            except pydantic.ValidationError:
+                return False
+
+            verb_value = (
+                invoke_value.action.verb if invoke_value.action is not None else None
+            )
             return self._matches(verb, verb_value)
 
         def register(func: Callable) -> Callable:
@@ -114,7 +120,7 @@ class AdaptiveCard:
 
             verb_value = None
             if isinstance(activity.value, dict):
-                verb_value = getattr(activity.value, submit_filter, None)
+                verb_value = activity.value.get(submit_filter)
             return self._matches(verb, verb_value)
 
         def register(func: ActionSubmitHandler) -> ActionSubmitHandler:
@@ -149,12 +155,14 @@ class AdaptiveCard:
             ):
                 return False
 
-            dataset_value = (
-                getattr(activity.value, "dataset", None)
-                if isinstance(activity.value, dict)
-                else None
-            )
-            return self._matches(dataset, dataset_value)
+            try:
+                invoke_value = AdaptiveCardSearchInvokeValue.model_validate(
+                    activity.value
+                )
+            except pydantic.ValidationError:
+                return False
+
+            return self._matches(dataset, invoke_value.dataset)
 
         def register(func: SearchHandler) -> SearchHandler:
             async def handler(context: TurnContext, state: TurnState) -> None:
@@ -248,7 +256,7 @@ class AdaptiveCard:
             return False
         if isinstance(selector, str):
             return selector == value
-        return re.fullmatch(selector, value) is not None
+        return selector.search(value) is not None
 
     @staticmethod
     async def _send_invoke_response(

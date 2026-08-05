@@ -14,8 +14,8 @@ class AdaptiveCardInvokeResponse(AgentsModel):
     :type status_code: int
     :param type: The type of this Card Action Response.
     :type type: str
-    :param value: The JSON response object.
-    :type value: dict[str, object]
+    :param value: The response object.
+    :type value: object
     """
 
     status_code: int = None

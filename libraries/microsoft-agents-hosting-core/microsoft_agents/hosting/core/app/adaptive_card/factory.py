@@ -21,7 +21,7 @@ def adaptive_card(adaptive_card_json: str) -> AdaptiveCardInvokeResponse:
 def search_response(result: dict | str) -> AdaptiveCardInvokeResponse:
     return AdaptiveCardInvokeResponse(
         status_code=HTTPStatus.OK,
-        type="application/vnd.microsoft.search.searchResponse",
+        type=ContentTypes.search_response,
         value=result,
     )
 
@@ -78,22 +78,22 @@ def error(
 def bad_request(message: str) -> AdaptiveCardInvokeResponse:
     return error(
         HTTPStatus.BAD_REQUEST,
-        "BadRequest",
         message,
+        "BadRequest",
     )
 
 
 def not_supported(message: str) -> AdaptiveCardInvokeResponse:
     return error(
         HTTPStatus.NOT_IMPLEMENTED,
-        "NotSupported",
         message,
+        "NotSupported",
     )
 
 
 def internal_error(message: str) -> AdaptiveCardInvokeResponse:
     return error(
         HTTPStatus.INTERNAL_SERVER_ERROR,
-        "InternalError",
         message,
+        "InternalError",
     )
