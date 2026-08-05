@@ -42,4 +42,5 @@ class SearchHandler(Protocol):
         context: TurnContext,
         state: TurnState,
         query: Query[AdaptiveCardSearchParams],
+        /,
     ) -> Awaitable[list[AdaptiveCardSearchResult]]: ...

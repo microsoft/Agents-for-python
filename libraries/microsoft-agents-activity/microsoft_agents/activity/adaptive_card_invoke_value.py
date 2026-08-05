@@ -21,5 +21,5 @@ class AdaptiveCardInvokeValue(AgentsModel):
     """
 
     action: AdaptiveCardInvokeAction
-    authentication: TokenExchangeInvokeRequest
+    authentication: TokenExchangeInvokeRequest | None = None
     state: NonEmptyString = None
