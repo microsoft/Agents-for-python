@@ -260,6 +260,43 @@ class TestMsalAuthAzureRegion:
         assert mock_cca.call_args.kwargs["azure_region"] is None
 
 
+class TestMsalAuthWorkloadIdentity:
+    def test_create_client_application_reads_projected_token(self, mocker, tmp_path):
+        token_file = tmp_path / "workload-token"
+        token_file.write_text("  first-token\r\n", encoding="utf-8")
+        config = AgentAuthConfiguration(
+            auth_type=AuthTypes.workload_identity,
+            tenant_id="12345678-1234-1234-1234-123456789abc",
+            client_id="test-client-id",
+            federated_token_file=str(token_file),
+        )
+        mock_cca = mocker.patch(
+            "microsoft_agents.authentication.msal.msal_auth.ConfidentialClientApplication"
+        )
+
+        MsalAuth(config)._create_client_application()
+
+        client_assertion = mock_cca.call_args.kwargs["client_credential"][
+            "client_assertion"
+        ]
+        assert client_assertion() == "first-token"
+
+        token_file.write_text("\trefreshed-token\n", encoding="utf-8")
+        assert client_assertion() == "refreshed-token"
+
+    def test_create_client_application_requires_token_file(self):
+        config = AgentAuthConfiguration(
+            auth_type=AuthTypes.workload_identity,
+            tenant_id="12345678-1234-1234-1234-123456789abc",
+            client_id="test-client-id",
+        )
+
+        with pytest.raises(
+            ValueError, match="FEDERATED_TOKEN_FILE must be set in configuration"
+        ):
+            MsalAuth(config)._create_client_application()
+
+
 class TestMsalAuthIdentityProxyManager:
     """
     Test suite for the Identity Proxy Manager (IDPM) authentication type.
