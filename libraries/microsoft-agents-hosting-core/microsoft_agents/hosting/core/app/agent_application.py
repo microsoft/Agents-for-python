@@ -21,6 +21,7 @@ from typing import (
     TypeVar,
     cast,
     overload,
+    Optional,
 )
 
 from microsoft_agents.activity import (
