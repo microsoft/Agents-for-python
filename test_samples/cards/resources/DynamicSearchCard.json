@@ -1,0 +1,53 @@
+{
+  "$schema": "http://adaptivecards.io/schemas/adaptive-card.json",
+  "version": "1.3",
+  "type": "AdaptiveCard",
+  "body": [
+    {
+      "type": "TextBlock",
+      "size": "medium",
+      "weight": "bolder",
+      "text": "Dynamic Adaptive Card"
+    },
+    {
+      "type": "TextBlock",
+      "text": "Select from the list, or start typing a package name.",
+      "wrap": true
+    },
+    {
+      "type": "Input.ChoiceSet",
+      "id": "choiceSelect",
+      "placeholder": "Package name",
+      "label": "PyPI package search",
+      "isRequired": true,
+      "errorMessage": "There was an error",
+      "isMultiSelect": true,
+      "style": "filtered",
+      "choices": [
+        {
+          "title": "microsoft-agents-activity",
+          "value": "microsoft-agents-activity"
+        },
+        {
+          "title": "microsoft-agents-hosting-core",
+          "value": "microsoft-agents-hosting-core"
+        },
+        {
+          "title": "microsoft-agents-copilotstudio-client",
+          "value": "microsoft-agents-copilotstudio-client"
+        }
+      ],
+      "choices.data": {
+        "type": "Data.Query",
+        "dataset": "pypipackages"
+      }
+    }
+  ],
+  "actions": [
+    {
+      "type": "Action.Submit",
+      "title": "Submit",
+      "data": {"verb": "DynamicSubmit"}
+    }
+  ]
+}
