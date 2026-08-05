@@ -62,8 +62,8 @@ class AdaptiveCard:
                 return False
 
             verb_value = None
-            if activity.value is not None:
-                verb_value = getattr(activity.value, "verb", None)
+            if isinstance(activity.value, dict):
+                verb_value = activity.value.get("verb", None)
             return self._matches(verb, verb_value)
 
         def register(func: Callable) -> Callable:
@@ -77,7 +77,9 @@ class AdaptiveCard:
                     status_code=HTTPStatus.OK
                 )
 
-                await self._send_invoke_response(context, response)
+                await self._send_invoke_response(
+                    context, response, status_code=HTTPStatus.OK
+                )
 
             kwargs.pop("is_invoke", None)
             self._app.add_route(
@@ -111,7 +113,7 @@ class AdaptiveCard:
                 return False
 
             verb_value = None
-            if activity.value is not None:
+            if isinstance(activity.value, dict):
                 verb_value = getattr(activity.value, submit_filter, None)
             return self._matches(verb, verb_value)
 
@@ -149,7 +151,7 @@ class AdaptiveCard:
 
             dataset_value = (
                 getattr(activity.value, "dataset", None)
-                if activity.value is not None
+                if isinstance(activity.value, dict)
                 else None
             )
             return self._matches(dataset, dataset_value)
@@ -164,7 +166,7 @@ class AdaptiveCard:
                         skip=options.skip,
                         parameters=AdaptiveCardSearchParams(
                             query_text=value.query_text,
-                            dataset=value.dataset,
+                            dataset=value.dataset or "",
                         ),
                     )
                     results = await func(context, state, query)
@@ -172,7 +174,9 @@ class AdaptiveCard:
                         {"results": [asdict(result) for result in results]}
                     )
 
-                await self._send_invoke_response(context, response)
+                await self._send_invoke_response(
+                    context, response, response.status_code or HTTPStatus.OK
+                )
 
             kwargs.pop("is_invoke", None)
             self._app.add_route(
@@ -250,12 +254,13 @@ class AdaptiveCard:
     async def _send_invoke_response(
         context: TurnContext,
         body: AdaptiveCardInvokeResponse,
+        status_code: int | HTTPStatus = HTTPStatus.OK,
     ) -> None:
         await context.send_activity(
             Activity(
                 type=ActivityTypes.invoke_response,
                 value=InvokeResponse(
-                    status=body.status_code or HTTPStatus.OK,
+                    status=int(status_code),
                     body=body.model_dump(mode="json", by_alias=True, exclude_none=True),
                 ),
             )

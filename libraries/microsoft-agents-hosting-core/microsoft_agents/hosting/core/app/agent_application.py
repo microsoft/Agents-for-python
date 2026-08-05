@@ -54,6 +54,7 @@ from ._type_defs import (
 )
 from ._routes import _RouteList, _Route, RouteRank, _agentic_selector
 from .proactive import Proactive
+from .adaptive_card import AdaptiveCard
 
 logger = logging.getLogger(__name__)
 
@@ -77,6 +78,7 @@ class AgentApplication(Agent, Generic[StateT]):
 
     _options: ApplicationOptions
     _adapter: ChannelServiceAdapter | None = None
+    _adaptive_card: AdaptiveCard
     _auth: Authorization
     _proactive: Proactive | None = None
     _internal_before_turn: list[Callable[[TurnContext, StateT], Awaitable[bool]]]
@@ -106,6 +108,7 @@ class AgentApplication(Agent, Generic[StateT]):
         :param kwargs: Additional configuration parameters.
         :type kwargs: Any
         """
+        self._adaptive_card = AdaptiveCard(self)
         self._route_list = _RouteList[StateT]()
         self._internal_before_turn = []
         self._internal_after_turn = []
@@ -236,6 +239,16 @@ class AgentApplication(Agent, Generic[StateT]):
                 """)
 
         return self._adapter
+
+    @property
+    def adaptive_card(self) -> AdaptiveCard:
+        """
+        The application's Adaptive Card manager.
+
+        :return: The Adaptive Card manager for the application.
+        :rtype: :class:`microsoft_agents.hosting.core.app.adaptive_card.AdaptiveCard`
+        """
+        return self._adaptive_card
 
     @property
     def auth(self) -> Authorization:

@@ -1,7 +1,7 @@
 # Copyright (c) Microsoft Corporation. All rights reserved.
 # Licensed under the MIT License.
 
-from typing import TypeVar, Awaitable, Protocol
+from typing import Awaitable, Protocol
 
 from microsoft_agents.activity import (
     AdaptiveCardInvokeResponse,
