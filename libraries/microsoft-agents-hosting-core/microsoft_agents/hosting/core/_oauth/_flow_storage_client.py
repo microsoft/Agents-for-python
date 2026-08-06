@@ -80,7 +80,7 @@ class _FlowStorageClient:
         """Saves the flow state for a specific authentication handler."""
         key: str = self.key(value.auth_handler_id)
         cached_state = await self._cache.read([key], target_cls=_FlowState)
-        if not cached_state or cached_state != value:
+        if not cached_state or cached_state.get(key, None) != value:
             await self._cache.write({key: value})
             await self._storage.write({key: value})
 
