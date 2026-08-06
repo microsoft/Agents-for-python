@@ -27,6 +27,7 @@ _RECOGNIZED_CONFIG_KEYS = frozenset(
         "CERTPFXFILE",
         "CONNECTIONNAME",
         "FEDERATEDCLIENTID",
+        "FEDERATEDTOKENFILE",
         "SCOPES",
         "AZUREREGION",
         "REGIONALAUTHORITY",
@@ -81,6 +82,8 @@ class AgentAuthConfiguration:
         enforced by JwtTokenValidator (per issue #626) whenever the verified
         token's issuer is a recognized Entra issuer with a GUID tenant,
         regardless of this flag.
+    ANONYMOUS_ALLOWED: Whether anonymous access is allowed (default False).
+    FEDERATED_TOKEN_FILE: The path to the federated token file (if using federated credentials authentication).
     """
 
     TENANT_ID: str | None
@@ -97,6 +100,7 @@ class AgentAuthConfiguration:
     IDPM_RESOURCE: str | None
     ANONYMOUS_ALLOWED: bool = False
     VALIDATE_ISSUER: bool = False
+    FEDERATED_TOKEN_FILE: str | None
 
     # Provider-specific settings that aren't first-class fields (e.g. the Entra
     # sidecar's SERVICE_NAME, SIDECAR_BASE_URL). Preserved here as a single dict
@@ -129,6 +133,7 @@ class AgentAuthConfiguration:
         anonymous_allowed: bool | None = None,
         issuers: list[str] | None = None,
         validate_issuer: bool | None = None,
+        federated_token_file: str | None = None,
         **kwargs: Any,
     ):
 
@@ -147,6 +152,9 @@ class AgentAuthConfiguration:
         self.CONNECTION_NAME = connection_name or kwargs.get("CONNECTIONNAME", None)
         self.FEDERATED_CLIENT_ID = federated_client_id or kwargs.get(
             "FEDERATEDCLIENTID", None
+        )
+        self.FEDERATED_TOKEN_FILE = federated_token_file or kwargs.get(
+            "FEDERATEDTOKENFILE", None
         )
         self.SCOPES = scopes or kwargs.get("SCOPES", None)
         # Azure regional token service. Falls back to the legacy "REGIONALAUTHORITY"

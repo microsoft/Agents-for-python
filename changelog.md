@@ -1,6 +1,8 @@
 # Microsoft 365 Agents SDK for Python - Release Notes v1.4.0 (Unreleased)
 
 ## Major Features & Enhancements
+- Added support for Workload Identity
+- **Entra JWT Issuer Validation**: Added tenant ID cross-checking for Entra issuer claims and support for configuring issuer lists through environment variables (#515)
 - **AgentApplication Adaptive Card Routing**: Added `AgentApplication.adaptive_card` with decorator-based handlers for Adaptive Card `Action.Submit`, `Action.Execute`, and `Data.Query` dynamic search with verb and dataset matching selection.
 
 ## New Models & APIs
