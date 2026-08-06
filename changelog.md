@@ -1,7 +1,10 @@
 # Microsoft 365 Agents SDK for Python - Release Notes v1.4.0 (Unreleased)
 
+## Major Features & Enhancements
+- **AgentApplication Adaptive Card Routing**: Added `AgentApplication.adaptive_card` with decorator-based handlers for Adaptive Card `Action.Submit`, `Action.Execute`, and `Data.Query` dynamic search with verb and dataset matching selection.
+
 ## New Models & APIs
-- **Regionalized UserTokenClient Support**: Added optional argument to `CloudAdapter` to configure Token Service endpoint used by `RestChannelServiceClientFactory` when creating `UserTokenClient` instances. 
+- **Regionalized UserTokenClient Support**: Added optional argument to `CloudAdapter` to configure Token Service endpoint used by `RestChannelServiceClientFactory` when creating `UserTokenClient` instances.
 
 # Microsoft 365 Agents SDK for Python - Release Notes v1.3.0
 
