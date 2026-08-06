@@ -7,6 +7,9 @@
 ## New Models & APIs
 - **Regionalized UserTokenClient Support**: Added optional argument to `CloudAdapter` to configure Token Service endpoint used by `RestChannelServiceClientFactory` when creating `UserTokenClient` instances. 
 
+## Developer Experience
+- Building packages with `py.typed` files for improved typing support
+
 # Microsoft 365 Agents SDK for Python - Release Notes v1.3.0
 
 **Release Date:** 2026-07-30
