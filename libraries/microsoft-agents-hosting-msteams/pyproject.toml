@@ -20,5 +20,8 @@ classifiers = [
     "Operating System :: OS Independent",
 ]
 
+[tool.setuptools.package-data]
+"microsoft_agents.hosting.msteams" = ["py.typed"]
+
 [project.urls]
 "Homepage" = "https://github.com/microsoft/Agents"

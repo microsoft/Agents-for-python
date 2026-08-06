@@ -24,5 +24,8 @@ dependencies = [
     "pydantic>=2.10.4"
 ]
 
+[tool.setuptools.package-data]
+"microsoft_agents.activity" = ["py.typed"]
+
 [project.urls]
 "Homepage" = "https://github.com/microsoft/Agents"
