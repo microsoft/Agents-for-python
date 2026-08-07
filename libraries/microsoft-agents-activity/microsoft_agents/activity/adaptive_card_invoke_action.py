@@ -1,6 +1,8 @@
 # Copyright (c) Microsoft Corporation. All rights reserved.
 # Licensed under the MIT License.
 
+from pydantic import Field
+
 from .agents_model import AgentsModel
 from ._type_aliases import NonEmptyString
 
@@ -14,14 +16,14 @@ class AdaptiveCardInvokeAction(AgentsModel):
     :param type: The Type of this Adaptive Card Invoke Action.
     :type type: str
     :param id: The Id of this Adaptive Card Invoke Action.
-    :type id: str
+    :type id: str | None
     :param verb: The Verb of this Adaptive Card Invoke Action.
-    :type verb: str
+    :type verb: str | None
     :param data: The data of this Adaptive Card Invoke Action.
     :type data: dict[str, object]
     """
 
-    type: NonEmptyString = None
-    id: NonEmptyString = None
-    verb: NonEmptyString = None
-    data: dict[NonEmptyString, object] = None
+    type: str
+    id: str | None = None
+    verb: str | None = None
+    data: dict[NonEmptyString, object] = Field(default_factory=dict)
