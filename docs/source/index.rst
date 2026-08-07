@@ -4,11 +4,14 @@
    contain the root `toctree` directive.
 
 Python Agents SDK API Reference
-===========================
+============================================
+
+.. include:: ../../README.md
+   :parser: myst_parser.sphinx_
 
 .. toctree::
    :maxdepth: 1
-   :caption: Contents:
+   :caption: Packages:
 
    microsoft_agents.activity
 

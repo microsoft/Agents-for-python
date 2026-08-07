@@ -1,0 +1,67 @@
+# Simple workflow for deploying static content to GitHub Pages
+name: Build and Deploy Docs
+
+on:
+  # Runs on pushes targeting the default branch
+  push:
+    branches: 
+      - 'release/*'
+  # Allows you to run this workflow manually from the Actions tab
+  workflow_dispatch:
+
+# Sets permissions of the GITHUB_TOKEN to allow deployment to GitHub Pages
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+# Allow only one concurrent deployment, skipping runs queued between the run in-progress and latest queued.
+# However, do NOT cancel in-progress runs as we want to allow these production deployments to complete.
+concurrency:
+  group: "pages"
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Setup Pages
+        uses: actions/configure-pages@v5
+      - name: Setup Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: "3.12"
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r dev_dependencies.txt
+          pip install ./libraries/microsoft-agents-activity/ --config-settings editable_mode=compat
+          pip install ./libraries/microsoft-agents-authentication-msal/ --config-settings editable_mode=compat
+          pip install ./libraries/microsoft-agents-authentication-entra-auth-sidecar/ --config-settings editable_mode=compat
+          pip install ./libraries/microsoft-agents-copilotstudio-client/ --config-settings editable_mode=compat
+          pip install ./libraries/microsoft-agents-hosting-aiohttp/ --config-settings editable_mode=compat
+          pip install ./libraries/microsoft-agents-hosting-core/ --config-settings editable_mode=compat
+          pip install ./libraries/microsoft-agents-hosting-teams/ --config-settings editable_mode=compat
+          pip install ./libraries/microsoft-agents-hosting-msteams/ --config-settings editable_mode=compat
+          pip install ./libraries/microsoft-agents-hosting-dialogs/ --config-settings editable_mode=compat
+          pip install ./libraries/microsoft-agents-hosting-fastapi/ --config-settings editable_mode=compat
+          pip install ./libraries/microsoft-agents-hosting-slack/ --config-settings editable_mode=compat
+          pip install ./libraries/microsoft-agents-storage-blob/ --config-settings editable_mode=compat
+          pip install ./libraries/microsoft-agents-storage-cosmos/ --config-settings editable_mode=compat
+      - name: Build Docs
+        run: |
+          cd docs
+          make html
+      - name: Upload artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          # Upload entire repository
+          path: './docs/build/html'
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v5
