@@ -1,6 +1,6 @@
 python -m venv venv
 
-. .\venv\bin\activate
+. .\venv\Scripts\Activate.ps1
 
 pip install -e ./libraries/microsoft-agents-activity/ --config-settings editable_mode=compat
 pip install -e ./libraries/microsoft-agents-authentication-msal/ --config-settings editable_mode=compat
