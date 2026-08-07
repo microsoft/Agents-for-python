@@ -4,3 +4,6 @@ pytest-aiohttp
 pytest-mock
 pre-commit
 click
+sphinx
+myst-parser
+sphinx-rtd-theme
