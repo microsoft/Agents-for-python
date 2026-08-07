@@ -126,7 +126,7 @@ class _OAuthFlow:
             magic_code=magic_code,
         )
         if token_response:
-            logger.info("User token obtained successfully: %s", token_response)
+            logger.info("User token obtained successfully")
             self._flow_state.expiration = (
                 datetime.now(timezone.utc).timestamp() + self._default_flow_duration
             )
@@ -315,10 +315,7 @@ class _OAuthFlow:
             self._flow_state.expiration = (
                 datetime.now(timezone.utc).timestamp() + self._default_flow_duration
             )
-            logger.debug(
-                "OAuth flow completed successfully, got TokenResponse: %s",
-                token_response,
-            )
+            logger.debug("OAuth flow completed successfully, got a token response.")
 
         return _FlowResponse(
             flow_state=self._flow_state.model_copy(),
