@@ -4,7 +4,7 @@
 from __future__ import annotations
 
 from uuid import uuid4 as uuid
-from typing import Optional, Annotated
+from typing import Optional, Annotated, TYPE_CHECKING
 
 from pydantic import Field
 
@@ -15,6 +15,10 @@ from .agents_model import AgentsModel
 from ._type_aliases import NonEmptyString
 from .activity_types import ActivityTypes
 from .activity_event_names import ActivityEventNames
+from ._model_utils import pick_model, SkipNone
+
+if TYPE_CHECKING:
+    from .activity import Activity
 
 
 class ConversationReference(AgentsModel):
@@ -50,10 +54,11 @@ class ConversationReference(AgentsModel):
     locale: Optional[NonEmptyString] = None
     service_url: NonEmptyString = None
 
-    def get_continuation_activity(self) -> "Activity":  # type: ignore
+    def get_continuation_activity(self) -> Activity:
         from .activity import Activity
 
-        return Activity(
+        return pick_model(
+            Activity,
             type=ActivityTypes.event,
             name=ActivityEventNames.continue_conversation,
             id=str(uuid()),
@@ -61,6 +66,6 @@ class ConversationReference(AgentsModel):
             service_url=self.service_url,
             conversation=self.conversation,
             recipient=self.agent,
-            from_property=self.user,
+            from_property=SkipNone(self.user),
             relates_to=self,
         )
