@@ -3,9 +3,10 @@
 ## Major Features & Enhancements
 - Added support for Workload Identity
 - **Entra JWT Issuer Validation**: Added tenant ID cross-checking for Entra issuer claims and support for configuring issuer lists through environment variables (#515)
+- **AgentApplication Adaptive Card Routing**: Added `AgentApplication.adaptive_card` with decorator-based handlers for Adaptive Card `Action.Submit`, `Action.Execute`, and `Data.Query` dynamic search with verb and dataset matching selection.
 
 ## New Models & APIs
-- **Regionalized UserTokenClient Support**: Added optional argument to `CloudAdapter` to configure Token Service endpoint used by `RestChannelServiceClientFactory` when creating `UserTokenClient` instances. 
+- **Regionalized UserTokenClient Support**: Added optional argument to `CloudAdapter` to configure Token Service endpoint used by `RestChannelServiceClientFactory` when creating `UserTokenClient` instances.
 
 ## Bug Fixes
 - **OAuth Flow Storage**: Avoided redundant writes when the flow state is unchanged in the cache.

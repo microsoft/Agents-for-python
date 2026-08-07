@@ -10,6 +10,7 @@ from .adaptive_card_card import AdaptiveCardCard
 from .adaptive_card_invoke_action import AdaptiveCardInvokeAction
 from .adaptive_card_invoke_response import AdaptiveCardInvokeResponse
 from .adaptive_card_invoke_value import AdaptiveCardInvokeValue
+from .adaptive_card_search_invoke_value import AdaptiveCardSearchInvokeValue
 from .animation_card import AnimationCard
 from .attachment import Attachment
 from .attachment_data import AttachmentData
@@ -66,6 +67,8 @@ from .receipt_card import ReceiptCard
 from .receipt_item import ReceiptItem
 from .resource_response import ResourceResponse
 from .semantic_action import SemanticAction
+from .search_invoke_options import SearchInvokeOptions
+from .search_invoke_value import SearchInvokeValue
 from .signin_card import SigninCard
 from .suggested_actions import SuggestedActions
 from .text_highlight import TextHighlight
@@ -117,6 +120,7 @@ __all__ = [
     "AdaptiveCardInvokeAction",
     "AdaptiveCardInvokeResponse",
     "AdaptiveCardInvokeValue",
+    "AdaptiveCardSearchInvokeValue",
     "AnimationCard",
     "Attachment",
     "AttachmentData",
@@ -167,6 +171,8 @@ __all__ = [
     "ReceiptCard",
     "ReceiptItem",
     "ResourceResponse",
+    "SearchInvokeOptions",
+    "SearchInvokeValue",
     "SemanticAction",
     "SigninCard",
     "SuggestedActions",
