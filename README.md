@@ -49,7 +49,7 @@ We are using `black` and `flake8` for code formatting and linting.
 ## Contributing
 
 #### Note for Microsoft internal developers: 
-- Internal Micrsoft Developers should join the Core identity group [Agents SDK Contrib](https://coreidentity.microsoft.com/manage/Entitlement/entitlement/agentssdkint-upyj)
+- Internal Microsoft Developers should join the Core identity group [Agents SDK Contrib](https://coreidentity.microsoft.com/manage/Entitlement/entitlement/agentssdkint-upyj)
 
 #### Non-Microsoft internal developers:
 
