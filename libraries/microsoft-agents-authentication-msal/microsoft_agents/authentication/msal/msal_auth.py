@@ -146,9 +146,7 @@ class MsalAuth(AccessTokenProviderBase):
                 )
 
                 if "access_token" not in token:
-                    logger.error(
-                        f"Failed to acquire token on behalf of user: {user_assertion}"
-                    )
+                    logger.error(f"Failed to acquire token on behalf of user.")
                     raise ValueError(
                         authentication_errors.FailedToAcquireToken.format(str(token))
                     )
