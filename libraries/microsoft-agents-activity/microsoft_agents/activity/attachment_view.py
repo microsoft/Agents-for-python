@@ -1,6 +1,8 @@
 # Copyright (c) Microsoft Corporation. All rights reserved.
 # Licensed under the MIT License.
 
+from typing import Optional
+
 from .agents_model import AgentsModel
 from ._type_aliases import NonEmptyString
 
@@ -14,5 +16,5 @@ class AttachmentView(AgentsModel):
     :type size: int
     """
 
-    view_id: NonEmptyString = None
+    view_id: Optional[NonEmptyString] = None
     size: int = None
