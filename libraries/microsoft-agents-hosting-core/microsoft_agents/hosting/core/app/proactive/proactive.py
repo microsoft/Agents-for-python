@@ -6,12 +6,11 @@ Licensed under the MIT License.
 from __future__ import annotations
 
 import logging
-from typing import Awaitable, Callable, Generic, Optional, TypeVar, TYPE_CHECKING
+from typing import Awaitable, Callable, Generic, TypeVar, TYPE_CHECKING
 
 from microsoft_agents.activity import Activity, ResourceResponse
 
 from microsoft_agents.hosting.core.app.state.turn_state import TurnState
-from microsoft_agents.hosting.core.storage import Storage
 
 from .conversation import Conversation
 from .create_conversation_options import CreateConversationOptions
@@ -66,25 +65,12 @@ class Proactive(Generic[StateT]):
 
     def __init__(
         self,
-        app: "AgentApplication[StateT]",
+        app: AgentApplication,
         options: ProactiveOptions,
     ) -> None:
         self._app = app
         self._options = options
-
-    # ------------------------------------------------------------------
-    # Storage helpers
-    # ------------------------------------------------------------------
-
-    @property
-    def _storage(self) -> Storage:
-        storage = self._options.storage or self._app.options.storage
-        if not storage:
-            raise RuntimeError(
-                "Proactive messaging requires a Storage instance.  "
-                "Configure ProactiveOptions.storage or ApplicationOptions.storage."
-            )
-        return storage
+        self._storage = self._options.storage
 
     @staticmethod
     def _storage_key(conversation_id: str) -> str:
@@ -129,7 +115,7 @@ class Proactive(Generic[StateT]):
             logger.debug("Storing conversation with key: %s", key)
             await self._storage.write({key: conversation})
 
-    async def get_conversation(self, conversation_id: str) -> Optional[Conversation]:
+    async def get_conversation(self, conversation_id: str) -> Conversation | None:
         """
         Retrieve a previously stored
         :class:`~microsoft_agents.hosting.core.app.proactive.conversation.Conversation`.
@@ -165,10 +151,10 @@ class Proactive(Generic[StateT]):
 
     async def send_activity(
         self,
-        adapter: "ChannelServiceAdapter",
-        conversation_id_or_conversation: "str | Conversation",
+        adapter: ChannelServiceAdapter,
+        conversation_id_or_conversation: str | Conversation,
         activity: Activity,
-    ) -> Optional[ResourceResponse]:
+    ) -> ResourceResponse | None:
         """
         Send a single activity into an existing conversation.
 
@@ -195,17 +181,19 @@ class Proactive(Generic[StateT]):
 
     @staticmethod
     async def _send_activity_impl(
-        adapter: "ChannelServiceAdapter",
+        adapter: ChannelServiceAdapter,
         conversation: Conversation,
         activity: Activity,
-    ) -> Optional[ResourceResponse]:
-        result: Optional[ResourceResponse] = None
-        captured_exc: Optional[BaseException] = None
+    ) -> ResourceResponse | None:
+        """Send an activity into a conversation without loading state or running a handler."""
+        
+        result: ResourceResponse | None = None
+        captured_exc: BaseException | None = None
 
         claims = Conversation.identity_from_claims(conversation.claims)
         continuation = conversation.conversation_reference.get_continuation_activity()
 
-        async def _callback(context: "TurnContext") -> None:
+        async def _callback(context: TurnContext) -> None:
             nonlocal result, captured_exc
             try:
                 result = await context.send_activity(activity)
@@ -224,12 +212,12 @@ class Proactive(Generic[StateT]):
 
     async def continue_conversation(
         self,
-        adapter: "ChannelServiceAdapter",
-        conversation_id_or_conversation: "str | Conversation",
+        adapter: ChannelServiceAdapter,
+        conversation_id_or_conversation: str | Conversation,
         handler: RouteHandler,
         *,
-        continuation_activity: Optional[Activity] = None,
-        token_handlers: Optional[list[str]] = None,
+        continuation_activity: Activity | None = None,
+        token_handlers: list[str] | None = None,
     ) -> None:
         """
         Continue an existing conversation by invoking *handler* inside a full
@@ -264,14 +252,14 @@ class Proactive(Generic[StateT]):
         conversation = await self._resolve_conversation(conversation_id_or_conversation)
         conversation_id = conversation.conversation_reference.conversation.id
 
-        captured_exc: Optional[BaseException] = None
+        captured_exc: BaseException | None = None
         claims = Conversation.identity_from_claims(conversation.claims)
         continuation = (
             continuation_activity
             or conversation.conversation_reference.get_continuation_activity()
         )
 
-        async def _callback(context: "TurnContext") -> None:
+        async def _callback(context: TurnContext) -> None:
             nonlocal captured_exc
             try:
                 await self._on_turn(context, handler, token_handlers)
@@ -293,9 +281,9 @@ class Proactive(Generic[StateT]):
 
     async def create_conversation(
         self,
-        adapter: "ChannelServiceAdapter",
+        adapter: ChannelServiceAdapter,
         options: CreateConversationOptions,
-        handler: Optional[RouteHandler] = None,
+        handler: RouteHandler | None = None,
     ) -> Conversation:
         """
         Create a brand-new conversation with a user and optionally run *handler*.
@@ -315,14 +303,14 @@ class Proactive(Generic[StateT]):
         """
         options.validate()
 
-        new_conversation: Optional[Conversation] = None
-        captured_exc: Optional[BaseException] = None
+        new_conversation: Conversation | None = None
+        captured_exc: BaseException | None = None
 
         with spans.ProactiveCreateConversation(options):
 
             audience = options.audience or options.identity.get_token_audience()
 
-            async def _callback(context: "TurnContext") -> None:
+            async def _callback(context: TurnContext) -> None:
                 nonlocal new_conversation, captured_exc
                 try:
                     reference = context.activity.get_conversation_reference()
@@ -361,9 +349,9 @@ class Proactive(Generic[StateT]):
 
     async def _on_turn(
         self,
-        context: "TurnContext",
+        context: TurnContext,
         handler: RouteHandler,
-        token_handlers: Optional[list[str]] = None,
+        token_handlers: list[str] | None = None,
     ) -> None:
         """Run a proactive turn: load state → optional OAuth check → handler → save state."""
         state = await self._load_state(context)
@@ -388,7 +376,7 @@ class Proactive(Generic[StateT]):
         await handler(context, state)
         await state.save(context)
 
-    async def _load_state(self, context: "TurnContext") -> StateT:
+    async def _load_state(self, context: TurnContext) -> StateT:
         if self._app._turn_state_factory:
             state = self._app._turn_state_factory()
         else:
@@ -398,7 +386,7 @@ class Proactive(Generic[StateT]):
 
     async def _resolve_conversation(
         self,
-        conversation_id_or_conversation: "str | Conversation",
+        conversation_id_or_conversation: str | Conversation,
     ) -> Conversation:
         if isinstance(conversation_id_or_conversation, str):
             conversation = await self.get_conversation(conversation_id_or_conversation)
