@@ -1,5 +1,5 @@
 [build-system]
-requires = ["setuptools"]
+requires = ["setuptools>=77"]
 build-backend = "setuptools.build_meta"
 
 [project]
@@ -20,6 +20,9 @@ classifiers = [
     "Programming Language :: Python :: 3.14",
     "Operating System :: OS Independent",
 ]
+
+[tool.setuptools.package-data]
+"microsoft_agents.copilotstudio.client" = ["py.typed"]
 
 [project.urls]
 "Homepage" = "https://github.com/microsoft/Agents"
