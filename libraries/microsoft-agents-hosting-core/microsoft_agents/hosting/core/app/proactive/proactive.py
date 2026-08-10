@@ -1,7 +1,5 @@
-"""
-Copyright (c) Microsoft Corporation. All rights reserved.
-Licensed under the MIT License.
-"""
+# Copyright (c) Microsoft Corporation. All rights reserved.
+# Licensed under the MIT License.
 
 from __future__ import annotations
 
@@ -109,7 +107,9 @@ class Proactive(Generic[StateT]):
 
         with spans.ProactiveStoreConversation(
             conversation.conversation_reference.conversation.id
-        ):
+        ) as span:
+            if span.otel_span is not None:
+                conversation._set_span_context(span.otel_span.get_span_context())
             conversation.validate()
             key = self._storage_key(conversation.conversation_reference.conversation.id)
             logger.debug("Storing conversation with key: %s", key)
@@ -176,7 +176,7 @@ class Proactive(Generic[StateT]):
         """
         conversation = await self._resolve_conversation(conversation_id_or_conversation)
         conversation_id = conversation.conversation_reference.conversation.id
-        with spans.ProactiveSendActivity(conversation_id, activity):
+        with spans.ProactiveSendActivity(conversation_id, activity, link=conversation._span_context) as span:
             return await Proactive._send_activity_impl(adapter, conversation, activity)
 
     @staticmethod
@@ -266,7 +266,10 @@ class Proactive(Generic[StateT]):
             except Exception as exc:  # noqa: BLE001
                 captured_exc = exc
 
-        with spans.ProactiveContinueConversation(conversation_id, continuation):
+        with spans.ProactiveContinueConversation(
+            conversation_id,
+            continuation,
+            link=conversation._span_context):
 
             await adapter.continue_conversation_with_claims(
                 claims, continuation, _callback
