@@ -33,8 +33,8 @@ def test_dump_span_context_serializes_all_fields():
     result = _dump_span_context(context)
 
     assert result == {
-        "trace_id": context.trace_id,
-        "span_id": context.span_id,
+        "trace_id": str(context.trace_id),
+        "span_id": str(context.span_id),
         "trace_flags": int(context.trace_flags),
         "trace_state": [("vendor", "value")],
         "is_remote": True,
