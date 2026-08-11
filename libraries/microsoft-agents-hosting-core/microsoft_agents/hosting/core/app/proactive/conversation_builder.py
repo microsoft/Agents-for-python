@@ -12,7 +12,6 @@ from microsoft_agents.activity import (
     ConversationAccount,
     ConversationReference,
 )
-from microsoft_agents.activity._model_utils import pick_model, SkipNone
 from microsoft_agents.hosting.core.authorization import ClaimsIdentity
 
 from .conversation import Conversation
@@ -38,6 +37,7 @@ class ConversationBuilder:
         conversation = (
             ConversationBuilder
             .create_from_identity(claims_identity, "msteams")
+            .with_user("user-aad-oid")
             .with_conversation("19:thread-id@thread.v2")
             .build()
         )
@@ -201,7 +201,7 @@ class ConversationBuilder:
         """
         Construct the :class:`~microsoft_agents.hosting.core.app.proactive.conversation.Conversation`.
 
-        :raises ValueError: If required fields (``channel_id``, ``conversation_id``) are missing.
+        :raises ValueError: If a required identifier (channel, conversation, agent, or user) is missing.
         :return: The built :class:`~microsoft_agents.hosting.core.app.proactive.conversation.Conversation`.
         :rtype: :class:`~microsoft_agents.hosting.core.app.proactive.conversation.Conversation`
         """
@@ -209,22 +209,20 @@ class ConversationBuilder:
             raise ValueError("ConversationBuilder: channel_id is required.")
         if not self._conversation_id:
             raise ValueError("ConversationBuilder: conversation_id is required.")
+        if not self._agent_id:
+            raise ValueError("ConversationBuilder: agent_id is required.")
+        if not self._user_id:
+            raise ValueError("ConversationBuilder: user_id is required.")
 
-        agent = (
-            pick_model(
-                ChannelAccount, id=self._agent_id, name=SkipNone(self._agent_name)
-            )
-            if self._agent_id
-            else None
-        )
-        user = (
-            pick_model(ChannelAccount, id=self._user_id, name=SkipNone(self._user_name))
-            if self._user_id
-            else None
-        )
+        agent_values = {"id": self._agent_id}
+        if self._agent_name is not None:
+            agent_values["name"] = self._agent_name
 
-        reference = pick_model(
-            ConversationReference,
+        user_values = {"id": self._user_id}
+        if self._user_name is not None:
+            user_values["name"] = self._user_name
+
+        reference = ConversationReference(
             channel_id=ChannelId(self._channel_id),
             service_url=self._service_url or _service_url_for_channel(self._channel_id),
             conversation=ConversationAccount(
@@ -232,8 +230,8 @@ class ConversationBuilder:
                 name=self._conversation_name,
                 tenant_id=self._tenant_id,
             ),
-            agent=SkipNone(agent),
-            user=user,
+            agent=ChannelAccount(**agent_values),
+            user=ChannelAccount(**user_values),
             activity_id=self._activity_id,
         )
 

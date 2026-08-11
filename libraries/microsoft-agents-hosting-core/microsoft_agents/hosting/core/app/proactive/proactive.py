@@ -77,13 +77,13 @@ class Proactive(Generic[StateT]):
 
     @property
     def _storage(self) -> Storage:
-        """Get the configured storage instance, or raise if not configured."""
-        if self._options.storage is None:
+        storage = self._options.storage or self._app.options.storage
+        if not storage:
             raise RuntimeError(
-                "Proactive storage is not configured.  Provide a Storage instance "
-                "via ProactiveOptions.storage."
+                "Proactive messaging requires a Storage instance.  "
+                "Configure ProactiveOptions.storage or ApplicationOptions.storage."
             )
-        return self._options.storage
+        return storage
 
     # ------------------------------------------------------------------
     # Conversation persistence
