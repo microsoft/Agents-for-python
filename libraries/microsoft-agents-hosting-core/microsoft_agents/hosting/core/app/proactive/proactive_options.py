@@ -16,7 +16,7 @@ class ProactiveOptions:
     Options for the Proactive messaging subsystem.
 
     :param storage: The storage instance used to persist and retrieve conversations.
-    :type storage: :class:`microsoft_agents.hosting.core.storage.Storage`
+    :type storage: :class:`microsoft_agents.hosting.core.storage.Storage` | None
     :param fail_on_unsigned_in_connections: If ``True`` (the default), a
         :exc:`RuntimeError` is raised when a required OAuth token is not available
         during a proactive continuation.  Set to ``False`` to silently skip the

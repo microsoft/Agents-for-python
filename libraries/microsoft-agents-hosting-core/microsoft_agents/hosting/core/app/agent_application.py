@@ -80,7 +80,7 @@ class AgentApplication(Agent, Generic[StateT]):
     _adapter: ChannelServiceAdapter | None = None
     _adaptive_card: AdaptiveCard
     _auth: Authorization
-    _proactive: Proactive
+    _proactive: Proactive | None = None
     _internal_before_turn: list[Callable[[TurnContext, StateT], Awaitable[bool]]]
     _internal_after_turn: list[Callable[[TurnContext, StateT], Awaitable[bool]]]
     _route_list: _RouteList[StateT]
