@@ -4,6 +4,7 @@
 - Added support for Workload Identity
 - **Entra JWT Issuer Validation**: Added tenant ID cross-checking for Entra issuer claims and support for configuring issuer lists through environment variables (#515)
 - **AgentApplication Adaptive Card Routing**: Added `AgentApplication.adaptive_card` with decorator-based handlers for Adaptive Card `Action.Submit`, `Action.Execute`, and `Data.Query` dynamic search with verb and dataset matching selection.
+- Distributed tracing across Proactive operations.
 
 ## New Models & APIs
 - **Regionalized UserTokenClient Support**: Added optional argument to `CloudAdapter` to configure Token Service endpoint used by `RestChannelServiceClientFactory` when creating `UserTokenClient` instances.
@@ -13,6 +14,9 @@
 
 ## Developer Experience
 - Building packages with `py.typed` files for improved typing support
+- Support for linking with OpenTelemetry span creation throught the `SimpleSpanWrapper` constructor.
+
+---
 
 # Microsoft 365 Agents SDK for Python - Release Notes v1.3.0
 

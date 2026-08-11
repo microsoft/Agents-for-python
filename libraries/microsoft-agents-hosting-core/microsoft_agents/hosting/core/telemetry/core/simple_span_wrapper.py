@@ -19,7 +19,7 @@ class SimpleSpanWrapper(BaseSpanWrapper, ABC):
         self,
         span_name: str,
         *,
-        link: Link | SpanContext | list[Link | SpanContext] | None = None
+        link: Link | SpanContext | list[Link | SpanContext] | None = None,
     ) -> None:
         super().__init__()
         self._span_name = span_name

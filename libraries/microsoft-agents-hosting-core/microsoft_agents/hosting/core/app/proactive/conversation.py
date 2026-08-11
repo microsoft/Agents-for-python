@@ -13,7 +13,6 @@ from microsoft_agents.hosting.core.storage.store_item import StoreItem
 
 if TYPE_CHECKING:
     from microsoft_agents.hosting.core.turn_context import TurnContext
-    from microsoft_agents.hosting.core.channel_adapter import ChannelAdapter
 
 from .telemetry._utils import _deserialize_span_context, _dump_span_context
 
