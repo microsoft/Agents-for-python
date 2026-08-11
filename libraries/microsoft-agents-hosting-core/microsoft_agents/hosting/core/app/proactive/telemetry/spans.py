@@ -80,7 +80,13 @@ class ProactiveDeleteConversation(SimpleSpanWrapper):
 class ProactiveSendActivity(SimpleSpanWrapper):
     """Span for sending an activity in proactive scenarios, starting from when the send operation is initiated until it is completed. This span can be used to correlate telemetry related to sending activities in proactive scenarios."""
 
-    def __init__(self, conversation_id: str, activity: Activity, *, link: SpanContext | None = None):
+    def __init__(
+        self,
+        conversation_id: str,
+        activity: Activity,
+        *,
+        link: SpanContext | None = None,
+    ):
         """Initializes the ProactiveSendActivity SpanWrapper.
 
         :param conversation_id: The ID of the conversation the activity is being sent to, used to extract attributes for the span
@@ -103,7 +109,13 @@ class ProactiveSendActivity(SimpleSpanWrapper):
 class ProactiveContinueConversation(SimpleSpanWrapper):
     """Span for continuing a conversation in proactive scenarios, starting from when the continue operation is initiated until it is completed. This span can be used to correlate telemetry related to continuing conversations in proactive scenarios."""
 
-    def __init__(self, conversation_id: str, activity: Activity, *, link: SpanContext | None = None):
+    def __init__(
+        self,
+        conversation_id: str,
+        activity: Activity,
+        *,
+        link: SpanContext | None = None,
+    ):
         """Initializes the ProactiveContinueConversation SpanWrapper.
 
         :param conversation_id: The ID of the conversation being continued, used to extract attributes for the span

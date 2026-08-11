@@ -9,6 +9,7 @@ from typing import Awaitable, Callable, Generic, TypeVar, TYPE_CHECKING
 from microsoft_agents.activity import Activity, ResourceResponse
 
 from microsoft_agents.hosting.core.app.state.turn_state import TurnState
+from microsoft_agents.hosting.core.storage import Storage
 
 from .conversation import Conversation
 from .create_conversation_options import CreateConversationOptions
@@ -68,11 +69,21 @@ class Proactive(Generic[StateT]):
     ) -> None:
         self._app = app
         self._options = options
-        self._storage = self._options.storage
 
     @staticmethod
     def _storage_key(conversation_id: str) -> str:
+        """Get the storage key for a given conversation ID."""
         return f"{_STORAGE_KEY_PREFIX}{conversation_id}"
+
+    @property
+    def _storage(self) -> Storage:
+        """Get the configured storage instance, or raise if not configured."""
+        if self._options.storage is None:
+            raise RuntimeError(
+                "Proactive storage is not configured.  Provide a Storage instance "
+                "via ProactiveOptions.storage."
+            )
+        return self._options.storage
 
     # ------------------------------------------------------------------
     # Conversation persistence
@@ -109,7 +120,9 @@ class Proactive(Generic[StateT]):
             conversation.conversation_reference.conversation.id
         ) as span:
             if span.otel_span is not None:
-                conversation._set_span_context(span.otel_span.get_span_context())
+                span_context = span.otel_span.get_span_context()
+                if span_context.is_valid:
+                    conversation._set_span_context(span_context)
             conversation.validate()
             key = self._storage_key(conversation.conversation_reference.conversation.id)
             logger.debug("Storing conversation with key: %s", key)
@@ -176,7 +189,9 @@ class Proactive(Generic[StateT]):
         """
         conversation = await self._resolve_conversation(conversation_id_or_conversation)
         conversation_id = conversation.conversation_reference.conversation.id
-        with spans.ProactiveSendActivity(conversation_id, activity, link=conversation._span_context) as span:
+        with spans.ProactiveSendActivity(
+            conversation_id, activity, link=conversation._get_span_context()
+        ):
             return await Proactive._send_activity_impl(adapter, conversation, activity)
 
     @staticmethod
@@ -186,7 +201,7 @@ class Proactive(Generic[StateT]):
         activity: Activity,
     ) -> ResourceResponse | None:
         """Send an activity into a conversation without loading state or running a handler."""
-        
+
         result: ResourceResponse | None = None
         captured_exc: BaseException | None = None
 
@@ -267,9 +282,8 @@ class Proactive(Generic[StateT]):
                 captured_exc = exc
 
         with spans.ProactiveContinueConversation(
-            conversation_id,
-            continuation,
-            link=conversation._span_context):
+            conversation_id, continuation, link=conversation._get_span_context()
+        ):
 
             await adapter.continue_conversation_with_claims(
                 claims, continuation, _callback
@@ -359,7 +373,7 @@ class Proactive(Generic[StateT]):
         """Run a proactive turn: load state → optional OAuth check → handler → save state."""
         state = await self._load_state(context)
 
-        if token_handlers and self._app._auth:
+        if token_handlers:
             for handler_id in token_handlers:
                 result = await self._app._auth._start_or_continue_sign_in(
                     context, state, handler_id

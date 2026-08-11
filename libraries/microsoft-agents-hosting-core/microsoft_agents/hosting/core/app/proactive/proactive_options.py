@@ -24,7 +24,7 @@ class ProactiveOptions:
     :type fail_on_unsigned_in_connections: bool
     """
 
-    storage: Storage
+    storage: Storage | None = None
     """Storage used to persist Conversation objects."""
 
     fail_on_unsigned_in_connections: bool = True

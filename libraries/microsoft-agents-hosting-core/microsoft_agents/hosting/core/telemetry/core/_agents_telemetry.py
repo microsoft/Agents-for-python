@@ -54,7 +54,10 @@ class _AgentsTelemetry:
         """
 
         with self._tracer.start_as_current_span(
-            span_name, record_exception=False, set_status_on_exception=False, links=links
+            span_name,
+            record_exception=False,
+            set_status_on_exception=False,
+            links=links,
         ) as span:
 
             start = time.time()

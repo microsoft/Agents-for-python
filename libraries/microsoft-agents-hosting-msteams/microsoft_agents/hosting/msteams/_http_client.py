@@ -7,7 +7,6 @@ import httpx
 
 from microsoft_teams.common import Client, ClientOptions
 
-
 _ssl_context: ssl.SSLContext | None = None
 
 

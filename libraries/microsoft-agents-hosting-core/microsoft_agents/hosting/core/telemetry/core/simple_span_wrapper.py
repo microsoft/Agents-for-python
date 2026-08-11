@@ -15,7 +15,12 @@ from .type_defs import AttributeMap
 class SimpleSpanWrapper(BaseSpanWrapper, ABC):
     """Simple implementation of the BaseSpanWrapper that can be used when no additional attributes or functionality are needed on the span beyond what is provided by the base BaseSpanWrapper class. This can be used as a simple wrapper around an OTEL span for cases where no SDK-specific telemetry is needed, while still providing the benefits of the BaseSpanWrapper abstraction and lifecycle management."""
 
-    def __init__(self, span_name: str, *, link: Link | SpanContext | list[Link | SpanContext] | None = None) -> None:
+    def __init__(
+        self,
+        span_name: str,
+        *,
+        link: Link | SpanContext | list[Link | SpanContext] | None = None
+    ) -> None:
         super().__init__()
         self._span_name = span_name
         self._link = []

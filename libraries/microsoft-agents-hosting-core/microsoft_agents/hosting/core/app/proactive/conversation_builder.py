@@ -5,14 +5,14 @@ Licensed under the MIT License.
 
 from __future__ import annotations
 
-from typing import Optional
-
 from microsoft_agents.activity import (
     ChannelAccount,
     Channels,
+    ChannelId,
     ConversationAccount,
     ConversationReference,
 )
+from microsoft_agents.activity._model_utils import pick_model, SkipNone
 from microsoft_agents.hosting.core.authorization import ClaimsIdentity
 
 from .conversation import Conversation
@@ -45,16 +45,16 @@ class ConversationBuilder:
 
     def __init__(self) -> None:
         self._claims: dict[str, str] = {}
-        self._channel_id: Optional[str] = None
-        self._service_url: Optional[str] = None
-        self._agent_id: Optional[str] = None
-        self._agent_name: Optional[str] = None
-        self._user_id: Optional[str] = None
-        self._user_name: Optional[str] = None
-        self._conversation_id: Optional[str] = None
-        self._conversation_name: Optional[str] = None
-        self._tenant_id: Optional[str] = None
-        self._activity_id: Optional[str] = None
+        self._channel_id: str | None = None
+        self._service_url: str | None = None
+        self._agent_id: str | None = None
+        self._agent_name: str | None = None
+        self._user_id: str | None = None
+        self._user_name: str | None = None
+        self._conversation_id: str | None = None
+        self._conversation_name: str | None = None
+        self._tenant_id: str | None = None
+        self._activity_id: str | None = None
 
     # ------------------------------------------------------------------
     # Entry-point factories
@@ -65,8 +65,8 @@ class ConversationBuilder:
         cls,
         agent_client_id: str,
         channel_id: str,
-        service_url: Optional[str] = None,
-        requestor_id: Optional[str] = None,
+        service_url: str | None = None,
+        requestor_id: str | None = None,
     ) -> "ConversationBuilder":
         """
         Start building a :class:`~microsoft_agents.hosting.core.app.proactive.conversation.Conversation`
@@ -79,7 +79,7 @@ class ConversationBuilder:
         :type channel_id: str
         :param service_url: Override the service URL.  Defaults to the canonical
             URL for *channel_id*.
-        :type service_url: Optional[str]
+        :type service_url: str | None
         :param requestor_id: If provided, stored as the ``appid`` claim (useful
             when the requestor differs from the audience).
         :type requestor_id: Optional[str]
@@ -106,7 +106,7 @@ class ConversationBuilder:
         cls,
         identity: ClaimsIdentity,
         channel_id: str,
-        service_url: Optional[str] = None,
+        service_url: str | None = None,
     ) -> "ConversationBuilder":
         """
         Start building a :class:`~microsoft_agents.hosting.core.app.proactive.conversation.Conversation`
@@ -117,7 +117,7 @@ class ConversationBuilder:
         :param channel_id: The channel identifier.
         :type channel_id: str
         :param service_url: Override the service URL.
-        :type service_url: Optional[str]
+        :type service_url: str | None
         :return: A builder pre-populated with the identity's claims.
         :rtype: :class:`microsoft_agents.hosting.core.app.proactive.ConversationBuilder`
         """
@@ -142,7 +142,7 @@ class ConversationBuilder:
     def with_user(
         self,
         user_id: str,
-        user_name: Optional[str] = None,
+        user_name: str | None = None,
     ) -> "ConversationBuilder":
         """
         Set the user account.
@@ -161,8 +161,8 @@ class ConversationBuilder:
     def with_conversation(
         self,
         conversation_id: str,
-        conversation_name: Optional[str] = None,
-        tenant_id: Optional[str] = None,
+        conversation_name: str | None = None,
+        tenant_id: str | None = None,
     ) -> "ConversationBuilder":
         """
         Set the conversation account details.
@@ -211,25 +211,28 @@ class ConversationBuilder:
             raise ValueError("ConversationBuilder: conversation_id is required.")
 
         agent = (
-            ChannelAccount(id=self._agent_id, name=self._agent_name)
+            pick_model(
+                ChannelAccount, id=self._agent_id, name=SkipNone(self._agent_name)
+            )
             if self._agent_id
             else None
         )
         user = (
-            ChannelAccount(id=self._user_id, name=self._user_name)
+            pick_model(ChannelAccount, id=self._user_id, name=SkipNone(self._user_name))
             if self._user_id
             else None
         )
 
-        reference = ConversationReference(
-            channel_id=self._channel_id,
+        reference = pick_model(
+            ConversationReference,
+            channel_id=ChannelId(self._channel_id),
             service_url=self._service_url or _service_url_for_channel(self._channel_id),
             conversation=ConversationAccount(
                 id=self._conversation_id,
                 name=self._conversation_name,
                 tenant_id=self._tenant_id,
             ),
-            bot=agent,
+            agent=SkipNone(agent),
             user=user,
             activity_id=self._activity_id,
         )

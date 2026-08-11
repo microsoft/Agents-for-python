@@ -49,7 +49,7 @@ class Conversation(StoreItem):
         _span_context: dict | None = None,
     ) -> None:
         """Creates a new :class:`~microsoft_agents.hosting.core.app.proactive.Conversation` instance.
-        
+
         :param claims: Filtered JWT claims (``aud``, ``azp``, ``appid``, ``idtyp``,
             ``ver``, ``iss``, ``tid``).  May be a raw ``dict`` or a
             :class:`~microsoft_agents.hosting.core.authorization.ClaimsIdentity`.
@@ -70,7 +70,7 @@ class Conversation(StoreItem):
 
     def _set_span_context(self, span_context: SpanContext) -> None:
         """Sets the span context for this conversation, serializing it to a dictionary for storage.
-        
+
         For internal use only; this is not part of the public API.
 
         :param span_context: The SpanContext to set.
@@ -80,7 +80,7 @@ class Conversation(StoreItem):
 
     def _get_span_context(self) -> SpanContext | None:
         """Gets the span context for this conversation, deserializing it from a dictionary.
-        
+
         For internal use only; this is not part of the public API.
 
         :return: The SpanContext, or None if not set.
@@ -186,5 +186,5 @@ class Conversation(StoreItem):
         return Conversation(
             claims=json_data.get("claims", {}),
             conversation_reference=reference,
-            _span_context=json_data.get("_span_context", None)
+            _span_context=json_data.get("_span_context", None),
         )
