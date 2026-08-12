@@ -156,47 +156,47 @@ class Activity(AgentsModel):
     """
 
     type: NonEmptyString
-    channel_id: Optional[ChannelId] = None
-    id: Optional[NonEmptyString] = None
-    timestamp: datetime = None
-    local_timestamp: datetime = None
-    local_timezone: NonEmptyString = None
-    service_url: NonEmptyString = None
-    from_property: Annotated[ChannelAccount, Field(alias="from")] = None
-    conversation: ConversationAccount = None
-    recipient: ChannelAccount = None
-    text_format: NonEmptyString = None
-    attachment_layout: NonEmptyString = None
-    members_added: list[ChannelAccount] = None
-    members_removed: list[ChannelAccount] = None
-    reactions_added: list[MessageReaction] = None
-    reactions_removed: list[MessageReaction] = None
-    topic_name: NonEmptyString = None
-    history_disclosed: bool = None
-    locale: NonEmptyString = None
-    text: str = None
-    speak: str = None
-    input_hint: NonEmptyString = None
-    summary: NonEmptyString = None
-    suggested_actions: SuggestedActions = None
-    attachments: list[Attachment] = None
-    entities: list[SerializeAsAny[Entity]] = None
+    channel_id: ChannelId | None = None
+    id: NonEmptyString | None = None
+    timestamp: datetime | None = None
+    local_timestamp: datetime | None = None
+    local_timezone: NonEmptyString | None = None
+    service_url: NonEmptyString | None = None
+    from_property: Annotated[ChannelAccount | None, Field(alias="from")] = None
+    conversation: ConversationAccount | None = None
+    recipient: ChannelAccount | None = None
+    text_format: NonEmptyString | None = None
+    attachment_layout: NonEmptyString | None = None
+    members_added: list[ChannelAccount] = Field(default_factory=list)
+    members_removed: list[ChannelAccount] = Field(default_factory=list)
+    reactions_added: list[MessageReaction] = Field(default_factory=list)
+    reactions_removed: list[MessageReaction] = Field(default_factory=list)
+    topic_name: NonEmptyString | None = None
+    history_disclosed: bool | None = None
+    locale: NonEmptyString | None = None
+    text: str = ""
+    speak: str = ""
+    input_hint: NonEmptyString | None = None
+    summary: NonEmptyString | None = None
+    suggested_actions: SuggestedActions | None = None
+    attachments: list[Attachment] = Field(default_factory=list)
+    entities: list[SerializeAsAny[Entity]] = Field(default_factory=list)
     channel_data: object = None
-    action: NonEmptyString = None
-    reply_to_id: NonEmptyString = None
-    label: NonEmptyString = None
-    value_type: NonEmptyString = None
+    action: NonEmptyString | None = None
+    reply_to_id: NonEmptyString | None = None
+    label: NonEmptyString | None = None
+    value_type: NonEmptyString | None = None
     value: object = None
-    name: NonEmptyString = None
-    relates_to: ConversationReference = None
-    code: NonEmptyString = None
-    expiration: datetime = None
-    importance: NonEmptyString = None
-    delivery_mode: NonEmptyString = None
-    listen_for: list[NonEmptyString] = None
-    text_highlights: list[TextHighlight] = None
-    semantic_action: SemanticAction = None
-    caller_id: NonEmptyString = None
+    name: NonEmptyString | None = None
+    relates_to: ConversationReference | None = None
+    code: NonEmptyString | None = None
+    expiration: datetime | None = None
+    importance: NonEmptyString | None = None
+    delivery_mode: NonEmptyString | None = None
+    listen_for: list[NonEmptyString] = Field(default_factory=list)
+    text_highlights: list[TextHighlight] = Field(default_factory=list)
+    semantic_action: SemanticAction | None = None
+    caller_id: NonEmptyString | None = None
 
     @model_validator(mode="wrap")
     @classmethod
@@ -880,36 +880,42 @@ class Activity(AgentsModel):
         .. remarks::
             The new activity sets up routing information based on this activity.
         """
-        return cast(
-            Self,
-            pick_model(
-                self.__class__,
-                type=ActivityTypes.message,
-                timestamp=datetime.now(timezone.utc),
-                from_property=SkipNone(
-                    ChannelAccount.pick_properties(self.recipient, ["id", "name"])
-                ),
-                recipient=SkipNone(
-                    ChannelAccount.pick_properties(self.from_property, ["id", "name"])
-                ),
-                reply_to_id=(
-                    SkipNone(self.id)
-                    if self.type != ActivityTypes.conversation_update
-                    or self.channel_id not in ["directline", "webchat"]
-                    else None
-                ),
-                service_url=self.service_url,
-                channel_id=self.channel_id,
-                conversation=SkipNone(
-                    ConversationAccount.pick_properties(
-                        self.conversation, ["is_group", "id", "name"]
-                    )
-                ),
-                text=text if text else "",
-                locale=locale if locale else SkipNone(self.locale),
-                attachments=[],
-                entities=[],
-            ),
+        reply_to_id: NonEmptyString | None = None
+        conversation: ConversationAccount | None = None
+        from_property: ChannelAccount | None = None
+        recipient: ChannelAccount | None = None
+        
+
+        if self.type != ActivityTypes.conversation_update or self.channel_id not in ["directline", "webchat"]:
+            reply_to_id = self.id
+            
+        if self.conversation:
+            conversation = ConversationAccount(
+                is_group=self.conversation.is_group,
+                id=self.conversation.id,
+                name=self.conversation.name,
+            )
+
+        if self.from_property:
+            ChannelAccount(
+                id=self.from_property.id, name=self.from_property.name
+            )
+        if self.recipient:
+            ChannelAccount(
+                id=self.recipient.id, name=self.recipient.name
+            )
+
+        return self.__class__(
+            type=ActivityTypes.message,
+            timestamp=datetime.now(timezone.utc),
+            from_property=from_property,
+            recipient=recipient,
+            reply_to_id=reply_to_id,
+            service_url=self.service_url,
+            channel_id=self.channel_id,
+            conversation=conversation,
+            text=text or "",
+            locale=locale or self.locale,
         )
 
     def create_trace(
