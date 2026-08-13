@@ -884,11 +884,13 @@ class Activity(AgentsModel):
         conversation: ConversationAccount | None = None
         from_property: ChannelAccount | None = None
         recipient: ChannelAccount | None = None
-        
 
-        if self.type != ActivityTypes.conversation_update or self.channel_id not in ["directline", "webchat"]:
+        if self.type != ActivityTypes.conversation_update or self.channel_id not in [
+            "directline",
+            "webchat",
+        ]:
             reply_to_id = self.id
-            
+
         if self.conversation:
             conversation = ConversationAccount(
                 is_group=self.conversation.is_group,
@@ -897,13 +899,9 @@ class Activity(AgentsModel):
             )
 
         if self.from_property:
-            ChannelAccount(
-                id=self.from_property.id, name=self.from_property.name
-            )
+            ChannelAccount(id=self.from_property.id, name=self.from_property.name)
         if self.recipient:
-            ChannelAccount(
-                id=self.recipient.id, name=self.recipient.name
-            )
+            ChannelAccount(id=self.recipient.id, name=self.recipient.name)
 
         return self.__class__(
             type=ActivityTypes.message,
@@ -940,14 +938,21 @@ class Activity(AgentsModel):
 
         reply_to_id: NonEmptyString | None = None
 
-        if self.type != ActivityTypes.conversation_update or self.channel_id not in ["directline", "webchat"]:
+        if self.type != ActivityTypes.conversation_update or self.channel_id not in [
+            "directline",
+            "webchat",
+        ]:
             reply_to_id = self.id
 
         return self.__class__(
             type=ActivityTypes.trace,
             timestamp=datetime.now(timezone.utc),
-            from_property=ChannelAccount.pick_properties(self.recipient, ["id", "name"]),
-            recipient=ChannelAccount.pick_properties(self.from_property, ["id", "name"]),
+            from_property=ChannelAccount.pick_properties(
+                self.recipient, ["id", "name"]
+            ),
+            recipient=ChannelAccount.pick_properties(
+                self.from_property, ["id", "name"]
+            ),
             reply_to_id=reply_to_id,
             service_url=self.service_url,
             channel_id=self.channel_id,
@@ -957,7 +962,7 @@ class Activity(AgentsModel):
             name=name,
             label=label,
             value_type=value_type,
-            value=value
+            value=value,
         ).as_trace_activity()
 
     @staticmethod
@@ -1009,9 +1014,7 @@ class Activity(AgentsModel):
         :returns: A conversation reference for the conversation that contains this activity.
         """
         activity_id: str | None
-        return ConversationReference(
-            activity_id=activity_id
-        )
+        return ConversationReference(activity_id=activity_id)
         return cast(
             ConversationReference,
             pick_model(

@@ -1,27 +1,63 @@
 # Copyright (c) Microsoft Corporation. All rights reserved.
 # Licensed under the MIT License.
-from typing import Optional
+
+import logging
 
 from .authentication_constants import AuthenticationConstants
 
+logger = logging.getLogger(__name__)
+
 
 class ClaimsIdentity:
+    """Represents an identity with associated claims and authentication information.
+
+    For context, this class merges the functionality of ClaimsIdentity and AgentClaims from .NET
+    """
+
+    claims: dict[str, str]
+    authentication_type: str | None
+    security_token: str | None  # deprecated, will be removed in future versions
+    is_authenticated: bool | None  # deprecated, will be removed in future versions
+
     def __init__(
         self,
-        claims: dict[str, str],
-        is_authenticated: bool,
-        authentication_type: Optional[str] = None,
-        security_token: Optional[str] = None,
+        claims: dict[str, str] | None = None,
+        is_authenticated: bool | None = None,
+        authentication_type: str | None = None,
+        security_token: str | None = None,
     ):
-        self.claims = claims
-        self.is_authenticated = is_authenticated
+        """Creates a new instance of the ClaimsIdentity class.
+
+        :param claims: A dictionary of claims associated with the identity.
+        :param is_authenticated: A boolean indicating whether the identity is authenticated. (Deprecated)
+        :param authentication_type: A string representing the type of authentication used.
+            None values indicate that the identity is not authenticated.
+        :param security_token: The security token associated with the identity.
+        """
+        self.claims = claims or {}
+        if is_authenticated is not None:
+            logger.warning(
+                "The 'is_authenticated' parameter is deprecated and will be removed in future versions. Please use 'authentication_type' instead."
+            )
+
         self.authentication_type = authentication_type
         self.security_token = security_token
+        self.is_authenticated = is_authenticated
 
-    def get_claim_value(self, claim_type: str) -> Optional[str]:
+    def get_claim_value(self, claim_type: str) -> str | None:
+        """Gets the value of a specific claim type from the claims dictionary.
+
+        :param claim_type: The type of claim to retrieve.
+        :return: The value of the claim if found, otherwise None.
+        """
         return self.claims.get(claim_type)
 
-    def get_app_id(self) -> Optional[str]:
+    @property
+    def allow_anonymous(self) -> bool:
+        """Returns True if the identity allows anonymous access, otherwise False."""
+        return not self.is_authenticated and not self.claims
+
+    def get_app_id(self) -> str | None:
         """
         Gets the AppId from the current ClaimsIdentity.
 
@@ -32,7 +68,7 @@ class ClaimsIdentity:
             AuthenticationConstants.AUDIENCE_CLAIM, None
         ) or self.claims.get(AuthenticationConstants.APP_ID_CLAIM, None)
 
-    def get_outgoing_app_id(self) -> Optional[str]:
+    def get_outgoing_app_id(self) -> str | None:
         """
         Gets the outgoing AppId from current claims.
 
@@ -74,7 +110,7 @@ class ClaimsIdentity:
 
         return app_id != audience
 
-    def get_token_audience(self) -> str:
+    def get_token_audience(self) -> str | None:
         """
         Gets the token audience from current claims.
 
