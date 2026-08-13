@@ -938,36 +938,26 @@ class Activity(AgentsModel):
         if not value_type and value:
             value_type = type(value).__name__
 
-        return cast(
-            Self,
-            pick_model(
-                self.__class__,
-                type=ActivityTypes.trace,
-                timestamp=datetime.now(timezone.utc),
-                from_property=SkipNone(
-                    ChannelAccount.pick_properties(self.recipient, ["id", "name"])
-                ),
-                recipient=SkipNone(
-                    ChannelAccount.pick_properties(self.from_property, ["id", "name"])
-                ),
-                reply_to_id=(
-                    SkipNone(self.id)  # preserve unset
-                    if self.type != ActivityTypes.conversation_update
-                    or self.channel_id not in ["directline", "webchat"]
-                    else None
-                ),
-                service_url=self.service_url,
-                channel_id=self.channel_id,
-                conversation=SkipNone(
-                    ConversationAccount.pick_properties(
-                        self.conversation, ["is_group", "id", "name"]
-                    )
-                ),
-                name=SkipNone(name),
-                label=SkipNone(label),
-                value_type=SkipNone(value_type),
-                value=SkipNone(value),
+        reply_to_id: NonEmptyString | None = None
+
+        if self.type != ActivityTypes.conversation_update or self.channel_id not in ["directline", "webchat"]:
+            reply_to_id = self.id
+
+        return self.__class__(
+            type=ActivityTypes.trace,
+            timestamp=datetime.now(timezone.utc),
+            from_property=ChannelAccount.pick_properties(self.recipient, ["id", "name"]),
+            recipient=ChannelAccount.pick_properties(self.from_property, ["id", "name"]),
+            reply_to_id=reply_to_id,
+            service_url=self.service_url,
+            channel_id=self.channel_id,
+            conversation=ConversationAccount.pick_properties(
+                self.conversation, ["is_group", "id", "name"]
             ),
+            name=name,
+            label=label,
+            value_type=value_type,
+            value=value
         ).as_trace_activity()
 
     @staticmethod
@@ -990,16 +980,12 @@ class Activity(AgentsModel):
         if not value_type and value:
             value_type = type(value).__name__
 
-        return cast(
-            Activity,
-            pick_model(
-                Activity,
-                type=ActivityTypes.trace,
-                name=name,
-                label=SkipNone(label),
-                value_type=SkipNone(value_type),
-                value=SkipNone(value),
-            ),
+        return Activity(
+            type=ActivityTypes.trace,
+            name=name,
+            label=label,
+            value_type=value_type,
+            value=value,
         )
 
     @staticmethod
@@ -1022,6 +1008,10 @@ class Activity(AgentsModel):
             Composite values are split only on the first ``:``.
         :returns: A conversation reference for the conversation that contains this activity.
         """
+        activity_id: str | None
+        return ConversationReference(
+            activity_id=activity_id
+        )
         return cast(
             ConversationReference,
             pick_model(

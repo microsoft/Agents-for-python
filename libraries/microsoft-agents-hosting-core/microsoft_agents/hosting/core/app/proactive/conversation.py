@@ -97,6 +97,8 @@ class Conversation(StoreItem):
         :return: Reconstituted claims identity.
         :rtype: :class:`~microsoft_agents.hosting.core.authorization.ClaimsIdentity`
         """
+        if not claims:
+            return ClaimsIdentity(claims={}, is_authenticated=False)
         return ClaimsIdentity(claims=dict(claims), is_authenticated=True)
 
     # ------------------------------------------------------------------
