@@ -42,18 +42,14 @@ The packages should target Python 3.10 or greater, and can be used with modern P
 
 > Note: We recommend using Python 3.11 or later for optimal performance and compatibility with all features. The SDK supports Python 3.10, 3.11, 3.12, 3.13, and 3.14.
 
-### Debugging
-
-The packages include source code to allow debugging in your preferred Python IDE or debugger.
-
 ### Code Style
 
 We are using `black` and `flake8` for code formatting and linting.
 
 ## Contributing
 
-#### Note for Microsoft intenral developers: 
-- Internal Micrsoft Developers should join the Core identity group [Agents SDK Contrib](https://coreidentity.microsoft.com/manage/Entitlement/entitlement/agentssdkint-upyj)
+#### Note for Microsoft internal developers: 
+- Internal Microsoft Developers should join the Core identity group [Agents SDK Contrib](https://coreidentity.microsoft.com/manage/Entitlement/entitlement/agentssdkint-upyj)
 
 #### Non-Microsoft internal developers:
 

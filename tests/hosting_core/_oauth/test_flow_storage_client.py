@@ -87,6 +87,25 @@ class TestFlowStorageClient:
         storage.write.assert_called_once_with({client.key(auth_handler_id): flow_state})
 
     @pytest.mark.asyncio
+    async def test_write_skips_unchanged_cached_state(self, mocker):
+        storage = mocker.AsyncMock()
+        cache = mocker.AsyncMock()
+        flow_state = _FlowState(auth_handler_id="handler")
+        key = f"auth/{DEFAULTS.channel_id}/{DEFAULTS.user_id}/handler"
+        cache.read.return_value = {key: flow_state.model_copy()}
+        client = _FlowStorageClient(
+            DEFAULTS.channel_id,
+            DEFAULTS.user_id,
+            storage,
+            cache_class=mocker.Mock(return_value=cache),
+        )
+
+        await client.write(flow_state)
+
+        cache.write.assert_not_called()
+        storage.write.assert_not_called()
+
+    @pytest.mark.asyncio
     @pytest.mark.parametrize("auth_handler_id", ["handler", "auth_handler"])
     async def test_delete(self, mocker, auth_handler_id):
         storage = mocker.AsyncMock()
