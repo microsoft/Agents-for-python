@@ -31,7 +31,9 @@ class ClaimsIdentity:
             None values indicate that the identity is not authenticated.
         :param security_token: The security token associated with the identity.
         """
-        self.claims = claims or {}
+        if claims is None:
+            claims = {}
+        self.claims = claims
         if is_authenticated is not None:
             warnings.warn(
                 "The 'is_authenticated' parameter is deprecated and will be removed in future versions.",
@@ -54,7 +56,10 @@ class ClaimsIdentity:
     @property
     def allow_anonymous(self) -> bool:
         """Returns True if the identity allows anonymous access, otherwise False."""
-        return not self.authentication_type and not self.claims
+        return (
+            not self.authentication_type
+            or self.authentication_type.lower() == "anonymous"
+        ) and not self.claims
 
     @property
     def is_authenticated(self) -> bool:
@@ -128,7 +133,7 @@ class ClaimsIdentity:
 
         return app_id != audience
 
-    def get_token_audience(self) -> str | None:
+    def get_token_audience(self) -> str:
         """
         Gets the token audience from current claims.
 

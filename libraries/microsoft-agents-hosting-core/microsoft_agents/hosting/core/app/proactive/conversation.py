@@ -99,7 +99,7 @@ class Conversation(StoreItem):
         """
         if not claims:
             return ClaimsIdentity()
-        return ClaimsIdentity(claims=dict(claims), is_authenticated=True)
+        return ClaimsIdentity(claims=dict(claims))
 
     # ------------------------------------------------------------------
     # Validation
