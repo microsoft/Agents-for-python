@@ -240,3 +240,46 @@ class TestChannelServiceAdapter:
         assert context_arg.activity.service_url == "service_url"
         assert context_arg.services.get(UserTokenClientBase) is user_token_client
         assert context_arg.services.get(ConnectorClientBase) is connector_client
+
+    @pytest.mark.asyncio
+    async def test_process_proactive_uses_anonymous_clients(self, mocker):
+        factory = mocker.Mock(spec=ChannelServiceClientFactoryBase)
+        user_token_client = mocker.Mock(spec=UserTokenClient)
+        user_token_client.close = mocker.AsyncMock()
+        connector_client = mocker.Mock(spec=TeamsConnectorClient)
+        connector_client.close = mocker.AsyncMock()
+        factory.create_user_token_client = mocker.AsyncMock(
+            return_value=user_token_client
+        )
+        factory.create_connector_client = mocker.AsyncMock(
+            return_value=connector_client
+        )
+        adapter = MyChannelServiceAdapter(factory)
+        adapter.run_pipeline = mocker.AsyncMock()
+        identity = ClaimsIdentity()
+        activity = Activity(
+            type="message",
+            conversation={"id": "conversation123"},
+            channel_id="channel_id",
+            service_url="service_url",
+        )
+        callback = mocker.AsyncMock()
+
+        await adapter.process_proactive(
+            identity,
+            activity,
+            "audience",
+            callback,
+        )
+
+        context = adapter.run_pipeline.await_args.args[0]
+        factory.create_user_token_client.assert_awaited_once_with(
+            context, identity, True
+        )
+        factory.create_connector_client.assert_awaited_once_with(
+            context,
+            identity,
+            "service_url",
+            "audience",
+            use_anonymous=True,
+        )

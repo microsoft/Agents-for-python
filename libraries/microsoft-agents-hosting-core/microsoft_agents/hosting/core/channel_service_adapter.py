@@ -313,6 +313,8 @@ class ChannelServiceAdapter(ChannelAdapter, ABC):
         callback: Callable[[TurnContext], Awaitable],
     ):
 
+        use_anonymous_auth_callback = claims_identity.allow_anonymous
+
         # Create a turn context and run the pipeline.
         context = self._create_turn_context(
             claims_identity,
@@ -322,7 +324,7 @@ class ChannelServiceAdapter(ChannelAdapter, ABC):
 
         user_token_client = (
             await self._channel_service_client_factory.create_user_token_client(
-                context, claims_identity
+                context, claims_identity, use_anonymous_auth_callback
             )
         )
         context.services.set(UserTokenClientBase, user_token_client)
@@ -333,7 +335,11 @@ class ChannelServiceAdapter(ChannelAdapter, ABC):
         # Create the connector client to use for outbound requests.
         connector_client = (
             await self._channel_service_client_factory.create_connector_client(
-                context, claims_identity, continuation_activity.service_url, audience
+                context,
+                claims_identity,
+                continuation_activity.service_url,
+                audience,
+                use_anonymous=use_anonymous_auth_callback,
             )
         )
         context.services.set(ConnectorClientBase, connector_client)

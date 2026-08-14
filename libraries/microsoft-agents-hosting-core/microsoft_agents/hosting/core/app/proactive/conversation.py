@@ -44,7 +44,6 @@ class Conversation(StoreItem):
     ) -> None:
         if isinstance(claims, ClaimsIdentity):
             self.claims: dict[str, str] = Conversation.claims_from_identity(claims)
-            self.identity
         else:
             self.claims = {
                 k: v for k, v in claims.items() if k in _PERSISTED_CLAIM_KEYS

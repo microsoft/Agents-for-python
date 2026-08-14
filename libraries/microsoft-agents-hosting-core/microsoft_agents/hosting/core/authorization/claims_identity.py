@@ -17,7 +17,6 @@ class ClaimsIdentity:
     claims: dict[str, str]
     authentication_type: str | None
     security_token: str | None  # deprecated, will be removed in future versions
-    is_authenticated: bool | None  # deprecated, will be removed in future versions
 
     def __init__(
         self,
@@ -37,12 +36,12 @@ class ClaimsIdentity:
         self.claims = claims or {}
         if is_authenticated is not None:
             logger.warning(
-                "The 'is_authenticated' parameter is deprecated and will be removed in future versions. Please use 'authentication_type' instead."
+                "The 'is_authenticated' parameter is deprecated and will be removed in future versions."
             )
 
         self.authentication_type = authentication_type
         self.security_token = security_token
-        self.is_authenticated = is_authenticated
+        self._is_authenticated = is_authenticated
 
     def get_claim_value(self, claim_type: str) -> str | None:
         """Gets the value of a specific claim type from the claims dictionary.
@@ -55,7 +54,25 @@ class ClaimsIdentity:
     @property
     def allow_anonymous(self) -> bool:
         """Returns True if the identity allows anonymous access, otherwise False."""
-        return not self.is_authenticated and not self.claims
+        return (
+            not self.authentication_type
+            and not self.claims
+        )
+
+    @property
+    def is_authenticated(self) -> bool:
+        """Returns True if the identity is authenticated, otherwise False."""
+        logger.warning(
+            "The 'is_authenticated' property is deprecated and will be removed in future versions."
+        )
+        return bool(self.claims)
+
+    @is_authenticated.setter
+    def is_authenticated(self, value: bool) -> None:
+        """(Deprecated). This is now a no-op."""
+        logger.warning(
+            "The 'is_authenticated' property is deprecated and will be removed in future versions."
+        )
 
     def get_app_id(self) -> str | None:
         """

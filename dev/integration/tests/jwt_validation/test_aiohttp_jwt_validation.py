@@ -41,7 +41,7 @@ async def _claims_handler(request):
     identity = request["claims_identity"]
     return web.json_response(
         {
-            "authenticated": identity.is_authenticated,
+            "allow_anonymous": identity.allow_anonymous,
             "authentication_type": identity.authentication_type,
         }
     )
@@ -73,8 +73,8 @@ async def test_aiohttp_global_middleware_allows_anonymous_request_from_env_confi
 
     assert response.status == 200
     assert await response.json() == {
-        "authenticated": False,
-        "authentication_type": "Anonymous",
+        "allow_anonymous": True,
+        "authentication_type": None,
     }
 
 
@@ -105,7 +105,7 @@ async def test_aiohttp_global_middleware_accepts_real_service_connection_token(
     response = await client.get("/", headers={"Authorization": f"Bearer {token}"})
 
     assert response.status == 200
-    assert (await response.json())["authenticated"] is True
+    assert (await response.json())["allow_anonymous"] is False
 
 
 @_requires_real_service_connection
@@ -138,8 +138,8 @@ async def test_aiohttp_decorator_allows_anonymous_request_from_env_config(
 
     assert response.status == 200
     assert await response.json() == {
-        "authenticated": False,
-        "authentication_type": "Anonymous",
+        "allow_anonymous": True,
+        "authentication_type": None,
     }
 
 
