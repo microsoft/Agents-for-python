@@ -25,9 +25,7 @@ class AgentsModel(BaseModel):
     """
 
     @classmethod
-    def pick_properties(
-        cls, original: AgentsModel | None, fields_to_copy=None, **kwargs
-    ):
+    def pick_properties(cls, original: AgentsModel, fields_to_copy=None, **kwargs):
         """Picks properties from the original model and returns a new instance (of a possibly different AgentsModel) with those properties.
 
         This method preserves unset values.
