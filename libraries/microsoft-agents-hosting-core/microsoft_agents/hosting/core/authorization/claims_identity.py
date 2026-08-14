@@ -1,11 +1,9 @@
 # Copyright (c) Microsoft Corporation. All rights reserved.
 # Licensed under the MIT License.
 
-import logging
+import warnings
 
 from .authentication_constants import AuthenticationConstants
-
-logger = logging.getLogger(__name__)
 
 
 class ClaimsIdentity:
@@ -35,8 +33,10 @@ class ClaimsIdentity:
         """
         self.claims = claims or {}
         if is_authenticated is not None:
-            logger.warning(
-                "The 'is_authenticated' parameter is deprecated and will be removed in future versions."
+            warnings.warn(
+                "The 'is_authenticated' parameter is deprecated and will be removed in future versions.",
+                DeprecationWarning,
+                stacklevel=2,
             )
 
         self.authentication_type = authentication_type
@@ -59,16 +59,20 @@ class ClaimsIdentity:
     @property
     def is_authenticated(self) -> bool:
         """Returns True if the identity is authenticated, otherwise False."""
-        logger.warning(
-            "The 'is_authenticated' property is deprecated and will be removed in future versions."
+        warnings.warn(
+            "The 'is_authenticated' property is deprecated and will be removed in future versions.",
+            DeprecationWarning,
+            stacklevel=2,
         )
         return bool(self.claims)
 
     @is_authenticated.setter
     def is_authenticated(self, value: bool) -> None:
         """(Deprecated). This is now a no-op."""
-        logger.warning(
-            "The 'is_authenticated' property is deprecated and will be removed in future versions."
+        warnings.warn(
+            "The 'is_authenticated' property is deprecated and will be removed in future versions.",
+            DeprecationWarning,
+            stacklevel=2,
         )
 
     def get_app_id(self) -> str | None:
