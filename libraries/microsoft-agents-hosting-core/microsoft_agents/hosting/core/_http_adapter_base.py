@@ -79,7 +79,7 @@ class HttpAdapterBase(ChannelServiceAdapter, ABC):
                 connection_manager,
                 **(channel_service_client_factory_options or {}),
             )
-        self._host_validator = host_validator or OutboundHostValidator(enabled=False)
+        self._host_validator = host_validator or OutboundHostValidator()
 
         super().__init__(factory)
 
@@ -133,6 +133,11 @@ class HttpAdapterBase(ChannelServiceAdapter, ABC):
             ):
                 return HttpResponseFactory.bad_request(
                     "Activity must have type and conversation.id"
+                )
+
+            if not self._validate_service_url(claims_identity, activity):
+                return HttpResponseFactory.unauthorized(
+                    "Service URL is not allowed by the host validator."
                 )
 
             try:

@@ -66,7 +66,7 @@ class OutboundHostValidator:
 
     def __init__(
         self,
-        enabled: bool = True,
+        enabled: bool = False,
         hosts: list[str] | None = None,
         include_default_microsoft_hosts: bool = True,
     ):
