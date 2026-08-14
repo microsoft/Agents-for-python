@@ -54,10 +54,7 @@ class ClaimsIdentity:
     @property
     def allow_anonymous(self) -> bool:
         """Returns True if the identity allows anonymous access, otherwise False."""
-        return (
-            not self.authentication_type
-            and not self.claims
-        )
+        return not self.authentication_type and not self.claims
 
     @property
     def is_authenticated(self) -> bool:
