@@ -13,6 +13,7 @@
 
 ## Developer Experience
 - Building packages with `py.typed` files for improved typing support
+- Simplified the anonymous identity scenarios when using `ClaimsIdentity`. Added a new property `ClaimsIdentity.allow_anonymous` and deprecated the `ClaimsIdentity.is_authenticated` flag.
 
 # Microsoft 365 Agents SDK for Python - Release Notes v1.3.0
 
