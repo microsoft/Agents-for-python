@@ -108,8 +108,9 @@ class OutboundHostValidator:
         if not host:
             return False
 
+        host = host.casefold()
+
         for suffix in self._suffixes:
-            host = host.casefold()
             if host == suffix or host.endswith("." + suffix):
                 return True
 
