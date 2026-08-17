@@ -18,5 +18,7 @@ setup(
         "python-dotenv>=1.1.1",
         "opentelemetry-api>=1.27.0",
         "opentelemetry-sdk>=1.27.0",
+        "aiohttp>=3.11.11",
+        "yarl>=1.17.0,<2.0",
     ],
 )

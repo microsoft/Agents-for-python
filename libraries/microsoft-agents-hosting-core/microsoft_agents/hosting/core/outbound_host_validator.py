@@ -5,7 +5,7 @@ from yarl import URL
 
 _DEFAULT_MICROSOFT_HOSTS = [
     "botframework.com",  # Bot Connector / channel services URLs
-    "smba.trafficmanager.net",  # Teams service URLs (exact host; trafficmanager.net is a shared namespace)
+    "smba.trafficmanager.net",  # Teams service URLs
     "teams.microsoft.com",
     "teams.microsoft.us",
     "graph.microsoft.com",  # Microsoft Graph
