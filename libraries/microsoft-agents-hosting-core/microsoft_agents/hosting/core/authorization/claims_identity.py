@@ -3,6 +3,8 @@
 
 import warnings
 
+from typing import Any
+
 from .authentication_constants import AuthenticationConstants
 
 
@@ -12,13 +14,13 @@ class ClaimsIdentity:
     For context, this class merges the functionality of ClaimsIdentity and AgentClaims from .NET
     """
 
-    claims: dict[str, str]
+    claims: dict[str, Any]
     authentication_type: str | None
     security_token: str | None  # deprecated, will be removed in future versions
 
     def __init__(
         self,
-        claims: dict[str, str] | None = None,
+        claims: dict[str, Any] | None = None,
         is_authenticated: bool | None = None,
         authentication_type: str | None = None,
         security_token: str | None = None,
@@ -45,7 +47,7 @@ class ClaimsIdentity:
         self.security_token = security_token
         self._is_authenticated = is_authenticated
 
-    def get_claim_value(self, claim_type: str) -> str | None:
+    def get_claim_value(self, claim_type: str) -> Any:
         """Gets the value of a specific claim type from the claims dictionary.
 
         :param claim_type: The type of claim to retrieve.
