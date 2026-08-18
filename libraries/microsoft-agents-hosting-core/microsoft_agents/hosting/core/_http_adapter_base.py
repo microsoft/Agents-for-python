@@ -7,6 +7,8 @@ from abc import ABC
 from http import HTTPStatus
 from traceback import format_exc
 
+import logging
+
 from microsoft_agents.activity import Activity, DeliveryModes
 from microsoft_agents.hosting.core.telemetry.adapter import spans
 
@@ -20,6 +22,9 @@ from .http._http_response import HttpResponse, HttpResponseFactory
 from .message_factory import MessageFactory
 from .rest_channel_service_client_factory import RestChannelServiceClientFactory
 from .turn_context import TurnContext
+from .outbound_host_validator import OutboundHostValidator, _try_create_url
+
+logger = logging.getLogger(__name__)
 
 
 class HttpAdapterBase(ChannelServiceAdapter, ABC):
@@ -35,6 +40,7 @@ class HttpAdapterBase(ChannelServiceAdapter, ABC):
         connection_manager: Connections | None = None,
         channel_service_client_factory: ChannelServiceClientFactoryBase | None = None,
         channel_service_client_factory_options: dict | None = None,
+        host_validator: OutboundHostValidator | None = None,
     ):
         """Initialize the HTTP adapter.
 
@@ -73,6 +79,7 @@ class HttpAdapterBase(ChannelServiceAdapter, ABC):
                 connection_manager,
                 **(channel_service_client_factory_options or {}),
             )
+        self._host_validator = host_validator or OutboundHostValidator()
 
         super().__init__(factory)
 
@@ -126,6 +133,11 @@ class HttpAdapterBase(ChannelServiceAdapter, ABC):
                     "Activity must have type and conversation.id"
                 )
 
+            if not self._validate_service_url(claims_identity, activity):
+                return HttpResponseFactory.unauthorized(
+                    "Service URL is not allowed by the host validator."
+                )
+
             try:
                 # Process the inbound activity with the agent
                 invoke_response = await self.process_activity(
@@ -151,3 +163,57 @@ class HttpAdapterBase(ChannelServiceAdapter, ABC):
 
             except PermissionError:
                 return HttpResponseFactory.unauthorized()
+
+    def _validate_service_url(
+        self, claims_identity: ClaimsIdentity, activity: Activity
+    ) -> bool:
+        """Validate the service URL against the claims identity.
+
+        Args:
+            claims_identity: The claims identity to validate against.
+            activity: The activity containing the service URL to validate.
+
+        Returns:
+            True if the service URL is valid, False otherwise.
+        """
+
+        if (
+            self._host_validator.enabled
+            and activity.service_url
+            and not self._host_validator.is_allowed(activity.service_url)
+        ):
+            logger.warning(
+                "Service URL %s is not allowed by the host validator.",
+                activity.service_url,
+            )
+            return False
+
+        if not claims_identity:
+            return True
+
+        claims_service_url = claims_identity.get_claim_value("serviceurl")
+        if activity.service_url and claims_service_url:
+            claim_url = _try_create_url(claims_service_url)
+            activity_url = _try_create_url(activity.service_url)
+            claim_url_host = (claim_url.host or "") if claim_url else ""
+            activity_url_host = (activity_url.host or "") if activity_url else ""
+            if (
+                not claim_url
+                or not activity_url
+                or claim_url_host.casefold() != activity_url_host.casefold()
+            ):
+                if self._host_validator and self._host_validator.enabled:
+                    logger.warning(
+                        "Service URL host mismatch: %s vs %s",
+                        claim_url_host,
+                        activity_url_host,
+                    )
+                    return False
+                else:
+                    logger.warning(
+                        "Service URL host mismatch (host validator disabled): %s vs %s",
+                        claim_url_host,
+                        activity_url_host,
+                    )
+
+        return True
