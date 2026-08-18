@@ -30,7 +30,6 @@ class ClaimsIdentity:
         :param claims: A dictionary of claims associated with the identity.
         :param is_authenticated: A boolean indicating whether the identity is authenticated. (Deprecated)
         :param authentication_type: A string representing the type of authentication used.
-            None values indicate that the identity is not authenticated.
         :param security_token: The security token associated with the identity.
         """
         if claims is None:
