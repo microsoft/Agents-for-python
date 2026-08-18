@@ -117,6 +117,11 @@ class TestAuthorizationConfiguration:
                 "FEDERATED_CLIENT_ID is required for "
                 "federated_credentials authentication.",
             ),
+            (
+                AuthTypes.workload_identity,
+                "FEDERATED_TOKEN_FILE is required for "
+                "workload_identity authentication.",
+            ),
         ],
     )
     def test_auth_type_requires_credential_setting(self, auth_type, expected_message):
@@ -130,6 +135,10 @@ class TestAuthorizationConfiguration:
             (
                 AuthTypes.federated_credentials,
                 {"federated_client_id": "test-federated-client-id"},
+            ),
+            (
+                AuthTypes.workload_identity,
+                {"federated_token_file": "test-token-file"},
             ),
         ],
     )
