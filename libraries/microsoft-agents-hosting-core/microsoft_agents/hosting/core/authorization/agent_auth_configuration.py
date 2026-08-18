@@ -232,11 +232,10 @@ class AgentAuthConfiguration:
             raise ValueError(
                 "CERT_PFX_FILE is required for certificate authentication."
             )
-        if self.AUTH_TYPE == AuthTypes.identity_proxy_manager and not self.IDPM_RESOURCE:
-            raise ValueError(
-                "IDPM_RESOURCE is required for identity_proxy_manager authentication."
-            )
-        if self.AUTH_TYPE == AuthTypes.federated_credentials and not self.FEDERATED_CLIENT_ID:
+        if (
+            self.AUTH_TYPE == AuthTypes.federated_credentials
+            and not self.FEDERATED_CLIENT_ID
+        ):
             raise ValueError(
                 "FEDERATED_CLIENT_ID is required for federated_credentials authentication."
             )

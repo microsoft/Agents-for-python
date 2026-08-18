@@ -1,4 +1,7 @@
 from os import environ
+
+import pytest
+
 from microsoft_agents.activity import load_configuration_from_env
 from microsoft_agents.hosting.core import AgentAuthConfiguration, AuthTypes
 
@@ -101,6 +104,39 @@ class TestAuthorizationConfiguration:
         assert auth_config.AUTHORITY is None
         assert auth_config.SCOPES is None
         assert auth_config.AZURE_REGION is None
+
+    @pytest.mark.parametrize(
+        ("auth_type", "expected_message"),
+        [
+            (
+                AuthTypes.certificate,
+                "CERT_PFX_FILE is required for certificate authentication.",
+            ),
+            (
+                AuthTypes.federated_credentials,
+                "FEDERATED_CLIENT_ID is required for "
+                "federated_credentials authentication.",
+            ),
+        ],
+    )
+    def test_auth_type_requires_credential_setting(self, auth_type, expected_message):
+        with pytest.raises(ValueError, match=expected_message):
+            AgentAuthConfiguration(auth_type=auth_type)
+
+    @pytest.mark.parametrize(
+        ("auth_type", "credential"),
+        [
+            (AuthTypes.certificate, {"cert_pfx_file": "test-cert.pfx"}),
+            (
+                AuthTypes.federated_credentials,
+                {"federated_client_id": "test-federated-client-id"},
+            ),
+        ],
+    )
+    def test_auth_type_accepts_required_credential_setting(self, auth_type, credential):
+        auth_config = AgentAuthConfiguration(auth_type=auth_type, **credential)
+
+        assert auth_config.AUTH_TYPE == auth_type
 
     def test_workload_identity_token_file_from_kwargs(self):
         auth_config = AgentAuthConfiguration(
