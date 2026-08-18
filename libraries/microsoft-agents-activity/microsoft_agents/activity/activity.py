@@ -13,6 +13,7 @@ from typing_extensions import Self
 from pydantic import (
     Field,
     SerializeAsAny,
+    field_validator,
     model_serializer,
     model_validator,
     SerializerFunctionWrapHandler,
@@ -38,6 +39,7 @@ from .entity import (
     ProductInfo,
     SensitivityUsageInfo,
 )
+from .entity._validate_known_entities import _validate_known_entities
 from .conversation_reference import ConversationReference
 from .text_highlight import TextHighlight
 from .semantic_action import SemanticAction
@@ -197,6 +199,11 @@ class Activity(AgentsModel):
     text_highlights: list[TextHighlight] = None
     semantic_action: SemanticAction = None
     caller_id: NonEmptyString = None
+
+    @field_validator("entities", mode="before")
+    @classmethod
+    def _deserialize_known_entities(cls, entities: Any) -> list[Entity]:
+        return _validate_known_entities(entities)
 
     @model_validator(mode="wrap")
     @classmethod
