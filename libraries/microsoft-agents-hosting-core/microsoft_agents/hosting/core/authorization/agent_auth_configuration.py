@@ -239,6 +239,13 @@ class AgentAuthConfiguration:
             raise ValueError(
                 "FEDERATED_CLIENT_ID is required for federated_credentials authentication."
             )
+        if (
+            self.AUTH_TYPE == AuthTypes.workload_identity
+            and not self.FEDERATED_TOKEN_FILE
+        ):
+            raise ValueError(
+                "FEDERATED_TOKEN_FILE is required for workload_identity authentication."
+            )
 
     @property
     def ISSUERS(self) -> list[str]:
