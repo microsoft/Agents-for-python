@@ -1,3 +1,11 @@
+# Microsoft 365 Agents SDK for Python - Release Notes v1.5.0 (Unreleased)
+
+## Major Features & Enhancements
+
+- **Testing Package**: Added the new `microsoft-agents-testing` package with an in-memory `TestAdapter`, fluent `TestFlow` conversation assertions, and `MockUserTokenClient` support for testing OAuth and token-exchange flows without external services.
+
+---
+
 # Microsoft 365 Agents SDK for Python - Release Notes v1.4.0
 
 **Release Date:** 2026-08-18
