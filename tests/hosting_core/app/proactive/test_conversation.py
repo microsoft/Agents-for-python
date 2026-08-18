@@ -114,6 +114,12 @@ class TestConversationClaimsHelpers:
         identity = Conversation.identity_from_claims(claims)
         assert identity.is_authenticated is True
 
+    def test_identity_from_empty_claims_allows_anonymous(self):
+        identity = Conversation.identity_from_claims({})
+
+        assert identity.claims == {}
+        assert identity.allow_anonymous is True
+
     def test_identity_from_claims_preserves_values(self):
         claims = {"aud": "app-id", "tid": "tenant", "ver": "2.0"}
         identity = Conversation.identity_from_claims(claims)

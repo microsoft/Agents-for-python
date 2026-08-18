@@ -17,6 +17,8 @@
 - Support for linking with OpenTelemetry span creation throught the `SimpleSpanWrapper` constructor.
 
 ---
+- Simplified the anonymous identity scenarios when using `ClaimsIdentity`. Added a new property `ClaimsIdentity.allow_anonymous` and deprecated the `ClaimsIdentity.is_authenticated` flag.
+- In the construction of the inbound `Activity` instance, raw `Entity` JSON is automatically deserialized into known derived `Entity` classes such as `ProductInfo`, `Mention`, `AIEntity`, and more. 
 
 # Microsoft 365 Agents SDK for Python - Release Notes v1.3.0
 
