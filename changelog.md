@@ -1,20 +1,41 @@
-# Microsoft 365 Agents SDK for Python - Release Notes v1.4.0 (Unreleased)
+# Microsoft 365 Agents SDK for Python - Release Notes v1.4.0
+
+**Release Date:** 2026-08-18
+**Previous Version:** 1.3.0 (Released 2026-07-30)
 
 ## Major Features & Enhancements
-- Added support for Workload Identity
+
+- **Workload Identity Authentication**: Added support for Workload Identity authentication using federated token files (#519)
 - **Entra JWT Issuer Validation**: Added tenant ID cross-checking for Entra issuer claims and support for configuring issuer lists through environment variables (#515)
-- **AgentApplication Adaptive Card Routing**: Added `AgentApplication.adaptive_card` with decorator-based handlers for Adaptive Card `Action.Submit`, `Action.Execute`, and `Data.Query` dynamic search with verb and dataset matching selection.
+- **Adaptive Card Routing**: Added decorator-based handlers for Adaptive Card `Action.Submit`, `Action.Execute`, and `Data.Query` activities, including verb and dataset matching (#518)
 
 ## New Models & APIs
-- **Regionalized UserTokenClient Support**: Added optional argument to `CloudAdapter` to configure Token Service endpoint used by `RestChannelServiceClientFactory` when creating `UserTokenClient` instances.
+
+- **Known Entity Deserialization**: Automatically deserialize raw entity JSON into known derived `Entity` classes while preserving unknown entity types (#544)
+- **Regionalized User Token Clients**: Added `CloudAdapter` configuration for the token service endpoint used when creating `UserTokenClient` instances (#513)
+- **ClaimsIdentity Anonymous State**: Added `ClaimsIdentity.allow_anonymous` and deprecated `ClaimsIdentity.is_authenticated` (#540)
 
 ## Bug Fixes
-- **OAuth Flow Storage**: Avoided redundant writes when the flow state is unchanged in the cache.
+
+- **Mention Removal**: Prevented `AgentApplication._remove_mentions` from replacing `Activity.text` when its value is `None` (#541)
+- **OAuth Flow Storage**: Avoided redundant writes when cached flow state is unchanged (#528)
+- **Connector Error Handling**: Standardized HTTP response error handling for `ConnectorClient` and `UserTokenClient` (#512)
+- **Sensitive Logging**: Removed sensitive information from authentication and OAuth flow logs (#530)
 
 ## Developer Experience
-- Building packages with `py.typed` files for improved typing support
-- Simplified the anonymous identity scenarios when using `ClaimsIdentity`. Added a new property `ClaimsIdentity.allow_anonymous` and deprecated the `ClaimsIdentity.is_authenticated` flag.
-- In the construction of the inbound `Activity` instance, raw `Entity` JSON is automatically deserialized into known derived `Entity` classes such as `ProductInfo`, `Mention`, `AIEntity`, and more. 
+
+- **Typing Support**: Included `py.typed` files in package builds and increased the minimum supported `setuptools` version (#527)
+- **Telemetry**: Added `Activity.name` to the `AppOnTurn` span (#516)
+- **Teams Package Deprecation**: Added an import-time deprecation warning for `microsoft-agents-hosting-teams` (#517)
+- **HTTP Adapter Maintenance**: Refined shared HTTP adapter behavior (#514)
+- **Conversation References**: Improved continuation activity construction from `ConversationReference` (#529)
+- **Test Reliability**: Fixed optional Teams package unit tests (#520)
+
+## Documentation
+
+- **Configuration Guidance**: Added configuration update information to the changelog (#521)
+
+---
 
 # Microsoft 365 Agents SDK for Python - Release Notes v1.3.0
 
