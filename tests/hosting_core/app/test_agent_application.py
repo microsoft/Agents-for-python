@@ -8,7 +8,7 @@ from unittest.mock import AsyncMock, patch
 
 import pytest
 
-from microsoft_agents.activity import Activity, ActivityTypes
+from microsoft_agents.activity import Activity, ActivityTypes, RoleTypes
 from microsoft_agents.hosting.core import MemoryStorage
 from microsoft_agents.hosting.core.app import (
     AgentApplication,
@@ -17,6 +17,7 @@ from microsoft_agents.hosting.core.app import (
 )
 from microsoft_agents.hosting.core.app.app_error import ApplicationError
 from microsoft_agents.hosting.core.app.oauth import Authorization
+from microsoft_agents.hosting.core.header_propagation import HeaderPropagationContext
 from tests._common.testing_objects import TestingConnectionManager as _ConnectionManager
 
 
@@ -145,6 +146,115 @@ async def test_on_turn_no_typing_when_start_typing_timer_false():
 
     # No on_send_activities hook should have been registered
     assert len(context._on_send_handlers) == 0
+
+
+@pytest.mark.asyncio
+async def test_on_turn_registers_agentic_headers_for_agentic_activity():
+    """Agentic activities should expose Activity-derived headers during turn handling."""
+    app = AgentApplication[TurnState](
+        options=ApplicationOptions(
+            storage=MemoryStorage(),
+            start_typing_timer=False,
+            remove_recipient_mention=False,
+        ),
+        authorization=make_auth(),
+        agent_name="My Agent!",
+    )
+    context = StubTurnContext(
+        Activity(
+            type=ActivityTypes.event,
+            channel_id="msteams:Copilot",
+            conversation={"id": "conv1"},
+            from_property={"id": "user1"},
+            recipient={
+                "role": RoleTypes.agentic_user,
+                "agentic_app_id": "Entra:app-id-123",
+            },
+            service_url="https://test",
+        )
+    )
+    captured_headers = {}
+
+    async def capture_headers(*_):
+        captured_headers.update(HeaderPropagationContext.collect_headers())
+
+    HeaderPropagationContext.reset()
+    try:
+        with patch.object(app, "_remove_mentions"), patch.object(
+            app, "_initialize_state", new_callable=AsyncMock, return_value=TurnState()
+        ), patch.object(
+            app,
+            "_run_before_turn_middleware",
+            new_callable=AsyncMock,
+            return_value=True,
+        ), patch.object(
+            app, "_handle_file_downloads", new_callable=AsyncMock
+        ), patch.object(
+            app, "_on_activity", new_callable=AsyncMock, side_effect=capture_headers
+        ), patch.object(
+            app, "_run_after_turn_middleware", new_callable=AsyncMock, return_value=True
+        ):
+            await app._on_turn(context)
+    finally:
+        HeaderPropagationContext.reset()
+
+    assert captured_headers == {
+        "AgentRegistrar": "A365",
+        "AgentID": "Entra:app-id-123",
+        "AgentName": "My Agent",
+        "Agent-Referrer": "msteams:Copilot",
+    }
+
+
+@pytest.mark.asyncio
+async def test_on_turn_does_not_register_agentic_headers_for_non_agentic_activity():
+    """Non-agentic activities should not expose agentic headers during turn handling."""
+    app = AgentApplication[TurnState](
+        options=ApplicationOptions(
+            storage=MemoryStorage(),
+            start_typing_timer=False,
+            remove_recipient_mention=False,
+        ),
+        authorization=make_auth(),
+        agent_name="My Agent",
+    )
+    context = StubTurnContext(
+        Activity(
+            type=ActivityTypes.event,
+            channel_id="msteams",
+            conversation={"id": "conv1"},
+            from_property={"id": "user1"},
+            recipient={"role": RoleTypes.user},
+            service_url="https://test",
+        )
+    )
+    captured_headers = {"stale": "value"}
+
+    async def capture_headers(*_):
+        captured_headers.clear()
+        captured_headers.update(HeaderPropagationContext.collect_headers())
+
+    HeaderPropagationContext.reset()
+    try:
+        with patch.object(app, "_remove_mentions"), patch.object(
+            app, "_initialize_state", new_callable=AsyncMock, return_value=TurnState()
+        ), patch.object(
+            app,
+            "_run_before_turn_middleware",
+            new_callable=AsyncMock,
+            return_value=True,
+        ), patch.object(
+            app, "_handle_file_downloads", new_callable=AsyncMock
+        ), patch.object(
+            app, "_on_activity", new_callable=AsyncMock, side_effect=capture_headers
+        ), patch.object(
+            app, "_run_after_turn_middleware", new_callable=AsyncMock, return_value=True
+        ):
+            await app._on_turn(context)
+    finally:
+        HeaderPropagationContext.reset()
+
+    assert captured_headers == {}
 
 
 # ---------------------------------------------------------------------------

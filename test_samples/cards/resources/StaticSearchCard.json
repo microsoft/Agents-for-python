@@ -1,0 +1,43 @@
+{
+  "$schema": "http://adaptivecards.io/schemas/adaptive-card.json",
+  "version": "1.3",
+  "type": "AdaptiveCard",
+  "body": [
+    {
+      "type": "TextBlock",
+      "size": "medium",
+      "weight": "bolder",
+      "text": "Static Adaptive Card"
+    },
+    {
+      "type": "TextBlock",
+      "text": "Select an IDE from the list.",
+      "wrap": true
+    },
+    {
+      "type": "Input.ChoiceSet",
+      "id": "choiceSelect",
+      "placeholder": "Search for an IDE",
+      "style": "filtered",
+      "choices": [
+        {"title": "Visual Studio", "value": "visual_studio"},
+        {"title": "IntelliJ IDEA", "value": "intellij_idea"},
+        {"title": "Aptana Studio 3", "value": "aptana_studio_3"},
+        {"title": "PyCharm", "value": "pycharm"},
+        {"title": "PhpStorm", "value": "phpstorm"},
+        {"title": "WebStorm", "value": "webstorm"},
+        {"title": "NetBeans", "value": "netbeans"},
+        {"title": "Eclipse", "value": "eclipse"},
+        {"title": "RubyMine", "value": "rubymine"},
+        {"title": "Visual Studio Code", "value": "visual_studio_code"}
+      ]
+    }
+  ],
+  "actions": [
+    {
+      "type": "Action.Submit",
+      "title": "Submit",
+      "data": {"verb": "StaticSubmit"}
+    }
+  ]
+}

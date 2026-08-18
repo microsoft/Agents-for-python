@@ -34,12 +34,14 @@ class HttpAdapterBase(ChannelServiceAdapter, ABC):
         *,
         connection_manager: Connections | None = None,
         channel_service_client_factory: ChannelServiceClientFactoryBase | None = None,
+        channel_service_client_factory_options: dict | None = None,
     ):
         """Initialize the HTTP adapter.
 
-        Args:
-            connection_manager: Optional connection manager for OAuth.
-            channel_service_client_factory: Factory for creating channel service clients.
+        :param connection_manager: Optional connection manager for OAuth.
+        :param channel_service_client_factory: Factory for creating channel service clients.
+        :param channel_service_client_factory_options: Optional dictionary of options to pass to the channel service client factory
+            This is only used if channel_service_client_factory is not provided and connection_manager is provided.
         """
 
         async def on_turn_error(context: TurnContext, error: Exception):
@@ -67,7 +69,10 @@ class HttpAdapterBase(ChannelServiceAdapter, ABC):
                 raise ValueError(
                     "HttpAdapterBase.__init__: Either channel_service_client_factory or connection_manager must be provided."
                 )
-            factory = RestChannelServiceClientFactory(connection_manager)
+            factory = RestChannelServiceClientFactory(
+                connection_manager,
+                **(channel_service_client_factory_options or {}),
+            )
 
         super().__init__(factory)
 
@@ -108,7 +113,7 @@ class HttpAdapterBase(ChannelServiceAdapter, ABC):
 
             # Get claims identity (default to anonymous if not set by middleware)
             claims_identity: ClaimsIdentity = (
-                request.get_claims_identity() or ClaimsIdentity({}, False)
+                request.get_claims_identity() or ClaimsIdentity()
             )
 
             # Validate required activity fields

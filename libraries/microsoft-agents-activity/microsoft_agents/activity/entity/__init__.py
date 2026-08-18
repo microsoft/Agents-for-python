@@ -19,6 +19,7 @@ from .place import Place
 from .product_info import ProductInfo
 from .stream_info import StreamInfo
 from .thing import Thing
+from ._validate_known_entities import _validate_known_entities
 
 __all__ = [
     "Entity",
@@ -38,4 +39,5 @@ __all__ = [
     "Thing",
     "ActivityTreatment",
     "ActivityTreatmentTypes",
+    "_validate_known_entities",
 ]

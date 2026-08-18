@@ -58,24 +58,24 @@ class TestAgentEnvironment:
 class TestAiohttpScenarioInitialization:
     """Tests for AiohttpScenario initialization."""
 
-    def test_initialization_with_init_agent(self):
-        """AiohttpScenario initializes with init_agent callback."""
+    def test_initialization_with_setup(self):
+        """AiohttpScenario initializes with setup callback."""
 
-        async def init_agent(env: AgentEnvironment) -> None:
+        def setup(env: AgentEnvironment) -> None:
             pass
 
-        scenario = AiohttpScenario(init_agent=init_agent)
+        scenario = AiohttpScenario.create(setup)
 
-        assert scenario._init_agent is init_agent
+        assert scenario._setup is setup
 
     def test_initialization_with_config(self):
         """AiohttpScenario initializes with custom config."""
 
-        async def init_agent(env: AgentEnvironment) -> None:
+        def init_agent(env: AgentEnvironment) -> None:
             pass
 
         config = ScenarioConfig(callback_server_port=9000)
-        scenario = AiohttpScenario(init_agent=init_agent, config=config)
+        scenario = AiohttpScenario.create(init_agent, config=config)
 
         assert scenario._config is config
         assert scenario._config.callback_server_port == 9000
@@ -83,56 +83,56 @@ class TestAiohttpScenarioInitialization:
     def test_initialization_with_default_config(self):
         """AiohttpScenario uses default config when none provided."""
 
-        async def init_agent(env: AgentEnvironment) -> None:
+        def init_agent(env: AgentEnvironment) -> None:
             pass
 
-        scenario = AiohttpScenario(init_agent=init_agent)
+        scenario = AiohttpScenario.create(init_agent)
 
         assert isinstance(scenario._config, ScenarioConfig)
         assert scenario._config.callback_server_port == 9378
 
-    def test_initialization_raises_on_none_init_agent(self):
-        """AiohttpScenario raises ValueError for None init_agent."""
-        with pytest.raises(ValueError, match="init_agent must be provided"):
-            AiohttpScenario(init_agent=None)
+    def test_initialization_raises_on_none_setup(self):
+        """AiohttpScenario raises ValueError for None setup."""
+        with pytest.raises(ValueError, match="env_or_setup must be provided"):
+            AiohttpScenario.create(None)
 
     def test_initialization_with_jwt_middleware_enabled(self):
         """AiohttpScenario initializes with JWT middleware enabled by default."""
 
-        async def init_agent(env: AgentEnvironment) -> None:
+        def init_agent(env: AgentEnvironment) -> None:
             pass
 
-        scenario = AiohttpScenario(init_agent=init_agent)
+        scenario = AiohttpScenario.create(init_agent)
 
         assert scenario._use_jwt_middleware is True
 
     def test_initialization_with_jwt_middleware_disabled(self):
         """AiohttpScenario can disable JWT middleware."""
 
-        async def init_agent(env: AgentEnvironment) -> None:
+        def init_agent(env: AgentEnvironment) -> None:
             pass
 
-        scenario = AiohttpScenario(init_agent=init_agent, use_jwt_middleware=False)
+        scenario = AiohttpScenario.create(init_agent, use_jwt_middleware=False)
 
         assert scenario._use_jwt_middleware is False
 
     def test_inherits_from_scenario(self):
         """AiohttpScenario inherits from Scenario."""
 
-        async def init_agent(env: AgentEnvironment) -> None:
+        def init_agent(env: AgentEnvironment) -> None:
             pass
 
-        scenario = AiohttpScenario(init_agent=init_agent)
+        scenario = AiohttpScenario.create(init_agent)
 
         assert isinstance(scenario, Scenario)
 
     def test_env_is_none_before_run(self):
         """AiohttpScenario._env is None before run() is called."""
 
-        async def init_agent(env: AgentEnvironment) -> None:
+        def init_agent(env: AgentEnvironment) -> None:
             pass
 
-        scenario = AiohttpScenario(init_agent=init_agent)
+        scenario = AiohttpScenario.create(init_agent)
 
         assert scenario._env is None
 
@@ -148,22 +148,22 @@ class TestAiohttpScenarioConfiguration:
     def test_config_with_env_file_path(self):
         """AiohttpScenario accepts config with env_file_path."""
 
-        async def init_agent(env: AgentEnvironment) -> None:
+        def init_agent(env: AgentEnvironment) -> None:
             pass
 
         config = ScenarioConfig(env_file_path="/path/to/.env")
-        scenario = AiohttpScenario(init_agent=init_agent, config=config)
+        scenario = AiohttpScenario.create(init_agent, config=config)
 
         assert scenario._config.env_file_path == "/path/to/.env"
 
     def test_config_with_custom_port(self):
         """AiohttpScenario accepts config with custom callback_server_port."""
 
-        async def init_agent(env: AgentEnvironment) -> None:
+        def init_agent(env: AgentEnvironment) -> None:
             pass
 
         config = ScenarioConfig(callback_server_port=8000)
-        scenario = AiohttpScenario(init_agent=init_agent, config=config)
+        scenario = AiohttpScenario.create(init_agent, config=config)
 
         assert scenario._config.callback_server_port == 8000
 
@@ -176,13 +176,30 @@ class TestAiohttpScenarioConfiguration:
 class TestAiohttpScenarioProperties:
     """Tests for AiohttpScenario properties."""
 
-    def test_agent_environment_raises_when_not_running(self):
-        """agent_environment raises RuntimeError when scenario is not running."""
+    def test_agent_environment_materializes_setup_environment(self):
+        """agent_environment creates a setup-backed environment on first access."""
 
-        async def init_agent(env: AgentEnvironment) -> None:
+        initialized = False
+
+        def setup(env: AgentEnvironment) -> None:
+            nonlocal initialized
+            initialized = True
+
+        scenario = AiohttpScenario.create(setup, omit_connections=True)
+
+        env = scenario.agent_environment
+
+        assert initialized is True
+        assert env is scenario._env
+
+    def test_agent_environment_raises_when_unavailable(self):
+        """agent_environment raises RuntimeError when no environment can be created."""
+
+        def setup(env: AgentEnvironment) -> None:
             pass
 
-        scenario = AiohttpScenario(init_agent=init_agent)
+        scenario = AiohttpScenario.create(setup)
+        scenario._setup = None
 
         with pytest.raises(
             RuntimeError,
@@ -193,10 +210,10 @@ class TestAiohttpScenarioProperties:
     def test_agent_environment_returns_env_when_set(self):
         """agent_environment returns _env when it's set."""
 
-        async def init_agent(env: AgentEnvironment) -> None:
+        def init_agent(env: AgentEnvironment) -> None:
             pass
 
-        scenario = AiohttpScenario(init_agent=init_agent)
+        scenario = AiohttpScenario.create(init_agent)
 
         # Manually set _env for testing the property
         test_env = AgentEnvironment(
@@ -217,38 +234,36 @@ class TestAiohttpScenarioProperties:
 # ============================================================================
 
 
-class TestAiohttpScenarioInitAgentCallback:
-    """Tests for AiohttpScenario init_agent callback handling."""
+class TestAiohttpScenarioSetupCallback:
+    """Tests for AiohttpScenario setup callback handling."""
 
-    def test_stores_sync_callable_as_init_agent(self):
-        """AiohttpScenario stores the provided init_agent callable."""
+    def test_stores_sync_callable_as_setup(self):
+        """AiohttpScenario stores the provided setup callable."""
 
-        async def my_init_agent(env: AgentEnvironment) -> None:
+        def setup(env: AgentEnvironment) -> None:
             env.config["initialized"] = True
 
-        scenario = AiohttpScenario(init_agent=my_init_agent)
+        scenario = AiohttpScenario.create(setup)
 
-        assert scenario._init_agent is my_init_agent
+        assert scenario._setup is setup
 
-    def test_accepts_lambda_as_init_agent(self):
-        """AiohttpScenario accepts lambda as init_agent."""
-        init_agent = lambda env: None  # noqa: E731
+    def test_accepts_lambda_as_setup(self):
+        """AiohttpScenario accepts lambda as setup."""
+        setup = lambda env: None  # noqa: E731
 
-        # Note: This would fail at runtime since it's not async,
-        # but initialization should succeed
-        scenario = AiohttpScenario(init_agent=init_agent)
+        scenario = AiohttpScenario.create(setup)
 
-        assert scenario._init_agent is init_agent
+        assert scenario._setup is setup
 
-    def test_accepts_async_function_as_init_agent(self):
-        """AiohttpScenario accepts async function as init_agent."""
+    def test_create_sets_environment_factory(self):
+        """AiohttpScenario.create configures an environment factory."""
 
-        async def async_init_agent(env: AgentEnvironment) -> None:
-            await some_async_operation()  # noqa: F821 - intentionally undefined
+        def setup(env: AgentEnvironment) -> None:
+            pass
 
-        scenario = AiohttpScenario(init_agent=async_init_agent)
+        scenario = AiohttpScenario.create(setup)
 
-        assert scenario._init_agent is async_init_agent
+        assert scenario._env_factory is not None
 
 
 # ============================================================================
@@ -262,7 +277,7 @@ class TestAiohttpScenarioEdgeCases:
     def test_initialization_with_all_parameters(self):
         """AiohttpScenario initializes correctly with all parameters."""
 
-        async def init_agent(env: AgentEnvironment) -> None:
+        def init_agent(env: AgentEnvironment) -> None:
             pass
 
         config = ScenarioConfig(
@@ -270,13 +285,13 @@ class TestAiohttpScenarioEdgeCases:
             callback_server_port=7000,
         )
 
-        scenario = AiohttpScenario(
-            init_agent=init_agent,
+        scenario = AiohttpScenario.create(
+            init_agent,
             config=config,
             use_jwt_middleware=False,
         )
 
-        assert scenario._init_agent is init_agent
+        assert scenario._setup is init_agent
         assert scenario._config is config
         assert scenario._config.env_file_path == "/custom/.env"
         assert scenario._config.callback_server_port == 7000
@@ -285,22 +300,22 @@ class TestAiohttpScenarioEdgeCases:
     def test_multiple_scenario_instances_are_independent(self):
         """Multiple AiohttpScenario instances are independent."""
 
-        async def init_agent_1(env: AgentEnvironment) -> None:
+        def init_agent_1(env: AgentEnvironment) -> None:
             pass
 
-        async def init_agent_2(env: AgentEnvironment) -> None:
+        def init_agent_2(env: AgentEnvironment) -> None:
             pass
 
         config1 = ScenarioConfig(callback_server_port=9001)
         config2 = ScenarioConfig(callback_server_port=9002)
 
-        scenario1 = AiohttpScenario(init_agent=init_agent_1, config=config1)
-        scenario2 = AiohttpScenario(
-            init_agent=init_agent_2, config=config2, use_jwt_middleware=False
+        scenario1 = AiohttpScenario.create(init_agent_1, config=config1)
+        scenario2 = AiohttpScenario.create(
+            init_agent_2, config=config2, use_jwt_middleware=False
         )
 
-        assert scenario1._init_agent is init_agent_1
-        assert scenario2._init_agent is init_agent_2
+        assert scenario1._setup is init_agent_1
+        assert scenario2._setup is init_agent_2
         assert scenario1._config.callback_server_port == 9001
         assert scenario2._config.callback_server_port == 9002
         assert scenario1._use_jwt_middleware is True
@@ -309,10 +324,10 @@ class TestAiohttpScenarioEdgeCases:
     def test_config_is_not_shared_between_instances(self):
         """Config is not shared between scenario instances."""
 
-        async def init_agent(env: AgentEnvironment) -> None:
+        def init_agent(env: AgentEnvironment) -> None:
             pass
 
-        scenario1 = AiohttpScenario(init_agent=init_agent)
-        scenario2 = AiohttpScenario(init_agent=init_agent)
+        scenario1 = AiohttpScenario.create(init_agent)
+        scenario2 = AiohttpScenario.create(init_agent)
 
         assert scenario1._config is not scenario2._config

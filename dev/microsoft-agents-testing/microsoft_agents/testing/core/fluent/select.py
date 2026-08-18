@@ -14,7 +14,7 @@ from typing import TypeVar, Callable, Generic, Sequence, Self
 from pydantic import BaseModel
 
 from .backend import ModelPredicate, DictionaryTransform
-from .expect import Expect
+from .expect import ExpectBase
 
 ModelT = TypeVar("ModelT", bound=dict | BaseModel)
 
@@ -49,9 +49,9 @@ class SelectBase(Generic[ModelT]):
     ) -> None:
         self._items = list(items)
 
-    def expect(self) -> Expect:
+    def expect(self) -> ExpectBase[ModelT]:
         """Get an Expect instance for assertions on the current selection."""
-        return Expect(self._items)
+        return ExpectBase[ModelT](self._items)
 
     def _child(self, items: Sequence[ModelT]) -> Self:
         """Create a child Select with new items, inheriting selector and quantifier."""

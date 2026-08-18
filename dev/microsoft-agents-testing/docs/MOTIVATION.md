@@ -77,12 +77,12 @@ async def test_echo():
 import pytest
 from microsoft_agents.testing import AiohttpScenario, AgentEnvironment
 
-async def init_echo(env: AgentEnvironment):
+def init_echo(env: AgentEnvironment):
     @env.agent_application.activity("message")
     async def on_message(context, state):
         await context.send_activity(f"Echo: {context.activity.text}")
 
-scenario = AiohttpScenario(init_agent=init_echo, use_jwt_middleware=False)
+scenario = AiohttpScenario.create(init_echo, use_jwt_middleware=False)
 
 @pytest.mark.agent_test(scenario)
 class TestEcho:

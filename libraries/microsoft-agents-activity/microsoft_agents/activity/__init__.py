@@ -6,9 +6,11 @@ from .action_types import ActionTypes
 from .activity import Activity
 from .activity_event_names import ActivityEventNames
 from .activity_types import ActivityTypes
+from .adaptive_card_card import AdaptiveCardCard
 from .adaptive_card_invoke_action import AdaptiveCardInvokeAction
 from .adaptive_card_invoke_response import AdaptiveCardInvokeResponse
 from .adaptive_card_invoke_value import AdaptiveCardInvokeValue
+from .adaptive_card_search_invoke_value import AdaptiveCardSearchInvokeValue
 from .animation_card import AnimationCard
 from .attachment import Attachment
 from .attachment_data import AttachmentData
@@ -16,6 +18,7 @@ from .attachment_info import AttachmentInfo
 from .attachment_view import AttachmentView
 from .audio_card import AudioCard
 from .basic_card import BasicCard
+from .card import Card
 from .card_action import CardAction
 from .card_image import CardImage
 from .channels import Channels
@@ -27,6 +30,7 @@ from .conversation_parameters import ConversationParameters
 from .conversation_reference import ConversationReference
 from .conversation_resource_response import ConversationResourceResponse
 from .conversations_result import ConversationsResult
+from .content_types import ContentTypes
 from .expected_replies import ExpectedReplies
 from .entity import (
     Entity,
@@ -63,6 +67,8 @@ from .receipt_card import ReceiptCard
 from .receipt_item import ReceiptItem
 from .resource_response import ResourceResponse
 from .semantic_action import SemanticAction
+from .search_invoke_options import SearchInvokeOptions
+from .search_invoke_value import SearchInvokeValue
 from .signin_card import SigninCard
 from .suggested_actions import SuggestedActions
 from .text_highlight import TextHighlight
@@ -96,7 +102,6 @@ from .sign_in_resource import SignInResource
 from .token_exchange_resource import TokenExchangeResource
 from .token_post_resource import TokenPostResource
 
-from .delivery_modes import DeliveryModes
 from .caller_id_constants import CallerIdConstants
 
 from .conversation_update_types import ConversationUpdateTypes
@@ -111,9 +116,11 @@ __all__ = [
     "Activity",
     "ActionTypes",
     "ActivityEventNames",
+    "AdaptiveCardCard",
     "AdaptiveCardInvokeAction",
     "AdaptiveCardInvokeResponse",
     "AdaptiveCardInvokeValue",
+    "AdaptiveCardSearchInvokeValue",
     "AnimationCard",
     "Attachment",
     "AttachmentData",
@@ -121,6 +128,7 @@ __all__ = [
     "AttachmentView",
     "AudioCard",
     "BasicCard",
+    "Card",
     "CardAction",
     "CardImage",
     "Channels",
@@ -132,6 +140,7 @@ __all__ = [
     "ConversationReference",
     "ConversationResourceResponse",
     "ConversationsResult",
+    "ContentTypes",
     "ExpectedReplies",
     "Entity",
     "AIEntity",
@@ -162,6 +171,8 @@ __all__ = [
     "ReceiptCard",
     "ReceiptItem",
     "ResourceResponse",
+    "SearchInvokeOptions",
+    "SearchInvokeValue",
     "SemanticAction",
     "SigninCard",
     "SuggestedActions",

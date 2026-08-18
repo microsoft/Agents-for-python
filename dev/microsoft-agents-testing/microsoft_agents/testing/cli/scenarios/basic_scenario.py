@@ -13,7 +13,7 @@ from microsoft_agents.testing.aiohttp_scenario import (
 )
 
 
-async def basic_scenario_init(env: AgentEnvironment):
+def basic_scenario_init(env: AgentEnvironment):
     """Initialize the basic echo agent.
 
     Registers a single message handler that echoes back whatever
@@ -31,5 +31,8 @@ async def basic_scenario_init(env: AgentEnvironment):
 
 
 # Pre-built scenario instances for CLI registration
-basic_scenario = AiohttpScenario(basic_scenario_init)
-basic_scenario_no_auth = AiohttpScenario(basic_scenario_init, use_jwt_middleware=False)
+basic_scenario = AiohttpScenario.create(basic_scenario_init)
+basic_scenario_no_auth = AiohttpScenario.create(
+    basic_scenario_init,
+    use_jwt_middleware=False,
+)

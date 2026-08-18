@@ -29,7 +29,7 @@ from microsoft_agents.testing import (
 # 1) Define the agent - a simple echo handler
 # ---------------------------------------------------------------------------
 
-async def init_echo_agent(env: AgentEnvironment) -> None:
+def init_echo_agent(env: AgentEnvironment) -> None:
     """Register a message handler that echoes user input."""
 
     @env.agent_application.activity("message")
@@ -41,7 +41,7 @@ async def init_echo_agent(env: AgentEnvironment) -> None:
 # 2) Create the scenario
 # ---------------------------------------------------------------------------
 
-scenario = AiohttpScenario(init_echo_agent, use_jwt_middleware=False)
+scenario = AiohttpScenario.create(init_echo_agent, use_jwt_middleware=False)
 
 
 # ---------------------------------------------------------------------------

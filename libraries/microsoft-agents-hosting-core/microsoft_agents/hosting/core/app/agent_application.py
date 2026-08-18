@@ -21,6 +21,7 @@ from typing import (
     TypeVar,
     cast,
     overload,
+    Optional,
 )
 
 from microsoft_agents.activity import (
@@ -36,6 +37,7 @@ from microsoft_agents.hosting.core.turn_context import TurnContext
 
 from ..agent import Agent
 from ..authorization import Connections
+from ..header_propagation import AgenticHeaderProvider, HeaderPropagationContext
 from .app_error import ApplicationError
 from .app_options import ApplicationOptions
 
@@ -52,6 +54,7 @@ from ._type_defs import (
 )
 from ._routes import _RouteList, _Route, RouteRank, _agentic_selector
 from .proactive import Proactive
+from .adaptive_card import AdaptiveCard
 
 logger = logging.getLogger(__name__)
 
@@ -75,6 +78,7 @@ class AgentApplication(Agent, Generic[StateT]):
 
     _options: ApplicationOptions
     _adapter: ChannelServiceAdapter | None = None
+    _adaptive_card: AdaptiveCard
     _auth: Authorization
     _proactive: Proactive | None = None
     _internal_before_turn: list[Callable[[TurnContext, StateT], Awaitable[bool]]]
@@ -104,9 +108,18 @@ class AgentApplication(Agent, Generic[StateT]):
         :param kwargs: Additional configuration parameters.
         :type kwargs: Any
         """
+        self._adaptive_card = AdaptiveCard(self)
         self._route_list = _RouteList[StateT]()
         self._internal_before_turn = []
         self._internal_after_turn = []
+
+        # Human-friendly agent name surfaced on outgoing agentic headers.
+        # Falls back to the application class name when not explicitly provided.
+        raw_agent_name = kwargs.get("agent_name") or type(self).__name__
+        sanitized_agent_name = re.sub(
+            r"[^A-Za-z0-9 ._-]", "", str(raw_agent_name)
+        ).strip()
+        self._agent_name = sanitized_agent_name or type(self).__name__
 
         configuration = kwargs
 
@@ -184,7 +197,8 @@ class AgentApplication(Agent, Generic[StateT]):
             auth_options = {
                 key: value
                 for key, value in configuration.items()
-                if key not in ["storage", "connection_manager", "handlers"]
+                if key
+                not in ["storage", "connection_manager", "handlers", "agent_name"]
             }
             self._auth = Authorization(
                 storage=self._storage,
@@ -225,6 +239,16 @@ class AgentApplication(Agent, Generic[StateT]):
                 """)
 
         return self._adapter
+
+    @property
+    def adaptive_card(self) -> AdaptiveCard:
+        """
+        The application's Adaptive Card manager.
+
+        :return: The Adaptive Card manager for the application.
+        :rtype: :class:`microsoft_agents.hosting.core.app.adaptive_card.AdaptiveCard`
+        """
+        return self._adaptive_card
 
     @property
     def auth(self) -> Authorization:
@@ -810,6 +834,15 @@ class AgentApplication(Agent, Generic[StateT]):
 
     async def _on_turn(self, context: TurnContext):
         try:
+            # Register Activity-derived header provider for agentic requests so
+            # that agent identity headers are propagated on outgoing requests
+            # made while processing this turn.
+            HeaderPropagationContext.reset()
+            if context.activity and context.activity.is_agentic_request():
+                HeaderPropagationContext.register(
+                    AgenticHeaderProvider(context.activity, self._agent_name)
+                )
+
             with spans.AppOnTurn(context) as on_turn_span:
                 use_typing = (
                     self._options.start_typing_timer
@@ -870,6 +903,7 @@ class AgentApplication(Agent, Generic[StateT]):
         if (
             self.options.remove_recipient_mention
             and context.activity.type == ActivityTypes.message
+            and context.activity.text is not None
         ):
             context.activity.text = context.remove_recipient_mention(context.activity)
 

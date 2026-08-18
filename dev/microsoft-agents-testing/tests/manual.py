@@ -12,12 +12,12 @@ from microsoft_agents.testing import (
 
 async def main():
 
-    async def init(env: AgentEnvironment):
+    def init(env: AgentEnvironment):
         @env.agent_application.activity("message")
         async def echo_handler(context, state):
             await context.send_activity(f"Echo: {context.activity.text}")
 
-    scenario = AiohttpScenario(
+    scenario = AiohttpScenario.create(
         init,
     )
 

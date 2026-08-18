@@ -13,15 +13,28 @@ from microsoft_agents.activity import (
 )
 from ..telemetry import user_token_client_spans as spans
 from ..user_token_base import UserTokenBase
+from .._utils import _handle_request_error
+from ._base_client import _BaseClient
 
 logger = logging.getLogger(__name__)
 
 
-class UserToken(UserTokenBase):
+class UserToken(UserTokenBase, _BaseClient):
     """Implementation of user token operations."""
 
     def __init__(self, client: ClientSession):
-        self.client = client
+        _BaseClient.__init__(self, client)
+        self.client = self._client
+
+    @property
+    def client(self) -> ClientSession:
+        """Get the underlying aiohttp ClientSession."""
+        return self._client
+
+    @client.setter
+    def client(self, value: ClientSession):
+        """Set the underlying aiohttp ClientSession."""
+        self._client = value
 
     async def get_token(
         self,
@@ -50,14 +63,20 @@ class UserToken(UserTokenBase):
             logger.info(
                 "UserToken.get_token(): Getting token with params: %s", safe_params
             )
-            async with self.client.get(
+            async with self._wrapped_client().get(
                 "api/usertoken/GetToken", params=params
             ) as response:
                 span.share(http_method="GET", status_code=response.status)
 
-                if response.status >= 300:
-                    logger.error("Error getting token: %s", response.status)
-                    response.raise_for_status()
+                if response.status == 404:
+                    logger.warning(
+                        "404: Could be issue with magic code or user not found. Returning empty token response."
+                    )
+                    return TokenResponse()
+                elif response.status != 200:
+                    _handle_request_error(
+                        logger, response, resource="api/usertoken/GetToken"
+                    )
 
                 data = await response.json()
                 return TokenResponse.model_validate(data)
@@ -90,16 +109,17 @@ class UserToken(UserTokenBase):
             }
 
             logger.info("Getting token or sign-in resource with params: %s", params)
-            async with self.client.get(
+            async with self._wrapped_client().get(
                 "/api/usertoken/GetTokenOrSignInResource", params=params
             ) as response:
                 span.share(http_method="GET", status_code=response.status)
 
                 if response.status != 200:
-                    logger.error(
-                        "Error getting token or sign-in resource: %s", response.status
+                    _handle_request_error(
+                        logger,
+                        response,
+                        resource="/api/usertoken/GetTokenOrSignInResource",
                     )
-                    response.raise_for_status()
 
                 data = await response.json()
                 return TokenOrSignInResourceResponse.model_validate(data)
@@ -124,14 +144,15 @@ class UserToken(UserTokenBase):
                 params["channelId"] = channel_id
 
             logger.info("Getting AAD tokens with params: %s and body: %s", params, body)
-            async with self.client.post(
+            async with self._wrapped_client().post(
                 "api/usertoken/GetAadTokens", params=params, json=body
             ) as response:
                 span.share(http_method="POST", status_code=response.status)
 
-                if response.status >= 300:
-                    logger.error("Error getting AAD tokens: %s", response.status)
-                    response.raise_for_status()
+                if response.status != 200:
+                    _handle_request_error(
+                        logger, response, resource="api/usertoken/GetAadTokens"
+                    )
 
                 data = await response.json()
                 return {k: TokenResponse.model_validate(v) for k, v in data.items()}
@@ -157,14 +178,15 @@ class UserToken(UserTokenBase):
                 params["channelId"] = channel_id
 
             logger.info("Signing out user %s with params: %s", user_id, params)
-            async with self.client.delete(
+            async with self._wrapped_client().delete(
                 "api/usertoken/SignOut", params=params
             ) as response:
                 span.share(http_method="DELETE", status_code=response.status)
 
-                if response.status >= 300:
-                    logger.error("Error signing out: %s", response.status)
-                    response.raise_for_status()
+                if response.status not in (200, 204):
+                    _handle_request_error(
+                        logger, response, resource="api/usertoken/SignOut"
+                    )
 
     async def get_token_status(
         self,
@@ -187,14 +209,15 @@ class UserToken(UserTokenBase):
             logger.info(
                 "Getting token status for user %s with params: %s", user_id, params
             )
-            async with self.client.get(
+            async with self._wrapped_client().get(
                 "api/usertoken/GetTokenStatus", params=params
             ) as response:
                 span.share(http_method="GET", status_code=response.status)
 
-                if response.status >= 300:
-                    logger.error("Error getting token status: %s", response.status)
-                    response.raise_for_status()
+                if response.status != 200:
+                    _handle_request_error(
+                        logger, response, resource="api/usertoken/GetTokenStatus"
+                    )
 
                 data = await response.json()
                 return [TokenStatus.model_validate(status) for status in data]
@@ -224,7 +247,7 @@ class UserToken(UserTokenBase):
                 params,
                 list(body.keys()) if isinstance(body, dict) else None,
             )
-            async with self.client.post(
+            async with self._wrapped_client().post(
                 "api/usertoken/exchange", params=params, json=body
             ) as response:
                 span.share(http_method="POST", status_code=response.status)

@@ -51,7 +51,19 @@ def _terminate_tree(process: subprocess.Popen, timeout: float = 5.0) -> None:
 
 
 class SourceScenario(ExternalScenario):
-    """Base class for script-based test scenarios."""
+    """Base class for script-based test scenarios.
+    
+    Usage:
+
+        scenario = SourceScenario(
+            agent_path="path/to/agent",
+            script="start-agent.ps1",
+            delay=5.0,
+        )
+        async with scenario.client() as client:
+            # Interact with the agent via the client
+            ...
+    """
 
     def __init__(
         self,

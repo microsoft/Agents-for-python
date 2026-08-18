@@ -8,14 +8,17 @@ from typing import Optional
 from aiohttp import ClientSession
 
 from microsoft_agents.activity import Activity, ResourceResponse
+
 from ..connector_client_base import ConnectorClientBase
 from ..attachments_base import AttachmentsBase
 from ..conversations_base import ConversationsBase
+from ..client._base_client import _BaseClient
+from .._utils import _handle_request_error
 
 logger = logging.getLogger(__name__)
 
 
-class MCSConversations(ConversationsBase):
+class MCSConversations(ConversationsBase, _BaseClient):
     """
     Conversations implementation for Microsoft Copilot Studio Connector.
 
@@ -23,7 +26,7 @@ class MCSConversations(ConversationsBase):
     """
 
     def __init__(self, client: ClientSession, endpoint: str):
-        self._client = client
+        _BaseClient.__init__(self, client)
         self._endpoint = endpoint
 
     async def send_to_conversation(
@@ -48,18 +51,14 @@ class MCSConversations(ConversationsBase):
             activity.type,
         )
 
-        async with self._client.post(
+        async with self._wrapped_client().post(
             self._endpoint,
             json=activity.model_dump(by_alias=True, exclude_unset=True, mode="json"),
             headers={"Accept": "application/json", "Content-Type": "application/json"},
         ) as response:
-            if response.status >= 300:
-                logger.error(
-                    "MCS Connector: Error sending activity: %s",
-                    response.status,
-                    stack_info=True,
-                )
-                response.raise_for_status()
+
+            if response.status not in (200, 201, 202):
+                _handle_request_error(logger, response, resource=self._endpoint)
 
             data = await response.json()
             return ResourceResponse.model_validate(data)

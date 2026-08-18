@@ -2,14 +2,16 @@
 # Licensed under the MIT License.
 
 from typing import Optional
+from .attachment import Attachment
+from .card import Card
 from .card_action import CardAction
-from .agents_model import AgentsModel
+from .content_types import ContentTypes
 from .token_exchange_resource import TokenExchangeResource
 from .token_post_resource import TokenPostResource
 from ._type_aliases import NonEmptyString
 
 
-class OAuthCard(AgentsModel):
+class OAuthCard(Card):
     """A card representing a request to perform a sign in via OAuth.
 
     :param text: Text for signin request
@@ -25,3 +27,11 @@ class OAuthCard(AgentsModel):
     buttons: list[CardAction] = None
     token_exchange_resource: Optional[TokenExchangeResource] = None
     token_post_resource: TokenPostResource = None
+
+    def to_attachment(self) -> Attachment:
+        """
+        Creates a new Attachment that wraps this card.
+
+        :returns: The generated attachment.
+        """
+        return Attachment(content_type=ContentTypes.oauth_card, content=self)
