@@ -202,7 +202,7 @@ class Activity(AgentsModel):
 
     @field_validator("entities", mode="before")
     @classmethod
-    def _deserialize_known_entities(cls, entities: Any) -> Any:
+    def _deserialize_known_entities(cls, entities: Any) -> list[Entity]:
         return _validate_known_entities(entities)
 
     @model_validator(mode="wrap")

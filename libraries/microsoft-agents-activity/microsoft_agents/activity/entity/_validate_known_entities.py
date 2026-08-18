@@ -44,7 +44,7 @@ _KNOWN_ENTITY_TYPES: dict[str, tuple[str, type[Entity]]] = {
 def _validate_known_entities(entities: Any) -> list[Entity]:
     """Deserialize known activity entities while preserving unknown entity types.
 
-    :entities: The data to validate and deserialize into known entity types.
+    :param entities: The data to validate and deserialize into known entity types.
     :returns: A list of validated entities, with known types deserialized into their respective classes
     :raises ValueError: If the input is not a list or tuple, or if an entity is not a dict or Entity instance.
     """
