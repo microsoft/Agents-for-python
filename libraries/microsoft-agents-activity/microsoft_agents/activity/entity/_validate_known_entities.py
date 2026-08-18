@@ -19,6 +19,10 @@ _KNOWN_ENTITY_TYPES: dict[str, tuple[str, type[Entity]]] = {
         EntityTypes.ACTIVITY_TREATMENT.value,
         ActivityTreatment,
     ),
+    EntityTypes.AI_CITATION.value.casefold(): (
+        EntityTypes.AI_CITATION.value,
+        AIEntity,
+    ),
     EntityTypes.GEO_COORDINATES.value.casefold(): (
         EntityTypes.GEO_COORDINATES.value,
         GeoCoordinates,
@@ -37,41 +41,33 @@ _KNOWN_ENTITY_TYPES: dict[str, tuple[str, type[Entity]]] = {
 }
 
 
-def _is_ai_entity(data: dict[str, Any]) -> bool:
-    entity_type = data.get("type")
-    if (
-        not isinstance(entity_type, str)
-        or entity_type.casefold() != "https://schema.org/Message".casefold()
-    ):
-        return False
+def _validate_known_entities(entities: Any) -> list[Entity]:
+    """Deserialize known activity entities while preserving unknown entity types.
 
-    additional_types = data.get("additionalType", data.get("additional_type", []))
-    return (
-        isinstance(additional_types, list)
-        and "AIGeneratedContent" in additional_types
-    )
+    :entities: The data to validate and deserialize into known entity types.
+    :returns: A list of validated entities, with known types deserialized into their respective classes
+    :raises ValueError: If the input is not a list or tuple, or if an entity is not a dict or Entity instance.
+    """
+    if entities is None:
+        return []
 
-
-def _validate_known_entities(entities: Any) -> Any:
-    """Deserialize known activity entities while preserving unknown entity types."""
     if not isinstance(entities, (list, tuple)):
-        return entities
+        raise ValueError("entities must be a list or tuple")
 
-    validated_entities: list[Any] = []
+    validated_entities: list[Entity] = []
     for entity in entities:
         if isinstance(entity, Entity):
             validated_entities.append(entity)
             continue
 
         if not isinstance(entity, dict):
-            validated_entities.append(entity)
-            continue
+            raise ValueError(f"entity must be a dict or Entity, got {type(entity)}")
 
         entity_type = entity.get("type")
-        if _is_ai_entity(entity):
-            entity_data = {**entity, "type": "https://schema.org/Message"}
-            validated_entities.append(AIEntity.model_validate(entity_data))
-            continue
+        if not entity_type:
+            raise ValueError(
+                "entity must have a 'type' field. Cannot infer entity type from data."
+            )
 
         known_entity = (
             _KNOWN_ENTITY_TYPES.get(entity_type.casefold())

@@ -13,6 +13,7 @@
 
 ## Developer Experience
 - Building packages with `py.typed` files for improved typing support
+- In the construction of the inbound `Activity` instance, raw `Entity` JSON is automatically deserialized into known derived `Entity` classes such as `ProductInfo`, `Mention`, `AIEntity`, and more. 
 
 # Microsoft 365 Agents SDK for Python - Release Notes v1.3.0
 

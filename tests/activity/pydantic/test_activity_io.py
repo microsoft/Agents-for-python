@@ -69,7 +69,7 @@ class TestActivityIO:
                     channel_id="parent:misc",
                     entities=[
                         Entity(type="some_entity"),
-                        Entity(type=EntityTypes.PRODUCT_INFO, id="misc"),
+                        ProductInfo(id="misc"),
                     ],
                 ),
             ],
