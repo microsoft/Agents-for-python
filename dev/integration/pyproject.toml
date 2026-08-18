@@ -9,5 +9,6 @@ dependencies = [
     "microsoft-agents-hosting-aiohttp",
     "microsoft-agents-hosting-dialogs",
     "microsoft-agents-hosting-fastapi",
-    "microsoft-agents-testing @ file:///${PROJECT_ROOT}/../microsoft-agents-testing",
+    "microsoft-agents-hosting-testing @ file:///${PROJECT_ROOT}/../microsoft-agents-hosting-testing",
+    "microsoft-agents-testing @ file:///${PROJECT_ROOT}/../../libraries/microsoft-agents-testing",
 ]

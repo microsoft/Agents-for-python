@@ -11,6 +11,7 @@ from microsoft_agents.activity import (
     TokenExchangeResource,
     TokenExchangeState,
     TokenOrSignInResourceResponse,
+    TokenPostResource,
     TokenResponse,
     TokenStatus,
 )
@@ -216,6 +217,9 @@ class MockUserTokenClient(UserTokenClientBase):
             token_exchange_resource=TokenExchangeResource(
                 id=uuid4().hex, uri=f"api://{connection_name}/resource"
             ),
+            token_post_resource=TokenPostResource(
+                sas_url=f"https://fake.com/oauthsignin/{connection_name}/token"
+            ),
         )
 
     async def get_token_or_sign_in_resource(
@@ -250,7 +254,7 @@ class MockUserTokenClient(UserTokenClientBase):
             magic_code=code,
         )
 
-        if token_response:
+        if token_response.token:
             return TokenOrSignInResourceResponse(token_response=token_response)
 
         return TokenOrSignInResourceResponse(
