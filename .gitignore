@@ -131,3 +131,6 @@ bin/
 
 # Claude
 .claude/
+
+# Certificates
+*.pfx
