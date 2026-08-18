@@ -41,7 +41,7 @@ _REQUIRED_AUTH_CONFIG = sdk_config_connection(
 def _claims_payload(request: Request):
     identity = request.state.claims_identity
     return {
-        "authenticated": identity.is_authenticated,
+        "allow_anonymous": identity.allow_anonymous,
         "authentication_type": identity.authentication_type,
     }
 
@@ -78,8 +78,8 @@ def test_fastapi_global_middleware_allows_anonymous_request_from_env_config():
 
     assert response.status_code == 200
     assert response.json() == {
-        "authenticated": False,
-        "authentication_type": "Anonymous",
+        "allow_anonymous": True,
+        "authentication_type": None,
     }
 
 
@@ -105,7 +105,7 @@ async def test_fastapi_global_middleware_accepts_real_service_connection_token()
     response = client.get("/", headers={"Authorization": f"Bearer {token}"})
 
     assert response.status_code == 200
-    assert response.json()["authenticated"] is True
+    assert response.json()["allow_anonymous"] is False
 
 
 @_requires_real_service_connection
@@ -134,8 +134,8 @@ def test_fastapi_decorator_allows_anonymous_request_from_env_config():
 
     assert response.status_code == 200
     assert response.json() == {
-        "authenticated": False,
-        "authentication_type": "Anonymous",
+        "allow_anonymous": True,
+        "authentication_type": None,
     }
 
 
