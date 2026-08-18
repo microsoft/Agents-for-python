@@ -124,7 +124,7 @@ async def test_cloud_adapter_configures_user_token_client_endpoint(
             "token_service_endpoint": token_service_endpoint
         },
     )
-    identity = ClaimsIdentity({"aud": "test-app-id"}, True)
+    identity = ClaimsIdentity({"aud": "test-app-id"})
     context = TurnContext(
         adapter,
         Activity(

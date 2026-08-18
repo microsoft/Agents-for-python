@@ -5,6 +5,7 @@ from microsoft_agents.activity import (
     Activity,
     ActivityTypes,
     Entity,
+    EntityTypes,
     Mention,
     ResourceResponse,
     ChannelAccount,
@@ -414,11 +415,15 @@ class TestActivityConversationOps:
         activity = Activity(
             type="message",
             entities=[
-                Mention(text="Hello"),
-                Entity(type="other"),
-                Entity(type="mention", text="Another mention"),
+                {"type": "mention", "text": "Hello"},
+                {"type": "other"},
+                {"type": "mention", "text": "Another mention"},
             ],
         )
+        assert isinstance(activity.entities[0], Mention)
+        assert type(activity.entities[1]) is Entity
+        assert isinstance(activity.entities[2], Mention)
+
         mentions = activity.get_mentions()
         assert mentions == [
             Mention(text="Hello"),
@@ -430,12 +435,9 @@ class TestActivityConversationOps:
         [
             [
                 [
-                    Entity(
-                        type="ProductInfo",
-                        id="product_123",
-                    ),
-                    Entity(type="other"),
-                    Entity(type="mention", text="Another mention"),
+                    {"type": "ProductInfo", "id": "product_123"},
+                    {"type": "other"},
+                    {"type": "mention", "text": "Another mention"},
                 ],
                 ProductInfo(
                     id="product_123",
@@ -443,22 +445,16 @@ class TestActivityConversationOps:
             ],
             [
                 [
-                    Entity(type="other"),
-                    Entity(type="mention", text="Another mention"),
+                    {"type": "other"},
+                    {"type": "mention", "text": "Another mention"},
                 ],
                 None,
             ],
             [
                 [
-                    Entity(
-                        type="ProductInfo",
-                        id="product_123",
-                    ),
-                    Entity(
-                        type="ProductInfo",
-                        id="product_456",
-                    ),
-                    Entity(type="mention", text="Another mention"),
+                    {"type": "ProductInfo", "id": "product_123"},
+                    {"type": "ProductInfo", "id": "product_456"},
+                    {"type": "mention", "text": "Another mention"},
                 ],
                 ProductInfo(id="product_123"),
             ],
@@ -467,6 +463,10 @@ class TestActivityConversationOps:
     )
     def test_get_product_info_entity_single(self, entities, expected):
         activity = Activity(type="message", entities=entities)
+        for entity in activity.entities:
+            if entity.type.casefold() == EntityTypes.PRODUCT_INFO.value.casefold():
+                assert isinstance(entity, ProductInfo)
+
         retrieved_product_info = activity.get_product_info_entity()
         assert retrieved_product_info == expected
 
