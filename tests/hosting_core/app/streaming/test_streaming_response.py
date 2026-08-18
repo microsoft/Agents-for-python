@@ -19,6 +19,9 @@ from microsoft_agents.hosting.core.app.streaming.citation import Citation
 from microsoft_agents.hosting.core.app.streaming.streaming_response import (
     StreamingResponse,
 )
+from microsoft_agents.hosting.core.app.streaming import (
+    streaming_response as streaming_module,
+)
 from microsoft_agents.hosting.core.turn_context import TurnContext
 
 STREAMING_CHANNELS = [Channels.webchat, Channels.ms_teams, Channels.direct_line]
@@ -71,6 +74,25 @@ async def test_queue_informative_update_is_ignored_for_non_streaming_channel(moc
     await response.wait_for_queue()
 
     context.send_activity.assert_not_called()
+
+
+@pytest.mark.asyncio
+async def test_expect_replies_does_not_start_streaming(mocker):
+    context = _create_turn_context(
+        mocker,
+        channel_id=ChannelId("msteams:copilot"),
+        delivery_mode=DeliveryModes.expect_replies,
+        return_value=ResourceResponse(id="buffered"),
+    )
+    response = StreamingResponse(context)
+
+    assert response.is_streaming_channel is False
+    response.queue_informative_update("Starting...")
+    response.queue_text_chunk("Completed response text.")
+    await response.end_stream()
+
+    context.send_activity.assert_awaited_once()
+    assert response._stream_timeout_task is None
 
 
 @pytest.mark.asyncio
@@ -224,6 +246,318 @@ async def test_teams_403_marks_stream_as_cancelled_and_future_chunks_are_ignored
 
     assert context.send_activity.await_count == 1
     assert response.get_message() == "first"
+
+
+@pytest.mark.asyncio
+async def test_channel_streaming_timeout_updates_checkpoint_and_final_activity(mocker):
+    context = _create_turn_context(
+        mocker,
+        channel_id=Channels.ms_teams,
+        return_value=[
+            ResourceResponse(id="stream-timeout"),
+            RuntimeError(
+                "ContentStreamNotAllowed: Content stream finished due to exceeded "
+                "streaming time."
+            ),
+        ],
+    )
+    response = StreamingResponse(context)
+    response._interval = 0
+
+    response.queue_informative_update("Starting...")
+    await response.wait_for_queue()
+    response.queue_text_chunk("Completed response text.")
+    await response.end_stream()
+
+    assert response.is_streaming_channel is False
+    assert context.update_activity.await_count == 2
+    checkpoint = context.update_activity.await_args_list[0].args[0]
+    assert checkpoint.id == "stream-timeout"
+    assert "taking longer than expected" in checkpoint.text
+
+    final_activity = context.update_activity.await_args_list[1].args[0]
+    assert final_activity.id == "stream-timeout"
+    assert final_activity.text == "Completed response text."
+
+
+@pytest.mark.asyncio
+async def test_channel_timeout_sends_final_when_activity_update_is_rejected(mocker):
+    context = _create_turn_context(
+        mocker,
+        channel_id=Channels.ms_teams,
+        return_value=[
+            ResourceResponse(id="stream-timeout"),
+            RuntimeError(
+                "ContentStreamNotAllowed: Content stream finished due to exceeded "
+                "streaming time."
+            ),
+            ResourceResponse(id="fallback-final"),
+        ],
+    )
+    context.update_activity = mocker.AsyncMock(
+        side_effect=RuntimeError("403 Forbidden")
+    )
+    response = StreamingResponse(context)
+    response._interval = 0
+
+    response.queue_informative_update("Starting...")
+    await response.wait_for_queue()
+    response.queue_text_chunk("Completed response text.")
+    await response.end_stream()
+
+    assert context.update_activity.await_count == 2
+    fallback = context.send_activity.await_args_list[-1].args[0]
+    assert fallback.type == "message"
+    assert fallback.text == "Completed response text."
+    assert fallback.entities == []
+
+
+@pytest.mark.asyncio
+async def test_bodyless_teams_403_near_limit_is_treated_as_timeout(mocker, monkeypatch):
+    monkeypatch.setattr(streaming_module, "_TEAMS_TIMEOUT_DETECTION_THRESHOLD", 0)
+    context = _create_turn_context(
+        mocker,
+        channel_id=Channels.ms_teams,
+        return_value=[
+            ResourceResponse(id="stream-timeout"),
+            RuntimeError("403 Forbidden"),
+        ],
+    )
+    response = StreamingResponse(context)
+    response._interval = 0
+
+    response.queue_informative_update("Starting...")
+    await response.wait_for_queue()
+    response.queue_text_chunk("Completed response text.")
+    await response.wait_for_queue()
+
+    assert response.is_streaming_channel is False
+    context.update_activity.assert_awaited_once()
+
+
+@pytest.mark.asyncio
+async def test_timeout_notification_stops_stream_and_updates_teams_final(mocker):
+    context = _create_turn_context(
+        mocker,
+        channel_id=Channels.ms_teams,
+        return_value=ResourceResponse(id="stream-stop"),
+    )
+    response = StreamingResponse(context)
+    response._interval = 0
+
+    response.queue_informative_update("Starting...")
+    await response.wait_for_queue()
+
+    assert await response.send_stream_timed_out_notification("Streaming timed out.")
+    assert response.is_streaming_channel is False
+
+    response.queue_text_chunk("Completed response text.")
+    await response.end_stream()
+
+    timeout_activity = context.send_activity.await_args_list[1].args[0]
+    assert timeout_activity.text == "Streaming timed out."
+    assert timeout_activity.entities[0].stream_type == "final"
+    assert timeout_activity.entities[0].stream_sequence is None
+
+    context.update_activity.assert_awaited_once()
+    final_activity = context.update_activity.await_args.args[0]
+    assert final_activity.id == "stream-stop"
+    assert final_activity.text == "Completed response text."
+    assert final_activity.entities == []
+
+
+@pytest.mark.asyncio
+async def test_timeout_notification_discards_pending_stream_work(mocker):
+    in_flight = asyncio.Event()
+    release = asyncio.Event()
+    sent_activities = []
+
+    async def send_activity(activity):
+        sent_activities.append(activity)
+        if len(sent_activities) == 2:
+            in_flight.set()
+            await release.wait()
+        return ResourceResponse(id="stream-stop")
+
+    context = _create_turn_context(mocker, channel_id=Channels.ms_teams)
+    context.send_activity = mocker.AsyncMock(side_effect=send_activity)
+    response = StreamingResponse(context)
+    response._interval = 0
+
+    response.queue_informative_update("Starting...")
+    await response.wait_for_queue()
+
+    response.queue_informative_update("In flight")
+    await in_flight.wait()
+    response.queue_informative_update("Pending one")
+    response.queue_informative_update("Pending two")
+
+    notification = asyncio.create_task(
+        response.send_stream_timed_out_notification("Streaming stopped.")
+    )
+    await asyncio.sleep(0)
+    release.set()
+
+    assert await notification is True
+    assert [activity.text for activity in sent_activities] == [
+        "Starting...",
+        "In flight",
+        "Streaming stopped.",
+    ]
+
+
+@pytest.mark.asyncio
+async def test_timeout_notification_preserves_streamed_text(mocker):
+    context = _create_turn_context(
+        mocker,
+        channel_id=Channels.ms_teams,
+        return_value=ResourceResponse(id="stream-stop"),
+    )
+    response = StreamingResponse(context)
+    response._interval = 0
+
+    response.queue_text_chunk("Partial response")
+    await response.wait_for_queue()
+    assert await response.send_stream_timed_out_notification("Still working.")
+
+    stopped_activity = context.send_activity.await_args_list[-1].args[0]
+    assert stopped_activity.text == "Partial response\n\nStill working."
+    assert stopped_activity.entities[0].stream_type == "final"
+
+
+@pytest.mark.asyncio
+async def test_timeout_notification_sends_m365_final_as_new_activity(mocker):
+    context = _create_turn_context(
+        mocker,
+        channel_id=ChannelId("msteams:copilot"),
+        return_value=ResourceResponse(id="m365-stream"),
+    )
+    response = StreamingResponse(context)
+    response._interval = 0
+
+    response.queue_informative_update("Starting...")
+    await response.wait_for_queue()
+    assert await response.send_stream_timed_out_notification("Streaming stopped.")
+
+    response.queue_text_chunk("Completed response text.")
+    await response.end_stream()
+
+    context.update_activity.assert_not_called()
+    final_activity = context.send_activity.await_args_list[-1].args[0]
+    assert final_activity.text == "Completed response text."
+    assert final_activity.entities == []
+
+
+@pytest.mark.asyncio
+async def test_m365_copilot_idle_stream_sends_keep_alive(mocker, monkeypatch):
+    monkeypatch.setattr(streaming_module, "_M365_WORKING_NOTICE_INTERVAL", 0.01)
+    monkeypatch.setattr(streaming_module, "_M365_STREAMING_TIMEOUT", 10.0)
+    context = _create_turn_context(
+        mocker,
+        channel_id=ChannelId("msteams:copilot"),
+        return_value=ResourceResponse(id="m365-stream"),
+    )
+    response = StreamingResponse(context)
+    response._interval = 0
+    response.streaming_taking_too_long_message = "Still working..."
+
+    response.queue_informative_update("Starting...")
+    await response.wait_for_queue()
+    await asyncio.sleep(0.03)
+
+    assert context.send_activity.await_count >= 2
+    keep_alive = context.send_activity.await_args_list[1].args[0]
+    assert keep_alive.type == "typing"
+    assert keep_alive.text == "Starting..."
+    assert keep_alive.entities[0].stream_type == "informative"
+
+    await response.end_stream()
+
+
+@pytest.mark.asyncio
+async def test_m365_copilot_idle_text_stream_sends_cumulative_keep_alive(
+    mocker, monkeypatch
+):
+    monkeypatch.setattr(streaming_module, "_M365_WORKING_NOTICE_INTERVAL", 0.01)
+    monkeypatch.setattr(streaming_module, "_M365_STREAMING_TIMEOUT", 10.0)
+    context = _create_turn_context(
+        mocker,
+        channel_id=ChannelId("msteams:copilot-web"),
+        return_value=ResourceResponse(id="m365-stream"),
+    )
+    response = StreamingResponse(context)
+    response._interval = 0
+
+    response.queue_text_chunk("Partial response")
+    await response.wait_for_queue()
+    await asyncio.sleep(0.03)
+
+    assert context.send_activity.await_count >= 2
+    keep_alive = context.send_activity.await_args_list[1].args[0]
+    assert keep_alive.type == "typing"
+    assert keep_alive.text == "Partial response"
+    assert keep_alive.entities[0].stream_type == "streaming"
+    assert keep_alive.entities[0].stream_id == "m365-stream"
+
+    await response.end_stream()
+
+
+@pytest.mark.parametrize(
+    "channel_id",
+    [
+        "msteams:copilot",
+        "msteams:Copilot",
+        "msteams:copilot-web",
+        "msteams:copilot:web",
+    ],
+)
+def test_m365_copilot_channel_variants_are_recognized(mocker, channel_id):
+    context = _create_turn_context(mocker, channel_id=ChannelId(channel_id))
+
+    assert StreamingResponse(context)._is_m365_copilot() is True
+
+
+def test_non_copilot_teams_subchannel_is_not_m365_copilot(mocker):
+    context = _create_turn_context(mocker, channel_id=ChannelId("msteams:meeting"))
+
+    assert StreamingResponse(context)._is_m365_copilot() is False
+
+
+@pytest.mark.asyncio
+async def test_m365_copilot_timeout_finalizes_and_falls_back(mocker, monkeypatch):
+    monkeypatch.setattr(streaming_module, "_M365_WORKING_NOTICE_INTERVAL", 10.0)
+    monkeypatch.setattr(streaming_module, "_M365_STREAMING_TIMEOUT", 0.01)
+    context = _create_turn_context(
+        mocker,
+        channel_id=ChannelId("msteams:copilot"),
+        return_value=ResourceResponse(id="m365-timeout"),
+    )
+    response = StreamingResponse(context)
+    response._interval = 0
+    response.streaming_taking_too_long_message = "Still working..."
+
+    response.queue_text_chunk("Buffered response")
+    await response.wait_for_queue()
+    await asyncio.sleep(0.03)
+
+    assert response.is_streaming_channel is False
+    timeout_final = next(
+        call.args[0]
+        for call in context.send_activity.await_args_list
+        if any(
+            getattr(entity, "stream_type", None) == "final"
+            for entity in call.args[0].entities
+        )
+    )
+    assert "Still working" in timeout_final.text
+
+    response.queue_text_chunk(" complete.")
+    await response.end_stream()
+
+    final_activity = context.send_activity.await_args_list[-1].args[0]
+    assert final_activity.text == "Buffered response complete."
+    assert final_activity.entities == []
+    context.update_activity.assert_not_called()
 
 
 @pytest.mark.asyncio

@@ -97,6 +97,75 @@ class TestSendToConversation:
         finally:
             await server.close()
 
+    @pytest.mark.asyncio
+    async def test_send_to_conversation_error_includes_response_body(self, activity):
+        """Should preserve channel error details used by streaming recovery."""
+
+        async def handler(request):
+            return web.json_response(
+                {
+                    "error": {
+                        "code": "ContentStreamNotAllowed",
+                        "message": (
+                            "Content stream finished due to exceeded streaming time."
+                        ),
+                    }
+                },
+                status=403,
+            )
+
+        routes = [web.post("/v3/conversations/{conversation_id}/activities", handler)]
+        app = _create_app(routes)
+
+        server = TestServer(app)
+        await server.start_server()
+        try:
+            async with ClientSession(base_url=server.make_url("/")) as session:
+                ops = ConversationsOperations(session)
+                with pytest.raises(ClientResponseError) as exc_info:
+                    await ops.send_to_conversation("conv-1", activity)
+        finally:
+            await server.close()
+
+        assert "ContentStreamNotAllowed" in exc_info.value.message
+        assert "exceeded streaming time" in exc_info.value.message
+
+    @pytest.mark.asyncio
+    async def test_update_activity_error_includes_response_body(self, activity):
+        """Should preserve error details returned while updating a stream."""
+
+        async def handler(request):
+            return web.json_response(
+                {
+                    "error": {
+                        "code": "ContentStreamNotAllowed",
+                        "message": "Content stream was canceled by user",
+                    }
+                },
+                status=403,
+            )
+
+        routes = [
+            web.put(
+                "/v3/conversations/{conversation_id}/activities/{activity_id}",
+                handler,
+            )
+        ]
+        app = _create_app(routes)
+
+        server = TestServer(app)
+        await server.start_server()
+        try:
+            async with ClientSession(base_url=server.make_url("/")) as session:
+                ops = ConversationsOperations(session)
+                with pytest.raises(ClientResponseError) as exc_info:
+                    await ops.update_activity("conv-1", "activity-1", activity)
+        finally:
+            await server.close()
+
+        assert "ContentStreamNotAllowed" in exc_info.value.message
+        assert "canceled by user" in exc_info.value.message
+
 
 class TestConnectorClientHeaderPropagation:
     """Tests propagated headers through a full ConnectorClient operation."""
@@ -407,6 +476,44 @@ class TestReplyToActivity:
     @pytest.fixture
     def activity(self):
         return Activity(type="message", text="Hello, world!")
+
+    @pytest.mark.asyncio
+    async def test_reply_error_includes_response_body(self, activity):
+        """Should preserve streaming errors returned from the reply endpoint."""
+
+        async def handler(request):
+            return web.json_response(
+                {
+                    "error": {
+                        "code": "ContentStreamNotAllowed",
+                        "message": (
+                            "Content stream finished due to exceeded streaming time."
+                        ),
+                    }
+                },
+                status=403,
+            )
+
+        routes = [
+            web.post(
+                "/v3/conversations/{conversation_id}/activities/{activity_id}",
+                handler,
+            )
+        ]
+        app = _create_app(routes)
+
+        server = TestServer(app)
+        await server.start_server()
+        try:
+            async with ClientSession(base_url=server.make_url("/")) as session:
+                ops = ConversationsOperations(session)
+                with pytest.raises(ClientResponseError) as exc_info:
+                    await ops.reply_to_activity("conv-1", "activity-1", activity)
+        finally:
+            await server.close()
+
+        assert "ContentStreamNotAllowed" in exc_info.value.message
+        assert "exceeded streaming time" in exc_info.value.message
 
     @pytest.mark.asyncio
     async def test_reply_to_activity_success_with_content(self, activity):
