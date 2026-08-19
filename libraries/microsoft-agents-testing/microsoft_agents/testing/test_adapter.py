@@ -29,6 +29,7 @@ from microsoft_agents.activity import (
     ResourceResponse,
     RoleTypes,
 )
+from microsoft_agents.activity._model_utils import pick_model, SkipNone
 
 from microsoft_agents.hosting.core import (
     ChannelAdapter,
@@ -393,12 +394,13 @@ class TestAdapter(ChannelAdapter):
         conversation and is suitable for :meth:`process_activity` or
         :meth:`send_text_to_bot`.
         """
-        return Activity(
+        return pick_model(
+            Activity,
             type=ActivityTypes.message,
             text=text,
             locale=self.locale or _DEFAULTS._LOCALE,
             recipient=self._conversation.agent,
-            from_property=self._conversation.user,
+            from_property=SkipNone(self._conversation.user),
             conversation=self._conversation.conversation,
             service_url=self._conversation.service_url,
             id=self._gen_id(),
