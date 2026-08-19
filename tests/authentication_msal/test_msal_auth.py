@@ -284,17 +284,16 @@ class TestMsalAuthWorkloadIdentity:
         token_file.write_text("\trefreshed-token\n", encoding="utf-8")
         assert client_assertion() == "refreshed-token"
 
-    def test_create_client_application_requires_token_file(self):
-        config = AgentAuthConfiguration(
-            auth_type=AuthTypes.workload_identity,
-            tenant_id="12345678-1234-1234-1234-123456789abc",
-            client_id="test-client-id",
-        )
-
+    def test_configuration_requires_token_file(self):
         with pytest.raises(
-            ValueError, match="FEDERATED_TOKEN_FILE must be set in configuration"
+            ValueError,
+            match="FEDERATED_TOKEN_FILE is required for workload_identity authentication",
         ):
-            MsalAuth(config)._create_client_application()
+            AgentAuthConfiguration(
+                auth_type=AuthTypes.workload_identity,
+                tenant_id="12345678-1234-1234-1234-123456789abc",
+                client_id="test-client-id",
+            )
 
 
 class TestMsalAuthIdentityProxyManager:
