@@ -10,7 +10,10 @@ from microsoft_agents.hosting.core.authorization import Connections
 from microsoft_agents.hosting.core.http import (
     HttpResponse,
 )
-from microsoft_agents.hosting.core import ChannelServiceClientFactoryBase
+from microsoft_agents.hosting.core import (
+    ChannelServiceClientFactoryBase,
+    OutboundHostValidator,
+)
 
 from .agent_http_adapter import AgentHttpAdapter
 from ._aiohttp_request_adapter import AiohttpRequestAdapter
@@ -25,6 +28,7 @@ class CloudAdapter(HttpAdapterBase, AgentHttpAdapter):
         connection_manager: Connections | None = None,
         channel_service_client_factory: ChannelServiceClientFactoryBase | None = None,
         channel_service_client_factory_options: dict | None = None,
+        host_validator: OutboundHostValidator | None = None,
     ):
         """
         Initializes a new instance of the CloudAdapter class.
@@ -38,6 +42,7 @@ class CloudAdapter(HttpAdapterBase, AgentHttpAdapter):
             connection_manager=connection_manager,
             channel_service_client_factory=channel_service_client_factory,
             channel_service_client_factory_options=channel_service_client_factory_options,
+            host_validator=host_validator,
         )
 
     async def process(self, request: Request, agent: Agent) -> Optional[Response]:
