@@ -1,3 +1,5 @@
+from types import MappingProxyType
+
 from microsoft_agents.activity import load_configuration_from_env
 
 from tests._common import create_env_var_dict
@@ -101,3 +103,21 @@ def test_load_configuration_from_env():
     input_dict = create_env_var_dict(ENV_RAW)
     config = load_configuration_from_env(input_dict)
     assert config == ENV_DICT
+
+
+def test_load_configuration_from_read_only_mapping():
+    input_mapping = MappingProxyType(create_env_var_dict(ENV_RAW))
+
+    config = load_configuration_from_env(input_mapping)
+
+    assert config == ENV_DICT
+
+
+def test_load_configuration_from_empty_mapping():
+    config = load_configuration_from_env({})
+
+    assert config == {
+        "AGENTAPPLICATION": {},
+        "CONNECTIONS": {},
+        "CONNECTIONSMAP": [],
+    }
