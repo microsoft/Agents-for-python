@@ -39,7 +39,6 @@ _DEFAULT_STREAMING_TAKING_TOO_LONG_MESSAGE = (
 _M365_COPILOT_CHANNEL_PREFIX = "msteams:copilot"
 _M365_STREAMING_TIMEOUT = 105.0
 _M365_WORKING_NOTICE_INTERVAL = 35.0
-_TEAMS_TIMEOUT_DETECTION_THRESHOLD = 105.0
 
 
 class StreamingResponse:
@@ -86,7 +85,6 @@ class StreamingResponse:
         self._stream_timed_out = False
         self._stream_timeout_notification_sent = False
         self._last_informational_message_sent = ""
-        self._stream_started_at: Optional[float] = None
         self._keep_alive_task: Optional[asyncio.Task[None]] = None
         self._stream_timeout_task: Optional[asyncio.Task[None]] = None
         if not hasattr(self, "_streaming_taking_too_long_message"):
@@ -648,18 +646,9 @@ class StreamingResponse:
     async def _handle_send_error(self, err: Exception) -> None:
         message = str(err)
         normalized_message = message.lower()
-        elapsed = self._stream_elapsed_time()
         is_content_not_allowed = "contentstreamnotallowed" in normalized_message
         is_teams_403 = "403" in normalized_message and self._is_teams_channel()
-        is_user_cancel = "canceled by user" in normalized_message or (
-            "cancelled by user" in normalized_message
-        )
-        is_timeout = _TEAMS_STREAM_TIMED_OUT.lower() in normalized_message or (
-            is_teams_403
-            and not is_user_cancel
-            and elapsed is not None
-            and elapsed >= _TEAMS_TIMEOUT_DETECTION_THRESHOLD
-        )
+        is_timeout = _TEAMS_STREAM_TIMED_OUT.lower() in normalized_message
 
         self._cancelled = True
         self._queue.clear()
@@ -707,9 +696,6 @@ class StreamingResponse:
             return False
 
     def _start_stream_timers(self) -> None:
-        if self._stream_started_at is None and self._is_streaming_channel:
-            self._stream_started_at = asyncio.get_running_loop().time()
-
         if (
             not self._is_m365_copilot()
             or not self._is_streaming_channel
@@ -826,8 +812,3 @@ class StreamingResponse:
         return self._stream_timed_out or (
             self._stream_timeout_notification_sent and self._is_teams_channel()
         )
-
-    def _stream_elapsed_time(self) -> float | None:
-        if self._stream_started_at is None:
-            return None
-        return asyncio.get_running_loop().time() - self._stream_started_at

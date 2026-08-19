@@ -313,29 +313,6 @@ async def test_channel_timeout_sends_final_when_activity_update_is_rejected(mock
 
 
 @pytest.mark.asyncio
-async def test_bodyless_teams_403_near_limit_is_treated_as_timeout(mocker, monkeypatch):
-    monkeypatch.setattr(streaming_module, "_TEAMS_TIMEOUT_DETECTION_THRESHOLD", 0)
-    context = _create_turn_context(
-        mocker,
-        channel_id=Channels.ms_teams,
-        return_value=[
-            ResourceResponse(id="stream-timeout"),
-            RuntimeError("403 Forbidden"),
-        ],
-    )
-    response = StreamingResponse(context)
-    response._interval = 0
-
-    response.queue_informative_update("Starting...")
-    await response.wait_for_queue()
-    response.queue_text_chunk("Completed response text.")
-    await response.wait_for_queue()
-
-    assert response.is_streaming_channel is False
-    context.update_activity.assert_awaited_once()
-
-
-@pytest.mark.asyncio
 async def test_timeout_notification_stops_stream_and_updates_teams_final(mocker):
     context = _create_turn_context(
         mocker,
