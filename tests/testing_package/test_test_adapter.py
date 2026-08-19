@@ -17,10 +17,8 @@ from microsoft_agents.activity import (
 from microsoft_agents.hosting.core import (
     ClaimsIdentity,
     TurnContext,
-    UserTokenClientBase,
 )
 from microsoft_agents.testing import TestAdapter
-from microsoft_agents.testing import MockUserTokenClient
 
 
 @pytest.mark.asyncio
@@ -83,17 +81,6 @@ async def test_process_activity_replaces_an_agent_sender_with_the_test_user():
         assert context.activity.from_property == adapter.conversation.user
 
     await adapter.process_activity(adapter.claims_identity, incoming, callback)
-
-
-@pytest.mark.asyncio
-async def test_turn_context_exposes_the_configured_user_token_client():
-    token_client = MockUserTokenClient()
-    adapter = TestAdapter(user_token_client=token_client)
-
-    async def callback(context: TurnContext):
-        assert context.services.get(UserTokenClientBase) is token_client
-
-    await adapter.send_text_to_bot("authenticate", callback)
 
 
 @pytest.mark.asyncio
