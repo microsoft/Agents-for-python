@@ -6,6 +6,7 @@
 ## Developer Experience
 
 - **Authentication Configuration Validation**: Added validation for certificate, federated credential, and workload identity authentication settings
+- **Configuration Loading**: Expanded `load_configuration_from_env` to accept any mapping type
 
 ---
 
