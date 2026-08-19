@@ -2,7 +2,6 @@
 # Licensed under the MIT License.
 
 from typing import Any, Mapping
-from copy import copy
 
 from ._configure_logging import _configure_logging
 
@@ -11,7 +10,7 @@ def load_configuration_from_env(env_vars: Mapping[str, Any]) -> dict:
     """
     Parses environment variables and returns a dictionary with the relevant configuration.
     """
-    local_vars = copy(env_vars)
+    local_vars = dict(env_vars)
     result = {}
     for key, value in local_vars.items():
         levels = key.split("__")
