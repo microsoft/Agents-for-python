@@ -1,18 +1,19 @@
 # Copyright (c) Microsoft Corporation. All rights reserved.
 # Licensed under the MIT License.
 
-from typing import Any
+from typing import Any, Mapping
+from copy import copy
 
 from ._configure_logging import _configure_logging
 
 
-def load_configuration_from_env(env_vars: dict[str, Any]) -> dict:
+def load_configuration_from_env(env_vars: Mapping[str, Any]) -> dict:
     """
     Parses environment variables and returns a dictionary with the relevant configuration.
     """
-    vars = env_vars.copy()
+    local_vars = copy(env_vars)
     result = {}
-    for key, value in vars.items():
+    for key, value in local_vars.items():
         levels = key.split("__")
         current_level = result
         last_level = None
