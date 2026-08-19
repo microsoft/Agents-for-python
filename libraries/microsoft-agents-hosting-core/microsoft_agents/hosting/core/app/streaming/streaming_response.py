@@ -198,7 +198,7 @@ class StreamingResponse:
             else:
                 await self._send_activity(
                     final_activity,
-                    ensure_stream_info=not self._stream_timeout_notification_sent,
+                    ensure_stream_info=False,
                 )
             return
 

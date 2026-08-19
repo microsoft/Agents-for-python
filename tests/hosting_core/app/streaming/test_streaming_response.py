@@ -92,6 +92,8 @@ async def test_expect_replies_does_not_start_streaming(mocker):
     await response.end_stream()
 
     context.send_activity.assert_awaited_once()
+    final_activity = context.send_activity.await_args.args[0]
+    assert final_activity.entities == []
     assert response._stream_timeout_task is None
 
 
@@ -310,6 +312,29 @@ async def test_channel_timeout_sends_final_when_activity_update_is_rejected(mock
     assert fallback.type == "message"
     assert fallback.text == "Completed response text."
     assert fallback.entities == []
+
+
+@pytest.mark.asyncio
+async def test_streaming_not_supported_fallback_sends_non_streaming_final(mocker):
+    context = _create_turn_context(
+        mocker,
+        channel_id=Channels.ms_teams,
+        return_value=[
+            RuntimeError("BadArgument: Streaming API is not enabled"),
+            ResourceResponse(id="fallback-final"),
+        ],
+    )
+    response = StreamingResponse(context)
+    response._interval = 0
+
+    response.queue_text_chunk("Completed response text.")
+    await response.wait_for_queue()
+    await response.end_stream()
+
+    assert response.is_streaming_channel is False
+    final_activity = context.send_activity.await_args_list[-1].args[0]
+    assert final_activity.text == "Completed response text."
+    assert final_activity.entities == []
 
 
 @pytest.mark.asyncio
@@ -746,6 +771,7 @@ async def test_non_streaming_channel_buffers_text_and_only_sends_on_end(mocker):
     sent = context.send_activity.await_args.args[0]
     assert sent.type == "message"
     assert sent.text == "Hello world"
+    assert sent.entities == []
 
 
 @pytest.mark.asyncio
