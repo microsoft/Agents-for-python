@@ -2,7 +2,13 @@ import time
 
 import pytest
 
-from opentelemetry.trace import StatusCode
+from opentelemetry.trace import (
+    Link,
+    SpanContext,
+    StatusCode,
+    TraceFlags,
+    TraceState,
+)
 
 from tests._common.fixtures.telemetry import (  # unused imports are needed for fixtures
     test_telemetry,
@@ -36,6 +42,16 @@ class MinimalSpanWrapper(SimpleSpanWrapper):
 
     def __init__(self, span_name):
         super().__init__(span_name)
+
+
+def _make_span_context(trace_id: int, span_id: int) -> SpanContext:
+    return SpanContext(
+        trace_id=trace_id,
+        span_id=span_id,
+        is_remote=True,
+        trace_flags=TraceFlags(TraceFlags.SAMPLED),
+        trace_state=TraceState(),
+    )
 
 
 class TestSimpleSpanWrapper:
@@ -252,3 +268,46 @@ class TestSimpleSpanWrapper:
         assert span.attributes["custom_attribute"] == "custom_value"
         assert span.attributes["callback_called"] is True
         assert span.attributes["exception_message"] == "boom"
+
+    def test_span_context_link_is_added_to_span(self, test_exporter):
+        """A SpanContext passed as link is converted into an exported span link."""
+        context = _make_span_context(trace_id=1, span_id=2)
+
+        with SimpleSpanWrapper("span_context_link", link=context):
+            pass
+
+        span = test_exporter.get_finished_spans()[0]
+        assert len(span.links) == 1
+        assert span.links[0].context == context
+
+    def test_explicit_link_is_added_with_attributes(self, test_exporter):
+        """An explicit Link preserves its context and link attributes."""
+        context = _make_span_context(trace_id=3, span_id=4)
+        link = Link(context, attributes={"relationship": "proactive"})
+
+        with SimpleSpanWrapper("explicit_link", link=link):
+            pass
+
+        span = test_exporter.get_finished_spans()[0]
+        assert len(span.links) == 1
+        assert span.links[0].context == context
+        assert span.links[0].attributes["relationship"] == "proactive"
+
+    def test_multiple_mixed_links_are_added_in_order(self, test_exporter):
+        """A list may contain both SpanContext and Link instances."""
+        first_context = _make_span_context(trace_id=5, span_id=6)
+        second_context = _make_span_context(trace_id=7, span_id=8)
+        second_link = Link(second_context, attributes={"position": "second"})
+
+        with SimpleSpanWrapper(
+            "multiple_links",
+            link=[first_context, second_link],
+        ):
+            pass
+
+        span = test_exporter.get_finished_spans()[0]
+        assert len(span.links) == 2
+        assert span.links[0].context == first_context
+        assert span.links[0].attributes == {}
+        assert span.links[1].context == second_context
+        assert span.links[1].attributes["position"] == "second"

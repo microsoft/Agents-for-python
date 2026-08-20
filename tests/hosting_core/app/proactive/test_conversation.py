@@ -4,6 +4,7 @@ Licensed under the MIT License.
 """
 
 import pytest
+from opentelemetry.trace import SpanContext, TraceFlags, TraceState
 from unittest.mock import MagicMock
 
 from microsoft_agents.activity import ConversationAccount, ConversationReference
@@ -209,3 +210,21 @@ class TestConversationSerialization:
         json_data = original.store_item_to_json()
         restored = Conversation.from_json_to_store_item(json_data)
         assert restored.conversation_reference.service_url == "https://custom.service/"
+
+    def test_round_trip_preserves_span_context(self):
+        span_context = SpanContext(
+            trace_id=0x4BF92F3577B34DA6A3CE929D0E0E4736,
+            span_id=0x00F067AA0BA902B7,
+            is_remote=True,
+            trace_flags=TraceFlags(TraceFlags.SAMPLED),
+            trace_state=TraceState([("vendor", "value")]),
+        )
+        original = Conversation(
+            claims={},
+            conversation_reference=_make_reference("span-context-conv"),
+        )
+        original._set_span_context(span_context)
+
+        restored = Conversation.from_json_to_store_item(original.store_item_to_json())
+
+        assert restored._get_span_context() == span_context

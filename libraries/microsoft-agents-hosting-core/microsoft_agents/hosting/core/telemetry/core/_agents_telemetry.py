@@ -9,7 +9,7 @@ from contextlib import contextmanager
 
 from opentelemetry.metrics import Meter
 from opentelemetry import metrics, trace
-from opentelemetry.trace import Tracer, Span
+from opentelemetry.trace import Tracer, Span, Link
 
 from .resource import SERVICE_NAME, SERVICE_VERSION
 from .type_defs import SpanCallback
@@ -43,16 +43,21 @@ class _AgentsTelemetry:
         self,
         span_name: str,
         callback: SpanCallback | None = None,
+        links: list[Link] | None = None,
     ) -> Iterator[Span]:
         """Context manager for starting a timed span that records duration and success/failure status, and invokes a callback with the results
 
         :param span_name: The name of the span to start
         :param callback: Optional callback function that will be called with the span, duration in milliseconds, and any exception that was raised (or None if successful) when the span is ended
+        :param links: Optional list of OpenTelemetry Link objects to associate with the span
         :return: An iterator that yields the started span, which will be ended when the context manager exits
         """
 
         with self._tracer.start_as_current_span(
-            span_name, record_exception=False, set_status_on_exception=False
+            span_name,
+            record_exception=False,
+            set_status_on_exception=False,
+            links=links,
         ) as span:
 
             start = time.time()
