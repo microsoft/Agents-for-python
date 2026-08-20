@@ -17,7 +17,6 @@ def _dump_span_context(span_context: SpanContext) -> dict:
         "span_id": str(span_context.span_id),
         "trace_flags": int(span_context.trace_flags),
         "trace_state": list(span_context.trace_state.items()),
-        "is_remote": span_context.is_remote,
     }
     return data
 
@@ -35,5 +34,5 @@ def _deserialize_span_context(data: dict) -> SpanContext:
         span_id=int(data["span_id"]),
         trace_flags=TraceFlags(data["trace_flags"]),
         trace_state=TraceState(data["trace_state"]),
-        is_remote=data["is_remote"],
+        is_remote=True,
     )

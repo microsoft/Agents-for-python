@@ -24,7 +24,7 @@ def _make_span_context(
     )
 
 
-def test_dump_span_context_serializes_all_fields():
+def test_dump_span_context_serializes_propagated_fields():
     context = _make_span_context(
         is_remote=True,
         trace_state=TraceState([("vendor", "value")]),
@@ -37,7 +37,6 @@ def test_dump_span_context_serializes_all_fields():
         "span_id": str(context.span_id),
         "trace_flags": int(context.trace_flags),
         "trace_state": [("vendor", "value")],
-        "is_remote": True,
     }
 
 
@@ -49,14 +48,13 @@ def test_dump_span_context_serializes_empty_trace_state():
     assert result["trace_state"] == []
 
 
-def test_deserialize_span_context_restores_all_fields():
+def test_deserialize_span_context_restores_propagated_fields_as_remote():
     result = _deserialize_span_context(
         {
             "trace_id": 0x4BF92F3577B34DA6A3CE929D0E0E4736,
             "span_id": 0x00F067AA0BA902B7,
             "trace_flags": TraceFlags.SAMPLED,
             "trace_state": [("vendor", "value")],
-            "is_remote": True,
         }
     )
 
@@ -75,7 +73,6 @@ def test_deserialize_span_context_restores_unsampled_flags():
             "span_id": 2,
             "trace_flags": TraceFlags.DEFAULT,
             "trace_state": [],
-            "is_remote": False,
         }
     )
 
@@ -83,9 +80,9 @@ def test_deserialize_span_context_restores_unsampled_flags():
     assert result.trace_flags.sampled is False
 
 
-def test_span_context_round_trip_preserves_context():
+def test_span_context_round_trip_preserves_propagated_fields_and_marks_remote():
     context = _make_span_context(
-        is_remote=True,
+        is_remote=False,
         trace_state=TraceState(
             [
                 ("vendor", "value"),
@@ -96,7 +93,11 @@ def test_span_context_round_trip_preserves_context():
 
     result = _deserialize_span_context(_dump_span_context(context))
 
-    assert result == context
+    assert result.trace_id == context.trace_id
+    assert result.span_id == context.span_id
+    assert result.trace_flags == context.trace_flags
+    assert result.trace_state == context.trace_state
+    assert result.is_remote is True
 
 
 def test_invalid_span_context_round_trip_remains_invalid():

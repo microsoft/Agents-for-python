@@ -133,7 +133,13 @@ async def test_continue_conversation_links_to_stored_context(
     continuation_span = _get_span(spans, constants.SPAN_CONTINUE_CONVERSATION)
 
     assert len(continuation_span.links) == 1
-    assert continuation_span.links[0].context == store_span.context
+    link_context = continuation_span.links[0].context
+    assert link_context.trace_id == store_span.context.trace_id
+    assert link_context.span_id == store_span.context.span_id
+    assert link_context.trace_flags == store_span.context.trace_flags
+    assert link_context.trace_state == store_span.context.trace_state
+    assert store_span.context.is_remote is False
+    assert link_context.is_remote is True
 
 
 @pytest.mark.asyncio
@@ -180,5 +186,8 @@ async def test_overwriting_conversation_links_to_latest_store_span(
 
     assert len(store_spans) == 2
     assert len(continuation_span.links) == 1
-    assert continuation_span.links[0].context == store_spans[-1].context
-    assert continuation_span.links[0].context != store_spans[0].context
+    link_context = continuation_span.links[0].context
+    assert link_context.trace_id == store_spans[-1].context.trace_id
+    assert link_context.span_id == store_spans[-1].context.span_id
+    assert link_context.trace_id != store_spans[0].context.trace_id
+    assert link_context.is_remote is True
