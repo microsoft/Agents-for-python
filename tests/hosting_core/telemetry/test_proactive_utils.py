@@ -1,6 +1,8 @@
 # Copyright (c) Microsoft Corporation. All rights reserved.
 # Licensed under the MIT License.
 
+import json
+
 from opentelemetry.trace import SpanContext, TraceFlags, TraceState
 
 from microsoft_agents.hosting.core.app.proactive.telemetry._utils import (
@@ -96,6 +98,23 @@ def test_span_context_round_trip_preserves_propagated_fields_and_marks_remote():
     assert result.trace_id == context.trace_id
     assert result.span_id == context.span_id
     assert result.trace_flags == context.trace_flags
+    assert result.trace_state == context.trace_state
+    assert result.is_remote is True
+
+
+def test_span_context_json_round_trip_preserves_trace_state():
+    context = _make_span_context(
+        trace_state=TraceState(
+            [
+                ("vendor", "value"),
+                ("tenant", "contoso"),
+            ]
+        ),
+    )
+
+    serialized = json.loads(json.dumps(_dump_span_context(context)))
+    result = _deserialize_span_context(serialized)
+
     assert result.trace_state == context.trace_state
     assert result.is_remote is True
 
