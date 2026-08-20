@@ -49,8 +49,6 @@
 
 ---
 
----
-
 # Microsoft 365 Agents SDK for Python - Release Notes v1.3.0
 
 **Release Date:** 2026-07-30
