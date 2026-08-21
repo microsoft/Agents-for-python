@@ -13,6 +13,9 @@ from microsoft_agents.hosting.core.app.typing_indicator import (
     TypingIndicator,
     TypingOptions,
 )
+from microsoft_agents.hosting.core.app.telemetry import constants
+
+from tests._common.fixtures.telemetry import test_telemetry, test_exporter
 
 
 class StubAdapter:
@@ -258,6 +261,18 @@ async def test_typing_activity_has_conversation_reference():
     activity = context.sent_activities[0]
     assert activity.conversation is not None
     assert activity.conversation.id == "test_convo"
+
+
+@pytest.mark.asyncio
+async def test_send_typing_creates_telemetry_span(test_exporter):
+    context = StubTurnContext()
+    indicator = TypingIndicator(context, typing_options=_fast_options())
+
+    await indicator._send_typing()
+
+    spans = test_exporter.get_finished_spans()
+    assert len(spans) == 1
+    assert spans[0].name == constants.SPAN_SEND_TYPING
 
 
 @pytest.mark.asyncio
