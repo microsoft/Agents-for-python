@@ -1,11 +1,11 @@
-"""
-Copyright (c) Microsoft Corporation. All rights reserved.
-Licensed under the MIT License.
-"""
+# Copyright (c) Microsoft Corporation. All rights reserved.
+# Licensed under the MIT License.
 
 from __future__ import annotations
 
 from typing import TYPE_CHECKING
+
+from opentelemetry.trace import SpanContext
 
 from microsoft_agents.activity import ConversationReference
 from microsoft_agents.hosting.core.authorization import ClaimsIdentity
@@ -13,7 +13,8 @@ from microsoft_agents.hosting.core.storage.store_item import StoreItem
 
 if TYPE_CHECKING:
     from microsoft_agents.hosting.core.turn_context import TurnContext
-    from microsoft_agents.hosting.core.channel_adapter import ChannelAdapter
+
+from .telemetry._utils import _deserialize_span_context, _dump_span_context
 
 # JWT claim keys that are persisted alongside a ConversationReference.
 _PERSISTED_CLAIM_KEYS = frozenset({"aud", "azp", "appid", "idtyp", "ver", "iss", "tid"})
@@ -41,7 +42,20 @@ class Conversation(StoreItem):
         self,
         claims: dict[str, str] | ClaimsIdentity,
         conversation_reference: ConversationReference,
+        *,
+        _span_context: dict | None = None,
     ) -> None:
+        """Creates a new :class:`~microsoft_agents.hosting.core.app.proactive.Conversation` instance.
+
+        :param claims: Filtered JWT claims (``aud``, ``azp``, ``appid``, ``idtyp``,
+            ``ver``, ``iss``, ``tid``).  May be a raw ``dict`` or a
+            :class:`~microsoft_agents.hosting.core.authorization.ClaimsIdentity`.
+        :type claims: dict[str, str] or ClaimsIdentity
+        :param conversation_reference: The conversation reference.
+        :type conversation_reference: :class:`~microsoft_agents.activity.ConversationReference`
+        :param _span_context: Optional serialized span context for telemetry linking. For internal use only; this is not part of the public API.
+        :type _span_context: dict or None
+        """
         if isinstance(claims, ClaimsIdentity):
             self.claims: dict[str, str] = Conversation.claims_from_identity(claims)
         else:
@@ -49,6 +63,29 @@ class Conversation(StoreItem):
                 k: v for k, v in claims.items() if k in _PERSISTED_CLAIM_KEYS
             }
         self.conversation_reference: ConversationReference = conversation_reference
+        self._span_context_dict: dict | None = _span_context
+
+    def _set_span_context(self, span_context: SpanContext) -> None:
+        """Sets the span context for this conversation, serializing it to a dictionary for storage.
+
+        For internal use only; this is not part of the public API.
+
+        :param span_context: The SpanContext to set.
+        :type span_context: SpanContext
+        """
+        self._span_context_dict = _dump_span_context(span_context)
+
+    def _get_span_context(self) -> SpanContext | None:
+        """Gets the span context for this conversation, deserializing it from a dictionary.
+
+        For internal use only; this is not part of the public API.
+
+        :return: The SpanContext, or None if not set.
+        :rtype: SpanContext or None
+        """
+        if self._span_context_dict is None:
+            return None
+        return _deserialize_span_context(self._span_context_dict)
 
     # ------------------------------------------------------------------
     # Factory helpers
@@ -137,6 +174,7 @@ class Conversation(StoreItem):
             "conversation_reference": self.conversation_reference.model_dump(
                 mode="json", by_alias=True, exclude_unset=True
             ),
+            "_span_context": self._span_context_dict,
         }
 
     @staticmethod
@@ -147,4 +185,5 @@ class Conversation(StoreItem):
         return Conversation(
             claims=json_data.get("claims", {}),
             conversation_reference=reference,
+            _span_context=json_data.get("_span_context", None),
         )

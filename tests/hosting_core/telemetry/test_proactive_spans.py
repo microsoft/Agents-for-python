@@ -198,6 +198,7 @@ def test_send_activity_creates_span(test_exporter):
     spans = test_exporter.get_finished_spans()
     assert len(spans) == 1
     assert spans[0].name == constants.SPAN_SEND_ACTIVITY
+    assert len(spans[0].links) == 0
 
 
 def test_send_activity_span_attributes(test_exporter):
@@ -251,6 +252,7 @@ def test_continue_conversation_creates_span(test_exporter):
     spans = test_exporter.get_finished_spans()
     assert len(spans) == 1
     assert spans[0].name == constants.SPAN_CONTINUE_CONVERSATION
+    assert len(spans[0].links) == 0
 
 
 def test_continue_conversation_span_attributes(test_exporter):
