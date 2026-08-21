@@ -12,7 +12,6 @@ from microsoft_agents.activity import (
     Activity,
     ActivityTypes,
     ConversationReference,
-    DeliveryModes,
     InputHints,
     Mention,
     ResourceResponse,
@@ -47,9 +46,6 @@ class _AsyncFunc(Protocol[T]):
 
 
 class TurnContext(TurnContextProtocol):
-    # Same constant as in the BF Adapter, duplicating here to avoid circular dependency
-    _INVOKE_RESPONSE_KEY = "TurnContext.InvokeResponse"
-
     _activity: Activity
 
     _on_send_activities: list[OnSendActivitiesHandler]
@@ -203,7 +199,6 @@ class TurnContext(TurnContextProtocol):
         self, activities: list[Activity]
     ) -> list[ResourceResponse]:
         sent_non_trace_activity = False
-        # TODO: Check activity serialization
         ref = self.activity.get_conversation_reference()
 
         with spans.TurnContextSendActivities(self):
@@ -229,23 +224,6 @@ class TurnContext(TurnContextProtocol):
             # send activities through adapter
             async def logic() -> list[ResourceResponse]:
                 nonlocal sent_non_trace_activity
-
-                if self.activity.delivery_mode == DeliveryModes.expect_replies:
-                    responses = []
-                    for activity in output:
-                        self.buffered_reply_activities.append(activity)
-                        # Ensure the TurnState has the InvokeResponseKey, since this activity
-                        # is not being sent through the adapter, where it would be added to TurnState.
-                        if activity.type == ActivityTypes.invoke_response:
-                            self.turn_state[TurnContext._INVOKE_RESPONSE_KEY] = activity
-
-                        responses.append(ResourceResponse())
-
-                    if sent_non_trace_activity:
-                        self.responded = True
-
-                    return responses
-
                 responses = await self.adapter.send_activities(self, output)
                 if sent_non_trace_activity:
                     self.responded = True
