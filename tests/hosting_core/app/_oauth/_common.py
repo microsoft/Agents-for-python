@@ -1,9 +1,9 @@
 from microsoft_agents.activity import Activity, ActivityTypes
 
 from microsoft_agents.hosting.core import TurnContext, UserTokenClientBase
+from microsoft_agents.testing import MockUserTokenClient
 
 from tests._common.data import DEFAULT_TEST_VALUES
-from tests._common.testing_objects import mock_UserTokenClient
 
 DEFAULTS = DEFAULT_TEST_VALUES()
 
@@ -25,7 +25,7 @@ def create_testing_TurnContext(
     activity=None,
 ):
     if not user_token_client:
-        user_token_client = mock_UserTokenClient(mocker)
+        user_token_client = MockUserTokenClient()
 
     turn_context = mocker.Mock()
     if not activity:
@@ -55,7 +55,7 @@ def create_testing_TurnContext_magic(
     activity=None,
 ):
     if not user_token_client:
-        user_token_client = mock_UserTokenClient(mocker)
+        user_token_client = MockUserTokenClient()
 
     turn_context = mocker.MagicMock(spec=TurnContext)
     turn_context.adapter = mocker.Mock()

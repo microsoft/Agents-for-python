@@ -23,7 +23,7 @@ Turn flow summary
 import pytest
 
 from microsoft_agents.activity import Activity, Attachment, ActivityTypes
-from microsoft_agents.testing import AgentClient, ScenarioConfig, ClientConfig, ActivityTemplate
+from microsoft_agents.hosting.testing import AgentClient, ScenarioConfig, ClientConfig, ActivityTemplate
 
 from .scenario import create_dialog_scenario
 

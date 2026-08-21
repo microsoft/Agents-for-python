@@ -3,7 +3,7 @@
 
 """Scenario definition for ActivityHandler-based dialog integration tests."""
 
-from microsoft_agents.testing import (
+from microsoft_agents.hosting.testing import (
     ActivityHandlerEnvironment,
     ActivityHandlerScenario,
     ScenarioConfig,

@@ -10,7 +10,7 @@ from microsoft_agents.hosting.core import (
     TurnState
 )
 
-from microsoft_agents.testing import (
+from microsoft_agents.hosting.testing import (
     AgentEnvironment,
 )
 

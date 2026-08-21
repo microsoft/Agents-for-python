@@ -1,6 +1,6 @@
 """Test scenario registry for AgentApplication-based integration tests."""
 
-from microsoft_agents.testing import (
+from microsoft_agents.hosting.testing import (
     AiohttpScenario,
     ScenarioConfig,
     Scenario,
