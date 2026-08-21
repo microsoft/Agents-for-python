@@ -69,11 +69,18 @@ class ChannelServiceAdapter(ChannelAdapter, ABC):
             raise ValueError("send_activities: activities list cannot be empty")
 
         responses = []
+        buffered_reply_activities = []
 
         for activity in activities:
             activity.id = None
 
             response = ResourceResponse()
+
+            buffer_replies = (
+                context.activity.delivery_mode == DeliveryModes.expect_replies
+            )
+            if buffer_replies:
+                buffered_reply_activities.append(activity)
 
             if activity.type == ActivityTypes.invoke_response:
                 context.turn_state[self.INVOKE_RESPONSE_KEY] = activity
@@ -83,7 +90,7 @@ class ChannelServiceAdapter(ChannelAdapter, ABC):
             ):
                 # no-op
                 pass
-            else:
+            elif not buffer_replies:
                 connector_client = context.services.get(ConnectorClientBase)
                 if not connector_client:
                     raise RuntimeError(
@@ -110,6 +117,8 @@ class ChannelServiceAdapter(ChannelAdapter, ABC):
 
             responses.append(response)
 
+        if buffered_reply_activities:
+            context.buffered_reply_activities.extend(buffered_reply_activities)
         return responses
 
     async def update_activity(self, context: TurnContext, activity: Activity):
