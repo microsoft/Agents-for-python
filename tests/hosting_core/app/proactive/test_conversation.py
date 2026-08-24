@@ -4,6 +4,7 @@ Licensed under the MIT License.
 """
 
 import pytest
+from opentelemetry.trace import SpanContext, TraceFlags, TraceState
 from unittest.mock import MagicMock
 
 from microsoft_agents.activity import ConversationAccount, ConversationReference
@@ -113,6 +114,12 @@ class TestConversationClaimsHelpers:
         identity = Conversation.identity_from_claims(claims)
         assert identity.is_authenticated is True
 
+    def test_identity_from_empty_claims_allows_anonymous(self):
+        identity = Conversation.identity_from_claims({})
+
+        assert identity.claims == {}
+        assert identity.allow_anonymous is True
+
     def test_identity_from_claims_preserves_values(self):
         claims = {"aud": "app-id", "tid": "tenant", "ver": "2.0"}
         identity = Conversation.identity_from_claims(claims)
@@ -203,3 +210,26 @@ class TestConversationSerialization:
         json_data = original.store_item_to_json()
         restored = Conversation.from_json_to_store_item(json_data)
         assert restored.conversation_reference.service_url == "https://custom.service/"
+
+    def test_round_trip_preserves_span_context_fields_and_marks_remote(self):
+        span_context = SpanContext(
+            trace_id=0x4BF92F3577B34DA6A3CE929D0E0E4736,
+            span_id=0x00F067AA0BA902B7,
+            is_remote=False,
+            trace_flags=TraceFlags(TraceFlags.SAMPLED),
+            trace_state=TraceState([("vendor", "value")]),
+        )
+        original = Conversation(
+            claims={},
+            conversation_reference=_make_reference("span-context-conv"),
+        )
+        original._set_span_context(span_context)
+
+        restored = Conversation.from_json_to_store_item(original.store_item_to_json())
+        restored_span_context = restored._get_span_context()
+
+        assert restored_span_context.trace_id == span_context.trace_id
+        assert restored_span_context.span_id == span_context.span_id
+        assert restored_span_context.trace_flags == span_context.trace_flags
+        assert restored_span_context.trace_state == span_context.trace_state
+        assert restored_span_context.is_remote is True

@@ -903,6 +903,7 @@ class AgentApplication(Agent, Generic[StateT]):
         if (
             self.options.remove_recipient_mention
             and context.activity.type == ActivityTypes.message
+            and context.activity.text is not None
         ):
             context.activity.text = context.remove_recipient_mention(context.activity)
 

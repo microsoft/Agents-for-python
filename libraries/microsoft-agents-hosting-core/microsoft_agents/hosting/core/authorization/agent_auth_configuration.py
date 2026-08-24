@@ -222,6 +222,31 @@ class AgentAuthConfiguration:
         # JWT-patch: always at least include self for backward compat
         self._connections = {str(self.CONNECTION_NAME): self}
 
+        self._validate()
+
+    def _validate(self) -> None:
+        """
+        Validates the configuration. Raises ValueError if any required fields are missing or invalid.
+        """
+        if self.AUTH_TYPE == AuthTypes.certificate and not self.CERT_PFX_FILE:
+            raise ValueError(
+                "CERT_PFX_FILE is required for certificate authentication."
+            )
+        if (
+            self.AUTH_TYPE == AuthTypes.federated_credentials
+            and not self.FEDERATED_CLIENT_ID
+        ):
+            raise ValueError(
+                "FEDERATED_CLIENT_ID is required for federated_credentials authentication."
+            )
+        if (
+            self.AUTH_TYPE == AuthTypes.workload_identity
+            and not self.FEDERATED_TOKEN_FILE
+        ):
+            raise ValueError(
+                "FEDERATED_TOKEN_FILE is required for workload_identity authentication."
+            )
+
     @property
     def ISSUERS(self) -> list[str]:
         """
