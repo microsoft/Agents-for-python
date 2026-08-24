@@ -5,14 +5,13 @@ Licensed under the MIT License.
 
 from __future__ import annotations
 
-from typing import Optional
-
 from microsoft_agents.activity import (
     ChannelAccount,
     Channels,
     ConversationAccount,
     ConversationReference,
 )
+from microsoft_agents.activity._model_utils import pick_model, SkipNone
 
 
 def _service_url_for_channel(channel_id: str) -> str:
@@ -45,15 +44,15 @@ class ConversationReferenceBuilder:
     """
 
     def __init__(self) -> None:
-        self._channel_id: Optional[str] = None
-        self._conversation_id: Optional[str] = None
-        self._service_url: Optional[str] = None
-        self._agent_id: Optional[str] = None
-        self._agent_name: Optional[str] = None
-        self._user_id: Optional[str] = None
-        self._user_name: Optional[str] = None
-        self._activity_id: Optional[str] = None
-        self._locale: Optional[str] = None
+        self._channel_id: str | None = None
+        self._conversation_id: str | None = None
+        self._service_url: str | None = None
+        self._agent_id: str | None = None
+        self._agent_name: str | None = None
+        self._user_id: str | None = None
+        self._user_name: str | None = None
+        self._activity_id: str | None = None
+        self._locale: str | None = None
 
     # ------------------------------------------------------------------
     # Entry-point factories
@@ -64,7 +63,7 @@ class ConversationReferenceBuilder:
         cls,
         channel_id: str,
         conversation_id: str,
-    ) -> "ConversationReferenceBuilder":
+    ) -> ConversationReferenceBuilder:
         """
         Start building a :class:`~microsoft_agents.activity.ConversationReference`
         from a channel ID and an existing conversation ID.
@@ -86,8 +85,8 @@ class ConversationReferenceBuilder:
         cls,
         agent_client_id: str,
         channel_id: str,
-        service_url: Optional[str] = None,
-    ) -> "ConversationReferenceBuilder":
+        service_url: str | None = None,
+    ) -> ConversationReferenceBuilder:
         """
         Start building a :class:`~microsoft_agents.activity.ConversationReference`
         from an agent application ID and channel.
@@ -101,7 +100,7 @@ class ConversationReferenceBuilder:
         :type channel_id: str
         :param service_url: Override the service URL.  When ``None`` the default
             URL for the channel is used.
-        :type service_url: Optional[str]
+        :type service_url: str | None
         :return: A builder pre-populated for the agent.
         :rtype: :class:`microsoft_agents.hosting.core.app.proactive.ConversationReferenceBuilder`
         """
@@ -124,15 +123,15 @@ class ConversationReferenceBuilder:
     def with_agent(
         self,
         agent_id: str,
-        agent_name: Optional[str] = None,
-    ) -> "ConversationReferenceBuilder":
+        agent_name: str | None = None,
+    ) -> ConversationReferenceBuilder:
         """
         Set the agent (bot) account on the reference.
 
         :param agent_id: The agent's channel account ID.
         :type agent_id: str
         :param agent_name: Optional display name.
-        :type agent_name: Optional[str]
+        :type agent_name: str | None
         :return: ``self`` for chaining.
         :rtype: :class:`microsoft_agents.hosting.core.app.proactive.ConversationReferenceBuilder`
         """
@@ -143,15 +142,15 @@ class ConversationReferenceBuilder:
     def with_user(
         self,
         user_id: str,
-        user_name: Optional[str] = None,
-    ) -> "ConversationReferenceBuilder":
+        user_name: str | None = None,
+    ) -> ConversationReferenceBuilder:
         """
         Set the user account on the reference.
 
         :param user_id: The user's channel account ID.
         :type user_id: str
         :param user_name: Optional display name.
-        :type user_name: Optional[str]
+        :type user_name: str | None
         :return: ``self`` for chaining.
         :rtype: :class:`microsoft_agents.hosting.core.app.proactive.ConversationReferenceBuilder`
         """
@@ -159,7 +158,7 @@ class ConversationReferenceBuilder:
         self._user_name = user_name
         return self
 
-    def with_service_url(self, service_url: str) -> "ConversationReferenceBuilder":
+    def with_service_url(self, service_url: str) -> ConversationReferenceBuilder:
         """
         Override the service URL.
 
@@ -171,7 +170,7 @@ class ConversationReferenceBuilder:
         self._service_url = service_url
         return self
 
-    def with_activity_id(self, activity_id: str) -> "ConversationReferenceBuilder":
+    def with_activity_id(self, activity_id: str) -> ConversationReferenceBuilder:
         """
         Set the activity ID on the reference.
 
@@ -183,7 +182,7 @@ class ConversationReferenceBuilder:
         self._activity_id = activity_id
         return self
 
-    def with_locale(self, locale: str) -> "ConversationReferenceBuilder":
+    def with_locale(self, locale: str) -> ConversationReferenceBuilder:
         """
         Set the locale on the reference.
 
@@ -217,22 +216,25 @@ class ConversationReferenceBuilder:
         service_url = self._service_url or _service_url_for_channel(self._channel_id)
 
         agent = (
-            ChannelAccount(id=self._agent_id, name=self._agent_name)
+            pick_model(
+                ChannelAccount, id=self._agent_id, name=SkipNone(self._agent_name)
+            )
             if self._agent_id
             else None
         )
         user = (
-            ChannelAccount(id=self._user_id, name=self._user_name)
+            pick_model(ChannelAccount, id=self._user_id, name=SkipNone(self._user_name))
             if self._user_id
             else None
         )
 
-        return ConversationReference(
+        return pick_model(
+            ConversationReference,
             channel_id=self._channel_id,
             conversation=ConversationAccount(id=self._conversation_id),
             service_url=service_url,
-            bot=agent,
-            user=user,
+            agent=SkipNone(agent),
+            user=SkipNone(user),
             activity_id=self._activity_id,
             locale=self._locale,
         )

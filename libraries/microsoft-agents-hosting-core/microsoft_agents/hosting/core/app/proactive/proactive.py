@@ -1,12 +1,10 @@
-"""
-Copyright (c) Microsoft Corporation. All rights reserved.
-Licensed under the MIT License.
-"""
+# Copyright (c) Microsoft Corporation. All rights reserved.
+# Licensed under the MIT License.
 
 from __future__ import annotations
 
 import logging
-from typing import Awaitable, Callable, Generic, Optional, TypeVar, TYPE_CHECKING
+from typing import Awaitable, Callable, Generic, TypeVar, TYPE_CHECKING
 
 from microsoft_agents.activity import Activity, ResourceResponse
 
@@ -66,15 +64,16 @@ class Proactive(Generic[StateT]):
 
     def __init__(
         self,
-        app: "AgentApplication[StateT]",
+        app: AgentApplication,
         options: ProactiveOptions,
     ) -> None:
         self._app = app
         self._options = options
 
-    # ------------------------------------------------------------------
-    # Storage helpers
-    # ------------------------------------------------------------------
+    @staticmethod
+    def _storage_key(conversation_id: str) -> str:
+        """Get the storage key for a given conversation ID."""
+        return f"{_STORAGE_KEY_PREFIX}{conversation_id}"
 
     @property
     def _storage(self) -> Storage:
@@ -85,10 +84,6 @@ class Proactive(Generic[StateT]):
                 "Configure ProactiveOptions.storage or ApplicationOptions.storage."
             )
         return storage
-
-    @staticmethod
-    def _storage_key(conversation_id: str) -> str:
-        return f"{_STORAGE_KEY_PREFIX}{conversation_id}"
 
     # ------------------------------------------------------------------
     # Conversation persistence
@@ -123,13 +118,17 @@ class Proactive(Generic[StateT]):
 
         with spans.ProactiveStoreConversation(
             conversation.conversation_reference.conversation.id
-        ):
+        ) as span:
+            if span.otel_span is not None:
+                span_context = span.otel_span.get_span_context()
+                if span_context.is_valid:
+                    conversation._set_span_context(span_context)
             conversation.validate()
             key = self._storage_key(conversation.conversation_reference.conversation.id)
             logger.debug("Storing conversation with key: %s", key)
             await self._storage.write({key: conversation})
 
-    async def get_conversation(self, conversation_id: str) -> Optional[Conversation]:
+    async def get_conversation(self, conversation_id: str) -> Conversation | None:
         """
         Retrieve a previously stored
         :class:`~microsoft_agents.hosting.core.app.proactive.conversation.Conversation`.
@@ -165,10 +164,10 @@ class Proactive(Generic[StateT]):
 
     async def send_activity(
         self,
-        adapter: "ChannelServiceAdapter",
-        conversation_id_or_conversation: "str | Conversation",
+        adapter: ChannelServiceAdapter,
+        conversation_id_or_conversation: str | Conversation,
         activity: Activity,
-    ) -> Optional[ResourceResponse]:
+    ) -> ResourceResponse | None:
         """
         Send a single activity into an existing conversation.
 
@@ -190,22 +189,26 @@ class Proactive(Generic[StateT]):
         """
         conversation = await self._resolve_conversation(conversation_id_or_conversation)
         conversation_id = conversation.conversation_reference.conversation.id
-        with spans.ProactiveSendActivity(conversation_id, activity):
+        with spans.ProactiveSendActivity(
+            conversation_id, activity, link=conversation._get_span_context()
+        ):
             return await Proactive._send_activity_impl(adapter, conversation, activity)
 
     @staticmethod
     async def _send_activity_impl(
-        adapter: "ChannelServiceAdapter",
+        adapter: ChannelServiceAdapter,
         conversation: Conversation,
         activity: Activity,
-    ) -> Optional[ResourceResponse]:
-        result: Optional[ResourceResponse] = None
-        captured_exc: Optional[BaseException] = None
+    ) -> ResourceResponse | None:
+        """Send an activity into a conversation without loading state or running a handler."""
+
+        result: ResourceResponse | None = None
+        captured_exc: BaseException | None = None
 
         claims = Conversation.identity_from_claims(conversation.claims)
         continuation = conversation.conversation_reference.get_continuation_activity()
 
-        async def _callback(context: "TurnContext") -> None:
+        async def _callback(context: TurnContext) -> None:
             nonlocal result, captured_exc
             try:
                 result = await context.send_activity(activity)
@@ -224,12 +227,12 @@ class Proactive(Generic[StateT]):
 
     async def continue_conversation(
         self,
-        adapter: "ChannelServiceAdapter",
-        conversation_id_or_conversation: "str | Conversation",
+        adapter: ChannelServiceAdapter,
+        conversation_id_or_conversation: str | Conversation,
         handler: RouteHandler,
         *,
-        continuation_activity: Optional[Activity] = None,
-        token_handlers: Optional[list[str]] = None,
+        continuation_activity: Activity | None = None,
+        token_handlers: list[str] | None = None,
     ) -> None:
         """
         Continue an existing conversation by invoking *handler* inside a full
@@ -264,21 +267,23 @@ class Proactive(Generic[StateT]):
         conversation = await self._resolve_conversation(conversation_id_or_conversation)
         conversation_id = conversation.conversation_reference.conversation.id
 
-        captured_exc: Optional[BaseException] = None
+        captured_exc: BaseException | None = None
         claims = Conversation.identity_from_claims(conversation.claims)
         continuation = (
             continuation_activity
             or conversation.conversation_reference.get_continuation_activity()
         )
 
-        async def _callback(context: "TurnContext") -> None:
+        async def _callback(context: TurnContext) -> None:
             nonlocal captured_exc
             try:
                 await self._on_turn(context, handler, token_handlers)
             except Exception as exc:  # noqa: BLE001
                 captured_exc = exc
 
-        with spans.ProactiveContinueConversation(conversation_id, continuation):
+        with spans.ProactiveContinueConversation(
+            conversation_id, continuation, link=conversation._get_span_context()
+        ):
 
             await adapter.continue_conversation_with_claims(
                 claims, continuation, _callback
@@ -293,9 +298,9 @@ class Proactive(Generic[StateT]):
 
     async def create_conversation(
         self,
-        adapter: "ChannelServiceAdapter",
+        adapter: ChannelServiceAdapter,
         options: CreateConversationOptions,
-        handler: Optional[RouteHandler] = None,
+        handler: RouteHandler | None = None,
     ) -> Conversation:
         """
         Create a brand-new conversation with a user and optionally run *handler*.
@@ -315,14 +320,14 @@ class Proactive(Generic[StateT]):
         """
         options.validate()
 
-        new_conversation: Optional[Conversation] = None
-        captured_exc: Optional[BaseException] = None
+        new_conversation: Conversation | None = None
+        captured_exc: BaseException | None = None
 
         with spans.ProactiveCreateConversation(options):
 
             audience = options.audience or options.identity.get_token_audience()
 
-            async def _callback(context: "TurnContext") -> None:
+            async def _callback(context: TurnContext) -> None:
                 nonlocal new_conversation, captured_exc
                 try:
                     reference = context.activity.get_conversation_reference()
@@ -361,14 +366,14 @@ class Proactive(Generic[StateT]):
 
     async def _on_turn(
         self,
-        context: "TurnContext",
+        context: TurnContext,
         handler: RouteHandler,
-        token_handlers: Optional[list[str]] = None,
+        token_handlers: list[str] | None = None,
     ) -> None:
         """Run a proactive turn: load state → optional OAuth check → handler → save state."""
         state = await self._load_state(context)
 
-        if token_handlers and self._app._auth:
+        if token_handlers:
             for handler_id in token_handlers:
                 result = await self._app._auth._start_or_continue_sign_in(
                     context, state, handler_id
@@ -388,7 +393,7 @@ class Proactive(Generic[StateT]):
         await handler(context, state)
         await state.save(context)
 
-    async def _load_state(self, context: "TurnContext") -> StateT:
+    async def _load_state(self, context: TurnContext) -> StateT:
         if self._app._turn_state_factory:
             state = self._app._turn_state_factory()
         else:
@@ -398,7 +403,7 @@ class Proactive(Generic[StateT]):
 
     async def _resolve_conversation(
         self,
-        conversation_id_or_conversation: "str | Conversation",
+        conversation_id_or_conversation: str | Conversation,
     ) -> Conversation:
         if isinstance(conversation_id_or_conversation, str):
             conversation = await self.get_conversation(conversation_id_or_conversation)

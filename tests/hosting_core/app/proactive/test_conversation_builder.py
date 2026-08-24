@@ -17,16 +17,11 @@ from microsoft_agents.hosting.core.authorization import ClaimsIdentity
 
 
 def _prep_build(builder: ConversationBuilder) -> ConversationBuilder:
-    """Make a ConversationBuilder ready to call .build() without Pydantic errors.
-
-    The implementation passes _agent_name and _conversation_id directly to
-    Pydantic models that reject None / empty-string values.  There is no public
-    API to set these on the builder, so tests set them directly.
-    """
-    if builder._agent_id and builder._agent_name is None:
-        builder._agent_name = "Agent"
+    """Make a ConversationBuilder ready to call .build()."""
     if not builder._conversation_id:
         builder._conversation_id = "conv-1"
+    if not builder._user_id:
+        builder.with_user("user-1")
     return builder
 
 
@@ -212,17 +207,23 @@ class TestConversationBuilderBuild:
         conv = _prep_build(ConversationBuilder.create("app-id", "msteams")).build()
         assert conv.conversation_reference.agent.id == "28:app-id"
 
-    def test_build_no_agent_when_id_none(self):
-        # When _agent_id is not set, build() passes bot=None to ConversationReference.
-        # ConversationReference.agent has Field(None, alias="bot") with ChannelAccount type,
-        # so explicitly passing bot=None raises a Pydantic ValidationError.
-        from pydantic import ValidationError
-
+    def test_build_requires_agent_id(self):
         builder = ConversationBuilder()
         builder._channel_id = "directline"
         builder._service_url = "https://directline.botframework.com/"
         builder._conversation_id = "conv-placeholder"
-        with pytest.raises(ValidationError):
+        builder._user_id = "user-id"
+        with pytest.raises(
+            ValueError, match="ConversationBuilder: agent_id is required"
+        ):
+            builder.build()
+
+    def test_build_requires_user_id(self):
+        builder = ConversationBuilder.create("app-id", "directline")
+        builder._conversation_id = "conv-placeholder"
+        with pytest.raises(
+            ValueError, match="ConversationBuilder: user_id is required"
+        ):
             builder.build()
 
     def test_build_sets_user(self):
