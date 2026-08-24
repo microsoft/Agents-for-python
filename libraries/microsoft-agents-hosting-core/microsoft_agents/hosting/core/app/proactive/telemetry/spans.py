@@ -3,6 +3,8 @@
 
 from __future__ import annotations
 
+from opentelemetry.trace import SpanContext
+
 from microsoft_agents.activity import Activity
 from microsoft_agents.hosting.core.telemetry import (
     AttributeMap,
@@ -78,13 +80,20 @@ class ProactiveDeleteConversation(SimpleSpanWrapper):
 class ProactiveSendActivity(SimpleSpanWrapper):
     """Span for sending an activity in proactive scenarios, starting from when the send operation is initiated until it is completed. This span can be used to correlate telemetry related to sending activities in proactive scenarios."""
 
-    def __init__(self, conversation_id: str, activity: Activity):
+    def __init__(
+        self,
+        conversation_id: str,
+        activity: Activity,
+        *,
+        link: SpanContext | None = None,
+    ):
         """Initializes the ProactiveSendActivity SpanWrapper.
 
         :param conversation_id: The ID of the conversation the activity is being sent to, used to extract attributes for the span
         :param activity: The activity being sent, used to extract attributes for the span
+        :param link: The span context to link to, used to correlate this span with other spans
         """
-        super().__init__(constants.SPAN_SEND_ACTIVITY)
+        super().__init__(constants.SPAN_SEND_ACTIVITY, link=link)
         self._conversation_id = conversation_id
         self._activity = activity
 
@@ -100,13 +109,20 @@ class ProactiveSendActivity(SimpleSpanWrapper):
 class ProactiveContinueConversation(SimpleSpanWrapper):
     """Span for continuing a conversation in proactive scenarios, starting from when the continue operation is initiated until it is completed. This span can be used to correlate telemetry related to continuing conversations in proactive scenarios."""
 
-    def __init__(self, conversation_id: str, activity: Activity):
+    def __init__(
+        self,
+        conversation_id: str,
+        activity: Activity,
+        *,
+        link: SpanContext | None = None,
+    ):
         """Initializes the ProactiveContinueConversation SpanWrapper.
 
         :param conversation_id: The ID of the conversation being continued, used to extract attributes for the span
         :param activity: The activity being sent, used to extract attributes for the span
+        :param link: The span context to link to, used to correlate this span with other spans
         """
-        super().__init__(constants.SPAN_CONTINUE_CONVERSATION)
+        super().__init__(constants.SPAN_CONTINUE_CONVERSATION, link=link)
         self._conversation_id = conversation_id
         self._activity = activity
 

@@ -1,4 +1,4 @@
-# Microsoft 365 Agents SDK for Python - Release Notes v1.5.0 (Unreleased)
+# Microsoft 365 Agents SDK for Python  -  Release Notes v1.5.0 (Unreleased)
 
 **Release Date:** Unreleased
 **Previous Version:** 1.4.0 (Released 2026-08-18)
@@ -10,6 +10,7 @@
 ## Developer Experience
 
 - **Authentication Configuration Validation**: Added validation for certificate, federated credential, and workload identity authentication settings
+- **Configuration Loading**: Expanded `load_configuration_from_env` to accept any mapping type
 
 ---
 

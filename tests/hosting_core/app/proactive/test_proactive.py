@@ -520,10 +520,12 @@ class TestProactiveCreateConversation:
         adapter.create_conversation.assert_called_once()
 
     @pytest.mark.asyncio
-    async def test_create_validates_options(self, proactive):
+    async def test_create_validates_options(self, proactive, identity):
         adapter = MagicMock()
         with pytest.raises(ValueError):
-            await proactive.create_conversation(adapter, CreateConversationOptions())
+            await proactive.create_conversation(
+                adapter, CreateConversationOptions(identity=identity)
+            )
 
     @pytest.mark.asyncio
     async def test_create_stores_conversation_when_flag_set(self, proactive, identity):
