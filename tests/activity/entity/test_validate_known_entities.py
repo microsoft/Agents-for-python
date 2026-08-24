@@ -84,6 +84,41 @@ def test_activity_matches_known_entity_types_case_insensitively(
     assert activity.entities[0].type == canonical_type
 
 
+@pytest.mark.parametrize(
+    "entity_data",
+    [
+        {"type": "streaminfo"},
+        {"type": "streaminfo", "streamSequence": None},
+    ],
+)
+def test_activity_deserializes_stream_info_without_sequence(entity_data):
+    activity = Activity.model_validate(
+        {
+            "type": "message",
+            "entities": [entity_data],
+        }
+    )
+
+    stream_info = activity.entities[0]
+
+    assert isinstance(stream_info, StreamInfo)
+    assert stream_info.stream_sequence is None
+
+
+def test_activity_omits_none_stream_sequence_when_serializing():
+    activity = Activity(type="message", entities=[StreamInfo()])
+
+    serialized = activity.model_dump(mode="json", by_alias=True, exclude_none=True)
+
+    assert serialized["entities"][0] == {
+        "type": "streaminfo",
+        "streamType": "streaming",
+        "streamId": "",
+        "streamResult": "",
+        "feedbackLoopEnabled": False,
+    }
+
+
 def test_activity_preserves_unknown_entity_types():
     activity = Activity.model_validate(
         {
