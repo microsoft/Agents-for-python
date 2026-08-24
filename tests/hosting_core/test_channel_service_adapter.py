@@ -2,6 +2,7 @@ import pytest
 
 from microsoft_agents.activity import (
     Activity,
+    ActivityTypes,
     ConversationResourceResponse,
     ConversationParameters,
     DeliveryModes,
@@ -159,6 +160,30 @@ class TestChannelServiceAdapter:
         assert context_arg.activity.service_url == service_url
         assert context_arg.services.get(UserTokenClientBase) is user_token_client
         assert not context_arg.services.has(ConnectorClientBase)
+
+    @pytest.mark.asyncio
+    async def test_send_activities_buffers_expect_replies_without_connector(
+        self, adapter
+    ):
+        context = TurnContext(
+            adapter,
+            Activity(
+                type=ActivityTypes.message,
+                conversation={"id": "conversation123"},
+                channel_id="channel_id",
+                delivery_mode=DeliveryModes.expect_replies,
+            ),
+        )
+        activities = [
+            Activity(type=ActivityTypes.message, text="reply"),
+            Activity(type=ActivityTypes.typing),
+        ]
+
+        responses = await adapter.send_activities(context, activities)
+
+        assert len(responses) == 2
+        assert context.buffered_reply_activities == activities
+        assert not context.services.has(ConnectorClientBase)
 
     @pytest.mark.asyncio
     async def test_process_activity_normal_no_service_url(

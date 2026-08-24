@@ -124,7 +124,7 @@ class TypingIndicator:
         self._stopped: bool = False
         self._hook_registered: bool = False
 
-    async def __aenter__(self) -> "TypingIndicator":
+    async def __aenter__(self) -> TypingIndicator:
         self.start()
         return self
 
