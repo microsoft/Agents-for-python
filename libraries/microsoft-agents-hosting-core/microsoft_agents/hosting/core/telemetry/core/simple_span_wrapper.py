@@ -5,7 +5,7 @@ from abc import ABC
 from collections.abc import Iterator
 from contextlib import contextmanager
 
-from opentelemetry.trace import Span
+from opentelemetry.trace import Span, Link, SpanContext
 
 from ._agents_telemetry import agents_telemetry
 from .base_span_wrapper import BaseSpanWrapper
@@ -15,9 +15,26 @@ from .type_defs import AttributeMap
 class SimpleSpanWrapper(BaseSpanWrapper, ABC):
     """Simple implementation of the BaseSpanWrapper that can be used when no additional attributes or functionality are needed on the span beyond what is provided by the base BaseSpanWrapper class. This can be used as a simple wrapper around an OTEL span for cases where no SDK-specific telemetry is needed, while still providing the benefits of the BaseSpanWrapper abstraction and lifecycle management."""
 
-    def __init__(self, span_name: str):
+    def __init__(
+        self,
+        span_name: str,
+        *,
+        link: Link | SpanContext | list[Link | SpanContext] | None = None,
+    ) -> None:
         super().__init__()
         self._span_name = span_name
+        self._link = []
+
+        links_list: list[Link | SpanContext]
+        if isinstance(link, list):
+            links_list = link
+        else:
+            links_list = [link] if link is not None else []
+        for item in links_list:
+            if isinstance(item, SpanContext):
+                self._link.append(Link(item))
+            else:
+                self._link.append(item)
 
     def _get_attributes(self) -> AttributeMap:
         """Returns a dictionary of attributes to set on the span when it is started. This can be overridden by subclasses to provide custom attributes for the span based on the context in which it is being used."""
@@ -31,7 +48,9 @@ class SimpleSpanWrapper(BaseSpanWrapper, ABC):
     def _start_span(self) -> Iterator[Span]:
         """Starts a basic OTEL span with the given name and no additional attributes."""
         with agents_telemetry.start_as_current_span(
-            self._span_name, callback=self._callback
+            self._span_name,
+            callback=self._callback,
+            links=self._link,
         ) as span:
             try:
                 yield span

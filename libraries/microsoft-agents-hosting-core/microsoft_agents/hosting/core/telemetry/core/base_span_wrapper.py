@@ -8,6 +8,7 @@ import logging
 from abc import ABC, abstractmethod
 from contextlib import ExitStack
 from typing import ContextManager
+from typing_extensions import Self
 
 from opentelemetry.trace import Span
 
@@ -46,8 +47,7 @@ class BaseSpanWrapper(ABC):
         )
         logger.warning("Description: %s", desc)
 
-    # TODO -> Add Self annotation once 3.11 is the minimum supported version
-    def __enter__(self):
+    def __enter__(self) -> Self:
         """Starts the BaseSpanWrapper and returns the BaseSpanWrapper instance for chaining. This method should check if the BaseSpanWrapper is already active and log a warning if an attempt is made to start an already active BaseSpanWrapper, to help identify potential issues with BaseSpanWrapper lifecycle management."""
         if self._active:
             BaseSpanWrapper._log_lifespan_error(
@@ -59,11 +59,11 @@ class BaseSpanWrapper(ABC):
 
         return self
 
-    def start(self) -> BaseSpanWrapper:
+    def start(self) -> Self:
         """Starts the BaseSpanWrapper and returns the BaseSpanWrapper instance for chaining"""
         return self.__enter__()
 
-    def __exit__(self, exc_type, exc_val, exc_tb):
+    def __exit__(self, exc_type, exc_val, exc_tb) -> None:
         """Stops the BaseSpanWrapper if it is active, and logs a warning if an attempt is made to stop a BaseSpanWrapper that is not active. This ensures that BaseSpanWrappers are properly cleaned up and that potential issues with BaseSpanWrapper lifecycle management are logged for debugging purposes."""
         if self._active:
             self._exit_stack.__exit__(exc_type, exc_val, exc_tb)
