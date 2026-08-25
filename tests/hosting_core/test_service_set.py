@@ -1,3 +1,5 @@
+from typing import Protocol, runtime_checkable
+
 import pytest
 
 from microsoft_agents.hosting.core._utils._service_set import _ServiceSet
@@ -9,6 +11,18 @@ class Service:
 
 class OtherService:
     pass
+
+
+@runtime_checkable
+class ServiceProtocol(Protocol):
+    @property
+    def unsupported_operation(self) -> str: ...
+
+
+class ProtocolService:
+    @property
+    def unsupported_operation(self) -> str:
+        raise NotImplementedError()
 
 
 def test_get_returns_none_for_missing_service():
@@ -76,3 +90,11 @@ def test_get_raises_type_error_when_stored_value_does_not_match_key():
         TypeError,
     ):
         services.get(Service)
+
+
+def test_get_does_not_evaluate_runtime_protocol_properties():
+    service = ProtocolService()
+    services = _ServiceSet()
+    services.set(ServiceProtocol, service)
+
+    assert services.get(ServiceProtocol) is service

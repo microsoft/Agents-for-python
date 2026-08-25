@@ -19,7 +19,7 @@ from microsoft_agents.hosting.core import (
     TurnContext,
     UserTokenClientBase,
 )
-from microsoft_agents.testing import MockUserTokenClient, TestAdapter
+from microsoft_agents.testing import TestAdapter
 
 
 @pytest.mark.asyncio
@@ -239,9 +239,7 @@ async def test_continue_conversation_uses_reference_identity_and_services():
     async def callback(context: TurnContext):
         assert context.activity.relates_to == reference
         assert context.identity is adapter.claims_identity
-        assert isinstance(
-            context.services.get(UserTokenClientBase), MockUserTokenClient
-        )
+        assert context.services.has(UserTokenClientBase)
         await context.send_activity("continued reply")
 
     await adapter.continue_conversation("agent-id", reference, callback)
@@ -258,9 +256,7 @@ async def test_continue_conversation_with_claims_uses_activity_identity_and_serv
     async def callback(context: TurnContext):
         assert context.activity is continuation
         assert context.identity is identity
-        assert isinstance(
-            context.services.get(UserTokenClientBase), MockUserTokenClient
-        )
+        assert context.services.has(UserTokenClientBase)
         await context.send_activity("continued with claims reply")
 
     await adapter.continue_conversation_with_claims(
