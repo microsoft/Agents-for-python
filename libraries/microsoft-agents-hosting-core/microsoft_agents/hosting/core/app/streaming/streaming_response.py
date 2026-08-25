@@ -518,13 +518,13 @@ class StreamingResponse:
         )
         entities = []
         if add_stream_final:
-            entities.append(
-                StreamInfo(
-                    stream_type="final",
-                    stream_id=self._stream_id,
-                    stream_result="success" if self._message else "error",
-                )
+            stream_info = StreamInfo(
+                stream_type="final",
+                stream_result="success" if self._message else "error",
             )
+            if self._stream_id:
+                stream_info.stream_id = self._stream_id
+            entities.append(stream_info)
 
         return Activity(
             id=self._stream_id,
@@ -772,16 +772,19 @@ class StreamingResponse:
             self._create_stream_timed_out_message(add_stream_final=True)
         )
 
-        self._stream_timeout_notification_sent = True
         self._is_streaming_channel = False
         self._queue.clear()
         self._chunk_queued = False
         self._clear_stream_timers()
 
-        for timed_out_activity in timed_out_activities:
-            self._queue_activity(lambda activity=timed_out_activity: activity)
-
+        # Preserve ordering with an activity that may already be in flight, then
+        # track whether the final stream terminator was actually delivered.
         await self.wait_for_queue()
+        for timed_out_activity in timed_out_activities[:-1]:
+            await self._send_activity(timed_out_activity)
+        self._stream_timeout_notification_sent = await self._send_activity(
+            timed_out_activities[-1]
+        )
 
     def _clear_stream_timers(self) -> None:
         current_task = asyncio.current_task()

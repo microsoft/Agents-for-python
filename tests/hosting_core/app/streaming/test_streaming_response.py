@@ -563,6 +563,74 @@ async def test_m365_copilot_timeout_finalizes_and_falls_back(mocker, monkeypatch
 
 
 @pytest.mark.asyncio
+async def test_m365_copilot_timeout_handles_empty_resource_response(
+    mocker, monkeypatch
+):
+    monkeypatch.setattr(streaming_module, "_M365_WORKING_NOTICE_INTERVAL", 10.0)
+    monkeypatch.setattr(streaming_module, "_M365_STREAMING_TIMEOUT", 0.01)
+    context = _create_turn_context(
+        mocker,
+        channel_id=ChannelId("msteams:copilot"),
+        return_value=ResourceResponse(),
+    )
+    response = StreamingResponse(context)
+    response._interval = 0
+
+    response.queue_text_chunk("Buffered response")
+    await response.wait_for_queue()
+    await asyncio.sleep(0.03)
+
+    assert response.is_streaming_channel is False
+    timeout_final = next(
+        call.args[0]
+        for call in context.send_activity.await_args_list
+        if any(
+            getattr(entity, "stream_type", None) == "final"
+            for entity in call.args[0].entities
+        )
+    )
+    stream_info = next(
+        entity
+        for entity in timeout_final.entities
+        if getattr(entity, "stream_type", None) == "final"
+    )
+    assert stream_info.stream_id == ""
+
+
+@pytest.mark.asyncio
+async def test_m365_copilot_timeout_delivery_failure_sends_fallback(
+    mocker, monkeypatch
+):
+    monkeypatch.setattr(streaming_module, "_M365_WORKING_NOTICE_INTERVAL", 10.0)
+    monkeypatch.setattr(streaming_module, "_M365_STREAMING_TIMEOUT", 0.01)
+    context = _create_turn_context(
+        mocker,
+        channel_id=ChannelId("msteams:copilot"),
+        return_value=[
+            ResourceResponse(id="m365-timeout"),
+            RuntimeError("BadArgument: Streaming API is not enabled"),
+            ResourceResponse(id="fallback-final"),
+        ],
+    )
+    response = StreamingResponse(context)
+    response._interval = 0
+
+    response.queue_informative_update("Starting...")
+    await response.wait_for_queue()
+    await asyncio.sleep(0.03)
+
+    assert response.is_streaming_channel is False
+    assert response._stream_timeout_notification_sent is False
+
+    await response.end_stream()
+
+    fallback = context.send_activity.await_args_list[-1].args[0]
+    assert fallback.type == "message"
+    assert fallback.text == "end stream response"
+    assert fallback.entities == []
+
+
+@pytest.mark.asyncio
 async def test_feedback_loop_type_added_to_final_streaminfo_entity(mocker):
     context = _create_turn_context(
         mocker,
