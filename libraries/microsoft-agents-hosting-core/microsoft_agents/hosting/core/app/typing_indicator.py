@@ -135,7 +135,7 @@ class TypingIndicator:
 
     async def _send_typing(self) -> None:
         """Sends a single typing activity via the adapter, bypassing middleware."""
-        with spans.TypingSendTyping():
+        with spans.TypingSendTyping(self._context):
             ref = self._context.activity.get_conversation_reference()
             typing_activity = TurnContext.apply_conversation_reference(
                 Activity(type=ActivityTypes.typing), ref

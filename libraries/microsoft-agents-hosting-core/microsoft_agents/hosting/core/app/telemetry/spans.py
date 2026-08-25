@@ -11,7 +11,6 @@ from microsoft_agents.hosting.core.telemetry import (
     SimpleSpanWrapper,
     get_conversation_id,
 )
-from microsoft_agents.hosting.core.app._routes import _Route
 from . import constants, metrics
 
 
@@ -116,6 +115,15 @@ class AppDownloadFiles(SimpleSpanWrapper):
 class TypingSendTyping(SimpleSpanWrapper):
     """Span for the logic related to sending typing indicators in the TypingIndicator."""
 
-    def __init__(self):
+    def __init__(self, turn_context: TurnContextProtocol):
         """Initializes the TypingSendTyping SpanWrapper."""
         super().__init__(constants.SPAN_SEND_TYPING)
+        self._turn_context = turn_context
+
+    def _get_attributes(self) -> AttributeMap:
+        return {
+            attributes.ACTIVITY_CHANNEL_ID: self._turn_context.activity.channel_id
+            or "",
+            attributes.CONVERSATION_ID: self._turn_context.activity.conversation.id
+            or "",
+        }
