@@ -12,7 +12,7 @@ provides its own implementation.
 
 import asyncio
 
-from typing import Awaitable, Any
+from typing import Awaitable, Any, Callable
 
 from datetime import datetime, timezone
 
@@ -241,6 +241,41 @@ class TestAdapter(ChannelAdapter):
         await self.run_pipeline(context, callback)
         return None
 
+    async def continue_conversation(
+        self,
+        agent_id: str,  # pylint: disable=unused-argument
+        reference: ConversationReference,
+        callback: Callable[[TurnContext], Awaitable],
+    ):
+        context = self.create_turn_context(reference.get_continuation_activity(), None)
+        return await self.run_pipeline(context, callback)
+
+    async def continue_conversation_with_claims(
+        self,
+        claims_identity: ClaimsIdentity,
+        continuation_activity: Activity,
+        callback: Callable[[TurnContext], Awaitable],
+        audience: str | None = None,
+    ):
+        """
+        Continue a conversation with the provided claims identity.
+
+        :param claims_identity: The claims identity for the conversation.
+        :type claims_identity: :class:`microsoft_agents.hosting.core.authorization.ClaimsIdentity`
+        :param continuation_activity: The activity to continue the conversation with.
+        :type continuation_activity: :class:`microsoft_agents.activity.Activity`
+        :param callback: The method to call for the resulting agent turn.
+        :type callback: Callable[[:class:`microsoft_agents.hosting.core.turn_context.TurnContext`], Awaitable]
+        :param audience: The audience for the conversation.
+        :type audience: str | None
+        """
+        return await self.process_proactive(
+            claims_identity,
+            continuation_activity,
+            audience or claims_identity.get_token_audience(),
+            callback,
+        )
+
     async def process_proactive(
         self,
         claims_identity: ClaimsIdentity,
@@ -353,7 +388,7 @@ class TestAdapter(ChannelAdapter):
         audience: str,
         conversation_parameters: ConversationParameters,
         callback: AgentCallbackHandler[T],
-    ) -> Awaitable[Any]:
+    ) -> Any:
         raise NotImplementedError()
 
     def get_activity_snapshot(self) -> list[Activity]:

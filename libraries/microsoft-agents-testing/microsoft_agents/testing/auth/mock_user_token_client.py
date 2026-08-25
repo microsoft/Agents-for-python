@@ -5,11 +5,9 @@ from uuid import uuid4
 
 from microsoft_agents.activity import (
     Activity,
-    ChannelId,
     SignInResource,
     TokenExchangeRequest,
     TokenExchangeResource,
-    TokenExchangeState,
     TokenOrSignInResourceResponse,
     TokenPostResource,
     TokenResponse,
@@ -146,7 +144,7 @@ class MockUserTokenClient(UserTokenClientBase):
         user_id: str,
         connection_name: str,
         channel_id: str,
-        magic_code: str | None,
+        magic_code: str | None = None,
     ) -> TokenResponse:
         """Retrieve a fake user token from the in-memory store.
 

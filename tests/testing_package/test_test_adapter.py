@@ -17,8 +17,9 @@ from microsoft_agents.activity import (
 from microsoft_agents.hosting.core import (
     ClaimsIdentity,
     TurnContext,
+    UserTokenClientBase,
 )
-from microsoft_agents.testing import TestAdapter
+from microsoft_agents.testing import MockUserTokenClient, TestAdapter
 
 
 @pytest.mark.asyncio
@@ -228,6 +229,48 @@ async def test_proactive_turn_uses_the_supplied_activity_and_identity():
     )
 
     assert adapter.get_next_reply().text == "proactive reply"
+
+
+@pytest.mark.asyncio
+async def test_continue_conversation_uses_reference_identity_and_services():
+    adapter = TestAdapter()
+    reference = adapter.conversation.model_copy(update={"activity_id": "activity-1"})
+
+    async def callback(context: TurnContext):
+        assert context.activity.relates_to == reference
+        assert context.identity is adapter.claims_identity
+        assert isinstance(
+            context.services.get(UserTokenClientBase), MockUserTokenClient
+        )
+        await context.send_activity("continued reply")
+
+    await adapter.continue_conversation("agent-id", reference, callback)
+
+    assert adapter.get_next_reply().text == "continued reply"
+
+
+@pytest.mark.asyncio
+async def test_continue_conversation_with_claims_uses_activity_identity_and_services():
+    adapter = TestAdapter()
+    identity = ClaimsIdentity({"sub": "proactive-user"}, True)
+    continuation = adapter.conversation.get_continuation_activity()
+
+    async def callback(context: TurnContext):
+        assert context.activity is continuation
+        assert context.identity is identity
+        assert isinstance(
+            context.services.get(UserTokenClientBase), MockUserTokenClient
+        )
+        await context.send_activity("continued with claims reply")
+
+    await adapter.continue_conversation_with_claims(
+        identity,
+        continuation,
+        callback,
+        audience="test-audience",
+    )
+
+    assert adapter.get_next_reply().text == "continued with claims reply"
 
 
 def test_create_conversation_model_and_create_activity_honor_public_configuration():
