@@ -10,8 +10,9 @@ from opentelemetry.sdk.trace.sampling import (
 from opentelemetry.trace import Link, SpanKind, get_current_span
 from opentelemetry.trace.span import TraceState
 from opentelemetry.util.types import Attributes
+from microsoft_agents.hosting.core.app.telemetry import constants
 
-TYPING_SPAN_NAME = "agents.app.send_typing"
+TYPING_SPAN_NAME = constants.SPAN_SEND_TYPING
 
 
 class DropTypingSampler(Sampler):
