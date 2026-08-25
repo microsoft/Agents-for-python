@@ -41,7 +41,7 @@ the OpenTelemetry distro reads its configuration and installs instrumentation
 before `src.main` is imported.
 
 `OTEL_TRACES_SAMPLER=drop_typing` selects the sampler plugin. It drops the
-`agents.app.send_typing` span. OpenTelemetry gives its descendants the resulting
+`agents.app.typing_indicator` span. OpenTelemetry gives its descendants the resulting
 unsampled parent context, so the sampler drops those spans too. Other traces use
 parent-based always-on sampling.
 
