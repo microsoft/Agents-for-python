@@ -24,7 +24,7 @@ from microsoft_agents.hosting.testing import (
     ClientConfig,
     ScenarioConfig,
 )
-from microsoft_agents.hosting.testing import MockUserTokenClient
+from microsoft_agents.testing import MockUserTokenClient
 
 _APP_ID = "test-app-id"
 _CONVERSATION_ID = "auth-continuation-conversation"
