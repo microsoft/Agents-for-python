@@ -338,6 +338,31 @@ async def test_streaming_not_supported_fallback_sends_non_streaming_final(mocker
 
 
 @pytest.mark.asyncio
+async def test_unknown_send_error_preserves_stream_state(mocker):
+    context = _create_turn_context(mocker, channel_id=Channels.ms_teams)
+    response = StreamingResponse(context)
+    queued_activity = mocker.Mock()
+    keep_alive_task = mocker.Mock()
+    stream_timeout_task = mocker.Mock()
+    response._queue = [queued_activity]
+    response._chunk_queued = True
+    response._keep_alive_task = keep_alive_task
+    response._stream_timeout_task = stream_timeout_task
+
+    with pytest.raises(RuntimeError, match="Temporary network failure"):
+        await response._handle_send_error(RuntimeError("Temporary network failure"))
+
+    assert response._cancelled is False
+    assert response.is_streaming_channel is True
+    assert response._queue == [queued_activity]
+    assert response._chunk_queued is True
+    assert response._keep_alive_task is keep_alive_task
+    assert response._stream_timeout_task is stream_timeout_task
+    keep_alive_task.cancel.assert_not_called()
+    stream_timeout_task.cancel.assert_not_called()
+
+
+@pytest.mark.asyncio
 async def test_timeout_notification_stops_stream_and_updates_teams_final(mocker):
     context = _create_turn_context(
         mocker,
@@ -628,6 +653,78 @@ async def test_m365_copilot_timeout_delivery_failure_sends_fallback(
     assert fallback.type == "message"
     assert fallback.text == "end stream response"
     assert fallback.entities == []
+
+
+@pytest.mark.asyncio
+async def test_m365_copilot_timeout_unknown_error_sends_fallback(mocker, monkeypatch):
+    monkeypatch.setattr(streaming_module, "_M365_WORKING_NOTICE_INTERVAL", 10.0)
+    monkeypatch.setattr(streaming_module, "_M365_STREAMING_TIMEOUT", 0.01)
+    context = _create_turn_context(
+        mocker,
+        channel_id=ChannelId("msteams:copilot"),
+        return_value=[
+            ResourceResponse(id="m365-timeout"),
+            RuntimeError("Temporary network failure"),
+            ResourceResponse(id="fallback-final"),
+        ],
+    )
+    response = StreamingResponse(context)
+    response._interval = 0
+
+    response.queue_informative_update("Starting...")
+    await response.wait_for_queue()
+    await asyncio.sleep(0.03)
+
+    assert response.is_streaming_channel is False
+    assert response._cancelled is False
+    assert response._stream_timeout_notification_sent is False
+
+    await response.end_stream()
+
+    fallback = context.send_activity.await_args_list[-1].args[0]
+    assert fallback.type == "message"
+    assert fallback.text == "end stream response"
+    assert fallback.entities == []
+
+
+@pytest.mark.asyncio
+async def test_end_stream_waits_for_m365_timeout_recovery(mocker):
+    context = _create_turn_context(
+        mocker,
+        channel_id=ChannelId("msteams:copilot"),
+    )
+    response = StreamingResponse(context)
+    response._interval = 0
+    response._message = "Completed response text."
+    response._stream_id = "m365-stream"
+    timeout_send_started = asyncio.Event()
+    release_timeout_send = asyncio.Event()
+
+    async def send_activity(_activity):
+        if not timeout_send_started.is_set():
+            timeout_send_started.set()
+            await release_timeout_send.wait()
+        return ResourceResponse(id="m365-stream")
+
+    context.send_activity.side_effect = send_activity
+
+    timeout_task = asyncio.create_task(response._handle_m365_stream_timeout())
+    await timeout_send_started.wait()
+    end_task = asyncio.create_task(response.end_stream())
+    await asyncio.sleep(0)
+
+    assert end_task.done() is False
+    assert context.send_activity.await_count == 1
+
+    release_timeout_send.set()
+    await asyncio.gather(timeout_task, end_task)
+
+    sent_activities = [
+        call.args[0] for call in context.send_activity.await_args_list
+    ]
+    assert sent_activities[1].entities[0].stream_type == "final"
+    assert sent_activities[2].text == "Completed response text."
+    assert sent_activities[2].entities == []
 
 
 @pytest.mark.asyncio

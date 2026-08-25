@@ -87,6 +87,7 @@ class StreamingResponse:
         self._last_informational_message_sent = ""
         self._keep_alive_task: Optional[asyncio.Task[None]] = None
         self._stream_timeout_task: Optional[asyncio.Task[None]] = None
+        self._stream_timeout_recovery_complete: Optional[asyncio.Event] = None
         if not hasattr(self, "_streaming_taking_too_long_message"):
             self._streaming_taking_too_long_message = (
                 _DEFAULT_STREAMING_TAKING_TOO_LONG_MESSAGE
@@ -170,6 +171,7 @@ class StreamingResponse:
             raise RuntimeError(str(error_resources.StreamAlreadyEnded))
 
         self._ended = True
+        await self._wait_for_stream_timeout_recovery()
         self._clear_stream_timers()
 
         if self._cancelled:
@@ -243,22 +245,28 @@ class StreamingResponse:
         if self._ended or self._cancelled or not self._is_streaming_channel:
             return False
 
-        # Stop accepting stream work before waiting. Otherwise, a producer can
-        # keep adding activities faster than the queue drains and delay this
-        # notification until after the channel timeout.
-        self._is_streaming_channel = False
-        self._queue.clear()
-        self._chunk_queued = False
-        self._clear_stream_timers()
+        recovery_complete = self._begin_stream_timeout_recovery()
+        try:
+            # Stop accepting stream work before waiting. Otherwise, a producer can
+            # keep adding activities faster than the queue drains and delay this
+            # notification until after the channel timeout.
+            self._is_streaming_channel = False
+            self._queue.clear()
+            self._chunk_queued = False
+            self._clear_stream_timers()
 
-        # Preserve ordering with the one activity that can already be in flight.
-        await self.wait_for_queue()
-        sent = await self._send_activity(self._create_stream_stopped_message(message))
-        if not sent:
-            return False
+            # Preserve ordering with the one activity that can already be in flight.
+            await self.wait_for_queue()
+            sent = await self._send_activity(
+                self._create_stream_stopped_message(message)
+            )
+            if not sent:
+                return False
 
-        self._stream_timeout_notification_sent = True
-        return True
+            self._stream_timeout_notification_sent = True
+            return True
+        finally:
+            self._complete_stream_timeout_recovery(recovery_complete)
 
     def set_attachments(self, attachments: list[Attachment]) -> None:
         """
@@ -649,6 +657,17 @@ class StreamingResponse:
         is_content_not_allowed = "contentstreamnotallowed" in normalized_message
         is_teams_403 = "403" in normalized_message and self._is_teams_channel()
         is_timeout = _TEAMS_STREAM_TIMED_OUT.lower() in normalized_message
+        is_streaming_unsupported = (
+            "badargument" in normalized_message
+            and "streaming api is not enabled" in normalized_message
+        )
+
+        if not (is_content_not_allowed or is_teams_403 or is_streaming_unsupported):
+            logger.error(
+                "Exception during StreamingResponse send_activity: %s",
+                type(err).__name__,
+            )
+            raise err
 
         self._cancelled = True
         self._queue.clear()
@@ -668,21 +687,12 @@ class StreamingResponse:
         elif is_content_not_allowed or is_teams_403:
             logger.warning("Streaming content was cancelled by the client: %s", message)
             self._user_cancelled = True
-        elif (
-            "badargument" in normalized_message
-            and "streaming api is not enabled" in normalized_message
-        ):
+        else:
             logger.warning(
                 "The interaction does not support streaming. Using non-streaming mode."
             )
             self._cancelled = False
             self._is_streaming_channel = False
-        else:
-            logger.error(
-                "Exception during StreamingResponse send_activity: %s",
-                type(err).__name__,
-            )
-            raise err
 
     async def _update_activity(self, activity: Activity) -> bool:
         try:
@@ -758,33 +768,54 @@ class StreamingResponse:
         ):
             return
 
-        logger.warning(
-            "M365 Copilot streaming reached its maximum duration. "
-            "Continuing in non-streaming mode."
-        )
-
-        timed_out_activities = []
-        if self._message:
-            timed_out_activities.append(
-                self._create_stream_timed_out_streaming_update()
+        recovery_complete = self._begin_stream_timeout_recovery()
+        try:
+            logger.warning(
+                "M365 Copilot streaming reached its maximum duration. "
+                "Continuing in non-streaming mode."
             )
-        timed_out_activities.append(
-            self._create_stream_timed_out_message(add_stream_final=True)
-        )
 
-        self._is_streaming_channel = False
-        self._queue.clear()
-        self._chunk_queued = False
-        self._clear_stream_timers()
+            timed_out_activities = []
+            if self._message:
+                timed_out_activities.append(
+                    self._create_stream_timed_out_streaming_update()
+                )
+            timed_out_activities.append(
+                self._create_stream_timed_out_message(add_stream_final=True)
+            )
 
-        # Preserve ordering with an activity that may already be in flight, then
-        # track whether the final stream terminator was actually delivered.
-        await self.wait_for_queue()
-        for timed_out_activity in timed_out_activities[:-1]:
-            await self._send_activity(timed_out_activity)
-        self._stream_timeout_notification_sent = await self._send_activity(
-            timed_out_activities[-1]
-        )
+            self._is_streaming_channel = False
+            self._queue.clear()
+            self._chunk_queued = False
+            self._clear_stream_timers()
+
+            # Preserve ordering with an activity that may already be in flight, then
+            # track whether the final stream terminator was actually delivered.
+            await self.wait_for_queue()
+            for timed_out_activity in timed_out_activities[:-1]:
+                await self._send_activity(timed_out_activity)
+            self._stream_timeout_notification_sent = await self._send_activity(
+                timed_out_activities[-1]
+            )
+        finally:
+            self._complete_stream_timeout_recovery(recovery_complete)
+
+    def _begin_stream_timeout_recovery(self) -> asyncio.Event:
+        recovery_complete = asyncio.Event()
+        self._stream_timeout_recovery_complete = recovery_complete
+        return recovery_complete
+
+    def _complete_stream_timeout_recovery(
+        self, recovery_complete: asyncio.Event
+    ) -> None:
+        recovery_complete.set()
+        if self._stream_timeout_recovery_complete is recovery_complete:
+            self._stream_timeout_recovery_complete = None
+
+    async def _wait_for_stream_timeout_recovery(self) -> None:
+        recovery_complete = self._stream_timeout_recovery_complete
+        if recovery_complete:
+            await recovery_complete.wait()
 
     def _clear_stream_timers(self) -> None:
         current_task = asyncio.current_task()
