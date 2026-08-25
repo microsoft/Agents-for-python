@@ -31,6 +31,15 @@ if TYPE_CHECKING:
 
 logger = logging.getLogger(__name__)
 
+_TEAMS_STREAM_TIMED_OUT = "Content stream finished due to exceeded streaming time."
+_DEFAULT_STREAMING_TAKING_TOO_LONG_MESSAGE = (
+    "The response is taking longer than expected. Please wait while we continue "
+    "to generate the response."
+)
+_M365_COPILOT_CHANNEL_PREFIX = "msteams:copilot"
+_M365_STREAMING_TIMEOUT = 105.0
+_M365_WORKING_NOTICE_INTERVAL = 35.0
+
 
 class StreamingResponse:
     """
@@ -72,6 +81,17 @@ class StreamingResponse:
         self._chunk_queued = False
         self._ended = False
         self._cancelled = False
+        self._user_cancelled = False
+        self._stream_timed_out = False
+        self._stream_timeout_notification_sent = False
+        self._last_informational_message_sent = ""
+        self._keep_alive_task: Optional[asyncio.Task[None]] = None
+        self._stream_timeout_task: Optional[asyncio.Task[None]] = None
+        self._stream_timeout_recovery_complete: Optional[asyncio.Event] = None
+        if not hasattr(self, "_streaming_taking_too_long_message"):
+            self._streaming_taking_too_long_message = (
+                _DEFAULT_STREAMING_TAKING_TOO_LONG_MESSAGE
+            )
         self._attachments: Optional[list[Attachment]] = None
         self._citations: list[ClientCitation] = []
         self._sensitivity_label: Optional[SensitivityUsageInfo] = None
@@ -89,7 +109,10 @@ class StreamingResponse:
         Args:
             text: The informative text to send to the client.
         """
-        if self._cancelled or not self._is_streaming_channel:
+        if self._is_m365_copilot():
+            self._last_informational_message_sent = text
+
+        if self._cancelled or not self._is_streaming_channel or not text.strip():
             return
 
         if self._ended:
@@ -136,8 +159,9 @@ class StreamingResponse:
         # If there are citations, modify the content so that the sources are numbers instead of [doc1], [doc2], etc.
         self._message = CitationUtil.format_citations_response(self._message)
 
-        # Queue the next chunk
-        self._queue_next_chunk()
+        # Queue the next chunk only while the channel accepts streaming updates.
+        if self._is_streaming_channel:
+            self._queue_next_chunk()
 
     async def end_stream(self) -> None:
         """
@@ -146,12 +170,103 @@ class StreamingResponse:
         if self._ended:
             raise RuntimeError(str(error_resources.StreamAlreadyEnded))
 
-        # Queue final message
         self._ended = True
+        await self._wait_for_stream_timeout_recovery()
+        self._clear_stream_timers()
+
+        if self._cancelled:
+            return
+
+        if not self._is_streaming_channel:
+            # A failed streaming send can still be updating the timed-out activity.
+            # Wait so that the completed response is always the last activity.
+            await self.wait_for_queue()
+
+            if (
+                self._stream_timeout_notification_sent
+                and not self._message
+                and not self._attachments
+            ):
+                return
+
+            final_activity = self._create_final_message(include_stream_info=False)
+            if self._should_update_final_activity():
+                updated = await self._update_activity(final_activity)
+                if not updated:
+                    await self._send_activity(
+                        final_activity,
+                        ensure_stream_info=False,
+                    )
+            else:
+                await self._send_activity(
+                    final_activity,
+                    ensure_stream_info=False,
+                )
+            return
+
+        # Queue final message.
         self._queue_next_chunk()
 
         # Wait for the queue to drain
         await self.wait_for_queue()
+
+        # The final streaming send can itself report a channel timeout. Its queued
+        # activity was discarded and must be applied after timeout recovery.
+        if self._should_update_final_activity():
+            final_activity = self._create_final_message(include_stream_info=False)
+            updated = await self._update_activity(final_activity)
+            if not updated:
+                await self._send_activity(
+                    final_activity,
+                    ensure_stream_info=False,
+                )
+        elif not self._is_streaming_channel:
+            await self._send_activity(
+                self._create_final_message(include_stream_info=False),
+                ensure_stream_info=False,
+            )
+
+    @property
+    def is_streaming_channel(self) -> bool:
+        """Whether the current channel accepts streaming activities."""
+        return self._is_streaming_channel
+
+    @property
+    def streaming_taking_too_long_message(self) -> str:
+        """Message sent when streaming takes longer than the channel allows."""
+        return self._streaming_taking_too_long_message
+
+    @streaming_taking_too_long_message.setter
+    def streaming_taking_too_long_message(self, message: str) -> None:
+        self._streaming_taking_too_long_message = message
+
+    async def send_stream_timed_out_notification(self, message: str) -> bool:
+        """End streaming while allowing the underlying operation to continue."""
+        if self._ended or self._cancelled or not self._is_streaming_channel:
+            return False
+
+        recovery_complete = self._begin_stream_timeout_recovery()
+        try:
+            # Stop accepting stream work before waiting. Otherwise, a producer can
+            # keep adding activities faster than the queue drains and delay this
+            # notification until after the channel timeout.
+            self._is_streaming_channel = False
+            self._queue.clear()
+            self._chunk_queued = False
+            self._clear_stream_timers()
+
+            # Preserve ordering with the one activity that can already be in flight.
+            await self.wait_for_queue()
+            sent = await self._send_activity(
+                self._create_stream_stopped_message(message)
+            )
+            if not sent:
+                return False
+
+            self._stream_timeout_notification_sent = True
+            return True
+        finally:
+            self._complete_stream_timeout_recovery(recovery_complete)
 
     def set_attachments(self, attachments: list[Attachment]) -> None:
         """
@@ -188,6 +303,7 @@ class StreamingResponse:
         If the stream is still running, this will wait for completion.
         """
         await self.wait_for_queue()
+        self._clear_stream_timers()
         self._initialize_state()
 
         # Set defaults based on channel
@@ -278,7 +394,11 @@ class StreamingResponse:
             context.activity.channel_id.channel if context.activity.channel_id else None
         )
 
-        if channel == Channels.ms_teams:
+        if context.activity.delivery_mode == DeliveryModes.expect_replies:
+            # Replies are buffered until the turn completes. Running streaming
+            # timers here produces late, misleading timeout activities.
+            self._is_streaming_channel = False
+        elif channel == Channels.ms_teams:
             if context.activity.is_agentic_request():
                 # Agentic requests do not support streaming responses at this time.
                 # TODO : Enable streaming for agentic requests when supported.
@@ -311,18 +431,7 @@ class StreamingResponse:
         def create_activity() -> Activity | None:
             self._chunk_queued = False
             if self._ended:
-                # Send final message
-                activity = Activity(
-                    type="message",
-                    text=self._message or "end stream response",
-                    attachments=self._attachments or [],
-                    entities=[
-                        StreamInfo(
-                            stream_type="final",
-                            stream_sequence=self._sequence_number,
-                        )
-                    ],
-                )
+                activity = self._create_final_message(include_stream_info=True)
             elif self._is_streaming_channel:
                 # Send typing activity
                 activity = Activity(
@@ -337,7 +446,8 @@ class StreamingResponse:
                 )
             else:
                 return
-            self._sequence_number += 1
+            if not self._ended:
+                self._sequence_number += 1
             return activity
 
         self._queue_activity(create_activity)
@@ -364,21 +474,95 @@ class StreamingResponse:
                 if activity:
                     await self._send_activity(activity)
         except Exception as err:
-            if "403" in str(err) and (
-                self._context.activity.channel_id is not None
-                and self._context.activity.channel_id.channel == Channels.ms_teams
-            ):
-                logger.warning("Teams channel stopped the stream.")
-                self._cancelled = True
-            else:
-                logger.error(
-                    f"Error occurred when sending activity while streaming: {type(err).__name__}"
-                )
-                raise
+            logger.error(
+                "Error occurred when draining the streaming activity queue: %s",
+                type(err).__name__,
+            )
+            raise
         finally:
             self._queue_sync = None
 
-    async def _send_activity(self, activity: Activity) -> None:
+    def _create_final_message(self, *, include_stream_info: bool) -> Activity:
+        entities = []
+        if include_stream_info:
+            entities.append(
+                StreamInfo(
+                    stream_type="final",
+                )
+            )
+
+        activity = Activity(
+            type="message",
+            text=self._message or "end stream response",
+            attachments=self._attachments or [],
+            entities=entities,
+        )
+        if self._should_update_final_activity() and self._stream_id:
+            activity.id = self._stream_id
+        return activity
+
+    def _create_stream_stopped_message(self, message: str) -> Activity:
+        notification = message or "No text was streamed"
+        text = f"{self._message}\n\n{notification}" if self._message else notification
+        activity = Activity(
+            type="message",
+            text=text,
+            entities=[
+                StreamInfo(
+                    stream_type="final",
+                    stream_result="success" if self._message else "error",
+                )
+            ],
+        )
+        return activity
+
+    def _create_stream_timed_out_message(
+        self, *, add_stream_final: bool = False
+    ) -> Activity:
+        text = (
+            f"{self._message}\n\n{self.streaming_taking_too_long_message}\n"
+            if self._message
+            else self.streaming_taking_too_long_message
+        )
+        entities = []
+        if add_stream_final:
+            stream_info = StreamInfo(
+                stream_type="final",
+                stream_result="success" if self._message else "error",
+            )
+            if self._stream_id:
+                stream_info.stream_id = self._stream_id
+            entities.append(stream_info)
+
+        return Activity(
+            id=self._stream_id,
+            type="message",
+            text=text,
+            entities=entities,
+        )
+
+    def _create_stream_timed_out_streaming_update(self) -> Activity:
+        text = (
+            f"{self._message}\n\n{self.streaming_taking_too_long_message}\n"
+            if self._message
+            else self.streaming_taking_too_long_message
+        )
+        activity = Activity(
+            type="typing",
+            text=text,
+            entities=[
+                StreamInfo(
+                    stream_type="streaming",
+                    stream_sequence=self._sequence_number,
+                )
+            ],
+        )
+        self._sequence_number += 1
+        return activity
+
+    async def _send_activity(
+        self, activity: Activity, *, ensure_stream_info: bool = True
+    ) -> bool:
         """
         Sends an activity to the client and saves the stream ID returned.
 
@@ -386,26 +570,28 @@ class StreamingResponse:
             activity: The activity to send.
         """
 
+        self._start_stream_timers()
+
         streaminfo_entity: StreamInfo | None = None
 
-        if not activity.entities:
+        if not activity.entities and ensure_stream_info:
             streaminfo_entity = StreamInfo(stream_sequence=self._sequence_number)
             self._sequence_number += 1
             activity.entities = [streaminfo_entity]
-        else:
+        elif activity.entities:
             for entity in activity.entities:
                 if entity.type == EntityTypes.STREAM_INFO:
                     streaminfo_entity = cast(StreamInfo, entity)
                     break
 
-            if not streaminfo_entity:
+            if not streaminfo_entity and ensure_stream_info:
                 # If no streaminfo entity exists, create one
                 streaminfo_entity = StreamInfo(stream_sequence=self._sequence_number)
                 self._sequence_number += 1
                 activity.entities.append(streaminfo_entity)
 
         # Set activity ID to the assigned stream ID
-        if self._stream_id:
+        if self._stream_id and streaminfo_entity:
             activity.id = self._stream_id
             streaminfo_entity.stream_id = self._stream_id
 
@@ -433,10 +619,12 @@ class StreamingResponse:
         if self._ended:
             if self._enable_feedback_loop and self._feedback_loop_type:
                 # Add feedback loop to streaminfo entity
-                streaminfo_entity.feedback_loop = {"type": self._feedback_loop_type}
+                if streaminfo_entity:
+                    streaminfo_entity.feedback_loop = {"type": self._feedback_loop_type}
             else:
                 # Add feedback loop enabled to streaminfo entity
-                streaminfo_entity.feedback_loop_enabled = self._enable_feedback_loop
+                if streaminfo_entity:
+                    streaminfo_entity.feedback_loop_enabled = self._enable_feedback_loop
         # Add in Generated by AI
         if self._enable_generated_by_ai_label:
             curr_citations = CitationUtil.get_used_citations(
@@ -444,10 +632,217 @@ class StreamingResponse:
             )
             activity.add_ai_metadata(curr_citations, self._sensitivity_label)
 
-        # Send activity
-        response = await self._context.send_activity(activity)
-        await asyncio.sleep(self._interval)
+        try:
+            response = await self._context.send_activity(activity)
 
-        # Save assigned stream ID
-        if not self._stream_id and response:
-            self._stream_id = response.id
+            if not self._stream_id and response:
+                self._stream_id = response.id
+
+            if (
+                self._is_m365_copilot()
+                and self._is_streaming_channel
+                and not self._ended
+            ):
+                self._schedule_keep_alive()
+
+            await asyncio.sleep(self._interval)
+            return True
+        except Exception as err:  # pylint: disable=broad-exception-caught
+            await self._handle_send_error(err)
+            return False
+
+    async def _handle_send_error(self, err: Exception) -> None:
+        message = str(err)
+        normalized_message = message.lower()
+        is_content_not_allowed = "contentstreamnotallowed" in normalized_message
+        is_teams_403 = "403" in normalized_message and self._is_teams_channel()
+        is_timeout = _TEAMS_STREAM_TIMED_OUT.lower() in normalized_message
+        is_streaming_unsupported = (
+            "badargument" in normalized_message
+            and "streaming api is not enabled" in normalized_message
+        )
+
+        if not (is_content_not_allowed or is_teams_403 or is_streaming_unsupported):
+            logger.error(
+                "Exception during StreamingResponse send_activity: %s",
+                type(err).__name__,
+            )
+            raise err
+
+        self._cancelled = True
+        self._queue.clear()
+        self._chunk_queued = False
+        self._clear_stream_timers()
+
+        if (is_content_not_allowed or is_teams_403) and is_timeout:
+            logger.warning(
+                "Client stopped streaming because the allowed time was exceeded: %s",
+                message,
+            )
+            self._stream_timed_out = True
+            self._cancelled = False
+            self._is_streaming_channel = False
+            if not self._is_m365_copilot():
+                await self._update_activity(self._create_stream_timed_out_message())
+        elif is_content_not_allowed or is_teams_403:
+            logger.warning("Streaming content was cancelled by the client: %s", message)
+            self._user_cancelled = True
+        else:
+            logger.warning(
+                "The interaction does not support streaming. Using non-streaming mode."
+            )
+            self._cancelled = False
+            self._is_streaming_channel = False
+
+    async def _update_activity(self, activity: Activity) -> bool:
+        try:
+            await self._context.update_activity(activity)
+            return True
+        except Exception as err:  # pylint: disable=broad-exception-caught
+            logger.warning(
+                "Exception during StreamingResponse update_activity: %s",
+                type(err).__name__,
+            )
+            return False
+
+    def _start_stream_timers(self) -> None:
+        if (
+            not self._is_m365_copilot()
+            or not self._is_streaming_channel
+            or self._ended
+            or self._stream_timeout_task is not None
+        ):
+            return
+
+        self._schedule_keep_alive()
+        self._stream_timeout_task = asyncio.create_task(self._run_stream_timeout())
+
+    def _schedule_keep_alive(self) -> None:
+        if not self._is_m365_copilot() or not self._is_streaming_channel or self._ended:
+            return
+
+        if self._keep_alive_task and not self._keep_alive_task.done():
+            self._keep_alive_task.cancel()
+        self._keep_alive_task = asyncio.create_task(self._run_keep_alive())
+
+    async def _run_keep_alive(self) -> None:
+        try:
+            await asyncio.sleep(_M365_WORKING_NOTICE_INTERVAL)
+            self._keep_alive_task = None
+            if not self._ended and self._is_streaming_channel and not self._queue:
+                if self._message:
+                    # Informative updates no longer affect the client after text
+                    # streaming starts. Resend the cumulative text as a streaming
+                    # update to keep the M365 Copilot stream active.
+                    self._queue_next_chunk()
+                else:
+                    self.queue_informative_update(
+                        self._last_informational_message_sent.strip()
+                        and self._last_informational_message_sent
+                        or self.streaming_taking_too_long_message
+                    )
+        except asyncio.CancelledError:
+            return
+
+    async def _run_stream_timeout(self) -> None:
+        try:
+            await asyncio.sleep(_M365_STREAMING_TIMEOUT)
+            await self._handle_m365_stream_timeout()
+        except asyncio.CancelledError:
+            return
+        except Exception as err:  # pylint: disable=broad-exception-caught
+            logger.error(
+                "Error handling the M365 Copilot streaming timeout: %s",
+                type(err).__name__,
+            )
+        finally:
+            if self._stream_timeout_task is asyncio.current_task():
+                self._stream_timeout_task = None
+
+    async def _handle_m365_stream_timeout(self) -> None:
+        if (
+            self._ended
+            or self._cancelled
+            or not self._is_streaming_channel
+            or not self._is_m365_copilot()
+        ):
+            return
+
+        recovery_complete = self._begin_stream_timeout_recovery()
+        try:
+            logger.warning(
+                "M365 Copilot streaming reached its maximum duration. "
+                "Continuing in non-streaming mode."
+            )
+
+            timed_out_activities = []
+            if self._message:
+                timed_out_activities.append(
+                    self._create_stream_timed_out_streaming_update()
+                )
+            timed_out_activities.append(
+                self._create_stream_timed_out_message(add_stream_final=True)
+            )
+
+            self._is_streaming_channel = False
+            self._queue.clear()
+            self._chunk_queued = False
+            self._clear_stream_timers()
+
+            # Preserve ordering with an activity that may already be in flight, then
+            # track whether the final stream terminator was actually delivered.
+            await self.wait_for_queue()
+            for timed_out_activity in timed_out_activities[:-1]:
+                await self._send_activity(timed_out_activity)
+            self._stream_timeout_notification_sent = await self._send_activity(
+                timed_out_activities[-1]
+            )
+        finally:
+            self._complete_stream_timeout_recovery(recovery_complete)
+
+    def _begin_stream_timeout_recovery(self) -> asyncio.Event:
+        recovery_complete = asyncio.Event()
+        self._stream_timeout_recovery_complete = recovery_complete
+        return recovery_complete
+
+    def _complete_stream_timeout_recovery(
+        self, recovery_complete: asyncio.Event
+    ) -> None:
+        recovery_complete.set()
+        if self._stream_timeout_recovery_complete is recovery_complete:
+            self._stream_timeout_recovery_complete = None
+
+    async def _wait_for_stream_timeout_recovery(self) -> None:
+        recovery_complete = self._stream_timeout_recovery_complete
+        if recovery_complete:
+            await recovery_complete.wait()
+
+    def _clear_stream_timers(self) -> None:
+        current_task = asyncio.current_task()
+        for task_name in ("_keep_alive_task", "_stream_timeout_task"):
+            task = getattr(self, task_name, None)
+            setattr(self, task_name, None)
+            if task and task is not current_task and not task.done():
+                task.cancel()
+
+    def _is_m365_copilot(self) -> bool:
+        channel_id = self._context.activity.channel_id
+        if not channel_id:
+            return False
+
+        normalized_channel_id = str(channel_id).lower()
+        return normalized_channel_id == _M365_COPILOT_CHANNEL_PREFIX or (
+            normalized_channel_id.startswith(f"{_M365_COPILOT_CHANNEL_PREFIX}-")
+            or normalized_channel_id.startswith(f"{_M365_COPILOT_CHANNEL_PREFIX}:")
+        )
+
+    def _is_teams_channel(self) -> bool:
+        channel_id = self._context.activity.channel_id
+        return bool(channel_id) and channel_id.channel == Channels.ms_teams
+
+    def _should_update_final_activity(self) -> bool:
+        if self._is_m365_copilot():
+            return False
+        return self._stream_timed_out or (
+            self._stream_timeout_notification_sent and self._is_teams_channel()
+        )

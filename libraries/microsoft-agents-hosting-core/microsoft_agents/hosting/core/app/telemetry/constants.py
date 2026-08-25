@@ -6,6 +6,7 @@ SPAN_ROUTE_HANDLER = "agents.app.route_handler"
 SPAN_BEFORE_TURN = "agents.app.before_turn"
 SPAN_AFTER_TURN = "agents.app.after_turn"
 SPAN_DOWNLOAD_FILES = "agents.app.download_files"
+SPAN_SEND_TYPING = "agents.app.typing_indicator"
 
 METRIC_TURN_COUNT = "agents.turn.count"
 METRIC_TURN_ERROR_COUNT = "agents.turn.error.count"
