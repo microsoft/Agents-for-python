@@ -11,7 +11,7 @@ class StreamInfo(Entity):
     type: str = EntityTypes.STREAM_INFO.value
 
     stream_type: NonEmptyString = "streaming"
-    stream_sequence: int
+    stream_sequence: int | None = None
 
     stream_id: str = ""
     stream_result: str = ""
