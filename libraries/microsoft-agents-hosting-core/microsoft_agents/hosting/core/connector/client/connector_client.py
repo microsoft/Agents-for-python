@@ -291,6 +291,7 @@ class ConversationsOperations(ConversationsBase, _BaseClient):
                         logger,
                         response,
                         resource=f"v3/conversations/{conversation_id}/activities/{activity_id}",
+                        response_body=response_text,
                     )
 
                 if not response_text:
@@ -343,10 +344,12 @@ class ConversationsOperations(ConversationsBase, _BaseClient):
                 span.share(http_method="POST", status_code=response.status)
 
                 if response.status not in (200, 201, 202):
+                    response_body = await response.text("utf-8")
                     _handle_request_error(
                         logger,
                         response,
                         resource=f"v3/conversations/{conversation_id}/activities",
+                        response_body=response_body,
                     )
 
                 response_text = await response.text("utf-8")
@@ -389,10 +392,12 @@ class ConversationsOperations(ConversationsBase, _BaseClient):
                 json=body.model_dump(by_alias=True, exclude_unset=True),
             ) as response:
                 if response.status not in (200, 201, 202):
+                    response_body = await response.text("utf-8")
                     _handle_request_error(
                         logger,
                         response,
                         resource=f"v3/conversations/{conversation_id}/activities/{activity_id}",
+                        response_body=response_body,
                     )
 
                 data = await response.json()
