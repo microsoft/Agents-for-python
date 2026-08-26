@@ -225,9 +225,22 @@ def test_app_download_files_no_attachments(test_exporter):
 
 
 def test_typing_send_typing_creates_span(test_exporter):
-    with TypingSendTyping():
+    ctx = _make_context()
+
+    with TypingSendTyping(ctx):
         pass
 
     spans = test_exporter.get_finished_spans()
     assert len(spans) == 1
     assert spans[0].name == constants.SPAN_SEND_TYPING
+
+
+def test_typing_send_typing_span_attributes(test_exporter):
+    ctx = _make_context()
+
+    with TypingSendTyping(ctx):
+        pass
+
+    span = test_exporter.get_finished_spans()[0]
+    assert span.attributes[attributes.ACTIVITY_CHANNEL_ID] == "msteams"
+    assert span.attributes[attributes.CONVERSATION_ID] == "conv-1"
