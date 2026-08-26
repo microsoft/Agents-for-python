@@ -31,7 +31,10 @@ class _ServiceSet:
         """
         val = self._state.get(key)
         if val is not None:
-            if not isinstance(val, key):
+            # Python 3.10 and 3.11 evaluate protocol properties during
+            # isinstance(), which can trigger unsupported operations.
+            is_protocol = getattr(key, "_is_protocol", False)
+            if not is_protocol and not isinstance(val, key):
                 raise TypeError(
                     f"Value for key '{key.__name__}' is not of type {key.__name__} (got {type(val).__name__})"
                 )

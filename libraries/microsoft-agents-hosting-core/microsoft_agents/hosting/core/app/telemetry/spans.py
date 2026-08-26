@@ -124,6 +124,7 @@ class TypingSendTyping(SimpleSpanWrapper):
         return {
             attributes.ACTIVITY_CHANNEL_ID: self._turn_context.activity.channel_id
             or "",
-            attributes.CONVERSATION_ID: self._turn_context.activity.conversation.id
-            or "",
+            attributes.CONVERSATION_ID: get_conversation_id(
+                self._turn_context.activity
+            ),
         }

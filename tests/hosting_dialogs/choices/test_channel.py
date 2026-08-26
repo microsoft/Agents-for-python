@@ -14,7 +14,7 @@ from microsoft_agents.activity import (
 )
 from microsoft_agents.hosting.core import TurnContext
 from microsoft_agents.hosting.dialogs.choices import Channel
-from tests._common.testing_objects import MockTestingAdapter
+from microsoft_agents.testing import TestAdapter
 
 
 class TestChannel:
@@ -66,7 +66,7 @@ class TestChannel:
         assert not Channel.supports_card_actions("msteams", 4)
 
     def test_should_return_channel_id_from_context_activity(self):
-        adapter = MockTestingAdapter(channel_id=Channels.facebook)
+        adapter = TestAdapter(channel_id=Channels.facebook)
         test_activity = Activity(
             type=ActivityTypes.message,
             channel_id=Channels.facebook,
@@ -78,7 +78,7 @@ class TestChannel:
         assert Channels.facebook == channel_id
 
     def test_should_return_empty_from_context_activity_missing_channel(self):
-        adapter = MockTestingAdapter()
+        adapter = TestAdapter()
         test_activity = Activity(
             type=ActivityTypes.message,
             conversation=ConversationAccount(id="test"),

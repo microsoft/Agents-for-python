@@ -15,8 +15,7 @@ from microsoft_agents.hosting.core.state.agent_state import CachedAgentState
 from microsoft_agents.hosting.core.state import UserState
 from microsoft_agents.hosting.core.storage import MemoryStorage
 from microsoft_agents.hosting.core.turn_context import TurnContext
-
-from tests._common.testing_objects import MockTestingAdapter
+from microsoft_agents.testing import TestAdapter
 
 
 def _create_context():
@@ -26,7 +25,7 @@ def _create_context():
         conversation=ConversationAccount(id="conversation-123"),
         from_property=ChannelAccount(id="user-123"),
     )
-    return TurnContext(MockTestingAdapter(), activity)
+    return TurnContext(TestAdapter(), activity)
 
 
 def test_turn_state_always_has_temp_scope():

@@ -1,0 +1,10 @@
+-e ../../libraries/microsoft-agents-activity
+-e ../../libraries/microsoft-agents-authentication-msal
+-e ../../libraries/microsoft-agents-hosting-aiohttp
+-e ../../libraries/microsoft-agents-hosting-core
+-e ../../libraries/microsoft-agents-testing
+
+aiohttp
+pytest
+pytest-asyncio
+python-dotenv

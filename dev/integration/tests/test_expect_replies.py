@@ -1,6 +1,6 @@
 import pytest
 from microsoft_agents.activity import Activity
-from microsoft_agents.testing import AgentClient
+from microsoft_agents.hosting.testing import AgentClient
 from .scenarios import load_scenario
 
 
