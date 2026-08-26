@@ -7,6 +7,25 @@ provides an in-memory channel adapter, fluent conversation assertions, and a
 mock user-token client so agent behavior can be tested without a live channel
 or token service.
 
+## Release Notes
+
+<table style="width:100%">
+  <tr>
+    <th style="width:20%">Version</th>
+    <th style="width:20%">Date</th>
+    <th style="width:60%">Release Notes</th>
+  </tr>
+  <tr>
+    <td>1.5.0</td>
+    <td>2026-08-26</td>
+    <td>
+      <a href="https://github.com/microsoft/Agents-for-python/blob/main/changelog.md#microsoft-365-agents-sdk-for-python---release-notes-v150">
+        1.5.0 Release Notes
+      </a>
+    </td>
+  </tr>
+</table>
+
 ## Features
 
 - **`TestAdapter`** runs activities through the normal middleware and agent

@@ -1,16 +1,33 @@
-# Microsoft 365 Agents SDK for Python  -  Release Notes v1.5.0 (Unreleased)
+# Microsoft 365 Agents SDK for Python - Release Notes v1.5.0
 
-**Release Date:** Unreleased
+**Release Date:** 2026-08-26
 **Previous Version:** 1.4.0 (Released 2026-08-18)
 
 ## Major Features & Enhancements
 
-- **Testing Package**: Added the new `microsoft-agents-testing` package with an in-memory `TestAdapter`, fluent `TestFlow` conversation assertions, and `MockUserTokenClient` support for testing OAuth and token-exchange flows without external services.
+- **Testing Package**: Added the new `microsoft-agents-testing` package with an in-memory `TestAdapter`, fluent `TestFlow` conversation assertions, and `MockUserTokenClient` support for testing OAuth and token-exchange flows without external services (#503)
+- **Outbound Host Validation**: Added the shared `OutboundHostValidator` with configurable host-suffix allowlists and default Microsoft service hosts, and integrated it with the aiohttp and FastAPI adapters to help prevent SSRF attacks (#543)
+- **Proactive Trace Linking**: Added OpenTelemetry span links that preserve trace correlation across stored proactive conversations and later continue, create-conversation, and send-activity operations (#534)
+
+## New Models & APIs
+
+- **`StreamInfo` Compatibility**: Added serialization and deserialization behavior compatible with the .NET SDK for reliable cross-SDK streaming round trips (#561)
+
+## Bug Fixes
+
+- **Streaming Reliability**: Improved streaming timeout handling and keep-alive behavior to prevent premature timeout failures (#560)
+- **Expect Replies Handling**: Moved expect-replies response handling into the adapter layer, fixing typing-indicator behavior and response aggregation (#556)
 
 ## Developer Experience
 
-- **Authentication Configuration Validation**: Added validation for certificate, federated credential, and workload identity authentication settings
-- **Configuration Loading**: Expanded `load_configuration_from_env` to accept any mapping type
+- **Authentication Configuration Validation**: Added validation for certificate, federated credential, and workload identity authentication settings (#551)
+- **Configuration Loading**: Expanded `load_configuration_from_env` to accept any mapping type (#552)
+- **Zero-Code OpenTelemetry Sample**: Added a sample that uses the OpenTelemetry Python distro, environment-based auto-instrumentation, OTLP export to the Aspire Dashboard, and a custom sampler that drops typing-indicator spans without configuring telemetry in application code (#503)
+- **GitHub Actions Security**: Pinned GitHub Actions to full-length commit SHAs and updated action dependencies (#546, #548, #553)
+
+## Documentation
+
+- **Release Notes Formatting**: Standardized release-note heading formatting (#557)
 
 ---
 
