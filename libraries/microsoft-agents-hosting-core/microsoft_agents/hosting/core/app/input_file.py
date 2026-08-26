@@ -5,7 +5,6 @@ from __future__ import annotations
 
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
-from typing import Optional
 
 from microsoft_agents.hosting.core import TurnContext
 
@@ -24,7 +23,8 @@ class InputFile:
 
     content: bytes
     content_type: str
-    content_url: Optional[str]
+    content_url: str | None = None
+    filename: str | None = None
 
 
 class InputFileDownloader(ABC):

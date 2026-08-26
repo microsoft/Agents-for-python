@@ -2,6 +2,7 @@
 # Licensed under the MIT License.
 
 from typing import Callable
+from email.message import Message
 
 import aiohttp
 
@@ -15,16 +16,18 @@ from microsoft_agents.hosting.core.outbound_host_validator import OutboundHostVa
 
 from .input_file import InputFileDownloader, InputFile
 
+_CONTENT_TYPE = "Content-Type"
+
+
 class AttachmentDownloader(InputFileDownloader):
-    
 
     def __init__(
-            self,
-            client_factory: Callable[[], aiohttp.ClientSession] | None = None,
-            host_validator: OutboundHostValidator | None = None
+        self,
+        client_factory: Callable[[], aiohttp.ClientSession] | None = None,
+        host_validator: OutboundHostValidator | None = None,
     ):
         """Constructor for AttachmentDownloader.
-        
+
         :param client_factory: A callable that returns an aiohttp.ClientSession instance.
         :param host_validator: An optional OutboundHostValidator instance.
         """
@@ -51,28 +54,62 @@ class AttachmentDownloader(InputFileDownloader):
 
         return files
 
-    async def _download_file(self, attachment) -> InputFile | None:
+    @staticmethod
+    def _parse_content_type(content_type: str) -> tuple[str, dict[str, str]] | None:
+        email = Message()
+        email[_CONTENT_TYPE] = content_type
+        params = email.get_params()
+        if params is None:
+            return None
+        # the first param is the mime-type
+        # the later ones are the attribtues like "charset"
+        return params[0][0], dict(params[1:])
+
+    async def _download_file(self, attachment: Attachment) -> InputFile | None:
         """Downloads a single file from the given attachment.
 
         :param attachment: The attachment to download.
         :return: An InputFile instance if the download is successful, None otherwise.
         """
-
-        name = attachment.name
-
-        if attachment.content_url and attachment.content_url.startswith("https://") || attachment.content_url.startswith("http://localhost"):
+        if attachment.content_url and (
+            attachment.content_url.startswith("https://")
+            or attachment.content_url.startswith("http://localhost")
+        ):
             remote_file_url = attachment.content_url
 
-            if self._host_validator and self._host_validator.enabled and not self._host_validator.is_allowed(remote_file_url):
+            if (
+                self._host_validator
+                and self._host_validator.enabled
+                and not self._host_validator.is_allowed(remote_file_url)
+            ):
                 return None
 
             async with self._client_factory() as client:
                 async with client.get(remote_file_url) as response:
-                    
 
-            client = self._client_factory()
+                    if not response.status == 200:
+                        return None
 
+                    content_type_val = response.headers.get("Content-Type", "")
+                    result = AttachmentDownloader._parse_content_type(content_type_val)
+                    if result is None:
+                        return None
+                    content_type, _ = result
+                    if content_type.startswith("image/"):
+                        content_type = "image/png"
 
-        # Implement the actual download logic here.
-        # For now, just return an InputFile instance with the attachment.
-        return InputFile(attachment)
+                    res = await response.read()
+
+                    return InputFile(
+                        content=res,
+                        content_type=content_type,
+                        content_url=attachment.content_url,
+                        filename=attachment.name,
+                    )
+        else:
+            return InputFile(
+                attachment.content,
+                attachment.content_type,
+                content_url=attachment.content_url,
+                filename=attachment.name,
+            )
