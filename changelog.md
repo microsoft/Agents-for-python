@@ -1,3 +1,9 @@
+# Microsoft 365 Agents SDK for Python - Release Notes v1.6.0 (Unreleased)
+
+**Previous Version:** 1.5.0 (Released 2026-08-26)
+
+---
+
 # Microsoft 365 Agents SDK for Python - Release Notes v1.5.0
 
 **Release Date:** 2026-08-26
