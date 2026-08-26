@@ -6,6 +6,7 @@ from microsoft_agents.activity import ActivityTypes, TokenResponse
 from microsoft_agents.authentication.msal import MsalAuth, MsalConnectionManager
 
 from microsoft_agents.hosting.core import MemoryStorage, UserTokenClientBase
+from microsoft_agents.testing import MockUserTokenClient
 from microsoft_agents.hosting.core.app.oauth import _UserAuthorization, _SignInResponse
 from microsoft_agents.hosting.core._oauth import (
     _FlowStorageClient,
@@ -28,7 +29,6 @@ from tests._common.mock_utils import mock_instance
 from tests._common.fixtures import FlowStateFixtures
 from tests._common.testing_objects import (
     mock_class_OAuthFlow,
-    mock_UserTokenClient,
 )
 from tests.hosting_core._common import flow_state_eq
 
@@ -57,7 +57,7 @@ def create_testing_TurnContext(
     user_token_client=None,
 ):
     if not user_token_client:
-        user_token_client = mock_UserTokenClient(mocker)
+        user_token_client = MockUserTokenClient()
 
     turn_context = mocker.Mock()
     turn_context.activity.channel_id = channel_id

@@ -111,3 +111,11 @@ class AppDownloadFiles(SimpleSpanWrapper):
                 self._turn_context.activity.attachments or []
             ),
         }
+
+
+class TypingSendTyping(SimpleSpanWrapper):
+    """Span for the logic related to sending typing indicators in the TypingIndicator."""
+
+    def __init__(self):
+        """Initializes the TypingSendTyping SpanWrapper."""
+        super().__init__(constants.SPAN_SEND_TYPING)

@@ -8,6 +8,7 @@ from microsoft_agents.hosting.core.app.telemetry.spans import (
     AppBeforeTurn,
     AppAfterTurn,
     AppDownloadFiles,
+    TypingSendTyping,
 )
 from microsoft_agents.hosting.core.app.telemetry import constants
 
@@ -218,3 +219,15 @@ def test_app_download_files_no_attachments(test_exporter):
 
     span = test_exporter.get_finished_spans()[0]
     assert span.attributes[attributes.ATTACHMENT_COUNT] == 0
+
+
+# ---- TypingSendTyping ----
+
+
+def test_typing_send_typing_creates_span(test_exporter):
+    with TypingSendTyping():
+        pass
+
+    spans = test_exporter.get_finished_spans()
+    assert len(spans) == 1
+    assert spans[0].name == constants.SPAN_SEND_TYPING

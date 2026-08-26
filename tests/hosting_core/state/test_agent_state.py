@@ -23,7 +23,8 @@ from microsoft_agents.activity import (
     ChannelAccount,
     ConversationAccount,
 )
-from tests._common.testing_objects import MockTestingAdapter, MockTestingCustomState
+from microsoft_agents.testing import TestAdapter
+from tests._common.testing_objects import MockTestingCustomState
 
 
 class _MockTestDataItem(StoreItem):
@@ -55,7 +56,7 @@ class TestAgentState:
         self.custom_state = MockTestingCustomState(self.storage)
 
         # Create a test context
-        self.adapter = MockTestingAdapter()
+        self.adapter = TestAdapter()
         self.activity = Activity(
             type=ActivityTypes.message,
             channel_id="test-channel",

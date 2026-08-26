@@ -13,7 +13,7 @@ from microsoft_agents.hosting.aiohttp import (
     jwt_authorization_middleware,
 )
 from microsoft_agents.hosting.core.authorization import AgentAuthConfiguration
-from microsoft_agents.testing.core.utils import sdk_config_connection
+from microsoft_agents.hosting.testing.core.utils import sdk_config_connection
 
 from tests.utils.pytest import skip_if_no_var
 from tests.utils.config import REAL_SERVICE_CONNECTION_ENV_VARS

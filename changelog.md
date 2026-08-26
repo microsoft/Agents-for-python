@@ -3,6 +3,10 @@
 **Release Date:** Unreleased
 **Previous Version:** 1.4.0 (Released 2026-08-18)
 
+## Major Features & Enhancements
+
+- **Testing Package**: Added the new `microsoft-agents-testing` package with an in-memory `TestAdapter`, fluent `TestFlow` conversation assertions, and `MockUserTokenClient` support for testing OAuth and token-exchange flows without external services.
+
 ## Developer Experience
 
 - **Authentication Configuration Validation**: Added validation for certificate, federated credential, and workload identity authentication settings
