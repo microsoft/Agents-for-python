@@ -9,7 +9,6 @@ from microsoft_agents.hosting.core.app.telemetry.spans import (
     AppAfterTurn,
     AppDownloadFiles,
     TypingSendTyping,
-    TypingSendTyping,
 )
 from microsoft_agents.hosting.core.app.telemetry import constants
 

@@ -123,7 +123,7 @@ class TypingSendTyping(SimpleSpanWrapper):
     def _get_attributes(self) -> AttributeMap:
         return {
             attributes.ACTIVITY_CHANNEL_ID: self._turn_context.activity.channel_id
-            or "",
+            or attributes.UNKNOWN,
             attributes.CONVERSATION_ID: get_conversation_id(
                 self._turn_context.activity
             ),
