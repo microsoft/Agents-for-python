@@ -2,6 +2,7 @@
 # Licensed under the MIT License.
 
 import os
+import time
 
 import pytest
 from azure.core.credentials import AccessToken
@@ -44,3 +45,4 @@ async def test_msal_token_credential_acquires_token(
 
     assert isinstance(token, AccessToken)
     assert token.token
+    assert token.expires_on > time.time()

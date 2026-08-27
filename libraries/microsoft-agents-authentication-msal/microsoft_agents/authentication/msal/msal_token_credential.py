@@ -14,7 +14,7 @@ logger = logging.getLogger(__name__)
 
 
 def _get_resource(scope: str) -> str:
-    """Extracts the resource from the given scope by removing the trailing '/.default' if present.
+    """Extracts the resource from the given scope by removing the last '/' and everything after it.
 
     :param scope: The scope string.
     :return: The extracted resource string.

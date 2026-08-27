@@ -5,6 +5,7 @@ import pytest
 from azure.core.credentials import AccessToken
 
 from microsoft_agents.authentication.msal import MsalTokenCredential
+from microsoft_agents.authentication.msal.msal_token_credential import _get_resource
 from microsoft_agents.hosting.core import AgentAuthConfiguration
 
 _FIRST_SCOPE = "https://api.botframework.com/.default"
@@ -19,6 +20,23 @@ def auth_config() -> AgentAuthConfiguration:
         client_secret="client-secret",
         tenant_id="tenant-id",
     )
+
+
+@pytest.mark.parametrize(
+    "scope, expected_resource",
+    [
+        ("https://api.botframework.com/.default", "https://api.botframework.com"),
+        ("https://graph.microsoft.com/User.Read", "https://graph.microsoft.com"),
+        ("api://client-id/access_as_user", "api://client-id"),
+        ("resource/scope/with/segments", "resource/scope/with"),
+        ("resource/", "resource"),
+        ("/scope", ""),
+        ("scope-without-slash", "scope-without-slash"),
+        ("", ""),
+    ],
+)
+def test_get_resource(scope: str, expected_resource: str):
+    assert _get_resource(scope) == expected_resource
 
 
 @pytest.mark.asyncio
@@ -37,7 +55,7 @@ async def test_get_token_returns_access_token_and_forwards_scopes(
     assert token is expected_token
     msal_auth_class.assert_called_once_with(auth_config)
     msal_auth._get_access_token.assert_awaited_once_with(
-        _FIRST_SCOPE,
+        "https://api.botframework.com",
         [_FIRST_SCOPE, _SECOND_SCOPE],
     )
 
