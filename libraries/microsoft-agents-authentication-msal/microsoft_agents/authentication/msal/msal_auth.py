@@ -138,6 +138,10 @@ class MsalAuth(AccessTokenProviderBase):
                     )
                 )
 
+            expires_on = auth_result_payload.get("expires_on")
+            if expires_on is not None:
+                return AccessToken(res, int(expires_on))
+
             expires_in = auth_result_payload.get("expires_in")
             if expires_in is None:
                 raise ValueError("Token response does not include an expiration.")
