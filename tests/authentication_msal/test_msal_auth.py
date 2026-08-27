@@ -41,6 +41,29 @@ class TestMsalAuth:
         )
 
     @pytest.mark.asyncio
+    async def test_get_access_token_converts_expires_in_to_expires_on(self, mocker):
+        mock_auth = MockMsalAuth(
+            mocker,
+            ConfidentialClientApplication,
+            {
+                "access_token": "token",
+                "expires_in": 3600,
+            },
+        )
+        mocker.patch(
+            "microsoft_agents.authentication.msal.msal_auth.time.time",
+            return_value=1000,
+        )
+
+        token = await mock_auth._get_access_token(
+            "https://test.api.botframework.com",
+            scopes=["test-scope"],
+        )
+
+        assert token.token == "token"
+        assert token.expires_on == 4600
+
+    @pytest.mark.asyncio
     async def test_acquire_token_on_behalf_of_managed_identity(self, mocker):
         mock_auth = MockMsalAuth(mocker, ManagedIdentityClient)
 

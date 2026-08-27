@@ -217,6 +217,7 @@ class AuthTypes(str, Enum):
 
 - **`MsalAuth`** - Core authentication provider using MSAL
 - **`MsalConnectionManager`** - Manages multiple authentication connections
+- **`MsalTokenCredential`** - Asynchronous Azure Core token credential backed by MSAL
 
 ## Features
 
