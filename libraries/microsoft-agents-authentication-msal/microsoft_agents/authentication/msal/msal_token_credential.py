@@ -14,17 +14,13 @@ logger = logging.getLogger(__name__)
 
 
 def _get_resource(scope: str) -> str:
-    """Extracts the resource from the given scope by removing the last '/' and everything after it.
+    """Extracts the resource by removing a trailing '/.default' from the scope.
 
     :param scope: The scope string.
     :return: The extracted resource string.
     :rtype: str
     """
-    try:
-        i = scope.rindex("/")
-        return scope[:i]
-    except ValueError:
-        return scope
+    return scope.removesuffix("/.default")
 
 
 class MsalTokenCredential(AsyncTokenCredential):
