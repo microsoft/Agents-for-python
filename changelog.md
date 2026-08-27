@@ -1,3 +1,14 @@
+# Microsoft 365 Agents SDK for Python - Release Notes v1.6.0
+
+**Release Date:** Unreleased
+**Previous Version:** 1.5.0 (Released 2026-08-26)
+
+## Bug Fixes
+
+- **MSAL Resource Extraction**: Preserved `api://` and other non-default scopes while removing only a trailing `/.default` when deriving the authentication resource.
+
+---
+
 # Microsoft 365 Agents SDK for Python - Release Notes v1.5.0
 
 **Release Date:** 2026-08-26
