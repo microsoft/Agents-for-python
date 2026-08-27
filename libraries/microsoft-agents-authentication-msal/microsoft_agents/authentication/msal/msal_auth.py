@@ -16,6 +16,7 @@ from msal import (
     SystemAssignedManagedIdentity,
     TokenCache,
 )
+from azure.core.credentials import AccessToken
 from requests import Session
 
 from microsoft_agents.activity._utils import _DeferredString
@@ -73,6 +74,28 @@ class MsalAuth(AccessTokenProviderBase):
     async def get_access_token(
         self, resource_url: str, scopes: list[str], force_refresh: bool = False
     ) -> str:
+        """Gets an access token for the specified resource URL and scopes.
+
+        :param resource_url: The resource URL for which to acquire the access token.
+        :param scopes: The scopes for which the access token is requested.
+        :param force_refresh: Whether to force a refresh of the access token.
+        :return: The acquired access token as a string.
+        :rtype: str
+        """
+        access_token = await self._get_access_token(resource_url, scopes, force_refresh)
+        return access_token.token
+
+    async def _get_access_token(
+        self, resource_url: str, scopes: list[str], force_refresh: bool = False
+    ) -> AccessToken:
+        """Internal method to get an access token for the specified resource URL and scopes.
+
+        :param resource_url: The resource URL for which to acquire the access token.
+        :param scopes: The scopes for which the access token is requested.
+        :param force_refresh: Whether to force a refresh of the access token.
+        :return: The acquired access token as an AccessToken object.
+        :rtype: AccessToken
+        """
         with spans.GetAccessToken(
             scopes,
             self._msal_configuration.AUTH_TYPE,
@@ -104,6 +127,11 @@ class MsalAuth(AccessTokenProviderBase):
             res = (
                 auth_result_payload.get("access_token") if auth_result_payload else None
             )
+            expires_in = (
+                int(auth_result_payload.get("expires_in", 0))
+                if auth_result_payload
+                else 0
+            )
             if not res:
                 logger.error(
                     "Failed to acquire token for resource %s", auth_result_payload
@@ -114,7 +142,7 @@ class MsalAuth(AccessTokenProviderBase):
                     )
                 )
 
-            return res
+            return AccessToken(res, expires_in)
 
     async def acquire_token_on_behalf_of(
         self, scopes: list[str], user_assertion: str

@@ -217,6 +217,37 @@ class AuthTypes(str, Enum):
 
 - **`MsalAuth`** - Core authentication provider using MSAL
 - **`MsalConnectionManager`** - Manages multiple authentication connections
+- **`MsalTokenCredential`** - Asynchronous Azure Core token credential backed by MSAL
+
+## Azure Core Token Credential
+
+`MsalTokenCredential` adapts an `AgentAuthConfiguration` to the Azure Core
+`AsyncTokenCredential` interface. Use it with asynchronous Azure SDK clients or
+other libraries that accept an `AsyncTokenCredential`.
+
+Create the authentication configuration with the client ID, tenant ID, and
+client secret for your application:
+
+```python
+import os
+
+from microsoft_agents.authentication.msal import MsalTokenCredential
+from microsoft_agents.hosting.core import AgentAuthConfiguration
+
+auth_config = AgentAuthConfiguration(
+    client_id=os.environ["CONNECTIONS__SERVICE_CONNECTION__SETTINGS__CLIENTID"],
+    client_secret=os.environ[
+        "CONNECTIONS__SERVICE_CONNECTION__SETTINGS__CLIENTSECRET"
+    ],
+    tenant_id=os.environ["CONNECTIONS__SERVICE_CONNECTION__SETTINGS__TENANTID"],
+)
+
+credential = MsalTokenCredential(auth_config)
+token = await credential.get_token("https://api.botframework.com/.default")
+```
+
+At least one scope is required. The first scope must be an absolute resource
+URI, and all requested scopes are passed to MSAL during token acquisition.
 
 ## Features
 
