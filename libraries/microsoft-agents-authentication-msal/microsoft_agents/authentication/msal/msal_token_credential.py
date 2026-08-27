@@ -33,7 +33,7 @@ class MsalTokenCredential(AsyncTokenCredential):
         :type config: :class:`microsoft_agents.hosting.core.AgentAuthConfiguration`
         """
         self._config = config
-        self._provider = MsalAuth(config)
+        self._provider: MsalAuth | None = None
 
     async def get_token(self, *scopes: str, **kwargs) -> AccessToken:
         """Acquire an access token for the specified scopes.
@@ -49,6 +49,9 @@ class MsalTokenCredential(AsyncTokenCredential):
 
         if not scopes:
             raise ValueError("At least one scope must be provided.")
+
+        if not self._provider:
+            self._provider = MsalAuth(self._config)
 
         resource = _get_resource(scopes[0])
 

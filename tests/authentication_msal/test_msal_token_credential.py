@@ -45,7 +45,7 @@ def test_get_resource(scope: str, expected_resource: str):
 
 
 @pytest.mark.asyncio
-async def test_get_token_returns_access_token_and_forwards_scopes(
+async def test_get_token_lazily_creates_provider_and_forwards_scopes(
     mocker,
     auth_config: AgentAuthConfiguration,
 ):
@@ -54,15 +54,39 @@ async def test_get_token_returns_access_token_and_forwards_scopes(
     expected_token = AccessToken("access-token", 1234567890)
     msal_auth._get_access_token = mocker.AsyncMock(return_value=expected_token)
     credential = MsalTokenCredential(auth_config)
+    msal_auth_class.assert_not_called()
 
     token = await credential.get_token(_FIRST_SCOPE, _SECOND_SCOPE)
 
     assert token is expected_token
+    assert credential._provider is msal_auth
     msal_auth_class.assert_called_once_with(auth_config)
     msal_auth._get_access_token.assert_awaited_once_with(
         "https://api.botframework.com",
         [_FIRST_SCOPE, _SECOND_SCOPE],
     )
+
+
+@pytest.mark.asyncio
+async def test_get_token_reuses_provider(
+    mocker,
+    auth_config: AgentAuthConfiguration,
+):
+    msal_auth_class = mocker.patch(_MSAL_AUTH_PATH)
+    msal_auth = msal_auth_class.return_value
+    msal_auth._get_access_token = mocker.AsyncMock(
+        return_value=AccessToken("access-token", 1234567890)
+    )
+    credential = MsalTokenCredential(auth_config)
+
+    await credential.get_token(_FIRST_SCOPE)
+    await credential.get_token(_SECOND_SCOPE)
+
+    msal_auth_class.assert_called_once_with(auth_config)
+    assert msal_auth._get_access_token.await_args_list == [
+        mocker.call("https://api.botframework.com", [_FIRST_SCOPE]),
+        mocker.call("https://graph.microsoft.com", [_SECOND_SCOPE]),
+    ]
 
 
 @pytest.mark.asyncio
