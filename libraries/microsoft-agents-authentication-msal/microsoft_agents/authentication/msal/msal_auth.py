@@ -186,6 +186,11 @@ class MsalAuth(AccessTokenProviderBase):
     def _resolve_azure_region(config: AgentAuthConfiguration) -> str | None:
         """Resolves the Azure regional token service (ESTS-R) to use, if configured.
 
+        :param config: The agent authentication configuration.
+        :type config: :class:`microsoft_agents.hosting.core.AgentAuthConfiguration`
+        :return: The resolved Azure region or None if not configured.
+        :rtype: str | None
+
         Returns the configured region only when it is populated and non-whitespace,
         otherwise None so that MSAL falls back to the global token service.
         """
