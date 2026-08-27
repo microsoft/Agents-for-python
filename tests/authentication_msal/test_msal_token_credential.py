@@ -45,7 +45,7 @@ def test_get_resource(scope: str, expected_resource: str):
 
 
 @pytest.mark.asyncio
-async def test_get_token_lazily_creates_provider_and_forwards_scopes(
+async def test_get_token_lazily_creates_provider_and_forwards_scope(
     mocker,
     auth_config: AgentAuthConfiguration,
 ):
@@ -56,14 +56,14 @@ async def test_get_token_lazily_creates_provider_and_forwards_scopes(
     credential = MsalTokenCredential(auth_config)
     msal_auth_class.assert_not_called()
 
-    token = await credential.get_token(_FIRST_SCOPE, _SECOND_SCOPE)
+    token = await credential.get_token(_FIRST_SCOPE)
 
     assert token is expected_token
     assert credential._provider is msal_auth
     msal_auth_class.assert_called_once_with(auth_config)
     msal_auth._get_access_token.assert_awaited_once_with(
         "https://api.botframework.com",
-        [_FIRST_SCOPE, _SECOND_SCOPE],
+        [_FIRST_SCOPE],
     )
 
 

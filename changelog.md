@@ -1,11 +1,11 @@
-# Microsoft 365 Agents SDK for Python - Release Notes v1.6.0
+# Microsoft 365 Agents SDK for Python - Release Notes v1.6.1 (Unreleased)
 
 **Release Date:** Unreleased
 **Previous Version:** 1.5.0 (Released 2026-08-26)
 
-## Bug Fixes
+## New Models & APIs
 
-- **MSAL Resource Extraction**: Preserved `api://` and other non-default scopes while removing only a trailing `/.default` when deriving the authentication resource.
+- **MSAL Token Credential**: Added `MsalTokenCredential`, an Azure Core-compatible asynchronous token credential backed by MSAL, for authenticating Azure SDK clients that accept an `AsyncTokenCredential`.
 
 ---
 
