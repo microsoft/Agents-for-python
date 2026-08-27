@@ -247,7 +247,8 @@ token = await credential.get_token("https://api.botframework.com/.default")
 ```
 
 At least one scope is required. The first scope must be an absolute resource
-URI, and all requested scopes are passed to MSAL during token acquisition.
+URI (typically ending in `/.default`). For client-credential flows, all requested
+scopes are passed to MSAL; managed identity uses the derived resource.
 
 ## Features
 
