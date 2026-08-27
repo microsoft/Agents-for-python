@@ -28,14 +28,15 @@ async def test_get_token_returns_access_token_and_forwards_scopes(
 ):
     msal_auth_class = mocker.patch(_MSAL_AUTH_PATH)
     msal_auth = msal_auth_class.return_value
-    msal_auth.get_access_token = mocker.AsyncMock(return_value="access-token")
+    expected_token = AccessToken("access-token", 1234567890)
+    msal_auth._get_access_token = mocker.AsyncMock(return_value=expected_token)
     credential = MsalTokenCredential(auth_config)
 
     token = await credential.get_token(_FIRST_SCOPE, _SECOND_SCOPE)
 
-    assert token == AccessToken("access-token", 0)
+    assert token is expected_token
     msal_auth_class.assert_called_once_with(auth_config)
-    msal_auth.get_access_token.assert_awaited_once_with(
+    msal_auth._get_access_token.assert_awaited_once_with(
         _FIRST_SCOPE,
         [_FIRST_SCOPE, _SECOND_SCOPE],
     )
@@ -61,7 +62,7 @@ async def test_get_token_propagates_msal_auth_error(
     auth_config: AgentAuthConfiguration,
 ):
     msal_auth = mocker.patch(_MSAL_AUTH_PATH).return_value
-    msal_auth.get_access_token = mocker.AsyncMock(
+    msal_auth._get_access_token = mocker.AsyncMock(
         side_effect=RuntimeError("token acquisition failed")
     )
     credential = MsalTokenCredential(auth_config)

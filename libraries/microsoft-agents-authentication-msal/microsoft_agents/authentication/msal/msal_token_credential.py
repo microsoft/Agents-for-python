@@ -13,6 +13,20 @@ from .msal_auth import MsalAuth
 logger = logging.getLogger(__name__)
 
 
+def _get_resource(scope: str) -> str:
+    """Extracts the resource from the given scope by removing the trailing '/.default' if present.
+
+    :param scope: The scope string.
+    :return: The extracted resource string.
+    :rtype: str
+    """
+    try:
+        i = scope.rindex("/")
+        return scope[:i]
+    except ValueError:
+        return scope
+
+
 class MsalTokenCredential(AsyncTokenCredential):
     """Provides an asynchronous Azure Core token credential using MSAL."""
 
@@ -39,5 +53,7 @@ class MsalTokenCredential(AsyncTokenCredential):
         if not scopes:
             raise ValueError("At least one scope must be provided.")
 
+        resource = _get_resource(scopes[0])
+
         provider = MsalAuth(self._config)
-        return await provider._get_access_token(scopes[0], list(scopes))
+        return await provider._get_access_token(resource, list(scopes))

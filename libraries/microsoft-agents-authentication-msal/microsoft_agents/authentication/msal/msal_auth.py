@@ -6,6 +6,7 @@ from __future__ import annotations
 import re
 import asyncio
 import logging
+import time
 import jwt
 from typing import Optional
 from urllib.parse import urlparse, ParseResult as URI
@@ -122,15 +123,10 @@ class MsalAuth(AccessTokenProviderBase):
                     msal_auth_client, scopes=local_scopes
                 )
             else:
-                auth_result_payload = None
+                auth_result_payload = {}
 
             res = (
                 auth_result_payload.get("access_token") if auth_result_payload else None
-            )
-            expires_in = (
-                int(auth_result_payload.get("expires_in", 0))
-                if auth_result_payload
-                else 0
             )
             if not res:
                 logger.error(
@@ -142,7 +138,11 @@ class MsalAuth(AccessTokenProviderBase):
                     )
                 )
 
-            return AccessToken(res, expires_in)
+            expires_in = auth_result_payload.get("expires_in")
+            if expires_in is None:
+                raise ValueError("Token response does not include an expiration.")
+
+            return AccessToken(res, int(time.time()) + int(expires_in))
 
     async def acquire_token_on_behalf_of(
         self, scopes: list[str], user_assertion: str
