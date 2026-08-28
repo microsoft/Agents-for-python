@@ -2,10 +2,14 @@
 # Licensed under the MIT License.
 
 from uuid import uuid4
-from functools import partial
-
 from microsoft_agents.activity import AgentsModel
-from microsoft_agents.hosting.core.storage import Storage, StoreItem
+from microsoft_agents.hosting.core.storage import StorageProvider, StoreItem
+from microsoft_agents.hosting.core.storage.storage_compatibility import (
+    as_storage_v2,
+    assert_storage_delete_succeeded,
+    assert_storage_write_succeeded,
+    get_storage_read_value,
+)
 
 from .agent_conversation_reference import AgentConversationReference
 from .conversation_id_factory_protocol import ConversationIdFactoryProtocol
@@ -14,17 +18,24 @@ from .conversation_id_factory_protocol import ConversationIdFactoryProtocol
 def _implement_store_item_for_agents_model_cls(model_instance: AgentsModel):
     instance_cls = type(model_instance)
     if not isinstance(model_instance, StoreItem):
-        instance_cls = type(model_instance)
+
+        def store_item_to_json(instance):
+            return instance.model_dump(mode="json", exclude_none=True)
+
+        @classmethod
+        def from_json_to_store_item(cls, data):
+            return cls.model_validate(data)
+
         setattr(
             instance_cls,
             "store_item_to_json",
-            partial(model_instance.model_dump, mode="json", exclude_none=True),
+            store_item_to_json,
         )
-        instance_cls.from_json_to_store_item = classmethod(instance_cls.model_validate)
+        instance_cls.from_json_to_store_item = from_json_to_store_item
 
 
 class ConversationIdFactory(ConversationIdFactoryProtocol):
-    def __init__(self, storage: Storage) -> None:
+    def __init__(self, storage: StorageProvider) -> None:
         if not storage:
             raise ValueError("ConversationIdFactory.__init__(): storage cannot be None")
         self._storage = storage
@@ -46,7 +57,8 @@ class ConversationIdFactory(ConversationIdFactoryProtocol):
         _implement_store_item_for_agents_model_cls(agent_conversation_reference)
 
         conversation_info = {agent_conversation_id: agent_conversation_reference}
-        await self._storage.write(conversation_info)
+        results = await as_storage_v2(self._storage).write(conversation_info)
+        assert_storage_write_succeeded(results, [agent_conversation_id])
 
         return agent_conversation_id
 
@@ -58,11 +70,14 @@ class ConversationIdFactory(ConversationIdFactoryProtocol):
                 "ConversationIdFactory.get_agent_conversation_reference(): agent_conversation_id cannot be None"
             )
 
-        storage_record = await self._storage.read(
+        storage_record = await as_storage_v2(self._storage).read(
             [agent_conversation_id], target_cls=AgentConversationReference
         )
-
-        return storage_record[agent_conversation_id]
+        result = get_storage_read_value(storage_record, agent_conversation_id)
+        if result is None:
+            raise KeyError(agent_conversation_id)
+        return result
 
     async def delete_conversation_reference(self, agent_conversation_id):
-        await self._storage.delete([agent_conversation_id])
+        results = await as_storage_v2(self._storage).delete([agent_conversation_id])
+        assert_storage_delete_succeeded(results, [agent_conversation_id])

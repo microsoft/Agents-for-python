@@ -1,13 +1,14 @@
 # Copyright (c) Microsoft Corporation. All rights reserved.
 # Licensed under the MIT License.
 
-from typing import TypeVar
+from typing import Generic, Literal, TypeVar, cast, overload
 import asyncio
 
 from azure.cosmos import (
     documents,
     CosmosDict,
 )
+from azure.core import MatchConditions
 from azure.cosmos.aio import (
     ContainerProxy,
     CosmosClient,
@@ -16,9 +17,33 @@ from azure.cosmos.aio import (
 import azure.cosmos.exceptions as cosmos_exceptions
 from azure.cosmos.partition_key import NonePartitionKeyValue
 
-from microsoft_agents.hosting.core.storage import AsyncStorageBase, StoreItem
+from microsoft_agents.hosting.core.storage import (
+    AsyncStorageBase,
+    StoreItem,
+    StorageDeleteOptions,
+    StorageDeleteResult,
+    StorageDeleteResults,
+    StorageOperationStatus,
+    StorageReadResult,
+    StorageReadResults,
+    StorageV2,
+    StorageVersion,
+    StorageVersionT,
+    StorageWriteMode,
+    StorageWriteOptions,
+    StorageWriteResult,
+    StorageWriteResults,
+    is_store_item,
+)
 from microsoft_agents.hosting.core.storage._type_aliases import JSON
 from microsoft_agents.hosting.core.storage.error_handling import ignore_error
+from microsoft_agents.hosting.core.storage.storage_compatibility import (
+    validate_expected_version,
+    validate_storage_v2_changes,
+    validate_storage_v2_keys,
+    validate_write_mode,
+)
+from microsoft_agents.hosting.core.storage.telemetry import spans
 from microsoft_agents.storage.cosmos.errors import storage_errors
 
 from .cosmos_db_storage_config import CosmosDBStorageConfig
@@ -31,10 +56,10 @@ cosmos_resource_not_found = lambda err: isinstance(
 )
 
 
-class CosmosDBStorage(AsyncStorageBase):
+class CosmosDBStorage(AsyncStorageBase, StorageV2, Generic[StorageVersionT]):
     """A CosmosDB based storage provider using partitioning"""
 
-    def __init__(self, config: CosmosDBStorageConfig):
+    def __init__(self, config: CosmosDBStorageConfig[StorageVersionT]):
         """Create the storage object.
 
         :param config:
@@ -43,13 +68,118 @@ class CosmosDBStorage(AsyncStorageBase):
 
         CosmosDBStorageConfig.validate_cosmos_db_config(config)
 
-        self._config: CosmosDBStorageConfig = config
+        self._config: CosmosDBStorageConfig[StorageVersionT] = config
+        if config.storage_version not in (StorageVersion.V1, StorageVersion.V2):
+            raise ValueError(
+                f'Storage version "{config.storage_version}" is not supported.'
+            )
+        self.storage_version = StorageVersion(config.storage_version)
         self._client: CosmosClient = self._create_client()
         self._database: DatabaseProxy | None = None
         self._container: ContainerProxy | None = None
         self._compatability_mode_partition_key: bool = False
         # Lock used for synchronizing container creation
         self._lock: asyncio.Lock = asyncio.Lock()
+
+    @overload
+    async def read(
+        self: "CosmosDBStorage[Literal[StorageVersion.V1]]",
+        keys: list[str],
+        *,
+        target_cls: type[StoreItemT],
+        **kwargs,
+    ) -> dict[str, StoreItemT]: ...
+
+    @overload
+    async def read(
+        self: "CosmosDBStorage[Literal[StorageVersion.V2]]",
+        keys: list[str],
+        *,
+        target_cls: type[StoreItemT],
+        **kwargs,
+    ) -> StorageReadResults[StoreItemT]: ...
+
+    @overload
+    async def read(
+        self: "CosmosDBStorage[StorageVersion]",
+        keys: list[str],
+        *,
+        target_cls: type[StoreItemT],
+        **kwargs,
+    ) -> dict[str, StoreItemT] | StorageReadResults[StoreItemT]: ...
+
+    async def read(
+        self, keys: list[str], *, target_cls: type[StoreItemT], **kwargs
+    ) -> dict[str, StoreItemT] | StorageReadResults[StoreItemT]:
+        """Read items using the selected storage contract."""
+        if self.storage_version == StorageVersion.V1:
+            return await super().read(keys, target_cls=target_cls, **kwargs)
+        with spans.StorageRead(len(keys) if isinstance(keys, list) else 0):
+            return await self._read_v2(keys, target_cls=target_cls)
+
+    @overload
+    async def write(
+        self: "CosmosDBStorage[Literal[StorageVersion.V1]]",
+        changes: dict[str, StoreItem],
+        options: None = None,
+    ) -> None: ...
+
+    @overload
+    async def write(
+        self: "CosmosDBStorage[Literal[StorageVersion.V2]]",
+        changes: dict[str, StoreItem],
+        options: StorageWriteOptions | None = None,
+    ) -> StorageWriteResults: ...
+
+    @overload
+    async def write(
+        self: "CosmosDBStorage[StorageVersion]",
+        changes: dict[str, StoreItem],
+        options: StorageWriteOptions | None = None,
+    ) -> None | StorageWriteResults: ...
+
+    async def write(
+        self,
+        changes: dict[str, StoreItem],
+        options: StorageWriteOptions | None = None,
+    ) -> None | StorageWriteResults:
+        """Write items using the selected storage contract."""
+        if self.storage_version == StorageVersion.V1:
+            return await super().write(changes)
+        with spans.StorageWrite(len(changes) if isinstance(changes, dict) else 0):
+            return await self._write_v2(changes, options)
+
+    @overload
+    async def delete(
+        self: "CosmosDBStorage[Literal[StorageVersion.V1]]",
+        keys: list[str],
+        options: None = None,
+    ) -> None: ...
+
+    @overload
+    async def delete(
+        self: "CosmosDBStorage[Literal[StorageVersion.V2]]",
+        keys: list[str],
+        options: StorageDeleteOptions | None = None,
+    ) -> StorageDeleteResults: ...
+
+    @overload
+    async def delete(
+        self: "CosmosDBStorage[StorageVersion]",
+        keys: list[str],
+        options: StorageDeleteOptions | None = None,
+    ) -> None | StorageDeleteResults: ...
+
+    async def delete(
+        self,
+        keys: list[str],
+        options: StorageDeleteOptions | None = None,
+    ) -> None | StorageDeleteResults:
+        """Delete items using the selected storage contract."""
+        if self.storage_version == StorageVersion.V1:
+            return await super().delete(keys)
+        with spans.StorageDelete(len(keys) if isinstance(keys, list) else 0):
+            return await self._delete_v2(keys, options)
 
     def _create_client(self) -> CosmosClient:
         """Create a CosmosClient based on the configuration.
@@ -119,7 +249,9 @@ class CosmosDBStorage(AsyncStorageBase):
         doc: JSON | None = read_item_response.get("document")
         if doc is None:
             return read_item_response["realId"], None
-        return read_item_response["realId"], target_cls.from_json_to_store_item(doc)
+        return read_item_response["realId"], cast(
+            StoreItemT, target_cls.from_json_to_store_item(doc)
+        )
 
     async def _write_item(self, key: str, item: StoreItem) -> None:
         """Write an item to the storage.
@@ -157,6 +289,214 @@ class CosmosDBStorage(AsyncStorageBase):
             ),
             cosmos_resource_not_found,
         )
+
+    async def _read_v2(
+        self, keys: list[str], *, target_cls: type[StoreItemT]
+    ) -> StorageReadResults[StoreItemT]:
+        validate_storage_v2_keys(keys)
+        if not keys:
+            return {}
+        await self.initialize()
+        results: StorageReadResults[StoreItemT] = {}
+        for key in keys:
+            try:
+                document = await self._read_document(key)
+                results[key] = cast(
+                    StorageReadResult[StoreItemT],
+                    StorageReadResult(
+                        key=key,
+                        status=StorageOperationStatus.SUCCEEDED,
+                        value=cast(
+                            StoreItemT,
+                            target_cls.from_json_to_store_item(document["document"]),
+                        ),
+                        version=document.get("_etag"),
+                    ),
+                )
+            except Exception as error:  # noqa: BLE001
+                if self._status_code(error) == 404:
+                    results[key] = cast(
+                        StorageReadResult[StoreItemT],
+                        StorageReadResult(
+                            key=key, status=StorageOperationStatus.NOT_FOUND
+                        ),
+                    )
+                else:
+                    raise
+        return results
+
+    async def _write_v2(
+        self,
+        changes: dict[str, StoreItem],
+        options: StorageWriteOptions | None,
+    ) -> StorageWriteResults:
+        validate_storage_v2_changes(changes)
+        if not changes:
+            return {}
+        if any(not is_store_item(value) for value in changes.values()):
+            raise ValueError("Storage V2 values must implement store_item_to_json().")
+        options = options or StorageWriteOptions()
+        validate_write_mode(options.mode)
+        validate_expected_version(options.expected_version)
+        await self.initialize()
+
+        results: StorageWriteResults = {}
+        for key, value in changes.items():
+            current = await self._try_read_document(key)
+            current_version = current.get("_etag") if current else None
+            if options.mode == StorageWriteMode.CREATE_ONLY and current is not None:
+                results[key] = StorageWriteResult(
+                    key=key,
+                    status=StorageOperationStatus.CONFLICT,
+                    version=current_version,
+                )
+                continue
+            if options.mode == StorageWriteMode.REPLACE and current is None:
+                results[key] = StorageWriteResult(
+                    key=key, status=StorageOperationStatus.NOT_FOUND
+                )
+                continue
+            if (
+                options.expected_version is not None
+                and options.expected_version != current_version
+            ):
+                results[key] = StorageWriteResult(
+                    key=key,
+                    status=StorageOperationStatus.CONDITION_NOT_MET,
+                    version=current_version,
+                )
+                continue
+
+            escaped_key = self._sanitize(key)
+            document = {
+                "id": escaped_key,
+                "realId": key,
+                "document": value.store_item_to_json(),
+            }
+            try:
+                if options.mode == StorageWriteMode.CREATE_ONLY:
+                    response = await self._container.create_item(body=document)
+                elif options.mode == StorageWriteMode.REPLACE:
+                    response = await self._container.replace_item(
+                        escaped_key,
+                        document,
+                        etag=current_version,
+                        match_condition=MatchConditions.IfNotModified,
+                    )
+                elif options.expected_version is not None:
+                    response = await self._container.upsert_item(
+                        body=document,
+                        etag=options.expected_version,
+                        match_condition=MatchConditions.IfNotModified,
+                    )
+                else:
+                    response = await self._container.upsert_item(body=document)
+                results[key] = StorageWriteResult(
+                    key=key,
+                    status=StorageOperationStatus.SUCCEEDED,
+                    version=response.get("_etag"),
+                )
+            except Exception as error:  # noqa: BLE001
+                status_code = self._status_code(error)
+                if options.mode == StorageWriteMode.CREATE_ONLY and status_code == 409:
+                    results[key] = StorageWriteResult(
+                        key=key,
+                        status=StorageOperationStatus.CONFLICT,
+                        version=(await self._try_read_document(key) or {}).get("_etag"),
+                    )
+                elif status_code == 404:
+                    results[key] = StorageWriteResult(
+                        key=key, status=StorageOperationStatus.NOT_FOUND
+                    )
+                elif status_code == 412:
+                    results[key] = StorageWriteResult(
+                        key=key,
+                        status=StorageOperationStatus.CONDITION_NOT_MET,
+                        version=(await self._try_read_document(key) or {}).get("_etag"),
+                    )
+                else:
+                    raise
+        return results
+
+    async def _delete_v2(
+        self,
+        keys: list[str],
+        options: StorageDeleteOptions | None,
+    ) -> StorageDeleteResults:
+        validate_storage_v2_keys(keys)
+        if not keys:
+            return {}
+        options = options or StorageDeleteOptions()
+        validate_expected_version(options.expected_version)
+        await self.initialize()
+
+        results: StorageDeleteResults = {}
+        for key in keys:
+            current = await self._try_read_document(key)
+            if current is None:
+                results[key] = StorageDeleteResult(
+                    key=key, status=StorageOperationStatus.NOT_FOUND
+                )
+                continue
+            current_version = current.get("_etag")
+            if (
+                options.expected_version is not None
+                and options.expected_version != current_version
+            ):
+                results[key] = StorageDeleteResult(
+                    key=key,
+                    status=StorageOperationStatus.CONDITION_NOT_MET,
+                    version=current_version,
+                )
+                continue
+            escaped_key = self._sanitize(key)
+            try:
+                await self._container.delete_item(
+                    escaped_key,
+                    self._get_partition_key(escaped_key),
+                    etag=current_version,
+                    match_condition=MatchConditions.IfNotModified,
+                )
+                results[key] = StorageDeleteResult(
+                    key=key,
+                    status=StorageOperationStatus.SUCCEEDED,
+                    version=current_version,
+                )
+            except Exception as error:  # noqa: BLE001
+                status_code = self._status_code(error)
+                if status_code == 404:
+                    results[key] = StorageDeleteResult(
+                        key=key, status=StorageOperationStatus.NOT_FOUND
+                    )
+                elif status_code == 412:
+                    results[key] = StorageDeleteResult(
+                        key=key,
+                        status=StorageOperationStatus.CONDITION_NOT_MET,
+                        version=(await self._try_read_document(key) or {}).get("_etag"),
+                    )
+                else:
+                    raise
+        return results
+
+    async def _read_document(self, key: str) -> CosmosDict:
+        if key == "":
+            raise ValueError(str(storage_errors.CosmosDbKeyCannotBeEmpty))
+        escaped_key = self._sanitize(key)
+        return await self._container.read_item(
+            escaped_key, self._get_partition_key(escaped_key)
+        )
+
+    async def _try_read_document(self, key: str) -> CosmosDict | None:
+        try:
+            return await self._read_document(key)
+        except Exception as error:  # noqa: BLE001
+            if self._status_code(error) == 404:
+                return None
+            raise
+
+    @staticmethod
+    def _status_code(error: Exception) -> int | None:
+        return getattr(error, "status_code", None)
 
     async def _create_container(self) -> None:
         """Create the container if it does not exist."""

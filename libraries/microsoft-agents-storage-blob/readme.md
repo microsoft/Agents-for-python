@@ -179,6 +179,7 @@ pip install microsoft-agents-storage-blob
 | `connection_string` | `str` | No* | Storage account connection string |
 | `url` | `str` | No* | Blob service URL (e.g., `https://account.blob.core.windows.net`) |
 | `credential` | `TokenCredential` | No** | Azure credential for authentication |
+| `storage_version` | `StorageVersion` | No | Storage contract version; defaults to `StorageVersion.V1` |
 
 *Either `connection_string` OR (`url` + `credential`) must be provided  
 **Required when using `url`

@@ -1,14 +1,103 @@
 # Copyright (c) Microsoft Corporation. All rights reserved.
 # Licensed under the MIT License.
 
-from typing import TypeVar
+from dataclasses import dataclass
+from enum import Enum, IntEnum
+from typing import Generic, Literal, TypeAlias
 from abc import ABC, abstractmethod
 from asyncio import gather
+from typing_extensions import TypeVar
 
 from .store_item import StoreItem
 from .telemetry import spans
 
 StoreItemT = TypeVar("StoreItemT", bound=StoreItem)
+
+
+class StorageOperationStatus(str, Enum):
+    """Outcome of one version 2 storage operation."""
+
+    SUCCEEDED = "succeeded"
+    NOT_FOUND = "notFound"
+    CONFLICT = "conflict"
+    CONDITION_NOT_MET = "conditionNotMet"
+
+
+class StorageWriteMode(str, Enum):
+    """Write mode for a version 2 storage operation."""
+
+    UPSERT = "upsert"
+    CREATE_ONLY = "createOnly"
+    REPLACE = "replace"
+
+
+class StorageVersion(IntEnum):
+    """Supported storage contract versions."""
+
+    V1 = 1
+    V2 = 2
+
+
+StorageVersionT = TypeVar(
+    "StorageVersionT",
+    Literal[StorageVersion.V1],
+    Literal[StorageVersion.V2],
+    StorageVersion,
+    default=Literal[StorageVersion.V1],
+)
+
+
+def is_store_item(value: object) -> bool:
+    """Return whether a value can be serialized by a storage provider."""
+    return callable(getattr(value, "store_item_to_json", None))
+
+
+@dataclass(frozen=True, slots=True)
+class StorageWriteOptions:
+    """Options applied to every item in a version 2 write operation."""
+
+    mode: StorageWriteMode = StorageWriteMode.UPSERT
+    expected_version: str | None = None
+
+
+@dataclass(frozen=True, slots=True)
+class StorageDeleteOptions:
+    """Options applied to every item in a version 2 delete operation."""
+
+    expected_version: str | None = None
+
+
+@dataclass(frozen=True, slots=True)
+class StorageReadResult(Generic[StoreItemT]):
+    """Result for one version 2 read operation."""
+
+    key: str
+    status: StorageOperationStatus
+    value: StoreItemT | None = None
+    version: str | None = None
+
+
+@dataclass(frozen=True, slots=True)
+class StorageWriteResult:
+    """Result for one version 2 write operation."""
+
+    key: str
+    status: StorageOperationStatus
+    version: str | None = None
+
+
+@dataclass(frozen=True, slots=True)
+class StorageDeleteResult:
+    """Result for one version 2 delete operation."""
+
+    key: str
+    status: StorageOperationStatus
+    version: str | None = None
+
+
+StorageReadResults: TypeAlias = dict[str, StorageReadResult[StoreItemT]]
+StorageWriteResults: TypeAlias = dict[str, StorageWriteResult]
+StorageDeleteResults: TypeAlias = dict[str, StorageDeleteResult]
 
 
 class Storage(ABC):
@@ -43,6 +132,45 @@ class Storage(ABC):
         keys: A list of keys to delete.
         """
         pass
+
+
+class StorageV2(ABC):
+    """Version 2 storage interface.
+
+    Each operation returns a result for every requested key. Values remain
+    :class:`StoreItem` instances because the Python SDK requires an explicit
+    deserialization type for reads.
+    """
+
+    storage_version = StorageVersion.V2
+
+    @abstractmethod
+    async def read(
+        self, keys: list[str], *, target_cls: type[StoreItemT], **kwargs
+    ) -> StorageReadResults[StoreItemT]:
+        """Reads items and returns one result per requested key."""
+        pass
+
+    @abstractmethod
+    async def write(
+        self,
+        changes: dict[str, StoreItem],
+        options: StorageWriteOptions | None = None,
+    ) -> StorageWriteResults:
+        """Writes items and returns one result per requested key."""
+        pass
+
+    @abstractmethod
+    async def delete(
+        self,
+        keys: list[str],
+        options: StorageDeleteOptions | None = None,
+    ) -> StorageDeleteResults:
+        """Deletes items and returns one result per requested key."""
+        pass
+
+
+StorageProvider: TypeAlias = Storage | StorageV2
 
 
 class AsyncStorageBase(Storage):

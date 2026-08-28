@@ -9,6 +9,7 @@ import pytest_asyncio
 from dotenv import load_dotenv
 
 from microsoft_agents.storage.blob import BlobStorage, BlobStorageConfig
+from microsoft_agents.hosting.core.storage import StorageVersion
 from azure.storage.blob.aio import BlobServiceClient, ContainerClient
 from azure.core.exceptions import ResourceNotFoundError
 from azure.identity.aio import DefaultAzureCredential
@@ -24,6 +25,16 @@ from tests._common.storage.utils import (
 # to enable blob tests, run with --run-blob
 # also, make sure that .env has:
 # TEST_BLOB_STORAGE_ACCOUNT_URL set
+
+
+def test_blob_storage_config_defaults_to_v1_and_can_select_v2():
+    assert BlobStorageConfig(container_name="test").storage_version == StorageVersion.V1
+    assert (
+        BlobStorageConfig(
+            container_name="test", storage_version=StorageVersion.V2
+        ).storage_version
+        == StorageVersion.V2
+    )
 
 
 async def reset_container(container_client: ContainerClient):

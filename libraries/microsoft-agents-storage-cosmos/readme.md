@@ -172,6 +172,12 @@ Additionally we provide a Copilot Studio Client, to interact with Agents created
 pip install microsoft-agents-storage-cosmos
 ```
 
+## Storage version
+
+`CosmosDBStorageConfig` uses V1 by default. Set
+`storage_version=StorageVersion.V2` for per-key operation results and
+optimistic concurrency tokens.
+
 
 ## Environment Setup
 
