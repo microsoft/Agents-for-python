@@ -405,10 +405,9 @@ class Authorization:
         :param context: The context object for the current turn.
         :type context: :class:`microsoft_agents.hosting.core.turn_context.TurnContext`
         :param auth_handler_id: The ID of the auth handler to get the token for.
-        :type auth_handler_id: str
+        :type auth_handler_id: str | None
         :return: An AsyncTokenCredential for the specified auth handler or the default handler.
-        :rtype: :class:`microsoft_agents.hosting.core.app.oauth.authorization.AsyncTokenCredential`
-        """
+        :rtype: :class:`azure.core.credentials_async.AsyncTokenCredential`
 
         async def func(*scopes: str, **_kwargs) -> TokenResponse:
             return await self.exchange_token(
