@@ -23,7 +23,10 @@ from microsoft_agents.hosting.core.authorization._helpers import (
     ],
 )
 def test_access_token_from_token_response_expiration(expiration, expected):
-    response = TokenResponse(token="token", expiration=expiration)
+    response = TokenResponse(
+        token="token",
+        **({"expiration": expiration} if expiration is not None else {}),
+    )
 
     token = _access_token_from_token_response(response)
 
