@@ -4,7 +4,7 @@ Licensed under the MIT License.
 """
 
 import logging
-from typing import Optional, Callable, Awaitable, cast, overload, Literal
+from typing import Optional, Callable, Awaitable, cast
 from dataclasses import dataclass
 
 from azure.core.credentials_async import AsyncTokenCredential
