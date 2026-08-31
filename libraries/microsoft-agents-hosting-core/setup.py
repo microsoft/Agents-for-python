@@ -20,5 +20,6 @@ setup(
         "opentelemetry-sdk>=1.27.0",
         "aiohttp>=3.11.11",
         "yarl>=1.17.0,<2.0",
+        "azure.core",
     ],
 )

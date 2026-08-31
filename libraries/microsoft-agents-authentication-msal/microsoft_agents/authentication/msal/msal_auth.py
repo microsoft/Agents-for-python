@@ -17,7 +17,10 @@ from msal import (
     SystemAssignedManagedIdentity,
     TokenCache,
 )
+
 from azure.core.credentials import AccessToken
+from azure.core.credentials_async import AsyncTokenCredential
+
 from requests import Session
 
 from microsoft_agents.activity._utils import _DeferredString
@@ -85,6 +88,16 @@ class MsalAuth(AccessTokenProviderBase):
         """
         access_token = await self._get_access_token(resource_url, scopes, force_refresh)
         return access_token.token
+
+    async def get_token_credential(self) -> AsyncTokenCredential:
+        """Gets the token credential for the access token provider.
+
+        :return: The token credential.
+        :rtype: AsyncTokenCredential
+        """
+        from .msal_token_credential import MsalTokenCredential
+
+        return MsalTokenCredential(self._msal_configuration, provider=self)
 
     async def _get_access_token(
         self, resource_url: str, scopes: list[str], force_refresh: bool = False

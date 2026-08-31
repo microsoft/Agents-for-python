@@ -4,6 +4,8 @@
 from typing import Protocol
 from abc import abstractmethod
 
+from azure.core.credentials_async import AsyncTokenCredential
+
 from .agent_auth_configuration import AgentAuthConfiguration
 
 
@@ -30,6 +32,15 @@ class AccessTokenProviderBase(Protocol):
         :param scopes: The scopes for which to get the token.
         :param force_refresh: True to force a refresh of the token; or false to get the token only if it is necessary.
         :return: The access token as a string.
+        """
+        pass
+
+    @abstractmethod
+    async def get_token_credential(self) -> AsyncTokenCredential:
+        """
+        Get the token credential for the access token provider.
+
+        :return: The token credential.
         """
         pass
 

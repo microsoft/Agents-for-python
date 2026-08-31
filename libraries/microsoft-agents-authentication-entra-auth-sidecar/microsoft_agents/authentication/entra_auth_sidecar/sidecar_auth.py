@@ -12,6 +12,8 @@ from microsoft_agents.hosting.core import (
     AgentAuthConfiguration,
 )
 
+from azure.core.credentials_async import AsyncTokenCredential
+
 from ._models import SidecarConnectionSettings, SidecarRequestOptions
 from ._token_expiry import SidecarTokenExpiry
 from .errors.error_resources import SidecarAuthErrorResources as _Errors
@@ -110,6 +112,21 @@ class SidecarAuth(AccessTokenProviderBase):
             force_refresh=force_refresh,
         )
         return await self._get_cached_token(self._service_name, options)
+
+    async def get_token_credential(self) -> AsyncTokenCredential:
+        """Gets the token credential for the access token provider.
+
+        :return: The token credential.
+        :rtype: AsyncTokenCredential
+        """
+        from .sidecar_token_credential import SidecarTokenCredential
+
+        return SidecarTokenCredential(self._configuration, provider=self)
+
+    async def acquire_token_on_behalf_of(
+        self, scopes: list[str], user_assertion: str
+    ) -> str:
+        raise NotImplementedError("acquire_token_on_behalf_of is not implemented.")
 
     async def get_agentic_application_token(
         self, tenant_id: str, agent_app_instance_id: str
