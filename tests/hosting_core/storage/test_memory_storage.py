@@ -123,3 +123,21 @@ async def test_v2_accepts_empty_batches_and_rejects_empty_version():
             {"key": MockStoreItem()},
             StorageWriteOptions(expected_version=""),
         )
+
+
+@pytest.mark.asyncio
+async def test_v1_rejects_v2_options_instead_of_ignoring_them():
+    storage = MemoryStorage()
+
+    with pytest.raises(ValueError, match="write options require Storage V2"):
+        await storage.write({"key": MockStoreItem()}, StorageWriteOptions())
+    with pytest.raises(ValueError, match="delete options require Storage V2"):
+        await storage.delete(["key"], StorageDeleteOptions())
+
+
+@pytest.mark.asyncio
+async def test_v1_empty_write_reports_empty_batch():
+    storage = MemoryStorage()
+
+    with pytest.raises(ValueError, match="changes cannot be empty"):
+        await storage.write({})

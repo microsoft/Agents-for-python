@@ -1,3 +1,4 @@
+import asyncio
 import json
 import gc
 import os
@@ -9,7 +10,12 @@ import pytest_asyncio
 from dotenv import load_dotenv
 
 from microsoft_agents.storage.blob import BlobStorage, BlobStorageConfig
-from microsoft_agents.hosting.core.storage import StorageVersion
+from microsoft_agents.hosting.core.storage import (
+    StorageDeleteOptions,
+    StorageOperationStatus,
+    StorageVersion,
+    StorageWriteOptions,
+)
 from azure.storage.blob.aio import BlobServiceClient, ContainerClient
 from azure.core.exceptions import ResourceNotFoundError
 from azure.identity.aio import DefaultAzureCredential
@@ -35,6 +41,106 @@ def test_blob_storage_config_defaults_to_v1_and_can_select_v2():
         ).storage_version
         == StorageVersion.V2
     )
+
+
+@pytest.mark.asyncio
+async def test_v1_rejects_v2_options_instead_of_ignoring_them():
+    storage = object.__new__(BlobStorage)
+    storage.storage_version = StorageVersion.V1
+
+    with pytest.raises(ValueError, match="write options require Storage V2"):
+        await storage.write({"key": MockStoreItem()}, StorageWriteOptions())
+    with pytest.raises(ValueError, match="delete options require Storage V2"):
+        await storage.delete(["key"], StorageDeleteOptions())
+
+
+class _ConcurrentCallBarrier:
+    def __init__(self, expected: int):
+        self._expected = expected
+        self._active = 0
+        self.max_active = 0
+        self._ready = asyncio.Event()
+
+    async def wait(self):
+        self._active += 1
+        self.max_active = max(self.max_active, self._active)
+        if self._active == self._expected:
+            self._ready.set()
+        await asyncio.wait_for(self._ready.wait(), timeout=1)
+        self._active -= 1
+
+
+class _BlobDownloader:
+    properties = {"etag": "v1"}
+
+    def __init__(self, key: str):
+        self._key = key
+
+    async def readall(self):
+        return json.dumps({"value": self._key}).encode()
+
+
+class _ConcurrentBlobClient:
+    def __init__(self, key: str, barrier: _ConcurrentCallBarrier):
+        self._key = key
+        self._barrier = barrier
+
+    async def download_blob(self, **_kwargs):
+        await self._barrier.wait()
+        return _BlobDownloader(self._key)
+
+    async def get_blob_properties(self):
+        await self._barrier.wait()
+        return {"etag": "v1"}
+
+    async def upload_blob(self, *_args, **_kwargs):
+        return {"etag": "v2"}
+
+    async def delete_blob(self, **_kwargs):
+        return None
+
+
+class _ConcurrentBlobContainer:
+    def __init__(self, barrier: _ConcurrentCallBarrier):
+        self._barrier = barrier
+
+    def get_blob_client(self, key: str):
+        return _ConcurrentBlobClient(key, self._barrier)
+
+
+def _create_v2_blob_storage(barrier: _ConcurrentCallBarrier):
+    storage = object.__new__(BlobStorage)
+    storage.storage_version = StorageVersion.V2
+    storage._initialized = True
+    storage._container_client = _ConcurrentBlobContainer(barrier)
+    return storage
+
+
+@pytest.mark.asyncio
+async def test_v2_batches_run_independent_blob_operations_concurrently():
+    barrier = _ConcurrentCallBarrier(2)
+    storage = _create_v2_blob_storage(barrier)
+    read = await storage.read(["one", "two"], target_cls=MockStoreItem)
+    assert all(
+        result.status == StorageOperationStatus.SUCCEEDED for result in read.values()
+    )
+    assert barrier.max_active == 2
+
+    barrier = _ConcurrentCallBarrier(2)
+    storage = _create_v2_blob_storage(barrier)
+    write = await storage.write({"one": MockStoreItem(), "two": MockStoreItem()})
+    assert all(
+        result.status == StorageOperationStatus.SUCCEEDED for result in write.values()
+    )
+    assert barrier.max_active == 2
+
+    barrier = _ConcurrentCallBarrier(2)
+    storage = _create_v2_blob_storage(barrier)
+    delete = await storage.delete(["one", "two"])
+    assert all(
+        result.status == StorageOperationStatus.SUCCEEDED for result in delete.values()
+    )
+    assert barrier.max_active == 2
 
 
 async def reset_container(container_client: ContainerClient):

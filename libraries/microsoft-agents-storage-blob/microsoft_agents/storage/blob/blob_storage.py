@@ -1,3 +1,4 @@
+import asyncio
 import json
 from typing import Generic, Literal, TypeVar, cast, overload
 from io import BytesIO
@@ -135,6 +136,8 @@ class BlobStorage(AsyncStorageBase, StorageV2, Generic[StorageVersionT]):
     ) -> None | StorageWriteResults:
         """Write items using the selected storage contract."""
         if self.storage_version == StorageVersion.V1:
+            if options is not None:
+                raise ValueError("Storage write options require Storage V2.")
             return await super().write(changes)
         with spans.StorageWrite(len(changes) if isinstance(changes, dict) else 0):
             return await self._write_v2(changes, options)
@@ -167,6 +170,8 @@ class BlobStorage(AsyncStorageBase, StorageV2, Generic[StorageVersionT]):
     ) -> None | StorageDeleteResults:
         """Delete items using the selected storage contract."""
         if self.storage_version == StorageVersion.V1:
+            if options is not None:
+                raise ValueError("Storage delete options require Storage V2.")
             return await super().delete(keys)
         with spans.StorageDelete(len(keys) if isinstance(keys, list) else 0):
             return await self._delete_v2(keys, options)
@@ -265,8 +270,8 @@ class BlobStorage(AsyncStorageBase, StorageV2, Generic[StorageVersionT]):
         if not keys:
             return {}
         await self.initialize()
-        results: StorageReadResults[StoreItemT] = {}
-        for key in keys:
+
+        async def read_one(key: str) -> StorageReadResult[StoreItemT]:
             blob_client = self._container_client.get_blob_client(key)
             try:
                 downloader = await blob_client.download_blob(timeout=5)
@@ -275,7 +280,7 @@ class BlobStorage(AsyncStorageBase, StorageV2, Generic[StorageVersionT]):
                     StoreItemT,
                     target_cls.from_json_to_store_item(json.loads(raw)),
                 )
-                results[key] = cast(
+                return cast(
                     StorageReadResult[StoreItemT],
                     StorageReadResult(
                         key=key,
@@ -286,7 +291,7 @@ class BlobStorage(AsyncStorageBase, StorageV2, Generic[StorageVersionT]):
                 )
             except Exception as error:  # noqa: BLE001
                 if self._status_code(error) == 404:
-                    results[key] = cast(
+                    return cast(
                         StorageReadResult[StoreItemT],
                         StorageReadResult(
                             key=key, status=StorageOperationStatus.NOT_FOUND
@@ -294,7 +299,9 @@ class BlobStorage(AsyncStorageBase, StorageV2, Generic[StorageVersionT]):
                     )
                 else:
                     raise
-        return results
+
+        results = await asyncio.gather(*(read_one(key) for key in keys))
+        return {result.key: result for result in results}
 
     async def _write_v2(
         self,
@@ -306,48 +313,47 @@ class BlobStorage(AsyncStorageBase, StorageV2, Generic[StorageVersionT]):
             return {}
         if any(not is_store_item(value) for value in changes.values()):
             raise ValueError("Storage V2 values must implement store_item_to_json().")
-        options = options or StorageWriteOptions()
-        validate_write_mode(options.mode)
-        validate_expected_version(options.expected_version)
+        write_options = options or StorageWriteOptions()
+        validate_write_mode(write_options.mode)
+        validate_expected_version(write_options.expected_version)
         await self.initialize()
 
-        results: StorageWriteResults = {}
-        for key, value in changes.items():
+        async def write_one(key: str, value: StoreItem) -> StorageWriteResult:
             blob_client = self._container_client.get_blob_client(key)
             current_version = await self._get_current_version(blob_client)
             if (
-                options.mode == StorageWriteMode.CREATE_ONLY
+                write_options.mode == StorageWriteMode.CREATE_ONLY
                 and current_version is not None
             ):
-                results[key] = StorageWriteResult(
+                return StorageWriteResult(
                     key=key,
                     status=StorageOperationStatus.CONFLICT,
                     version=current_version,
                 )
-                continue
-            if options.mode == StorageWriteMode.REPLACE and current_version is None:
-                results[key] = StorageWriteResult(
+            if (
+                write_options.mode == StorageWriteMode.REPLACE
+                and current_version is None
+            ):
+                return StorageWriteResult(
                     key=key, status=StorageOperationStatus.NOT_FOUND
                 )
-                continue
             if (
-                options.expected_version is not None
-                and options.expected_version != current_version
+                write_options.expected_version is not None
+                and write_options.expected_version != current_version
             ):
-                results[key] = StorageWriteResult(
+                return StorageWriteResult(
                     key=key,
                     status=StorageOperationStatus.CONDITION_NOT_MET,
                     version=current_version,
                 )
-                continue
 
             payload = json.dumps(value.store_item_to_json()).encode("utf-8")
             try:
                 upload_options = {
-                    "overwrite": options.mode != StorageWriteMode.CREATE_ONLY
+                    "overwrite": write_options.mode != StorageWriteMode.CREATE_ONLY
                 }
-                condition_version = options.expected_version
-                if options.mode == StorageWriteMode.REPLACE:
+                condition_version = write_options.expected_version
+                if write_options.mode == StorageWriteMode.REPLACE:
                     condition_version = current_version
                 if condition_version is not None:
                     upload_options.update(
@@ -359,35 +365,42 @@ class BlobStorage(AsyncStorageBase, StorageV2, Generic[StorageVersionT]):
                 response = await blob_client.upload_blob(
                     BytesIO(payload), length=len(payload), **upload_options
                 )
-                results[key] = StorageWriteResult(
+                return StorageWriteResult(
                     key=key,
                     status=StorageOperationStatus.SUCCEEDED,
                     version=self._etag_from(response),
                 )
             except Exception as error:  # noqa: BLE001
                 status_code = self._status_code(error)
-                if options.mode == StorageWriteMode.CREATE_ONLY and status_code in (
-                    409,
-                    412,
+                if (
+                    write_options.mode == StorageWriteMode.CREATE_ONLY
+                    and status_code
+                    in (
+                        409,
+                        412,
+                    )
                 ):
-                    results[key] = StorageWriteResult(
+                    return StorageWriteResult(
                         key=key,
                         status=StorageOperationStatus.CONFLICT,
                         version=await self._get_current_version(blob_client),
                     )
-                elif status_code == 404:
-                    results[key] = StorageWriteResult(
+                if status_code == 404:
+                    return StorageWriteResult(
                         key=key, status=StorageOperationStatus.NOT_FOUND
                     )
-                elif status_code == 412:
-                    results[key] = StorageWriteResult(
+                if status_code == 412:
+                    return StorageWriteResult(
                         key=key,
                         status=StorageOperationStatus.CONDITION_NOT_MET,
                         version=await self._get_current_version(blob_client),
                     )
-                else:
-                    raise
-        return results
+                raise
+
+        results = await asyncio.gather(
+            *(write_one(key, value) for key, value in changes.items())
+        )
+        return {result.key: result for result in results}
 
     async def _delete_v2(
         self,
@@ -397,53 +410,51 @@ class BlobStorage(AsyncStorageBase, StorageV2, Generic[StorageVersionT]):
         validate_storage_v2_keys(keys)
         if not keys:
             return {}
-        options = options or StorageDeleteOptions()
-        validate_expected_version(options.expected_version)
+        delete_options = options or StorageDeleteOptions()
+        validate_expected_version(delete_options.expected_version)
         await self.initialize()
 
-        results: StorageDeleteResults = {}
-        for key in keys:
+        async def delete_one(key: str) -> StorageDeleteResult:
             blob_client = self._container_client.get_blob_client(key)
             current_version = await self._get_current_version(blob_client)
             if current_version is None:
-                results[key] = StorageDeleteResult(
+                return StorageDeleteResult(
                     key=key, status=StorageOperationStatus.NOT_FOUND
                 )
-                continue
             if (
-                options.expected_version is not None
-                and options.expected_version != current_version
+                delete_options.expected_version is not None
+                and delete_options.expected_version != current_version
             ):
-                results[key] = StorageDeleteResult(
+                return StorageDeleteResult(
                     key=key,
                     status=StorageOperationStatus.CONDITION_NOT_MET,
                     version=current_version,
                 )
-                continue
             try:
                 await blob_client.delete_blob(
                     etag=current_version,
                     match_condition=MatchConditions.IfNotModified,
                 )
-                results[key] = StorageDeleteResult(
+                return StorageDeleteResult(
                     key=key,
                     status=StorageOperationStatus.SUCCEEDED,
                     version=current_version,
                 )
             except Exception as error:  # noqa: BLE001
                 if self._status_code(error) == 404:
-                    results[key] = StorageDeleteResult(
+                    return StorageDeleteResult(
                         key=key, status=StorageOperationStatus.NOT_FOUND
                     )
-                elif self._status_code(error) == 412:
-                    results[key] = StorageDeleteResult(
+                if self._status_code(error) == 412:
+                    return StorageDeleteResult(
                         key=key,
                         status=StorageOperationStatus.CONDITION_NOT_MET,
                         version=await self._get_current_version(blob_client),
                     )
-                else:
-                    raise
-        return results
+                raise
+
+        results = await asyncio.gather(*(delete_one(key) for key in keys))
+        return {result.key: result for result in results}
 
     async def _get_current_version(self, blob_client) -> str | None:
         try:

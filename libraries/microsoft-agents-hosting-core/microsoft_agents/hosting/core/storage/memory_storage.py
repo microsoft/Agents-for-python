@@ -134,6 +134,8 @@ class MemoryStorage(Storage, StorageV2, Generic[StorageVersionT]):
         with spans.StorageWrite(len(changes) if isinstance(changes, dict) else 0):
             if self.storage_version == StorageVersion.V2:
                 return await self._write_v2(changes, options)
+            if options is not None:
+                raise ValueError("Storage write options require Storage V2.")
             return await self._write_v1(changes)
 
     @overload
@@ -171,6 +173,8 @@ class MemoryStorage(Storage, StorageV2, Generic[StorageVersionT]):
         with spans.StorageDelete(len(keys) if isinstance(keys, list) else 0):
             if self.storage_version == StorageVersion.V2:
                 return await self._delete_v2(keys, options)
+            if options is not None:
+                raise ValueError("Storage delete options require Storage V2.")
             return await self._delete_v1(keys)
 
     async def _read_v1(
@@ -193,7 +197,7 @@ class MemoryStorage(Storage, StorageV2, Generic[StorageVersionT]):
 
     async def _write_v1(self, changes: dict[str, StoreItem]) -> None:
         if not changes:
-            raise ValueError("MemoryStorage.write(): changes cannot be None")
+            raise ValueError("MemoryStorage.write(): changes cannot be empty")
 
         async with self._lock:
             for key in changes:

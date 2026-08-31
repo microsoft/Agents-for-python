@@ -1,6 +1,7 @@
 # Copyright (c) Microsoft Corporation. All rights reserved.
 # Licensed under the MIT License.
 
+import asyncio
 import os
 import gc
 from contextlib import asynccontextmanager
@@ -16,6 +17,12 @@ from azure.identity.aio import DefaultAzureCredential
 
 from microsoft_agents.storage.cosmos import CosmosDBStorage, CosmosDBStorageConfig
 from microsoft_agents.storage.cosmos.key_ops import sanitize_key
+from microsoft_agents.hosting.core.storage import (
+    StorageDeleteOptions,
+    StorageOperationStatus,
+    StorageVersion,
+    StorageWriteOptions,
+)
 
 from tests._common.storage.utils import (
     QuickCRUDStorageTests,
@@ -48,6 +55,84 @@ def create_config(compat_mode):
 @pytest.fixture
 def config():
     return create_config(compat_mode=False)
+
+
+@pytest.mark.asyncio
+async def test_v1_rejects_v2_options_instead_of_ignoring_them():
+    storage = object.__new__(CosmosDBStorage)
+    storage.storage_version = StorageVersion.V1
+
+    with pytest.raises(ValueError, match="write options require Storage V2"):
+        await storage.write({"key": MockStoreItem()}, StorageWriteOptions())
+    with pytest.raises(ValueError, match="delete options require Storage V2"):
+        await storage.delete(["key"], StorageDeleteOptions())
+
+
+class _ConcurrentCallBarrier:
+    def __init__(self, expected: int):
+        self._expected = expected
+        self._active = 0
+        self.max_active = 0
+        self._ready = asyncio.Event()
+
+    async def wait(self):
+        self._active += 1
+        self.max_active = max(self.max_active, self._active)
+        if self._active == self._expected:
+            self._ready.set()
+        await asyncio.wait_for(self._ready.wait(), timeout=1)
+        self._active -= 1
+
+
+class _ConcurrentCosmosContainer:
+    def __init__(self, barrier: _ConcurrentCallBarrier):
+        self._barrier = barrier
+
+    async def read_item(self, key, _partition_key):
+        await self._barrier.wait()
+        return {"id": key, "document": {"value": key}, "_etag": "v1"}
+
+    async def upsert_item(self, **_kwargs):
+        return {"_etag": "v2"}
+
+    async def delete_item(self, *_args, **_kwargs):
+        return None
+
+
+def _create_v2_cosmos_storage(barrier: _ConcurrentCallBarrier):
+    storage = object.__new__(CosmosDBStorage)
+    storage.storage_version = StorageVersion.V2
+    storage._container = _ConcurrentCosmosContainer(barrier)
+    storage._sanitize = lambda key: key
+    storage._get_partition_key = lambda key: key
+    return storage
+
+
+@pytest.mark.asyncio
+async def test_v2_batches_run_independent_cosmos_operations_concurrently():
+    barrier = _ConcurrentCallBarrier(2)
+    storage = _create_v2_cosmos_storage(barrier)
+    read = await storage.read(["one", "two"], target_cls=MockStoreItem)
+    assert all(
+        result.status == StorageOperationStatus.SUCCEEDED for result in read.values()
+    )
+    assert barrier.max_active == 2
+
+    barrier = _ConcurrentCallBarrier(2)
+    storage = _create_v2_cosmos_storage(barrier)
+    write = await storage.write({"one": MockStoreItem(), "two": MockStoreItem()})
+    assert all(
+        result.status == StorageOperationStatus.SUCCEEDED for result in write.values()
+    )
+    assert barrier.max_active == 2
+
+    barrier = _ConcurrentCallBarrier(2)
+    storage = _create_v2_cosmos_storage(barrier)
+    delete = await storage.delete(["one", "two"])
+    assert all(
+        result.status == StorageOperationStatus.SUCCEEDED for result in delete.values()
+    )
+    assert barrier.max_active == 2
 
 
 async def reset_container(container_client):
