@@ -408,6 +408,7 @@ class Authorization:
         :type auth_handler_id: str | None
         :return: An AsyncTokenCredential for the specified auth handler or the default handler.
         :rtype: :class:`azure.core.credentials_async.AsyncTokenCredential`
+        """
 
         async def func(*scopes: str, **_kwargs) -> TokenResponse:
             return await self.exchange_token(
