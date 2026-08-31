@@ -1,8 +1,6 @@
 # Copyright (c) Microsoft Corporation. All rights reserved.
 # Licensed under the MIT License.
 
-import datetime
-
 import pytest
 from azure.core.credentials import AccessToken
 
