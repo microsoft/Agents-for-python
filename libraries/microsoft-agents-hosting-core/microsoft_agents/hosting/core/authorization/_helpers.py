@@ -27,8 +27,15 @@ def _access_token_from_token_response(token_response: TokenResponse) -> AccessTo
 
     expires_on: int = 0
     if token_response.expiration:
-        dt = datetime.datetime.fromisoformat(token_response.expiration)
-        expires_on = int(dt.replace(tzinfo=datetime.timezone.utc).timestamp())
+        exp = token_response.expiration
+        if exp.endswith("Z"):
+            exp = exp[:-1] + "+00:00"
+        dt = datetime.datetime.fromisoformat(exp)
+        if dt.tzinfo is None:
+            dt = dt.replace(tzinfo=datetime.timezone.utc)
+        else:
+            dt = dt.astimezone(datetime.timezone.utc)
+        expires_on = int(dt.timestamp())
 
     return AccessToken(token=token_response.token, expires_on=expires_on)
 

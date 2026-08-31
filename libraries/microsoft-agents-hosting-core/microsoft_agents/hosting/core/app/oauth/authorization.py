@@ -410,9 +410,9 @@ class Authorization:
         :rtype: :class:`microsoft_agents.hosting.core.app.oauth.authorization.AsyncTokenCredential`
         """
 
-        async def func(*scopes: str, **kwargs) -> TokenResponse:
+        async def func(*scopes: str, **_kwargs) -> TokenResponse:
             return await self.exchange_token(
-                context, auth_handler_id=auth_handler_id, scopes=list(scopes), **kwargs
+                context, auth_handler_id=auth_handler_id, scopes=list(scopes)
             )
 
         return _CallableTokenCredential(func)
@@ -496,8 +496,9 @@ class Authorization:
         :raises ValueError: If the specified auth handler ID is not recognized or not configured.
         """
 
-        async def func(*new_scopes: str, **kwargs) -> TokenResponse:
-            all_scopes = list(set(scopes or [] + list(new_scopes)))
+        async def func(*new_scopes: str, **_kwargs) -> TokenResponse:
+            prev_scopes: list[str] = scopes or []
+            all_scopes = list(dict.fromkeys([*prev_scopes, *new_scopes]))
             return await self.exchange_token(
                 context,
                 scopes=all_scopes,

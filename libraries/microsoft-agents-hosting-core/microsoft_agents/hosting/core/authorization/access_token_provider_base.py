@@ -36,7 +36,7 @@ class AccessTokenProviderBase(Protocol):
         pass
 
     @abstractmethod
-    async def get_token_credential(self) -> AsyncTokenCredential:
+    def get_token_credential(self) -> AsyncTokenCredential:
         """
         Get the token credential for the access token provider.
 

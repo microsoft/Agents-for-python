@@ -89,7 +89,7 @@ class MsalAuth(AccessTokenProviderBase):
         access_token = await self._get_access_token(resource_url, scopes, force_refresh)
         return access_token.token
 
-    async def get_token_credential(self) -> AsyncTokenCredential:
+    def get_token_credential(self) -> AsyncTokenCredential:
         """Gets the token credential for the access token provider.
 
         :return: The token credential.

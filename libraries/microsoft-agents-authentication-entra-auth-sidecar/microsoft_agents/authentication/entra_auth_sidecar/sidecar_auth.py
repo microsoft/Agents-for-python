@@ -113,7 +113,7 @@ class SidecarAuth(AccessTokenProviderBase):
         )
         return await self._get_cached_token(self._service_name, options)
 
-    async def get_token_credential(self) -> AsyncTokenCredential:
+    def get_token_credential(self) -> AsyncTokenCredential:
         """Gets the token credential for the access token provider.
 
         :return: The token credential.
