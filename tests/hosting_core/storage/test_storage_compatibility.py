@@ -42,6 +42,15 @@ class _ModelItem(AgentsModel):
     value: str
 
 
+def test_agents_model_store_item_serialization_uses_current_instance():
+    first = _ModelItem(value="one")
+    second = _ModelItem(value="two")
+    _implement_store_item_for_agents_model_cls(first)
+
+    assert first.store_item_to_json() == {"value": "one"}
+    assert second.store_item_to_json() == {"value": "two"}
+
+
 @pytest.mark.asyncio
 async def test_v1_adapter_returns_explicit_v2_results():
     storage = _LegacyStorage()
