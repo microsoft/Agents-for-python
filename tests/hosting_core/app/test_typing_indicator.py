@@ -46,9 +46,17 @@ class StubTurnContext:
             recipient={"id": "user"},
         )
         self._on_send_handlers = []
+        self._on_update_handlers = []
+        self._on_delete_handlers = []
 
     def on_send_activities(self, handler):
         self._on_send_handlers.append(handler)
+
+    def on_update_activity(self, handler):
+        self._on_update_handlers.append(handler)
+
+    def on_delete_activity(self, handler):
+        self._on_delete_handlers.append(handler)
 
     @property
     def sent_activities(self):
@@ -331,6 +339,44 @@ async def test_send_hook_does_not_block_on_inflight_typing_send():
     assert next_handler_called
 
     release_send.set()
+    await indicator._stop_async()
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    ("handlers_attribute", "mutation"),
+    [
+        ("_on_update_handlers", Activity(type=ActivityTypes.message)),
+        ("_on_delete_handlers", "activity-id"),
+    ],
+)
+async def test_mutation_hook_stops_before_initial_typing_send(
+    handlers_attribute, mutation
+):
+    """Update and delete operations should cancel typing before the mutation."""
+    context = StubTurnContext()
+    opts = _fast_options(initial_delay_ms=50, interval_ms=10)
+    indicator = TypingIndicator(context, typing_options=opts)
+    indicator.start()
+
+    handlers = getattr(context, handlers_attribute)
+    assert len(handlers) == 1
+
+    next_handler_called = False
+
+    async def _next_handler():
+        nonlocal next_handler_called
+        next_handler_called = True
+        return "mutation-result"
+
+    result = await handlers[0](context, mutation, _next_handler)
+    await asyncio.sleep(0.075)
+
+    assert result == "mutation-result"
+    assert next_handler_called
+    assert indicator._stopped
+    assert context.sent_activities == []
+
     await indicator._stop_async()
 
 
