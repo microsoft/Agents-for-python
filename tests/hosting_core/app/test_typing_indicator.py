@@ -49,14 +49,17 @@ class StubTurnContext:
         self._on_update_handlers = []
         self._on_delete_handlers = []
 
-    def on_send_activities(self, handler):
-        self._on_send_handlers.append(handler)
+def on_send_activities(self, handler):
+    self._on_send_handlers.append(handler)
+    return self
 
-    def on_update_activity(self, handler):
-        self._on_update_handlers.append(handler)
+def on_update_activity(self, handler):
+    self._on_update_handlers.append(handler)
+    return self
 
-    def on_delete_activity(self, handler):
-        self._on_delete_handlers.append(handler)
+def on_delete_activity(self, handler):
+    self._on_delete_handlers.append(handler)
+    return self
 
     @property
     def sent_activities(self):
