@@ -387,6 +387,7 @@ class CosmosDBStorage(AsyncStorageBase, StorageV2, Generic[StorageVersionT]):
                         document,
                         etag=current_version,
                         match_condition=MatchConditions.IfNotModified,
+                        partition_key=self._get_partition_key(escaped_key),
                     )
                 elif write_options.expected_version is not None:
                     response = await self._container.upsert_item(
