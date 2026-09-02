@@ -237,7 +237,7 @@ async def on_error(context: TurnContext, error: Exception):
 
 ## Key Classes Reference
 
-## Storage V2
+### Storage V2
 
 Storage providers use V1 by default. Select V2 when your application needs a
 result for each key and optimistic concurrency:
