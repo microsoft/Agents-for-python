@@ -347,20 +347,23 @@ async def test_send_hook_does_not_block_on_inflight_typing_send():
 
 @pytest.mark.asyncio
 @pytest.mark.parametrize(
-    ("handlers_attribute", "mutation"),
+    "handlers_attribute",
     [
-        ("_on_update_handlers", Activity(type=ActivityTypes.message)),
-        ("_on_delete_handlers", "activity-id"),
+        "_on_update_handlers",
+        "_on_delete_handlers",
     ],
 )
-async def test_mutation_hook_stops_before_initial_typing_send(
-    handlers_attribute, mutation
-):
+async def test_mutation_hook_stops_before_initial_typing_send(handlers_attribute):
     """Update and delete operations should cancel typing before the mutation."""
     context = StubTurnContext()
     opts = _fast_options(initial_delay_ms=50, interval_ms=10)
     indicator = TypingIndicator(context, typing_options=opts)
     indicator.start()
+
+    mutation = Activity(type=ActivityTypes.message)
+    if handlers_attribute == "_on_delete_handlers":
+        mutation = context.activity.get_conversation_reference()
+        mutation.activity_id = "activity-id"
 
     handlers = getattr(context, handlers_attribute)
     assert len(handlers) == 1
