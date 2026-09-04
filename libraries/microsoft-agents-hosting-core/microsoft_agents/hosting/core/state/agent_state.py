@@ -8,7 +8,14 @@ from copy import deepcopy
 import logging
 from typing import Callable, Type
 
-from microsoft_agents.hosting.core.storage import Storage, StoreItem
+from microsoft_agents.hosting.core.storage import StorageProvider, StoreItem
+from microsoft_agents.hosting.core.storage.storage_compatibility import (
+    as_storage,
+    as_storage_v2,
+    assert_storage_delete_succeeded,
+    assert_storage_write_succeeded,
+    get_storage_read_value,
+)
 
 from .state_property_accessor import StatePropertyAccessor
 from ..turn_context import TurnContext
@@ -73,7 +80,7 @@ class AgentState:
         You can define additional scopes for your agent.
     """
 
-    def __init__(self, storage: Storage, context_service_key: str):
+    def __init__(self, storage: StorageProvider, context_service_key: str):
         """
         Initializes a new instance of the :class:`microsoft_agents.hosting.core.state.agent_state.AgentState` class.
 
@@ -90,9 +97,15 @@ class AgentState:
         :raises: It raises an argument null exception.
         """
         self.state_key = "state"
-        self._storage = storage
+        # Keep the legacy field for subclasses that access or replace it.
+        self._storage = as_storage(storage)
         self._context_service_key = context_service_key
         self._cached_state: CachedAgentState | None = None
+
+    @property
+    def _storage_v2(self):
+        """Get the current storage field through the V2 compatibility seam."""
+        return as_storage_v2(self._storage)
 
     def get_cached_state(
         self, turn_context: TurnContext | None = None
@@ -154,8 +167,10 @@ class AgentState:
         storage_key = self.get_storage_key(turn_context)
 
         if self._should_load(turn_context, force):
-            items = await self._storage.read([storage_key], target_cls=CachedAgentState)
-            val = items.get(storage_key, CachedAgentState())
+            items = await self._storage_v2.read(
+                [storage_key], target_cls=CachedAgentState
+            )
+            val = get_storage_read_value(items, storage_key) or CachedAgentState()
             self._cached_state = val
             turn_context.turn_state[self._context_service_key] = val
 
@@ -191,7 +206,8 @@ class AgentState:
         if force or (cached_state is not None and cached_state.is_changed):
             storage_key = self.get_storage_key(turn_context)
             changes: dict[str, StoreItem] = {storage_key: cached_state}
-            await self._storage.write(changes)
+            results = await self._storage_v2.write(changes)
+            assert_storage_write_succeeded(results, list(changes))
             cached_state.hash = cached_state.compute_hash()
 
     def clear(self, turn_context: TurnContext | None = None) -> None:
@@ -229,7 +245,8 @@ class AgentState:
         turn_context.turn_state.pop(self._context_service_key)
 
         storage_key = self.get_storage_key(turn_context)
-        await self._storage.delete({storage_key})
+        results = await self._storage_v2.delete([storage_key])
+        assert_storage_delete_succeeded(results, [storage_key])
 
     @abstractmethod
     def get_storage_key(

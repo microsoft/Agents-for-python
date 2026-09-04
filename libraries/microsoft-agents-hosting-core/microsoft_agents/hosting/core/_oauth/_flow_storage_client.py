@@ -1,7 +1,13 @@
 # Copyright (c) Microsoft Corporation. All rights reserved.
 # Licensed under the MIT License.
 
-from ..storage import Storage
+from ..storage import Storage, StorageProvider
+from ..storage.storage_compatibility import (
+    as_storage_v2,
+    assert_storage_delete_succeeded,
+    assert_storage_write_succeeded,
+    get_storage_read_value,
+)
 from ._flow_state import _FlowState
 
 
@@ -31,8 +37,8 @@ class _FlowStorageClient:
         self,
         channel_id: str,
         user_id: str,
-        storage: Storage,
-        cache_class: type[Storage] | None = None,
+        storage: StorageProvider,
+        cache_class: type[StorageProvider] | None = None,
     ):
         """
         Args:
@@ -66,26 +72,40 @@ class _FlowStorageClient:
     async def read(self, auth_handler_id: str) -> _FlowState | None:
         """Reads the flow state for a specific authentication handler."""
         key: str = self.key(auth_handler_id)
-        data = await self._cache.read([key], target_cls=_FlowState)
-        if key not in data:
-            data = await self._storage.read([key], target_cls=_FlowState)
-            if key not in data:
+        cached = await as_storage_v2(self._cache).read([key], target_cls=_FlowState)
+        data = get_storage_read_value(cached, key)
+        if data is None:
+            results = await as_storage_v2(self._storage).read(
+                [key], target_cls=_FlowState
+            )
+            data = get_storage_read_value(results, key)
+            if data is None:
                 return None
-            await self._cache.write({key: data[key]})
-        return data.get(key)
+            cached_results = await as_storage_v2(self._cache).write({key: data})
+            assert_storage_write_succeeded(cached_results, [key])
+        return data
 
     async def write(self, value: _FlowState) -> None:
         """Saves the flow state for a specific authentication handler."""
         key: str = self.key(value.auth_handler_id)
-        cached_state = await self._cache.read([key], target_cls=_FlowState)
-        if not cached_state or cached_state.get(key, None) != value:
-            await self._cache.write({key: value})
-            await self._storage.write({key: value})
+        cached_results = await as_storage_v2(self._cache).read(
+            [key], target_cls=_FlowState
+        )
+        cached_state = get_storage_read_value(cached_results, key)
+        if cached_state != value:
+            cache_write = await as_storage_v2(self._cache).write({key: value})
+            assert_storage_write_succeeded(cache_write, [key])
+            storage_write = await as_storage_v2(self._storage).write({key: value})
+            assert_storage_write_succeeded(storage_write, [key])
 
     async def delete(self, auth_handler_id: str) -> None:
         """Deletes the flow state for a specific authentication handler."""
         key: str = self.key(auth_handler_id)
-        cached_state = await self._cache.read([key], target_cls=_FlowState)
-        if cached_state:
-            await self._cache.delete([key])
-        await self._storage.delete([key])
+        cached_state = await as_storage_v2(self._cache).read(
+            [key], target_cls=_FlowState
+        )
+        if get_storage_read_value(cached_state, key) is not None:
+            cache_delete = await as_storage_v2(self._cache).delete([key])
+            assert_storage_delete_succeeded(cache_delete, [key])
+        storage_delete = await as_storage_v2(self._storage).delete([key])
+        assert_storage_delete_succeeded(storage_delete, [key])

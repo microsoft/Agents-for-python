@@ -17,7 +17,13 @@ from microsoft_agents.activity import (
 from microsoft_agents.activity.activity_types import ActivityTypes
 
 from ...turn_context import TurnContext
-from ...storage import Storage
+from ...storage import StorageProvider
+from ...storage.storage_compatibility import (
+    as_storage_v2,
+    assert_storage_delete_succeeded,
+    assert_storage_write_succeeded,
+    get_storage_read_value,
+)
 from ...authorization import Connections
 from ..._oauth import _FlowStateTag
 from ..state import TurnState
@@ -52,13 +58,13 @@ class _AuthInterceptResult:
 class Authorization:
     """Class responsible for managing authorization flows."""
 
-    _storage: Storage
+    _storage: StorageProvider
     _connection_manager: Connections
     _handlers: dict[str, _AuthorizationHandler]
 
     def __init__(
         self,
-        storage: Storage,
+        storage: StorageProvider,
         connection_manager: Connections,
         auth_handlers: Optional[dict[str, AuthHandler]] = None,
         auto_sign_in: bool = False,
@@ -174,7 +180,10 @@ class Authorization:
         :rtype: Optional[:class:`microsoft_agents.hosting.core.app.oauth._sign_in_state._SignInState`]
         """
         key = self._sign_in_state_key(context)
-        return (await self._storage.read([key], target_cls=_SignInState)).get(key)
+        results = await as_storage_v2(self._storage).read(
+            [key], target_cls=_SignInState
+        )
+        return get_storage_read_value(results, key)
 
     async def _save_sign_in_state(
         self, context: TurnContext, state: _SignInState
@@ -187,7 +196,8 @@ class Authorization:
         :type state: :class:`microsoft_agents.hosting.core.app.oauth._sign_in_state._SignInState`
         """
         key = self._sign_in_state_key(context)
-        await self._storage.write({key: state})
+        results = await as_storage_v2(self._storage).write({key: state})
+        assert_storage_write_succeeded(results, [key])
 
     async def _delete_sign_in_state(self, context: TurnContext) -> None:
         """Delete the sign-in state from storage for the given context.
@@ -196,7 +206,8 @@ class Authorization:
         :type context: :class:`microsoft_agents.hosting.core.turn_context.TurnContext`
         """
         key = self._sign_in_state_key(context)
-        await self._storage.delete([key])
+        results = await as_storage_v2(self._storage).delete([key])
+        assert_storage_delete_succeeded(results, [key])
 
     @staticmethod
     def _cache_key(context: TurnContext, handler_id: str) -> str:

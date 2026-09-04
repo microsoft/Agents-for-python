@@ -1,12 +1,14 @@
 import json
+from typing import Any, Generic
 
 from azure.core.credentials_async import AsyncTokenCredential
+from microsoft_agents.hosting.core.storage import StorageVersion, StorageVersionT
 from microsoft_agents.storage.cosmos.errors import storage_errors
 
 from .key_ops import sanitize_key
 
 
-class CosmosDBStorageConfig:
+class CosmosDBStorageConfig(Generic[StorageVersionT]):
     """The class for partitioned CosmosDB configuration for the Azure Bot Framework."""
 
     def __init__(
@@ -21,6 +23,7 @@ class CosmosDBStorageConfig:
         compatibility_mode: bool = False,
         url: str = "",
         credential: AsyncTokenCredential | None = None,
+        storage_version: StorageVersionT = StorageVersion.V1,
         **kwargs,
     ):
         """Create the Config object.
@@ -62,9 +65,12 @@ class CosmosDBStorageConfig:
         )
         self.url = url or kwargs.get("url", "")
         self.credential: AsyncTokenCredential | None = credential
+        self.storage_version = StorageVersion(storage_version)
 
     @staticmethod
-    def validate_cosmos_db_config(config: "CosmosDBStorageConfig") -> None:
+    def validate_cosmos_db_config(
+        config: "CosmosDBStorageConfig[Any]",
+    ) -> None:
         """Validate the CosmosDBConfig object.
 
         This is used prior to the creation of the CosmosDBStorage object."""
@@ -78,7 +84,7 @@ class CosmosDBStorageConfig:
         CosmosDBStorageConfig._validate_suffix(config)
 
     @staticmethod
-    def _validate_suffix(config: "CosmosDBStorageConfig") -> None:
+    def _validate_suffix(config: "CosmosDBStorageConfig[Any]") -> None:
         if config.key_suffix:
             if config.compatibility_mode:
                 raise ValueError(str(storage_errors.CosmosDbCompatibilityModeRequired))

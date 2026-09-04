@@ -42,3 +42,20 @@ Invoke-RestMethod -Method POST -Uri "http://localhost:5199/api/sendmessage" -Con
 ```
 
 When `TOKENVALIDATION__ENABLED` is `true`, add an `Authorization: Bearer <token>` header to each call. The proactive endpoints will respond with JSON payloads describing success or validation errors.
+
+## Echo storage V2 test
+
+`echo_proactive_agent.py` selects storage with these `.env` values:
+
+```text
+STORAGE_PROVIDER=memory  # memory, blob, or cosmos
+STORAGE_VERSION=2        # 1 is the default
+```
+
+For Blob, set `BLOB_CONTAINER_ID` and optionally
+`BLOB_STORAGE_CONNECTION_STRING`. For Cosmos, set `COSMOS_ENDPOINT`,
+`COSMOS_KEY`, `COSMOS_DATABASE_ID`, and `COSMOS_CONTAINER_ID`.
+
+Send `/v2-demo` to run: missing read, create-only, duplicate create,
+conditional replace, stale replace, conditional delete, and final read. The
+sample reports each result status and cleans up its temporary key.

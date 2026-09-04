@@ -16,7 +16,12 @@ from microsoft_agents.hosting.core.state.agent_state import (
 from microsoft_agents.hosting.core.state.user_state import UserState
 from microsoft_agents.hosting.core.app.state.conversation_state import ConversationState
 from microsoft_agents.hosting.core.turn_context import TurnContext
-from microsoft_agents.hosting.core.storage import Storage, StoreItem, MemoryStorage
+from microsoft_agents.hosting.core.storage import (
+    Storage,
+    StoreItem,
+    MemoryStorage,
+    StorageVersion,
+)
 from microsoft_agents.activity import (
     Activity,
     ActivityTypes,
@@ -476,6 +481,23 @@ class TestAgentState:
 
         assert storage_key in stored_data
         assert stored_data[storage_key] is not None
+
+    @pytest.mark.asyncio
+    async def test_memory_storage_v2_integration(self):
+        memory_storage = MemoryStorage(storage_version=StorageVersion.V2)
+        user_state = UserState(memory_storage)
+
+        await user_state.load(self.context)
+        property_accessor = user_state.create_property("memory_test")
+        await property_accessor.set(self.context, _MockTestDataItem("memory_value"))
+        await user_state.save(self.context)
+
+        storage_key = user_state.get_storage_key(self.context)
+        stored_data = await memory_storage.read(
+            [storage_key], target_cls=CachedAgentState
+        )
+
+        assert stored_data[storage_key].value is not None
 
     @pytest.mark.asyncio
     async def test_state_property_accessor_error_conditions(self):
