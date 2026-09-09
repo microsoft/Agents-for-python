@@ -1,6 +1,7 @@
 # Copyright (c) Microsoft Corporation. All rights reserved.
 # Licensed under the MIT License.
 
+import json
 from typing import Callable
 from email.message import Message
 
@@ -9,6 +10,7 @@ import aiohttp
 from microsoft_agents.activity import (
     Attachment,
     Channels,
+    ChannelId,
 )
 
 from microsoft_agents.hosting.core.turn_context import TurnContext
@@ -32,7 +34,7 @@ class AttachmentDownloader(InputFileDownloader):
         :param host_validator: An optional OutboundHostValidator instance.
         """
 
-        self._client_factory = client_factory or (lambda: aiohttp.ClientSession())
+        self._client_factory = client_factory or aiohttp.ClientSession
         self._host_validator = host_validator
 
     async def download_files(self, context: TurnContext) -> list[InputFile]:
@@ -40,7 +42,7 @@ class AttachmentDownloader(InputFileDownloader):
 
         :param context: The TurnContext instance for the current turn.
         """
-        if context.activity.channel_id.get_channel() == Channels.ms_teams:
+        if ChannelId.get_channel(context.activity.channel_id) == Channels.ms_teams:
             return []
 
         if not context.activity.attachments:
@@ -107,8 +109,9 @@ class AttachmentDownloader(InputFileDownloader):
                         filename=attachment.name,
                     )
         else:
+            content = bytes(json.dumps(attachment.content), "utf-8")
             return InputFile(
-                content=attachment.content,
+                content=content,
                 content_type=attachment.content_type,
                 content_url=attachment.content_url,
                 filename=attachment.name,

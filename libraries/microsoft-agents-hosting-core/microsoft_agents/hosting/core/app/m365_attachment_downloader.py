@@ -45,7 +45,7 @@ class M365AttachmentDownloader(InputFileDownloader):
         """
 
         self._connections = connections
-        self._client_factory = client_factory or (lambda: aiohttp.ClientSession())
+        self._client_factory = client_factory or aiohttp.ClientSession
         self._host_validator = host_validator
 
         self._token_provider_name = token_provider_name
@@ -58,6 +58,14 @@ class M365AttachmentDownloader(InputFileDownloader):
         :param context: The TurnContext instance.
         :return: A list of InputFile instances.
         """
+
+        if not context.identity:
+            raise ValueError("No valid context identity found.")
+
+        outgoing_app_id = context.identity.get_outgoing_app_id()
+        if not outgoing_app_id:
+            raise ValueError("No valid outgoing App ID found.")
+
         attachments: list[Attachment]
         if not context.activity.attachments:
             return []
@@ -72,23 +80,53 @@ class M365AttachmentDownloader(InputFileDownloader):
         access_token = ""
 
         if not self._use_anonymous:
-            token_provider: AccessTokenProviderBase
-            if not self._token_provider_name:
+            token_provider: AccessTokenProviderBase | None = None
+            if self._token_provider_name:
+                try:
+                    token_provider = self._connections.get_connection(self._token_provider_name)
+                except ValueError:
+                    pass
+            if not token_provider:
                 token_provider = self._connections.get_token_provider_from_activity(
                     context.identity, context.activity
                 )
-            else:
-                try:
-                    token_provider = self._connections.get_connection(
-                        self._token_provider_name
-                    )
-                except ValueError:
-                    token_provider = self._connections.get_token_provider_from_activity(
-                        context.identity, context.activity
-                    )
-
+            if not token_provider:
+                raise RuntimeError("No valid token provider found.")
+            
             access_token = await token_provider.get_access_token(
-                context.identity.get_outgoing_audience(), self._scopes
+                outgoing_app_id, self._scopes
             )
 
         files: list[InputFile] = []
+        for att in attachments:
+            file = await self._download_file(att, access_token)
+            if file:
+                files.append(file)
+
+        return files
+
+    async def _download_file(self, attachment: Attachment, access_token: str) -> InputFile | None:
+        """Download a single file from the given attachment.
+
+        :param attachment: The Attachment instance.
+        :param access_token: The access token for authentication.
+        :return: An InputFile instance or None if the download fails.
+        """
+        if not attachment.content_url:
+            return None
+
+        headers = {}
+        if access_token:
+            headers["Authorization"] = f"Bearer {access_token}"
+
+        async with self._client_factory() as client:
+            async with client.get(attachment.content_url, headers=headers) as response:
+                if response.status != 200:
+                    return None
+                content = await response.read()
+
+        return InputFile(
+            content=content,
+            filename=attachment.name or "unknown",
+            content_type=attachment.content_type,
+        )

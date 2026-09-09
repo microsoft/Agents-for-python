@@ -1,6 +1,7 @@
 # Copyright (c) Microsoft Corporation. All rights reserved.
 # Licensed under the MIT License.
 
+import re
 import warnings
 
 from typing import Any
@@ -109,6 +110,14 @@ class ClaimsIdentity:
 
         return app_id
 
+    def get_outgoing_audience_claim(self) -> str | None:
+        """Retrieves the audience for an outgoing token from the given incoming activity."""
+        if self.is_agent_claim():
+            return f"api://{self.get_outgoing_app_id()}"
+        if self.is_gov_botframework_claim():
+            return AuthenticationConstants.GOV_AGENTS_SDK_TOKEN_ISSUER
+        return AuthenticationConstants.AGENTS_SDK_SCOPE
+
     def is_agent_claim(self) -> bool:
         """
         Checks if the current claims represents an agent claim (not coming from ABS/SMBA).
@@ -145,6 +154,11 @@ class ClaimsIdentity:
             if self.is_agent_claim()
             else AuthenticationConstants.AGENTS_SDK_SCOPE
         )
+
+    def is_gov_botframework_claim(self) -> bool:
+        """Determines whether the specified incoming identity represents a government Bot Framework claim."""
+        aud = self.claims.get(AuthenticationConstants.AUDIENCE_CLAIM, None)
+        return aud.lower() == AuthenticationConstants.GOV_AGENTS_SDK_TOKEN_ISSUER.lower() if aud else False
 
     def get_token_scope(self) -> list[str]:
         """
