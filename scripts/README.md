@@ -3,7 +3,8 @@
 This folder contains helpful scripts for development.
 
 See [Teams API drift detection](teams-api-drift/README.md) for dependency
-compatibility comparisons, advisory reports and the corresponding workflows.
+upgrade comparisons, compatibility checks, advisory reports and the corresponding
+workflows for the extension's pinned Teams API dependency.
 
 ## Development Setup Scripts
 

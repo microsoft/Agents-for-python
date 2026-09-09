@@ -54,7 +54,12 @@ jobs:
         shell: bash
         run: |
           if [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
-            echo "run=true" >> "$GITHUB_OUTPUT"
+            if [[ "$INPUT_FROM" == "$INPUT_TO" ]]; then
+              echo "run=false" >> "$GITHUB_OUTPUT"
+              echo "No Teams API version change: $INPUT_FROM" >> "$GITHUB_STEP_SUMMARY"
+            else
+              echo "run=true" >> "$GITHUB_OUTPUT"
+            fi
             echo "from=$INPUT_FROM" >> "$GITHUB_OUTPUT"
             echo "to=$INPUT_TO" >> "$GITHUB_OUTPUT"
             exit 0

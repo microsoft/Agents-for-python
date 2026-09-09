@@ -19,6 +19,7 @@ from .common import (
     PACKAGE_ROOT,
     ROOT,
     declared_requirement,
+    declared_version,
     python_in,
     run,
     temporary_environment,
@@ -96,7 +97,7 @@ def prepare_candidate_environment(version, environment, output):
                 *dependencies,
             ]
         )
-        # The exact candidate may be outside the published extension's range.
+        # Test the candidate without letting the extension's current pin replace it.
         run([candidate, "-m", "pip", "install", "--no-deps", extension])
 
     actual = _installed_version(candidate)
@@ -110,9 +111,8 @@ def prepare_candidate_environment(version, environment, output):
         "dependency": DEPENDENCY,
         "version": actual,
         "python": str(candidate),
-        "candidateOutsideDeclaredRange": not requirement.specifier.contains(
-            actual, prereleases=True
-        ),
+        "candidateDiffersFromPinnedVersion": Version(actual)
+        != Version(declared_version(requirement)),
     }
     write_json(Path(output) / "candidate-environment.json", result)
     return result

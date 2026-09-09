@@ -16,11 +16,56 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
+  resolve-version:
+    name: Check for a newer microsoft-teams-api release
+    runs-on: ubuntu-latest
+    outputs:
+      changed: ${{ steps.resolve-versions.outputs.changed }}
+      from: ${{ steps.resolve-versions.outputs.from }}
+      to: ${{ steps.resolve-versions.outputs.to }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - name: Set up Python 3.12
+        uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: "3.12"
+      - name: Install drift tooling
+        run: python -m pip install -r scripts/teams-api-drift/requirements.txt
+      - id: resolve-versions
+        name: Resolve baseline and latest stable versions
+        run: |
+          python scripts/teams-api-drift/teams-api-drift.py resolve \
+            --setup libraries/microsoft-agents-hosting-msteams/setup.py \
+            --latest-stable --output "$RUNNER_TEMP/resolved"
+          python - <<'PY'
+          import json
+          import os
+          from pathlib import Path
+
+          resolved = json.loads(
+              Path(os.environ["RUNNER_TEMP"], "resolved", "resolved-versions.json").read_text()
+          )
+          with open(os.environ["GITHUB_OUTPUT"], "a", encoding="utf-8") as output:
+              output.write(f"changed={str(resolved['changed']).lower()}\n")
+              output.write(f"from={resolved['fromVersion']}\n")
+              output.write(f"to={resolved['toVersion']}\n")
+          if not resolved["changed"]:
+              with open(os.environ["GITHUB_STEP_SUMMARY"], "a", encoding="utf-8") as summary:
+                  summary.write(
+                      f"Pinned `microsoft-teams-api=={resolved['fromVersion']}` is already the latest stable release.\n"
+                  )
+          PY
+
   detect-and-report:
     name: Detect and report microsoft-teams-api drift
+    needs: resolve-version
+    if: ${{ needs.resolve-version.outputs.changed == 'true' }}
     runs-on: ubuntu-latest
     env:
       ARTIFACTS: artifacts/teams-api-drift
+      INPUT_FROM: ${{ needs.resolve-version.outputs.from }}
+      INPUT_TO: ${{ needs.resolve-version.outputs.to }}
     steps:
       - name: Checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -39,33 +84,12 @@ jobs:
           echo "CANDIDATE_WORK_ROOT=$RUNNER_TEMP/teams-api-comparison" >> "$GITHUB_ENV"
           echo "CANDIDATE_PYTHON=$RUNNER_TEMP/teams-api-comparison/candidate/bin/python" >> "$GITHUB_ENV"
 
-      - id: resolve-versions
-        name: Resolve declared minimum and latest stable release
-        run: |
-          python scripts/teams-api-drift/teams-api-drift.py resolve \
-            --setup libraries/microsoft-agents-hosting-msteams/setup.py \
-            --latest-stable --output "$RUNNER_TEMP/resolved"
-          python - <<'PY'
-          import json
-          import os
-          from pathlib import Path
-
-          resolved = json.loads(
-              Path(os.environ["RUNNER_TEMP"], "resolved", "resolved-versions.json").read_text()
-          )
-          with open(os.environ["GITHUB_OUTPUT"], "a", encoding="utf-8") as output:
-              output.write(f"from={resolved['fromVersion']}\n")
-              output.write(f"to={resolved['toVersion']}\n")
-          PY
       - id: verify-usage-manifest
         name: Verify dependency usage manifest
         run: python scripts/teams-api-drift/teams-api-drift.py verify-usage
         continue-on-error: true
       - id: compare-upstream-api-models
         name: Compare baseline with latest stable microsoft-teams-api
-        env:
-          INPUT_FROM: ${{ steps.resolve-versions.outputs.from }}
-          INPUT_TO: ${{ steps.resolve-versions.outputs.to }}
         run: |
           python scripts/teams-api-drift/teams-api-drift.py compare \
             --from "$INPUT_FROM" --to "$INPUT_TO" \
@@ -87,8 +111,6 @@ jobs:
       - id: build-candidate
         name: Build the extension around the exact candidate
         if: ${{ steps.compare-upstream-api-models.outcome == 'success' }}
-        env:
-          INPUT_TO: ${{ steps.resolve-versions.outputs.to }}
         run: |
           python scripts/teams-api-drift/teams-api-drift.py prepare-candidate \
             --version "$INPUT_TO" --environment "$CANDIDATE_WORK_ROOT/candidate" \
@@ -203,8 +225,8 @@ jobs:
         uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9.0.0
         env:
           REPORT_PATH: artifacts/teams-api-drift/agent-report.md
-          BASELINE: ${{ steps.resolve-versions.outputs.from }}
-          CANDIDATE: ${{ steps.resolve-versions.outputs.to }}
+          BASELINE: ${{ needs.resolve-version.outputs.from }}
+          CANDIDATE: ${{ needs.resolve-version.outputs.to }}
         with:
           script: |
             const fs = require('fs');
