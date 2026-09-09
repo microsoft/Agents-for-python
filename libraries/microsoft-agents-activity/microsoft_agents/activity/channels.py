@@ -70,6 +70,9 @@ class Channels(str, Enum):
     copilot_studio = "pva-studio"
     """Microsoft Copilot Studio channel."""
 
+    m365_copilot = f"msteams:COPILOT"
+    """Microsoft 365 Copilot channel."""
+
     # TODO: validate the need of Self annotations in the following methods
     @staticmethod
     def supports_suggested_actions(channel_id: Self, button_cnt: int = 100) -> bool:

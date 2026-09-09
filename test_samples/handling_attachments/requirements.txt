@@ -1,0 +1,5 @@
+uvicorn
+python-dotenv
+microsoft-agents-hosting-core
+microsoft-agents-hosting-fastapi
+microsoft-agents-authentication-msal

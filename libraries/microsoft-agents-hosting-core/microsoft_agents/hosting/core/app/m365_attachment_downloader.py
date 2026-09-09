@@ -8,6 +8,8 @@ import aiohttp
 
 from microsoft_agents.activity import (
     Attachment,
+    Channels,
+    ChannelId,
 )
 
 from microsoft_agents.hosting.core.authorization import (
@@ -22,6 +24,7 @@ from ._utils import _parse_content_type
 
 
 class M365AttachmentDownloader(InputFileDownloader):
+    """Downloads attachments from M365/Teams using the configured Token Provider (from Connections)."""
 
     def __init__(
         self,
@@ -62,9 +65,12 @@ class M365AttachmentDownloader(InputFileDownloader):
         if not context.identity:
             raise ValueError("No valid context identity found.")
 
-        outgoing_app_id = context.identity.get_outgoing_app_id()
-        if not outgoing_app_id:
+        outgoing_audience_claim = context.identity.get_outgoing_audience_claim()
+        if not outgoing_audience_claim:
             raise ValueError("No valid outgoing App ID found.")
+
+        if context.activity.channel_id not in (Channels.ms_teams, Channels.m365_copilot):
+            return []
 
         attachments: list[Attachment]
         if not context.activity.attachments:
@@ -94,7 +100,7 @@ class M365AttachmentDownloader(InputFileDownloader):
                 raise RuntimeError("No valid token provider found.")
             
             access_token = await token_provider.get_access_token(
-                outgoing_app_id, self._scopes
+                outgoing_audience_claim, self._scopes
             )
 
         files: list[InputFile] = []
@@ -121,9 +127,7 @@ class M365AttachmentDownloader(InputFileDownloader):
             download_url: str
             if isinstance(attachment.content, dict):
                 content_dict = cast(dict[str, Any], attachment.content)
-                val = content_dict.get("downloadUrl", None)
-                if val is not None:
-                    download_url = val
+                download_url = content_dict.get("downloadUrl", attachment.content_url)
             else:
                 download_url = attachment.content_url
 
