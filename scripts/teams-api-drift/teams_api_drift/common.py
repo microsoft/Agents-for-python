@@ -83,20 +83,16 @@ def declared_requirement(source):
     return matches[0]
 
 
-def declared_minimum(requirement):
-    candidates = [
-        Version(s.version)
-        for s in requirement.specifier
-        if s.operator in ("==", ">=", "~=") and "*" not in s.version
-    ]
-    candidates = [
-        v for v in candidates if requirement.specifier.contains(v, prereleases=True)
-    ]
-    if not candidates:
-        raise ValueError(
-            "Teams API requirement needs an inclusive minimum or exact version"
-        )
-    return str(max(candidates))
+def declared_version(requirement):
+    """Return the one exact, non-wildcard Teams API version pin."""
+    specifiers = list(requirement.specifier)
+    if (
+        len(specifiers) != 1
+        or specifiers[0].operator != "=="
+        or "*" in specifiers[0].version
+    ):
+        raise ValueError("Teams API requirement must use one exact == version pin")
+    return str(Version(specifiers[0].version))
 
 
 def latest_stable(metadata=None):

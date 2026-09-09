@@ -11,8 +11,8 @@ from teams_api_drift.common import (
     CAPABILITIES,
     DEPENDENCY,
     MANIFEST,
-    declared_minimum,
     declared_requirement,
+    declared_version,
     latest_stable,
     read_json,
 )
@@ -69,10 +69,10 @@ def capabilities():
 
 
 def test_requirement_parsing_does_not_execute_source():
-    source = "raise RuntimeError('must not execute')\nsetup(install_requires=['microsoft-teams-api>=2.0.0,<3'])"
-    assert declared_minimum(declared_requirement(source)) == "2.0.0"
+    source = "raise RuntimeError('must not execute')\nsetup(install_requires=['microsoft-teams-api==2.0.16'])"
+    assert declared_version(declared_requirement(source)) == "2.0.16"
     assert (
-        declared_minimum(
+        declared_version(
             declared_requirement(
                 "setup(install_requires=['microsoft-teams-api==2.0.13.4'])"
             )
@@ -85,14 +85,16 @@ def test_requirement_parsing_does_not_execute_source():
     "source",
     [
         "setup(install_requires=compute())",
+        "setup(install_requires=['microsoft-teams-api>=2.0.0,<3'])",
         "setup(install_requires=['microsoft-teams-api<3'])",
         "setup(install_requires=['microsoft-teams-api>2.0.0'])",
+        "setup(install_requires=['microsoft-teams-api==2.*'])",
         "setup(install_requires=[])",
     ],
 )
 def test_unsupported_requirement_fails(source):
     with pytest.raises(ValueError):
-        declared_minimum(declared_requirement(source))
+        declared_version(declared_requirement(source))
 
 
 def test_latest_stable_uses_pep440_and_excludes_yanked_prereleases():
@@ -111,8 +113,8 @@ def test_latest_stable_uses_pep440_and_excludes_yanked_prereleases():
 
 
 def test_resolver_detects_requirement_changes_and_normalizes_versions(tmp_path):
-    before = "setup(install_requires=['microsoft-teams-api>=2.0.0,<3'])"
-    after = "# comment\nsetup(install_requires=['microsoft_teams_api<3,>=2.0.0'])"
+    before = "setup(install_requires=['microsoft-teams-api==2.0.16'])"
+    after = "# comment\nsetup(install_requires=['microsoft_teams_api==2.0.16'])"
     baseline = tmp_path / "baseline.py"
     candidate = tmp_path / "candidate.py"
     baseline.write_text(before)
@@ -120,14 +122,29 @@ def test_resolver_detects_requirement_changes_and_normalizes_versions(tmp_path):
     # Canonical requirement names are compared independently of spelling.
     result = resolve_versions(baseline, candidate)
     assert not result["changed"]
-    assert result["fromVersion"] == "2.0.0"
-    assert result["toVersion"] == "2.0.0"
+    assert result["fromVersion"] == "2.0.16"
+    assert result["toVersion"] == "2.0.16"
 
-    candidate.write_text(after.replace("2.0.0", "2.0.16"))
+    candidate.write_text(after.replace("2.0.16", "2.0.17"))
     result = resolve_versions(baseline, candidate)
     assert result["changed"]
-    assert result["fromVersion"] == "2.0.0"
-    assert result["toVersion"] == "2.0.16"
+    assert result["fromVersion"] == "2.0.16"
+    assert result["toVersion"] == "2.0.17"
+
+
+def test_resolver_compares_current_pin_with_latest_stable(tmp_path, monkeypatch):
+    setup = tmp_path / "setup.py"
+    setup.write_text("setup(install_requires=['microsoft-teams-api==2.0.16'])")
+    monkeypatch.setattr("teams_api_drift.resolve.latest_stable", lambda: "2.0.17")
+
+    result = resolve_versions(setup, include_latest=True)
+
+    assert result["fromVersion"] == "2.0.16"
+    assert result["toVersion"] == "2.0.17"
+    assert result["changed"]
+
+    monkeypatch.setattr("teams_api_drift.resolve.latest_stable", lambda: "2.0.16")
+    assert not resolve_versions(setup, include_latest=True)["changed"]
 
 
 def test_identical_models_ignore_version_and_metadata():

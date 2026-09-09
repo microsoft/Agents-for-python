@@ -2,19 +2,20 @@
 
 This tooling compares public `microsoft-teams-api` contracts with recorded usage in
 `microsoft-agents-hosting-msteams`; it does not automatically change SDK code or
-adopt upstream features.
+adopt upstream features. The extension pins one exact Teams API version so every
+upgrade is reviewed and tested explicitly.
 
 ## Run locally
 
-Use **Python 3.12** for the historical baseline: `microsoft-teams-api==2.0.0`
-requires Python 3.12 even though newer versions support 3.11. Both snapshots use
-the same interpreter. `TEAMS_API_PYTHON` can specify a different interpreter for
-the disposable extraction/test environments when needed.
+Use Python 3.12 so manual comparisons can include historical releases such as
+`microsoft-teams-api==2.0.0`, which requires Python 3.12. `TEAMS_API_PYTHON` can
+specify a different interpreter for the disposable extraction and test
+environments when needed.
 
 ```bash
 python -m pip install -r scripts/teams-api-drift/requirements.txt
-python scripts/teams-api-drift/teams-api-drift.py compare --from 2.0.0 --to 2.0.16 --work-root .teams-api-comparison --output artifacts/teams-api-drift/example
-python scripts/teams-api-drift/teams-api-drift.py prepare-candidate --version 2.0.16 --environment .teams-api-comparison/candidate --output artifacts/teams-api-drift/example
+python scripts/teams-api-drift/teams-api-drift.py compare --from 2.0.16 --to CANDIDATE_VERSION --work-root .teams-api-comparison --output artifacts/teams-api-drift/example
+python scripts/teams-api-drift/teams-api-drift.py prepare-candidate --version CANDIDATE_VERSION --environment .teams-api-comparison/candidate --output artifacts/teams-api-drift/example
 ./.teams-api-comparison/candidate/bin/python -m mypy --config-file scripts/teams-api-drift/mypy.ini tests/teams_api_drift/test_contracts.py
 ./.teams-api-comparison/candidate/bin/python -m pytest tests/hosting_msteams -o asyncio_default_fixture_loop_scope=function
 python scripts/teams-api-drift/teams-api-drift.py verify-usage
@@ -22,6 +23,8 @@ python scripts/teams-api-drift/teams-api-drift.py detect --comparison artifacts/
 python scripts/teams-api-drift/teams-api-drift.py summary --build success --usage-collection success --api-extraction success --api-comparison success --contract-tests success --boundary-tests success --candidate-environment artifacts/teams-api-drift/example/candidate-environment.json --output artifacts/teams-api-drift/example
 python scripts/teams-api-drift/teams-api-drift.py render --findings artifacts/teams-api-drift/example/findings.json --test-summary artifacts/teams-api-drift/example/test-summary.json --output artifacts/teams-api-drift/example
 ```
+
+Replace `CANDIDATE_VERSION` with the exact release being evaluated.
 
 Omit `--to` to query the latest stable, non-yanked PyPI release. Omit `--from` to
 use the version installed in the calling interpreter. Each comparison installs
@@ -79,16 +82,19 @@ review-new-members and advisory-only policies. It does not authorize adoption.
 
 ## Workflows
 
-PRs to `main` or `release/*` run dependency analysis only when the Teams 
-requirement in `setup.py` changes.
-Manual PR-workflow dispatch takes explicit `from` and `to` versions. The weekly
-workflow runs Monday at 08:00 UTC and compares the declared inclusive minimum
-(currently 2.0.0) to the latest stable release, including future major versions.
-The baseline advances only when maintainers raise that minimum.
+PRs to `main` or `release/*` run dependency analysis only when the exact Teams
+version pin in `setup.py` changes. The base branch pin is the baseline and the PR
+pin is the candidate. Manual PR-workflow dispatch takes explicit `from` and `to`
+versions. The weekly workflow runs Monday at 08:00 UTC and compares the current
+pin (currently 2.0.16) with the latest stable release, including future major
+versions. Once maintainers approve an upgrade, changing the pin establishes the
+new baseline. When the resolved versions are identical, manual and scheduled runs
+finish successfully after version resolution; comparison, tests, reports, AI and
+publication are skipped.
 
 Candidate verification installs locally built wheels plus the exact selected
-Teams version. Candidates outside the supported range are tested in isolation
-without changing SDK metadata; the report identifies the range exception.
+Teams version. A candidate that differs from the current pin is tested in
+isolation without changing SDK metadata; the report identifies that difference.
 The candidate's transitive dependencies, including `microsoft-teams-common`, are
 recorded. Common's entire API is not compared; ClientOptions is covered by tests.
 

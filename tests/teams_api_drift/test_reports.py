@@ -21,8 +21,8 @@ def findings():
     return {
         "schemaVersion": 1,
         "dependency": DEPENDENCY,
-        "fromVersion": "2.0.0",
-        "toVersion": "2.0.16",
+        "fromVersion": "2.0.16",
+        "toVersion": "2.0.17",
         "summary": {"blocking": 1, "required": 0, "review": 0, "no-action": 0},
         "findings": [
             {

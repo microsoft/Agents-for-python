@@ -87,10 +87,10 @@ def render_report(findings, summary, artifact_directory):
         lines += [
             f"Compared `{DEPENDENCY}` **{findings['fromVersion']}** to **{findings['toVersion']}** for `{PACKAGE}`."
         ]
-    if summary.get("candidateOutsideDeclaredRange"):
+    if summary.get("candidateDiffersFromPinnedVersion"):
         lines += [
             "",
-            "The candidate is outside the declared dependency range. Tests explicitly install it in a disposable environment; package metadata is unchanged.",
+            "The candidate differs from the extension's pinned dependency version. Tests explicitly install it in a disposable environment; package metadata is unchanged.",
         ]
     lines += ["", "## Build and test status", "", "| Check | Status |", "| --- | --- |"]
     lines += [f"| {name} | {status} |" for name, status in sorted(checks.items())]

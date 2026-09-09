@@ -185,8 +185,8 @@ def main(command=None, argv=None):
                 summary.update(
                     {
                         "toVersion": candidate["version"],
-                        "candidateOutsideDeclaredRange": candidate[
-                            "candidateOutsideDeclaredRange"
+                        "candidateDiffersFromPinnedVersion": candidate[
+                            "candidateDiffersFromPinnedVersion"
                         ],
                     }
                 )

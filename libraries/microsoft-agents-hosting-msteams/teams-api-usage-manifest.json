@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "dependency": "microsoft-teams-api",
-  "declaredVersion": ">=2.0.0,<3",
+  "declaredVersion": "==2.0.16",
   "sourceRoot": "microsoft_agents/hosting/msteams",
   "usages": [
     {
