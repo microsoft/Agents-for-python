@@ -3,7 +3,6 @@
 
 import json
 from typing import Callable
-from email.message import Message
 
 import aiohttp
 
@@ -17,8 +16,7 @@ from microsoft_agents.hosting.core.turn_context import TurnContext
 from microsoft_agents.hosting.core.outbound_host_validator import OutboundHostValidator
 
 from .input_file import InputFileDownloader, InputFile
-
-_CONTENT_TYPE = "Content-Type"
+from ._utils import _parse_content_type
 
 
 class AttachmentDownloader(InputFileDownloader):
@@ -56,17 +54,6 @@ class AttachmentDownloader(InputFileDownloader):
 
         return files
 
-    @staticmethod
-    def _parse_content_type(content_type: str) -> tuple[str, dict[str, str]] | None:
-        email = Message()
-        email[_CONTENT_TYPE] = content_type
-        params = email.get_params()
-        if params is None:
-            return None
-        # the first param is the mime-type
-        # the later ones are the attribtues like "charset"
-        return params[0][0], dict(params[1:])
-
     async def _download_file(self, attachment: Attachment) -> InputFile | None:
         """Downloads a single file from the given attachment.
 
@@ -93,7 +80,7 @@ class AttachmentDownloader(InputFileDownloader):
                         return None
 
                     content_type_val = response.headers.get("Content-Type", "")
-                    result = AttachmentDownloader._parse_content_type(content_type_val)
+                    result = _parse_content_type(content_type_val)
                     if result is None:
                         return None
                     content_type, _ = result

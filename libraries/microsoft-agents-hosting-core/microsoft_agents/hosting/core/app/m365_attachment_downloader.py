@@ -1,14 +1,13 @@
 # Copyright (c) Microsoft Corporation. All rights reserved.
 # Licensed under the MIT License.
 
-from typing import Callable
-from email.message import Message
+import json
+from typing import Callable, cast, Any
 
 import aiohttp
 
 from microsoft_agents.activity import (
     Attachment,
-    Channels,
 )
 
 from microsoft_agents.hosting.core.authorization import (
@@ -19,6 +18,7 @@ from microsoft_agents.hosting.core.turn_context import TurnContext
 from microsoft_agents.hosting.core.outbound_host_validator import OutboundHostValidator
 
 from .input_file import InputFileDownloader, InputFile
+from ._utils import _parse_content_type
 
 
 class M365AttachmentDownloader(InputFileDownloader):
@@ -112,21 +112,51 @@ class M365AttachmentDownloader(InputFileDownloader):
         :param access_token: The access token for authentication.
         :return: An InputFile instance or None if the download fails.
         """
-        if not attachment.content_url:
-            return None
+        name = attachment.name
 
-        headers = {}
-        if access_token:
-            headers["Authorization"] = f"Bearer {access_token}"
+        if attachment.content_url and (
+            attachment.content_url.startswith("https://")
+            or attachment.content_url.startswith("http://localhost")
+        ):
+            download_url: str
+            if isinstance(attachment.content, dict):
+                content_dict = cast(dict[str, Any], attachment.content)
+                val = content_dict.get("downloadUrl", None)
+                if val is not None:
+                    download_url = val
+            else:
+                download_url = attachment.content_url
 
-        async with self._client_factory() as client:
-            async with client.get(attachment.content_url, headers=headers) as response:
-                if response.status != 200:
-                    return None
-                content = await response.read()
+            if (
+                self._host_validator is not None
+                and self._host_validator.enabled
+                and not self._host_validator.is_allowed(download_url)
+            ):
+                return None
 
-        return InputFile(
-            content=content,
-            filename=attachment.name or "unknown",
-            content_type=attachment.content_type,
-        )
+            async with self._client_factory() as client:
+                async with client.get(download_url, headers={"Authorization": f"Bearer {access_token}"}) as response:
+                    if response.status >= 300:
+                        return None
+                    content = await response.read()
+                    result = _parse_content_type(response.headers.get("Content-Type", ""))
+                    if result is None:
+                        return None
+                    content_type, _ = result
+                    if content_type.startswith("image/"):
+                        content_type = "image/png"
+
+                    return InputFile(
+                        content=content,
+                        content_type=content_type,
+                        content_url=attachment.content_url,
+                        filename=name,
+                    )
+        else:
+            content = bytes(json.dumps(attachment.content), "utf-8")
+            return InputFile(
+                content=content,
+                content_type=attachment.content_type,
+                content_url=attachment.content_url,
+                filename=attachment.name,
+            )
