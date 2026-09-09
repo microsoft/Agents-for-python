@@ -146,6 +146,35 @@ class AttachmentsOperations(AttachmentsBase, _BaseClient):
                 data = await response.read()
                 return BytesIO(data)
 
+    async def get_attachment_uri(
+        self, attachment_id: str, view_id: str = "original"
+    ) -> str:
+        """
+        Gets the URI of an attachment view.
+
+        :param attachment_id: The ID of the attachment.
+        :param view_id: The ID of the view, defaults to "original".
+        :return: The URI of the attachment view.
+        """
+        if attachment_id is None:
+            logger.error(
+                "AttachmentsOperations.get_attachment_uri(): attachmentId is required",
+                stack_info=True,
+            )
+            raise ValueError("attachmentId is required")
+        if view_id is None:
+            logger.error(
+                "AttachmentsOperations.get_attachment_uri(): viewId is required",
+                stack_info=True,
+            )
+            raise ValueError("viewId is required")
+
+        base_url = str(self._client._base_url)
+        if not base_url.endswith("/"):
+            base_url += "/"
+
+        return f"{base_url}v3/attachments/{attachment_id}/views/{view_id}"
+
 
 class ConversationsOperations(ConversationsBase, _BaseClient):
 

@@ -440,6 +440,34 @@ class TestConnectorClientContract:
         assert content.read() == b"attachment bytes"
 
     @pytest.mark.asyncio
+    async def test_get_attachment_uri_builds_view_url(self):
+        client = ConnectorClient("https://example.org/", token="")
+        try:
+            uri = await client.attachments.get_attachment_uri("attachment-1")
+            uri_with_view = await client.attachments.get_attachment_uri(
+                "attachment-1", "thumbnail"
+            )
+        finally:
+            await client.close()
+
+        assert uri == "https://example.org/v3/attachments/attachment-1/views/original"
+        assert (
+            uri_with_view
+            == "https://example.org/v3/attachments/attachment-1/views/thumbnail"
+        )
+
+    @pytest.mark.asyncio
+    async def test_get_attachment_uri_requires_attachment_id_and_view_id(self):
+        client = ConnectorClient("https://example.org/", token="")
+        try:
+            with pytest.raises(ValueError):
+                await client.attachments.get_attachment_uri(None)
+            with pytest.raises(ValueError):
+                await client.attachments.get_attachment_uri("attachment-1", None)
+        finally:
+            await client.close()
+
+    @pytest.mark.asyncio
     @pytest.mark.parametrize("status", [302, 400, 500])
     async def test_unexpected_response_status_raises_client_response_error(
         self, status

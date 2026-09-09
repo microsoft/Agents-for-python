@@ -15,3 +15,7 @@ class AttachmentsBase(Protocol):
     @abstractmethod
     async def get_attachment(self) -> Optional[AsyncIterator[bytes]]:
         pass
+
+    @abstractmethod
+    async def get_attachment_uri(self, attachment_id: str, view_id: str = "original") -> str:
+        return 
