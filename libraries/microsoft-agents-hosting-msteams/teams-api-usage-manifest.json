@@ -1,0 +1,390 @@
+{
+  "schemaVersion": 1,
+  "dependency": "microsoft-teams-api",
+  "declaredVersion": ">=2.0.0,<3",
+  "sourceRoot": "microsoft_agents/hosting/msteams",
+  "usages": [
+    {
+      "upstreamSymbol": "microsoft_teams.api.ApiClient",
+      "usage": "instantiated",
+      "exposure": "publicly-exposed",
+      "files": [
+        "microsoft_agents/hosting/msteams/_teams_api_client.py",
+        "microsoft_agents/hosting/msteams/teams_agent_extension.py",
+        "microsoft_agents/hosting/msteams/teams_turn_context.py"
+      ],
+      "propertiesRead": [],
+      "propertiesWritten": [],
+      "methodsCalled": [],
+      "constructsOrValidates": true
+    },
+    {
+      "upstreamSymbol": "microsoft_teams.api.models.channel_data.ChannelData",
+      "usage": "parsed-model",
+      "exposure": "publicly-exposed",
+      "files": [
+        "microsoft_agents/hosting/msteams/_utils.py"
+      ],
+      "propertiesRead": [
+        "channel",
+        "channel.id",
+        "event_type",
+        "team",
+        "meeting",
+        "settings",
+        "settings.selected_channel",
+        "settings.selected_channel.id",
+        "notification",
+        "feedback_loop"
+      ],
+      "propertiesWritten": [
+        "notification",
+        "feedback_loop"
+      ],
+      "methodsCalled": [
+        "model_validate"
+      ],
+      "constructsOrValidates": true
+    },
+    {
+      "upstreamSymbol": "microsoft_teams.api.models.channel_data.ChannelInfo",
+      "usage": "type-reference",
+      "exposure": "publicly-exposed",
+      "files": [
+        "microsoft_agents/hosting/msteams/_utils.py",
+        "microsoft_agents/hosting/msteams/channel/route_handlers.py"
+      ],
+      "propertiesRead": [
+        "id"
+      ],
+      "propertiesWritten": [],
+      "methodsCalled": [],
+      "constructsOrValidates": false
+    },
+    {
+      "upstreamSymbol": "microsoft_teams.api.models.channel_data.TeamInfo",
+      "usage": "type-reference",
+      "exposure": "publicly-exposed",
+      "files": [
+        "microsoft_agents/hosting/msteams/_utils.py",
+        "microsoft_agents/hosting/msteams/team/route_handlers.py"
+      ],
+      "propertiesRead": [
+        "id"
+      ],
+      "propertiesWritten": [],
+      "methodsCalled": [],
+      "constructsOrValidates": false
+    },
+    {
+      "upstreamSymbol": "microsoft_teams.api.models.config.ConfigResponse",
+      "usage": "response-model",
+      "exposure": "publicly-exposed",
+      "files": [
+        "microsoft_agents/hosting/msteams/config/route_handlers.py"
+      ],
+      "propertiesRead": [],
+      "propertiesWritten": [],
+      "methodsCalled": [
+        "model_dump"
+      ],
+      "constructsOrValidates": false
+    },
+    {
+      "upstreamSymbol": "microsoft_teams.api.models.FileConsentCardResponse",
+      "usage": "response-model",
+      "exposure": "publicly-exposed",
+      "files": [
+        "microsoft_agents/hosting/msteams/file_consent/file_consent.py",
+        "microsoft_agents/hosting/msteams/file_consent/route_handlers.py"
+      ],
+      "propertiesRead": [
+        "action"
+      ],
+      "propertiesWritten": [],
+      "methodsCalled": [
+        "model_dump",
+        "model_validate"
+      ],
+      "constructsOrValidates": true
+    },
+    {
+      "upstreamSymbol": "microsoft_teams.api.models.meetings.MeetingDetails",
+      "usage": "parsed-model",
+      "exposure": "publicly-exposed",
+      "files": [
+        "microsoft_agents/hosting/msteams/meeting/meeting.py",
+        "microsoft_agents/hosting/msteams/meeting/route_handlers.py"
+      ],
+      "propertiesRead": [],
+      "propertiesWritten": [],
+      "methodsCalled": [
+        "model_validate"
+      ],
+      "constructsOrValidates": true
+    },
+    {
+      "upstreamSymbol": "microsoft_teams.api.models.o365.O365ConnectorCardActionQuery",
+      "usage": "parsed-model",
+      "exposure": "publicly-exposed",
+      "files": [
+        "microsoft_agents/hosting/msteams/message/message.py",
+        "microsoft_agents/hosting/msteams/message/route_handlers.py"
+      ],
+      "propertiesRead": [],
+      "propertiesWritten": [],
+      "methodsCalled": [
+        "model_validate"
+      ],
+      "constructsOrValidates": true
+    },
+    {
+      "upstreamSymbol": "microsoft_teams.api.models.AppBasedLinkQuery",
+      "usage": "parsed-model",
+      "exposure": "publicly-exposed",
+      "files": [
+        "microsoft_agents/hosting/msteams/message_extension/message_extension.py",
+        "microsoft_agents/hosting/msteams/message_extension/route_handlers.py"
+      ],
+      "propertiesRead": [
+        "url",
+        "state"
+      ],
+      "propertiesWritten": [],
+      "methodsCalled": [
+        "model_validate"
+      ],
+      "constructsOrValidates": true
+    },
+    {
+      "upstreamSymbol": "microsoft_teams.api.models.messaging_extension.MessagingExtensionQuery",
+      "usage": "parsed-model",
+      "exposure": "publicly-exposed",
+      "files": [
+        "microsoft_agents/hosting/msteams/message_extension/message_extension.py"
+      ],
+      "propertiesRead": [
+        "command_id",
+        "parameters",
+        "parameters[].name",
+        "parameters[].value",
+        "query_options",
+        "query_options.count",
+        "query_options.skip",
+        "state"
+      ],
+      "propertiesWritten": [],
+      "methodsCalled": [
+        "model_validate"
+      ],
+      "constructsOrValidates": true
+    },
+    {
+      "upstreamSymbol": "microsoft_teams.api.models.messaging_extension.MessagingExtensionAction",
+      "usage": "parsed-model",
+      "exposure": "publicly-exposed",
+      "files": [
+        "microsoft_agents/hosting/msteams/message_extension/message_extension.py"
+      ],
+      "propertiesRead": [
+        "data",
+        "bot_activity_preview"
+      ],
+      "propertiesWritten": [],
+      "methodsCalled": [
+        "model_validate"
+      ],
+      "constructsOrValidates": true
+    },
+    {
+      "upstreamSymbol": "microsoft_teams.api.models.MessagingExtensionAction",
+      "usage": "type-reference",
+      "exposure": "publicly-exposed",
+      "files": [
+        "microsoft_agents/hosting/msteams/message_extension/route_handlers.py"
+      ],
+      "propertiesRead": [
+        "data",
+        "bot_activity_preview"
+      ],
+      "propertiesWritten": [],
+      "methodsCalled": [],
+      "constructsOrValidates": false
+    },
+    {
+      "upstreamSymbol": "microsoft_teams.api.models.MessagingExtensionQuery",
+      "usage": "type-reference",
+      "exposure": "publicly-exposed",
+      "files": [
+        "microsoft_agents/hosting/msteams/message_extension/route_handlers.py"
+      ],
+      "propertiesRead": [
+        "command_id",
+        "parameters",
+        "parameters[].name",
+        "parameters[].value",
+        "query_options",
+        "query_options.count",
+        "query_options.skip",
+        "state"
+      ],
+      "propertiesWritten": [],
+      "methodsCalled": [],
+      "constructsOrValidates": false
+    },
+    {
+      "upstreamSymbol": "microsoft_teams.api.models.MessagingExtensionActionResponse",
+      "usage": "response-model",
+      "exposure": "publicly-exposed",
+      "files": [
+        "microsoft_agents/hosting/msteams/message_extension/route_handlers.py"
+      ],
+      "propertiesRead": [],
+      "propertiesWritten": [],
+      "methodsCalled": [
+        "model_dump"
+      ],
+      "constructsOrValidates": false
+    },
+    {
+      "upstreamSymbol": "microsoft_teams.api.models.MessagingExtensionResponse",
+      "usage": "response-model",
+      "exposure": "publicly-exposed",
+      "files": [
+        "microsoft_agents/hosting/msteams/message_extension/route_handlers.py"
+      ],
+      "propertiesRead": [],
+      "propertiesWritten": [],
+      "methodsCalled": [
+        "model_dump"
+      ],
+      "constructsOrValidates": false
+    },
+    {
+      "upstreamSymbol": "microsoft_teams.api.models.TaskModuleRequest",
+      "usage": "type-reference",
+      "exposure": "publicly-exposed",
+      "files": [
+        "microsoft_agents/hosting/msteams/task_module/route_handlers.py"
+      ],
+      "propertiesRead": [
+        "data"
+      ],
+      "propertiesWritten": [],
+      "methodsCalled": [],
+      "constructsOrValidates": false
+    },
+    {
+      "upstreamSymbol": "microsoft_teams.api.models.TaskModuleResponse",
+      "usage": "response-model",
+      "exposure": "publicly-exposed",
+      "files": [
+        "microsoft_agents/hosting/msteams/task_module/route_handlers.py"
+      ],
+      "propertiesRead": [],
+      "propertiesWritten": [],
+      "methodsCalled": [
+        "model_dump"
+      ],
+      "constructsOrValidates": false
+    },
+    {
+      "upstreamSymbol": "microsoft_teams.api.models.task_module.TaskModuleRequest",
+      "usage": "parsed-model",
+      "exposure": "publicly-exposed",
+      "files": [
+        "microsoft_agents/hosting/msteams/task_module/task_module.py"
+      ],
+      "propertiesRead": [
+        "data"
+      ],
+      "propertiesWritten": [],
+      "methodsCalled": [
+        "model_validate"
+      ],
+      "constructsOrValidates": true
+    },
+    {
+      "upstreamSymbol": "microsoft_teams.api.models.ChannelData",
+      "usage": "parsed-model",
+      "exposure": "publicly-exposed",
+      "files": [
+        "microsoft_agents/hosting/msteams/teams_activity.py"
+      ],
+      "propertiesRead": [
+        "channel",
+        "channel.id",
+        "event_type",
+        "team",
+        "meeting",
+        "settings",
+        "settings.selected_channel",
+        "settings.selected_channel.id",
+        "notification",
+        "feedback_loop"
+      ],
+      "propertiesWritten": [
+        "notification",
+        "feedback_loop"
+      ],
+      "methodsCalled": [],
+      "constructsOrValidates": true
+    },
+    {
+      "upstreamSymbol": "microsoft_teams.api.models.FeedbackLoop",
+      "usage": "parsed-model",
+      "exposure": "internal-only",
+      "files": [
+        "microsoft_agents/hosting/msteams/teams_activity.py"
+      ],
+      "propertiesRead": [],
+      "propertiesWritten": [
+        "type"
+      ],
+      "methodsCalled": [],
+      "constructsOrValidates": true
+    },
+    {
+      "upstreamSymbol": "microsoft_teams.api.models.MeetingInfo",
+      "usage": "type-reference",
+      "exposure": "publicly-exposed",
+      "files": [
+        "microsoft_agents/hosting/msteams/teams_activity.py"
+      ],
+      "propertiesRead": [],
+      "propertiesWritten": [],
+      "methodsCalled": [],
+      "constructsOrValidates": false
+    },
+    {
+      "upstreamSymbol": "microsoft_teams.api.models.NotificationInfo",
+      "usage": "parsed-model",
+      "exposure": "internal-only",
+      "files": [
+        "microsoft_agents/hosting/msteams/teams_activity.py"
+      ],
+      "propertiesRead": [],
+      "propertiesWritten": [
+        "alert",
+        "alert_in_meeting",
+        "external_resource_url"
+      ],
+      "methodsCalled": [],
+      "constructsOrValidates": true
+    },
+    {
+      "upstreamSymbol": "microsoft_teams.api.models.TeamInfo",
+      "usage": "type-reference",
+      "exposure": "publicly-exposed",
+      "files": [
+        "microsoft_agents/hosting/msteams/teams_activity.py"
+      ],
+      "propertiesRead": [
+        "id"
+      ],
+      "propertiesWritten": [],
+      "methodsCalled": [],
+      "constructsOrValidates": false
+    }
+  ]
+}
