@@ -27,6 +27,12 @@ from microsoft_agents.hosting.core import (
     MessageFactory,
     ConnectorClientBase,
 )
+from microsoft_agents.hosting.core.app.attachment_downloader import (
+    AttachmentDownloader,
+)
+from microsoft_agents.hosting.core.app.m365_attachment_downloader import (
+    M365AttachmentDownloader,
+)
 from microsoft_agents.activity import load_configuration_from_env
 from microsoft_agents.authentication.msal import MsalConnectionManager
 from microsoft_agents.hosting.fastapi import CloudAdapter
@@ -44,7 +50,14 @@ ADAPTER = CloudAdapter(connection_manager=CONNECTION_MANAGER)
 AUTHORIZATION = Authorization(STORAGE, CONNECTION_MANAGER, **agents_sdk_config)
 
 AGENT_APP = AgentApplication[TurnState](
-    storage=STORAGE, adapter=ADAPTER, authorization=AUTHORIZATION, **agents_sdk_config
+    storage=STORAGE,
+    adapter=ADAPTER,
+    authorization=AUTHORIZATION,
+    file_downloaders=[
+        AttachmentDownloader(),
+        M365AttachmentDownloader(connections=CONNECTION_MANAGER),
+    ],
+    **agents_sdk_config,
 )
 
 
@@ -105,7 +118,9 @@ async def process_input(context: TurnContext, state: TurnState) -> Activity | No
 
     if state.temp.input_files:
         reply = MessageFactory.text(f"There are {len(state.temp.input_files)} attachments.")
-        image_data = base64.b64encode(state.temp.input_files[0].content)
+        image_data = base64.b64encode(state.temp.input_files[0].content).decode(
+            "utf-8"
+        )
         reply.attachments = [
             Attachment(
                 name=state.temp.input_files[0].filename,
@@ -137,8 +152,8 @@ async def handle_outgoing_attachment(context: TurnContext, activity: Activity) -
     return reply
 
 def get_inline_attachment() -> Attachment:
-    image_path = Path(__file__) / "resources" / "build-agents.png"
-    image_data = base64.b64encode(image_path.read_bytes())
+    image_path = Path(os.getcwd()) / "resources" / "build-agents.png"
+    image_data = base64.b64encode(image_path.read_bytes()).decode("utf-8")
 
     return Attachment(
         name="resources\\build-agents.png",
@@ -152,7 +167,7 @@ async def upload_attachment(context: TurnContext, service_url: str, conversation
     if not conversation_id:
         raise ValueError("Conversation ID is required.")
 
-    image_path = Path(__file__) / "resources" / "agents-sdk.png"
+    image_path = Path(os.getcwd()) / "resources" / "agents-sdk.png"
 
     connector = context.services.get(ConnectorClientBase)
     if not connector:
