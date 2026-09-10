@@ -217,7 +217,17 @@ class TypingIndicator:
                     self._stop_loop()
                 return await next_handler()
 
+            async def _on_update_activity_handler(ctx, activity, next_handler):
+                self._stop_loop()
+                return await next_handler()
+
+            async def _on_delete_activity_handler(ctx, reference, next_handler):
+                self._stop_loop()
+                return await next_handler()
+
             self._context.on_send_activities(_on_send_activities_handler)
+            self._context.on_update_activity(_on_update_activity_handler)
+            self._context.on_delete_activity(_on_delete_activity_handler)
             self._hook_registered = True
 
     def _stop_loop(self) -> None:
