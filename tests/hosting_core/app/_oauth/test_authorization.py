@@ -561,6 +561,37 @@ class TestAuthorizationUsage(TestEnv):
         assert context.turn_state == expected_turn_state
 
     @pytest.mark.asyncio
+    async def test_get_token_as_token_credential(self, mocker, authorization, context):
+        token_response = TokenResponse(
+            token=DEFAULTS.token,
+            expiration="2030-01-01T00:00:00Z",
+        )
+        exchange_token = mocker.patch.object(
+            authorization,
+            "exchange_token",
+            new=mocker.AsyncMock(return_value=token_response),
+        )
+
+        credential = authorization.get_token_as_token_credential(
+            context,
+            auth_handler_id=DEFAULTS.auth_handler_id,
+        )
+        token = await credential.get_token(
+            "scope1",
+            "scope2",
+            claims="claims",
+            tenant_id="tenant",
+            enable_cae=True,
+        )
+
+        assert token.token == DEFAULTS.token
+        exchange_token.assert_awaited_once_with(
+            context,
+            auth_handler_id=DEFAULTS.auth_handler_id,
+            scopes=["scope1", "scope2"],
+        )
+
+    @pytest.mark.asyncio
     @pytest.mark.parametrize(
         "initial_state, initial_cache, handler_id, refreshed, refresh_token",
         [
@@ -635,6 +666,40 @@ class TestAuthorizationUsage(TestEnv):
         final_state = await authorization._load_sign_in_state(context)
         assert sign_in_state_eq(initial_state, final_state)
         assert context.turn_state == expected_turn_state
+
+    @pytest.mark.asyncio
+    async def test_exchange_token_as_token_credential(
+        self, mocker, authorization, context
+    ):
+        token_response = TokenResponse(
+            token=DEFAULTS.token,
+            expiration="2030-01-01T00:00:00Z",
+        )
+        exchange_token = mocker.patch.object(
+            authorization,
+            "exchange_token",
+            new=mocker.AsyncMock(return_value=token_response),
+        )
+
+        credential = authorization.exchange_token_as_token_credential(
+            context,
+            scopes=["configured", "shared"],
+            auth_handler_id=DEFAULTS.auth_handler_id,
+            exchange_connection="connection",
+        )
+        token = await credential.get_token(
+            "shared",
+            "requested",
+            claims="claims",
+        )
+
+        assert token.token == DEFAULTS.token
+        exchange_token.assert_awaited_once_with(
+            context,
+            scopes=["configured", "shared", "requested"],
+            auth_handler_id=DEFAULTS.auth_handler_id,
+            exchange_connection="connection",
+        )
 
     @pytest.mark.asyncio
     async def test_on_turn_auth_intercept_no_intercept(
