@@ -26,7 +26,7 @@ from microsoft_agents.hosting.core.app import (
 )
 from tests._common.testing_objects import TestingConnectionManager as _ConnectionManager
 
-from .helpers import is_supported_version
+from .helpers import _cache_teams_api_client, is_supported_version
 
 pytestmark = pytest.mark.skipif(
     not is_supported_version,
@@ -80,7 +80,9 @@ def _make_activity(**kwargs) -> Activity:
 
 
 def _make_context(activity: Activity) -> TurnContext:
-    return TurnContext(_StubAdapter(), activity)
+    context = TurnContext(_StubAdapter(), activity)
+    _cache_teams_api_client(context)
+    return context
 
 
 class TestMessageRouteIntegration:

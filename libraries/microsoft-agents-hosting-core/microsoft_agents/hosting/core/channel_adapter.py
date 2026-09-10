@@ -3,6 +3,8 @@
 
 from __future__ import annotations
 
+from typing_extensions import Self
+
 from abc import ABC, abstractmethod
 from collections.abc import Callable
 from typing import Awaitable
@@ -78,7 +80,7 @@ class ChannelAdapter(ABC, ChannelAdapterProtocol):
         """
         raise NotImplementedError()
 
-    def use(self, middleware: Middleware) -> ChannelAdapter:
+    def use(self, middleware: Middleware) -> Self:
         """
         Registers a middleware handler with the adapter.
 

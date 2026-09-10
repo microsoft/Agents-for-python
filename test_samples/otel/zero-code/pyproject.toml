@@ -1,0 +1,36 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "zero-code-otel-sample"
+version = "1.0.0"
+description = "Microsoft 365 Agents SDK sample using zero-code OpenTelemetry"
+requires-python = ">=3.10"
+dependencies = [
+    "aiohttp",
+    "microsoft-agents-activity",
+    "microsoft-agents-authentication-msal",
+    "microsoft-agents-hosting-aiohttp",
+    "microsoft-agents-hosting-core",
+    "opentelemetry-distro",
+    "opentelemetry-exporter-otlp",
+    "opentelemetry-instrumentation-aiohttp-client",
+    "opentelemetry-instrumentation-aiohttp-server",
+    "opentelemetry-instrumentation-logging",
+    "opentelemetry-instrumentation-requests",
+    "python-dotenv[cli]",
+    "requests",
+]
+
+[project.entry-points.opentelemetry_traces_sampler]
+drop_typing = "src.typing_sampler:DropTypingSampler"
+
+[tool.setuptools]
+packages = ["src"]
+
+[tool.uv.sources]
+microsoft-agents-activity = { path = "../../../libraries/microsoft-agents-activity", editable = true }
+microsoft-agents-authentication-msal = { path = "../../../libraries/microsoft-agents-authentication-msal", editable = true }
+microsoft-agents-hosting-aiohttp = { path = "../../../libraries/microsoft-agents-hosting-aiohttp", editable = true }
+microsoft-agents-hosting-core = { path = "../../../libraries/microsoft-agents-hosting-core", editable = true }

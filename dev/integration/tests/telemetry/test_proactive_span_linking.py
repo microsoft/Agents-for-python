@@ -14,7 +14,7 @@ from microsoft_agents.hosting.core import (
 from microsoft_agents.hosting.core.app.proactive import ProactiveOptions
 from microsoft_agents.hosting.core.app.proactive.telemetry import constants
 from microsoft_agents.hosting.core.authorization import ClaimsIdentity
-from microsoft_agents.testing import AgentEnvironment, AiohttpScenario
+from microsoft_agents.hosting.testing import AgentEnvironment, AiohttpScenario
 
 from ..utils.telemetry_fixtures import (  # noqa: F401
     test_exporter,

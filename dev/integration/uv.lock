@@ -503,6 +503,7 @@ dependencies = [
     { name = "microsoft-agents-hosting-aiohttp" },
     { name = "microsoft-agents-hosting-dialogs" },
     { name = "microsoft-agents-hosting-fastapi" },
+    { name = "microsoft-agents-hosting-testing" },
     { name = "microsoft-agents-testing" },
     { name = "pytest" },
     { name = "pytest-asyncio" },
@@ -514,7 +515,8 @@ requires-dist = [
     { name = "microsoft-agents-hosting-aiohttp" },
     { name = "microsoft-agents-hosting-dialogs" },
     { name = "microsoft-agents-hosting-fastapi" },
-    { name = "microsoft-agents-testing", directory = "../microsoft-agents-testing" },
+    { name = "microsoft-agents-hosting-testing", directory = "../microsoft-agents-hosting-testing" },
+    { name = "microsoft-agents-testing", directory = "../../libraries/microsoft-agents-testing" },
     { name = "pytest" },
     { name = "pytest-asyncio" },
 ]
@@ -617,8 +619,8 @@ wheels = [
 ]
 
 [[package]]
-name = "microsoft-agents-testing"
-source = { directory = "../microsoft-agents-testing" }
+name = "microsoft-agents-hosting-testing"
+source = { directory = "../microsoft-agents-hosting-testing" }
 dependencies = [
     { name = "aiohttp" },
     { name = "click" },
@@ -652,6 +654,13 @@ requires-dist = [
     { name = "pytest-mock" },
     { name = "python-dotenv" },
     { name = "requests" },
+]
+
+[[package]]
+name = "microsoft-agents-testing"
+source = { directory = "../../libraries/microsoft-agents-testing" }
+dependencies = [
+    { name = "microsoft-agents-hosting-core" },
 ]
 
 [[package]]

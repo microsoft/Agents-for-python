@@ -12,7 +12,10 @@ class MockMsalAuth(MsalAuth):
         self,
         mocker,
         client_type,
-        acquire_token_for_client_return={"access_token": "token"},
+        acquire_token_for_client_return={
+            "access_token": "token",
+            "expires_in": 3600,
+        },
     ):
         super().__init__(AgentAuthConfiguration())
         mock_client = mocker.Mock(spec=client_type)

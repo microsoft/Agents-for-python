@@ -1,0 +1,28 @@
+[build-system]
+requires = ["setuptools>=77"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "microsoft-agents-testing"
+dynamic = ["version", "dependencies"]
+description = "Library for building agent tests using Microsoft Agents SDK"
+readme = {file = "readme.md", content-type = "text/markdown"}
+authors = [{name = "Microsoft Corporation"}]
+license = "MIT"
+license-files = ["LICENSE"]
+requires-python = ">=3.10"
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Programming Language :: Python :: 3.14",
+    "Operating System :: OS Independent",
+]
+
+[tool.setuptools.package-data]
+"microsoft_agents.testing" = ["py.typed"]
+
+[project.urls]
+"Homepage" = "https://github.com/microsoft/Agents"

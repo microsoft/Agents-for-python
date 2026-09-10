@@ -7,13 +7,16 @@ import sys
 from typing import Any
 from unittest.mock import AsyncMock, MagicMock
 
-from microsoft_agents.activity import Activity, ActivityTypes
+from microsoft_agents.activity import Activity, ActivityTypes, ResourceResponse
+from microsoft_agents.activity._model_utils import SkipNone, pick_model
 from microsoft_agents.hosting.core import TurnContext
 from microsoft_agents.hosting.core.app import AgentApplication, RouteRank
 
 is_supported_version = sys.version_info >= (3, 11)
 
 if is_supported_version:
+    from microsoft_teams.api import ApiClient
+
     from microsoft_agents.hosting.msteams.teams_turn_context import TeamsTurnContext
 
 
@@ -29,6 +32,15 @@ class _FakeServiceSet:
 
     def set(self, key, value):
         self._state[key] = value
+
+
+class _FakeAdapter:
+    def __init__(self):
+        self.sent_activities = []
+
+    async def send_activities(self, context, activities):
+        self.sent_activities.extend(activities)
+        return [ResourceResponse()] * len(activities)
 
 
 def _make_app() -> Any:
@@ -61,40 +73,26 @@ def _make_context(
     members_added=None,
     members_removed=None,
 ) -> TurnContext:
-    context = MagicMock(spec=TurnContext)
-    activity = MagicMock(spec=Activity)
-    activity.type = activity_type
-    activity.name = name
-    activity.value = value
-    activity.service_url = "https://smba.trafficmanager.net/teams/"
-    activity.channel_id = channel_id
-    activity.channel_data = channel_data
+    activity = pick_model(
+        Activity,
+        type=activity_type,
+        name=SkipNone(name),
+        value=SkipNone(value),
+        service_url="https://smba.trafficmanager.net/teams/",
+        channel_id=channel_id,
+        channel_data=SkipNone(channel_data),
+    )
     activity.members_added = members_added
     activity.members_removed = members_removed
-    context.activity = activity
-    context.turn_state = {}
+
+    context = TurnContext(_FakeAdapter(), activity, MagicMock())
+    _cache_teams_api_client(context)
     context.send_activity = AsyncMock()
-
-    mock_adapter = MagicMock()
-    context.adapter = mock_adapter
-    context._responded = False
-    context._services = _FakeServiceSet()
-    context._on_send_activities = []
-    context._on_update_activity = []
-    context._on_delete_activity = []
-    context.identity = MagicMock()
-
-    def _copy_to(target):
-        target.adapter = mock_adapter
-        target._activity = activity
-        target._responded = False
-        target._services = _FakeServiceSet()
-        target._on_send_activities = []
-        target._on_update_activity = []
-        target._on_delete_activity = []
-
-    context.copy_to.side_effect = _copy_to
     return context
+
+
+def _cache_teams_api_client(context: TurnContext) -> None:
+    context.services.set(ApiClient, object.__new__(ApiClient))
 
 
 def _make_teams_context() -> "TeamsTurnContext":

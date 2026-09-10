@@ -5,8 +5,7 @@ from microsoft_agents.activity import Activity, ActivityTypes, ConversationAccou
 from microsoft_agents.hosting.core.app.state import ConversationState
 from microsoft_agents.hosting.core.storage import MemoryStorage
 from microsoft_agents.hosting.core.turn_context import TurnContext
-
-from tests._common.testing_objects import MockTestingAdapter
+from microsoft_agents.testing import TestAdapter
 
 
 def _create_context(channel_id="test-channel", conversation_id="conversation-123"):
@@ -15,7 +14,7 @@ def _create_context(channel_id="test-channel", conversation_id="conversation-123
         channel_id=channel_id,
         conversation=ConversationAccount(id=conversation_id),
     )
-    return TurnContext(MockTestingAdapter(), activity)
+    return TurnContext(TestAdapter(), activity)
 
 
 def test_conversation_state_uses_expected_context_service_key():

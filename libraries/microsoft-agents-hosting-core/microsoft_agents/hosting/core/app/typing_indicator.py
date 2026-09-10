@@ -13,6 +13,8 @@ from typing import Optional
 from microsoft_agents.hosting.core import TurnContext
 from microsoft_agents.activity import Activity, ActivityTypes, Channels, EntityTypes
 
+from .telemetry import spans
+
 logger = logging.getLogger(__name__)
 
 DEFAULT_INITIAL_DELAY_MS = 500
@@ -133,11 +135,14 @@ class TypingIndicator:
 
     async def _send_typing(self) -> None:
         """Sends a single typing activity via the adapter, bypassing middleware."""
-        ref = self._context.activity.get_conversation_reference()
-        typing_activity = TurnContext.apply_conversation_reference(
-            Activity(type=ActivityTypes.typing), ref
-        )
-        await self._context.adapter.send_activities(self._context, [typing_activity])
+        with spans.TypingSendTyping(self._context):
+            ref = self._context.activity.get_conversation_reference()
+            typing_activity = TurnContext.apply_conversation_reference(
+                Activity(type=ActivityTypes.typing), ref
+            )
+            await self._context.adapter.send_activities(
+                self._context, [typing_activity]
+            )
 
     async def _run(self) -> None:
         """Sends typing indicators at regular intervals after an initial delay."""
@@ -212,7 +217,17 @@ class TypingIndicator:
                     self._stop_loop()
                 return await next_handler()
 
+            async def _on_update_activity_handler(ctx, activity, next_handler):
+                self._stop_loop()
+                return await next_handler()
+
+            async def _on_delete_activity_handler(ctx, reference, next_handler):
+                self._stop_loop()
+                return await next_handler()
+
             self._context.on_send_activities(_on_send_activities_handler)
+            self._context.on_update_activity(_on_update_activity_handler)
+            self._context.on_delete_activity(_on_delete_activity_handler)
             self._hook_registered = True
 
     def _stop_loop(self) -> None:

@@ -4,7 +4,7 @@
 import asyncio
 
 from microsoft_agents.hosting.core.authorization import AgentAuthConfiguration
-from microsoft_agents.testing.core.utils import (
+from microsoft_agents.hosting.testing.core.utils import (
     generate_token_from_auth_config,
     load_sdk_config_connection,
 )

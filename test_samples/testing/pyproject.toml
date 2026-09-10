@@ -1,0 +1,30 @@
+[project]
+name = "agents-testing-sample"
+version = "0.1.0"
+description = "Test an AgentApplication without starting its aiohttp host"
+requires-python = ">=3.10"
+dependencies = [
+    "aiohttp",
+    "microsoft-agents-activity",
+    "microsoft-agents-authentication-msal",
+    "microsoft-agents-hosting-aiohttp",
+    "microsoft-agents-hosting-core",
+    "python-dotenv",
+]
+
+[dependency-groups]
+dev = [
+    "microsoft-agents-testing",
+    "pytest",
+    "pytest-asyncio",
+]
+
+[tool.uv]
+package = false
+
+[tool.uv.sources]
+microsoft-agents-activity = { path = "../../libraries/microsoft-agents-activity", editable = true }
+microsoft-agents-authentication-msal = { path = "../../libraries/microsoft-agents-authentication-msal", editable = true }
+microsoft-agents-hosting-aiohttp = { path = "../../libraries/microsoft-agents-hosting-aiohttp", editable = true }
+microsoft-agents-hosting-core = { path = "../../libraries/microsoft-agents-hosting-core", editable = true }
+microsoft-agents-testing = { path = "../../libraries/microsoft-agents-testing", editable = true }

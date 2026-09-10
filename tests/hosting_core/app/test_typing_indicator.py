@@ -13,6 +13,9 @@ from microsoft_agents.hosting.core.app.typing_indicator import (
     TypingIndicator,
     TypingOptions,
 )
+from microsoft_agents.hosting.core.app.telemetry import constants
+
+from tests._common.fixtures.telemetry import test_telemetry, test_exporter
 
 
 class StubAdapter:
@@ -43,9 +46,20 @@ class StubTurnContext:
             recipient={"id": "user"},
         )
         self._on_send_handlers = []
+        self._on_update_handlers = []
+        self._on_delete_handlers = []
 
     def on_send_activities(self, handler):
         self._on_send_handlers.append(handler)
+        return self
+
+    def on_update_activity(self, handler):
+        self._on_update_handlers.append(handler)
+        return self
+
+    def on_delete_activity(self, handler):
+        self._on_delete_handlers.append(handler)
+        return self
 
     @property
     def sent_activities(self):
@@ -261,6 +275,18 @@ async def test_typing_activity_has_conversation_reference():
 
 
 @pytest.mark.asyncio
+async def test_send_typing_creates_telemetry_span(test_exporter):
+    context = StubTurnContext()
+    indicator = TypingIndicator(context, typing_options=_fast_options())
+
+    await indicator._send_typing()
+
+    spans = test_exporter.get_finished_spans()
+    assert len(spans) == 1
+    assert spans[0].name == constants.SPAN_SEND_TYPING
+
+
+@pytest.mark.asyncio
 async def test_stop_is_idempotent():
     """Calling stop() multiple times should not error."""
     context = StubTurnContext()
@@ -316,6 +342,47 @@ async def test_send_hook_does_not_block_on_inflight_typing_send():
     assert next_handler_called
 
     release_send.set()
+    await indicator._stop_async()
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    "handlers_attribute",
+    [
+        "_on_update_handlers",
+        "_on_delete_handlers",
+    ],
+)
+async def test_mutation_hook_stops_before_initial_typing_send(handlers_attribute):
+    """Update and delete operations should cancel typing before the mutation."""
+    context = StubTurnContext()
+    opts = _fast_options(initial_delay_ms=50, interval_ms=10)
+    indicator = TypingIndicator(context, typing_options=opts)
+    indicator.start()
+
+    mutation = Activity(type=ActivityTypes.message)
+    if handlers_attribute == "_on_delete_handlers":
+        mutation = context.activity.get_conversation_reference()
+        mutation.activity_id = "activity-id"
+
+    handlers = getattr(context, handlers_attribute)
+    assert len(handlers) == 1
+
+    next_handler_called = False
+
+    async def _next_handler():
+        nonlocal next_handler_called
+        next_handler_called = True
+        return "mutation-result"
+
+    result = await handlers[0](context, mutation, _next_handler)
+    await asyncio.sleep(0.075)
+
+    assert result == "mutation-result"
+    assert next_handler_called
+    assert indicator._stopped
+    assert context.sent_activities == []
+
     await indicator._stop_async()
 
 

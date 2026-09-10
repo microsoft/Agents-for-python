@@ -40,7 +40,6 @@ from tests._common.data import (
 from tests._common.fixtures import FlowStateFixtures
 from tests._common.testing_objects import (
     TestingConnectionManager as MockConnectionManager,
-    mock_UserTokenClient,
     mock_class_UserAuthorization,
     mock_class_AgenticUserAuthorization,
     mock_class_Authorization,
@@ -112,7 +111,6 @@ def copy_sign_in_state(state: _SignInState) -> _SignInState:
 class TestEnv(FlowStateFixtures):
     def setup_method(self):
         self.TurnContext = create_testing_TurnContext
-        self.UserTokenClient = mock_UserTokenClient
         self.ConnectionManager = lambda mocker: MockConnectionManager()
 
     @pytest.fixture

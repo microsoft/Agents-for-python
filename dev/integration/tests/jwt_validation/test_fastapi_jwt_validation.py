@@ -14,7 +14,7 @@ from microsoft_agents.hosting.fastapi import (
     JwtAuthorizationMiddleware,
     jwt_authorization_decorator,
 )
-from microsoft_agents.testing.core.utils import sdk_config_connection
+from microsoft_agents.hosting.testing.core.utils import sdk_config_connection
 
 from tests.utils.config import REAL_SERVICE_CONNECTION_ENV_VARS
 from tests.utils.pytest import skip_if_no_var

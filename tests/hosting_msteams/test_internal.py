@@ -41,7 +41,7 @@ class _FakeContext:
 class TestGetTeamsApiClient:
 
     def test_returns_cached_api_client(self):
-        client = ApiClient("https://smba.trafficmanager.net/teams/")
+        client = object.__new__(ApiClient)
         ctx = _FakeContext(_FakeServices({ApiClient: client}))
         assert _get_teams_api_client(ctx) is client
 
