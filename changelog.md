@@ -6,6 +6,7 @@
 ## New Models & APIs
 
 - **MSAL Token Credential**: Added `MsalTokenCredential`, an Azure Core-compatible asynchronous token credential backed by MSAL, for authenticating Azure SDK clients that accept an `AsyncTokenCredential`.
+- **Attachment Downloading**: Added `AttachmentDownloader` and `M365AttachmentDownloader` to download attachments from generic and M365/Teams channels, plus `ConnectorClient.get_attachment_uri` for constructing attachment view URIs (#574)
 
 ---
 
