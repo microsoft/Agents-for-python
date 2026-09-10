@@ -719,9 +719,7 @@ async def test_end_stream_waits_for_m365_timeout_recovery(mocker):
     release_timeout_send.set()
     await asyncio.gather(timeout_task, end_task)
 
-    sent_activities = [
-        call.args[0] for call in context.send_activity.await_args_list
-    ]
+    sent_activities = [call.args[0] for call in context.send_activity.await_args_list]
     assert sent_activities[1].entities[0].stream_type == "final"
     assert sent_activities[2].text == "Completed response text."
     assert sent_activities[2].entities == []

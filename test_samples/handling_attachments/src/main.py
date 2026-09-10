@@ -18,7 +18,6 @@ if __name__ == "__main__":
         CONNECTION_MANAGER.get_default_connection_configuration()
     )
 
-
     @app.post("/api/messages")
     @jwt_authorization_decorator
     async def messages_handler(

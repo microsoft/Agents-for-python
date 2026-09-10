@@ -18,4 +18,4 @@ class AttachmentsBase(Protocol):
 
     @abstractmethod
     def get_attachment_uri(self, attachment_id: str, view_id: str = "original") -> str:
-        pass 
+        pass

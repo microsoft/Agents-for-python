@@ -28,8 +28,9 @@ from microsoft_agents.hosting.core import (
     ConnectorClientBase,
 )
 from microsoft_agents.activity import load_configuration_from_env
-from microsoft_agents.hosting.fastapi import CloudAdapter
 from microsoft_agents.authentication.msal import MsalConnectionManager
+from microsoft_agents.hosting.fastapi import CloudAdapter
+
 
 # Create the agent application
 
@@ -154,6 +155,8 @@ async def upload_attachment(context: TurnContext, service_url: str, conversation
     image_path = Path(__file__) / "resources" / "agents-sdk.png"
 
     connector = context.services.get(ConnectorClientBase)
+    if not connector:
+        raise RuntimeError("Connector client is required.")
 
     response = await connector.conversations.upload_attachment(
         conversation_id,

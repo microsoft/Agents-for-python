@@ -5,6 +5,7 @@ from email.message import Message
 
 _CONTENT_TYPE = "Content-Type"
 
+
 def _parse_content_type(content_type: str) -> tuple[str, dict[str, str]] | None:
     """Parses the given content type string into its main type and parameters.
 

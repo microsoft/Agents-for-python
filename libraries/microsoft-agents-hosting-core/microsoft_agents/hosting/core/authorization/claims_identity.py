@@ -158,7 +158,11 @@ class ClaimsIdentity:
     def is_gov_botframework_claim(self) -> bool:
         """Determines whether the specified incoming identity represents a government Bot Framework claim."""
         aud = self.claims.get(AuthenticationConstants.AUDIENCE_CLAIM, None)
-        return aud.lower() == AuthenticationConstants.GOV_AGENTS_SDK_TOKEN_ISSUER.lower() if aud else False
+        return (
+            aud.lower() == AuthenticationConstants.GOV_AGENTS_SDK_TOKEN_ISSUER.lower()
+            if aud
+            else False
+        )
 
     def get_token_scope(self) -> list[str]:
         """

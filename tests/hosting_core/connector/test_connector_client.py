@@ -443,8 +443,8 @@ class TestConnectorClientContract:
     async def test_get_attachment_uri_builds_view_url(self):
         client = ConnectorClient("https://example.org/", token="")
         try:
-            uri = await client.attachments.get_attachment_uri("attachment-1")
-            uri_with_view = await client.attachments.get_attachment_uri(
+            uri = client.attachments.get_attachment_uri("attachment-1")
+            uri_with_view = client.attachments.get_attachment_uri(
                 "attachment-1", "thumbnail"
             )
         finally:
@@ -457,13 +457,29 @@ class TestConnectorClientContract:
         )
 
     @pytest.mark.asyncio
+    async def test_get_attachment_uri_escapes_special_characters(self):
+        client = ConnectorClient("https://example.org/", token="")
+        try:
+            uri = client.attachments.get_attachment_uri(
+                "id with space/and#hash?q=1", "a view/with#special?chars"
+            )
+        finally:
+            await client.close()
+
+        assert (
+            uri == "https://example.org/v3/attachments/"
+            "id%20with%20space%2Fand%23hash%3Fq%3D1"
+            "/views/a%20view%2Fwith%23special%3Fchars"
+        )
+
+    @pytest.mark.asyncio
     async def test_get_attachment_uri_requires_attachment_id_and_view_id(self):
         client = ConnectorClient("https://example.org/", token="")
         try:
             with pytest.raises(ValueError):
-                await client.attachments.get_attachment_uri(None)
+                client.attachments.get_attachment_uri(None)
             with pytest.raises(ValueError):
-                await client.attachments.get_attachment_uri("attachment-1", None)
+                client.attachments.get_attachment_uri("attachment-1", None)
         finally:
             await client.close()
 

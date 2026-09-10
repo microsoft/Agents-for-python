@@ -69,7 +69,10 @@ class M365AttachmentDownloader(InputFileDownloader):
         if not outgoing_audience_claim:
             raise ValueError("No valid outgoing App ID found.")
 
-        if context.activity.channel_id not in (Channels.ms_teams, Channels.m365_copilot):
+        if context.activity.channel_id not in (
+            Channels.ms_teams,
+            Channels.m365_copilot,
+        ):
             return []
 
         attachments: list[Attachment]
@@ -89,7 +92,9 @@ class M365AttachmentDownloader(InputFileDownloader):
             token_provider: AccessTokenProviderBase | None = None
             if self._token_provider_name:
                 try:
-                    token_provider = self._connections.get_connection(self._token_provider_name)
+                    token_provider = self._connections.get_connection(
+                        self._token_provider_name
+                    )
                 except ValueError:
                     pass
             if not token_provider:
@@ -98,7 +103,7 @@ class M365AttachmentDownloader(InputFileDownloader):
                 )
             if not token_provider:
                 raise RuntimeError("No valid token provider found.")
-            
+
             access_token = await token_provider.get_access_token(
                 outgoing_audience_claim, self._scopes
             )
@@ -111,7 +116,9 @@ class M365AttachmentDownloader(InputFileDownloader):
 
         return files
 
-    async def _download_file(self, attachment: Attachment, access_token: str) -> InputFile | None:
+    async def _download_file(
+        self, attachment: Attachment, access_token: str
+    ) -> InputFile | None:
         """Download a single file from the given attachment.
 
         :param attachment: The Attachment instance.
@@ -139,11 +146,15 @@ class M365AttachmentDownloader(InputFileDownloader):
                 return None
 
             async with self._client_factory() as client:
-                async with client.get(download_url, headers={"Authorization": f"Bearer {access_token}"}) as response:
+                async with client.get(
+                    download_url, headers={"Authorization": f"Bearer {access_token}"}
+                ) as response:
                     if response.status >= 300:
                         return None
                     content = await response.read()
-                    result = _parse_content_type(response.headers.get("Content-Type", ""))
+                    result = _parse_content_type(
+                        response.headers.get("Content-Type", "")
+                    )
                     if result is None:
                         return None
                     content_type, _ = result
