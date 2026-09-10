@@ -3,6 +3,8 @@
 
 import logging
 
+from types import TracebackType
+
 from azure.core.credentials import AccessToken
 from azure.core.credentials_async import AsyncTokenCredential
 
@@ -40,6 +42,7 @@ class SidecarTokenCredential(AsyncTokenCredential):
         """
         self._config = config
         self._provider: SidecarAuth | None = provider
+        self._manage_provider_lifetime = provider is None
 
     async def get_token(self, *scopes: str, **kwargs) -> AccessToken:
         """Acquire an access token for the specified scopes.
@@ -66,3 +69,21 @@ class SidecarTokenCredential(AsyncTokenCredential):
         return AccessToken(
             token=token, expires_on=int(SidecarTokenExpiry.resolve(token).timestamp())
         )
+
+    async def close(self) -> None:
+        """Close the credential, releasing any resources.
+
+        :return: None
+        :rtype: None
+        """
+        if self._provider and self._manage_provider_lifetime:
+            await self._provider.close()
+            self._provider = None
+
+    async def __aexit__(
+        self,
+        exc_type: type[BaseException] | None = None,
+        exc_value: BaseException | None = None,
+        traceback: TracebackType | None = None,
+    ) -> None:
+        await self.close()
