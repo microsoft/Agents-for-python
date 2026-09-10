@@ -113,6 +113,10 @@ class TestAuthorizationConfiguration:
                 "CERT_PFX_FILE is required for certificate authentication.",
             ),
             (
+                AuthTypes.certificate_subject_name,
+                "CERT_PFX_FILE is required for certificate authentication.",
+            ),
+            (
                 AuthTypes.federated_credentials,
                 "FEDERATED_CLIENT_ID is required for "
                 "federated_credentials authentication.",
@@ -132,6 +136,10 @@ class TestAuthorizationConfiguration:
         ("auth_type", "credential"),
         [
             (AuthTypes.certificate, {"cert_pfx_file": "test-cert.pfx"}),
+            (
+                AuthTypes.certificate_subject_name,
+                {"cert_pfx_file": "test-cert.pfx"},
+            ),
             (
                 AuthTypes.federated_credentials,
                 {"federated_client_id": "test-federated-client-id"},
