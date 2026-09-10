@@ -63,7 +63,6 @@ class SidecarTokenCredential(AsyncTokenCredential):
 
         token = await self._provider.get_access_token(resource, list(scopes))
 
-
-return AccessToken(
-    token=token, expires_on=int(SidecarTokenExpiry.resolve(token).timestamp())
-)
+        return AccessToken(
+            token=token, expires_on=int(SidecarTokenExpiry.resolve(token).timestamp())
+        )
