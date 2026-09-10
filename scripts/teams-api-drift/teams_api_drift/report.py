@@ -211,7 +211,7 @@ def prepare_context(
         if remaining <= 0:
             omitted.append(filename)
             continue
-        content = content[: min(12000, remaining)]
+        content = content[: min(MAX_SOURCE_CHARACTERS, remaining)]
         selected.append(
             {
                 "path": path.relative_to(root).as_posix(),
