@@ -80,12 +80,51 @@ The adjacent `config/teams-capabilities.yaml` maps upstream module areas to
 feature owners and adoption policies. It supports strict compatibility,
 review-new-members and advisory-only policies. It does not authorize adoption.
 
+### Source review acknowledgments
+
+The main Python CI workflow checks extension source changes against both metadata
+documents.
+Update `teams-api-usage-manifest.json` when a changed file adds, removes, or
+changes Teams API imports, calls, model fields, construction, validation, or
+public exposure. Update `config/teams-capabilities.yaml` when files are added,
+removed, moved between features, or change the upstream areas owned by a feature.
+
+Some source edits do not affect either document. For a usage-related edit that
+has been reviewed and needs no usage metadata change, add or change this property
+in `teams-api-usage-manifest.json`:
+
+```json
+"sourceReview": {
+  "outcome": "no-usage-metadata-change",
+  "reason": "Explain specifically why the changed source preserves recorded usage."
+}
+```
+
+For a structural or capability-related edit that needs no capability metadata
+change, add or change this property in `config/teams-capabilities.yaml`:
+
+```yaml
+sourceReview:
+  outcome: no-capability-metadata-change
+  reason: Explain specifically why capability ownership and upstream areas remain accurate.
+```
+
+The acknowledgment must differ from the base branch, include a non-empty reason,
+and be committed with or after the source change. A previous acknowledgment cannot
+silently approve later edits. Run the same review locally with:
+
+```bash
+python scripts/teams-api-drift/teams-api-drift.py verify-usage --base-ref main
+```
+
 ## Workflows
 
-PRs to `main` or `release/*` run dependency analysis only when the exact Teams
-version pin in `setup.py` changes. The base branch pin is the baseline and the PR
-pin is the candidate. Manual PR-workflow dispatch takes explicit `from` and `to`
-versions. The weekly workflow runs Monday at 08:00 UTC and compares the current
+The Python package workflow validates usage and capability metadata whenever the
+MSTeams source or either metadata document changes. The Teams API drift PR
+workflow still runs only when the exact Teams version pin in `setup.py` changes.
+The base branch pin is the baseline and the PR pin is the candidate. Manual
+PR-workflow dispatch takes explicit `from` and `to` versions. The weekly workflow
+runs Monday at 08:00 UTC and compares the current
 pin (currently 2.0.16) with the latest stable release, including future major
 versions. Once maintainers approve an upgrade, changing the pin establishes the
 new baseline. When the resolved versions are identical, manual and scheduled runs
