@@ -228,7 +228,14 @@ class AgentAuthConfiguration:
         """
         Validates the configuration. Raises ValueError if any required fields are missing or invalid.
         """
-        if self.AUTH_TYPE == AuthTypes.certificate and not self.CERT_PFX_FILE:
+        if (
+            self.AUTH_TYPE
+            in (
+                AuthTypes.certificate,
+                AuthTypes.certificate_subject_name,
+            )
+            and not self.CERT_PFX_FILE
+        ):
             raise ValueError(
                 "CERT_PFX_FILE is required for certificate authentication."
             )
