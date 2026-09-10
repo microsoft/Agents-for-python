@@ -119,7 +119,7 @@ jobs:
       - id: run-contracts-tests
         name: Run contracts tests against candidate
         if: ${{ steps.build-candidate.outcome == 'success' }}
-        run: $CANDIDATE_PYTHON -m mypy --config-file scripts/teams-api-drift/mypy.ini tests/teams_api_drift/test_contracts.py
+        run: $CANDIDATE_PYTHON -m mypy --config-file scripts/teams-api-drift/mypy.ini tests/teams_api_drift/contracts.py
         continue-on-error: true
       - id: run-boundaries-tests
         name: Run boundaries tests against the candidate

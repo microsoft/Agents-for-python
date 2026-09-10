@@ -16,7 +16,7 @@ environments when needed.
 python -m pip install -r scripts/teams-api-drift/requirements.txt
 python scripts/teams-api-drift/teams-api-drift.py compare --from 2.0.16 --to CANDIDATE_VERSION --work-root .teams-api-comparison --output artifacts/teams-api-drift/example
 python scripts/teams-api-drift/teams-api-drift.py prepare-candidate --version CANDIDATE_VERSION --environment .teams-api-comparison/candidate --output artifacts/teams-api-drift/example
-./.teams-api-comparison/candidate/bin/python -m mypy --config-file scripts/teams-api-drift/mypy.ini tests/teams_api_drift/test_contracts.py
+./.teams-api-comparison/candidate/bin/python -m mypy --config-file scripts/teams-api-drift/mypy.ini tests/teams_api_drift/contracts.py
 ./.teams-api-comparison/candidate/bin/python -m pytest tests/hosting_msteams -o asyncio_default_fixture_loop_scope=function
 python scripts/teams-api-drift/teams-api-drift.py verify-usage
 python scripts/teams-api-drift/teams-api-drift.py detect --comparison artifacts/teams-api-drift/example/raw-api-diff.json --output artifacts/teams-api-drift/example --fail-on-drift
@@ -124,7 +124,7 @@ are created. Tokens are not included in artifacts.
 
 ```bash
 python -m pytest tests/teams_api_drift -o asyncio_default_fixture_loop_scope=function
-python -m mypy --config-file scripts/teams-api-drift/mypy.ini tests/teams_api_drift/test_contracts.py
+python -m mypy --config-file scripts/teams-api-drift/mypy.ini tests/teams_api_drift/contracts.py
 python -m pytest tests/hosting_msteams -o asyncio_default_fixture_loop_scope=function
 python -m black --check scripts/teams-api-drift tests/teams_api_drift tests/hosting_msteams/test_api_boundaries.py
 ```
