@@ -495,10 +495,10 @@ class Authorization:
         :rtype: :class:`azure.core.credentials_async.AsyncTokenCredential`
         :raises ValueError: If the specified auth handler ID is not recognized or not configured.
         """
+        scopes = list(scopes) if scopes is not None else []
 
         async def func(*new_scopes: str, **_kwargs) -> TokenResponse:
-            prev_scopes: list[str] = scopes or []
-            all_scopes = list(dict.fromkeys([*prev_scopes, *new_scopes]))
+            all_scopes = list(dict.fromkeys([*scopes, *new_scopes]))
             return await self.exchange_token(
                 context,
                 scopes=all_scopes,

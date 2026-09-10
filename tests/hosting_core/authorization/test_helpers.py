@@ -1,6 +1,8 @@
 # Copyright (c) Microsoft Corporation. All rights reserved.
 # Licensed under the MIT License.
 
+import datetime
+
 import pytest
 from azure.core.credentials import AccessToken
 
@@ -14,7 +16,6 @@ from microsoft_agents.hosting.core.authorization._helpers import (
 @pytest.mark.parametrize(
     "expiration, expected",
     [
-        (None, 0),
         ("2030-01-01T00:00:00Z", 1893456000),
         ("2030-01-01T00:00:00", 1893456000),
         ("2030-01-01T02:00:00+02:00", 1893456000),
@@ -29,6 +30,23 @@ def test_access_token_from_token_response_expiration(expiration, expected):
     token = _access_token_from_token_response(response)
 
     assert token == AccessToken("token", expected)
+
+
+def test_access_token_from_token_response_defaults_expiration_to_five_minutes():
+    expected_minimum = int(
+        (
+            datetime.datetime.now(datetime.timezone.utc) + datetime.timedelta(minutes=5)
+        ).timestamp()
+    )
+
+    token = _access_token_from_token_response(TokenResponse(token="token"))
+
+    expected_maximum = int(
+        (
+            datetime.datetime.now(datetime.timezone.utc) + datetime.timedelta(minutes=5)
+        ).timestamp()
+    )
+    assert expected_minimum <= token.expires_on <= expected_maximum
 
 
 def test_access_token_from_token_response_rejects_missing_token():

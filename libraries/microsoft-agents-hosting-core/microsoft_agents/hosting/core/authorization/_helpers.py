@@ -25,7 +25,11 @@ def _access_token_from_token_response(token_response: TokenResponse) -> AccessTo
     if not token_response:
         raise ValueError("Failed to retrieve token")
 
-    expires_on: int = 0
+    expires_on = int(
+        (
+            datetime.datetime.now(datetime.timezone.utc) + datetime.timedelta(minutes=5)
+        ).timestamp()
+    )
     if token_response.expiration:
         exp = token_response.expiration
         if exp.endswith("Z"):
