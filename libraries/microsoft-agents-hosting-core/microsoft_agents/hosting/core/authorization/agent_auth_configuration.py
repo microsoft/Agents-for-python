@@ -126,6 +126,7 @@ class AgentAuthConfiguration:
         client_id: str | None = None,
         tenant_id: str | None = None,
         client_secret: str | None = None,
+        *,
         cert_pfx_file: str | None = None,
         connection_name: str | None = None,
         federated_client_id: str | None = None,
