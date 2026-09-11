@@ -293,13 +293,8 @@ class MsalAuth(AccessTokenProviderBase):
                 client_credential = {
                     "private_key_pfx_path": self._msal_configuration.CERT_PFX_FILE,
                 }
-            elif (
-                self._msal_configuration.AUTH_TYPE == AuthTypes.certificate_subject_name
-            ):
-                client_credential = {
-                    "private_key_pfx_path": self._msal_configuration.CERT_PFX_FILE,
-                    "public_certificate": True,
-                }
+                if self._msal_configuration.SEND_X5C:
+                    client_credential["public_certificate"] = True
             elif self._msal_configuration.AUTH_TYPE == AuthTypes.federated_credentials:
                 mi_client = ManagedIdentityClient(
                     UserAssignedManagedIdentity(
