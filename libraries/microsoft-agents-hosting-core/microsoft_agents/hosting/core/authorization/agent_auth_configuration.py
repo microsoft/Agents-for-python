@@ -25,6 +25,7 @@ _RECOGNIZED_CONFIG_KEYS = frozenset(
         "TENANTID",
         "CLIENTSECRET",
         "CERTPFXFILE",
+        "SENDX5C",
         "CONNECTIONNAME",
         "FEDERATEDCLIENTID",
         "FEDERATEDTOKENFILE",
@@ -63,6 +64,7 @@ class AgentAuthConfiguration:
     AUTH_TYPE: The type of authentication to use (microsoft_agents.hosting.core.authorization.auth_types.AuthTypes).
     CLIENT_SECRET: The client secret for the Azure AD application (if using client secret authentication).
     CERT_PFX_FILE: The path to the PFX certificate file (if using certificate authentication).
+    SEND_X5C: Whether to include the public certificate in the x5c header for certificate authentication.
     CONNECTION_NAME: The name of the connection
     FEDERATED_CLIENT_ID: The client ID for federated credentials (if using federated credentials authentication).
     SCOPES: The scopes to request
@@ -91,6 +93,7 @@ class AgentAuthConfiguration:
     CLIENT_ID: str | None
     CLIENT_SECRET: str | None
     CERT_PFX_FILE: str | None
+    SEND_X5C: bool = False
     CONNECTION_NAME: str | None
     FEDERATED_CLIENT_ID: str | None
     SCOPES: list[str] | None
@@ -134,6 +137,7 @@ class AgentAuthConfiguration:
         issuers: list[str] | None = None,
         validate_issuer: bool | None = None,
         federated_token_file: str | None = None,
+        send_x5c: bool | None = None,
         **kwargs: Any,
     ):
 
@@ -149,6 +153,11 @@ class AgentAuthConfiguration:
         self.TENANT_ID = tenant_id or kwargs.get("TENANTID", None)
         self.CLIENT_SECRET = client_secret or kwargs.get("CLIENTSECRET", None)
         self.CERT_PFX_FILE = cert_pfx_file or kwargs.get("CERTPFXFILE", None)
+        self.SEND_X5C = coerce_bool(
+            send_x5c if send_x5c is not None else kwargs.get("SENDX5C", False),
+            default=False,
+            name="SENDX5C",
+        )
         self.CONNECTION_NAME = connection_name or kwargs.get("CONNECTIONNAME", None)
         self.FEDERATED_CLIENT_ID = federated_client_id or kwargs.get(
             "FEDERATEDCLIENTID", None

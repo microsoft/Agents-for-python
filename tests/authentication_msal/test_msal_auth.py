@@ -283,6 +283,44 @@ class TestMsalAuthAzureRegion:
         assert mock_cca.call_args.kwargs["azure_region"] is None
 
 
+class TestMsalAuthSendX5C:
+    def test_create_client_application_send_x5c(self, mocker):
+        config = AgentAuthConfiguration(
+            auth_type=AuthTypes.certificate,
+            tenant_id="12345678-1234-1234-1234-123456789abc",
+            client_id="test-client-id",
+            cert_pfx_file="test-cert.pfx",
+            send_x5c=True,
+        )
+        mock_cca = mocker.patch(
+            "microsoft_agents.authentication.msal.msal_auth.ConfidentialClientApplication"
+        )
+
+        MsalAuth(config)._create_client_application()
+
+        assert mock_cca.call_args.kwargs["client_credential"] == {
+            "private_key_pfx_path": "test-cert.pfx",
+            "public_certificate": True,
+        }
+
+    def test_create_client_application_send_x5c_defaults_false(self, mocker):
+        config = AgentAuthConfiguration(
+            auth_type=AuthTypes.certificate,
+            tenant_id="12345678-1234-1234-1234-123456789abc",
+            client_id="test-client-id",
+            cert_pfx_file="test-cert.pfx",
+        )
+        mock_cca = mocker.patch(
+            "microsoft_agents.authentication.msal.msal_auth.ConfidentialClientApplication"
+        )
+
+        MsalAuth(config)._create_client_application()
+
+        assert mock_cca.call_args.kwargs["client_credential"] == {
+            "private_key_pfx_path": "test-cert.pfx",
+        }
+
+
 class TestMsalAuthWorkloadIdentity:
     def test_create_client_application_reads_projected_token(self, mocker, tmp_path):
         token_file = tmp_path / "workload-token"
