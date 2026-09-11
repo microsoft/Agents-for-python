@@ -8,6 +8,8 @@ from http import HTTPStatus
 from typing import Awaitable, Callable, Optional, cast
 from uuid import uuid4
 
+from yarl import URL
+
 from microsoft_agents.activity import (
     Activity,
     ActivityEventNames,
@@ -35,7 +37,29 @@ from microsoft_agents.hosting.core.authorization import (
 from microsoft_agents.hosting.core.telemetry.adapter import spans
 from .channel_service_client_factory_base import ChannelServiceClientFactoryBase
 from .channel_adapter import ChannelAdapter
+from .outbound_host_validator import _try_create_url
 from .turn_context import TurnContext
+
+
+def _get_service_url_origin(service_url: object) -> tuple[str, str, int | None] | None:
+    if not isinstance(service_url, (str, URL)):
+        return None
+
+    url = _try_create_url(service_url)
+    if not isinstance(url, URL):
+        return None
+
+    try:
+        scheme = url.scheme.casefold()
+        host = url.host
+        port = url.port
+    except (UnicodeError, ValueError):
+        return None
+
+    if not url.absolute or scheme not in {"http", "https"} or not host:
+        return None
+
+    return scheme, host.casefold(), port
 
 
 class ChannelServiceAdapter(ChannelAdapter, ABC):
@@ -402,6 +426,22 @@ class ChannelServiceAdapter(ChannelAdapter, ABC):
             If the task completes successfully, then an :class:`microsoft_agents.activity.InvokeResponse` is returned;
             otherwise, `None` is returned.
         """
+        claims_service_url = claims_identity.get_claim_value(
+            AuthenticationConstants.SERVICE_URL_CLAIM
+        )
+        if activity.service_url and claims_service_url:
+            claims_origin = _get_service_url_origin(claims_service_url)
+            activity_origin = _get_service_url_origin(activity.service_url)
+            if (
+                claims_origin is None
+                or activity_origin is None
+                or claims_origin != activity_origin
+            ):
+                raise PermissionError(
+                    "Activity service URL origin does not match the authenticated "
+                    "service URL origin."
+                )
+
         scopes: list[str] = claims_identity.get_token_scope()
         outgoing_audience: str | None = None
 

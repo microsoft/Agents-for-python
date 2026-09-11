@@ -22,7 +22,7 @@ from .http._http_response import HttpResponse, HttpResponseFactory
 from .message_factory import MessageFactory
 from .rest_channel_service_client_factory import RestChannelServiceClientFactory
 from .turn_context import TurnContext
-from .outbound_host_validator import OutboundHostValidator, _try_create_url
+from .outbound_host_validator import OutboundHostValidator
 
 logger = logging.getLogger(__name__)
 
@@ -187,33 +187,5 @@ class HttpAdapterBase(ChannelServiceAdapter, ABC):
                 activity.service_url,
             )
             return False
-
-        if not claims_identity:
-            return True
-
-        claims_service_url = claims_identity.get_claim_value("serviceurl")
-        if activity.service_url and claims_service_url:
-            claim_url = _try_create_url(claims_service_url)
-            activity_url = _try_create_url(activity.service_url)
-            claim_url_host = (claim_url.host or "") if claim_url else ""
-            activity_url_host = (activity_url.host or "") if activity_url else ""
-            if (
-                not claim_url
-                or not activity_url
-                or claim_url_host.casefold() != activity_url_host.casefold()
-            ):
-                if self._host_validator and self._host_validator.enabled:
-                    logger.warning(
-                        "Service URL host mismatch: %s vs %s",
-                        claim_url_host,
-                        activity_url_host,
-                    )
-                    return False
-                else:
-                    logger.warning(
-                        "Service URL host mismatch (host validator disabled): %s vs %s",
-                        claim_url_host,
-                        activity_url_host,
-                    )
 
         return True
