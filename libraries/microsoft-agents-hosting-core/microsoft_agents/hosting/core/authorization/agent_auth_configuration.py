@@ -127,7 +127,6 @@ class AgentAuthConfiguration:
         tenant_id: str | None = None,
         client_secret: str | None = None,
         cert_pfx_file: str | None = None,
-        send_x5c: bool | None = None,
         connection_name: str | None = None,
         federated_client_id: str | None = None,
         authority: str | None = None,
@@ -138,6 +137,7 @@ class AgentAuthConfiguration:
         issuers: list[str] | None = None,
         validate_issuer: bool | None = None,
         federated_token_file: str | None = None,
+        send_x5c: bool | None = None,
         **kwargs: Any,
     ):
 
