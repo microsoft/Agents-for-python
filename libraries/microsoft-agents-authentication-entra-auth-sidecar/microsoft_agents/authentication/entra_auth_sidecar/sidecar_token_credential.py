@@ -3,12 +3,15 @@
 
 import logging
 
+from types import TracebackType
+
 from azure.core.credentials import AccessToken
 from azure.core.credentials_async import AsyncTokenCredential
 
 from microsoft_agents.hosting.core import AgentAuthConfiguration
 
-from .msal_auth import MsalAuth
+from .sidecar_auth import SidecarAuth
+from ._token_expiry import SidecarTokenExpiry
 
 logger = logging.getLogger(__name__)
 
@@ -23,22 +26,23 @@ def _get_resource(scope: str) -> str:
     return scope.removesuffix("/.default")
 
 
-class MsalTokenCredential(AsyncTokenCredential):
-    """Provides an asynchronous Azure Core token credential using MSAL."""
+class SidecarTokenCredential(AsyncTokenCredential):
+    """Provides an asynchronous Azure Core token credential using the Sidecar."""
 
     def __init__(
         self,
         config: AgentAuthConfiguration,
         *,
-        provider: MsalAuth | None = None,
+        provider: SidecarAuth | None = None,
     ):
-        """Initializes the MsalTokenCredential with the given configuration.
+        """Initializes the SidecarTokenCredential with the given configuration.
 
         :param config: The agent authentication configuration.
         :type config: :class:`microsoft_agents.hosting.core.AgentAuthConfiguration`
         """
         self._config = config
-        self._provider: MsalAuth | None = provider
+        self._provider: SidecarAuth | None = provider
+        self._manage_provider_lifetime = provider is None
 
     async def get_token(self, *scopes: str, **kwargs) -> AccessToken:
         """Acquire an access token for the specified scopes.
@@ -56,8 +60,30 @@ class MsalTokenCredential(AsyncTokenCredential):
             raise ValueError("At least one scope must be provided.")
 
         if not self._provider:
-            self._provider = MsalAuth(self._config)
+            self._provider = SidecarAuth(self._config)
 
         resource = _get_resource(scopes[0])
 
-        return await self._provider._get_access_token(resource, list(scopes))
+        token = await self._provider.get_access_token(resource, list(scopes))
+
+        return AccessToken(
+            token=token, expires_on=int(SidecarTokenExpiry.resolve(token).timestamp())
+        )
+
+    async def close(self) -> None:
+        """Close the credential, releasing any resources.
+
+        :return: None
+        :rtype: None
+        """
+        if self._provider and self._manage_provider_lifetime:
+            await self._provider.close()
+            self._provider = None
+
+    async def __aexit__(
+        self,
+        exc_type: type[BaseException] | None = None,
+        exc_value: BaseException | None = None,
+        traceback: TracebackType | None = None,
+    ) -> None:
+        await self.close()

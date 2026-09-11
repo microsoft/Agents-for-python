@@ -6,6 +6,11 @@
 ## New Models & APIs
 
 - **MSAL Token Credential**: Added `MsalTokenCredential`, an Azure Core-compatible asynchronous token credential backed by MSAL, for authenticating Azure SDK clients that accept an `AsyncTokenCredential`.
+- **Authorization Token Credentials**: Added `AsyncTokenCredential` access through `AccessTokenProviderBase` and `Authorization`, including user-token refresh and exchange flows.
+
+## Bug Fixes
+
+- **Typing Indicator on Update/Delete**: Fixed the typing indicator re-appearing in Teams clients after the finalized streaming activity was updated or deleted post-`end_stream()`.
 
 ---
 
