@@ -12,7 +12,6 @@
 ## Bug Fixes
 
 - **Typing Indicator on Update/Delete**: Fixed the typing indicator re-appearing in Teams clients after the finalized streaming activity was updated or deleted post-`end_stream()`.
-- **`Channels.msteams` Back-Compat**: Fixed a broken `Channels` module (invalid syntax) and restored the deprecated `Channels.ms_teams` name as an alias of `Channels.msteams` (#580)
 
 ## Bug Fixes
 
