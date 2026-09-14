@@ -1,8 +1,12 @@
 # Copyright (c) Microsoft Corporation. All rights reserved.
 # Licensed under the MIT License.
 
+from __future__ import annotations
+
 from enum import Enum
 from typing_extensions import Self
+
+from .channel_id import ChannelId
 
 
 class Channels(str, Enum):
@@ -10,8 +14,11 @@ class Channels(str, Enum):
     Ids of channels supported by ABS.
     """
 
-    """Agents channel."""
     agents = "agents"
+    """Agents channel."""
+
+    alexa = "alexa"
+    """Alexa channel."""
 
     console = "console"
     """Console channel."""
@@ -43,7 +50,7 @@ class Channels(str, Enum):
     line = "line"
     """Line channel."""
 
-    ms_teams = "msteams"
+    msteams = "msteams"
     """MS Teams channel."""
 
     skype = "skype"
@@ -58,6 +65,9 @@ class Channels(str, Enum):
     sms = "sms"
     """SMS (Twilio) channel."""
 
+    twilio = "twilio-sms"
+    """Twilio channel."""
+
     telegram = "telegram"
     """Telegram channel."""
 
@@ -70,33 +80,50 @@ class Channels(str, Enum):
     copilot_studio = "pva-studio"
     """Microsoft Copilot Studio channel."""
 
-    # TODO: validate the need of Self annotations in the following methods
+    ms_teams = "msteams"
+    """Deprecated alias for :attr:`msteams`. Kept for backwards compatibility."""
+
     @staticmethod
-    def supports_suggested_actions(channel_id: Self, button_cnt: int = 100) -> bool:
+    def _normalize_channel_id(channel_id: str | Channels | ChannelId) -> str:
+        """Normalize a channel ID to obtain the parent channel.
+
+        :param channel_id: The channel ID to normalize.
+        :returns: The canonical string representation of the channel ID.
+        """
+        if isinstance(channel_id, Channels):
+            channel_id = channel_id.value
+        return ChannelId(channel_id).channel
+
+    @staticmethod
+    def supports_suggested_actions(
+        channel_id: str, button_cnt: int = 100, conversation_type: str | None = None
+    ) -> bool:
         """Determine if a number of Suggested Actions are supported by a Channel.
 
-        Args:
-            channel_id (str): The Channel to check the if Suggested Actions are supported in.
-            button_cnt (int, Optional): Defaults to 100. The number of Suggested Actions to check for the Channel.
-
-        Returns:
-            bool: True if the Channel supports the button_cnt total Suggested Actions, False if the Channel does not
-             support that number of Suggested Actions.
+        :param channel_id: The ID of the channel to checks for support of Suggested Actions.
+        :param button_cnt: The number of Suggested Actions to check for the Channel.
+        :param conversation_type: The type of conversation, if applicable.
+        :returns: True if the Channel supports the button_cnt total Suggested Actions, False if the Channel does not support that number of Suggested Actions.
         """
+
+        channel_id = Channels._normalize_channel_id(channel_id)
+
+        if channel_id == Channels.ms_teams.value:
+            return conversation_type == "personal" and button_cnt <= 3
 
         max_actions = {
             # https://developers.facebook.com/docs/messenger-platform/send-messages/quick-replies
-            Channels.facebook: 10,
-            Channels.skype: 10,
+            Channels.facebook.value: 10,
+            Channels.skype.value: 10,
             # https://developers.line.biz/en/reference/messaging-api/#items-object
-            Channels.line: 13,
+            Channels.line.value: 13,
             # https://dev.kik.com/#/docs/messaging#text-response-object
-            Channels.kik: 20,
-            Channels.telegram: 100,
-            Channels.emulator: 100,
-            Channels.direct_line: 100,
-            Channels.direct_line_speech: 100,
-            Channels.webchat: 100,
+            Channels.kik.value: 20,
+            Channels.telegram.value: 100,
+            Channels.emulator.value: 100,
+            Channels.direct_line.value: 100,
+            Channels.direct_line_speech.value: 100,
+            Channels.webchat.value: 100,
         }
         return (
             button_cnt <= max_actions[channel_id]
@@ -105,60 +132,165 @@ class Channels(str, Enum):
         )
 
     @staticmethod
-    def supports_card_actions(channel_id: Self, button_cnt: int = 100) -> bool:
+    def supports_card_actions(channel_id: str, button_cnt: int = 100) -> bool:
         """Determine if a number of Card Actions are supported by a Channel.
 
-        Args:
-            channel_id (str): The Channel to check if the Card Actions are supported in.
-            button_cnt (int, Optional): Defaults to 100. The number of Card Actions to check for the Channel.
-
-        Returns:
-            bool: True if the Channel supports the button_cnt total Card Actions, False if the Channel does not support
-             that number of Card Actions.
+        :param button_cnt: The number of Card Actions to check for the Channel.
+        :returns: True if the Channel supports the button_cnt total Card Actions, False if the Channel does not support that number of Card Actions.
         """
 
+        channel = Channels._normalize_channel_id(channel_id)
+
         max_actions = {
-            Channels.facebook: 3,
-            Channels.skype: 3,
-            Channels.ms_teams: 3,
-            Channels.line: 99,
-            Channels.slack: 100,
-            Channels.telegram: 100,
-            Channels.emulator: 100,
-            Channels.direct_line: 100,
-            Channels.direct_line_speech: 100,
-            Channels.webchat: 100,
+            Channels.facebook.value: 3,
+            Channels.skype.value: 3,
+            Channels.ms_teams.value: 50,
+            Channels.line.value: 99,
+            Channels.slack.value: 100,
+            Channels.telegram.value: 100,
+            Channels.emulator.value: 100,
+            Channels.direct_line.value: 100,
+            Channels.direct_line_speech.value: 100,
+            Channels.webchat.value: 100,
+            Channels.cortana.value: 100,
         }
-        return (
-            button_cnt <= max_actions[channel_id]
-            if channel_id in max_actions
-            else False
+        return button_cnt <= max_actions[channel] if channel in max_actions else False
+
+    @staticmethod
+    def supports_video_card(channel_id: str) -> bool:
+        """Determine if a Channel supports Video Cards.
+
+        :param channel_id: The Channel to check for Video Card support.
+        :returns: True if the Channel supports Video Cards, False if it does not.
+        """
+        channel = Channels._normalize_channel_id(channel_id)
+        return channel not in (
+            Channels.alexa.value,
+            Channels.msteams.value,
+            Channels.twilio.value,
         )
 
     @staticmethod
-    def has_message_feed(_: str) -> bool:
-        """Determine if a Channel has a Message Feed.
+    def supports_receipt_card(channel_id: str) -> bool:
+        """Determine if a Channel supports Receipt Cards.
 
-        Args:
-            channel_id (str): The Channel to check for Message Feed.
-
-        Returns:
-            bool: True if the Channel has a Message Feed, False if it does not.
+        :param channel_id: The Channel to check for Receipt Card support.
+        :returns: True if the Channel supports Receipt Cards, False if it does not.
         """
-
-        return True
+        channel = Channels._normalize_channel_id(channel_id)
+        return channel not in (
+            Channels.alexa.value,
+            Channels.groupme.value,
+            Channels.msteams.value,
+            Channels.twilio.value,
+        )
 
     @staticmethod
-    def max_action_title_length(  # pylint: disable=unused-argument
-        channel_id: Self,
-    ) -> int:
-        """Maximum length allowed for Action Titles.
+    def supports_thumbnail_card(channel_id: str) -> bool:
+        """Determine if a Channel supports Thumbnail Cards.
 
-        Args:
-            channel_id (str): The Channel to determine Maximum Action Title Length.
-
-        Returns:
-            int: The total number of characters allowed for an Action Title on a specific Channel.
+        :param channel_id: The Channel to check for Thumbnail Card support.
+        :returns: True if the Channel supports Thumbnail Cards, False if it does not.
         """
+        channel = Channels._normalize_channel_id(channel_id)
+        return channel not in (
+            Channels.alexa.value,
+            Channels.msteams.value,
+            Channels.twilio.value,
+        )
 
+    @staticmethod
+    def supports_audio_card(channel_id: str) -> bool:
+        """Determine if a Channel supports Audio Cards.
+
+        :param channel_id: The Channel to check for Audio Card support.
+        :returns: True if the Channel supports Audio Cards, False if it does not.
+        """
+        channel = Channels._normalize_channel_id(channel_id)
+        return channel not in (
+            Channels.alexa.value,
+            Channels.msteams.value,
+            Channels.twilio.value,
+            Channels.email.value,
+            Channels.groupme.value,
+            Channels.line.value,
+            Channels.slack.value,
+            Channels.telegram.value,
+        )
+
+    @staticmethod
+    def supports_animation_card(channel_id: str) -> bool:
+        """Determine if a Channel supports Animation Cards.
+
+        :param channel_id: The Channel to check for Animation Card support.
+        :returns: True if the Channel supports Animation Cards, False if it does not.
+        """
+        channel = Channels._normalize_channel_id(channel_id)
+        return channel not in (
+            Channels.alexa.value,
+            Channels.msteams.value,
+            Channels.email,
+            Channels.groupme,
+            Channels.twilio.value,
+        )
+
+    @staticmethod
+    def has_message_feed(channel_id: str) -> bool:
+        """Determine if a Channel has a Message Feed.
+        :param channel_id: The Channel to check for Message Feed support.
+        :returns: True if the Channel has a Message Feed, False if it does not.
+        """
+        channel = Channels._normalize_channel_id(channel_id)
+        return channel != Channels.cortana.value
+
+    @staticmethod
+    def max_action_title_length(channel_id: str) -> int:
+        """Maximum length allowed for Action Titles.
+        :param _: The Channel to check for maximum Action Title length.
+        :returns: The maximum number of characters allowed for an Action Title.
+        """
         return 20
+
+    @staticmethod
+    def supports_create_conversation(channel_id: str) -> bool:
+        """Determine if a Channel supports creating a conversation.
+
+        :param channel_id: The Channel to check for create conversation support.
+        :returns: True if the Channel supports creating a conversation, False if it does not.
+        """
+        channel = Channels._normalize_channel_id(channel_id)
+        return channel in (
+            Channels.email.value,
+            Channels.facebook.value,
+            Channels.groupme.value,
+            Channels.kik.value,
+            Channels.line.value,
+            Channels.msteams.value,
+            Channels.slack.value,
+            Channels.sms.value,
+            Channels.telegram.value,
+        )
+
+    @staticmethod
+    def supports_update_activity(channel_id: str) -> bool:
+        """Determine if a Channel supports updating activities.
+
+        :param channel_id: The Channel to check for update activity support.
+        :returns: True if the Channel supports updating activities, False if it does not.
+        """
+        channel = Channels._normalize_channel_id(channel_id)
+        return channel == Channels.msteams
+
+    @staticmethod
+    def supports_delete_activity(channel_id: str) -> bool:
+        """Determine if a Channel supports deleting activities.
+
+        :param channel_id: The Channel to check for delete activity support.
+        :returns: True if the Channel supports deleting activities, False if it does not.
+        """
+        channel = Channels._normalize_channel_id(channel_id)
+        return channel in (
+            Channels.msteams.value,
+            Channels.slack.value,
+            Channels.telegram.value,
+        )
