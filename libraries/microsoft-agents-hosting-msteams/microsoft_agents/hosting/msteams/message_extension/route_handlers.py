@@ -18,9 +18,9 @@ from microsoft_teams.api.models import (
 )
 
 from microsoft_agents.activity import Activity
+from microsoft_agents.hosting.core.app._type_defs import _StateContra
 
 from microsoft_agents.hosting.msteams.teams_turn_context import TeamsTurnContext
-from microsoft_agents.hosting.msteams.type_defs import _StateContra
 
 
 class FetchActionHandler(Protocol[_StateContra]):
