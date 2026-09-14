@@ -99,7 +99,7 @@ class Channels(str, Enum):
     ) -> bool:
         """Determine if a number of Suggested Actions are supported by a Channel.
 
-        :param channel_id: The ID of the channel to checks for support of Suggested Actions.
+        :param channel_id: The ID of the channel to check for support of Suggested Actions.
         :param button_cnt: The number of Suggested Actions to check for the Channel.
         :param conversation_type: The type of conversation, if applicable.
         :returns: True if the Channel supports the button_cnt total Suggested Actions, False if the Channel does not support that number of Suggested Actions.
