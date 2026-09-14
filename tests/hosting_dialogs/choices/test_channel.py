@@ -62,8 +62,8 @@ class TestChannel:
         assert not Channel.supports_suggested_actions("facebook", 11)
 
     def test_supports_card_actions_accepts_string_channel_id(self):
-        assert Channel.supports_card_actions("msteams", 3)
-        assert not Channel.supports_card_actions("msteams", 4)
+        assert Channel.supports_card_actions("msteams", 50)
+        assert not Channel.supports_card_actions("msteams", 51)
 
     def test_should_return_channel_id_from_context_activity(self):
         adapter = TestAdapter(channel_id=Channels.facebook)
