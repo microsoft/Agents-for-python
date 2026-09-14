@@ -107,7 +107,7 @@ class Channels(str, Enum):
 
         channel_id = Channels._normalize_channel_id(channel_id)
 
-        if channel_id == Channels.ms_teams.value:
+        if channel_id == Channels.msteams.value:
             return conversation_type == "personal" and button_cnt <= 3
 
         max_actions = {
@@ -143,7 +143,7 @@ class Channels(str, Enum):
         max_actions = {
             Channels.facebook.value: 3,
             Channels.skype.value: 3,
-            Channels.ms_teams.value: 50,
+            Channels.msteams.value: 50,
             Channels.line.value: 99,
             Channels.slack.value: 100,
             Channels.telegram.value: 100,
@@ -194,7 +194,9 @@ class Channels(str, Enum):
         channel = Channels._normalize_channel_id(channel_id)
         return channel not in (
             Channels.alexa.value,
-            Channels.msteams.value,
+            Channels.groupme.value,
+            Channels.line.value,
+            Channels.slack.value,
             Channels.twilio.value,
         )
 
