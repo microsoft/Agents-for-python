@@ -89,8 +89,6 @@ class Channels(str, Enum):
         :param channel_id: The channel ID to normalize.
         :returns: The canonical string representation of the channel ID.
         """
-        if isinstance(channel_id, Channels):
-            channel_id = channel_id.value
         return ChannelId(channel_id).channel
 
     @staticmethod
@@ -107,22 +105,22 @@ class Channels(str, Enum):
 
         channel_id = Channels._normalize_channel_id(channel_id)
 
-        if channel_id == Channels.msteams.value:
+        if channel_id == Channels.msteams:
             return conversation_type == "personal" and button_cnt <= 3
 
         max_actions = {
             # https://developers.facebook.com/docs/messenger-platform/send-messages/quick-replies
-            Channels.facebook.value: 10,
-            Channels.skype.value: 10,
+            Channels.facebook: 10,
+            Channels.skype: 10,
             # https://developers.line.biz/en/reference/messaging-api/#items-object
-            Channels.line.value: 13,
+            Channels.line: 13,
             # https://dev.kik.com/#/docs/messaging#text-response-object
-            Channels.kik.value: 20,
-            Channels.telegram.value: 100,
-            Channels.emulator.value: 100,
-            Channels.direct_line.value: 100,
-            Channels.direct_line_speech.value: 100,
-            Channels.webchat.value: 100,
+            Channels.kik: 20,
+            Channels.telegram: 100,
+            Channels.emulator: 100,
+            Channels.direct_line: 100,
+            Channels.direct_line_speech: 100,
+            Channels.webchat: 100,
         }
         return (
             button_cnt <= max_actions[channel_id]
@@ -141,17 +139,17 @@ class Channels(str, Enum):
         channel = Channels._normalize_channel_id(channel_id)
 
         max_actions = {
-            Channels.facebook.value: 3,
-            Channels.skype.value: 3,
-            Channels.msteams.value: 50,
-            Channels.line.value: 99,
-            Channels.slack.value: 100,
-            Channels.telegram.value: 100,
-            Channels.emulator.value: 100,
-            Channels.direct_line.value: 100,
-            Channels.direct_line_speech.value: 100,
-            Channels.webchat.value: 100,
-            Channels.cortana.value: 100,
+            Channels.facebook: 3,
+            Channels.skype: 3,
+            Channels.msteams: 50,
+            Channels.line: 99,
+            Channels.slack: 100,
+            Channels.telegram: 100,
+            Channels.emulator: 100,
+            Channels.direct_line: 100,
+            Channels.direct_line_speech: 100,
+            Channels.webchat: 100,
+            Channels.cortana: 100,
         }
         return button_cnt <= max_actions[channel] if channel in max_actions else False
 
@@ -164,9 +162,9 @@ class Channels(str, Enum):
         """
         channel = Channels._normalize_channel_id(channel_id)
         return channel not in (
-            Channels.alexa.value,
-            Channels.msteams.value,
-            Channels.twilio.value,
+            Channels.alexa,
+            Channels.msteams,
+            Channels.twilio,
         )
 
     @staticmethod
@@ -178,10 +176,10 @@ class Channels(str, Enum):
         """
         channel = Channels._normalize_channel_id(channel_id)
         return channel not in (
-            Channels.alexa.value,
-            Channels.groupme.value,
-            Channels.msteams.value,
-            Channels.twilio.value,
+            Channels.alexa,
+            Channels.groupme,
+            Channels.msteams,
+            Channels.twilio,
         )
 
     @staticmethod
@@ -193,11 +191,11 @@ class Channels(str, Enum):
         """
         channel = Channels._normalize_channel_id(channel_id)
         return channel not in (
-            Channels.alexa.value,
-            Channels.groupme.value,
-            Channels.line.value,
-            Channels.slack.value,
-            Channels.twilio.value,
+            Channels.alexa,
+            Channels.groupme,
+            Channels.line,
+            Channels.slack,
+            Channels.twilio,
         )
 
     @staticmethod
@@ -209,14 +207,14 @@ class Channels(str, Enum):
         """
         channel = Channels._normalize_channel_id(channel_id)
         return channel not in (
-            Channels.alexa.value,
-            Channels.msteams.value,
-            Channels.twilio.value,
-            Channels.email.value,
-            Channels.groupme.value,
-            Channels.line.value,
-            Channels.slack.value,
-            Channels.telegram.value,
+            Channels.alexa,
+            Channels.msteams,
+            Channels.twilio,
+            Channels.email,
+            Channels.groupme,
+            Channels.line,
+            Channels.slack,
+            Channels.telegram,
         )
 
     @staticmethod
@@ -228,11 +226,11 @@ class Channels(str, Enum):
         """
         channel = Channels._normalize_channel_id(channel_id)
         return channel not in (
-            Channels.alexa.value,
-            Channels.msteams.value,
+            Channels.alexa,
+            Channels.msteams,
             Channels.email,
             Channels.groupme,
-            Channels.twilio.value,
+            Channels.twilio,
         )
 
     @staticmethod
@@ -242,7 +240,7 @@ class Channels(str, Enum):
         :returns: True if the Channel has a Message Feed, False if it does not.
         """
         channel = Channels._normalize_channel_id(channel_id)
-        return channel != Channels.cortana.value
+        return channel != Channels.cortana
 
     @staticmethod
     def max_action_title_length(channel_id: str) -> int:
@@ -261,15 +259,15 @@ class Channels(str, Enum):
         """
         channel = Channels._normalize_channel_id(channel_id)
         return channel in (
-            Channels.email.value,
-            Channels.facebook.value,
-            Channels.groupme.value,
-            Channels.kik.value,
-            Channels.line.value,
-            Channels.msteams.value,
-            Channels.slack.value,
-            Channels.sms.value,
-            Channels.telegram.value,
+            Channels.email,
+            Channels.facebook,
+            Channels.groupme,
+            Channels.kik,
+            Channels.line,
+            Channels.msteams,
+            Channels.slack,
+            Channels.sms,
+            Channels.telegram,
         )
 
     @staticmethod
@@ -291,7 +289,7 @@ class Channels(str, Enum):
         """
         channel = Channels._normalize_channel_id(channel_id)
         return channel in (
-            Channels.msteams.value,
-            Channels.slack.value,
-            Channels.telegram.value,
+            Channels.msteams,
+            Channels.slack,
+            Channels.telegram,
         )
