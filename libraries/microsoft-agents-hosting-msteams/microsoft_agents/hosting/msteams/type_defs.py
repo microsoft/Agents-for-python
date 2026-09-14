@@ -10,12 +10,6 @@ from typing import (
     Pattern,
 )
 
-from microsoft_agents.hosting.core.app._type_defs import (
-    _RouteDecorator,
-    StateT,
-    _RouteHandlerT as RouteHandlerT,
-)
-
 if TYPE_CHECKING:
     from .teams_turn_context import TeamsTurnContext
 
