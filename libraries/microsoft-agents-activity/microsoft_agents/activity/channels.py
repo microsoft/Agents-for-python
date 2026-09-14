@@ -10,65 +10,50 @@ class Channels(str, Enum):
     Ids of channels supported by ABS.
     """
 
-    """Agents channel."""
+`   # A2A protocol
+    a2a = "a2a"
+
     agents = "agents"
 
     console = "console"
-    """Console channel."""
 
     cortana = "cortana"
-    """Cortana channel."""
 
     direct_line = "directline"
-    """Direct Line channel."""
 
     direct_line_speech = "directlinespeech"
-    """Direct Line Speech channel."""
 
     email = "email"
-    """Email channel."""
 
     emulator = "emulator"
-    """Emulator channel."""
 
     facebook = "facebook"
-    """Facebook channel."""
 
     groupme = "groupme"
-    """Group Me channel."""
 
     kik = "kik"
-    """Kik channel."""
 
     line = "line"
-    """Line channel."""
 
     ms_teams = "msteams"
-    """MS Teams channel."""
 
     skype = "skype"
-    """Skype channel."""
 
     skype_for_business = "skypeforbusiness"
-    """Skype for Business channel."""
 
     slack = "slack"
-    """Slack channel."""
 
+    # SMS (Twilio)
     sms = "sms"
-    """SMS (Twilio) channel."""
 
     telegram = "telegram"
-    """Telegram channel."""
 
     test = "test"
-    """Test channel."""
 
     webchat = "webchat"
-    """WebChat channel."""
 
+    # Microsoft Copilot Studio channel
     copilot_studio = "pva-studio"
-    """Microsoft Copilot Studio channel."""
 
     # TODO: validate the need of Self annotations in the following methods
     @staticmethod
