@@ -378,7 +378,7 @@ class AgentApplication(Agent, Generic[StateT]):
         *,
         auth_handlers: Optional[list[str]] = None,
         **kwargs,
-    ) -> Callable[[RouteHandler[StateT]], RouteHandler[StateT]]:
+    ) -> _RouteDecorator[RouteHandler[StateT]]:
         """
         Register a new activity event listener as either a decorator or a method.
 
