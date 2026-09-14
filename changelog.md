@@ -7,6 +7,7 @@
 
 - **MSAL Token Credential**: Added `MsalTokenCredential`, an Azure Core-compatible asynchronous token credential backed by MSAL, for authenticating Azure SDK clients that accept an `AsyncTokenCredential`.
 - **Authorization Token Credentials**: Added `AsyncTokenCredential` access through `AccessTokenProviderBase` and `Authorization`, including user-token refresh and exchange flows.
+- **Channel Feature Support Helpers**: Added `Channels` helper methods (e.g. `supports_card_actions`, `supports_suggested_actions`, `supports_video_card`, `supports_receipt_card`, `supports_thumbnail_card`, `supports_audio_card`, `supports_animation_card`, `supports_create_conversation`, `supports_update_activity`, `supports_delete_activity`) for checking per-channel feature support, accepting `Channels`, `ChannelId`, and plain string inputs (#580)
 
 ## Bug Fixes
 

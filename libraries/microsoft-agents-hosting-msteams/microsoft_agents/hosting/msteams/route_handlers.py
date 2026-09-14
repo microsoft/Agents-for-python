@@ -14,10 +14,10 @@ from microsoft_agents.hosting.core import AgentApplication, TurnContext
 from microsoft_agents.hosting.core.app._type_defs import (
     RouteHandler,
     HandoffHandler,
+    _StateContra,
 )
 
 from .teams_turn_context import TeamsTurnContext
-from .type_defs import _StateContra
 
 
 class TeamsRouteHandler(Protocol[_StateContra]):

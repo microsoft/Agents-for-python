@@ -33,7 +33,11 @@ from microsoft_agents.hosting.core import (
     AgentApplication,
     TurnContext,
 )
-from microsoft_agents.hosting.core.app._type_defs import RouteHandler, HandoffHandler
+from microsoft_agents.hosting.core.app._type_defs import (
+    RouteHandler,
+    HandoffHandler,
+    StateT,
+)
 
 from .channel import Channel
 from .config import Config
@@ -62,9 +66,6 @@ from ._teams_api_client import (
     _set_teams_api_client,
 )
 from ._utils import _try_get_channel_data
-
-from .teams_activity import TeamsActivity
-from .type_defs import StateT
 
 
 class _AppRouteDecorator(Protocol[StateT]):
