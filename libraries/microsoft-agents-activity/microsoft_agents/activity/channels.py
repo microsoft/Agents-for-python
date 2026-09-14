@@ -4,7 +4,6 @@
 from __future__ import annotations
 
 from enum import Enum
-from typing_extensions import Self
 
 from .channel_id import ChannelId
 
@@ -246,7 +245,7 @@ class Channels(str, Enum):
     @staticmethod
     def max_action_title_length(channel_id: str) -> int:
         """Maximum length allowed for Action Titles.
-        :param _: The Channel to check for maximum Action Title length.
+        :param channel_id: The Channel to check for maximum Action Title length.
         :returns: The maximum number of characters allowed for an Action Title.
         """
         return 20
