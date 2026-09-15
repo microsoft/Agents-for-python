@@ -98,20 +98,24 @@ isolation without changing SDK metadata; the report identifies that difference.
 The candidate's transitive dependencies, including `microsoft-teams-common`, are
 recorded. Common's entire API is not compared; ClientOptions is covered by tests.
 
-Analysis jobs have only `contents: read`, disable persisted checkout credentials,
-and upload their bounded results before enforcing compatibility policy. Separate
-publication jobs check out only trusted base/default-branch reporting code and
-receive `copilot-requests: write` plus the applicable `pull-requests: write` or
-`issues: write` permission. The Copilot CLI is installed at an exact vetted
-version. The repository/organization must allow GitHub Copilot CLI requests using
-the workflow token.
+The PR scope job has only `contents: read`. Following the established .NET and
+JavaScript drift workflows, the compatibility job receives `pull-requests: write`
+and `copilot-requests: write` so it can generate the advisory and upsert the PR
+comment without passing pull-request-controlled artifacts to a separate
+write-capable job. These steps run only for same-repository PRs; GitHub keeps fork
+PR tokens read-only, and the workflow skips AI and comment publication for forks.
+The scheduled workflow keeps analysis and publication in separate jobs, with write
+permissions only on its trusted publication job. All checkouts disable persisted
+credentials. The Copilot CLI is installed at an exact vetted version. The
+repository/organization must allow GitHub Copilot CLI requests using the workflow
+token.
 
 Copilot receives only bounded deterministic evidence and relevant source slices.
-Source slices are capped at 12,000 characters per file and 12,000
-characters in total; the complete deterministic evidence remains in the uploaded
-artifact. Copilot is denied tools. Its report never authorizes implementation. AI
-failures fail trusted runs where AI is required. Fork PRs retain deterministic
-checks and artifacts without AI/publication requirements.
+Source slices are capped at 12,000 characters per file and 12,000 characters in
+total; the complete deterministic evidence remains in the uploaded artifact.
+Copilot is denied tools, and its report never authorizes implementation. Same-repo
+PR and scheduled runs generate and validate advisory reports; fork PRs retain the
+deterministic checks and artifacts without AI or comment publication.
 
 GitHub documents the token permission in
 [Using Copilot CLI in GitHub Actions](https://docs.github.com/en/enterprise-cloud%40latest/copilot/how-tos/copilot-cli/use-copilot-cli-in-actions).
@@ -120,10 +124,10 @@ workflows with that release, ignore only `unknown permission scope "copilot-requ
 Keep all other permission and workflow checks enabled.
 
 Artifacts are uploaded for 21 days before publication and the final policy gate.
-Trusted PRs upsert one marker-based summary comment. Changed scheduled comparisons
-upsert one open advisory issue only after report validation. An unchanged comparison
-does not automatically close an existing issue. No separate implementation issues
-are created.
+Same-repo PRs upsert one marker-based summary comment. Changed scheduled
+comparisons upsert one open advisory issue only after report validation. An
+unchanged comparison does not automatically close an existing issue. No separate
+implementation issues are created.
 
 ## Validate changes
 
