@@ -98,15 +98,20 @@ isolation without changing SDK metadata; the report identifies that difference.
 The candidate's transitive dependencies, including `microsoft-teams-common`, are
 recorded. Common's entire API is not compared; ClientOptions is covered by tests.
 
-Trusted runs need `contents: read`, `copilot-requests: write`, and the applicable
-`pull-requests: write` or `issues: write` permission. The repository/organization
-must allow GitHub Copilot CLI requests using the workflow token. Copilot receives
-only bounded deterministic evidence and relevant redacted source slices. Source
-slices are capped at 12,000 characters per file and 12,000 characters in total;
-the complete deterministic evidence remains in the uploaded artifact. Copilot is
-denied tools. Its report never authorizes implementation. AI failures fail trusted
-runs where AI is required. Fork PRs retain deterministic checks and artifacts
-without AI/publication requirements.
+Analysis jobs have only `contents: read`, disable persisted checkout credentials,
+and upload their bounded results before enforcing compatibility policy. Separate
+publication jobs check out only trusted base/default-branch reporting code and
+receive `copilot-requests: write` plus the applicable `pull-requests: write` or
+`issues: write` permission. The Copilot CLI is installed at an exact vetted
+version. The repository/organization must allow GitHub Copilot CLI requests using
+the workflow token.
+
+Copilot receives only bounded deterministic evidence and relevant source slices.
+Source slices are capped at 12,000 characters per file and 12,000
+characters in total; the complete deterministic evidence remains in the uploaded
+artifact. Copilot is denied tools. Its report never authorizes implementation. AI
+failures fail trusted runs where AI is required. Fork PRs retain deterministic
+checks and artifacts without AI/publication requirements.
 
 GitHub documents the token permission in
 [Using Copilot CLI in GitHub Actions](https://docs.github.com/en/enterprise-cloud%40latest/copilot/how-tos/copilot-cli/use-copilot-cli-in-actions).
@@ -118,7 +123,7 @@ Artifacts are uploaded for 21 days before publication and the final policy gate.
 Trusted PRs upsert one marker-based summary comment. Changed scheduled comparisons
 upsert one open advisory issue only after report validation. An unchanged comparison
 does not automatically close an existing issue. No separate implementation issues
-are created. Tokens are not included in artifacts.
+are created.
 
 ## Validate changes
 

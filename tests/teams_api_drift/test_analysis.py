@@ -228,6 +228,37 @@ def test_constructor_change_is_direct_use():
     assert result["summary"]["required"] == 1
 
 
+def test_implicit_constructor_becoming_required_is_direct_use():
+    before = symbol(kind="class", constructors=[])
+    after = symbol(
+        kind="class",
+        constructors=[{"parameters": [{"name": "token", "optional": False}]}],
+    )
+
+    result = classify(
+        compare_models(model(before), model(after)), manifest(), capabilities()
+    )
+
+    assert result["summary"]["required"] == 1
+
+
+def test_implicit_constructor_with_only_optional_overloads_is_advisory():
+    before = symbol(kind="class", constructors=[])
+    after = symbol(
+        kind="class",
+        constructors=[
+            {"parameters": []},
+            {"parameters": [{"name": "timeout", "optional": True}]},
+        ],
+    )
+
+    result = classify(
+        compare_models(model(before), model(after)), manifest(), capabilities()
+    )
+
+    assert result["summary"]["review"] == 1
+
+
 def test_optional_constructor_parameter_is_advisory():
     before = symbol(kind="class", constructors=[{"parameters": []}])
     after = symbol(

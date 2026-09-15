@@ -21,7 +21,8 @@ SECTIONS = [
 ]
 ADVISORY = "This is an advisory report; it does not make or authorize implementation decisions."
 TITLE = "# teams.api Impact Report"
-ID_PATTERN = r"\b(?:TSAPI|EXTAPI)-[A-Za-z0-9-]+\b"
+ID_TOKEN_PATTERN = r"(?:TSAPI|EXTAPI)-[A-Za-z0-9-]+"
+ID_PATTERN = rf"\b{ID_TOKEN_PATTERN}\b"
 MAX_CONTEXT_CHARACTERS = 60_000
 MAX_SOURCE_CHARACTERS = 12_000
 MAX_ADVISORY_REVIEW_FINDINGS = 24
@@ -153,16 +154,20 @@ def render_report(findings, summary, artifact_directory):
     return "\n".join(lines) + "\n"
 
 
-def redact_source(text):
-    text = re.sub(
-        r"(?i)(authorization\s*[:=]\s*['\"]?)(?:bearer\s+)?[^'\"\s,}]+",
-        r"\1[REDACTED]",
-        text,
-    )
-    return re.sub(
-        r"(?i)((?:client_?secret|api_?key|password|token)\s*[:=]\s*['\"])[^'\"]+",
-        r"\1[REDACTED]",
-        text,
+def _advisory_scope(findings):
+    actionable = [
+        item for item in findings["findings"] if item["classification"] != "no-action"
+    ]
+    mandatory = [
+        item
+        for item in actionable
+        if item["classification"] in ("blocking", "required")
+    ]
+    reviews = [item for item in actionable if item["classification"] == "review"]
+    return (
+        mandatory,
+        reviews[:MAX_ADVISORY_REVIEW_FINDINGS],
+        reviews[MAX_ADVISORY_REVIEW_FINDINGS:],
     )
 
 
@@ -182,17 +187,8 @@ def prepare_context(
     if not source.is_relative_to(root):
         raise ValueError("Source root must be inside the extension")
     selected, omitted = [], []
-    actionable = [
-        item for item in findings["findings"] if item["classification"] != "no-action"
-    ]
-    mandatory = [
-        item
-        for item in actionable
-        if item["classification"] in ("blocking", "required")
-    ]
-    reviews = [item for item in actionable if item["classification"] == "review"]
-    included_findings = mandatory + reviews[:MAX_ADVISORY_REVIEW_FINDINGS]
-    omitted_reviews = reviews[MAX_ADVISORY_REVIEW_FINDINGS:]
+    mandatory, included_reviews, omitted_reviews = _advisory_scope(findings)
+    included_findings = mandatory + included_reviews
     paths = sorted({f for item in included_findings for f in item["affectedFiles"]})
     source_characters = 0
     for filename in paths:
@@ -205,7 +201,7 @@ def prepare_context(
         ):
             omitted.append(filename)
             continue
-        content = redact_source(path.read_text(encoding="utf-8"))
+        content = path.read_text(encoding="utf-8")
         original_length = len(content)
         remaining = MAX_SOURCE_CHARACTERS - source_characters
         if remaining <= 0:
@@ -272,31 +268,31 @@ def validate_agent_report(report, findings):
             errors.append(f"A blank line is required after {match[1]}.")
     if not sections.get("Summary", "").lstrip().startswith(ADVISORY):
         errors.append(f"Summary section must start with: {ADVISORY}")
-    known = {item["id"] for item in findings["findings"]}
+    mandatory, included_reviews, _ = _advisory_scope(findings)
+    known = {item["id"] for item in mandatory + included_reviews}
     referenced = set(re.findall(ID_PATTERN, report))
     unknown = sorted(referenced - known)
-    missing = sorted(
-        item["id"]
-        for item in findings["findings"]
-        if item["classification"] in ("blocking", "required")
-        and item["id"] not in referenced
-    )
+    missing = sorted(item["id"] for item in mandatory if item["id"] not in referenced)
     if unknown:
         errors.append("Unknown finding IDs: " + ", ".join(unknown))
     if missing:
         errors.append("Missing blocking or required finding IDs: " + ", ".join(missing))
     for section in SECTIONS[1:-1]:
         for line in sections.get(section, "").splitlines():
-            aggregate_no_action = section == "No action" and re.search(
-                r"\bno action\b", line, re.I
+            if not re.match(r"\s*(?:[-*+]|\d+[.)])\s", line):
+                continue
+            finding_action = re.fullmatch(
+                rf"- \*\*{ID_TOKEN_PATTERN}(?:, {ID_TOKEN_PATTERN})*\*\* — Advisory: \S.*",
+                line,
             )
-            if (
-                re.match(r"\s*(?:[-*+]|\d+[.)])\s", line)
+            no_findings = line == "- No findings in this category."
+            aggregate_no_action = (
+                section == "No action"
+                and re.fullmatch(r"- \d+\b.*\brequires? no action\.", line, re.I)
                 and not re.search(ID_PATTERN, line)
-                and not re.match(r"\s*- No ", line, re.I)
-                and not aggregate_no_action
-            ):
-                errors.append("Action item is not tied to a finding ID: " + line)
+            )
+            if not (finding_action or no_findings or aggregate_no_action):
+                errors.append("Action item does not match the required format: " + line)
     return {
         "schemaVersion": 1,
         "valid": not errors,

@@ -64,6 +64,13 @@ def extract_version(python, output, version):
 def signature_compatibility(before, after):
     """Recognize added optional arguments/overloads without requiring adaptation."""
 
+    def accepts_no_arguments(signature):
+        return all(
+            parameter.get("optional")
+            or parameter.get("kind") in ("VAR_POSITIONAL", "VAR_KEYWORD")
+            for parameter in signature["parameters"]
+        )
+
     def accepts_old_calls(old, new):
         if old.get("returnType") != new.get("returnType") or old.get(
             "async"
@@ -85,6 +92,12 @@ def signature_compatibility(before, after):
             for p in new_params[len(old_params) :]
         )
 
+    if not before:
+        return (
+            "non-breaking"
+            if after and all(accepts_no_arguments(signature) for signature in after)
+            else "potentially-breaking"
+        )
     if all(any(accepts_old_calls(old, new) for new in after) for old in before):
         return "non-breaking"
     return "potentially-breaking"
