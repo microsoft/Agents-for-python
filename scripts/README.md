@@ -2,6 +2,10 @@
 
 This folder contains helpful scripts for development.
 
+See [Teams API drift detection](teams-api-drift/README.md) for dependency
+upgrade comparisons, compatibility checks, advisory reports and the corresponding
+workflows for the extension's pinned Teams API dependency.
+
 ## Development Setup Scripts
 
 Both of these scripts will create a Python environment based on the default version of `python` in your PATH. Ensure the version is at least 3.10 by running:
