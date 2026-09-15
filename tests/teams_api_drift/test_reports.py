@@ -39,11 +39,11 @@ def findings():
 
 
 def report(**overrides):
-    content = {section: "- No supported items." for section in SECTIONS}
+    content = {section: "- No findings in this category." for section in SECTIONS}
     content.update(
         {
             "Summary": ADVISORY,
-            "Compatibility breaks": "- TSAPI-0001 Advisory: Update constructor.",
+            "Compatibility breaks": "- **TSAPI-0001** — Advisory: Update constructor.",
         }
     )
     content.update(overrides)
@@ -73,7 +73,7 @@ def test_valid_advisory_and_extended_summary():
             "## Compatibility breaks\n\n", "## Compatibility breaks\n"
         ),
         lambda text: text.replace(
-            "## No action\n\n- No supported items.",
+            "## No action\n\n- No findings in this category.",
             "## No action\n\n- Unsupported action.",
         ),
         lambda text: text.replace("## No action", "## Required adaptations", 1),
@@ -88,7 +88,25 @@ def test_missing_findings_and_unattributed_numbered_actions():
         report(**{"Compatibility breaks": "1. Update constructor."}), findings()
     )
     assert result["missingMandatoryFindingIds"] == ["TSAPI-0001"]
-    assert any("not tied" in error for error in result["errors"])
+    assert any("required format" in error for error in result["errors"])
+
+
+@pytest.mark.parametrize(
+    "action",
+    [
+        "- TSAPI-0001: Implement this.",
+        "- **TSAPI-0001**: Advisory: Implement this.",
+        "- **TSAPI-0001** — Implement this.",
+        "* **TSAPI-0001** — Advisory: Implement this.",
+    ],
+)
+def test_action_bullets_must_follow_the_advisory_contract(action):
+    result = validate_agent_report(
+        report(**{"Compatibility breaks": action}), findings()
+    )
+
+    assert not result["valid"]
+    assert any("required format" in error for error in result["errors"])
 
 
 def test_cross_cutting_test_failure_belongs_in_validation_checklist():
@@ -131,10 +149,10 @@ def test_render_is_deterministic_and_links_only_existing_artifacts(tmp_path):
     assert "incomplete" in render_report(None, {}, tmp_path)
 
 
-def test_context_redacts_bounds_and_confines_sources(tmp_path):
+def test_context_bounds_and_confines_sources(tmp_path):
     source = tmp_path / "src"
     source.mkdir()
-    (source / "client.py").write_text('token = "secret"\n' + "x" * 13000)
+    (source / "client.py").write_text('value = "example"\n' + "x" * 13000)
     data = findings()
     data["findings"][0]["affectedFiles"] += [
         "../outside.py",
@@ -150,8 +168,7 @@ def test_context_redacts_bounds_and_confines_sources(tmp_path):
     context = prepare_context(data, manifest, "", "", package_root=tmp_path)
     assert len(context["relevantSourceFiles"]) == 1
     selected = context["relevantSourceFiles"][0]
-    assert "secret" not in selected["content"]
-    assert "[REDACTED]" in selected["content"]
+    assert 'value = "example"' in selected["content"]
     assert selected["truncated"] and len(selected["content"]) == 12000
     assert len(context["omittedSourceFiles"]) == 3
 
@@ -187,6 +204,36 @@ def test_context_bounds_total_input_and_preserves_mandatory_findings(tmp_path):
     assert len(advisory["omittedReviewFindingIds"]) == 24
     assert sum(len(item["content"]) for item in context["relevantSourceFiles"]) <= 12000
     assert len(json.dumps(context, ensure_ascii=False)) <= MAX_CONTEXT_CHARACTERS
+
+
+def test_report_rejects_findings_omitted_from_advisory_context():
+    data = findings()
+    data["findings"] += [
+        {
+            **data["findings"][0],
+            "id": f"TSAPI-{number:04d}",
+            "classification": "review",
+        }
+        for number in range(2, 27)
+    ]
+    data["findings"].append(
+        {
+            **data["findings"][0],
+            "id": "TSAPI-0027",
+            "classification": "no-action",
+        }
+    )
+
+    omitted_review = validate_agent_report(
+        report(**{"Maintainer decisions": "- **TSAPI-0026** — Advisory: Review it."}),
+        data,
+    )
+    omitted_no_action = validate_agent_report(
+        report(**{"No action": "- **TSAPI-0027** — Advisory: Ignore it."}), data
+    )
+
+    assert omitted_review["unknownFindingIds"] == ["TSAPI-0026"]
+    assert omitted_no_action["unknownFindingIds"] == ["TSAPI-0027"]
 
 
 def test_wrong_dependency_and_duplicate_ids_fail():

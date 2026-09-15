@@ -8,8 +8,6 @@ on:
 
 permissions:
   contents: read
-  issues: write
-  copilot-requests: write
 
 concurrency:
   group: scheduled-teams-api-drift
@@ -19,6 +17,8 @@ jobs:
   resolve-version:
     name: Check for a newer microsoft-teams-api release
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
     outputs:
       changed: ${{ steps.resolve-versions.outputs.changed }}
       from: ${{ steps.resolve-versions.outputs.from }}
@@ -26,6 +26,8 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
       - name: Set up Python 3.12
         uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
         with:
@@ -62,6 +64,10 @@ jobs:
     needs: resolve-version
     if: ${{ needs.resolve-version.outputs.changed == 'true' }}
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    outputs:
+      context: ${{ steps.prepare-agent-context.outcome }}
     env:
       ARTIFACTS: artifacts/teams-api-drift
       INPUT_FROM: ${{ needs.resolve-version.outputs.from }}
@@ -71,6 +77,7 @@ jobs:
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           fetch-depth: 0
+          persist-credentials: false
       - name: Set up Python 3.12
         uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
         with:
@@ -171,15 +178,90 @@ jobs:
             --deterministic-report "$ARTIFACTS/deterministic-report.md" \
             --output "$ARTIFACTS"
         continue-on-error: true
+
+      # Upload evidence before the policy gate or issue update can fail the run.
+      - name: Upload scheduled drift artifacts
+        if: ${{ always() }}
+        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6
+        with:
+          name: teams-api-drift-scheduled-${{ github.run_id }}
+          path: artifacts/teams-api-drift
+          retention-days: 21
+          if-no-files-found: warn
+      - name: Upload bounded publication inputs
+        if: ${{ always() && hashFiles('artifacts/teams-api-drift/findings.json') != '' }}
+        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6
+        with:
+          name: teams-api-drift-scheduled-publication-${{ github.run_id }}
+          path: |
+            artifacts/teams-api-drift/findings.json
+            artifacts/teams-api-drift/agent-context.json
+          retention-days: 1
+          if-no-files-found: error
+      # Make compatibility failures visible after artifacts and any valid advisory issue are published.
+      - name: Enforce final drift policy
+        if: ${{ always() }}
+        env:
+          USAGE: ${{ steps.verify-usage-manifest.outcome }}
+          COMPARE: ${{ steps.compare-upstream-api-models.outcome }}
+          CANDIDATE_ENVIRONMENT: ${{ steps.build-candidate.outcome }}
+          CONTRACTS: ${{ steps.run-contracts-tests.outcome }}
+          BOUNDARIES: ${{ steps.run-boundaries-tests.outcome }}
+          CLASSIFY: ${{ steps.classify-usage-impact.outcome }}
+          SUMMARY: ${{ steps.write-verification-summary.outcome }}
+          RENDER: ${{ steps.render-deterministic-report.outcome }}
+        shell: bash
+        run: |
+          failed=0
+          for check in USAGE COMPARE CANDIDATE_ENVIRONMENT CONTRACTS BOUNDARIES CLASSIFY SUMMARY RENDER; do
+            if [[ "${!check}" != "success" ]]; then
+              echo "::error::$check ended with ${!check}"
+              failed=1
+            fi
+          done
+          exit "$failed"
+
+  # The write-capable job consumes bounded artifacts but executes only trusted
+  # default-branch code and an exactly pinned Copilot CLI release.
+  publish-advisory:
+    name: Publish trusted scheduled advisory
+    needs: [resolve-version, detect-and-report]
+    if: ${{ always() && needs.resolve-version.outputs.changed == 'true' && github.ref == format('refs/heads/{0}', github.event.repository.default_branch) }}
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      issues: write
+      copilot-requests: write
+    env:
+      ARTIFACTS: artifacts/teams-api-drift
+    steps:
+      - name: Checkout trusted reporting code
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+          ref: ${{ github.event.repository.default_branch }}
+      - name: Set up Python 3.12
+        uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: "3.12"
+      - name: Install report tooling
+        run: python -m pip install --disable-pip-version-check -r scripts/teams-api-drift/requirements.txt
+      - id: download-analysis
+        name: Download bounded publication inputs
+        uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131 # v7
+        with:
+          name: teams-api-drift-scheduled-publication-${{ github.run_id }}
+          path: artifacts/teams-api-drift
+        continue-on-error: true
       - name: Set up Node for Copilot CLI
-        if: ${{ steps.prepare-agent-context.outcome == 'success' }}
+        if: ${{ hashFiles('artifacts/teams-api-drift/agent-context.json') != '' }}
         uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444 # v5
         with:
           node-version: "24"
       - id: install-copilot-cli
         name: Install GitHub Copilot CLI
-        if: ${{ steps.prepare-agent-context.outcome == 'success' }}
-        run: npm install --global @github/copilot
+        if: ${{ hashFiles('artifacts/teams-api-drift/agent-context.json') != '' }}
+        run: npm install --global @github/copilot@1.0.83
         continue-on-error: true
       - id: generate-advisory-report
         name: Generate advisory AI report
@@ -206,22 +288,12 @@ jobs:
           PY
         continue-on-error: true
       - id: validate-advisory-report
-        name: Validate advisory AI report
-        if: ${{ steps.generate-advisory-report.outcome == 'success' }}
+        name: Validate advisory AI report with trusted code
+        if: ${{ steps.generate-advisory-report.outcome == 'success' && hashFiles('artifacts/teams-api-drift/findings.json') != '' }}
         run: python scripts/teams-api-drift/teams-api-drift.py validate --output "$ARTIFACTS"
         continue-on-error: true
-
-      # Upload evidence before the policy gate or issue update can fail the run.
-      - name: Upload scheduled drift artifacts
-        if: ${{ always() }}
-        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6
-        with:
-          name: teams-api-drift-scheduled-${{ github.run_id }}
-          path: artifacts/teams-api-drift
-          retention-days: 21
-          if-no-files-found: warn
       - name: Create or update drift issue
-        if: ${{ always() && steps.comparison-result.outputs.value == 'true' && steps.validate-advisory-report.outcome == 'success' }}
+        if: ${{ steps.validate-advisory-report.outcome == 'success' }}
         uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9.0.0
         env:
           REPORT_PATH: artifacts/teams-api-drift/agent-report.md
@@ -249,38 +321,31 @@ jobs:
                 owner: context.repo.owner, repo: context.repo.repo, title, body,
               });
             }
-      # Make compatibility failures visible after artifacts and any valid advisory issue are published.
-      - name: Enforce final drift policy
+      - name: Upload advisory artifacts
+        if: ${{ always() && hashFiles('artifacts/teams-api-drift/agent-report.md') != '' }}
+        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6
+        with:
+          name: teams-api-drift-scheduled-advisory-${{ github.run_id }}
+          path: |
+            artifacts/teams-api-drift/agent-report.md
+            artifacts/teams-api-drift/agent-report-validation.json
+          retention-days: 21
+          if-no-files-found: warn
+      - name: Enforce advisory result
         if: ${{ always() }}
         env:
-          USAGE: ${{ steps.verify-usage-manifest.outcome }}
-          COMPARE: ${{ steps.compare-upstream-api-models.outcome }}
-          CANDIDATE_ENVIRONMENT: ${{ steps.build-candidate.outcome }}
-          CONTRACTS: ${{ steps.run-contracts-tests.outcome }}
-          BOUNDARIES: ${{ steps.run-boundaries-tests.outcome }}
-          CLASSIFY: ${{ steps.classify-usage-impact.outcome }}
-          SUMMARY: ${{ steps.write-verification-summary.outcome }}
-          RENDER: ${{ steps.render-deterministic-report.outcome }}
-          API_CHANGED: ${{ steps.comparison-result.outputs.value }}
-          CONTEXT: ${{ steps.prepare-agent-context.outcome }}
+          CONTEXT: ${{ needs.detect-and-report.outputs.context }}
+          DOWNLOAD: ${{ steps.download-analysis.outcome }}
           INSTALL: ${{ steps.install-copilot-cli.outcome }}
           GENERATE: ${{ steps.generate-advisory-report.outcome }}
           VALIDATE: ${{ steps.validate-advisory-report.outcome }}
         shell: bash
         run: |
           failed=0
-          for check in USAGE COMPARE CANDIDATE_ENVIRONMENT CONTRACTS BOUNDARIES CLASSIFY SUMMARY RENDER; do
+          for check in CONTEXT DOWNLOAD INSTALL GENERATE VALIDATE; do
             if [[ "${!check}" != "success" ]]; then
               echo "::error::$check ended with ${!check}"
               failed=1
             fi
           done
-          if [[ "$API_CHANGED" == "true" ]]; then
-            for check in CONTEXT INSTALL GENERATE VALIDATE; do
-              if [[ "${!check}" != "success" ]]; then
-                echo "::error::$check ended with ${!check}"
-                failed=1
-              fi
-            done
-          fi
           exit "$failed"
