@@ -123,6 +123,7 @@ __all__ = [
     "Middleware",
     "RestChannelServiceClientFactory",
     "TurnContext",
+    "RouteRank",
     "OutboundHostValidator",
     "HttpRequestProtocol",
     "HttpResponse",

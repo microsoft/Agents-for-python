@@ -6,9 +6,8 @@
 from typing import Awaitable, Protocol
 
 from microsoft_teams.api.models.channel_data import ChannelInfo
-
+from microsoft_agents.hosting.core.app._type_defs import _StateContra
 from microsoft_agents.hosting.msteams.teams_turn_context import TeamsTurnContext
-from microsoft_agents.hosting.msteams.type_defs import _StateContra
 
 
 class ChannelUpdateHandler(Protocol[_StateContra]):

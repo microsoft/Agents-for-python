@@ -12,12 +12,12 @@ from microsoft_agents.hosting.core import (
     RouteRank,
     TurnContext,
 )
+from microsoft_agents.hosting.core.app._type_defs import (
+    StateT,
+    _RouteDecorator,
+)
 
 from microsoft_agents.hosting.msteams.teams_turn_context import TeamsTurnContext
-from microsoft_agents.hosting.msteams.type_defs import (
-    _RouteDecorator,
-    StateT,
-)
 from microsoft_agents.hosting.msteams._utils import (
     _get_channel_event_type,
     _get_channel_info,
