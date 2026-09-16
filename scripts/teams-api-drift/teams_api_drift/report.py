@@ -171,6 +171,20 @@ def _advisory_scope(findings):
     )
 
 
+def _advisory_section(finding):
+    classification = finding["classification"]
+    if classification == "blocking":
+        return "Compatibility breaks"
+    if classification == "required":
+        return "Required adaptations"
+    if classification == "no-action":
+        return "No action"
+    return {
+        "feature-review": "Feature-review candidates",
+        "internal-opportunity": "Internal implementation opportunities",
+    }.get(finding.get("category"), "Maintainer decisions")
+
+
 def prepare_context(
     findings,
     manifest,
@@ -269,14 +283,13 @@ def validate_agent_report(report, findings):
     if not sections.get("Summary", "").lstrip().startswith(ADVISORY):
         errors.append(f"Summary section must start with: {ADVISORY}")
     mandatory, included_reviews, _ = _advisory_scope(findings)
-    known = {item["id"] for item in mandatory + included_reviews}
-    referenced = set(re.findall(ID_PATTERN, report))
-    unknown = sorted(referenced - known)
-    missing = sorted(item["id"] for item in mandatory if item["id"] not in referenced)
+    known_findings = {item["id"]: item for item in mandatory + included_reviews}
+    mentioned = set(re.findall(ID_PATTERN, report))
+    unknown = sorted(mentioned - known_findings.keys())
     if unknown:
         errors.append("Unknown finding IDs: " + ", ".join(unknown))
-    if missing:
-        errors.append("Missing blocking or required finding IDs: " + ", ".join(missing))
+    referenced = set()
+    correctly_placed = set()
     for section in SECTIONS[1:-1]:
         for line in sections.get(section, "").splitlines():
             if not re.match(r"\s*(?:[-*+]|\d+[.)])\s", line):
@@ -293,6 +306,27 @@ def validate_agent_report(report, findings):
             )
             if not (finding_action or no_findings or aggregate_no_action):
                 errors.append("Action item does not match the required format: " + line)
+                continue
+            if not finding_action:
+                continue
+            action_ids = set(re.findall(ID_PATTERN, line))
+            referenced.update(action_ids)
+            for finding_id in sorted(action_ids):
+                finding = known_findings.get(finding_id)
+                if finding is None:
+                    continue
+                expected = _advisory_section(finding)
+                if section == expected:
+                    correctly_placed.add(finding_id)
+                elif section != "Suggested implementation issues":
+                    errors.append(
+                        f"Finding {finding_id} belongs in {expected}, not {section}."
+                    )
+    missing = sorted(
+        item["id"] for item in mandatory if item["id"] not in correctly_placed
+    )
+    if missing:
+        errors.append("Missing blocking or required finding IDs: " + ", ".join(missing))
     return {
         "schemaVersion": 1,
         "valid": not errors,

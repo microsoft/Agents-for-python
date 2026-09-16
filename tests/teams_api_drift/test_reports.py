@@ -91,6 +91,65 @@ def test_missing_findings_and_unattributed_numbered_actions():
     assert any("required format" in error for error in result["errors"])
 
 
+@pytest.mark.parametrize("section", ["Summary", "Validation checklist"])
+def test_mandatory_ids_must_appear_in_valid_finding_bullets(section):
+    content = (
+        ADVISORY + " Review TSAPI-0001."
+        if section == "Summary"
+        else "- Confirm TSAPI-0001 before adoption."
+    )
+    result = validate_agent_report(
+        report(
+            **{
+                "Compatibility breaks": "- No findings in this category.",
+                section: content,
+            }
+        ),
+        findings(),
+    )
+
+    assert not result["valid"]
+    assert result["referencedFindingIds"] == []
+    assert result["missingMandatoryFindingIds"] == ["TSAPI-0001"]
+
+
+def test_mandatory_ids_must_appear_in_their_primary_section():
+    result = validate_agent_report(
+        report(
+            **{
+                "Compatibility breaks": "- No findings in this category.",
+                "Suggested implementation issues": (
+                    "- **TSAPI-0001** — Advisory: Update constructor."
+                ),
+            }
+        ),
+        findings(),
+    )
+
+    assert not result["valid"]
+    assert result["referencedFindingIds"] == ["TSAPI-0001"]
+    assert result["missingMandatoryFindingIds"] == ["TSAPI-0001"]
+
+
+def test_finding_classification_must_match_its_report_section():
+    result = validate_agent_report(
+        report(
+            **{
+                "Compatibility breaks": "- No findings in this category.",
+                "No action": "- **TSAPI-0001** — Advisory: Ignore this break.",
+            }
+        ),
+        findings(),
+    )
+
+    assert not result["valid"]
+    assert result["missingMandatoryFindingIds"] == ["TSAPI-0001"]
+    assert any(
+        "TSAPI-0001 belongs in Compatibility breaks, not No action." in error
+        for error in result["errors"]
+    )
+
+
 @pytest.mark.parametrize(
     "action",
     [
