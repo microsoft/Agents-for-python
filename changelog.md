@@ -12,6 +12,7 @@
 ## Bug Fixes
 
 - **Typing Indicator on Update/Delete**: Fixed the typing indicator re-appearing in Teams clients after the finalized streaming activity was updated or deleted post-`end_stream()`.
+- **Streaming AI Metadata**: Fixed final streaming activities so Teams feedback-loop metadata is emitted in `channelData` instead of `StreamInfo`, and the AI-generated label is emitted even when the response has no citations.
 
 ---
 

@@ -726,9 +726,10 @@ async def test_end_stream_waits_for_m365_timeout_recovery(mocker):
 
 
 @pytest.mark.asyncio
-async def test_feedback_loop_type_added_to_final_streaminfo_entity(mocker):
+async def test_feedback_loop_type_added_to_final_teams_channel_data(mocker):
     context = _create_turn_context(
         mocker,
+        channel_id=Channels.ms_teams,
         delivery_mode=DeliveryModes.stream,
         return_value=[ResourceResponse(id="stream-4")],
     )
@@ -744,7 +745,56 @@ async def test_feedback_loop_type_added_to_final_streaminfo_entity(mocker):
         entity for entity in final_activity.entities if entity.type == "streaminfo"
     )
 
-    assert stream_info.feedback_loop == {"type": "custom"}
+    assert stream_info.feedback_loop_enabled is False
+    assert stream_info.feedback_loop is None
+
+    payload = final_activity.model_dump(by_alias=True, exclude_unset=True, mode="json")
+    stream_info_payload = next(
+        entity for entity in payload["entities"] if entity["type"] == "streaminfo"
+    )
+    assert "feedbackLoopEnabled" not in stream_info_payload
+    assert "feedbackLoop" not in stream_info_payload
+    assert payload["channelData"] == {"feedbackLoop": {"type": "custom"}}
+
+
+def test_feedback_loop_defaults_to_default_type_and_preserves_channel_data(mocker):
+    context = _create_turn_context(
+        mocker,
+        channel_id=Channels.ms_teams,
+    )
+    response = StreamingResponse(context)
+    response.set_feedback_loop(True)
+    activity = Activity(
+        type="message",
+        text="feedback",
+        entities=[],
+        channel_data={"tenant": {"id": "tenant-id"}},
+    )
+
+    response._add_feedback_loop_to_channel_data(activity)
+
+    assert activity.channel_data == {
+        "tenant": {"id": "tenant-id"},
+        "feedbackLoop": {"type": "default"},
+    }
+
+
+@pytest.mark.asyncio
+async def test_feedback_loop_is_not_added_to_non_teams_final_message(mocker):
+    context = _create_turn_context(
+        mocker,
+        channel_id=Channels.webchat,
+        return_value=ResourceResponse(id="webchat-feedback"),
+    )
+    response = StreamingResponse(context)
+    response.set_feedback_loop(True)
+    response.set_feedback_loop_type("custom")
+
+    response.queue_text_chunk("feedback")
+    await response.end_stream()
+
+    final_activity = context.send_activity.await_args_list[-1].args[0]
+    assert final_activity.channel_data is None
 
 
 @pytest.mark.asyncio
@@ -769,6 +819,42 @@ async def test_generated_by_ai_label_adds_ai_entity_on_final_message(mocker):
     ]
 
     assert len(ai_entities) == 1
+
+
+@pytest.mark.asyncio
+async def test_generated_by_ai_label_without_citations_is_only_on_final_message(
+    mocker,
+):
+    context = _create_turn_context(
+        mocker,
+        delivery_mode=DeliveryModes.stream,
+        return_value=[
+            ResourceResponse(id="stream-6"),
+            ResourceResponse(id="stream-6"),
+        ],
+    )
+    response = StreamingResponse(context)
+    response.set_generated_by_ai_label(True)
+
+    response.queue_text_chunk("Generated response")
+    await response.wait_for_queue()
+
+    streaming_activity = context.send_activity.await_args_list[0].args[0]
+    assert not any(
+        "AIGeneratedContent" in (getattr(entity, "additional_type", None) or [])
+        for entity in streaming_activity.entities
+    )
+
+    await response.end_stream()
+
+    final_activity = context.send_activity.await_args_list[-1].args[0]
+    ai_entities = [
+        entity
+        for entity in final_activity.entities
+        if "AIGeneratedContent" in (getattr(entity, "additional_type", None) or [])
+    ]
+    assert len(ai_entities) == 1
+    assert ai_entities[0].citation is None
 
 
 @pytest.mark.asyncio
@@ -1020,6 +1106,7 @@ async def test_feedback_loop_type_without_enable_does_not_emit_feedback_loop_obj
 
     assert not streaminfo.feedback_loop
     assert not streaminfo.feedback_loop_enabled
+    assert sent.channel_data is None
 
 
 @pytest.mark.asyncio
