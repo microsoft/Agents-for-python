@@ -69,4 +69,5 @@ class ConversationReference(AgentsModel):
             recipient=self.agent,
             from_property=SkipNone(self.user),
             relates_to=self,
+            request_id=self.request_id,
         )
