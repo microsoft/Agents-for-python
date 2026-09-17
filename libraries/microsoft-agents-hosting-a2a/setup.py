@@ -13,6 +13,7 @@ setup(
     version=package_version,
     install_requires=[
         f"microsoft-agents-hosting-core=={package_version}",
+        f"microsoft-agents-hosting-fastapi=={package_version}",
         "a2a-sdk>=1.0.0",
     ],
 )

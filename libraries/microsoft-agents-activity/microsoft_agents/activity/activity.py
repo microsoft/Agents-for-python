@@ -199,6 +199,7 @@ class Activity(AgentsModel):
     text_highlights: list[TextHighlight] = None
     semantic_action: SemanticAction = None
     caller_id: NonEmptyString = None
+    request_id: str | None 
 
     @field_validator("entities", mode="before")
     @classmethod
