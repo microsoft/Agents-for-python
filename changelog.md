@@ -5,7 +5,7 @@
 
 ## Major Features & Enhancements
 
-- **Certificate Subject Name Authentication**: Added `SendX5C` support for `CertificateSubjectName` authentication, including public certificate configuration for MSAL client credentials (#576)
+- **Certificate Subject Name Authentication**: Added a `SendX5C` flag to support certificate-based authentication (#576)
 
 ## New Models & APIs
 
@@ -19,8 +19,7 @@
 
 ## Developer Experience
 
-- **`AgentAuthConfiguration` Keyword-Only Arguments**: Made `cert_pfx_file`, `connection_name`, and `federated_client_id` keyword-only in `AgentAuthConfiguration.__init__` to clarify usage and prevent accidental misuse (#578)
-- **Route Handler Type Centralization**: Centralized `_RouteDecorator` and `_StateContra` type definitions in a single location and updated references across hosting core and Teams integration to reduce duplication (#585)
+- **`AgentAuthConfiguration` Keyword-Only Arguments**: Made `cert_pfx_file`, `connection_name`, and `federated_client_id`, and other arguments keyword-only in `AgentAuthConfiguration.__init__` to clarify usage and prevent accidental misuse (#578)
 
 ---
 
