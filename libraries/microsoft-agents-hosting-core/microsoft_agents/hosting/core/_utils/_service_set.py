@@ -3,7 +3,7 @@
 
 from __future__ import annotations
 
-from typing import TypeVar, cast, Any
+from typing import TypeVar, cast, Any, overload, Literal
 
 T = TypeVar("T")
 
@@ -23,11 +23,17 @@ class _ServiceSet:
         if service_set is not None:
             self._state.update(service_set._state)
 
-    def get(self, key: type[T]) -> T | None:
+    @overload
+    def get(self, key: type[T], raise_if_missing: Literal[True] = True) -> T: ...
+
+    @overload
+    def get(self, key: type[T], raise_if_missing: Literal[False] = False) -> T | None: ...
+    def get(self, key: type[T], raise_if_missing: bool = False) -> T | None:
         """
         Gets a value from the state collection.
-        :param key:
-        :return:
+        :param key: The type of the value to retrieve.
+        :param raise_if_missing: Whether to raise an exception if the value is missing.
+        :return: The value associated with the specified type, or None if not found and raise_if_missing is False.
         """
         val = self._state.get(key)
         if val is not None:
@@ -39,6 +45,10 @@ class _ServiceSet:
                     f"Value for key '{key.__name__}' is not of type {key.__name__} (got {type(val).__name__})"
                 )
             return cast(T, val)
+
+        if raise_if_missing:
+            raise KeyError(f"Value for key '{key.__name__}' is missing")
+    
         return None
 
     def has(self, key: type) -> bool:

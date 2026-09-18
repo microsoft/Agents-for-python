@@ -1,4 +1,4 @@
-from typing import Mapping, cast
+from typing import Mapping, cast, Sequence
 from uuid import uuid4
 
 from a2a.types import (
@@ -90,13 +90,21 @@ def create_artifact_from_data(
         ]
     )
 
-def activity_to_message(context_id: str, task_id: str, activity: Activity, include_entities: bool = True) -> Message:
-    artifact = create_artifact(activity, include_entities=include_entities)
+def create_message(context_id: str, task_id: str, activity: Activity | None, include_entities: bool = True) -> Message:
+
+    parts: Sequence[Part] | None
+    
+    if not activity:
+        parts = None
+    else:
+        artifact = activity_to_artifact(activity, include_entities=include_entities)
+        parts = artifact.parts
+
     return Message(
         task_id=task_id,
         context_id=context_id,
         message_id=str(uuid4()),
-        parts=artifact.parts,
+        parts=parts,
         role=RoleTypes.agent,
     )
 

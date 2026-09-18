@@ -1,11 +1,17 @@
 import logging
+
+from datetime import datetime, timezone
 from typing import Awaitable, Callable, cast
 from uuid import uuid4
 
 from fastapi import Request, Response
 
 from a2a.types import (
-    SendMessageConfiguration
+    SendMessageConfiguration,
+    TaskStatusUpdateEvent,
+    TaskArtifactUpdateEvent,
+    TaskStatus,
+    TaskState,
 )
 from a2a.server.request_handlers import RequestHandler
 from a2a.server.agent_execution import RequestContext
@@ -18,6 +24,7 @@ from microsoft_agents.activity import (
     Channels,
     ConversationParameters,
     ConversationReference,
+    EndOfConversationCodes,
     InvokeResponse,
     ResourceResponse,
     StreamInfo,
@@ -159,14 +166,92 @@ class A2AAdapter(ChannelAdapter, ChannelAdapterProtocol):
         return await self._adapter.send_activities(context, activities)
 
     async def _on_streaming_response(self, context: TurnContext, activity: Activity, entity: StreamInfo):
-        pass
+        message = utils.get_incoming_message(context)
+        is_informative = entity.stream_type == "informative"
+
+        event_queue = context.services.get(EventQueue, raise_if_missing=True)
+
+        if is_informative:
+            await event_queue.enqueue_event(TaskStatusUpdateEvent(
+                task_id=message.task_id,
+                context_id=message.context_id,
+                status=TaskStatus(
+                    state=TaskState.TASK_STATE_WORKING,
+                    timestamp=datetime.now(timezone.utc),
+                    message=utils.create_message(message.context_id, message.task_id, activity)
+                )
+            ))
+        else:
+            artifact = utils.activity_to_artifact(activity, entity.stream_id)
+            await event_queue.enqueue_event(TaskArtifactUpdateEvent(
+                task_id=message.task_id,
+                context_id=message.context_id,
+                artifact=artifact,
+                append=False,
+                last_chunk=True,
+            ))
 
     async def _on_message_response(self, context: TurnContext, activity: Activity):
         message = utils.get_incoming_message(context)
         state = utils.get_task_state(activity)
-        response = utils.activity_to_message(message.context_id, message.task_id, activity)
+        response = utils.create_message(message.context_id, message.task_id, activity)
 
-        await event_queue
+        event_queue = context.services.get(EventQueue, raise_if_missing=True)
+
+        await event_queue.enqueue_event(TaskStatusUpdateEvent(
+            task_id=message.task_id,
+            context_id=message.context_id,
+            status=TaskStatus(
+                state=state,
+                timestamp=datetime.now(timezone.utc),
+                message=response
+            )
+        ))
 
     async def _on_end_of_conversation_response(self, context: TurnContext, activity: Activity):
-        pass
+        message = utils.get_incoming_message(context)
+        event_queue = context.services.get(EventQueue, raise_if_missing=True)
+
+        if isinstance(activity.value, dict):
+            artifact = utils.create_artifact_from_data(
+                activity.value,
+                name="Result",
+                description="Task completion result",
+                media_type="application/json"
+            )
+            await event_queue.enqueue_event(TaskArtifactUpdateEvent(
+                task_id=message.task_id,
+                context_id=message.context_id,
+                artifact=artifact,
+                append=False,
+                last_chunk=True,
+            ))
+
+        task_state: TaskState
+        if activity.code == EndOfConversationCodes.error:
+            task_state = TaskState.TASK_STATE_FAILED
+        elif activity.code == EndOfConversationCodes.user_cancelled:
+            task_state = TaskState.TASK_STATE_CANCELED
+        else:
+            task_state = TaskState.TASK_STATE_COMPLETED
+
+        status_message: Activity
+        if utils.has_message_content(activity):
+            status_message = activity.model_copy()
+            status_message.value = None
+
+        response = utils.create_message(
+            message.context_id,
+            message.task_id,
+            status_message,
+        )
+
+        await event_queue.enqueue_event(TaskStatusUpdateEvent(
+            task_id=message.task_id,
+            context_id=message.context_id,
+            status=TaskStatus(
+                state=task_state,
+                timestamp=datetime.now(timezone.utc),
+                message=response
+            )
+        ))
