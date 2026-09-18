@@ -13,6 +13,7 @@ from dotenv import load_dotenv
 from azure.cosmos import documents
 from azure.cosmos.aio import CosmosClient
 from azure.cosmos.exceptions import CosmosResourceNotFoundError
+from azure.core import MatchConditions
 from azure.identity.aio import DefaultAzureCredential
 
 from microsoft_agents.storage.cosmos import (
@@ -185,6 +186,24 @@ class _RecordingCosmosContainer:
             raise self.delete_error
 
 
+class _CurrentCosmosReplaceContainer:
+    """Model the current azure-cosmos replace_item call signature."""
+
+    def __init__(self):
+        self.replace_calls = []
+
+    async def replace_item(self, *, item, body, etag=None, match_condition=None):
+        self.replace_calls.append(
+            {
+                "item": item,
+                "body": body,
+                "etag": etag,
+                "match_condition": match_condition,
+            }
+        )
+        return {"_etag": "replaced"}
+
+
 def _recording_v2_cosmos_storage(container):
     storage = object.__new__(CosmosDBStorageV2)
     backend = object.__new__(_CosmosStorageBackend)
@@ -229,9 +248,29 @@ async def test_v2_cosmos_write_uses_atomic_operation_for_each_mode():
 
     assert container.read_calls == []
     assert len(container.upsert_calls) == 1
-    assert container.replace_calls[0]["partition_key"] == "partition:key"
+    assert "partition_key" not in container.replace_calls[0]
     assert "etag" not in container.replace_calls[0]
     assert container.replace_calls[1]["etag"] == "expected"
+
+
+@pytest.mark.asyncio
+async def test_v2_cosmos_conditional_write_uses_current_replace_signature():
+    container = _CurrentCosmosReplaceContainer()
+    storage = _recording_v2_cosmos_storage(container)
+
+    result = await storage.write(
+        {"key": MockStoreItem()}, StorageWriteOptions(expected_version="expected")
+    )
+
+    assert result["key"].status == StorageOperationStatus.SUCCEEDED
+    assert container.replace_calls == [
+        {
+            "item": "key",
+            "body": {"id": "key", "realId": "key", "document": {}},
+            "etag": "expected",
+            "match_condition": MatchConditions.IfNotModified,
+        }
+    ]
 
 
 @pytest.mark.asyncio

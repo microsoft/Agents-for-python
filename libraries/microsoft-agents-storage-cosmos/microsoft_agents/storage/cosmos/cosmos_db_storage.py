@@ -132,7 +132,6 @@ class _CosmosStorageBackend:
         replace_options: dict[str, Any] = {
             "item": escaped_key,
             "body": self._document(key, content),
-            "partition_key": self._get_partition_key(escaped_key),
         }
         if etag is not None:
             replace_options["etag"] = etag

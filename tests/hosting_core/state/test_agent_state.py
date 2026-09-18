@@ -512,6 +512,47 @@ class TestAgentState:
         assert stored_data[storage_key].value is not None
 
     @pytest.mark.asyncio
+    async def test_stale_state_save_does_not_overwrite_newer_state(self):
+        """Reject a stale turn after a newer turn saves the same state record."""
+        storage = MemoryStorageV2()
+
+        seed_state = UserState(storage)
+        await seed_state.load(self.context)
+        seed_property = seed_state.create_property("writer")
+        await seed_property.set(self.context, _MockTestDataItem("seed"))
+        await seed_state.save(self.context)
+
+        slow_context = TurnContext(self.adapter, self.activity)
+        fast_context = TurnContext(self.adapter, self.activity)
+        slow_state = UserState(storage)
+        fast_state = UserState(storage)
+        slow_property = slow_state.create_property("writer")
+        fast_property = fast_state.create_property("writer")
+
+        await slow_state.load(slow_context)
+        await fast_state.load(fast_context)
+        await slow_property.set(slow_context, _MockTestDataItem("slow"))
+        await fast_property.set(fast_context, _MockTestDataItem("fast"))
+
+        await fast_state.save(fast_context)
+        expected_error = (
+            "AgentState 'Internal.UserState' could not save key "
+            "'test-channel/users/test-user' because another turn updated the state "
+            "first (status: ConditionNotMet). This turn's state changes were not saved."
+        )
+        with pytest.raises(RuntimeError) as error:
+            await slow_state.save(slow_context)
+        assert str(error.value) == expected_error
+
+        final_context = TurnContext(self.adapter, self.activity)
+        final_state = UserState(storage)
+        final_property = final_state.create_property("writer")
+        await final_state.load(final_context)
+        value = await final_property.get(final_context, target_cls=_MockTestDataItem)
+
+        assert value.value == "fast"
+
+    @pytest.mark.asyncio
     async def test_state_property_accessor_error_conditions(self):
         """Test StatePropertyAccessor error conditions."""
         # Test with None state
