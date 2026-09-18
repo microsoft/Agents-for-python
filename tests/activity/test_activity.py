@@ -19,6 +19,7 @@ from microsoft_agents.activity import (
     Thing,
     ProductInfo,
     RoleTypes,
+    StreamInfo,
 )
 
 from tests.activity._common.my_channel_data import MyChannelData
@@ -469,6 +470,46 @@ class TestActivityConversationOps:
 
         retrieved_product_info = activity.get_product_info_entity()
         assert retrieved_product_info == expected
+
+    @pytest.mark.parametrize(
+        "entities, expected",
+        [
+            [
+                [
+                    {
+                        "type": "streaminfo",
+                        "streamId": "stream_123",
+                        "streamSequence": 1,
+                    },
+                    {"type": "other"},
+                ],
+                StreamInfo(stream_id="stream_123", stream_sequence=1),
+            ],
+            [
+                [
+                    {"type": "other"},
+                    {"type": "mention", "text": "Another mention"},
+                ],
+                None,
+            ],
+            [
+                [
+                    {"type": "StreamInfo", "streamId": "stream_123"},
+                    {"type": "StreamInfo", "streamId": "stream_456"},
+                ],
+                StreamInfo(stream_id="stream_123"),
+            ],
+            [[], None],
+            [None, None],
+        ],
+    )
+    def test_get_streaming_entity(self, entities, expected):
+        activity = Activity(type="message", entities=entities)
+        for entity in activity.entities or []:
+            if entity.type.casefold() == EntityTypes.STREAM_INFO.value.casefold():
+                assert isinstance(entity, StreamInfo)
+
+        assert activity.get_streaming_entity() == expected
 
 
 class TestActivityAsTypeHelpers:
