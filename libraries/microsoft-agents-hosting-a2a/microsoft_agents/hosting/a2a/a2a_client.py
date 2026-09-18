@@ -1,3 +1,6 @@
+# Copyright (c) Microsoft Corporation. All rights reserved.
+# Licensed under the MIT License.
+
 from a2a.server.events import EventQueue
 from a2a.server.agent_execution import RequestContext
 from a2a.server.tasks import TaskStore

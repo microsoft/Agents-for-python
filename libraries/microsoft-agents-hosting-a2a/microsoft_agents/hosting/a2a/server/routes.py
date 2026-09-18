@@ -1,3 +1,6 @@
+# Copyright (c) Microsoft Corporation. All rights reserved.
+# Licensed under the MIT License.
+
 from a2a.server.routes import (
     create_jsonrpc_routes as _create_jsonrpc_routes,
     create_rest_routes as _create_rest_routes,

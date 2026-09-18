@@ -1,8 +1,6 @@
 # Copyright (c) Microsoft Corporation. All rights reserved.
 # Licensed under the MIT License.
 
-"""Protocol definitions for Teams-aware route and handoff handlers."""
-
 from __future__ import annotations
 
 from typing import (
@@ -12,10 +10,9 @@ from typing import (
 )
 
 from microsoft_agents.hosting.core import AgentApplication, TurnContext
-from microsoft_agents.hosting.core.app._type_defs import RouteHandler
+from microsoft_agents.hosting.core.app._type_defs import RouteHandler, _StateContra
 
 from .a2a_turn_context import A2ATurnContext
-from .type_defs import _StateContra
 
 
 class A2ARouteHandler(Protocol[_StateContra]):

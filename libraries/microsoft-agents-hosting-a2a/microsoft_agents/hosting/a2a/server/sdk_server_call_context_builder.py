@@ -1,3 +1,6 @@
+# Copyright (c) Microsoft Corporation. All rights reserved.
+# Licensed under the MIT License.
+
 from a2a.server.context import ServerCallContext
 from a2a.server.routes import DefaultServerCallContextBuilder
 from a2a.extensions.common import (

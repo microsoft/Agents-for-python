@@ -1,3 +1,6 @@
+# Copyright (c) Microsoft Corporation. All rights reserved.
+# Licensed under the MIT License.
+
 from a2a.types import AgentCard
 
 from a2a.server.tasks import TaskStore

@@ -1,3 +1,6 @@
+# Copyright (c) Microsoft Corporation. All rights reserved.
+# Licensed under the MIT License.
+
 from typing import Callable, Generic, Protocol
 from re import Pattern
 
@@ -25,7 +28,6 @@ class _AppRouteDecorator(Protocol[StateT]):
 class A2AAgentExtension(Generic[StateT]):
 
     def __init__(self, app: AgentApplication[StateT]) -> None:
-
         self._app = app
 
     def _wrap_decorator(

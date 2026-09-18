@@ -1,3 +1,6 @@
+# Copyright (c) Microsoft Corporation. All rights reserved.
+# Licensed under the MIT License.
+
 from fastapi import Request, Response
 
 from microsoft_agents.hosting.fastapi import AgentHttpAdapter
