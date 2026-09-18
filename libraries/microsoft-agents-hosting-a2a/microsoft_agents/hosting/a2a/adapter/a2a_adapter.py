@@ -23,6 +23,7 @@ from a2a.types import (
 from a2a.server.request_handlers import RequestHandler
 from a2a.server.agent_execution import RequestContext
 from a2a.server.events import EventQueue
+from a2a.server.tasks import TaskStore, InMemoryTaskStore
 
 from microsoft_agents.activity import (
     Activity,
@@ -57,16 +58,18 @@ logger = logging.getLogger(__name__)
 
 class A2AAdapter(ChannelAdapter, ChannelAdapterProtocol):
 
-    def __init__(
-        self,
-        agent: Agent,
-    ):
+    def __init__(self, agent: Agent, task_store: TaskStore | None = None):
+        """Initializes the A2AAdapter with the given agent and optional task store.
+        
+        :param agent: The agent instance to be used by the adapter.
+        :param task_store: Optional task store for managing tasks. If not provided, an in-memory task store will be used.
+        """
 
-        self._agent = Agent
+        self._agent = agent
         self._a2a_request_handler = A2ARequestHandler(
             self,
-            None,
-            None,
+            task_store or InMemoryTaskStore(),
+            agent_card = self._get_agent_card(),
         )
         self._context_map: dict[str, AgentRequestContext] = {}
 
@@ -263,7 +266,7 @@ class A2AAdapter(ChannelAdapter, ChannelAdapterProtocol):
             )
         ))
 
-    def _update_agent_card(self) -> None:
+    def _get_agent_card(self) -> AgentCard:
 
         agent_card = AgentCard(
             name=self._agent_card_name,
@@ -315,5 +318,7 @@ class A2AAdapter(ChannelAdapter, ChannelAdapterProtocol):
                     output_modes=skill_info.output_modes,
                 ))
 
+    def _update_agent_card(self) -> None:
+        agent_card = self._get_agent_card()
         self._a2a_request_handler.update_agent_card(agent_card)
 

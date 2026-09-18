@@ -14,10 +14,8 @@ from microsoft_agents.hosting.core import (
     ChannelServiceAdapter,
     ClaimsIdentity,
 )
-from microsoft_agents.hosting.core.channel_adapter_protocol import ChannelAdapterProtocol
-
-
 from ..activity import A2AActivity, utils
+from ..adapter import A2AAdapter
 
 logger = logging.getLogger(__name__)
 
@@ -25,10 +23,8 @@ class A2AAgentExecutor(AgentExecutor):
 
     def __init__(
         self,
-        # identity: ClaimsIdentity,
-        adapter: ChannelAdapterProtocol,
+        adapter: A2AAdapter,
     ):
-        # self._identity = identity
         self._adapter = adapter
 
     async def execute(
@@ -40,7 +36,7 @@ class A2AAgentExecutor(AgentExecutor):
         if not context.message:
             logger.warning("No message found in the request context. Dropping request.")
             return
-        
+
         await self._adapter.execute_agent_turn(
             context,
             event_queue,
