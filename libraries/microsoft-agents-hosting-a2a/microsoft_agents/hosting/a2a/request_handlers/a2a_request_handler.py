@@ -21,4 +21,11 @@ class A2ARequestHandler(DefaultRequestHandlerV2):
             task_store,
             agent_card
         )
+
+
+    def update_agent_card(self, agent_card: AgentCard) -> None:
+        """Update the agent card with the provided AgentCard instance.
         
+        :param agent_card: The AgentCard instance to update the handler with.
+        """
+        self._agent_card = agent_card

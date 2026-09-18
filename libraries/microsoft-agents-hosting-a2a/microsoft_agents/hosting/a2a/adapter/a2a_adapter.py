@@ -7,11 +7,18 @@ from uuid import uuid4
 from fastapi import Request, Response
 
 from a2a.types import (
+    AgentCard,
     SendMessageConfiguration,
     TaskStatusUpdateEvent,
     TaskArtifactUpdateEvent,
     TaskStatus,
     TaskState,
+    AgentCapabilities,
+    AgentCard,
+    AgentInterface,
+    AgentSkill,
+    HTTPAuthSecurityScheme,
+    SecurityScheme,
 )
 from a2a.server.request_handlers import RequestHandler
 from a2a.server.agent_execution import RequestContext
@@ -50,9 +57,12 @@ logger = logging.getLogger(__name__)
 
 class A2AAdapter(ChannelAdapter, ChannelAdapterProtocol):
 
-    def __init__(self, adapter: ChannelAdapterProtocol):
+    def __init__(
+        self,
+        agent: Agent,
+    ):
 
-        self._adapter = adapter
+        self._agent = Agent
         self._a2a_request_handler = A2ARequestHandler(
             self,
             None,
@@ -116,7 +126,6 @@ class A2AAdapter(ChannelAdapter, ChannelAdapterProtocol):
         activity: Activity,
         request_context: RequestContext,
         event_queue: EventQueue,
-        callback: Callable[[TurnContext], Awaitable] | None = None,
     ) -> InvokeResponse | None:
 
         if activity.channel_id != Channels.a2a:
@@ -139,13 +148,11 @@ class A2AAdapter(ChannelAdapter, ChannelAdapterProtocol):
         context.services.set(RequestContext, request_context)
         context.services.set(EventQueue, event_queue)
 
-        await self.run_pipeline(context, callback)
+        await self.run_pipeline(context, self._agent.on_turn)
 
     async def send_activities(
         self, context: TurnContext, activities: list[Activity]
     ) -> list[ResourceResponse]:
-
-        await self._a2a_request_handler.
 
         for activity in activities:
 
@@ -162,9 +169,9 @@ class A2AAdapter(ChannelAdapter, ChannelAdapterProtocol):
                 await self._on_end_of_conversation_response(context, activity)
             else:
                 logger.debug("A2AAdapter: Unhandled Activity Type: %s", activity.type)
-        
-        return await self._adapter.send_activities(context, activities)
 
+        return []
+        
     async def _on_streaming_response(self, context: TurnContext, activity: Activity, entity: StreamInfo):
         message = utils.get_incoming_message(context)
         is_informative = entity.stream_type == "informative"
@@ -255,3 +262,58 @@ class A2AAdapter(ChannelAdapter, ChannelAdapterProtocol):
                 message=response
             )
         ))
+
+    def _update_agent_card(self) -> None:
+
+        agent_card = AgentCard(
+            name=self._agent_card_name,
+            description=self._agent_card_description,
+            version=self._agent_card_version,
+            security_schemes={
+                "jwt": SecurityScheme(http_auth_security_scheme=HTTPAuthSecurityScheme(scheme="bearer"))
+            },
+            default_input_modes=["application/json"],
+            default_output_modes=["application/json"],
+            skills=[],
+            capabilities=AgentCapabilities(
+                extended_agent_card=True,
+                streaming=True,
+            ),
+            supported_interfaces=[],
+        )
+
+        agent_interfaces = []
+        if not agent_interfaces:
+            agent_card.supported_interfaces.append(
+                AgentInterface(
+                    protocol_binding=TransportProtocol.JSONRPC,
+                    url=f"{request.url.scheme}://{request.url.hostname}{path_prefix}/",
+                    protocol_version="1.0",
+                )
+            )
+        else:
+            for agent_interface in agent_interfaces:
+                if agent_interface.protocol in (TransportProtocol.JSONRPC, TransportProtocol.HTTP_JSON):
+                    agent_card.supported_interfaces.append(
+                        protocol_binding=agent_interface.protocol,
+                        url=f"{request.url.scheme}://{request.url.hostname}{path_prefix}/",
+                        protocol_version="1.0",
+                    )
+                else:
+                    logger.info("Unsupported protocol: %s", agent_interface.protocol)
+
+        skills = []
+        if skills:
+            for skill_info in skills:
+                agent_card.skills.append(AgentSkill(
+                    id=skill_info.id,
+                    name=skill_info.name,
+                    description=skill_info.description,
+                    tags=skill_info.tags,
+                    examples=skill_info.examples,
+                    input_modes=skill_info.input_modes,
+                    output_modes=skill_info.output_modes,
+                ))
+
+        self._a2a_request_handler.update_agent_card(agent_card)
+
