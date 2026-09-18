@@ -20,4 +20,5 @@ class A2ARequestHandler(DefaultRequestHandlerV2):
             A2AAgentExecutor(self._adapter),
             task_store,
             agent_card
-        ) 
+        )
+        

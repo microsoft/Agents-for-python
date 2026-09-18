@@ -7,13 +7,17 @@ from __future__ import annotations
 
 from typing import cast
 
+from microsoft_agents.activity import Activity
 from microsoft_agents.hosting.core import (
     AgentApplication,
     TurnContext,
+    ChannelServiceAdapter,
+    ClaimsIdentity,
 )
 
 from .activity import A2AActivity
 
+from .a2a_client import A2AClient
 
 class A2ATurnContext(TurnContext):
     """A context object for handling A2A-specific turn functionality.
@@ -22,23 +26,33 @@ class A2ATurnContext(TurnContext):
     receive a typed context without changing the core routing engine.
     """
 
-    def __init__(self, context: TurnContext, app: AgentApplication) -> None:
-        """Initialise the Teams turn context from a plain turn context.
+    def __init__(
+        self,
+        adapter_or_context: ChannelServiceAdapter | TurnContext,
+        app: AgentApplication,
+        activity: Activity | None = None,
+        identity: ClaimsIdentity | None = None,
+    ) -> None:
 
-        :param context: The base turn context provided by the core runtime.
-        :param app: The agent application that is handling the turn.
-        """
-        super().__init__(context)
+        if isinstance(adapter_or_context, TurnContext):
+            super().__init__(adapter_or_context)
+            self._original = adapter_or_context
+        else:
+            super().__init__(adapter_or_context, activity, identity)
+            self._original = self
+
         self._app = app
-        self._turn_state = context.turn_state
-
-        self._original = context
-
+        self._turn_state = self.turn_state
         self._set_a2a_activity()
+        self._client = A2AClient(self)
 
     def _set_a2a_activity(self) -> None:
         self._activity.__class__ = A2AActivity
         self._a2a_activity = cast(A2AActivity, self._activity)
+
+    @property
+    def client(self) -> A2AClient:
+        return self._client
 
     @property
     def responded(self) -> bool:

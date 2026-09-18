@@ -1,6 +1,6 @@
 import logging
-from os import sync
 from typing import Awaitable, Callable, cast
+from uuid import uuid4
 
 from fastapi import Request, Response
 
@@ -23,6 +23,7 @@ from microsoft_agents.activity import (
     StreamInfo,
 )
 from microsoft_agents.hosting.core import (
+    Agent,
     AuthenticationConstants,
     ChannelAdapter,
     ClaimsIdentity,
@@ -30,10 +31,13 @@ from microsoft_agents.hosting.core import (
     ChannelServiceAdapter,
 )
 from microsoft_agents.hosting.core.channel_adapter_protocol import ChannelAdapterProtocol
+from microsoft_agents.hosting.core.http._http_request_protocol import HttpRequestProtocol
 
 from ..request_handlers import A2ARequestHandler
 from ..activity import utils, A2AActivity
 from .agent_request_context import AgentRequestContext
+
+from ..constants import _CLAIMS_IDENTITY_KEY
 
 logger = logging.getLogger(__name__)
 
@@ -53,24 +57,40 @@ class A2AAdapter(ChannelAdapter, ChannelAdapterProtocol):
     def a2a_request_handler(self) -> RequestHandler:
         return self._a2a_request_handler
 
-    async def execute_agent_turn(self, context: RequestContext, event_queue: EventQueue) -> None:
+    async def execute_agent_turn(
+        self,
+        context: RequestContext,
+        event_queue: EventQueue,
+    ) -> None:
 
         if not context.message:
             raise ValueError("Context message is required.")
-        
-        self._context_map[context.request_id] = AgentRequestContext(
-            request_id=
-            identity=
-            event_queue=event_queue,
-        )
+
+        identity = context.call_context.state.get(_CLAIMS_IDENTITY_KEY, ClaimsIdentity())
+        if not isinstance(identity, ClaimsIdentity):
+            raise RuntimeError("Invalid identity in context call state.")
+
+        request_id = str(uuid4())
 
         activity = A2AActivity.from_message(
-            "",
+            request_id,
             context.task_id,
             context.message,
         )
+        activity.request_id = request_id
+
+        self._context_map[request_id] = AgentRequestContext(
+            request_id=request_id,
+            identity=identity,
+            event_queue=event_queue,
+        )
             
-        await self.process_activity_with_a2a(identity, activity)
+        await self._process_activity_with_a2a(
+            identity,
+            activity,
+            context,
+            event_queue,
+        )
 
     def _create_turn_context(
         self,
@@ -83,11 +103,13 @@ class A2AAdapter(ChannelAdapter, ChannelAdapterProtocol):
         context.turn_state[ChannelServiceAdapter.AGENT_IDENTITY_KEY] = claims_identity  # for back-compat
         return context
 
-    async def process_activity_with_a2a(
+    async def _process_activity_with_a2a(
         self,
-        claims_identity: ClaimsIdentity,
+        identity: ClaimsIdentity,
         activity: Activity,
-        callback: Callable[[TurnContext], Awaitable],
+        request_context: RequestContext,
+        event_queue: EventQueue,
+        callback: Callable[[TurnContext], Awaitable] | None = None,
     ) -> InvokeResponse | None:
 
         if activity.channel_id != Channels.a2a:
@@ -95,19 +117,20 @@ class A2AAdapter(ChannelAdapter, ChannelAdapterProtocol):
 
         outgoing_audience: str | None = None
 
-        if claims_identity.is_agent_claim():
-            outgoing_audience = claims_identity.get_token_audience()
-            activity.caller_id = f"{CallerIdConstants.agent_to_agent_prefix}{claims_identity.get_outgoing_app_id()}"
+        if identity.is_agent_claim():
+            outgoing_audience = identity.get_token_audience()
+            activity.caller_id = f"{CallerIdConstants.agent_to_agent_prefix}{identity.get_outgoing_app_id()}"
         else:
             outgoing_audience = AuthenticationConstants.AGENTS_SDK_SCOPE
 
         # Create a turn context and run the pipeline.
         context = self._create_turn_context(
-            claims_identity,
+            identity,
             outgoing_audience,
             activity=activity,
         )
-        context = self._create_turn_context(claims_identity, Channels.a2a, activity)
+        context.services.set(RequestContext, request_context)
+        context.services.set(EventQueue, event_queue)
 
         await self.run_pipeline(context, callback)
 

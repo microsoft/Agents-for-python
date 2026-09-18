@@ -26,7 +26,9 @@ class A2ACloudAdapter(A2AAdapter, AgentHttpAdapter):
 
         adapted_request = FastApiRequestAdapter(request)
         
-                # Process using base implementation
-                http_response: HttpResponse = await self.process_request(adapted_request, agent)
+        # Process using base implementation
+        http_response: HttpResponse = await self.process_request(adapted_request, agent)
 
-        return await self.process(request, agent)
+        
+
+        return await self.process_request(request, agent)
