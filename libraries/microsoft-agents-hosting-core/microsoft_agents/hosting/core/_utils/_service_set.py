@@ -27,7 +27,9 @@ class _ServiceSet:
     def get(self, key: type[T], raise_if_missing: Literal[True] = True) -> T: ...
 
     @overload
-    def get(self, key: type[T], raise_if_missing: Literal[False] = False) -> T | None: ...
+    def get(
+        self, key: type[T], raise_if_missing: Literal[False] = False
+    ) -> T | None: ...
     def get(self, key: type[T], raise_if_missing: bool = False) -> T | None:
         """
         Gets a value from the state collection.
@@ -48,7 +50,7 @@ class _ServiceSet:
 
         if raise_if_missing:
             raise KeyError(f"Value for key '{key.__name__}' is missing")
-    
+
         return None
 
     def has(self, key: type) -> bool:

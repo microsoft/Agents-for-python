@@ -45,8 +45,12 @@ from microsoft_agents.hosting.core import (
     TurnContext,
     ChannelServiceAdapter,
 )
-from microsoft_agents.hosting.core.channel_adapter_protocol import ChannelAdapterProtocol
-from microsoft_agents.hosting.core.http._http_request_protocol import HttpRequestProtocol
+from microsoft_agents.hosting.core.channel_adapter_protocol import (
+    ChannelAdapterProtocol,
+)
+from microsoft_agents.hosting.core.http._http_request_protocol import (
+    HttpRequestProtocol,
+)
 
 from ..request_handlers import A2ARequestHandler
 from ..activity import utils, A2AActivity
@@ -56,11 +60,12 @@ from ..constants import _CLAIMS_IDENTITY_KEY
 
 logger = logging.getLogger(__name__)
 
+
 class A2AAdapter(ChannelAdapter, ChannelAdapterProtocol):
 
     def __init__(self, agent: Agent, task_store: TaskStore | None = None):
         """Initializes the A2AAdapter with the given agent and optional task store.
-        
+
         :param agent: The agent instance to be used by the adapter.
         :param task_store: Optional task store for managing tasks. If not provided, an in-memory task store will be used.
         """
@@ -69,7 +74,7 @@ class A2AAdapter(ChannelAdapter, ChannelAdapterProtocol):
         self._a2a_request_handler = A2ARequestHandler(
             self,
             task_store or InMemoryTaskStore(),
-            agent_card = self._get_agent_card(),
+            agent_card=self._get_agent_card(),
         )
         self._context_map: dict[str, AgentRequestContext] = {}
 
@@ -86,7 +91,9 @@ class A2AAdapter(ChannelAdapter, ChannelAdapterProtocol):
         if not context.message:
             raise ValueError("Context message is required.")
 
-        identity = context.call_context.state.get(_CLAIMS_IDENTITY_KEY, ClaimsIdentity())
+        identity = context.call_context.state.get(
+            _CLAIMS_IDENTITY_KEY, ClaimsIdentity()
+        )
         if not isinstance(identity, ClaimsIdentity):
             raise RuntimeError("Invalid identity in context call state.")
 
@@ -104,7 +111,7 @@ class A2AAdapter(ChannelAdapter, ChannelAdapterProtocol):
             identity=identity,
             event_queue=event_queue,
         )
-            
+
         await self._process_activity_with_a2a(
             identity,
             activity,
@@ -120,7 +127,9 @@ class A2AAdapter(ChannelAdapter, ChannelAdapterProtocol):
     ) -> TurnContext:
         context = TurnContext(self, activity, claims_identity)
         context.turn_state[ChannelServiceAdapter.OAUTH_SCOPE_KEY] = oauth_scope
-        context.turn_state[ChannelServiceAdapter.AGENT_IDENTITY_KEY] = claims_identity  # for back-compat
+        context.turn_state[ChannelServiceAdapter.AGENT_IDENTITY_KEY] = (
+            claims_identity  # for back-compat
+        )
         return context
 
     async def _process_activity_with_a2a(
@@ -174,32 +183,40 @@ class A2AAdapter(ChannelAdapter, ChannelAdapterProtocol):
                 logger.debug("A2AAdapter: Unhandled Activity Type: %s", activity.type)
 
         return []
-        
-    async def _on_streaming_response(self, context: TurnContext, activity: Activity, entity: StreamInfo):
+
+    async def _on_streaming_response(
+        self, context: TurnContext, activity: Activity, entity: StreamInfo
+    ):
         message = utils.get_incoming_message(context)
         is_informative = entity.stream_type == "informative"
 
         event_queue = context.services.get(EventQueue, raise_if_missing=True)
 
         if is_informative:
-            await event_queue.enqueue_event(TaskStatusUpdateEvent(
-                task_id=message.task_id,
-                context_id=message.context_id,
-                status=TaskStatus(
-                    state=TaskState.TASK_STATE_WORKING,
-                    timestamp=datetime.now(timezone.utc),
-                    message=utils.create_message(message.context_id, message.task_id, activity)
+            await event_queue.enqueue_event(
+                TaskStatusUpdateEvent(
+                    task_id=message.task_id,
+                    context_id=message.context_id,
+                    status=TaskStatus(
+                        state=TaskState.TASK_STATE_WORKING,
+                        timestamp=datetime.now(timezone.utc),
+                        message=utils.create_message(
+                            message.context_id, message.task_id, activity
+                        ),
+                    ),
                 )
-            ))
+            )
         else:
             artifact = utils.activity_to_artifact(activity, entity.stream_id)
-            await event_queue.enqueue_event(TaskArtifactUpdateEvent(
-                task_id=message.task_id,
-                context_id=message.context_id,
-                artifact=artifact,
-                append=False,
-                last_chunk=True,
-            ))
+            await event_queue.enqueue_event(
+                TaskArtifactUpdateEvent(
+                    task_id=message.task_id,
+                    context_id=message.context_id,
+                    artifact=artifact,
+                    append=False,
+                    last_chunk=True,
+                )
+            )
 
     async def _on_message_response(self, context: TurnContext, activity: Activity):
         message = utils.get_incoming_message(context)
@@ -208,17 +225,19 @@ class A2AAdapter(ChannelAdapter, ChannelAdapterProtocol):
 
         event_queue = context.services.get(EventQueue, raise_if_missing=True)
 
-        await event_queue.enqueue_event(TaskStatusUpdateEvent(
-            task_id=message.task_id,
-            context_id=message.context_id,
-            status=TaskStatus(
-                state=state,
-                timestamp=datetime.now(timezone.utc),
-                message=response
+        await event_queue.enqueue_event(
+            TaskStatusUpdateEvent(
+                task_id=message.task_id,
+                context_id=message.context_id,
+                status=TaskStatus(
+                    state=state, timestamp=datetime.now(timezone.utc), message=response
+                ),
             )
-        ))
+        )
 
-    async def _on_end_of_conversation_response(self, context: TurnContext, activity: Activity):
+    async def _on_end_of_conversation_response(
+        self, context: TurnContext, activity: Activity
+    ):
         message = utils.get_incoming_message(context)
         event_queue = context.services.get(EventQueue, raise_if_missing=True)
 
@@ -227,15 +246,17 @@ class A2AAdapter(ChannelAdapter, ChannelAdapterProtocol):
                 activity.value,
                 name="Result",
                 description="Task completion result",
-                media_type="application/json"
+                media_type="application/json",
             )
-            await event_queue.enqueue_event(TaskArtifactUpdateEvent(
-                task_id=message.task_id,
-                context_id=message.context_id,
-                artifact=artifact,
-                append=False,
-                last_chunk=True,
-            ))
+            await event_queue.enqueue_event(
+                TaskArtifactUpdateEvent(
+                    task_id=message.task_id,
+                    context_id=message.context_id,
+                    artifact=artifact,
+                    append=False,
+                    last_chunk=True,
+                )
+            )
 
         task_state: TaskState
         if activity.code == EndOfConversationCodes.error:
@@ -256,15 +277,17 @@ class A2AAdapter(ChannelAdapter, ChannelAdapterProtocol):
             status_message,
         )
 
-        await event_queue.enqueue_event(TaskStatusUpdateEvent(
-            task_id=message.task_id,
-            context_id=message.context_id,
-            status=TaskStatus(
-                state=task_state,
-                timestamp=datetime.now(timezone.utc),
-                message=response
+        await event_queue.enqueue_event(
+            TaskStatusUpdateEvent(
+                task_id=message.task_id,
+                context_id=message.context_id,
+                status=TaskStatus(
+                    state=task_state,
+                    timestamp=datetime.now(timezone.utc),
+                    message=response,
+                ),
             )
-        ))
+        )
 
     def _get_agent_card(self) -> AgentCard:
 
@@ -273,7 +296,9 @@ class A2AAdapter(ChannelAdapter, ChannelAdapterProtocol):
             description=self._agent_card_description,
             version=self._agent_card_version,
             security_schemes={
-                "jwt": SecurityScheme(http_auth_security_scheme=HTTPAuthSecurityScheme(scheme="bearer"))
+                "jwt": SecurityScheme(
+                    http_auth_security_scheme=HTTPAuthSecurityScheme(scheme="bearer")
+                )
             },
             default_input_modes=["application/json"],
             default_output_modes=["application/json"],
@@ -296,7 +321,10 @@ class A2AAdapter(ChannelAdapter, ChannelAdapterProtocol):
             )
         else:
             for agent_interface in agent_interfaces:
-                if agent_interface.protocol in (TransportProtocol.JSONRPC, TransportProtocol.HTTP_JSON):
+                if agent_interface.protocol in (
+                    TransportProtocol.JSONRPC,
+                    TransportProtocol.HTTP_JSON,
+                ):
                     agent_card.supported_interfaces.append(
                         protocol_binding=agent_interface.protocol,
                         url=f"{request.url.scheme}://{request.url.hostname}{path_prefix}/",
@@ -308,17 +336,18 @@ class A2AAdapter(ChannelAdapter, ChannelAdapterProtocol):
         skills = []
         if skills:
             for skill_info in skills:
-                agent_card.skills.append(AgentSkill(
-                    id=skill_info.id,
-                    name=skill_info.name,
-                    description=skill_info.description,
-                    tags=skill_info.tags,
-                    examples=skill_info.examples,
-                    input_modes=skill_info.input_modes,
-                    output_modes=skill_info.output_modes,
-                ))
+                agent_card.skills.append(
+                    AgentSkill(
+                        id=skill_info.id,
+                        name=skill_info.name,
+                        description=skill_info.description,
+                        tags=skill_info.tags,
+                        examples=skill_info.examples,
+                        input_modes=skill_info.input_modes,
+                        output_modes=skill_info.output_modes,
+                    )
+                )
 
     def _update_agent_card(self) -> None:
         agent_card = self._get_agent_card()
         self._a2a_request_handler.update_agent_card(agent_card)
-

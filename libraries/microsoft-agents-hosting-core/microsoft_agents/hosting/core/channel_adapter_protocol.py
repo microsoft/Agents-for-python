@@ -25,9 +25,7 @@ class ChannelAdapterProtocol(Protocol):
         pass
 
     @abstractmethod
-    async def update_activity(
-        self, context: TurnContext, activity: Activity
-    ) -> None:
+    async def update_activity(self, context: TurnContext, activity: Activity) -> None:
         pass
 
     @abstractmethod

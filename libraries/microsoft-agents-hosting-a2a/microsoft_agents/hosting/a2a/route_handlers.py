@@ -8,6 +8,7 @@ from __future__ import annotations
 from typing import (
     Awaitable,
     Protocol,
+    cast,
 )
 
 from microsoft_agents.hosting.core import AgentApplication, TurnContext
@@ -18,14 +19,14 @@ from .type_defs import _StateContra
 
 
 class A2ARouteHandler(Protocol[_StateContra]):
-    """Protocol for a Teams route handler that receives a :class:`TeamsTurnContext`."""
+    """Protocol for a Teams route handler that receives a :class:`A2ATurnContext`."""
 
     def __call__(
-        self, context: TeamsTurnContext, state: _StateContra, /
+        self, context: A2ATurnContext, state: _StateContra, /
     ) -> Awaitable[None]:
-        """Handle a turn with Teams context.
+        """Handle a turn with A2A context.
 
-        :param context: Teams-aware turn context.
+        :param context: A2A-aware turn context.
         :param state: The current turn state.
         """
         ...
@@ -45,7 +46,10 @@ def wrap_a2a_route_handler(
     """
 
     async def __func(context: TurnContext, state: _StateContra) -> None:
-        a2a_context = A2ATurnContext(context, app)
+        if not isinstance(context, A2ATurnContext):
+            a2a_context = A2ATurnContext(context, app)
+        else:
+            a2a_context = cast(A2ATurnContext, context)
         await handler(a2a_context, state)
 
     return __func

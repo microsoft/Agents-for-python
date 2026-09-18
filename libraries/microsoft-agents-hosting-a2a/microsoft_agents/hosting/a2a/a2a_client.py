@@ -4,6 +4,7 @@ from a2a.server.tasks import TaskStore
 
 from microsoft_agents.hosting.core import TurnContext
 
+
 class A2AClient:
 
     def __init__(self, context: TurnContext):

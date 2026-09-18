@@ -8,6 +8,7 @@ from starlette.routing import BaseRoute, Route
 
 from .sdk_server_call_context_builder import SDKServerCallContextBuilder
 
+
 def create_jsonrpc_routes(
     request_handler: RequestHandler,
     rpc_url: str,
@@ -19,6 +20,7 @@ def create_jsonrpc_routes(
         context_builder=SDKServerCallContextBuilder(),
         enable_v0_3_compat=enable_v0_3_compat,
     )
+
 
 def create_rest_routes(
     request_handler: RequestHandler,

@@ -65,7 +65,9 @@ class CloudAdapter(HttpAdapterBase, AgentHttpAdapter):
         # Convert HttpResponse to FastAPI Response
         return self._to_fastapi_response(http_response)
 
-    async def process_request(self, request: HttpRequestProtocol, agent: Agent) -> HttpResponse:
+    async def process_request(
+        self, request: HttpRequestProtocol, agent: Agent
+    ) -> HttpResponse:
         """Process an incoming HTTP request.
 
         Args:

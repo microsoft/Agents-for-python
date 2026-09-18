@@ -19,6 +19,7 @@ from .activity import A2AActivity
 
 from .a2a_client import A2AClient
 
+
 class A2ATurnContext(TurnContext):
     """A context object for handling A2A-specific turn functionality.
 

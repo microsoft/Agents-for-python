@@ -10,12 +10,16 @@ from microsoft_agents.hosting.core import (
     ChannelServiceClientFactoryBase,
     OutboundHostValidator,
 )
-from microsoft_agents.hosting.core.channel_adapter_protocol import ChannelAdapterProtocol
+from microsoft_agents.hosting.core.channel_adapter_protocol import (
+    ChannelAdapterProtocol,
+)
 
 from microsoft_agents.hosting.fastapi import CloudAdapter
 
+
 class _CloudAdapter(AgentHttpAdapter, ChannelAdapterProtocol):
     pass
+
 
 class A2ACloudAdapter(A2AAdapter, AgentHttpAdapter):
 
@@ -25,10 +29,8 @@ class A2ACloudAdapter(A2AAdapter, AgentHttpAdapter):
     async def process(self, request: Request, agent: Agent) -> Response | None:
 
         adapted_request = FastApiRequestAdapter(request)
-        
+
         # Process using base implementation
         http_response: HttpResponse = await self.process_request(adapted_request, agent)
-
-        
 
         return await self.process_request(request, agent)

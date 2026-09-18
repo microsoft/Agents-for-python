@@ -7,6 +7,7 @@ from ..adapter import A2AAdapter
 
 from .a2a_agent_executor import A2AAgentExecutor
 
+
 class A2ARequestHandler(DefaultRequestHandlerV2):
 
     def __init__(
@@ -16,16 +17,11 @@ class A2ARequestHandler(DefaultRequestHandlerV2):
         agent_card: AgentCard,
     ):
         self._adapter = adapter
-        super().__init__(
-            A2AAgentExecutor(self._adapter),
-            task_store,
-            agent_card
-        )
-
+        super().__init__(A2AAgentExecutor(self._adapter), task_store, agent_card)
 
     def update_agent_card(self, agent_card: AgentCard) -> None:
         """Update the agent card with the provided AgentCard instance.
-        
+
         :param agent_card: The AgentCard instance to update the handler with.
         """
         self._agent_card = agent_card

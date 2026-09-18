@@ -19,7 +19,10 @@ from microsoft_agents.hosting.core import TurnContext
 _ENTITY_TYPE_TEMPLATE = "application/vnd.microsoft.entity.{0}"
 _SCHEMAS: dict[str, Mapping] = {}
 
-def activity_to_artifact(activity: Activity, artifact_id: str | None = None, include_entities: bool = True) -> Artifact:
+
+def activity_to_artifact(
+    activity: Activity, artifact_id: str | None = None, include_entities: bool = True
+) -> Artifact:
 
     artifact = Artifact(
         artifact_id=artifact_id if artifact_id else str(uuid4()),
@@ -57,16 +60,21 @@ def activity_to_artifact(activity: Activity, artifact_id: str | None = None, inc
             if not isinstance(entity, StreamInfo):
 
                 if entity.type not in _SCHEMAS:
-                    _SCHEMAS[entity.type] = _to_a2a_metadata(entity, _ENTITY_TYPE_TEMPLATE.format(entity.type))
+                    _SCHEMAS[entity.type] = _to_a2a_metadata(
+                        entity, _ENTITY_TYPE_TEMPLATE.format(entity.type)
+                    )
 
                 cached_metadata = _SCHEMAS[entity.type]
 
-                artifact.parts.append(Part(
-                    metadata=cached_metadata,
-                    data=entity.model_dump(exclude_none=True),
-                ))
-            
+                artifact.parts.append(
+                    Part(
+                        metadata=cached_metadata,
+                        data=entity.model_dump(exclude_none=True),
+                    )
+                )
+
     return artifact
+
 
 def create_artifact_from_data(
     data: dict,
@@ -79,21 +87,27 @@ def create_artifact_from_data(
         return None
 
     return Artifact(
-        artifact_id=artifact_id if artifact_id else str(uuid4()), # check .NET
+        artifact_id=artifact_id if artifact_id else str(uuid4()),  # check .NET
         name=name,
         description=description,
         parts=[
             Part(
                 data=data,
-                metadata=_get_a2a_metadata(data, media_type or data.__class__.__name__)
+                metadata=_get_a2a_metadata(data, media_type or data.__class__.__name__),
             )
-        ]
+        ],
     )
 
-def create_message(context_id: str, task_id: str, activity: Activity | None, include_entities: bool = True) -> Message:
+
+def create_message(
+    context_id: str,
+    task_id: str,
+    activity: Activity | None,
+    include_entities: bool = True,
+) -> Message:
 
     parts: Sequence[Part] | None
-    
+
     if not activity:
         parts = None
     else:
@@ -108,13 +122,16 @@ def create_message(context_id: str, task_id: str, activity: Activity | None, inc
         role=RoleTypes.agent,
     )
 
+
 def has_message_content(activity: Activity) -> bool:
     return bool(activity.text) or bool(activity.attachments)
+
 
 def get_task_state(self) -> TaskState:
     if self.input_hint == InputHints.expecting_input:
         return TaskState.TASK_STATE_INPUT_REQUIRED
     return TaskState.TASK_STATE_WORKING
+
 
 def get_incoming_message(context: TurnContext) -> Message:
     data = context.activity.channel_data

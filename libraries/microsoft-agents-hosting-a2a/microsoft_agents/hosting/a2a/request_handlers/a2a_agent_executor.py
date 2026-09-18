@@ -1,9 +1,6 @@
 import logging
 
-from a2a.server.agent_execution import (
-    AgentExecutor,
-    RequestContext
-)
+from a2a.server.agent_execution import AgentExecutor, RequestContext
 from a2a.server.events import EventQueue
 
 from microsoft_agents.activity import (
@@ -18,6 +15,7 @@ from ..activity import A2AActivity, utils
 from ..adapter import A2AAdapter
 
 logger = logging.getLogger(__name__)
+
 
 class A2AAgentExecutor(AgentExecutor):
 
@@ -48,5 +46,3 @@ class A2AAgentExecutor(AgentExecutor):
         event_queue: EventQueue,
     ) -> None:
         pass
-
-        
