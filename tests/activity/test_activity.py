@@ -85,6 +85,13 @@ class TestActivityConversationOps:
         assert activity.locale == conversation_reference.locale
         assert activity.service_url == conversation_reference.service_url
 
+    def test_get_conversation_reference_propagates_request_id(self, activity):
+        activity.request_id = "request-123"
+
+        conversation_reference = activity.get_conversation_reference()
+
+        assert conversation_reference.request_id == "request-123"
+
     def test_get_conversation_reference_force_base_channel(self, activity):
         activity.channel_id = "msteams:copilot-web"
 
@@ -198,6 +205,25 @@ class TestActivityConversationOps:
         assert conversation_reference.agent.id == activity.recipient.id
         assert conversation_reference.activity_id == activity.id
         assert activity.locale == activity_to_send.locale
+
+    def test_apply_conversation_reference_propagates_request_id(self):
+        activity = create_test_activity("en-us")
+        conversation_reference = ConversationReference(
+            channel_id="cr_123",
+            service_url="cr_serviceUrl",
+            conversation=ConversationAccount(id="cr_456"),
+            user=ChannelAccount(id="cr_abc"),
+            agent=ChannelAccount(id="cr_def"),
+            activity_id="cr_12345",
+            locale="en-us",
+            request_id="request-123",
+        )
+
+        activity_to_send = activity.apply_conversation_reference(
+            conversation_reference, is_incoming=True
+        )
+
+        assert activity_to_send.request_id == "request-123"
 
     @pytest.mark.parametrize("locale", ["EN-US", "en-uS"])
     def test_apply_conversation_reference(self, locale):
