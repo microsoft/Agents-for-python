@@ -504,11 +504,7 @@ class StreamingResponse:
         if self._enable_feedback_loop and self._is_teams_channel():
             self._add_feedback_loop_to_channel_data(activity)
 
-        if self._enable_generated_by_ai_label:
-            curr_citations = CitationUtil.get_used_citations(
-                self._message, self._citations
-            )
-            activity.add_ai_metadata(curr_citations, self._sensitivity_label)
+        self._add_generated_by_ai_metadata(activity)
 
         return activity
 
@@ -525,6 +521,7 @@ class StreamingResponse:
                 )
             ],
         )
+        self._add_generated_by_ai_metadata(activity)
         return activity
 
     def _create_stream_timed_out_message(
@@ -545,12 +542,15 @@ class StreamingResponse:
                 stream_info.stream_id = self._stream_id
             entities.append(stream_info)
 
-        return Activity(
+        activity = Activity(
             id=self._stream_id,
             type="message",
             text=text,
             entities=entities,
         )
+        if add_stream_final:
+            self._add_generated_by_ai_metadata(activity)
+        return activity
 
     def _create_stream_timed_out_streaming_update(self) -> Activity:
         text = (
@@ -858,6 +858,13 @@ class StreamingResponse:
             "type": self._feedback_loop_type or "default"
         }
         activity.channel_data = serialized_channel_data
+
+    def _add_generated_by_ai_metadata(self, activity: Activity) -> None:
+        if not self._enable_generated_by_ai_label:
+            return
+
+        curr_citations = CitationUtil.get_used_citations(self._message, self._citations)
+        activity.add_ai_metadata(curr_citations, self._sensitivity_label)
 
     def _should_update_final_activity(self) -> bool:
         if self._is_m365_copilot():

@@ -453,6 +453,31 @@ async def test_timeout_notification_preserves_streamed_text(mocker):
 
 
 @pytest.mark.asyncio
+async def test_timeout_notification_adds_generated_by_ai_metadata(mocker):
+    context = _create_turn_context(
+        mocker,
+        channel_id=Channels.ms_teams,
+        return_value=ResourceResponse(id="stream-stop"),
+    )
+    response = StreamingResponse(context)
+    response._interval = 0
+    response.set_generated_by_ai_label(True)
+
+    response.queue_text_chunk("Partial response")
+    await response.wait_for_queue()
+    assert await response.send_stream_timed_out_notification("Still working.")
+
+    stopped_activity = context.send_activity.await_args_list[-1].args[0]
+    ai_entities = [
+        entity
+        for entity in stopped_activity.entities
+        if "AIGeneratedContent" in (getattr(entity, "additional_type", None) or [])
+    ]
+    assert len(ai_entities) == 1
+    assert ai_entities[0].citation is None
+
+
+@pytest.mark.asyncio
 async def test_timeout_notification_sends_m365_final_as_new_activity(mocker):
     context = _create_turn_context(
         mocker,
