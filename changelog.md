@@ -1,18 +1,25 @@
-# Microsoft 365 Agents SDK for Python - Release Notes v1.6.1 (Unreleased)
+# Microsoft 365 Agents SDK for Python - Release Notes v1.7.0
 
-**Release Date:** Unreleased
+**Release Date:** 2026-09-17
 **Previous Version:** 1.5.0 (Released 2026-08-26)
+
+## Major Features & Enhancements
+
+- **Certificate Subject Name Authentication**: Added a `SendX5C` flag to support certificate-based authentication (#576)
 
 ## New Models & APIs
 
-- **MSAL Token Credential**: Added `MsalTokenCredential`, an Azure Core-compatible asynchronous token credential backed by MSAL, for authenticating Azure SDK clients that accept an `AsyncTokenCredential`.
-- **Authorization Token Credentials**: Added `AsyncTokenCredential` access through `AccessTokenProviderBase` and `Authorization`, including user-token refresh and exchange flows.
+- **MSAL Token Credential**: Added `MsalTokenCredential`, an Azure Core-compatible asynchronous token credential backed by MSAL, for authenticating Azure SDK clients that accept an `AsyncTokenCredential` (#565)
+- **Authorization Token Credentials**: Added `AsyncTokenCredential` access through `AccessTokenProviderBase` and `Authorization`, including user-token refresh and exchange flows (#568)
 - **Channel Feature Support Helpers**: Added `Channels` helper methods (e.g. `supports_card_actions`, `supports_suggested_actions`, `supports_video_card`, `supports_receipt_card`, `supports_thumbnail_card`, `supports_audio_card`, `supports_animation_card`, `supports_create_conversation`, `supports_update_activity`, `supports_delete_activity`) for checking per-channel feature support, accepting `Channels`, `ChannelId`, and plain string inputs (#580)
 
 ## Bug Fixes
 
-- **Typing Indicator on Update/Delete**: Fixed the typing indicator re-appearing in Teams clients after the finalized streaming activity was updated or deleted post-`end_stream()`.
-- **Streaming AI Metadata**: Fixed final streaming activities so Teams feedback-loop metadata is emitted in `channelData` instead of `StreamInfo`, and the AI-generated label is emitted even when the response has no citations.
+- **Typing Indicator on Update/Delete**: Fixed the typing indicator re-appearing in Teams clients after the finalized streaming activity was updated or deleted post-`end_stream()` (#570)
+
+## Developer Experience
+
+- **`AgentAuthConfiguration` Keyword-Only Arguments**: Made `cert_pfx_file`, `connection_name`, and `federated_client_id`, and other arguments keyword-only in `AgentAuthConfiguration.__init__` to clarify usage and prevent accidental misuse (#578)
 
 ---
 
