@@ -4,6 +4,7 @@
 """Base HTTP adapter with shared processing logic."""
 
 from abc import ABC
+from uuid import uuid4
 from http import HTTPStatus
 from traceback import format_exc
 
@@ -116,6 +117,8 @@ class HttpAdapterBase(ChannelServiceAdapter, ABC):
                 )
 
             activity: Activity = Activity.model_validate(body)
+            activity.request_id = str(uuid4())
+
             span.share(activity=activity)
 
             # Get claims identity (default to anonymous if not set by middleware)
