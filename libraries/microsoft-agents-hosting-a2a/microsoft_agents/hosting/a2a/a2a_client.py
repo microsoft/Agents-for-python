@@ -9,8 +9,13 @@ from microsoft_agents.hosting.core import TurnContext
 
 
 class A2AClient:
+    """A client for interacting with the A2A services within a TurnContext."""
 
     def __init__(self, context: TurnContext):
+        """Initialize the A2AClient with the given TurnContext.
+
+        :param context: The TurnContext containing the required services.
+        """
 
         event_queue = context.services.get(EventQueue)
         request_context = context.services.get(RequestContext)
@@ -25,12 +30,15 @@ class A2AClient:
 
     @property
     def event_queue(self) -> EventQueue:
+        """Get the event queue associated with this client."""
         return self._event_queue
 
     @property
     def request_context(self) -> RequestContext:
+        """Get the request context associated with this client."""
         return self._request_context
 
     @property
     def task_store(self) -> TaskStore:
+        """Get the task store associated with this client."""
         return self._task_store

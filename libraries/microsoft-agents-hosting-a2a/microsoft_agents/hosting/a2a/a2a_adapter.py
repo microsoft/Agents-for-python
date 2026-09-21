@@ -3,8 +3,10 @@
 
 import logging
 
+
 from datetime import datetime, timezone
 from typing import Awaitable, Callable, cast
+from urllib.parse import urlsplit
 from uuid import uuid4
 
 from a2a.types import (
@@ -21,12 +23,13 @@ from a2a.types import (
     AgentSkill,
     HTTPAuthSecurityScheme,
     SecurityScheme,
+    Skill,
 )
 from a2a.server.request_handlers import RequestHandler
 from a2a.server.agent_execution import RequestContext
 from a2a.server.events import EventQueue
 from a2a.server.tasks import TaskStore, InMemoryTaskStore
-from a2a.utils.constants import TransportProtocol
+from a2a.utils.constants import TransportProtocol, AGENT_CARD_WELL_KNOWN_PATH
 
 from microsoft_agents.activity import (
     Activity,
@@ -77,6 +80,8 @@ class A2AAdapter(A2AHttpAdapter, ChannelAdapter, ChannelAdapterProtocol):
         agent_card_name: str = "A2AAdapter",
         agent_card_description: str = "Agents SDK A2A",
         agent_card_version: str = "0.0.0",
+        agent_interfaces: list[AgentInterface] | None = None,
+        skills: list[Skill] | None = None,
         task_store: TaskStore | None = None
     ):
         """Initializes the A2AAdapter with the given agent and optional task store.
@@ -89,12 +94,32 @@ class A2AAdapter(A2AHttpAdapter, ChannelAdapter, ChannelAdapterProtocol):
         self._agent_card_name = agent_card_name
         self._agent_card_description = agent_card_description
         self._agent_card_version = agent_card_version
+        self._task_store = task_store or InMemoryTaskStore()
+
+        self._skills: list[Skill] = skills or []
+        self._agent_interfaces: list[AgentInterface] = agent_interfaces or [
+            AgentInterface(
+                url="/a2a",
+                protocol_binding=TransportProtocol.JSONRPC,
+            )
+        ]
+        
         self._a2a_request_handler = A2ARequestHandler(
             self,
-            task_store or InMemoryTaskStore(),
-            agent_card=self._get_agent_card(),
+            task_store=self._task_store,
+            agent_card=self._get_basic_agent_card(),
         )
         self._context_map: dict[str, AgentRequestContext] = {}
+
+    @property
+    def skills(self) -> list[Skill]:
+        """Get the list of skills associated with the adapter."""
+        return self._skills
+
+    @property
+    def agent_interfaces(self) -> list[AgentInterface]:
+        """Get the list of agent interfaces associated with the adapter."""
+        return self._agent_interfaces
 
     @property
     def a2a_request_handler(self) -> RequestHandler:
@@ -136,12 +161,15 @@ class A2AAdapter(A2AHttpAdapter, ChannelAdapter, ChannelAdapterProtocol):
             event_queue=event_queue,
         )
 
-        await self._process_activity_with_a2a(
-            identity,
-            activity,
-            context,
-            event_queue,
-        )
+        try:
+            await self._process_activity_with_a2a(
+                identity,
+                activity,
+                context,
+                event_queue,
+            )
+        finally:
+            del self._context_map[request_id]
 
     def _create_turn_context(
         self,
@@ -198,6 +226,7 @@ class A2AAdapter(A2AHttpAdapter, ChannelAdapter, ChannelAdapterProtocol):
         )
         context.services.set(RequestContext, request_context)
         context.services.set(EventQueue, event_queue)
+        context.services.set(TaskStore, self._task_store)
 
         await self.run_pipeline(context, self._agent.on_turn)
 
@@ -327,7 +356,7 @@ class A2AAdapter(A2AHttpAdapter, ChannelAdapter, ChannelAdapterProtocol):
         else:
             task_state = TaskState.TASK_STATE_COMPLETED
 
-        status_message: Activity
+        status_message: Activity | None = None
         if utils.has_message_content(activity):
             status_message = activity.model_copy()
             status_message.value = None
@@ -350,9 +379,9 @@ class A2AAdapter(A2AHttpAdapter, ChannelAdapter, ChannelAdapterProtocol):
             )
         )
 
-    def _get_agent_card(self) -> AgentCard:
-
-        agent_card = AgentCard(
+    def _get_basic_agent_card(self) -> AgentCard:
+        """Get the basic agent card with default settings."""
+        return AgentCard(
             name=self._agent_card_name,
             description=self._agent_card_description,
             version=self._agent_card_version,
@@ -371,32 +400,42 @@ class A2AAdapter(A2AHttpAdapter, ChannelAdapter, ChannelAdapterProtocol):
             supported_interfaces=[],
         )
 
-        agent_interfaces = []
-        if not agent_interfaces:
+    async def get_agenst_card(self, request: HttpRequestProtocol, path_prefix: str) -> AgentCard:
+        """Get the agent card for the current agent, potentially customized based on the request.
+
+        Set as asynchronous because in some implementations, fetching or customizing the agent card might involve I/O operations, such as querying a database or an external service.
+        
+        :param request: The HTTP request object conforming to HttpRequestProtocol.
+        :return: An AgentCard instance representing the agent's capabilities.
+        """
+        agent_card = self._get_basic_agent_card()
+
+        url_parts = urlsplit(request.url)
+        
+        if not self._agent_interfaces:
             agent_card.supported_interfaces.append(
                 AgentInterface(
                     protocol_binding=TransportProtocol.JSONRPC,
-                    url=f"{request.url.scheme}://{request.url.hostname}{path_prefix}/",
+                    url=f"{url_parts.scheme}://{url_parts.hostname}{path_prefix}/",
                     protocol_version="1.0",
                 )
             )
         else:
-            for agent_interface in agent_interfaces:
-                if agent_interface.protocol in (
+            for agent_interface in self._agent_interfaces:
+                if agent_interface.protocol_binding in (
                     TransportProtocol.JSONRPC,
                     TransportProtocol.HTTP_JSON,
                 ):
                     agent_card.supported_interfaces.append(AgentInterface(
-                        protocol_binding=agent_interface.protocol,
-                        url=f"{request.url.scheme}://{request.url.hostname}{path_prefix}/",
+                        protocol_binding=agent_interface.protocol_binding,
+                        url=agent_interface.url,
                         protocol_version="1.0",
                     ))
                 else:
-                    logger.info("Unsupported protocol: %s", agent_interface.protocol)
+                    logger.info("Unsupported protocol: %s", agent_interface.protocol_binding)
 
-        skills = []
-        if skills:
-            for skill_info in skills:
+        if self._skills:
+            for skill_info in self._skills:
                 agent_card.skills.append(
                     AgentSkill(
                         id=skill_info.id,
@@ -408,3 +447,11 @@ class A2AAdapter(A2AHttpAdapter, ChannelAdapter, ChannelAdapterProtocol):
                         output_modes=skill_info.output_modes,
                     )
                 )
+        return agent_card
+
+    
+    async def update_activity(self, context: TurnContext, activity: Activity) -> None:
+        raise NotImplementedError("A2AAdapter.update_activity is not implemented.")
+
+    async def delete_activity(self, context: TurnContext, activity_id: str) -> None:
+        raise NotImplementedError("A2AAdapter.delete_activity is not implemented.")

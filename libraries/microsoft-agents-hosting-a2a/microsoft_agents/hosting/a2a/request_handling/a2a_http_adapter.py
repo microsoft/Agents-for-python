@@ -6,13 +6,27 @@ from typing import Protocol
 from a2a.server.agent_execution import RequestContext
 from a2a.server.events import EventQueue
 from a2a.server.request_handlers import RequestHandler
-from a2a.types import AgentCard
+from a2a.types import (
+    AgentCard,
+    AgentInterface,
+    Skill,
+)
 
 from microsoft_agents.hosting.core import HttpRequestProtocol
 
 
 class A2AHttpAdapter(Protocol):
     """Protocol for an A2A HTTP adapter."""
+
+    @property
+    def agent_interfaces(self) -> list[AgentInterface]:
+        """Get the list of agent interfaces."""
+        ...
+
+    @property
+    def skills(self) -> list[Skill]:
+        """Get the list of skills."""
+        ...
 
     @property
     def a2a_request_handler(self) -> RequestHandler:
@@ -27,10 +41,11 @@ class A2AHttpAdapter(Protocol):
         """
         ...
 
-    async def get_agent_card(self, request: HttpRequestProtocol) -> AgentCard:
+    async def get_agent_card(self, request: HttpRequestProtocol, path_prefix: str) -> AgentCard:
         """Process a request for the agent card.
 
         :param request: The HTTP request for the agent card.
+        :param path_prefix: The path prefix to be used in the agent card URL.
         :return: The agent card for the agent.
         """
         ...

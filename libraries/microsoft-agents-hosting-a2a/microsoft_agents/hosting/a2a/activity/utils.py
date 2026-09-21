@@ -6,8 +6,9 @@ from uuid import uuid4
 
 from a2a.types import (
     Artifact,
-    Part,
     Message,
+    Part,
+    Role,
     TaskState,
 )
 
@@ -159,7 +160,7 @@ def create_message(
         context_id=context_id,
         message_id=str(uuid4()),
         parts=parts,
-        role=RoleTypes.agent,
+        role=Role.ROLE_AGENT,
     )
 
 
@@ -172,12 +173,12 @@ def has_message_content(activity: Activity) -> bool:
     return bool(activity.text) or bool(activity.attachments)
 
 
-def get_task_state(self) -> TaskState:
+def get_task_state(activity: Activity) -> TaskState:
     """Get the current task state of the activity.
 
     :return: The TaskState of the activity.
     """
-    if self.input_hint == InputHints.expecting_input:
+    if activity.input_hint == InputHints.expecting_input:
         return TaskState.TASK_STATE_INPUT_REQUIRED
     return TaskState.TASK_STATE_WORKING
 

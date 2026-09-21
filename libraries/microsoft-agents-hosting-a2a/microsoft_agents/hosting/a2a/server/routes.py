@@ -63,9 +63,9 @@ def create_rest_routes(
     )
 
 def create_agent_card_routes(
-    get_agent_card: Callable[[HttpRequestProtocol], Awaitable[AgentCard]],
+    get_agent_card: Callable[[HttpRequestProtocol, str], Awaitable[AgentCard]],
     card_url: str = AGENT_CARD_WELL_KNOWN_PATH,
-) -> list[Route]:
+) -> list[BaseRoute]:
     """Create routes for serving the agent card.
 
     :param get_agent_card: A callable that takes an HttpRequestProtocol and returns an AgentCard.
@@ -74,9 +74,17 @@ def create_agent_card_routes(
     :return: A list of Route objects representing the agent card routes.
     """
 
+    prefix = card_url
+    try:
+        i = card_url.index(AGENT_CARD_WELL_KNOWN_PATH)
+        prefix = card_url[:i]
+    except ValueError:
+        # not found
+        pass
+
     async def _get_agent_card(request: Request) -> Response:
         """Retruns the public AgentCard describing this agent's capabilities, supported transports, and skills."""
-        card = await get_agent_card(FastApiRequestAdapter(request))
+        card = await get_agent_card(FastApiRequestAdapter(request), prefix)
         return JSONResponse(agent_card_to_dict(card))
 
     return [

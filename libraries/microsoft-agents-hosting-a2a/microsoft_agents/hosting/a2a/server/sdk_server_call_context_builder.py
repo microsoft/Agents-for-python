@@ -29,7 +29,9 @@ class SDKServerCallContextBuilder(DefaultServerCallContextBuilder):
         if "auth" in request.scope:
             state["auth"] = request.auth
         state["headers"] = dict(request.headers)
-        state[_CLAIMS_IDENTITY_KEY] = request.state.claims_identity
+
+        if getattr(request.state, "claims_identity", None) is not None:
+            state[_CLAIMS_IDENTITY_KEY] = request.state.claims_identity
 
         return ServerCallContext(
             user=self.build_user(request),
