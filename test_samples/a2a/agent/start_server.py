@@ -18,7 +18,6 @@ from microsoft_agents.hosting.fastapi import (
 
 from microsoft_agents.hosting.a2a import add_a2a
 
-
 def start_server(
     agent_application: AgentApplication,
     auth_configuration: AgentAuthConfiguration,
