@@ -6,6 +6,9 @@ from typing import Protocol
 from a2a.server.agent_execution import RequestContext
 from a2a.server.events import EventQueue
 from a2a.server.request_handlers import RequestHandler
+from a2a.types import AgentCard
+
+from microsoft_agents.hosting.core import HttpRequestProtocol
 
 
 class A2AHttpAdapter(Protocol):
@@ -21,5 +24,13 @@ class A2AHttpAdapter(Protocol):
         
         :param context: The request context for the agent turn.
         :param event_queue: The event queue for the agent turn.
+        """
+        ...
+
+    async def get_agent_card(self, request: HttpRequestProtocol) -> AgentCard:
+        """Process a request for the agent card.
+
+        :param request: The HTTP request for the agent card.
+        :return: The agent card for the agent.
         """
         ...

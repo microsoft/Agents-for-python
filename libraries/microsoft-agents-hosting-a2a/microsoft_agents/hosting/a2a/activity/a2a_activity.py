@@ -5,6 +5,8 @@
 
 from __future__ import annotations
 
+import json
+
 from typing import Literal, Mapping, Iterable
 from uuid import uuid4
 
@@ -21,6 +23,7 @@ from pydantic import Field
 from microsoft_agents.activity import (
     Activity,
     ActivityTypes,
+    Attachment,
     Channels,
     ChannelId,
     ChannelAccount,
@@ -43,6 +46,13 @@ class A2AActivity(Activity):
 
     @staticmethod
     def from_message(request_id: str, task_id: str | None, message: Message) -> A2AActivity:
+        """Create an A2AActivity from a Message object.
+
+        :param request_id: The request ID for the activity.
+        :param task_id: The task ID for the activity. If None, the task ID from the message will be used.
+        :param message: The Message object to convert.
+        :return: An A2AActivity object representing the message.
+        """
 
         if not task_id and not message.task_id:
             raise ValueError("Task ID is required.")
@@ -64,15 +74,29 @@ class A2AActivity(Activity):
         return activity
 
     def to_message(self, context_id: str, task_id: str, include_entities: bool = True) -> Message:
+        """Convert the activity to a Message object.
+        
+        :param context_id: The context ID for the message.
+        :param task_id: The task ID for the message.
+        :param include_entities: Whether to include entities in the message. Defaults to True.
+        :return: A Message object representing the activity.
+        """
         return utils.create_message(context_id, task_id, self, include_entities)
 
     def to_artifact(self, artifact_id: str | None = None, include_entities: bool = True) -> Artifact:
+        """Convert the activity to an Artifact object.
+
+        :param artifact_id: The ID of the artifact. If None, a new ID will be generated.
+        :param include_entities: Whether to include entities in the artifact. Defaults to True.
+        :return: An Artifact object representing the activity.
+        """
         return utils.activity_to_artifact(self, artifact_id, include_entities)
 
-    def has_message_content(self) -> bool:
-        return utils.has_message_content(self)
-
     def get_task_state(self) -> TaskState:
+        """Get the current task state of the activity.
+
+        :return: The TaskState of the activity.
+        """
         return utils.get_task_state(self)
 
     @staticmethod
@@ -82,7 +106,14 @@ class A2AActivity(Activity):
         is_ingress: bool,
         is_streaming: bool
     ) -> A2AActivity:
-        """Create an Activity representing an A2A concept."""
+        """Create an Activity representing an A2A concept.
+        
+        :param conversation_id: The ID of the conversation.
+        :param parts: The parts to include in the activity.
+        :param is_ingress: Whether the activity is incoming.
+        :param is_streaming: Whether the activity is streaming.
+        :return: An A2AActivity object representing the activity.
+        """
 
         agent = ChannelAccount(id="assistant", role=RoleTypes.agent)
         user = ChannelAccount(id=_DEFAULT_USER_ID, role=RoleTypes.user)
@@ -97,6 +128,28 @@ class A2AActivity(Activity):
         )
 
         for part in parts:
-            if part.content_case
+            if part.text:
+                if not activity.text:
+                    activity.text = part.text
+                else:
+                    activity.text += part.text
+            elif part.url:
+                activity.attachments.append(Attachment(
+                    content_type=part.media_type,
+                    content_url=part.url,
+                    name=part.filename,
+                ))
+            elif part.raw:
+                activity.attachments.append(Attachment(
+                    content_type=part.media_type,
+                    content=part.raw,
+                    name=part.filename,
+                ))
+            elif part.data:
+                activity.attachments.append(Attachment(
+                    content_type="application/json",
+                    content=json.dumps(part.data),
+                    name="A2A DataPart",
+                ))
 
         return activity

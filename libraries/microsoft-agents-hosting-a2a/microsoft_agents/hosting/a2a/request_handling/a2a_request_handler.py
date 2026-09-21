@@ -6,7 +6,7 @@ from a2a.types import AgentCard
 from a2a.server.tasks import TaskStore
 from a2a.server.request_handlers import DefaultRequestHandlerV2
 
-from ..adapter import A2AAdapter
+from .a2a_http_adapter import A2AHttpAdapter
 
 from .a2a_agent_executor import A2AAgentExecutor
 
@@ -15,7 +15,7 @@ class A2ARequestHandler(DefaultRequestHandlerV2):
 
     def __init__(
         self,
-        adapter: A2AAdapter,
+        adapter: A2AHttpAdapter,
         task_store: TaskStore,
         agent_card: AgentCard,
     ):

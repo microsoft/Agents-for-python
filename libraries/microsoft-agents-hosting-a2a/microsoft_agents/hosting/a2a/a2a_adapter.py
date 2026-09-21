@@ -7,8 +7,6 @@ from datetime import datetime, timezone
 from typing import Awaitable, Callable, cast
 from uuid import uuid4
 
-from fastapi import Request, Response
-
 from a2a.types import (
     AgentCard,
     AgentInterface,
@@ -28,6 +26,7 @@ from a2a.server.request_handlers import RequestHandler
 from a2a.server.agent_execution import RequestContext
 from a2a.server.events import EventQueue
 from a2a.server.tasks import TaskStore, InMemoryTaskStore
+from a2a.utils.constants import TransportProtocol
 
 from microsoft_agents.activity import (
     Activity,
@@ -64,7 +63,7 @@ from .request_handling import (
 
 from .activity import utils, A2AActivity
 
-from ..constants import _CLAIMS_IDENTITY_KEY
+from .server._constants import _CLAIMS_IDENTITY_KEY
 
 logger = logging.getLogger(__name__)
 
@@ -87,6 +86,9 @@ class A2AAdapter(A2AHttpAdapter, ChannelAdapter, ChannelAdapterProtocol):
         """
 
         self._agent = agent
+        self._agent_card_name = agent_card_name
+        self._agent_card_description = agent_card_description
+        self._agent_card_version = agent_card_version
         self._a2a_request_handler = A2ARequestHandler(
             self,
             task_store or InMemoryTaskStore(),
@@ -384,11 +386,11 @@ class A2AAdapter(A2AHttpAdapter, ChannelAdapter, ChannelAdapterProtocol):
                     TransportProtocol.JSONRPC,
                     TransportProtocol.HTTP_JSON,
                 ):
-                    agent_card.supported_interfaces.append(
+                    agent_card.supported_interfaces.append(AgentInterface(
                         protocol_binding=agent_interface.protocol,
                         url=f"{request.url.scheme}://{request.url.hostname}{path_prefix}/",
                         protocol_version="1.0",
-                    )
+                    ))
                 else:
                     logger.info("Unsupported protocol: %s", agent_interface.protocol)
 
@@ -406,7 +408,3 @@ class A2AAdapter(A2AHttpAdapter, ChannelAdapter, ChannelAdapterProtocol):
                         output_modes=skill_info.output_modes,
                     )
                 )
-
-    def _update_agent_card(self) -> None:
-        agent_card = self._get_agent_card()
-        self._a2a_request_handler.update_agent_card(agent_card)

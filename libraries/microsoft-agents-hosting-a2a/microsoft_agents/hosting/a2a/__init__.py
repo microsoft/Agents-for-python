@@ -12,6 +12,7 @@ from .a2a_adapter import A2AAdapter
 from .a2a_agent_extension import A2AAgentExtension
 from .a2a_client import A2AClient
 from .a2a_turn_context import A2ATurnContext
+from .add_a2a import add_a2a
 
 
 __all__ = [
@@ -24,5 +25,6 @@ __all__ = [
     "A2AAdapter",
     "A2AAgentExtension",
     "A2AClient",
-    "A2ATurnContext"
+    "A2ATurnContext",
+    "add_a2a",
 ]

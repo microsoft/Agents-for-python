@@ -1,15 +1,24 @@
 # Copyright (c) Microsoft Corporation. All rights reserved.
 # Licensed under the MIT License.
 
+from typing import Awaitable, Callable, Sequence
+
 from a2a.server.routes import (
     create_jsonrpc_routes as _create_jsonrpc_routes,
     create_rest_routes as _create_rest_routes,
 )
 from a2a.server.request_handlers import RequestHandler
+from a2a.server.request_handlers.response_helpers import agent_card_to_dict
+from a2a.types import AgentCard
+from a2a.utils.constants import AGENT_CARD_WELL_KNOWN_PATH
 
+from starlette.requests import Request
+from starlette.responses import JSONResponse, Response
 from starlette.routing import BaseRoute, Mount, Route
 
+from microsoft_agents.hosting.core import HttpRequestProtocol
 from microsoft_agents.hosting.fastapi import JwtAuthorizationMiddleware
+from microsoft_agents.hosting.fastapi._fastapi_request_adapter import FastApiRequestAdapter
 
 from .sdk_server_call_context_builder import SDKServerCallContextBuilder
 
@@ -53,7 +62,32 @@ def create_rest_routes(
         path_prefix=path_prefix,
     )
 
-def use_jwt_middleware(routes: list[BaseRoute]) -> None:
+def create_agent_card_routes(
+    get_agent_card: Callable[[HttpRequestProtocol], Awaitable[AgentCard]],
+    card_url: str = AGENT_CARD_WELL_KNOWN_PATH,
+) -> list[Route]:
+    """Create routes for serving the agent card.
+
+    :param get_agent_card: A callable that takes an HttpRequestProtocol and returns an AgentCard.
+    :param card_url: The URL path for the agent card endpoint.
+    :param enable_v0_3_compat: Whether to enable compatibility with version 0.3.
+    :return: A list of Route objects representing the agent card routes.
+    """
+
+    async def _get_agent_card(request: Request) -> Response:
+        """Retruns the public AgentCard describing this agent's capabilities, supported transports, and skills."""
+        card = await get_agent_card(FastApiRequestAdapter(request))
+        return JSONResponse(agent_card_to_dict(card))
+
+    return [
+        Route(
+            path=card_url,
+            endpoint=_get_agent_card,
+            methods=['GET']
+        )
+    ]
+
+def use_jwt_middleware(routes: Sequence[BaseRoute]) -> None:
     """Wrap all routes with JWT authorization middleware.
     
     :param routes: A list of BaseRoute objects to wrap with JWT authorization middleware.
@@ -61,6 +95,7 @@ def use_jwt_middleware(routes: list[BaseRoute]) -> None:
     wrapped: set[int] = set()
 
     def wrap(route: BaseRoute) -> None:
+        """Wrap the given route with JWT authorization middleware if it hasn't been wrapped already."""
         if isinstance(route, Mount):
             for child in route.routes:
                 wrap(child)
@@ -70,5 +105,3 @@ def use_jwt_middleware(routes: list[BaseRoute]) -> None:
 
     for route in routes:
         wrap(route)
-
-    return routes
