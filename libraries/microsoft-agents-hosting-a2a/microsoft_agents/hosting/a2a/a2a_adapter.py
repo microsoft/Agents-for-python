@@ -56,9 +56,9 @@ from microsoft_agents.hosting.core.http._http_request_protocol import (
     HttpRequestProtocol,
 )
 
-from ..request_handlers import A2ARequestHandler
-from ..activity import utils, A2AActivity
-from .agent_request_context import AgentRequestContext
+from .request_handling import A2ARequestHandler, AgentRequestContext
+
+from .activity import utils, A2AActivity
 
 from ..constants import _CLAIMS_IDENTITY_KEY
 
@@ -92,6 +92,7 @@ class A2AAdapter(ChannelAdapter, ChannelAdapterProtocol):
 
     @property
     def a2a_request_handler(self) -> RequestHandler:
+        """Get the A2A request handler."""
         return self._a2a_request_handler
 
     async def execute_agent_turn(
@@ -99,6 +100,11 @@ class A2AAdapter(ChannelAdapter, ChannelAdapterProtocol):
         context: RequestContext,
         event_queue: EventQueue,
     ) -> None:
+        """Execute an agent turn given the request context and event queue.
+
+        :param context: The request context for the agent turn.
+        :param event_queue: The event queue for the agent turn.
+        """
 
         if not context.message:
             raise ValueError("Context message is required.")
@@ -137,6 +143,13 @@ class A2AAdapter(ChannelAdapter, ChannelAdapterProtocol):
         oauth_scope: str | None = None,
         activity: Activity | None = None,
     ) -> TurnContext:
+        """Create a turn context for the given claims identity, OAuth scope, and activity.
+
+        :param claims_identity: The claims identity for the turn context.
+        :param oauth_scope: The OAuth scope for the turn context.
+        :param activity: The activity for the turn context.
+        :return: The created turn context.
+        """
         context = TurnContext(self, activity, claims_identity)
         context.turn_state[ChannelServiceAdapter.OAUTH_SCOPE_KEY] = oauth_scope
         context.turn_state[ChannelServiceAdapter.AGENT_IDENTITY_KEY] = (
@@ -151,6 +164,14 @@ class A2AAdapter(ChannelAdapter, ChannelAdapterProtocol):
         request_context: RequestContext,
         event_queue: EventQueue,
     ) -> InvokeResponse | None:
+        """Process an activity with the A2A adapter.
+
+        :param identity: The claims identity of the agent.
+        :param activity: The activity to process.
+        :param request_context: The request context for the activity.
+        :param event_queue: The event queue for the activity.
+        :return: An InvokeResponse if applicable, otherwise None.
+        """
 
         if activity.channel_id != Channels.a2a:
             raise ValueError("Activity channel_id must be 'a2a'")
@@ -177,6 +198,12 @@ class A2AAdapter(ChannelAdapter, ChannelAdapterProtocol):
     async def send_activities(
         self, context: TurnContext, activities: list[Activity]
     ) -> list[ResourceResponse]:
+        """Send activities through the A2A adapter.
+
+        :param context: The turn context for the activities.
+        :param activities: The list of activities to send.
+        :return: A list of resource responses.
+        """
 
         for activity in activities:
 
@@ -199,6 +226,12 @@ class A2AAdapter(ChannelAdapter, ChannelAdapterProtocol):
     async def _on_streaming_response(
         self, context: TurnContext, activity: Activity, entity: StreamInfo
     ):
+        """Handle a streaming response activity.
+
+        :param context: The turn context for the activity.
+        :param activity: The activity containing the streaming response.
+        :param entity: The streaming entity associated with the activity.
+        """
         message = utils.get_incoming_message(context)
         is_informative = entity.stream_type == "informative"
 
@@ -231,6 +264,11 @@ class A2AAdapter(ChannelAdapter, ChannelAdapterProtocol):
             )
 
     async def _on_message_response(self, context: TurnContext, activity: Activity):
+        """Handle a message response activity.
+
+        :param context: The turn context for the activity.
+        :param activity: The activity containing the message response.
+        """
         message = utils.get_incoming_message(context)
         state = utils.get_task_state(activity)
         response = utils.create_message(message.context_id, message.task_id, activity)
@@ -250,6 +288,11 @@ class A2AAdapter(ChannelAdapter, ChannelAdapterProtocol):
     async def _on_end_of_conversation_response(
         self, context: TurnContext, activity: Activity
     ):
+        """Handle an end-of-conversation response activity.
+
+        :param context: The turn context for the activity.
+        :param activity: The activity containing the end-of-conversation response.
+        """
         message = utils.get_incoming_message(context)
         event_queue = context.services.get(EventQueue, raise_if_missing=True)
 

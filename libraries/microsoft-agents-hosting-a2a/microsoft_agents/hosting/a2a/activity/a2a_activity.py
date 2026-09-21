@@ -64,7 +64,7 @@ class A2AActivity(Activity):
         return activity
 
     def to_message(self, context_id: str, task_id: str, include_entities: bool = True) -> Message:
-        return utils.activity_to_message(context_id, task_id, self, include_entities)
+        return utils.create_message(context_id, task_id, self, include_entities)
 
     def to_artifact(self, artifact_id: str | None = None, include_entities: bool = True) -> Artifact:
         return utils.activity_to_artifact(self, artifact_id, include_entities)
@@ -90,7 +90,6 @@ class A2AActivity(Activity):
         activity = A2AActivity(
             type=ActivityTypes.message,
             id=str(uuid4()),
-            channel_id=ChannelId(Channels.a2a),
             delivery_mode=DeliveryModes.stream if is_streaming else DeliveryModes.expect_replies,
             conversation=ConversationAccount(id=conversation_id),
             recipient=agent if is_ingress else user,

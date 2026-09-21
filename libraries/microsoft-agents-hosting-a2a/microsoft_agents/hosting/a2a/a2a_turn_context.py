@@ -1,8 +1,6 @@
 # Copyright (c) Microsoft Corporation. All rights reserved.
 # Licensed under the MIT License.
 
-"""Teams-specific turn context wrapper."""
-
 from __future__ import annotations
 
 from typing import cast
@@ -16,9 +14,7 @@ from microsoft_agents.hosting.core import (
 )
 
 from .activity import A2AActivity
-
 from .a2a_client import A2AClient
-
 
 class A2ATurnContext(TurnContext):
     """A context object for handling A2A-specific turn functionality.
@@ -34,6 +30,13 @@ class A2ATurnContext(TurnContext):
         activity: Activity | None = None,
         identity: ClaimsIdentity | None = None,
     ) -> None:
+        """Initialize the A2A turn context.
+        
+        :param adapter_or_context: The channel service adapter or existing turn context.
+        :param app: The agent application instance.
+        :param activity: The activity for the turn context.
+        :param identity: The claims identity for the turn context.
+        """
 
         if isinstance(adapter_or_context, TurnContext):
             super().__init__(adapter_or_context)
@@ -44,29 +47,31 @@ class A2ATurnContext(TurnContext):
 
         self._app = app
         self._turn_state = self.turn_state
-        self._set_a2a_activity()
-        self._client = A2AClient(self)
-
-    def _set_a2a_activity(self) -> None:
         self._activity.__class__ = A2AActivity
         self._a2a_activity = cast(A2AActivity, self._activity)
+        self._client = A2AClient(self)
 
     @property
     def client(self) -> A2AClient:
+        """Get the A2A client associated with this turn context."""
         return self._client
 
     @property
     def responded(self) -> bool:
+        """Check if the turn context has already sent a response."""
         return self._original.responded
 
     @responded.setter
     def responded(self, value: bool):
+        """Set the responded status for the turn context."""
         self._original.responded = value
 
     @property
     def streaming_response(self):
+        """Get the streaming response associated with the turn context."""
         return self._original.streaming_response
 
     @property
     def activity(self) -> A2AActivity:
+        """Get the A2A activity associated with the turn context."""
         return self._a2a_activity
