@@ -11,6 +11,8 @@ from starlette.routing import BaseRoute, Route
 
 from .sdk_server_call_context_builder import SDKServerCallContextBuilder
 
+from microsoft_agents.hosting.fastapi import JwtAuthorizationMiddleware
+
 
 def create_jsonrpc_routes(
     request_handler: RequestHandler,
@@ -36,3 +38,7 @@ def create_rest_routes(
         enable_v0_3_compat=enable_v0_3_compat,
         path_prefix=path_prefix,
     )
+
+def add_jwt_middleware(routes: list[BaseRoute]) -> list[BaseRoute]:
+    # Implement the JWT middleware addition logic here
+    return routes

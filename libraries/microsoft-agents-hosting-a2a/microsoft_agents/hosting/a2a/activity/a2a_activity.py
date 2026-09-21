@@ -16,6 +16,8 @@ from a2a.types import (
     TaskState,
 )
 
+from pydantic import Field
+
 from microsoft_agents.activity import (
     Activity,
     ActivityTypes,
@@ -36,6 +38,8 @@ _ENTITY_TYPE_TEMPLATE = "application/vnd.microsoft.entity.{0}"
 
 class A2AActivity(Activity):
     """A2A-aware :class:`Activity` subclass exposing A2A protocol data helpers."""
+
+    channel_id: ChannelId = Field(default=ChannelId(Channels.a2a), frozen=True)
 
     @staticmethod
     def from_message(request_id: str, task_id: str | None, message: Message) -> A2AActivity:

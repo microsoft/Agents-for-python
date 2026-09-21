@@ -11,6 +11,7 @@ from fastapi import Request, Response
 
 from a2a.types import (
     AgentCard,
+    AgentInterface,
     SendMessageConfiguration,
     TaskStatusUpdateEvent,
     TaskArtifactUpdateEvent,
@@ -66,7 +67,15 @@ logger = logging.getLogger(__name__)
 
 class A2AAdapter(ChannelAdapter, ChannelAdapterProtocol):
 
-    def __init__(self, agent: Agent, task_store: TaskStore | None = None):
+    def __init__(
+        self,
+        agent: Agent,
+        *,
+        agent_card_name: str = "A2AAdapter",
+        agent_card_description: str = "Agents SDK A2A",
+        agent_card_version: str = "0.0.0",
+        task_store: TaskStore | None = None
+    ):
         """Initializes the A2AAdapter with the given agent and optional task store.
 
         :param agent: The agent instance to be used by the adapter.
