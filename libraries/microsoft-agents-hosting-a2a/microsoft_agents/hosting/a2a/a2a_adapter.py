@@ -56,7 +56,11 @@ from microsoft_agents.hosting.core.http._http_request_protocol import (
     HttpRequestProtocol,
 )
 
-from .request_handling import A2ARequestHandler, AgentRequestContext
+from .request_handling import (
+    A2AHttpAdapter,
+    A2ARequestHandler,
+    AgentRequestContext,
+)
 
 from .activity import utils, A2AActivity
 
@@ -65,7 +69,7 @@ from ..constants import _CLAIMS_IDENTITY_KEY
 logger = logging.getLogger(__name__)
 
 
-class A2AAdapter(ChannelAdapter, ChannelAdapterProtocol):
+class A2AAdapter(A2AHttpAdapter, ChannelAdapter, ChannelAdapterProtocol):
 
     def __init__(
         self,
