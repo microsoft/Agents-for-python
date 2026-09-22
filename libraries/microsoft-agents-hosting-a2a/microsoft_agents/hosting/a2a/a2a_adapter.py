@@ -97,7 +97,7 @@ class A2AAdapter(A2AHttpAdapter, ChannelAdapter, ChannelAdapterProtocol):
         self._skills: list[AgentSkill] = skills or []
         self._agent_interfaces: list[AgentInterface] = agent_interfaces or [
             AgentInterface(
-                url="/a2a",
+                url="http://localhost:8000/a2a",
                 protocol_binding=TransportProtocol.JSONRPC,
             )
         ]

@@ -16,6 +16,7 @@ from a2a.types import (
     Part,
     TaskState,
 )
+from google.protobuf.json_format import MessageToDict
 
 from pydantic import Field
 
@@ -122,6 +123,7 @@ class A2AActivity(Activity):
             conversation=ConversationAccount(id=conversation_id),
             recipient=agent if is_ingress else user,
             from_property=user if is_ingress else agent,
+            attachments=[],
         )
 
         for part in parts:
@@ -145,7 +147,7 @@ class A2AActivity(Activity):
             elif part.data:
                 activity.attachments.append(Attachment(
                     content_type="application/json",
-                    content=json.dumps(part.data),
+                    content=json.dumps(MessageToDict(part.data)),
                     name="A2A DataPart",
                 ))
 

@@ -1,8 +1,12 @@
 # Copyright (c) Microsoft Corporation. All rights reserved.
 # Licensed under the MIT License.
 
-from typing import Mapping, cast, Sequence
+from functools import lru_cache
+from typing import Mapping, cast, Sequence, Any
 from uuid import uuid4
+
+from pydantic import BaseModel, TypeAdapter
+from pydantic.errors import PydanticSchemaGenerationError
 
 from a2a.types import (
     Artifact,
@@ -11,9 +15,12 @@ from a2a.types import (
     Role,
     TaskState,
 )
+from google.protobuf.json_format import ParseDict
+from google.protobuf.struct_pb2 import Value
 
 from microsoft_agents.activity import (
     Activity,
+    Entity,
     InputHints,
     StreamInfo,
 )
@@ -21,6 +28,10 @@ from microsoft_agents.hosting.core import TurnContext
 
 _ENTITY_TYPE_TEMPLATE = "application/vnd.microsoft.entity.{0}"
 _SCHEMAS: dict[str, Mapping] = {}
+
+
+def _to_protobuf_value(data: dict) -> Value:
+    return ParseDict(data, Value())
 
 
 def activity_to_artifact(
@@ -42,10 +53,10 @@ def activity_to_artifact(
         artifact.parts.append(Part(text=activity.text))
 
     if activity.value is not None and isinstance(activity.value, dict):
-        artifact.parts.append(Part(data=activity.value))
+        artifact.parts.append(Part(data=_to_protobuf_value(activity.value)))
 
-    for attachment in activity.attachments:
-        if attachment.content_url and not isinstance(attachment.content, str):
+    for attachment in activity.attachments or []:
+        if not attachment.content_url and not attachment.content:
             continue
 
         part: Part
@@ -57,7 +68,7 @@ def activity_to_artifact(
             )
         elif isinstance(attachment.content, dict):
             part = Part(
-                data=attachment.content,
+                data=_to_protobuf_value(attachment.content),
                 media_type=attachment.content_type,
             )
         else:
@@ -66,38 +77,47 @@ def activity_to_artifact(
         artifact.parts.append(part)
 
     if include_entities:
-        for entity in activity.entities:
+        for entity in activity.entities or []:
             if not isinstance(entity, StreamInfo):
-
-                if entity.type not in _SCHEMAS:
-                    _SCHEMAS[entity.type] = _to_a2a_metadata(
-                        entity, _ENTITY_TYPE_TEMPLATE.format(entity.type)
-                    )
-
-                cached_metadata = _SCHEMAS[entity.type]
-
                 artifact.parts.append(
                     Part(
-                        metadata=cached_metadata,
-                        data=entity.model_dump(exclude_none=True),
+                        metadata=_get_a2a_metadata(entity),
+                        data=_to_protobuf_value(
+                            entity.model_dump(exclude_none=True)
+                        ),
                     )
                 )
 
     return artifact
 
-def _to_a2a_metadata(entity: Entity, content_type: str) -> dict:
+@lru_cache
+def _try_get_json_schema(data_type: type) -> dict[str, Any] | None:
+    try:
+        if issubclass(data_type, BaseModel):
+            return data_type.model_json_schema()
+        return TypeAdapter(data_type).json_schema()
+    except PydanticSchemaGenerationError:
+        return None
+
+def _get_a2a_metadata(data: object) -> dict:
     """Convert the given data to A2A metadata.
 
-    :param data: The data to convert.
+    :param data: The data to convert to A2A metadata.
     :param content_type: The content type of the data.
     :return: A dictionary representing the A2A metadata.
     """
+    if data is None:
+        raise ValueError("Data cannot be None.")
 
-    return {
-        "mimeType": content_type,
+    metadata: dict[str, Any] = {
+        "mimeType": "application/json",
         "type": "object",
-        # "schema": TODO?
     }
+    schema = _try_get_json_schema(type(data))
+    if schema is not None:
+        metadata["schema"] = schema
+
+    return metadata 
 
 def create_artifact_from_data(
     data: dict,
@@ -124,8 +144,8 @@ def create_artifact_from_data(
         description=description,
         parts=[
             Part(
-                data=data,
-                metadata=_to_a2a_metadata(data, media_type or data.__class__.__name__),
+                data=_to_protobuf_value(data),
+                metadata=_get_a2a_metadata(data),
             )
         ],
     )
