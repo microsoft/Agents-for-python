@@ -6,6 +6,8 @@ import logging
 from a2a.server.agent_execution import AgentExecutor, RequestContext
 from a2a.server.tasks import TaskUpdater
 from a2a.server.events import EventQueue
+from a2a.types import Task, TaskState, TaskStatus
+from google.protobuf.timestamp_pb2 import Timestamp
 
 from .a2a_http_adapter import A2AHttpAdapter
 
@@ -34,12 +36,19 @@ class A2AAgentExecutor(AgentExecutor):
 
         # If there is no current task, this is not a continuation
         if context.current_task is None:
-            task_updater = TaskUpdater(
-                event_queue=event_queue,
-                task_id=context.task_id or '',
-                context_id=context.context_id or '',
+            timestamp = Timestamp()
+            timestamp.GetCurrentTime()
+            await event_queue.enqueue_event(
+                Task(
+                    id=context.task_id or "",
+                    context_id=context.context_id or "",
+                    status=TaskStatus(
+                        state=TaskState.TASK_STATE_SUBMITTED,
+                        timestamp=timestamp,
+                    ),
+                    history=[context.message],
+                )
             )
-            await task_updater.submit()
 
         await self._adapter.execute_agent_turn(
             context,

@@ -2,7 +2,7 @@
 # Licensed under the MIT License.
 
 from .activity import A2AActivity
-from .request_handling import A2AHttpAdapter, AgentRequestContext
+from .request_handling import A2AHttpAdapter
 from .server import (
     create_jsonrpc_routes,
     create_rest_routes,
@@ -18,7 +18,6 @@ from .add_a2a import add_a2a
 __all__ = [
     "A2AActivity",
     "A2AHttpAdapter",
-    "AgentRequestContext",
     "create_jsonrpc_routes",
     "create_rest_routes",
     "SDKServerCallContextBuilder",

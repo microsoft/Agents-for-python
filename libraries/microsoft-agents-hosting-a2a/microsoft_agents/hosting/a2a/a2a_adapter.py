@@ -42,9 +42,10 @@ from microsoft_agents.hosting.core import (
     Agent,
     AuthenticationConstants,
     ChannelAdapter,
+    ChannelServiceAdapter,
     ClaimsIdentity,
     TurnContext,
-    ChannelServiceAdapter,
+    MiddlewareSet,
 )
 from microsoft_agents.hosting.core.channel_adapter_protocol import (
     ChannelAdapterProtocol,
@@ -56,7 +57,6 @@ from microsoft_agents.hosting.core.http._http_request_protocol import (
 from .request_handling import (
     A2AHttpAdapter,
     A2ARequestHandler,
-    AgentRequestContext,
 )
 
 from .activity import utils, A2AActivity
@@ -91,6 +91,7 @@ class A2AAdapter(A2AHttpAdapter, ChannelAdapter, ChannelAdapterProtocol):
         :param skills: The list of skills associated with the adapter.
         :param task_store: Optional task store for managing tasks. If not provided, an in-memory task store will be used.
         """
+        self.middleware_set = MiddlewareSet()
 
         self._agent = agent
         self._agent_card_name = agent_card_name
@@ -433,12 +434,13 @@ class A2AAdapter(A2AHttpAdapter, ChannelAdapter, ChannelAdapterProtocol):
         agent_card = self._get_basic_agent_card()
 
         url_parts = urlsplit(request.url)
+        request_origin = f"{url_parts.scheme}://{url_parts.netloc}"
         
         if not self._agent_interfaces:
             agent_card.supported_interfaces.append(
                 AgentInterface(
                     protocol_binding=TransportProtocol.JSONRPC,
-                    url=f"{url_parts.scheme}://{url_parts.hostname}{path_prefix}/",
+                    url=f"{request_origin}{path_prefix}/",
                     protocol_version="1.0",
                 )
             )
@@ -448,9 +450,13 @@ class A2AAdapter(A2AHttpAdapter, ChannelAdapter, ChannelAdapterProtocol):
                     TransportProtocol.JSONRPC,
                     TransportProtocol.HTTP_JSON,
                 ):
+                    interface_url = agent_interface.url
+                    if interface_url.startswith("/"):
+                        interface_url = f"{request_origin}{interface_url}"
+
                     agent_card.supported_interfaces.append(AgentInterface(
                         protocol_binding=agent_interface.protocol_binding,
-                        url=agent_interface.url,
+                        url=interface_url,
                         protocol_version="1.0",
                     ))
                 else:
