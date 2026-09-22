@@ -4,6 +4,7 @@
 import logging
 
 from a2a.server.agent_execution import AgentExecutor, RequestContext
+from a2a.server.tasks import TaskUpdater
 from a2a.server.events import EventQueue
 
 from .a2a_http_adapter import A2AHttpAdapter
@@ -31,6 +32,15 @@ class A2AAgentExecutor(AgentExecutor):
             logger.warning("No message found in the request context. Dropping request.")
             return
 
+        # If there is no current task, this is not a continuation
+        if context.current_task is None:
+            task_updater = TaskUpdater(
+                event_queue=event_queue,
+                task_id=context.task_id or '',
+                context_id=context.context_id or '',
+            )
+            await task_updater.submit()
+
         await self._adapter.execute_agent_turn(
             context,
             event_queue,
@@ -46,4 +56,11 @@ class A2AAgentExecutor(AgentExecutor):
         :param context: The request context containing the message and other metadata.
         :param event_queue: The event queue for handling events during the turn.
         """
-        pass
+        task_id = context.task_id
+
+        updater = TaskUpdater(
+            event_queue=event_queue,
+            task_id=task_id or '',
+            context_id=context.context_id or '',
+        )
+        await updater.cancel()

@@ -35,7 +35,6 @@ from microsoft_agents.activity import (
 from . import utils
 
 _DEFAULT_USER_ID = "unknown"
-# _ENTITY_TYPE_TEMPLATE = "application/vnd.microsoft.entity.{0}"
 
 class A2AActivity(Activity):
     """A2A-aware :class:`Activity` subclass exposing A2A protocol data helpers."""

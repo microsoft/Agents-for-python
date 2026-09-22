@@ -30,9 +30,12 @@ from microsoft_agents.activity import (
     ActivityTypes,
     CallerIdConstants,
     Channels,
+    ChannelAccount,
+    ChannelId,
     EndOfConversationCodes,
     InvokeResponse,
     ResourceResponse,
+    RoleTypes,
     StreamInfo,
 )
 from microsoft_agents.hosting.core import (
@@ -57,6 +60,7 @@ from .request_handling import (
 )
 
 from .activity import utils, A2AActivity
+from .activity.a2a_activity import _DEFAULT_USER_ID
 
 from .server._constants import _CLAIMS_IDENTITY_KEY
 
@@ -107,7 +111,6 @@ class A2AAdapter(A2AHttpAdapter, ChannelAdapter, ChannelAdapterProtocol):
             task_store=self._task_store,
             agent_card=self._get_basic_agent_card(),
         )
-        self._context_map: dict[str, AgentRequestContext] = {}
 
     @property
     def skills(self) -> list[AgentSkill]:
@@ -153,21 +156,41 @@ class A2AAdapter(A2AHttpAdapter, ChannelAdapter, ChannelAdapterProtocol):
         )
         activity.request_id = request_id
 
-        self._context_map[request_id] = AgentRequestContext(
-            request_id=request_id,
-            identity=identity,
-            event_queue=event_queue,
+        await self._process_activity_with_a2a(
+            identity,
+            activity,
+            context,
+            event_queue,
         )
 
-        try:
-            await self._process_activity_with_a2a(
-                identity,
-                activity,
-                context,
-                event_queue,
-            )
-        finally:
-            del self._context_map[request_id]
+    async def cancel_agent_turn(self, context: RequestContext, event_queue: EventQueue) -> None:
+        """Cancel an ongoing agent turn given the request context and event queue.
+
+        :param context: The request context for the agent turn.
+        :param event_queue: The event queue for the agent turn.
+        """
+
+        end_of_conv_activity = Activity(
+            type=ActivityTypes.end_of_conversation,
+            code=EndOfConversationCodes.user_cancelled,
+            channel_id=ChannelId(Channels.a2a),
+            recipient=ChannelAccount(id="assistant", role=RoleTypes.agent),
+            from_property=ChannelAccount(id=_DEFAULT_USER_ID, role=RoleTypes.user),
+        )
+
+        identity = context.call_context.state.get(
+            _CLAIMS_IDENTITY_KEY, ClaimsIdentity()
+        )
+        if not isinstance(identity, ClaimsIdentity):
+            raise RuntimeError("Invalid identity in context call state.")
+
+        await self._process_activity_with_a2a(
+            identity,
+            end_of_conv_activity,
+            context,
+            event_queue,
+        )
+
 
     def _create_turn_context(
         self,

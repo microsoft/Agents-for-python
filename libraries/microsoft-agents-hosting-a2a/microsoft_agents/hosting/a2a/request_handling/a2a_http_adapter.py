@@ -40,7 +40,7 @@ class A2AHttpAdapter(Protocol):
         :param event_queue: The event queue for the agent turn.
         """
         ...
-
+        
     async def get_agent_card(self, request: HttpRequestProtocol, path_prefix: str) -> AgentCard:
         """Process a request for the agent card.
 
