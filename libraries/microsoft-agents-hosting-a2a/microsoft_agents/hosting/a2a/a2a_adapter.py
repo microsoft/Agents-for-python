@@ -3,41 +3,33 @@
 
 import logging
 
-
 from datetime import datetime, timezone
-from typing import Awaitable, Callable, cast
 from urllib.parse import urlsplit
 from uuid import uuid4
 
 from a2a.types import (
     AgentCard,
     AgentInterface,
-    SendMessageConfiguration,
     TaskStatusUpdateEvent,
     TaskArtifactUpdateEvent,
     TaskStatus,
     TaskState,
     AgentCapabilities,
-    AgentCard,
-    AgentInterface,
     AgentSkill,
     HTTPAuthSecurityScheme,
     SecurityScheme,
-    Skill,
 )
 from a2a.server.request_handlers import RequestHandler
 from a2a.server.agent_execution import RequestContext
 from a2a.server.events import EventQueue
 from a2a.server.tasks import TaskStore, InMemoryTaskStore
-from a2a.utils.constants import TransportProtocol, AGENT_CARD_WELL_KNOWN_PATH
+from a2a.utils.constants import TransportProtocol
 
 from microsoft_agents.activity import (
     Activity,
     ActivityTypes,
     CallerIdConstants,
     Channels,
-    ConversationParameters,
-    ConversationReference,
     EndOfConversationCodes,
     InvokeResponse,
     ResourceResponse,
@@ -72,6 +64,7 @@ logger = logging.getLogger(__name__)
 
 
 class A2AAdapter(A2AHttpAdapter, ChannelAdapter, ChannelAdapterProtocol):
+    """Adapter for handling Agent-to-Agent (A2A) communication within the Microsoft Agents framework."""
 
     def __init__(
         self,
@@ -81,12 +74,17 @@ class A2AAdapter(A2AHttpAdapter, ChannelAdapter, ChannelAdapterProtocol):
         agent_card_description: str = "Agents SDK A2A",
         agent_card_version: str = "0.0.0",
         agent_interfaces: list[AgentInterface] | None = None,
-        skills: list[Skill] | None = None,
+        skills: list[AgentSkill] | None = None,
         task_store: TaskStore | None = None
     ):
         """Initializes the A2AAdapter with the given agent and optional task store.
 
         :param agent: The agent instance to be used by the adapter.
+        :param agent_card_name: The name of the agent card.
+        :param agent_card_description: The description of the agent card.
+        :param agent_card_version: The version of the agent card.
+        :param agent_interfaces: The list of agent interfaces associated with the adapter.
+        :param skills: The list of skills associated with the adapter.
         :param task_store: Optional task store for managing tasks. If not provided, an in-memory task store will be used.
         """
 
@@ -96,7 +94,7 @@ class A2AAdapter(A2AHttpAdapter, ChannelAdapter, ChannelAdapterProtocol):
         self._agent_card_version = agent_card_version
         self._task_store = task_store or InMemoryTaskStore()
 
-        self._skills: list[Skill] = skills or []
+        self._skills: list[AgentSkill] = skills or []
         self._agent_interfaces: list[AgentInterface] = agent_interfaces or [
             AgentInterface(
                 url="/a2a",
@@ -112,7 +110,7 @@ class A2AAdapter(A2AHttpAdapter, ChannelAdapter, ChannelAdapterProtocol):
         self._context_map: dict[str, AgentRequestContext] = {}
 
     @property
-    def skills(self) -> list[Skill]:
+    def skills(self) -> list[AgentSkill]:
         """Get the list of skills associated with the adapter."""
         return self._skills
 
@@ -400,12 +398,13 @@ class A2AAdapter(A2AHttpAdapter, ChannelAdapter, ChannelAdapterProtocol):
             supported_interfaces=[],
         )
 
-    async def get_agenst_card(self, request: HttpRequestProtocol, path_prefix: str) -> AgentCard:
+    async def get_agent_card(self, request: HttpRequestProtocol, path_prefix: str) -> AgentCard:
         """Get the agent card for the current agent, potentially customized based on the request.
 
         Set as asynchronous because in some implementations, fetching or customizing the agent card might involve I/O operations, such as querying a database or an external service.
         
         :param request: The HTTP request object conforming to HttpRequestProtocol.
+        :param path_prefix: The prefix to be used for constructing the agent interface URL.
         :return: An AgentCard instance representing the agent's capabilities.
         """
         agent_card = self._get_basic_agent_card()

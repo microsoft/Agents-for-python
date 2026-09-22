@@ -9,7 +9,7 @@ from a2a.server.request_handlers import RequestHandler
 from a2a.types import (
     AgentCard,
     AgentInterface,
-    Skill,
+    AgentSkill,
 )
 
 from microsoft_agents.hosting.core import HttpRequestProtocol
@@ -24,7 +24,7 @@ class A2AHttpAdapter(Protocol):
         ...
 
     @property
-    def skills(self) -> list[Skill]:
+    def skills(self) -> list[AgentSkill]:
         """Get the list of skills."""
         ...
 

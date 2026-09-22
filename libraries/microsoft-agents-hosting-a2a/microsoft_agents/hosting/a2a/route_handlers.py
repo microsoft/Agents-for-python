@@ -16,7 +16,7 @@ from .a2a_turn_context import A2ATurnContext
 
 
 class A2ARouteHandler(Protocol[_StateContra]):
-    """Protocol for a Teams route handler that receives a :class:`A2ATurnContext`."""
+    """Protocol for a A2A route handler that receives a :class:`A2ATurnContext`."""
 
     def __call__(
         self, context: A2ATurnContext, state: _StateContra, /
@@ -32,12 +32,12 @@ class A2ARouteHandler(Protocol[_StateContra]):
 def wrap_a2a_route_handler(
     handler: A2ARouteHandler[_StateContra], app: AgentApplication
 ) -> RouteHandler[_StateContra]:
-    """Adapt a :class:`TeamsRouteHandler` into a plain :class:`RouteHandler`.
+    """Adapt a :class:`A2ARouteHandler` into a plain :class:`RouteHandler`.
 
     Wraps *handler* so that the core routing engine (which passes a plain
     :class:`TurnContext`) receives a compatible callable.
 
-    :param handler: The Teams-specific handler to wrap.
+    :param handler: The A2A-specific handler to wrap.
     :param app: The agent application handling the turn.
     :return: A :class:`RouteHandler` that upgrades the context before delegating.
     """

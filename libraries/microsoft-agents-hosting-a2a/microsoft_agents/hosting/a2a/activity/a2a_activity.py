@@ -7,14 +7,13 @@ from __future__ import annotations
 
 import json
 
-from typing import Literal, Mapping, Iterable
+from typing import Iterable
 from uuid import uuid4
 
 from a2a.types import (
     Artifact,
     Message,
     Part,
-    Task,
     TaskState,
 )
 
@@ -30,14 +29,12 @@ from microsoft_agents.activity import (
     ConversationAccount,
     DeliveryModes,
     RoleTypes,
-    InputHints,
-    StreamInfo,
 )
 
 from . import utils
 
 _DEFAULT_USER_ID = "unknown"
-_ENTITY_TYPE_TEMPLATE = "application/vnd.microsoft.entity.{0}"
+# _ENTITY_TYPE_TEMPLATE = "application/vnd.microsoft.entity.{0}"
 
 class A2AActivity(Activity):
     """A2A-aware :class:`Activity` subclass exposing A2A protocol data helpers."""

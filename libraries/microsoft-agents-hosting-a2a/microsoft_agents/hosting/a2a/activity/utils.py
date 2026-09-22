@@ -15,7 +15,6 @@ from a2a.types import (
 from microsoft_agents.activity import (
     Activity,
     InputHints,
-    RoleTypes,
     StreamInfo,
 )
 from microsoft_agents.hosting.core import TurnContext
