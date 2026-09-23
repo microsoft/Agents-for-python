@@ -11,7 +11,8 @@ from a2a.server.tasks import TaskStore
 from a2a.types.a2a_pb2 import (
     ListTasksRequest,
     ListTasksResponse,
-    Task
+    Task,
+    TaskState,
 )
 
 
@@ -83,7 +84,10 @@ class BlobTaskStore(TaskStore):
     def _should_include_task(task: Task, request: ListTasksRequest) -> bool:
         """Determines whether a task should be included in the list based on the request parameters."""
 
-        if request.status != task.status:
+        if (
+            request.status != TaskState.TASK_STATE_UNSPECIFIED
+            and request.status != task.status.state
+        ):
             return False
         if request.context_id and request.context_id != task.context_id:
             return False

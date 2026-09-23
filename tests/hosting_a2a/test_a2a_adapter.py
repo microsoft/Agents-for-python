@@ -90,12 +90,7 @@ def test_constructor_uses_defaults_and_creates_request_handler():
     adapter = A2AAdapter(_agent())
 
     assert isinstance(adapter._task_store, InMemoryTaskStore)
-    assert len(adapter.agent_interfaces) == 1
-    assert adapter.agent_interfaces[0].url == "http://localhost:8000/a2a"
-    assert (
-        adapter.agent_interfaces[0].protocol_binding
-        == TransportProtocol.JSONRPC
-    )
+    assert adapter.agent_interfaces == []
     assert adapter.skills == []
     assert adapter.a2a_request_handler is not None
 
@@ -165,6 +160,55 @@ async def test_execute_agent_turn_converts_message_and_processes_activity():
     assert activity.request_id
     assert actual_context is context
     assert actual_queue is event_queue
+
+
+@pytest.mark.asyncio
+async def test_cancel_agent_turn_processes_user_cancelled_activity():
+    identity = ClaimsIdentity({"sub": "agent-1"})
+    context = _request_context(identity, include_message=False)
+    event_queue = MagicMock(spec=EventQueue)
+    adapter = A2AAdapter(_agent())
+    adapter._process_activity_with_a2a = AsyncMock()
+
+    await adapter.cancel_agent_turn(context, event_queue)
+
+    adapter._process_activity_with_a2a.assert_awaited_once()
+    actual_identity, activity, actual_context, actual_queue = (
+        adapter._process_activity_with_a2a.call_args.args
+    )
+    assert actual_identity is identity
+    assert activity.type == ActivityTypes.end_of_conversation
+    assert activity.code == EndOfConversationCodes.user_cancelled
+    assert activity.channel_id == Channels.a2a
+    assert activity.recipient.id == "assistant"
+    assert activity.from_property.id == "unknown"
+    assert actual_context is context
+    assert actual_queue is event_queue
+
+
+@pytest.mark.asyncio
+async def test_cancel_agent_turn_uses_anonymous_identity_by_default():
+    context = _request_context(include_message=False)
+    adapter = A2AAdapter(_agent())
+    adapter._process_activity_with_a2a = AsyncMock()
+
+    await adapter.cancel_agent_turn(context, MagicMock(spec=EventQueue))
+
+    identity = adapter._process_activity_with_a2a.call_args.args[0]
+    assert isinstance(identity, ClaimsIdentity)
+    assert identity.allow_anonymous is True
+
+
+@pytest.mark.asyncio
+async def test_cancel_agent_turn_rejects_invalid_identity():
+    context = _request_context(identity="invalid", include_message=False)
+    adapter = A2AAdapter(_agent())
+    adapter._process_activity_with_a2a = AsyncMock()
+
+    with pytest.raises(RuntimeError, match="Invalid identity"):
+        await adapter.cancel_agent_turn(context, MagicMock(spec=EventQueue))
+
+    adapter._process_activity_with_a2a.assert_not_awaited()
 
 
 @pytest.mark.asyncio
@@ -324,7 +368,7 @@ async def test_streaming_response_enqueues_artifact_update():
     assert event.context_id == "context-1"
     assert event.artifact.artifact_id == "artifact-1"
     assert event.artifact.parts[0].text == "chunk"
-    assert event.last_chunk is True
+    assert event.last_chunk is False
 
 
 @pytest.mark.asyncio

@@ -92,8 +92,11 @@ async def test_executor_drops_context_without_message(caplog):
 
 
 @pytest.mark.asyncio
-async def test_executor_cancel_updates_task_without_calling_adapter():
-    adapter = SimpleNamespace(execute_agent_turn=AsyncMock())
+async def test_executor_cancel_updates_task_and_notifies_adapter():
+    adapter = SimpleNamespace(
+        execute_agent_turn=AsyncMock(),
+        cancel_agent_turn=AsyncMock(),
+    )
     executor = A2AAgentExecutor(adapter)
     context = SimpleNamespace(task_id="task-1", context_id="context-1")
     event_queue = AsyncMock(spec=EventQueue)
@@ -112,7 +115,71 @@ async def test_executor_cancel_updates_task_without_calling_adapter():
         context_id="context-1",
     )
     updater.cancel.assert_awaited_once()
-    adapter.execute_agent_turn.assert_not_awaited()
+    adapter.cancel_agent_turn.assert_awaited_once_with(context, event_queue)
+
+
+@pytest.mark.asyncio
+async def test_executor_cancel_uses_empty_ids_when_context_ids_are_missing():
+    adapter = SimpleNamespace(cancel_agent_turn=AsyncMock())
+    executor = A2AAgentExecutor(adapter)
+    context = SimpleNamespace(task_id=None, context_id=None)
+    event_queue = AsyncMock(spec=EventQueue)
+    updater = AsyncMock()
+
+    with patch(
+        "microsoft_agents.hosting.a2a.request_handling."
+        "a2a_agent_executor.TaskUpdater",
+        return_value=updater,
+    ) as task_updater:
+        await executor.cancel(context, event_queue)
+
+    task_updater.assert_called_once_with(
+        event_queue=event_queue,
+        task_id="",
+        context_id="",
+    )
+    adapter.cancel_agent_turn.assert_awaited_once_with(context, event_queue)
+
+
+@pytest.mark.asyncio
+async def test_executor_cancel_does_not_notify_adapter_when_status_update_fails():
+    adapter = SimpleNamespace(cancel_agent_turn=AsyncMock())
+    executor = A2AAgentExecutor(adapter)
+    context = SimpleNamespace(task_id="task-1", context_id="context-1")
+    event_queue = AsyncMock(spec=EventQueue)
+    updater = AsyncMock()
+    updater.cancel.side_effect = RuntimeError("queue failed")
+
+    with patch(
+        "microsoft_agents.hosting.a2a.request_handling."
+        "a2a_agent_executor.TaskUpdater",
+        return_value=updater,
+    ):
+        with pytest.raises(RuntimeError, match="queue failed"):
+            await executor.cancel(context, event_queue)
+
+    adapter.cancel_agent_turn.assert_not_awaited()
+
+
+@pytest.mark.asyncio
+async def test_executor_cancel_propagates_adapter_failure():
+    adapter = SimpleNamespace(
+        cancel_agent_turn=AsyncMock(side_effect=RuntimeError("agent failed"))
+    )
+    executor = A2AAgentExecutor(adapter)
+    context = SimpleNamespace(task_id="task-1", context_id="context-1")
+    event_queue = AsyncMock(spec=EventQueue)
+    updater = AsyncMock()
+
+    with patch(
+        "microsoft_agents.hosting.a2a.request_handling."
+        "a2a_agent_executor.TaskUpdater",
+        return_value=updater,
+    ):
+        with pytest.raises(RuntimeError, match="agent failed"):
+            await executor.cancel(context, event_queue)
+
+    updater.cancel.assert_awaited_once()
 
 
 def test_request_handler_uses_adapter_and_updates_agent_card():

@@ -100,12 +100,7 @@ class A2AAdapter(A2AHttpAdapter, ChannelAdapter, ChannelAdapterProtocol):
         self._task_store = task_store or InMemoryTaskStore()
 
         self._skills: list[AgentSkill] = skills or []
-        self._agent_interfaces: list[AgentInterface] = agent_interfaces or [
-            AgentInterface(
-                url="http://localhost:8000/a2a",
-                protocol_binding=TransportProtocol.JSONRPC,
-            )
-        ]
+        self._agent_interfaces: list[AgentInterface] = agent_interfaces or []
         
         self._a2a_request_handler = A2ARequestHandler(
             self,
@@ -316,7 +311,6 @@ class A2AAdapter(A2AHttpAdapter, ChannelAdapter, ChannelAdapterProtocol):
                     context_id=message.context_id,
                     artifact=artifact,
                     append=False,
-                    last_chunk=True,
                 )
             )
 

@@ -73,3 +73,8 @@ class A2AAgentExecutor(AgentExecutor):
             context_id=context.context_id or '',
         )
         await updater.cancel()
+
+        await self._adapter.cancel_agent_turn(
+            context,
+            event_queue,
+        )
