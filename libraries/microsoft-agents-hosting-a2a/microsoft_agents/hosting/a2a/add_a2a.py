@@ -10,7 +10,7 @@ from a2a.server.routes import add_a2a_routes_to_fastapi
 from a2a.types import AgentInterface
 from a2a.utils.constants import TransportProtocol, AGENT_CARD_WELL_KNOWN_PATH
 
-from microsoft_agents.hosting.core import Agent
+from microsoft_agents.hosting.core import AgentApplication
 
 from .a2a_adapter import A2AAdapter
 from .server import (
@@ -62,7 +62,7 @@ def _create_http_interface_routes(
 
 def add_a2a(
     app: FastAPI,
-    agent: Agent,
+    agent: AgentApplication,
     adapter: A2AAdapter | None = None,
     *,
     use_jwt_middleware: bool = True,
