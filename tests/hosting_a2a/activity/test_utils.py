@@ -90,16 +90,11 @@ def test_activity_to_artifact_rejects_unsupported_attachment_content():
         utils.activity_to_artifact(activity)
 
 
-def test_create_artifact_from_data_returns_none_for_none():
-    assert utils.create_artifact_from_data(None) is None
-
-
 def test_create_artifact_from_data_populates_artifact():
     artifact = utils.create_artifact_from_data(
         {"answer": 42},
         name="result",
         description="The result",
-        media_type="application/json",
         artifact_id="artifact-1",
     )
 
@@ -113,6 +108,17 @@ def test_create_artifact_from_data_populates_artifact():
         "additionalProperties": True,
         "type": "object",
     }
+
+
+def test_create_artifact_from_data_generates_artifact_id():
+    artifact = utils.create_artifact_from_data({"answer": 42})
+
+    assert artifact.artifact_id
+
+
+def test_create_artifact_from_data_rejects_none():
+    with pytest.raises(ValueError, match="Data cannot be None"):
+        utils.create_artifact_from_data(None)
 
 
 def test_get_a2a_metadata_rejects_none():
@@ -167,16 +173,13 @@ def test_get_task_state_maps_input_hint():
         == TaskState.TASK_STATE_INPUT_REQUIRED
     )
     assert (
-        utils.get_task_state(Activity(type="message"))
-        == TaskState.TASK_STATE_WORKING
+        utils.get_task_state(Activity(type="message")) == TaskState.TASK_STATE_WORKING
     )
 
 
 def test_get_incoming_message_returns_a2a_message():
     message = Message(message_id="message-1", role=Role.ROLE_USER)
-    context = SimpleNamespace(
-        activity=Activity(type="message", channel_data=message)
-    )
+    context = SimpleNamespace(activity=Activity(type="message", channel_data=message))
 
     assert utils.get_incoming_message(context) is message
 

@@ -82,13 +82,12 @@ def activity_to_artifact(
                 artifact.parts.append(
                     Part(
                         metadata=_get_a2a_metadata(entity),
-                        data=_to_protobuf_value(
-                            entity.model_dump(exclude_none=True)
-                        ),
+                        data=_to_protobuf_value(entity.model_dump(exclude_none=True)),
                     )
                 )
 
     return artifact
+
 
 @lru_cache
 def _try_get_json_schema(data_type: type) -> dict[str, Any] | None:
@@ -98,6 +97,7 @@ def _try_get_json_schema(data_type: type) -> dict[str, Any] | None:
         return TypeAdapter(data_type).json_schema()
     except PydanticSchemaGenerationError:
         return None
+
 
 def _get_a2a_metadata(data: object) -> dict:
     """Convert the given data to A2A metadata.
@@ -117,27 +117,23 @@ def _get_a2a_metadata(data: object) -> dict:
     if schema is not None:
         metadata["schema"] = schema
 
-    return metadata 
+    return metadata
+
 
 def create_artifact_from_data(
     data: dict,
     name: str | None = None,
     description: str | None = None,
-    media_type: str | None = None,
     artifact_id: str | None = None,
-) -> Artifact | None:
+) -> Artifact:
     """Create an Artifact object from the given data.
 
     :param data: The data to include in the artifact.
     :param name: The name of the artifact. Defaults to None.
     :param description: The description of the artifact. Defaults to None.
-    :param media_type: The media type of the artifact. Defaults to None.
     :param artifact_id: The ID of the artifact. If None, a new ID will be generated.
-    :return: An Artifact object representing the data, or None if the data is None.
+    :return: An Artifact object representing the data.
     """
-    if data is None:
-        return None
-
     return Artifact(
         artifact_id=artifact_id if artifact_id else str(uuid4()),  # check .NET
         name=name,

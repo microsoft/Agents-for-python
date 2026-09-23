@@ -13,6 +13,7 @@ from .a2a_http_adapter import A2AHttpAdapter
 
 logger = logging.getLogger(__name__)
 
+
 class A2AAgentExecutor(AgentExecutor):
     """Executor for handling A2A agent requests."""
 
@@ -69,8 +70,8 @@ class A2AAgentExecutor(AgentExecutor):
 
         updater = TaskUpdater(
             event_queue=event_queue,
-            task_id=task_id or '',
-            context_id=context.context_id or '',
+            task_id=task_id or "",
+            context_id=context.context_id or "",
         )
         await updater.cancel()
 

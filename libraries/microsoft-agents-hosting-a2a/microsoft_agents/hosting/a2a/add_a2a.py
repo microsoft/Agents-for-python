@@ -15,8 +15,9 @@ from .server import (
     create_jsonrpc_routes,
     create_rest_routes,
     create_agent_card_routes,
-    use_jwt_middleware as _use_jwt_middleware
+    use_jwt_middleware as _use_jwt_middleware,
 )
+
 
 def _create_jsonrpc_interface_routes(
     adapter: A2AAdapter,
@@ -28,22 +29,32 @@ def _create_jsonrpc_interface_routes(
     :param interface: The agent interface to add routes for.
     """
 
-    jsonrpc_routes = create_jsonrpc_routes(adapter.a2a_request_handler, rpc_url=interface.url)
-    agent_card_routes = create_agent_card_routes(adapter.get_agent_card, f"{interface.url}{AGENT_CARD_WELL_KNOWN_PATH}")
+    jsonrpc_routes = create_jsonrpc_routes(
+        adapter.a2a_request_handler, rpc_url=interface.url
+    )
+    agent_card_routes = create_agent_card_routes(
+        adapter.get_agent_card, f"{interface.url}{AGENT_CARD_WELL_KNOWN_PATH}"
+    )
     return jsonrpc_routes, agent_card_routes
+
 
 def _create_http_interface_routes(
     adapter: A2AAdapter,
     interface: AgentInterface,
 ) -> tuple[list[BaseRoute], list[BaseRoute]]:
     """Create HTTP interface routes for the given agent interface.
-    
+
     :param adapter: The A2AAdapter instance used to handle requests.
     :param interface: The agent interface to add routes for.
     """
-    http_routes = create_rest_routes(adapter.a2a_request_handler, path_prefix=interface.url)
-    agent_card_routes = create_agent_card_routes(adapter.get_agent_card, f"{interface.url}{AGENT_CARD_WELL_KNOWN_PATH}")
+    http_routes = create_rest_routes(
+        adapter.a2a_request_handler, path_prefix=interface.url
+    )
+    agent_card_routes = create_agent_card_routes(
+        adapter.get_agent_card, f"{interface.url}{AGENT_CARD_WELL_KNOWN_PATH}"
+    )
     return http_routes, agent_card_routes
+
 
 def add_a2a(
     app: FastAPI,
@@ -70,11 +81,15 @@ def add_a2a(
 
     for interface in interfaces:
         if interface.protocol_binding == TransportProtocol.JSONRPC:
-            _jsonrpc_routes, _agent_card_routes = _create_jsonrpc_interface_routes(adapter, interface)
+            _jsonrpc_routes, _agent_card_routes = _create_jsonrpc_interface_routes(
+                adapter, interface
+            )
             jsonrpc_routes.extend(_jsonrpc_routes)
             agent_card_routes.extend(_agent_card_routes)
         elif interface.protocol_binding == TransportProtocol.HTTP_JSON:
-            _http_routes, _agent_card_routes = _create_http_interface_routes(adapter, interface)
+            _http_routes, _agent_card_routes = _create_http_interface_routes(
+                adapter, interface
+            )
             rest_routes.extend(_http_routes)
             agent_card_routes.extend(_agent_card_routes)
 

@@ -27,6 +27,7 @@ from microsoft_agents.hosting.core.storage.error_handling import (
 
 _TASK_PREFIX = "TODO"
 
+
 class BlobTaskStore(TaskStore):
     """A task store implementation backed by a blob storage."""
 
@@ -50,7 +51,7 @@ class BlobTaskStore(TaskStore):
         container_name: str | None = None,
     ) -> None:
         """Initializes the blob task store with either a container client or a connection string and container name.
-        
+
         :param container_client: An optional ContainerClient instance for accessing the blob storage.
         :param data_connection_string: An optional connection string for the blob storage.
         :param container_name: An optional container name within the blob storage.
@@ -63,8 +64,12 @@ class BlobTaskStore(TaskStore):
             self._container_client = container_client
             return
         elif data_connection_string is not None and container_name is not None:
-            blob_service_client = BlobServiceClient.from_connection_string(data_connection_string)
-            self._container_client = blob_service_client.get_container_client(container_name)
+            blob_service_client = BlobServiceClient.from_connection_string(
+                data_connection_string
+            )
+            self._container_client = blob_service_client.get_container_client(
+                container_name
+            )
             return
         else:
             raise ValueError("Invalid combination of parameters provided.")
@@ -76,7 +81,8 @@ class BlobTaskStore(TaskStore):
             async with self._init_lock:
                 if not self._initialized:
                     await ignore_error(
-                        self._container_client.create_container(), is_status_code_error(409)
+                        self._container_client.create_container(),
+                        is_status_code_error(409),
                     )
                     self._initialized = True
 
@@ -100,7 +106,7 @@ class BlobTaskStore(TaskStore):
         if not task_id:
             raise ValueError("Task ID cannot be empty.")
         return f"{_TASK_PREFIX}{urllib.parse.quote_plus(task_id)}"
-        
+
     async def save(self, task: Task, context: ServerCallContext) -> None:
         """Saves or updates a task in the blob store."""
         await self._ensure_container_exists()
@@ -117,7 +123,7 @@ class BlobTaskStore(TaskStore):
 
     async def get(self, task_id: str, context: ServerCallContext) -> Task | None:
         """Retrieves a task from the blob store by its ID.
-        
+
         :param task_id: The ID of the task to retrieve.
         :param context: The server call context.
         :return: The task if found, otherwise None.
@@ -126,9 +132,11 @@ class BlobTaskStore(TaskStore):
 
         return await self._download_task(task_id)
 
-    async def list(self, params: ListTasksRequest, context: ServerCallContext) -> ListTasksResponse:
+    async def list(
+        self, params: ListTasksRequest, context: ServerCallContext
+    ) -> ListTasksResponse:
         """Retrives a list of tasks from the store.
-        
+
         :param params: The parameters for listing tasks.
         :param context: The server call context.
         :return: A response containing the list of tasks.
@@ -138,8 +146,7 @@ class BlobTaskStore(TaskStore):
         tasks: list[Task] = []
 
         items = self._container_client.list_blobs(
-            name_starts_with=_TASK_PREFIX,
-            results_per_page=params.page_size
+            name_starts_with=_TASK_PREFIX, results_per_page=params.page_size
         )
 
         iterator = items.by_page(params.page_token)
@@ -150,7 +157,7 @@ class BlobTaskStore(TaskStore):
 
         next_page_token = getattr(first_page, "continuation_token", None)
 
-        # TODO -> 
+        # TODO ->
         async for blob in first_page:
             task = await self._download_task_blob(blob.name)
             if task and self._should_include_task(task, params):
@@ -158,12 +165,9 @@ class BlobTaskStore(TaskStore):
 
         return ListTasksResponse(tasks=tasks, next_page_token=next_page_token)
 
-
-
-
     async def delete(self, task_id: str, context: ServerCallContext) -> None:
         """Deletes a task from the blob store by its ID.
-        
+
         :param task_id: The ID of the task to delete.
         :param context: The server call context.s
         """

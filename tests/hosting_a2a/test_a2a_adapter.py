@@ -60,11 +60,7 @@ def _request_context(identity=None, *, include_message=True):
     call_context = ServerCallContext(
         state={} if identity is None else {_CLAIMS_IDENTITY_KEY: identity}
     )
-    request = (
-        SendMessageRequest(message=_message())
-        if include_message
-        else None
-    )
+    request = SendMessageRequest(message=_message()) if include_message else None
     return RequestContext(
         call_context,
         request=request,
@@ -430,10 +426,7 @@ async def test_get_agent_card_projects_interfaces_and_skills():
     assert card.description == "Description"
     assert card.version == "1.2.3"
     assert card.supported_interfaces[0].url == "https://example.com/a2a"
-    assert (
-        card.supported_interfaces[0].protocol_binding
-        == TransportProtocol.HTTP_JSON
-    )
+    assert card.supported_interfaces[0].protocol_binding == TransportProtocol.HTTP_JSON
     assert card.supported_interfaces[0].protocol_version == "1.0"
     assert card.skills[0].id == "weather"
     assert card.skills[0].examples == ["Weather in Seattle"]

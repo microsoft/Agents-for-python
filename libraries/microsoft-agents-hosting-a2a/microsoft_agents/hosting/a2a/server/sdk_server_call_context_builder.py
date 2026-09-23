@@ -12,6 +12,7 @@ from starlette.requests import Request
 
 from ._constants import _CLAIMS_IDENTITY_KEY
 
+
 class SDKServerCallContextBuilder(DefaultServerCallContextBuilder):
     """A default implementation of ServerCallContextBuilder."""
 

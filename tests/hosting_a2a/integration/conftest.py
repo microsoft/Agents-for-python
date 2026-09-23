@@ -20,6 +20,9 @@ from microsoft_agents.hosting.core import (
 )
 from tests._common.testing_objects import TestingConnectionManager
 
+STREAMING_TRIGGER_TEXT = "stream-me"
+"""Message text that causes the test agent to emit chunked streaming updates."""
+
 
 def _create_agent_application() -> AgentApplication[TurnState]:
     application = AgentApplication[TurnState](
@@ -29,7 +32,18 @@ def _create_agent_application() -> AgentApplication[TurnState]:
 
     @application.activity("message")
     async def on_message(context: TurnContext, _state: TurnState) -> None:
-        await context.send_activity(f"Echo: {context.activity.text or ''}")
+        text = context.activity.text or ""
+        if text == STREAMING_TRIGGER_TEXT:
+            # Exercise the chunked streaming API so that informative and
+            # partial-content updates surface as A2A task status/artifact
+            # update events.
+            streaming_response = context.streaming_response
+            streaming_response.queue_informative_update("Thinking...")
+            streaming_response.queue_text_chunk("Echo: ")
+            streaming_response.queue_text_chunk(text)
+            await streaming_response.end_stream()
+        else:
+            await context.send_activity(f"Echo: {text}")
         await context.send_activity(
             Activity(
                 type=ActivityTypes.end_of_conversation,

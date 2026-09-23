@@ -50,6 +50,7 @@ class A2AAgentExtension(Generic[StateT]):
 
         def __call(func: A2ARouteHandler[StateT]) -> RouteHandler[StateT]:
             return decorator(wrap_a2a_route_handler(func, self._app))
+
         return __call
 
     def message(

@@ -16,6 +16,7 @@ from microsoft_agents.hosting.core import (
 from .activity import A2AActivity
 from .a2a_client import A2AClient
 
+
 class A2ATurnContext(TurnContext):
     """A context object for handling A2A-specific turn functionality.
 
@@ -31,7 +32,7 @@ class A2ATurnContext(TurnContext):
         identity: ClaimsIdentity | None = None,
     ) -> None:
         """Initialize the A2A turn context.
-        
+
         :param adapter_or_context: The channel service adapter or existing turn context.
         :param app: The agent application instance.
         :param activity: The activity for the turn context.

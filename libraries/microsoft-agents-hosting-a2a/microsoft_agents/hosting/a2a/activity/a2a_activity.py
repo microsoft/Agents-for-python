@@ -36,13 +36,18 @@ from . import utils
 
 _DEFAULT_USER_ID = "unknown"
 
+
 class A2AActivity(Activity):
     """A2A-aware :class:`Activity` subclass exposing A2A protocol data helpers."""
 
-    channel_id: ChannelId = Field(default_factory=lambda: ChannelId(Channels.a2a), frozen=True)
+    channel_id: ChannelId = Field(
+        default_factory=lambda: ChannelId(Channels.a2a), frozen=True
+    )
 
     @staticmethod
-    def from_message(request_id: str, task_id: str | None, message: Message) -> A2AActivity:
+    def from_message(
+        request_id: str, task_id: str | None, message: Message
+    ) -> A2AActivity:
         """Create an A2AActivity from a Message object.
 
         :param request_id: The request ID for the activity.
@@ -55,24 +60,21 @@ class A2AActivity(Activity):
             raise ValueError("Task ID is required.")
 
         task_id = task_id or message.task_id
-            
-        activity = A2AActivity._create_activity(
-            task_id,
-            message.parts,
-            True,
-            True
-        )
 
-        activity.request_id = request_id or str(uuid4()) # formatting
+        activity = A2AActivity._create_activity(task_id, message.parts, True, True)
+
+        activity.request_id = request_id or str(uuid4())  # formatting
         activity.channel_data = message
-        message.context_id = message.context_id or str(uuid4()) # Formatting
+        message.context_id = message.context_id or str(uuid4())  # Formatting
         message.task_id = task_id
 
         return activity
 
-    def to_message(self, context_id: str, task_id: str, include_entities: bool = True) -> Message:
+    def to_message(
+        self, context_id: str, task_id: str, include_entities: bool = True
+    ) -> Message:
         """Convert the activity to a Message object.
-        
+
         :param context_id: The context ID for the message.
         :param task_id: The task ID for the message.
         :param include_entities: Whether to include entities in the message. Defaults to True.
@@ -80,7 +82,9 @@ class A2AActivity(Activity):
         """
         return utils.create_message(context_id, task_id, self, include_entities)
 
-    def to_artifact(self, artifact_id: str | None = None, include_entities: bool = True) -> Artifact:
+    def to_artifact(
+        self, artifact_id: str | None = None, include_entities: bool = True
+    ) -> Artifact:
         """Convert the activity to an Artifact object.
 
         :param artifact_id: The ID of the artifact. If None, a new ID will be generated.
@@ -101,10 +105,10 @@ class A2AActivity(Activity):
         conversation_id: str,
         parts: Iterable[Part],
         is_ingress: bool,
-        is_streaming: bool
+        is_streaming: bool,
     ) -> A2AActivity:
         """Create an Activity representing an A2A concept.
-        
+
         :param conversation_id: The ID of the conversation.
         :param parts: The parts to include in the activity.
         :param is_ingress: Whether the activity is incoming.
@@ -118,7 +122,9 @@ class A2AActivity(Activity):
         activity = A2AActivity(
             type=ActivityTypes.message,
             id=str(uuid4()),
-            delivery_mode=DeliveryModes.stream if is_streaming else DeliveryModes.expect_replies,
+            delivery_mode=(
+                DeliveryModes.stream if is_streaming else DeliveryModes.expect_replies
+            ),
             conversation=ConversationAccount(id=conversation_id),
             recipient=agent if is_ingress else user,
             from_property=user if is_ingress else agent,
@@ -132,22 +138,28 @@ class A2AActivity(Activity):
                 else:
                     activity.text += part.text
             elif part.url:
-                activity.attachments.append(Attachment(
-                    content_type=part.media_type,
-                    content_url=part.url,
-                    name=part.filename,
-                ))
+                activity.attachments.append(
+                    Attachment(
+                        content_type=part.media_type,
+                        content_url=part.url,
+                        name=part.filename,
+                    )
+                )
             elif part.raw:
-                activity.attachments.append(Attachment(
-                    content_type=part.media_type,
-                    content=part.raw,
-                    name=part.filename,
-                ))
+                activity.attachments.append(
+                    Attachment(
+                        content_type=part.media_type,
+                        content=part.raw,
+                        name=part.filename,
+                    )
+                )
             elif part.data:
-                activity.attachments.append(Attachment(
-                    content_type="application/json",
-                    content=json.dumps(MessageToDict(part.data)),
-                    name="A2A DataPart",
-                ))
+                activity.attachments.append(
+                    Attachment(
+                        content_type="application/json",
+                        content=json.dumps(MessageToDict(part.data)),
+                        name="A2A DataPart",
+                    )
+                )
 
         return activity

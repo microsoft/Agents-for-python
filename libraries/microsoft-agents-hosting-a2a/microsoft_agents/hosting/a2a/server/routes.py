@@ -18,7 +18,9 @@ from starlette.routing import BaseRoute, Mount, Route
 
 from microsoft_agents.hosting.core import HttpRequestProtocol
 from microsoft_agents.hosting.fastapi import JwtAuthorizationMiddleware
-from microsoft_agents.hosting.fastapi._fastapi_request_adapter import FastApiRequestAdapter
+from microsoft_agents.hosting.fastapi._fastapi_request_adapter import (
+    FastApiRequestAdapter,
+)
 
 from .sdk_server_call_context_builder import SDKServerCallContextBuilder
 
@@ -62,6 +64,7 @@ def create_rest_routes(
         path_prefix=path_prefix,
     )
 
+
 def create_agent_card_routes(
     get_agent_card: Callable[[HttpRequestProtocol, str], Awaitable[AgentCard]],
     card_url: str = AGENT_CARD_WELL_KNOWN_PATH,
@@ -87,17 +90,12 @@ def create_agent_card_routes(
         card = await get_agent_card(FastApiRequestAdapter(request), prefix)
         return JSONResponse(agent_card_to_dict(card))
 
-    return [
-        Route(
-            path=card_url,
-            endpoint=_get_agent_card,
-            methods=['GET']
-        )
-    ]
+    return [Route(path=card_url, endpoint=_get_agent_card, methods=["GET"])]
+
 
 def use_jwt_middleware(routes: Sequence[BaseRoute]) -> None:
     """Wrap all routes with JWT authorization middleware.
-    
+
     :param routes: A list of BaseRoute objects to wrap with JWT authorization middleware.
     """
     wrapped: set[int] = set()

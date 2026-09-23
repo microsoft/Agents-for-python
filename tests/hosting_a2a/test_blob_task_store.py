@@ -33,9 +33,7 @@ class _AsyncIterator:
 
 class _BlobPage:
     def __init__(self, blob_names, continuation_token=None):
-        self._blobs = [
-            SimpleNamespace(name=blob_name) for blob_name in blob_names
-        ]
+        self._blobs = [SimpleNamespace(name=blob_name) for blob_name in blob_names]
         self.continuation_token = continuation_token
 
     def __aiter__(self):
@@ -89,9 +87,7 @@ def test_constructor_creates_container_client_from_connection_string():
             container_name="tasks",
         )
 
-    from_connection_string.assert_called_once_with(
-        "UseDevelopmentStorage=true"
-    )
+    from_connection_string.assert_called_once_with("UseDevelopmentStorage=true")
     blob_service_client.get_container_client.assert_called_once_with("tasks")
     assert store._container_client is container_client
 
@@ -180,7 +176,9 @@ async def test_save_initializes_container_before_upload():
 async def test_get_deserializes_protobuf_task():
     store, container_client = _store()
     task = _task()
-    downloader = SimpleNamespace(readall=AsyncMock(return_value=task.SerializeToString()))
+    downloader = SimpleNamespace(
+        readall=AsyncMock(return_value=task.SerializeToString())
+    )
     container_client.download_blob = AsyncMock(return_value=downloader)
 
     result = await store.get(task.id, context=MagicMock())
@@ -197,7 +195,9 @@ async def test_get_deserializes_protobuf_task():
 async def test_download_task_blob_uses_existing_blob_name():
     store, container_client = _store()
     task = _task()
-    downloader = SimpleNamespace(readall=AsyncMock(return_value=task.SerializeToString()))
+    downloader = SimpleNamespace(
+        readall=AsyncMock(return_value=task.SerializeToString())
+    )
     container_client.download_blob = AsyncMock(return_value=downloader)
 
     result = await store._download_task_blob("TODOtask%2F1")

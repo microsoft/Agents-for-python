@@ -3,6 +3,7 @@
 
 from __future__ import annotations
 
+import json
 import uuid
 
 import httpx
@@ -11,6 +12,7 @@ from google.protobuf.json_format import MessageToDict
 
 from a2a.types.a2a_pb2 import (
     CancelTaskRequest,
+    GetExtendedAgentCardRequest,
     GetTaskRequest,
     ListTasksRequest,
     Message,
@@ -18,6 +20,8 @@ from a2a.types.a2a_pb2 import (
     Role,
     SendMessageRequest,
 )
+
+from .conftest import STREAMING_TRIGGER_TEXT
 
 pytestmark = pytest.mark.filterwarnings(
     "ignore:label\\(\\) is deprecated\\. Use is_required\\(\\) or is_repeated\\(\\) instead\\.:DeprecationWarning"
@@ -61,6 +65,26 @@ async def _post_rpc(
     )
     assert response.status_code == 200
     return response.json()
+
+
+async def _stream_rpc(
+    client: httpx.AsyncClient,
+    method: str,
+    params: object,
+    request_id: str = "request-1",
+) -> list[dict]:
+    events: list[dict] = []
+    async with client.stream(
+        "POST",
+        "/rpc",
+        json=_rpc_request(method, params, request_id),
+        headers={"A2A-Version": "1.0", "Accept": "text/event-stream"},
+    ) as response:
+        assert response.status_code == 200
+        async for line in response.aiter_lines():
+            if line.startswith("data:"):
+                events.append(json.loads(line[len("data:") :].strip()))
+    return events
 
 
 def _task_id(response: dict) -> str:
@@ -185,3 +209,136 @@ async def test_jsonrpc_rejects_unknown_method(
     payload = response.json()
     assert payload["id"] == "unknown"
     assert payload["error"]["code"] == -32601
+
+
+@pytest.mark.integration
+@pytest.mark.asyncio
+async def test_jsonrpc_streaming_message_emits_ordered_task_events(
+    a2a_client: httpx.AsyncClient,
+) -> None:
+    events = await _stream_rpc(
+        a2a_client,
+        "SendStreamingMessage",
+        _send_request(STREAMING_TRIGGER_TEXT),
+        request_id="stream-1",
+    )
+
+    assert [event["id"] for event in events] == ["stream-1"] * len(events)
+
+    # First event is the newly created task in the submitted state.
+    task = events[0]["result"]["task"]
+    task_id = task["id"]
+    assert task["status"]["state"] == "TASK_STATE_SUBMITTED"
+
+    # The queued informative update surfaces as a "working" status update
+    # carrying the informative text as an agent message, before any content.
+    working_update = events[1]["result"]["statusUpdate"]
+    assert working_update["taskId"] == task_id
+    assert working_update["status"]["state"] == "TASK_STATE_WORKING"
+    assert working_update["status"]["message"]["parts"][0]["text"] == "Thinking..."
+
+    # The queued text chunks are combined into a single artifact update.
+    artifact_update = events[2]["result"]["artifactUpdate"]
+    assert artifact_update["taskId"] == task_id
+    assert artifact_update["artifact"]["parts"][0]["text"] == (
+        f"Echo: {STREAMING_TRIGGER_TEXT}"
+    )
+
+    # The stream ends with a "completed" status update once end_stream()
+    # finishes and the end-of-conversation activity is processed.
+    final_update = events[-1]["result"]["statusUpdate"]
+    assert final_update["taskId"] == task_id
+    assert final_update["status"]["state"] == "TASK_STATE_COMPLETED"
+
+    # The persisted task reflects the same terminal state via a plain GetTask.
+    get_response = await _post_rpc(
+        a2a_client,
+        "GetTask",
+        GetTaskRequest(id=task_id),
+        request_id="get-task",
+    )
+    assert get_response["result"]["status"]["state"] == "TASK_STATE_COMPLETED"
+
+
+@pytest.mark.integration
+@pytest.mark.asyncio
+async def test_jsonrpc_push_notification_config_is_explicitly_unsupported(
+    a2a_client: httpx.AsyncClient,
+) -> None:
+    """The adapter's agent card does not advertise push-notification
+    capability, so every push-notification method must fail with the
+    protocol-defined PUSH_NOTIFICATION_NOT_SUPPORTED error rather than a
+    generic failure or a silent no-op."""
+
+    response = await _post_rpc(
+        a2a_client,
+        "CreateTaskPushNotificationConfig",
+        {"taskId": "missing-task", "url": "https://example.com/webhook"},
+        request_id="push-create",
+    )
+
+    assert response["error"]["code"] == -32003
+    assert response["error"]["message"] == (
+        "Push notifications are not supported by the agent"
+    )
+    error_details = response["error"]["data"][0]
+    assert error_details["reason"] == "PUSH_NOTIFICATION_NOT_SUPPORTED"
+
+
+@pytest.mark.integration
+@pytest.mark.asyncio
+async def test_rest_push_notification_config_is_explicitly_unsupported(
+    a2a_client: httpx.AsyncClient,
+) -> None:
+    response = await a2a_client.post(
+        "/rest/tasks/missing-task/pushNotificationConfigs",
+        json={"url": "https://example.com/webhook"},
+        headers={"A2A-Version": "1.0"},
+    )
+
+    assert response.status_code == 400
+    payload = response.json()
+    assert payload["error"]["status"] == "FAILED_PRECONDITION"
+    assert payload["error"]["details"][0]["reason"] == (
+        "PUSH_NOTIFICATION_NOT_SUPPORTED"
+    )
+
+
+@pytest.mark.integration
+@pytest.mark.asyncio
+async def test_jsonrpc_extended_agent_card_is_explicitly_unconfigured(
+    a2a_client: httpx.AsyncClient,
+) -> None:
+    """The basic agent card advertises `capabilities.extended_agent_card`,
+    but the adapter never configures an actual extended card or modifier on
+    the request handler, so retrieval must fail with the protocol-defined
+    EXTENDED_AGENT_CARD_NOT_CONFIGURED error."""
+
+    response = await _post_rpc(
+        a2a_client,
+        "GetExtendedAgentCard",
+        GetExtendedAgentCardRequest(),
+        request_id="extended-card",
+    )
+
+    assert response["error"]["code"] == -32007
+    error_details = response["error"]["data"][0]
+    assert error_details["reason"] == "EXTENDED_AGENT_CARD_NOT_CONFIGURED"
+
+
+@pytest.mark.integration
+@pytest.mark.asyncio
+async def test_rest_extended_agent_card_is_explicitly_unconfigured(
+    a2a_client: httpx.AsyncClient,
+) -> None:
+    response = await a2a_client.get(
+        "/rest/extendedAgentCard",
+        headers={"A2A-Version": "1.0"},
+    )
+
+    assert response.status_code == 400
+    payload = response.json()
+    assert payload["error"]["status"] == "FAILED_PRECONDITION"
+    assert payload["error"]["details"][0]["reason"] == (
+        "EXTENDED_AGENT_CARD_NOT_CONFIGURED"
+    )

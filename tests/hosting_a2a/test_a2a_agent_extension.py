@@ -33,4 +33,3 @@ def test_message_registers_wrapped_handler_with_core_application():
     wrap_handler.assert_called_once_with(handler, app)
     core_decorator.assert_called_once_with(wrapped_handler)
     assert result == "registered-handler"
-

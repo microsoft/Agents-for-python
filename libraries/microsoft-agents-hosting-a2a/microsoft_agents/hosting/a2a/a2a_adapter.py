@@ -79,7 +79,7 @@ class A2AAdapter(A2AHttpAdapter, ChannelAdapter, ChannelAdapterProtocol):
         agent_card_version: str = "0.0.0",
         agent_interfaces: list[AgentInterface] | None = None,
         skills: list[AgentSkill] | None = None,
-        task_store: TaskStore | None = None
+        task_store: TaskStore | None = None,
     ):
         """Initializes the A2AAdapter with the given agent and optional task store.
 
@@ -101,7 +101,7 @@ class A2AAdapter(A2AHttpAdapter, ChannelAdapter, ChannelAdapterProtocol):
 
         self._skills: list[AgentSkill] = skills or []
         self._agent_interfaces: list[AgentInterface] = agent_interfaces or []
-        
+
         self._a2a_request_handler = A2ARequestHandler(
             self,
             task_store=self._task_store,
@@ -159,7 +159,9 @@ class A2AAdapter(A2AHttpAdapter, ChannelAdapter, ChannelAdapterProtocol):
             event_queue,
         )
 
-    async def cancel_agent_turn(self, context: RequestContext, event_queue: EventQueue) -> None:
+    async def cancel_agent_turn(
+        self, context: RequestContext, event_queue: EventQueue
+    ) -> None:
         """Cancel an ongoing agent turn given the request context and event queue.
 
         :param context: The request context for the agent turn.
@@ -186,7 +188,6 @@ class A2AAdapter(A2AHttpAdapter, ChannelAdapter, ChannelAdapterProtocol):
             context,
             event_queue,
         )
-
 
     def _create_turn_context(
         self,
@@ -349,10 +350,7 @@ class A2AAdapter(A2AHttpAdapter, ChannelAdapter, ChannelAdapterProtocol):
 
         if isinstance(activity.value, dict):
             artifact = utils.create_artifact_from_data(
-                activity.value,
-                name="Result",
-                description="Task completion result",
-                media_type="application/json",
+                activity.value, name="Result", description="Task completion result"
             )
             await event_queue.enqueue_event(
                 TaskArtifactUpdateEvent(
@@ -416,11 +414,13 @@ class A2AAdapter(A2AHttpAdapter, ChannelAdapter, ChannelAdapterProtocol):
             supported_interfaces=[],
         )
 
-    async def get_agent_card(self, request: HttpRequestProtocol, path_prefix: str) -> AgentCard:
+    async def get_agent_card(
+        self, request: HttpRequestProtocol, path_prefix: str
+    ) -> AgentCard:
         """Get the agent card for the current agent, potentially customized based on the request.
 
         Set as asynchronous because in some implementations, fetching or customizing the agent card might involve I/O operations, such as querying a database or an external service.
-        
+
         :param request: The HTTP request object conforming to HttpRequestProtocol.
         :param path_prefix: The prefix to be used for constructing the agent interface URL.
         :return: An AgentCard instance representing the agent's capabilities.
@@ -429,7 +429,7 @@ class A2AAdapter(A2AHttpAdapter, ChannelAdapter, ChannelAdapterProtocol):
 
         url_parts = urlsplit(request.url)
         request_origin = f"{url_parts.scheme}://{url_parts.netloc}"
-        
+
         if not self._agent_interfaces:
             agent_card.supported_interfaces.append(
                 AgentInterface(
@@ -448,13 +448,17 @@ class A2AAdapter(A2AHttpAdapter, ChannelAdapter, ChannelAdapterProtocol):
                     if interface_url.startswith("/"):
                         interface_url = f"{request_origin}{interface_url}"
 
-                    agent_card.supported_interfaces.append(AgentInterface(
-                        protocol_binding=agent_interface.protocol_binding,
-                        url=interface_url,
-                        protocol_version="1.0",
-                    ))
+                    agent_card.supported_interfaces.append(
+                        AgentInterface(
+                            protocol_binding=agent_interface.protocol_binding,
+                            url=interface_url,
+                            protocol_version="1.0",
+                        )
+                    )
                 else:
-                    logger.info("Unsupported protocol: %s", agent_interface.protocol_binding)
+                    logger.info(
+                        "Unsupported protocol: %s", agent_interface.protocol_binding
+                    )
 
         if self._skills:
             for skill_info in self._skills:
@@ -471,7 +475,6 @@ class A2AAdapter(A2AHttpAdapter, ChannelAdapter, ChannelAdapterProtocol):
                 )
         return agent_card
 
-    
     async def update_activity(self, context: TurnContext, activity: Activity) -> None:
         raise NotImplementedError("A2AAdapter.update_activity is not implemented.")
 
