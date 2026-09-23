@@ -22,6 +22,7 @@ from a2a.types import (
     TaskStatusUpdateEvent,
 )
 from a2a.utils.constants import TransportProtocol
+from google.protobuf.json_format import MessageToDict
 
 from microsoft_agents.activity import (
     Activity,
@@ -328,6 +329,36 @@ async def test_end_of_conversation_maps_terminal_state(code, expected_state):
     event = await event_queue.dequeue_event()
     assert isinstance(event, TaskStatusUpdateEvent)
     assert event.status.state == expected_state
+
+
+@pytest.mark.asyncio
+async def test_end_of_conversation_emits_result_artifact_before_status_message():
+    event_queue = EventQueueLegacy()
+    adapter = A2AAdapter(_agent())
+    context = _turn_context(adapter, event_queue)
+    activity = A2AActivity(
+        type=ActivityTypes.end_of_conversation,
+        code=EndOfConversationCodes.completed_successfully,
+        text="Completed with structured data",
+        value={"answer": 42},
+    )
+
+    await adapter.send_activities(context, [activity])
+
+    artifact_event = await event_queue.dequeue_event()
+    status_event = await event_queue.dequeue_event()
+
+    assert isinstance(artifact_event, TaskArtifactUpdateEvent)
+    assert artifact_event.last_chunk is True
+    assert artifact_event.artifact.name == "Result"
+    assert MessageToDict(artifact_event.artifact.parts[0].data) == {"answer": 42.0}
+
+    assert isinstance(status_event, TaskStatusUpdateEvent)
+    assert status_event.status.state == TaskState.TASK_STATE_COMPLETED
+    assert status_event.status.message.parts[0].text == (
+        "Completed with structured data"
+    )
+    assert all(not part.HasField("data") for part in status_event.status.message.parts)
 
 
 @pytest.mark.asyncio

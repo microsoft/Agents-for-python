@@ -23,6 +23,12 @@ from tests._common.testing_objects import TestingConnectionManager
 STREAMING_TRIGGER_TEXT = "stream-me"
 """Message text that causes the test agent to emit chunked streaming updates."""
 
+INPUT_REQUIRED_TRIGGER_TEXT = "need-more-input"
+"""Message text that leaves the task waiting for a continuation."""
+
+STRUCTURED_RESULT_TRIGGER_TEXT = "structured-result"
+"""Message text that completes with both text and structured result data."""
+
 
 def _create_agent_application() -> AgentApplication[TurnState]:
     application = AgentApplication[TurnState](
@@ -42,6 +48,25 @@ def _create_agent_application() -> AgentApplication[TurnState]:
             streaming_response.queue_text_chunk("Echo: ")
             streaming_response.queue_text_chunk(text)
             await streaming_response.end_stream()
+        elif text == INPUT_REQUIRED_TRIGGER_TEXT:
+            await context.send_activity(
+                Activity(
+                    type=ActivityTypes.message,
+                    text="More information required",
+                    input_hint="expectingInput",
+                )
+            )
+            return
+        elif text == STRUCTURED_RESULT_TRIGGER_TEXT:
+            await context.send_activity(
+                Activity(
+                    type=ActivityTypes.end_of_conversation,
+                    code=EndOfConversationCodes.completed_successfully,
+                    text="Completed with structured data",
+                    value={"answer": 42},
+                )
+            )
+            return
         else:
             await context.send_activity(f"Echo: {text}")
         await context.send_activity(

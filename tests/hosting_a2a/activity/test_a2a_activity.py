@@ -4,6 +4,7 @@
 import pytest
 from a2a.types import Message, Part, Role, TaskState
 from google.protobuf.json_format import ParseDict
+from google.protobuf.json_format import MessageToDict
 from google.protobuf.struct_pb2 import Value
 
 from microsoft_agents.activity import (
@@ -92,6 +93,31 @@ def test_from_message_maps_all_supported_part_types():
     assert data_attachment.content == '{"answer": 42.0}'
     assert data_attachment.content_type == "application/json"
     assert data_attachment.name == "A2A DataPart"
+
+
+def test_supported_parts_round_trip_through_activity_artifact():
+    message = _message(
+        Part(
+            url="https://example.com/image.png",
+            media_type="image/png",
+            filename="image.png",
+        ),
+        Part(
+            raw=b"file contents",
+            media_type="application/octet-stream",
+            filename="data.bin",
+        ),
+        Part(data=ParseDict({"answer": 42}, Value())),
+    )
+
+    activity = A2AActivity.from_message("request-1", None, message)
+    artifact = activity.to_artifact("artifact-1")
+
+    assert artifact.parts[0].url == "https://example.com/image.png"
+    assert artifact.parts[0].media_type == "image/png"
+    assert artifact.parts[1].raw == b"file contents"
+    assert artifact.parts[1].media_type == "application/octet-stream"
+    assert MessageToDict(artifact.parts[2].data) == {"answer": 42.0}
 
 
 def test_to_message_and_artifact_delegate_activity_content():

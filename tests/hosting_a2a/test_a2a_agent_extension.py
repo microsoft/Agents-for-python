@@ -76,3 +76,17 @@ async def test_message_handler_receives_a2a_context_and_registration_options():
     assert isinstance(context, A2ATurnContext)
     assert context.activity.text == "hello"
     assert handler.call_args.args[1] is state
+
+
+@pytest.mark.asyncio
+async def test_message_handler_reuses_existing_a2a_context():
+    app = _RecordingApplication()
+    extension = A2AAgentExtension(app)
+    handler = AsyncMock()
+    registered_handler = extension.message([])(handler)
+    context = A2ATurnContext(_turn_context(), app)
+    state = object()
+
+    await registered_handler(context, state)
+
+    assert handler.call_args.args == (context, state)

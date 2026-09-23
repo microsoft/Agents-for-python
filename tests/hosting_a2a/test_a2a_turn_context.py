@@ -60,6 +60,35 @@ def test_wraps_existing_context_and_exposes_a2a_client():
     assert context.client.task_store is original.services.get(TaskStore)
 
 
+def test_wrapped_context_preserves_original_turn_state():
+    original = _original_context()
+    marker = object()
+    original.turn_state["marker"] = marker
+
+    context = A2ATurnContext(original, MagicMock(spec=AgentApplication))
+
+    assert context.turn_state is original.turn_state
+    assert context.turn_state["marker"] is marker
+
+
+def test_can_be_constructed_directly_from_adapter_activity_and_identity():
+    adapter = _Adapter()
+    activity = Activity(type="message", text="hello")
+    identity = ClaimsIdentity({"sub": "agent-1"})
+
+    context = A2ATurnContext(
+        adapter,
+        MagicMock(spec=AgentApplication),
+        activity,
+        identity,
+    )
+
+    assert context.adapter is adapter
+    assert context.activity is activity
+    assert isinstance(context.activity, A2AActivity)
+    assert context.identity is identity
+
+
 def test_responded_property_is_forwarded_to_original_context():
     original = _original_context()
     context = A2ATurnContext(original, MagicMock(spec=AgentApplication))

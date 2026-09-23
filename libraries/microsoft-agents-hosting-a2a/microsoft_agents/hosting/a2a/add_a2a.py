@@ -1,6 +1,8 @@
 # Copyright (c) Microsoft Corporation. All rights reserved.
 # Licensed under the MIT License.
 
+import logging
+
 from fastapi import FastAPI
 from starlette.routing import BaseRoute, Route
 
@@ -18,6 +20,7 @@ from .server import (
     use_jwt_middleware as _use_jwt_middleware,
 )
 
+logger = logging.getLogger(__name__)
 
 def _create_jsonrpc_interface_routes(
     adapter: A2AAdapter,
@@ -83,6 +86,7 @@ def add_a2a(
             "No agent interfaces found. Cannot add A2A routes to application."
         )
 
+    unsupported_counter = 0
     for interface in interfaces:
         if interface.protocol_binding == TransportProtocol.JSONRPC:
             _jsonrpc_routes, _agent_card_routes = _create_jsonrpc_interface_routes(
@@ -96,6 +100,14 @@ def add_a2a(
             )
             rest_routes.extend(_http_routes)
             agent_card_routes.extend(_agent_card_routes)
+        else:
+            unsupported_counter += 1
+            logger.warning("Unsupported protocol binding: %s", interface.protocol_binding)
+
+    if unsupported_counter == len(interfaces):
+        raise ValueError(
+            "All agent interfaces have unsupported protocol bindings. Cannot add A2A routes to application."
+        )
 
     if use_jwt_middleware:
         _use_jwt_middleware(agent_card_routes)

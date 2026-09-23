@@ -21,23 +21,41 @@ from a2a.types.a2a_pb2 import (
     SendMessageRequest,
 )
 
-from .conftest import STREAMING_TRIGGER_TEXT
+from .conftest import (
+    INPUT_REQUIRED_TRIGGER_TEXT,
+    STREAMING_TRIGGER_TEXT,
+    STRUCTURED_RESULT_TRIGGER_TEXT,
+)
 
 pytestmark = pytest.mark.filterwarnings(
     "ignore:label\\(\\) is deprecated\\. Use is_required\\(\\) or is_repeated\\(\\) instead\\.:DeprecationWarning"
 )
 
 
-def _message(text: str = "hello") -> Message:
+def _message(
+    text: str = "hello",
+    *,
+    task_id: str = "",
+    context_id: str = "",
+) -> Message:
     return Message(
         role=Role.ROLE_USER,
         message_id=str(uuid.uuid4()),
+        task_id=task_id,
+        context_id=context_id,
         parts=[Part(text=text)],
     )
 
 
-def _send_request(text: str = "hello") -> SendMessageRequest:
-    return SendMessageRequest(message=_message(text))
+def _send_request(
+    text: str = "hello",
+    *,
+    task_id: str = "",
+    context_id: str = "",
+) -> SendMessageRequest:
+    return SendMessageRequest(
+        message=_message(text, task_id=task_id, context_id=context_id)
+    )
 
 
 def _rpc_request(method: str, params: object, request_id: str = "request-1") -> dict:
@@ -78,6 +96,24 @@ async def _stream_rpc(
         "POST",
         "/rpc",
         json=_rpc_request(method, params, request_id),
+        headers={"A2A-Version": "1.0", "Accept": "text/event-stream"},
+    ) as response:
+        assert response.status_code == 200
+        async for line in response.aiter_lines():
+            if line.startswith("data:"):
+                events.append(json.loads(line[len("data:") :].strip()))
+    return events
+
+
+async def _stream_rest(
+    client: httpx.AsyncClient,
+    params: SendMessageRequest,
+) -> list[dict]:
+    events: list[dict] = []
+    async with client.stream(
+        "POST",
+        "/rest/message:stream",
+        json=MessageToDict(params),
         headers={"A2A-Version": "1.0", "Accept": "text/event-stream"},
     ) as response:
         assert response.status_code == 200
@@ -180,6 +216,65 @@ async def test_rest_message_send_get_and_list_match_jsonrpc_semantics(
 
 @pytest.mark.integration
 @pytest.mark.asyncio
+async def test_jsonrpc_continues_input_required_task(
+    a2a_client: httpx.AsyncClient,
+) -> None:
+    first_response = await _post_rpc(
+        a2a_client,
+        "SendMessage",
+        _send_request(INPUT_REQUIRED_TRIGGER_TEXT),
+    )
+    first_task = first_response["result"]["task"]
+    assert first_task["status"]["state"] == "TASK_STATE_INPUT_REQUIRED"
+
+    second_response = await _post_rpc(
+        a2a_client,
+        "SendMessage",
+        _send_request(
+            "additional input",
+            task_id=first_task["id"],
+            context_id=first_task["contextId"],
+        ),
+        request_id="continue-task",
+    )
+    second_task = second_response["result"]["task"]
+
+    assert second_task["id"] == first_task["id"]
+    assert second_task["contextId"] == first_task["contextId"]
+    assert second_task["status"]["state"] == "TASK_STATE_COMPLETED"
+    assert [message["parts"][0]["text"] for message in second_task["history"]] == [
+        INPUT_REQUIRED_TRIGGER_TEXT,
+        "More information required",
+        "additional input",
+        "Echo: additional input",
+    ]
+
+
+@pytest.mark.integration
+@pytest.mark.asyncio
+async def test_jsonrpc_returns_structured_completion_artifact_and_status_message(
+    a2a_client: httpx.AsyncClient,
+) -> None:
+    response = await _post_rpc(
+        a2a_client,
+        "SendMessage",
+        _send_request(STRUCTURED_RESULT_TRIGGER_TEXT),
+    )
+    task = response["result"]["task"]
+
+    assert task["status"]["state"] == "TASK_STATE_COMPLETED"
+    assert task["status"]["message"]["parts"] == [
+        {"text": "Completed with structured data"}
+    ]
+    assert task["artifacts"][0]["name"] == "Result"
+    result_part = task["artifacts"][0]["parts"][0]
+    assert result_part["data"] == {"answer": 42.0}
+    assert result_part["metadata"]["mimeType"] == "application/json"
+    assert result_part["metadata"]["type"] == "object"
+
+
+@pytest.mark.integration
+@pytest.mark.asyncio
 async def test_jsonrpc_cancel_missing_task_returns_protocol_error(
     a2a_client: httpx.AsyncClient,
 ) -> None:
@@ -258,6 +353,36 @@ async def test_jsonrpc_streaming_message_emits_ordered_task_events(
         request_id="get-task",
     )
     assert get_response["result"]["status"]["state"] == "TASK_STATE_COMPLETED"
+
+
+@pytest.mark.integration
+@pytest.mark.asyncio
+async def test_rest_streaming_message_emits_ordered_task_events(
+    a2a_client: httpx.AsyncClient,
+) -> None:
+    events = await _stream_rest(
+        a2a_client,
+        _send_request(STREAMING_TRIGGER_TEXT),
+    )
+
+    task = events[0]["task"]
+    task_id = task["id"]
+    assert task["status"]["state"] == "TASK_STATE_SUBMITTED"
+
+    working_update = events[1]["statusUpdate"]
+    assert working_update["taskId"] == task_id
+    assert working_update["status"]["state"] == "TASK_STATE_WORKING"
+    assert working_update["status"]["message"]["parts"][0]["text"] == "Thinking..."
+
+    artifact_update = events[2]["artifactUpdate"]
+    assert artifact_update["taskId"] == task_id
+    assert artifact_update["artifact"]["parts"][0]["text"] == (
+        f"Echo: {STREAMING_TRIGGER_TEXT}"
+    )
+
+    final_update = events[-1]["statusUpdate"]
+    assert final_update["taskId"] == task_id
+    assert final_update["status"]["state"] == "TASK_STATE_COMPLETED"
 
 
 @pytest.mark.integration

@@ -132,6 +132,44 @@ async def test_create_agent_card_routes_adapts_request_and_uses_interface_prefix
 
 
 @pytest.mark.asyncio
+async def test_create_agent_card_routes_uses_custom_url_as_prefix():
+    observed = {}
+
+    async def get_agent_card(request, prefix):
+        observed["prefix"] = prefix
+        return AgentCard(
+            name="Test agent",
+            description="Test description",
+            version="1.0.0",
+            supported_interfaces=[],
+            capabilities=AgentCapabilities(),
+        )
+
+    route = routes.create_agent_card_routes(
+        get_agent_card,
+        "/custom-agent-card",
+    )[0]
+    request = Request(
+        {
+            "type": "http",
+            "method": "GET",
+            "path": "/custom-agent-card",
+            "raw_path": b"/custom-agent-card",
+            "query_string": b"",
+            "headers": [],
+            "scheme": "https",
+            "server": ("example.com", 443),
+            "client": ("127.0.0.1", 1234),
+        }
+    )
+
+    response = await route.endpoint(request)
+
+    assert response.status_code == 200
+    assert observed["prefix"] == "/custom-agent-card"
+
+
+@pytest.mark.asyncio
 async def test_use_jwt_middleware_authorizes_shared_mounted_route_once():
     async def endpoint(request):
         return JSONResponse({"ok": True})

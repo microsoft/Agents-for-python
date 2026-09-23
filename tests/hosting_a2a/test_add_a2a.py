@@ -122,5 +122,39 @@ def test_add_a2a_rejects_adapter_without_interfaces():
         add_a2a(FastAPI(), MagicMock(), _adapter())
 
 
+def test_add_a2a_rejects_adapter_without_supported_interfaces():
+    adapter = _adapter(
+        AgentInterface(
+            url="/grpc",
+            protocol_binding=TransportProtocol.GRPC,
+        )
+    )
+
+    with pytest.raises(ValueError, match="unsupported protocol bindings"):
+        add_a2a(FastAPI(), MagicMock(), adapter, use_jwt_middleware=False)
+
+
+def test_add_a2a_ignores_unsupported_interfaces_when_supported_ones_exist():
+    app = FastAPI()
+    adapter = _adapter(
+        AgentInterface(
+            url="/grpc",
+            protocol_binding=TransportProtocol.GRPC,
+        ),
+        AgentInterface(
+            url="/rpc",
+            protocol_binding=TransportProtocol.JSONRPC,
+        ),
+    )
+
+    add_a2a(app, MagicMock(), adapter, use_jwt_middleware=False)
+
+    paths = {route.path for route in app.routes}
+    assert "/rpc" in paths
+    assert "/rpc/.well-known/agent-card.json" in paths
+    assert "/grpc" not in paths
+    assert "/grpc/.well-known/agent-card.json" not in paths
+
+
 def test_add_a2a_is_exported_from_package():
     assert exported_add_a2a is add_a2a

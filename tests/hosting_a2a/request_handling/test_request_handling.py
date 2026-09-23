@@ -206,6 +206,24 @@ class _FailingAdapter:
 
 
 @pytest.mark.asyncio
+async def test_executor_drops_request_without_message():
+    adapter = _CompletingAdapter()
+    executor = A2AAgentExecutor(adapter)
+    context = RequestContext(
+        ServerCallContext(),
+        task_id="task-1",
+        context_id="context-1",
+    )
+    event_queue = EventQueueLegacy()
+
+    await executor.execute(context, event_queue)
+
+    assert adapter.contexts == []
+    with pytest.raises(asyncio.TimeoutError):
+        await asyncio.wait_for(event_queue.dequeue_event(), timeout=0.05)
+
+
+@pytest.mark.asyncio
 async def test_executor_establishes_task_mode_before_adapter_events():
     adapter = _CompletingAdapter()
     executor = A2AAgentExecutor(adapter)

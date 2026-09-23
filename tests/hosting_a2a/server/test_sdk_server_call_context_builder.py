@@ -11,7 +11,7 @@ from microsoft_agents.hosting.a2a.server.sdk_server_call_context_builder import 
 )
 
 
-def _request(*, claims_identity=None):
+def _request(*, claims_identity=None, auth=None):
     scope = {
         "type": "http",
         "method": "GET",
@@ -29,6 +29,8 @@ def _request(*, claims_identity=None):
     }
     if claims_identity is not None:
         scope["state"]["claims_identity"] = claims_identity
+    if auth is not None:
+        scope["auth"] = auth
     return Request(scope)
 
 
@@ -53,3 +55,13 @@ def test_build_omits_claims_identity_when_middleware_did_not_set_it():
 
     assert isinstance(context.user, UnauthenticatedUser)
     assert _CLAIMS_IDENTITY_KEY not in context.state
+
+
+def test_build_copies_asgi_auth_scope():
+    auth = object()
+    request = _request(auth=auth)
+    builder = SDKServerCallContextBuilder()
+
+    context = builder.build(request)
+
+    assert context.state["auth"] is auth
