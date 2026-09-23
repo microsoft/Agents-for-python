@@ -56,8 +56,6 @@ def activity_to_artifact(
         artifact.parts.append(Part(data=_to_protobuf_value(activity.value)))
 
     for attachment in activity.attachments or []:
-        if not attachment.content_url and not attachment.content:
-            continue
 
         part: Part
         if attachment.content_url:
@@ -70,9 +68,16 @@ def activity_to_artifact(
             part = Part(
                 data=_to_protobuf_value(attachment.content),
                 media_type=attachment.content_type,
+                filename=attachment.name,
+            )
+        elif isinstance(attachment.content, (bytes, bytearray, memoryview)):
+            part = Part(
+                raw=bytes(attachment.content),
+                media_type=attachment.content_type,
+                filename=attachment.name,
             )
         else:
-            raise RuntimeError("Unsupported attachment content type.")
+            continue
 
         artifact.parts.append(part)
 

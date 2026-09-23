@@ -22,6 +22,7 @@ from .server import (
 
 logger = logging.getLogger(__name__)
 
+
 def _create_jsonrpc_interface_routes(
     adapter: A2AAdapter,
     interface: AgentInterface,
@@ -102,7 +103,9 @@ def add_a2a(
             agent_card_routes.extend(_agent_card_routes)
         else:
             unsupported_counter += 1
-            logger.warning("Unsupported protocol binding: %s", interface.protocol_binding)
+            logger.warning(
+                "Unsupported protocol binding: %s", interface.protocol_binding
+            )
 
     if unsupported_counter == len(interfaces):
         raise ValueError(

@@ -46,6 +46,7 @@ def test_activity_to_artifact_maps_text_value_and_attachments():
     assert artifact.parts[2].filename == "image.png"
     assert MessageToDict(artifact.parts[3].data)["count"] == 2
     assert artifact.parts[3].media_type == "application/json"
+    assert artifact.parts[3].filename == "result.json"
 
 
 def test_activity_to_artifact_adds_entities_and_excludes_stream_info():
@@ -75,7 +76,7 @@ def test_activity_to_artifact_can_exclude_entities():
     assert list(artifact.parts) == []
 
 
-def test_activity_to_artifact_rejects_unsupported_attachment_content():
+def test_activity_to_artifact_skips_unsupported_attachment_content():
     activity = Activity(
         type="message",
         attachments=[
@@ -86,8 +87,9 @@ def test_activity_to_artifact_rejects_unsupported_attachment_content():
         ],
     )
 
-    with pytest.raises(RuntimeError, match="Unsupported attachment content type"):
-        utils.activity_to_artifact(activity)
+    artifact = utils.activity_to_artifact(activity)
+
+    assert list(artifact.parts) == []
 
 
 def test_create_artifact_from_data_populates_artifact():

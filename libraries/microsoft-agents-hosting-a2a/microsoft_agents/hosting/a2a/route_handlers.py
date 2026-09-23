@@ -44,7 +44,7 @@ def wrap_a2a_route_handler(
 
     async def __func(context: TurnContext, state: _StateContra) -> None:
         if not isinstance(context, A2ATurnContext):
-            a2a_context = A2ATurnContext(context, app)
+            a2a_context = A2ATurnContext.from_existing(context, app)
         else:
             a2a_context = cast(A2ATurnContext, context)
         await handler(a2a_context, state)

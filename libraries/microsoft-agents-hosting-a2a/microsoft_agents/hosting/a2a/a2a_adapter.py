@@ -39,7 +39,7 @@ from microsoft_agents.activity import (
     StreamInfo,
 )
 from microsoft_agents.hosting.core import (
-    Agent,
+    AgentApplication,
     AuthenticationConstants,
     ChannelAdapter,
     ChannelServiceAdapter,
@@ -61,6 +61,7 @@ from .request_handling import (
 
 from .activity import utils, A2AActivity
 from .activity.a2a_activity import _DEFAULT_USER_ID
+from .a2a_turn_context import A2ATurnContext
 
 from .server._constants import _CLAIMS_IDENTITY_KEY
 
@@ -72,7 +73,7 @@ class A2AAdapter(A2AHttpAdapter, ChannelAdapter, ChannelAdapterProtocol):
 
     def __init__(
         self,
-        agent: Agent,
+        agent: AgentApplication,
         *,
         agent_card_name: str = "A2AAdapter",
         agent_card_description: str = "Agents SDK A2A",
@@ -192,17 +193,31 @@ class A2AAdapter(A2AHttpAdapter, ChannelAdapter, ChannelAdapterProtocol):
     def _create_turn_context(
         self,
         claims_identity: ClaimsIdentity,
-        oauth_scope: str | None = None,
-        activity: Activity | None = None,
+        oauth_scope: str | None,
+        activity: Activity,
+        request_context: RequestContext,
+        event_queue: EventQueue,
+        task_store: TaskStore,
     ) -> TurnContext:
         """Create a turn context for the given claims identity, OAuth scope, and activity.
 
         :param claims_identity: The claims identity for the turn context.
         :param oauth_scope: The OAuth scope for the turn context.
         :param activity: The activity for the turn context.
+        :param request_context: The request context for the turn context.
+        :param event_queue: The event queue for the turn context.
+        :param task_store: The task store for the turn context.
         :return: The created turn context.
         """
-        context = TurnContext(self, activity, claims_identity)
+        context = A2ATurnContext(
+            self,
+            app=self._agent,
+            activity=activity,
+            identity=claims_identity,
+            request_context=request_context,
+            event_queue=event_queue,
+            task_store=task_store,
+        )
         context.turn_state[ChannelServiceAdapter.OAUTH_SCOPE_KEY] = oauth_scope
         context.turn_state[ChannelServiceAdapter.AGENT_IDENTITY_KEY] = (
             claims_identity  # for back-compat
@@ -241,10 +256,10 @@ class A2AAdapter(A2AHttpAdapter, ChannelAdapter, ChannelAdapterProtocol):
             identity,
             outgoing_audience,
             activity=activity,
+            request_context=request_context,
+            event_queue=event_queue,
+            task_store=self._task_store,
         )
-        context.services.set(RequestContext, request_context)
-        context.services.set(EventQueue, event_queue)
-        context.services.set(TaskStore, self._task_store)
 
         await self.run_pipeline(context, self._agent.on_turn)
 

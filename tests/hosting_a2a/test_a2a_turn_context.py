@@ -51,7 +51,10 @@ def _original_context():
 
 def test_wraps_existing_context_and_exposes_a2a_client():
     original = _original_context()
-    context = A2ATurnContext(original, MagicMock(spec=AgentApplication))
+    context = A2ATurnContext.from_existing(
+        original,
+        MagicMock(spec=AgentApplication),
+    )
 
     assert isinstance(context.activity, A2AActivity)
     assert context.activity.text == "hello"
@@ -65,7 +68,10 @@ def test_wrapped_context_preserves_original_turn_state():
     marker = object()
     original.turn_state["marker"] = marker
 
-    context = A2ATurnContext(original, MagicMock(spec=AgentApplication))
+    context = A2ATurnContext.from_existing(
+        original,
+        MagicMock(spec=AgentApplication),
+    )
 
     assert context.turn_state is original.turn_state
     assert context.turn_state["marker"] is marker
@@ -73,25 +79,41 @@ def test_wrapped_context_preserves_original_turn_state():
 
 def test_can_be_constructed_directly_from_adapter_activity_and_identity():
     adapter = _Adapter()
-    activity = Activity(type="message", text="hello")
+    activity = A2AActivity(type="message", text="hello")
     identity = ClaimsIdentity({"sub": "agent-1"})
+    request_context = RequestContext(
+        ServerCallContext(),
+        task_id="task-1",
+        context_id="context-1",
+    )
+    event_queue = EventQueueLegacy()
+    task_store = InMemoryTaskStore()
 
     context = A2ATurnContext(
         adapter,
         MagicMock(spec=AgentApplication),
         activity,
         identity,
+        request_context=request_context,
+        event_queue=event_queue,
+        task_store=task_store,
     )
 
     assert context.adapter is adapter
     assert context.activity is activity
     assert isinstance(context.activity, A2AActivity)
     assert context.identity is identity
+    assert context.client.request_context is request_context
+    assert context.client.event_queue is event_queue
+    assert context.client.task_store is task_store
 
 
 def test_responded_property_is_forwarded_to_original_context():
     original = _original_context()
-    context = A2ATurnContext(original, MagicMock(spec=AgentApplication))
+    context = A2ATurnContext.from_existing(
+        original,
+        MagicMock(spec=AgentApplication),
+    )
 
     context.responded = True
 
@@ -101,6 +123,9 @@ def test_responded_property_is_forwarded_to_original_context():
 
 def test_streaming_response_is_forwarded_to_original_context():
     original = _original_context()
-    context = A2ATurnContext(original, MagicMock(spec=AgentApplication))
+    context = A2ATurnContext.from_existing(
+        original,
+        MagicMock(spec=AgentApplication),
+    )
 
     assert context.streaming_response is original.streaming_response

@@ -1,11 +1,9 @@
 # Copyright (c) Microsoft Corporation. All rights reserved.
 # Licensed under the MIT License.
 
-"""Teams-aware :class:`Activity` subclass exposing Teams channel data helpers."""
+"""A2A-aware :class:`Activity` subclass exposing A2A protocol helpers."""
 
 from __future__ import annotations
-
-import json
 
 from typing import Iterable
 from uuid import uuid4
@@ -132,12 +130,14 @@ class A2AActivity(Activity):
         )
 
         for part in parts:
-            if part.text:
-                if not activity.text:
+            content_kind = part.WhichOneof("content")
+
+            if content_kind == "text":
+                if activity.text is None:
                     activity.text = part.text
                 else:
                     activity.text += part.text
-            elif part.url:
+            elif content_kind == "url":
                 activity.attachments.append(
                     Attachment(
                         content_type=part.media_type,
@@ -145,20 +145,20 @@ class A2AActivity(Activity):
                         name=part.filename,
                     )
                 )
-            elif part.raw:
+            elif content_kind == "raw":
                 activity.attachments.append(
                     Attachment(
                         content_type=part.media_type,
-                        content=part.raw,
+                        content=bytes(part.raw),
                         name=part.filename,
                     )
                 )
-            elif part.data:
+            elif content_kind == "data":
                 activity.attachments.append(
                     Attachment(
-                        content_type="application/json",
-                        content=json.dumps(MessageToDict(part.data)),
-                        name="A2A DataPart",
+                        content_type=part.media_type or "application/json",
+                        content=MessageToDict(part.data),
+                        name=part.filename,
                     )
                 )
 

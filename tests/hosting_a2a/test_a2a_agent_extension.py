@@ -84,7 +84,7 @@ async def test_message_handler_reuses_existing_a2a_context():
     extension = A2AAgentExtension(app)
     handler = AsyncMock()
     registered_handler = extension.message([])(handler)
-    context = A2ATurnContext(_turn_context(), app)
+    context = A2ATurnContext.from_existing(_turn_context(), app)
     state = object()
 
     await registered_handler(context, state)

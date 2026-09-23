@@ -74,7 +74,11 @@ def test_from_message_maps_all_supported_part_types():
             media_type="application/octet-stream",
             filename="data.bin",
         ),
-        Part(data=ParseDict({"answer": 42}, Value())),
+        Part(
+            data=ParseDict({"answer": 42}, Value()),
+            media_type="application/json",
+            filename="result.json",
+        ),
     )
 
     activity = A2AActivity.from_message("request-1", None, message)
@@ -90,9 +94,9 @@ def test_from_message_maps_all_supported_part_types():
     assert raw_attachment.content == b"file contents"
     assert raw_attachment.content_type == "application/octet-stream"
     assert raw_attachment.name == "data.bin"
-    assert data_attachment.content == '{"answer": 42.0}'
+    assert data_attachment.content == {"answer": 42.0}
     assert data_attachment.content_type == "application/json"
-    assert data_attachment.name == "A2A DataPart"
+    assert data_attachment.name == "result.json"
 
 
 def test_supported_parts_round_trip_through_activity_artifact():
@@ -107,7 +111,11 @@ def test_supported_parts_round_trip_through_activity_artifact():
             media_type="application/octet-stream",
             filename="data.bin",
         ),
-        Part(data=ParseDict({"answer": 42}, Value())),
+        Part(
+            data=ParseDict({"answer": 42}, Value()),
+            media_type="application/json",
+            filename="result.json",
+        ),
     )
 
     activity = A2AActivity.from_message("request-1", None, message)
@@ -118,6 +126,29 @@ def test_supported_parts_round_trip_through_activity_artifact():
     assert artifact.parts[1].raw == b"file contents"
     assert artifact.parts[1].media_type == "application/octet-stream"
     assert MessageToDict(artifact.parts[2].data) == {"answer": 42.0}
+    assert artifact.parts[2].media_type == "application/json"
+    assert artifact.parts[2].filename == "result.json"
+
+
+def test_empty_text_and_raw_parts_preserve_their_content_kind():
+    message = _message(
+        Part(text=""),
+        Part(
+            raw=b"",
+            media_type="application/octet-stream",
+            filename="empty.bin",
+        ),
+    )
+
+    activity = A2AActivity.from_message("request-1", None, message)
+    artifact = activity.to_artifact("artifact-1")
+
+    assert activity.text == ""
+    assert activity.attachments[0].content == b""
+    assert artifact.parts[0].WhichOneof("content") == "text"
+    assert artifact.parts[0].text == ""
+    assert artifact.parts[1].WhichOneof("content") == "raw"
+    assert artifact.parts[1].raw == b""
 
 
 def test_to_message_and_artifact_delegate_activity_content():
