@@ -72,9 +72,6 @@ def test_responded_property_is_forwarded_to_original_context():
 
 def test_streaming_response_is_forwarded_to_original_context():
     original = _original_context()
-    streaming_response = MagicMock()
-    original._streaming_response = streaming_response
-
     context = A2ATurnContext(original, MagicMock(spec=AgentApplication))
 
-    assert context.streaming_response is streaming_response
+    assert context.streaming_response is original.streaming_response

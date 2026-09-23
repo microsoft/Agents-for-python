@@ -17,7 +17,10 @@ from starlette.responses import JSONResponse, Response
 from starlette.routing import BaseRoute, Mount, Route
 
 from microsoft_agents.hosting.core import HttpRequestProtocol
-from microsoft_agents.hosting.fastapi import JwtAuthorizationMiddleware
+from microsoft_agents.hosting.fastapi import (
+    JwtAuthorizationMiddleware,
+    jwt_authorization_decorator,
+)
 from microsoft_agents.hosting.fastapi._fastapi_request_adapter import (
     FastApiRequestAdapter,
 )
@@ -106,6 +109,7 @@ def use_jwt_middleware(routes: Sequence[BaseRoute]) -> None:
             for child in route.routes:
                 wrap(child)
         elif isinstance(route, Route) and id(route) not in wrapped:
+            route.endpoint = jwt_authorization_decorator(route.endpoint)
             route.app = JwtAuthorizationMiddleware(route.app)
             wrapped.add(id(route))
 

@@ -59,30 +59,27 @@ def test_from_message_uses_explicit_task_id_and_populates_missing_context_id():
     assert message.context_id
 
 
-def test_create_activity_maps_all_supported_part_types():
-    activity = A2AActivity._create_activity(
-        "conversation-1",
-        [
-            Part(text="hello "),
-            Part(text="world"),
-            Part(
-                url="https://example.com/image.png",
-                media_type="image/png",
-                filename="image.png",
-            ),
-            Part(
-                raw=b"file contents",
-                media_type="application/octet-stream",
-                filename="data.bin",
-            ),
-            Part(data=ParseDict({"answer": 42}, Value())),
-        ],
-        is_ingress=True,
-        is_streaming=False,
+def test_from_message_maps_all_supported_part_types():
+    message = _message(
+        Part(text="hello "),
+        Part(text="world"),
+        Part(
+            url="https://example.com/image.png",
+            media_type="image/png",
+            filename="image.png",
+        ),
+        Part(
+            raw=b"file contents",
+            media_type="application/octet-stream",
+            filename="data.bin",
+        ),
+        Part(data=ParseDict({"answer": 42}, Value())),
     )
 
+    activity = A2AActivity.from_message("request-1", None, message)
+
     assert activity.text == "hello world"
-    assert activity.delivery_mode == DeliveryModes.expect_replies
+    assert activity.delivery_mode == DeliveryModes.stream
     assert len(activity.attachments) == 3
 
     url_attachment, raw_attachment, data_attachment = activity.attachments

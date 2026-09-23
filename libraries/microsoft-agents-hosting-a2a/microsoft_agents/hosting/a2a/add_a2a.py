@@ -78,6 +78,10 @@ def add_a2a(
     rest_routes: list[BaseRoute] = []
 
     interfaces = adapter.agent_interfaces
+    if not interfaces:
+        raise ValueError(
+            "No agent interfaces found. Cannot add A2A routes to application."
+        )
 
     for interface in interfaces:
         if interface.protocol_binding == TransportProtocol.JSONRPC:

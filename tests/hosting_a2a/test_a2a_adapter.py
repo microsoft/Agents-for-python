@@ -1,13 +1,14 @@
 # Copyright (c) Microsoft Corporation. All rights reserved.
 # Licensed under the MIT License.
 
+import asyncio
 from types import SimpleNamespace
-from unittest.mock import AsyncMock, MagicMock, patch
+from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 from a2a.server.agent_execution import RequestContext
 from a2a.server.context import ServerCallContext
-from a2a.server.events import EventQueue
+from a2a.server.events import EventQueue, EventQueueLegacy
 from a2a.server.tasks import InMemoryTaskStore, TaskStore
 from a2a.types import (
     AgentInterface,
@@ -85,13 +86,12 @@ def _turn_context(adapter, event_queue):
 def test_constructor_uses_defaults_and_creates_request_handler():
     adapter = A2AAdapter(_agent())
 
-    assert isinstance(adapter._task_store, InMemoryTaskStore)
     assert adapter.agent_interfaces == []
     assert adapter.skills == []
     assert adapter.a2a_request_handler is not None
 
 
-def test_constructor_preserves_custom_interfaces_skills_and_task_store():
+def test_constructor_preserves_custom_interfaces_and_skills():
     interface = AgentInterface(
         url="https://example.com/a2a",
         protocol_binding=TransportProtocol.HTTP_JSON,
@@ -113,7 +113,6 @@ def test_constructor_preserves_custom_interfaces_skills_and_task_store():
 
     assert adapter.agent_interfaces == [interface]
     assert adapter.skills == [skill]
-    assert adapter._task_store is task_store
 
 
 @pytest.mark.asyncio
@@ -137,60 +136,76 @@ async def test_execute_agent_turn_rejects_invalid_identity():
 
 
 @pytest.mark.asyncio
-async def test_execute_agent_turn_converts_message_and_processes_activity():
+async def test_execute_agent_turn_converts_message_and_exposes_a2a_services():
     identity = ClaimsIdentity({"sub": "agent-1"})
     context = _request_context(identity)
-    event_queue = MagicMock(spec=EventQueue)
-    adapter = A2AAdapter(_agent())
-    adapter._process_activity_with_a2a = AsyncMock()
+    event_queue = EventQueueLegacy()
+    task_store = InMemoryTaskStore()
+    observed = {}
+
+    async def on_turn(turn_context):
+        observed["context"] = turn_context
+
+    adapter = A2AAdapter(
+        SimpleNamespace(on_turn=on_turn),
+        task_store=task_store,
+    )
 
     await adapter.execute_agent_turn(context, event_queue)
 
-    adapter._process_activity_with_a2a.assert_awaited_once()
-    actual_identity, activity, actual_context, actual_queue = (
-        adapter._process_activity_with_a2a.call_args.args
+    turn_context = observed["context"]
+    assert turn_context.identity is identity
+    assert isinstance(turn_context.activity, A2AActivity)
+    assert turn_context.activity.text == "hello"
+    assert turn_context.activity.request_id
+    assert turn_context.services.get(RequestContext) is context
+    assert turn_context.services.get(EventQueue) is event_queue
+    assert turn_context.services.get(TaskStore) is task_store
+    assert (
+        turn_context.turn_state[ChannelServiceAdapter.OAUTH_SCOPE_KEY]
+        == AuthenticationConstants.AGENTS_SDK_SCOPE
     )
-    assert actual_identity is identity
-    assert isinstance(activity, A2AActivity)
-    assert activity.text == "hello"
-    assert activity.request_id
-    assert actual_context is context
-    assert actual_queue is event_queue
 
 
 @pytest.mark.asyncio
-async def test_cancel_agent_turn_processes_user_cancelled_activity():
+async def test_cancel_agent_turn_delivers_user_cancelled_activity():
     identity = ClaimsIdentity({"sub": "agent-1"})
     context = _request_context(identity, include_message=False)
-    event_queue = MagicMock(spec=EventQueue)
-    adapter = A2AAdapter(_agent())
-    adapter._process_activity_with_a2a = AsyncMock()
+    event_queue = EventQueueLegacy()
+    observed = {}
+
+    async def on_turn(turn_context):
+        observed["context"] = turn_context
+
+    adapter = A2AAdapter(SimpleNamespace(on_turn=on_turn))
 
     await adapter.cancel_agent_turn(context, event_queue)
 
-    adapter._process_activity_with_a2a.assert_awaited_once()
-    actual_identity, activity, actual_context, actual_queue = (
-        adapter._process_activity_with_a2a.call_args.args
-    )
-    assert actual_identity is identity
+    turn_context = observed["context"]
+    activity = turn_context.activity
+    assert turn_context.identity is identity
     assert activity.type == ActivityTypes.end_of_conversation
     assert activity.code == EndOfConversationCodes.user_cancelled
     assert activity.channel_id == Channels.a2a
     assert activity.recipient.id == "assistant"
     assert activity.from_property.id == "unknown"
-    assert actual_context is context
-    assert actual_queue is event_queue
+    assert turn_context.services.get(RequestContext) is context
+    assert turn_context.services.get(EventQueue) is event_queue
 
 
 @pytest.mark.asyncio
 async def test_cancel_agent_turn_uses_anonymous_identity_by_default():
     context = _request_context(include_message=False)
-    adapter = A2AAdapter(_agent())
-    adapter._process_activity_with_a2a = AsyncMock()
+    observed = {}
 
-    await adapter.cancel_agent_turn(context, MagicMock(spec=EventQueue))
+    async def on_turn(turn_context):
+        observed["identity"] = turn_context.identity
 
-    identity = adapter._process_activity_with_a2a.call_args.args[0]
+    adapter = A2AAdapter(SimpleNamespace(on_turn=on_turn))
+
+    await adapter.cancel_agent_turn(context, EventQueueLegacy())
+
+    identity = observed["identity"]
     assert isinstance(identity, ClaimsIdentity)
     assert identity.allow_anonymous is True
 
@@ -199,46 +214,13 @@ async def test_cancel_agent_turn_uses_anonymous_identity_by_default():
 async def test_cancel_agent_turn_rejects_invalid_identity():
     context = _request_context(identity="invalid", include_message=False)
     adapter = A2AAdapter(_agent())
-    adapter._process_activity_with_a2a = AsyncMock()
 
     with pytest.raises(RuntimeError, match="Invalid identity"):
-        await adapter.cancel_agent_turn(context, MagicMock(spec=EventQueue))
-
-    adapter._process_activity_with_a2a.assert_not_awaited()
+        await adapter.cancel_agent_turn(context, EventQueueLegacy())
 
 
 @pytest.mark.asyncio
-async def test_process_activity_registers_services_and_runs_agent_pipeline():
-    agent = _agent()
-    adapter = A2AAdapter(agent)
-    adapter.run_pipeline = AsyncMock()
-    identity = ClaimsIdentity()
-    request_context = MagicMock(spec=RequestContext)
-    event_queue = MagicMock(spec=EventQueue)
-    activity = A2AActivity(type=ActivityTypes.message)
-
-    await adapter._process_activity_with_a2a(
-        identity,
-        activity,
-        request_context,
-        event_queue,
-    )
-
-    adapter.run_pipeline.assert_awaited_once()
-    context, handler = adapter.run_pipeline.call_args.args
-    assert handler is agent.on_turn
-    assert context.identity is identity
-    assert (
-        context.turn_state[ChannelServiceAdapter.OAUTH_SCOPE_KEY]
-        == AuthenticationConstants.AGENTS_SDK_SCOPE
-    )
-    assert context.services.get(RequestContext) is request_context
-    assert context.services.get(EventQueue) is event_queue
-    assert context.services.get(TaskStore) is adapter._task_store
-
-
-@pytest.mark.asyncio
-async def test_process_activity_sets_agent_caller_and_audience():
+async def test_execute_agent_turn_sets_agent_caller_and_audience():
     identity = ClaimsIdentity(
         {
             AuthenticationConstants.VERSION_CLAIM: "2.0",
@@ -246,58 +228,52 @@ async def test_process_activity_sets_agent_caller_and_audience():
             AuthenticationConstants.AUTHORIZED_PARTY: "calling-agent",
         }
     )
-    adapter = A2AAdapter(_agent())
-    adapter.run_pipeline = AsyncMock()
-    activity = A2AActivity(type=ActivityTypes.message)
+    observed = {}
 
-    await adapter._process_activity_with_a2a(
-        identity,
-        activity,
-        MagicMock(spec=RequestContext),
-        MagicMock(spec=EventQueue),
+    async def on_turn(turn_context):
+        observed["context"] = turn_context
+
+    adapter = A2AAdapter(SimpleNamespace(on_turn=on_turn))
+
+    await adapter.execute_agent_turn(
+        _request_context(identity),
+        EventQueueLegacy(),
     )
 
-    context = adapter.run_pipeline.call_args.args[0]
+    context = observed["context"]
     assert (
         context.turn_state[ChannelServiceAdapter.OAUTH_SCOPE_KEY]
         == "app://calling-agent"
     )
-    assert activity.caller_id == (
+    assert context.activity.caller_id == (
         f"{CallerIdConstants.agent_to_agent_prefix}calling-agent"
     )
 
 
 @pytest.mark.asyncio
-async def test_process_activity_rejects_non_a2a_channel():
+async def test_send_activities_emits_protocol_events_for_supported_activities():
     adapter = A2AAdapter(_agent())
-
-    with pytest.raises(ValueError, match="channel_id must be 'a2a'"):
-        await adapter._process_activity_with_a2a(
-            ClaimsIdentity(),
-            Activity(type=ActivityTypes.message, channel_id=Channels.webchat),
-            MagicMock(spec=RequestContext),
-            MagicMock(spec=EventQueue),
-        )
-
-
-@pytest.mark.asyncio
-async def test_send_activities_dispatches_supported_activity_types():
-    adapter = A2AAdapter(_agent())
-    adapter._on_streaming_response = AsyncMock()
-    adapter._on_message_response = AsyncMock()
-    adapter._on_end_of_conversation_response = AsyncMock()
-    context = MagicMock(spec=TurnContext)
+    event_queue = EventQueueLegacy()
+    context = _turn_context(adapter, event_queue)
     stream_info = StreamInfo(
         stream_id="stream-1",
-        stream_type="informative",
+        stream_type="content",
         stream_sequence=1,
     )
     streaming = A2AActivity(
         type=ActivityTypes.message,
+        text="chunk",
         entities=[stream_info],
     )
-    message = A2AActivity(type=ActivityTypes.message, text="hello")
-    completed = A2AActivity(type=ActivityTypes.end_of_conversation)
+    message = A2AActivity(
+        type=ActivityTypes.message,
+        text="working",
+        input_hint=InputHints.expecting_input,
+    )
+    completed = A2AActivity(
+        type=ActivityTypes.end_of_conversation,
+        code=EndOfConversationCodes.completed_successfully,
+    )
     ignored = Activity(
         type=ActivityTypes.message,
         channel_id=Channels.webchat,
@@ -309,62 +285,24 @@ async def test_send_activities_dispatches_supported_activity_types():
     )
 
     assert result == []
-    adapter._on_streaming_response.assert_awaited_once_with(
-        context,
-        streaming,
-        stream_info,
-    )
-    adapter._on_message_response.assert_awaited_once_with(context, message)
-    adapter._on_end_of_conversation_response.assert_awaited_once_with(
-        context,
-        completed,
-    )
+    artifact_event = await event_queue.dequeue_event()
+    message_event = await event_queue.dequeue_event()
+    completed_event = await event_queue.dequeue_event()
 
+    assert isinstance(artifact_event, TaskArtifactUpdateEvent)
+    assert artifact_event.task_id == "task-1"
+    assert artifact_event.context_id == "context-1"
+    assert artifact_event.artifact.artifact_id == "stream-1"
+    assert artifact_event.artifact.parts[0].text == "chunk"
 
-@pytest.mark.asyncio
-async def test_message_response_enqueues_status_update():
-    event_queue = MagicMock(spec=EventQueue)
-    event_queue.enqueue_event = AsyncMock()
-    adapter = A2AAdapter(_agent())
-    context = _turn_context(adapter, event_queue)
-    activity = A2AActivity(
-        type=ActivityTypes.message,
-        text="working",
-        input_hint=InputHints.expecting_input,
-    )
+    assert isinstance(message_event, TaskStatusUpdateEvent)
+    assert message_event.status.state == TaskState.TASK_STATE_INPUT_REQUIRED
+    assert message_event.status.message.parts[0].text == "working"
 
-    await adapter._on_message_response(context, activity)
-
-    event = event_queue.enqueue_event.call_args.args[0]
-    assert isinstance(event, TaskStatusUpdateEvent)
-    assert event.task_id == "task-1"
-    assert event.context_id == "context-1"
-    assert event.status.state == TaskState.TASK_STATE_INPUT_REQUIRED
-    assert event.status.message.parts[0].text == "working"
-
-
-@pytest.mark.asyncio
-async def test_streaming_response_enqueues_artifact_update():
-    event_queue = MagicMock(spec=EventQueue)
-    event_queue.enqueue_event = AsyncMock()
-    adapter = A2AAdapter(_agent())
-    context = _turn_context(adapter, event_queue)
-    activity = A2AActivity(type=ActivityTypes.message, text="chunk")
-    stream_info = StreamInfo(
-        stream_id="artifact-1",
-        stream_type="content",
-        stream_sequence=1,
-    )
-
-    await adapter._on_streaming_response(context, activity, stream_info)
-
-    event = event_queue.enqueue_event.call_args.args[0]
-    assert isinstance(event, TaskArtifactUpdateEvent)
-    assert event.task_id == "task-1"
-    assert event.context_id == "context-1"
-    assert event.artifact.artifact_id == "artifact-1"
-    assert event.artifact.parts[0].text == "chunk"
-    assert event.last_chunk is False
+    assert isinstance(completed_event, TaskStatusUpdateEvent)
+    assert completed_event.status.state == TaskState.TASK_STATE_COMPLETED
+    with pytest.raises(asyncio.TimeoutError):
+        await asyncio.wait_for(event_queue.dequeue_event(), timeout=0.05)
 
 
 @pytest.mark.asyncio
@@ -377,8 +315,7 @@ async def test_streaming_response_enqueues_artifact_update():
     ],
 )
 async def test_end_of_conversation_maps_terminal_state(code, expected_state):
-    event_queue = MagicMock(spec=EventQueue)
-    event_queue.enqueue_event = AsyncMock()
+    event_queue = EventQueueLegacy()
     adapter = A2AAdapter(_agent())
     context = _turn_context(adapter, event_queue)
     activity = A2AActivity(
@@ -386,9 +323,9 @@ async def test_end_of_conversation_maps_terminal_state(code, expected_state):
         code=code,
     )
 
-    await adapter._on_end_of_conversation_response(context, activity)
+    await adapter.send_activities(context, [activity])
 
-    event = event_queue.enqueue_event.call_args.args[0]
+    event = await event_queue.dequeue_event()
     assert isinstance(event, TaskStatusUpdateEvent)
     assert event.status.state == expected_state
 

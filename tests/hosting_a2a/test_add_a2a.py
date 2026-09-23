@@ -1,31 +1,40 @@
 # Copyright (c) Microsoft Corporation. All rights reserved.
 # Licensed under the MIT License.
 
-import importlib
 from types import SimpleNamespace
-from unittest.mock import MagicMock, call, patch
+from unittest.mock import AsyncMock, MagicMock, patch
 
-from a2a.types import AgentInterface
+import httpx
+import pytest
+from a2a.types import AgentCapabilities, AgentCard, AgentInterface
 from a2a.utils.constants import TransportProtocol
 from fastapi import FastAPI
 
+from microsoft_agents.hosting.core import AgentAuthConfiguration
+from microsoft_agents.hosting.core.http import HttpResponse
 from microsoft_agents.hosting.a2a import add_a2a as exported_add_a2a
 from microsoft_agents.hosting.a2a.add_a2a import add_a2a
-
-add_a2a_module = importlib.import_module("microsoft_agents.hosting.a2a.add_a2a")
 
 
 def _adapter(*interfaces):
     return SimpleNamespace(
         agent_interfaces=list(interfaces),
         a2a_request_handler=MagicMock(),
-        get_agent_card=MagicMock(),
+        get_agent_card=AsyncMock(
+            return_value=AgentCard(
+                name="Test agent",
+                description="Test agent description",
+                version="1.0.0",
+                supported_interfaces=[],
+                capabilities=AgentCapabilities(),
+            )
+        ),
     )
 
 
-def test_add_a2a_registers_jsonrpc_and_http_interfaces_with_jwt():
+@pytest.mark.asyncio
+async def test_add_a2a_exposes_configured_jsonrpc_and_http_interfaces():
     app = FastAPI()
-    agent = MagicMock()
     adapter = _adapter(
         AgentInterface(
             url="/rpc",
@@ -36,56 +45,81 @@ def test_add_a2a_registers_jsonrpc_and_http_interfaces_with_jwt():
             protocol_binding=TransportProtocol.HTTP_JSON,
         ),
     )
-    jsonrpc_routes = [MagicMock()]
-    jsonrpc_card_routes = [MagicMock()]
-    rest_routes = [MagicMock()]
-    rest_card_routes = [MagicMock()]
+    add_a2a(app, MagicMock(), adapter, use_jwt_middleware=False)
 
-    with (
-        patch.object(
-            add_a2a_module,
-            "_create_jsonrpc_interface_routes",
-            return_value=(jsonrpc_routes, jsonrpc_card_routes),
-        ) as create_jsonrpc,
-        patch.object(
-            add_a2a_module,
-            "_create_http_interface_routes",
-            return_value=(rest_routes, rest_card_routes),
-        ) as create_http,
-        patch.object(add_a2a_module, "_use_jwt_middleware") as use_jwt,
-        patch.object(
-            add_a2a_module,
-            "add_a2a_routes_to_fastapi",
-        ) as register_routes,
-    ):
-        add_a2a(app, agent, adapter)
+    paths = {route.path for route in app.routes}
+    assert {
+        "/rpc",
+        "/rpc/.well-known/agent-card.json",
+        "/rest/message:send",
+        "/rest/tasks",
+        "/rest/.well-known/agent-card.json",
+    }.issubset(paths)
 
-    create_jsonrpc.assert_called_once_with(adapter, adapter.agent_interfaces[0])
-    create_http.assert_called_once_with(adapter, adapter.agent_interfaces[1])
-    assert use_jwt.call_args_list == [
-        call(jsonrpc_card_routes + rest_card_routes),
-        call(jsonrpc_routes),
-        call(rest_routes),
-    ]
-    register_routes.assert_called_once_with(
-        app,
-        agent_card_routes=jsonrpc_card_routes + rest_card_routes,
-        jsonrpc_routes=jsonrpc_routes,
-        rest_routes=rest_routes,
-    )
+    async with httpx.AsyncClient(
+        transport=httpx.ASGITransport(app=app),
+        base_url="http://testserver",
+    ) as client:
+        rpc_card = await client.get("/rpc/.well-known/agent-card.json")
+        rest_card = await client.get("/rest/.well-known/agent-card.json")
+
+    assert rpc_card.status_code == 200
+    assert rest_card.status_code == 200
+    assert rpc_card.json()["name"] == "Test agent"
+    assert rest_card.json()["name"] == "Test agent"
+    assert {
+        "/rpc",
+        "/rpc/.well-known/agent-card.json",
+        "/rest/message:send",
+        "/rest/tasks",
+        "/rest/.well-known/agent-card.json",
+    }.issubset(app.openapi()["paths"])
 
 
-def test_add_a2a_can_skip_jwt_middleware():
+@pytest.mark.asyncio
+async def test_add_a2a_applies_jwt_middleware_to_registered_routes():
     app = FastAPI()
-    adapter = _adapter()
+    app.state.agent_configuration = AgentAuthConfiguration()
 
-    with (
-        patch.object(add_a2a_module, "_use_jwt_middleware") as use_jwt,
-        patch.object(add_a2a_module, "add_a2a_routes_to_fastapi"),
-    ):
-        add_a2a(app, MagicMock(), adapter, use_jwt_middleware=False)
+    @app.get("/health")
+    async def health():
+        return {"status": "ok"}
 
-    use_jwt.assert_not_called()
+    adapter = _adapter(
+        AgentInterface(
+            url="/rpc",
+            protocol_binding=TransportProtocol.JSONRPC,
+        )
+    )
+    add_a2a(app, MagicMock(), adapter)
+
+    with patch(
+        "microsoft_agents.hosting.fastapi.jwt_authorization_middleware."
+        "_authorize_request",
+        new=AsyncMock(
+            return_value=HttpResponse(
+                body={"error": "Authentication required"},
+                status_code=401,
+            )
+        ),
+    ) as authorize:
+        async with httpx.AsyncClient(
+            transport=httpx.ASGITransport(app=app),
+            base_url="http://testserver",
+        ) as client:
+            health_response = await client.get("/health")
+            card_response = await client.get("/rpc/.well-known/agent-card.json")
+
+    assert health_response.status_code == 200
+    assert health_response.json() == {"status": "ok"}
+    assert card_response.status_code == 401
+    assert card_response.json() == {"error": "Authentication required"}
+    authorize.assert_awaited_once()
+
+
+def test_add_a2a_rejects_adapter_without_interfaces():
+    with pytest.raises(ValueError, match="No agent interfaces found"):
+        add_a2a(FastAPI(), MagicMock(), _adapter())
 
 
 def test_add_a2a_is_exported_from_package():

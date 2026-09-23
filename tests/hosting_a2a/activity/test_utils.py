@@ -121,22 +121,6 @@ def test_create_artifact_from_data_rejects_none():
         utils.create_artifact_from_data(None)
 
 
-def test_get_a2a_metadata_rejects_none():
-    with pytest.raises(ValueError, match="Data cannot be None"):
-        utils._get_a2a_metadata(None)
-
-
-def test_get_a2a_metadata_reuses_cached_schema_for_same_type():
-    utils._try_get_json_schema.cache_clear()
-
-    first = utils._get_a2a_metadata(Entity(type="citation"))
-    second = utils._get_a2a_metadata(Entity(type="mention"))
-
-    assert first["schema"] == second["schema"]
-    assert utils._try_get_json_schema.cache_info().misses == 1
-    assert utils._try_get_json_schema.cache_info().hits == 1
-
-
 def test_create_message_without_activity_has_agent_role_and_no_parts():
     message = utils.create_message("context-1", "task-1", None)
 

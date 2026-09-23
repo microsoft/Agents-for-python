@@ -2,46 +2,27 @@
 # Licensed under the MIT License.
 
 import asyncio
-import importlib
-from types import SimpleNamespace
-from unittest.mock import AsyncMock, MagicMock, patch
+import os
+import uuid
+from contextlib import asynccontextmanager
 
 import pytest
+from a2a.server.context import ServerCallContext
 from a2a.types import ListTasksRequest, Task, TaskState, TaskStatus
+from azure.core.exceptions import ResourceNotFoundError
+from azure.identity.aio import DefaultAzureCredential
+from azure.storage.blob.aio import BlobServiceClient, ContainerClient
+from dotenv import load_dotenv
 from google.protobuf.message import DecodeError
 
 from microsoft_agents.hosting.a2a.blob_task_store import BlobTaskStore
 
-blob_task_store_module = importlib.import_module(
-    "microsoft_agents.hosting.a2a.blob_task_store"
-)
-
-
-class _AsyncIterator:
-    def __init__(self, values):
-        self._values = iter(values)
-
-    def __aiter__(self):
-        return self
-
-    async def __anext__(self):
-        try:
-            return next(self._values)
-        except StopIteration as error:
-            raise StopAsyncIteration from error
-
-
-class _BlobPage:
-    def __init__(self, blob_names, continuation_token=None):
-        self._blobs = [SimpleNamespace(name=blob_name) for blob_name in blob_names]
-        self.continuation_token = continuation_token
-
-    def __aiter__(self):
-        return _AsyncIterator(self._blobs)
+# To enable these tests, run with --run-blob and configure either:
+# TEST_BLOB_STORAGE_CONNECTION_STRING or TEST_BLOB_STORAGE_ACCOUNT_URL.
 
 
 def _task(
-    task_id: str = "task/1",
+    task_id: str,
     *,
     context_id: str = "context-1",
     state: TaskState = TaskState.TASK_STATE_WORKING,
@@ -49,47 +30,52 @@ def _task(
     return Task(
         id=task_id,
         context_id=context_id,
-        status=TaskStatus(
-            state=state,
-        ),
+        status=TaskStatus(state=state),
     )
 
 
-def _store():
-    container_client = MagicMock()
-    container_client.create_container = AsyncMock()
+@asynccontextmanager
+async def _blob_task_store():
+    load_dotenv()
+    connection_string = os.environ.get("TEST_BLOB_STORAGE_CONNECTION_STRING")
+    credential = None
+
+    if connection_string:
+        service_client = BlobServiceClient.from_connection_string(connection_string)
+    else:
+        account_url = os.environ.get("TEST_BLOB_STORAGE_ACCOUNT_URL")
+        if not account_url:
+            pytest.skip(
+                "Set TEST_BLOB_STORAGE_CONNECTION_STRING or "
+                "TEST_BLOB_STORAGE_ACCOUNT_URL"
+            )
+        credential = DefaultAzureCredential()
+        service_client = BlobServiceClient(account_url, credential=credential)
+
+    container_name = f"asdka2atasks{uuid.uuid4().hex}"
+    container_client = service_client.get_container_client(container_name)
     store = BlobTaskStore(container_client)
-    store._initialized = True
-    return store, container_client
+
+    try:
+        yield store, container_client
+    finally:
+        try:
+            await container_client.delete_container()
+        except ResourceNotFoundError:
+            pass
+        await container_client.close()
+        await service_client.close()
+        if credential:
+            await credential.close()
 
 
-def test_constructor_uses_provided_container_client():
-    container_client = MagicMock()
-
-    store = BlobTaskStore(container_client)
-
-    assert store._container_client is container_client
-    assert store._initialized is False
-
-
-def test_constructor_creates_container_client_from_connection_string():
-    blob_service_client = MagicMock()
-    container_client = MagicMock()
-    blob_service_client.get_container_client.return_value = container_client
-
-    with patch.object(
-        blob_task_store_module.BlobServiceClient,
-        "from_connection_string",
-        return_value=blob_service_client,
-    ) as from_connection_string:
-        store = BlobTaskStore(
-            data_connection_string="UseDevelopmentStorage=true",
-            container_name="tasks",
-        )
-
-    from_connection_string.assert_called_once_with("UseDevelopmentStorage=true")
-    blob_service_client.get_container_client.assert_called_once_with("tasks")
-    assert store._container_client is container_client
+async def _upload_blob(container_client: ContainerClient, name: str, data: bytes):
+    blob_client = await container_client.upload_blob(
+        name=name,
+        data=data,
+        overwrite=True,
+    )
+    await blob_client.close()
 
 
 @pytest.mark.parametrize(
@@ -105,210 +91,141 @@ def test_constructor_rejects_invalid_parameter_combinations(kwargs):
         BlobTaskStore(**kwargs)
 
 
-@pytest.mark.asyncio
-async def test_ensure_container_exists_initializes_only_once():
-    container_client = MagicMock()
-    container_client.create_container = AsyncMock()
-    store = BlobTaskStore(container_client)
+@pytest.mark.blob
+class TestBlobTaskStore:
+    @pytest.mark.asyncio
+    async def test_save_get_and_overwrite_task(self):
+        context = ServerCallContext()
 
-    await asyncio.gather(
-        store._ensure_container_exists(),
-        store._ensure_container_exists(),
-        store._ensure_container_exists(),
-    )
+        async with _blob_task_store() as (store, container_client):
+            task = _task("task/with spaces")
 
-    container_client.create_container.assert_awaited_once()
-    assert store._initialized is True
+            await store.save(task, context)
 
+            saved = await store.get(task.id, context)
+            assert saved == task
+            assert saved is not task
 
-@pytest.mark.parametrize(
-    ("task_id", "expected"),
-    [
-        ("task-1", "TODOtask-1"),
-        ("task/1", "TODOtask%2F1"),
-        ("task with spaces", "TODOtask+with+spaces"),
-        ("task+plus", "TODOtask%2Bplus"),
-    ],
-)
-def test_get_blob_name_encodes_task_id(task_id, expected):
-    assert BlobTaskStore._get_blob_name(task_id) == expected
+            blob_names = [blob.name async for blob in container_client.list_blobs()]
+            assert blob_names == ["TODOtask%2Fwith+spaces"]
 
+            task.status.state = TaskState.TASK_STATE_COMPLETED
+            await store.save(task, context)
 
-def test_get_blob_name_rejects_empty_task_id():
-    with pytest.raises(ValueError, match="Task ID cannot be empty"):
-        BlobTaskStore._get_blob_name("")
+            overwritten = await store.get(task.id, context)
+            assert overwritten == task
+            assert overwritten.status.state == TaskState.TASK_STATE_COMPLETED
 
+    @pytest.mark.asyncio
+    async def test_external_blob_change_is_visible(self):
+        context = ServerCallContext()
+        external_task = _task("external-task")
 
-@pytest.mark.asyncio
-async def test_save_uploads_serialized_protobuf():
-    store, container_client = _store()
-    blob_client = MagicMock()
-    blob_client.upload_blob = AsyncMock()
-    container_client.get_blob_client.return_value = blob_client
-    task = _task()
+        async with _blob_task_store() as (store, container_client):
+            assert await store.get(external_task.id, context) is None
 
-    await store.save(task, context=MagicMock())
+            await _upload_blob(
+                container_client,
+                "TODOexternal-task",
+                external_task.SerializeToString(),
+            )
 
-    container_client.get_blob_client.assert_called_once_with("TODOtask%2F1")
-    blob_client.upload_blob.assert_awaited_once_with(
-        data=task.SerializeToString(),
-        overwrite=True,
-        length=len(task.SerializeToString()),
-    )
+            assert await store.get(external_task.id, context) == external_task
 
+    @pytest.mark.asyncio
+    async def test_get_returns_none_for_missing_task(self):
+        async with _blob_task_store() as (store, _):
+            assert await store.get("missing-task", ServerCallContext()) is None
 
-@pytest.mark.asyncio
-async def test_save_initializes_container_before_upload():
-    container_client = MagicMock()
-    container_client.create_container = AsyncMock()
-    blob_client = MagicMock()
-    blob_client.upload_blob = AsyncMock()
-    container_client.get_blob_client.return_value = blob_client
-    store = BlobTaskStore(container_client)
+    @pytest.mark.asyncio
+    async def test_get_rejects_corrupted_task_blob(self):
+        context = ServerCallContext()
 
-    await store.save(_task(), context=MagicMock())
+        async with _blob_task_store() as (store, container_client):
+            assert await store.get("corrupted-task", context) is None
+            await _upload_blob(
+                container_client,
+                "TODOcorrupted-task",
+                b"not a serialized Task",
+            )
 
-    container_client.create_container.assert_awaited_once()
-    blob_client.upload_blob.assert_awaited_once()
+            with pytest.raises(DecodeError):
+                await store.get("corrupted-task", context)
 
+    @pytest.mark.asyncio
+    async def test_list_filters_by_status_and_context(self):
+        context = ServerCallContext()
+        matching = _task("task-1")
+        tasks = [
+            matching,
+            _task("task-2", context_id="other-context"),
+            _task("task-3", state=TaskState.TASK_STATE_COMPLETED),
+        ]
 
-@pytest.mark.asyncio
-async def test_get_deserializes_protobuf_task():
-    store, container_client = _store()
-    task = _task()
-    downloader = SimpleNamespace(
-        readall=AsyncMock(return_value=task.SerializeToString())
-    )
-    container_client.download_blob = AsyncMock(return_value=downloader)
+        async with _blob_task_store() as (store, _):
+            await asyncio.gather(*(store.save(task, context) for task in tasks))
 
-    result = await store.get(task.id, context=MagicMock())
+            response = await store.list(
+                ListTasksRequest(
+                    status=TaskState.TASK_STATE_WORKING,
+                    context_id="context-1",
+                ),
+                context,
+            )
 
-    assert result == task
-    assert result is not task
-    container_client.download_blob.assert_awaited_once_with(
-        blob="TODOtask%2F1",
-        timeout=5,
-    )
+            assert list(response.tasks) == [matching]
+            assert response.next_page_token == ""
 
+    @pytest.mark.asyncio
+    async def test_list_uses_azure_continuation_tokens(self):
+        context = ServerCallContext()
+        tasks = [_task(f"task-{index}") for index in range(3)]
 
-@pytest.mark.asyncio
-async def test_download_task_blob_uses_existing_blob_name():
-    store, container_client = _store()
-    task = _task()
-    downloader = SimpleNamespace(
-        readall=AsyncMock(return_value=task.SerializeToString())
-    )
-    container_client.download_blob = AsyncMock(return_value=downloader)
+        async with _blob_task_store() as (store, _):
+            await asyncio.gather(*(store.save(task, context) for task in tasks))
 
-    result = await store._download_task_blob("TODOtask%2F1")
+            first_page = await store.list(
+                ListTasksRequest(page_size=2),
+                context,
+            )
+            second_page = await store.list(
+                ListTasksRequest(
+                    page_size=2,
+                    page_token=first_page.next_page_token,
+                ),
+                context,
+            )
 
-    assert result == task
-    container_client.download_blob.assert_awaited_once_with(
-        blob="TODOtask%2F1",
-        timeout=5,
-    )
+            assert [task.id for task in first_page.tasks] == [
+                "task-0",
+                "task-1",
+            ]
+            assert first_page.next_page_token
+            assert [task.id for task in second_page.tasks] == ["task-2"]
+            assert second_page.next_page_token == ""
 
+    @pytest.mark.asyncio
+    async def test_concurrent_first_operations_share_container_initialization(self):
+        context = ServerCallContext()
+        tasks = [_task(f"task-{index}") for index in range(3)]
 
-@pytest.mark.asyncio
-async def test_get_returns_none_when_blob_does_not_exist():
-    store, container_client = _store()
-    container_client.download_blob = AsyncMock(return_value=None)
+        async with _blob_task_store() as (store, _):
+            await asyncio.gather(*(store.save(task, context) for task in tasks))
+            saved = await asyncio.gather(
+                *(store.get(task.id, context) for task in tasks)
+            )
 
-    assert await store.get("missing", context=MagicMock()) is None
+            assert saved == tasks
 
+    @pytest.mark.asyncio
+    async def test_delete_removes_persisted_task(self):
+        context = ServerCallContext()
+        task = _task("task/to-delete")
 
-@pytest.mark.asyncio
-async def test_get_propagates_invalid_protobuf_data():
-    store, container_client = _store()
-    downloader = SimpleNamespace(readall=AsyncMock(return_value=b"not protobuf"))
-    container_client.download_blob = AsyncMock(return_value=downloader)
+        async with _blob_task_store() as (store, _):
+            await store.save(task, context)
+            assert await store.get(task.id, context) == task
 
-    with pytest.raises(DecodeError):
-        await store.get("invalid", context=MagicMock())
+            await store.delete(task.id, context)
 
-
-@pytest.mark.parametrize(
-    ("params", "expected"),
-    [
-        (ListTasksRequest(), True),
-        (
-            ListTasksRequest(status=TaskState.TASK_STATE_WORKING),
-            True,
-        ),
-        (
-            ListTasksRequest(status=TaskState.TASK_STATE_COMPLETED),
-            False,
-        ),
-        (
-            ListTasksRequest(context_id="context-1"),
-            True,
-        ),
-        (
-            ListTasksRequest(context_id="other-context"),
-            False,
-        ),
-    ],
-)
-def test_should_include_task_filters_by_status_and_context(params, expected):
-    assert BlobTaskStore._should_include_task(_task(), params) is expected
-
-
-@pytest.mark.asyncio
-async def test_list_returns_filtered_tasks_and_continuation_token():
-    store, container_client = _store()
-    page = _BlobPage(
-        ["TODOtask-1", "TODOtask-2", "TODOmissing"],
-        continuation_token="next-page",
-    )
-    items = MagicMock()
-    items.by_page.return_value = _AsyncIterator([page])
-    container_client.list_blobs.return_value = items
-    matching_task = _task("task-1")
-    other_context_task = _task("task-2", context_id="other-context")
-    store._download_task_blob = AsyncMock(
-        side_effect=[matching_task, other_context_task, None]
-    )
-    params = ListTasksRequest(
-        status=TaskState.TASK_STATE_WORKING,
-        context_id="context-1",
-        page_size=25,
-        page_token="current-page",
-    )
-
-    response = await store.list(params, context=MagicMock())
-
-    container_client.list_blobs.assert_called_once_with(
-        name_starts_with="TODO",
-        results_per_page=25,
-    )
-    items.by_page.assert_called_once_with("current-page")
-    assert list(response.tasks) == [matching_task]
-    assert response.next_page_token == "next-page"
-    assert store._download_task_blob.await_count == 3
-
-
-@pytest.mark.asyncio
-async def test_list_returns_empty_response_for_empty_page():
-    store, container_client = _store()
-    page = _BlobPage([])
-    items = MagicMock()
-    items.by_page.return_value = _AsyncIterator([page])
-    container_client.list_blobs.return_value = items
-
-    response = await store.list(ListTasksRequest(), context=MagicMock())
-
-    assert list(response.tasks) == []
-    assert response.next_page_token == ""
-
-
-@pytest.mark.asyncio
-async def test_delete_deletes_encoded_blob_name():
-    store, container_client = _store()
-    blob_client = MagicMock()
-    blob_client.delete_blob = AsyncMock()
-    container_client.get_blob_client.return_value = blob_client
-
-    await store.delete("task/1", context=MagicMock())
-
-    container_client.get_blob_client.assert_called_once_with("TODOtask%2F1")
-    blob_client.delete_blob.assert_awaited_once()
+            assert await store.get(task.id, context) is None

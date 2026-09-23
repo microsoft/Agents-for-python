@@ -3,71 +3,102 @@
 
 from unittest.mock import AsyncMock, MagicMock, patch
 
+import httpx
 import pytest
+from a2a.server.request_handlers import RequestHandler
+from a2a.types import AgentCapabilities, AgentCard, ListTasksResponse
+from starlette.applications import Starlette
 from starlette.requests import Request
+from starlette.responses import JSONResponse
 from starlette.routing import Mount, Route
 
-from microsoft_agents.hosting.fastapi import JwtAuthorizationMiddleware
+from microsoft_agents.hosting.core import AgentAuthConfiguration, ClaimsIdentity
 from microsoft_agents.hosting.a2a.server import routes
-from microsoft_agents.hosting.a2a.server.sdk_server_call_context_builder import (
-    SDKServerCallContextBuilder,
-)
+from microsoft_agents.hosting.a2a.server._constants import _CLAIMS_IDENTITY_KEY
 
 
-def test_create_jsonrpc_routes_supplies_sdk_context_builder():
-    request_handler = MagicMock()
-    expected_routes = [MagicMock(spec=Route)]
+async def _request_with_identity(app, identity, method, path, **kwargs):
+    async def authenticated_app(scope, receive, send):
+        scope.setdefault("state", {})["claims_identity"] = identity
+        await app(scope, receive, send)
 
-    with patch.object(
-        routes,
-        "_create_jsonrpc_routes",
-        return_value=expected_routes,
-    ) as create_routes:
-        result = routes.create_jsonrpc_routes(
-            request_handler,
-            "/a2a",
-            enable_v0_3_compat=True,
-        )
+    async with httpx.AsyncClient(
+        transport=httpx.ASGITransport(app=authenticated_app),
+        base_url="http://testserver",
+    ) as client:
+        return await client.request(method, path, **kwargs)
 
-    assert result is expected_routes
-    create_routes.assert_called_once()
-    assert create_routes.call_args.args == (request_handler, "/a2a")
-    assert isinstance(
-        create_routes.call_args.kwargs["context_builder"],
-        SDKServerCallContextBuilder,
+
+@pytest.mark.asyncio
+async def test_jsonrpc_routes_forward_authenticated_identity_to_request_handler():
+    request_handler = MagicMock(spec=RequestHandler)
+    request_handler.on_list_tasks.return_value = ListTasksResponse(tasks=[])
+    identity = ClaimsIdentity({"sub": "agent-1"})
+    app = Starlette(routes=routes.create_jsonrpc_routes(request_handler, "/a2a"))
+
+    response = await _request_with_identity(
+        app,
+        identity,
+        "POST",
+        "/a2a",
+        headers={"A2A-Version": "1.0"},
+        json={
+            "jsonrpc": "2.0",
+            "id": "request-1",
+            "method": "ListTasks",
+            "params": {},
+        },
     )
-    assert create_routes.call_args.kwargs["enable_v0_3_compat"] is True
+
+    assert response.status_code == 200
+    assert response.json()["result"]["tasks"] == []
+    context = request_handler.on_list_tasks.call_args.args[1]
+    assert context.state[_CLAIMS_IDENTITY_KEY] is identity
+    assert context.state["headers"]["a2a-version"] == "1.0"
 
 
-def test_create_rest_routes_supplies_sdk_context_builder():
-    request_handler = MagicMock()
-    expected_routes = [MagicMock(spec=Route)]
-
-    with patch.object(
-        routes,
-        "_create_rest_routes",
-        return_value=expected_routes,
-    ) as create_routes:
-        result = routes.create_rest_routes(
+@pytest.mark.asyncio
+async def test_rest_routes_forward_authenticated_identity_to_request_handler():
+    request_handler = MagicMock(spec=RequestHandler)
+    request_handler.on_list_tasks.return_value = ListTasksResponse(tasks=[])
+    identity = ClaimsIdentity({"sub": "agent-1"})
+    app = Starlette(
+        routes=routes.create_rest_routes(
             request_handler,
             path_prefix="/a2a",
-            enable_v0_3_compat=True,
         )
-
-    assert result is expected_routes
-    create_routes.assert_called_once()
-    assert create_routes.call_args.args == (request_handler,)
-    assert isinstance(
-        create_routes.call_args.kwargs["context_builder"],
-        SDKServerCallContextBuilder,
     )
-    assert create_routes.call_args.kwargs["path_prefix"] == "/a2a"
-    assert create_routes.call_args.kwargs["enable_v0_3_compat"] is True
+
+    response = await _request_with_identity(
+        app,
+        identity,
+        "GET",
+        "/a2a/tasks",
+        headers={"A2A-Version": "1.0"},
+    )
+
+    assert response.status_code == 200
+    assert response.json()["tasks"] == []
+    context = request_handler.on_list_tasks.call_args.args[1]
+    assert context.state[_CLAIMS_IDENTITY_KEY] is identity
+    assert context.state["headers"]["a2a-version"] == "1.0"
 
 
 @pytest.mark.asyncio
 async def test_create_agent_card_routes_adapts_request_and_uses_interface_prefix():
-    get_agent_card = AsyncMock(return_value=MagicMock())
+    observed = {}
+
+    async def get_agent_card(request, prefix):
+        observed["request"] = request
+        observed["prefix"] = prefix
+        return AgentCard(
+            name="Test agent",
+            description="Test description",
+            version="1.0.0",
+            supported_interfaces=[],
+            capabilities=AgentCapabilities(),
+        )
+
     route = routes.create_agent_card_routes(
         get_agent_card,
         "/a2a/.well-known/agent-card.json",
@@ -86,25 +117,42 @@ async def test_create_agent_card_routes_adapts_request_and_uses_interface_prefix
         }
     )
 
-    with patch.object(routes, "agent_card_to_dict", return_value={"name": "agent"}):
-        response = await route.endpoint(request)
+    response = await route.endpoint(request)
 
     assert route.path == "/a2a/.well-known/agent-card.json"
     assert response.status_code == 200
-    assert response.body == b'{"name":"agent"}'
-    get_agent_card.assert_awaited_once()
-    assert get_agent_card.call_args.args[1] == "/a2a"
+    assert response.body == (
+        b'{"name":"Test agent","description":"Test description",'
+        b'"version":"1.0.0","capabilities":{}}'
+    )
+    assert (
+        observed["request"].url == "https://example.com/a2a/.well-known/agent-card.json"
+    )
+    assert observed["prefix"] == "/a2a"
 
 
-def test_use_jwt_middleware_wraps_shared_mounted_route_once():
+@pytest.mark.asyncio
+async def test_use_jwt_middleware_authorizes_shared_mounted_route_once():
     async def endpoint(request):
-        return None
+        return JSONResponse({"ok": True})
 
     route = Route("/messages", endpoint=endpoint)
-    original_app = route.app
     mounted = Mount("/tenant", routes=[route])
-
     routes.use_jwt_middleware([route, mounted])
+    app = Starlette(routes=[route])
+    app.state.agent_configuration = AgentAuthConfiguration()
 
-    assert isinstance(route.app, JwtAuthorizationMiddleware)
-    assert route.app.app is original_app
+    with patch(
+        "microsoft_agents.hosting.fastapi.jwt_authorization_middleware."
+        "_authorize_request",
+        new=AsyncMock(return_value=ClaimsIdentity({"sub": "agent-1"})),
+    ) as authorize:
+        async with httpx.AsyncClient(
+            transport=httpx.ASGITransport(app=app),
+            base_url="http://testserver",
+        ) as client:
+            response = await client.get("/messages")
+
+    assert response.status_code == 200
+    assert response.json() == {"ok": True}
+    authorize.assert_awaited_once()
