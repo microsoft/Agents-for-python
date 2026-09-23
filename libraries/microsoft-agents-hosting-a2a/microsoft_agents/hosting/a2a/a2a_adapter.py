@@ -31,6 +31,7 @@ from microsoft_agents.activity import (
     CallerIdConstants,
     Channels,
     ChannelAccount,
+    ConversationAccount,
     ChannelId,
     EndOfConversationCodes,
     InvokeResponse,
@@ -173,6 +174,7 @@ class A2AAdapter(A2AHttpAdapter, ChannelAdapter, ChannelAdapterProtocol):
             type=ActivityTypes.end_of_conversation,
             code=EndOfConversationCodes.user_cancelled,
             channel_id=ChannelId(Channels.a2a),
+            conversation=ConversationAccount(id=context.task_id or ""),
             recipient=ChannelAccount(id="assistant", role=RoleTypes.agent),
             from_property=ChannelAccount(id=_DEFAULT_USER_ID, role=RoleTypes.user),
         )

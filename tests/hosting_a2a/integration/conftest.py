@@ -2,6 +2,8 @@
 # Licensed under the MIT License.
 
 from collections.abc import AsyncIterator
+import asyncio
+from dataclasses import dataclass
 
 import httpx
 import pytest_asyncio
@@ -29,8 +31,27 @@ INPUT_REQUIRED_TRIGGER_TEXT = "need-more-input"
 STRUCTURED_RESULT_TRIGGER_TEXT = "structured-result"
 """Message text that completes with both text and structured result data."""
 
+LONG_RUNNING_TRIGGER_TEXT = "long-running"
+"""Message text that leaves a task running until it is canceled."""
 
-def _create_agent_application() -> AgentApplication[TurnState]:
+FAILURE_TRIGGER_TEXT = "fail"
+"""Message text that raises from the SDK agent handler."""
+
+PARTS_TRIGGER_TEXT = "echo-parts"
+"""Message text that echoes incoming attachments through an outgoing message."""
+
+
+@dataclass
+class A2ATestHarness:
+    client: httpx.AsyncClient
+    long_running_started: asyncio.Event
+    release_long_running: asyncio.Event
+
+
+def _create_agent_application(
+    long_running_started: asyncio.Event,
+    release_long_running: asyncio.Event,
+) -> AgentApplication[TurnState]:
     application = AgentApplication[TurnState](
         options=ApplicationOptions(storage=MemoryStorage()),
         connection_manager=TestingConnectionManager(),
@@ -67,6 +88,32 @@ def _create_agent_application() -> AgentApplication[TurnState]:
                 )
             )
             return
+        elif text == LONG_RUNNING_TRIGGER_TEXT:
+            await context.send_activity(
+                Activity(
+                    type=ActivityTypes.message,
+                    text="Working",
+                )
+            )
+            long_running_started.set()
+            await release_long_running.wait()
+            await context.send_activity(
+                Activity(
+                    type=ActivityTypes.end_of_conversation,
+                    code=EndOfConversationCodes.completed_successfully,
+                )
+            )
+            return
+        elif text == FAILURE_TRIGGER_TEXT:
+            raise RuntimeError("Integration agent failed")
+        elif text == PARTS_TRIGGER_TEXT:
+            await context.send_activity(
+                Activity(
+                    type=ActivityTypes.message,
+                    text=text,
+                    attachments=list(context.activity.attachments or []),
+                )
+            )
         else:
             await context.send_activity(f"Echo: {text}")
         await context.send_activity(
@@ -80,11 +127,13 @@ def _create_agent_application() -> AgentApplication[TurnState]:
 
 
 @pytest_asyncio.fixture
-async def a2a_client() -> AsyncIterator[httpx.AsyncClient]:
+async def a2a_harness() -> AsyncIterator[A2ATestHarness]:
     """Create an unauthenticated application exposing JSON-RPC and REST A2A routes."""
 
     app = FastAPI()
-    agent = _create_agent_application()
+    long_running_started = asyncio.Event()
+    release_long_running = asyncio.Event()
+    agent = _create_agent_application(long_running_started, release_long_running)
     adapter = A2AAdapter(
         agent,
         agent_card_name="Compatibility Agent",
@@ -118,4 +167,13 @@ async def a2a_client() -> AsyncIterator[httpx.AsyncClient]:
         transport=httpx.ASGITransport(app=app),
         base_url="http://testserver",
     ) as client:
-        yield client
+        yield A2ATestHarness(
+            client=client,
+            long_running_started=long_running_started,
+            release_long_running=release_long_running,
+        )
+
+
+@pytest_asyncio.fixture
+async def a2a_client(a2a_harness: A2ATestHarness) -> httpx.AsyncClient:
+    return a2a_harness.client
