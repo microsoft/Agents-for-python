@@ -6,37 +6,37 @@ from os import environ
 import uvicorn
 from fastapi import FastAPI
 
-from microsoft_agents.hosting.core import (
-    AgentApplication,
-    AgentAuthConfiguration,
-)
-from microsoft_agents.hosting.fastapi import (
-    CloudAdapter,
-    JwtAuthorizationMiddleware,
-    start_agent_process
-)
-
 from microsoft_agents.hosting.a2a import add_a2a
 
-def start_server(
-    agent_application: AgentApplication,
-    auth_configuration: AgentAuthConfiguration,
-) -> None:
-    """Start the FastAPI server with the given agent application and authentication configuration.
-    
-    :param agent_application: The agent application to be hosted by the server.
-    :param auth_configuration: The authentication configuration for the agent.
-    """
-    
-    app = FastAPI(title="Empty Agent Sample", version="1.0.0")
-    app.add_middleware(JwtAuthorizationMiddleware)
-    app.state.agent_configuration = (
-        auth_configuration.get_default_connection_configuration()
+from .a2a import A2A_ADAPTER
+from .agent import AGENT
+
+
+def create_app() -> FastAPI:
+    """Create the FastAPI application and register the A2A routes."""
+
+    app = FastAPI(title="SDK A2A Echo Agent", version="1.0.0")
+
+    # Authentication is disabled only to keep this local sample simple.
+    add_a2a(
+        app,
+        AGENT,
+        adapter=A2A_ADAPTER,
+        use_jwt_middleware=False,
     )
 
-    # Here we set use_jwt_middleware to False because we have already applied this
-    # middleware at the app-level above
-    add_a2a(app, agent_application, use_jwt_middleware=False) 
+    @app.get("/health")
+    async def health():
+        return {"status": "ok"}
 
-    port = int(environ.get("PORT", 3978))
-    uvicorn.run(app, host="127.0.0.1", port=port)
+    return app
+
+
+def start_server(app: FastAPI | None = None) -> None:
+    """Start the local A2A server."""
+
+    uvicorn.run(
+        app or create_app(),
+        host=environ.get("HOST", "127.0.0.1"),
+        port=int(environ.get("PORT", "41241")),
+    )

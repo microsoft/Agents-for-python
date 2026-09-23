@@ -30,6 +30,12 @@ async def _handle_stream(
                 current_task_id = event.task.id
                 print('--- Task Started ---')
                 print(f'Task [state={TaskState.Name(event.task.status.state)}]')
+            elif event.HasField('status_update'):
+                current_task_id = event.status_update.task_id
+                print('--- Task Started ---')
+            elif event.HasField('artifact_update'):
+                current_task_id = event.artifact_update.task_id
+                print('--- Task Started ---')
             else:
                 raise ValueError(f'Unexpected first event: {event}')
 
@@ -66,7 +72,7 @@ async def main() -> None:
     """Run the A2A terminal client."""
     parser = argparse.ArgumentParser(description='A2A Terminal Client')
     parser.add_argument(
-        '--url', default='http://127.0.0.1:41241', help='Agent base URL'
+        '--url', default='http://127.0.0.1:41241/a2a', help='Agent base URL'
     )
     parser.add_argument(
         '--transport',
