@@ -162,7 +162,7 @@ if __name__ == "__main__":
         CONNECTION_MANAGER.get_default_connection_configuration()
     )
     APP["agent_app"] = AGENT_APP
-    APP["adapter"] = AGENT_APP.adapter
+    APP["adapter"] = ADAPTER
 
     host = environ.get("HOST", "localhost")
     port = int(environ.get("PORT", "3978"))

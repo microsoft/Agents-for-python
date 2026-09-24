@@ -7,6 +7,8 @@ from __future__ import annotations
 
 import asyncio
 import logging
+import warnings
+
 from contextlib import nullcontext
 from copy import copy
 from functools import partial
@@ -138,6 +140,13 @@ class AgentApplication(Agent, Generic[StateT]):
 
         self._options = options
 
+        if self._options.adapter:
+            warnings.warn(
+                "AgentApplication.adapter is deprecated and will be removed in a future release.",
+                DeprecationWarning,
+            )
+        self._adapter = self._options.adapter
+
         if not self._options.storage:
             logger.error(
                 "ApplicationOptions.storage is required and was not configured.",
@@ -214,6 +223,31 @@ class AgentApplication(Agent, Generic[StateT]):
         :rtype: :class:`microsoft_agents.hosting.core.authorization.Connections`
         """
         return self._connection_manager
+
+    @property
+    @deprecated(
+        "AgentApplication.adapter is deprecated and will be removed in a future release."
+    )
+    def adapter(self) -> ChannelServiceAdapter:
+        """
+        The application's channel service adapter.
+
+        :return: The channel service adapter for the application.
+        :rtype: :class:`microsoft_agents.hosting.core.channel_service_adapter.ChannelServiceAdapter`
+        :raises ApplicationError: If the adapter is not configured.
+        """
+
+        if not self._adapter:
+            logger.error(
+                "AgentApplication.adapter(): self._adapter is not configured.",
+                stack_info=True,
+            )
+            raise ApplicationError("""
+                The AgentApplication.adapter property is unavailable because it was 
+                not configured when creating the AgentApplication.
+                """)
+
+        return self._adapter
 
     @property
     def adaptive_card(self) -> AdaptiveCard:

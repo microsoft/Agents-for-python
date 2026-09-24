@@ -154,7 +154,7 @@ async def messages_handler(
     return await start_agent_process(
         request,
         AGENT_APP,
-        AGENT_APP.adapter,
+        ADAPTER,
     )
 
 

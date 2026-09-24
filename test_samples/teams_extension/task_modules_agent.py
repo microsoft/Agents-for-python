@@ -276,5 +276,6 @@ async def on_multi_step_submit_email(
 if __name__ == "__main__":
     start_server(
         agent_application=AGENT_APP,
+        adapter=ADAPTER,
         auth_configuration=CONNECTION_MANAGER.get_default_connection_configuration(),
     )

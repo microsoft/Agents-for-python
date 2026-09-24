@@ -89,7 +89,7 @@ async def _anonymous_auth_middleware(request: Request, handler):
     return await handler(request)
 
 
-def start_server(agent_application: AgentApplication):
+def start_server(agent_application: AgentApplication, adapter: CloudAdapter):
     async def entry_point(req: Request) -> Response:
         agent: AgentApplication = req.app["agent_app"]
         adapter: CloudAdapter = req.app["adapter"]
@@ -114,7 +114,7 @@ def start_server(agent_application: AgentApplication):
         CONNECTION_MANAGER.get_default_connection_configuration()
     )
     app["agent_app"] = agent_application
-    app["adapter"] = agent_application.adapter
+    app["adapter"] = adapter
 
     run_app(
         app,
@@ -124,4 +124,4 @@ def start_server(agent_application: AgentApplication):
 
 
 if __name__ == "__main__":
-    start_server(AGENT_APP)
+    start_server(AGENT_APP, ADAPTER)

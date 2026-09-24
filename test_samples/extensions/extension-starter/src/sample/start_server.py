@@ -9,7 +9,7 @@ from aiohttp.web import Request, Response, Application, run_app
 
 
 def start_server(
-    agent_application: AgentApplication, auth_configuration: AgentAuthConfiguration
+    agent_application: AgentApplication, adapter: CloudAdapter, auth_configuration: AgentAuthConfiguration
 ):
     async def entry_point(req: Request) -> Response:
         agent: AgentApplication = req.app["agent_app"]
@@ -24,7 +24,7 @@ def start_server(
     APP.router.add_post("/api/messages", entry_point)
     APP["agent_configuration"] = auth_configuration
     APP["agent_app"] = agent_application
-    APP["adapter"] = agent_application.adapter
+    APP["adapter"] = adapter
 
     try:
         run_app(APP, host="localhost", port=environ.get("PORT", 3978))
