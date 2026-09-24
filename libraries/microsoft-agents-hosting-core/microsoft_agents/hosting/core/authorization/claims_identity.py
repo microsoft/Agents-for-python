@@ -16,7 +16,7 @@ class ClaimsIdentity:
 
     claims: dict[str, Any]
     authentication_type: str | None
-    security_token: str | None  # deprecated, will be removed in future versions
+    security_token: str | None
 
     def __init__(
         self,
