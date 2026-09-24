@@ -62,7 +62,6 @@ class ConversationReferenceRecord(StoreItem):
     """Persistent envelope for a conversation reference and associated identity."""
 
     claims: dict[str, str]
-    is_authenticated: bool
     authentication_type: Optional[str]
     reference: ConversationReference
 
@@ -80,7 +79,6 @@ class ConversationReferenceRecord(StoreItem):
         reference = context.activity.get_conversation_reference()
         return cls(
             claims=dict(identity.claims),
-            is_authenticated=identity.is_authenticated,
             authentication_type=identity.authentication_type,
             reference=reference,
         )
@@ -88,14 +86,12 @@ class ConversationReferenceRecord(StoreItem):
     def to_identity(self) -> ClaimsIdentity:
         return ClaimsIdentity(
             claims=dict(self.claims),
-            is_authenticated=self.is_authenticated,
             authentication_type=self.authentication_type,
         )
 
     def store_item_to_json(self) -> Dict[str, Any]:
         return {
             "claims": dict(self.claims),
-            "is_authenticated": self.is_authenticated,
             "authentication_type": self.authentication_type,
             "reference": self.reference.model_dump(mode="json"),
         }
@@ -113,7 +109,6 @@ class ConversationReferenceRecord(StoreItem):
         )
         return ConversationReferenceRecord(
             claims=json_data.get("claims", {}),
-            is_authenticated=json_data.get("is_authenticated", False),
             authentication_type=json_data.get("authentication_type"),
             reference=reference,
         )

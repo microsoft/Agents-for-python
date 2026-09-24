@@ -6,7 +6,6 @@ from microsoft_agents.activity import (
     AdaptiveCardCard,
     AnimationCard,
     AudioCard,
-    BasicCard,
     CardAction,
     CardImage,
     ContentTypes,
@@ -54,20 +53,11 @@ class TestHeroCardBuilders:
 
 class TestThumbnailAndBasicCardBuilders:
     @pytest.mark.filterwarnings("ignore::DeprecationWarning")
-    def test_thumbnail_and_basic_card_builders(self):
+    def test_thumbnail_builder(self):
         thumb = ThumbnailCard(title="t").add_image(url="u").add_button(title="b")
         assert thumb.title == "t"
         assert len(thumb.images) == 1
         assert len(thumb.buttons) == 1
-
-        basic = (
-            BasicCard(text="x")
-            .add_image(CardImage(url="u"))
-            .add_button(CardAction(type=ActionTypes.im_back, title="b"))
-        )
-        assert basic.text == "x"
-        assert len(basic.images) == 1
-        assert len(basic.buttons) == 1
 
 
 class TestMediaCardBuilders:

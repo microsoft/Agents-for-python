@@ -21,30 +21,21 @@ class ClaimsIdentity:
     def __init__(
         self,
         claims: dict[str, Any] | None = None,
-        is_authenticated: bool | None = None,
         authentication_type: str | None = None,
         security_token: str | None = None,
     ):
         """Creates a new instance of the ClaimsIdentity class.
 
         :param claims: A dictionary of claims associated with the identity.
-        :param is_authenticated: A boolean indicating whether the identity is authenticated. (Deprecated)
         :param authentication_type: A string representing the type of authentication used.
         :param security_token: The security token associated with the identity.
         """
         if claims is None:
             claims = {}
         self.claims = claims
-        if is_authenticated is not None:
-            warnings.warn(
-                "The 'is_authenticated' parameter is deprecated and will be removed in future versions.",
-                DeprecationWarning,
-                stacklevel=2,
-            )
 
         self.authentication_type = authentication_type
         self.security_token = security_token
-        self._is_authenticated = is_authenticated
 
     def get_claim_value(self, claim_type: str) -> Any:
         """Gets the value of a specific claim type from the claims dictionary.
@@ -61,25 +52,6 @@ class ClaimsIdentity:
             not self.authentication_type
             or self.authentication_type.lower() == "anonymous"
         ) and not self.claims
-
-    @property
-    def is_authenticated(self) -> bool:
-        """Returns True if the identity is authenticated, otherwise False."""
-        warnings.warn(
-            "The 'is_authenticated' property is deprecated and will be removed in future versions.",
-            DeprecationWarning,
-            stacklevel=2,
-        )
-        return bool(self.claims)
-
-    @is_authenticated.setter
-    def is_authenticated(self, value: bool) -> None:
-        """(Deprecated). This is now a no-op."""
-        warnings.warn(
-            "The 'is_authenticated' property is deprecated and will be removed in future versions.",
-            DeprecationWarning,
-            stacklevel=2,
-        )
 
     def get_app_id(self) -> str | None:
         """
