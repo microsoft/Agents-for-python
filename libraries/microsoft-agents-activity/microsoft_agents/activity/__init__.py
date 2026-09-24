@@ -56,7 +56,6 @@ from .fact import Fact
 from .hero_card import HeroCard
 from .inner_http_error import InnerHttpError
 from .invoke_response import InvokeResponse
-from .media_card import MediaCard
 from .media_event_value import MediaEventValue
 from .media_url import MediaUrl
 from .message_reaction import MessageReaction
