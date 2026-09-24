@@ -626,11 +626,18 @@ def validate_teams_api_metadata(
             )
 
     for name, capability in capabilities["capabilities"].items():
+        policy = (
+            capability.get("adoptionPolicy") if isinstance(capability, dict) else None
+        )
         owners = capability.get("owners") if isinstance(capability, dict) else None
         areas = (
             capability.get("upstreamAreas") if isinstance(capability, dict) else None
         )
-        if not isinstance(owners, list) or not isinstance(areas, list):
+        if (
+            policy not in ("strict-compatibility", "review-new-members", "advisory-only")
+            or not isinstance(owners, list)
+            or not isinstance(areas, list)
+        ):
             errors.append(f"Capability {name} must include owners and upstreamAreas")
             continue
         for owner in owners:
