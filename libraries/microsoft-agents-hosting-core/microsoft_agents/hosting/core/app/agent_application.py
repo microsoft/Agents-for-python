@@ -1035,7 +1035,7 @@ class AgentApplication(Agent, Generic[StateT]):
         if (
             context.adapter
             and ActivityTypes.message == context.activity.type
-            and self._options.long_running_messages 
+            and self._options.long_running_messages
             and context.identity is not None
         ):
             logger.debug(
