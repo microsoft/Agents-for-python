@@ -144,6 +144,7 @@ class AgentApplication(Agent, Generic[StateT]):
             warnings.warn(
                 "AgentApplication.adapter is deprecated and will be removed in a future release.",
                 DeprecationWarning,
+                stacklevel=2,
             )
         self._adapter = self._options.adapter
 
