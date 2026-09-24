@@ -119,7 +119,7 @@ class SimpleComponentDialog(ComponentDialog):
         async def logic(context: TurnContext):
             if test_case != SkillFlowTestCase.root_bot_only:
                 # Create a skill ClaimsIdentity and put it in turn_state so isSkillClaim() returns True.
-                claims_identity = ClaimsIdentity({}, False)
+                claims_identity = ClaimsIdentity({}, authentication_type="Anonymous")
                 claims_identity.claims["ver"] = (
                     "2.0"  # AuthenticationConstants.VersionClaim
                 )

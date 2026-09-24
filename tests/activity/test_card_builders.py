@@ -11,7 +11,6 @@ from microsoft_agents.activity import (
     ContentTypes,
     Fact,
     HeroCard,
-    MediaCard,
     MediaUrl,
     ReceiptCard,
     ReceiptItem,
@@ -60,7 +59,7 @@ class TestThumbnailAndBasicCardBuilders:
         assert len(thumb.buttons) == 1
 
 
-class TestMediaCardBuilders:
+class TestMediaSpecificCardBuilders:
     @pytest.mark.filterwarnings("ignore::DeprecationWarning")
     def test_media_card_builders_add_media_and_buttons(self):
         animation = (
@@ -78,10 +77,6 @@ class TestMediaCardBuilders:
 
         video = VideoCard().add_media(url="https://v", profile="profile")
         assert video.media[0].profile == "profile"
-
-        media = MediaCard(text="m").add_media(url="https://x")
-        assert media.text == "m"
-        assert len(media.media) == 1
 
 
 class TestReceiptCardBuilders:

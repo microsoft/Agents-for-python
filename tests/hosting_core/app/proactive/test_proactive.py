@@ -158,7 +158,7 @@ class TestProactiveStoreConversation:
     @pytest.mark.asyncio
     async def test_store_from_turn_context(self, proactive):
         ref = _make_reference("ctx-conv")
-        identity = ClaimsIdentity(claims={"aud": "ctx-app"}, is_authenticated=True)
+        identity = ClaimsIdentity(claims={"aud": "ctx-app"})
 
         # spec=TurnContext is required: store_conversation checks isinstance(ctx, TurnContext)
         ctx = MagicMock(spec=TurnContext)
@@ -469,7 +469,7 @@ class TestProactiveCreateConversation:
 
     @pytest.fixture
     def identity(self):
-        return ClaimsIdentity(claims={"aud": "app-id"}, is_authenticated=True)
+        return ClaimsIdentity(claims={"aud": "app-id"})
 
     @pytest.fixture
     def options(self, identity):
