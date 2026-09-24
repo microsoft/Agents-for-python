@@ -124,9 +124,9 @@ MSTeams source or either metadata document changes. The Teams API drift PR
 workflow still runs only when the exact Teams version pin in `setup.py` changes.
 The base branch pin is the baseline and the PR pin is the candidate. Manual
 PR-workflow dispatch takes explicit `from` and `to` versions. The weekly workflow
-runs Monday at 08:00 UTC and compares the current
-pin (currently 2.0.16) with the latest stable release, including future major
-versions. Once maintainers approve an upgrade, changing the pin establishes the
+runs Monday at 08:00 UTC and compares the current pin (currently 2.0.16) with the
+latest stable release, including future major versions.
+Once maintainers approve an upgrade, changing the pin establishes the
 new baseline. When the resolved versions are identical, manual and scheduled runs
 finish successfully after version resolution; comparison, tests, reports, AI and
 publication are skipped.
