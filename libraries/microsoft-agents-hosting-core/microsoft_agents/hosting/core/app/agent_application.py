@@ -1040,7 +1040,7 @@ class AgentApplication(Agent, Generic[StateT]):
                 f"Starting long running call for context: {context.activity.id} with function: {func.__name__}"
             )
             return await context.adapter.continue_conversation(
-                reference=context.get_conversation_reference(context.activity),
+                reference=context.activity.get_conversation_reference(),
                 callback=func,
                 bot_app_id=self.options.bot_app_id,
             )
