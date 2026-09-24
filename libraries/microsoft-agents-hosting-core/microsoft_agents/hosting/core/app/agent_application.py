@@ -1083,6 +1083,6 @@ class AgentApplication(Agent, Generic[StateT]):
         for err_func in self._turn_error_handlers:
             logger.info(f"Calling error handler {err_func.__name__} for error: {err}")
             await err_func(context, err)
-            
+
         if not self._turn_error_handlers:
             raise err
