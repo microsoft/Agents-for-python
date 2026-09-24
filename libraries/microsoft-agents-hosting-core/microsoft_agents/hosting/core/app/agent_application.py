@@ -142,7 +142,7 @@ class AgentApplication(Agent, Generic[StateT]):
 
         if self._options.adapter:
             warnings.warn(
-                "AgentApplication.adapter is deprecated and will be removed in a future release.",
+                "AgentApplication.adapter is obsolete and will be removed in a future release.",
                 DeprecationWarning,
                 stacklevel=2,
             )
@@ -1035,15 +1035,15 @@ class AgentApplication(Agent, Generic[StateT]):
         if (
             context.adapter
             and ActivityTypes.message == context.activity.type
-            and self._options.long_running_messages
+            and self._options.long_running_messages 
+            and context.identity is not None
         ):
             logger.debug(
                 f"Starting long running call for context: {context.activity.id} with function: {func.__name__}"
             )
-            return await context.adapter.continue_conversation(
-                reference=context.activity.get_conversation_reference(),
-                callback=func,
-                agent_id=self.options.bot_app_id,
+            return await context.adapter.continue_conversation_with_claims(
+                reference=context.identity,
+                continuation_activity=context.activity,
             )
 
         return await func(context)

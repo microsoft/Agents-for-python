@@ -175,7 +175,7 @@ async def on_message(context: TurnContext, _state: TurnState) -> None:
 if __name__ == "__main__":
     start_server(
         agent_application=app,
-        adapter=ADAPTER,
+        adapter=adapter,
         auth_configuration=(
             connection_manager.get_default_connection_configuration()
         ),
