@@ -360,6 +360,8 @@ class TurnContext(TurnContextProtocol):
             activity.locale = reference.locale
         activity.service_url = reference.service_url
         activity.conversation = reference.conversation
+        activity.request_id = reference.request_id
+
         if is_incoming:
             activity.from_property = reference.user
             activity.recipient = reference.agent
