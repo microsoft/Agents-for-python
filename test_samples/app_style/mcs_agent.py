@@ -86,7 +86,7 @@ class McsConnectionSettings(ConnectionSettings):
 
 # Create the agent instance
 AGENT_APP = AgentApplication[TurnState](
-    storage=STORAGE, adapter=ADAPTER, authorization=AUTHORIZATION, **agents_sdk_config
+    storage=STORAGE, authorization=AUTHORIZATION, **agents_sdk_config
 )
 
 

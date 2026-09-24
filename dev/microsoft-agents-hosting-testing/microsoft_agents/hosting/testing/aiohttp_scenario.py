@@ -210,7 +210,7 @@ class AiohttpScenario(Scenario):
         adapter = CloudAdapter(connection_manager=connection_manager)
         authorization = Authorization(storage, connection_manager, **sdk_config)
         agent_application = AgentApplication[TurnState](
-            storage=storage, adapter=adapter, authorization=authorization, **sdk_config
+            storage=storage, authorization=authorization, **sdk_config
         )
 
         return AgentEnvironment(

@@ -54,7 +54,6 @@ authorization = Authorization(storage, connection_manager, **config)
 
 app = AgentApplication[TurnState](
     storage=storage,
-    adapter=adapter,
     authorization=authorization,
     start_typing_timer=False,
     remove_recipient_mention=False,
