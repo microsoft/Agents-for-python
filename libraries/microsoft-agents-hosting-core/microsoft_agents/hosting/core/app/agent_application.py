@@ -1042,8 +1042,9 @@ class AgentApplication(Agent, Generic[StateT]):
                 f"Starting long running call for context: {context.activity.id} with function: {func.__name__}"
             )
             return await context.adapter.continue_conversation_with_claims(
-                reference=context.identity,
+                claims_identity=context.identity,
                 continuation_activity=context.activity,
+                callback=func,
             )
 
         return await func(context)
