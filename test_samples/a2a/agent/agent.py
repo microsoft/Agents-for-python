@@ -7,8 +7,11 @@ from microsoft_agents.activity import (
     EndOfConversationCodes,
     TurnContextProtocol,
 )
-from microsoft_agents.hosting.core import ActivityHandler
+from microsoft_agents.hosting.core import (
+    AgentApplication,
+)
 
+app = AgentApplication()
 
 class EchoAgent(ActivityHandler):
     """A small SDK agent that echoes each A2A message."""
