@@ -86,7 +86,6 @@ class AgentApplication(Agent, Generic[StateT]):
     _internal_before_turn: list[Callable[[TurnContext, StateT], Awaitable[bool]]]
     _internal_after_turn: list[Callable[[TurnContext, StateT], Awaitable[bool]]]
     _route_list: _RouteList[StateT]
-    _error: Callable[[TurnContext, Exception], Awaitable[None]] | None = None
     _turn_state_factory: Callable[[], StateT] | None = None
     _connection_manager: Connections
 
@@ -112,6 +111,7 @@ class AgentApplication(Agent, Generic[StateT]):
         """
         self._adaptive_card = AdaptiveCard(self)
         self._route_list = _RouteList[StateT]()
+        self._turn_error_handlers = []
         self._internal_before_turn = []
         self._internal_after_turn = []
 
@@ -774,7 +774,6 @@ class AgentApplication(Agent, Generic[StateT]):
         """
 
         logger.debug(f"Registering the error handler {func.__name__} ")
-        self._error = func
         self._turn_error_handlers.append(func)
 
         return func
@@ -853,11 +852,7 @@ class AgentApplication(Agent, Generic[StateT]):
                     if await self._run_after_turn_middleware(context, turn_state):
                         await turn_state.save(context)
                     return
-        except ApplicationError as err:
-            logger.error(
-                f"An application error occurred in the AgentApplication: {err}",
-                exc_info=True,
-            )
+        except Exception as err:
             await self._on_error(context, err)
 
     def _remove_mentions(self, context: TurnContext):
@@ -1073,16 +1068,21 @@ class AgentApplication(Agent, Generic[StateT]):
 
         return
 
-    async def _on_error(self, context: TurnContext, err: ApplicationError) -> None:
-        if self._error:
-            logger.info(
-                f"Calling error handler {self._error.__name__} for error: {err}"
-            )
-            return await self._error(context, err)
+    async def _on_error(self, context: TurnContext, err: Exception) -> None:
+        """Handle errors that occur during a turn in the AgentApplication.
+
+        :param context: The turn context in which the error occurred.
+        :param err: The exception that occurred.
+        """
 
         logger.error(
             f"An error occurred in the AgentApplication: {err}",
             exc_info=True,
         )
-        logger.error(err)
-        raise err
+
+        for err_func in self._turn_error_handlers:
+            logger.info(f"Calling error handler {err_func.__name__} for error: {err}")
+            await err_func(context, err)
+            
+        if not self._turn_error_handlers:
+            raise err

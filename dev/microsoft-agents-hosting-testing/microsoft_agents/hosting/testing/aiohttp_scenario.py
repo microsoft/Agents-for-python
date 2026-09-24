@@ -9,9 +9,12 @@ request path while still keeping tests in-process and isolated from a deployed
 web server.
 
 Use :meth:`AiohttpScenario.from_app` when a sample or test already defines
-module-level AgentApplication components, and use :meth:`AiohttpScenario.create`
-when the test wants the scenario to create the standard storage, adapter,
-authorization, and connection components before registering handlers.
+module-level AgentApplication components. Pass its hosting ``CloudAdapter`` to
+preserve production adapter configuration, or omit it to create a default
+adapter from the application's connection manager. Use
+:meth:`AiohttpScenario.create` when the test wants the scenario to create the
+standard storage, adapter, authorization, and connection components before
+registering handlers.
 """
 
 from __future__ import annotations
@@ -56,6 +59,7 @@ from .core import (
 
 logger = logging.getLogger(__name__)
 
+
 @dataclass(frozen=True)
 class AgentEnvironment:
     """Components used by an in-process AgentApplication scenario.
@@ -80,6 +84,7 @@ class AgentEnvironment:
     storage: Storage
     connections: Connections
 
+
 class AiohttpScenario(Scenario):
     """Scenario that hosts an AgentApplication in-process using aiohttp.
 
@@ -93,11 +98,17 @@ class AiohttpScenario(Scenario):
     - :meth:`create` builds a standard environment and then calls a setup
       function to register routes/handlers.
     - :meth:`from_app` wraps an existing AgentApplication, such as one defined
-      at module scope in a sample's ``agents.py`` file.
+      at module scope in a sample's ``agents.py`` file. It accepts the
+      application's CloudAdapter or creates a default adapter from the
+      application's connection manager.
 
     Example::
 
-        scenario = AiohttpScenario.from_app(AGENT_APP, use_jwt_middleware=False)
+        scenario = AiohttpScenario.from_app(
+            AGENT_APP,
+            adapter=ADAPTER,
+            use_jwt_middleware=False,
+        )
 
         async with scenario.client() as client:
             await client.send("Hello!", wait=0.2)
@@ -178,8 +189,10 @@ class AiohttpScenario(Scenario):
         factory when no custom environment factory is provided.
         """
         env_vars = dotenv_values(config.env_file_path or ".env")
-        sdk_config = load_configuration_from_env(env_vars) if sdk_config is None else sdk_config
-        
+        sdk_config = (
+            load_configuration_from_env(env_vars) if sdk_config is None else sdk_config
+        )
+
         connection_manager: Connections
         if omit_connections:
             connection_manager = ConnectionManager(
@@ -188,7 +201,7 @@ class AiohttpScenario(Scenario):
                     "SERVICE_CONNECTION": AgentAuthConfiguration(
                         anonymous_allowed=True,
                     )
-                }
+                },
             )
         else:
             connection_manager = MsalConnectionManager(**sdk_config)
@@ -250,17 +263,19 @@ class AiohttpScenario(Scenario):
             return AiohttpScenario._default_env_factory(
                 config=config, sdk_config=sdk_config, omit_connections=omit_connections
             )
-        
+
         return AiohttpScenario(
             setup,
             config,
             use_jwt_middleware=use_jwt_middleware,
             env_factory=_env_factory,
         )
-    
+
     @staticmethod
     def from_app(
         app: AgentApplication,
+        *,
+        adapter: CloudAdapter | None = None,
         config: ScenarioConfig | None = None,
         use_jwt_middleware: bool = True,
         sdk_config: dict | None = None,
@@ -269,10 +284,15 @@ class AiohttpScenario(Scenario):
 
         Use this factory for sample-style modules that already define
         AgentApplication and supporting components at module scope. The scenario
-        hosts the provided application through its configured adapter and exposes
-        the resulting environment for fixtures and inspection.
+        hosts the provided application through the supplied adapter and exposes
+        the resulting environment for fixtures and inspection. When ``adapter``
+        is omitted, a default CloudAdapter is created from the application's
+        connection manager. Pass the production adapter when tests need its
+        middleware, host validation, client factories, or error handling.
 
         :param app: AgentApplication instance to host.
+        :param adapter: Optional CloudAdapter used to host the application.
+            When omitted, one is created from ``app.connection_manager``.
         :param config: Optional scenario configuration.
         :param use_jwt_middleware: Whether to enable JWT middleware on the
             aiohttp route.
@@ -286,11 +306,13 @@ class AiohttpScenario(Scenario):
         if storage is None:
             raise AttributeError("AgentApplication storage could not be resolved.")
 
+        adapter = adapter or CloudAdapter(connection_manager=app.connection_manager)
+
         env = AgentEnvironment(
             config=sdk_config or {},
             agent_application=app,
             authorization=app.auth,
-            adapter=app.adapter,
+            adapter=adapter,
             storage=cast(Storage, storage),
             connections=app.connection_manager,
         )
