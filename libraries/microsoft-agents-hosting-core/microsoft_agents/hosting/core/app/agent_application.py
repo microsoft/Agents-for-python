@@ -82,6 +82,7 @@ class AgentApplication(Agent, Generic[StateT]):
     _adaptive_card: AdaptiveCard
     _auth: Authorization
     _proactive: Proactive | None = None
+    _turn_error_handlers: list[Callable[[TurnContext, Exception], Awaitable[None]]]
     _internal_before_turn: list[Callable[[TurnContext, StateT], Awaitable[bool]]]
     _internal_after_turn: list[Callable[[TurnContext, StateT], Awaitable[bool]]]
     _route_list: _RouteList[StateT]
@@ -147,9 +148,7 @@ class AgentApplication(Agent, Generic[StateT]):
                 """)
         self._storage = self._options.storage
 
-        if options.long_running_messages and (
-            not options.adapter or not options.bot_app_id
-        ):
+        if options.long_running_messages and not options.bot_app_id:
             logger.error(
                 "ApplicationOptions.long_running_messages requires an adapter and bot_app_id.",
                 stack_info=True,
@@ -158,9 +157,6 @@ class AgentApplication(Agent, Generic[StateT]):
                 The `ApplicationOptions.long_running_messages` property is unavailable because 
                 no adapter or `bot_app_id` was configured.
                 """)
-
-        if options.adapter:
-            self._adapter = options.adapter
 
         self._turn_state_factory = (
             options.turn_state_factory
@@ -218,28 +214,6 @@ class AgentApplication(Agent, Generic[StateT]):
         :rtype: :class:`microsoft_agents.hosting.core.authorization.Connections`
         """
         return self._connection_manager
-
-    @property
-    def adapter(self) -> ChannelServiceAdapter:
-        """
-        The bot's adapter.
-
-        :return: The channel service adapter for the bot.
-        :rtype: :class:`microsoft_agents.hosting.core.channel_service_adapter.ChannelServiceAdapter`
-        :raises ApplicationError: If the adapter is not configured.
-        """
-
-        if not self._adapter:
-            logger.error(
-                "AgentApplication.adapter(): self._adapter is not configured.",
-                stack_info=True,
-            )
-            raise ApplicationError("""
-                The AgentApplication.adapter property is unavailable because it was 
-                not configured when creating the AgentApplication.
-                """)
-
-        return self._adapter
 
     @property
     def adaptive_card(self) -> AdaptiveCard:
@@ -801,12 +775,7 @@ class AgentApplication(Agent, Generic[StateT]):
 
         logger.debug(f"Registering the error handler {func.__name__} ")
         self._error = func
-
-        if self._adapter:
-            logger.debug(
-                f"Registering for adapter {self._adapter.__class__.__name__} the error handler {func.__name__} "
-            )
-            self._adapter.on_turn_error = func
+        self._turn_error_handlers.append(func)
 
         return func
 
@@ -1034,14 +1003,14 @@ class AgentApplication(Agent, Generic[StateT]):
         self, context: TurnContext, func: Callable[[TurnContext], Awaitable]
     ):
         if (
-            self._adapter
+            context.adapter
             and ActivityTypes.message == context.activity.type
             and self._options.long_running_messages
         ):
             logger.debug(
                 f"Starting long running call for context: {context.activity.id} with function: {func.__name__}"
             )
-            return await self._adapter.continue_conversation(
+            return await context.adapter.continue_conversation(
                 reference=context.get_conversation_reference(context.activity),
                 callback=func,
                 bot_app_id=self.options.bot_app_id,
@@ -1064,7 +1033,7 @@ class AgentApplication(Agent, Generic[StateT]):
 
         async def __replay(act: Activity):
 
-            await self._adapter.continue_conversation_with_claims(
+            await context.adapter.continue_conversation_with_claims(
                 context.identity,
                 act,
                 __replay_turn,
