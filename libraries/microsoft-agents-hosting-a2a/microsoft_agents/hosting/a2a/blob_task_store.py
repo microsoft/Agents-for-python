@@ -145,8 +145,12 @@ class BlobTaskStore(TaskStore):
 
         tasks: list[Task] = []
 
+        kwargs = {}
+        if params.page_size > 0:
+            kwargs["results_per_page"] = params.page_size
+
         items = self._container_client.list_blobs(
-            name_starts_with=_TASK_PREFIX, results_per_page=params.page_size
+            name_starts_with=_TASK_PREFIX, **kwargs
         )
 
         iterator = items.by_page(params.page_token)
@@ -155,14 +159,12 @@ class BlobTaskStore(TaskStore):
         if not first_page:
             return ListTasksResponse(tasks=[], next_page_token=None)
 
-        next_page_token = getattr(first_page, "continuation_token", None)
-
-        # TODO ->
         async for blob in first_page:
             task = await self._download_task_blob(blob.name)
             if task and self._should_include_task(task, params):
                 tasks.append(task)
 
+        next_page_token = getattr(iterator, "continuation_token", None)
         return ListTasksResponse(tasks=tasks, next_page_token=next_page_token)
 
     async def delete(self, task_id: str, context: ServerCallContext) -> None:
