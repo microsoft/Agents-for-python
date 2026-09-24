@@ -1042,7 +1042,7 @@ class AgentApplication(Agent, Generic[StateT]):
             return await context.adapter.continue_conversation(
                 reference=context.activity.get_conversation_reference(),
                 callback=func,
-                bot_app_id=self.options.bot_app_id,
+                agent_id=self.options.bot_app_id,
             )
 
         return await func(context)
