@@ -7,10 +7,13 @@ These tests verify which spans are created, what status they receive, and
 which metrics fire for each code path through process_request.
 """
 
+import uuid
+
 import pytest
 from unittest.mock import AsyncMock, MagicMock
 from opentelemetry import trace
 
+from microsoft_agents.activity import Activity
 from microsoft_agents.hosting.core import HttpAdapterBase
 from microsoft_agents.hosting.core.telemetry.adapter import constants
 from microsoft_agents.hosting.core.telemetry import attributes
