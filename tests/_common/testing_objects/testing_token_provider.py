@@ -2,6 +2,14 @@ from microsoft_agents.hosting.core import (
     AccessTokenProviderBase,
     AgentAuthConfiguration,
 )
+from azure.core.credentials import AccessToken
+from azure.core.credentials_async import AsyncTokenCredential
+
+from microsoft_agents.hosting.core.authorization._helpers import (
+    _CallableTokenCredential,
+)
+
+_TEST_TOKEN_EXPIRATION = 2**31 - 1
 
 
 class TestingTokenProvider(AccessTokenProviderBase):
@@ -45,6 +53,12 @@ class TestingTokenProvider(AccessTokenProviderBase):
             str: Test token in format "{name}-token"
         """
         return f"{self.name}-token"
+
+    def get_token_credential(self) -> AsyncTokenCredential:
+        async def get_token(*scopes: str, **kwargs) -> AccessToken:
+            return AccessToken(f"{self.name}-token", _TEST_TOKEN_EXPIRATION)
+
+        return _CallableTokenCredential(get_token)
 
     async def acquire_token_on_behalf_of(
         self, scopes: list[str], user_assertion: str

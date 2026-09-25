@@ -4,3 +4,5 @@ pytest-aiohttp
 pytest-mock
 pre-commit
 click
+packaging>=25.0
+PyYAML>=6.0.2

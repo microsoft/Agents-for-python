@@ -139,6 +139,39 @@ class TestSidecarAuthMapping:
         auth = SidecarAuth(config, sidecar_client=FakeSidecarClient())
         assert auth.configuration is config
 
+    @pytest.mark.asyncio
+    async def test_get_token_credential_delegates_to_this_provider(self):
+        from microsoft_agents.authentication.entra_auth_sidecar.sidecar_token_credential import (
+            SidecarTokenCredential,
+        )
+
+        auth, client = _make_auth()
+        credential = auth.get_token_credential()
+
+        assert isinstance(credential, SidecarTokenCredential)
+        # The credential must delegate to this exact SidecarAuth instance
+        # rather than lazily constructing its own provider.
+        assert credential._provider is auth
+
+        access_token = await credential.get_token("api://res/.default")
+        assert access_token.token == "token"
+        assert len(client.calls) == 1
+
+    @pytest.mark.asyncio
+    async def test_get_token_credential_does_not_own_provider_lifetime(self):
+        # Because the credential is bound to an existing, externally-owned
+        # SidecarAuth, closing the credential must not close/clear that
+        # provider - the caller who created SidecarAuth still owns it.
+        auth, client = _make_auth()
+        credential = auth.get_token_credential()
+
+        assert credential._manage_provider_lifetime is False
+
+        await credential.close()
+
+        assert client.closed is False
+        assert credential._provider is auth
+
 
 class TestSidecarAuthCache:
     @pytest.mark.asyncio

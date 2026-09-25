@@ -2,6 +2,8 @@
 # Licensed under the MIT License.
 
 import pytest
+from azure.core.credentials import AccessToken
+from azure.core.credentials_async import AsyncTokenCredential
 
 from microsoft_agents.activity import Activity, ChannelAccount, RoleTypes
 from microsoft_agents.hosting.core import (
@@ -10,6 +12,11 @@ from microsoft_agents.hosting.core import (
     ClaimsIdentity,
     ConnectionManager,
 )
+from microsoft_agents.hosting.core.authorization._helpers import (
+    _CallableTokenCredential,
+)
+
+_TEST_TOKEN_EXPIRATION = 2**31 - 1
 
 
 class FakeProvider(AccessTokenProviderBase):
@@ -24,6 +31,22 @@ class FakeProvider(AccessTokenProviderBase):
 
     async def get_access_token(self, resource_url, scopes, force_refresh=False):
         return "fake-token"
+
+    def get_token_credential(self) -> AsyncTokenCredential:
+        async def get_token(*scopes: str, **kwargs) -> AccessToken:
+            return AccessToken("fake-token", _TEST_TOKEN_EXPIRATION)
+
+        return _CallableTokenCredential(get_token)
+
+
+@pytest.mark.asyncio
+async def test_fake_provider_get_token_credential_is_synchronous():
+    provider = FakeProvider(AgentAuthConfiguration())
+
+    credential = provider.get_token_credential()
+    token = await credential.get_token("scope")
+
+    assert token == AccessToken("fake-token", _TEST_TOKEN_EXPIRATION)
 
 
 ENV_CONFIG = {

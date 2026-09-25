@@ -22,28 +22,7 @@ class Channel:
             bool: True if the Channel supports the button_cnt total Suggested Actions, False if the Channel does not
              support that number of Suggested Actions.
         """
-        if isinstance(channel_id, Channels):
-            channel_id = channel_id.value
-
-        max_actions = {
-            # https://developers.facebook.com/docs/messenger-platform/send-messages/quick-replies
-            Channels.facebook.value: 10,
-            Channels.skype.value: 10,
-            # https://developers.line.biz/en/reference/messaging-api/#items-object
-            Channels.line.value: 13,
-            # https://dev.kik.com/#/docs/messaging#text-response-object
-            Channels.kik.value: 20,
-            Channels.telegram.value: 100,
-            Channels.emulator.value: 100,
-            Channels.direct_line.value: 100,
-            Channels.direct_line_speech.value: 100,
-            Channels.webchat.value: 100,
-        }
-        return (
-            button_cnt <= max_actions[channel_id]
-            if channel_id in max_actions
-            else False
-        )
+        return Channels.supports_suggested_actions(channel_id, button_cnt)
 
     @staticmethod
     def supports_card_actions(channel_id: str, button_cnt: int = 100) -> bool:
@@ -57,29 +36,10 @@ class Channel:
             bool: True if the Channel supports the button_cnt total Card Actions, False if the Channel does not support
              that number of Card Actions.
         """
-        if isinstance(channel_id, Channels):
-            channel_id = channel_id.value
-
-        max_actions = {
-            Channels.facebook.value: 3,
-            Channels.skype.value: 3,
-            Channels.ms_teams.value: 3,
-            Channels.line.value: 99,
-            Channels.slack.value: 100,
-            Channels.telegram.value: 100,
-            Channels.emulator.value: 100,
-            Channels.direct_line.value: 100,
-            Channels.direct_line_speech.value: 100,
-            Channels.webchat.value: 100,
-        }
-        return (
-            button_cnt <= max_actions[channel_id]
-            if channel_id in max_actions
-            else False
-        )
+        return Channels.supports_card_actions(channel_id, button_cnt)
 
     @staticmethod
-    def has_message_feed(_: str) -> bool:
+    def has_message_feed(channel_id: str) -> bool:
         """Determine if a Channel has a Message Feed.
 
         Args:
@@ -88,8 +48,7 @@ class Channel:
         Returns:
             bool: True if the Channel has a Message Feed, False if it does not.
         """
-
-        return True
+        return Channels.has_message_feed(channel_id)
 
     @staticmethod
     def get_channel_id(turn_context: TurnContext) -> str:
@@ -106,7 +65,7 @@ class Channel:
         return ""
 
     @staticmethod
-    def max_action_title_length(  # pylint: disable=unused-argument
+    def max_action_title_length(
         channel_id: str,
     ) -> int:
         """Maximum length allowed for Action Titles.
@@ -117,5 +76,4 @@ class Channel:
         Returns:
             int: The total number of characters allowed for an Action Title on a specific Channel.
         """
-
-        return 20
+        return Channels.max_action_title_length(channel_id)

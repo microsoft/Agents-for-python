@@ -51,6 +51,7 @@ from ._type_defs import (
     RouteHandler,
     HandoffHandler,
     RouteSelector,
+    _RouteDecorator,
 )
 from ._routes import _RouteList, _Route, RouteRank, _agentic_selector
 from .proactive import Proactive
@@ -377,7 +378,7 @@ class AgentApplication(Agent, Generic[StateT]):
         *,
         auth_handlers: Optional[list[str]] = None,
         **kwargs,
-    ) -> Callable[[RouteHandler[StateT]], RouteHandler[StateT]]:
+    ) -> _RouteDecorator[RouteHandler[StateT]]:
         """
         Register a new activity event listener as either a decorator or a method.
 
@@ -416,7 +417,7 @@ class AgentApplication(Agent, Generic[StateT]):
         *,
         auth_handlers: Optional[list[str]] = None,
         **kwargs,
-    ) -> Callable[[RouteHandler[StateT]], RouteHandler[StateT]]:
+    ) -> _RouteDecorator[RouteHandler[StateT]]:
         """
         Register a new message activity event listener as either a decorator or a method.
 
@@ -470,7 +471,7 @@ class AgentApplication(Agent, Generic[StateT]):
         *,
         auth_handlers: Optional[list[str]] = None,
         **kwargs,
-    ) -> Callable[[RouteHandler[StateT]], RouteHandler[StateT]]:
+    ) -> _RouteDecorator[RouteHandler[StateT]]:
         """
         Register a handler for conversation update activities as either a decorator or a method.
 
@@ -526,7 +527,7 @@ class AgentApplication(Agent, Generic[StateT]):
         *,
         auth_handlers: Optional[list[str]] = None,
         **kwargs,
-    ) -> Callable[[RouteHandler[StateT]], RouteHandler[StateT]]:
+    ) -> _RouteDecorator[RouteHandler[StateT]]:
         """
         Register a handler for message reaction activities as either a decorator or a method.
 
@@ -578,7 +579,7 @@ class AgentApplication(Agent, Generic[StateT]):
         *,
         auth_handlers: Optional[list[str]] = None,
         **kwargs,
-    ) -> Callable[[RouteHandler[StateT]], RouteHandler[StateT]]:
+    ) -> _RouteDecorator[RouteHandler[StateT]]:
         """
         Register a handler for message update activities as either a decorator or a method.
 
@@ -652,10 +653,7 @@ class AgentApplication(Agent, Generic[StateT]):
         *,
         auth_handlers: Optional[list[str]] = None,
         **kwargs: Any,
-    ) -> Callable[
-        [HandoffHandler[StateT]],
-        HandoffHandler[StateT],
-    ]: ...
+    ) -> _RouteDecorator[HandoffHandler[StateT]]: ...
 
     def handoff(
         self,
@@ -663,13 +661,7 @@ class AgentApplication(Agent, Generic[StateT]):
         *,
         auth_handlers: Optional[list[str]] = None,
         **kwargs,
-    ) -> (
-        HandoffHandler[StateT]
-        | Callable[
-            [HandoffHandler[StateT]],
-            HandoffHandler[StateT],
-        ]
-    ):
+    ) -> HandoffHandler[StateT] | _RouteDecorator[HandoffHandler[StateT]]:
         """
         Register a handler to hand off conversations from one copilot to another.
 

@@ -21,5 +21,6 @@ setup(
         "aiohttp>=3.11.11",
         "yarl>=1.17.0,<2.0",
         "typing-extensions>=4.12.0",
+        "azure-core",
     ],
 )
