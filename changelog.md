@@ -1,3 +1,18 @@
+# Microsoft 365 Agents SDK for Python - Release Notes v1.8.0 (Unreleased)
+
+**Release Date:** Unreleased
+**Previous Version:** 1.7.0 (Released 2026-09-17)
+
+## Major Features & Enhancements
+
+- **Attachment Downloaders**: Added `AttachmentDownloader` and `M365AttachmentDownloader` for downloading standard, Microsoft Teams, and Microsoft 365 Copilot attachments into `TurnState.temp.input_files`.
+
+## Samples
+
+- **Handling Attachments Sample**: Added a sample demonstrating incoming attachment downloads, inline and internet-hosted attachments, and Teams attachment uploads.
+
+---
+
 # Microsoft 365 Agents SDK for Python - Release Notes v1.7.0
 
 **Release Date:** 2026-09-17
