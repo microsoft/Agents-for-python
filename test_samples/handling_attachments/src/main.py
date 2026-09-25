@@ -13,7 +13,7 @@ from .agent import AGENT_APP, ADAPTER, CONNECTION_MANAGER
 
 if __name__ == "__main__":
 
-    app = FastAPI(title="Empty Agent Sample", version="1.0.0")
+    app = FastAPI(title="Handling Attachments Agent", version="1.0.0")
     app.state.agent_configuration = (
         CONNECTION_MANAGER.get_default_connection_configuration()
     )

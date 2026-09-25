@@ -20,7 +20,7 @@ def _parse_content_type(content_type: str) -> tuple[str, dict[str, str]] | None:
     if params is None:
         return None
     # the first param is the mime-type
-    # the later ones are the attribtues like "charset"
+    # the later ones are the attributes like "charset"
     return params[0][0], dict(params[1:])
 
 

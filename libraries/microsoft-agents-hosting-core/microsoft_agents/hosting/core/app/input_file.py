@@ -18,7 +18,9 @@ class InputFile:
     :param content_type: The content type of the file.
     :type content_type: str
     :param content_url: Optional. URL to the content of the file.
-    :type content_url: Optional[str]
+    :type content_url: str | None
+    :param filename: Optional. The name of the file.
+    :type filename: str | None
     """
 
     content: bytes

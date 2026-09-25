@@ -79,16 +79,17 @@ class M365AttachmentDownloader(InputFileDownloader):
         if not attachments:
             return []
 
-        if not context.identity:
-            raise ValueError("No valid context identity found.")
-
-        outgoing_audience_claim = context.identity.get_outgoing_audience_claim()
-        if not outgoing_audience_claim:
-            raise ValueError("No valid outgoing App ID found.")
-
         access_token = ""
 
         if not self._use_anonymous:
+
+            if not context.identity:
+                raise ValueError("No valid context identity found.")
+
+            outgoing_audience_claim = context.identity.get_outgoing_audience_claim()
+            if not outgoing_audience_claim:
+                raise ValueError("No valid outgoing App ID found.")
+
             token_provider: AccessTokenProviderBase | None = None
             if self._token_provider_name:
                 try:
