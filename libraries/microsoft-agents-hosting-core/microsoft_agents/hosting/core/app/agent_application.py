@@ -13,6 +13,7 @@ from contextlib import nullcontext
 from copy import copy
 from functools import partial
 from typing_extensions import deprecated
+from warnings import deprecated
 
 import re
 from typing import (
