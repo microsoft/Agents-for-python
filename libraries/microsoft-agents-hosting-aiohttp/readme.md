@@ -187,7 +187,7 @@ ADAPTER = CloudAdapter(connection_manager=CONNECTION_MANAGER)
 AUTHORIZATION = Authorization(STORAGE, CONNECTION_MANAGER, **agents_sdk_config)
 
 AGENT_APP = AgentApplication[TurnState](
-    storage=STORAGE, adapter=ADAPTER, authorization=AUTHORIZATION, **agents_sdk_config
+    storage=STORAGE, authorization=AUTHORIZATION, **agents_sdk_config
 )
 
 @AGENT_APP.activity("message")
@@ -198,6 +198,7 @@ async def on_message(context: TurnContext, state: TurnState):
 
 start_server(
     agent_application=AGENT_APP,
+    adapter=ADAPTER,
     auth_configuration=CONNECTION_MANAGER.get_default_connection_configuration(),
 )
 ```
