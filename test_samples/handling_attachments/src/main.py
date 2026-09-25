@@ -8,7 +8,7 @@ from microsoft_agents.hosting.fastapi import (
     jwt_authorization_decorator,
 )
 
-from .agent import AGENT_APP, CONNECTION_MANAGER
+from .agent import AGENT_APP, ADAPTER, CONNECTION_MANAGER
 
 
 if __name__ == "__main__":
@@ -28,7 +28,7 @@ if __name__ == "__main__":
         return await start_agent_process(
             request,
             AGENT_APP,
-            AGENT_APP.adapter,
+           ADAPTER,
         )
 
     port = int(os.environ.get("PORT", 3978))
