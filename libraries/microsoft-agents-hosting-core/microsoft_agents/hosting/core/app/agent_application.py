@@ -12,7 +12,7 @@ import warnings
 from contextlib import nullcontext
 from copy import copy
 from functools import partial
-from warnings import deprecated
+from typing_extensions import deprecated
 
 import re
 from typing import (
