@@ -39,6 +39,9 @@ class _FakeTokenProvider(AccessTokenProviderBase):
         self.requested = (resource_url, scopes)
         return f"{self.name}-token"
 
+    def get_token_credential(self):
+        raise NotImplementedError()
+
     async def acquire_token_on_behalf_of(
         self, scopes: list[str], user_assertion: str
     ) -> str:
@@ -146,11 +149,42 @@ class TestM365AttachmentDownloaderChannelAndValidation:
             recipient=ChannelAccount(id="bot", name="Bot Name"),
             conversation=ConversationAccount(id="convo", name="Convo Name"),
             service_url="https://example.org",
+            attachments=[
+                Attachment(
+                    content_type="text/plain",
+                    content_url="https://example.org/file.txt",
+                )
+            ],
         )
         context = TurnContext(MagicMock(), activity, identity=None)
 
         with pytest.raises(ValueError):
             await downloader.download_files(context)
+
+    @pytest.mark.asyncio
+    async def test_returns_empty_list_for_non_m365_channel_without_identity(self):
+        downloader = M365AttachmentDownloader(connections=_FakeConnections(None))
+        activity = Activity(
+            type="message",
+            channel_id="webchat",
+            attachments=[
+                Attachment(
+                    content_type="text/plain",
+                    content_url="https://example.org/file.txt",
+                )
+            ],
+        )
+        context = TurnContext(MagicMock(), activity, identity=None)
+
+        assert await downloader.download_files(context) == []
+
+    @pytest.mark.asyncio
+    async def test_returns_empty_list_for_no_attachments_without_identity(self):
+        downloader = M365AttachmentDownloader(connections=_FakeConnections(None))
+        activity = Activity(type="message", channel_id="msteams")
+        context = TurnContext(MagicMock(), activity, identity=None)
+
+        assert await downloader.download_files(context) == []
 
     @pytest.mark.asyncio
     async def test_returns_empty_list_for_non_teams_channel(self):
@@ -279,6 +313,58 @@ class TestM365AttachmentDownloaderRemoteContent:
 
         assert len(files) == 1
         assert session.requested_urls == ["https://example.org/file.txt"]
+
+    @pytest.mark.asyncio
+    @pytest.mark.parametrize(
+        "download_url",
+        [
+            "http://localhost.evil.example/file.txt",
+            "http://localhost@evil.example/file.txt",
+        ],
+    )
+    async def test_does_not_request_spoofed_localhost_download_urls(self, download_url):
+        response = _FakeResponse(
+            status=200, content=b"file-bytes", content_type="text/plain"
+        )
+        session = _FakeSession(response)
+        downloader = M365AttachmentDownloader(
+            connections=_FakeConnections(_FakeTokenProvider("p")),
+            client_factory=lambda: session,
+        )
+        attachment = Attachment(
+            content_type="text/plain",
+            content_url="https://example.org/file.txt",
+            content={"downloadUrl": download_url},
+        )
+        context = _make_context(attachments=[attachment])
+
+        await downloader.download_files(context)
+
+        assert session.requested_urls == []
+
+    @pytest.mark.asyncio
+    async def test_accepts_partial_content_response(self):
+        response = _FakeResponse(
+            status=206, content=b"partial-bytes", content_type="text/plain"
+        )
+        session = _FakeSession(response)
+        downloader = M365AttachmentDownloader(
+            connections=_FakeConnections(_FakeTokenProvider("p")),
+            client_factory=lambda: session,
+        )
+        context = _make_context(
+            attachments=[
+                Attachment(
+                    content_type="text/plain",
+                    content_url="https://example.org/file.txt",
+                )
+            ]
+        )
+
+        files = await downloader.download_files(context)
+
+        assert len(files) == 1
+        assert files[0].content == b"partial-bytes"
 
     @pytest.mark.asyncio
     async def test_normalizes_image_content_type_to_png(self):

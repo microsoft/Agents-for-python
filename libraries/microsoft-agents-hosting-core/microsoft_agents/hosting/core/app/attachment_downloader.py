@@ -16,10 +16,11 @@ from microsoft_agents.hosting.core.turn_context import TurnContext
 from microsoft_agents.hosting.core.outbound_host_validator import OutboundHostValidator
 
 from .input_file import InputFileDownloader, InputFile
-from ._utils import _parse_content_type
+from ._utils import _parse_content_type, _basic_url_check
 
 
 class AttachmentDownloader(InputFileDownloader):
+    """Downloads attachments from a given turn context."""
 
     def __init__(
         self,
@@ -39,6 +40,7 @@ class AttachmentDownloader(InputFileDownloader):
         """Downloads files for the given turn context.
 
         :param context: The TurnContext instance for the current turn.
+        :return: A list of InputFile instances representing the downloaded files.
         """
         if ChannelId.get_channel(context.activity.channel_id) == Channels.ms_teams:
             return []
@@ -60,10 +62,7 @@ class AttachmentDownloader(InputFileDownloader):
         :param attachment: The attachment to download.
         :return: An InputFile instance if the download is successful, None otherwise.
         """
-        if attachment.content_url and (
-            attachment.content_url.startswith("https://")
-            or attachment.content_url.startswith("http://localhost")
-        ):
+        if attachment.content_url and _basic_url_check(attachment.content_url):
             remote_file_url = attachment.content_url
 
             if (
@@ -76,7 +75,7 @@ class AttachmentDownloader(InputFileDownloader):
             async with self._client_factory() as client:
                 async with client.get(remote_file_url) as response:
 
-                    if not response.status == 200:
+                    if not (200 <= response.status < 300):
                         return None
 
                     content_type_val = response.headers.get("Content-Type", "")

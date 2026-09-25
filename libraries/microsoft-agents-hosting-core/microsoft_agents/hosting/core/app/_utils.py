@@ -2,6 +2,7 @@
 # Licensed under the MIT License.
 
 from email.message import Message
+from urllib.parse import urlparse
 
 _CONTENT_TYPE = "Content-Type"
 
@@ -21,3 +22,15 @@ def _parse_content_type(content_type: str) -> tuple[str, dict[str, str]] | None:
     # the first param is the mime-type
     # the later ones are the attribtues like "charset"
     return params[0][0], dict(params[1:])
+
+
+def _basic_url_check(url: str) -> bool:
+    """Performs a basic check to see if the given string is a valid URL.
+
+    :param url: The URL string to check.
+    :return: True if the URL has a valid scheme and netloc, False otherwise.
+    """
+    parsed = urlparse(url)
+    return parsed.scheme == "https" or (
+        parsed.scheme == "http" and parsed.hostname == "localhost"
+    )

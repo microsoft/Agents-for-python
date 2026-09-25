@@ -151,6 +151,49 @@ class TestAttachmentDownloaderRemoteContent:
         assert len(files) == 1
 
     @pytest.mark.asyncio
+    @pytest.mark.parametrize(
+        "content_url",
+        [
+            "http://localhost.evil.example/file.txt",
+            "http://localhost@evil.example/file.txt",
+        ],
+    )
+    async def test_does_not_request_spoofed_localhost_urls(self, content_url):
+        response = _FakeResponse(
+            status=200, content=b"file-bytes", content_type="text/plain"
+        )
+        session = _FakeSession(response)
+        downloader = AttachmentDownloader(client_factory=lambda: session)
+        context = _make_context(
+            attachments=[Attachment(content_type="text/plain", content_url=content_url)]
+        )
+
+        await downloader.download_files(context)
+
+        assert session.requested_urls == []
+
+    @pytest.mark.asyncio
+    async def test_accepts_partial_content_response(self):
+        response = _FakeResponse(
+            status=206, content=b"partial-bytes", content_type="text/plain"
+        )
+        session = _FakeSession(response)
+        downloader = AttachmentDownloader(client_factory=lambda: session)
+        context = _make_context(
+            attachments=[
+                Attachment(
+                    content_type="text/plain",
+                    content_url="https://example.org/file.txt",
+                )
+            ]
+        )
+
+        files = await downloader.download_files(context)
+
+        assert len(files) == 1
+        assert files[0].content == b"partial-bytes"
+
+    @pytest.mark.asyncio
     async def test_normalizes_image_content_type_to_png(self):
         response = _FakeResponse(
             status=200, content=b"\x89PNG", content_type="image/jpeg"

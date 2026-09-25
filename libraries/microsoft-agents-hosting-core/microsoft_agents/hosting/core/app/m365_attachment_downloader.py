@@ -20,7 +20,7 @@ from microsoft_agents.hosting.core.turn_context import TurnContext
 from microsoft_agents.hosting.core.outbound_host_validator import OutboundHostValidator
 
 from .input_file import InputFileDownloader, InputFile
-from ._utils import _parse_content_type
+from ._utils import _parse_content_type, _basic_url_check
 
 
 class M365AttachmentDownloader(InputFileDownloader):
@@ -62,13 +62,6 @@ class M365AttachmentDownloader(InputFileDownloader):
         :return: A list of InputFile instances.
         """
 
-        if not context.identity:
-            raise ValueError("No valid context identity found.")
-
-        outgoing_audience_claim = context.identity.get_outgoing_audience_claim()
-        if not outgoing_audience_claim:
-            raise ValueError("No valid outgoing App ID found.")
-
         if context.activity.channel_id not in (
             Channels.ms_teams,
             Channels.m365_copilot,
@@ -85,6 +78,13 @@ class M365AttachmentDownloader(InputFileDownloader):
         ]
         if not attachments:
             return []
+
+        if not context.identity:
+            raise ValueError("No valid context identity found.")
+
+        outgoing_audience_claim = context.identity.get_outgoing_audience_claim()
+        if not outgoing_audience_claim:
+            raise ValueError("No valid outgoing App ID found.")
 
         access_token = ""
 
@@ -127,17 +127,14 @@ class M365AttachmentDownloader(InputFileDownloader):
         """
         name = attachment.name
 
-        if attachment.content_url and (
-            attachment.content_url.startswith("https://")
-            or attachment.content_url.startswith("http://localhost")
-        ):
-            download_url: str
-            if isinstance(attachment.content, dict):
-                content_dict = cast(dict[str, Any], attachment.content)
-                download_url = content_dict.get("downloadUrl", attachment.content_url)
-            else:
-                download_url = attachment.content_url
+        download_url: str | None = None
+        if isinstance(attachment.content, dict):
+            content_dict = cast(dict[str, Any], attachment.content)
+            download_url = content_dict.get("downloadUrl", attachment.content_url)
+        else:
+            download_url = attachment.content_url
 
+        if download_url and _basic_url_check(download_url):
             if (
                 self._host_validator is not None
                 and self._host_validator.enabled
@@ -149,7 +146,7 @@ class M365AttachmentDownloader(InputFileDownloader):
                 async with client.get(
                     download_url, headers={"Authorization": f"Bearer {access_token}"}
                 ) as response:
-                    if response.status >= 300:
+                    if not (200 <= response.status < 300):
                         return None
                     content = await response.read()
                     result = _parse_content_type(
