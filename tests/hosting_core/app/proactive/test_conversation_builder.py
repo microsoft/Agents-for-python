@@ -83,14 +83,13 @@ class TestConversationBuilderCreate:
 
 class TestConversationBuilderCreateFromIdentity:
     def test_create_from_identity_sets_channel_id(self):
-        identity = ClaimsIdentity(claims={"aud": "app-id"}, is_authenticated=True)
+        identity = ClaimsIdentity(claims={"aud": "app-id"})
         builder = ConversationBuilder.create_from_identity(identity, "msteams")
         assert builder._channel_id == "msteams"
 
     def test_create_from_identity_filters_claims(self):
         identity = ClaimsIdentity(
             claims={"aud": "app-id", "tid": "tenant", "unrelated": "drop"},
-            is_authenticated=True,
         )
         builder = ConversationBuilder.create_from_identity(identity, "msteams")
         assert builder._claims["aud"] == "app-id"
@@ -98,29 +97,29 @@ class TestConversationBuilderCreateFromIdentity:
         assert "unrelated" not in builder._claims
 
     def test_create_from_identity_teams_prefixes_agent(self):
-        identity = ClaimsIdentity(claims={"aud": "app-id"}, is_authenticated=True)
+        identity = ClaimsIdentity(claims={"aud": "app-id"})
         builder = ConversationBuilder.create_from_identity(identity, "msteams")
         assert builder._agent_id == "28:app-id"
 
     def test_create_from_identity_non_teams_no_prefix(self):
-        identity = ClaimsIdentity(claims={"aud": "app-id"}, is_authenticated=True)
+        identity = ClaimsIdentity(claims={"aud": "app-id"})
         builder = ConversationBuilder.create_from_identity(identity, "directline")
         assert builder._agent_id == "app-id"
 
     def test_create_from_identity_no_app_id_no_agent(self):
-        identity = ClaimsIdentity(claims={}, is_authenticated=True)
+        identity = ClaimsIdentity(claims={})
         builder = ConversationBuilder.create_from_identity(identity, "msteams")
         assert builder._agent_id is None
 
     def test_create_from_identity_custom_service_url(self):
-        identity = ClaimsIdentity(claims={"aud": "app-id"}, is_authenticated=True)
+        identity = ClaimsIdentity(claims={"aud": "app-id"})
         builder = ConversationBuilder.create_from_identity(
             identity, "msteams", service_url="https://override/"
         )
         assert builder._service_url == "https://override/"
 
     def test_create_from_identity_returns_builder_instance(self):
-        identity = ClaimsIdentity(claims={"aud": "app-id"}, is_authenticated=True)
+        identity = ClaimsIdentity(claims={"aud": "app-id"})
         result = ConversationBuilder.create_from_identity(identity, "msteams")
         assert isinstance(result, ConversationBuilder)
 
@@ -267,7 +266,6 @@ class TestConversationBuilderBuild:
     def test_build_with_identity_preserves_claims(self):
         identity = ClaimsIdentity(
             claims={"aud": "app-id", "tid": "tenant", "ver": "2.0"},
-            is_authenticated=True,
         )
         conv = _prep_build(
             ConversationBuilder.create_from_identity(identity, "msteams")
