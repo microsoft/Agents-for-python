@@ -1,8 +1,6 @@
 # Copyright (c) Microsoft Corporation. All rights reserved.
 # Licensed under the MIT License.
 
-import warnings
-
 from typing import Any
 
 from .authentication_constants import AuthenticationConstants

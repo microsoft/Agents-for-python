@@ -75,7 +75,7 @@ class ConversationReferenceRecord(StoreItem):
 
     @classmethod
     def from_context(cls, context: TurnContext) -> "ConversationReferenceRecord":
-        identity = context.identity or ClaimsIdentity({}, False)
+        identity = context.identity or ClaimsIdentity()
         reference = context.activity.get_conversation_reference()
         return cls(
             claims=dict(identity.claims),
