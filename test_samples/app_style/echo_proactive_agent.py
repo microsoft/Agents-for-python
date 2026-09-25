@@ -123,7 +123,6 @@ adapter = CloudAdapter(connection_manager=connection_manager)
 authorization = Authorization(storage, connection_manager, **agents_sdk_config)
 AGENT_APP = AgentApplication[TurnState](
     storage=storage,
-    adapter=adapter,
     authorization=authorization,
     **agents_sdk_config.get("AGENTAPPLICATION", {}),
 )

@@ -75,7 +75,6 @@ def _create_scenario() -> AiohttpScenario:
     app = AgentApplication[TurnState](
         options=ApplicationOptions(
             storage=storage,
-            adapter=adapter,
             proactive=ProactiveOptions(),
         ),
         authorization=authorization,
