@@ -155,7 +155,6 @@ __all__ = [
     "HeroCard",
     "InnerHttpError",
     "InvokeResponse",
-    "MediaCard",
     "MediaEventValue",
     "MediaUrl",
     "Mention",

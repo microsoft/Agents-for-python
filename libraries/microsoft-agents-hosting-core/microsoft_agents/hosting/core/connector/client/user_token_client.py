@@ -36,7 +36,7 @@ class UserTokenClient(UserTokenClientBase):
         endpoint: str,
         token: str,
         *,
-        app_id: str,
+        app_id: str | None = None,
         session: ClientSession | None = None,
     ):
         """
@@ -49,7 +49,10 @@ class UserTokenClient(UserTokenClientBase):
         """
         self._app_id = app_id
         if not self._app_id:
-            raise ValueError("App ID cannot be empty")
+            logger.warning(
+                "App ID is not provided. Some operations may not work without an App ID."
+                " In the future, creation of UserTokenClient without an App ID will be deprecated."
+            )
 
         if not endpoint.endswith("/"):
             endpoint += "/"
@@ -155,6 +158,11 @@ class UserTokenClient(UserTokenClientBase):
         :param final_redirect: The final redirect URL after sign-in.
         :return: The sign-in resource.
         """
+        if not self._app_id:
+            raise ValueError(
+                "App ID must be provided in the creation of UserTokenClient to get sign-in resource."
+            )
+
         state = UserTokenClient._create_token_exchange_state(
             self._app_id, connection_name, activity
         )
@@ -266,6 +274,10 @@ class UserTokenClient(UserTokenClientBase):
         if not activity.channel_id:
             raise ValueError(
                 "Activity must have a channel_id to get token or sign-in resource."
+            )
+        if not self._app_id:
+            raise ValueError(
+                "App ID must be provided in the creation of UserTokenClient to get the token or sign-in resource."
             )
 
         state = UserTokenClient._create_token_exchange_state(

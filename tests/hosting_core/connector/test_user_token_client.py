@@ -346,19 +346,29 @@ class TestUserTokenClientContract:
 
     @pytest.mark.asyncio
     async def test_missing_context_is_rejected_before_a_sign_in_request(self):
-        with pytest.raises(ValueError, match="App ID cannot be empty"):
-            UserTokenClient("https://token.example", token="", app_id=None)
-
+        client_without_app_id = UserTokenClient(
+            "https://token.example", token="", app_id=None
+        )
         activity = Activity(
             type="message",
             from_property=ChannelAccount(id="user-1"),
         )
-        client = UserTokenClient("https://token.example", token="", app_id="app-id")
         try:
-            with pytest.raises(ValueError, match="Activity must have a channel_id"):
-                await client.get_token_or_sign_in_resource("connection", activity)
+            with pytest.raises(ValueError, match="App ID must be provided"):
+                await client_without_app_id.get_sign_in_resource("connection", activity)
+
+            client_with_app_id = UserTokenClient(
+                "https://token.example", token="", app_id="app-id"
+            )
+            try:
+                with pytest.raises(ValueError, match="Activity must have a channel_id"):
+                    await client_with_app_id.get_token_or_sign_in_resource(
+                        "connection", activity
+                    )
+            finally:
+                await client_with_app_id.close()
         finally:
-            await client.close()
+            await client_without_app_id.close()
 
     @pytest.mark.asyncio
     async def test_missing_user_token_returns_an_empty_token_response(self):
