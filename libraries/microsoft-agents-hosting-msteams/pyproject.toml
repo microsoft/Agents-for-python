@@ -23,5 +23,8 @@ classifiers = [
 [tool.setuptools.package-data]
 "microsoft_agents.hosting.msteams" = ["py.typed"]
 
+[tool.setuptools.packages.find]
+include = ["microsoft_agents*"]
+
 [project.urls]
 "Homepage" = "https://github.com/microsoft/Agents"

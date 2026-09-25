@@ -26,14 +26,19 @@ def _get_resource(scope: str) -> str:
 class MsalTokenCredential(AsyncTokenCredential):
     """Provides an asynchronous Azure Core token credential using MSAL."""
 
-    def __init__(self, config: AgentAuthConfiguration):
+    def __init__(
+        self,
+        config: AgentAuthConfiguration,
+        *,
+        provider: MsalAuth | None = None,
+    ):
         """Initializes the MsalTokenCredential with the given configuration.
 
         :param config: The agent authentication configuration.
         :type config: :class:`microsoft_agents.hosting.core.AgentAuthConfiguration`
         """
         self._config = config
-        self._provider: MsalAuth | None = None
+        self._provider: MsalAuth | None = provider
 
     async def get_token(self, *scopes: str, **kwargs) -> AccessToken:
         """Acquire an access token for the specified scopes.

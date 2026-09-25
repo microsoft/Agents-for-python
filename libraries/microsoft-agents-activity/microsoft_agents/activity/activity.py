@@ -199,6 +199,7 @@ class Activity(AgentsModel):
     text_highlights: list[TextHighlight] = None
     semantic_action: SemanticAction = None
     caller_id: NonEmptyString = None
+    request_id: str | None = Field(None, exclude=True)
 
     @field_validator("entities", mode="before")
     @classmethod
@@ -300,12 +301,13 @@ class Activity(AgentsModel):
         :returns: This activity, updated with the delivery information.
 
         .. remarks::
-            Call GetConversationReference on an incoming activity to get a conversation reference that you can then use to update an
+            Call get_conversation_reference on an incoming activity to get a conversation reference that you can then use to update an
             outgoing activity with the correct delivery information.
         """
         self.channel_id = reference.channel_id
         self.service_url = reference.service_url
         self.conversation = reference.conversation
+        self.request_id = reference.request_id
 
         if reference.locale is not None:
             self.locale = reference.locale
@@ -1043,6 +1045,7 @@ class Activity(AgentsModel):
                 ),
                 locale=self.locale,
                 service_url=self.service_url,
+                request_id=self.request_id,
             ),
         )
 

@@ -66,8 +66,8 @@ async def _help(context: TurnContext, _state: TurnState):
     for member in context.activity.members_added:
         if member.id != context.activity.recipient.id:
             await context.send_activity(
-                "Welcome to the HandlingAttachments Agent." +
-                "This agent will introduce you to attachments." +
+                "Welcome to the HandlingAttachments Agent. " +
+                "This agent will introduce you to attachments. " +
                 "Please select an option."
             )
             await display_options(context)

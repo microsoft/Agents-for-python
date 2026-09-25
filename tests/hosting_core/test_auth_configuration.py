@@ -99,6 +99,7 @@ class TestAuthorizationConfiguration:
         assert auth_config.CLIENT_ID is None
         assert auth_config.CLIENT_SECRET is None
         assert auth_config.CERT_PFX_FILE is None
+        assert auth_config.SEND_X5C is False
         assert auth_config.FEDERATED_CLIENT_ID is None
         assert auth_config.CONNECTION_NAME is None
         assert auth_config.AUTHORITY is None
@@ -161,6 +162,30 @@ class TestAuthorizationConfiguration:
             == "/var/run/secrets/azure/tokens/azure-identity-token"
         )
         assert "FEDERATEDTOKENFILE" not in auth_config.provider_settings
+
+    def test_send_x5c_defaults_false(self):
+        auth_config = AgentAuthConfiguration()
+        assert auth_config.SEND_X5C is False
+
+    def test_send_x5c_from_parameter(self):
+        auth_config = AgentAuthConfiguration(send_x5c=True)
+        assert auth_config.SEND_X5C is True
+
+    def test_send_x5c_from_kwargs(self):
+        auth_config = AgentAuthConfiguration(SENDX5C="true")
+        assert auth_config.SEND_X5C is True
+        assert "SENDX5C" not in auth_config.provider_settings
+
+    def test_send_x5c_false_string_is_false(self):
+        auth_config = AgentAuthConfiguration(SENDX5C="false")
+        assert auth_config.SEND_X5C is False
+
+    def test_send_x5c_explicit_false_overrides_kwarg(self):
+        auth_config = AgentAuthConfiguration(
+            send_x5c=False,
+            SENDX5C="true",
+        )
+        assert auth_config.SEND_X5C is False
 
     def test_azure_region_from_parameter(self):
         auth_config = AgentAuthConfiguration(azure_region="westus")

@@ -111,3 +111,36 @@ def test_get_claim_value_returns_matching_claim():
 
     assert identity.get_claim_value("aud") == "app-id"
     assert identity.get_claim_value("missing") is None
+
+
+@pytest.mark.parametrize(
+    ("claims", "expected"),
+    [
+        (
+            {
+                "ver": "1.0",
+                "aud": "target-app-id",
+                "appid": "calling-app-id",
+            },
+            "api://calling-app-id",
+        ),
+        (
+            {
+                "ver": "2.0",
+                "aud": "target-app-id",
+                "azp": "calling-app-id",
+            },
+            "api://calling-app-id",
+        ),
+        (
+            {"aud": "HTTPS://API.BOTFRAMEWORK.US"},
+            "https://api.botframework.us",
+        ),
+        ({}, "https://api.botframework.com"),
+        ({"aud": "app-id"}, "https://api.botframework.com"),
+    ],
+)
+def test_get_outgoing_audience_claim(claims, expected):
+    identity = ClaimsIdentity(claims=claims)
+
+    assert identity.get_outgoing_audience_claim() == expected

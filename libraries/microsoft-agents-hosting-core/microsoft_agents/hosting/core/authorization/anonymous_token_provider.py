@@ -3,8 +3,14 @@
 
 from typing import Optional
 
+from azure.core.credentials import AccessToken
+from azure.core.credentials_async import AsyncTokenCredential
+
 from .access_token_provider_base import AccessTokenProviderBase
 from .agent_auth_configuration import AgentAuthConfiguration
+from ._helpers import _CallableTokenCredential
+
+_ANONYMOUS_TOKEN_EXPIRATION = 2**31 - 1
 
 
 class AnonymousTokenProvider(AccessTokenProviderBase):
@@ -25,6 +31,12 @@ class AnonymousTokenProvider(AccessTokenProviderBase):
         self, resource_url: str, scopes: list[str], force_refresh: bool = False
     ) -> str:
         return ""
+
+    def get_token_credential(self) -> AsyncTokenCredential:
+        async def get_token(*scopes: str, **kwargs) -> AccessToken:
+            return AccessToken("", _ANONYMOUS_TOKEN_EXPIRATION)
+
+        return _CallableTokenCredential(get_token)
 
     async def acquire_token_on_behalf_of(
         self, scopes: list[str], user_assertion: str
