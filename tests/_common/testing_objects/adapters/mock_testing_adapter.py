@@ -76,7 +76,7 @@ class MockTestingAdapter(ChannelAdapter):
         self.active_queue = deque()
 
         # Identity for the adapter
-        self.claims_identity = ClaimsIdentity({}, True)
+        self.claims_identity = ClaimsIdentity({}, authentication_type="Bearer")
 
     @property
     def enable_trace(self) -> bool:

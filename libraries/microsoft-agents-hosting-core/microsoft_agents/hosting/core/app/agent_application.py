@@ -10,7 +10,6 @@ import logging
 from contextlib import nullcontext
 from copy import copy
 from functools import partial
-from typing_extensions import deprecated
 
 import re
 from typing import (
@@ -898,39 +897,6 @@ class AgentApplication(Agent, Generic[StateT]):
             and context.activity.text is not None
         ):
             context.activity.text = context.remove_recipient_mention(context.activity)
-
-    @staticmethod
-    @deprecated(
-        "Use `load_configuration_from_env` from `microsoft_agents.activity` instead."
-    )
-    def parse_env_vars_configuration(vars: dict[str, Any]) -> dict:
-        """
-        Parses environment variables and returns a dictionary with the relevant configuration.
-
-        :param vars: Dictionary of environment variable names and values.
-        :type vars: dict[str, Any]
-        :return: Parsed configuration dictionary with nested structure.
-        :rtype: dict
-        """
-        result = {}
-        for key, value in vars.items():
-            levels = key.split("__")
-            current_level = result
-            last_level = None
-            for next_level in levels:
-                if next_level not in current_level:
-                    current_level[next_level] = {}
-                last_level = current_level
-                current_level = current_level[next_level]
-            logger.debug(f"Using environment variable '{key}'")
-            last_level[levels[-1]] = value
-
-        return {
-            "AGENT_APPLICATION": result["AGENT_APPLICATION"],
-            "COPILOT_STUDIO_AGENT": result["COPILOT_STUDIO_AGENT"],
-            "CONNECTIONS": result["CONNECTIONS"],
-            "CONNECTIONS_MAP": result["CONNECTIONS_MAP"],
-        }
 
     async def _initialize_state(self, context: TurnContext) -> StateT:
         if self._turn_state_factory:
