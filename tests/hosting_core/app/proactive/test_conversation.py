@@ -49,7 +49,6 @@ class TestConversationInit:
     def test_init_with_claims_identity_filters_correctly(self):
         identity = ClaimsIdentity(
             claims={"aud": "app-id", "tid": "tenant", "unrelated": "drop"},
-            is_authenticated=True,
         )
         conv = Conversation(claims=identity, conversation_reference=_make_reference())
         assert conv.claims["aud"] == "app-id"
@@ -69,9 +68,7 @@ class TestConversationInit:
 class TestConversationFromTurnContext:
     def test_from_turn_context_extracts_reference_and_identity(self):
         ref = _make_reference("ctx-conv")
-        identity = ClaimsIdentity(
-            claims={"aud": "app-id", "tid": "t"}, is_authenticated=True
-        )
+        identity = ClaimsIdentity(claims={"aud": "app-id", "tid": "t"})
 
         ctx = MagicMock()
         ctx.activity.get_conversation_reference.return_value = ref
@@ -99,20 +96,19 @@ class TestConversationClaimsHelpers:
     def test_claims_from_identity_keeps_allowed_keys(self):
         identity = ClaimsIdentity(
             claims={"aud": "a", "tid": "t", "ver": "2.0", "other": "drop"},
-            is_authenticated=True,
         )
         result = Conversation.claims_from_identity(identity)
         assert result == {"aud": "a", "tid": "t", "ver": "2.0"}
 
     def test_claims_from_identity_empty_claims(self):
-        identity = ClaimsIdentity(claims={}, is_authenticated=True)
+        identity = ClaimsIdentity(claims={})
         result = Conversation.claims_from_identity(identity)
         assert result == {}
 
-    def test_identity_from_claims_is_authenticated(self):
+    def test_identity_from_claims_disallows_anonymous(self):
         claims = {"aud": "app-id", "tid": "tenant"}
         identity = Conversation.identity_from_claims(claims)
-        assert identity.is_authenticated is True
+        assert identity.allow_anonymous is False
 
     def test_identity_from_empty_claims_allows_anonymous(self):
         identity = Conversation.identity_from_claims({})

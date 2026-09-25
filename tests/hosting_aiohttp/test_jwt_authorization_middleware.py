@@ -46,7 +46,7 @@ def _response_json(response):
 @pytest.mark.asyncio
 async def test_aiohttp_middleware_stores_claims_and_calls_handler():
     auth_config = AgentAuthConfiguration()
-    claims = ClaimsIdentity({"aud": "app-id"}, True)
+    claims = ClaimsIdentity({"aud": "app-id"}, authentication_type="Bearer")
 
     async def handler(request):
         return web.json_response({"aud": request["claims_identity"].claims["aud"]})
@@ -95,7 +95,7 @@ async def test_aiohttp_middleware_converts_http_response():
 @pytest.mark.asyncio
 async def test_aiohttp_decorator_uses_authorization_helper():
     auth_config = AgentAuthConfiguration()
-    claims = ClaimsIdentity({"aud": "decorator-app"}, True)
+    claims = ClaimsIdentity({"aud": "decorator-app"}, authentication_type="Bearer")
 
     @jwt_authorization_decorator
     async def handler(request):
