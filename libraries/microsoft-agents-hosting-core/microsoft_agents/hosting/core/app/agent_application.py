@@ -420,6 +420,23 @@ class AgentApplication(Agent, Generic[StateT]):
 
         return __call
 
+    def end_of_conversation(
+        self,
+        *,
+        auth_handlers: list[str] | None = None,
+        **kwargs,
+    ) -> _RouteDecorator[RouteHandler[StateT]]:
+        """
+        Register a new end-of-conversation activity event listener as either a decorator or a method.
+
+        :param auth_handlers: Optional list of authorization handler IDs for the route.
+        :type auth_handlers: Optional[list[str]]
+        :param kwargs: Additional route configuration passed to :meth:`microsoft_agents.hosting.core.AgentApplication.add_route`.
+        """
+        return self.activity(
+            ActivityTypes.end_of_conversation, auth_handlers=auth_handlers, **kwargs
+        )
+
     def message(
         self,
         select: str | re.Pattern[str] | list[str | re.Pattern[str]],
