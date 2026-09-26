@@ -247,6 +247,36 @@ async def on_error(context: TurnContext, error: Exception):
 
 ## Key Classes Reference
 
+### Storage V2
+
+Storage providers use V1 by default. Select V2 when your application needs a
+result for each key and optimistic concurrency:
+
+```python
+from microsoft_agents.hosting.core.storage import (
+    MemoryStorageV2,
+    StorageWriteOptions,
+    StorageWriteMode,
+)
+
+storage = MemoryStorageV2()
+results = await storage.write(
+    {"profile": profile},
+    StorageWriteOptions(mode=StorageWriteMode.CREATE_ONLY),
+)
+
+if results["profile"].status.value == "succeeded":
+    version = results["profile"].version
+```
+
+V2 operations return `succeeded`, `notFound`, `conflict`, or
+`conditionNotMet` for each requested key. The result `version` is a storage
+concurrency token. It is separate from model data.
+
+Storage provider authors can inherit `AsyncStorageBaseV2` and implement the
+single-item `_read_item`, `_write_item`, and `_delete_item` hooks. The base
+class supplies the asynchronous bulk `read`, `write`, and `delete` methods.
+
 ### Core Classes
 - **`AgentApplication`** - Main application class with fluent API
 - **`ActivityHandler`** - Base class for inheritance-based agents

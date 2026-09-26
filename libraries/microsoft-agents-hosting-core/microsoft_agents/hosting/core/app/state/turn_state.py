@@ -9,7 +9,7 @@ import logging
 from typing import Any, Optional, Type, TypeVar, Callable
 import asyncio
 
-from microsoft_agents.hosting.core.storage import Storage
+from microsoft_agents.hosting.core.storage import StorageProvider
 
 from microsoft_agents.hosting.core.turn_context import TurnContext
 from microsoft_agents.hosting.core.app.state.conversation_state import ConversationState
@@ -52,7 +52,9 @@ class TurnState:
             self._scopes[TempState.SCOPE_NAME] = TempState()
 
     @classmethod
-    def with_storage(cls, storage: Storage, *agent_states: AgentState) -> "TurnState":
+    def with_storage(
+        cls, storage: StorageProvider, *agent_states: AgentState
+    ) -> "TurnState":
         """
         Creates TurnState with default ConversationState and UserState.
 
@@ -277,7 +279,7 @@ class TurnState:
         ]
         await asyncio.gather(*tasks)
 
-    async def load(self, context: TurnContext, storage: Storage) -> "TurnState":
+    async def load(self, context: TurnContext, storage: StorageProvider) -> "TurnState":
         """
         Loads a TurnState instance with the default states.
 

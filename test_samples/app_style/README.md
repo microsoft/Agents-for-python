@@ -42,3 +42,4 @@ Invoke-RestMethod -Method POST -Uri "http://localhost:5199/api/sendmessage" -Con
 ```
 
 When `TOKENVALIDATION__ENABLED` is `true`, add an `Authorization: Bearer <token>` header to each call. The proactive endpoints will respond with JSON payloads describing success or validation errors.
+

@@ -7,7 +7,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
-from microsoft_agents.hosting.core.storage import Storage
+from microsoft_agents.hosting.core.storage import StorageProvider
 
 
 @dataclass
@@ -24,7 +24,7 @@ class ProactiveOptions:
     :type fail_on_unsigned_in_connections: bool
     """
 
-    storage: Storage | None = None
+    storage: StorageProvider | None = None
     """Storage used to persist Conversation objects."""
 
     fail_on_unsigned_in_connections: bool = True

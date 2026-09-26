@@ -104,8 +104,22 @@ from .state.user_state import UserState
 
 # Storage
 from .storage.store_item import StoreItem
-from .storage import Storage
-from .storage.memory_storage import MemoryStorage
+from .storage import (
+    Storage,
+    StorageDeleteOptions,
+    StorageDeleteResult,
+    StorageDeleteResults,
+    StorageOperationStatus,
+    StorageProvider,
+    StorageReadResult,
+    StorageReadResults,
+    StorageV2,
+    StorageWriteMode,
+    StorageWriteOptions,
+    StorageWriteResult,
+    StorageWriteResults,
+)
+from .storage.memory_storage import MemoryStorage, MemoryStorageV2
 
 # Error Resources
 from .errors import error_resources, ErrorMessage, ErrorResources
@@ -186,7 +200,20 @@ __all__ = [
     "UserState",
     "StoreItem",
     "Storage",
+    "StorageV2",
+    "StorageProvider",
+    "StorageOperationStatus",
+    "StorageWriteMode",
+    "StorageWriteOptions",
+    "StorageDeleteOptions",
+    "StorageReadResult",
+    "StorageReadResults",
+    "StorageWriteResult",
+    "StorageWriteResults",
+    "StorageDeleteResult",
+    "StorageDeleteResults",
     "MemoryStorage",
+    "MemoryStorageV2",
     "AgenticUserAuthorization",
     "Authorization",
     "MiddlewareSet",

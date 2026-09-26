@@ -10,7 +10,7 @@ import logging
 from microsoft_agents.activity import TokenResponse
 
 from ....turn_context import TurnContext
-from ....storage import Storage
+from ....storage import StorageProvider
 from ....authorization import Connections
 from ..auth_handler import AuthHandler
 from .._sign_in_response import _SignInResponse
@@ -21,13 +21,13 @@ logger = logging.getLogger(__name__)
 class _AuthorizationHandler(ABC):
     """Base class for different authorization strategies."""
 
-    _storage: Storage
+    _storage: StorageProvider
     _connection_manager: Connections
     _handler: AuthHandler
 
     def __init__(
         self,
-        storage: Storage,
+        storage: StorageProvider,
         connection_manager: Connections,
         auth_handler: Optional[AuthHandler] = None,
         *,
