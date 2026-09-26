@@ -1,0 +1,3 @@
+microsoft-agents-hosting-a2a
+a2a-sdk[fastapi]
+uvicorn

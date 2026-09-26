@@ -52,7 +52,7 @@ class ConversationReference(AgentsModel):
     conversation: ConversationAccount
     channel_id: Optional[ChannelId] = None
     locale: Optional[NonEmptyString] = None
-    service_url: NonEmptyString = None
+    service_url: str | None = None
     request_id: str | None = None
 
     def get_continuation_activity(self) -> Activity:

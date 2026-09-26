@@ -11,3 +11,4 @@ class EndOfConversationCodes(str, Enum):
     timed_out = "botTimedOut"
     issued_invalid_message = "botIssuedInvalidMessage"
     channel_failed = "channelFailed"
+    error = "error"

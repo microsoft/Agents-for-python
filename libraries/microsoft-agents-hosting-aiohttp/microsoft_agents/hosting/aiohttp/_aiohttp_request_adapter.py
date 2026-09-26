@@ -3,8 +3,10 @@
 
 from aiohttp.web import Request
 
+from microsoft_agents.hosting.core import HttpRequestProtocol
 
-class AiohttpRequestAdapter:
+
+class AiohttpRequestAdapter(HttpRequestProtocol):
     """Adapter to make aiohttp Request compatible with HttpRequestProtocol."""
 
     def __init__(self, request: Request):
@@ -17,6 +19,10 @@ class AiohttpRequestAdapter:
     @property
     def headers(self):
         return self._request.headers
+
+    @property
+    def url(self) -> str:
+        return str(self._request.url)
 
     async def json(self):
         return await self._request.json()

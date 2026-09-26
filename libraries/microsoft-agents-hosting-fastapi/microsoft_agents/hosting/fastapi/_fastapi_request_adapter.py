@@ -3,8 +3,10 @@
 
 from fastapi import Request
 
+from microsoft_agents.hosting.core import HttpRequestProtocol
 
-class FastApiRequestAdapter:
+
+class FastApiRequestAdapter(HttpRequestProtocol):
     """Adapter to make FastAPI Request compatible with HttpRequestProtocol."""
 
     def __init__(self, request: Request):
@@ -17,6 +19,10 @@ class FastApiRequestAdapter:
     @property
     def headers(self):
         return self._request.headers
+
+    @property
+    def url(self) -> str:
+        return str(self._request.url)
 
     async def json(self):
         return await self._request.json()
