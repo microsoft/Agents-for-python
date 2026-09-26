@@ -1190,22 +1190,20 @@ class Activity(AgentsModel):
         Adds AI entity to an activity to indicate AI-generated content.
 
         Args:
-            activity: The activity to modify
             citations: Optional list of citations
             usage_info: Optional sensitivity usage information
         """
-        if citations:
-            ai_entity = AIEntity(
-                id="",
-                additional_type=["AIGeneratedContent"],
-                citation=citations,
-                usage_info=usage_info,
-            )
+        ai_entity = AIEntity(
+            id="",
+            additional_type=["AIGeneratedContent"],
+            citation=citations,
+            usage_info=usage_info,
+        )
 
-            if self.entities is None:
-                self.entities = []
+        if self.entities is None:
+            self.entities = []
 
-            self.entities.append(ai_entity)
+        self.entities.append(ai_entity)
 
     def is_agentic_request(self) -> bool:
         return self.recipient and self.recipient.role in [
