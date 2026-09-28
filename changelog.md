@@ -1,3 +1,15 @@
+# Microsoft 365 Agents SDK for Python - Release Notes v1.8.0 (Unreleased)
+
+**Release Date:** Unreleased
+**Previous Version:** 1.7.0 (Released 2026-09-17)
+
+## Bug Fixes
+
+- **Client Citation Deserialization**: Fixed deserialization of citations containing `@id` values
+
+---
+
+
 # Microsoft 365 Agents SDK for Python - Release Notes v1.7.0
 
 **Release Date:** 2026-09-17
