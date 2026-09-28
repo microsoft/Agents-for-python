@@ -20,7 +20,7 @@ _STATIC_DIR = Path(__file__).parent.parent / "static"
 
 if __name__ == "__main__":
     app = FastAPI(title="Demo Agent", version="1.0.0")
-    app.state.agent_configuration = connections.get_default_connection()
+    app.state.agent_configuration = connections.get_default_connection_configuration()
 
     @app.post("/api/messages")
     @jwt_authorization_decorator

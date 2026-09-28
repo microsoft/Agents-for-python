@@ -1,0 +1,110 @@
+{
+  "$schema": "https://developer.microsoft.com/en-us/json-schemas/teams/vDevPreview/MicrosoftTeams.schema.json",
+  "manifestVersion": "devPreview",
+  "version": "1.0.0",
+  "id": "<<AAD_APP_CLIENT_ID>>",
+  "developer": {
+    "name": "TeamsConversationAgent",
+    "websiteUrl": "https://example.azurewebsites.net",
+    "privacyUrl": "https://example.azurewebsites.net/privacy",
+    "termsOfUseUrl": "https://example.azurewebsites.net/termsofuse"
+  },
+  "icons": {
+    "outline": "icon-outline.png",
+    "color": "icon-color.png"
+  },
+  "name": {
+    "short": "TeamsConversationAgent",
+    "full": "TeamsConversationAgent"
+  },
+  "description": {
+    "short": "TeamsConversationAgent",
+    "full": "TeamsConversationAgent"
+  },
+  "accentColor": "#FFFFFF",
+  "bots": [
+    {
+      "botId": "<<AAD_APP_CLIENT_ID>>",
+      "scopes": [
+        "personal",
+        "team",
+        "groupChat"
+      ],
+      "isNotificationOnly": false,
+      "supportsCalling": false,
+      "supportsVideo": false,
+      "supportsFiles": false,
+      "supportsTargetedMessages": true,
+      "commandLists": [
+        {
+          "scopes": [
+            "personal",
+            "team",
+            "groupChat"
+          ],
+          "triggers": [
+            "mention"
+          ],
+          "commands": [
+            {
+              "title": "mentionme",
+              "description": "Sends message with @mention of the sender"
+            },
+            {
+              "title": "whoami",
+              "description": "Who am I?"
+            },
+            {
+              "title": "messageall",
+              "description": "Send 1 to 1 message to all members of the current conversation"
+            },
+            {
+              "title": "quotedreply",
+              "description": "Reply with a quote of the incoming message"
+            },
+            {
+              "title": "customfeedback",
+              "description": "Open a custom feedback dialog from response feedback buttons"
+            }
+          ]
+        },
+        {
+          "scopes": [
+            "team",
+            "groupChat"
+          ],
+          "triggers": [
+            "slash"
+          ],
+          "commands": [
+            {
+              "title": "promptpreview",
+              "description": "Send a targeted response with Prompt Preview"
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "permissions": [
+    "identity",
+    "messageTeamMembers"
+  ],
+  "webApplicationInfo": {
+    "id": "<<AAD_APP_CLIENT_ID>>",
+    "resource": "api://<<AAD_APP_CLIENT_ID>>"
+  },
+  "authorization": {
+    "permissions": {
+      "resourceSpecific": [
+        {
+          "name": "ChatMessageReadReceipt.Read.Chat",
+          "type": "Application"
+        }
+      ]
+    }
+  },
+  "validDomains": [
+    "<<BOT_DOMAIN>>"
+  ]
+}
