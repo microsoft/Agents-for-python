@@ -1,27 +1,41 @@
 {
-  "$schema": "https://developer.microsoft.com/en-us/json-schemas/teams/vDevPreview/MicrosoftTeams.schema.json",
-  "manifestVersion": "devPreview",
-  "version": "1.0.0",
+  "$schema": "https://developer.microsoft.com/json-schemas/teams/v1.22/MicrosoftTeams.schema.json",
+  "manifestVersion": "1.22",
+  "version": "1.0.4",
   "id": "<<AAD_APP_CLIENT_ID>>",
   "developer": {
-    "name": "TeamsConversationAgent",
+    "name": "Microsoft, Inc.",
     "websiteUrl": "https://example.azurewebsites.net",
     "privacyUrl": "https://example.azurewebsites.net/privacy",
     "termsOfUseUrl": "https://example.azurewebsites.net/termsofuse"
   },
   "icons": {
-    "outline": "icon-outline.png",
-    "color": "icon-color.png"
+    "color": "color.png",
+    "outline": "outline.png"
   },
   "name": {
-    "short": "TeamsConversationAgent",
-    "full": "TeamsConversationAgent"
+    "short": "Teams AgentApplication Sample",
+    "full": "Teams AgentApplication Sample"
   },
   "description": {
-    "short": "TeamsConversationAgent",
-    "full": "TeamsConversationAgent"
+    "short": "Sample demonstrating AgentSDK + Teams using AgentApplication.",
+    "full": "Sample demonstrating AgentSDK + Teams using AgentApplication."
   },
   "accentColor": "#FFFFFF",
+  "staticTabs": [
+    {
+      "entityId": "conversations",
+      "scopes": [
+        "personal"
+      ]
+    },
+    {
+      "entityId": "about",
+      "scopes": [
+        "personal"
+      ]
+    }
+  ],
   "bots": [
     {
       "botId": "<<AAD_APP_CLIENT_ID>>",
@@ -33,78 +47,83 @@
       "isNotificationOnly": false,
       "supportsCalling": false,
       "supportsVideo": false,
-      "supportsFiles": false,
-      "supportsTargetedMessages": true,
-      "commandLists": [
+      "supportsFiles": false
+    }
+  ],
+  "composeExtensions": [
+    {
+      "botId": "<<AAD_APP_CLIENT_ID>>",
+      "commands": [
         {
-          "scopes": [
-            "personal",
-            "team",
-            "groupChat"
+          "id": "searchQuery",
+          "type": "query",
+          "title": "searchQuery",
+          "description": "searchQuery",
+          "initialRun": true,
+          "fetchTask": false,
+          "context": [
+            "commandBox",
+            "compose"
           ],
-          "triggers": [
-            "mention"
-          ],
-          "commands": [
+          "parameters": [
             {
-              "title": "mentionme",
-              "description": "Sends message with @mention of the sender"
-            },
-            {
-              "title": "whoami",
-              "description": "Who am I?"
-            },
-            {
-              "title": "messageall",
-              "description": "Send 1 to 1 message to all members of the current conversation"
-            },
-            {
-              "title": "quotedreply",
-              "description": "Reply with a quote of the incoming message"
-            },
-            {
-              "title": "customfeedback",
-              "description": "Open a custom feedback dialog from response feedback buttons"
+              "name": "searchQuery",
+              "title": "Search Query",
+              "description": "Search Query",
+              "inputType": "text"
             }
           ]
         },
         {
-          "scopes": [
-            "team",
-            "groupChat"
+          "id": "createCard",
+          "type": "action",
+          "title": "Create Card",
+          "description": "Create Card",
+          "initialRun": false,
+          "fetchTask": false,
+          "context": [
+            "commandBox",
+            "compose",
+            "message"
           ],
-          "triggers": [
-            "slash"
-          ],
-          "commands": [
+          "parameters": [
             {
-              "title": "promptpreview",
-              "description": "Send a targeted response with Prompt Preview"
+              "name": "title",
+              "title": "Title",
+              "description": "Title of the card",
+              "inputType": "text"
+            },
+            {
+              "name": "description",
+              "title": "Description",
+              "description": "Description of the card",
+              "inputType": "text"
             }
           ]
         }
-      ]
+      ],
+      "messageHandlers": [
+        {
+          "type": "link",
+          "value": {
+            "domains": [
+              "github.com"
+            ]
+          }
+        }
+      ],
+      "canUpdateConfiguration": true
     }
   ],
   "permissions": [
     "identity",
     "messageTeamMembers"
   ],
-  "webApplicationInfo": {
-    "id": "<<AAD_APP_CLIENT_ID>>",
-    "resource": "api://<<AAD_APP_CLIENT_ID>>"
-  },
-  "authorization": {
-    "permissions": {
-      "resourceSpecific": [
-        {
-          "name": "ChatMessageReadReceipt.Read.Chat",
-          "type": "Application"
-        }
-      ]
-    }
-  },
   "validDomains": [
     "<<BOT_DOMAIN>>"
-  ]
+  ],
+  "webApplicationInfo": {
+    "id": "<<AAD_APP_CLIENT_ID>>",
+    "resource": "api://botid-<<AAD_APP_CLIENT_ID>>"
+  }
 }
