@@ -1,0 +1,9 @@
+microsoft-agents-activity
+microsoft-agents-hosting-core
+microsoft-agents-authentication-msal
+microsoft-agents-hosting-fastapi
+microsoft-agents-hosting-msteams
+microsoft-agents-hosting-slack
+python-dotenv
+fastapi
+uvicorn[standard]
