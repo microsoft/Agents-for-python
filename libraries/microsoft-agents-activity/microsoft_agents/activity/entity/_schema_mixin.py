@@ -12,18 +12,6 @@ from pydantic import (
 )
 
 
-def _deserialize_at_field(
-    data: dict[str, Any], model: BaseModel, model_field_name: str, input_field_name: str
-) -> None:
-    """Deserialize a single @-prefixed field from the input data into the model if it exists.
-
-    :param data: The input data dictionary containing potential @-prefixed fields.
-    :param model: The Pydantic model instance to populate with deserialized data.
-    :param model_field_name: The name of the field in the model to populate.
-    :param input_field_name: The name of the field in the input data to read from.
-    """
-
-
 def validate_schema_model(data: Any, handler: ModelWrapValidatorHandler):
     """Custom validator to handle the aliases @type, @context, and @id if defined in the destination type."""
     model = handler(data)
