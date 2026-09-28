@@ -1,4 +1,5 @@
 import pytest
+from pydantic import ValidationError
 
 from microsoft_agents.activity import Activity
 from microsoft_agents.activity.entity import (
@@ -107,6 +108,18 @@ def test_client_citation_deserializes_and_serializes_schema_id():
     assert "atId" not in data
     assert data["appearance"]["@type"] == "DigitalDocument"
     assert "atType" not in data["appearance"]
+
+
+@pytest.mark.parametrize(
+    "data",
+    [
+        {"@id": []},
+        {"@type": "NotClaim"},
+    ],
+)
+def test_client_citation_validates_schema_fields(data):
+    with pytest.raises(ValidationError):
+        ClientCitation.model_validate(data)
 
 
 def test_activity_deserializes_client_citation_schema_id():

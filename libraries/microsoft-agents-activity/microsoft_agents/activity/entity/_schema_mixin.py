@@ -12,18 +12,38 @@ from pydantic import (
 )
 
 
-def validate_schema_model(data: Any, handler: ModelWrapValidatorHandler):
+def validate_schema_model(
+    data: Any,
+    handler: ModelWrapValidatorHandler,
+    model_type: type[BaseModel],
+):
     """Custom validator to handle the aliases @type, @context, and @id if defined in the destination type."""
-    model = handler(data)
     if isinstance(data, dict):
-        allows_extra = model.model_config.get("extra") == "allow"
+        normalized_data = dict(data)
+        extra_schema_fields = {}
+        allows_extra = model_type.model_config.get("extra") == "allow"
+
         for model_field, input_field in [
             ("at_type", "@type"),
             ("at_context", "@context"),
             ("at_id", "@id"),
         ]:
-            if input_field in data and (hasattr(model, model_field) or allows_extra):
-                setattr(model, model_field, data[input_field])
+            if input_field not in data:
+                continue
+
+            field = model_type.model_fields.get(model_field)
+            if field is not None:
+                normalized_data.pop(input_field, None)
+                normalized_data[model_field] = data[input_field]
+            elif allows_extra:
+                extra_schema_fields[model_field] = data[input_field]
+
+        model = handler(normalized_data)
+        for model_field, value in extra_schema_fields.items():
+            setattr(model, model_field, value)
+        return model
+
+    model = handler(data)
     return model
 
 
@@ -67,7 +87,7 @@ class _SchemaMixin(BaseModel):
     @model_validator(mode="wrap")
     @classmethod
     def _validate_model(cls, data: Any, handler: ModelWrapValidatorHandler):
-        return validate_schema_model(data, handler)
+        return validate_schema_model(data, handler, cls)
 
     @model_serializer(mode="wrap")
     def _serialize_model(
