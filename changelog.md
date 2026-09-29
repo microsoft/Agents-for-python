@@ -3,9 +3,21 @@
 **Release Date:** Unreleased
 **Previous Version:** 1.7.0 (Released 2026-09-17)
 
+## New Models & APIs
+
+- **Request ID Propagation**: Added `request_id` to `Activity` and `ConversationReference`, with automatic generation for incoming HTTP requests and propagation through conversation references and continuation activities for end-to-end request tracing (#591)
+
 ## Bug Fixes
 
 - **Client Citation Deserialization**: Fixed deserialization of citations containing `@id` values
+
+## Developer Experience
+
+- **`AgentApplication` Adapter Ownership Deprecation**: Deprecated the notion that an `AgentApplication` owns a single adapter. Applications no longer need to be initialized with an adapter; instead, operations such as conversation continuations and long-running calls use the adapter from the current `TurnContext`. This decouples `AgentApplication` from adapter initialization.
+
+## Breaking Changes
+
+- **Deprecated API Removal**: Removed the deprecated `BasicCard` and `MediaCard` types, `ClaimsIdentity.is_authenticated`, `AgentApplication.parse_env_vars_configuration`, and the `CardFactory.ContentTypes` alias (#603)
 
 ---
 
