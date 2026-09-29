@@ -36,7 +36,9 @@ class A2ARequestHandler(DefaultRequestHandlerV2):
         """
         self._agent_card = agent_card
 
-    async def on_subscribe_to_task(self, params: SubscribeToTaskRequest, context: ServerCallContext):
+    async def on_subscribe_to_task(
+        self, params: SubscribeToTaskRequest, context: ServerCallContext
+    ):
         """Handle subscription to a task.
 
         :param params: The parameters for the subscription request.
@@ -50,9 +52,7 @@ class A2ARequestHandler(DefaultRequestHandlerV2):
             raise TaskNotFoundError()
 
         if task.status.state in TERMINAL_TASK_STATES:
-            raise UnsupportedOperationError(
-                "Cannot subscribe to a terminal task."
-            )
+            raise UnsupportedOperationError("Cannot subscribe to a terminal task.")
 
         async for event in super().on_subscribe_to_task(params, context):
             yield event

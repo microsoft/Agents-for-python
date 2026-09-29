@@ -129,6 +129,10 @@ async def test_create_agent_card_routes_adapts_request_and_uses_interface_prefix
         observed["request"].url == "https://example.com/a2a/.well-known/agent-card.json"
     )
     assert observed["prefix"] == "/a2a"
+    assert response.headers["cache-control"] == "public, max-age=3600"
+    assert response.headers["etag"].startswith('"')
+    assert response.headers["etag"].endswith('"')
+    assert response.headers["last-modified"]
 
 
 @pytest.mark.asyncio

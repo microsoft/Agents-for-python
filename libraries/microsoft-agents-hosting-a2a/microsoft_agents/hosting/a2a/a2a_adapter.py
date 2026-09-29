@@ -7,6 +7,7 @@ from datetime import datetime, timezone
 from urllib.parse import urlsplit
 from uuid import uuid4
 
+
 from a2a.types import (
     AgentCard,
     AgentInterface,
@@ -24,6 +25,7 @@ from a2a.server.agent_execution import RequestContext
 from a2a.server.events import EventQueue
 from a2a.server.tasks import TaskStore, InMemoryTaskStore
 from a2a.utils.constants import TransportProtocol
+
 
 from microsoft_agents.activity import (
     Activity,
@@ -54,6 +56,7 @@ from microsoft_agents.hosting.core.channel_adapter_protocol import (
 from microsoft_agents.hosting.core.http._http_request_protocol import (
     HttpRequestProtocol,
 )
+from microsoft_agents.hosting.core.http._http_response import HttpResponse
 
 from .request_handling import (
     A2AHttpAdapter,
@@ -92,6 +95,7 @@ class A2AAdapter(A2AHttpAdapter, ChannelAdapter, ChannelAdapterProtocol):
         :param agent_interfaces: The list of agent interfaces associated with the adapter.
         :param skills: The list of skills associated with the adapter.
         :param task_store: Optional task store for managing tasks. If not provided, an in-memory task store will be used.
+        :param agent_card_cache_max_age: The maximum age (in seconds) for caching the agent card. Default is 3600 seconds (1 hour).
         """
         self.middleware_set = MiddlewareSet()
 

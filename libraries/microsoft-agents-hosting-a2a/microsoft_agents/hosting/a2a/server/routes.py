@@ -1,6 +1,10 @@
 # Copyright (c) Microsoft Corporation. All rights reserved.
 # Licensed under the MIT License.
 
+import hashlib
+
+from datetime import datetime, timezone
+from email.utils import format_datetime
 from typing import Awaitable, Callable, Sequence
 
 from a2a.server.routes import (
@@ -26,6 +30,8 @@ from microsoft_agents.hosting.fastapi._fastapi_request_adapter import (
 )
 
 from .sdk_server_call_context_builder import SDKServerCallContextBuilder
+
+_AGENT_CARD_CACHE_CONTROL_TEMPLATE = "public, max-age={}"
 
 
 def create_jsonrpc_routes(
@@ -60,17 +66,19 @@ def create_rest_routes(
     :param enable_v0_3_compat: Whether to enable compatibility with version 0.3.
     :return: A list of BaseRoute objects representing the REST routes.
     """
-    return _create_rest_routes(
+    routes = _create_rest_routes(
         request_handler,
         context_builder=SDKServerCallContextBuilder(),
         enable_v0_3_compat=enable_v0_3_compat,
         path_prefix=path_prefix,
     )
+    return routes
 
 
 def create_agent_card_routes(
     get_agent_card: Callable[[HttpRequestProtocol, str], Awaitable[AgentCard]],
     card_url: str = AGENT_CARD_WELL_KNOWN_PATH,
+    cache_max_age: int = 3600,  # seconds, so 1 hour
 ) -> list[BaseRoute]:
     """Create routes for serving the agent card.
 
@@ -88,10 +96,20 @@ def create_agent_card_routes(
         # not found
         pass
 
+    last_modified = format_datetime(datetime.now(timezone.utc), usegmt=True)
+
     async def _get_agent_card(request: Request) -> Response:
         """Retruns the public AgentCard describing this agent's capabilities, supported transports, and skills."""
         card = await get_agent_card(FastApiRequestAdapter(request), prefix)
-        return JSONResponse(agent_card_to_dict(card))
+        response = JSONResponse(agent_card_to_dict(card))
+        etag = f'"{hashlib.sha256(response.body).hexdigest()}"'
+        headers = {
+            "Cache-Control": _AGENT_CARD_CACHE_CONTROL_TEMPLATE.format(cache_max_age),
+            "ETag": etag,
+            "Last-Modified": last_modified,
+        }
+        response.headers.update(headers)
+        return response
 
     return [Route(path=card_url, endpoint=_get_agent_card, methods=["GET"])]
 
