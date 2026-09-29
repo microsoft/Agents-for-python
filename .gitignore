@@ -134,3 +134,6 @@ bin/
 
 # Certificates
 *.pfx
+
+# Teams API drift tooling and local verification evidence
+/artifacts/teams-api-drift/

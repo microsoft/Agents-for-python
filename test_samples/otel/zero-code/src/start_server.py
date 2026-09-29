@@ -13,7 +13,9 @@ logger = logging.getLogger(__name__)
 
 
 def start_server(
-    agent_application: AgentApplication, auth_configuration: AgentAuthConfiguration
+    agent_application: AgentApplication,
+    adapter: CloudAdapter,
+    auth_configuration: AgentAuthConfiguration
 ):
     async def entry_point(req: Request) -> Response:
         logger.info("Request received at /api/messages endpoint.")
@@ -27,6 +29,6 @@ def start_server(
 
     app["agent_configuration"] = auth_configuration
     app["agent_app"] = agent_application
-    app["adapter"] = agent_application.adapter
+    app["adapter"] = adapter
 
     run_app(app, host="localhost", port=int(environ.get("PORT", 3978)))

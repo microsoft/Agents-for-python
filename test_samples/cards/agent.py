@@ -54,7 +54,6 @@ authorization = Authorization(storage, connection_manager, **config)
 
 app = AgentApplication[TurnState](
     storage=storage,
-    adapter=adapter,
     authorization=authorization,
     start_typing_timer=False,
     remove_recipient_mention=False,
@@ -176,6 +175,7 @@ async def on_message(context: TurnContext, _state: TurnState) -> None:
 if __name__ == "__main__":
     start_server(
         agent_application=app,
+        adapter=adapter,
         auth_configuration=(
             connection_manager.get_default_connection_configuration()
         ),

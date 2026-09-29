@@ -13,7 +13,9 @@ logger = logging.getLogger(__name__)
 
 
 def start_server(
-    agent_application: AgentApplication, auth_configuration: AgentAuthConfiguration
+    agent_application: AgentApplication,
+    adapter: CloudAdapter,
+    auth_configuration: AgentAuthConfiguration
 ):
     async def entry_point(req: Request) -> Response:
 
@@ -32,6 +34,6 @@ def start_server(
 
     APP["agent_configuration"] = auth_configuration
     APP["agent_app"] = agent_application
-    APP["adapter"] = agent_application.adapter
+    APP["adapter"] = adapter
 
     run_app(APP, host="localhost", port=int(environ.get("PORT", 3978)))

@@ -25,7 +25,7 @@ from microsoft_agents.testing import TestAdapter
 @pytest.mark.asyncio
 async def test_process_activity_provides_a_channel_shaped_turn_to_agent_code():
     adapter = TestAdapter(channel_id=Channels.ms_teams)
-    identity = ClaimsIdentity({"sub": "test-user"}, True)
+    identity = ClaimsIdentity({"sub": "test-user"}, authentication_type="Bearer")
     received_context: TurnContext | None = None
 
     async def callback(context: TurnContext):
@@ -214,7 +214,7 @@ async def test_update_and_delete_unknown_replies_leave_the_queue_unchanged():
 @pytest.mark.asyncio
 async def test_proactive_turn_uses_the_supplied_activity_and_identity():
     adapter = TestAdapter()
-    identity = ClaimsIdentity({"sub": "proactive-user"}, True)
+    identity = ClaimsIdentity({"sub": "proactive-user"}, authentication_type="Bearer")
     continuation = adapter.create_activity("")
     continuation.type = ActivityTypes.event
     continuation.name = "continue"
@@ -250,7 +250,7 @@ async def test_continue_conversation_uses_reference_identity_and_services():
 @pytest.mark.asyncio
 async def test_continue_conversation_with_claims_uses_activity_identity_and_services():
     adapter = TestAdapter()
-    identity = ClaimsIdentity({"sub": "proactive-user"}, True)
+    identity = ClaimsIdentity({"sub": "proactive-user"}, authentication_type="Bearer")
     continuation = adapter.conversation.get_continuation_activity()
 
     async def callback(context: TurnContext):

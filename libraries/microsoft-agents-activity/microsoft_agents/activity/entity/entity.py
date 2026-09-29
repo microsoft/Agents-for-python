@@ -51,8 +51,8 @@ class Entity(AgentsModel):
 
         if isinstance(data, dict):
             new_data = {to_snake(k): v for k, v in data.items()}
-            return validate_schema_model(new_data, handler)
-        return validate_schema_model(data, handler)
+            return validate_schema_model(new_data, handler, cls)
+        return validate_schema_model(data, handler, cls)
 
     @model_serializer(mode="wrap")
     def _serialize_model(

@@ -31,7 +31,7 @@ async def test_should_round_trip_via_middleware():
 
     adapter = MockTestingAdapter(channelName)
     adapter.use(transcript_middleware)
-    id = ClaimsIdentity({}, True)
+    id = ClaimsIdentity({}, authentication_type="Bearer")
 
     async def callback(tc):
         print("process callback")
@@ -61,7 +61,7 @@ async def test_should_log_outgoing_activity_sent_by_callback():
 
     adapter = MockTestingAdapter(channelName)
     adapter.use(transcript_middleware)
-    id = ClaimsIdentity({}, True)
+    id = ClaimsIdentity({}, authentication_type="Bearer")
 
     async def callback(tc):
         await tc.send_activity("bot response")
@@ -99,7 +99,7 @@ async def test_should_write_to_file():
 
     adapter = MockTestingAdapter(channelName)
     adapter.use(transcript_middleware)
-    id = ClaimsIdentity({}, True)
+    id = ClaimsIdentity({}, authentication_type="Bearer")
 
     async def callback(tc):
         print("process callback")
@@ -127,7 +127,7 @@ async def test_should_write_to_console():
 
     adapter = MockTestingAdapter(channelName)
     adapter.use(transcript_middleware)
-    id = ClaimsIdentity({}, True)
+    id = ClaimsIdentity({}, authentication_type="Bearer")
 
     async def callback(tc):
         print("process callback")

@@ -5,8 +5,39 @@
 
 import pytest
 
-from microsoft_agents.hosting.testing.aiohttp_scenario import AiohttpScenario, AgentEnvironment
+from microsoft_agents.hosting.aiohttp import CloudAdapter
+from microsoft_agents.hosting.core import (
+    AgentApplication,
+    AgentAuthConfiguration,
+    AnonymousTokenProvider,
+    Authorization,
+    ConnectionManager,
+    MemoryStorage,
+    TurnState,
+)
+from microsoft_agents.hosting.testing import aiohttp_scenario
+from microsoft_agents.hosting.testing.aiohttp_scenario import (
+    AiohttpScenario,
+    AgentEnvironment,
+)
 from microsoft_agents.hosting.testing.core import Scenario, ScenarioConfig
+
+
+def _create_agent_application():
+    connections = ConnectionManager(
+        provider_factory=lambda _: AnonymousTokenProvider(),
+        connections_configurations={
+            "SERVICE_CONNECTION": AgentAuthConfiguration(anonymous_allowed=True)
+        },
+    )
+    storage = MemoryStorage()
+    authorization = Authorization(storage, connections)
+    app = AgentApplication[TurnState](
+        storage=storage,
+        authorization=authorization,
+    )
+    return app, connections
+
 
 # ============================================================================
 # AgentEnvironment Tests
@@ -135,6 +166,47 @@ class TestAiohttpScenarioInitialization:
         scenario = AiohttpScenario.create(init_agent)
 
         assert scenario._env is None
+
+
+# ============================================================================
+# AiohttpScenario Existing Application Tests
+# ============================================================================
+
+
+class TestAiohttpScenarioFromApp:
+    """Tests for constructing a scenario from an existing application."""
+
+    def test_uses_provided_adapter(self):
+        """from_app preserves an explicitly supplied CloudAdapter."""
+        app, connections = _create_agent_application()
+        adapter = CloudAdapter(connection_manager=connections)
+
+        scenario = AiohttpScenario.from_app(app, adapter=adapter)
+
+        assert scenario.agent_environment.adapter is adapter
+
+    def test_creates_adapter_from_application_connection_manager(self, monkeypatch):
+        """from_app creates a default adapter from the application's connections."""
+        app, connections = _create_agent_application()
+        created_adapter = object()
+
+        def create_adapter(*, connection_manager):
+            assert connection_manager is connections
+            return created_adapter
+
+        monkeypatch.setattr(aiohttp_scenario, "CloudAdapter", create_adapter)
+
+        scenario = AiohttpScenario.from_app(app)
+
+        assert scenario.agent_environment.adapter is created_adapter
+        assert scenario.agent_environment.connections is connections
+
+    def test_optional_arguments_are_keyword_only(self):
+        """from_app rejects positional optional arguments."""
+        app, _ = _create_agent_application()
+
+        with pytest.raises(TypeError):
+            AiohttpScenario.from_app(app, ScenarioConfig())
 
 
 # ============================================================================

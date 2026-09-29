@@ -18,6 +18,7 @@ _STATIC_DIR = Path(__file__).parent.parent / "static"
 
 def start_server(
     agent_application: AgentApplication,
+    adapter: CloudAdapter,
     auth_configuration,
 ) -> None:
     @jwt_authorization_decorator
@@ -38,6 +39,6 @@ def start_server(
     app.router.add_get("/settings", serve_settings)
     app["agent_configuration"] = auth_configuration
     app["agent_app"] = agent_application
-    app["adapter"] = agent_application.adapter
+    app["adapter"] = adapter
 
     run_app(app, host="localhost", port=int(environ.get("PORT", 3978)))

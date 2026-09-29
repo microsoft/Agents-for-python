@@ -125,21 +125,21 @@ class TestGenericConnectionManager:
 
     def test_token_provider_aud_and_service_url_match(self):
         cm = self._make(**ENV_CONFIG)
-        claims = ClaimsIdentity(claims={"aud": "api://service"}, is_authenticated=True)
+        claims = ClaimsIdentity(claims={"aud": "api://service"})
         assert cm.get_token_provider(
             claims, "https://service.com/api"
         ) is cm.get_connection("SERVICE_CONNECTION")
 
     def test_token_provider_service_url_match(self):
         cm = self._make(**ENV_CONFIG)
-        claims = ClaimsIdentity(claims={}, is_authenticated=False)
+        claims = ClaimsIdentity(claims={})
         assert cm.get_token_provider(claims, "agentic") is cm.get_connection("AGENTIC")
 
     def test_service_url_is_regex_unanchored(self):
         # SERVICEURL is a regex matched with re.search (mirrors .NET Regex.Match),
         # so a bare substring pattern matches anywhere in the service URL.
         cm = self._make(**ENV_CONFIG)
-        claims = ClaimsIdentity(claims={}, is_authenticated=False)
+        claims = ClaimsIdentity(claims={})
         assert cm.get_token_provider(
             claims, "https://host/agentic/path"
         ) is cm.get_connection("AGENTIC")
@@ -148,7 +148,7 @@ class TestGenericConnectionManager:
         # '.' in a SERVICEURL regex is a wildcard (regex semantics, matching .NET),
         # so "https://microsoft.com/*" also matches a host like "microsoftXcom".
         cm = self._make(**ENV_CONFIG)
-        claims = ClaimsIdentity(claims={}, is_authenticated=False)
+        claims = ClaimsIdentity(claims={})
         assert cm.get_token_provider(
             claims, "https://microsoftXcom/foo"
         ) is cm.get_connection("MISC")
@@ -161,14 +161,14 @@ class TestGenericConnectionManager:
             "CONNECTIONSMAP": [{"CONNECTION": "SERVICE_CONNECTION", "SERVICEURL": "["}],
         }
         cm = self._make(**config)
-        claims = ClaimsIdentity(claims={}, is_authenticated=False)
+        claims = ClaimsIdentity(claims={})
         with pytest.raises(ValueError, match="Invalid SERVICEURL regex"):
             cm.get_token_provider(claims, "https://example.com")
 
     def test_token_provider_no_map_returns_default(self):
         config = {k: v for k, v in ENV_CONFIG.items() if k != "CONNECTIONSMAP"}
         cm = self._make(**config)
-        claims = ClaimsIdentity(claims={"aud": "api://misc"}, is_authenticated=True)
+        claims = ClaimsIdentity(claims={"aud": "api://misc"})
         assert (
             cm.get_token_provider(claims, "https://example.com")
             is cm.get_default_connection()
@@ -176,7 +176,7 @@ class TestGenericConnectionManager:
 
     def test_token_provider_from_activity_uses_activity_service_url(self):
         cm = self._make(**ENV_CONFIG)
-        claims = ClaimsIdentity(claims={}, is_authenticated=False)
+        claims = ClaimsIdentity(claims={})
         activity = self._activity(service_url="https://host/agentic/path")
 
         assert cm.get_token_provider_from_activity(
@@ -187,7 +187,7 @@ class TestGenericConnectionManager:
         self,
     ):
         cm = self._make(**ALT_BLUEPRINT_CONFIG)
-        claims = ClaimsIdentity(claims={}, is_authenticated=False)
+        claims = ClaimsIdentity(claims={})
         activity = self._activity(recipient_role=RoleTypes.agent)
 
         assert cm.get_token_provider_from_activity(
@@ -202,7 +202,7 @@ class TestGenericConnectionManager:
         self, recipient_role
     ):
         cm = self._make(**ALT_BLUEPRINT_CONFIG)
-        claims = ClaimsIdentity(claims={}, is_authenticated=False)
+        claims = ClaimsIdentity(claims={})
         activity = self._activity(recipient_role=recipient_role)
 
         assert cm.get_token_provider_from_activity(
@@ -213,7 +213,7 @@ class TestGenericConnectionManager:
         self,
     ):
         cm = self._make(**ENV_CONFIG)
-        claims = ClaimsIdentity(claims={}, is_authenticated=False)
+        claims = ClaimsIdentity(claims={})
         activity = self._activity(
             service_url="https://host/agentic/path",
             recipient_role=RoleTypes.agentic_identity,
@@ -225,7 +225,7 @@ class TestGenericConnectionManager:
 
     def test_token_provider_from_activity_without_recipient_is_not_agentic(self):
         cm = self._make(**ALT_BLUEPRINT_CONFIG)
-        claims = ClaimsIdentity(claims={}, is_authenticated=False)
+        claims = ClaimsIdentity(claims={})
         activity = self._activity(recipient_role=None)
 
         assert cm.get_token_provider_from_activity(
@@ -236,8 +236,8 @@ class TestGenericConnectionManager:
         "claims, service_url",
         [
             [None, ""],
-            [ClaimsIdentity(claims={}, is_authenticated=False), None],
-            [ClaimsIdentity(claims={"aud": "api://misc"}, is_authenticated=False), ""],
+            [ClaimsIdentity(claims={}), None],
+            [ClaimsIdentity(claims={"aud": "api://misc"}), ""],
         ],
     )
     def test_token_provider_errors(self, claims, service_url):
@@ -265,7 +265,7 @@ class TestGenericConnectionManager:
             **ENV_CONFIG,
         )
         assert cm._connections_map == []
-        claims = ClaimsIdentity(claims={"aud": "api://service"}, is_authenticated=True)
+        claims = ClaimsIdentity(claims={"aud": "api://service"})
         assert (
             cm.get_token_provider(claims, "https://service.com/api")
             is cm.get_default_connection()

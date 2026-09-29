@@ -315,7 +315,9 @@ class DialogTestAdapter(MockTestingAdapter):
         # Dialog-specific token client that implements the user_token API
         self._dialog_token_client = DialogUserTokenClient()
         # OAuthPrompt reads claims["aud"] from the turn context identity.
-        self.claims_identity = ClaimsIdentity({"aud": "test-app-id"}, True)
+        self.claims_identity = ClaimsIdentity(
+            {"aud": "test-app-id"}, authentication_type="Bearer"
+        )
 
     def add_user_token(
         self,

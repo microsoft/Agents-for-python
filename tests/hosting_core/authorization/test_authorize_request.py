@@ -41,7 +41,7 @@ async def test_authorize_request_returns_401_when_header_is_missing_and_anonymou
 @pytest.mark.asyncio
 async def test_authorize_request_returns_anonymous_claims_when_header_is_missing_and_anonymous_enabled():
     auth_config = AgentAuthConfiguration(anonymous_allowed=True)
-    claims = ClaimsIdentity({}, False, authentication_type="Anonymous")
+    claims = ClaimsIdentity({}, authentication_type="Anonymous")
     validator = MagicMock()
     validator.get_anonymous_claims.return_value = claims
 
@@ -69,7 +69,7 @@ async def test_authorize_request_returns_401_for_invalid_authorization_header_fo
 @pytest.mark.asyncio
 async def test_authorize_request_validates_bearer_token():
     auth_config = AgentAuthConfiguration()
-    claims = ClaimsIdentity({"aud": "app-id"}, True)
+    claims = ClaimsIdentity({"aud": "app-id"}, authentication_type="Bearer")
     validator = MagicMock()
     validator.validate_token = AsyncMock(return_value=claims)
 

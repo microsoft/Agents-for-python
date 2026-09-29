@@ -140,7 +140,6 @@ class TestChannelServiceAdapter:
                 "ver": "2.0",
                 "azp": "outgoing_app_id",
             },
-            is_authenticated=True,
         )
 
         await adapter.process_activity(
@@ -209,7 +208,6 @@ class TestChannelServiceAdapter:
                 "ver": "2.0",
                 "azp": "outgoing_app_id",
             },
-            is_authenticated=True,
         )
 
         with pytest.raises(Exception) as exc_info:
@@ -244,7 +242,6 @@ class TestChannelServiceAdapter:
                 "ver": "2.0",
                 "azp": "outgoing_app_id",
             },
-            is_authenticated=True,
         )
 
         await adapter.process_proactive(

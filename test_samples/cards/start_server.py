@@ -15,6 +15,7 @@ from microsoft_agents.hosting.core import AgentApplication, AgentAuthConfigurati
 
 def start_server(
     agent_application: AgentApplication,
+    adapter: CloudAdapter,
     auth_configuration: AgentAuthConfiguration,
 ) -> None:
     async def entry_point(request: Request) -> Response:
@@ -27,6 +28,6 @@ def start_server(
     web_app.router.add_get("/", lambda _: Response(text="Cards sample"))
     web_app["agent_configuration"] = auth_configuration
     web_app["agent_app"] = agent_application
-    web_app["adapter"] = agent_application.adapter
+    web_app["adapter"] = adapter
 
     run_app(web_app, host="localhost", port=int(environ.get("PORT", 3978)))

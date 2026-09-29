@@ -48,7 +48,6 @@ AUTHORIZATION = Authorization(STORAGE, CONNECTION_MANAGER, **agents_sdk_config)
 # Create the agent instance
 AGENT_APP = AgentApplication[TurnState](
     storage=STORAGE,
-    adapter=ADAPTER,
     authorization=AUTHORIZATION,
     **agents_sdk_config.get("AGENTAPPLICATION", {}),
 )
@@ -162,7 +161,7 @@ if __name__ == "__main__":
         CONNECTION_MANAGER.get_default_connection_configuration()
     )
     APP["agent_app"] = AGENT_APP
-    APP["adapter"] = AGENT_APP.adapter
+    APP["adapter"] = ADAPTER
 
     host = environ.get("HOST", "localhost")
     port = int(environ.get("PORT", "3978"))
