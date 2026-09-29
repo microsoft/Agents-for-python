@@ -13,7 +13,7 @@ from microsoft_agents.hosting.core.errors import ErrorResources
 
 from ...._oauth._flow_state import _FlowStateTag
 from ....turn_context import TurnContext
-from ....storage import Storage
+from ....storage import StorageProvider
 from ....authorization import Connections
 from ..auth_handler import AuthHandler
 from ._authorization_handler import _AuthorizationHandler
@@ -30,7 +30,7 @@ class ConnectorUserAuthorization(_AuthorizationHandler):
 
     def __init__(
         self,
-        storage: Storage,
+        storage: StorageProvider,
         connection_manager: Connections,
         auth_handler: Optional[AuthHandler] = None,
         *,
