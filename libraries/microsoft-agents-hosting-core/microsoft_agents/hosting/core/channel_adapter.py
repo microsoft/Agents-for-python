@@ -9,7 +9,6 @@ from abc import ABC, abstractmethod
 from collections.abc import Callable
 from typing import Awaitable
 from microsoft_agents.hosting.core.authorization import ClaimsIdentity
-from microsoft_agents.activity import ChannelAdapterProtocol
 from microsoft_agents.activity import (
     Activity,
     ChannelId,
@@ -21,6 +20,7 @@ from microsoft_agents.activity import (
 
 from .turn_context import TurnContext
 from .middleware_set import MiddlewareSet, Middleware
+from .channel_adapter_protocol import ChannelAdapterProtocol
 
 
 class ChannelAdapter(ABC, ChannelAdapterProtocol):

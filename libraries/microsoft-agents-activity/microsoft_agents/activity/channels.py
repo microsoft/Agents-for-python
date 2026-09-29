@@ -13,6 +13,9 @@ class Channels(str, Enum):
     Ids of channels supported by ABS.
     """
 
+    a2a = "a2a"
+    """A2A protocol"""
+
     agents = "agents"
     """Agents channel."""
 

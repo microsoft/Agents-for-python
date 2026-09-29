@@ -2,7 +2,6 @@
 # Licensed under the MIT License.
 
 from .agents_model import AgentsModel
-from ._type_aliases import NonEmptyString
 
 
 class Attachment(AgentsModel):
@@ -20,8 +19,8 @@ class Attachment(AgentsModel):
     :type thumbnail_url: str
     """
 
-    content_type: NonEmptyString
-    content_url: NonEmptyString = None
+    content_type: str
+    content_url: str | None = None
     content: object = None
-    name: NonEmptyString = None
-    thumbnail_url: NonEmptyString = None
+    name: str | None = None
+    thumbnail_url: str | None = None
