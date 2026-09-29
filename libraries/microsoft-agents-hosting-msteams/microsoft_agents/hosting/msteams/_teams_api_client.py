@@ -8,6 +8,8 @@ is configured with a token factory derived from the turn's identity when one is
 available.
 """
 
+from httpx import AsyncClient
+
 from microsoft_teams.common import ClientOptions
 from microsoft_teams.api import ApiClient
 
@@ -15,6 +17,11 @@ from microsoft_agents.hosting.core import (
     Connections,
     TurnContext,
 )
+
+def _create_httpx_client() -> AsyncClient:
+    return AsyncClient(
+        verify=
+    )
 
 
 def _get_teams_api_client(context: TurnContext) -> ApiClient:
