@@ -130,7 +130,21 @@ class TeamsAgentExtension(Generic[StateT]):
                 context.activity.channel_data = _try_get_channel_data(context.activity)
             return True
 
+        # this is a placeholder until we figure out a better way of handling the
+        # lifecycle of the turn. This ensures that any resources associated with the Teams API client are properly cleaned up after the turn.
+        async def on_after_turn(context: TurnContext, state: StateT) -> bool:
+            if context.activity.channel_id == Channels.ms_teams:
+                try:
+                    api_client = context.services.get(ApiClient)
+                    if api_client is not None:
+                        await api_client.http.http.aclose()
+                except ValueError:
+                    # Handle the case where the Teams API client is not found
+                    pass
+            return True
+
         self._app.before_turn(on_before_turn)
+        self._app.after_turn(on_after_turn)
 
     @property
     def channels(self) -> Channel[StateT]:

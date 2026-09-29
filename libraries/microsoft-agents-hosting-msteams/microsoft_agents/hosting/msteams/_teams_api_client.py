@@ -8,9 +8,14 @@ is configured with a token factory derived from the turn's identity when one is
 available.
 """
 
-from httpx import AsyncClient
+import ssl
+import certifi
 
-from microsoft_teams.common import ClientOptions
+from typing import Callable, Awaitable
+
+import httpx
+
+from microsoft_teams.common import Client, ClientOptions
 from microsoft_teams.api import ApiClient
 
 from microsoft_agents.hosting.core import (
@@ -18,9 +23,52 @@ from microsoft_agents.hosting.core import (
     TurnContext,
 )
 
-def _create_httpx_client() -> AsyncClient:
-    return AsyncClient(
-        verify=
+_ssl_context: ssl.SSLContext | None = None
+
+
+def _get_ssl_context() -> ssl.SSLContext:
+    """Get or create the SSL context for verifying HTTPS requests.
+
+    httpx by default creates a new SSL context for each new client instance. This is can be
+    inefficient. For example, at the time of writing this, without caching the SSL context,
+    the hosting_msteams unit tests took 32 seconds to complete. With caching, the total
+    time for the unit tests dropped to 7 seconds. For an agent with lots of traffic,
+    caching the SSL context may significantly improve performance and avoid extra io operations.
+    """
+    global _ssl_context
+
+    if _ssl_context is None:
+        _ssl_context = ssl.create_default_context(cafile=certifi.where())
+    return _ssl_context
+
+
+def _client(
+    base_url: str,
+    headers: dict,
+    token_factory: Callable[[], Awaitable[str]] | None = None,
+) -> Client:
+    """
+    Create a new Client instance configured with the given base URL, headers, and token factory.
+
+    :param base_url: The base URL for the client.
+    :param headers: The headers to include in the client requests.
+    :param token_factory: A callable that returns an access token asynchronously, or None if no token is required.
+    :return: A configured Client instance.
+    """
+
+    options = ClientOptions(
+        base_url=base_url,
+        headers=headers,
+        token=token_factory,
+    )
+
+    return Client(
+        options,
+        _http=httpx.AsyncClient(
+            base_url=base_url,
+            headers=headers,
+            verify=_get_ssl_context(),
+        ),
     )
 
 
@@ -56,28 +104,28 @@ def _set_teams_api_client(
         "Content-Type": "application/json",
     }
 
-    options: ClientOptions
+    token_factory: Callable[[], Awaitable[str]] | None = None
 
     if context.identity:
         provider = connection_manager.get_token_provider(
             context.identity, context.activity.service_url
         )
 
-        async def token_factory() -> str:
+        async def _token_factory() -> str:
             return await provider.get_access_token(
                 "https://api.botframework.com",
                 ["https://api.botframework.com/.default"],
             )
 
-        options = ClientOptions(
-            base_url=context.activity.service_url, headers=headers, token=token_factory
-        )
-    else:
-        options = ClientOptions(base_url=context.activity.service_url, headers=headers)
+        token_factory = _token_factory
 
     api_client = ApiClient(
         context.activity.service_url,
-        options,
+        options=_client(
+            base_url=context.activity.service_url,
+            headers=headers,
+            token_factory=token_factory,
+        ),
     )
 
     context.services.set(ApiClient, api_client)
