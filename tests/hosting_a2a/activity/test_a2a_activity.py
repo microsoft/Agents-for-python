@@ -99,6 +99,27 @@ def test_from_message_maps_all_supported_part_types():
     assert data_attachment.name == "result.json"
 
 
+def test_from_message_accepts_parts_without_optional_filenames():
+    message = _message(
+        Part(
+            url="https://example.com/image.png",
+            media_type="image/png",
+        ),
+        Part(
+            raw=b"file contents",
+            media_type="application/octet-stream",
+        ),
+        Part(
+            data=ParseDict({"answer": 42}, Value()),
+            media_type="application/json",
+        ),
+    )
+
+    activity = A2AActivity.from_message("request-1", None, message)
+
+    assert [attachment.name for attachment in activity.attachments] == ["", "", ""]
+
+
 def test_supported_parts_round_trip_through_activity_artifact():
     message = _message(
         Part(

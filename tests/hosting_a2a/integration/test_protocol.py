@@ -705,6 +705,45 @@ async def test_subscribe_to_active_task_streams_initial_and_completed_state(
 
 @pytest.mark.integration
 @pytest.mark.asyncio
+@pytest.mark.parametrize("transport", ["jsonrpc", "rest"])
+async def test_subscribe_to_completed_task_returns_unsupported_operation(
+    a2a_client: httpx.AsyncClient,
+    transport: str,
+) -> None:
+    send_response = await _post_rpc(
+        a2a_client,
+        "SendMessage",
+        _send_request("complete-task"),
+    )
+    task_id = send_response["result"]["task"]["id"]
+
+    if transport == "jsonrpc":
+        response = await _post_rpc(
+            a2a_client,
+            "SubscribeToTask",
+            SubscribeToTaskRequest(id=task_id),
+            request_id="subscribe-completed",
+        )
+
+        assert response["error"]["code"] == -32004
+        assert response["error"]["data"][0]["reason"] == "UNSUPPORTED_OPERATION"
+    else:
+        response = await a2a_client.get(
+            f"/rest/tasks/{task_id}:subscribe",
+            headers={
+                "A2A-Version": "1.0",
+                "Accept": "text/event-stream",
+            },
+        )
+
+        assert response.status_code == 400
+        assert response.json()["error"]["details"][0]["reason"] == (
+            "UNSUPPORTED_OPERATION"
+        )
+
+
+@pytest.mark.integration
+@pytest.mark.asyncio
 async def test_jsonrpc_push_notification_config_is_explicitly_unsupported(
     a2a_client: httpx.AsyncClient,
 ) -> None:

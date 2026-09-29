@@ -20,6 +20,7 @@ from a2a.types import (
     Part,
     Role,
     SendMessageRequest,
+    SubscribeToTaskRequest,
     Task,
     TaskState,
     TaskStatus,
@@ -27,6 +28,7 @@ from a2a.types import (
 )
 from a2a.utils.errors import (
     ExtendedAgentCardNotConfiguredError,
+    TaskNotFoundError,
     UnsupportedOperationError,
 )
 
@@ -427,6 +429,64 @@ async def test_request_handler_persists_failed_task_when_adapter_raises():
         stored = await task_store.get(request.message.task_id, call_context)
         assert stored is not None
         assert stored.status.state == TaskState.TASK_STATE_FAILED
+    finally:
+        await handler.aclose()
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    "terminal_state",
+    [
+        TaskState.TASK_STATE_COMPLETED,
+        TaskState.TASK_STATE_FAILED,
+        TaskState.TASK_STATE_CANCELED,
+        TaskState.TASK_STATE_REJECTED,
+    ],
+)
+async def test_request_handler_rejects_subscription_to_terminal_task(
+    terminal_state,
+):
+    task_store = InMemoryTaskStore()
+    handler = A2ARequestHandler(_CompletingAdapter(), task_store, _agent_card())
+    call_context = ServerCallContext()
+    task = Task(
+        id="task-1",
+        context_id="context-1",
+        status=TaskStatus(state=terminal_state),
+    )
+    await task_store.save(task, call_context)
+
+    try:
+        events = handler.on_subscribe_to_task(
+            SubscribeToTaskRequest(id=task.id),
+            call_context,
+        )
+
+        with pytest.raises(
+            UnsupportedOperationError,
+            match="Cannot subscribe to a terminal task",
+        ):
+            await anext(events)
+    finally:
+        await handler.aclose()
+
+
+@pytest.mark.asyncio
+async def test_request_handler_subscription_preserves_task_not_found_error():
+    handler = A2ARequestHandler(
+        _CompletingAdapter(),
+        InMemoryTaskStore(),
+        _agent_card(),
+    )
+
+    try:
+        events = handler.on_subscribe_to_task(
+            SubscribeToTaskRequest(id="missing-task"),
+            ServerCallContext(),
+        )
+
+        with pytest.raises(TaskNotFoundError):
+            await anext(events)
     finally:
         await handler.aclose()
 
