@@ -178,7 +178,7 @@ async def upload_attachment(context: TurnContext, service_url: str, conversation
         AttachmentData(
             name="resources\\agents-sdk.png",
             type="image/png",
-            original_base64=image_path.read_bytes()
+            original_base64=base64.b64encode(image_path.read_bytes()),
         )
     )
 
