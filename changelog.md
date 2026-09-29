@@ -11,6 +11,10 @@
 
 - **Handling Attachments Sample**: Added a sample demonstrating incoming attachment downloads, inline and internet-hosted attachments, and Teams attachment uploads.
 
+## Bug Fixes
+
+- **Client Citation Deserialization**: Fixed deserialization of citations containing `@id` values
+
 ---
 
 # Microsoft 365 Agents SDK for Python - Release Notes v1.7.0
