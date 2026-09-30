@@ -118,6 +118,7 @@ class TeamsTurnContext(TurnContext):
         if isinstance(recipient, str):
             recipient = ChannelAccount(id=recipient, role=RoleTypes.user)
 
+        activity.recipient = recipient
         activity.entities = activity.entities or []
 
         found_targeted_entity: bool = False
