@@ -44,6 +44,10 @@ CALG_RSA_KEYX = 0x0000A400
 NCRYPT_ALGORITHM_GROUP_PROPERTY = "Algorithm Group"
 NCRYPT_RSA_ALGORITHM_GROUP = "RSA"
 
+NCRYPT_PAD_PSS_FLAG = 0x00000008
+BCRYPT_SHA256_ALGORITHM = "SHA256"
+SHA256_DIGEST_LENGTH = 32
+
 
 class _CERT_CONTEXT(ctypes.Structure):
     pass
@@ -103,6 +107,13 @@ class _CERT_CHAIN_POLICY_STATUS(ctypes.Structure):
         ("lChainIndex", LONG),
         ("lElementIndex", LONG),
         ("pvExtraPolicyStatus", ctypes.c_void_p),
+    ]
+
+
+class _BCRYPT_PSS_PADDING_INFO(ctypes.Structure):
+    _fields_ = [
+        ("pszAlgId", ctypes.c_wchar_p),
+        ("cbSalt", DWORD),
     ]
 
 
@@ -181,6 +192,18 @@ def _configure_ncrypt(ncrypt) -> None:
         DWORD,
     ]
     ncrypt.NCryptGetProperty.restype = LONG
+
+    ncrypt.NCryptSignHash.argtypes = [
+        HCRYPTPROV_OR_NCRYPT_KEY_HANDLE,
+        ctypes.c_void_p,
+        ctypes.POINTER(BYTE),
+        DWORD,
+        ctypes.POINTER(BYTE),
+        DWORD,
+        ctypes.POINTER(DWORD),
+        DWORD,
+    ]
+    ncrypt.NCryptSignHash.restype = LONG
 
 
 def _configure_advapi32(advapi32) -> None:
@@ -451,3 +474,55 @@ def _is_private_key_rsa(
         key_handle=key_handle,
         key_spec=key_spec,
     )
+
+
+def _sign_hash_with_cng(
+    ncrypt,
+    *,
+    key_handle: int,
+    digest: bytes,
+) -> bytes:
+    if len(digest) != SHA256_DIGEST_LENGTH:
+        raise ValueError("PS256 signing requires a SHA-256 digest.")
+
+    padding_info = _BCRYPT_PSS_PADDING_INFO(
+        pszAlgId=BCRYPT_SHA256_ALGORITHM,
+        cbSalt=SHA256_DIGEST_LENGTH,
+    )
+
+    digest_buffer = (BYTE * len(digest)).from_buffer_copy(digest)
+    signature_size = DWORD()
+
+    if (
+        ncrypt.NCryptSignHash(
+            key_handle,
+            ctypes.byref(padding_info),
+            digest_buffer,
+            len(digest),
+            None,
+            0,
+            ctypes.byref(signature_size),
+            NCRYPT_PAD_PSS_FLAG,
+        )
+        != 0
+    ):
+        raise OSError("Failed to determine CNG signature size.")
+
+    signature = (BYTE * signature_size.value)()
+
+    if (
+        ncrypt.NCryptSignHash(
+            key_handle,
+            ctypes.byref(padding_info),
+            digest_buffer,
+            len(digest),
+            signature,
+            signature_size.value,
+            ctypes.byref(signature_size),
+            NCRYPT_PAD_PSS_FLAG,
+        )
+        != 0
+    ):
+        raise OSError("Failed to sign with CNG private key.")
+
+    return bytes(signature[: signature_size.value])

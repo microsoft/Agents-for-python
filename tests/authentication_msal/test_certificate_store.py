@@ -19,6 +19,7 @@ from microsoft_agents.authentication.msal._certificate_store import (
     _load_windows_apis,
     _normalize_store_name,
     _release_private_key,
+    _sign_hash_with_cng,
 )
 
 
@@ -559,3 +560,81 @@ def test_is_private_key_rsa_uses_cng_for_ncrypt_key(mocker):
     )
 
     advapi32.CryptGetUserKey.assert_not_called()
+
+
+def test_sign_hash_with_cng_returns_signature(mocker):
+    ncrypt = mocker.Mock()
+    digest = bytes(range(32))
+    expected_signature = b"\x01\x02\x03\x04"
+
+    def sign_hash(
+        _key_handle,
+        _padding_info,
+        _digest,
+        _digest_size,
+        signature,
+        _signature_buffer_size,
+        result_size,
+        _flags,
+    ):
+        result_size._obj.value = len(expected_signature)
+
+        if signature is not None:
+            for index, value in enumerate(expected_signature):
+                signature[index] = value
+
+        return 0
+
+    ncrypt.NCryptSignHash.side_effect = sign_hash
+
+    result = _sign_hash_with_cng(
+        ncrypt,
+        key_handle=123,
+        digest=digest,
+    )
+
+    assert result == expected_signature
+    assert ncrypt.NCryptSignHash.call_count == 2
+
+
+def test_sign_hash_with_cng_requires_sha256_digest(mocker):
+    ncrypt = mocker.Mock()
+
+    with pytest.raises(ValueError, match="SHA-256 digest"):
+        _sign_hash_with_cng(
+            ncrypt,
+            key_handle=123,
+            digest=b"invalid",
+        )
+
+    ncrypt.NCryptSignHash.assert_not_called()
+
+
+def test_sign_hash_with_cng_raises_when_signing_fails(mocker):
+    ncrypt = mocker.Mock()
+    digest = bytes(32)
+
+    def sign_hash(
+        _key_handle,
+        _padding_info,
+        _digest,
+        _digest_size,
+        signature,
+        _signature_buffer_size,
+        result_size,
+        _flags,
+    ):
+        if signature is None:
+            result_size._obj.value = 256
+            return 0
+
+        return 1
+
+    ncrypt.NCryptSignHash.side_effect = sign_hash
+
+    with pytest.raises(OSError, match="Failed to sign with CNG private key"):
+        _sign_hash_with_cng(
+            ncrypt,
+            key_handle=123,
+            digest=digest,
+        )
