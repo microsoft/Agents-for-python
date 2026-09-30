@@ -199,7 +199,7 @@ class Activity(AgentsModel):
     text_highlights: list[TextHighlight] = None
     semantic_action: SemanticAction = None
     caller_id: NonEmptyString = None
-    request_id: str | None = Field(None, exclude=True)
+    request_id: Annotated[str | None, Field(exclude=True)] = None
 
     @field_validator("entities", mode="before")
     @classmethod
@@ -552,6 +552,19 @@ class Activity(AgentsModel):
         :returns: This activity, to allow for method chaining.
         """
         self.suggested_actions = suggested_actions
+        return self
+
+    def with_recipient(self, recipient: str | ChannelAccount) -> Self:
+        """
+        Sets the recipient of the activity.
+
+        :param recipient: The recipient of the activity. Can be an id or a ChannelAccount instance.
+        :returns: This activity, to allow for method chaining.
+        """
+        if isinstance(recipient, str):
+            self.recipient = ChannelAccount(id=recipient, role=RoleTypes.user)
+        else:
+            self.recipient = recipient
         return self
 
     def add_text(self, text: str) -> Self:
@@ -1079,15 +1092,37 @@ class Activity(AgentsModel):
             entities.append(Activity._convert_entity(e, entity_cls))
         return entities
 
-    def get_product_info_entity(self) -> Optional[ProductInfo]:
+    def _get_entity_by_type(self, entity_type: str) -> Entity | None:
+        """
+        Internal method to get the first entity of a specific type from the activity's entities.
+
+        :param entity_type: The type of the entity to retrieve. This will be converted to lowercase for comparison.
+        :return: The first entity of the specified type, or None if not found.
+        """
         if not self.entities:
             return None
-        target = EntityTypes.PRODUCT_INFO.lower()
-        # validated entities can be Entity, and that prevents us from
-        # making assumptions about the casing of the 'type' attribute
-        raw_product_info = next(
-            filter(lambda e: e.type.lower() == target, self.entities), None
-        )
+        target = entity_type.lower()
+        return next((e for e in self.entities if e.type.lower() == target), None)
+
+    def _get_entities_by_type(self, entity_type: str) -> list[Entity]:
+        """
+        Internal method to get all entities of a specific type from the activity's entities.
+
+        :param entity_type: The type of the entities to retrieve. This will be converted to lowercase for comparison.
+        :return: A list of entities of the specified type. Returns an empty list if none are found.
+        """
+        if not self.entities:
+            return []
+        target = entity_type.lower()
+        return [e for e in self.entities if e.type.lower() == target]
+
+    def get_product_info_entity(self) -> Optional[ProductInfo]:
+        """
+        Get the product info entity from the activity's entities.
+
+        :return: The product info entity, or None if not found.
+        """
+        raw_product_info = self._get_entity_by_type(EntityTypes.PRODUCT_INFO)
         if raw_product_info is None:
             return None
         return Activity._convert_entity(raw_product_info, ProductInfo)
@@ -1102,12 +1137,9 @@ class Activity(AgentsModel):
             This method is defined on the :class:`microsoft_agents.activity.Activity` class, but is only intended for use with
             a message activity, where the activity Activity.Type is set to ActivityTypes.Message.
         """
-        if not self.entities:
+        raw_mentions = self._get_entities_by_type(EntityTypes.MENTION.value)
+        if not raw_mentions:
             return []
-        raw_mentions = [
-            x for x in self.entities if x.type.lower() == EntityTypes.MENTION.value
-        ]
-
         return Activity._convert_entity_list(raw_mentions, Mention)
 
     def get_reply_conversation_reference(

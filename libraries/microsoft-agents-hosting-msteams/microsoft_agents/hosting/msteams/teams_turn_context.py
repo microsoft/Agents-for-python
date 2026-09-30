@@ -7,6 +7,7 @@ from __future__ import annotations
 
 from typing import cast
 
+from microsoft_agents.activity.entity.entity import Entity
 from msgraph import GraphServiceClient
 
 from microsoft_teams.api import ApiClient
@@ -15,7 +16,11 @@ from microsoft_agents.activity import (
     Activity,
     ActivityTreatment,
     ActivityTreatmentTypes,
+    ActivityTypes,
+    ChannelAccount,
+    EntityTypes,
     ResourceResponse,
+    RoleTypes,
 )
 from microsoft_agents.hosting.core import (
     AgentApplication,
@@ -99,40 +104,64 @@ class TeamsTurnContext(TurnContext):
         return _get_teams_api_client(self)
 
     @staticmethod
-    def _make_targeted_activity(activity: Activity) -> None:
+    def _make_targeted_activity(
+        activity: Activity, recipient: str | ChannelAccount
+    ) -> None:
         """
         Make an activity targeted.
 
         :param activity: The activity to make targeted.
+        :param recipient: The recipient to target the activity to. Can be a string or a ChannelAccount instance.
         :return: None
         """
-        activity.entities = activity.entities or []
-        activity.entities.append(
-            ActivityTreatment(treatment=ActivityTreatmentTypes.TARGETED)
-        )
 
-    async def send_targeted_activity(self, activity: Activity) -> ResourceResponse:
+        if isinstance(recipient, str):
+            recipient = ChannelAccount(id=recipient, role=RoleTypes.user)
+
+        activity.entities = activity.entities or []
+
+        found_targeted_entity: bool = False
+
+        if activity.entities is not None:
+            # try to remove all targeted entities but keep the first one
+            def _keep(entity: Entity) -> bool:
+                nonlocal found_targeted_entity
+                entity_type = entity.type.lower()
+                if entity_type == EntityTypes.ACTIVITY_TREATMENT.value.lower():
+                    treatment = getattr(entity, "treatment", None)
+                    if treatment == ActivityTreatmentTypes.TARGETED:
+                        if found_targeted_entity:
+                            return False
+                        found_targeted_entity = True
+                return True
+
+            # https://stackoverflow.com/questions/1207406/how-to-remove-items-from-a-list-while-iterating
+            # entity lists probably won't get too big, but heck
+            activity.entities[:] = [
+                entity for entity in activity.entities if _keep(entity)
+            ]
+
+        if not found_targeted_entity:
+            activity.entities.append(
+                ActivityTreatment(treatment=ActivityTreatmentTypes.TARGETED)
+            )
+
+    async def send_targeted_activity(
+        self,
+        activity: str | Activity,
+        recipient: str | ChannelAccount,
+    ) -> ResourceResponse:
         """
         Send a targeted activity.
 
         :param activity: The activity to send.
+        :param recipient: The recipient to target the activity to. Can be a string or a ChannelAccount instance.
         :return: The resource response.
         """
-        TeamsTurnContext._make_targeted_activity(activity)
+        if isinstance(activity, str):
+            activity = Activity(type=ActivityTypes.message, text=activity)
+        TeamsTurnContext._make_targeted_activity(activity, recipient)
         return await self.send_activity(activity)
-
-    async def send_targeted_activities(
-        self, activities: list[Activity]
-    ) -> list[ResourceResponse]:
-        """
-        Send a list of targeted activities.
-
-        :param activities: The list of activities to send.
-        :return: A list of resource responses.
-        """
-        for activity in activities:
-            TeamsTurnContext._make_targeted_activity(activity)
-        return await self.send_activities(activities)
 
     def get_graph_client(
         self,
