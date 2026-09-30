@@ -185,4 +185,4 @@ def _is_recipient_targeted(activity: Activity) -> bool:
     recipient = activity.recipient
     if recipient is None:
         return False
-    return recipient and getattr(recipient, "isTargeted", None) == True
+    return recipient and getattr(recipient, "isTargeted", None) is True
