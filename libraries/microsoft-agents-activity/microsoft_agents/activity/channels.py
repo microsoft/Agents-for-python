@@ -79,6 +79,9 @@ class Channels(str, Enum):
     copilot_studio = "pva-studio"
     """Microsoft Copilot Studio channel."""
 
+    m365_copilot = f"msteams:COPILOT"
+    """Microsoft 365 Copilot channel."""
+
     ms_teams = "msteams"
     """Deprecated alias for :attr:`msteams`. Kept for backwards compatibility."""
 
