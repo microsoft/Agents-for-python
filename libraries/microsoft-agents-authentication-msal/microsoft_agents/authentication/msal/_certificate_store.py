@@ -22,6 +22,7 @@ LONG = ctypes.c_int32
 BOOL = ctypes.c_int32
 BYTE = ctypes.c_ubyte
 HCERTSTORE = ctypes.c_void_p
+HCRYPTPROV_OR_NCRYPT_KEY_HANDLE = ctypes.c_size_t
 
 X509_ASN_ENCODING = 0x00000001
 PKCS_7_ASN_ENCODING = 0x00010000
@@ -29,6 +30,10 @@ CERT_ENCODING = X509_ASN_ENCODING | PKCS_7_ASN_ENCODING
 
 CERT_FIND_SUBJECT_STR_W = 0x00080007
 CERT_CHAIN_POLICY_BASE = 1
+CRYPT_ACQUIRE_PREFER_NCRYPT_KEY_FLAG = 0x00020000
+
+AT_SIGNATURE = 2
+CERT_NCRYPT_KEY_SPEC = 0xFFFFFFFF
 
 
 class _CERT_CONTEXT(ctypes.Structure):
@@ -141,6 +146,31 @@ def _configure_crypt32(crypt32) -> None:
     crypt32.CertFreeCertificateChain.argtypes = [ctypes.c_void_p]
     crypt32.CertFreeCertificateChain.restype = None
 
+    crypt32.CryptAcquireCertificatePrivateKey.argtypes = [
+        PCCERT_CONTEXT,
+        DWORD,
+        ctypes.c_void_p,
+        ctypes.POINTER(HCRYPTPROV_OR_NCRYPT_KEY_HANDLE),
+        ctypes.POINTER(DWORD),
+        ctypes.POINTER(BOOL),
+    ]
+    crypt32.CryptAcquireCertificatePrivateKey.restype = BOOL
+
+
+def _configure_ncrypt(ncrypt) -> None:
+    ncrypt.NCryptFreeObject.argtypes = [
+        HCRYPTPROV_OR_NCRYPT_KEY_HANDLE,
+    ]
+    ncrypt.NCryptFreeObject.restype = LONG
+
+
+def _configure_advapi32(advapi32) -> None:
+    advapi32.CryptReleaseContext.argtypes = [
+        HCRYPTPROV_OR_NCRYPT_KEY_HANDLE,
+        DWORD,
+    ]
+    advapi32.CryptReleaseContext.restype = BOOL
+
 
 def _normalize_store_name(store_name: str | None) -> str:
     if not store_name:
@@ -157,9 +187,14 @@ def _load_windows_apis():
         )
 
     crypt32 = ctypes.WinDLL("crypt32", use_last_error=True)
-    _configure_crypt32(crypt32)
+    ncrypt = ctypes.WinDLL("ncrypt", use_last_error=True)
+    advapi32 = ctypes.WinDLL("advapi32", use_last_error=True)
 
-    return crypt32
+    _configure_crypt32(crypt32)
+    _configure_ncrypt(ncrypt)
+    _configure_advapi32(advapi32)
+
+    return crypt32, ncrypt, advapi32
 
 
 def _is_certificate_valid(crypt32, certificate: PCCERT_CONTEXT) -> bool:
@@ -245,3 +280,44 @@ def _find_certificate_context(
             crypt32.CertFreeCertificateContext(certificate)
 
         crypt32.CertCloseStore(store, 0)
+
+
+def _acquire_private_key(
+    crypt32,
+    certificate: PCCERT_CONTEXT,
+) -> tuple[int, int, bool]:
+    key_handle = HCRYPTPROV_OR_NCRYPT_KEY_HANDLE()
+    key_spec = DWORD()
+    caller_free = BOOL()
+
+    if not crypt32.CryptAcquireCertificatePrivateKey(
+        certificate,
+        CRYPT_ACQUIRE_PREFER_NCRYPT_KEY_FLAG,
+        None,
+        ctypes.byref(key_handle),
+        ctypes.byref(key_spec),
+        ctypes.byref(caller_free),
+    ):
+        raise OSError("Failed to acquire certificate private key.")
+
+    return key_handle.value, key_spec.value, bool(caller_free.value)
+
+
+def _release_private_key(
+    ncrypt,
+    advapi32,
+    *,
+    key_handle: int,
+    key_spec: int,
+    caller_free: bool,
+) -> None:
+    if not caller_free:
+        return
+
+    if key_spec == CERT_NCRYPT_KEY_SPEC:
+        if ncrypt.NCryptFreeObject(key_handle) != 0:
+            raise OSError("Failed to release CNG private key.")
+        return
+
+    if not advapi32.CryptReleaseContext(key_handle, 0):
+        raise OSError("Failed to release certificate private key provider.")

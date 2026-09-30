@@ -3,12 +3,16 @@ import ctypes
 import pytest
 from microsoft_agents.authentication.msal._certificate_store import (
     _CERT_CONTEXT,
+    AT_SIGNATURE,
     CERT_ENCODING,
     CERT_FIND_SUBJECT_STR_W,
+    CERT_NCRYPT_KEY_SPEC,
+    _acquire_private_key,
     _find_certificate_context,
     _is_certificate_valid,
     _load_windows_apis,
     _normalize_store_name,
+    _release_private_key,
 )
 
 
@@ -300,3 +304,138 @@ def test_find_certificate_context_raises_when_all_certificates_are_invalid(mocke
     crypt32.CertDuplicateCertificateContext.assert_not_called()
     crypt32.CertFreeCertificateContext.assert_not_called()
     crypt32.CertCloseStore.assert_called_once_with(store, 0)
+
+
+def test_acquire_private_key_returns_cng_key(mocker):
+    crypt32 = mocker.Mock()
+    certificate = ctypes.pointer(_CERT_CONTEXT())
+
+    def acquire_key(_, __, ___, key_handle, key_spec, caller_free):
+        key_handle._obj.value = 123
+        key_spec._obj.value = 0xFFFFFFFF
+        caller_free._obj.value = True
+        return True
+
+    crypt32.CryptAcquireCertificatePrivateKey.side_effect = acquire_key
+
+    result = _acquire_private_key(crypt32, certificate)
+
+    assert result == (123, 0xFFFFFFFF, True)
+
+
+def test_acquire_private_key_returns_legacy_key(mocker):
+    crypt32 = mocker.Mock()
+    certificate = ctypes.pointer(_CERT_CONTEXT())
+
+    def acquire_key(_, __, ___, key_handle, key_spec, caller_free):
+        key_handle._obj.value = 456
+        key_spec._obj.value = 2
+        caller_free._obj.value = False
+        return True
+
+    crypt32.CryptAcquireCertificatePrivateKey.side_effect = acquire_key
+
+    result = _acquire_private_key(crypt32, certificate)
+
+    assert result == (456, 2, False)
+
+
+def test_acquire_private_key_raises_when_acquisition_fails(mocker):
+    crypt32 = mocker.Mock()
+    certificate = ctypes.pointer(_CERT_CONTEXT())
+
+    crypt32.CryptAcquireCertificatePrivateKey.return_value = False
+
+    with pytest.raises(OSError, match="Failed to acquire certificate private key"):
+        _acquire_private_key(crypt32, certificate)
+
+
+def test_release_private_key_releases_cng_key(mocker):
+    ncrypt = mocker.Mock()
+    advapi32 = mocker.Mock()
+
+    ncrypt.NCryptFreeObject.return_value = 0
+
+    _release_private_key(
+        ncrypt,
+        advapi32,
+        key_handle=123,
+        key_spec=CERT_NCRYPT_KEY_SPEC,
+        caller_free=True,
+    )
+
+    ncrypt.NCryptFreeObject.assert_called_once_with(123)
+    advapi32.CryptReleaseContext.assert_not_called()
+
+
+def test_release_private_key_releases_legacy_provider(mocker):
+    ncrypt = mocker.Mock()
+    advapi32 = mocker.Mock()
+
+    advapi32.CryptReleaseContext.return_value = True
+
+    _release_private_key(
+        ncrypt,
+        advapi32,
+        key_handle=456,
+        key_spec=AT_SIGNATURE,
+        caller_free=True,
+    )
+
+    advapi32.CryptReleaseContext.assert_called_once_with(456, 0)
+    ncrypt.NCryptFreeObject.assert_not_called()
+
+
+def test_release_private_key_does_not_release_unowned_handle(mocker):
+    ncrypt = mocker.Mock()
+    advapi32 = mocker.Mock()
+
+    _release_private_key(
+        ncrypt,
+        advapi32,
+        key_handle=123,
+        key_spec=CERT_NCRYPT_KEY_SPEC,
+        caller_free=False,
+    )
+
+    ncrypt.NCryptFreeObject.assert_not_called()
+    advapi32.CryptReleaseContext.assert_not_called()
+
+
+def test_release_private_key_raises_when_cng_release_fails(mocker):
+    ncrypt = mocker.Mock()
+    advapi32 = mocker.Mock()
+
+    ncrypt.NCryptFreeObject.return_value = 1
+
+    with pytest.raises(OSError, match="Failed to release CNG private key"):
+        _release_private_key(
+            ncrypt,
+            advapi32,
+            key_handle=123,
+            key_spec=CERT_NCRYPT_KEY_SPEC,
+            caller_free=True,
+        )
+
+    advapi32.CryptReleaseContext.assert_not_called()
+
+
+def test_release_private_key_raises_when_legacy_release_fails(mocker):
+    ncrypt = mocker.Mock()
+    advapi32 = mocker.Mock()
+
+    advapi32.CryptReleaseContext.return_value = False
+
+    with pytest.raises(
+        OSError,
+        match="Failed to release certificate private key provider",
+    ):
+        _release_private_key(
+            ncrypt,
+            advapi32,
+            key_handle=456,
+            key_spec=AT_SIGNATURE,
+            caller_free=True,
+        )
+
+    ncrypt.NCryptFreeObject.assert_not_called()
