@@ -114,7 +114,11 @@ class ChannelAdapter(ABC, ChannelAdapterProtocol):
         :rtype: typing.Any
         """
         context = TurnContext(self, reference.get_continuation_activity())
-        return await self.run_pipeline(context, callback)
+        try:
+            res = await self.run_pipeline(context, callback)
+        finally:
+            await context._aclose()
+        return res
 
     async def continue_conversation_with_claims(
         self,
@@ -220,7 +224,11 @@ class ChannelAdapter(ABC, ChannelAdapterProtocol):
         context.turn_state["ConversationParameters"] = conversation_parameters
 
         # Process the activity through the middleware pipeline
-        return await self.run_pipeline(context, callback)
+        try:
+            res = await self.run_pipeline(context, callback)
+        finally:
+            await context._aclose()
+        return res
 
     async def run_pipeline(
         self,

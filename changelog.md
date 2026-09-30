@@ -5,15 +5,19 @@
 
 ## Major Features & Enhancements
 
-- **Teams API Client Performance**: Reused a cached SSL context when constructing per-turn Teams API clients, reducing repeated CA certificate loading and client initialization overhead
+- **Attachment Downloaders**: Added `AttachmentDownloader` and `M365AttachmentDownloader` for downloading standard, Microsoft Teams, and Microsoft 365 Copilot attachments into `TurnState.temp.input_files`.
 - **Teams API Dependency**: Updated `microsoft-agents-hosting-msteams` to use `microsoft-teams-api` 2.1.0
+- **Teams API Client Performance**: Reused a cached SSL context when constructing per-turn Teams API clients, reducing repeated CA certificate loading and client initialization overhead
+
+## Samples
+
+- **Handling Attachments Sample**: Added a sample demonstrating incoming attachment downloads, inline and internet-hosted attachments, and Teams attachment uploads.
 
 ## Bug Fixes
 
 - **Client Citation Deserialization**: Fixed deserialization of citations containing `@id` values
 
 ---
-
 
 # Microsoft 365 Agents SDK for Python - Release Notes v1.7.0
 

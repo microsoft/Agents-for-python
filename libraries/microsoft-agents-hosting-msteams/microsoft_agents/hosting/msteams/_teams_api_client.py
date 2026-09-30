@@ -9,6 +9,7 @@ available.
 """
 
 import ssl
+from time import time
 import certifi
 
 from typing import Callable, Awaitable
@@ -67,6 +68,7 @@ def _client(
         _http=httpx.AsyncClient(
             base_url=base_url,
             headers=headers,
+            timeout=options.timeout,
             verify=_get_ssl_context(),
         ),
     )
