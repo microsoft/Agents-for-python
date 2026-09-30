@@ -30,7 +30,7 @@ _ssl_context: ssl.SSLContext | None = None
 def _get_ssl_context() -> ssl.SSLContext:
     """Get or create the SSL context for verifying HTTPS requests.
 
-    httpx by default creates a new SSL context for each new client instance. This is can be
+    httpx by default creates a new SSL context for each new client instance. This can be
     inefficient. For example, at the time of writing this, without caching the SSL context,
     the hosting_msteams unit tests took 32 seconds to complete. With caching, the total
     time for the unit tests dropped to 7 seconds. For an agent with lots of traffic,
