@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 from abc import ABC
+from contextlib import AsyncExitStack
 from http import HTTPStatus
 from typing import Awaitable, Callable, Optional, cast
 from uuid import uuid4
@@ -308,13 +309,12 @@ class ChannelServiceAdapter(ChannelAdapter, ABC):
             user_token_client  # for back-compat
         )
 
-        # Run the pipeline
-        try:
+        # Run the pipeline and release resources in reverse registration order.
+        async with AsyncExitStack() as cleanup:
+            cleanup.push_async_callback(context._aclose)
+            cleanup.push_async_callback(user_token_client.close)
+            cleanup.push_async_callback(connector_client.close)
             await self.run_pipeline(context, callback)
-        finally:
-            await connector_client.close()
-            await user_token_client.close()
-            await context._aclose()
 
     async def process_proactive(
         self,
@@ -358,13 +358,12 @@ class ChannelServiceAdapter(ChannelAdapter, ABC):
             connector_client  # for back-compat
         )
 
-        # Run the pipeline
-        try:
+        # Run the pipeline and release resources in reverse registration order.
+        async with AsyncExitStack() as cleanup:
+            cleanup.push_async_callback(context._aclose)
+            cleanup.push_async_callback(user_token_client.close)
+            cleanup.push_async_callback(connector_client.close)
             await self.run_pipeline(context, callback)
-        finally:
-            await connector_client.close()
-            await user_token_client.close()
-            await context._aclose()
 
     def _resolve_if_connector_client_is_needed(self, activity: Activity) -> bool:
         """Determine if a connector client is needed based on the activity's delivery mode and service URL.
@@ -453,13 +452,12 @@ class ChannelServiceAdapter(ChannelAdapter, ABC):
                 connector_client  # for back-compat
             )
 
-        try:
-            await self.run_pipeline(context, callback)
-        finally:
+        async with AsyncExitStack() as cleanup:
+            cleanup.push_async_callback(context._aclose)
+            cleanup.push_async_callback(user_token_client.close)
             if connector_client:
-                await connector_client.close()
-            await user_token_client.close()
-            await context._aclose()
+                cleanup.push_async_callback(connector_client.close)
+            await self.run_pipeline(context, callback)
 
         # If there are any results they will have been left on the TurnContext.
         return self._process_turn_results(context)

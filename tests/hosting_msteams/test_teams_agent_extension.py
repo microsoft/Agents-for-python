@@ -35,6 +35,9 @@ class _FakeServiceSet:
     def has(self, key):
         return key in self._state
 
+    def get(self, key):
+        return self._state.get(key)
+
     def set(self, key, value):
         self._state[key] = value
 
@@ -50,6 +53,10 @@ class _FakeContext:
 
     def _on_aclose(self, handler):
         self.on_aclose_handlers.append(handler)
+
+    async def _aclose(self):
+        for handler in self.on_aclose_handlers:
+            await handler(self)
 
 
 class TestTeamsAgentExtensionProperties:
@@ -116,7 +123,7 @@ class TestBeforeTurnHook:
         assert ctx.on_aclose_handlers == []
 
     @pytest.mark.asyncio
-    async def test_teams_channel_deserializes_channel_data(self):
+    async def test_teams_channel_deserializes_channel_data(self, mocker):
         activity = Activity(
             type="conversationUpdate",
             channel_id=Channels.ms_teams,
@@ -132,9 +139,15 @@ class TestBeforeTurnHook:
         assert activity.channel_data.channel.id == "c1"
         assert ctx.services.has(ApiClient)
         assert len(ctx.on_aclose_handlers) == 1
+        async_client = ctx.services.get(ApiClient).http.http
+        close_spy = mocker.spy(async_client, "aclose")
+
+        await ctx._aclose()
+
+        close_spy.assert_awaited_once_with()
 
     @pytest.mark.asyncio
-    async def test_teams_channel_without_channel_data_sets_none(self):
+    async def test_teams_channel_without_channel_data_sets_none(self, mocker):
         activity = Activity(
             type="conversationUpdate",
             channel_id=Channels.ms_teams,
@@ -147,3 +160,9 @@ class TestBeforeTurnHook:
         assert result is True
         assert activity.channel_data is None
         assert len(ctx.on_aclose_handlers) == 1
+        async_client = ctx.services.get(ApiClient).http.http
+        close_spy = mocker.spy(async_client, "aclose")
+
+        await ctx._aclose()
+
+        close_spy.assert_awaited_once_with()
