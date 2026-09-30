@@ -3,6 +3,10 @@
 **Release Date:** Unreleased
 **Previous Version:** 1.7.0 (Released 2026-09-17)
 
+## Major Features & Enhancements
+
+- **Teams API Dependency**: Updated `microsoft-agents-hosting-msteams` to use `microsoft-teams-api` 2.1.0
+
 ## Bug Fixes
 
 - **Client Citation Deserialization**: Fixed deserialization of citations containing `@id` values
