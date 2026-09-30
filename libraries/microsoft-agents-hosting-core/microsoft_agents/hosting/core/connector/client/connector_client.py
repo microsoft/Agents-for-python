@@ -276,8 +276,15 @@ class ConversationsOperations(ConversationsBase, _BaseClient):
                 body.type,
             )
 
+            params = (
+                {"isTargetedActivity": "true"}
+                if body.channel_id == Channels.ms_teams and body.is_targeted_activity()
+                else None
+            )
+
             async with self._wrapped_client().post(
                 url,
+                params=params,
                 json=body.model_dump(
                     by_alias=True, exclude_unset=True, exclude_none=True, mode="json"
                 ),
@@ -337,8 +344,15 @@ class ConversationsOperations(ConversationsBase, _BaseClient):
                 body.type,
             )
 
+            params = (
+                {"isTargetedActivity": "true"}
+                if body.channel_id == Channels.ms_teams and body.is_targeted_activity()
+                else None
+            )
+
             async with self._wrapped_client().post(
                 url,
+                params=params,
                 json=body.model_dump(by_alias=True, exclude_unset=True, mode="json"),
             ) as response:
                 span.share(http_method="POST", status_code=response.status)

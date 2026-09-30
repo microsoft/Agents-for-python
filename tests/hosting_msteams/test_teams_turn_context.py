@@ -30,7 +30,11 @@ if is_supported_version:
     )
 
     from microsoft_agents.hosting.msteams import TeamsActivity, TeamsTurnContext
-    from microsoft_agents.hosting.msteams.models import QuotedReply, QuotedReplyData
+    from microsoft_agents.hosting.msteams.models import (
+        QuotedReply,
+        QuotedReplyData,
+        TargetedMessageInfo,
+    )
 
 
 class TestSendTargetedActivity:
@@ -103,18 +107,28 @@ class TestSendTargetedActivity:
 
 
 class TestPromptPreview:
-    @pytest.mark.asyncio
-    async def test_send_activity_uses_targeted_inbound_message_metadata(self):
+    @staticmethod
+    def _make_real_context(
+        *,
+        targeted: bool,
+        activity_id: str = "inbound-message",
+    ) -> tuple[TeamsTurnContext, object]:
         original = _make_context(ActivityTypes.message)
-        original.activity.id = "inbound-message"
+        original.activity.id = activity_id
         original.activity.conversation = ConversationAccount(id="conversation-id")
-        original.activity.recipient = ChannelAccount.model_validate(
-            {"id": "agent-id", "isTargeted": True}
-        )
+        recipient_data = {"id": "agent-id"}
+        if targeted:
+            recipient_data["isTargeted"] = True
+        original.activity.recipient = ChannelAccount.model_validate(recipient_data)
 
         context = object.__new__(TeamsTurnContext)
         context._original = original
         context._teams_activity = original.activity
+        return context, original.adapter
+
+    @pytest.mark.asyncio
+    async def test_send_activity_uses_targeted_inbound_message_metadata(self):
+        context, adapter = self._make_real_context(targeted=True)
 
         response = TeamsActivity(
             type=ActivityTypes.message,
@@ -126,7 +140,7 @@ class TestPromptPreview:
 
         await context.send_activity(response)
 
-        sent = original.adapter.sent_activities[0]
+        sent = adapter.sent_activities[0]
         assert sent.text == "response"
         assert not [
             entity for entity in sent.entities if entity.type.lower() == "quotedreply"
@@ -138,3 +152,74 @@ class TestPromptPreview:
         ]
         assert len(targeted_message_info) == 1
         assert targeted_message_info[0].message_id == "inbound-message"
+
+    @pytest.mark.asyncio
+    async def test_send_string_adds_prompt_preview_for_targeted_inbound(self):
+        context, adapter = self._make_real_context(targeted=True)
+
+        await context.send_activity("response")
+
+        sent = adapter.sent_activities[0]
+        targeted_message_info = [
+            entity
+            for entity in sent.entities
+            if entity.type.lower() == "targetedmessageinfo"
+        ]
+        assert len(targeted_message_info) == 1
+        assert targeted_message_info[0].message_id == "inbound-message"
+
+    @pytest.mark.asyncio
+    async def test_send_activity_does_not_add_prompt_preview_for_regular_inbound(self):
+        context, adapter = self._make_real_context(targeted=False)
+
+        await context.send_activity(
+            Activity(type=ActivityTypes.message, text="response")
+        )
+
+        sent = adapter.sent_activities[0]
+        assert not [
+            entity
+            for entity in sent.entities or []
+            if entity.type.lower() == "targetedmessageinfo"
+        ]
+
+    @pytest.mark.asyncio
+    async def test_send_activities_adds_prompt_preview_to_each_message(self):
+        context, adapter = self._make_real_context(targeted=True)
+
+        await context.send_activities(
+            [
+                Activity(type=ActivityTypes.message, text="first"),
+                Activity(type=ActivityTypes.message, text="second"),
+            ]
+        )
+
+        assert len(adapter.sent_activities) == 2
+        for sent in adapter.sent_activities:
+            targeted_message_info = [
+                entity
+                for entity in sent.entities
+                if entity.type.lower() == "targetedmessageinfo"
+            ]
+            assert len(targeted_message_info) == 1
+            assert targeted_message_info[0].message_id == "inbound-message"
+
+    @pytest.mark.asyncio
+    async def test_send_activity_preserves_explicit_prompt_preview_metadata(self):
+        context, adapter = self._make_real_context(targeted=True)
+        response = Activity(
+            type=ActivityTypes.message,
+            text="response",
+            entities=[TargetedMessageInfo(message_id="explicit-message")],
+        )
+
+        await context.send_activity(response)
+
+        sent = adapter.sent_activities[0]
+        targeted_message_info = [
+            entity
+            for entity in sent.entities
+            if entity.type.lower() == "targetedmessageinfo"
+        ]
+        assert len(targeted_message_info) == 1
+        assert targeted_message_info[0].message_id == "explicit-message"

@@ -725,7 +725,7 @@ class Activity(AgentsModel):
             appears in Activity.text.
         """
         if not identifier:
-            return self.text
+            return self.text or ""
 
         for mention in self.get_mentions():
             if not mention.mentioned or mention.mentioned.id != identifier:
@@ -740,7 +740,7 @@ class Activity(AgentsModel):
                 pattern, "", self.text or "", flags=re.IGNORECASE
             ).strip()
 
-        return self.text
+        return self.text or ""
 
     def is_targeted_activity(self) -> bool:
         """
@@ -751,11 +751,13 @@ class Activity(AgentsModel):
         if not self.entities:
             return False
 
+        target_type = EntityTypes.ACTIVITY_TREATMENT.lower()
+
         for entity in self.entities:
             if (
-                entity.type == EntityTypes.ACTIVITY_TREATMENT
-                and isinstance(entity, ActivityTreatment)
-                and entity.treatment == ActivityTreatmentTypes.TARGETED
+                entity.type.lower() == target_type
+                and getattr(entity, "treatment", None)
+                == ActivityTreatmentTypes.TARGETED
             ):
                 return True
 

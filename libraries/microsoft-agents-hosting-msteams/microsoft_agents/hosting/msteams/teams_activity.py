@@ -170,7 +170,7 @@ class TeamsActivity(Activity):
         )
 
         placeholder = f'<quoted messageId="{html.escape(message_id, quote=True)}"/>'
-        self.text = f"{self.text or ""}{placeholder}"
+        self.text = f"{self.text or ''}{placeholder}"
         if text is not None:
             self.text = f"{self.text} {text}"
 
