@@ -24,6 +24,7 @@ from microsoft_teams.api.models import (
 )
 
 from microsoft_agents.activity import (
+    ActivityTypes,
     ActionTypes,
     CardAction,
     ChannelAccount,
@@ -48,7 +49,7 @@ from microsoft_agents.hosting.core.storage import (
     ConsoleTranscriptLogger,
     TranscriptLoggerMiddleware,
 )
-from microsoft_agents.hosting.msteams import TeamsAgentExtension
+from microsoft_agents.hosting.msteams import TeamsAgentExtension, TeamsActivity
 from microsoft_agents.hosting.msteams.teams_turn_context import TeamsTurnContext
 
 logger = logging.getLogger(__name__)
@@ -272,6 +273,20 @@ async def on_team_renamed(
 
 # ── Message commands ─────────────────────────────────────────────────────────
 
+@teams.message("quotedreply")
+async def on_quoted_reply(context: TeamsTurnContext, state: TurnState) -> None:
+    """Handle a quoted reply message."""
+    message_id = context.activity.id
+    if not message_id:
+        raise ValueError("Message ID is required for a quoted reply.")
+    
+    reply = TeamsActivity(
+        type=ActivityTypes.message,
+        text=""
+    )
+    reply.add_quoted_reply(message_id, "This response includes a quoted reply to your message.")
+
+    await context.send_activity(reply)
 
 @teams.message("targeted")
 async def on_targeted(context: TeamsTurnContext, state: TurnState) -> None:

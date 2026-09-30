@@ -17,6 +17,7 @@ pytestmark = pytest.mark.skipif(
 )
 
 if is_supported_version:
+    from microsoft_agents.activity import ActivityTypes, ChannelAccount
     from microsoft_teams.api.models import (
         ChannelData,
         ChannelInfo,
@@ -27,6 +28,7 @@ if is_supported_version:
     from microsoft_teams.api.models.channel_data.settings import ChannelDataSettings
 
     from microsoft_agents.hosting.msteams import TeamsActivity
+    from microsoft_agents.hosting.msteams.models import QuotedReplyData
 
 
 def _activity(channel_data=None) -> "TeamsActivity":
@@ -161,3 +163,45 @@ class TestEnableFeedbackLoop:
         activity = _activity()
         assert activity.enable_feedback_loop("custom") is True
         assert activity.channel_data.feedback_loop.type == "custom"
+
+
+class TestPromptPreview:
+
+    def test_is_recipient_targeted_reads_wire_property(self):
+        recipient = ChannelAccount.model_validate({"id": "user-id", "isTargeted": True})
+        activity = TeamsActivity(
+            type=ActivityTypes.message,
+            recipient=recipient,
+        )
+
+        assert activity.is_recipient_targeted() is True
+
+    def test_add_quoted_reply_adds_escaped_self_closing_placeholder(self):
+        activity = TeamsActivity(type=ActivityTypes.message, text="")
+
+        activity.add_quoted_reply('message&"id', "response")
+
+        quoted_reply = activity.get_quoted_messages()[0]
+        assert quoted_reply.quoted_reply.message_id == 'message&"id'
+        assert activity.text == '<quoted messageId="message&amp;&quot;id"/> response'
+
+    def test_add_quoted_reply_without_existing_or_appended_text(self):
+        activity = TeamsActivity(type=ActivityTypes.message)
+
+        activity.add_quoted_reply("message-id")
+
+        assert activity.text == '<quoted messageId="message-id"/>'
+
+    def test_quoted_reply_validated_reference_round_trips_wire_name(self):
+        data = QuotedReplyData.model_validate(
+            {
+                "messageId": "message-id",
+                "validatedMessageReference": True,
+            }
+        )
+
+        assert data.validated_message_reference is True
+        assert data.model_dump(by_alias=True, exclude_none=True) == {
+            "messageId": "message-id",
+            "validatedMessageReference": True,
+        }

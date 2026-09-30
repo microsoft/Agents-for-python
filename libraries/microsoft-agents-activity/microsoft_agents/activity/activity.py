@@ -176,7 +176,7 @@ class Activity(AgentsModel):
     topic_name: NonEmptyString = None
     history_disclosed: bool = None
     locale: NonEmptyString = None
-    text: str = None
+    text: str | None = None
     speak: str = None
     input_hint: NonEmptyString = None
     summary: NonEmptyString = None
@@ -565,6 +565,45 @@ class Activity(AgentsModel):
             self.recipient = ChannelAccount(id=recipient, role=RoleTypes.user)
         else:
             self.recipient = recipient
+        return self
+
+    def with_targeted_recipient(self, recipient: str | ChannelAccount) -> Self:
+        """
+        Make an activity targeted.
+
+        :param recipient: The recipient to target the activity to. Can be a string or a ChannelAccount instance.
+        :return: This activity, to allow for method chaining.
+        """
+
+        if isinstance(recipient, str):
+            recipient = ChannelAccount(id=recipient, role=RoleTypes.user)
+
+        self.recipient = recipient
+        self.entities = self.entities or []
+
+        found_targeted_entity: bool = False
+
+        if self.entities is not None:
+            # try to remove all targeted entities but keep the first one
+            def _keep(entity: Entity) -> bool:
+                nonlocal found_targeted_entity
+                entity_type = entity.type.lower()
+                if entity_type == EntityTypes.ACTIVITY_TREATMENT.value.lower():
+                    treatment = getattr(entity, "treatment", None)
+                    if treatment == ActivityTreatmentTypes.TARGETED:
+                        if found_targeted_entity:
+                            return False
+                        found_targeted_entity = True
+                return True
+
+            # https://stackoverflow.com/questions/1207406/how-to-remove-items-from-a-list-while-iterating
+            # entity lists probably won't get too big, but heck
+            self.entities[:] = [entity for entity in self.entities if _keep(entity)]
+
+        if not found_targeted_entity:
+            self.entities.append(
+                ActivityTreatment(treatment=ActivityTreatmentTypes.TARGETED)
+            )
         return self
 
     def add_text(self, text: str) -> Self:

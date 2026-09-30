@@ -3,11 +3,13 @@
 
 """Tests for TeamsTurnContext helpers that can be exercised without a live adapter."""
 
+from __future__ import annotations
+
 from unittest.mock import AsyncMock
 
 import pytest
 
-from .helpers import is_supported_version
+from .helpers import _make_context, is_supported_version
 
 pytestmark = pytest.mark.skipif(
     not is_supported_version,
@@ -21,12 +23,14 @@ if is_supported_version:
         ActivityTreatmentTypes,
         ActivityTypes,
         ChannelAccount,
+        ConversationAccount,
         Entity,
         ResourceResponse,
         RoleTypes,
     )
 
-    from microsoft_agents.hosting.msteams import TeamsTurnContext
+    from microsoft_agents.hosting.msteams import TeamsActivity, TeamsTurnContext
+    from microsoft_agents.hosting.msteams.models import QuotedReply, QuotedReplyData
 
 
 class TestSendTargetedActivity:
@@ -96,3 +100,41 @@ class TestSendTargetedActivity:
 
         assert Entity(type="mention") in activity.entities
         assert len(self._targeted_treatments(activity)) == 1
+
+
+class TestPromptPreview:
+    @pytest.mark.asyncio
+    async def test_send_activity_uses_targeted_inbound_message_metadata(self):
+        original = _make_context(ActivityTypes.message)
+        original.activity.id = "inbound-message"
+        original.activity.conversation = ConversationAccount(id="conversation-id")
+        original.activity.recipient = ChannelAccount.model_validate(
+            {"id": "agent-id", "isTargeted": True}
+        )
+
+        context = object.__new__(TeamsTurnContext)
+        context._original = original
+        context._teams_activity = original.activity
+
+        response = TeamsActivity(
+            type=ActivityTypes.message,
+            text='<quoted messageId="quoted-message"/> response',
+            entities=[
+                QuotedReply(quoted_reply=QuotedReplyData(message_id="quoted-message"))
+            ],
+        )
+
+        await context.send_activity(response)
+
+        sent = original.adapter.sent_activities[0]
+        assert sent.text == "response"
+        assert not [
+            entity for entity in sent.entities if entity.type.lower() == "quotedreply"
+        ]
+        targeted_message_info = [
+            entity
+            for entity in sent.entities
+            if entity.type.lower() == "targetedmessageinfo"
+        ]
+        assert len(targeted_message_info) == 1
+        assert targeted_message_info[0].message_id == "inbound-message"

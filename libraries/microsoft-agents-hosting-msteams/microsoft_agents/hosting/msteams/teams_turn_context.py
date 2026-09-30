@@ -7,20 +7,16 @@ from __future__ import annotations
 
 from typing import cast
 
-from microsoft_agents.activity.entity.entity import Entity
 from msgraph import GraphServiceClient
 
 from microsoft_teams.api import ApiClient
 
 from microsoft_agents.activity import (
     Activity,
-    ActivityTreatment,
-    ActivityTreatmentTypes,
     ActivityTypes,
     ChannelAccount,
-    EntityTypes,
+    InputHints,
     ResourceResponse,
-    RoleTypes,
 )
 from microsoft_agents.hosting.core import (
     AgentApplication,
@@ -35,6 +31,7 @@ from ._graph import (
 )
 from ._teams_api_client import _get_teams_api_client, _set_teams_api_client
 from .teams_activity import TeamsActivity
+from ._utils import _apply_prompt_preview_normalizer, _is_recipient_targeted
 
 
 class TeamsTurnContext(TurnContext):
@@ -103,49 +100,67 @@ class TeamsTurnContext(TurnContext):
         """Get the API client for the Teams turn context."""
         return _get_teams_api_client(self)
 
-    @staticmethod
-    def _make_targeted_activity(
-        activity: Activity, recipient: str | ChannelAccount
-    ) -> None:
+    def _apply_prompt_preview(self, activity: Activity) -> None:
         """
-        Make an activity targeted.
+        Apply the prompt preview to the given activity.
 
-        :param activity: The activity to make targeted.
-        :param recipient: The recipient to target the activity to. Can be a string or a ChannelAccount instance.
+        :param activity: The activity to apply the prompt preview to.
         :return: None
         """
+        if (
+            activity.type == ActivityTypes.message
+            and _is_recipient_targeted(self.activity)
+            and self.activity.id
+        ):
+            _apply_prompt_preview_normalizer(activity, self.activity.id)
 
-        if isinstance(recipient, str):
-            recipient = ChannelAccount(id=recipient, role=RoleTypes.user)
+    async def send_activity(
+        self,
+        activity_or_text: Activity | str,
+        speak: str | None = None,
+        input_hint: str | None = None,
+    ) -> ResourceResponse:
+        """Send an activity after applying the prompt preview.
 
-        activity.recipient = recipient
-        activity.entities = activity.entities or []
+        :param activity_or_text: The activity or text to send.
+        :param speak: Optional speech text for the activity.
+        :param input_hint: Optional input hint for the activity.
+        :return: The resource response for the sent activity.
+        """
 
-        found_targeted_entity: bool = False
-
-        if activity.entities is not None:
-            # try to remove all targeted entities but keep the first one
-            def _keep(entity: Entity) -> bool:
-                nonlocal found_targeted_entity
-                entity_type = entity.type.lower()
-                if entity_type == EntityTypes.ACTIVITY_TREATMENT.value.lower():
-                    treatment = getattr(entity, "treatment", None)
-                    if treatment == ActivityTreatmentTypes.TARGETED:
-                        if found_targeted_entity:
-                            return False
-                        found_targeted_entity = True
-                return True
-
-            # https://stackoverflow.com/questions/1207406/how-to-remove-items-from-a-list-while-iterating
-            # entity lists probably won't get too big, but heck
-            activity.entities[:] = [
-                entity for entity in activity.entities if _keep(entity)
-            ]
-
-        if not found_targeted_entity:
-            activity.entities.append(
-                ActivityTreatment(treatment=ActivityTreatmentTypes.TARGETED)
+        if isinstance(activity_or_text, str):
+            activity_or_text = Activity(
+                type=ActivityTypes.message,
+                text=activity_or_text,
+                input_hint=input_hint or InputHints.accepting_input,
             )
+            if speak:
+                activity_or_text.speak = speak
+
+        self._apply_prompt_preview(
+            activity_or_text
+            if isinstance(activity_or_text, Activity)
+            else Activity(type=ActivityTypes.message, text=activity_or_text)
+        )
+
+        return await TurnContext.send_activity(self._original, activity_or_text)
+
+    async def send_activities(
+        self, activities: list[Activity]
+    ) -> list[ResourceResponse]:
+        """Send multiple activities after applying the prompt preview to each.
+
+        :param activities: A list of activities to send.
+        :return: A list of resource responses for the sent activities.
+        """
+
+        for activity in activities:
+            self._apply_prompt_preview(activity)
+
+        return await TurnContext.send_activities(
+            self._original,
+            activities,
+        )
 
     async def send_targeted_activity(
         self,
@@ -161,7 +176,7 @@ class TeamsTurnContext(TurnContext):
         """
         if isinstance(activity, str):
             activity = Activity(type=ActivityTypes.message, text=activity)
-        TeamsTurnContext._make_targeted_activity(activity, recipient)
+        activity.with_targeted_recipient(recipient)
         return await self.send_activity(activity)
 
     def get_graph_client(
