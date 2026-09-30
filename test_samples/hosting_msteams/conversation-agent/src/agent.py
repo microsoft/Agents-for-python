@@ -275,9 +275,7 @@ async def on_team_renamed(
 
 @teams.message("targeted")
 async def on_targeted(context: TeamsTurnContext, state: TurnState) -> None:
-    """Send a 1:1 message to every member of the current conversation."""
-    app_id = _app_id(context)
-    audience = _audience(context)
+    """Send a private targeted message to every member of the conversation."""
     continuation_token: Optional[str] = None
     while True:
         paged = await teams.get_teams_api_client(
@@ -286,13 +284,10 @@ async def on_targeted(context: TeamsTurnContext, state: TurnState) -> None:
             100, continuation_token
         )
         for member in paged.members or []:
-
-            async def _send(ctx: TurnContext, _name=member.name) -> None:
-                await ctx.send_activity(
-                    f"{_name}, this is a **targeted message** — only you can see this."
-                )
-
-            await _create_one_on_one(context, app_id, audience, member, _send)
+            await context.send_targeted_activity(
+                f"{member.name}, this is a **targeted message** — only you can see this.",
+                member.id,
+            )
 
         continuation_token = paged.continuation_token
         if not continuation_token:

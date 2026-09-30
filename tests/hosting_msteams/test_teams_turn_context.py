@@ -41,8 +41,7 @@ class TestSendTargetedActivity:
         return [
             entity
             for entity in activity.entities or []
-            if getattr(entity, "treatment", None)
-            == ActivityTreatmentTypes.TARGETED
+            if getattr(entity, "treatment", None) == ActivityTreatmentTypes.TARGETED
         ]
 
     @pytest.mark.asyncio
@@ -57,9 +56,7 @@ class TestSendTargetedActivity:
         activity = context.send_activity.await_args.args[0]
         assert activity.type == ActivityTypes.message
         assert activity.text == "hello"
-        assert activity.recipient == ChannelAccount(
-            id="user-id", role=RoleTypes.user
-        )
+        assert activity.recipient == ChannelAccount(id="user-id", role=RoleTypes.user)
         assert len(self._targeted_treatments(activity)) == 1
 
     @pytest.mark.asyncio

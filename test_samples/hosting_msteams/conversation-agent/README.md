@@ -26,10 +26,11 @@ Message commands (driven by the welcome card buttons, all `@teams.message(...)`)
 | `mentionme` | Replies with an Adaptive Card that @-mentions the caller. |
 | `atmention` | Replies with a text message that @-mentions the caller. |
 | `messageall` | Proactively sends a 1:1 greeting to every team member. |
-| `targeted` | Sends a 1:1 message to every member of the conversation. |
+| `targeted` | Sends a private targeted activity to every member of the conversation. |
 
 Member lookups use `teams.get_teams_api_client(context).conversations.members`,
-and proactive messages use `adapter.create_conversation(...)`.
+targeted messages use `context.send_targeted_activity(...)`, and proactive
+messages use `adapter.create_conversation(...)`.
 
 ## Running
 
