@@ -22,6 +22,7 @@ LONG = ctypes.c_int32
 BOOL = ctypes.c_int32
 BYTE = ctypes.c_ubyte
 HCERTSTORE = ctypes.c_void_p
+HCRYPTKEY = ctypes.c_size_t
 HCRYPTPROV_OR_NCRYPT_KEY_HANDLE = ctypes.c_size_t
 
 X509_ASN_ENCODING = 0x00000001
@@ -32,8 +33,16 @@ CERT_FIND_SUBJECT_STR_W = 0x00080007
 CERT_CHAIN_POLICY_BASE = 1
 CRYPT_ACQUIRE_PREFER_NCRYPT_KEY_FLAG = 0x00020000
 
+AT_KEYEXCHANGE = 1
 AT_SIGNATURE = 2
 CERT_NCRYPT_KEY_SPEC = 0xFFFFFFFF
+
+KP_ALGID = 7
+CALG_RSA_SIGN = 0x00002400
+CALG_RSA_KEYX = 0x0000A400
+
+NCRYPT_ALGORITHM_GROUP_PROPERTY = "Algorithm Group"
+NCRYPT_RSA_ALGORITHM_GROUP = "RSA"
 
 
 class _CERT_CONTEXT(ctypes.Structure):
@@ -163,6 +172,16 @@ def _configure_ncrypt(ncrypt) -> None:
     ]
     ncrypt.NCryptFreeObject.restype = LONG
 
+    ncrypt.NCryptGetProperty.argtypes = [
+        HCRYPTPROV_OR_NCRYPT_KEY_HANDLE,
+        ctypes.c_wchar_p,
+        ctypes.POINTER(BYTE),
+        DWORD,
+        ctypes.POINTER(DWORD),
+        DWORD,
+    ]
+    ncrypt.NCryptGetProperty.restype = LONG
+
 
 def _configure_advapi32(advapi32) -> None:
     advapi32.CryptReleaseContext.argtypes = [
@@ -170,6 +189,25 @@ def _configure_advapi32(advapi32) -> None:
         DWORD,
     ]
     advapi32.CryptReleaseContext.restype = BOOL
+
+    advapi32.CryptGetUserKey.argtypes = [
+        HCRYPTPROV_OR_NCRYPT_KEY_HANDLE,
+        DWORD,
+        ctypes.POINTER(HCRYPTKEY),
+    ]
+    advapi32.CryptGetUserKey.restype = BOOL
+
+    advapi32.CryptGetKeyParam.argtypes = [
+        HCRYPTKEY,
+        DWORD,
+        ctypes.POINTER(BYTE),
+        ctypes.POINTER(DWORD),
+        DWORD,
+    ]
+    advapi32.CryptGetKeyParam.restype = BOOL
+
+    advapi32.CryptDestroyKey.argtypes = [HCRYPTKEY]
+    advapi32.CryptDestroyKey.restype = BOOL
 
 
 def _normalize_store_name(store_name: str | None) -> str:
@@ -321,3 +359,95 @@ def _release_private_key(
 
     if not advapi32.CryptReleaseContext(key_handle, 0):
         raise OSError("Failed to release certificate private key provider.")
+
+
+def _is_cng_key_rsa(ncrypt, key_handle: int) -> bool:
+    result_size = DWORD()
+
+    if (
+        ncrypt.NCryptGetProperty(
+            key_handle,
+            NCRYPT_ALGORITHM_GROUP_PROPERTY,
+            None,
+            0,
+            ctypes.byref(result_size),
+            0,
+        )
+        != 0
+    ):
+        raise OSError("Failed to get CNG private key algorithm.")
+
+    buffer = (BYTE * result_size.value)()
+
+    if (
+        ncrypt.NCryptGetProperty(
+            key_handle,
+            NCRYPT_ALGORITHM_GROUP_PROPERTY,
+            buffer,
+            result_size.value,
+            ctypes.byref(result_size),
+            0,
+        )
+        != 0
+    ):
+        raise OSError("Failed to get CNG private key algorithm.")
+
+    algorithm_group = (
+        bytes(buffer[: result_size.value]).decode("utf-16-le").rstrip("\0")
+    )
+
+    return algorithm_group == NCRYPT_RSA_ALGORITHM_GROUP
+
+
+def _is_legacy_key_rsa(
+    advapi32,
+    *,
+    key_handle: int,
+    key_spec: int,
+) -> bool:
+    user_key = HCRYPTKEY()
+
+    if not advapi32.CryptGetUserKey(
+        key_handle,
+        key_spec,
+        ctypes.byref(user_key),
+    ):
+        raise OSError("Failed to access certificate private key.")
+
+    try:
+        algorithm = DWORD()
+        algorithm_size = DWORD(ctypes.sizeof(algorithm))
+
+        if not advapi32.CryptGetKeyParam(
+            user_key,
+            KP_ALGID,
+            ctypes.cast(ctypes.byref(algorithm), ctypes.POINTER(BYTE)),
+            ctypes.byref(algorithm_size),
+            0,
+        ):
+            raise OSError("Failed to get certificate private key algorithm.")
+    except BaseException:
+        advapi32.CryptDestroyKey(user_key.value)
+        raise
+
+    if not advapi32.CryptDestroyKey(user_key.value):
+        raise OSError("Failed to release certificate private key handle.")
+
+    return algorithm.value in (CALG_RSA_SIGN, CALG_RSA_KEYX)
+
+
+def _is_private_key_rsa(
+    ncrypt,
+    advapi32,
+    *,
+    key_handle: int,
+    key_spec: int,
+) -> bool:
+    if key_spec == CERT_NCRYPT_KEY_SPEC:
+        return _is_cng_key_rsa(ncrypt, key_handle)
+
+    return _is_legacy_key_rsa(
+        advapi32,
+        key_handle=key_handle,
+        key_spec=key_spec,
+    )

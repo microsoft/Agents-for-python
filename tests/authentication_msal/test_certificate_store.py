@@ -3,13 +3,19 @@ import ctypes
 import pytest
 from microsoft_agents.authentication.msal._certificate_store import (
     _CERT_CONTEXT,
+    AT_KEYEXCHANGE,
     AT_SIGNATURE,
+    CALG_RSA_KEYX,
+    CALG_RSA_SIGN,
     CERT_ENCODING,
     CERT_FIND_SUBJECT_STR_W,
     CERT_NCRYPT_KEY_SPEC,
     _acquire_private_key,
     _find_certificate_context,
     _is_certificate_valid,
+    _is_cng_key_rsa,
+    _is_legacy_key_rsa,
+    _is_private_key_rsa,
     _load_windows_apis,
     _normalize_store_name,
     _release_private_key,
@@ -439,3 +445,117 @@ def test_release_private_key_raises_when_legacy_release_fails(mocker):
         )
 
     ncrypt.NCryptFreeObject.assert_not_called()
+
+
+def test_is_cng_key_rsa_returns_true_for_rsa(mocker):
+    ncrypt = mocker.Mock()
+    encoded_algorithm = "RSA\0".encode("utf-16-le")
+
+    def get_property(_, __, buffer, ___, result_size, ____):
+        result_size._obj.value = len(encoded_algorithm)
+
+        if buffer is not None:
+            for index, value in enumerate(encoded_algorithm):
+                buffer[index] = value
+
+        return 0
+
+    ncrypt.NCryptGetProperty.side_effect = get_property
+
+    assert _is_cng_key_rsa(ncrypt, 123)
+
+
+def test_is_cng_key_rsa_returns_false_for_non_rsa(mocker):
+    ncrypt = mocker.Mock()
+    encoded_algorithm = "ECDSA\0".encode("utf-16-le")
+
+    def get_property(_, __, buffer, ___, result_size, ____):
+        result_size._obj.value = len(encoded_algorithm)
+
+        if buffer is not None:
+            for index, value in enumerate(encoded_algorithm):
+                buffer[index] = value
+
+        return 0
+
+    ncrypt.NCryptGetProperty.side_effect = get_property
+
+    assert not _is_cng_key_rsa(ncrypt, 123)
+
+
+@pytest.mark.parametrize("algorithm", [CALG_RSA_SIGN, CALG_RSA_KEYX])
+def test_is_legacy_key_rsa_returns_true_for_rsa(mocker, algorithm):
+    advapi32 = mocker.Mock()
+
+    def get_user_key(_, __, user_key):
+        user_key._obj.value = 789
+        return True
+
+    def get_key_param(_, __, algorithm_buffer, ___, ____):
+        ctypes.cast(
+            algorithm_buffer,
+            ctypes.POINTER(ctypes.c_uint32),
+        ).contents.value = algorithm
+        return True
+
+    advapi32.CryptGetUserKey.side_effect = get_user_key
+    advapi32.CryptGetKeyParam.side_effect = get_key_param
+    advapi32.CryptDestroyKey.return_value = True
+
+    assert _is_legacy_key_rsa(
+        advapi32,
+        key_handle=456,
+        key_spec=AT_SIGNATURE,
+    )
+
+    advapi32.CryptDestroyKey.assert_called_once_with(789)
+
+
+def test_is_legacy_key_rsa_returns_false_for_non_rsa(mocker):
+    advapi32 = mocker.Mock()
+
+    def get_user_key(_, __, user_key):
+        user_key._obj.value = 789
+        return True
+
+    def get_key_param(_, __, algorithm_buffer, ___, ____):
+        ctypes.cast(
+            algorithm_buffer,
+            ctypes.POINTER(ctypes.c_uint32),
+        ).contents.value = 0
+        return True
+
+    advapi32.CryptGetUserKey.side_effect = get_user_key
+    advapi32.CryptGetKeyParam.side_effect = get_key_param
+    advapi32.CryptDestroyKey.return_value = True
+
+    assert not _is_legacy_key_rsa(
+        advapi32,
+        key_handle=456,
+        key_spec=AT_KEYEXCHANGE,
+    )
+
+
+def test_is_private_key_rsa_uses_cng_for_ncrypt_key(mocker):
+    ncrypt = mocker.Mock()
+    advapi32 = mocker.Mock()
+
+    encoded_algorithm = "RSA\0".encode("utf-16-le")
+
+    def get_property(_, __, buffer, ___, result_size, ____):
+        result_size._obj.value = len(encoded_algorithm)
+        if buffer is not None:
+            for index, value in enumerate(encoded_algorithm):
+                buffer[index] = value
+        return 0
+
+    ncrypt.NCryptGetProperty.side_effect = get_property
+
+    assert _is_private_key_rsa(
+        ncrypt,
+        advapi32,
+        key_handle=123,
+        key_spec=CERT_NCRYPT_KEY_SPEC,
+    )
+
+    advapi32.CryptGetUserKey.assert_not_called()
