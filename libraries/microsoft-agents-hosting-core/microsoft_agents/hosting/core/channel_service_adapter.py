@@ -309,10 +309,12 @@ class ChannelServiceAdapter(ChannelAdapter, ABC):
         )
 
         # Run the pipeline
-        await self.run_pipeline(context, callback)
-
-        await connector_client.close()
-        await user_token_client.close()
+        try:
+            await self.run_pipeline(context, callback)
+        finally:
+            await connector_client.close()
+            await user_token_client.close()
+            await context._aclose()
 
     async def process_proactive(
         self,
@@ -357,10 +359,12 @@ class ChannelServiceAdapter(ChannelAdapter, ABC):
         )
 
         # Run the pipeline
-        await self.run_pipeline(context, callback)
-
-        await connector_client.close()
-        await user_token_client.close()
+        try:
+            await self.run_pipeline(context, callback)
+        finally:
+            await connector_client.close()
+            await user_token_client.close()
+            await context._aclose()
 
     def _resolve_if_connector_client_is_needed(self, activity: Activity) -> bool:
         """Determine if a connector client is needed based on the activity's delivery mode and service URL.
@@ -449,11 +453,13 @@ class ChannelServiceAdapter(ChannelAdapter, ABC):
                 connector_client  # for back-compat
             )
 
-        await self.run_pipeline(context, callback)
-
-        if connector_client:
-            await connector_client.close()
-        await user_token_client.close()
+        try:
+            await self.run_pipeline(context, callback)
+        finally:
+            if connector_client:
+                await connector_client.close()
+            await user_token_client.close()
+            await context._aclose()
 
         # If there are any results they will have been left on the TurnContext.
         return self._process_turn_results(context)

@@ -46,6 +46,10 @@ class _FakeContext:
         self.activity = activity
         self.identity = identity
         self.services = _FakeServiceSet()
+        self.on_aclose_handlers = []
+
+    def _on_aclose(self, handler):
+        self.on_aclose_handlers.append(handler)
 
 
 class TestTeamsAgentExtensionProperties:
@@ -109,6 +113,7 @@ class TestBeforeTurnHook:
         # channel_data left as the raw dict; no Teams API client cached
         assert activity.channel_data == {"channel": {"id": "c"}}
         assert not ctx.services.has(ApiClient)
+        assert ctx.on_aclose_handlers == []
 
     @pytest.mark.asyncio
     async def test_teams_channel_deserializes_channel_data(self):
@@ -126,6 +131,7 @@ class TestBeforeTurnHook:
         assert isinstance(activity.channel_data, ChannelData)
         assert activity.channel_data.channel.id == "c1"
         assert ctx.services.has(ApiClient)
+        assert len(ctx.on_aclose_handlers) == 1
 
     @pytest.mark.asyncio
     async def test_teams_channel_without_channel_data_sets_none(self):
@@ -140,3 +146,4 @@ class TestBeforeTurnHook:
 
         assert result is True
         assert activity.channel_data is None
+        assert len(ctx.on_aclose_handlers) == 1

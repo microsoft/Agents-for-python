@@ -9,7 +9,6 @@ available.
 """
 
 import ssl
-from time import time
 import certifi
 
 from typing import Callable, Awaitable

@@ -132,9 +132,10 @@ class TeamsAgentExtension(Generic[StateT]):
         async def on_before_turn(context: TurnContext, state: StateT) -> bool:
             if context.activity.channel_id == Channels.ms_teams:
                 _set_teams_api_client(context, self._app.connection_manager)
+                context._on_aclose(on_close_turn)
+
                 # caches the deserialized version of ChannelData
                 context.activity.channel_data = _try_get_channel_data(context.activity)
-                context._on_aclose(on_close_turn)
             return True
 
         self._app.before_turn(on_before_turn)
