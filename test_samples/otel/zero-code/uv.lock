@@ -194,6 +194,19 @@ wheels = [
 ]
 
 [[package]]
+name = "azure-core"
+version = "1.41.0"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "requests" },
+    { name = "typing-extensions" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/a6/f3/b416179e408990df5db0d516283022dde0f5d0111d98c1a848e41853e81c/azure_core-1.41.0.tar.gz", hash = "sha256:f46ff5dfcd230f25cf1c19e8a34b8dc08a337b2503e268bb600a16c00db8ad5a", size = 381042, upload-time = "2026-05-07T23:30:54.302Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/5b/db/325c6d7312d2200251c52323878281045aaffcb5586612296484e4280eaa/azure_core-1.41.0-py3-none-any.whl", hash = "sha256:522b4011e8180b1a3dcd2024396a4e7fe9ac37fb8597db47163d230b5efe892d", size = 220920, upload-time = "2026-05-07T23:30:56.357Z" },
+]
+
+[[package]]
 name = "certifi"
 version = "2026.7.22"
 source = { registry = "https://pypi.org/simple" }
@@ -779,6 +792,7 @@ requires-dist = [{ name = "pydantic", specifier = ">=2.10.4" }]
 name = "microsoft-agents-authentication-msal"
 source = { editable = "../../../libraries/microsoft-agents-authentication-msal" }
 dependencies = [
+    { name = "azure-core" },
     { name = "microsoft-agents-hosting-core" },
     { name = "msal" },
     { name = "requests" },
@@ -786,6 +800,7 @@ dependencies = [
 
 [package.metadata]
 requires-dist = [
+    { name = "azure-core" },
     { name = "microsoft-agents-hosting-core", specifier = "==0.0.0" },
     { name = "msal", specifier = ">=1.34.0" },
     { name = "requests", specifier = ">=2.32.3" },
@@ -810,6 +825,7 @@ name = "microsoft-agents-hosting-core"
 source = { editable = "../../../libraries/microsoft-agents-hosting-core" }
 dependencies = [
     { name = "aiohttp" },
+    { name = "azure-core" },
     { name = "isodate" },
     { name = "microsoft-agents-activity" },
     { name = "opentelemetry-api" },
@@ -822,6 +838,7 @@ dependencies = [
 [package.metadata]
 requires-dist = [
     { name = "aiohttp", specifier = ">=3.11.11" },
+    { name = "azure-core" },
     { name = "isodate", specifier = ">=0.6.1" },
     { name = "microsoft-agents-activity", specifier = "==0.0.0" },
     { name = "opentelemetry-api", specifier = ">=1.27.0" },
@@ -1555,11 +1572,11 @@ wheels = [
 
 [[package]]
 name = "urllib3"
-version = "2.7.0"
+version = "2.8.0"
 source = { registry = "https://pypi.org/simple" }
-sdist = { url = "https://files.pythonhosted.org/packages/53/0c/06f8b233b8fd13b9e5ee11424ef85419ba0d8ba0b3138bf360be2ff56953/urllib3-2.7.0.tar.gz", hash = "sha256:231e0ec3b63ceb14667c67be60f2f2c40a518cb38b03af60abc813da26505f4c", size = 433602, upload-time = "2026-05-07T16:13:18.596Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/e3/05/b17359e1cefb4f909b5e40b1b90a496d987258916dbbf88e842c729f510e/urllib3-2.8.0.tar.gz", hash = "sha256:63bf2ead4c879426ebf22ef2a781eeb4aa3b4ae798a0435506f8687fd5bb9b63", size = 458972, upload-time = "2026-09-15T19:29:36.253Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/7f/3e/5db95bcf282c52709639744ca2a8b149baccf648e39c8cc87553df9eae0c/urllib3-2.7.0-py3-none-any.whl", hash = "sha256:9fb4c81ebbb1ce9531cce37674bbc6f1360472bc18ca9a553ede278ef7276897", size = 131087, upload-time = "2026-05-07T16:13:17.151Z" },
+    { url = "https://files.pythonhosted.org/packages/92/9d/c4e665119135114480843e7ab388fa94d8480650450e6f8e26b70d323a4c/urllib3-2.8.0-py3-none-any.whl", hash = "sha256:0cf3cae568d36aa9576b28dfb35f11328f1cb974ca7647d9475ebb86c75ac6e3", size = 135717, upload-time = "2026-09-15T19:29:34.577Z" },
 ]
 
 [[package]]
