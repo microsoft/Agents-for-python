@@ -5,6 +5,7 @@
 
 from __future__ import annotations
 
+import warnings
 from typing import cast
 
 from msgraph import GraphServiceClient
@@ -165,7 +166,7 @@ class TeamsTurnContext(TurnContext):
     async def send_targeted_activity(
         self,
         activity: str | Activity,
-        recipient: str | ChannelAccount,
+        recipient: str | ChannelAccount | None = None,
     ) -> ResourceResponse:
         """
         Send a targeted activity.
@@ -174,6 +175,18 @@ class TeamsTurnContext(TurnContext):
         :param recipient: The recipient to target the activity to. Can be a string or a ChannelAccount instance.
         :return: The resource response.
         """
+        if recipient is None:
+            warnings.warn(
+                "Using an empty recipient is deprecated and will be removed in a future release.",
+                DeprecationWarning,
+                stacklevel=2,
+            )
+            if isinstance(activity, str) or not activity.recipient:
+                raise ValueError(
+                    "Cannot infer the recipient from the passed-in activity."
+                )
+            recipient = activity.recipient
+
         if isinstance(activity, str):
             activity = Activity(type=ActivityTypes.message, text=activity)
         activity.with_targeted_recipient(recipient)

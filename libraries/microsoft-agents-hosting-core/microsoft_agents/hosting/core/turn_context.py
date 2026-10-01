@@ -356,8 +356,7 @@ class TurnContext(TurnContextProtocol):
         :return:
         """
         activity.channel_id = reference.channel_id
-        if reference.locale:
-            activity.locale = reference.locale
+        activity.locale = reference.locale or activity.locale
         activity.service_url = reference.service_url
         activity.conversation = reference.conversation
         activity.request_id = reference.request_id
@@ -369,7 +368,12 @@ class TurnContext(TurnContextProtocol):
                 activity.id = reference.activity_id
         else:
             activity.from_property = reference.agent
-            activity.recipient = reference.user
+            # Targeted activities should have the recipient set to the intended user
+            # instead of the incoming Activity's sender. This allows for propery routing
+            # of the outgoing activity to the user even if the incoming activity was sent
+            # to a different users (e.g. in group chat scenarios)
+            if not activity.is_targeted_activity() or activity.recipient is None:
+                activity.recipient = reference.user
             if reference.activity_id:
                 activity.reply_to_id = reference.activity_id
 

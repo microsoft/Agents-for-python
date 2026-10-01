@@ -105,6 +105,46 @@ class TestSendTargetedActivity:
         assert Entity(type="mention") in activity.entities
         assert len(self._targeted_treatments(activity)) == 1
 
+    @pytest.mark.asyncio
+    async def test_deprecated_empty_recipient_uses_activity_recipient(self):
+        response = ResourceResponse(id="activity-id")
+        context = self._make_context(response)
+        recipient = ChannelAccount(id="user-id", name="User")
+        activity = Activity(
+            type=ActivityTypes.message,
+            text="hello",
+            recipient=recipient,
+        )
+
+        with pytest.warns(
+            DeprecationWarning,
+            match="Using an empty recipient is deprecated",
+        ):
+            result = await context.send_targeted_activity(activity)
+
+        assert result is response
+        context.send_activity.assert_awaited_once_with(activity)
+        assert activity.recipient == recipient
+        assert len(self._targeted_treatments(activity)) == 1
+
+    @pytest.mark.asyncio
+    async def test_deprecated_empty_recipient_fails_when_activity_has_no_recipient(
+        self,
+    ):
+        context = self._make_context(ResourceResponse())
+        activity = Activity(type=ActivityTypes.message, text="hello")
+
+        with pytest.warns(
+            DeprecationWarning,
+            match="Using an empty recipient is deprecated",
+        ), pytest.raises(
+            ValueError,
+            match="Cannot infer the recipient from the passed-in activity",
+        ):
+            await context.send_targeted_activity(activity)
+
+        context.send_activity.assert_not_awaited()
+
 
 class TestPromptPreview:
     @staticmethod

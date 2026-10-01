@@ -15,7 +15,8 @@ Conversation-update and lifecycle events:
 | channel created / renamed / deleted | `@teams.channels.created` / `.renamed` / `.deleted` |
 | team renamed | `@teams.teams.renamed` |
 
-Message commands (driven by the welcome card buttons, all `@teams.message(...)`):
+Message commands (all registered with `@teams.message(...)`; most are also
+available from the welcome card):
 
 | Command | Behaviour |
 |---------|-----------|
@@ -27,10 +28,12 @@ Message commands (driven by the welcome card buttons, all `@teams.message(...)`)
 | `atmention` | Replies with a text message that @-mentions the caller. |
 | `messageall` | Proactively sends a 1:1 greeting to every team member. |
 | `targeted` | Sends a private targeted activity to every member of the conversation. |
+| `quotedreply` | Replies with a quote of the triggering message. |
 
 Member lookups use `teams.get_teams_api_client(context).conversations.members`,
 targeted messages use `context.send_targeted_activity(...)`, and proactive
-messages use `adapter.create_conversation(...)`.
+messages use `adapter.create_conversation(...)`. Quoted replies are built with
+`TeamsActivity.add_quoted_reply(...)`.
 
 ## Running
 

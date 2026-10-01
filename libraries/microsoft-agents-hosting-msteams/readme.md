@@ -230,6 +230,10 @@ context.activity.notify_user(alert_in_meeting=True)
 
 # Attach a feedback loop to a message being sent (Copilot scenarios)
 context.activity.enable_feedback_loop()
+
+# Inspect quoted messages or targeted-message metadata
+quoted_messages = context.activity.get_quoted_messages()
+targeted_message = context.activity.get_targeted_message_info()
 ```
 
 #### `context.api_client` → `ApiClient`
@@ -238,12 +242,42 @@ Direct access to the Teams REST API client, pre-authenticated for the current tu
 
 #### Sending targeted activities
 
-`TeamsTurnContext` adds two methods for sending activities that target a specific user in a meeting:
+Use `TeamsTurnContext.send_targeted_activity()` to send a private activity to a
+specific user in a meeting or group conversation. Pass either the recipient ID
+or a `ChannelAccount`:
 
 ```python
-await context.send_targeted_activity(activity)
-await context.send_targeted_activities([activity1, activity2])
+await context.send_targeted_activity(
+    "Only you can see this message.",
+    recipient.id,
+)
 ```
+
+Replies to inbound targeted activities automatically include the prompt-preview
+metadata required by Teams.
+
+#### Sending quoted replies
+
+Use `TeamsActivity.add_quoted_reply()` to quote an existing message:
+
+```python
+from microsoft_agents.activity import ActivityTypes
+from microsoft_agents.hosting.msteams import TeamsActivity
+
+message_id = context.activity.id
+if not message_id:
+    raise ValueError("Message ID is required for a quoted reply.")
+
+reply = TeamsActivity(type=ActivityTypes.message)
+reply.add_quoted_reply(
+    message_id,
+    "This response includes a quote of your message.",
+)
+await context.send_activity(reply)
+```
+
+Use `context.activity.get_quoted_messages()` to inspect quoted messages on an
+incoming activity.
 
 ### Messaging Extensions
 

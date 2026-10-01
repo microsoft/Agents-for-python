@@ -166,7 +166,7 @@ class Activity(AgentsModel):
     service_url: NonEmptyString = None
     from_property: Annotated[ChannelAccount, Field(alias="from")] = None
     conversation: ConversationAccount = None
-    recipient: ChannelAccount = None
+    recipient: ChannelAccount | None = None
     text_format: NonEmptyString = None
     attachment_layout: NonEmptyString = None
     members_added: list[ChannelAccount] = None

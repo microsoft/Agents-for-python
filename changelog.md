@@ -3,6 +3,16 @@
 **Release Date:** Unreleased
 **Previous Version:** 1.7.0 (Released 2026-09-17)
 
+## Major Features & Enhancements
+
+- **Teams Quoted Replies**: Added `TeamsActivity.add_quoted_reply()` for creating quoted replies and `get_quoted_messages()` for reading quoted-message metadata, with typed `QuotedReply` and `QuotedReplyData` models
+- **Targeted Activity Sending**: Improved `TeamsTurnContext.send_targeted_activity()` to accept text or an activity plus a recipient ID or `ChannelAccount`, preserve the intended recipient when applying conversation references, and send the Teams `isTargetedActivity=true` connector parameter
+- **Targeted Reply Prompt Previews**: Added automatic prompt-preview metadata when replying to inbound targeted activities, along with helpers for detecting targeted recipients and reading `TargetedMessageInfo`
+
+## Developer Experience
+
+- **Teams Conversation Agent Sample**: Expanded the sample and package documentation with targeted activity and quoted reply examples
+
 ## Bug Fixes
 
 - **Client Citation Deserialization**: Fixed deserialization of citations containing `@id` values
