@@ -3,9 +3,15 @@
 **Release Date:** Unreleased
 **Previous Version:** 1.7.0 (Released 2026-09-17)
 
-## New Models & APIs
+## Major Features & Enhancements
 
-- **Request ID Propagation**: Added `request_id` to `Activity` and `ConversationReference`, with automatic generation for incoming HTTP requests and propagation through conversation references and continuation activities for end-to-end request tracing (#591)
+- **Attachment Downloaders**: Added `AttachmentDownloader` and `M365AttachmentDownloader` for downloading standard, Microsoft Teams, and Microsoft 365 Copilot attachments into `TurnState.temp.input_files`.
+- **Teams API Dependency**: Updated `microsoft-agents-hosting-msteams` to use `microsoft-teams-api` 2.1.0
+- **Teams API Client Performance**: Reused a cached SSL context when constructing per-turn Teams API clients, reducing repeated CA certificate loading and client initialization overhead
+
+## Samples
+
+- **Handling Attachments Sample**: Added a sample demonstrating incoming attachment downloads, inline and internet-hosted attachments, and Teams attachment uploads.
 
 ## Bug Fixes
 
@@ -14,13 +20,13 @@
 ## Developer Experience
 
 - **`AgentApplication` Adapter Ownership Deprecation**: Deprecated the notion that an `AgentApplication` owns a single adapter. Applications no longer need to be initialized with an adapter; instead, operations such as conversation continuations and long-running calls use the adapter from the current `TurnContext`. This decouples `AgentApplication` from adapter initialization.
+- **Request ID Propagation**: Added `request_id` to `Activity` and `ConversationReference`, with automatic generation for incoming HTTP requests and propagation through conversation references and continuation activities for end-to-end request tracing (#591)
 
 ## Breaking Changes
 
 - **Deprecated API Removal**: Removed the deprecated `BasicCard` and `MediaCard` types, `ClaimsIdentity.is_authenticated`, `AgentApplication.parse_env_vars_configuration`, and the `CardFactory.ContentTypes` alias (#603)
 
 ---
-
 
 # Microsoft 365 Agents SDK for Python - Release Notes v1.7.0
 

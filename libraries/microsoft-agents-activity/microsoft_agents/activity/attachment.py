@@ -21,7 +21,7 @@ class Attachment(AgentsModel):
     """
 
     content_type: NonEmptyString
-    content_url: NonEmptyString = None
+    content_url: NonEmptyString | None = None
     content: object = None
-    name: NonEmptyString = None
+    name: NonEmptyString | None = None
     thumbnail_url: NonEmptyString = None
