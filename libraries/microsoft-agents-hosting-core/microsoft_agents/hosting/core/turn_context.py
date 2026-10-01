@@ -358,25 +358,7 @@ class TurnContext(TurnContextProtocol):
         :param is_incoming:
         :return:
         """
-        activity.channel_id = reference.channel_id
-        if reference.locale:
-            activity.locale = reference.locale
-        activity.service_url = reference.service_url
-        activity.conversation = reference.conversation
-        activity.request_id = reference.request_id
-
-        if is_incoming:
-            activity.from_property = reference.user
-            activity.recipient = reference.agent
-            if reference.activity_id:
-                activity.id = reference.activity_id
-        else:
-            activity.from_property = reference.agent
-            activity.recipient = reference.user
-            if reference.activity_id:
-                activity.reply_to_id = reference.activity_id
-
-        return activity
+        return activity.apply_conversation_reference(reference, is_incoming)
 
     @staticmethod
     def get_reply_conversation_reference(
