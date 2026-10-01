@@ -290,7 +290,7 @@ class Activity(AgentsModel):
 
     def apply_conversation_reference(
         self, reference: ConversationReference, is_incoming: bool = False
-    ):
+    ) -> Self:
         """
         Updates this activity with the delivery information from an existing ConversationReference.
 
@@ -305,24 +305,25 @@ class Activity(AgentsModel):
             outgoing activity with the correct delivery information.
         """
         self.channel_id = reference.channel_id
+        self.locale = reference.locale or self.locale
         self.service_url = reference.service_url
         self.conversation = reference.conversation
         self.request_id = reference.request_id
 
-        if reference.locale is not None:
-            self.locale = reference.locale
-
         if is_incoming:
             self.from_property = reference.user
             self.recipient = reference.agent
-
-            if reference.activity_id is not None:
+            if reference.activity_id:
                 self.id = reference.activity_id
         else:
             self.from_property = reference.agent
-            self.recipient = reference.user
-
-            if reference.activity_id is not None:
+            # Targeted activities should have the recipient set to the intended user
+            # instead of the incoming activity's sender. This allows for proper routing
+            # of the outgoing activity to the user even if the incoming activity was sent
+            # to a different user (e.g. in group chat scenarios)
+            if not self.is_targeted_activity() or self.recipient is None:
+                self.recipient = reference.user
+            if reference.activity_id:
                 self.reply_to_id = reference.activity_id
 
         return self

@@ -278,7 +278,8 @@ class ConversationsOperations(ConversationsBase, _BaseClient):
 
             params = (
                 {"isTargetedActivity": "true"}
-                if body.channel_id == Channels.ms_teams and body.is_targeted_activity()
+                if ChannelId.get_channel(body.channel_id) == Channels.ms_teams
+                and body.is_targeted_activity()
                 else None
             )
 
@@ -346,7 +347,8 @@ class ConversationsOperations(ConversationsBase, _BaseClient):
 
             params = (
                 {"isTargetedActivity": "true"}
-                if body.channel_id == Channels.ms_teams and body.is_targeted_activity()
+                if ChannelId.get_channel(body.channel_id) == Channels.ms_teams
+                and body.is_targeted_activity()
                 else None
             )
 

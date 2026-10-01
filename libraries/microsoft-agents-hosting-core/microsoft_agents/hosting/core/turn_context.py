@@ -355,29 +355,7 @@ class TurnContext(TurnContextProtocol):
         :param is_incoming:
         :return:
         """
-        activity.channel_id = reference.channel_id
-        activity.locale = reference.locale or activity.locale
-        activity.service_url = reference.service_url
-        activity.conversation = reference.conversation
-        activity.request_id = reference.request_id
-
-        if is_incoming:
-            activity.from_property = reference.user
-            activity.recipient = reference.agent
-            if reference.activity_id:
-                activity.id = reference.activity_id
-        else:
-            activity.from_property = reference.agent
-            # Targeted activities should have the recipient set to the intended user
-            # instead of the incoming Activity's sender. This allows for propery routing
-            # of the outgoing activity to the user even if the incoming activity was sent
-            # to a different users (e.g. in group chat scenarios)
-            if not activity.is_targeted_activity() or activity.recipient is None:
-                activity.recipient = reference.user
-            if reference.activity_id:
-                activity.reply_to_id = reference.activity_id
-
-        return activity
+        return activity.apply_conversation_reference(reference, is_incoming)
 
     @staticmethod
     def get_reply_conversation_reference(
