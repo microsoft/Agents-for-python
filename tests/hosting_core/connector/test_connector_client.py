@@ -98,6 +98,50 @@ class TestSendToConversation:
             await server.close()
 
     @pytest.mark.asyncio
+    @pytest.mark.parametrize(
+        ("channel_id", "targeted", "expected_query"),
+        [
+            (Channels.ms_teams, True, {"isTargetedActivity": "true"}),
+            (Channels.ms_teams, False, {}),
+            ("webchat", True, {}),
+        ],
+    )
+    async def test_send_to_conversation_sets_targeted_query_for_teams(
+        self,
+        channel_id,
+        targeted,
+        expected_query,
+    ):
+        captured_query = None
+
+        async def handler(request):
+            nonlocal captured_query
+            captured_query = dict(request.query)
+            return web.Response(status=200, text="")
+
+        routes = [web.post("/v3/conversations/{conversation_id}/activities", handler)]
+        app = _create_app(routes)
+        activity = Activity(
+            type="message",
+            text="Hello, world!",
+            channel_id=channel_id,
+            recipient=ChannelAccount(id="user-id"),
+        )
+        if targeted:
+            activity.make_targeted_activity()
+
+        server = TestServer(app)
+        await server.start_server()
+        try:
+            async with ClientSession(base_url=server.make_url("/")) as session:
+                ops = ConversationsOperations(session)
+                await ops.send_to_conversation("conv-1", activity)
+        finally:
+            await server.close()
+
+        assert captured_query == expected_query
+
+    @pytest.mark.asyncio
     async def test_send_to_conversation_error_includes_response_body(self, activity):
         """Should preserve channel error details used by streaming recovery."""
 
@@ -612,6 +656,55 @@ class TestReplyToActivity:
             assert result.id is None
         finally:
             await server.close()
+
+    @pytest.mark.asyncio
+    @pytest.mark.parametrize(
+        ("channel_id", "targeted", "expected_query"),
+        [
+            (Channels.ms_teams, True, {"isTargetedActivity": "true"}),
+            (Channels.ms_teams, False, {}),
+            ("webchat", True, {}),
+        ],
+    )
+    async def test_reply_to_activity_sets_targeted_query_for_teams(
+        self,
+        channel_id,
+        targeted,
+        expected_query,
+    ):
+        captured_query = None
+
+        async def handler(request):
+            nonlocal captured_query
+            captured_query = dict(request.query)
+            return web.Response(status=200, text="")
+
+        routes = [
+            web.post(
+                "/v3/conversations/{conversation_id}/activities/{activity_id}",
+                handler,
+            )
+        ]
+        app = _create_app(routes)
+        activity = Activity(
+            type="message",
+            text="Hello, world!",
+            channel_id=channel_id,
+            recipient=ChannelAccount(id="user-id"),
+        )
+        if targeted:
+            activity.make_targeted_activity()
+
+        server = TestServer(app)
+        await server.start_server()
+        try:
+            async with ClientSession(base_url=server.make_url("/")) as session:
+                ops = ConversationsOperations(session)
+                await ops.reply_to_activity("conv-1", "act-1", activity)
+        finally:
+            await server.close()
+
+        assert captured_query == expected_query
 
 
 class TestNormalizeConversationId:
