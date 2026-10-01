@@ -138,12 +138,7 @@ class TeamsTurnContext(TurnContext):
             if speak:
                 activity_or_text.speak = speak
 
-        self._apply_prompt_preview(
-            activity_or_text
-            if isinstance(activity_or_text, Activity)
-            else Activity(type=ActivityTypes.message, text=activity_or_text)
-        )
-
+        self._apply_prompt_preview(activity_or_text)
         return await TurnContext.send_activity(self._original, activity_or_text)
 
     async def send_activities(
