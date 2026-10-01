@@ -456,6 +456,16 @@ class TestActivityConversationOps:
             Mention(text="Another mention"),
         ]
 
+    def test_add_ai_metadata_adds_ai_entity_without_citations(self):
+        activity = Activity(type=ActivityTypes.message)
+
+        activity.add_ai_metadata()
+
+        assert len(activity.entities) == 1
+        assert isinstance(activity.entities[0], AIEntity)
+        assert activity.entities[0].additional_type == ["AIGeneratedContent"]
+        assert activity.entities[0].citation is None
+
     @pytest.mark.parametrize(
         "entities, expected",
         [
