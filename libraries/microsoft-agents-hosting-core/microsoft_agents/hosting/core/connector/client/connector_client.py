@@ -8,6 +8,7 @@ import re
 from typing import Any, Optional
 from aiohttp import ClientSession
 from io import BytesIO
+from urllib.parse import quote
 
 from microsoft_agents.activity import (
     Activity,
@@ -145,6 +146,37 @@ class AttachmentsOperations(AttachmentsBase, _BaseClient):
 
                 data = await response.read()
                 return BytesIO(data)
+
+    def get_attachment_uri(self, attachment_id: str, view_id: str = "original") -> str:
+        """
+        Gets the URI of an attachment view.
+
+        :param attachment_id: The ID of the attachment.
+        :param view_id: The ID of the view, defaults to "original".
+        :return: The URI of the attachment view.
+        """
+        if not attachment_id:
+            logger.error(
+                "AttachmentsOperations.get_attachment_uri(): attachmentId is required",
+                stack_info=True,
+            )
+            raise ValueError("attachmentId is required")
+
+        if not view_id:
+            logger.error(
+                "AttachmentsOperations.get_attachment_uri(): viewId is required",
+                stack_info=True,
+            )
+            raise ValueError("viewId is required")
+
+        base_url = str(self._client._base_url)
+        if not base_url.endswith("/"):
+            base_url += "/"
+
+        return (
+            f"{base_url}v3/attachments/{quote(attachment_id, safe='')}"
+            f"/views/{quote(view_id, safe='')}"
+        )
 
 
 class ConversationsOperations(ConversationsBase, _BaseClient):
