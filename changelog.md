@@ -7,6 +7,7 @@
 
 - **Attachment Downloaders**: Added `AttachmentDownloader` and `M365AttachmentDownloader` for downloading standard, Microsoft Teams, and Microsoft 365 Copilot attachments into `TurnState.temp.input_files`.
 - **Teams API Dependency**: Updated `microsoft-agents-hosting-msteams` to use `microsoft-teams-api` 2.1.0
+- **Teams API Client Performance**: Reused a cached SSL context when constructing per-turn Teams API clients, reducing repeated CA certificate loading and client initialization overhead
 
 ## Samples
 

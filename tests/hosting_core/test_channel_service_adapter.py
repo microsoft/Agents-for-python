@@ -264,6 +264,38 @@ class TestChannelServiceAdapter:
         assert context_arg.services.get(ConnectorClientBase) is connector_client
 
     @pytest.mark.asyncio
+    async def test_process_proactive_attempts_all_cleanup_when_connector_close_fails(
+        self, mocker, user_token_client, connector_client, adapter
+    ):
+        connector_error = RuntimeError("connector close failed")
+        connector_client.close = mocker.AsyncMock(side_effect=connector_error)
+        user_token_client.close = mocker.AsyncMock()
+        context_cleanup = mocker.AsyncMock()
+
+        async def run_pipeline(context, callback):
+            context._on_aclose(context_cleanup)
+
+        adapter.run_pipeline = mocker.AsyncMock(side_effect=run_pipeline)
+        activity = Activity(
+            type="message",
+            conversation={"id": "conversation123"},
+            channel_id="channel_id",
+            service_url="service_url",
+        )
+
+        with pytest.raises(RuntimeError, match="connector close failed"):
+            await adapter.process_proactive(
+                ClaimsIdentity(),
+                activity,
+                "audience",
+                mocker.AsyncMock(),
+            )
+
+        connector_client.close.assert_awaited_once_with()
+        user_token_client.close.assert_awaited_once_with()
+        context_cleanup.assert_awaited_once()
+
+    @pytest.mark.asyncio
     async def test_process_proactive_uses_anonymous_clients(self, mocker):
         factory = mocker.Mock(spec=ChannelServiceClientFactoryBase)
         user_token_client = mocker.Mock(spec=UserTokenClient)
