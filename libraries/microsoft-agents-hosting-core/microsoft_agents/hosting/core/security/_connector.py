@@ -1,0 +1,46 @@
+# Copyright (c) Microsoft Corporation. All rights reserved.
+# Licensed under the MIT License.
+
+from collections.abc import Sequence
+from typing import Protocol
+
+from aiohttp import TCPConnector
+from aiohttp.abc import ResolveResult
+from aiohttp.tracing import Trace
+
+class _ResolvedResultValidator(Protocol):
+    """Protocol for validating resolved results to prevent SSRF attacks."""
+
+    def is_valid(self, resolved_result: ResolveResult) -> bool:
+        """Check if the resolved result is valid to prevent SSRF attacks.
+        
+        :param resolved_result: The resolved result to validate.
+        :return: True if the resolved result is valid, False otherwise.
+        """
+        ...
+
+class _SSRFError(ValueError):
+    """Exception raised when an SSRF attack is detected."""
+
+class _SSRFConnector(TCPConnector):
+
+    def __init__(self, resolved_result_validator: _ResolvedResultValidator, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self._resolved_result_validator = resolved_result_validator
+
+    async def _resolve_host(self, host: str, port: int, traces: Sequence[Trace] | None = None) -> list[ResolveResult]:
+        """Resolve the host and validate the resolved results to prevent SSRF attacks.
+
+        :param host: The hostname to resolve.
+        :param port: The port number to resolve.
+        :param traces: Optional sequence of Trace objects for tracing the resolution process.
+        :return: A list of validated ResolveResult objects.
+        :raises _SSRFError: If any resolved result is invalid.
+        """
+
+        res = await super()._resolve_host(host, port, traces)
+
+        for r in res:
+            if not self._resolved_result_validator.is_valid(r):
+                raise _SSRFError(f"Invalid resolved result: {r}")
+        return res

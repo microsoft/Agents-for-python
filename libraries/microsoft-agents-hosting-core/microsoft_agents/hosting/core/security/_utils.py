@@ -1,7 +1,13 @@
 # Copyright (c) Microsoft Corporation. All rights reserved.
 # Licensed under the MIT License.
 
-from collections import OrderedDict
+from __future__ import annotations
+
+from aiohttp import TCPConnector
+from aiohttp.abc import ResolveResult
+
+import ipaddress
+
 from yarl import URL
 
 def _try_create_url(url: str | URL) -> URL | None:
@@ -15,7 +21,35 @@ def _try_create_url(url: str | URL) -> URL | None:
     except (ValueError, TypeError):
         return None
 
-class _DNSCache:
+class _SSRFConnector(TCPConnector):
 
-    def __init__(self, max_size: int, ttl: float) -> None:
-        self._cache = OrderedDict[tuple[str, int]]
+    def __init__(self, host_validator: HostValidator, *args, **kwargs):
+        self._host_validator = host_validator
+        super().__init__(*args, **kwargs)
+
+
+    async def _resolve_host(self, host: str, port: int, traces: Sequence[Trace] | None = None) -> list[ResolveResult]:
+
+        res = await super()._resolve_host(host, port, traces)
+
+        for r in res:
+            
+
+        return res
+
+class OutboundHostValidator:
+
+    def __init__(self, enabled):
+
+        self._connector = _SSRFConnector()
+
+    def is_allowed(self, url: str | URL) -> bool:
+        """Checks if the given URL is allowed based on the host validator.
+
+        :param url: The URL string or URL object to check.
+        :return: True if the URL is allowed, False otherwise.
+        """
+        return self._connector._host_validator.is_allowed(url)  # type: ignore
+
+async def _resolve_host(connector: TCPConnector) -> list[ResolveResult]:
+    return await connector._resolve_host()  # type: ignore
