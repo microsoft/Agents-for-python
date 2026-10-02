@@ -789,10 +789,9 @@ class ConnectorClient(ConnectorClientBase):
         }
 
         # Create session with the base URL
-        session = session or ClientSession(
-            base_url=endpoint,
-            headers=headers,
-        )
+        session = session or ClientSession(base_url=endpoint)
+        session.headers.update(headers)
+
         logger.debug(
             "ConnectorClient initialized with endpoint: %s and headers: %s",
             endpoint,
