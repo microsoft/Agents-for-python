@@ -10,6 +10,7 @@ import ipaddress
 
 from yarl import URL
 
+
 def _try_create_url(url: str | URL) -> URL | None:
     """Attempts to create a URL object from the given string or URL.
 
@@ -20,6 +21,7 @@ def _try_create_url(url: str | URL) -> URL | None:
         return URL(url) if isinstance(url, str) else url
     except (ValueError, TypeError):
         return None
+
 
 def _normalize_host(host: str) -> str | None:
     """Normalizes the given host string.

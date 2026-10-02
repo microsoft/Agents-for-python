@@ -8,27 +8,34 @@ from aiohttp import TCPConnector
 from aiohttp.abc import ResolveResult
 from aiohttp.tracing import Trace
 
+
 class _ResolveResultValidator(Protocol):
     """Protocol for validating resolved results to prevent SSRF attacks."""
 
     def is_allowed(self, resolved: ResolveResult) -> bool:
         """Check if the resolved result is valid to prevent SSRF attacks.
-        
+
         :param resolved: The resolved result to validate.
         :return: True if the resolved result is valid, False otherwise.
         """
         ...
 
+
 class _SSRFError(ValueError):
     """Exception raised when an SSRF attack is detected."""
 
+
 class _SSRFConnector(TCPConnector):
 
-    def __init__(self, resolved_result_validator: _ResolveResultValidator, *args, **kwargs):
+    def __init__(
+        self, resolved_result_validator: _ResolveResultValidator, *args, **kwargs
+    ):
         super().__init__(*args, **kwargs)
         self._resolved_result_validator = resolved_result_validator
 
-    async def _resolve_host(self, host: str, port: int, traces: Sequence[Trace] | None = None) -> list[ResolveResult]:
+    async def _resolve_host(
+        self, host: str, port: int, traces: Sequence[Trace] | None = None
+    ) -> list[ResolveResult]:
         """Resolve the host and validate the resolved results to prevent SSRF attacks.
 
         :param host: The hostname to resolve.

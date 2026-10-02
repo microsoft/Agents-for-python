@@ -11,12 +11,12 @@ from aiohttp.abc import ResolveResult
 
 from yarl import URL
 
-from ._connector import _ResolveResultValidator, _SSRFConnector
+from ._connector import _ResolveResultValidator, _SSRFConnector, _SSRFError
 from ._validator import _OutboundHostValidator
 from ._middleware import _validator_middleware
 from ._utils import _normalize_host
 
-logger = logging.getLogger(__name__) 
+logger = logging.getLogger(__name__)
 
 _DEFAULT_MICROSOFT_HOSTS = [
     "botframework.com",  # Bot Connector / channel services URLs
@@ -29,6 +29,7 @@ _DEFAULT_MICROSOFT_HOSTS = [
     "blob.core.windows.net",  # Azure Blob Storage / Attachment Management Service
 ]
 
+
 class _BasicResolveResultValidator(_ResolveResultValidator):
     """Basic implementation of the ResolveResultValidator that allows all resolved results."""
 
@@ -37,14 +38,16 @@ class _BasicResolveResultValidator(_ResolveResultValidator):
 
     def is_allowed(self, resolved: ResolveResult) -> bool:
 
-        hostname = resolved.get("hostname")
+        host = resolved.get("host")
 
-        if not hostname:
+        if not host:
             return False
 
         try:
-            address = ipaddress.ip_address(hostname)  # Validate the resolved host IP address
-            if (address.is_private or address.is_loopback) and not self._allow_private_network_addresses:
+            address = ipaddress.ip_address(
+                host
+            )  # Validate the resolved host IP address
+            if (not address.is_global) and not self._allow_private_network_addresses:
                 logger.warning("Private or loopback network address not allowed")
                 return False
 
@@ -53,6 +56,7 @@ class _BasicResolveResultValidator(_ResolveResultValidator):
             return False
 
         return True
+
 
 class OutboundHostValidator(_OutboundHostValidator):
     """Outbound host validator that checks if URLs are allowed based on configured hosts and network address rules."""
@@ -73,10 +77,17 @@ class OutboundHostValidator(_OutboundHostValidator):
         :param include_default_microsoft_hosts: Whether to include the default Microsoft hosts in the allowed list.
         :param allow_private_network_addresses: Whether to allow private network addresses.
         """
-        if hosts or enabled:
-            self._enabled = True
+        self._enabled = bool(hosts or enabled)
 
-        self._hosts: set[str] = set(hosts or [])
+        self._hosts: set[str] = set()
+
+        for host in hosts or []:
+            normalized_host = _normalize_host(host)
+            if normalized_host:
+                self._hosts.add(normalized_host)
+            else:
+                logger.warning("Failed to normalize host: %s", host)
+
         self._allow_private_network_addresses = allow_private_network_addresses
 
         if include_default_microsoft_hosts:
@@ -87,24 +98,32 @@ class OutboundHostValidator(_OutboundHostValidator):
                 else:
                     logger.warning("Failed to normalize host: %s", host)
 
+        self._resolved_validator = _BasicResolveResultValidator(
+            allow_private_network_addresses=self._allow_private_network_addresses
+        )
+
     @property
     def enabled(self) -> bool:
         """Indicates whether the outbound host validator is enabled."""
         return self._enabled
 
-    def client(self, session: ClientSession | None = None) -> ClientSession:
+    def client(self, client_session_kwargs: dict | None = None) -> ClientSession:
         """Creates a new client session with the outbound host validator applied.
-        :param session: An optional existing client session to use.
+        :param client_session_kwargs: Optional keyword arguments to pass to the ClientSession constructor.
         :return: A new client session with the outbound host validator applied.
         """
 
-        headers = session.headers if session else {}
+        if "connector" in (client_session_kwargs or {}):
+            raise ValueError("Specifying a custom connector is not allowed.")
+        if "middlewares" in (client_session_kwargs or {}):
+            raise ValueError("Specifying custom middlewares is not allowed.")
+
         middleware = [_validator_middleware(self)]
 
         return ClientSession(
-            headers=headers,
-            connector=_SSRFConnector(_BasicResolveResultValidator()),
+            connector=_SSRFConnector(self._resolved_validator),
             middlewares=middleware,
+            **(client_session_kwargs or {}),
         )
 
     def is_allowed(self, url: str | URL) -> bool:
@@ -114,9 +133,12 @@ class OutboundHostValidator(_OutboundHostValidator):
         :param url: The URL string or URL object to check.
         :return: True if the URL is allowed, False otherwise.
         """
-        if not self._enabled:
-            return True
-        return self._is_allowed(url)
+        try:
+            if not self._enabled:
+                return True
+            return self._is_allowed(url)
+        except _SSRFError:
+            return False
 
     @lru_cache
     def _is_allowed(self, url: str | URL) -> bool:
@@ -148,20 +170,22 @@ class OutboundHostValidator(_OutboundHostValidator):
         if url.user or url.password:
             return False
 
-        address = None
-        if url.host:
-            try:
-                address = ipaddress.ip_address(url.host)
-                if address.is_private and not self._allow_private_network_addresses:
-                    return False
-                if address.is_loopback:
-                    return False
-                
-            except ValueError:
-                address = None
+        if not url.host:
+            return False
 
-        for host in self._hosts:
-            url_host = (host or "").casefold()
-            if url.host == host or url_host.endswith("." + host):
+        address = None
+        try:
+            address = ipaddress.ip_address(url.host)
+            if not address.is_global and not self._allow_private_network_addresses:
+                return False
+
+        except ValueError:
+            address = None
+
+        url_host = (url.host or "").casefold()
+
+        for valid_host in self._hosts:
+            url_host = (url.host or "").casefold()
+            if url_host == valid_host or url_host.endswith("." + valid_host):
                 return True
         return False

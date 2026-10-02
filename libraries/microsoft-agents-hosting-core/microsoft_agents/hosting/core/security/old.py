@@ -64,14 +64,14 @@ def _normalize(host: str) -> str | None:
 
     return host if host else None
 
+
 class OutboundHostValidatorProtocol(Protocol):
 
     @property
-    def enabled(self) -> bool:
-        ...
+    def enabled(self) -> bool: ...
 
-    def is_allowed(self, url: str | URL) -> bool:
-        ...
+    def is_allowed(self, url: str | URL) -> bool: ...
+
 
 class BasicOutboundHostValidator(OutboundHostValidatorProtocol):
     def __init__(self, enabled: bool = False):
@@ -156,18 +156,29 @@ class OutboundHostValidator:
 
         return False
 
-def _validator_middleware(validator: OutboundHostValidatorProtocol | None = None) -> Callable[[ClientRequest, ClientHandlerType], Awaitable[ClientResponse]]:
+
+def _validator_middleware(
+    validator: OutboundHostValidatorProtocol | None = None,
+) -> Callable[[ClientRequest, ClientHandlerType], Awaitable[ClientResponse]]:
     """Creates a middleware that validates outbound URLs using the given validator.
-    
+
     :param validator: The outbound host validator to use.
     :return: A middleware function that validates outbound URLs.
     """
     validator = validator or OutboundHostValidator(enabled=True)
-        
-    async def _middleware(req: ClientRequest, handler: ClientHandlerType) -> ClientResponse:
 
-        if validator is not None and validator.enabled and not validator.is_allowed(req.url):
-            raise ValueError(f"URL '{req.url}' is not allowed by the outbound host validator.")
+    async def _middleware(
+        req: ClientRequest, handler: ClientHandlerType
+    ) -> ClientResponse:
+
+        if (
+            validator is not None
+            and validator.enabled
+            and not validator.is_allowed(req.url)
+        ):
+            raise ValueError(
+                f"URL '{req.url}' is not allowed by the outbound host validator."
+            )
 
         return await handler(req)
 

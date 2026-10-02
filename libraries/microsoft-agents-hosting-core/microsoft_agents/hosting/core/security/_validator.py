@@ -10,6 +10,7 @@ from aiohttp import ClientSession
 
 logger = logging.getLogger(__name__)
 
+
 class _URLValidator(Protocol):
     """Protocol for URL validators."""
 
@@ -20,6 +21,7 @@ class _URLValidator(Protocol):
         :return: True if the URL is allowed, False otherwise.
         """
         ...
+
 
 class _OutboundHostValidator(_URLValidator):
     """Protocol for outbound host validators."""

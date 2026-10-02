@@ -2,6 +2,7 @@
 # Licensed under the MIT License.
 
 import json
+import logging
 from typing import Callable, cast, Any
 
 import aiohttp
@@ -16,13 +17,15 @@ from microsoft_agents.hosting.core.authorization import (
     Connections,
 )
 from microsoft_agents.hosting.core.turn_context import TurnContext
-from microsoft_agents.hosting.core.outbound_host_validator import (
+from microsoft_agents.hosting.core.security import (
     OutboundHostValidator,
-    _validator_middleware,
+    _SSRFError,
 )
 
 from .input_file import InputFileDownloader, InputFile
 from ._utils import _parse_content_type, _basic_url_check
+
+logger = logging.getLogger(__name__)
 
 
 class M365AttachmentDownloader(InputFileDownloader):
@@ -31,9 +34,9 @@ class M365AttachmentDownloader(InputFileDownloader):
     def __init__(
         self,
         connections: Connections,
-        client_factory: Callable[[], aiohttp.ClientSession] | None = None,
         host_validator: OutboundHostValidator | None = None,
         *,
+        client_session_kwargs: dict[str, Any] | None = None,
         token_provider_name: str = "",
         use_anonymous: bool = False,
         scopes: list[str] | None = None,
@@ -41,7 +44,6 @@ class M365AttachmentDownloader(InputFileDownloader):
         """Constructor for M365AttachmentDownloader.
 
         :param connections: A Connections instance.
-        :param client_factory: A callable that returns an aiohttp.ClientSession instance.
         :param host_validator: An optional OutboundHostValidator instance.
         :param token_provider_name: The name of the token provider.
         :param use_anonymous: Whether to use anonymous access.
@@ -50,8 +52,8 @@ class M365AttachmentDownloader(InputFileDownloader):
         """
 
         self._connections = connections
-        self._client_factory = client_factory or aiohttp.ClientSession
         self._host_validator = host_validator
+        self._client_session_kwargs = client_session_kwargs or {}
 
         self._token_provider_name = token_provider_name
         self._use_anonymous = use_anonymous
@@ -111,27 +113,35 @@ class M365AttachmentDownloader(InputFileDownloader):
                 outgoing_audience_claim, self._scopes
             )
 
+        client: aiohttp.ClientSession
+        if self._host_validator is not None:
+            client = self._host_validator.client(self._client_session_kwargs)
+        else:
+            client = aiohttp.ClientSession(**self._client_session_kwargs)
+
         files: list[InputFile] = []
         for att in attachments:
-            file = await self._download_file(att, access_token)
+            file = await self._download_file(client, att, access_token)
             if file:
                 files.append(file)
 
+        await client.close()
         return files
 
     async def _download_file(
-        self, attachment: Attachment, access_token: str
+        self,
+        client: aiohttp.ClientSession,
+        attachment: Attachment,
+        access_token: str,
     ) -> InputFile | None:
         """Download a single file from the given attachment.
 
+        :param client: The aiohttp.ClientSession instance to use for downloading the file.
         :param attachment: The Attachment instance.
         :param access_token: The access token for authentication.
         :return: An InputFile instance or None if the download fails.
         """
         name = attachment.name
-        client: aiohttp.ClientSession = self._client_factory()
-        if self._host_validator is not None:
-            client = self._host_validator.client(client)
 
         download_url: str | None = None
         if isinstance(attachment.content, dict):
@@ -140,19 +150,11 @@ class M365AttachmentDownloader(InputFileDownloader):
         else:
             download_url = attachment.content_url
 
-        if download_url and _basic_url_check(download_url):
-            if (
-                self._host_validator is not None
-                and self._host_validator.enabled
-                and not self._host_validator.is_allowed(download_url)
-            ):
-                return None
-
-            async with self._client_factory() as client:
+        if download_url:
+            try:
                 async with client.get(
                     download_url,
                     headers={"Authorization": f"Bearer {access_token}"},
-                    middlewares=[_validator_middleware(self._host_validator)]
                 ) as response:
                     if not (200 <= response.status < 300):
                         return None
@@ -172,6 +174,11 @@ class M365AttachmentDownloader(InputFileDownloader):
                         content_url=attachment.content_url,
                         filename=name,
                     )
+            except _SSRFError:
+                logger.warning(
+                    "Outbound host validation failed for download URL: %s", download_url
+                )
+                return None
         else:
             content = bytes(json.dumps(attachment.content), "utf-8")
             return InputFile(
