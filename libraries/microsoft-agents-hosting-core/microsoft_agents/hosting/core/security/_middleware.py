@@ -5,9 +5,9 @@ from typing import Callable, Awaitable
 
 from aiohttp import ClientRequest, ClientHandlerType, ClientResponse
 
-from .host_validator import _HostValidator
+from ._validator import _URLValidator
 
-def _validator_middleware(validator: _HostValidator) -> Callable[[ClientRequest, ClientHandlerType], Awaitable[ClientResponse]]:
+def _validator_middleware(validator: _URLValidator) -> Callable[[ClientRequest, ClientHandlerType], Awaitable[ClientResponse]]:
     """Creates a middleware that validates outbound URLs using the given validator.
     
     :param validator: The outbound host validator to use.

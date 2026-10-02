@@ -8,13 +8,13 @@ from aiohttp import TCPConnector
 from aiohttp.abc import ResolveResult
 from aiohttp.tracing import Trace
 
-class _ResolvedResultValidator(Protocol):
+class _ResolveResultValidator(Protocol):
     """Protocol for validating resolved results to prevent SSRF attacks."""
 
-    def is_valid(self, resolved_result: ResolveResult) -> bool:
+    def is_allowed(self, resolved: ResolveResult) -> bool:
         """Check if the resolved result is valid to prevent SSRF attacks.
         
-        :param resolved_result: The resolved result to validate.
+        :param resolved: The resolved result to validate.
         :return: True if the resolved result is valid, False otherwise.
         """
         ...
@@ -24,7 +24,7 @@ class _SSRFError(ValueError):
 
 class _SSRFConnector(TCPConnector):
 
-    def __init__(self, resolved_result_validator: _ResolvedResultValidator, *args, **kwargs):
+    def __init__(self, resolved_result_validator: _ResolveResultValidator, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self._resolved_result_validator = resolved_result_validator
 
@@ -41,6 +41,6 @@ class _SSRFConnector(TCPConnector):
         res = await super()._resolve_host(host, port, traces)
 
         for r in res:
-            if not self._resolved_result_validator.is_valid(r):
+            if not self._resolved_result_validator.is_allowed(r):
                 raise _SSRFError(f"Invalid resolved result: {r}")
         return res

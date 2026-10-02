@@ -21,35 +21,30 @@ def _try_create_url(url: str | URL) -> URL | None:
     except (ValueError, TypeError):
         return None
 
-class _SSRFConnector(TCPConnector):
+def _normalize_host(host: str) -> str | None:
+    """Normalizes the given host string.
 
-    def __init__(self, host_validator: HostValidator, *args, **kwargs):
-        self._host_validator = host_validator
-        super().__init__(*args, **kwargs)
+    :param host: The host string to normalize.
+    :return: The normalized host string.
+    """
+    if not host:
+        return None
 
+    host = host.strip().casefold()
 
-    async def _resolve_host(self, host: str, port: int, traces: Sequence[Trace] | None = None) -> list[ResolveResult]:
+    if host.startswith("*."):
+        host = host[2:]
 
-        res = await super()._resolve_host(host, port, traces)
+    url_obj = _try_create_url(host)
+    if url_obj and url_obj.host:
+        host = url_obj.host
+    else:
+        slash = host.find("/")
+        if slash >= 0:
+            host = host[:slash]
 
-        for r in res:
-            
+        colon = host.find(":")
+        if colon >= 0:
+            host = host[:colon]
 
-        return res
-
-class OutboundHostValidator:
-
-    def __init__(self, enabled):
-
-        self._connector = _SSRFConnector()
-
-    def is_allowed(self, url: str | URL) -> bool:
-        """Checks if the given URL is allowed based on the host validator.
-
-        :param url: The URL string or URL object to check.
-        :return: True if the URL is allowed, False otherwise.
-        """
-        return self._connector._host_validator.is_allowed(url)  # type: ignore
-
-async def _resolve_host(connector: TCPConnector) -> list[ResolveResult]:
-    return await connector._resolve_host()  # type: ignore
+    return host if host else None
