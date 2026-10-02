@@ -14,6 +14,7 @@ from ..attachments_base import AttachmentsBase
 from ..conversations_base import ConversationsBase
 from ..client._base_client import _BaseClient
 from .._utils import _handle_request_error
+from ..get_product_info import get_product_info
 
 logger = logging.getLogger(__name__)
 
@@ -224,6 +225,13 @@ class MCSConnectorClient(ConnectorClientBase):
 
         self._endpoint = endpoint
         self._client = client or ClientSession()
+        headers = {
+            "Accept": "application/json",
+            "Content-Type": "application/json",
+            "User-Agent": get_product_info(),
+        }
+        self._client.headers.update(headers)
+
         self._conversations = MCSConversations(self._client, self._endpoint)
         self._attachments = MCSAttachments()
 
