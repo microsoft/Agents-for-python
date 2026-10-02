@@ -3,6 +3,8 @@
 
 """Tests for TeamsAgentExtension.meetings (meeting lifecycle events)."""
 
+from datetime import datetime, timezone
+
 import pytest
 from unittest.mock import AsyncMock, MagicMock
 
@@ -127,6 +129,10 @@ class TestMeetingStartEnd:
         assert meeting.meeting_type == "Scheduled"
         assert meeting.join_url == "https://example.com/meet"
         assert meeting.title == "Test Meeting"
+        assert isinstance(meeting.start_time, datetime)
+        assert meeting.start_time == datetime(
+            2026, 10, 2, 20, 48, 16, 763211, tzinfo=timezone.utc
+        )
 
     @pytest.mark.asyncio
     async def test_end_handler_parses_meeting_details(self):
@@ -149,6 +155,10 @@ class TestMeetingStartEnd:
         assert meeting.meeting_type == "Scheduled"
         assert meeting.join_url == "https://example.com/meet"
         assert meeting.title == "Test Meeting"
+        assert isinstance(meeting.end_time, datetime)
+        assert meeting.end_time == datetime(
+            2026, 10, 2, 20, 49, 20, 330067, tzinfo=timezone.utc
+        )
 
 
 class TestMeetingParticipants:
