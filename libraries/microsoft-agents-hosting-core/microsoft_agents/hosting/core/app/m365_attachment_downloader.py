@@ -129,6 +129,9 @@ class M365AttachmentDownloader(InputFileDownloader):
         :return: An InputFile instance or None if the download fails.
         """
         name = attachment.name
+        client: aiohttp.ClientSession = self._client_factory()
+        if self._host_validator is not None:
+            client = self._host_validator.client(client)
 
         download_url: str | None = None
         if isinstance(attachment.content, dict):
