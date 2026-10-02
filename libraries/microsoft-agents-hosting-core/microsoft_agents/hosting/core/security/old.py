@@ -1,7 +1,16 @@
 # Copyright (c) Microsoft Corporation. All rights reserved.
 # Licensed under the MIT License.
 
+from typing import Callable, Awaitable, Protocol
+
+from aiohttp import (
+    ClientSession,
+    ClientRequest,
+    ClientHandlerType,
+    ClientResponse,
+)
 from yarl import URL
+from urllib.parse import urlparse
 
 _DEFAULT_MICROSOFT_HOSTS = [
     "botframework.com",  # Bot Connector / channel services URLs
@@ -55,6 +64,34 @@ def _normalize(host: str) -> str | None:
 
     return host if host else None
 
+class OutboundHostValidatorProtocol(Protocol):
+
+    @property
+    def enabled(self) -> bool:
+        ...
+
+    def is_allowed(self, url: str | URL) -> bool:
+        ...
+
+class BasicOutboundHostValidator(OutboundHostValidatorProtocol):
+    def __init__(self, enabled: bool = False):
+        self._enabled = enabled
+
+    @property
+    def enabled(self) -> bool:
+        return self._enabled
+
+    def is_allowed(self, url: str | URL) -> bool:
+        """Checks whether the given URL is allowed by the basic validator.
+
+        :param url: The URL to check.
+        :return: True if the URL is allowed, False otherwise.
+        """
+        parsed = urlparse(str(url))
+        return parsed.scheme == "https" or (
+            parsed.scheme == "http" and parsed.hostname == "localhost"
+        )
+
 
 class OutboundHostValidator:
     """Validates that an outbound URL targets an allowed host before the SDK makes a
@@ -70,6 +107,12 @@ class OutboundHostValidator:
         hosts: list[str] | None = None,
         include_default_microsoft_hosts: bool = True,
     ):
+        """Initializes the outbound host validator.
+
+        :param enabled: Whether the validator is enabled.
+        :param hosts: A list of additional allowed host suffixes.
+        :param include_default_microsoft_hosts: Whether to include the default Microsoft hosts.
+        """
         self._enabled = enabled
         suffixes: list[str] = []
         if include_default_microsoft_hosts:
@@ -98,10 +141,7 @@ class OutboundHostValidator:
             return True
 
         url_obj = _try_create_url(url)
-        if not url_obj:
-            return False
-
-        if not url_obj.absolute:
+        if not url_obj or not url_obj.absolute or url_obj.scheme != "https":
             return False
 
         host = url_obj.host
@@ -115,3 +155,20 @@ class OutboundHostValidator:
                 return True
 
         return False
+
+def _validator_middleware(validator: OutboundHostValidatorProtocol | None = None) -> Callable[[ClientRequest, ClientHandlerType], Awaitable[ClientResponse]]:
+    """Creates a middleware that validates outbound URLs using the given validator.
+    
+    :param validator: The outbound host validator to use.
+    :return: A middleware function that validates outbound URLs.
+    """
+    validator = validator or OutboundHostValidator(enabled=True)
+        
+    async def _middleware(req: ClientRequest, handler: ClientHandlerType) -> ClientResponse:
+
+        if validator is not None and validator.enabled and not validator.is_allowed(req.url):
+            raise ValueError(f"URL '{req.url}' is not allowed by the outbound host validator.")
+
+        return await handler(req)
+
+    return _middleware

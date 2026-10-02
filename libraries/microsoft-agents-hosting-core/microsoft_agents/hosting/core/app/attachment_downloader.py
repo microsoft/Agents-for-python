@@ -13,7 +13,10 @@ from microsoft_agents.activity import (
 )
 
 from microsoft_agents.hosting.core.turn_context import TurnContext
-from microsoft_agents.hosting.core.outbound_host_validator import OutboundHostValidator
+from microsoft_agents.hosting.core.outbound_host_validator import (
+    OutboundHostValidator,
+    _validator_middleware,
+)
 
 from .input_file import InputFileDownloader, InputFile
 from ._utils import _parse_content_type, _basic_url_check
@@ -73,7 +76,10 @@ class AttachmentDownloader(InputFileDownloader):
                 return None
 
             async with self._client_factory() as client:
-                async with client.get(remote_file_url) as response:
+                async with client.get(
+                    remote_file_url,
+                    middlewares=[_validator_middleware(self._host_validator)]
+                ) as response:
 
                     if not (200 <= response.status < 300):
                         return None
