@@ -16,18 +16,31 @@ pytestmark = pytest.mark.skipif(
 )
 
 if is_supported_version:
-    from microsoft_teams.api.models.meetings import MeetingDetails
+    from microsoft_teams.api.activities.event.meeting_end import MeetingEndEventValue
+    from microsoft_teams.api.activities.event.meeting_start import (
+        MeetingStartEventValue,
+    )
     from microsoft_agents.activity.teams import MeetingParticipantsEventDetails
     from microsoft_agents.hosting.msteams import TeamsAgentExtension
 
 
-def _meeting_details_value() -> dict:
+def _meeting_start_value() -> dict:
     return {
-        "id": "meeting-id",
-        "type": "scheduled",
-        "joinUrl": "https://example.com/meet",
-        "title": "Test Meeting",
-        "msGraphResourceId": "graph-id",
+        "Id": "meeting-id",
+        "MeetingType": "Scheduled",
+        "JoinUrl": "https://example.com/meet",
+        "Title": "Test Meeting",
+        "StartTime": "2026-10-02T20:48:16.7632115Z",
+    }
+
+
+def _meeting_end_value() -> dict:
+    return {
+        "Id": "meeting-id",
+        "MeetingType": "Scheduled",
+        "JoinUrl": "https://example.com/meet",
+        "Title": "Test Meeting",
+        "EndTime": "2026-10-02T20:49:20.330067Z",
     }
 
 
@@ -98,34 +111,44 @@ class TestMeetingStartEnd:
         user_handler = AsyncMock()
 
         @self.ext.meetings.start()
-        async def handler(ctx, state, meeting: MeetingDetails):
+        async def handler(ctx, state, meeting: MeetingStartEventValue):
             await user_handler(ctx, state, meeting)
 
         route_handler = self.app._routes[0]["handler"]
         ctx = _make_context(
             ActivityTypes.event,
             name="application/vnd.microsoft.meetingStart",
-            value=_meeting_details_value(),
+            value=_meeting_start_value(),
         )
         await route_handler(ctx, MagicMock())
-        assert isinstance(user_handler.call_args[0][2], MeetingDetails)
+        meeting = user_handler.call_args[0][2]
+        assert isinstance(meeting, MeetingStartEventValue)
+        assert meeting.id == "meeting-id"
+        assert meeting.meeting_type == "Scheduled"
+        assert meeting.join_url == "https://example.com/meet"
+        assert meeting.title == "Test Meeting"
 
     @pytest.mark.asyncio
     async def test_end_handler_parses_meeting_details(self):
         user_handler = AsyncMock()
 
         @self.ext.meetings.end()
-        async def handler(ctx, state, meeting: MeetingDetails):
+        async def handler(ctx, state, meeting: MeetingEndEventValue):
             await user_handler(ctx, state, meeting)
 
         route_handler = self.app._routes[0]["handler"]
         ctx = _make_context(
             ActivityTypes.event,
             name="application/vnd.microsoft.meetingEnd",
-            value=_meeting_details_value(),
+            value=_meeting_end_value(),
         )
         await route_handler(ctx, MagicMock())
-        assert isinstance(user_handler.call_args[0][2], MeetingDetails)
+        meeting = user_handler.call_args[0][2]
+        assert isinstance(meeting, MeetingEndEventValue)
+        assert meeting.id == "meeting-id"
+        assert meeting.meeting_type == "Scheduled"
+        assert meeting.join_url == "https://example.com/meet"
+        assert meeting.title == "Test Meeting"
 
 
 class TestMeetingParticipants:
