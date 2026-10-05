@@ -1,3 +1,14 @@
+# Microsoft 365 Agents SDK for Python - Release Notes v1.9.0 (Unreleased)
+
+**Release Date:** Unreleased
+**Previous Version:** 1.8.0 (Released 2026-10-01)
+
+## Bug Fixes
+
+- **Connector User-Agent Headers**: Added the SDK `User-Agent` header to `MCSConnectorClient` and ensured `ConnectorClient`, `TeamsConnectorClient`, and `UserTokenClient` apply it to caller-provided `ClientSession` instances.
+
+---
+
 # Microsoft 365 Agents SDK for Python - Release Notes v1.8.0
 
 **Release Date:** 2026-10-01
