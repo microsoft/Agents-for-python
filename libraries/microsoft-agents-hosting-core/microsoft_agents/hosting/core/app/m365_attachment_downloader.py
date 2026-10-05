@@ -3,6 +3,8 @@
 
 import json
 import logging
+import warnings
+
 from typing import Callable, cast, Any
 
 import aiohttp
@@ -49,13 +51,14 @@ class M365AttachmentDownloader(InputFileDownloader):
         :param token_provider_name: The name of the token provider.
         :param use_anonymous: Whether to use anonymous access.
         :param scopes: A list of scopes for the access token.
-        :param connections: A Connections instance.
         :param client_factory: (deprecated) A custom client factory, if any.
         """
 
         if client_factory is not None:
-            logger.warning(
-                "The 'client_factory' parameter is deprecated and will be ignored."
+            warnings.warn(
+                "The 'client_factory' parameter is deprecated and will be ignored.",
+                DeprecationWarning,
+                stacklevel=2,
             )
 
         self._connections = connections

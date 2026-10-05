@@ -24,9 +24,7 @@ def _validator_middleware(
         """Middleware that validates outbound URLs using the given host validator."""
 
         if not validator.is_allowed(req.url):
-            raise _SSRFError(
-                f"URL '{req.url}' is not allowed by the outbound host validator."
-            )
+            raise _SSRFError(f"URL is not allowed by the outbound host validator.")
 
         return await handler(req)
 
