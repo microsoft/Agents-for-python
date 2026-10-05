@@ -11,7 +11,9 @@ from microsoft_agents.authentication.msal._certificate_store import (
     CERT_FIND_SUBJECT_STR_W,
     CERT_NCRYPT_KEY_SPEC,
     _acquire_private_key,
+    _compute_certificate_thumbprint,
     _find_certificate_context,
+    _get_certificate_raw_data,
     _is_certificate_valid,
     _is_cng_key_rsa,
     _is_legacy_key_rsa,
@@ -749,3 +751,35 @@ def test_sign_hash_with_legacy_csp_raises_when_signing_fails(mocker):
         )
 
     advapi32.CryptDestroyHash.assert_called_once_with(789)
+
+
+def _create_certificate_context(raw_data: bytes):
+    encoded = (ctypes.c_ubyte * len(raw_data))(*raw_data)
+
+    certificate = _CERT_CONTEXT()
+    certificate.pbCertEncoded = ctypes.cast(
+        encoded,
+        ctypes.POINTER(ctypes.c_ubyte),
+    )
+    certificate.cbCertEncoded = len(encoded)
+
+    return ctypes.pointer(certificate), encoded
+
+
+def test_get_certificate_raw_data():
+    certificate, _encoded = _create_certificate_context(b"\x01\x02\x03\x04")
+
+    assert _get_certificate_raw_data(certificate) == b"\x01\x02\x03\x04"
+
+
+@pytest.mark.parametrize(
+    ("use_sha2", "expected"),
+    [
+        (False, "EtraH_9NR4et4zMxRyAsO0Q-N28"),
+        (True, "n2SnR-G5fxMfq7a0Rylsm28CAeefs8U1bmx36JtqgGo"),
+    ],
+)
+def test_compute_certificate_thumbprint(use_sha2, expected):
+    certificate, _encoded = _create_certificate_context(b"\x01\x02\x03\x04")
+
+    assert _compute_certificate_thumbprint(certificate, use_sha2=use_sha2) == expected

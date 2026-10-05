@@ -3,7 +3,9 @@
 
 from __future__ import annotations
 
+import base64
 import ctypes
+import hashlib
 import sys
 
 _STORE_NAMES = {
@@ -375,6 +377,32 @@ def _find_certificate_context(
             crypt32.CertFreeCertificateContext(certificate)
 
         crypt32.CertCloseStore(store, 0)
+
+
+def _get_certificate_raw_data(certificate: PCCERT_CONTEXT) -> bytes:
+    return ctypes.string_at(
+        certificate.contents.pbCertEncoded,
+        certificate.contents.cbCertEncoded,
+    )
+
+
+def _base64url_encode(value: bytes) -> str:
+    return base64.urlsafe_b64encode(value).rstrip(b"=").decode("ascii")
+
+
+def _compute_certificate_thumbprint(
+    certificate: PCCERT_CONTEXT,
+    *,
+    use_sha2: bool,
+) -> str:
+    raw_data = _get_certificate_raw_data(certificate)
+
+    if use_sha2:
+        digest = hashlib.sha256(raw_data).digest()
+    else:
+        digest = hashlib.sha1(raw_data, usedforsecurity=False).digest()
+
+    return _base64url_encode(digest)
 
 
 def _acquire_private_key(
