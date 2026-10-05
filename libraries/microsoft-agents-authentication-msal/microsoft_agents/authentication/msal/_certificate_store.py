@@ -286,7 +286,7 @@ def _normalize_store_name(store_name: str | None) -> str:
     if not store_name:
         return "My"
 
-    return _STORE_NAMES.get(store_name.casefold(), "My")
+    return _STORE_NAMES.get(store_name.casefold(), store_name)
 
 
 def _load_windows_apis():

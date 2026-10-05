@@ -54,7 +54,7 @@ def test_load_windows_apis_raises_on_non_windows(monkeypatch):
         ("CertificateAuthority", "CA"),
         ("certificateauthority", "CA"),
         ("TrustedPeople", "TrustedPeople"),
-        ("invalid-store", "My"),
+        ("invalid-store", "invalid-store"),
         ("AddressBook", "AddressBook"),
         ("authroot", "AuthRoot"),
         ("Disallowed", "Disallowed"),
