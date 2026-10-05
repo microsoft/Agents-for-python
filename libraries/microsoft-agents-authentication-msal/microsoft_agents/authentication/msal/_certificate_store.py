@@ -23,6 +23,7 @@ BOOL = ctypes.c_int32
 BYTE = ctypes.c_ubyte
 HCERTSTORE = ctypes.c_void_p
 HCRYPTKEY = ctypes.c_size_t
+HCRYPTHASH = ctypes.c_size_t
 HCRYPTPROV_OR_NCRYPT_KEY_HANDLE = ctypes.c_size_t
 
 X509_ASN_ENCODING = 0x00000001
@@ -40,6 +41,9 @@ CERT_NCRYPT_KEY_SPEC = 0xFFFFFFFF
 KP_ALGID = 7
 CALG_RSA_SIGN = 0x00002400
 CALG_RSA_KEYX = 0x0000A400
+
+CALG_SHA_256 = 0x0000800C
+HP_HASHVAL = 0x0002
 
 NCRYPT_ALGORITHM_GROUP_PROPERTY = "Algorithm Group"
 NCRYPT_RSA_ALGORITHM_GROUP = "RSA"
@@ -231,6 +235,36 @@ def _configure_advapi32(advapi32) -> None:
 
     advapi32.CryptDestroyKey.argtypes = [HCRYPTKEY]
     advapi32.CryptDestroyKey.restype = BOOL
+
+    advapi32.CryptCreateHash.argtypes = [
+        HCRYPTPROV_OR_NCRYPT_KEY_HANDLE,
+        DWORD,
+        HCRYPTKEY,
+        DWORD,
+        ctypes.POINTER(HCRYPTHASH),
+    ]
+    advapi32.CryptCreateHash.restype = BOOL
+
+    advapi32.CryptSetHashParam.argtypes = [
+        HCRYPTHASH,
+        DWORD,
+        ctypes.POINTER(BYTE),
+        DWORD,
+    ]
+    advapi32.CryptSetHashParam.restype = BOOL
+
+    advapi32.CryptSignHashW.argtypes = [
+        HCRYPTHASH,
+        DWORD,
+        ctypes.c_wchar_p,
+        DWORD,
+        ctypes.POINTER(BYTE),
+        ctypes.POINTER(DWORD),
+    ]
+    advapi32.CryptSignHashW.restype = BOOL
+
+    advapi32.CryptDestroyHash.argtypes = [HCRYPTHASH]
+    advapi32.CryptDestroyHash.restype = BOOL
 
 
 def _normalize_store_name(store_name: str | None) -> str:
@@ -526,3 +560,70 @@ def _sign_hash_with_cng(
         raise OSError("Failed to sign with CNG private key.")
 
     return bytes(signature[: signature_size.value])
+
+
+def _sign_hash_with_legacy_csp(
+    advapi32,
+    *,
+    key_handle: int,
+    key_spec: int,
+    digest: bytes,
+) -> bytes:
+    if len(digest) != SHA256_DIGEST_LENGTH:
+        raise ValueError("RS256 signing requires a SHA-256 digest.")
+
+    hash_handle = HCRYPTHASH()
+
+    if not advapi32.CryptCreateHash(
+        key_handle,
+        CALG_SHA_256,
+        0,
+        0,
+        ctypes.byref(hash_handle),
+    ):
+        raise OSError("Failed to create CSP SHA-256 hash.")
+
+    try:
+        digest_buffer = (BYTE * len(digest)).from_buffer_copy(digest)
+
+        if not advapi32.CryptSetHashParam(
+            hash_handle.value,
+            HP_HASHVAL,
+            digest_buffer,
+            0,
+        ):
+            raise OSError("Failed to set CSP SHA-256 hash value.")
+
+        signature_size = DWORD()
+
+        if not advapi32.CryptSignHashW(
+            hash_handle.value,
+            key_spec,
+            None,
+            0,
+            None,
+            ctypes.byref(signature_size),
+        ):
+            raise OSError("Failed to determine CSP RSA signature size.")
+
+        signature = (BYTE * signature_size.value)()
+
+        if not advapi32.CryptSignHashW(
+            hash_handle.value,
+            key_spec,
+            None,
+            0,
+            signature,
+            ctypes.byref(signature_size),
+        ):
+            raise OSError("Failed to sign with CSP RSA private key.")
+
+        result = bytes(signature[: signature_size.value])[::-1]
+    except BaseException:
+        advapi32.CryptDestroyHash(hash_handle.value)
+        raise
+
+    if not advapi32.CryptDestroyHash(hash_handle.value):
+        raise OSError("Failed to release CSP hash handle.")
+
+    return result

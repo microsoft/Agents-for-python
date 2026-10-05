@@ -20,6 +20,7 @@ from microsoft_agents.authentication.msal._certificate_store import (
     _normalize_store_name,
     _release_private_key,
     _sign_hash_with_cng,
+    _sign_hash_with_legacy_csp,
 )
 
 
@@ -638,3 +639,113 @@ def test_sign_hash_with_cng_raises_when_signing_fails(mocker):
             key_handle=123,
             digest=digest,
         )
+
+
+def test_sign_hash_with_legacy_csp_returns_signature(mocker):
+    advapi32 = mocker.Mock()
+    digest = bytes(range(32))
+
+    native_signature = b"\x01\x02\x03\x04"
+
+    def create_hash(
+        _provider_handle,
+        _algorithm,
+        _key,
+        _flags,
+        hash_handle,
+    ):
+        hash_handle._obj.value = 789
+        return True
+
+    def sign_hash(
+        _hash_handle,
+        _key_spec,
+        _description,
+        _flags,
+        signature,
+        signature_size,
+    ):
+        signature_size._obj.value = len(native_signature)
+
+        if signature is not None:
+            for index, value in enumerate(native_signature):
+                signature[index] = value
+
+        return True
+
+    advapi32.CryptCreateHash.side_effect = create_hash
+    advapi32.CryptSetHashParam.return_value = True
+    advapi32.CryptSignHashW.side_effect = sign_hash
+    advapi32.CryptDestroyHash.return_value = True
+
+    result = _sign_hash_with_legacy_csp(
+        advapi32,
+        key_handle=456,
+        key_spec=AT_SIGNATURE,
+        digest=digest,
+    )
+
+    assert result == native_signature[::-1]
+    assert advapi32.CryptSignHashW.call_count == 2
+    advapi32.CryptDestroyHash.assert_called_once_with(789)
+
+
+def test_sign_hash_with_legacy_csp_requires_sha256_digest(mocker):
+    advapi32 = mocker.Mock()
+
+    with pytest.raises(ValueError, match="SHA-256 digest"):
+        _sign_hash_with_legacy_csp(
+            advapi32,
+            key_handle=456,
+            key_spec=AT_SIGNATURE,
+            digest=b"invalid",
+        )
+
+    advapi32.CryptCreateHash.assert_not_called()
+
+
+def test_sign_hash_with_legacy_csp_raises_when_signing_fails(mocker):
+    advapi32 = mocker.Mock()
+    digest = bytes(32)
+
+    def create_hash(
+        _provider_handle,
+        _algorithm,
+        _key,
+        _flags,
+        hash_handle,
+    ):
+        hash_handle._obj.value = 789
+        return True
+
+    def sign_hash(
+        _hash_handle,
+        _key_spec,
+        _description,
+        _flags,
+        signature,
+        signature_size,
+    ):
+        if signature is None:
+            signature_size._obj.value = 256
+            return True
+
+        return False
+
+    advapi32.CryptCreateHash.side_effect = create_hash
+    advapi32.CryptSetHashParam.return_value = True
+    advapi32.CryptSignHashW.side_effect = sign_hash
+    advapi32.CryptDestroyHash.return_value = True
+
+    with pytest.raises(
+        OSError,
+        match="Failed to sign with CSP RSA private key",
+    ):
+        _sign_hash_with_legacy_csp(
+            advapi32,
+            key_handle=456,
+            key_spec=AT_SIGNATURE,
+            digest=digest,
+        )
+
+    advapi32.CryptDestroyHash.assert_called_once_with(789)
