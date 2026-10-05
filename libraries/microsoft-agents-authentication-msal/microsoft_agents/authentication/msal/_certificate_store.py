@@ -6,7 +6,11 @@ from __future__ import annotations
 import base64
 import ctypes
 import hashlib
+import json
 import sys
+import time
+import uuid
+import weakref
 
 _STORE_NAMES = {
     "addressbook": "AddressBook",
@@ -54,6 +58,8 @@ NCRYPT_PAD_PKCS1_FLAG = 0x00000002
 NCRYPT_PAD_PSS_FLAG = 0x00000008
 BCRYPT_SHA256_ALGORITHM = "SHA256"
 SHA256_DIGEST_LENGTH = 32
+
+_CLIENT_ASSERTION_LIFETIME_SECONDS = 60 * 10
 
 
 class _CERT_CONTEXT(ctypes.Structure):
@@ -713,3 +719,161 @@ def _sign_hash_with_legacy_csp(
         raise OSError("Failed to release CSP hash handle.")
 
     return result
+
+
+class _CertificateStoreClientAssertion:
+    """Creates MSAL client assertions backed by a certificate store certificate."""
+
+    def __init__(
+        self,
+        *,
+        subject_name: str,
+        store_name: str,
+        valid_only: bool,
+        send_x5c: bool,
+        client_id: str,
+    ):
+        self._crypt32, self._ncrypt, self._advapi32 = _load_windows_apis()
+
+        self._certificate = _find_certificate_context(
+            self._crypt32,
+            subject_name=subject_name,
+            store_name=store_name,
+            valid_only=valid_only,
+        )
+        self._certificate_finalizer = weakref.finalize(
+            self,
+            self._crypt32.CertFreeCertificateContext,
+            self._certificate,
+        )
+
+        self._raw_certificate = _get_certificate_raw_data(self._certificate)
+        self._sha1_thumbprint = _compute_certificate_thumbprint(
+            self._certificate,
+            use_sha2=False,
+        )
+        self._sha256_thumbprint = _compute_certificate_thumbprint(
+            self._certificate,
+            use_sha2=True,
+        )
+
+        self._send_x5c = send_x5c
+        self._client_id = client_id
+        self._audience: str | None = None
+
+    def bind_audience(self, audience: str) -> None:
+        """Bind the MSAL-resolved token endpoint used as the assertion audience."""
+        if self._audience is not None and self._audience != audience:
+            raise RuntimeError("Certificate assertion audience is already bound.")
+
+        self._audience = audience
+
+    def __call__(self) -> str:
+        if self._audience is None:
+            raise RuntimeError(
+                "Certificate assertion audience has not been initialized."
+            )
+
+        valid_from = int(time.time())
+        payload = {
+            "aud": self._audience,
+            "iss": self._client_id,
+            "sub": self._client_id,
+            "nbf": str(valid_from),
+            "exp": str(valid_from + _CLIENT_ASSERTION_LIFETIME_SECONDS),
+            "jti": str(uuid.uuid4()),
+        }
+
+        key_handle, key_spec, caller_free = _acquire_private_key(
+            self._crypt32,
+            self._certificate,
+        )
+
+        try:
+            if not _is_private_key_rsa(
+                self._ncrypt,
+                self._advapi32,
+                key_handle=key_handle,
+                key_spec=key_spec,
+            ):
+                raise ValueError(
+                    "The provided certificate is not of type RSA. "
+                    "Please use a certificate of type RSA."
+                )
+
+            is_cng_key = key_spec == CERT_NCRYPT_KEY_SPEC
+
+            if is_cng_key:
+                header = {
+                    "alg": "PS256",
+                    "typ": "JWT",
+                    "x5t#S256": self._sha256_thumbprint,
+                }
+            else:
+                header = {
+                    "alg": "RS256",
+                    "typ": "JWT",
+                    "x5t": self._sha1_thumbprint,
+                }
+
+            if self._send_x5c:
+                header["x5c"] = base64.b64encode(self._raw_certificate).decode("ascii")
+
+            encoded_payload = _base64url_encode(
+                json.dumps(payload, separators=(",", ":")).encode("utf-8")
+            )
+            encoded_header = _base64url_encode(
+                json.dumps(header, separators=(",", ":")).encode("utf-8")
+            )
+
+            token = f"{encoded_header}.{encoded_payload}"
+            digest = hashlib.sha256(token.encode("ascii")).digest()
+
+            if is_cng_key:
+                try:
+                    signature = _sign_hash_with_cng(
+                        self._ncrypt,
+                        key_handle=key_handle,
+                        digest=digest,
+                    )
+                except OSError:
+                    header = {
+                        "alg": "RS256",
+                        "typ": "JWT",
+                        "x5t": self._sha1_thumbprint,
+                    }
+
+                    if self._send_x5c:
+                        header["x5c"] = base64.b64encode(self._raw_certificate).decode(
+                            "ascii"
+                        )
+
+                    encoded_header = _base64url_encode(
+                        json.dumps(header, separators=(",", ":")).encode("utf-8")
+                    )
+                    token = f"{encoded_header}.{encoded_payload}"
+                    digest = hashlib.sha256(token.encode("ascii")).digest()
+
+                    signature = _sign_hash_with_cng_pkcs1(
+                        self._ncrypt,
+                        key_handle=key_handle,
+                        digest=digest,
+                    )
+            else:
+                signature = _sign_hash_with_legacy_csp(
+                    self._advapi32,
+                    key_handle=key_handle,
+                    key_spec=key_spec,
+                    digest=digest,
+                )
+
+            return f"{token}.{_base64url_encode(signature)}"
+
+        finally:
+            _release_private_key(
+                self._ncrypt,
+                self._advapi32,
+                key_handle=key_handle,
+                key_spec=key_spec,
+                caller_free=caller_free,
+            )

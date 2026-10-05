@@ -1,4 +1,8 @@
+import base64
 import ctypes
+import hashlib
+import json
+import uuid
 
 import pytest
 from microsoft_agents.authentication.msal._certificate_store import (
@@ -11,6 +15,7 @@ from microsoft_agents.authentication.msal._certificate_store import (
     CERT_FIND_SUBJECT_STR_W,
     CERT_NCRYPT_KEY_SPEC,
     _acquire_private_key,
+    _CertificateStoreClientAssertion,
     _compute_certificate_thumbprint,
     _find_certificate_context,
     _get_certificate_raw_data,
@@ -767,6 +772,42 @@ def _create_certificate_context(raw_data: bytes):
     return ctypes.pointer(certificate), encoded
 
 
+def _create_certificate_store_assertion(mocker, *, send_x5c=False):
+    crypt32 = mocker.Mock()
+    ncrypt = mocker.Mock()
+    advapi32 = mocker.Mock()
+
+    certificate, encoded = _create_certificate_context(b"\x01\x02\x03\x04")
+
+    mocker.patch(
+        "microsoft_agents.authentication.msal._certificate_store." "_load_windows_apis",
+        return_value=(crypt32, ncrypt, advapi32),
+    )
+    mocker.patch(
+        "microsoft_agents.authentication.msal._certificate_store."
+        "_find_certificate_context",
+        return_value=certificate,
+    )
+    mocker.patch(
+        "microsoft_agents.authentication.msal._certificate_store." "weakref.finalize"
+    )
+
+    assertion = _CertificateStoreClientAssertion(
+        subject_name="test-agent",
+        store_name="My",
+        valid_only=True,
+        send_x5c=send_x5c,
+        client_id="test-client-id",
+    )
+
+    return assertion, crypt32, ncrypt, advapi32, encoded
+
+
+def _decode_jwt_part(value: str):
+    padding = "=" * (-len(value) % 4)
+    return json.loads(base64.urlsafe_b64decode(value + padding))
+
+
 def test_get_certificate_raw_data():
     certificate, _encoded = _create_certificate_context(b"\x01\x02\x03\x04")
 
@@ -865,3 +906,260 @@ def test_sign_hash_with_cng_pkcs1_raises_when_signing_fails(mocker):
             key_handle=123,
             digest=digest,
         )
+
+
+def test_certificate_store_client_assertion_signs_with_cng(mocker):
+    assertion, _crypt32, ncrypt, advapi32, _encoded = (
+        _create_certificate_store_assertion(mocker, send_x5c=True)
+    )
+
+    mocker.patch(
+        "microsoft_agents.authentication.msal._certificate_store."
+        "_acquire_private_key",
+        return_value=(123, CERT_NCRYPT_KEY_SPEC, True),
+    )
+    mocker.patch(
+        "microsoft_agents.authentication.msal._certificate_store."
+        "_is_private_key_rsa",
+        return_value=True,
+    )
+    sign_cng = mocker.patch(
+        "microsoft_agents.authentication.msal._certificate_store."
+        "_sign_hash_with_cng",
+        return_value=b"\x01\x02\x03\x04",
+    )
+    sign_legacy = mocker.patch(
+        "microsoft_agents.authentication.msal._certificate_store."
+        "_sign_hash_with_legacy_csp"
+    )
+    release_key = mocker.patch(
+        "microsoft_agents.authentication.msal._certificate_store."
+        "_release_private_key"
+    )
+    mocker.patch(
+        "microsoft_agents.authentication.msal._certificate_store.time.time",
+        return_value=1000,
+    )
+    mocker.patch(
+        "microsoft_agents.authentication.msal._certificate_store.uuid.uuid4",
+        return_value=uuid.UUID("12345678-1234-5678-1234-567812345678"),
+    )
+
+    assertion.bind_audience("https://login.example/token")
+
+    result = assertion()
+    encoded_header, encoded_payload, encoded_signature = result.split(".")
+
+    assert _decode_jwt_part(encoded_header) == {
+        "alg": "PS256",
+        "typ": "JWT",
+        "x5t#S256": "n2SnR-G5fxMfq7a0Rylsm28CAeefs8U1bmx36JtqgGo",
+        "x5c": "AQIDBA==",
+    }
+    assert _decode_jwt_part(encoded_payload) == {
+        "aud": "https://login.example/token",
+        "iss": "test-client-id",
+        "sub": "test-client-id",
+        "nbf": "1000",
+        "exp": "1600",
+        "jti": "12345678-1234-5678-1234-567812345678",
+    }
+
+    expected_digest = hashlib.sha256(
+        f"{encoded_header}.{encoded_payload}".encode("ascii")
+    ).digest()
+
+    sign_cng.assert_called_once_with(
+        ncrypt,
+        key_handle=123,
+        digest=expected_digest,
+    )
+    sign_legacy.assert_not_called()
+
+    assert (
+        base64.urlsafe_b64decode(
+            encoded_signature + "=" * (-len(encoded_signature) % 4)
+        )
+        == b"\x01\x02\x03\x04"
+    )
+
+    release_key.assert_called_once_with(
+        ncrypt,
+        advapi32,
+        key_handle=123,
+        key_spec=CERT_NCRYPT_KEY_SPEC,
+        caller_free=True,
+    )
+
+
+def test_certificate_store_client_assertion_signs_with_legacy_csp(mocker):
+    assertion, _crypt32, ncrypt, advapi32, _encoded = (
+        _create_certificate_store_assertion(mocker)
+    )
+
+    mocker.patch(
+        "microsoft_agents.authentication.msal._certificate_store."
+        "_acquire_private_key",
+        return_value=(456, AT_SIGNATURE, False),
+    )
+    mocker.patch(
+        "microsoft_agents.authentication.msal._certificate_store."
+        "_is_private_key_rsa",
+        return_value=True,
+    )
+    sign_cng = mocker.patch(
+        "microsoft_agents.authentication.msal._certificate_store." "_sign_hash_with_cng"
+    )
+    sign_legacy = mocker.patch(
+        "microsoft_agents.authentication.msal._certificate_store."
+        "_sign_hash_with_legacy_csp",
+        return_value=b"\x05\x06\x07\x08",
+    )
+    release_key = mocker.patch(
+        "microsoft_agents.authentication.msal._certificate_store."
+        "_release_private_key"
+    )
+
+    assertion.bind_audience("https://login.example/token")
+
+    result = assertion()
+    encoded_header, encoded_payload, _encoded_signature = result.split(".")
+
+    assert _decode_jwt_part(encoded_header) == {
+        "alg": "RS256",
+        "typ": "JWT",
+        "x5t": "EtraH_9NR4et4zMxRyAsO0Q-N28",
+    }
+
+    expected_digest = hashlib.sha256(
+        f"{encoded_header}.{encoded_payload}".encode("ascii")
+    ).digest()
+
+    sign_legacy.assert_called_once_with(
+        advapi32,
+        key_handle=456,
+        key_spec=AT_SIGNATURE,
+        digest=expected_digest,
+    )
+    sign_cng.assert_not_called()
+
+    release_key.assert_called_once_with(
+        ncrypt,
+        advapi32,
+        key_handle=456,
+        key_spec=AT_SIGNATURE,
+        caller_free=False,
+    )
+
+
+def test_certificate_store_client_assertion_requires_audience(mocker):
+    assertion, _crypt32, _ncrypt, _advapi32, _encoded = (
+        _create_certificate_store_assertion(mocker)
+    )
+
+    with pytest.raises(
+        RuntimeError,
+        match="audience has not been initialized",
+    ):
+        assertion()
+
+
+def test_certificate_store_client_assertion_rejects_non_rsa_key(mocker):
+    assertion, _crypt32, ncrypt, advapi32, _encoded = (
+        _create_certificate_store_assertion(mocker)
+    )
+
+    mocker.patch(
+        "microsoft_agents.authentication.msal._certificate_store."
+        "_acquire_private_key",
+        return_value=(123, CERT_NCRYPT_KEY_SPEC, True),
+    )
+    mocker.patch(
+        "microsoft_agents.authentication.msal._certificate_store."
+        "_is_private_key_rsa",
+        return_value=False,
+    )
+    release_key = mocker.patch(
+        "microsoft_agents.authentication.msal._certificate_store."
+        "_release_private_key"
+    )
+
+    assertion.bind_audience("https://login.example/token")
+
+    with pytest.raises(ValueError, match="certificate is not of type RSA"):
+        assertion()
+
+    release_key.assert_called_once_with(
+        ncrypt,
+        advapi32,
+        key_handle=123,
+        key_spec=CERT_NCRYPT_KEY_SPEC,
+        caller_free=True,
+    )
+
+
+def test_certificate_store_client_assertion_falls_back_to_cng_pkcs1(mocker):
+    assertion, _crypt32, ncrypt, advapi32, _encoded = (
+        _create_certificate_store_assertion(mocker, send_x5c=True)
+    )
+
+    mocker.patch(
+        "microsoft_agents.authentication.msal._certificate_store."
+        "_acquire_private_key",
+        return_value=(123, CERT_NCRYPT_KEY_SPEC, True),
+    )
+    mocker.patch(
+        "microsoft_agents.authentication.msal._certificate_store."
+        "_is_private_key_rsa",
+        return_value=True,
+    )
+    sign_cng = mocker.patch(
+        "microsoft_agents.authentication.msal._certificate_store."
+        "_sign_hash_with_cng",
+        side_effect=OSError("Failed to sign with CNG private key."),
+    )
+    sign_pkcs1 = mocker.patch(
+        "microsoft_agents.authentication.msal._certificate_store."
+        "_sign_hash_with_cng_pkcs1",
+        return_value=b"\x01\x02\x03\x04",
+    )
+    sign_legacy = mocker.patch(
+        "microsoft_agents.authentication.msal._certificate_store."
+        "_sign_hash_with_legacy_csp"
+    )
+    release_key = mocker.patch(
+        "microsoft_agents.authentication.msal._certificate_store."
+        "_release_private_key"
+    )
+
+    assertion.bind_audience("https://login.example/token")
+
+    result = assertion()
+    encoded_header, encoded_payload, _encoded_signature = result.split(".")
+
+    assert _decode_jwt_part(encoded_header) == {
+        "alg": "RS256",
+        "typ": "JWT",
+        "x5t": "EtraH_9NR4et4zMxRyAsO0Q-N28",
+        "x5c": "AQIDBA==",
+    }
+
+    expected_digest = hashlib.sha256(
+        f"{encoded_header}.{encoded_payload}".encode("ascii")
+    ).digest()
+
+    sign_cng.assert_called_once()
+    sign_pkcs1.assert_called_once_with(
+        ncrypt,
+        key_handle=123,
+        digest=expected_digest,
+    )
+    sign_legacy.assert_not_called()
+
+    release_key.assert_called_once_with(
+        ncrypt,
+        advapi32,
+        key_handle=123,
+        key_spec=CERT_NCRYPT_KEY_SPEC,
+        caller_free=True,
+    )
