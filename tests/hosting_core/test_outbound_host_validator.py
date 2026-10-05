@@ -207,6 +207,7 @@ class TestOutboundHostValidator:
             "https://169.254.169.254/latest/meta-data",
             "https://internal-test.local:8443/secret",
             "http://localhost/admin",
+            "http://graph.microsoft.com/v1.0/me",
             "https://localhost/admin",
             "https://evil.trafficmanager.net/relay",
             "ftp://graph.microsoft.com/file",

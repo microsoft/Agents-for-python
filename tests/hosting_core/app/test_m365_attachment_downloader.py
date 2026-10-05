@@ -337,8 +337,8 @@ class TestM365AttachmentDownloaderRemoteContent:
     @pytest.mark.parametrize(
         "download_url",
         [
-            "http://localhost.evil.example/file.txt",
-            "http://localhost@evil.example/file.txt",
+            "https://localhost.evil.example/file.txt",
+            "https://localhost@evil.example/file.txt",
         ],
     )
     async def test_forwards_download_urls_without_a_host_validator(

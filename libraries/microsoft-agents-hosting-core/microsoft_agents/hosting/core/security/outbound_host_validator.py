@@ -30,6 +30,19 @@ _DEFAULT_MICROSOFT_HOSTS = [
 ]
 
 
+def _allow_addr(
+    address: ipaddress.IPv4Address | ipaddress.IPv6Address,
+    allow_private_network_addresses: bool,
+) -> bool:
+    if address.is_multicast:
+        return False
+    if address.is_global:
+        return True
+    if address.is_private and allow_private_network_addresses:
+        return True
+    return False
+
+
 class _BasicResolveResultValidator(_ResolveResultValidator):
     """Validates resolved network addresses used by the SSRF-safe connector."""
 
@@ -45,10 +58,7 @@ class _BasicResolveResultValidator(_ResolveResultValidator):
 
         try:
             address = ipaddress.ip_address(host)
-            if not (
-                address.is_global
-                or (address.is_private and self._allow_private_network_addresses)
-            ):
+            if not _allow_addr(address, self._allow_private_network_addresses):
                 logger.warning("Private or loopback network address not allowed")
                 return False
 
@@ -163,10 +173,10 @@ class OutboundHostValidator(_OutboundHostValidator):
         if url.host is None:
             return False
 
-        # Only allow HTTP and HTTPS schemes
-        if url.scheme not in ("http", "https"):
+        if url.scheme != "https":
             return False
 
+        # disallow user info in the URL (scheme://user:password@localhost)
         if url.user or url.password:
             return False
 
@@ -175,10 +185,7 @@ class OutboundHostValidator(_OutboundHostValidator):
 
         try:
             address = ipaddress.ip_address(url.host)
-            if not (
-                address.is_global
-                or (address.is_private and self._allow_private_network_addresses)
-            ):
+            if not _allow_addr(address, self._allow_private_network_addresses):
                 return False
 
         except ValueError:

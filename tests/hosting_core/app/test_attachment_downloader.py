@@ -150,7 +150,9 @@ class TestAttachmentDownloaderRemoteContent:
         assert session.requested_urls == ["https://example.org/file.txt"]
 
     @pytest.mark.asyncio
-    async def test_allows_http_localhost_urls(self, monkeypatch):
+    async def test_downloads_https_localhost_urls_without_a_validator(
+        self, monkeypatch
+    ):
         response = _FakeResponse(
             status=200, content=b"local-bytes", content_type="text/plain"
         )
@@ -158,7 +160,7 @@ class TestAttachmentDownloaderRemoteContent:
         _patch_client_session(monkeypatch, session)
         downloader = AttachmentDownloader()
         attachment = Attachment(
-            content_type="text/plain", content_url="http://localhost:3000/file.txt"
+            content_type="text/plain", content_url="https://localhost:3000/file.txt"
         )
         context = _make_context(attachments=[attachment])
 
@@ -170,8 +172,8 @@ class TestAttachmentDownloaderRemoteContent:
     @pytest.mark.parametrize(
         "content_url",
         [
-            "http://localhost.evil.example/file.txt",
-            "http://localhost@evil.example/file.txt",
+            "https://localhost.evil.example/file.txt",
+            "https://localhost@evil.example/file.txt",
         ],
     )
     async def test_forwards_urls_without_a_host_validator(
