@@ -24,7 +24,7 @@ class _ServiceSet:
             self._state.update(service_set._state)
 
     @overload
-    def get(self, key: type[T], raise_if_missing: Literal[True] = True) -> T: ...
+    def get(self, key: type[T], raise_if_missing: Literal[True]) -> T: ...
 
     @overload
     def get(

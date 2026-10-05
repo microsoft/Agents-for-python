@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "microsoft-agents-hosting-a2a"
-dynamic = ["version", "dependencies"]
+dynamic = ["version", "dependencies", "optional-dependencies"]
 description = "Library adding A2A handling to an SDK Agent"
 readme = {file = "readme.md", content-type = "text/markdown"}
 authors = [{name = "Microsoft Corporation"}]

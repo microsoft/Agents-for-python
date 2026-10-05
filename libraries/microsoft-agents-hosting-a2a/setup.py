@@ -16,4 +16,7 @@ setup(
         f"microsoft-agents-hosting-fastapi=={package_version}",
         "a2a-sdk>=1.0.0",
     ],
+    extras_require={
+        "blob": ["azure-storage-blob"],
+    },
 )

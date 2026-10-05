@@ -17,7 +17,7 @@ from microsoft_agents.hosting.core import (
     ClaimsIdentity,
 )
 
-from .activity import A2AActivity
+from ..activity import A2AActivity
 from .a2a_client import A2AClient
 
 

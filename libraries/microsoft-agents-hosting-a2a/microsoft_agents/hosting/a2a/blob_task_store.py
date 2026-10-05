@@ -25,7 +25,7 @@ from microsoft_agents.hosting.core.storage.error_handling import (
     is_status_code_error,
 )
 
-_TASK_PREFIX = "TODO"
+_TASK_PREFIX = "a2atask/"
 
 
 class BlobTaskStore(TaskStore):

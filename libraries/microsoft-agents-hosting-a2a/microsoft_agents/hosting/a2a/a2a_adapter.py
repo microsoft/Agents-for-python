@@ -65,7 +65,7 @@ from .request_handling import (
 
 from .activity import utils, A2AActivity
 from .activity.a2a_activity import _DEFAULT_USER_ID
-from .a2a_turn_context import A2ATurnContext
+from .extension.a2a_turn_context import A2ATurnContext
 
 from .server._constants import _CLAIMS_IDENTITY_KEY
 
@@ -95,7 +95,6 @@ class A2AAdapter(A2AHttpAdapter, ChannelAdapter, ChannelAdapterProtocol):
         :param agent_interfaces: The list of agent interfaces associated with the adapter.
         :param skills: The list of skills associated with the adapter.
         :param task_store: Optional task store for managing tasks. If not provided, an in-memory task store will be used.
-        :param agent_card_cache_max_age: The maximum age (in seconds) for caching the agent card. Default is 3600 seconds (1 hour).
         """
         self.middleware_set = MiddlewareSet()
 
@@ -116,13 +115,13 @@ class A2AAdapter(A2AHttpAdapter, ChannelAdapter, ChannelAdapterProtocol):
 
     @property
     def skills(self) -> list[AgentSkill]:
-        """Get the list of skills associated with the adapter."""
-        return self._skills
+        """Get a copy of the list of skills associated with the adapter."""
+        return list(self._skills)
 
     @property
     def agent_interfaces(self) -> list[AgentInterface]:
-        """Get the list of agent interfaces associated with the adapter."""
-        return self._agent_interfaces
+        """Get a copy of the list of agent interfaces associated with the adapter."""
+        return list(self._agent_interfaces)
 
     @property
     def a2a_request_handler(self) -> RequestHandler:
@@ -333,6 +332,7 @@ class A2AAdapter(A2AHttpAdapter, ChannelAdapter, ChannelAdapterProtocol):
                     context_id=message.context_id,
                     artifact=artifact,
                     append=False,
+                    last_chunk=True,
                 )
             )
 
@@ -429,7 +429,7 @@ class A2AAdapter(A2AHttpAdapter, ChannelAdapter, ChannelAdapterProtocol):
             default_output_modes=["application/json"],
             skills=[],
             capabilities=AgentCapabilities(
-                extended_agent_card=True,
+                extended_agent_card=False,
                 streaming=True,
             ),
             supported_interfaces=[],
