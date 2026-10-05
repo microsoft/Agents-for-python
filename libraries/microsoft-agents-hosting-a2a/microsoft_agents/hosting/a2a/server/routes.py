@@ -49,7 +49,7 @@ def create_jsonrpc_routes(
     """
     return _create_jsonrpc_routes(
         request_handler,
-        __get_interface_route_path(rpc_url),
+        _get_interface_route_path(rpc_url),
         context_builder=SDKServerCallContextBuilder(),
         enable_v0_3_compat=enable_v0_3_compat,
     )
@@ -71,7 +71,7 @@ def create_rest_routes(
         request_handler,
         context_builder=SDKServerCallContextBuilder(),
         enable_v0_3_compat=enable_v0_3_compat,
-        path_prefix=__get_interface_route_path(path_prefix),
+        path_prefix=_get_interface_route_path(path_prefix),
     )
     return routes
 
