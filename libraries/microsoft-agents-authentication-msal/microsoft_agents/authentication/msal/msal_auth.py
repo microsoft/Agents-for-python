@@ -32,6 +32,9 @@ from microsoft_agents.hosting.core import (
 )
 from microsoft_agents.hosting.core.authorization.telemetry import spans
 from microsoft_agents.authentication.msal.errors import authentication_errors
+from microsoft_agents.authentication.msal._certificate_store import (
+    _CertificateStoreClientAssertion,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -299,6 +302,7 @@ class MsalAuth(AccessTokenProviderBase):
         else:
             authority = MsalAuth._resolve_authority(self._msal_configuration, tenant_id)
             client_credential = None
+            certificate_assertion = None
 
             if self._msal_configuration.AUTH_TYPE == AuthTypes.client_secret:
                 client_credential = self._msal_configuration.CLIENT_SECRET
@@ -308,6 +312,22 @@ class MsalAuth(AccessTokenProviderBase):
                 }
                 if self._msal_configuration.SEND_X5C:
                     client_credential["public_certificate"] = True
+            elif (
+                self._msal_configuration.AUTH_TYPE == AuthTypes.certificate_subject_name
+            ):
+                assert self._msal_configuration.CERT_SUBJECT_NAME is not None
+                assert self._msal_configuration.CLIENT_ID is not None
+
+                certificate_assertion = _CertificateStoreClientAssertion(
+                    subject_name=self._msal_configuration.CERT_SUBJECT_NAME,
+                    store_name=self._msal_configuration.CERT_STORE_NAME,
+                    valid_only=self._msal_configuration.VALID_CERTIFICATE_ONLY,
+                    send_x5c=self._msal_configuration.SEND_X5C,
+                    client_id=self._msal_configuration.CLIENT_ID,
+                )
+                client_credential = {
+                    "client_assertion": certificate_assertion,
+                }
             elif self._msal_configuration.AUTH_TYPE == AuthTypes.federated_credentials:
                 mi_client = ManagedIdentityClient(
                     UserAssignedManagedIdentity(
@@ -353,12 +373,19 @@ class MsalAuth(AccessTokenProviderBase):
                     str(authentication_errors.AuthenticationTypeNotSupported)
                 )
 
-            return ConfidentialClientApplication(
+            client_application = ConfidentialClientApplication(
                 client_id=self._msal_configuration.CLIENT_ID,
                 authority=authority,
                 client_credential=client_credential,
                 azure_region=MsalAuth._resolve_azure_region(self._msal_configuration),
             )
+
+            if certificate_assertion is not None:
+                certificate_assertion.bind_audience(
+                    client_application.authority.token_endpoint
+                )
+
+            return client_application
 
     def _client_rep(
         self, tenant_id: str | None = None, instance_id: str | None = None
