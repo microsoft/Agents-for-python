@@ -102,6 +102,7 @@ async def test_create_agent_card_routes_adapts_request_and_uses_interface_prefix
     route = routes.create_agent_card_routes(
         get_agent_card,
         "/a2a/.well-known/agent-card.json",
+        _cache_enabled=True,
     )[0]
     request = Request(
         {
@@ -171,6 +172,9 @@ async def test_create_agent_card_routes_uses_custom_url_as_prefix():
 
     assert response.status_code == 200
     assert observed["prefix"] == "/custom-agent-card"
+    assert response.headers["cache-control"] == "no-store"
+    assert "etag" not in response.headers
+    assert "last-modified" not in response.headers
 
 
 @pytest.mark.asyncio

@@ -91,6 +91,12 @@ def test_constructor_rejects_invalid_parameter_combinations(kwargs):
         BlobTaskStore(**kwargs)
 
 
+def test_blob_name_uses_a2a_task_namespace_and_url_encoding():
+    assert (
+        BlobTaskStore._get_blob_name("task/with spaces") == "a2atask/task%2Fwith+spaces"
+    )
+
+
 @pytest.mark.blob
 class TestBlobTaskStore:
     @pytest.mark.asyncio
@@ -107,7 +113,7 @@ class TestBlobTaskStore:
             assert saved is not task
 
             blob_names = [blob.name async for blob in container_client.list_blobs()]
-            assert blob_names == ["TODOtask%2Fwith+spaces"]
+            assert blob_names == ["a2atask/task%2Fwith+spaces"]
 
             task.status.state = TaskState.TASK_STATE_COMPLETED
             await store.save(task, context)
@@ -126,7 +132,7 @@ class TestBlobTaskStore:
 
             await _upload_blob(
                 container_client,
-                "TODOexternal-task",
+                "a2atask/external-task",
                 external_task.SerializeToString(),
             )
 
@@ -145,7 +151,7 @@ class TestBlobTaskStore:
             assert await store.get("corrupted-task", context) is None
             await _upload_blob(
                 container_client,
-                "TODOcorrupted-task",
+                "a2atask/corrupted-task",
                 b"not a serialized Task",
             )
 

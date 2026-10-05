@@ -295,6 +295,7 @@ async def test_send_activities_emits_protocol_events_for_supported_activities():
     assert artifact_event.context_id == "context-1"
     assert artifact_event.artifact.artifact_id == "stream-1"
     assert artifact_event.artifact.parts[0].text == "chunk"
+    assert artifact_event.last_chunk is True
 
     assert isinstance(message_event, TaskStatusUpdateEvent)
     assert message_event.status.state == TaskState.TASK_STATE_INPUT_REQUIRED

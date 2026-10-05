@@ -12,7 +12,7 @@ from a2a.server.tasks import InMemoryTaskStore, TaskStore
 from microsoft_agents.activity import Activity
 from microsoft_agents.hosting.core import ChannelAdapter, ClaimsIdentity, TurnContext
 from microsoft_agents.hosting.a2a.a2a_agent_extension import A2AAgentExtension
-from microsoft_agents.hosting.a2a.a2a_turn_context import A2ATurnContext
+from microsoft_agents.hosting.a2a.extension.a2a_turn_context import A2ATurnContext
 
 
 class _Adapter(ChannelAdapter):

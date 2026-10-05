@@ -16,7 +16,7 @@ from microsoft_agents.hosting.core import (
     TurnContext,
 )
 from microsoft_agents.hosting.a2a.activity import A2AActivity
-from microsoft_agents.hosting.a2a.a2a_turn_context import A2ATurnContext
+from microsoft_agents.hosting.a2a.extension.a2a_turn_context import A2ATurnContext
 
 
 class _Adapter(ChannelAdapter):

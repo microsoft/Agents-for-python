@@ -32,6 +32,20 @@ def _adapter(*interfaces):
     )
 
 
+def test_add_a2a_uses_default_jsonrpc_interface():
+    app = FastAPI()
+
+    add_a2a(
+        app,
+        MagicMock(),
+        use_jwt_middleware=False,
+    )
+
+    paths = {route.path for route in app.routes}
+    assert "/a2a" in paths
+    assert "/a2a/.well-known/agent-card.json" in paths
+
+
 @pytest.mark.asyncio
 async def test_add_a2a_exposes_configured_jsonrpc_and_http_interfaces():
     app = FastAPI()
@@ -67,6 +81,8 @@ async def test_add_a2a_exposes_configured_jsonrpc_and_http_interfaces():
     assert rest_card.status_code == 200
     assert rpc_card.json()["name"] == "Test agent"
     assert rest_card.json()["name"] == "Test agent"
+    assert rpc_card.headers["cache-control"] == "no-store"
+    assert rest_card.headers["cache-control"] == "no-store"
     assert {
         "/rpc",
         "/rpc/.well-known/agent-card.json",
@@ -74,6 +90,41 @@ async def test_add_a2a_exposes_configured_jsonrpc_and_http_interfaces():
         "/rest/tasks",
         "/rest/.well-known/agent-card.json",
     }.issubset(app.openapi()["paths"])
+
+
+@pytest.mark.asyncio
+async def test_add_a2a_enables_agent_card_caching_for_all_interfaces():
+    app = FastAPI()
+    adapter = _adapter(
+        AgentInterface(
+            url="/rpc",
+            protocol_binding=TransportProtocol.JSONRPC,
+        ),
+        AgentInterface(
+            url="/rest",
+            protocol_binding=TransportProtocol.HTTP_JSON,
+        ),
+    )
+    add_a2a(
+        app,
+        MagicMock(),
+        adapter,
+        use_jwt_middleware=False,
+        _agent_card_cache_enabled=True,
+        agent_card_cache_max_age=300,
+    )
+
+    async with httpx.AsyncClient(
+        transport=httpx.ASGITransport(app=app),
+        base_url="http://testserver",
+    ) as client:
+        rpc_card = await client.get("/rpc/.well-known/agent-card.json")
+        rest_card = await client.get("/rest/.well-known/agent-card.json")
+
+    for response in (rpc_card, rest_card):
+        assert response.headers["cache-control"] == "public, max-age=300"
+        assert response.headers["etag"]
+        assert response.headers["last-modified"]
 
 
 @pytest.mark.asyncio

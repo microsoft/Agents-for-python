@@ -9,7 +9,7 @@ from a2a.server.context import ServerCallContext
 from a2a.server.events import EventQueue, EventQueueLegacy
 from a2a.server.tasks import InMemoryTaskStore, TaskStore
 
-from microsoft_agents.hosting.a2a.a2a_client import A2AClient
+from microsoft_agents.hosting.a2a.extension.a2a_client import A2AClient
 
 
 class _Services:

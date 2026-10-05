@@ -788,13 +788,10 @@ async def test_rest_push_notification_config_is_explicitly_unsupported(
 
 @pytest.mark.integration
 @pytest.mark.asyncio
-async def test_jsonrpc_extended_agent_card_is_explicitly_unconfigured(
+async def test_jsonrpc_extended_agent_card_is_explicitly_unsupported(
     a2a_client: httpx.AsyncClient,
 ) -> None:
-    """The basic agent card advertises `capabilities.extended_agent_card`,
-    but the adapter never configures an actual extended card or modifier on
-    the request handler, so retrieval must fail with the protocol-defined
-    EXTENDED_AGENT_CARD_NOT_CONFIGURED error."""
+    """The basic agent card does not advertise extended Agent Card support."""
 
     response = await _post_rpc(
         a2a_client,
@@ -803,14 +800,14 @@ async def test_jsonrpc_extended_agent_card_is_explicitly_unconfigured(
         request_id="extended-card",
     )
 
-    assert response["error"]["code"] == -32007
+    assert response["error"]["code"] == -32004
     error_details = response["error"]["data"][0]
-    assert error_details["reason"] == "EXTENDED_AGENT_CARD_NOT_CONFIGURED"
+    assert error_details["reason"] == "UNSUPPORTED_OPERATION"
 
 
 @pytest.mark.integration
 @pytest.mark.asyncio
-async def test_rest_extended_agent_card_is_explicitly_unconfigured(
+async def test_rest_extended_agent_card_is_explicitly_unsupported(
     a2a_client: httpx.AsyncClient,
 ) -> None:
     response = await a2a_client.get(
@@ -821,6 +818,4 @@ async def test_rest_extended_agent_card_is_explicitly_unconfigured(
     assert response.status_code == 400
     payload = response.json()
     assert payload["error"]["status"] == "FAILED_PRECONDITION"
-    assert payload["error"]["details"][0]["reason"] == (
-        "EXTENDED_AGENT_CARD_NOT_CONFIGURED"
-    )
+    assert payload["error"]["details"][0]["reason"] == "UNSUPPORTED_OPERATION"

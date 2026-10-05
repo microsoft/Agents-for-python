@@ -31,6 +31,13 @@ def test_get_returns_none_for_missing_service():
     assert services.get(Service) is None
 
 
+def test_get_raises_for_missing_service_when_requested():
+    services = _ServiceSet()
+
+    with pytest.raises(KeyError, match="Service.*missing"):
+        services.get(Service, raise_if_missing=True)
+
+
 def test_has_returns_false_for_missing_service():
     services = _ServiceSet()
 
