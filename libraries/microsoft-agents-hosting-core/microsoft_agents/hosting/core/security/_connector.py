@@ -26,10 +26,15 @@ class _SSRFError(ValueError):
 
 
 class _SSRFConnector(TCPConnector):
+    """TCPConnector subclass that validates resolved host results to prevent SSRF attacks."""
 
     def __init__(
         self, resolved_result_validator: _ResolveResultValidator, *args, **kwargs
     ):
+        """Initialize the SSRFConnector with a resolved result validator.
+
+        :param resolved_result_validator: The validator used to check resolved host results.
+        """
         super().__init__(*args, **kwargs)
         self._resolved_result_validator = resolved_result_validator
 

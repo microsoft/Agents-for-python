@@ -5,7 +5,8 @@ from typing import Callable, Awaitable
 
 from aiohttp import ClientRequest, ClientHandlerType, ClientResponse
 
-from ._validator import _URLValidator, _SSRFError
+from ._connector import _SSRFError
+from ._validator import _URLValidator
 
 
 def _validator_middleware(

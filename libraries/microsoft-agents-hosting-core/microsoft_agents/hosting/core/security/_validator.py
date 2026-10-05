@@ -23,13 +23,13 @@ class _URLValidator(Protocol):
         ...
 
 
-class _OutboundHostValidator(_URLValidator):
+class _OutboundHostValidator(_URLValidator, Protocol):
     """Protocol for outbound host validators."""
 
-    def client(self, session: ClientSession | None = None) -> ClientSession:
+    def client(self, client_session_kwargs: dict | None = None) -> ClientSession:
         """Returns a client session for making outbound requests.
 
-        :param session: An optional existing ClientSession to use.
+        :param client_session_kwargs: Optional keyword arguments to pass to the ClientSession constructor.
         :return: A ClientSession instance.
         """
         ...

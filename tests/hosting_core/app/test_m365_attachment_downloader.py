@@ -21,7 +21,7 @@ from microsoft_agents.hosting.core import (
 from microsoft_agents.hosting.core.app.m365_attachment_downloader import (
     M365AttachmentDownloader,
 )
-from microsoft_agents.hosting.core.outbound_host_validator import OutboundHostValidator
+from microsoft_agents.hosting.core.security import OutboundHostValidator, _SSRFError
 
 
 class _FakeTokenProvider(AccessTokenProviderBase):
@@ -121,11 +121,18 @@ class _FakeResponse:
 
 
 class _FakeSession:
-    def __init__(self, response: _FakeResponse):
+    def __init__(
+        self,
+        response: _FakeResponse,
+        validator: OutboundHostValidator | None = None,
+    ):
         self._response = response
+        self._validator = validator
         self.requested_urls: list[str] = []
 
     def get(self, url: str, headers=None, **kwargs) -> _FakeResponse:
+        if self._validator and not self._validator.is_allowed(url):
+            raise _SSRFError(f"URL '{url}' is not allowed")
         self.requested_urls.append(url)
         self._response.request_headers = headers
         return self._response
@@ -135,6 +142,13 @@ class _FakeSession:
 
     async def __aexit__(self, *args) -> bool:
         return False
+
+
+def _patch_client_session(monkeypatch, session: _FakeSession) -> None:
+    monkeypatch.setattr(
+        "microsoft_agents.hosting.core.app.m365_attachment_downloader.aiohttp.ClientSession",
+        lambda **kwargs: session,
+    )
 
 
 class TestM365AttachmentDownloaderChannelAndValidation:
@@ -203,14 +217,14 @@ class TestM365AttachmentDownloaderChannelAndValidation:
         assert await downloader.download_files(context) == []
 
     @pytest.mark.asyncio
-    async def test_allows_m365_copilot_channel(self):
+    async def test_allows_m365_copilot_channel(self, monkeypatch):
         response = _FakeResponse(
             status=200, content=b"bytes", content_type="text/plain"
         )
         session = _FakeSession(response)
+        _patch_client_session(monkeypatch, session)
         downloader = M365AttachmentDownloader(
             connections=_FakeConnections(_FakeTokenProvider("p")),
-            client_factory=lambda: session,
         )
         context = _make_context(
             channel_id="msteams:COPILOT",
@@ -268,14 +282,17 @@ class TestM365AttachmentDownloaderInlineContent:
 
 class TestM365AttachmentDownloaderRemoteContent:
     @pytest.mark.asyncio
-    async def test_downloads_remote_file_using_download_url_from_content(self):
+    async def test_downloads_remote_file_using_download_url_from_content(
+        self, monkeypatch
+    ):
         response = _FakeResponse(
             status=200, content=b"file-bytes", content_type="text/plain"
         )
         session = _FakeSession(response)
+        _patch_client_session(monkeypatch, session)
         token_provider = _FakeTokenProvider("p")
         downloader = M365AttachmentDownloader(
-            connections=_FakeConnections(token_provider), client_factory=lambda: session
+            connections=_FakeConnections(token_provider)
         )
         attachment = Attachment(
             content_type="text/plain",
@@ -293,14 +310,16 @@ class TestM365AttachmentDownloaderRemoteContent:
         assert session.requested_urls == ["https://example.org/real-download"]
 
     @pytest.mark.asyncio
-    async def test_falls_back_to_content_url_when_download_url_missing(self):
+    async def test_falls_back_to_content_url_when_download_url_missing(
+        self, monkeypatch
+    ):
         response = _FakeResponse(
             status=200, content=b"file-bytes", content_type="text/plain"
         )
         session = _FakeSession(response)
+        _patch_client_session(monkeypatch, session)
         downloader = M365AttachmentDownloader(
             connections=_FakeConnections(_FakeTokenProvider("p")),
-            client_factory=lambda: session,
         )
         attachment = Attachment(
             content_type="text/plain",
@@ -322,14 +341,16 @@ class TestM365AttachmentDownloaderRemoteContent:
             "http://localhost@evil.example/file.txt",
         ],
     )
-    async def test_does_not_request_spoofed_localhost_download_urls(self, download_url):
+    async def test_forwards_download_urls_without_a_host_validator(
+        self, monkeypatch, download_url
+    ):
         response = _FakeResponse(
             status=200, content=b"file-bytes", content_type="text/plain"
         )
         session = _FakeSession(response)
+        _patch_client_session(monkeypatch, session)
         downloader = M365AttachmentDownloader(
             connections=_FakeConnections(_FakeTokenProvider("p")),
-            client_factory=lambda: session,
         )
         attachment = Attachment(
             content_type="text/plain",
@@ -338,19 +359,20 @@ class TestM365AttachmentDownloaderRemoteContent:
         )
         context = _make_context(attachments=[attachment])
 
-        await downloader.download_files(context)
+        files = await downloader.download_files(context)
 
-        assert session.requested_urls == []
+        assert len(files) == 1
+        assert session.requested_urls == [download_url]
 
     @pytest.mark.asyncio
-    async def test_accepts_partial_content_response(self):
+    async def test_accepts_partial_content_response(self, monkeypatch):
         response = _FakeResponse(
             status=206, content=b"partial-bytes", content_type="text/plain"
         )
         session = _FakeSession(response)
+        _patch_client_session(monkeypatch, session)
         downloader = M365AttachmentDownloader(
             connections=_FakeConnections(_FakeTokenProvider("p")),
-            client_factory=lambda: session,
         )
         context = _make_context(
             attachments=[
@@ -367,14 +389,14 @@ class TestM365AttachmentDownloaderRemoteContent:
         assert files[0].content == b"partial-bytes"
 
     @pytest.mark.asyncio
-    async def test_normalizes_image_content_type_to_png(self):
+    async def test_normalizes_image_content_type_to_png(self, monkeypatch):
         response = _FakeResponse(
             status=200, content=b"\x89PNG", content_type="image/jpeg"
         )
         session = _FakeSession(response)
+        _patch_client_session(monkeypatch, session)
         downloader = M365AttachmentDownloader(
             connections=_FakeConnections(_FakeTokenProvider("p")),
-            client_factory=lambda: session,
         )
         attachment = Attachment(
             content_type="image/jpeg", content_url="https://example.org/pic.jpg"
@@ -386,12 +408,12 @@ class TestM365AttachmentDownloaderRemoteContent:
         assert files[0].content_type == "image/png"
 
     @pytest.mark.asyncio
-    async def test_returns_none_entry_for_failed_status(self):
+    async def test_returns_none_entry_for_failed_status(self, monkeypatch):
         response = _FakeResponse(status=404, content=b"", content_type="text/plain")
         session = _FakeSession(response)
+        _patch_client_session(monkeypatch, session)
         downloader = M365AttachmentDownloader(
             connections=_FakeConnections(_FakeTokenProvider("p")),
-            client_factory=lambda: session,
         )
         attachment = Attachment(
             content_type="text/plain", content_url="https://example.org/missing.txt"
@@ -401,15 +423,17 @@ class TestM365AttachmentDownloaderRemoteContent:
         assert await downloader.download_files(context) == []
 
     @pytest.mark.asyncio
-    async def test_skips_disallowed_hosts_when_host_validator_enabled(self):
+    async def test_skips_disallowed_hosts_when_host_validator_enabled(
+        self, monkeypatch
+    ):
         response = _FakeResponse(
             status=200, content=b"file-bytes", content_type="text/plain"
         )
-        session = _FakeSession(response)
         host_validator = OutboundHostValidator(enabled=True, hosts=["contoso.com"])
+        session = _FakeSession(response, validator=host_validator)
+        monkeypatch.setattr(host_validator, "client", lambda kwargs: session)
         downloader = M365AttachmentDownloader(
             connections=_FakeConnections(_FakeTokenProvider("p")),
-            client_factory=lambda: session,
             host_validator=host_validator,
         )
         attachment = Attachment(
@@ -423,15 +447,15 @@ class TestM365AttachmentDownloaderRemoteContent:
         assert session.requested_urls == []
 
     @pytest.mark.asyncio
-    async def test_uses_anonymous_mode_without_requesting_token(self):
+    async def test_uses_anonymous_mode_without_requesting_token(self, monkeypatch):
         response = _FakeResponse(
             status=200, content=b"file-bytes", content_type="text/plain"
         )
         session = _FakeSession(response)
+        _patch_client_session(monkeypatch, session)
         token_provider = _FakeTokenProvider("p")
         downloader = M365AttachmentDownloader(
             connections=_FakeConnections(token_provider),
-            client_factory=lambda: session,
             use_anonymous=True,
         )
         attachment = Attachment(
@@ -445,13 +469,14 @@ class TestM365AttachmentDownloaderRemoteContent:
         assert token_provider.requested is None
 
     @pytest.mark.asyncio
-    async def test_uses_named_token_provider_when_configured(self):
+    async def test_uses_named_token_provider_when_configured(self, monkeypatch):
         named_provider = _FakeTokenProvider("named")
+        session = _FakeSession(
+            _FakeResponse(status=200, content=b"bytes", content_type="text/plain")
+        )
+        _patch_client_session(monkeypatch, session)
         downloader = M365AttachmentDownloader(
             connections=_FakeConnections(named_provider),
-            client_factory=lambda: _FakeSession(
-                _FakeResponse(status=200, content=b"bytes", content_type="text/plain")
-            ),
             token_provider_name="named-connection",
         )
         attachment = Attachment(

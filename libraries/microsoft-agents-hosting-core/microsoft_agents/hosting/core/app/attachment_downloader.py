@@ -3,7 +3,7 @@
 
 import json
 import logging
-from typing import Callable
+from typing import Any, Callable
 
 import aiohttp
 
@@ -20,7 +20,7 @@ from microsoft_agents.hosting.core.security import (
 )
 
 from .input_file import InputFileDownloader, InputFile
-from ._utils import _parse_content_type, _basic_url_check
+from ._utils import _parse_content_type
 
 logger = logging.getLogger(__name__)
 
@@ -32,12 +32,20 @@ class AttachmentDownloader(InputFileDownloader):
         self,
         host_validator: OutboundHostValidator | None = None,
         *,
-        client_session_kwargs: dict | None = None
+        client_session_kwargs: dict | None = None,
+        client_factory: Any = None,
     ):
         """Constructor for AttachmentDownloader.
 
         :param host_validator: An optional OutboundHostValidator instance.
+        :param client_session_kwargs: Optional keyword arguments for the aiohttp.ClientSession.
+        :param client_factory: (deprecated) A custom client factory, if any.
         """
+
+        if client_factory is not None:
+            logger.warning(
+                "The 'client_factory' parameter is deprecated and will be ignored."
+            )
 
         self._client_session_kwargs = client_session_kwargs or {}
         self._host_validator = host_validator
@@ -54,19 +62,21 @@ class AttachmentDownloader(InputFileDownloader):
         if not context.activity.attachments:
             return []
 
-        client: aiohttp.ClientSession
+        client_factory: Callable[[], aiohttp.ClientSession]
         if self._host_validator is not None:
-            client = self._host_validator.client(self._client_session_kwargs)
+            host_validator = self._host_validator  # to capture in lambda
+            client_factory = lambda: host_validator.client(self._client_session_kwargs)
         else:
-            client = aiohttp.ClientSession(**self._client_session_kwargs)
+            client_factory = lambda: aiohttp.ClientSession(
+                **self._client_session_kwargs
+            )
 
-        files: list[InputFile] = []
-        for attachment in context.activity.attachments:
-            file = await self._download_file(client, attachment)
-            if file:
-                files.append(file)
-
-        await client.close()
+        async with client_factory() as client:
+            files: list[InputFile] = []
+            for attachment in context.activity.attachments:
+                file = await self._download_file(client, attachment)
+                if file:
+                    files.append(file)
         return files
 
     async def _download_file(
@@ -78,7 +88,7 @@ class AttachmentDownloader(InputFileDownloader):
         :param attachment: The attachment to download.
         :return: An InputFile instance if the download is successful, None otherwise.
         """
-        if attachment.content_url and _basic_url_check(attachment.content_url):
+        if attachment.content_url:
             remote_file_url = attachment.content_url
 
             try:

@@ -40,6 +40,7 @@ class M365AttachmentDownloader(InputFileDownloader):
         token_provider_name: str = "",
         use_anonymous: bool = False,
         scopes: list[str] | None = None,
+        client_factory: Any = None,
     ):
         """Constructor for M365AttachmentDownloader.
 
@@ -49,7 +50,13 @@ class M365AttachmentDownloader(InputFileDownloader):
         :param use_anonymous: Whether to use anonymous access.
         :param scopes: A list of scopes for the access token.
         :param connections: A Connections instance.
+        :param client_factory: (deprecated) A custom client factory, if any.
         """
+
+        if client_factory is not None:
+            logger.warning(
+                "The 'client_factory' parameter is deprecated and will be ignored."
+            )
 
         self._connections = connections
         self._host_validator = host_validator
@@ -113,19 +120,21 @@ class M365AttachmentDownloader(InputFileDownloader):
                 outgoing_audience_claim, self._scopes
             )
 
-        client: aiohttp.ClientSession
+        client_factory: Callable[[], aiohttp.ClientSession]
         if self._host_validator is not None:
-            client = self._host_validator.client(self._client_session_kwargs)
+            host_validator = self._host_validator  # to
+            client_factory = lambda: host_validator.client(self._client_session_kwargs)
         else:
-            client = aiohttp.ClientSession(**self._client_session_kwargs)
+            client_factory = lambda: aiohttp.ClientSession(
+                **self._client_session_kwargs
+            )
 
-        files: list[InputFile] = []
-        for att in attachments:
-            file = await self._download_file(client, att, access_token)
-            if file:
-                files.append(file)
-
-        await client.close()
+        async with client_factory() as client:
+            files: list[InputFile] = []
+            for att in attachments:
+                file = await self._download_file(client, att, access_token)
+                if file:
+                    files.append(file)
         return files
 
     async def _download_file(
