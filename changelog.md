@@ -1,3 +1,18 @@
+# Microsoft 365 Agents SDK for Python - Release Notes v1.9.0 (Unreleased)
+
+**Release Date:** Unreleased
+**Previous Version:** 1.8.0 (Released 2026-10-01)
+
+## Major Features & Enhancements
+
+- **Outbound Host Validation Hardening**: Enhanced `OutboundHostValidator` with HTTPS-only URL enforcement, DNS resolution validation for public and optionally private network addresses, and an SSRF-aware `aiohttp` connector that validates resolved IPv4 and IPv6 addresses before connecting.
+
+## Breaking Changes
+
+- **Attachment Downloader HTTP Configuration**: Replaced custom `client_factory` injection with `client_session_kwargs`; the deprecated `client_factory` parameter is ignored. This ensures attachment requests always use the validator-managed middleware and connector, preventing custom client sessions from bypassing hostname allowlists, redirect validation, or resolved-address checks while still allowing supported `aiohttp.ClientSession` options to be configured.
+
+---
+
 # Microsoft 365 Agents SDK for Python - Release Notes v1.8.0
 
 **Release Date:** 2026-10-01
