@@ -6,7 +6,7 @@ from types import SimpleNamespace
 from unittest.mock import AsyncMock, Mock
 
 import pytest
-from aiohttp import TCPConnector
+from aiohttp import ClientTimeout, TCPConnector
 from aiohttp.abc import ResolveResult
 from yarl import URL
 
@@ -296,10 +296,19 @@ class TestOutboundHostValidator:
             include_default_microsoft_hosts=False,
         )
 
-        client = validator.client({"headers": {"X-Test": "value"}})
+        timeout = ClientTimeout(total=30)
+        client = validator.client(
+            {
+                "headers": {"X-Test": "value"},
+                "raise_for_status": True,
+                "timeout": timeout,
+            }
+        )
         try:
             assert isinstance(client.connector, _SSRFConnector)
             assert client.headers["X-Test"] == "value"
+            assert client.raise_for_status is True
+            assert client.timeout is timeout
             assert len(client._middlewares) == 1
         finally:
             await client.close()
@@ -322,13 +331,32 @@ class TestOutboundHostValidator:
             {"connector": Mock()},
             {"connector_owner": False},
             {"middlewares": []},
+            {"proxy": "http://proxy.example"},
+            {"proxy_auth": Mock()},
+            {"trust_env": True},
+            {"request_class": Mock()},
+            {"loop": Mock()},
+            {"unknown_option": True},
         ],
     )
-    def test_client_rejects_security_sensitive_session_options(self, option):
+    def test_client_rejects_non_allowlisted_session_options(self, option):
         validator = OutboundHostValidator(enabled=True)
 
-        with pytest.raises(ValueError):
+        option_name = next(iter(option))
+        with pytest.raises(
+            ValueError,
+            match=f"Unsupported ClientSession options: {option_name}",
+        ):
             validator.client(option)
+
+    def test_client_reports_all_non_allowlisted_session_options(self):
+        validator = OutboundHostValidator(enabled=True)
+
+        with pytest.raises(
+            ValueError,
+            match="Unsupported ClientSession options: proxy, trust_env",
+        ):
+            validator.client({"trust_env": True, "proxy": "http://proxy.example"})
 
 
 class TestValidatorMiddleware:

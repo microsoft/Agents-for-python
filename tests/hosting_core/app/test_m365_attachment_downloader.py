@@ -334,6 +334,63 @@ class TestM365AttachmentDownloaderRemoteContent:
         assert session.requested_urls == ["https://example.org/file.txt"]
 
     @pytest.mark.asyncio
+    async def test_allows_http_localhost_download_urls(self, monkeypatch):
+        response = _FakeResponse(
+            status=200, content=b"local-bytes", content_type="text/plain"
+        )
+        session = _FakeSession(response)
+        _patch_client_session(monkeypatch, session)
+        downloader = M365AttachmentDownloader(
+            connections=_FakeConnections(_FakeTokenProvider("p")),
+        )
+        attachment = Attachment(
+            content_type="text/plain",
+            content_url="https://example.org/file.txt",
+            content={"downloadUrl": "http://localhost:3000/file.txt"},
+        )
+        context = _make_context(attachments=[attachment])
+
+        files = await downloader.download_files(context)
+
+        assert len(files) == 1
+        assert session.requested_urls == ["http://localhost:3000/file.txt"]
+
+    @pytest.mark.asyncio
+    @pytest.mark.parametrize(
+        "download_url",
+        [
+            "http://example.org/file.txt",
+            "ftp://example.org/file.txt",
+            "/relative/file.txt",
+        ],
+    )
+    async def test_does_not_request_urls_that_fail_basic_validation(
+        self, monkeypatch, download_url
+    ):
+        response = _FakeResponse(
+            status=200, content=b"remote-bytes", content_type="text/plain"
+        )
+        session = _FakeSession(response)
+        _patch_client_session(monkeypatch, session)
+        downloader = M365AttachmentDownloader(
+            connections=_FakeConnections(_FakeTokenProvider("p")),
+        )
+        content = {"downloadUrl": download_url, "source": "inline"}
+        attachment = Attachment(
+            content_type="application/vnd.custom",
+            content_url="https://example.org/file.txt",
+            content=content,
+            name="data.json",
+        )
+        context = _make_context(attachments=[attachment])
+
+        files = await downloader.download_files(context)
+
+        assert len(files) == 1
+        assert files[0].content == bytes(json.dumps(content), "utf-8")
+        assert session.requested_urls == []
+
+    @pytest.mark.asyncio
     @pytest.mark.parametrize(
         "download_url",
         [

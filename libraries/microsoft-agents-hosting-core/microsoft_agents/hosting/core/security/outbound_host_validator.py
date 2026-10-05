@@ -29,6 +29,30 @@ _DEFAULT_MICROSOFT_HOSTS = [
     "blob.core.windows.net",  # Azure Blob Storage / Attachment Management Service
 ]
 
+_ALLOWED_CLIENT_SESSION_KWARGS = frozenset(
+    {
+        "auth",
+        "auto_decompress",
+        "base_url",
+        "cookie_jar",
+        "cookies",
+        "fallback_charset_resolver",
+        "headers",
+        "json_serialize",
+        "max_field_size",
+        "max_line_size",
+        "raise_for_status",
+        "read_bufsize",
+        "requote_redirect_url",
+        "response_class",
+        "skip_auto_headers",
+        "timeout",
+        "trace_configs",
+        "version",
+        "ws_response_class",
+    }
+)
+
 
 def _allow_addr(
     address: ipaddress.IPv4Address | ipaddress.IPv6Address,
@@ -120,27 +144,28 @@ class OutboundHostValidator(_OutboundHostValidator):
 
     def client(self, client_session_kwargs: dict | None = None) -> ClientSession:
         """Creates a new client session with the outbound host validator applied.
-        :param client_session_kwargs: Optional keyword arguments to pass to the ClientSession constructor.
+
+        :param client_session_kwargs: Optional allowlisted keyword arguments to pass
+            to the ClientSession constructor.
         :return: A new client session with the outbound host validator applied.
         """
 
-        if "connector" in (client_session_kwargs or {}):
-            raise ValueError("Specifying a custom connector is not allowed.")
-        if "connector_owner" in (client_session_kwargs or {}):
-            raise ValueError("Specifying a connector_owner value is not allowed.")
-        if "middlewares" in (client_session_kwargs or {}):
-            raise ValueError("Specifying custom middlewares is not allowed.")
+        kwargs = client_session_kwargs or {}
+        unsupported_options = set(kwargs) - _ALLOWED_CLIENT_SESSION_KWARGS
+        if unsupported_options:
+            options = ", ".join(sorted(unsupported_options))
+            raise ValueError(f"Unsupported ClientSession options: {options}.")
 
         middleware = [_validator_middleware(self)]
 
         if not self._enabled:
-            return ClientSession(**(client_session_kwargs or {}))
+            return ClientSession(**kwargs)
 
         return ClientSession(
             connector=_SSRFConnector(self._resolved_validator),
             connector_owner=True,
             middlewares=middleware,
-            **(client_session_kwargs or {}),
+            **kwargs,
         )
 
     def is_allowed(self, url: str | URL) -> bool:

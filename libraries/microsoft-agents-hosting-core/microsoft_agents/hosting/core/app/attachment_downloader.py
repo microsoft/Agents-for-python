@@ -20,7 +20,7 @@ from microsoft_agents.hosting.core.security import (
 )
 
 from .input_file import InputFileDownloader, InputFile
-from ._utils import _parse_content_type
+from ._utils import _parse_content_type, _basic_url_check
 
 logger = logging.getLogger(__name__)
 
@@ -88,7 +88,7 @@ class AttachmentDownloader(InputFileDownloader):
         :param attachment: The attachment to download.
         :return: An InputFile instance if the download is successful, None otherwise.
         """
-        if attachment.content_url:
+        if attachment.content_url and _basic_url_check(attachment.content_url):
             remote_file_url = attachment.content_url
 
             try:

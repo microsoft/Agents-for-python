@@ -3,11 +3,6 @@
 
 from __future__ import annotations
 
-from aiohttp import TCPConnector
-from aiohttp.abc import ResolveResult
-
-import ipaddress
-
 from yarl import URL
 
 

@@ -159,7 +159,7 @@ class M365AttachmentDownloader(InputFileDownloader):
         else:
             download_url = attachment.content_url
 
-        if download_url:
+        if download_url and _basic_url_check(download_url):
             try:
                 async with client.get(
                     download_url,

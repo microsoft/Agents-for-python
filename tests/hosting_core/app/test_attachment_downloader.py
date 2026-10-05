@@ -150,9 +150,7 @@ class TestAttachmentDownloaderRemoteContent:
         assert session.requested_urls == ["https://example.org/file.txt"]
 
     @pytest.mark.asyncio
-    async def test_downloads_https_localhost_urls_without_a_validator(
-        self, monkeypatch
-    ):
+    async def test_allows_http_localhost_urls_without_a_validator(self, monkeypatch):
         response = _FakeResponse(
             status=200, content=b"local-bytes", content_type="text/plain"
         )
@@ -160,13 +158,46 @@ class TestAttachmentDownloaderRemoteContent:
         _patch_client_session(monkeypatch, session)
         downloader = AttachmentDownloader()
         attachment = Attachment(
-            content_type="text/plain", content_url="https://localhost:3000/file.txt"
+            content_type="text/plain", content_url="http://localhost:3000/file.txt"
         )
         context = _make_context(attachments=[attachment])
 
         files = await downloader.download_files(context)
 
         assert len(files) == 1
+        assert session.requested_urls == ["http://localhost:3000/file.txt"]
+
+    @pytest.mark.asyncio
+    @pytest.mark.parametrize(
+        "content_url",
+        [
+            "http://example.org/file.txt",
+            "ftp://example.org/file.txt",
+            "/relative/file.txt",
+        ],
+    )
+    async def test_does_not_request_urls_that_fail_basic_validation(
+        self, monkeypatch, content_url
+    ):
+        response = _FakeResponse(
+            status=200, content=b"remote-bytes", content_type="text/plain"
+        )
+        session = _FakeSession(response)
+        _patch_client_session(monkeypatch, session)
+        downloader = AttachmentDownloader()
+        attachment = Attachment(
+            content_type="application/vnd.custom",
+            content={"source": "inline"},
+            content_url=content_url,
+            name="data.json",
+        )
+        context = _make_context(attachments=[attachment])
+
+        files = await downloader.download_files(context)
+
+        assert len(files) == 1
+        assert files[0].content == bytes(json.dumps({"source": "inline"}), "utf-8")
+        assert session.requested_urls == []
 
     @pytest.mark.asyncio
     @pytest.mark.parametrize(
