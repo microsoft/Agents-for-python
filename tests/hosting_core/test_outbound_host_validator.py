@@ -381,7 +381,7 @@ class TestValidatorMiddleware:
         request = SimpleNamespace(url=URL("https://evil.example/file"))
         handler = AsyncMock()
 
-        with pytest.raises(_SSRFError, match="evil.example"):
+        with pytest.raises(_SSRFError, match="URL is not allowed by the outbound host validator"):
             await _validator_middleware(validator)(request, handler)
 
         handler.assert_not_awaited()
