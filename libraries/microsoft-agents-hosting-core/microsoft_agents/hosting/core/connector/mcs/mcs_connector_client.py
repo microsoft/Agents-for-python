@@ -228,7 +228,7 @@ class MCSConnectorClient(ConnectorClientBase):
         headers = {
             "Accept": "application/json",
             "Content-Type": "application/json",
-            "User-Agent": get_product_info(),
+            "User-Agent": self._client.headers.get("User-Agent", get_product_info()),
         }
         self._client.headers.update(headers)
 

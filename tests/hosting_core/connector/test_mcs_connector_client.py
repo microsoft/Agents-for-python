@@ -13,12 +13,7 @@ from microsoft_agents.hosting.core.connector.mcs import MCSConnectorClient
 
 
 class TestMCSConnectorClientUserAgentHeader:
-    """Ensures MCSConnectorClient sends a User-Agent header.
-
-    NOTE: Unlike ConnectorClient/TeamsConnectorClient and UserTokenClient,
-    MCSConnectorClient does not currently set a custom "agents-sdk-py" User-Agent
-    header on its session or outgoing requests, so these tests currently fail.
-    """
+    """Ensures MCSConnectorClient sends a User-Agent header."""
 
     @pytest.mark.asyncio
     async def test_sets_user_agent_header(self):

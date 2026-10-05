@@ -973,6 +973,7 @@ class TestUserAgentHeader:
 
         server = TestServer(app)
         await server.start_server()
+        client = None
         try:
             client = ConnectorClient(endpoint=str(server.make_url("/")), token="token")
             await client.conversations.send_to_conversation(
@@ -980,7 +981,8 @@ class TestUserAgentHeader:
             )
         finally:
             await server.close()
-            await client.client.close()
+            if client is not None:
+                await client.client.close()
 
         assert captured["user_agent"] == get_product_info()
 

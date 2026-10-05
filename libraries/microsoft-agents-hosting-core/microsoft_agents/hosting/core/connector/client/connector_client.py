@@ -781,15 +781,15 @@ class ConnectorClient(ConnectorClientBase):
         if not endpoint.endswith("/"):
             endpoint += "/"
 
+        # Create session with the base URL
+        session = session or ClientSession(base_url=endpoint)
+
         # Configure headers with JSON acceptance
         headers = {
             "Accept": "application/json",
             "Content-Type": "application/json",
-            "User-Agent": get_product_info(),
+            "User-Agent": session.headers.get("User-Agent", get_product_info()),
         }
-
-        # Create session with the base URL
-        session = session or ClientSession(base_url=endpoint)
         session.headers.update(headers)
 
         logger.debug(
