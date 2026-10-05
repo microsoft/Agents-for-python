@@ -50,6 +50,7 @@ HP_HASHVAL = 0x0002
 NCRYPT_ALGORITHM_GROUP_PROPERTY = "Algorithm Group"
 NCRYPT_RSA_ALGORITHM_GROUP = "RSA"
 
+NCRYPT_PAD_PKCS1_FLAG = 0x00000002
 NCRYPT_PAD_PSS_FLAG = 0x00000008
 BCRYPT_SHA256_ALGORITHM = "SHA256"
 SHA256_DIGEST_LENGTH = 32
@@ -120,6 +121,12 @@ class _BCRYPT_PSS_PADDING_INFO(ctypes.Structure):
     _fields_ = [
         ("pszAlgId", ctypes.c_wchar_p),
         ("cbSalt", DWORD),
+    ]
+
+
+class _BCRYPT_PKCS1_PADDING_INFO(ctypes.Structure):
+    _fields_ = [
+        ("pszAlgId", ctypes.c_wchar_p),
     ]
 
 
@@ -586,6 +593,57 @@ def _sign_hash_with_cng(
         != 0
     ):
         raise OSError("Failed to sign with CNG private key.")
+
+    return bytes(signature[: signature_size.value])
+
+
+def _sign_hash_with_cng_pkcs1(
+    ncrypt,
+    *,
+    key_handle: int,
+    digest: bytes,
+) -> bytes:
+    if len(digest) != SHA256_DIGEST_LENGTH:
+        raise ValueError("RS256 signing requires a SHA-256 digest.")
+
+    padding_info = _BCRYPT_PKCS1_PADDING_INFO(
+        pszAlgId=BCRYPT_SHA256_ALGORITHM,
+    )
+
+    digest_buffer = (BYTE * len(digest)).from_buffer_copy(digest)
+    signature_size = DWORD()
+
+    if (
+        ncrypt.NCryptSignHash(
+            key_handle,
+            ctypes.byref(padding_info),
+            digest_buffer,
+            len(digest),
+            None,
+            0,
+            ctypes.byref(signature_size),
+            NCRYPT_PAD_PKCS1_FLAG,
+        )
+        != 0
+    ):
+        raise OSError("Failed to determine CNG PKCS#1 signature size.")
+
+    signature = (BYTE * signature_size.value)()
+
+    if (
+        ncrypt.NCryptSignHash(
+            key_handle,
+            ctypes.byref(padding_info),
+            digest_buffer,
+            len(digest),
+            signature,
+            signature_size.value,
+            ctypes.byref(signature_size),
+            NCRYPT_PAD_PKCS1_FLAG,
+        )
+        != 0
+    ):
+        raise OSError("Failed to sign with CNG PKCS#1 private key.")
 
     return bytes(signature[: signature_size.value])
 

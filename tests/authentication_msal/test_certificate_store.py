@@ -22,6 +22,7 @@ from microsoft_agents.authentication.msal._certificate_store import (
     _normalize_store_name,
     _release_private_key,
     _sign_hash_with_cng,
+    _sign_hash_with_cng_pkcs1,
     _sign_hash_with_legacy_csp,
 )
 
@@ -783,3 +784,84 @@ def test_compute_certificate_thumbprint(use_sha2, expected):
     certificate, _encoded = _create_certificate_context(b"\x01\x02\x03\x04")
 
     assert _compute_certificate_thumbprint(certificate, use_sha2=use_sha2) == expected
+
+
+def test_sign_hash_with_cng_pkcs1_returns_signature(mocker):
+    ncrypt = mocker.Mock()
+    digest = bytes(range(32))
+    expected_signature = b"\x01\x02\x03\x04"
+
+    def sign_hash(
+        _key_handle,
+        _padding_info,
+        _digest,
+        _digest_size,
+        signature,
+        _signature_buffer_size,
+        result_size,
+        _flags,
+    ):
+        result_size._obj.value = len(expected_signature)
+
+        if signature is not None:
+            for index, value in enumerate(expected_signature):
+                signature[index] = value
+
+        return 0
+
+    ncrypt.NCryptSignHash.side_effect = sign_hash
+
+    result = _sign_hash_with_cng_pkcs1(
+        ncrypt,
+        key_handle=123,
+        digest=digest,
+    )
+
+    assert result == expected_signature
+    assert ncrypt.NCryptSignHash.call_count == 2
+
+
+def test_sign_hash_with_cng_pkcs1_requires_sha256_digest(mocker):
+    ncrypt = mocker.Mock()
+
+    with pytest.raises(ValueError, match="SHA-256 digest"):
+        _sign_hash_with_cng_pkcs1(
+            ncrypt,
+            key_handle=123,
+            digest=b"invalid",
+        )
+
+    ncrypt.NCryptSignHash.assert_not_called()
+
+
+def test_sign_hash_with_cng_pkcs1_raises_when_signing_fails(mocker):
+    ncrypt = mocker.Mock()
+    digest = bytes(32)
+
+    def sign_hash(
+        _key_handle,
+        _padding_info,
+        _digest,
+        _digest_size,
+        signature,
+        _signature_buffer_size,
+        result_size,
+        _flags,
+    ):
+        if signature is None:
+            result_size._obj.value = 256
+            return 0
+
+        return 1
+
+    ncrypt.NCryptSignHash.side_effect = sign_hash
+
+    with pytest.raises(
+        OSError,
+        match="Failed to sign with CNG PKCS#1 private key",
+    ):
+        _sign_hash_with_cng_pkcs1(
+            ncrypt,
+            key_handle=123,
+            digest=digest,
+        )
