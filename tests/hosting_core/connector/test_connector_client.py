@@ -973,16 +973,18 @@ class TestUserAgentHeader:
 
         server = TestServer(app)
         await server.start_server()
-        client = None
+        session = ClientSession(base_url=str(server.make_url("/")))
         try:
-            client = ConnectorClient(endpoint=str(server.make_url("/")), token="token")
+            client = ConnectorClient(
+                endpoint=str(server.make_url("/")), token="token", session=session
+            )
+            assert client.client is session
             await client.conversations.send_to_conversation(
                 "conv-1", Activity(type="message", text="hi")
             )
         finally:
             await server.close()
-            if client is not None:
-                await client.client.close()
+            await session.close()
 
         assert captured["user_agent"] == get_product_info()
 
@@ -1007,13 +1009,15 @@ class TestUserAgentHeader:
 
         server = TestServer(app)
         await server.start_server()
+        session = ClientSession(base_url=str(server.make_url("/")))
         try:
             client = TeamsConnectorClient(
-                endpoint=str(server.make_url("/")), token="token"
+                endpoint=str(server.make_url("/")), token="token", session=session
             )
+            assert client.client is session
             await client.fetch_team_details("team-1")
         finally:
             await server.close()
-            await client.client.close()
+            await session.close()
 
         assert captured["user_agent"] == get_product_info()

@@ -434,11 +434,18 @@ class TestUserTokenClientUserAgentHeader:
         server = TestServer(app)
         await server.start_server()
 
-        client = UserTokenClient(str(server.make_url("/")), token="", app_id="app-id")
+        session = ClientSession(base_url=str(server.make_url("/")))
         try:
+            client = UserTokenClient(
+                str(server.make_url("/")),
+                token="",
+                app_id="app-id",
+                session=session,
+            )
+            assert client.client is session
             await client.get_user_token("user", "connection", "msteams")
         finally:
-            await client.close()
+            await session.close()
             await server.close()
 
         assert captured["user_agent"] == get_product_info()
