@@ -21,6 +21,8 @@ from microsoft_agents.hosting.core.connector.client.connector_client import (
     ConnectorClient,
     ConversationsOperations,
 )
+from microsoft_agents.hosting.core.connector.get_product_info import get_product_info
+from microsoft_agents.hosting.core.connector.teams import TeamsConnectorClient
 from microsoft_agents.hosting.core.header_propagation import HeaderPropagationContext
 
 
@@ -945,3 +947,77 @@ class TestReplyToActivityUrlEncoding:
             assert "conv_sub_id" in captured["raw_path"]
         finally:
             await server.close()
+
+
+class TestUserAgentHeader:
+    """Ensures ConnectorClient and TeamsConnectorClient send a User-Agent header."""
+
+    @pytest.mark.asyncio
+    async def test_connector_client_sets_user_agent_header(self):
+        client = ConnectorClient(endpoint="https://example.org/", token="token")
+        try:
+            assert client.client.headers["User-Agent"] == get_product_info()
+        finally:
+            await client.client.close()
+
+    @pytest.mark.asyncio
+    async def test_connector_client_sends_user_agent_header_on_request(self):
+        captured = {}
+
+        async def handler(request):
+            captured["user_agent"] = request.headers.get("User-Agent")
+            return web.json_response({"id": "activity-id-123"})
+
+        routes = [web.post("/v3/conversations/{conversation_id}/activities", handler)]
+        app = _create_app(routes)
+
+        server = TestServer(app)
+        await server.start_server()
+        session = ClientSession(base_url=str(server.make_url("/")))
+        try:
+            client = ConnectorClient(
+                endpoint=str(server.make_url("/")), token="token", session=session
+            )
+            assert client.client is session
+            await client.conversations.send_to_conversation(
+                "conv-1", Activity(type="message", text="hi")
+            )
+        finally:
+            await server.close()
+            await session.close()
+
+        assert captured["user_agent"] == get_product_info()
+
+    @pytest.mark.asyncio
+    async def test_teams_connector_client_sets_user_agent_header(self):
+        client = TeamsConnectorClient(endpoint="https://example.org/", token="token")
+        try:
+            assert client.client.headers["User-Agent"] == get_product_info()
+        finally:
+            await client.client.close()
+
+    @pytest.mark.asyncio
+    async def test_teams_connector_client_sends_user_agent_header_on_request(self):
+        captured = {}
+
+        async def handler(request):
+            captured["user_agent"] = request.headers.get("User-Agent")
+            return web.json_response({"id": "team-1"})
+
+        routes = [web.get("/v3/teams/{team_id}", handler)]
+        app = _create_app(routes)
+
+        server = TestServer(app)
+        await server.start_server()
+        session = ClientSession(base_url=str(server.make_url("/")))
+        try:
+            client = TeamsConnectorClient(
+                endpoint=str(server.make_url("/")), token="token", session=session
+            )
+            assert client.client is session
+            await client.fetch_team_details("team-1")
+        finally:
+            await server.close()
+            await session.close()
+
+        assert captured["user_agent"] == get_product_info()
