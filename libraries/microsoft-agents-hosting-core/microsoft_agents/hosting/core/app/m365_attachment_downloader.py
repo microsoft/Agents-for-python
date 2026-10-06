@@ -188,7 +188,7 @@ class M365AttachmentDownloader(InputFileDownloader):
                     )
             except _SSRFError:
                 logger.warning(
-                    "Outbound host validation failed for download URL: %s", download_url
+                    "Outbound host validation failed for an attachment download URL."
                 )
                 return None
         else:
