@@ -77,6 +77,14 @@ class TestNormalizeHost:
             ("example.com:443", "example.com"),
             ("example.com/path", "example.com"),
             ("https://Example.COM:443/path", "example.com"),
+            ("2606:4700:4700::1111", "2606:4700:4700::1111"),
+            ("  2606:4700:4700::1111  ", "2606:4700:4700::1111"),
+            ("[2606:4700:4700::1111]", "2606:4700:4700::1111"),
+            ("[2606:4700:4700::1111]:443", "2606:4700:4700::1111"),
+            (
+                "https://[2606:4700:4700::1111]:443/path",
+                "2606:4700:4700::1111",
+            ),
         ],
     )
     def test_normalizes_host(self, host, expected):
@@ -120,6 +128,22 @@ class TestBasicResolveResultValidator:
         validator = _BasicResolveResultValidator(allow_private_network_addresses=True)
 
         assert validator.is_allowed(_resolve_result(host)) is True
+
+    @pytest.mark.parametrize(
+        "host",
+        [
+            "127.0.0.1",
+            "::1",
+            "169.254.169.254",
+            "fe80::1",
+            "0.0.0.0",
+            "240.0.0.1",
+        ],
+    )
+    def test_denies_special_addresses_when_private_addresses_are_configured(self, host):
+        validator = _BasicResolveResultValidator(allow_private_network_addresses=True)
+
+        assert validator.is_allowed(_resolve_result(host)) is False
 
     @pytest.mark.parametrize(
         "resolved",
@@ -381,7 +405,9 @@ class TestValidatorMiddleware:
         request = SimpleNamespace(url=URL("https://evil.example/file"))
         handler = AsyncMock()
 
-        with pytest.raises(_SSRFError, match="URL is not allowed by the outbound host validator"):
+        with pytest.raises(
+            _SSRFError, match="URL is not allowed by the outbound host validator"
+        ):
             await _validator_middleware(validator)(request, handler)
 
         handler.assert_not_awaited()

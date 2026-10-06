@@ -3,6 +3,8 @@
 
 from __future__ import annotations
 
+import ipaddress
+
 from yarl import URL
 
 
@@ -18,6 +20,29 @@ def _try_create_url(url: str | URL) -> URL | None:
         return None
 
 
+def _normalize_ip_address(address: str) -> str | None:
+    """Check for potential ip address and normalize
+
+    :param address: The IP address string to normalize.
+    :return: The normalized IP address string if valid, None otherwise.
+    """
+
+    right_bracket = -1
+    if address.startswith("["):
+        for i, c in enumerate(address[::-1]):
+            if c == "]":
+                right_bracket = len(address) - i - 1
+                break
+
+    if right_bracket >= 0:
+        address = address[1:right_bracket]
+
+    try:
+        return str(ipaddress.ip_address(address))
+    except ValueError:
+        return None
+
+
 def _normalize_host(host: str) -> str | None:
     """Normalizes the given host string.
 
@@ -28,6 +53,10 @@ def _normalize_host(host: str) -> str | None:
         return None
 
     host = host.strip().casefold()
+
+    ip_address = _normalize_ip_address(host)
+    if ip_address is not None:
+        return ip_address
 
     if host.startswith("*."):
         host = host[2:]

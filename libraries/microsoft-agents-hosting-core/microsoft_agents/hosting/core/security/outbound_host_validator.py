@@ -58,8 +58,21 @@ def _allow_addr(
     address: ipaddress.IPv4Address | ipaddress.IPv6Address,
     allow_private_network_addresses: bool,
 ) -> bool:
-    if address.is_multicast:
+    """Allows or denies an IP address based on network address rules.
+
+    :param address: The IP address to check.
+    :param allow_private_network_addresses: Whether to allow private network addresses.
+    :return: True if the address is allowed, False otherwise.
+    """
+    if (
+        address.is_multicast
+        or address.is_loopback
+        or address.is_link_local
+        or address.is_unspecified
+        or address.is_reserved
+    ):
         return False
+
     if address.is_global:
         return True
     if address.is_private and allow_private_network_addresses:
@@ -74,6 +87,11 @@ class _BasicResolveResultValidator(_ResolveResultValidator):
         self._allow_private_network_addresses = allow_private_network_addresses
 
     def is_allowed(self, resolved: ResolveResult) -> bool:
+        """Checks if the resolved network address is allowed.
+
+        :param resolved: The resolved network address result.
+        :return: True if the address is allowed, False otherwise.
+        """
 
         host = resolved.get("host")
 
