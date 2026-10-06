@@ -48,6 +48,7 @@ class M365AttachmentDownloader(InputFileDownloader):
 
         :param connections: A Connections instance.
         :param host_validator: An optional OutboundHostValidator instance.
+        :param client_session_kwargs: Optional keyword arguments to pass to the aiohttp ClientSession constructor.
         :param token_provider_name: The name of the token provider.
         :param use_anonymous: Whether to use anonymous access.
         :param scopes: A list of scopes for the access token.
