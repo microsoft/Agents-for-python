@@ -115,8 +115,7 @@ class AttachmentDownloader(InputFileDownloader):
                     )
             except _SSRFError:
                 logger.warning(
-                    "Outbound host validation failed for download URL: %s",
-                    remote_file_url,
+                    "Outbound host validation failed for an attachment download URL."
                 )
                 return None
         else:
