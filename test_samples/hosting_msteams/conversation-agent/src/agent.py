@@ -24,6 +24,7 @@ from microsoft_teams.api.models import (
 )
 
 from microsoft_agents.activity import (
+    ActivityTypes,
     ActionTypes,
     CardAction,
     ChannelAccount,
@@ -48,7 +49,7 @@ from microsoft_agents.hosting.core.storage import (
     ConsoleTranscriptLogger,
     TranscriptLoggerMiddleware,
 )
-from microsoft_agents.hosting.msteams import TeamsAgentExtension
+from microsoft_agents.hosting.msteams import TeamsAgentExtension, TeamsActivity
 from microsoft_agents.hosting.msteams.teams_turn_context import TeamsTurnContext
 
 logger = logging.getLogger(__name__)
@@ -272,12 +273,24 @@ async def on_team_renamed(
 
 # ── Message commands ─────────────────────────────────────────────────────────
 
+@teams.message("quotedreply")
+async def on_quoted_reply(context: TeamsTurnContext, state: TurnState) -> None:
+    """Handle a quoted reply message."""
+    message_id = context.activity.id
+    if not message_id:
+        raise ValueError("Message ID is required for a quoted reply.")
+    
+    reply = TeamsActivity(
+        type=ActivityTypes.message,
+        text=""
+    )
+    reply.add_quoted_reply(message_id, "This response includes a quoted reply to your message.")
+
+    await context.send_activity(reply)
 
 @teams.message("targeted")
 async def on_targeted(context: TeamsTurnContext, state: TurnState) -> None:
-    """Send a 1:1 message to every member of the current conversation."""
-    app_id = _app_id(context)
-    audience = _audience(context)
+    """Send a private targeted message to every member of the conversation."""
     continuation_token: Optional[str] = None
     while True:
         paged = await teams.get_teams_api_client(
@@ -286,13 +299,10 @@ async def on_targeted(context: TeamsTurnContext, state: TurnState) -> None:
             100, continuation_token
         )
         for member in paged.members or []:
-
-            async def _send(ctx: TurnContext, _name=member.name) -> None:
-                await ctx.send_activity(
-                    f"{_name}, this is a **targeted message** — only you can see this."
-                )
-
-            await _create_one_on_one(context, app_id, audience, member, _send)
+            await context.send_targeted_activity(
+                f"{member.name}, this is a **targeted message** — only you can see this.",
+                member.id,
+            )
 
         continuation_token = paged.continuation_token
         if not continuation_token:

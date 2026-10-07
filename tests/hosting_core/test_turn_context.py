@@ -405,6 +405,42 @@ class TestTurnContext:
         assert reply.service_url == ACTIVITY.service_url
         assert reply.channel_id == ACTIVITY.channel_id
 
+    def test_apply_conversation_reference_preserves_activity_locale_when_reference_has_none(
+        self,
+    ):
+        reference = ACTIVITY.get_conversation_reference()
+        reference.locale = None
+
+        reply = TurnContext.apply_conversation_reference(
+            Activity(type="message", text="reply", locale="fr-FR"), reference
+        )
+
+        assert reply.locale == "fr-FR"
+
+    def test_apply_conversation_reference_preserves_targeted_recipient(self):
+        reference = ACTIVITY.get_conversation_reference()
+        targeted_recipient = ChannelAccount(id="target-user", name="Target User")
+        reply = Activity(type="message", text="reply").with_targeted_recipient(
+            targeted_recipient
+        )
+
+        TurnContext.apply_conversation_reference(reply, reference)
+
+        assert reply.recipient == targeted_recipient
+
+    def test_apply_conversation_reference_sets_recipient_when_targeted_recipient_is_missing(
+        self,
+    ):
+        reference = ACTIVITY.get_conversation_reference()
+        reply = Activity(type="message", text="reply").with_targeted_recipient(
+            "target-user"
+        )
+        reply.recipient = None
+
+        TurnContext.apply_conversation_reference(reply, reference)
+
+        assert reply.recipient == reference.user
+
     def test_apply_conversation_reference_when_is_incoming_is_true_should_not_prepare_a_reply(
         self,
     ):

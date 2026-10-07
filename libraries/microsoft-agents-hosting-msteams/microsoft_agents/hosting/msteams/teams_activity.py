@@ -3,7 +3,10 @@
 
 """Teams-aware :class:`Activity` subclass exposing Teams channel data helpers."""
 
+import html
+
 from typing import Literal
+from typing_extensions import Self
 
 from microsoft_teams.api.models import (
     ChannelData,
@@ -15,7 +18,8 @@ from microsoft_teams.api.models import (
 
 from microsoft_agents.activity import Activity
 
-from ._utils import _try_get_channel_data
+from .models import QuotedReply, QuotedReplyData, TargetedMessageInfo
+from ._utils import _try_get_channel_data, _is_recipient_targeted
 
 
 class TeamsActivity(Activity):
@@ -121,3 +125,53 @@ class TeamsActivity(Activity):
             feedback_loop=FeedbackLoop(type=feedback_loop_type)
         )
         return True
+
+    def is_recipient_targeted(self) -> bool:
+        """Check if the recipient is targeted in the activity.
+
+        :return: True if the recipient is targeted, False otherwise.
+        """
+        return _is_recipient_targeted(self)
+
+    def get_targeted_message_info(self) -> TargetedMessageInfo | None:
+        """Get the targeted message information from the activity.
+
+        :return: The targeted message information if available, None otherwise.
+        """
+        res = self._get_entity_by_type("targetedMessageInfo")
+        if res:
+            return self._convert_entity(res, entity_cls=TargetedMessageInfo)
+        return None
+
+    def get_quoted_messages(self) -> list[QuotedReply]:
+        """Get the quoted messages from the activity.
+
+        :return: A list of quoted messages.
+        """
+        return self._convert_entity_list(
+            self._get_entities_by_type("quotedReply"), entity_cls=QuotedReply
+        )
+
+    def add_quoted_reply(self, message_id: str, text: str | None = None) -> Self:
+        """Add a quoted reply to the activity.
+
+        :param message_id: The ID of the message being quoted.
+        :param text: The text of the quoted reply.
+        :return: The updated activity instance.
+        """
+        self.entities = self.entities or []
+        self.entities.append(
+            QuotedReply(
+                type="quotedReply",
+                quoted_reply=QuotedReplyData(
+                    message_id=message_id,
+                ),
+            )
+        )
+
+        placeholder = f'<quoted messageId="{html.escape(message_id, quote=True)}"/>'
+        self.text = f"{self.text or ''}{placeholder}"
+        if text is not None:
+            self.text = f"{self.text} {text}"
+
+        return self

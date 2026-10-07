@@ -1,14 +1,50 @@
-# Microsoft 365 Agents SDK for Python - Release Notes v1.8.0 (Unreleased)
+# Microsoft 365 Agents SDK for Python - Release Notes v1.9.0 (Unreleased)
 
 **Release Date:** Unreleased
+**Previous Version:** 1.8.0 (Released 2026-10-01)
+
+## Bug Fixes
+
+- **Connector User-Agent Headers**: Added the SDK `User-Agent` header to `MCSConnectorClient` and ensured `ConnectorClient`, `TeamsConnectorClient`, and `UserTokenClient` apply it to caller-provided `ClientSession` instances.
+
+---
+
+# Microsoft 365 Agents SDK for Python - Release Notes v1.8.0
+
+**Release Date:** 2026-10-01
 **Previous Version:** 1.7.0 (Released 2026-09-17)
+
+## Major Features & Enhancements
+
+- **Attachment Downloaders**: Added `AttachmentDownloader` and `M365AttachmentDownloader` for downloading standard, Microsoft Teams, and Microsoft 365 Copilot attachments into `TurnState.temp.input_files`.
+- **Teams API Dependency**: Updated `microsoft-agents-hosting-msteams` to use `microsoft-teams-api` 2.1.0
+- **Teams API Client Performance**: Reused a cached SSL context when constructing per-turn Teams API clients, reducing repeated CA certificate loading and client initialization overhead
+
+## Developer Experience
+
+- **Targeted Reply Prompt Previews**: Added automatic prompt-preview metadata when replying to inbound targeted activities, along with helpers for detecting targeted recipients and reading `TargetedMessageInfo`
+- **Teams Quoted Replies**: Added `TeamsActivity.add_quoted_reply()` for creating quoted replies and `get_quoted_messages()` for reading quoted-message metadata, with typed `QuotedReply` and `QuotedReplyData` models
+- **Targeted Activity Sending**: Improved `TeamsTurnContext.send_targeted_activity()` to accept text or an activity plus a recipient ID or `ChannelAccount`, preserve the intended recipient when applying conversation references, and send the Teams `isTargetedActivity=true` connector parameter
+
+## Samples
+
+- **Teams Conversation Agent Sample**: Expanded the sample and package documentation with targeted activity and quoted reply examples
+- **Handling Attachments Sample**: Added a sample demonstrating incoming attachment downloads, inline and internet-hosted attachments, and Teams attachment uploads.
 
 ## Bug Fixes
 
 - **Client Citation Deserialization**: Fixed deserialization of citations containing `@id` values
 
----
+## Developer Experience
 
+- **`AgentApplication` Adapter Ownership Deprecation**: Deprecated the notion that an `AgentApplication` owns a single adapter. Applications no longer need to be initialized with an adapter; instead, operations such as conversation continuations and long-running calls use the adapter from the current `TurnContext`. This decouples `AgentApplication` from adapter initialization.
+- **Request ID Propagation**: Added `request_id` to `Activity` and `ConversationReference`, with automatic generation for incoming HTTP requests and propagation through conversation references and continuation activities for end-to-end request tracing (#591)
+
+## Breaking Changes
+
+- **Deprecated API Removal**: Removed the deprecated `BasicCard` and `MediaCard` types, `ClaimsIdentity.is_authenticated`, `AgentApplication.parse_env_vars_configuration`, and the `CardFactory.ContentTypes` alias (#603)
+
+---
 
 # Microsoft 365 Agents SDK for Python - Release Notes v1.7.0
 
