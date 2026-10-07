@@ -6,13 +6,14 @@ Licensed under the MIT License.
 from __future__ import annotations
 
 import re
-from typing import Any, Callable, Generic, Optional, Pattern, TypeVar
+from typing import Any, Generic, Optional, Pattern, TypeVar
 
 from typing_extensions import deprecated
 
 from microsoft_agents.activity import ActivityTypes, Channels
 from microsoft_agents.hosting.core import TurnContext
 from microsoft_agents.hosting.core.app import AgentApplication, RouteRank
+from microsoft_agents.hosting.core.app._type_defs import _RouteDecorator
 from microsoft_agents.hosting.core.app.state import TurnState
 
 from .api import (
@@ -145,7 +146,7 @@ class SlackAgentExtension(Generic[StateT]):
         *,
         auth_handlers: Optional[list[str]] = None,
         rank: RouteRank = RouteRank.DEFAULT,
-    ) -> Callable[[SlackRouteHandler[StateT]], SlackRouteHandler[StateT]]:
+    ) -> _RouteDecorator[SlackRouteHandler[StateT]]:
         """Register a handler for Slack message activities.
 
         When ``select`` is ``None``, every Slack message matches; otherwise the
@@ -189,7 +190,7 @@ class SlackAgentExtension(Generic[StateT]):
         *,
         auth_handlers: Optional[list[str]] = None,
         rank: RouteRank = RouteRank.DEFAULT,
-    ) -> Callable[[SlackRouteHandler[StateT]], SlackRouteHandler[StateT]]:
+    ) -> _RouteDecorator[SlackRouteHandler[StateT]]:
         """Deprecated alias for :meth:`message`."""
         return self.message(select, auth_handlers=auth_handlers, rank=rank)
 
@@ -201,7 +202,7 @@ class SlackAgentExtension(Generic[StateT]):
         *,
         auth_handlers: Optional[list[str]] = None,
         rank: RouteRank = RouteRank.DEFAULT,
-    ) -> Callable[[SlackRouteHandler[StateT]], SlackRouteHandler[StateT]]:
+    ) -> _RouteDecorator[SlackRouteHandler[StateT]]:
         """Register a handler for Slack event activities.
 
         When ``event_name`` is ``None``, every Slack event matches; otherwise
@@ -243,6 +244,6 @@ class SlackAgentExtension(Generic[StateT]):
         *,
         auth_handlers: Optional[list[str]] = None,
         rank: RouteRank = RouteRank.DEFAULT,
-    ) -> Callable[[SlackRouteHandler[StateT]], SlackRouteHandler[StateT]]:
+    ) -> _RouteDecorator[SlackRouteHandler[StateT]]:
         """Deprecated alias for :meth:`event`."""
         return self.event(event_name, auth_handlers=auth_handlers, rank=rank)
