@@ -80,8 +80,9 @@ class SlackAgentExtension(Generic[StateT]):
         self._slack_api = slack_api or SlackApi()
 
         async def __on_before_turn(context: TurnContext, state: StateT) -> bool:
-            if _is_slack_channel(context):
-                # Bind a per-turn SlackApi so SlackTurnContext.client and any
+            if _is_slack_channel(context) and not context.services.has(SlackApi):
+                # Bind the default only when no per-turn client was supplied,
+                # so SlackTurnContext.client and any
                 # out-of-band SlackAgentExtension.call()/create_stream() calls
                 # made during this turn resolve to the same client instance.
                 #
@@ -120,19 +121,28 @@ class SlackAgentExtension(Generic[StateT]):
         turn_context: TurnContext,
         thread_ts: Optional[str] = None,
     ) -> SlackStream:
-        """Create and start a :class:`SlackStream` for the current Slack thread."""
+        """Create and start a :class:`SlackStream` for the current Slack thread.
+
+        Requires an event envelope with a channel and either an explicit
+        ``thread_ts`` or an ``event.ts`` timestamp.
+        """
         channel_data = SlackChannelData.from_activity(turn_context.activity)
         if channel_data.envelope is None:
             raise ValueError(
                 "create_stream requires a Slack event envelope on the activity"
             )
+        channel = channel_data.envelope.get("event.channel")
+        if not isinstance(channel, str) or not channel:
+            raise ValueError("create_stream requires a non-empty event.channel")
         resolved_thread_ts = thread_ts or channel_data.envelope.get("event.ts")
+        if not isinstance(resolved_thread_ts, str) or not resolved_thread_ts:
+            raise ValueError("create_stream requires a non-empty thread_ts or event.ts")
         api = self._slack_api
         if turn_context.services.has(SlackApi):
             api = turn_context.services.get(SlackApi)
         stream = SlackStream(
             api,
-            channel_data.envelope.get("event.channel"),
+            channel,
             resolved_thread_ts,
             channel_data.api_token or "",
         )
