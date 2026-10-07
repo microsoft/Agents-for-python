@@ -58,18 +58,18 @@ def _make_context(
     return context
 
 
-class TestOnMessage:
+class TestMessage:
     def setup_method(self):
         self.app = _make_app()
         self.slack = SlackAgentExtension(self.app)
 
     def test_no_text_matches_any_slack_message(self):
-        @self.slack.on_message()
+        @self.slack.message()
         async def handler(context, state):
             return True
 
         route = self.app.routes[-1]
-        # bare on_message should default to RouteRank.LAST
+        # bare message() should default to RouteRank.LAST
         assert route["rank"] == RouteRank.LAST
         # matches any Slack message
         assert route["selector"](_make_context(ActivityTypes.message, text="anything"))
@@ -81,7 +81,7 @@ class TestOnMessage:
         assert not route["selector"](_make_context(ActivityTypes.event, text="x"))
 
     def test_literal_text_match(self):
-        @self.slack.on_message("hello")
+        @self.slack.message("hello")
         async def handler(context, state):
             return True
 
@@ -90,7 +90,7 @@ class TestOnMessage:
         assert not sel(_make_context(ActivityTypes.message, text="bye"))
 
     def test_regex_text_match(self):
-        @self.slack.on_message(re.compile(r"^-stream\b.*"))
+        @self.slack.message(re.compile(r"^-stream\b.*"))
         async def handler(context, state):
             return True
 
@@ -99,20 +99,20 @@ class TestOnMessage:
         assert not sel(_make_context(ActivityTypes.message, text="stream now"))
 
     def test_custom_rank_preserved(self):
-        @self.slack.on_message("hi", rank=RouteRank.FIRST)
+        @self.slack.message("hi", rank=RouteRank.FIRST)
         async def handler(context, state):
             return True
 
         assert self.app.routes[-1]["rank"] == RouteRank.FIRST
 
 
-class TestOnEvent:
+class TestEvent:
     def setup_method(self):
         self.app = _make_app()
         self.slack = SlackAgentExtension(self.app)
 
     def test_no_name_matches_any_slack_event(self):
-        @self.slack.on_event()
+        @self.slack.event()
         async def handler(context, state):
             return True
 
@@ -125,9 +125,37 @@ class TestOnEvent:
         assert not route["selector"](_make_context(ActivityTypes.message))
 
     def test_literal_event_name(self):
-        @self.slack.on_event("app_mention")
+        @self.slack.event("app_mention")
         async def handler(context, state):
             return True
+
+        sel = self.app.routes[-1]["selector"]
+        assert sel(_make_context(ActivityTypes.event, name="app_mention"))
+        assert not sel(_make_context(ActivityTypes.event, name="other"))
+
+
+class TestDeprecatedAliases:
+    def setup_method(self):
+        self.app = _make_app()
+        self.slack = SlackAgentExtension(self.app)
+
+    def test_on_message_is_deprecated_and_delegates_to_message(self):
+        with pytest.deprecated_call():
+
+            @self.slack.on_message("hello")
+            async def handler(context, state):
+                return True
+
+        sel = self.app.routes[-1]["selector"]
+        assert sel(_make_context(ActivityTypes.message, text="hello"))
+        assert not sel(_make_context(ActivityTypes.message, text="bye"))
+
+    def test_on_event_is_deprecated_and_delegates_to_event(self):
+        with pytest.deprecated_call():
+
+            @self.slack.on_event("app_mention")
+            async def handler(context, state):
+                return True
 
         sel = self.app.routes[-1]["selector"]
         assert sel(_make_context(ActivityTypes.event, name="app_mention"))

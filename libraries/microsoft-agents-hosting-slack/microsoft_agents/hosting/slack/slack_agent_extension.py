@@ -8,6 +8,8 @@ from __future__ import annotations
 import re
 from typing import Any, Callable, Generic, Optional, Pattern, TypeVar
 
+from typing_extensions import deprecated
+
 from microsoft_agents.activity import ActivityTypes, Channels
 from microsoft_agents.hosting.core import TurnContext
 from microsoft_agents.hosting.core.app import AgentApplication, RouteRank
@@ -19,6 +21,7 @@ from .api import (
     SlackResponse,
     SlackStream,
 )
+from .route_handlers import SlackRouteHandler, wrap_slack_route_handler
 
 StateT = TypeVar("StateT", bound=TurnState)
 
@@ -52,9 +55,9 @@ class SlackAgentExtension(Generic[StateT]):
         app = AgentApplication(options)
         slack = SlackAgentExtension(app)
 
-        @slack.on_message("hello")
+        @slack.message("hello")
         async def greet(context, state):
-            channel_data = SlackChannelData.from_activity(context.activity)
+            channel_data = context.activity.slack_channel_data
             await slack.call(
                 context,
                 "chat.postMessage",
@@ -74,6 +77,21 @@ class SlackAgentExtension(Generic[StateT]):
     ) -> None:
         self._app = application
         self._slack_api = slack_api or SlackApi()
+
+        async def __on_before_turn(context: TurnContext, state: StateT) -> bool:
+            if _is_slack_channel(context):
+                # Bind a per-turn SlackApi so SlackTurnContext.client and any
+                # out-of-band SlackAgentExtension.call()/create_stream() calls
+                # made during this turn resolve to the same client instance.
+                #
+                # Note: unlike the C# extension, this does not reset the
+                # agent's typing-indicator timer on out-of-band calls, since
+                # core AgentApplication does not currently expose an
+                # equivalent public API.
+                context.services.set(SlackApi, self._slack_api)
+            return True
+
+        application.before_turn(__on_before_turn)
 
     @property
     def slack_api(self) -> SlackApi:
@@ -121,13 +139,13 @@ class SlackAgentExtension(Generic[StateT]):
 
     # ── message routes ─────────────────────────────────────────────────────
 
-    def on_message(
+    def message(
         self,
         select: TextSelector = None,
         *,
         auth_handlers: Optional[list[str]] = None,
         rank: RouteRank = RouteRank.DEFAULT,
-    ) -> Callable:
+    ) -> Callable[[SlackRouteHandler[StateT]], SlackRouteHandler[StateT]]:
         """Register a handler for Slack message activities.
 
         When ``select`` is ``None``, every Slack message matches; otherwise the
@@ -149,10 +167,12 @@ class SlackAgentExtension(Generic[StateT]):
                 return False
             return _matches_text(select, context.activity.text)
 
-        def __call(func: Callable) -> Callable:
+        def __call(
+            func: SlackRouteHandler[StateT],
+        ) -> SlackRouteHandler[StateT]:
             self._app.add_route(
                 __selector,
-                func,
+                wrap_slack_route_handler(func, self._app),
                 rank=effective_rank,
                 auth_handlers=auth_handlers,
             )
@@ -160,15 +180,28 @@ class SlackAgentExtension(Generic[StateT]):
 
         return __call
 
+    @deprecated(
+        "SlackAgentExtension.on_message is deprecated; use SlackAgentExtension.message instead."
+    )
+    def on_message(
+        self,
+        select: TextSelector = None,
+        *,
+        auth_handlers: Optional[list[str]] = None,
+        rank: RouteRank = RouteRank.DEFAULT,
+    ) -> Callable[[SlackRouteHandler[StateT]], SlackRouteHandler[StateT]]:
+        """Deprecated alias for :meth:`message`."""
+        return self.message(select, auth_handlers=auth_handlers, rank=rank)
+
     # ── event routes ───────────────────────────────────────────────────────
 
-    def on_event(
+    def event(
         self,
         event_name: TextSelector = None,
         *,
         auth_handlers: Optional[list[str]] = None,
         rank: RouteRank = RouteRank.DEFAULT,
-    ) -> Callable:
+    ) -> Callable[[SlackRouteHandler[StateT]], SlackRouteHandler[StateT]]:
         """Register a handler for Slack event activities.
 
         When ``event_name`` is ``None``, every Slack event matches; otherwise
@@ -188,13 +221,28 @@ class SlackAgentExtension(Generic[StateT]):
                 return False
             return _matches_text(event_name, context.activity.name)
 
-        def __call(func: Callable) -> Callable:
+        def __call(
+            func: SlackRouteHandler[StateT],
+        ) -> SlackRouteHandler[StateT]:
             self._app.add_route(
                 __selector,
-                func,
+                wrap_slack_route_handler(func, self._app),
                 rank=effective_rank,
                 auth_handlers=auth_handlers,
             )
             return func
 
         return __call
+
+    @deprecated(
+        "SlackAgentExtension.on_event is deprecated; use SlackAgentExtension.event instead."
+    )
+    def on_event(
+        self,
+        event_name: TextSelector = None,
+        *,
+        auth_handlers: Optional[list[str]] = None,
+        rank: RouteRank = RouteRank.DEFAULT,
+    ) -> Callable[[SlackRouteHandler[StateT]], SlackRouteHandler[StateT]]:
+        """Deprecated alias for :meth:`event`."""
+        return self.event(event_name, auth_handlers=auth_handlers, rank=rank)

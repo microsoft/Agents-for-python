@@ -95,6 +95,12 @@ class SlackApi:
             headers["Authorization"] = f"Bearer {token}"
 
         session = self._session or ClientSession()
+        # TODO: ClientSession lifecycle currently creates+closes a brand-new
+        # aiohttp.ClientSession() on every call() when no session was supplied
+        # at construction, instead of owning a single long-lived session per
+        # SlackApi instance. Revisit alongside the TurnContext resource-lifecycle
+        # work being added in the in-progress A2A extension, so SlackApi can
+        # participate in the same managed-resource pattern.
         try:
             async with session.post(
                 url, data=body, headers=headers, timeout=self._timeout
