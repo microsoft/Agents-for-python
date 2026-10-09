@@ -388,6 +388,7 @@ class TestTurnContext:
         assert reference.channel_id == ACTIVITY.channel_id
         assert reference.locale == ACTIVITY.locale
         assert reference.service_url == ACTIVITY.service_url
+        assert reference.request_id == ACTIVITY.request_id
 
     def test_apply_conversation_reference_should_return_prepare_reply_when_is_incoming_is_false(
         self,
@@ -404,6 +405,42 @@ class TestTurnContext:
         assert reply.service_url == ACTIVITY.service_url
         assert reply.channel_id == ACTIVITY.channel_id
 
+    def test_apply_conversation_reference_preserves_activity_locale_when_reference_has_none(
+        self,
+    ):
+        reference = ACTIVITY.get_conversation_reference()
+        reference.locale = None
+
+        reply = TurnContext.apply_conversation_reference(
+            Activity(type="message", text="reply", locale="fr-FR"), reference
+        )
+
+        assert reply.locale == "fr-FR"
+
+    def test_apply_conversation_reference_preserves_targeted_recipient(self):
+        reference = ACTIVITY.get_conversation_reference()
+        targeted_recipient = ChannelAccount(id="target-user", name="Target User")
+        reply = Activity(type="message", text="reply").with_targeted_recipient(
+            targeted_recipient
+        )
+
+        TurnContext.apply_conversation_reference(reply, reference)
+
+        assert reply.recipient == targeted_recipient
+
+    def test_apply_conversation_reference_sets_recipient_when_targeted_recipient_is_missing(
+        self,
+    ):
+        reference = ACTIVITY.get_conversation_reference()
+        reply = Activity(type="message", text="reply").with_targeted_recipient(
+            "target-user"
+        )
+        reply.recipient = None
+
+        TurnContext.apply_conversation_reference(reply, reference)
+
+        assert reply.recipient == reference.user
+
     def test_apply_conversation_reference_when_is_incoming_is_true_should_not_prepare_a_reply(
         self,
     ):
@@ -418,6 +455,42 @@ class TestTurnContext:
         assert reply.locale == ACTIVITY.locale
         assert reply.service_url == ACTIVITY.service_url
         assert reply.channel_id == ACTIVITY.channel_id
+
+    def test_apply_conversation_reference_propagates_request_id_when_outgoing(
+        self,
+    ):
+        reference = ACTIVITY.get_conversation_reference()
+        reference.request_id = "request-123"
+
+        reply = TurnContext.apply_conversation_reference(
+            Activity(type="message", text="reply"), reference
+        )
+
+        assert reply.request_id == "request-123"
+
+    def test_apply_conversation_reference_propagates_request_id_when_incoming(
+        self,
+    ):
+        reference = ACTIVITY.get_conversation_reference()
+        reference.request_id = "request-123"
+
+        reply = TurnContext.apply_conversation_reference(
+            Activity(type="message", text="reply"), reference, True
+        )
+
+        assert reply.request_id == "request-123"
+
+    def test_apply_conversation_reference_clears_request_id_when_reference_has_none(
+        self,
+    ):
+        reference = ACTIVITY.get_conversation_reference()
+        assert reference.request_id is None
+
+        reply = TurnContext.apply_conversation_reference(
+            Activity(type="message", text="reply", request_id="stale-id"), reference
+        )
+
+        assert reply.request_id is None
 
     @pytest.mark.asyncio
     async def test_should_get_conversation_reference_using_get_reply_conversation_reference(

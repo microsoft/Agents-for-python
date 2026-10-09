@@ -21,6 +21,8 @@ from microsoft_agents.hosting.core.connector.client.connector_client import (
     ConnectorClient,
     ConversationsOperations,
 )
+from microsoft_agents.hosting.core.connector.get_product_info import get_product_info
+from microsoft_agents.hosting.core.connector.teams import TeamsConnectorClient
 from microsoft_agents.hosting.core.header_propagation import HeaderPropagationContext
 
 
@@ -96,6 +98,50 @@ class TestSendToConversation:
             assert result.id is None
         finally:
             await server.close()
+
+    @pytest.mark.asyncio
+    @pytest.mark.parametrize(
+        ("channel_id", "targeted", "expected_query"),
+        [
+            (Channels.ms_teams, True, {"isTargetedActivity": "true"}),
+            (Channels.ms_teams, False, {}),
+            ("webchat", True, {}),
+        ],
+    )
+    async def test_send_to_conversation_sets_targeted_query_for_teams(
+        self,
+        channel_id,
+        targeted,
+        expected_query,
+    ):
+        captured_query = None
+
+        async def handler(request):
+            nonlocal captured_query
+            captured_query = dict(request.query)
+            return web.Response(status=200, text="")
+
+        routes = [web.post("/v3/conversations/{conversation_id}/activities", handler)]
+        app = _create_app(routes)
+        activity = Activity(
+            type="message",
+            text="Hello, world!",
+            channel_id=channel_id,
+            recipient=ChannelAccount(id="user-id"),
+        )
+        if targeted:
+            activity.make_targeted_activity()
+
+        server = TestServer(app)
+        await server.start_server()
+        try:
+            async with ClientSession(base_url=server.make_url("/")) as session:
+                ops = ConversationsOperations(session)
+                await ops.send_to_conversation("conv-1", activity)
+        finally:
+            await server.close()
+
+        assert captured_query == expected_query
 
     @pytest.mark.asyncio
     async def test_send_to_conversation_error_includes_response_body(self, activity):
@@ -440,6 +486,50 @@ class TestConnectorClientContract:
         assert content.read() == b"attachment bytes"
 
     @pytest.mark.asyncio
+    async def test_get_attachment_uri_builds_view_url(self):
+        client = ConnectorClient("https://example.org/", token="")
+        try:
+            uri = client.attachments.get_attachment_uri("attachment-1")
+            uri_with_view = client.attachments.get_attachment_uri(
+                "attachment-1", "thumbnail"
+            )
+        finally:
+            await client.close()
+
+        assert uri == "https://example.org/v3/attachments/attachment-1/views/original"
+        assert (
+            uri_with_view
+            == "https://example.org/v3/attachments/attachment-1/views/thumbnail"
+        )
+
+    @pytest.mark.asyncio
+    async def test_get_attachment_uri_escapes_special_characters(self):
+        client = ConnectorClient("https://example.org/", token="")
+        try:
+            uri = client.attachments.get_attachment_uri(
+                "id with space/and#hash?q=1", "a view/with#special?chars"
+            )
+        finally:
+            await client.close()
+
+        assert (
+            uri == "https://example.org/v3/attachments/"
+            "id%20with%20space%2Fand%23hash%3Fq%3D1"
+            "/views/a%20view%2Fwith%23special%3Fchars"
+        )
+
+    @pytest.mark.asyncio
+    async def test_get_attachment_uri_requires_attachment_id_and_view_id(self):
+        client = ConnectorClient("https://example.org/", token="")
+        try:
+            with pytest.raises(ValueError):
+                client.attachments.get_attachment_uri(None)
+            with pytest.raises(ValueError):
+                client.attachments.get_attachment_uri("attachment-1", None)
+        finally:
+            await client.close()
+
+    @pytest.mark.asyncio
     @pytest.mark.parametrize("status", [302, 400, 500])
     async def test_unexpected_response_status_raises_client_response_error(
         self, status
@@ -568,6 +658,55 @@ class TestReplyToActivity:
             assert result.id is None
         finally:
             await server.close()
+
+    @pytest.mark.asyncio
+    @pytest.mark.parametrize(
+        ("channel_id", "targeted", "expected_query"),
+        [
+            (Channels.ms_teams, True, {"isTargetedActivity": "true"}),
+            (Channels.ms_teams, False, {}),
+            ("webchat", True, {}),
+        ],
+    )
+    async def test_reply_to_activity_sets_targeted_query_for_teams(
+        self,
+        channel_id,
+        targeted,
+        expected_query,
+    ):
+        captured_query = None
+
+        async def handler(request):
+            nonlocal captured_query
+            captured_query = dict(request.query)
+            return web.Response(status=200, text="")
+
+        routes = [
+            web.post(
+                "/v3/conversations/{conversation_id}/activities/{activity_id}",
+                handler,
+            )
+        ]
+        app = _create_app(routes)
+        activity = Activity(
+            type="message",
+            text="Hello, world!",
+            channel_id=channel_id,
+            recipient=ChannelAccount(id="user-id"),
+        )
+        if targeted:
+            activity.make_targeted_activity()
+
+        server = TestServer(app)
+        await server.start_server()
+        try:
+            async with ClientSession(base_url=server.make_url("/")) as session:
+                ops = ConversationsOperations(session)
+                await ops.reply_to_activity("conv-1", "act-1", activity)
+        finally:
+            await server.close()
+
+        assert captured_query == expected_query
 
 
 class TestNormalizeConversationId:
@@ -808,3 +947,77 @@ class TestReplyToActivityUrlEncoding:
             assert "conv_sub_id" in captured["raw_path"]
         finally:
             await server.close()
+
+
+class TestUserAgentHeader:
+    """Ensures ConnectorClient and TeamsConnectorClient send a User-Agent header."""
+
+    @pytest.mark.asyncio
+    async def test_connector_client_sets_user_agent_header(self):
+        client = ConnectorClient(endpoint="https://example.org/", token="token")
+        try:
+            assert client.client.headers["User-Agent"] == get_product_info()
+        finally:
+            await client.client.close()
+
+    @pytest.mark.asyncio
+    async def test_connector_client_sends_user_agent_header_on_request(self):
+        captured = {}
+
+        async def handler(request):
+            captured["user_agent"] = request.headers.get("User-Agent")
+            return web.json_response({"id": "activity-id-123"})
+
+        routes = [web.post("/v3/conversations/{conversation_id}/activities", handler)]
+        app = _create_app(routes)
+
+        server = TestServer(app)
+        await server.start_server()
+        session = ClientSession(base_url=str(server.make_url("/")))
+        try:
+            client = ConnectorClient(
+                endpoint=str(server.make_url("/")), token="token", session=session
+            )
+            assert client.client is session
+            await client.conversations.send_to_conversation(
+                "conv-1", Activity(type="message", text="hi")
+            )
+        finally:
+            await server.close()
+            await session.close()
+
+        assert captured["user_agent"] == get_product_info()
+
+    @pytest.mark.asyncio
+    async def test_teams_connector_client_sets_user_agent_header(self):
+        client = TeamsConnectorClient(endpoint="https://example.org/", token="token")
+        try:
+            assert client.client.headers["User-Agent"] == get_product_info()
+        finally:
+            await client.client.close()
+
+    @pytest.mark.asyncio
+    async def test_teams_connector_client_sends_user_agent_header_on_request(self):
+        captured = {}
+
+        async def handler(request):
+            captured["user_agent"] = request.headers.get("User-Agent")
+            return web.json_response({"id": "team-1"})
+
+        routes = [web.get("/v3/teams/{team_id}", handler)]
+        app = _create_app(routes)
+
+        server = TestServer(app)
+        await server.start_server()
+        session = ClientSession(base_url=str(server.make_url("/")))
+        try:
+            client = TeamsConnectorClient(
+                endpoint=str(server.make_url("/")), token="token", session=session
+            )
+            assert client.client is session
+            await client.fetch_team_details("team-1")
+        finally:
+            await server.close()
+            await session.close()
+
+        assert captured["user_agent"] == get_product_info()

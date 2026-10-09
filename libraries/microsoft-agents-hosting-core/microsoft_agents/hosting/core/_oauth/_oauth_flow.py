@@ -208,7 +208,7 @@ class _OAuthFlow:
         self, activity: Activity
     ) -> tuple[TokenResponse, _FlowErrorTag]:
         """Handles the continuation of the flow from a message activity."""
-        magic_code: str = activity.text
+        magic_code: str = activity.text or ""
         if magic_code and magic_code.isdigit() and len(magic_code) == 6:
             token_response: TokenResponse = await self.get_user_token(magic_code)
 

@@ -1,0 +1,60 @@
+# Curated ownership map. Direct compatibility always takes precedence over adoption.
+schemaVersion: 1
+dependency:
+  package: microsoft-teams-api
+capabilities:
+  teams-api-client:
+    description: Creates, caches and exposes the Teams API client for a turn.
+    owners: [microsoft_agents/hosting/msteams/_teams_api_client.py, microsoft_agents/hosting/msteams/teams_turn_context.py]
+    upstreamAreas: [microsoft_teams.api.clients]
+    adoptionPolicy: strict-compatibility
+  activity-data:
+    description: Parses Teams channel data and provides notification and feedback helpers.
+    owners: [microsoft_agents/hosting/msteams/_utils.py, microsoft_agents/hosting/msteams/teams_activity.py]
+    upstreamAreas: [microsoft_teams.api.models.channel_data]
+    adoptionPolicy: strict-compatibility
+  channels:
+    description: Routes channel lifecycle and membership events.
+    owners: [microsoft_agents/hosting/msteams/channel]
+    upstreamAreas: [microsoft_teams.api.models.channel_data.channel_info, microsoft_teams.api.clients.team]
+    adoptionPolicy: review-new-members
+  teams:
+    description: Routes team lifecycle events.
+    owners: [microsoft_agents/hosting/msteams/team]
+    upstreamAreas: [microsoft_teams.api.models.channel_data.team_info]
+    adoptionPolicy: review-new-members
+  meetings:
+    description: Routes meeting lifecycle and participant events.
+    owners: [microsoft_agents/hosting/msteams/meeting]
+    upstreamAreas: [microsoft_teams.api.models.meetings, microsoft_teams.api.clients.meeting]
+    adoptionPolicy: review-new-members
+  message-extensions:
+    description: Parses message extension requests and forwards typed responses.
+    owners: [microsoft_agents/hosting/msteams/message_extension]
+    upstreamAreas: [microsoft_teams.api.models.messaging_extension, microsoft_teams.api.models.app_based_link_query]
+    adoptionPolicy: review-new-members
+  task-modules:
+    description: Handles task module fetch and submit invokes.
+    owners: [microsoft_agents/hosting/msteams/task_module]
+    upstreamAreas: [microsoft_teams.api.models.task_module]
+    adoptionPolicy: review-new-members
+  file-consents:
+    description: Handles file consent accept and decline payloads.
+    owners: [microsoft_agents/hosting/msteams/file_consent]
+    upstreamAreas: [microsoft_teams.api.models.file]
+    adoptionPolicy: review-new-members
+  app-configuration:
+    description: Handles app configuration fetch and submit invokes.
+    owners: [microsoft_agents/hosting/msteams/config]
+    upstreamAreas: [microsoft_teams.api.models.config]
+    adoptionPolicy: review-new-members
+  message-actions:
+    description: Handles connector card actions and message lifecycle events.
+    owners: [microsoft_agents/hosting/msteams/message]
+    upstreamAreas: [microsoft_teams.api.models.o365]
+    adoptionPolicy: review-new-members
+  app-routing:
+    description: Routes Teams invokes and events over agent activities.
+    owners: [microsoft_agents/hosting/msteams/teams_agent_extension.py]
+    upstreamAreas: [microsoft_teams.api.activities]
+    adoptionPolicy: advisory-only

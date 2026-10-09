@@ -74,6 +74,42 @@ async with scenario.run() as factory:
     )))
 ```
 
+Use `from_app(...)` when the `AgentApplication` already exists:
+
+```python
+AiohttpScenario.from_app(
+    app: AgentApplication,
+    *,
+    adapter: CloudAdapter | None = None,
+    config: ScenarioConfig | None = None,
+    use_jwt_middleware: bool = True,
+    sdk_config: dict | None = None,
+)
+```
+
+All arguments after `app` are keyword-only.
+
+| Parameter | Type | Default | Description |
+|-----------|------|---------|-------------|
+| `app` | `AgentApplication` | *(required)* | Existing agent application to host |
+| `adapter` | `CloudAdapter \| None` | `None` | Adapter used to host the application; when omitted, one is created from `app.connection_manager` |
+| `config` | `ScenarioConfig \| None` | `None` | Scenario-level settings (ports, env file, etc.) |
+| `use_jwt_middleware` | `bool` | `True` | Enable JWT auth middleware |
+| `sdk_config` | `dict \| None` | `None` | SDK configuration used for client authentication |
+
+```python
+scenario = AiohttpScenario.from_app(
+    AGENT_APP,
+    adapter=ADAPTER,
+    use_jwt_middleware=False,
+)
+```
+
+Pass the application's production adapter when the test must preserve adapter
+middleware, host validation, client factories, or error handling. The default
+adapter only reuses the application's connection manager and does not inherit
+configuration from another adapter used to host the application.
+
 ### ActivityHandlerScenario
 
 ```python

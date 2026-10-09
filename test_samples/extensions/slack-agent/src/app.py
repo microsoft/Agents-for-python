@@ -24,7 +24,6 @@ ADAPTER = CloudAdapter(connection_manager=CONNECTION_MANAGER)
 AUTHORIZATION = Authorization(STORAGE, CONNECTION_MANAGER, **agents_sdk_config)
 APP = AgentApplication[TurnState](
     storage=STORAGE,
-    adapter=ADAPTER,
     authorization=AUTHORIZATION,
     **agents_sdk_config,
 )

@@ -54,6 +54,7 @@ class HttpAgentChannel(ChannelProtocol):
             channel_id=activity_copy.channel_id,
             locale=activity_copy.locale,
             conversation=copy(activity_copy.conversation),
+            request_id=activity_copy.request_id,
         )
 
         activity_copy.conversation.id = conversation_id

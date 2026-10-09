@@ -94,6 +94,7 @@ venv/
 ENV/
 env.bak/
 venv.bak/
+uv.lock
 
 # Spyder project settings
 .spyderproject
@@ -134,3 +135,6 @@ bin/
 
 # Certificates
 *.pfx
+
+# Teams API drift tooling and local verification evidence
+/artifacts/teams-api-drift/

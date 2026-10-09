@@ -4,6 +4,7 @@
 """Base HTTP adapter with shared processing logic."""
 
 from abc import ABC
+from uuid import uuid4
 from http import HTTPStatus
 from traceback import format_exc
 
@@ -22,7 +23,7 @@ from .http._http_response import HttpResponse, HttpResponseFactory
 from .message_factory import MessageFactory
 from .rest_channel_service_client_factory import RestChannelServiceClientFactory
 from .turn_context import TurnContext
-from .outbound_host_validator import OutboundHostValidator, _try_create_url
+from .security import OutboundHostValidator, _try_create_url
 
 logger = logging.getLogger(__name__)
 
@@ -79,7 +80,7 @@ class HttpAdapterBase(ChannelServiceAdapter, ABC):
                 connection_manager,
                 **(channel_service_client_factory_options or {}),
             )
-        self._host_validator = host_validator or OutboundHostValidator()
+        self._host_validator = host_validator or OutboundHostValidator(enabled=False)
 
         super().__init__(factory)
 
@@ -116,6 +117,8 @@ class HttpAdapterBase(ChannelServiceAdapter, ABC):
                 )
 
             activity: Activity = Activity.model_validate(body)
+            activity.request_id = str(uuid4())
+
             span.share(activity=activity)
 
             # Get claims identity (default to anonymous if not set by middleware)
@@ -202,7 +205,7 @@ class HttpAdapterBase(ChannelServiceAdapter, ABC):
                 or not activity_url
                 or claim_url_host.casefold() != activity_url_host.casefold()
             ):
-                if self._host_validator and self._host_validator.enabled:
+                if self._host_validator.enabled:
                     logger.warning(
                         "Service URL host mismatch: %s vs %s",
                         claim_url_host,

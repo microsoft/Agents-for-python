@@ -51,6 +51,7 @@ class TurnContext(TurnContextProtocol):
     _on_send_activities: list[OnSendActivitiesHandler]
     _on_update_activity: list[OnUpdateActivityHandler]
     _on_delete_activity: list[OnDeleteActivityHandler]
+    _on_aclose_list: list[Callable[["TurnContext"], Awaitable[None]]]
 
     def __init__(
         self,
@@ -77,6 +78,7 @@ class TurnContext(TurnContextProtocol):
             self._on_delete_activity = []
             self._responded: bool = False
             self._identity = identity
+            self._on_aclose_list = []
 
         if self.adapter is None:
             raise TypeError("TurnContext must be instantiated with an adapter.")
@@ -109,6 +111,7 @@ class TurnContext(TurnContextProtocol):
             "_on_send_activities",
             "_on_update_activity",
             "_on_delete_activity",
+            "_on_aclose_list",
         ]:
             setattr(context, attribute, getattr(self, attribute))
 
@@ -355,23 +358,7 @@ class TurnContext(TurnContextProtocol):
         :param is_incoming:
         :return:
         """
-        activity.channel_id = reference.channel_id
-        if reference.locale:
-            activity.locale = reference.locale
-        activity.service_url = reference.service_url
-        activity.conversation = reference.conversation
-        if is_incoming:
-            activity.from_property = reference.user
-            activity.recipient = reference.agent
-            if reference.activity_id:
-                activity.id = reference.activity_id
-        else:
-            activity.from_property = reference.agent
-            activity.recipient = reference.user
-            if reference.activity_id:
-                activity.reply_to_id = reference.activity_id
-
-        return activity
+        return activity.apply_conversation_reference(reference, is_incoming)
 
     @staticmethod
     def get_reply_conversation_reference(
@@ -414,3 +401,21 @@ class TurnContext(TurnContextProtocol):
         :return: A list of Mention objects representing all mentions in the activity.
         """
         return activity.get_mentions()
+
+    async def _aclose(self) -> None:
+        """
+        Asynchronously close any resources associated with the turn context.
+
+        :return: None
+        """
+        for handler in self._on_aclose_list:
+            await handler(self)
+
+    def _on_aclose(self, handler: Callable[[TurnContext], Awaitable[None]]) -> None:
+        """
+        Register a handler to be called when the turn context is asynchronously closed.
+
+        :param handler: A callable that takes the turn context and returns an awaitable.
+        :return: None
+        """
+        self._on_aclose_list.append(handler)

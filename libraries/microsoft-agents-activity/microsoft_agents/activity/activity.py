@@ -166,7 +166,7 @@ class Activity(AgentsModel):
     service_url: NonEmptyString = None
     from_property: Annotated[ChannelAccount, Field(alias="from")] = None
     conversation: ConversationAccount = None
-    recipient: ChannelAccount = None
+    recipient: ChannelAccount | None = None
     text_format: NonEmptyString = None
     attachment_layout: NonEmptyString = None
     members_added: list[ChannelAccount] = None
@@ -176,7 +176,7 @@ class Activity(AgentsModel):
     topic_name: NonEmptyString = None
     history_disclosed: bool = None
     locale: NonEmptyString = None
-    text: str = None
+    text: str | None = None
     speak: str = None
     input_hint: NonEmptyString = None
     summary: NonEmptyString = None
@@ -199,6 +199,7 @@ class Activity(AgentsModel):
     text_highlights: list[TextHighlight] = None
     semantic_action: SemanticAction = None
     caller_id: NonEmptyString = None
+    request_id: Annotated[str | None, Field(exclude=True)] = None
 
     @field_validator("entities", mode="before")
     @classmethod
@@ -289,7 +290,7 @@ class Activity(AgentsModel):
 
     def apply_conversation_reference(
         self, reference: ConversationReference, is_incoming: bool = False
-    ):
+    ) -> Self:
         """
         Updates this activity with the delivery information from an existing ConversationReference.
 
@@ -300,27 +301,29 @@ class Activity(AgentsModel):
         :returns: This activity, updated with the delivery information.
 
         .. remarks::
-            Call GetConversationReference on an incoming activity to get a conversation reference that you can then use to update an
+            Call get_conversation_reference on an incoming activity to get a conversation reference that you can then use to update an
             outgoing activity with the correct delivery information.
         """
         self.channel_id = reference.channel_id
+        self.locale = reference.locale or self.locale
         self.service_url = reference.service_url
         self.conversation = reference.conversation
-
-        if reference.locale is not None:
-            self.locale = reference.locale
+        self.request_id = reference.request_id
 
         if is_incoming:
             self.from_property = reference.user
             self.recipient = reference.agent
-
-            if reference.activity_id is not None:
+            if reference.activity_id:
                 self.id = reference.activity_id
         else:
             self.from_property = reference.agent
-            self.recipient = reference.user
-
-            if reference.activity_id is not None:
+            # Targeted activities should have the recipient set to the intended user
+            # instead of the incoming activity's sender. This allows for proper routing
+            # of the outgoing activity to the user even if the incoming activity was sent
+            # to a different user (e.g. in group chat scenarios)
+            if not self.is_targeted_activity() or self.recipient is None:
+                self.recipient = reference.user
+            if reference.activity_id:
                 self.reply_to_id = reference.activity_id
 
         return self
@@ -552,6 +555,58 @@ class Activity(AgentsModel):
         self.suggested_actions = suggested_actions
         return self
 
+    def with_recipient(self, recipient: str | ChannelAccount) -> Self:
+        """
+        Sets the recipient of the activity.
+
+        :param recipient: The recipient of the activity. Can be an id or a ChannelAccount instance.
+        :returns: This activity, to allow for method chaining.
+        """
+        if isinstance(recipient, str):
+            self.recipient = ChannelAccount(id=recipient, role=RoleTypes.user)
+        else:
+            self.recipient = recipient
+        return self
+
+    def with_targeted_recipient(self, recipient: str | ChannelAccount) -> Self:
+        """
+        Make an activity targeted.
+
+        :param recipient: The recipient to target the activity to. Can be a string or a ChannelAccount instance.
+        :return: This activity, to allow for method chaining.
+        """
+
+        if isinstance(recipient, str):
+            recipient = ChannelAccount(id=recipient, role=RoleTypes.user)
+
+        self.recipient = recipient
+        self.entities = self.entities or []
+
+        found_targeted_entity: bool = False
+
+        if self.entities is not None:
+            # try to remove all targeted entities but keep the first one
+            def _keep(entity: Entity) -> bool:
+                nonlocal found_targeted_entity
+                entity_type = entity.type.lower()
+                if entity_type == EntityTypes.ACTIVITY_TREATMENT.value.lower():
+                    treatment = getattr(entity, "treatment", None)
+                    if treatment == ActivityTreatmentTypes.TARGETED:
+                        if found_targeted_entity:
+                            return False
+                        found_targeted_entity = True
+                return True
+
+            # https://stackoverflow.com/questions/1207406/how-to-remove-items-from-a-list-while-iterating
+            # entity lists probably won't get too big, but heck
+            self.entities[:] = [entity for entity in self.entities if _keep(entity)]
+
+        if not found_targeted_entity:
+            self.entities.append(
+                ActivityTreatment(treatment=ActivityTreatmentTypes.TARGETED)
+            )
+        return self
+
     def add_text(self, text: str) -> Self:
         """
         Appends text to the existing text content of the activity.
@@ -671,7 +726,7 @@ class Activity(AgentsModel):
             appears in Activity.text.
         """
         if not identifier:
-            return self.text
+            return self.text or ""
 
         for mention in self.get_mentions():
             if not mention.mentioned or mention.mentioned.id != identifier:
@@ -686,7 +741,7 @@ class Activity(AgentsModel):
                 pattern, "", self.text or "", flags=re.IGNORECASE
             ).strip()
 
-        return self.text
+        return self.text or ""
 
     def is_targeted_activity(self) -> bool:
         """
@@ -697,11 +752,13 @@ class Activity(AgentsModel):
         if not self.entities:
             return False
 
+        target_type = EntityTypes.ACTIVITY_TREATMENT.lower()
+
         for entity in self.entities:
             if (
-                entity.type == EntityTypes.ACTIVITY_TREATMENT
-                and isinstance(entity, ActivityTreatment)
-                and entity.treatment == ActivityTreatmentTypes.TARGETED
+                entity.type.lower() == target_type
+                and getattr(entity, "treatment", None)
+                == ActivityTreatmentTypes.TARGETED
             ):
                 return True
 
@@ -1043,6 +1100,7 @@ class Activity(AgentsModel):
                 ),
                 locale=self.locale,
                 service_url=self.service_url,
+                request_id=self.request_id,
             ),
         )
 
@@ -1076,15 +1134,37 @@ class Activity(AgentsModel):
             entities.append(Activity._convert_entity(e, entity_cls))
         return entities
 
-    def get_product_info_entity(self) -> Optional[ProductInfo]:
+    def _get_entity_by_type(self, entity_type: str) -> Entity | None:
+        """
+        Internal method to get the first entity of a specific type from the activity's entities.
+
+        :param entity_type: The type of the entity to retrieve. This will be converted to lowercase for comparison.
+        :return: The first entity of the specified type, or None if not found.
+        """
         if not self.entities:
             return None
-        target = EntityTypes.PRODUCT_INFO.lower()
-        # validated entities can be Entity, and that prevents us from
-        # making assumptions about the casing of the 'type' attribute
-        raw_product_info = next(
-            filter(lambda e: e.type.lower() == target, self.entities), None
-        )
+        target = entity_type.lower()
+        return next((e for e in self.entities if e.type.lower() == target), None)
+
+    def _get_entities_by_type(self, entity_type: str) -> list[Entity]:
+        """
+        Internal method to get all entities of a specific type from the activity's entities.
+
+        :param entity_type: The type of the entities to retrieve. This will be converted to lowercase for comparison.
+        :return: A list of entities of the specified type. Returns an empty list if none are found.
+        """
+        if not self.entities:
+            return []
+        target = entity_type.lower()
+        return [e for e in self.entities if e.type.lower() == target]
+
+    def get_product_info_entity(self) -> Optional[ProductInfo]:
+        """
+        Get the product info entity from the activity's entities.
+
+        :return: The product info entity, or None if not found.
+        """
+        raw_product_info = self._get_entity_by_type(EntityTypes.PRODUCT_INFO)
         if raw_product_info is None:
             return None
         return Activity._convert_entity(raw_product_info, ProductInfo)
@@ -1099,12 +1179,9 @@ class Activity(AgentsModel):
             This method is defined on the :class:`microsoft_agents.activity.Activity` class, but is only intended for use with
             a message activity, where the activity Activity.Type is set to ActivityTypes.Message.
         """
-        if not self.entities:
+        raw_mentions = self._get_entities_by_type(EntityTypes.MENTION.value)
+        if not raw_mentions:
             return []
-        raw_mentions = [
-            x for x in self.entities if x.type.lower() == EntityTypes.MENTION.value
-        ]
-
         return Activity._convert_entity_list(raw_mentions, Mention)
 
     def get_reply_conversation_reference(

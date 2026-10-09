@@ -9,7 +9,9 @@ from microsoft_agents.activity import (
 )
 
 
-def _create_conversation_reference(user: ChannelAccount | None = None):
+def _create_conversation_reference(
+    user: ChannelAccount | None = None, request_id: str | None = None
+):
     return ConversationReference(
         activity_id="activity-123",
         channel_id="msteams",
@@ -18,6 +20,7 @@ def _create_conversation_reference(user: ChannelAccount | None = None):
         user=user if user is not None else ChannelAccount(id="user-123", name="User"),
         agent=ChannelAccount(id="agent-123", name="Agent"),
         locale="en-US",
+        request_id=request_id,
     )
 
 
@@ -45,6 +48,22 @@ def test_get_continuation_activity_generates_new_id_each_time():
     second_activity = conversation_reference.get_continuation_activity()
 
     assert first_activity.id != second_activity.id
+
+
+def test_get_continuation_activity_propagates_request_id():
+    conversation_reference = _create_conversation_reference(request_id="request-123")
+
+    continuation_activity = conversation_reference.get_continuation_activity()
+
+    assert continuation_activity.request_id == "request-123"
+
+
+def test_get_continuation_activity_request_id_defaults_to_none():
+    conversation_reference = _create_conversation_reference()
+
+    continuation_activity = conversation_reference.get_continuation_activity()
+
+    assert continuation_activity.request_id is None
 
 
 def test_get_continuation_activity_omits_sender_when_user_is_missing():

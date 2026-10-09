@@ -16,10 +16,11 @@ ms_agents_logger.addHandler(console_handler)
 ms_agents_logger.setLevel(logging.DEBUG)
 
 
-from agent import AGENT_APP, CONNECTION_MANAGER
+from agent import AGENT_APP, CONNECTION_MANAGER, ADAPTER
 from start_server import start_server
 
 start_server(
     agent_application=AGENT_APP,
+    adapter=ADAPTER,
     auth_configuration=CONNECTION_MANAGER.get_default_connection_configuration(),
 )

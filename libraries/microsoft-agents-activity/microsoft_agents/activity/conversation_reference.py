@@ -53,6 +53,7 @@ class ConversationReference(AgentsModel):
     channel_id: Optional[ChannelId] = None
     locale: Optional[NonEmptyString] = None
     service_url: NonEmptyString = None
+    request_id: str | None = None
 
     def get_continuation_activity(self) -> Activity:
         from .activity import Activity
@@ -68,4 +69,5 @@ class ConversationReference(AgentsModel):
             recipient=self.agent,
             from_property=SkipNone(self.user),
             relates_to=self,
+            request_id=self.request_id,
         )
