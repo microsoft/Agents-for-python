@@ -13,6 +13,6 @@ setup(
     version=package_version,
     install_requires=[
         f"microsoft-agents-hosting-core=={package_version}",
-        "aiohttp>=3.11.11",
+        "aiohttp>=3.12",
     ],
 )
