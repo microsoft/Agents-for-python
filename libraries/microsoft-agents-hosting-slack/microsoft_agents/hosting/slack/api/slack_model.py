@@ -5,13 +5,14 @@ Licensed under the MIT License.
 
 from __future__ import annotations
 
-from typing import Any, Optional, Type, TypeVar, overload
+from typing import Any, TypeVar, overload
 
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, ConfigDict, TypeAdapter
 
 from .._path_navigator import try_get_path_value
 
-T = TypeVar("T")
+_T = TypeVar("_T")
+_DefaultT = TypeVar("_DefaultT")
 
 
 class SlackModel(BaseModel):
@@ -41,30 +42,35 @@ class SlackModel(BaseModel):
         return path
 
     @overload
-    def get(self, path: str) -> Any: ...
+    def get(self, path: str, default: _DefaultT, type_: type[_T]) -> _T | _DefaultT: ...
+
     @overload
-    def get(self, path: str, default: T) -> T: ...
+    def get(self, path: str, *, type_: type[_T]) -> _T | None: ...
+
     @overload
-    def get(self, path: str, type_: Type[T]) -> T: ...
-    @overload
-    def get(self, path: str, default: T, type_: Type[T]) -> T: ...
+    def get(self, path: str, default: Any = None, type_: None = None) -> Any: ...
 
     def get(
-        self, path: str, default: Optional[T] = None, type_: Type[T] = None
-    ) -> Optional[T]:
+        self,
+        path: str,
+        default: Any = None,
+        type_: type[Any] | None = None,
+    ) -> Any | None:
         """Get a value at the dot-notation ``path``. Supports dot separators and
         bracket array indexing (e.g. ``"message.attachments[0].text"``). Returns
         ``default`` (or ``None``) when the path does not exist.
 
-        ``type_`` is accepted for API symmetry with the C# generic ``Get<T>`` but
-        is not enforced at runtime — Pydantic models keep values in their
-        deserialized shape.
+        When ``type_`` is supplied, Pydantic's ``TypeAdapter`` converts and
+        validates existing values, raising ``ValidationError`` on failure.
+        Existing null values are validated too; they do not use ``default``.
+        Missing-path defaults are returned unchanged, without validation.
+        Without ``type_``, existing values are returned as-is.
+        An empty path selects the entire serialized model.
         """
-        if not path:
-            return self._data()
-
-        found, value = try_get_path_value(self._data(), self._normalize_path(path))
-        return value if found else default
+        found, value = self.try_get(path)
+        if not found:
+            return default
+        return TypeAdapter(type_).validate_python(value) if type_ is not None else value
 
     def try_get(self, path: str) -> tuple[bool, Any]:
         """Like :meth:`get`, but returns ``(found, value)``."""
