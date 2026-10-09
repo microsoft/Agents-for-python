@@ -9,7 +9,13 @@ from typing import Awaitable, Callable, Generic, TypeVar, TYPE_CHECKING
 from microsoft_agents.activity import Activity, ResourceResponse
 
 from microsoft_agents.hosting.core.app.state.turn_state import TurnState
-from microsoft_agents.hosting.core.storage import Storage
+from microsoft_agents.hosting.core.storage import StorageProvider
+from microsoft_agents.hosting.core.storage.storage_compatibility import (
+    as_storage_v2,
+    assert_storage_delete_succeeded,
+    assert_storage_write_succeeded,
+    get_storage_read_value,
+)
 
 from .conversation import Conversation
 from .create_conversation_options import CreateConversationOptions
@@ -76,7 +82,7 @@ class Proactive(Generic[StateT]):
         return f"{_STORAGE_KEY_PREFIX}{conversation_id}"
 
     @property
-    def _storage(self) -> Storage:
+    def _storage(self) -> StorageProvider:
         storage = self._options.storage or self._app.options.storage
         if not storage:
             raise RuntimeError(
@@ -126,7 +132,8 @@ class Proactive(Generic[StateT]):
             conversation.validate()
             key = self._storage_key(conversation.conversation_reference.conversation.id)
             logger.debug("Storing conversation with key: %s", key)
-            await self._storage.write({key: conversation})
+            results = await as_storage_v2(self._storage).write({key: conversation})
+            assert_storage_write_succeeded(results, [key])
 
     async def get_conversation(self, conversation_id: str) -> Conversation | None:
         """
@@ -141,8 +148,10 @@ class Proactive(Generic[StateT]):
         """
         with spans.ProactiveGetConversation(conversation_id) as span:
             key = self._storage_key(conversation_id)
-            results = await self._storage.read([key], target_cls=Conversation)
-            conversation = results.get(key)
+            results = await as_storage_v2(self._storage).read(
+                [key], target_cls=Conversation
+            )
+            conversation = get_storage_read_value(results, key)
             span.share(found=conversation is not None)
             return conversation
 
@@ -156,7 +165,8 @@ class Proactive(Generic[StateT]):
         with spans.ProactiveDeleteConversation(conversation_id):
             key = self._storage_key(conversation_id)
             logger.debug("Deleting conversation with key: %s", key)
-            await self._storage.delete([key])
+            results = await as_storage_v2(self._storage).delete([key])
+            assert_storage_delete_succeeded(results, [key])
 
     # ------------------------------------------------------------------
     # Send a single activity

@@ -13,7 +13,7 @@ from ....turn_context import TurnContext
 from ...._oauth import _FlowStateTag
 from .._sign_in_response import _SignInResponse
 from ._authorization_handler import _AuthorizationHandler
-from ....storage import Storage
+from ....storage import StorageProvider
 from ....authorization import Connections
 from ..auth_handler import AuthHandler
 from ..telemetry import spans
@@ -26,7 +26,7 @@ class AgenticUserAuthorization(_AuthorizationHandler):
 
     def __init__(
         self,
-        storage: Storage,
+        storage: StorageProvider,
         connection_manager: Connections,
         auth_handler: Optional[AuthHandler] = None,
         *,

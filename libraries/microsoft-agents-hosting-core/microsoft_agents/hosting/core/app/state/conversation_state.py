@@ -8,7 +8,7 @@ import logging
 
 from typing import Type
 
-from microsoft_agents.hosting.core.storage import Storage, StoreItem
+from microsoft_agents.hosting.core.storage import StorageProvider, StoreItem
 
 from microsoft_agents.hosting.core.turn_context import TurnContext
 from microsoft_agents.hosting.core.state import AgentState
@@ -23,7 +23,7 @@ class ConversationState(AgentState):
 
     CONTEXT_SERVICE_KEY = "ConversationState"
 
-    def __init__(self, storage: Storage) -> None:
+    def __init__(self, storage: StorageProvider) -> None:
         """
         Initialize ConversationState with a key and optional properties.
 
