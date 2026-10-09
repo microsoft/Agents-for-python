@@ -1,11 +1,13 @@
 # Curated ownership map. Direct compatibility always takes precedence over adoption.
+# For capability maintenance and sourceReview acknowledgments, see
+# scripts/teams-api-drift/README.md#source-review-acknowledgments.
 schemaVersion: 1
 dependency:
   package: microsoft-teams-api
 capabilities:
   teams-api-client:
     description: Creates, caches and exposes the Teams API client for a turn.
-    owners: [microsoft_agents/hosting/msteams/_teams_api_client.py, microsoft_agents/hosting/msteams/teams_turn_context.py]
+    owners: [microsoft_agents/hosting/msteams/_teams_api_client.py, microsoft_agents/hosting/msteams/teams_agent_extension.py, microsoft_agents/hosting/msteams/teams_turn_context.py]
     upstreamAreas: [microsoft_teams.api.clients]
     adoptionPolicy: strict-compatibility
   activity-data:
@@ -25,7 +27,7 @@ capabilities:
     adoptionPolicy: review-new-members
   meetings:
     description: Routes meeting lifecycle and participant events.
-    owners: [microsoft_agents/hosting/msteams/meeting]
+    owners: [microsoft_agents/hosting/msteams/meeting, microsoft_agents/hosting/msteams/teams_activity.py]
     upstreamAreas: [microsoft_teams.api.models.meetings, microsoft_teams.api.clients.meeting]
     adoptionPolicy: review-new-members
   message-extensions:
