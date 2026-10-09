@@ -137,6 +137,54 @@ class TestActivityRoute:
         assert result is handler
 
 
+class TestEndOfConversationRoute:
+    def setup_method(self):
+        self.app = _make_app()
+        self.called = False
+        self.received_code: str | None = None
+
+    @pytest.mark.asyncio
+    async def test_routes_end_of_conversation_activity(self):
+        @self.app.end_of_conversation()
+        async def handler(context: TurnContext, state: TurnState):
+            self.called = True
+            self.received_code = context.activity.code
+
+        await self.app._on_activity(
+            _make_context(
+                _make_activity(
+                    type=ActivityTypes.end_of_conversation,
+                    code="completedSuccessfully",
+                )
+            ),
+            TurnState(),
+        )
+
+        assert self.called
+        assert self.received_code == "completedSuccessfully"
+
+    @pytest.mark.asyncio
+    async def test_does_not_match_other_activity_types(self):
+        @self.app.end_of_conversation()
+        async def handler(context: TurnContext, state: TurnState):
+            self.called = True
+
+        await self.app._on_activity(
+            _make_context(_make_activity(type=ActivityTypes.message)),
+            TurnState(),
+        )
+
+        assert not self.called
+
+    def test_decorator_returns_original_handler(self):
+        async def handler(context: TurnContext, state: TurnState):
+            pass
+
+        result = self.app.end_of_conversation()(handler)
+
+        assert result is handler
+
+
 class TestMessageRoute:
     def setup_method(self):
         self.app = _make_app()
