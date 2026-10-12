@@ -6,7 +6,7 @@ Licensed under the MIT License.
 from __future__ import annotations
 
 import re
-from typing import Any, Generic, Optional, Pattern, TypeVar
+from typing import Any, Generic, Pattern, TypeVar
 
 from typing_extensions import deprecated
 
@@ -29,7 +29,7 @@ StateT = TypeVar("StateT", bound=TurnState)
 TextSelector = str | Pattern[str] | None
 
 
-def _matches_text(selector: TextSelector, text: Optional[str]) -> bool:
+def _matches_text(selector: TextSelector, text: str | None) -> bool:
     if selector is None:
         return True
     if text is None:
@@ -74,7 +74,7 @@ class SlackAgentExtension(Generic[StateT]):
         self,
         application: AgentApplication[StateT],
         *,
-        slack_api: Optional[SlackApi] = None,
+        slack_api: SlackApi | None = None,
     ) -> None:
         self._app = application
         self._slack_api = slack_api or SlackApi()
@@ -114,12 +114,14 @@ class SlackAgentExtension(Generic[StateT]):
         api = self._slack_api
         if turn_context is not None and turn_context.services.has(SlackApi):
             api = turn_context.services.get(SlackApi)
+        if api is None:
+            raise RuntimeError("No SlackApi instance available")
         return await api.call(method, options, token)
 
     async def create_stream(
         self,
         turn_context: TurnContext,
-        thread_ts: Optional[str] = None,
+        thread_ts: str | None = None,
     ) -> SlackStream:
         """Create and start a :class:`SlackStream` for the current Slack thread.
 
@@ -140,6 +142,8 @@ class SlackAgentExtension(Generic[StateT]):
         api = self._slack_api
         if turn_context.services.has(SlackApi):
             api = turn_context.services.get(SlackApi)
+        if api is None:
+            raise RuntimeError("No SlackApi instance available")
         stream = SlackStream(
             api,
             channel,
@@ -154,7 +158,7 @@ class SlackAgentExtension(Generic[StateT]):
         self,
         select: TextSelector = None,
         *,
-        auth_handlers: Optional[list[str]] = None,
+        auth_handlers: list[str] | None = None,
         rank: RouteRank = RouteRank.DEFAULT,
     ) -> _RouteDecorator[SlackRouteHandler[StateT]]:
         """Register a handler for Slack message activities.
@@ -198,7 +202,7 @@ class SlackAgentExtension(Generic[StateT]):
         self,
         select: TextSelector = None,
         *,
-        auth_handlers: Optional[list[str]] = None,
+        auth_handlers: list[str] | None = None,
         rank: RouteRank = RouteRank.DEFAULT,
     ) -> _RouteDecorator[SlackRouteHandler[StateT]]:
         """Deprecated alias for :meth:`message`."""
@@ -210,7 +214,7 @@ class SlackAgentExtension(Generic[StateT]):
         self,
         event_name: TextSelector = None,
         *,
-        auth_handlers: Optional[list[str]] = None,
+        auth_handlers: list[str] | None = None,
         rank: RouteRank = RouteRank.DEFAULT,
     ) -> _RouteDecorator[SlackRouteHandler[StateT]]:
         """Register a handler for Slack event activities.
@@ -252,7 +256,7 @@ class SlackAgentExtension(Generic[StateT]):
         self,
         event_name: TextSelector = None,
         *,
-        auth_handlers: Optional[list[str]] = None,
+        auth_handlers: list[str] | None = None,
         rank: RouteRank = RouteRank.DEFAULT,
     ) -> _RouteDecorator[SlackRouteHandler[StateT]]:
         """Deprecated alias for :meth:`event`."""

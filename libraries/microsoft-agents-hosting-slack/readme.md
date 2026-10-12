@@ -167,12 +167,13 @@ Path navigation belongs to the envelope, payload, and response models, not to
 `channel_data.envelope.get("event.blocks[0].type")` reads a nested array field.
 Unknown Slack fields are preserved.
 
-`get(path)` returns the value or `None` when absent; `get(path, default=...)` uses the
-default only for a missing path, not for an existing null value. Supply `type_` to
-convert and validate an existing value with Pydantic's `TypeAdapter`, for example
+`get(path)` returns the value or `None` when absent. Without `type_`, a default
+applies only to missing paths; existing null values remain `None`. Supply `type_` to
+convert and validate non-null values with Pydantic's `TypeAdapter`, for example
 `response.get("count", type_=int)` or `response.get("event", type_=EventContent)`.
-Invalid values (including null when the requested type does not accept it) raise
-`pydantic.ValidationError`, even when a default is provided. Missing-path defaults
+Invalid non-null values raise `pydantic.ValidationError`, even when a default is
+provided. Typed lookups return the default (or `None`) for existing null values,
+except when `type_=type(None)` explicitly requests null validation. Defaults
 are returned unchanged, without validation. An empty path selects the entire
 serialized model and applies the same validation.
 

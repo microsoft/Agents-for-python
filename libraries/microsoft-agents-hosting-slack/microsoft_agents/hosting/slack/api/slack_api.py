@@ -6,7 +6,7 @@ Licensed under the MIT License.
 from __future__ import annotations
 
 import json
-from typing import Any, Optional
+from typing import Any
 
 from aiohttp import ClientSession, ClientTimeout
 from pydantic import BaseModel
@@ -58,7 +58,7 @@ class SlackApi:
 
     def __init__(
         self,
-        session: Optional[ClientSession] = None,
+        session: ClientSession | None = None,
         *,
         base_url: str = SLACK_API_BASE,
         request_timeout: float = 30.0,

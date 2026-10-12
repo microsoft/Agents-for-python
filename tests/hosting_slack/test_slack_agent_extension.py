@@ -151,6 +151,55 @@ class TestEvent:
         assert not sel(_make_context(ActivityTypes.event, name="other"))
 
 
+@pytest.mark.parametrize("route_name", ["message", "event"])
+class TestRoutingContracts:
+    @pytest.mark.parametrize(
+        "select, value, matches",
+        [
+            ("hello", "hello", True),
+            ("hello", "HELLO", False),
+            ("hello", "say hello", False),
+            ("hello", None, False),
+            (re.compile("hello"), "hello", True),
+            (re.compile("hello"), "say hello", False),
+            (re.compile("hello"), "hello there", False),
+            (re.compile("hello"), None, False),
+            (re.compile("hello", re.IGNORECASE), "HELLO", True),
+            (None, None, True),
+        ],
+    )
+    def test_selector_contract(self, route_name, select, value, matches):
+        app = _make_app()
+        slack = SlackAgentExtension(app)
+        register = slack.message if route_name == "message" else slack.event
+        register(select)(AsyncMock())
+        context = _make_context(
+            route_name,
+            text=value if route_name == "message" else "unrelated",
+            name=value if route_name == "event" else "unrelated",
+        )
+
+        assert app.routes[-1]["selector"](context) is matches
+
+    @pytest.mark.parametrize("select", [None, "hello"])
+    def test_registration_preserves_auth_handlers_and_explicit_rank(
+        self, route_name, select
+    ):
+        app = _make_app()
+        slack = SlackAgentExtension(app)
+        register = slack.message if route_name == "message" else slack.event
+        handler = AsyncMock()
+        auth_handlers = ["primary", "secondary"]
+
+        returned = register(select, auth_handlers=auth_handlers, rank=RouteRank.FIRST)(
+            handler
+        )
+
+        assert returned is handler
+        assert app.routes[-1]["auth_handlers"] == auth_handlers
+        assert app.routes[-1]["rank"] == RouteRank.FIRST
+
+
 class TestDeprecatedAliases:
     def setup_method(self):
         self.app = _make_app()
@@ -177,6 +226,25 @@ class TestDeprecatedAliases:
         sel = self.app.routes[-1]["selector"]
         assert sel(_make_context(ActivityTypes.event, name="app_mention"))
         assert not sel(_make_context(ActivityTypes.event, name="other"))
+
+    @pytest.mark.parametrize("route_name", ["message", "event"])
+    @pytest.mark.parametrize("select", [None, "hello"])
+    def test_alias_forwards_registration_options(self, route_name, select):
+        register = (
+            self.slack.on_message if route_name == "message" else self.slack.on_event
+        )
+        handler = AsyncMock()
+        auth_handlers = ["primary", "secondary"]
+
+        with pytest.deprecated_call():
+            returned = register(
+                select, auth_handlers=auth_handlers, rank=RouteRank.FIRST
+            )(handler)
+
+        assert returned is handler
+        assert len(self.app.routes) == 1
+        assert self.app.routes[-1]["auth_handlers"] == auth_handlers
+        assert self.app.routes[-1]["rank"] == RouteRank.FIRST
 
 
 class TestCall:
@@ -235,6 +303,50 @@ class TestTurnPipeline:
                 recipient=ChannelAccount(id="bot"),
             ),
         )
+
+    @pytest.mark.parametrize("original_first", [False, True])
+    def test_wrapped_context_shares_streaming_response(self, original_first):
+        original_response = self.context.streaming_response if original_first else None
+        wrapped = SlackTurnContext(self.context, self.app)
+
+        response = wrapped.streaming_response
+
+        assert response is self.context.streaming_response
+        assert wrapped.streaming_response is response
+        if original_first:
+            assert response is original_response
+
+    def test_wrapped_context_without_registered_client_returns_none(self):
+        wrapped = SlackTurnContext(self.context, self.app)
+
+        assert wrapped.client is None
+        assert not self.context.services.has(SlackApi)
+
+    @pytest.mark.parametrize("set_on_wrapper", [False, True])
+    def test_wrapped_context_shares_responded_state(self, set_on_wrapper):
+        wrapped = SlackTurnContext(self.context, self.app)
+        assert wrapped.responded is False
+        assert self.context.responded is False
+
+        if set_on_wrapper:
+            wrapped.responded = True
+        else:
+            self.context.responded = True
+
+        assert wrapped.responded is True
+        assert self.context.responded is True
+
+    def test_wrapped_context_preserves_responded_setter_validation(self):
+        wrapped = SlackTurnContext(self.context, self.app)
+        wrapped.responded = True
+
+        with pytest.raises(
+            ValueError, match="cannot set TurnContext.responded to False"
+        ):
+            wrapped.responded = False
+
+        assert wrapped.responded is True
+        assert self.context.responded is True
 
     @pytest.mark.asyncio
     @pytest.mark.parametrize("route_name", ["message", "event"])

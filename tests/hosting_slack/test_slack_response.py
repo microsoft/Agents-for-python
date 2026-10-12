@@ -123,10 +123,23 @@ class TestSlackResponse:
         with pytest.raises(ValidationError):
             r.get("", type_=int)
 
-    def test_get_existing_null_does_not_use_default(self):
+    def test_get_untyped_or_null_typed_null_does_not_use_default(self):
         r = SlackResponse(ok=True, error=None)
 
         assert r.get("error", default="fallback") is None
         assert r.get("error", default="fallback", type_=type(None)) is None
+        assert r.try_get("error") == (True, None)
+
+    @pytest.mark.parametrize("type_", [str, int, EventContent, list[int]])
+    def test_get_typed_null_returns_default_unchanged(self, type_):
+        r = SlackResponse(ok=True, error=None)
+
+        assert r.get("error", type_=type_) is None
+        assert r.get("error", default="fallback", type_=type_) == "fallback"
+        assert r.get("error", "fallback", type_) == "fallback"
+
+    def test_get_null_type_rejects_non_null_value(self):
+        r = SlackResponse(ok=False, error="not_authed")
+
         with pytest.raises(ValidationError):
-            r.get("error", default="fallback", type_=str)
+            r.get("error", type_=type(None))

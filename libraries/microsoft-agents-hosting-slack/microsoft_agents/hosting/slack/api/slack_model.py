@@ -5,6 +5,7 @@ Licensed under the MIT License.
 
 from __future__ import annotations
 
+from types import NoneType
 from typing import Any, TypeVar, overload
 
 from pydantic import BaseModel, ConfigDict, TypeAdapter
@@ -53,22 +54,25 @@ class SlackModel(BaseModel):
     def get(
         self,
         path: str,
-        default: Any = None,
-        type_: type[Any] | None = None,
-    ) -> Any | None:
+        default: _DefaultT | None = None,
+        type_: type[_T] | None = None,
+    ) -> _T | _DefaultT | None:
         """Get a value at the dot-notation ``path``. Supports dot separators and
         bracket array indexing (e.g. ``"message.attachments[0].text"``). Returns
         ``default`` (or ``None``) when the path does not exist.
 
         When ``type_`` is supplied, Pydantic's ``TypeAdapter`` converts and
-        validates existing values, raising ``ValidationError`` on failure.
-        Existing null values are validated too; they do not use ``default``.
-        Missing-path defaults are returned unchanged, without validation.
-        Without ``type_``, existing values are returned as-is.
+        validates non-null values, raising ``ValidationError`` on failure.
+        Existing null values return ``default`` (or ``None``) for typed lookups,
+        except when ``type_`` is ``type(None)``, which validates null directly.
+        Defaults are returned unchanged, without validation.
+        Without ``type_``, existing values are returned as-is, including null.
         An empty path selects the entire serialized model.
         """
         found, value = self.try_get(path)
         if not found:
+            return default
+        if type_ is not None and type_ is not NoneType and value is None:
             return default
         return TypeAdapter(type_).validate_python(value) if type_ is not None else value
 

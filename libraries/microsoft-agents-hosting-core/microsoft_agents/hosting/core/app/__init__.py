@@ -45,6 +45,7 @@ __all__ = [
     "InputFileDownloader",
     "Query",
     "Route",
+    "RouteRank",
     "RouteHandler",
     "TypingChannelStrategy",
     "TypingIndicator",

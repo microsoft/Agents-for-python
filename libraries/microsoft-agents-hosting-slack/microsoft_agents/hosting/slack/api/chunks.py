@@ -8,7 +8,7 @@ See https://docs.slack.dev/reference/methods/chat.appendStream
 
 from __future__ import annotations
 
-from typing import Any, Optional
+from typing import Any
 
 from pydantic import BaseModel, ConfigDict, Field
 
@@ -66,9 +66,9 @@ class TaskUpdateChunk(BaseModel):
     id: str
     title: str
     status: str = SlackTaskStatus.IN_PROGRESS
-    details: Optional[str] = None
-    output: Optional[str] = None
-    sources: Optional[list[Source]] = None
+    details: str | None = None
+    output: str | None = None
+    sources: list[Source] | None = None
 
 
 # Type alias for any chunk variant.
