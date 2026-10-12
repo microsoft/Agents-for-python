@@ -52,7 +52,9 @@ class SlackChannelData(BaseModel):
     def thread_ts(self) -> str | None:
         """Thread timestamp, sourced from the envelope event or payload message."""
         if self.envelope is not None:
-            return self.envelope.get("event.thread_ts", type_=str) or self.envelope.get("event.ts", type_=str)
+            return self.envelope.get("event.thread_ts", type_=str) or self.envelope.get(
+                "event.ts", type_=str
+            )
         if self.payload is not None:
             return self.payload.get("message.thread_ts", type_=str) or self.payload.get(
                 "message.ts", type_=str
