@@ -2,7 +2,8 @@
 # Licensed under the MIT License.
 
 import json
-from typing import Callable
+import logging
+from typing import Any, Callable
 
 import aiohttp
 
@@ -13,10 +14,15 @@ from microsoft_agents.activity import (
 )
 
 from microsoft_agents.hosting.core.turn_context import TurnContext
-from microsoft_agents.hosting.core.outbound_host_validator import OutboundHostValidator
+from microsoft_agents.hosting.core.security import (
+    OutboundHostValidator,
+    _SSRFError,
+)
 
 from .input_file import InputFileDownloader, InputFile
 from ._utils import _parse_content_type, _basic_url_check
+
+logger = logging.getLogger(__name__)
 
 
 class AttachmentDownloader(InputFileDownloader):
@@ -24,16 +30,24 @@ class AttachmentDownloader(InputFileDownloader):
 
     def __init__(
         self,
-        client_factory: Callable[[], aiohttp.ClientSession] | None = None,
         host_validator: OutboundHostValidator | None = None,
+        *,
+        client_session_kwargs: dict | None = None,
+        client_factory: Any = None,
     ):
         """Constructor for AttachmentDownloader.
 
-        :param client_factory: A callable that returns an aiohttp.ClientSession instance.
         :param host_validator: An optional OutboundHostValidator instance.
+        :param client_session_kwargs: Optional keyword arguments for the aiohttp.ClientSession.
+        :param client_factory: (deprecated) A custom client factory, if any.
         """
 
-        self._client_factory = client_factory or aiohttp.ClientSession
+        if client_factory is not None:
+            logger.warning(
+                "The 'client_factory' parameter is deprecated and will be ignored."
+            )
+
+        self._client_session_kwargs = client_session_kwargs or {}
         self._host_validator = host_validator
 
     async def download_files(self, context: TurnContext) -> list[InputFile]:
@@ -48,31 +62,36 @@ class AttachmentDownloader(InputFileDownloader):
         if not context.activity.attachments:
             return []
 
-        files: list[InputFile] = []
-        for attachment in context.activity.attachments:
-            file = await self._download_file(attachment)
-            if file:
-                files.append(file)
+        client_factory: Callable[[], aiohttp.ClientSession]
+        if self._host_validator is not None:
+            host_validator = self._host_validator  # to capture in lambda
+            client_factory = lambda: host_validator.client(self._client_session_kwargs)
+        else:
+            client_factory = lambda: aiohttp.ClientSession(
+                **self._client_session_kwargs
+            )
 
+        async with client_factory() as client:
+            files: list[InputFile] = []
+            for attachment in context.activity.attachments:
+                file = await self._download_file(client, attachment)
+                if file:
+                    files.append(file)
         return files
 
-    async def _download_file(self, attachment: Attachment) -> InputFile | None:
+    async def _download_file(
+        self, client: aiohttp.ClientSession, attachment: Attachment
+    ) -> InputFile | None:
         """Downloads a single file from the given attachment.
 
+        :param client: The aiohttp.ClientSession instance to use for downloading the file.
         :param attachment: The attachment to download.
         :return: An InputFile instance if the download is successful, None otherwise.
         """
         if attachment.content_url and _basic_url_check(attachment.content_url):
             remote_file_url = attachment.content_url
 
-            if (
-                self._host_validator
-                and self._host_validator.enabled
-                and not self._host_validator.is_allowed(remote_file_url)
-            ):
-                return None
-
-            async with self._client_factory() as client:
+            try:
                 async with client.get(remote_file_url) as response:
 
                     if not (200 <= response.status < 300):
@@ -94,6 +113,11 @@ class AttachmentDownloader(InputFileDownloader):
                         content_url=attachment.content_url,
                         filename=attachment.name,
                     )
+            except _SSRFError:
+                logger.warning(
+                    "Outbound host validation failed for an attachment download URL."
+                )
+                return None
         else:
             content = bytes(json.dumps(attachment.content), "utf-8")
             return InputFile(

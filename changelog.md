@@ -9,6 +9,14 @@
 - **Route Decorators**: Added typed `SlackAgentExtension.message()` and `.event()` decorators. Deprecated `on_message()` and `on_event()` while retaining them as backward-compatible aliases.
 - **Typed Model Lookups**: Added a `type_` parameter and typed overloads to `SlackModel.get()` for converting and validating nested values with Pydantic.
 
+## Major Features & Enhancements
+
+- **Outbound Host Validation Hardening**: Enhanced `OutboundHostValidator` with HTTPS-only URL enforcement, DNS resolution validation for public and optionally private network addresses, and an SSRF-aware `aiohttp` connector that validates resolved IPv4 and IPv6 addresses before connecting.
+
+## Deprecation
+
+- **Attachment Downloader HTTP Configuration**: Replaced custom `client_factory` injection with `client_session_kwargs`; the deprecated `client_factory` parameter is ignored. This ensures attachment requests always use the validator-managed middleware and connector, preventing custom client sessions from bypassing hostname allowlists, redirect validation, or resolved-address checks while still allowing supported `aiohttp.ClientSession` options to be configured.
+
 ## Bug Fixes
 
 - **Connector User-Agent Headers**: Added the SDK `User-Agent` header to `MCSConnectorClient` and ensured `ConnectorClient`, `TeamsConnectorClient`, and `UserTokenClient` apply it to caller-provided `ClientSession` instances.

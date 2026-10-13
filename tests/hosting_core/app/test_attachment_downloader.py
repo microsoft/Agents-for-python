@@ -14,7 +14,7 @@ from microsoft_agents.activity import (
 )
 from microsoft_agents.hosting.core import TurnContext
 from microsoft_agents.hosting.core.app.attachment_downloader import AttachmentDownloader
-from microsoft_agents.hosting.core.outbound_host_validator import OutboundHostValidator
+from microsoft_agents.hosting.core.security import OutboundHostValidator, _SSRFError
 
 
 def _make_context(
@@ -53,11 +53,18 @@ class _FakeResponse:
 
 
 class _FakeSession:
-    def __init__(self, response: _FakeResponse):
+    def __init__(
+        self,
+        response: _FakeResponse,
+        validator: OutboundHostValidator | None = None,
+    ):
         self._response = response
+        self._validator = validator
         self.requested_urls: list[str] = []
 
     def get(self, url: str, **kwargs) -> _FakeResponse:
+        if self._validator and not self._validator.is_allowed(url):
+            raise _SSRFError(f"URL '{url}' is not allowed")
         self.requested_urls.append(url)
         return self._response
 
@@ -66,6 +73,13 @@ class _FakeSession:
 
     async def __aexit__(self, *args) -> bool:
         return False
+
+
+def _patch_client_session(monkeypatch, session: _FakeSession) -> None:
+    monkeypatch.setattr(
+        "microsoft_agents.hosting.core.app.attachment_downloader.aiohttp.ClientSession",
+        lambda **kwargs: session,
+    )
 
 
 class TestAttachmentDownloaderChannelAndEmptyCases:
@@ -112,12 +126,13 @@ class TestAttachmentDownloaderInlineContent:
 
 class TestAttachmentDownloaderRemoteContent:
     @pytest.mark.asyncio
-    async def test_downloads_remote_file_and_returns_input_file(self):
+    async def test_downloads_remote_file_and_returns_input_file(self, monkeypatch):
         response = _FakeResponse(
             status=200, content=b"file-bytes", content_type="text/plain"
         )
         session = _FakeSession(response)
-        downloader = AttachmentDownloader(client_factory=lambda: session)
+        _patch_client_session(monkeypatch, session)
+        downloader = AttachmentDownloader()
         attachment = Attachment(
             content_type="text/plain",
             content_url="https://example.org/file.txt",
@@ -135,12 +150,13 @@ class TestAttachmentDownloaderRemoteContent:
         assert session.requested_urls == ["https://example.org/file.txt"]
 
     @pytest.mark.asyncio
-    async def test_allows_http_localhost_urls(self):
+    async def test_allows_http_localhost_urls_without_a_validator(self, monkeypatch):
         response = _FakeResponse(
             status=200, content=b"local-bytes", content_type="text/plain"
         )
         session = _FakeSession(response)
-        downloader = AttachmentDownloader(client_factory=lambda: session)
+        _patch_client_session(monkeypatch, session)
+        downloader = AttachmentDownloader()
         attachment = Attachment(
             content_type="text/plain", content_url="http://localhost:3000/file.txt"
         )
@@ -149,36 +165,74 @@ class TestAttachmentDownloaderRemoteContent:
         files = await downloader.download_files(context)
 
         assert len(files) == 1
+        assert session.requested_urls == ["http://localhost:3000/file.txt"]
 
     @pytest.mark.asyncio
     @pytest.mark.parametrize(
         "content_url",
         [
-            "http://localhost.evil.example/file.txt",
-            "http://localhost@evil.example/file.txt",
+            "http://example.org/file.txt",
+            "ftp://example.org/file.txt",
+            "/relative/file.txt",
         ],
     )
-    async def test_does_not_request_spoofed_localhost_urls(self, content_url):
+    async def test_does_not_request_urls_that_fail_basic_validation(
+        self, monkeypatch, content_url
+    ):
+        response = _FakeResponse(
+            status=200, content=b"remote-bytes", content_type="text/plain"
+        )
+        session = _FakeSession(response)
+        _patch_client_session(monkeypatch, session)
+        downloader = AttachmentDownloader()
+        attachment = Attachment(
+            content_type="application/vnd.custom",
+            content={"source": "inline"},
+            content_url=content_url,
+            name="data.json",
+        )
+        context = _make_context(attachments=[attachment])
+
+        files = await downloader.download_files(context)
+
+        assert len(files) == 1
+        assert files[0].content == bytes(json.dumps({"source": "inline"}), "utf-8")
+        assert session.requested_urls == []
+
+    @pytest.mark.asyncio
+    @pytest.mark.parametrize(
+        "content_url",
+        [
+            "https://localhost.evil.example/file.txt",
+            "https://localhost@evil.example/file.txt",
+        ],
+    )
+    async def test_forwards_urls_without_a_host_validator(
+        self, monkeypatch, content_url
+    ):
         response = _FakeResponse(
             status=200, content=b"file-bytes", content_type="text/plain"
         )
         session = _FakeSession(response)
-        downloader = AttachmentDownloader(client_factory=lambda: session)
+        _patch_client_session(monkeypatch, session)
+        downloader = AttachmentDownloader()
         context = _make_context(
             attachments=[Attachment(content_type="text/plain", content_url=content_url)]
         )
 
-        await downloader.download_files(context)
+        files = await downloader.download_files(context)
 
-        assert session.requested_urls == []
+        assert len(files) == 1
+        assert session.requested_urls == [content_url]
 
     @pytest.mark.asyncio
-    async def test_accepts_partial_content_response(self):
+    async def test_accepts_partial_content_response(self, monkeypatch):
         response = _FakeResponse(
             status=206, content=b"partial-bytes", content_type="text/plain"
         )
         session = _FakeSession(response)
-        downloader = AttachmentDownloader(client_factory=lambda: session)
+        _patch_client_session(monkeypatch, session)
+        downloader = AttachmentDownloader()
         context = _make_context(
             attachments=[
                 Attachment(
@@ -194,12 +248,13 @@ class TestAttachmentDownloaderRemoteContent:
         assert files[0].content == b"partial-bytes"
 
     @pytest.mark.asyncio
-    async def test_normalizes_image_content_type_to_png(self):
+    async def test_normalizes_image_content_type_to_png(self, monkeypatch):
         response = _FakeResponse(
             status=200, content=b"\x89PNG", content_type="image/jpeg"
         )
         session = _FakeSession(response)
-        downloader = AttachmentDownloader(client_factory=lambda: session)
+        _patch_client_session(monkeypatch, session)
+        downloader = AttachmentDownloader()
         attachment = Attachment(
             content_type="image/jpeg", content_url="https://example.org/pic.jpg"
         )
@@ -210,10 +265,11 @@ class TestAttachmentDownloaderRemoteContent:
         assert files[0].content_type == "image/png"
 
     @pytest.mark.asyncio
-    async def test_returns_none_for_non_success_status(self):
+    async def test_returns_none_for_non_success_status(self, monkeypatch):
         response = _FakeResponse(status=404, content=b"", content_type="text/plain")
         session = _FakeSession(response)
-        downloader = AttachmentDownloader(client_factory=lambda: session)
+        _patch_client_session(monkeypatch, session)
+        downloader = AttachmentDownloader()
         attachment = Attachment(
             content_type="text/plain", content_url="https://example.org/missing.txt"
         )
@@ -222,15 +278,16 @@ class TestAttachmentDownloaderRemoteContent:
         assert await downloader.download_files(context) == []
 
     @pytest.mark.asyncio
-    async def test_skips_disallowed_hosts_when_host_validator_enabled(self):
+    async def test_skips_disallowed_hosts_when_host_validator_enabled(
+        self, monkeypatch
+    ):
         response = _FakeResponse(
             status=200, content=b"file-bytes", content_type="text/plain"
         )
-        session = _FakeSession(response)
         host_validator = OutboundHostValidator(enabled=True, hosts=["contoso.com"])
-        downloader = AttachmentDownloader(
-            client_factory=lambda: session, host_validator=host_validator
-        )
+        session = _FakeSession(response, validator=host_validator)
+        monkeypatch.setattr(host_validator, "client", lambda kwargs: session)
+        downloader = AttachmentDownloader(host_validator=host_validator)
         attachment = Attachment(
             content_type="text/plain", content_url="https://evil.example.com/file.txt"
         )
@@ -240,15 +297,16 @@ class TestAttachmentDownloaderRemoteContent:
         assert session.requested_urls == []
 
     @pytest.mark.asyncio
-    async def test_allows_permitted_hosts_when_host_validator_enabled(self):
+    async def test_allows_permitted_hosts_when_host_validator_enabled(
+        self, monkeypatch
+    ):
         response = _FakeResponse(
             status=200, content=b"file-bytes", content_type="text/plain"
         )
-        session = _FakeSession(response)
         host_validator = OutboundHostValidator(enabled=True, hosts=["contoso.com"])
-        downloader = AttachmentDownloader(
-            client_factory=lambda: session, host_validator=host_validator
-        )
+        session = _FakeSession(response, validator=host_validator)
+        monkeypatch.setattr(host_validator, "client", lambda kwargs: session)
+        downloader = AttachmentDownloader(host_validator=host_validator)
         attachment = Attachment(
             content_type="text/plain", content_url="https://contoso.com/file.txt"
         )
