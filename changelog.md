@@ -20,6 +20,7 @@
 ## Bug Fixes
 
 - **Connector User-Agent Headers**: Added the SDK `User-Agent` header to `MCSConnectorClient` and ensured `ConnectorClient`, `TeamsConnectorClient`, and `UserTokenClient` apply it to caller-provided `ClientSession` instances.
+- **Teams Meeting Event Models**: Fixed meeting start and end routes to use `MeetingStartEventValue` and `MeetingEndEventValue`, respectively, instead of `MeetingDetails`, ensuring handlers receive correctly typed event data (#619).
 
 ---
 
