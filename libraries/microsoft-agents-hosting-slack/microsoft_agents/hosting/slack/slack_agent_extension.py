@@ -8,7 +8,6 @@ from __future__ import annotations
 import re
 from typing import Any, Generic, Pattern, TypeVar
 
-from aiohttp import ClientSession
 from typing_extensions import deprecated
 
 from microsoft_agents.activity import ActivityTypes, Channels

@@ -284,6 +284,15 @@ class TestCall:
 
 
 class TestDefaultClient:
+    def test_default_client_can_be_accessed_without_running_event_loop(self):
+        slack = SlackAgentExtension(_make_app())
+
+        client = slack.slack_api
+
+        assert isinstance(client, SlackApi)
+        assert slack.slack_api is client
+        assert client._session is None
+
     def test_construction_is_lazy_and_property_caches_client(self, monkeypatch):
         client = MagicMock(spec=SlackApi)
         factory = MagicMock(return_value=client)

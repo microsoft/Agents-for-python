@@ -3,7 +3,7 @@
 
 from abc import ABC
 
-from typing import Awaitable, Callable, TYPE_CHECKING
+from typing import Awaitable, Callable
 
 from microsoft_agents.activity import (
     Activity,

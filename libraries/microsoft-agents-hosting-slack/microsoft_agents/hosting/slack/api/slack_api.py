@@ -69,7 +69,7 @@ class SlackApi:
         :param base_url: The base URL for the Slack API.
         :param request_timeout: The request timeout in seconds.
         """
-        self._session = session or ClientSession()
+        self._session = session
         self._owns_session = session is None
         self._base_url = base_url
         self._timeout = ClientTimeout(total=request_timeout)
@@ -100,6 +100,8 @@ class SlackApi:
         if token and token.strip():
             headers["Authorization"] = f"Bearer {token}"
 
+        if not self._session:
+            self._session = ClientSession()
         async with self._session.post(
             url, data=body, headers=headers, timeout=self._timeout
         ) as response:
@@ -122,5 +124,5 @@ class SlackApi:
 
     async def aclose(self) -> None:
         """Close the owned ClientSession, if any."""
-        if self._owns_session:
+        if self._owns_session and self._session:
             await self._session.close()
