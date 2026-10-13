@@ -6,7 +6,7 @@ Licensed under the MIT License.
 from __future__ import annotations
 
 import json
-from typing import Any, Optional
+from typing import Any
 
 from pydantic import BaseModel
 
@@ -41,7 +41,7 @@ class SlackStream:
         self._channel = channel
         self._thread_ts = thread_ts
         self._token = token
-        self._message_ts: Optional[str] = None
+        self._message_ts: str | None = None
 
     async def start(
         self, task_display_mode: str = TaskDisplayMode.PLAN
@@ -106,7 +106,7 @@ class SlackStream:
 
     async def stop(
         self,
-        chunks: Optional[list[BaseModel]] = None,
+        chunks: list[BaseModel] | None = None,
         blocks: str | list[Any] | dict | None = None,
     ) -> None:
         """Stop the active stream, optionally finalizing with chunks and/or
@@ -139,7 +139,7 @@ class SlackStream:
         await self._slack_api.call("chat.stopStream", body, self._token)
 
     @staticmethod
-    def _resolve_blocks(blocks: Any) -> Optional[list[Any]]:
+    def _resolve_blocks(blocks: Any) -> list[Any] | None:
         if blocks is None:
             return None
         if isinstance(blocks, str):

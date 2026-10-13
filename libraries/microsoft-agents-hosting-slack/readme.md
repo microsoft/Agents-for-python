@@ -2,81 +2,8 @@
 
 [![PyPI version](https://img.shields.io/pypi/v/microsoft-agents-hosting-slack)](https://pypi.org/project/microsoft-agents-hosting-slack/)
 
-Integration library for building Slack agents using the Microsoft 365 Agents SDK. Provides direct-to-Slack responses (the full Slack Web API surface, beyond what Azure Bot Service exposes), a typed `SlackChannelData` envelope with dot-notation property access, and a `SlackStream` helper for `chat.startStream` / `chat.appendStream` / `chat.stopStream`.
-
-
-## Release Notes
-
-<table style="width:100%">
-  <tr>
-    <th style="width:20%">Version</th>
-    <th style="width:20%">Date</th>
-    <th style="width:60%">Release Notes</th>
-  </tr>
-  <tr>
-    <td>1.8.0</td>
-    <td>2026-10-01</td>
-    <td>
-      <a href="https://github.com/microsoft/Agents-for-python/blob/main/changelog.md#microsoft-365-agents-sdk-for-python---release-notes-v180">
-        1.8.0 Release Notes
-      </a>
-    </td>
-  </tr>
-  <tr>
-    <td>1.7.0</td>
-    <td>2026-09-17</td>
-    <td>
-      <a href="https://github.com/microsoft/Agents-for-python/blob/main/changelog.md#microsoft-365-agents-sdk-for-python---release-notes-v170">
-        1.7.0 Release Notes
-      </a>
-    </td>
-  </tr>
-  <tr>
-    <td>1.5.0</td>
-    <td>2026-08-26</td>
-    <td>
-      <a href="https://github.com/microsoft/Agents-for-python/blob/main/changelog.md#microsoft-365-agents-sdk-for-python---release-notes-v150">
-        1.5.0 Release Notes
-      </a>
-    </td>
-  </tr>
-  <tr>
-   <td>1.4.0</td>
-   <td>2026-08-18</td>
-   <td>
-     <a href="https://github.com/microsoft/Agents-for-python/blob/main/changelog.md#microsoft-365-agents-sdk-for-python---release-notes-v140">
-       1.4.0 Release Notes
-     </a>
-   </td>
-  </tr>
-  <tr>
-    <td>1.3.0</td>
-    <td>2026-07-30</td>
-    <td>
-      <a href="https://github.com/microsoft/Agents-for-python/blob/main/changelog.md#microsoft-365-agents-sdk-for-python---release-notes-v130">
-        1.3.0 Release Notes
-      </a>
-    </td>
-  </tr>
-  <tr>
-    <td>1.2.0</td>
-    <td>2026-07-17</td>
-    <td>
-      <a href="https://github.com/microsoft/Agents-for-python/blob/main/changelog.md#microsoft-365-agents-sdk-for-python---release-notes-v120">
-        1.2.0 Release Notes
-      </a>
-    </td>
-  </tr>
-  <tr>
-    <td>1.1.0</td>
-    <td>2026-06-19</td>
-    <td>
-      <a href="https://github.com/microsoft/Agents-for-python/blob/main/changelog.md#microsoft-365-agents-sdk-for-python---release-notes-v110">
-        1.1.0 Release Notes
-      </a>
-    </td>
-  </tr>
-</table>
+Build Slack agents with the Microsoft 365 Agents SDK using typed message and event
+handlers, direct Slack Web API calls, and streaming responses.
 
 ## Packages Overview
 
@@ -94,7 +21,7 @@ We offer the following PyPI packages to create conversational experiences based 
 | `microsoft-agents-storage-blob` | [![PyPI](https://img.shields.io/pypi/v/microsoft-agents-storage-blob)](https://pypi.org/project/microsoft-agents-storage-blob/) | Extension to use Azure Blob as storage. |
 | `microsoft-agents-storage-cosmos` | [![PyPI](https://img.shields.io/pypi/v/microsoft-agents-storage-cosmos)](https://pypi.org/project/microsoft-agents-storage-cosmos/) | Extension to use CosmosDB as storage. |
 | `microsoft-agents-authentication-msal` | [![PyPI](https://img.shields.io/pypi/v/microsoft-agents-authentication-msal)](https://pypi.org/project/microsoft-agents-authentication-msal/) | MSAL-based authentication for Microsoft Agents. |
-| `microsoft-agents-authentication-entra-auth-sidecar` | [![PyPI](https://img.shields.io/pypi/v/microsoft-agents-authentication-entra-auth-sidecar)](https://pypi.org/project/microsoft-agents-authentication-entra-auth-sidecar/) | Credential-free Entra ID Agent ID authentication via the sidecar. | 
+| `microsoft-agents-authentication-entra-auth-sidecar` | [![PyPI](https://img.shields.io/pypi/v/microsoft-agents-authentication-entra-auth-sidecar)](https://pypi.org/project/microsoft-agents-authentication-entra-auth-sidecar/) | Credential-free Entra ID Agent ID authentication via the sidecar. |
 
 ## Installation
 
@@ -104,38 +31,46 @@ pip install microsoft-agents-hosting-slack
 
 ## Usage
 
+Given configured application options (including storage) and a connection manager:
+
 ```python
 from microsoft_agents.hosting.core.app import AgentApplication
-from microsoft_agents.hosting.slack import SlackAgentExtension
-from microsoft_agents.hosting.slack.api import SlackChannelData
+from microsoft_agents.hosting.core.app.state import TurnState
+from microsoft_agents.hosting.slack import SlackAgentExtension, SlackTurnContext
 
-app = AgentApplication(options)
+app = AgentApplication[TurnState](options, connection_manager=connections)
 slack = SlackAgentExtension(app)
 
-@slack.on_message()
-async def on_slack_message(context, state):
-    channel_data = SlackChannelData.from_activity(context.activity)
+@slack.message()
+async def on_slack_message(context: SlackTurnContext, state: TurnState) -> None:
+    channel_data = context.activity.slack_channel_data
     await slack.call(
         context,
         "chat.postMessage",
         {
-            "channel": channel_data.get("event.channel"),
+            "channel": channel_data.channel,
             "text": f"You said: {context.activity.text}",
         },
-        token=channel_data.api_token,
+        token=channel_data.api_token or "",
     )
 ```
 
-## Key Classes
+Use `@slack.message("hello")` for a specific message or `@slack.event("reaction_added")`
+for a specific event. Both accept compiled regular expressions and match only Slack
+activities. `on_message()` and `on_event()` are deprecated aliases.
 
-- **`SlackAgentExtension`** — registers Slack-channel-scoped message/event handlers; exposes `call(...)` and `create_stream(...)`.
-- **`SlackChannelData`** — typed wrapper around Bot Service's Slack channel-data payload with `get(path)` / `try_get(path)` accessors.
-- **`SlackApi`** — async HTTP client for the Slack Web API.
-- **`SlackStream`** — wraps Slack's streaming methods for incremental message updates.
-- **`SlackHelpers`** — encode/decode and conversation-id parsing utilities.
+Handlers receive a `SlackTurnContext` with typed `activity.slack_channel_data` and
+access to the per-turn Slack API client through `context.client`. Envelope, payload,
+and response models support nested lookups such as `envelope.get("event.channel")`
+and typed lookups such as `response.get("count", type_=int)`.
 
-# Quick Links
+Use `slack.create_stream(context, thread_ts=...)` to start a `SlackStream`, then
+append content and stop the stream. See the API docstrings for routing options,
+client configuration, streaming requirements, and lookup behavior.
 
+## Quick Links
+
+- [Release Notes](https://github.com/microsoft/Agents-for-python/blob/main/changelog.md)
 - 📦 [All SDK Packages on PyPI](https://pypi.org/search/?q=microsoft-agents)
 - 📖 [Complete Documentation](https://aka.ms/agents)
 - 🐛 [Report Issues](https://github.com/microsoft/Agents-for-python/issues)

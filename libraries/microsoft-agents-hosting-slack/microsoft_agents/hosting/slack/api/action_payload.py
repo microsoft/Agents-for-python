@@ -5,7 +5,7 @@ Licensed under the MIT License.
 
 from __future__ import annotations
 
-from typing import Any, Optional
+from typing import Any
 
 from pydantic import ConfigDict
 
@@ -20,7 +20,7 @@ class ActionPayload(SlackModel):
 
     model_config = ConfigDict(extra="allow", populate_by_name=True)
 
-    type: Optional[str] = None
-    channel: Optional[Any] = None
-    message: Optional[Any] = None
-    actions: Optional[Any] = None
+    type: str | None = None
+    channel: Any | None = None
+    message: Any | None = None
+    actions: Any | None = None
