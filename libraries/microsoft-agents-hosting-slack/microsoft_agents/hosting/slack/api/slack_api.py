@@ -63,7 +63,13 @@ class SlackApi:
         base_url: str = SLACK_API_BASE,
         request_timeout: float = 30.0,
     ) -> None:
-        self._session = session
+        """Initialize the SlackApi client.
+
+        :param session: An optional aiohttp ClientSession. If not provided, a new session is created.
+        :param base_url: The base URL for the Slack API.
+        :param request_timeout: The request timeout in seconds.
+        """
+        self._session = session or ClientSession()
         self._owns_session = session is None
         self._base_url = base_url
         self._timeout = ClientTimeout(total=request_timeout)
@@ -94,33 +100,27 @@ class SlackApi:
         if token and token.strip():
             headers["Authorization"] = f"Bearer {token}"
 
-        session = self._session or ClientSession()
-        # TODO: ClientSession lifecycle currently creates+closes a brand-new
-        # aiohttp.ClientSession() on every call() when no session was supplied
-        # at construction, instead of owning a single long-lived session per
-        # SlackApi instance. Revisit alongside the TurnContext resource-lifecycle
-        # work being added in the in-progress A2A extension, so SlackApi can
-        # participate in the same managed-resource pattern.
-        try:
-            async with session.post(
-                url, data=body, headers=headers, timeout=self._timeout
-            ) as response:
-                text = await response.text()
-                try:
-                    payload = json.loads(text) if text else {}
-                    data = SlackResponse.model_validate(payload)
-                except Exception as exc:
-                    raise SlackResponseException(
-                        f"Slack API error on {method} (HTTP {response.status}):\n{text}"
-                    ) from exc
+        async with self._session.post(
+            url, data=body, headers=headers, timeout=self._timeout
+        ) as response:
+            text = await response.text()
+            try:
+                payload = json.loads(text) if text else {}
+                data = SlackResponse.model_validate(payload)
+            except Exception as exc:
+                raise SlackResponseException(
+                    f"Slack API error on {method} (HTTP {response.status}):\n{text}"
+                ) from exc
 
-                if not response.ok or not data.ok:
-                    raise SlackResponseException(
-                        f"Slack API error on {method} (HTTP {response.status}):\n{text}",
-                        data,
-                    )
+            if not response.ok or not data.ok:
+                raise SlackResponseException(
+                    f"Slack API error on {method} (HTTP {response.status}):\n{text}",
+                    data,
+                )
 
-                return data
-        finally:
-            if self._owns_session:
-                await session.close()
+            return data
+
+    async def aclose(self) -> None:
+        """Close the owned ClientSession, if any."""
+        if self._owns_session:
+            await self._session.close()

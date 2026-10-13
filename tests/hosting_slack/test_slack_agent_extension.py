@@ -283,6 +283,34 @@ class TestCall:
         default_api.call.assert_not_awaited()
 
 
+class TestDefaultClient:
+    def test_construction_is_lazy_and_property_caches_client(self, monkeypatch):
+        client = MagicMock(spec=SlackApi)
+        factory = MagicMock(return_value=client)
+        monkeypatch.setattr(
+            "microsoft_agents.hosting.slack.slack_agent_extension.SlackApi", factory
+        )
+
+        slack = SlackAgentExtension(_make_app())
+
+        factory.assert_not_called()
+        assert slack.slack_api is client
+        assert slack.slack_api is client
+        factory.assert_called_once_with()
+
+    def test_injected_client_does_not_create_default(self, monkeypatch):
+        client = MagicMock(spec=SlackApi)
+        factory = MagicMock()
+        monkeypatch.setattr(
+            "microsoft_agents.hosting.slack.slack_agent_extension.SlackApi", factory
+        )
+
+        slack = SlackAgentExtension(_make_app(), slack_api=client)
+
+        assert slack.slack_api is client
+        factory.assert_not_called()
+
+
 class TestTurnPipeline:
     def setup_method(self):
         self.app = AgentApplication(
@@ -322,6 +350,37 @@ class TestTurnPipeline:
         assert wrapped.client is None
         assert not self.context.services.has(SlackApi)
 
+    def test_wrapped_context_rejects_activity_replacement(self):
+        wrapped = SlackTurnContext(self.context, self.app)
+        activity = wrapped.activity
+
+        with pytest.raises(
+            NotImplementedError, match="Directly setting the activity is not supported"
+        ):
+            wrapped.activity = Activity(type=ActivityTypes.message)
+
+        assert wrapped.activity is activity
+        assert self.context.activity is activity
+
+    def test_wrapped_context_preserves_slack_activity_subclasses(self):
+        class CustomSlackActivity(SlackActivity):
+            custom_id: str
+
+        activity = CustomSlackActivity(
+            type=ActivityTypes.message,
+            channel_id=ChannelId("slack"),
+            custom_id="custom",
+            channel_data={"Payload": {"channel": {"id": "C1"}}},
+        )
+        self.context.activity = activity
+
+        wrapped = SlackTurnContext(self.context, self.app)
+
+        assert wrapped.activity is activity
+        assert isinstance(wrapped.activity, CustomSlackActivity)
+        assert wrapped.activity.model_dump()["custom_id"] == "custom"
+        assert wrapped.activity.slack_channel_data.channel == "C1"
+
     @pytest.mark.parametrize("set_on_wrapper", [False, True])
     def test_wrapped_context_shares_responded_state(self, set_on_wrapper):
         wrapped = SlackTurnContext(self.context, self.app)
@@ -353,7 +412,7 @@ class TestTurnPipeline:
     async def test_registered_handler_receives_slack_context(self, route_name):
         app = _make_app()
         slack = SlackAgentExtension(app)
-        client = SlackApi()
+        client = MagicMock(spec=SlackApi)
         self.context.services.set(SlackApi, client)
         self.context.activity.type = route_name
         state = TurnState()
@@ -379,7 +438,7 @@ class TestTurnPipeline:
         "activity_type", [ActivityTypes.message, ActivityTypes.event]
     )
     async def test_wrapped_handlers_preserve_buffered_replies(self, activity_type):
-        slack = SlackAgentExtension(self.app)
+        slack = SlackAgentExtension(self.app, slack_api=MagicMock(spec=SlackApi))
         self.context.activity.type = activity_type
         self.context.activity.delivery_mode = DeliveryModes.expect_replies
         self.context.buffered_reply_activities.append(
@@ -462,6 +521,70 @@ class TestTurnPipeline:
         )
         assert expected_api.call.await_count == 2
         unused_api.call.assert_not_awaited()
+
+    @pytest.mark.asyncio
+    @pytest.mark.parametrize("operation", ["call", "create_stream"])
+    async def test_helpers_create_default_client_before_first_turn(
+        self, monkeypatch, operation
+    ):
+        call_api = AsyncMock(return_value=SlackResponse(ok=True, ts="stream-ts"))
+        monkeypatch.setattr(SlackApi, "call", call_api)
+        slack = SlackAgentExtension(self.app)
+        self.context.activity.channel_data = {
+            "SlackMessage": {"event": {"channel": "C1", "ts": "thread-ts"}},
+            "ApiToken": "test-token",
+        }
+
+        try:
+            if operation == "call":
+                result = await slack.call(self.context, "auth.test")
+                assert result is call_api.return_value
+                call_api.assert_awaited_once_with("auth.test", None, "")
+            else:
+                await slack.create_stream(self.context)
+                call_api.assert_awaited_once_with(
+                    "chat.startStream",
+                    {
+                        "channel": "C1",
+                        "thread_ts": "thread-ts",
+                        "task_display_mode": "plan",
+                    },
+                    "test-token",
+                )
+
+            client = slack.slack_api
+            await self.app.on_turn(self.context)
+            assert self.context.services.get(SlackApi) is client
+            assert slack.slack_api is client
+        finally:
+            await slack.slack_api.aclose()
+
+    @pytest.mark.asyncio
+    @pytest.mark.parametrize("operation", ["call", "create_stream"])
+    async def test_helpers_use_per_turn_client_without_creating_default(
+        self, monkeypatch, operation
+    ):
+        factory = MagicMock(side_effect=AssertionError("Unexpected default session"))
+        monkeypatch.setattr(
+            "microsoft_agents.hosting.slack.api.slack_api.ClientSession", factory
+        )
+        client = MagicMock(spec=SlackApi)
+        client.call.return_value = SlackResponse(ok=True, ts="stream-ts")
+        self.context.services.set(SlackApi, client)
+        self.context.activity.channel_data = {
+            "SlackMessage": {"event": {"channel": "C1", "ts": "thread-ts"}}
+        }
+        slack = SlackAgentExtension(self.app)
+
+        if operation == "call":
+            await slack.call(self.context, "auth.test")
+        else:
+            await slack.create_stream(self.context)
+        await self.app.on_turn(self.context)
+
+        client.call.assert_awaited_once()
+        assert self.context.services.get(SlackApi) is client
+        factory.assert_not_called()
 
     @pytest.mark.asyncio
     @pytest.mark.parametrize("has_client", [False, True])

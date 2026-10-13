@@ -8,6 +8,7 @@ from __future__ import annotations
 import re
 from typing import Any, Generic, Pattern, TypeVar
 
+from aiohttp import ClientSession
 from typing_extensions import deprecated
 
 from microsoft_agents.activity import ActivityTypes, Channels
@@ -83,10 +84,16 @@ class SlackAgentExtension(Generic[StateT]):
         *,
         slack_api: SlackApi | None = None,
     ) -> None:
+        """Initialise the Slack agent extension with the given application and optional Slack API client.
+
+        :param application: The agent application that this extension is attached to.
+        :param slack_api: Optional default SlackApi client to use for turns where no per-turn client is supplied.
+        """
         self._app = application
-        self._slack_api = slack_api or SlackApi()
+        self._slack_api = slack_api
 
         async def __on_before_turn(context: TurnContext, state: StateT) -> bool:
+
             if _is_slack_channel(context) and not context.services.has(SlackApi):
                 # Bind the default only when no per-turn client was supplied,
                 # so SlackTurnContext.client and any
@@ -97,15 +104,23 @@ class SlackAgentExtension(Generic[StateT]):
                 # agent's typing-indicator timer on out-of-band calls, since
                 # core AgentApplication does not currently expose an
                 # equivalent public API.
-                context.services.set(SlackApi, self._slack_api)
+                context.services.set(SlackApi, self.slack_api)
             return True
 
         application.before_turn(__on_before_turn)
 
     @property
     def slack_api(self) -> SlackApi:
-        """The shared :class:`SlackApi` used by :meth:`call` and :meth:`create_stream`."""
+        """Gets the shared SlackApi instance. Creates a new one if it doesn't exist."""
+        if not self._slack_api:
+            self._slack_api = SlackApi()
         return self._slack_api
+
+    def _get_slack_api(self, turn_context: TurnContext) -> SlackApi:
+        """Retrieve the SlackApi instance for the current turn context, falling back to the default client if none is set."""
+        if turn_context is not None and turn_context.services.has(SlackApi):
+            return turn_context.services.get(SlackApi) or self.slack_api
+        return self.slack_api
 
     # ── direct Slack API access ────────────────────────────────────────────
 
@@ -117,12 +132,15 @@ class SlackAgentExtension(Generic[StateT]):
         token: str = "",
     ) -> SlackResponse:
         """Invoke a Slack Web API method, preferring a per-turn :class:`SlackApi`
-        if one has been cached on ``turn_context.services``."""
-        api = self._slack_api
-        if turn_context is not None and turn_context.services.has(SlackApi):
-            api = turn_context.services.get(SlackApi)
-        if api is None:
-            raise RuntimeError("No SlackApi instance available")
+        if one has been cached on ``turn_context.services``.
+
+        :param turn_context: The current turn context.
+        :param method: The Slack Web API method to call.
+        :param options: Optional parameters for the API call.
+        :param token: Optional Slack API token to use for the call.
+        :return: The response from the Slack API.
+        """
+        api = self._get_slack_api(turn_context)
         return await api.call(method, options, token)
 
     async def create_stream(
@@ -152,11 +170,7 @@ class SlackAgentExtension(Generic[StateT]):
         resolved_thread_ts = thread_ts or channel_data.envelope.get("event.ts")
         if not isinstance(resolved_thread_ts, str) or not resolved_thread_ts:
             raise ValueError("create_stream requires a non-empty thread_ts or event.ts")
-        api = self._slack_api
-        if turn_context.services.has(SlackApi):
-            api = turn_context.services.get(SlackApi)
-        if api is None:
-            raise RuntimeError("No SlackApi instance available")
+        api = self._get_slack_api(turn_context)
         stream = SlackStream(
             api,
             channel,

@@ -7,6 +7,7 @@ from __future__ import annotations
 
 import json
 from typing import Any
+from unittest.mock import MagicMock
 
 import pytest
 
@@ -38,6 +39,8 @@ class _FakeSession:
     def __init__(self, response: _FakeResponse) -> None:
         self._response = response
         self.calls: list[dict[str, Any]] = []
+        self.closed = False
+        self.close_count = 0
 
     def post(self, url: str, *, data: str, headers: dict, timeout=None):
         self.calls.append(
@@ -45,8 +48,9 @@ class _FakeSession:
         )
         return self._response
 
-    async def close(self) -> None:  # honoured if owned
-        return None
+    async def close(self) -> None:
+        self.closed = True
+        self.close_count += 1
 
 
 @pytest.mark.asyncio
@@ -133,3 +137,91 @@ async def test_pydantic_model_options_are_dumped_without_nulls():
     await api.call("chat.postMessage", Opts(channel="C1"), token="t")
     body = json.loads(session.calls[0]["data"])
     assert body == {"channel": "C1"}
+
+
+@pytest.mark.asyncio
+async def test_owned_session_is_reused_until_explicit_close(monkeypatch):
+    session = _FakeSession(_FakeResponse(200, '{"ok": true}'))
+    factory = MagicMock(return_value=session)
+    monkeypatch.setattr(
+        "microsoft_agents.hosting.slack.api.slack_api.ClientSession", factory
+    )
+    api = SlackApi(base_url="https://example.invalid/api", request_timeout=7)
+
+    try:
+        await api.call("auth.test")
+        await api.call("chat.postMessage", {"text": "hello"})
+
+        factory.assert_called_once_with()
+        assert len(session.calls) == 2
+        assert session.calls[0]["url"] == "https://example.invalid/api/auth.test"
+        assert session.calls[0]["timeout"].total == 7
+        assert session.closed is False
+        assert session.close_count == 0
+    finally:
+        await api.aclose()
+
+    assert session.closed is True
+    assert session.close_count == 1
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    "status, body",
+    [
+        (200, '{"ok": false, "error": "invalid_auth"}'),
+        (500, '{"ok": false, "error": "internal_error"}'),
+        (500, "not-json"),
+    ],
+)
+async def test_api_error_does_not_close_owned_session(monkeypatch, status, body):
+    session = _FakeSession(_FakeResponse(status, body))
+    monkeypatch.setattr(
+        "microsoft_agents.hosting.slack.api.slack_api.ClientSession",
+        MagicMock(return_value=session),
+    )
+    api = SlackApi()
+
+    try:
+        with pytest.raises(SlackResponseException):
+            await api.call("auth.test")
+
+        assert session.closed is False
+        assert session.close_count == 0
+        session._response = _FakeResponse(200, '{"ok": true}')
+        assert (await api.call("auth.test")).ok is True
+    finally:
+        await api.aclose()
+
+    assert session.close_count == 1
+
+
+@pytest.mark.asyncio
+async def test_injected_session_is_not_closed_or_replaced(monkeypatch):
+    session = _FakeSession(_FakeResponse(200, '{"ok": true}'))
+    factory = MagicMock()
+    monkeypatch.setattr(
+        "microsoft_agents.hosting.slack.api.slack_api.ClientSession", factory
+    )
+    api = SlackApi(session=session)
+
+    await api.call("auth.test")
+    await api.aclose()
+
+    factory.assert_not_called()
+    assert session.closed is False
+    assert session.close_count == 0
+    assert (await api.call("auth.test")).ok is True
+
+
+@pytest.mark.asyncio
+async def test_aclose_closes_real_owned_session():
+    api = SlackApi()
+    session = api._session
+    try:
+        assert session.closed is False
+    finally:
+        await api.aclose()
+
+    assert session.closed is True
+    await api.aclose()

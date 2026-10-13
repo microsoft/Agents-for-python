@@ -7,13 +7,17 @@ from __future__ import annotations
 
 from typing import cast
 
+from microsoft_agents.activity import Activity
 from microsoft_agents.hosting.core import AgentApplication, TurnContext
+from microsoft_agents.hosting.core._utils._turn_context_wrapper import (
+    _TurnContextWrapper,
+)
 
 from .api import SlackApi
 from .slack_activity import SlackActivity
 
 
-class SlackTurnContext(TurnContext):
+class SlackTurnContext(_TurnContextWrapper):
     """A context object for handling Slack-specific turn functionality.
 
     Wraps a plain :class:`TurnContext` so that Slack-aware route handlers
@@ -31,25 +35,10 @@ class SlackTurnContext(TurnContext):
         """
         super().__init__(context)
         self._app = app
-        self._turn_state = context.turn_state
-        self.buffered_reply_activities = context.buffered_reply_activities
-
-        self._original = context
-
-        self._activity.__class__ = SlackActivity
+        self._activity = context.activity
+        if not issubclass(type(self._activity), SlackActivity):
+            self._activity.__class__ = SlackActivity
         self._slack_activity = cast(SlackActivity, self._activity)
-
-    @property
-    def responded(self) -> bool:
-        return self._original.responded
-
-    @responded.setter
-    def responded(self, value: bool):
-        self._original.responded = value
-
-    @property
-    def streaming_response(self):
-        return self._original.streaming_response
 
     @property
     def activity(self) -> SlackActivity:
@@ -58,6 +47,12 @@ class SlackTurnContext(TurnContext):
         :return: The turn's activity exposing Slack-specific accessors.
         """
         return self._slack_activity
+
+    @activity.setter
+    def activity(self, value: Activity):
+        raise NotImplementedError(
+            "Directly setting the activity is not supported in SlackTurnContext."
+        )
 
     @property
     def client(self) -> SlackApi | None:
