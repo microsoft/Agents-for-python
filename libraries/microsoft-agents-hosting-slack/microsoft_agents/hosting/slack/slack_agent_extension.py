@@ -6,11 +6,14 @@ Licensed under the MIT License.
 from __future__ import annotations
 
 import re
-from typing import Any, Callable, Generic, Optional, Pattern, TypeVar
+from typing import Any, Generic, Pattern, TypeVar
+
+from typing_extensions import deprecated
 
 from microsoft_agents.activity import ActivityTypes, Channels
 from microsoft_agents.hosting.core import TurnContext
 from microsoft_agents.hosting.core.app import AgentApplication, RouteRank
+from microsoft_agents.hosting.core.app._type_defs import _RouteDecorator
 from microsoft_agents.hosting.core.app.state import TurnState
 
 from .api import (
@@ -19,13 +22,14 @@ from .api import (
     SlackResponse,
     SlackStream,
 )
+from .route_handlers import SlackRouteHandler, wrap_slack_route_handler
 
 StateT = TypeVar("StateT", bound=TurnState)
 
 TextSelector = str | Pattern[str] | None
 
 
-def _matches_text(selector: TextSelector, text: Optional[str]) -> bool:
+def _matches_text(selector: TextSelector, text: str | None) -> bool:
     if selector is None:
         return True
     if text is None:
@@ -44,17 +48,24 @@ class SlackAgentExtension(Generic[StateT]):
     Slack-specific route registration and helpers for an
     :class:`~microsoft_agents.hosting.core.app.AgentApplication`.
 
+    Handlers registered with :meth:`message` or :meth:`event` receive a
+    :class:`SlackTurnContext` with a typed :class:`SlackActivity`.
+    Pass ``slack_api=...`` to configure the extension's default API client.
+    Before each Slack turn, this client is registered in turn services only
+    if no :class:`SlackApi` is already present. Clients supplied by middleware
+    or an earlier ``before_turn`` handler are preserved, so ``context.client``,
+    :meth:`call`, and :meth:`create_stream` use the same per-turn instance.
+
     Usage::
 
-        from microsoft_agents.hosting.slack import SlackAgentExtension
-        from microsoft_agents.hosting.slack.api import SlackChannelData
+        from microsoft_agents.hosting.slack import SlackAgentExtension, SlackTurnContext
 
         app = AgentApplication(options)
         slack = SlackAgentExtension(app)
 
-        @slack.on_message("hello")
-        async def greet(context, state):
-            channel_data = SlackChannelData.from_activity(context.activity)
+        @slack.message("hello")
+        async def greet(context: SlackTurnContext, state):
+            channel_data = context.activity.slack_channel_data
             await slack.call(
                 context,
                 "chat.postMessage",
@@ -62,7 +73,7 @@ class SlackAgentExtension(Generic[StateT]):
                     "channel": channel_data.channel,
                     "text": f"Hi, {context.activity.from_property.name}!",
                 },
-                token=channel_data.api_token,
+                token=channel_data.api_token or "",
             )
     """
 
@@ -70,15 +81,45 @@ class SlackAgentExtension(Generic[StateT]):
         self,
         application: AgentApplication[StateT],
         *,
-        slack_api: Optional[SlackApi] = None,
+        slack_api: SlackApi | None = None,
     ) -> None:
+        """Initialise the Slack agent extension with the given application and optional Slack API client.
+
+        :param application: The agent application that this extension is attached to.
+        :param slack_api: Optional default SlackApi client to use for turns where no per-turn client is supplied.
+        """
         self._app = application
-        self._slack_api = slack_api or SlackApi()
+        self._slack_api = slack_api
+
+        async def __on_before_turn(context: TurnContext, state: StateT) -> bool:
+
+            if _is_slack_channel(context) and not context.services.has(SlackApi):
+                # Bind the default only when no per-turn client was supplied,
+                # so SlackTurnContext.client and any
+                # out-of-band SlackAgentExtension.call()/create_stream() calls
+                # made during this turn resolve to the same client instance.
+                #
+                # Note: unlike the C# extension, this does not reset the
+                # agent's typing-indicator timer on out-of-band calls, since
+                # core AgentApplication does not currently expose an
+                # equivalent public API.
+                context.services.set(SlackApi, self.slack_api)
+            return True
+
+        application.before_turn(__on_before_turn)
 
     @property
     def slack_api(self) -> SlackApi:
-        """The shared :class:`SlackApi` used by :meth:`call` and :meth:`create_stream`."""
+        """Gets the shared SlackApi instance. Creates a new one if it doesn't exist."""
+        if not self._slack_api:
+            self._slack_api = SlackApi()
         return self._slack_api
+
+    def _get_slack_api(self, turn_context: TurnContext) -> SlackApi:
+        """Retrieve the SlackApi instance for the current turn context, falling back to the default client if none is set."""
+        if turn_context is not None and turn_context.services.has(SlackApi):
+            return turn_context.services.get(SlackApi) or self.slack_api
+        return self.slack_api
 
     # ── direct Slack API access ────────────────────────────────────────────
 
@@ -90,30 +131,48 @@ class SlackAgentExtension(Generic[StateT]):
         token: str = "",
     ) -> SlackResponse:
         """Invoke a Slack Web API method, preferring a per-turn :class:`SlackApi`
-        if one has been cached on ``turn_context.services``."""
-        api = self._slack_api
-        if turn_context is not None and turn_context.services.has(SlackApi):
-            api = turn_context.services.get(SlackApi)
+        if one has been cached on ``turn_context.services``.
+
+        :param turn_context: The current turn context.
+        :param method: The Slack Web API method to call.
+        :param options: Optional parameters for the API call.
+        :param token: Optional Slack API token to use for the call.
+        :return: The response from the Slack API.
+        """
+        api = self._get_slack_api(turn_context)
         return await api.call(method, options, token)
 
     async def create_stream(
         self,
         turn_context: TurnContext,
-        thread_ts: Optional[str] = None,
+        thread_ts: str | None = None,
     ) -> SlackStream:
-        """Create and start a :class:`SlackStream` for the current Slack thread."""
+        """Create and start a :class:`SlackStream` for the current Slack thread.
+
+        Requires a Slack event envelope with a non-empty string
+        ``event.channel`` and either an explicit non-empty string ``thread_ts``
+        or an ``event.ts`` timestamp. Uses the per-turn :class:`SlackApi` when
+        registered, otherwise the extension's default client.
+
+        :return: A started stream ready to append content and stop.
+        :raises ValueError: If the envelope, channel, or timestamp is missing
+            or invalid, before making an API call.
+        """
         channel_data = SlackChannelData.from_activity(turn_context.activity)
         if channel_data.envelope is None:
             raise ValueError(
                 "create_stream requires a Slack event envelope on the activity"
             )
+        channel = channel_data.envelope.get("event.channel")
+        if not isinstance(channel, str) or not channel:
+            raise ValueError("create_stream requires a non-empty event.channel")
         resolved_thread_ts = thread_ts or channel_data.envelope.get("event.ts")
-        api = self._slack_api
-        if turn_context.services.has(SlackApi):
-            api = turn_context.services.get(SlackApi)
+        if not isinstance(resolved_thread_ts, str) or not resolved_thread_ts:
+            raise ValueError("create_stream requires a non-empty thread_ts or event.ts")
+        api = self._get_slack_api(turn_context)
         stream = SlackStream(
             api,
-            channel_data.envelope.get("event.channel"),
+            channel,
             resolved_thread_ts,
             channel_data.api_token or "",
         )
@@ -121,22 +180,25 @@ class SlackAgentExtension(Generic[StateT]):
 
     # ── message routes ─────────────────────────────────────────────────────
 
-    def on_message(
+    def message(
         self,
         select: TextSelector = None,
         *,
-        auth_handlers: Optional[list[str]] = None,
+        auth_handlers: list[str] | None = None,
         rank: RouteRank = RouteRank.DEFAULT,
-    ) -> Callable:
+    ) -> _RouteDecorator[SlackRouteHandler[StateT]]:
         """Register a handler for Slack message activities.
 
         When ``select`` is ``None``, every Slack message matches; otherwise the
-        activity's ``text`` must equal ``select`` (string) or fully match it
-        (compiled regex).
+        activity's ``text`` must equal ``select`` (case-sensitive string) or
+        fully match it (compiled regex). Non-Slack activities never match.
+        The handler receives a :class:`SlackTurnContext` and the turn state.
 
         ``rank`` defaults to :attr:`RouteRank.DEFAULT`; when ``select`` is
         ``None`` the rank is downgraded to :attr:`RouteRank.LAST` so explicit
         text routes win — matching the C# behavior.
+
+        ``auth_handlers`` selects the authentication handlers for the route.
         """
         effective_rank = (
             RouteRank.LAST if (select is None and rank == RouteRank.DEFAULT) else rank
@@ -149,10 +211,12 @@ class SlackAgentExtension(Generic[StateT]):
                 return False
             return _matches_text(select, context.activity.text)
 
-        def __call(func: Callable) -> Callable:
+        def __call(
+            func: SlackRouteHandler[StateT],
+        ) -> SlackRouteHandler[StateT]:
             self._app.add_route(
                 __selector,
-                func,
+                wrap_slack_route_handler(func, self._app),
                 rank=effective_rank,
                 auth_handlers=auth_handlers,
             )
@@ -160,20 +224,38 @@ class SlackAgentExtension(Generic[StateT]):
 
         return __call
 
+    @deprecated(
+        "SlackAgentExtension.on_message is deprecated; use SlackAgentExtension.message instead."
+    )
+    def on_message(
+        self,
+        select: TextSelector = None,
+        *,
+        auth_handlers: list[str] | None = None,
+        rank: RouteRank = RouteRank.DEFAULT,
+    ) -> _RouteDecorator[SlackRouteHandler[StateT]]:
+        """Deprecated alias for :meth:`message`; emits ``DeprecationWarning``."""
+        return self.message(select, auth_handlers=auth_handlers, rank=rank)
+
     # ── event routes ───────────────────────────────────────────────────────
 
-    def on_event(
+    def event(
         self,
         event_name: TextSelector = None,
         *,
-        auth_handlers: Optional[list[str]] = None,
+        auth_handlers: list[str] | None = None,
         rank: RouteRank = RouteRank.DEFAULT,
-    ) -> Callable:
+    ) -> _RouteDecorator[SlackRouteHandler[StateT]]:
         """Register a handler for Slack event activities.
 
         When ``event_name`` is ``None``, every Slack event matches; otherwise
-        the activity's ``name`` must equal it (string) or fully match it
-        (compiled regex).
+        the activity's ``name`` must equal it (case-sensitive string) or fully
+        match it (compiled regex). Non-Slack activities never match.
+        The handler receives a :class:`SlackTurnContext` and the turn state.
+
+        Omitting ``event_name`` with the default rank uses
+        :attr:`RouteRank.LAST` so specific event routes win. An explicit rank
+        is preserved. ``auth_handlers`` selects authentication handlers.
         """
         effective_rank = (
             RouteRank.LAST
@@ -188,13 +270,28 @@ class SlackAgentExtension(Generic[StateT]):
                 return False
             return _matches_text(event_name, context.activity.name)
 
-        def __call(func: Callable) -> Callable:
+        def __call(
+            func: SlackRouteHandler[StateT],
+        ) -> SlackRouteHandler[StateT]:
             self._app.add_route(
                 __selector,
-                func,
+                wrap_slack_route_handler(func, self._app),
                 rank=effective_rank,
                 auth_handlers=auth_handlers,
             )
             return func
 
         return __call
+
+    @deprecated(
+        "SlackAgentExtension.on_event is deprecated; use SlackAgentExtension.event instead."
+    )
+    def on_event(
+        self,
+        event_name: TextSelector = None,
+        *,
+        auth_handlers: list[str] | None = None,
+        rank: RouteRank = RouteRank.DEFAULT,
+    ) -> _RouteDecorator[SlackRouteHandler[StateT]]:
+        """Deprecated alias for :meth:`event`; emits ``DeprecationWarning``."""
+        return self.event(event_name, auth_handlers=auth_handlers, rank=rank)

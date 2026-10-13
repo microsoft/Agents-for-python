@@ -19,6 +19,9 @@ from microsoft_agents.activity import (
     InputHints,
     ResourceResponse,
 )
+from microsoft_agents.hosting.core._utils._turn_context_wrapper import (
+    _TurnContextWrapper,
+)
 from microsoft_agents.hosting.core import (
     AgentApplication,
     TurnContext,
@@ -35,7 +38,7 @@ from .teams_activity import TeamsActivity
 from ._utils import _apply_prompt_preview_normalizer, _is_recipient_targeted
 
 
-class TeamsTurnContext(TurnContext):
+class TeamsTurnContext(_TurnContextWrapper):
     """A context object for handling Teams-specific turn functionality.
 
     Wraps a plain :class:`TurnContext` so that Teams-aware route handlers
@@ -50,9 +53,6 @@ class TeamsTurnContext(TurnContext):
         """
         super().__init__(context)
         self._app = app
-        self._turn_state = context.turn_state
-
-        self._original = context
 
         self._set_teams_activity()
 
@@ -75,18 +75,6 @@ class TeamsTurnContext(TurnContext):
         """
         self._activity.__class__ = TeamsActivity
         self._teams_activity = cast(TeamsActivity, self._activity)
-
-    @property
-    def responded(self) -> bool:
-        return self._original.responded
-
-    @responded.setter
-    def responded(self, value: bool):
-        self._original.responded = value
-
-    @property
-    def streaming_response(self):
-        return self._original.streaming_response
 
     @property
     def activity(self) -> TeamsActivity:
