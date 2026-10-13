@@ -3,6 +3,12 @@
 **Release Date:** Unreleased
 **Previous Version:** 1.8.0 (Released 2026-10-01)
 
+## Slack
+
+- **Slack-Aware Turn Context**: Added `SlackTurnContext`, `SlackActivity`, and `SlackRouteHandler` so Slack handlers receive a typed context with direct access to Slack channel data and the per-turn API client.
+- **Route Decorators**: Added typed `SlackAgentExtension.message()` and `.event()` decorators. Deprecated `on_message()` and `on_event()` while retaining them as backward-compatible aliases.
+- **Typed Model Lookups**: Added a `type_` parameter and typed overloads to `SlackModel.get()` for converting and validating nested values with Pydantic.
+
 ## Bug Fixes
 
 - **Connector User-Agent Headers**: Added the SDK `User-Agent` header to `MCSConnectorClient` and ensured `ConnectorClient`, `TeamsConnectorClient`, and `UserTokenClient` apply it to caller-provided `ClientSession` instances.

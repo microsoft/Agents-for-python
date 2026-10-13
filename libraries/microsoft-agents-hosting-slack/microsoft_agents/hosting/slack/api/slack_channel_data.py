@@ -22,6 +22,13 @@ class SlackChannelData(BaseModel):
     Bot Service historically named the envelope property ``SlackMessage`` and
     the API token ``ApiToken``; this model accepts both the PascalCase JSON
     names (via aliases) and snake_case Python names.
+
+    Access this model through ``SlackActivity.slack_channel_data`` or use
+    :meth:`from_activity` with a plain turn context's activity. Nested path
+    lookups belong to the envelope and payload, not this wrapper. For example,
+    when an envelope is present, ``envelope.get("event.channel")`` reads the
+    channel and ``envelope.get("event.blocks[0].type")`` reads an array field.
+    Unknown Slack fields are preserved.
     """
 
     model_config = ConfigDict(extra="allow", populate_by_name=True)

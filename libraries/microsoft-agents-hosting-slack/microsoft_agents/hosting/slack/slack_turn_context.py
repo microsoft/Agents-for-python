@@ -18,7 +18,9 @@ class SlackTurnContext(TurnContext):
 
     Wraps a plain :class:`TurnContext` so that Slack-aware route handlers
     receive a typed context without changing the core routing engine.
-    Turn state and buffered replies are shared with the original context.
+    Turn state, services, and buffered replies are shared with the original
+    context. The response flag and streaming-response accessor are forwarded
+    to it.
     """
 
     def __init__(self, context: TurnContext, app: AgentApplication) -> None:

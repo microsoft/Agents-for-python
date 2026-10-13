@@ -68,6 +68,15 @@ class SlackModel(BaseModel):
         Defaults are returned unchanged, without validation.
         Without ``type_``, existing values are returned as-is, including null.
         An empty path selects the entire serialized model.
+
+        For example, ``response.get("count", type_=int)`` converts a value to
+        an integer, while ``envelope.get("event", type_=EventContent)``
+        validates it as an event model. Invalid non-null values raise
+        ``pydantic.ValidationError`` even when a default is provided.
+
+        Typed overloads return the requested type plus ``None`` when no
+        default is supplied, or the requested type plus the default's type
+        when one is supplied. Untyped lookups remain dynamically typed.
         """
         found, value = self.try_get(path)
         if not found:
@@ -77,7 +86,11 @@ class SlackModel(BaseModel):
         return TypeAdapter(type_).validate_python(value) if type_ is not None else value
 
     def try_get(self, path: str) -> tuple[bool, Any]:
-        """Like :meth:`get`, but returns ``(found, value)``."""
+        """Return a raw ``(found, value)`` tuple without conversion or validation.
+
+        An existing null value returns ``(True, None)``; a missing path returns
+        ``(False, None)``. An empty path selects the entire serialized model.
+        """
         if not path:
             return True, self._data()
         return try_get_path_value(self._data(), self._normalize_path(path))
