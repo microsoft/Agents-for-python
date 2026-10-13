@@ -49,7 +49,7 @@ def _make_create_options(
         else:
             params = ConversationParameters(members=members)
     return CreateConversationOptions(
-        identity=ClaimsIdentity(claims={"aud": "app-id"}, is_authenticated=True),
+        identity=ClaimsIdentity(claims={"aud": "app-id"}),
         channel_id=channel_id,
         parameters=params,
         service_url="https://smba.trafficmanager.net/teams/",

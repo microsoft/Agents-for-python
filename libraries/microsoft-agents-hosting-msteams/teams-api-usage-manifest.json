@@ -109,7 +109,22 @@
       "constructsOrValidates": true
     },
     {
-      "upstreamSymbol": "microsoft_teams.api.models.meetings.MeetingDetails",
+      "upstreamSymbol": "microsoft_teams.api.activities.event.meeting_start.MeetingStartEventValue",
+      "usage": "parsed-model",
+      "exposure": "publicly-exposed",
+      "files": [
+        "microsoft_agents/hosting/msteams/meeting/meeting.py",
+        "microsoft_agents/hosting/msteams/meeting/route_handlers.py"
+      ],
+      "propertiesRead": [],
+      "propertiesWritten": [],
+      "methodsCalled": [
+        "model_validate"
+      ],
+      "constructsOrValidates": true
+    },
+    {
+      "upstreamSymbol": "microsoft_teams.api.activities.event.meeting_end.MeetingEndEventValue",
       "usage": "parsed-model",
       "exposure": "publicly-exposed",
       "files": [

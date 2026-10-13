@@ -160,6 +160,3 @@ class CardFactory:
             )
 
         return card.to_attachment()
-
-    # Deprecated alias; use microsoft_agents.activity.ContentTypes instead.
-    content_types: type[ContentTypes] = ContentTypes

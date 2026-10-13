@@ -104,7 +104,7 @@ class TestAdapter(ChannelAdapter):
 
         self._activity_queue = []
         self._queued_requests = []
-        self.claims_identity = ClaimsIdentity({}, True)
+        self.claims_identity = ClaimsIdentity({})
 
     @property
     def conversation(self) -> ConversationReference:

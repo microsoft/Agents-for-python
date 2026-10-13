@@ -9,6 +9,8 @@ examples from https://docs.slack.dev/apis/events-api/#callback-field
 
 import json
 
+import pytest
+
 from microsoft_agents.hosting.slack.api import (
     EventContent,
     SlackChannelData,
@@ -234,11 +236,128 @@ class TestActionPayloadChannelData:
         }
         cd = SlackChannelData.model_validate(raw)
         assert cd.payload is not None
-        # payload.channel is itself an object in this fixture
-        assert cd.channel == {"id": "C123"}
-        # path-based access drills into it
+        assert cd.channel == "C123"
+        # Normalization leaves the raw payload available for path navigation.
         assert cd.payload.get("channel.id") == "C123"
         assert cd.thread_ts == "111.222"
+
+    @pytest.mark.parametrize("channel", ["C123", {"id": "C123"}])
+    def test_channel_normalizes_string_and_object(self, channel):
+        cd = SlackChannelData.model_validate({"Payload": {"channel": channel}})
+
+        assert cd.channel == "C123"
+        assert cd.payload is not None
+        assert cd.payload.get("channel") == channel
+
+    @pytest.mark.parametrize(
+        "payload",
+        [
+            {},
+            {"channel": None},
+            {"channel": 123},
+            {"channel": False},
+            {"channel": []},
+            {"channel": {}},
+            {"channel": {"id": None}},
+            {"channel": {"id": 123}},
+        ],
+    )
+    def test_missing_or_invalid_channel_returns_none(self, payload):
+        cd = SlackChannelData.model_validate({"Payload": payload})
+
+        assert cd.channel is None
+
+    @pytest.mark.parametrize(
+        "channel_fields",
+        [{}, {"channel": None}, {"channel": {}}, {"channel": {"id": None}}],
+    )
+    def test_channel_falls_back_to_container(self, channel_fields):
+        cd = SlackChannelData.model_validate(
+            {
+                "Payload": {
+                    **channel_fields,
+                    "container": {"channel_id": "C123"},
+                }
+            }
+        )
+
+        assert cd.channel == "C123"
+
+    @pytest.mark.parametrize("channel", ["C123", {"id": "C123"}])
+    def test_payload_channel_takes_precedence_over_container(self, channel):
+        cd = SlackChannelData.model_validate(
+            {
+                "Payload": {
+                    "channel": channel,
+                    "container": {"channel_id": "C_OTHER"},
+                }
+            }
+        )
+
+        assert cd.channel == "C123"
+
+    @pytest.mark.parametrize("channel", ["", {"id": ""}])
+    def test_empty_channel_does_not_fall_back_to_container(self, channel):
+        cd = SlackChannelData.model_validate(
+            {"Payload": {"channel": channel, "container": {"channel_id": "C_OTHER"}}}
+        )
+
+        assert cd.channel == ""
+
+    @pytest.mark.parametrize(
+        "container",
+        [None, {}, {"channel_id": None}, {"channel_id": 123}],
+    )
+    def test_missing_or_invalid_container_channel_returns_none(self, container):
+        cd = SlackChannelData.model_validate({"Payload": {"container": container}})
+
+        assert cd.channel is None
+
+    @pytest.mark.parametrize(
+        "payload",
+        [
+            {},
+            {"channel": None},
+            {"channel": "C_PAYLOAD"},
+            {"channel": {"id": "C_PAYLOAD"}},
+            {"container": {"channel_id": "C_CONTAINER"}},
+        ],
+    )
+    def test_envelope_channel_takes_precedence_over_payload(self, payload):
+        cd = SlackChannelData.model_validate(
+            {
+                "SlackMessage": {"event": {"channel": "C_ENVELOPE"}},
+                "Payload": payload,
+            }
+        )
+
+        assert cd.channel == "C_ENVELOPE"
+
+    def test_envelope_without_channel_does_not_fall_back_to_payload(self):
+        cd = SlackChannelData.model_validate(
+            {"SlackMessage": {"event": {}}, "Payload": {"channel": "C_PAYLOAD"}}
+        )
+
+        assert cd.channel is None
+
+
+class TestThreadTimestamp:
+    @pytest.mark.parametrize(
+        "source, field", [("SlackMessage", "event"), ("Payload", "message")]
+    )
+    @pytest.mark.parametrize(
+        "timestamps, expected",
+        [
+            ({"thread_ts": None, "ts": "111.222"}, "111.222"),
+            ({"thread_ts": "111.000", "ts": "111.222"}, "111.000"),
+            ({"thread_ts": None, "ts": None}, None),
+            ({}, None),
+        ],
+    )
+    def test_nullable_timestamp_fallback(self, source, field, timestamps, expected):
+        cd = SlackChannelData.model_validate({source: {field: timestamps}})
+
+        assert cd.thread_ts == expected
 
 
 class TestFromActivity:

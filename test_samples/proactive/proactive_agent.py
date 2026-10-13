@@ -72,7 +72,6 @@ AUTHORIZATION = Authorization(STORAGE, CONNECTION_MANAGER, **agents_sdk_config)
 AGENT_APP = AgentApplication[TurnState](
     options=ApplicationOptions(
         storage=STORAGE,
-        adapter=ADAPTER,
         proactive=ProactiveOptions(),
     ),
     authorization=AUTHORIZATION,

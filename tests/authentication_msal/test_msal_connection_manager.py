@@ -54,10 +54,10 @@ class TestMsalConnectionManager:
             [None, ""],
             [None, None],
             [None, "agentic"],
-            [ClaimsIdentity(claims={}, is_authenticated=False), None],
-            [ClaimsIdentity(claims={}, is_authenticated=False), ""],
-            [ClaimsIdentity(claims={}, is_authenticated=False), "https://example.com"],
-            [ClaimsIdentity(claims={"aud": "api://misc"}, is_authenticated=False), ""],
+            [ClaimsIdentity(claims={}), None],
+            [ClaimsIdentity(claims={}), ""],
+            [ClaimsIdentity(claims={}), "https://example.com"],
+            [ClaimsIdentity(claims={"aud": "api://misc"}), ""],
         ],
     )
     def test_get_token_provider_errors(self, claims_identity, service_url):
@@ -68,9 +68,7 @@ class TestMsalConnectionManager:
     def test_get_token_provider_no_map(self, config):
         del config["CONNECTIONSMAP"]
         connection_manager = MsalConnectionManager(**config)
-        claims_identity = ClaimsIdentity(
-            claims={"aud": "api://misc"}, is_authenticated=True
-        )
+        claims_identity = ClaimsIdentity(claims={"aud": "api://misc"})
         token_provider = connection_manager.get_token_provider(
             claims_identity, "https://example.com"
         )
@@ -78,9 +76,7 @@ class TestMsalConnectionManager:
 
     def test_get_token_provider_aud_match(self, config):
         connection_manager = MsalConnectionManager(**config)
-        claims_identity = ClaimsIdentity(
-            claims={"aud": "api://misc"}, is_authenticated=True
-        )
+        claims_identity = ClaimsIdentity(claims={"aud": "api://misc"})
         token_provider = connection_manager.get_token_provider(
             claims_identity, "https://example.com"
         )
@@ -88,9 +84,7 @@ class TestMsalConnectionManager:
 
     def test_get_token_provider_aud_and_service_url_match(self, config):
         connection_manager = MsalConnectionManager(**config)
-        claims_identity = ClaimsIdentity(
-            claims={"aud": "api://service"}, is_authenticated=True
-        )
+        claims_identity = ClaimsIdentity(claims={"aud": "api://service"})
         token_provider = connection_manager.get_token_provider(
             claims_identity, "https://service.com/api"
         )
@@ -98,9 +92,7 @@ class TestMsalConnectionManager:
 
     def test_get_token_provider_service_url_wildcard_star(self, config):
         connection_manager = MsalConnectionManager(**config)
-        claims_identity = ClaimsIdentity(
-            claims={"aud": "api://misc"}, is_authenticated=False
-        )
+        claims_identity = ClaimsIdentity(claims={"aud": "api://misc"})
         token_provider = connection_manager.get_token_provider(
             claims_identity, "https://service.com/api"
         )
@@ -108,9 +100,7 @@ class TestMsalConnectionManager:
 
     def test_get_token_provider_service_url_wildcard_empty(self, config):
         connection_manager = MsalConnectionManager(**config)
-        claims_identity = ClaimsIdentity(
-            claims={"aud": "api://misc_other"}, is_authenticated=False
-        )
+        claims_identity = ClaimsIdentity(claims={"aud": "api://misc_other"})
         token_provider = connection_manager.get_token_provider(
             claims_identity, "https://service.com/api"
         )
@@ -129,7 +119,7 @@ class TestMsalConnectionManager:
         self, config, service_url, expected_connection
     ):
         connection_manager = MsalConnectionManager(**config)
-        claims_identity = ClaimsIdentity(claims={}, is_authenticated=False)
+        claims_identity = ClaimsIdentity(claims={})
         token_provider = connection_manager.get_token_provider(
             claims_identity, service_url
         )

@@ -277,6 +277,145 @@ def test_init_succeeds_when_authorization_provided_without_connection_manager():
 
 
 # ---------------------------------------------------------------------------
+# error handlers
+# ---------------------------------------------------------------------------
+
+
+def test_error_handlers_are_initialized_per_application():
+    first_app = make_app()
+    second_app = make_app()
+
+    async def handler(context, error):
+        pass
+
+    first_app.error(handler)
+
+    assert first_app._turn_error_handlers == [handler]
+    assert second_app._turn_error_handlers == []
+
+
+def test_error_registers_handlers_in_order_and_returns_handler():
+    app = make_app()
+
+    async def first(context, error):
+        pass
+
+    async def second(context, error):
+        pass
+
+    assert app.error(first) is first
+    assert app.error(second) is second
+    assert app._turn_error_handlers == [first, second]
+
+
+@pytest.mark.asyncio
+async def test_on_error_calls_all_handlers_in_registration_order():
+    app = make_app()
+    context = StubTurnContext(_make_event_activity())
+    error = RuntimeError("boom")
+    calls = []
+
+    async def first(received_context, received_error):
+        calls.append(("first", received_context, received_error))
+
+    async def second(received_context, received_error):
+        calls.append(("second", received_context, received_error))
+
+    app.error(first)
+    app.error(second)
+
+    await app._on_error(context, error)
+
+    assert calls == [
+        ("first", context, error),
+        ("second", context, error),
+    ]
+
+
+@pytest.mark.asyncio
+async def test_on_error_reraises_original_error_when_no_handlers_registered():
+    app = make_app()
+    context = StubTurnContext(_make_event_activity())
+    error = RuntimeError("boom")
+
+    with pytest.raises(RuntimeError) as exc_info:
+        await app._on_error(context, error)
+
+    assert exc_info.value is error
+
+
+@pytest.mark.asyncio
+async def test_on_error_propagates_handler_error_and_stops_remaining_handlers():
+    app = make_app()
+    context = StubTurnContext(_make_event_activity())
+    handler_error = ValueError("handler failed")
+    calls = []
+
+    async def failing_handler(received_context, received_error):
+        calls.append("failing")
+        raise handler_error
+
+    async def later_handler(received_context, received_error):
+        calls.append("later")
+
+    app.error(failing_handler)
+    app.error(later_handler)
+
+    with pytest.raises(ValueError) as exc_info:
+        await app._on_error(context, RuntimeError("turn failed"))
+
+    assert exc_info.value is handler_error
+    assert calls == ["failing"]
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    "error",
+    [
+        ApplicationError("application failed"),
+        RuntimeError("handler failed"),
+    ],
+)
+async def test_on_turn_passes_uncaught_errors_to_registered_handlers(error):
+    app = _make_integration_app()
+    context = StubTurnContext(_make_event_activity())
+    received = []
+
+    @app.activity(ActivityTypes.event)
+    async def failing_route(route_context, state):
+        raise error
+
+    @app.error
+    async def on_error(error_context, received_error):
+        received.append((error_context, received_error))
+
+    await app.on_turn(context)
+
+    assert received == [(context, error)]
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    "error",
+    [
+        ApplicationError("application failed"),
+        RuntimeError("handler failed"),
+    ],
+)
+async def test_on_turn_reraises_uncaught_errors_without_registered_handlers(error):
+    app = _make_integration_app()
+
+    @app.activity(ActivityTypes.event)
+    async def failing_route(context, state):
+        raise error
+
+    with pytest.raises(type(error)) as exc_info:
+        await app.on_turn(StubTurnContext(_make_event_activity()))
+
+    assert exc_info.value is error
+
+
+# ---------------------------------------------------------------------------
 # before_turn / after_turn – registration
 # ---------------------------------------------------------------------------
 

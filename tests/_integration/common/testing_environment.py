@@ -48,7 +48,7 @@ class TestingEnvironment:
 #         self.authorization = Authorization(self.storage, self.connection_manager, **agents_sdk_config)
 
 #         self.agent_app = AgentApplication[TurnState](
-#             storage=self.storage, adapter=self.adapter, authorization=self.authorization, **agents_sdk_config
+#             storage=self.storage, authorization=self.authorization, **agents_sdk_config
 #         )
 
 
@@ -68,8 +68,5 @@ class MockTestingEnvironment(TestingEnvironment):
         )
 
         self.agent_app = AgentApplication[TurnState](
-            storage=self.storage,
-            adapter=self.adapter,
-            authorization=self.authorization,
-            **agents_sdk_config
+            storage=self.storage, authorization=self.authorization, **agents_sdk_config
         )

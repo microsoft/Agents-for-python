@@ -18,6 +18,15 @@ This library is part of the **Microsoft 365 Agents SDK for Python** - a comprehe
     <th style="width:60%">Release Notes</th>
   </tr>
   <tr>
+    <td>1.8.0</td>
+    <td>2026-10-01</td>
+    <td>
+      <a href="https://github.com/microsoft/Agents-for-python/blob/main/changelog.md#microsoft-365-agents-sdk-for-python---release-notes-v180">
+        1.8.0 Release Notes
+      </a>
+    </td>
+  </tr>
+  <tr>
     <td>1.7.0</td>
     <td>2026-09-17</td>
     <td>
@@ -187,7 +196,7 @@ ADAPTER = CloudAdapter(connection_manager=CONNECTION_MANAGER)
 AUTHORIZATION = Authorization(STORAGE, CONNECTION_MANAGER, **agents_sdk_config)
 
 AGENT_APP = AgentApplication[TurnState](
-    storage=STORAGE, adapter=ADAPTER, authorization=AUTHORIZATION, **agents_sdk_config
+    storage=STORAGE, authorization=AUTHORIZATION, **agents_sdk_config
 )
 
 @AGENT_APP.activity("message")
@@ -198,6 +207,7 @@ async def on_message(context: TurnContext, state: TurnState):
 
 start_server(
     agent_application=AGENT_APP,
+    adapter=ADAPTER,
     auth_configuration=CONNECTION_MANAGER.get_default_connection_configuration(),
 )
 ```

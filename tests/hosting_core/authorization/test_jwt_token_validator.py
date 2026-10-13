@@ -43,7 +43,7 @@ class TestJwtTokenValidatorAudienceAndSignature:
         token = make_signed_jwt(private_key, {"aud": "client-1"})
         identity = await validator.validate_token(token)
 
-        assert identity.is_authenticated is True
+        assert identity.allow_anonymous is False
         assert identity.claims["aud"] == "client-1"
 
     @pytest.mark.asyncio
@@ -145,7 +145,7 @@ class TestJwtTokenValidatorMalformedClaimTypes:
         )
 
         identity = await validator.validate_token(token)
-        assert identity.is_authenticated is True
+        assert identity.allow_anonymous is False
         # Falls through to default (non-Bot-Framework) routing.
         assert captured_uris == [
             "https://login.microsoftonline.com/tenant-1/discovery/v2.0/keys"
@@ -168,7 +168,7 @@ class TestJwtTokenValidatorMalformedClaimTypes:
         )
 
         identity = await validator.validate_token(token)
-        assert identity.is_authenticated is True
+        assert identity.allow_anonymous is False
         assert captured_uris == [
             "https://login.microsoftonline.com/tenant-1/discovery/v2.0/keys"
         ]
@@ -213,7 +213,7 @@ class TestJwtTokenValidatorMalformedClaimTypes:
         )
 
         identity = await validator.validate_token(token)
-        assert identity.is_authenticated is True
+        assert identity.allow_anonymous is False
 
 
 class TestJwtTokenValidatorIssuerOptIn:
@@ -268,7 +268,7 @@ class TestJwtTokenValidatorIssuerOptIn:
         )
 
         identity = await validator.validate_token(token)
-        assert identity.is_authenticated is True
+        assert identity.allow_anonymous is False
 
     @pytest.mark.asyncio
     async def test_noncanonical_entra_issuer_variants_skip_binding(self, monkeypatch):
@@ -289,7 +289,7 @@ class TestJwtTokenValidatorIssuerOptIn:
                 {"aud": "client-1", "iss": issuer, "tid": mismatched_tid},
             )
             identity = await validator.validate_token(token)
-            assert identity.is_authenticated is True
+            assert identity.allow_anonymous is False
 
     @pytest.mark.asyncio
     async def test_issuer_allow_list_not_enforced_when_disabled(self, monkeypatch):
@@ -314,7 +314,7 @@ class TestJwtTokenValidatorIssuerOptIn:
         )
 
         identity = await validator.validate_token(token)
-        assert identity.is_authenticated is True
+        assert identity.allow_anonymous is False
 
     @pytest.mark.asyncio
     async def test_validate_issuer_enabled_default_issuer_accepted(self, monkeypatch):
@@ -336,7 +336,7 @@ class TestJwtTokenValidatorIssuerOptIn:
         )
 
         identity = await validator.validate_token(token)
-        assert identity.is_authenticated is True
+        assert identity.allow_anonymous is False
 
     @pytest.mark.asyncio
     async def test_validate_issuer_enabled_unrecognized_issuer_rejected(
@@ -385,7 +385,7 @@ class TestJwtTokenValidatorIssuerOptIn:
         )
 
         identity = await validator.validate_token(token)
-        assert identity.is_authenticated is True
+        assert identity.allow_anonymous is False
 
     @pytest.mark.asyncio
     async def test_validate_issuer_enabled_tid_mismatch_rejected(self, monkeypatch):
@@ -433,7 +433,7 @@ class TestJwtTokenValidatorIssuerOptIn:
         )
 
         identity = await validator.validate_token(token)
-        assert identity.is_authenticated is True
+        assert identity.allow_anonymous is False
 
     @pytest.mark.asyncio
     async def test_validate_issuer_enabled_bot_framework_issuer_skips_binding(
@@ -457,7 +457,7 @@ class TestJwtTokenValidatorIssuerOptIn:
         )
 
         identity = await validator.validate_token(token)
-        assert identity.is_authenticated is True
+        assert identity.allow_anonymous is False
         assert captured_uris == ["https://login.botframework.com/v1/.well-known/keys"]
 
     @pytest.mark.asyncio
@@ -487,7 +487,7 @@ class TestJwtTokenValidatorIssuerOptIn:
         )
 
         identity = await validator.validate_token(token)
-        assert identity.is_authenticated is True
+        assert identity.allow_anonymous is False
 
     @pytest.mark.asyncio
     async def test_validate_issuer_enabled_well_known_first_party_issuer_accepted(
@@ -515,7 +515,7 @@ class TestJwtTokenValidatorIssuerOptIn:
         )
 
         identity = await validator.validate_token(token)
-        assert identity.is_authenticated is True
+        assert identity.allow_anonymous is False
 
     @pytest.mark.asyncio
     async def test_validate_issuer_enabled_explicit_issuers_used(self, monkeypatch):
@@ -535,7 +535,7 @@ class TestJwtTokenValidatorIssuerOptIn:
         )
 
         identity = await validator.validate_token(token)
-        assert identity.is_authenticated is True
+        assert identity.allow_anonymous is False
 
     @pytest.mark.asyncio
     async def test_validate_issuer_enabled_common_tenant_accepts_any_same_cloud_tenant(
@@ -559,7 +559,7 @@ class TestJwtTokenValidatorIssuerOptIn:
         )
 
         identity = await validator.validate_token(token)
-        assert identity.is_authenticated is True
+        assert identity.allow_anonymous is False
 
     @pytest.mark.asyncio
     async def test_validate_issuer_enabled_organizations_tenant_accepts_any_same_cloud_tenant(
@@ -583,7 +583,7 @@ class TestJwtTokenValidatorIssuerOptIn:
         )
 
         identity = await validator.validate_token(token)
-        assert identity.is_authenticated is True
+        assert identity.allow_anonymous is False
 
     @pytest.mark.asyncio
     async def test_validate_issuer_enabled_gov_authority_routes_and_accepts_gov_issuer(
@@ -611,7 +611,7 @@ class TestJwtTokenValidatorIssuerOptIn:
         )
 
         identity = await validator.validate_token(token)
-        assert identity.is_authenticated is True
+        assert identity.allow_anonymous is False
         assert captured_uris == [
             f"https://login.microsoftonline.us/{tenant_id}/discovery/v2.0/keys"
         ]
@@ -678,7 +678,7 @@ class TestJwtTokenValidatorMultiConnection:
         token = make_signed_jwt(private_key, {"aud": "client-b"})
         identity = await validator.validate_token(token)
 
-        assert identity.is_authenticated is True
+        assert identity.allow_anonymous is False
         assert captured_uris == [
             f"https://login.microsoftonline.com/{tenant_a}/discovery/v2.0/keys"
         ]
@@ -712,7 +712,7 @@ class TestJwtTokenValidatorMultiConnection:
         token = make_signed_jwt(private_key, {"aud": "client-b"})
         identity = await validator.validate_token(token)
 
-        assert identity.is_authenticated is True
+        assert identity.allow_anonymous is False
         assert captured_uris == [
             f"https://login.microsoftonline.us/{gov_tenant}/discovery/v2.0/keys"
         ]
@@ -755,7 +755,7 @@ class TestJwtTokenValidatorMultiConnection:
         )
 
         identity = await validator.validate_token(token)
-        assert identity.is_authenticated is True
+        assert identity.allow_anonymous is False
 
 
 class TestJwtTokenValidatorEffectiveTenant:
@@ -784,7 +784,7 @@ class TestJwtTokenValidatorEffectiveTenant:
         )
 
         identity = await validator.validate_token(token)
-        assert identity.is_authenticated is True
+        assert identity.allow_anonymous is False
         assert captured_uris == [
             "https://login.microsoftonline.com/common/discovery/v2.0/keys"
         ]
@@ -817,7 +817,7 @@ class TestJwtTokenValidatorEffectiveTenant:
         )
 
         identity = await validator.validate_token(token)
-        assert identity.is_authenticated is True
+        assert identity.allow_anonymous is False
         assert captured_uris == [
             "https://login.microsoftonline.com/concrete-tenant-id/discovery/v2.0/keys"
         ]
@@ -850,7 +850,7 @@ class TestJwtTokenValidatorEffectiveTenant:
         )
 
         identity = await validator.validate_token(token)
-        assert identity.is_authenticated is True
+        assert identity.allow_anonymous is False
         assert captured_uris == [
             "https://login.microsoftonline.com/common/discovery/v2.0/keys"
         ]

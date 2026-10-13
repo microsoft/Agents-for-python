@@ -63,7 +63,7 @@ def _status(messages):
 @pytest.mark.asyncio
 async def test_fastapi_middleware_stores_claims_and_calls_downstream_app():
     auth_config = AgentAuthConfiguration()
-    claims = ClaimsIdentity({"aud": "app-id"}, True)
+    claims = ClaimsIdentity({"aud": "app-id"}, authentication_type="Bearer")
     messages = []
     downstream_called = False
 
@@ -118,7 +118,7 @@ async def test_fastapi_middleware_converts_http_response_without_calling_downstr
 @pytest.mark.asyncio
 async def test_fastapi_decorator_stores_claims_and_calls_handler():
     auth_config = AgentAuthConfiguration()
-    claims = ClaimsIdentity({"aud": "decorator-app"}, True)
+    claims = ClaimsIdentity({"aud": "decorator-app"}, authentication_type="Bearer")
 
     @jwt_authorization_decorator
     async def route(request: Request):

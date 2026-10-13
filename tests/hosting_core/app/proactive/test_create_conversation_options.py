@@ -11,7 +11,7 @@ from microsoft_agents.hosting.core.authorization import ClaimsIdentity
 
 
 def _make_identity():
-    return ClaimsIdentity(claims={"aud": "app-id"}, is_authenticated=True)
+    return ClaimsIdentity(claims={"aud": "app-id"})
 
 
 def _make_params():

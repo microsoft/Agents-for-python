@@ -5,6 +5,7 @@
 
 from __future__ import annotations
 
+import warnings
 from typing import cast
 
 from msgraph import GraphServiceClient
@@ -13,9 +14,13 @@ from microsoft_teams.api import ApiClient
 
 from microsoft_agents.activity import (
     Activity,
-    ActivityTreatment,
-    ActivityTreatmentTypes,
+    ActivityTypes,
+    ChannelAccount,
+    InputHints,
     ResourceResponse,
+)
+from microsoft_agents.hosting.core._utils._turn_context_wrapper import (
+    _TurnContextWrapper,
 )
 from microsoft_agents.hosting.core import (
     AgentApplication,
@@ -30,9 +35,10 @@ from ._graph import (
 )
 from ._teams_api_client import _get_teams_api_client, _set_teams_api_client
 from .teams_activity import TeamsActivity
+from ._utils import _apply_prompt_preview_normalizer, _is_recipient_targeted
 
 
-class TeamsTurnContext(TurnContext):
+class TeamsTurnContext(_TurnContextWrapper):
     """A context object for handling Teams-specific turn functionality.
 
     Wraps a plain :class:`TurnContext` so that Teams-aware route handlers
@@ -47,9 +53,6 @@ class TeamsTurnContext(TurnContext):
         """
         super().__init__(context)
         self._app = app
-        self._turn_state = context.turn_state
-
-        self._original = context
 
         self._set_teams_activity()
 
@@ -74,18 +77,6 @@ class TeamsTurnContext(TurnContext):
         self._teams_activity = cast(TeamsActivity, self._activity)
 
     @property
-    def responded(self) -> bool:
-        return self._original.responded
-
-    @responded.setter
-    def responded(self, value: bool):
-        self._original.responded = value
-
-    @property
-    def streaming_response(self):
-        return self._original.streaming_response
-
-    @property
     def activity(self) -> TeamsActivity:
         """The current activity, typed as a :class:`TeamsActivity`.
 
@@ -98,41 +89,91 @@ class TeamsTurnContext(TurnContext):
         """Get the API client for the Teams turn context."""
         return _get_teams_api_client(self)
 
-    @staticmethod
-    def _make_targeted_activity(activity: Activity) -> None:
+    def _apply_prompt_preview(self, activity: Activity) -> None:
         """
-        Make an activity targeted.
+        Apply the prompt preview to the given activity.
 
-        :param activity: The activity to make targeted.
+        :param activity: The activity to apply the prompt preview to.
         :return: None
         """
-        activity.entities = activity.entities or []
-        activity.entities.append(
-            ActivityTreatment(treatment=ActivityTreatmentTypes.TARGETED)
+        if (
+            activity.type == ActivityTypes.message
+            and _is_recipient_targeted(self.activity)
+            and self.activity.id
+        ):
+            _apply_prompt_preview_normalizer(activity, self.activity.id)
+
+    async def send_activity(
+        self,
+        activity_or_text: Activity | str,
+        speak: str | None = None,
+        input_hint: str | None = None,
+    ) -> ResourceResponse:
+        """Send an activity after applying the prompt preview.
+
+        :param activity_or_text: The activity or text to send.
+        :param speak: Optional speech text for the activity.
+        :param input_hint: Optional input hint for the activity.
+        :return: The resource response for the sent activity.
+        """
+
+        if isinstance(activity_or_text, str):
+            activity_or_text = Activity(
+                type=ActivityTypes.message,
+                text=activity_or_text,
+                input_hint=input_hint or InputHints.accepting_input,
+            )
+            if speak:
+                activity_or_text.speak = speak
+
+        self._apply_prompt_preview(activity_or_text)
+        return await TurnContext.send_activity(self._original, activity_or_text)
+
+    async def send_activities(
+        self, activities: list[Activity]
+    ) -> list[ResourceResponse]:
+        """Send multiple activities after applying the prompt preview to each.
+
+        :param activities: A list of activities to send.
+        :return: A list of resource responses for the sent activities.
+        """
+
+        for activity in activities:
+            self._apply_prompt_preview(activity)
+
+        return await TurnContext.send_activities(
+            self._original,
+            activities,
         )
 
-    async def send_targeted_activity(self, activity: Activity) -> ResourceResponse:
+    async def send_targeted_activity(
+        self,
+        activity: str | Activity,
+        recipient: str | ChannelAccount | None = None,
+    ) -> ResourceResponse:
         """
         Send a targeted activity.
 
         :param activity: The activity to send.
+        :param recipient: The recipient to target the activity to. Can be a string or a ChannelAccount instance.
         :return: The resource response.
         """
-        TeamsTurnContext._make_targeted_activity(activity)
+        if recipient is None:
+            warnings.warn(
+                "Using an empty recipient is deprecated and will be removed in a future release.",
+                DeprecationWarning,
+                stacklevel=2,
+            )
+            if isinstance(activity, str) or not activity.recipient:
+                raise ValueError(
+                    "Cannot infer the recipient from the passed-in activity."
+                )
+            recipient = activity.recipient
+
+        if isinstance(activity, str):
+            activity = Activity(type=ActivityTypes.message, text=activity)
+        activity.with_targeted_recipient(recipient)
         return await self.send_activity(activity)
-
-    async def send_targeted_activities(
-        self, activities: list[Activity]
-    ) -> list[ResourceResponse]:
-        """
-        Send a list of targeted activities.
-
-        :param activities: The list of activities to send.
-        :return: A list of resource responses.
-        """
-        for activity in activities:
-            TeamsTurnContext._make_targeted_activity(activity)
-        return await self.send_activities(activities)
 
     def get_graph_client(
         self,

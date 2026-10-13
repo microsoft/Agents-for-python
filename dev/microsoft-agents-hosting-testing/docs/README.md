@@ -83,6 +83,25 @@ client to interact with the agent. Auth credentials and general SDK config setti
 
 Swap one for the other and your assertions stay the same.
 
+### Existing AgentApplication
+
+Use `AiohttpScenario.from_app(...)` when the `AgentApplication` is already
+constructed. Pass the application's existing `CloudAdapter` to preserve its
+middleware, host validation, client factories, and error handling:
+
+```python
+scenario = AiohttpScenario.from_app(
+    AGENT_APP,
+    adapter=ADAPTER,
+    use_jwt_middleware=False,
+)
+```
+
+All arguments after `AGENT_APP` are keyword-only. If `adapter` is omitted, the
+scenario creates a default `CloudAdapter` from `AGENT_APP.connection_manager`.
+The generated adapter does not inherit configuration from another adapter used
+to host the application.
+
 ## AgentClient
 
 The client you get from a scenario. Send messages, collect replies, make

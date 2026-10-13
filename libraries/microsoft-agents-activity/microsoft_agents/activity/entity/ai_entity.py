@@ -96,6 +96,7 @@ class ClientCitation(AgentsModel, _SchemaMixin):
     """
 
     at_type: Literal["Claim"] = "Claim"
+    at_id: str | None = None
 
     position: int = 0
     appearance: ClientCitationAppearance = Field(

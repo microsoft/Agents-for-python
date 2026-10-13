@@ -34,7 +34,7 @@ ADAPTER = CloudAdapter(connection_manager=CONNECTION_MANAGER)
 AUTHORIZATION = Authorization(STORAGE, CONNECTION_MANAGER, **agents_sdk_config)
 
 AGENT_APP = AgentApplication[TurnState](
-    storage=STORAGE, adapter=ADAPTER, authorization=AUTHORIZATION, **agents_sdk_config
+    storage=STORAGE, authorization=AUTHORIZATION, **agents_sdk_config
 )
 
 # Create FastAPI app
@@ -72,7 +72,7 @@ async def messages_handler(
     return await start_agent_process(
         request,
         AGENT_APP,
-        AGENT_APP.adapter,
+        ADAPTER
     )
 
 

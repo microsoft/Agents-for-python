@@ -7,6 +7,8 @@ from __future__ import annotations
 
 import asyncio
 import logging
+import warnings
+
 from contextlib import nullcontext
 from copy import copy
 from functools import partial
@@ -82,10 +84,10 @@ class AgentApplication(Agent, Generic[StateT]):
     _adaptive_card: AdaptiveCard
     _auth: Authorization
     _proactive: Proactive | None = None
+    _turn_error_handlers: list[Callable[[TurnContext, Exception], Awaitable[None]]]
     _internal_before_turn: list[Callable[[TurnContext, StateT], Awaitable[bool]]]
     _internal_after_turn: list[Callable[[TurnContext, StateT], Awaitable[bool]]]
     _route_list: _RouteList[StateT]
-    _error: Callable[[TurnContext, Exception], Awaitable[None]] | None = None
     _turn_state_factory: Callable[[], StateT] | None = None
     _connection_manager: Connections
 
@@ -111,6 +113,7 @@ class AgentApplication(Agent, Generic[StateT]):
         """
         self._adaptive_card = AdaptiveCard(self)
         self._route_list = _RouteList[StateT]()
+        self._turn_error_handlers = []
         self._internal_before_turn = []
         self._internal_after_turn = []
 
@@ -137,6 +140,14 @@ class AgentApplication(Agent, Generic[StateT]):
 
         self._options = options
 
+        if self._options.adapter:
+            warnings.warn(
+                "AgentApplication.adapter is obsolete and will be removed in a future release.",
+                DeprecationWarning,
+                stacklevel=2,
+            )
+        self._adapter = self._options.adapter
+
         if not self._options.storage:
             logger.error(
                 "ApplicationOptions.storage is required and was not configured.",
@@ -147,9 +158,7 @@ class AgentApplication(Agent, Generic[StateT]):
                 """)
         self._storage = self._options.storage
 
-        if options.long_running_messages and (
-            not options.adapter or not options.bot_app_id
-        ):
+        if options.long_running_messages and not options.bot_app_id:
             logger.error(
                 "ApplicationOptions.long_running_messages requires an adapter and bot_app_id.",
                 stack_info=True,
@@ -158,9 +167,6 @@ class AgentApplication(Agent, Generic[StateT]):
                 The `ApplicationOptions.long_running_messages` property is unavailable because 
                 no adapter or `bot_app_id` was configured.
                 """)
-
-        if options.adapter:
-            self._adapter = options.adapter
 
         self._turn_state_factory = (
             options.turn_state_factory
@@ -220,11 +226,14 @@ class AgentApplication(Agent, Generic[StateT]):
         return self._connection_manager
 
     @property
+    @deprecated(
+        "AgentApplication.adapter is deprecated and will be removed in a future release."
+    )
     def adapter(self) -> ChannelServiceAdapter:
         """
-        The bot's adapter.
+        The application's channel service adapter.
 
-        :return: The channel service adapter for the bot.
+        :return: The channel service adapter for the application.
         :rtype: :class:`microsoft_agents.hosting.core.channel_service_adapter.ChannelServiceAdapter`
         :raises ApplicationError: If the adapter is not configured.
         """
@@ -800,13 +809,7 @@ class AgentApplication(Agent, Generic[StateT]):
         """
 
         logger.debug(f"Registering the error handler {func.__name__} ")
-        self._error = func
-
-        if self._adapter:
-            logger.debug(
-                f"Registering for adapter {self._adapter.__class__.__name__} the error handler {func.__name__} "
-            )
-            self._adapter.on_turn_error = func
+        self._turn_error_handlers.append(func)
 
         return func
 
@@ -884,11 +887,7 @@ class AgentApplication(Agent, Generic[StateT]):
                     if await self._run_after_turn_middleware(context, turn_state):
                         await turn_state.save(context)
                     return
-        except ApplicationError as err:
-            logger.error(
-                f"An application error occurred in the AgentApplication: {err}",
-                exc_info=True,
-            )
+        except Exception as err:
             await self._on_error(context, err)
 
     def _remove_mentions(self, context: TurnContext):
@@ -898,39 +897,6 @@ class AgentApplication(Agent, Generic[StateT]):
             and context.activity.text is not None
         ):
             context.activity.text = context.remove_recipient_mention(context.activity)
-
-    @staticmethod
-    @deprecated(
-        "Use `load_configuration_from_env` from `microsoft_agents.activity` instead."
-    )
-    def parse_env_vars_configuration(vars: dict[str, Any]) -> dict:
-        """
-        Parses environment variables and returns a dictionary with the relevant configuration.
-
-        :param vars: Dictionary of environment variable names and values.
-        :type vars: dict[str, Any]
-        :return: Parsed configuration dictionary with nested structure.
-        :rtype: dict
-        """
-        result = {}
-        for key, value in vars.items():
-            levels = key.split("__")
-            current_level = result
-            last_level = None
-            for next_level in levels:
-                if next_level not in current_level:
-                    current_level[next_level] = {}
-                last_level = current_level
-                current_level = current_level[next_level]
-            logger.debug(f"Using environment variable '{key}'")
-            last_level[levels[-1]] = value
-
-        return {
-            "AGENT_APPLICATION": result["AGENT_APPLICATION"],
-            "COPILOT_STUDIO_AGENT": result["COPILOT_STUDIO_AGENT"],
-            "CONNECTIONS": result["CONNECTIONS"],
-            "CONNECTIONS_MAP": result["CONNECTIONS_MAP"],
-        }
 
     async def _initialize_state(self, context: TurnContext) -> StateT:
         if self._turn_state_factory:
@@ -1034,17 +1000,18 @@ class AgentApplication(Agent, Generic[StateT]):
         self, context: TurnContext, func: Callable[[TurnContext], Awaitable]
     ):
         if (
-            self._adapter
+            context.adapter
             and ActivityTypes.message == context.activity.type
             and self._options.long_running_messages
+            and context.identity is not None
         ):
             logger.debug(
                 f"Starting long running call for context: {context.activity.id} with function: {func.__name__}"
             )
-            return await self._adapter.continue_conversation(
-                reference=context.get_conversation_reference(context.activity),
+            return await context.adapter.continue_conversation_with_claims(
+                claims_identity=context.identity,
+                continuation_activity=context.activity,
                 callback=func,
-                bot_app_id=self.options.bot_app_id,
             )
 
         return await func(context)
@@ -1064,7 +1031,7 @@ class AgentApplication(Agent, Generic[StateT]):
 
         async def __replay(act: Activity):
 
-            await self._adapter.continue_conversation_with_claims(
+            await context.adapter.continue_conversation_with_claims(
                 context.identity,
                 act,
                 __replay_turn,
@@ -1104,16 +1071,21 @@ class AgentApplication(Agent, Generic[StateT]):
 
         return
 
-    async def _on_error(self, context: TurnContext, err: ApplicationError) -> None:
-        if self._error:
-            logger.info(
-                f"Calling error handler {self._error.__name__} for error: {err}"
-            )
-            return await self._error(context, err)
+    async def _on_error(self, context: TurnContext, err: Exception) -> None:
+        """Handle errors that occur during a turn in the AgentApplication.
+
+        :param context: The turn context in which the error occurred.
+        :param err: The exception that occurred.
+        """
 
         logger.error(
             f"An error occurred in the AgentApplication: {err}",
             exc_info=True,
         )
-        logger.error(err)
-        raise err
+
+        for err_func in self._turn_error_handlers:
+            logger.info(f"Calling error handler {err_func.__name__} for error: {err}")
+            await err_func(context, err)
+
+        if not self._turn_error_handlers:
+            raise err

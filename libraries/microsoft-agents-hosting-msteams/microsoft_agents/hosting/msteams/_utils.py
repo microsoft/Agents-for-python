@@ -14,10 +14,12 @@ from microsoft_teams.api.models.channel_data import ChannelData, ChannelInfo, Te
 from microsoft_agents.activity import (
     Activity,
     ActivityTypes,
+    Entity,
     InvokeResponse,
 )
 from microsoft_agents.hosting.core import TurnContext
 
+from .models import TargetedMessageInfo
 from .type_defs import CommandSelector
 
 
@@ -146,3 +148,41 @@ async def _send_invoke_response(context: TurnContext, body: Any = None) -> None:
             value=InvokeResponse(status=int(HTTPStatus.OK), body=serialized_body),
         )
     )
+
+
+def _apply_prompt_preview_normalizer(activity: Activity, message_id: str) -> None:
+    """Normalize the prompt preview for the given activity.
+
+    :param activity: The activity to normalize.
+    :param message_id: The message ID to associate with the targeted message info.
+    :return: None
+    """
+    pattern = re.compile(r"<quoted messageId=\"[^\"]*\"/>")
+    target_type = "quotedreply"
+    if activity.entities:
+
+        def _keep(entity: Entity) -> bool:
+            return entity.type.lower() != target_type
+
+        activity.entities[:] = [entity for entity in activity.entities if _keep(entity)]
+
+    if activity.text:
+        text_without_placeholder = pattern.sub("", activity.text)
+        if len(text_without_placeholder) != len(activity.text):
+            activity.text = text_without_placeholder.strip()
+
+    if not activity._get_entities_by_type("targetedmessageinfo"):
+        activity.entities = activity.entities or []
+        activity.entities.append(TargetedMessageInfo(message_id=message_id))
+
+
+def _is_recipient_targeted(activity: Activity) -> bool:
+    """Check if the recipient is targeted in the given activity.
+
+    :param activity: The activity to check.
+    :return: True if the recipient is targeted, False otherwise.
+    """
+    recipient = activity.recipient
+    if recipient is None:
+        return False
+    return recipient and getattr(recipient, "isTargeted", None) is True

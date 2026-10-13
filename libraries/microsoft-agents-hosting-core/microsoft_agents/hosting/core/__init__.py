@@ -9,7 +9,9 @@ from .message_factory import MessageFactory
 from .middleware_set import Middleware, MiddlewareSet
 from .rest_channel_service_client_factory import RestChannelServiceClientFactory
 from .turn_context import TurnContext
-from .outbound_host_validator import OutboundHostValidator
+
+# Security
+from .security import OutboundHostValidator
 
 # HTTP abstractions
 from .http import (

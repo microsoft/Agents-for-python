@@ -17,6 +17,7 @@ pytestmark = pytest.mark.skipif(
 )
 
 if is_supported_version:
+    from microsoft_agents.activity import ActivityTypes, ChannelAccount, Entity
     from microsoft_teams.api.models import (
         ChannelData,
         ChannelInfo,
@@ -27,6 +28,7 @@ if is_supported_version:
     from microsoft_teams.api.models.channel_data.settings import ChannelDataSettings
 
     from microsoft_agents.hosting.msteams import TeamsActivity
+    from microsoft_agents.hosting.msteams.models import QuotedReplyData
 
 
 def _activity(channel_data=None) -> "TeamsActivity":
@@ -161,3 +163,85 @@ class TestEnableFeedbackLoop:
         activity = _activity()
         assert activity.enable_feedback_loop("custom") is True
         assert activity.channel_data.feedback_loop.type == "custom"
+
+
+class TestPromptPreview:
+
+    def test_is_recipient_targeted_reads_wire_property(self):
+        recipient = ChannelAccount.model_validate({"id": "user-id", "isTargeted": True})
+        activity = TeamsActivity(
+            type=ActivityTypes.message,
+            recipient=recipient,
+        )
+
+        assert activity.is_recipient_targeted() is True
+
+    def test_is_recipient_targeted_returns_false_without_wire_property(self):
+        activity = TeamsActivity(
+            type=ActivityTypes.message,
+            recipient=ChannelAccount(id="user-id"),
+        )
+
+        assert activity.is_recipient_targeted() is False
+
+    def test_get_targeted_message_info_converts_wire_entity(self):
+        activity = TeamsActivity(
+            type=ActivityTypes.message,
+            entities=[
+                Entity(
+                    type="targetedMessageInfo",
+                    messageId="inbound-message",
+                )
+            ],
+        )
+
+        result = activity.get_targeted_message_info()
+
+        assert result is not None
+        assert result.message_id == "inbound-message"
+
+    def test_get_quoted_messages_converts_wire_entity(self):
+        activity = TeamsActivity(
+            type=ActivityTypes.message,
+            entities=[
+                Entity(
+                    type="quotedReply",
+                    quotedReply={"messageId": "quoted-message"},
+                )
+            ],
+        )
+
+        result = activity.get_quoted_messages()
+
+        assert len(result) == 1
+        assert result[0].quoted_reply.message_id == "quoted-message"
+
+    def test_add_quoted_reply_adds_escaped_self_closing_placeholder(self):
+        activity = TeamsActivity(type=ActivityTypes.message, text="")
+
+        activity.add_quoted_reply('message&"id', "response")
+
+        quoted_reply = activity.get_quoted_messages()[0]
+        assert quoted_reply.quoted_reply.message_id == 'message&"id'
+        assert activity.text == '<quoted messageId="message&amp;&quot;id"/> response'
+
+    def test_add_quoted_reply_without_existing_or_appended_text(self):
+        activity = TeamsActivity(type=ActivityTypes.message)
+
+        activity.add_quoted_reply("message-id")
+
+        assert activity.text == '<quoted messageId="message-id"/>'
+
+    def test_quoted_reply_validated_reference_round_trips_wire_name(self):
+        data = QuotedReplyData.model_validate(
+            {
+                "messageId": "message-id",
+                "validatedMessageReference": True,
+            }
+        )
+
+        assert data.validated_message_reference is True
+        assert data.model_dump(by_alias=True, exclude_none=True) == {
+            "messageId": "message-id",
+            "validatedMessageReference": True,
+        }

@@ -5,7 +5,8 @@
 
 from typing import Generic, Optional, overload
 
-from microsoft_teams.api.models.meetings import MeetingDetails
+from microsoft_teams.api.activities.event.meeting_end import MeetingEndEventValue
+from microsoft_teams.api.activities.event.meeting_start import MeetingStartEventValue
 
 from microsoft_agents.activity import ActivityTypes
 from microsoft_agents.activity.teams import MeetingParticipantsEventDetails
@@ -79,7 +80,9 @@ class Meeting(Generic[StateT]):
             async def __handler(context: TurnContext, state: StateT) -> None:
                 """Adapt the core turn context and dispatch to the meeting start handler."""
                 teams_context = TeamsTurnContext(context, self._app)
-                meeting = MeetingDetails.model_validate(context.activity.value or {})
+                meeting = MeetingStartEventValue.model_validate(
+                    context.activity.value or {}
+                )
                 await func(teams_context, state, meeting)
 
             self._app.add_route(
@@ -130,7 +133,9 @@ class Meeting(Generic[StateT]):
             async def __handler(context: TurnContext, state: StateT) -> None:
                 """Adapt the core turn context and dispatch to the meeting end handler."""
                 teams_context = TeamsTurnContext(context, self._app)
-                meeting = MeetingDetails.model_validate(context.activity.value or {})
+                meeting = MeetingEndEventValue.model_validate(
+                    context.activity.value or {}
+                )
                 await func(teams_context, state, meeting)
 
             self._app.add_route(

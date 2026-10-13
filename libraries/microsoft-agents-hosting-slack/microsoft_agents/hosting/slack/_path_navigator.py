@@ -5,10 +5,10 @@ Licensed under the MIT License.
 
 from __future__ import annotations
 
-from typing import Any, Optional
+from typing import Any
 
 
-def _parse_path(path: str) -> Optional[list[int | str]]:
+def _parse_path(path: str) -> list[int | str] | None:
     """Tokenize a dot/bracket path into a list of segments.
 
     Supports ``a.b.c``, ``a[0].b``, ``a[1][2]``. Integer brackets become ``int``

@@ -5,7 +5,7 @@ Licensed under the MIT License.
 
 from __future__ import annotations
 
-from typing import Any, Optional
+from typing import Any
 
 from pydantic import ConfigDict, Field
 
@@ -31,21 +31,21 @@ class EventEnvelope(SlackModel):
 
     model_config = ConfigDict(extra="allow", populate_by_name=True)
 
-    token: Optional[str] = None
-    team_id: Optional[str] = None
-    context_team_id: Optional[str] = None
-    context_enterprise_id: Optional[str] = None
-    api_app_id: Optional[str] = None
+    token: str | None = None
+    team_id: str | None = None
+    context_team_id: str | None = None
+    context_enterprise_id: str | None = None
+    api_app_id: str | None = None
 
     # Python name `event_content` ↔ JSON field `event`
-    event_content: Optional[EventContent] = Field(default=None, alias="event")
+    event_content: EventContent | None = Field(default=None, alias="event")
 
-    type: Optional[str] = None
-    event_id: Optional[str] = None
-    event_time: Optional[int] = None
-    authorizations: Optional[Any] = None
-    is_ext_shared_channel: Optional[bool] = None
-    event_context: Optional[str] = None
+    type: str | None = None
+    event_id: str | None = None
+    event_time: int | None = None
+    authorizations: Any | None = None
+    is_ext_shared_channel: bool | None = None
+    event_context: str | None = None
 
     def _normalize_path(self, path: str) -> str:
         """Map the C# property alias ``event_content`` to JSON field ``event``."""
