@@ -1,13 +1,10 @@
-"""
-Copyright (c) Microsoft Corporation. All rights reserved.
-Licensed under the MIT License.
-"""
+# Copyright (c) Microsoft Corporation. All rights reserved.
+# Licensed under the MIT License.
 
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
-from typing import Optional
 
 from microsoft_agents.hosting.core import TurnContext
 
@@ -21,12 +18,15 @@ class InputFile:
     :param content_type: The content type of the file.
     :type content_type: str
     :param content_url: Optional. URL to the content of the file.
-    :type content_url: Optional[str]
+    :type content_url: str | None
+    :param filename: Optional. The name of the file.
+    :type filename: str | None
     """
 
     content: bytes
     content_type: str
-    content_url: Optional[str]
+    content_url: str | None = None
+    filename: str | None = None
 
 
 class InputFileDownloader(ABC):

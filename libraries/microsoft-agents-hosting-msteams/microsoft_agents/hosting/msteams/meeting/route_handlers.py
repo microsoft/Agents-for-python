@@ -5,7 +5,8 @@
 
 from typing import Awaitable, Protocol
 
-from microsoft_teams.api.models.meetings import MeetingDetails
+from microsoft_teams.api.activities.event.meeting_end import MeetingEndEventValue
+from microsoft_teams.api.activities.event.meeting_start import MeetingStartEventValue
 from microsoft_agents.activity.teams import MeetingParticipantsEventDetails
 
 from microsoft_agents.hosting.core.app._type_defs import _StateContra
@@ -19,7 +20,7 @@ class MeetingStartHandler(Protocol[_StateContra]):
         self,
         context: TeamsTurnContext,
         state: _StateContra,
-        meeting: MeetingDetails,
+        meeting: MeetingStartEventValue,
         /,
     ) -> Awaitable[None]:
         """Handle a meeting start event.
@@ -39,7 +40,7 @@ class MeetingEndHandler(Protocol[_StateContra]):
         self,
         context: TeamsTurnContext,
         state: _StateContra,
-        meeting: MeetingDetails,
+        meeting: MeetingEndEventValue,
         /,
     ) -> Awaitable[None]:
         """Handle a meeting end event.

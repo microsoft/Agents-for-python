@@ -21,6 +21,7 @@ from microsoft_agents.hosting.core.connector.client.user_token_client import (
     UserToken,
     UserTokenClient,
 )
+from microsoft_agents.hosting.core.connector.get_product_info import get_product_info
 from microsoft_agents.hosting.core.header_propagation import HeaderPropagationContext
 
 
@@ -407,3 +408,44 @@ class TestUserTokenClientContract:
             await server.close()
 
         assert exc_info.value.status == 500
+
+
+class TestUserTokenClientUserAgentHeader:
+    """Ensures UserTokenClient sends a User-Agent header."""
+
+    @pytest.mark.asyncio
+    async def test_sets_user_agent_header(self):
+        client = UserTokenClient("https://example.org/", token="", app_id="app-id")
+        try:
+            assert client.client.headers["User-Agent"] == get_product_info()
+        finally:
+            await client.close()
+
+    @pytest.mark.asyncio
+    async def test_sends_user_agent_header_on_request(self):
+        captured = {}
+
+        async def handler(request):
+            captured["user_agent"] = request.headers.get("User-Agent")
+            return web.json_response({"token": "token"})
+
+        app = web.Application()
+        app.router.add_get("/api/usertoken/GetToken", handler)
+        server = TestServer(app)
+        await server.start_server()
+
+        session = ClientSession(base_url=str(server.make_url("/")))
+        try:
+            client = UserTokenClient(
+                str(server.make_url("/")),
+                token="",
+                app_id="app-id",
+                session=session,
+            )
+            assert client.client is session
+            await client.get_user_token("user", "connection", "msteams")
+        finally:
+            await session.close()
+            await server.close()
+
+        assert captured["user_agent"] == get_product_info()

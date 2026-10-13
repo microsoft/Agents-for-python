@@ -5,7 +5,7 @@ Licensed under the MIT License.
 
 from __future__ import annotations
 
-from typing import Any, Optional
+from typing import Any
 
 from pydantic import ConfigDict
 
@@ -28,15 +28,15 @@ class SlackResponse(SlackModel):
     model_config = ConfigDict(extra="allow", populate_by_name=True)
 
     ok: bool = False
-    error: Optional[str] = None
-    warning: Optional[str] = None
-    ts: Optional[str] = None
-    response_metadata: Optional[Any] = None
+    error: str | None = None
+    warning: str | None = None
+    ts: str | None = None
+    response_metadata: Any | None = None
 
 
 class SlackResponseException(Exception):
     """Raised when a Slack Web API call returns a non-2xx status or ``ok=false``."""
 
-    def __init__(self, message: str, response: Optional[SlackResponse] = None) -> None:
+    def __init__(self, message: str, response: SlackResponse | None = None) -> None:
         super().__init__(message)
         self.response = response

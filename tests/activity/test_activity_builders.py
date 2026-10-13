@@ -6,13 +6,17 @@ import pytest
 
 from microsoft_agents.activity import (
     Activity,
-    AttachmentLayoutTypes,
+    ActivityTreatment,
+    ActivityTreatmentTypes,
     Attachment,
+    AttachmentLayoutTypes,
     ChannelAccount,
     DeliveryModes,
     Entity,
+    EntityTypes,
     InputHints,
     Mention,
+    RoleTypes,
     SuggestedActions,
     TextFormatTypes,
 )
@@ -168,6 +172,49 @@ class TestActivityMentions:
 
 
 class TestActivityTargeting:
+    def test_with_recipient_uses_string_id(self):
+        activity = Activity.create_message_activity().with_recipient("u1")
+
+        assert activity.recipient == ChannelAccount(
+            id="u1",
+            role=RoleTypes.user,
+        )
+
+    def test_with_recipient_uses_channel_account(self):
+        recipient = ChannelAccount(id="u1", name="User One")
+
+        activity = Activity.create_message_activity().with_recipient(recipient)
+
+        assert activity.recipient is recipient
+
+    def test_with_targeted_recipient_sets_recipient_and_treatment(self):
+        activity = Activity.create_message_activity().with_targeted_recipient("u1")
+
+        assert activity.recipient == ChannelAccount(
+            id="u1",
+            role=RoleTypes.user,
+        )
+        assert activity.is_targeted_activity() is True
+
+    def test_with_targeted_recipient_preserves_entities_and_removes_duplicates(self):
+        mention = Entity(type=EntityTypes.MENTION)
+        activity = Activity.create_message_activity()
+        activity.entities = [
+            ActivityTreatment(treatment=ActivityTreatmentTypes.TARGETED),
+            mention,
+            ActivityTreatment(treatment=ActivityTreatmentTypes.TARGETED),
+        ]
+
+        activity.with_targeted_recipient(ChannelAccount(id="u1"))
+
+        assert mention in activity.entities
+        treatments = [
+            entity
+            for entity in activity.entities
+            if getattr(entity, "treatment", None) == ActivityTreatmentTypes.TARGETED
+        ]
+        assert len(treatments) == 1
+
     def test_make_targeted_activity_sets_treatment(self):
         recipient = ChannelAccount(id="bot", name="Bot")
         activity = Activity.create_message_activity()

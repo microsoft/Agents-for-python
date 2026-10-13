@@ -92,7 +92,8 @@ def _make_context(
 
 
 def _cache_teams_api_client(context: TurnContext) -> None:
-    context.services.set(ApiClient, object.__new__(ApiClient))
+    pass
+    # context.services.set(ApiClient, object.__new__(ApiClient))
 
 
 def _make_teams_context() -> "TeamsTurnContext":
