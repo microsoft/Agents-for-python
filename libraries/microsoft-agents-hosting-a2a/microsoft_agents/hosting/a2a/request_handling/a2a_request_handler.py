@@ -35,24 +35,3 @@ class A2ARequestHandler(DefaultRequestHandlerV2):
         :param agent_card: The AgentCard instance to update the handler with.
         """
         self._agent_card = agent_card
-
-    async def on_subscribe_to_task(
-        self, params: SubscribeToTaskRequest, context: ServerCallContext
-    ):
-        """Handle subscription to a task.
-
-        :param params: The parameters for the subscription request.
-        :param context: The context of the request.
-        :raises TaskNotFoundError: If the task does not exist.
-        :raises UnsupportedOperationError: If the task is in a terminal state.
-        :yield: Events related to the task subscription.
-        """
-        task = await self.task_store.get(params.id, context)
-        if task is None:
-            raise TaskNotFoundError()
-
-        if task.status.state in TERMINAL_TASK_STATES:
-            raise UnsupportedOperationError("Cannot subscribe to a terminal task.")
-
-        async for event in super().on_subscribe_to_task(params, context):
-            yield event
