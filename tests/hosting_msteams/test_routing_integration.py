@@ -289,6 +289,8 @@ class TestDirectRouteHooksChannelFiltering:
             "conversation_update",
             "message_reaction",
             "message_update",
+            "installation_update",
+            "end_of_conversation",
             "handoff",
         ],
     )
@@ -327,6 +329,12 @@ class TestDirectRouteHooksChannelFiltering:
                 "type": ActivityTypes.message_update,
                 "channel_data": {"event_type": "editMessage"},
             }
+        elif route_name == "installation_update":
+            self.ext.installation_update()(handler)
+            route_values = {"type": ActivityTypes.installation_update}
+        elif route_name == "end_of_conversation":
+            self.ext.end_of_conversation()(handler)
+            route_values = {"type": ActivityTypes.end_of_conversation}
         else:
             self.ext.handoff()(handler)
             route_values = {

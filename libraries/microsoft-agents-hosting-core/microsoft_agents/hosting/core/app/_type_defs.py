@@ -1,6 +1,7 @@
 # Copyright (c) Microsoft Corporation. All rights reserved.
 # Licensed under the MIT License.
 
+import re
 from typing import Callable, TypeVar, Awaitable, Protocol
 
 from ..turn_context import TurnContext
@@ -11,6 +12,7 @@ RouteSelector = Callable[[TurnContext], bool]
 StateT = TypeVar("StateT", bound=TurnState)
 _StateContra = TypeVar("_StateContra", bound=TurnState, contravariant=True)
 _RouteHandlerT = TypeVar("_RouteHandlerT", bound=Callable)
+TextSelector = str | re.Pattern[str] | list[str | re.Pattern[str]]
 
 
 class _RouteDecorator(Protocol[_RouteHandlerT]):

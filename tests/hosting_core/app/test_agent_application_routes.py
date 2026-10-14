@@ -12,6 +12,7 @@ from microsoft_agents.hosting.core import MemoryStorage, TurnContext
 from microsoft_agents.hosting.core.app import (
     AgentApplication,
     ApplicationOptions,
+    RouteRank,
     TurnState,
 )
 from microsoft_agents.hosting.core.app.oauth import Authorization
@@ -172,6 +173,31 @@ class TestMessageRoute:
     @pytest.mark.asyncio
     async def test_non_message_activity_is_ignored(self):
         @self.app.message("hello")
+        async def handler(context: TurnContext, state: TurnState):
+            self.called = True
+
+        await self.app._on_activity(
+            _make_context(_make_activity(type="event", text="hello")),
+            TurnState(),
+        )
+        assert not self.called
+
+    @pytest.mark.asyncio
+    @pytest.mark.parametrize("text", ["anything", None])
+    async def test_none_select_matches_any_message(self, text):
+        @self.app.message(None)
+        async def handler(context: TurnContext, state: TurnState):
+            self.called = True
+
+        await self.app._on_activity(
+            _make_context(_make_activity(type=ActivityTypes.message, text=text)),
+            TurnState(),
+        )
+        assert self.called
+
+    @pytest.mark.asyncio
+    async def test_none_select_ignores_non_message_activity(self):
+        @self.app.message(None)
         async def handler(context: TurnContext, state: TurnState):
             self.called = True
 
@@ -561,3 +587,243 @@ class TestChannelIdRouteFiltering:
             TurnState(),
         )
         assert self.called is expected
+
+
+def _only_route(app: AgentApplication):
+    routes = list(app._route_list)
+    assert len(routes) == 1
+    return routes[0]
+
+
+async def _noop(context: TurnContext, state: TurnState):
+    pass
+
+
+class TestEventRoute:
+    def setup_method(self):
+        self.app = _make_app()
+
+    @pytest.mark.parametrize(
+        ("select", "name", "expected"),
+        [
+            ("ping", "ping", True),
+            ("ping", "pong", False),
+            (re.compile(r"app_.*"), "app_mention", True),
+            (re.compile(r"app_.*"), "message", False),
+            (["ping", re.compile(r"app_.*")], "app_mention", True),
+            (["ping", re.compile(r"app_.*")], "pong", False),
+            (None, "anything", True),
+        ],
+    )
+    def test_selector_matches_event_name(self, select, name, expected):
+        self.app.event(select)(_noop)
+
+        selector = _only_route(self.app).selector
+        assert (
+            selector(_make_context(_make_activity(type="event", name=name))) is expected
+        )
+
+    def test_selector_ignores_non_event_activity(self):
+        self.app.event("ping")(_noop)
+
+        selector = _only_route(self.app).selector
+        assert not selector(
+            _make_context(_make_activity(type=ActivityTypes.message, name="ping"))
+        )
+
+    @pytest.mark.parametrize(
+        ("select", "expected_rank"),
+        [(None, RouteRank.LAST), ("ping", RouteRank.DEFAULT)],
+    )
+    def test_default_rank(self, select, expected_rank):
+        self.app.event(select)(_noop)
+
+        assert _only_route(self.app).rank == expected_rank
+
+    def test_explicit_rank_is_preserved_without_select(self):
+        self.app.event(rank=RouteRank.FIRST)(_noop)
+
+        assert _only_route(self.app).rank == RouteRank.FIRST
+
+    @pytest.mark.asyncio
+    async def test_dispatches_matching_event(self):
+        called = []
+
+        @self.app.event("ping")
+        async def handler(context: TurnContext, state: TurnState):
+            called.append(context.activity.name)
+
+        await self.app._on_activity(
+            _make_context(_make_activity(type="event", name="ping")), TurnState()
+        )
+        assert called == ["ping"]
+
+
+class TestInvokeRoute:
+    def setup_method(self):
+        self.app = _make_app()
+
+    @pytest.mark.parametrize(
+        ("select", "name", "expected"),
+        [
+            ("task/fetch", "task/fetch", True),
+            ("task/fetch", "task/submit", False),
+            (re.compile(r"task/.*"), "task/submit", True),
+            (["a", "task/submit"], "task/submit", True),
+            (None, "anything", True),
+        ],
+    )
+    def test_selector_matches_invoke_name(self, select, name, expected):
+        self.app.invoke(select)(_noop)
+
+        selector = _only_route(self.app).selector
+        assert (
+            selector(
+                _make_context(_make_activity(type=ActivityTypes.invoke, name=name))
+            )
+            is expected
+        )
+
+    def test_selector_ignores_non_invoke_activity(self):
+        self.app.invoke("task/fetch")(_noop)
+
+        selector = _only_route(self.app).selector
+        assert not selector(
+            _make_context(_make_activity(type="event", name="task/fetch"))
+        )
+
+    @pytest.mark.parametrize(
+        ("select", "expected_rank"),
+        [(None, RouteRank.LAST), ("task/fetch", RouteRank.DEFAULT)],
+    )
+    def test_default_rank(self, select, expected_rank):
+        self.app.invoke(select)(_noop)
+
+        assert _only_route(self.app).rank == expected_rank
+
+
+class TestMessageRouteRank:
+    @pytest.mark.parametrize(
+        ("select", "kwargs", "expected_rank"),
+        [
+            (None, {}, RouteRank.LAST),
+            ("hello", {}, RouteRank.DEFAULT),
+            (None, {"rank": RouteRank.FIRST}, RouteRank.FIRST),
+        ],
+    )
+    def test_rank(self, select, kwargs, expected_rank):
+        app = _make_app()
+        app.message(select, **kwargs)(_noop)
+
+        assert _only_route(app).rank == expected_rank
+
+    @pytest.mark.asyncio
+    async def test_catch_all_registered_first_does_not_shadow_specific_route(self):
+        app = _make_app()
+        calls = []
+
+        @app.message()
+        async def catch_all(context: TurnContext, state: TurnState):
+            calls.append("catch_all")
+
+        @app.message("hello")
+        async def specific(context: TurnContext, state: TurnState):
+            calls.append("specific")
+
+        await app._on_activity(
+            _make_context(_make_activity(type=ActivityTypes.message, text="hello")),
+            TurnState(),
+        )
+        assert calls == ["specific"]
+
+
+def _members_added_activity(**kwargs) -> Activity:
+    return _make_activity(
+        type=ActivityTypes.conversation_update, members_added=[{"id": "m"}], **kwargs
+    )
+
+
+def _members_removed_activity(**kwargs) -> Activity:
+    return _make_activity(
+        type=ActivityTypes.conversation_update, members_removed=[{"id": "m"}], **kwargs
+    )
+
+
+def _reactions_added_activity(**kwargs) -> Activity:
+    return _make_activity(
+        type=ActivityTypes.message_reaction,
+        reactions_added=[{"type": "like"}],
+        **kwargs,
+    )
+
+
+def _reactions_removed_activity(**kwargs) -> Activity:
+    return _make_activity(
+        type=ActivityTypes.message_reaction,
+        reactions_removed=[{"type": "like"}],
+        **kwargs,
+    )
+
+
+_SHORTCUT_ROUTE_CASES = [
+    ("members_added", _members_added_activity, _members_removed_activity),
+    ("members_removed", _members_removed_activity, _members_added_activity),
+    ("message_reaction_added", _reactions_added_activity, _reactions_removed_activity),
+    (
+        "message_reactions_removed",
+        _reactions_removed_activity,
+        _reactions_added_activity,
+    ),
+    (
+        "installation_update",
+        lambda **kw: _make_activity(type=ActivityTypes.installation_update, **kw),
+        lambda **kw: _make_activity(type=ActivityTypes.message, **kw),
+    ),
+    (
+        "end_of_conversation",
+        lambda **kw: _make_activity(type=ActivityTypes.end_of_conversation, **kw),
+        lambda **kw: _make_activity(type=ActivityTypes.message, **kw),
+    ),
+]
+
+
+class TestShortcutRoutes:
+    @pytest.mark.parametrize(("route_name", "matching", "other"), _SHORTCUT_ROUTE_CASES)
+    def test_selector_matches_only_its_activity(self, route_name, matching, other):
+        app = _make_app()
+        getattr(app, route_name)()(_noop)
+
+        selector = _only_route(app).selector
+        assert selector(_make_context(matching()))
+        assert not selector(_make_context(other()))
+
+    @pytest.mark.parametrize(("route_name", "matching", "other"), _SHORTCUT_ROUTE_CASES)
+    def test_selector_filters_by_channel_id(self, route_name, matching, other):
+        app = _make_app()
+        getattr(app, route_name)(channel_id="msteams")(_noop)
+
+        selector = _only_route(app).selector
+        assert selector(_make_context(matching(channel_id="msteams:copilot")))
+        assert not selector(_make_context(matching(channel_id="webchat")))
+
+    @pytest.mark.parametrize(("route_name", "matching", "other"), _SHORTCUT_ROUTE_CASES)
+    def test_forwards_auth_handlers_and_rank(self, route_name, matching, other):
+        app = _make_app()
+        getattr(app, route_name)(auth_handlers=["graph"], rank=RouteRank.FIRST)(_noop)
+
+        route = _only_route(app)
+        assert route.auth_handlers == ["graph"]
+        assert route.rank == RouteRank.FIRST
+
+    @pytest.mark.asyncio
+    @pytest.mark.parametrize(("route_name", "matching", "other"), _SHORTCUT_ROUTE_CASES)
+    async def test_dispatches_matching_activity(self, route_name, matching, other):
+        app = _make_app()
+        calls = []
+
+        @getattr(app, route_name)()
+        async def handler(context: TurnContext, state: TurnState):
+            calls.append(context.activity.type)
+
+        await app._on_activity(_make_context(matching()), TurnState())
+        assert calls == [matching().type]

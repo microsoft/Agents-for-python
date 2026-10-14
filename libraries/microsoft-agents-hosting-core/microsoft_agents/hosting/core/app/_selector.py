@@ -3,10 +3,10 @@
 
 import re
 
-
 from microsoft_agents.activity import ActivityTypes, ChannelId
 from microsoft_agents.hosting.core import TurnContext
-from ._type_defs import RouteSelector
+from ._type_defs import RouteSelector, TextSelector
+from ._utils import _matches_text
 
 
 def _text_selector(
@@ -22,28 +22,31 @@ def _text_selector(
 
     def __selector(context: TurnContext) -> bool:
         """Selector function that checks if the given text matches the selection criteria."""
-        text = context.activity.text or ""
-        if isinstance(select, list):
-            for item in select:
-                if isinstance(item, re.Pattern):
-                    if re.fullmatch(item, text) is not None:
-                        return True
-                elif text == item:
-                    return True
-            return False
-
-        if isinstance(select, re.Pattern):
-            return re.fullmatch(select, text) is not None
-
-        return text == select
+        return _matches_text(select, context.activity.text or "")
 
     return __selector
 
 
-def _invoke_event_selector(event_name: str) -> RouteSelector:
+def _event_selector(event_selector: TextSelector | None) -> RouteSelector:
+    """Creates a route selector that matches the given event name.
+
+    :param event_selector: The text selector for the event name to match against.
+    :return: A route selector function that matches the specified event name.
+    """
+
+    def __selector(context: TurnContext) -> bool:
+        """Selector function that checks if the given event name matches the selection criteria."""
+        return context.activity.type == ActivityTypes.event and _matches_text(
+            event_selector, context.activity.name or ""
+        )
+
+    return __selector
+
+
+def _invoke_event_selector(event_selector: TextSelector | None) -> RouteSelector:
     """Creates a route selector that matches the given invoke event name.
 
-    :param event_name: The name of the invoke event to match against.
+    :param event_selector: The text selector for the invoke event name to match against.
     :return: A route selector function that matches the specified invoke event name.
     """
 
@@ -51,9 +54,8 @@ def _invoke_event_selector(event_name: str) -> RouteSelector:
         """Selector function that checks if the given invoke event name matches the selection criteria."""
         if context.activity.name is None:
             return False
-        return (
-            context.activity.type == ActivityTypes.invoke
-            and context.activity.name == event_name
+        return context.activity.type == ActivityTypes.invoke and _matches_text(
+            event_selector, context.activity.name or ""
         )
 
     return __selector

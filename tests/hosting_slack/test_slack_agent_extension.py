@@ -16,6 +16,7 @@ from microsoft_agents.activity import (
     ChannelAccount,
     ChannelId,
     ConversationAccount,
+    ConversationUpdateTypes,
     DeliveryModes,
 )
 from microsoft_agents.hosting.core import (
@@ -34,9 +35,13 @@ from microsoft_agents.hosting.slack import (
 from microsoft_agents.hosting.slack.api import SlackApi, SlackResponse
 
 
-def _make_app() -> MagicMock:
-    app = MagicMock(spec=AgentApplication)
+def _make_app() -> AgentApplication:
+    app = AgentApplication(
+        storage=MemoryStorage(),
+        connection_manager=MagicMock(spec=Connections),
+    )
     app.routes = []
+    original_add_route = app.add_route
 
     def _add_route(
         selector, handler, is_invoke=False, rank=RouteRank.DEFAULT, auth_handlers=None
@@ -50,8 +55,15 @@ def _make_app() -> MagicMock:
                 auth_handlers=auth_handlers,
             )
         )
+        original_add_route(
+            selector,
+            handler,
+            is_invoke=is_invoke,
+            rank=rank,
+            auth_handlers=auth_handlers,
+        )
 
-    app.add_route.side_effect = _add_route
+    app.add_route = _add_route
     return app
 
 
@@ -104,6 +116,9 @@ class TestMessage:
 
         sel = self.app.routes[-1]["selector"]
         assert sel(_make_context(ActivityTypes.message, text="hello"))
+        assert sel(
+            _make_context(ActivityTypes.message, channel_id="slack:sub", text="hello")
+        )
         assert not sel(_make_context(ActivityTypes.message, text="bye"))
 
     def test_regex_text_match(self):
@@ -245,6 +260,17 @@ class TestDeprecatedAliases:
         assert len(self.app.routes) == 1
         assert self.app.routes[-1]["auth_handlers"] == auth_handlers
         assert self.app.routes[-1]["rank"] == RouteRank.FIRST
+
+    @pytest.mark.parametrize("route_name", ["message", "event"])
+    def test_alias_without_select_defaults_to_last_rank(self, route_name):
+        register = (
+            self.slack.on_message if route_name == "message" else self.slack.on_event
+        )
+
+        with pytest.deprecated_call():
+            register()(AsyncMock())
+
+        assert self.app.routes[-1]["rank"] == RouteRank.LAST
 
 
 class TestCall:
@@ -655,3 +681,146 @@ class TestTurnPipeline:
             },
             "",
         )
+
+
+def _make_activity_context(channel_id: str = "slack", **activity_fields) -> TurnContext:
+    activity = Activity(
+        channel_id=channel_id,
+        service_url="https://example.invalid",
+        conversation=ConversationAccount(id="conversation"),
+        from_property=ChannelAccount(id="user"),
+        recipient=ChannelAccount(id="bot"),
+        **activity_fields,
+    )
+    return TurnContext(ChannelServiceAdapter(None), activity)
+
+
+_APP_ROUTE_CASES = [
+    (
+        "conversation_update",
+        (ConversationUpdateTypes.MEMBERS_ADDED,),
+        dict(
+            type=ActivityTypes.conversation_update,
+            members_added=[ChannelAccount(id="new-user")],
+        ),
+    ),
+    (
+        "members_added",
+        (),
+        dict(
+            type=ActivityTypes.conversation_update,
+            members_added=[ChannelAccount(id="new-user")],
+        ),
+    ),
+    (
+        "members_removed",
+        (),
+        dict(
+            type=ActivityTypes.conversation_update,
+            members_removed=[ChannelAccount(id="old-user")],
+        ),
+    ),
+    (
+        "installation_update",
+        (),
+        dict(type=ActivityTypes.installation_update),
+    ),
+]
+
+
+class TestAppRouteHooks:
+    @pytest.mark.parametrize("route_name, route_args, fields", _APP_ROUTE_CASES)
+    def test_selector_matches_only_slack(self, route_name, route_args, fields):
+        app = _make_app()
+        slack = SlackAgentExtension(app)
+
+        async def handler(context, state):
+            pass
+
+        assert getattr(slack, route_name)(*route_args)(handler) is handler
+
+        selector = app.routes[-1]["selector"]
+        assert selector(_make_activity_context(**fields))
+        assert selector(_make_activity_context(channel_id="slack:sub", **fields))
+        assert not selector(_make_activity_context(channel_id="msteams", **fields))
+
+    @pytest.mark.parametrize("route_name, route_args, fields", _APP_ROUTE_CASES)
+    def test_selector_rejects_non_matching_activity(
+        self, route_name, route_args, fields
+    ):
+        app = _make_app()
+        slack = SlackAgentExtension(app)
+
+        @getattr(slack, route_name)(*route_args)
+        async def handler(context, state):
+            pass
+
+        selector = app.routes[-1]["selector"]
+        assert not selector(_make_activity_context(type=ActivityTypes.message))
+
+    @pytest.mark.parametrize(
+        "route_name, other_fields",
+        [
+            (
+                "members_added",
+                dict(
+                    type=ActivityTypes.conversation_update,
+                    members_removed=[ChannelAccount(id="old-user")],
+                ),
+            ),
+            (
+                "members_removed",
+                dict(
+                    type=ActivityTypes.conversation_update,
+                    members_added=[ChannelAccount(id="new-user")],
+                ),
+            ),
+        ],
+    )
+    def test_member_routes_reject_opposite_update(self, route_name, other_fields):
+        app = _make_app()
+        slack = SlackAgentExtension(app)
+
+        @getattr(slack, route_name)()
+        async def handler(context, state):
+            pass
+
+        selector = app.routes[-1]["selector"]
+        assert not selector(_make_activity_context(**other_fields))
+
+    @pytest.mark.parametrize("route_name, route_args, fields", _APP_ROUTE_CASES)
+    def test_registration_forwards_auth_handlers_and_rank(
+        self, route_name, route_args, fields
+    ):
+        app = _make_app()
+        slack = SlackAgentExtension(app)
+
+        @getattr(slack, route_name)(
+            *route_args, auth_handlers=["graph"], rank=RouteRank.FIRST
+        )
+        async def handler(context, state):
+            pass
+
+        route = app.routes[-1]
+        assert route["auth_handlers"] == ["graph"]
+        assert route["rank"] == RouteRank.FIRST
+
+    @pytest.mark.asyncio
+    @pytest.mark.parametrize("route_name, route_args, fields", _APP_ROUTE_CASES)
+    async def test_handler_receives_slack_context(self, route_name, route_args, fields):
+        app = _make_app()
+        slack = SlackAgentExtension(app)
+        context = _make_activity_context(**fields)
+        state = TurnState()
+
+        async def handler(slack_context, received_state):
+            assert isinstance(slack_context, SlackTurnContext)
+            assert isinstance(slack_context.activity, SlackActivity)
+            assert received_state is state
+
+        delegate = AsyncMock(side_effect=handler)
+        getattr(slack, route_name)(*route_args)(delegate)
+
+        await app.routes[-1]["handler"](context, state)
+
+        delegate.assert_awaited_once()
