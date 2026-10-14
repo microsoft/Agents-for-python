@@ -12,10 +12,12 @@ from ._type_defs import RouteSelector
 def _text_selector(
     select: str | re.Pattern[str] | list[str | re.Pattern[str]],
 ) -> RouteSelector:
-    """Checks if the given text matches the selection criteria.
+    """Creates a route selector that matches the activity text against the selection criteria.
+
+    Strings must match the text exactly; regex patterns must fully match it.
 
     :param select: A string, regex pattern, or a list of strings/regex patterns to match against.
-    :return: True if the text matches any of the selection criteria, False otherwise.
+    :return: A route selector function that returns True if the activity text matches any of the selection criteria.
     """
 
     def __selector(context: TurnContext) -> bool:

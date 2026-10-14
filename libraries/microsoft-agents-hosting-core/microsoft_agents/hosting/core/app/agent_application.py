@@ -670,6 +670,7 @@ class AgentApplication(Agent, Generic[StateT]):
         self,
         func: HandoffHandler[StateT],
         *,
+        channel_id: str | ChannelId | None = None,
         auth_handlers: list[str] | None = None,
         **kwargs,
     ) -> HandoffHandler[StateT]: ...
@@ -678,6 +679,7 @@ class AgentApplication(Agent, Generic[StateT]):
     def handoff(
         self,
         *,
+        channel_id: str | ChannelId | None = None,
         auth_handlers: list[str] | None = None,
         **kwargs: Any,
     ) -> _RouteDecorator[HandoffHandler[StateT]]: ...
