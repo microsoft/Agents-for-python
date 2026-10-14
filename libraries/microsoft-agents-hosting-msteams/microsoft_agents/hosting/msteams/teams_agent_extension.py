@@ -33,9 +33,10 @@ from microsoft_agents.hosting.core import (
     TurnContext,
 )
 from microsoft_agents.hosting.core.app._type_defs import (
-    RouteHandler,
     HandoffHandler,
+    RouteHandler,
     StateT,
+    TextSelector,
 )
 
 from .channel import Channel
@@ -237,6 +238,29 @@ class TeamsAgentExtension(Generic[StateT]):
         """
         return self._wrap_decorator(
             self._app.message(
+                select,
+                auth_handlers=auth_handlers,
+                channel_id=Channels.msteams,
+                **kwargs,
+            )
+        )
+
+    def event(
+        self,
+        select: TextSelector | None = None,
+        *,
+        auth_handlers: list[str] | None = None,
+        **kwargs,
+    ) -> _AppRouteDecorator[StateT]:
+        """Register a handler for event activities matching *select*.
+
+        :param select: A literal string, regex pattern, or list of either to match against
+            the event name.
+        :param auth_handlers: Optional list of auth handler names to run before the route.
+        :return: A decorator that registers the handler and returns it.
+        """
+        return self._wrap_decorator(
+            self._app.event(
                 select,
                 auth_handlers=auth_handlers,
                 channel_id=Channels.msteams,

@@ -511,6 +511,10 @@ class AgentApplication(Agent, Generic[StateT]):
         if select is None and "rank" not in kwargs:
             kwargs["rank"] = RouteRank.LAST
 
+        if "is_invoke" in kwargs:
+            if kwargs["is_invoke"] is False:
+                raise ValueError("Cannot set is_invoke to False for an invoke handler.")
+
         selector = _all_selector(
             _invoke_event_selector(select),
             _channel_selector(channel_id),
@@ -520,7 +524,9 @@ class AgentApplication(Agent, Generic[StateT]):
             logger.debug(
                 f"Registering invoke handler for route handler {func.__name__} with select: {select} with auth handlers: {auth_handlers}"
             )
-            self.add_route(selector, func, auth_handlers=auth_handlers, **kwargs)
+            self.add_route(
+                selector, func, auth_handlers=auth_handlers, is_invoke=True, **kwargs
+            )
             return func
 
         return __call

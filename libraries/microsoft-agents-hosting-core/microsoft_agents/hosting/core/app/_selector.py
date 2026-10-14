@@ -89,17 +89,7 @@ def _channel_selector(channel_id: str | ChannelId | None) -> RouteSelector:
             """Selector function that checks if the given channel ID matches the selection criteria."""
             if context.activity.channel_id is None:
                 return False
-            if norm_channel_id.sub_channel:
-                # if passed in a sub-channel, the incoming activity must also come from
-                # the sub-channel
-                return context.activity.channel_id == norm_channel_id
-            else:
-                # if passed in only a parent channel, only check the parent channel of
-                # the incoming activity
-                return (
-                    ChannelId.get_channel(context.activity.channel_id)
-                    == norm_channel_id.channel
-                )
+            return norm_channel_id.includes(context.activity.channel_id)
 
         return __selector
 
