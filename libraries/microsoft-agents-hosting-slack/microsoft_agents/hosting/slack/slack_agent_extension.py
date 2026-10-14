@@ -5,8 +5,9 @@ Licensed under the MIT License.
 
 from __future__ import annotations
 
-from typing import Any, Callable, Generic, TypeVar
+import warnings
 
+from typing import Any, Callable, Generic, TypeVar
 from typing_extensions import deprecated
 
 from microsoft_agents.activity import (
@@ -217,6 +218,7 @@ class SlackAgentExtension(Generic[StateT]):
         self,
         select: TextSelector | None = None,
         *,
+        event_name: str | None = None,
         auth_handlers: list[str] | None = None,
         **kwargs,
     ) -> _RouteDecorator[SlackRouteHandler[StateT]]:
@@ -224,10 +226,18 @@ class SlackAgentExtension(Generic[StateT]):
 
         :param select: Optional text selector to match the incoming event name.
         :type select: TextSelector | None
+        :param event_name: (Deprecated) Optional specific event name to match.
+        :type event_name: str | None
         :param auth_handlers: Optional list of authorization handler IDs for the route.
         :type auth_handlers: list[str] | None
         :param kwargs: Additional route configuration passed to :meth:`microsoft_agents.hosting.core.AgentApplication.add_route`.
         """
+        if event_name is not None:
+            warnings.warn(
+                "The `event_name` parameter is deprecated; use `select` instead.",
+                DeprecationWarning,
+                stacklevel=2,
+            )
         return self._wrap_decorator(
             self._app.event(
                 select, auth_handlers=auth_handlers, channel_id=Channels.slack, **kwargs
@@ -239,7 +249,7 @@ class SlackAgentExtension(Generic[StateT]):
     )
     def on_event(
         self,
-        select: TextSelector | None = None,
+        event_name: TextSelector | None = None,
         *,
         auth_handlers: list[str] | None = None,
         **kwargs,

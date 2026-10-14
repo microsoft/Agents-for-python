@@ -508,12 +508,14 @@ class AgentApplication(Agent, Generic[StateT]):
         :type auth_handlers: list[str] | None
         :param kwargs: Additional route configuration passed to :meth:`microsoft_agents.hosting.core.AgentApplication.add_route`.
         """
-        if select is None and "rank" not in kwargs:
-            kwargs["rank"] = RouteRank.LAST
 
         if "is_invoke" in kwargs:
             if kwargs["is_invoke"] is False:
                 raise ValueError("Cannot set is_invoke to False for an invoke handler.")
+            del kwargs["is_invoke"]
+
+        if select is None and "rank" not in kwargs:
+            kwargs["rank"] = RouteRank.LAST
 
         selector = _all_selector(
             _invoke_event_selector(select),
@@ -931,6 +933,11 @@ class AgentApplication(Agent, Generic[StateT]):
         :type auth_handlers: list[str] | None
         :param kwargs: Additional route configuration passed to :meth:`microsoft_agents.hosting.core.AgentApplication.add_route`.
         """
+
+        if "is_invoke" in kwargs:
+            if kwargs["is_invoke"] is False:
+                raise ValueError("Cannot set is_invoke to False for an invoke handler.")
+            del kwargs["is_invoke"]
 
         selector = _all_selector(
             _invoke_event_selector("handoff/action"),

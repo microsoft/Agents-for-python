@@ -36,6 +36,8 @@ def _event_selector(event_selector: TextSelector | None) -> RouteSelector:
 
     def __selector(context: TurnContext) -> bool:
         """Selector function that checks if the given event name matches the selection criteria."""
+        if not event_selector:
+            return True
         return context.activity.type == ActivityTypes.event and _matches_text(
             event_selector, context.activity.name or ""
         )
@@ -52,8 +54,8 @@ def _invoke_event_selector(event_selector: TextSelector | None) -> RouteSelector
 
     def __selector(context: TurnContext) -> bool:
         """Selector function that checks if the given invoke event name matches the selection criteria."""
-        if context.activity.name is None:
-            return False
+        if not event_selector:
+            return True
         return context.activity.type == ActivityTypes.invoke and _matches_text(
             event_selector, context.activity.name or ""
         )
