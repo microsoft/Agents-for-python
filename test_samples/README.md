@@ -57,7 +57,6 @@ select the needed packages; not every sample needs every library.
 | [`cards/`](cards/README.md) | Adaptive Cards, submit/execute actions, dynamic search, and media cards. `Action.Execute` and dynamic search require Teams. | From `test_samples/cards`: `python agent.py`. |
 | [`handling_attachments/`](handling_attachments/README.md) | Sends and receives inline, URL, and uploaded attachments; uploaded attachments require Teams. | From `test_samples/handling_attachments`: `python -m src.main`. |
 | [`proactive/`](proactive/README.md) | Proactive conversation continuation, stored references, OAuth, and an external notification endpoint. Requires an Azure Bot OAuth connection and a tunnel or Teams/Agents Playground for interaction. | From the repository root: `python test_samples/proactive/proactive_agent.py`. |
-| [`bizchat-sso/`](bizchat-sso/) | Echo agent with sign-in and sign-out handlers. Configure the Azure Bot OAuth connection named for the sample's SSO handler. | From `test_samples/bizchat-sso`: `python src/main.py`; install `requirements.txt` first. |
 | [`agentic-test/`](agentic-test/) | Acquires an agentic user token and displays token claims in an Adaptive Card. Requires the configured `AGENTIC` authentication connection. | From `test_samples/agentic-test`: `python src/main.py`; install `requirements.txt` first. |
 | [`copilot_studio_client_sample/`](copilot_studio_client_sample/app.py) | Console client for a Copilot Studio agent using MSAL interactive sign-in and the Copilot Studio client library. Requires a configured Entra app and Copilot Studio connection. | `python app.py`. No sample README or `requirements.txt` is present; install its SDK and MSAL dependencies in the environment. |
 | [`copilot_studio_connector/`](copilot_studio_connector/README.md) | Receives Copilot Studio connector requests and uses OAuth/OBO to call Graph. Requires an Azure Bot app, Copilot Studio connector, and Graph OAuth permissions. | From `test_samples/copilot_studio_connector`: `pip install -r requirements.txt`, then `python app.py`. |
@@ -80,19 +79,16 @@ select the needed packages; not every sample needs every library.
 | Sample | Purpose and additional prerequisites | Run / details |
 | --- | --- | --- |
 | [`entra_sidecar/`](entra_sidecar/README.md) | Credential-free outbound token acquisition through the Entra ID Agent Container sidecar. Requires the sidecar and its downstream API configuration. | Follow the guide to install requirements and run `python agent.py` from `test_samples/entra_sidecar`. |
-| [`fic/`](fic/FIC_README.md) | Federated identity credentials for an Azure App Service agent using a user-assigned managed identity. Requires Azure CLI, an Azure subscription, and an Entra app registration. | From the repository root, provision with `.\test_samples\fic\setup.ps1 -ResourceGroup <name> -AppName <name>`, then deploy with `.\test_samples\fic\deploy.ps1`. |
-| [`workload_identity/`](workload_identity/README.md) | End-to-end AKS Workload Identity deployment and test. Requires Azure CLI, `kubectl`, an Azure subscription, and an AKS cluster or permission to create one. | Follow the guide's setup and deployment steps; run `.\test_samples\workload_identity\test.ps1` for the in-cluster test. |
-| [`mi/`](mi/) | Echo-agent sample with Azure resource templates under `infra/`. Requires Azure identity/bot configuration and the resources described by those templates. | From `test_samples/mi`: install `requirements.txt`, then run `python src/main.py`. |
 
 ## Compatibility samples
 
 | Sample | Purpose | Run / details |
 | --- | --- | --- |
-| [`compat/dialogs/complex_dialog/`](compat/dialogs/complex_dialog/README.md) | BotBuilder complex-dialog port. | From the sample directory: install `requirements.txt`, then run `python src/main.py`. |
-| [`compat/dialogs/custom_dialogs/`](compat/dialogs/custom_dialogs/README.md) | BotBuilder custom-dialogs port. | From the sample directory: install `requirements.txt`, then run `python src/main.py`. |
-| [`compat/dialogs/multi_turn/`](compat/dialogs/multi_turn/README.md) | BotBuilder multi-turn-prompt port. | From the sample directory: install `requirements.txt`, then run `python src/main.py`. |
-| [`compat/dialogs/oauth_prompt/`](compat/dialogs/oauth_prompt/README.md) | OAuth prompt sample. Requires an Azure Bot OAuth connection. | From the sample directory: install `requirements.txt`, then run `python src/main.py`. |
-| [`compat/dialogs/user_auth/`](compat/dialogs/user_auth/README.md) | User-authentication sample that accesses Graph; requires the corresponding OAuth connection and permissions. | From the sample directory: install `requirements.txt`, then run `python src/main.py`. |
+| [`compat/dialogs/complex_dialog/`](compat/dialogs/complex_dialog/README.md) | BotBuilder complex-dialog port. | From the sample directory: install `requirements.txt`, then run `python -m src.main`. |
+| [`compat/dialogs/custom_dialogs/`](compat/dialogs/custom_dialogs/README.md) | BotBuilder custom-dialogs port. | From the sample directory: install `requirements.txt`, then run `python -m src.main`. |
+| [`compat/dialogs/multi_turn/`](compat/dialogs/multi_turn/README.md) | BotBuilder multi-turn-prompt port. | From the sample directory: install `requirements.txt`, then run `python -m src.main`. |
+| [`compat/dialogs/oauth_prompt/`](compat/dialogs/oauth_prompt/README.md) | OAuth prompt sample. Requires an Azure Bot OAuth connection. | From the sample directory: install `requirements.txt`, then run `python -m src.main`. |
+| [`compat/dialogs/user_auth/`](compat/dialogs/user_auth/README.md) | User-authentication sample that accesses Graph; requires the corresponding OAuth connection and permissions. | From the sample directory: install `requirements.txt`, then run `python -m src.main`. |
 | [`compat/teams_agent/`](compat/teams_agent/app.py) | Legacy Teams handler examples for SSO and other Teams features. | Purpose is identifiable from the source, but a runnable command could not be verified: its imports reference `test_samples.activity_handler`, which is not present here. |
 | [`compat/agent_to_agent/`](compat/agent_to_agent/) | Two-agent channel/agent communication example. | The source imports also reference `test_samples.activity_handler`; a runnable command could not be verified against this checkout. |
 
@@ -103,10 +99,3 @@ select the needed packages; not every sample needs every library.
 | [`otel/quickstart/`](otel/quickstart/README.md) | In-code OpenTelemetry configuration and instrumentation; `uv` and the configured agent connections are required. | In the sample directory: `uv sync`, then `uv run python -m src.main`. The guide also starts the Aspire dashboard with `.\start_dashboard.ps1`. |
 | [`otel/zero-code/`](otel/zero-code/README.md) | OpenTelemetry auto-instrumentation configured through environment variables; `uv` and the configured agent connections are required. | In the sample directory: `uv sync`, then run `.\start_dashboard.ps1` and `.\start_agent.ps1`. |
 | [`testing/`](testing/README.md) | Tests an `AgentApplication` in memory with `TestAdapter` and `TestFlow`; no live server is needed for the tests. | From `test_samples/testing`: `uv sync` then `uv run pytest`. To run the aiohttp host, use `uv run python src/app.py`. |
-| [`streaming_activity_lifecycle_net/`](streaming_activity_lifecycle_net/README.md) | .NET diagnostic for updating/deleting finalized streaming activities in Teams. Requires .NET 10, a sibling `Agents-for-net` checkout, and Teams/Bot setup. | From the repository root: `dotnet run --project test_samples\streaming_activity_lifecycle_net\StreamingActivityLifecycle.csproj`. |
-
-## Entries without verifiable sample instructions
-
-The `a2a/` and `demo/` directories currently have no sample README or runnable
-source files in this checkout, so their purpose and run/test commands could
-not be verified.
