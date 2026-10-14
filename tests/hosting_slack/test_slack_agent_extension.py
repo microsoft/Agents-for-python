@@ -272,6 +272,17 @@ class TestDeprecatedAliases:
 
         assert self.app.routes[-1]["rank"] == RouteRank.LAST
 
+    def test_on_event_accepts_event_name_keyword(self):
+        with pytest.deprecated_call():
+
+            @self.slack.on_event(event_name="app_mention")
+            async def handler(context, state):
+                return True
+
+        sel = self.app.routes[-1]["selector"]
+        assert sel(_make_context(ActivityTypes.event, name="app_mention"))
+        assert not sel(_make_context(ActivityTypes.event, name="other"))
+
 
 class TestCall:
     @pytest.mark.asyncio

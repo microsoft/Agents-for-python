@@ -255,7 +255,7 @@ class SlackAgentExtension(Generic[StateT]):
         **kwargs,
     ) -> _RouteDecorator[SlackRouteHandler[StateT]]:
         """Deprecated alias for :meth:`event`; emits ``DeprecationWarning``."""
-        return self.event(select, auth_handlers=auth_handlers, **kwargs)
+        return self.event(event_name, auth_handlers=auth_handlers, **kwargs)
 
     # ── AgentApplication route hooks ───────────────────────────────────────
 

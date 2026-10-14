@@ -632,6 +632,17 @@ class TestEventRoute:
         )
 
     @pytest.mark.parametrize(
+        "activity_type", [ActivityTypes.message, ActivityTypes.invoke]
+    )
+    def test_none_select_ignores_non_event_activity(self, activity_type):
+        self.app.event()(_noop)
+
+        selector = _only_route(self.app).selector
+        assert not selector(
+            _make_context(_make_activity(type=activity_type, name="ping"))
+        )
+
+    @pytest.mark.parametrize(
         ("select", "expected_rank"),
         [(None, RouteRank.LAST), ("ping", RouteRank.DEFAULT)],
     )
@@ -690,6 +701,17 @@ class TestInvokeRoute:
         selector = _only_route(self.app).selector
         assert not selector(
             _make_context(_make_activity(type="event", name="task/fetch"))
+        )
+
+    @pytest.mark.parametrize(
+        "activity_type", [ActivityTypes.message, ActivityTypes.event]
+    )
+    def test_none_select_ignores_non_invoke_activity(self, activity_type):
+        self.app.invoke()(_noop)
+
+        selector = _only_route(self.app).selector
+        assert not selector(
+            _make_context(_make_activity(type=activity_type, name="task/fetch"))
         )
 
     @pytest.mark.parametrize(
