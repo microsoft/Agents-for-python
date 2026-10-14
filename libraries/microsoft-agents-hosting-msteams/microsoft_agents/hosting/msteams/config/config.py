@@ -5,7 +5,6 @@
 
 from typing import Generic, Optional, overload
 
-from microsoft_agents.activity import ActivityTypes
 from microsoft_agents.hosting.core import (
     AgentApplication,
     RouteRank,
@@ -15,6 +14,7 @@ from microsoft_agents.hosting.core.app._type_defs import (
     StateT,
     _RouteDecorator,
 )
+from microsoft_agents.hosting.core.app._selector import _invoke_event_selector
 
 from microsoft_agents.hosting.msteams.teams_turn_context import TeamsTurnContext
 from microsoft_agents.hosting.msteams._utils import _send_invoke_response
@@ -50,11 +50,7 @@ class Config(Generic[StateT]):
         :return: A decorator that registers the handler.
         """
 
-        def __selector(context: TurnContext) -> bool:
-            return (
-                context.activity.type == ActivityTypes.invoke
-                and context.activity.name == name
-            )
+        __selector = _invoke_event_selector(name)
 
         def __call(func: ConfigHandler[StateT]) -> ConfigHandler[StateT]:
             async def __handler(context: TurnContext, state: StateT) -> None:
