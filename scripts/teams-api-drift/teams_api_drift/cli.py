@@ -22,6 +22,7 @@ from .common import (
     write_text,
 )
 from .compare import compare_versions
+from .metadata import validate_teams_api_metadata
 from .report import prepare_context, render_report, validate_agent_report
 from .resolve import resolve_versions
 
@@ -74,6 +75,10 @@ def main(command=None, argv=None):
     elif command == "verify-usage":
         parser.add_argument("--manifest", "-m", type=Path, default=MANIFEST)
         parser.add_argument("--capabilities", type=Path, default=CAPABILITIES)
+        parser.add_argument(
+            "--base-ref",
+            help="Git ref used to verify metadata review for changed source files",
+        )
     elif command == "prepare-candidate":
         parser.add_argument("--version", required=True)
         parser.add_argument("--environment", type=Path, required=True)
@@ -144,8 +149,9 @@ def main(command=None, argv=None):
             write_json(destination(args.output, "resolved-versions.json"), result)
             print(json.dumps(result))
         elif command == "verify-usage":
-            manifest = validate_manifest(read_json(args.manifest))
-            read_capabilities(args.capabilities)
+            manifest = validate_teams_api_metadata(
+                args.manifest, args.capabilities, base_ref=args.base_ref
+            )
             print(f"Verified {len(manifest['usages'])} Teams API usages")
         elif command == "prepare-candidate":
             result = prepare_candidate_environment(
