@@ -62,17 +62,18 @@ async def test_basic_streaming_response_non_streaming_channel(agent_client: Agen
     # give enough time for all the activities to send
     await agent_client.send("/stream", wait=expected_len * 2.0)
 
+    # Non-streaming channels drop informative/streaming updates and send a single
+    # plain message at end_stream, without a streaminfo entity.
     stream_activities = agent_client.select().where(
         entities=lambda x: any(e["type"] == "streaminfo" for e in x)
     ).get()
 
-    assert len(stream_activities) == 1
+    assert len(stream_activities) == 0
 
-    final_streaminfo = get_streaminfo(stream_activities[0])
+    messages = agent_client.select().where(type=ActivityTypes.message).get()
 
-    assert final_streaminfo.stream_sequence == 1
-    assert final_streaminfo.stream_type == "final"
-    assert stream_activities[0].text == FULL_TEXT.replace(" ", "")
+    assert len(messages) == 1
+    assert messages[0].text == FULL_TEXT.replace(" ", "")
 
 
 
@@ -116,6 +117,8 @@ async def test_basic_streaming_response_streaming_channel(agent_client: AgentCli
 
     final_streaminfo = get_streaminfo(stream_activities[-1])
 
-    assert final_streaminfo.stream_sequence == len(stream_activities)
+    # The final message carries no stream_sequence
+    assert final_streaminfo.stream_sequence is None
     assert final_streaminfo.stream_type == "final"
+    assert stream_activities[-1].type == ActivityTypes.message
     assert stream_activities[-1].text == FULL_TEXT.replace(" ", "")
