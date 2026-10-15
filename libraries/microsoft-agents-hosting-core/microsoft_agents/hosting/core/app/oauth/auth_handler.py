@@ -4,7 +4,6 @@ Licensed under the MIT License.
 """
 
 import logging
-from typing import Optional
 
 logger = logging.getLogger(__name__)
 
@@ -32,7 +31,7 @@ class AuthHandler:
         abs_oauth_connection_name: str = "",
         obo_connection_name: str = "",
         auth_type: str = "",
-        scopes: Optional[list[str]] = None,
+        scopes: list[str] | None = None,
         **kwargs,
     ):
         """

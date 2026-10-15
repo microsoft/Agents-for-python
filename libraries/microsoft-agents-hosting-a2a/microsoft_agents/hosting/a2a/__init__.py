@@ -2,6 +2,7 @@
 # Licensed under the MIT License.
 
 from .activity import A2AActivity
+from .authorization import A2AUserAuthorization
 from .request_handling import A2AHttpAdapter
 from .server import (
     create_jsonrpc_routes,
@@ -15,6 +16,10 @@ from .extension import (
 )
 from .a2a_adapter import A2AAdapter
 from .add_a2a import add_a2a
+
+# Register the A2AUserAuthorization handler in the global authorization type map.
+from microsoft_agents.hosting.core.app.oauth.authorization import _update_auth_type_map
+_update_auth_type_map(A2AUserAuthorization)
 
 __all__ = [
     "A2AActivity",

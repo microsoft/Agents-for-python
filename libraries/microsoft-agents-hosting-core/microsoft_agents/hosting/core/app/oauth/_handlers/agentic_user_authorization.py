@@ -5,8 +5,6 @@ Licensed under the MIT License.
 
 import logging
 
-from typing import Optional
-
 from microsoft_agents.activity import TokenResponse
 
 from ....turn_context import TurnContext
@@ -28,10 +26,10 @@ class AgenticUserAuthorization(_AuthorizationHandler):
         self,
         storage: Storage,
         connection_manager: Connections,
-        auth_handler: Optional[AuthHandler] = None,
+        auth_handler: AuthHandler | None = None,
         *,
-        auth_handler_id: Optional[str] = None,
-        auth_handler_settings: Optional[dict] = None,
+        auth_handler_id: str | None = None,
+        auth_handler_settings: dict | None = None,
         **kwargs,
     ) -> None:
         """
@@ -163,8 +161,8 @@ class AgenticUserAuthorization(_AuthorizationHandler):
     async def _sign_in(
         self,
         context: TurnContext,
-        exchange_connection: Optional[str] = None,
-        exchange_scopes: Optional[list[str]] = None,
+        exchange_connection: str | None = None,
+        exchange_scopes: list[str] | None = None,
     ) -> _SignInResponse:
         """Retrieves the agentic user token if available.
 
@@ -173,7 +171,7 @@ class AgenticUserAuthorization(_AuthorizationHandler):
         :param connection_name: The name of the connection to use for sign-in.
         :type connection_name: str
         :param scopes: The scopes to request for the token.
-        :type scopes: Optional[list[str]]
+        :type scopes: list[str] | None
         :return: A _SignInResponse containing the token response and flow state tag.
         :rtype: _SignInResponse
         """
@@ -189,17 +187,17 @@ class AgenticUserAuthorization(_AuthorizationHandler):
     async def get_refreshed_token(
         self,
         context: TurnContext,
-        exchange_connection: Optional[str] = None,
-        exchange_scopes: Optional[list[str]] = None,
+        exchange_connection: str | None = None,
+        exchange_scopes: list[str] | None = None,
     ) -> TokenResponse:
         """Attempts to get a refreshed token for the user with the given scopes
 
         :param context: The turn context for the current turn of conversation.
         :type context: TurnContext
         :param exchange_connection: Optional name of the connection to use for token exchange. If None, default connection will be used.
-        :type exchange_connection: Optional[str], Optional
+        :type exchange_connection: str | None
         :param exchange_scopes: Optional list of scopes to request during token exchange. If None, default scopes will be used.
-        :type exchange_scopes: Optional[list[str]], Optional
+        :type exchange_scopes: list[str] | None
         """
         with spans.AgenticToken(
             auth_handler_id=self._id,
@@ -211,6 +209,6 @@ class AgenticUserAuthorization(_AuthorizationHandler):
             return await self.get_agentic_user_token(context, exchange_scopes)
 
     async def sign_out(
-        self, context: TurnContext, auth_handler_id: Optional[str] = None
+        self, context: TurnContext, auth_handler_id: str | None = None
     ) -> None:
         """Nothing to do for agentic sign out."""

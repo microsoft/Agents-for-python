@@ -4,7 +4,7 @@ Licensed under the MIT License.
 """
 
 import logging
-from typing import Optional, Callable, Awaitable, cast
+from typing import Callable, Awaitable, cast
 from dataclasses import dataclass
 
 from azure.core.credentials_async import AsyncTokenCredential
@@ -44,6 +44,10 @@ AUTHORIZATION_TYPE_MAP = {
     "agenticuserauthorization": AgenticUserAuthorization,
     "connectoruserauthorization": ConnectorUserAuthorization,
 }
+
+def _update_auth_type_map(handler_class: type[_AuthorizationHandler]) -> None:
+    type_name = handler_class.__name__.lower()
+    AUTHORIZATION_TYPE_MAP[type_name] = handler_class
 
 
 @dataclass(frozen=True)
@@ -91,12 +95,8 @@ class Authorization:
         self._storage = storage
         self._connection_manager = connection_manager
 
-        self._sign_in_success_handler: Optional[
-            Callable[[TurnContext, TurnState, str | None], Awaitable[None]]
-        ] = None
-        self._sign_in_failure_handler: Optional[
-            Callable[[TurnContext, TurnState, str | None], Awaitable[None]]
-        ] = None
+        self._sign_in_success_handler: Callable[[TurnContext, TurnState, str | None], Awaitable[None]] | None = None
+        self._sign_in_failure_handler: Callable[[TurnContext, TurnState, str | None], Awaitable[None]] | None = None
 
         self._handlers = {}
 
