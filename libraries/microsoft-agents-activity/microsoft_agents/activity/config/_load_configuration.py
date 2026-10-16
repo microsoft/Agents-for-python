@@ -9,7 +9,7 @@ from .configuration import Configuration
 
 def load_configuration_from_env(env_vars: Mapping[str, Any]) -> Configuration:
     """
-    Parses environment variables and returns a dictionary with the relevant configuration.
+    Parses environment variables and returns a Configuration object with the relevant configuration.
     """
     local_vars = dict(env_vars)
     result = {}
@@ -32,7 +32,8 @@ def load_configuration_from_env(env_vars: Mapping[str, Any]) -> Configuration:
     _configure_logging(result.get("LOGGING", {}))
 
     return Configuration({
-        "AgentApplication": result.get("AGENTAPPLICATION", {}),
-        "Connections": result.get("CONNECTIONS", {}),
-        "ConnectionsMap": result.get("CONNECTIONSMAP", []),
+        "AgentApplication": result.pop("AGENTAPPLICATION", {}),
+        "Connections": result.pop("CONNECTIONS", {}),
+        "ConnectionsMap": result.pop("CONNECTIONSMAP", []),
+        **result
     })
