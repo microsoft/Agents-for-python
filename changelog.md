@@ -12,6 +12,7 @@
 ## Major Features & Enhancements
 
 - **Outbound Host Validation Hardening**: Enhanced `OutboundHostValidator` with HTTPS-only URL enforcement, DNS resolution validation for public and optionally private network addresses, and an SSRF-aware `aiohttp` connector that validates resolved IPv4 and IPv6 addresses before connecting.
+- **Channel-Aware Route Selectors**: Added reusable route selectors, optional `channel_id` filtering to `AgentApplication` route hooks, and Teams-channel scoping for direct `TeamsAgentExtension` routes.
 
 ## Deprecation
 
