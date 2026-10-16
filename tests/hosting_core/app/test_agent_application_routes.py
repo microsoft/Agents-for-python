@@ -40,7 +40,9 @@ def _make_app() -> AgentApplication[TurnState]:
 
 
 def _make_activity(channel_id: str = "test", **kwargs) -> Activity:
+def _make_activity(channel_id: str = "test", **kwargs) -> Activity:
     return Activity(
+        channel_id=channel_id,
         channel_id=channel_id,
         conversation={"id": "conv1"},
         from_property={"id": "user1"},
