@@ -641,7 +641,6 @@ class AgentApplication(Agent, Generic[StateT]):
 
         def __selector(context: TurnContext):
             if not _simple_selector(context):
-            if not _simple_selector(context):
                 return False
 
             if update_type == "membersAdded":

@@ -220,12 +220,6 @@ class TeamsAgentExtension(Generic[StateT]):
                 channel_id=Channels.msteams,
                 **kwargs,
             )
-            self._app.activity(
-                activity_type,
-                auth_handlers=auth_handlers,
-                channel_id=Channels.msteams,
-                **kwargs,
-            )
         )
 
     def message(
