@@ -933,10 +933,9 @@ class AgentApplication(Agent, Generic[StateT]):
         :param kwargs: Additional route configuration passed to :meth:`microsoft_agents.hosting.core.AgentApplication.add_route`.
         """
 
-        if "is_invoke" in kwargs:
-            if kwargs["is_invoke"] is False:
-                raise ValueError("Cannot set is_invoke to False for an invoke handler.")
-            del kwargs["is_invoke"]
+        if kwargs.get("is_invoke") is False:
+            raise ValueError("Cannot set is_invoke to False for an invoke handler.")
+        kwargs["is_invoke"] = True
 
         selector = _all_selector(
             _invoke_event_selector("handoff/action"),
