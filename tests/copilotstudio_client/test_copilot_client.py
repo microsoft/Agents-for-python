@@ -5,6 +5,7 @@ from contextlib import asynccontextmanager
 from microsoft_agents.activity import Activity
 
 from microsoft_agents.copilotstudio.client import (
+    AgentType,
     ConnectionSettings,
     CopilotClient,
     PowerPlatformEnvironment,
@@ -23,6 +24,7 @@ async def test_copilot_client_error(mocker):
     connection_settings = ConnectionSettings(
         "environment-id",
         "agent-id",
+        direct_connect_url="https://api.copilotstudio.com/bot",
         client_session_settings={"base_url": "https://api.copilotstudio.com"},
     )
 
@@ -54,6 +56,7 @@ async def test_copilot_client_basic(mocker):
     connection_settings = ConnectionSettings(
         "environment-id",
         "agent-id",
+        direct_connect_url="https://api.copilotstudio.com/bot",
         client_session_settings={"base_url": "https://api.copilotstudio.com"},
     )
 
@@ -101,6 +104,7 @@ async def test_copilot_client_start_with_request(mocker):
     connection_settings = ConnectionSettings(
         "environment-id",
         "agent-id",
+        direct_connect_url="https://api.copilotstudio.com/bot",
         client_session_settings={"base_url": "https://api.copilotstudio.com"},
     )
 
@@ -153,6 +157,7 @@ async def test_copilot_client_send_activity(mocker):
     connection_settings = ConnectionSettings(
         "environment-id",
         "agent-id",
+        direct_connect_url="https://api.copilotstudio.com/bot",
         client_session_settings={"base_url": "https://api.copilotstudio.com"},
     )
 
@@ -202,6 +207,7 @@ async def test_copilot_client_execute(mocker):
     connection_settings = ConnectionSettings(
         "environment-id",
         "agent-id",
+        direct_connect_url="https://api.copilotstudio.com/bot",
         client_session_settings={"base_url": "https://api.copilotstudio.com"},
     )
 
@@ -252,6 +258,7 @@ async def test_copilot_client_subscribe(mocker):
     connection_settings = ConnectionSettings(
         "environment-id",
         "agent-id",
+        direct_connect_url="https://api.copilotstudio.com/bot",
         client_session_settings={"base_url": "https://api.copilotstudio.com"},
     )
 
@@ -513,6 +520,7 @@ async def test_enable_diagnostics_logging(mocker, caplog):
     connection_settings = ConnectionSettings(
         "environment-id",
         "agent-id",
+        direct_connect_url="https://api.copilotstudio.com/bot",
         client_session_settings={"base_url": "https://api.copilotstudio.com"},
         enable_diagnostics=True,
     )
@@ -570,6 +578,7 @@ async def test_experimental_endpoint_capture(mocker):
     connection_settings = ConnectionSettings(
         "environment-id",
         "agent-id",
+        copilot_agent_type=AgentType.PREBUILT,
         client_session_settings={"base_url": "https://api.copilotstudio.com"},
         use_experimental_endpoint=True,
     )
@@ -630,6 +639,7 @@ async def test_experimental_endpoint_not_captured_when_disabled(mocker):
     connection_settings = ConnectionSettings(
         "environment-id",
         "agent-id",
+        copilot_agent_type=AgentType.PREBUILT,
         client_session_settings={"base_url": "https://api.copilotstudio.com"},
         use_experimental_endpoint=False,
     )

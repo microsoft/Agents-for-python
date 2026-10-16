@@ -1,13 +1,23 @@
 # Copyright (c) Microsoft Corporation. All rights reserved.
 # Licensed under the MIT License.
 
-import aiohttp
+import asyncio
+import json
 import logging
 from typing import AsyncIterable, Optional
 
+import aiohttp
+
 from microsoft_agents.activity import Activity, ActivityTypes, ConversationAccount
 
+from ._conversation_endpoint_discovery import (
+    ConversationEndpoints,
+    ConversationOperation,
+    get_discovery_url,
+)
+from .agent_type import AgentType
 from .connection_settings import ConnectionSettings
+from .errors import copilot_studio_errors
 from .execute_turn_request import ExecuteTurnRequest
 from .power_platform_environment import PowerPlatformEnvironment
 from .start_request import StartRequest
@@ -34,6 +44,91 @@ class CopilotClient:
         self._logger = logging.getLogger(__name__)
         self.conversation_id = ""
         self._island_experimental_url = ""
+        self._discovery_lock = asyncio.Lock()
+        self._discovered_direct_connect_url: Optional[str] = None
+        self._discovered_endpoints: Optional[ConversationEndpoints] = None
+
+    async def _resolve_connection_url(
+        self, conversation_id: Optional[str] = None, subscribe: bool = False
+    ) -> str:
+        if (
+            self.settings.copilot_agent_type != AgentType.PREBUILT
+            and not self.settings.direct_connect_url
+        ):
+            async with self._discovery_lock:
+                if (
+                    self.settings.copilot_agent_type != AgentType.PREBUILT
+                    and not self.settings.direct_connect_url
+                ):
+                    endpoints = await self._discover_endpoints()
+                    if (
+                        self.settings.copilot_agent_type != AgentType.PREBUILT
+                        and not self.settings.direct_connect_url
+                    ):
+                        self._discovered_endpoints = endpoints
+                        self._discovered_direct_connect_url = (
+                            endpoints.create_conversation
+                        )
+                        self.settings.direct_connect_url = endpoints.create_conversation
+
+        if (
+            self.settings.copilot_agent_type != AgentType.PREBUILT
+            and self._discovered_endpoints is not None
+            and self.settings.direct_connect_url == self._discovered_direct_connect_url
+        ):
+            operation: ConversationOperation = (
+                "subscribe"
+                if subscribe
+                else "executeTurn" if conversation_id else "createConversation"
+            )
+            return self._discovered_endpoints.get_url(operation, conversation_id)
+        return PowerPlatformEnvironment.get_copilot_studio_connection_url(
+            settings=self.settings,
+            conversation_id=conversation_id,
+            create_subscribe_link=subscribe,
+        )
+
+    async def _discover_endpoints(self) -> ConversationEndpoints:
+        if not self._token or not self._token.strip():
+            raise ValueError(str(copilot_studio_errors.DiscoveryAccessTokenRequired))
+
+        url = get_discovery_url(self.settings)
+        headers = {
+            "Authorization": f"Bearer {self._token}",
+            "Accept": self.APPLICATION_JSON_TYPE,
+            "User-Agent": UserAgentHelper.get_user_agent_header(),
+        }
+        if self.settings.enable_diagnostics:
+            self._logger.debug(">>> SEND TO %s", url)
+
+        async with aiohttp.ClientSession(
+            **self.settings.client_session_settings
+        ) as session:
+            async with session.get(
+                url, headers=headers, allow_redirects=False
+            ) as response:
+                if response.status != 200:
+                    self._logger.error(
+                        "Error discovering conversation endpoints: %s", response.status
+                    )
+                    raise aiohttp.ClientResponseError(
+                        response.request_info,
+                        response.history,
+                        status=response.status,
+                        message="Error discovering conversation endpoints",
+                        headers=response.headers,
+                    )
+                try:
+                    data = await response.json()
+                except (
+                    json.JSONDecodeError,
+                    UnicodeDecodeError,
+                    aiohttp.ContentTypeError,
+                ) as exc:
+                    raise ValueError(
+                        str(copilot_studio_errors.InvalidDiscoveryResponse)
+                    ) from exc
+                return ConversationEndpoints.from_response(data, url)
 
     async def post_request(
         self, url: str, data: dict, headers: dict
@@ -112,9 +207,7 @@ class CopilotClient:
         :return: An asynchronous iterable of Activity objects received in the response.
         """
 
-        url = PowerPlatformEnvironment.get_copilot_studio_connection_url(
-            settings=self.settings
-        )
+        url = await self._resolve_connection_url()
         data = {"emitStartConversationEvent": emit_start_conversation_event}
         headers = {
             "Content-Type": self.APPLICATION_JSON_TYPE,
@@ -164,9 +257,7 @@ class CopilotClient:
             activity.conversation.id or self._current_conversation_id
         )
 
-        url = PowerPlatformEnvironment.get_copilot_studio_connection_url(
-            settings=self.settings, conversation_id=local_conversation_id
-        )
+        url = await self._resolve_connection_url(local_conversation_id)
         data = ExecuteTurnRequest(activity=activity).model_dump(
             mode="json", by_alias=True, exclude_unset=True
         )
@@ -188,9 +279,7 @@ class CopilotClient:
         :return: An asynchronous iterable of Activity objects received in the response.
         """
 
-        url = PowerPlatformEnvironment.get_copilot_studio_connection_url(
-            settings=self.settings
-        )
+        url = await self._resolve_connection_url()
         data = start_request.model_dump(mode="json", by_alias=True, exclude_unset=True)
         headers = {
             "Content-Type": self.APPLICATION_JSON_TYPE,
@@ -249,12 +338,7 @@ class CopilotClient:
         if not conversation_id:
             raise ValueError("CopilotClient.subscribe: conversation_id cannot be None")
 
-        # Build the subscribe URL using the environment helper to ensure correct path and query handling
-        url = PowerPlatformEnvironment.get_copilot_studio_connection_url(
-            settings=self.settings,
-            conversation_id=conversation_id,
-            create_subscribe_link=True,
-        )
+        url = await self._resolve_connection_url(conversation_id, subscribe=True)
         headers = {
             "Content-Type": self.APPLICATION_JSON_TYPE,
             "Authorization": f"Bearer {self._token}",

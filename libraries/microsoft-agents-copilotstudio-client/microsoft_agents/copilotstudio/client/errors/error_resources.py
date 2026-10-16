@@ -52,6 +52,31 @@ class CopilotStudioErrorResources:
         -65006,
     )
 
+    InvalidDiscoveryResponse = ErrorMessage(
+        "Conversation endpoint discovery returned an invalid JSON object.",
+        -65007,
+    )
+
+    InvalidDiscoveryOperationUrl = ErrorMessage(
+        "Conversation endpoint discovery returned an invalid operation URL.",
+        -65008,
+    )
+
+    DiscoveryConversationIdRequired = ErrorMessage(
+        "A conversation ID is required for this operation.",
+        -65009,
+    )
+
+    DiscoverySubscribeNotSupported = ErrorMessage(
+        "The agent does not advertise a subscribe endpoint.",
+        -65010,
+    )
+
+    DiscoveryAccessTokenRequired = ErrorMessage(
+        "A non-empty access token is required for conversation endpoint discovery.",
+        -65011,
+    )
+
     def __init__(self):
         """Initialize CopilotStudioErrorResources."""
         pass
