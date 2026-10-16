@@ -120,6 +120,10 @@ class AgentAuthConfiguration:
     # not directly access _connections.
     _connections: dict[str, AgentAuthConfiguration]
 
+    @staticmethod
+    def from_dict(config: dict[str, Any]) -> AgentAuthConfiguration:
+        return AgentAuthConfiguration(**config)
+
     def __init__(
         self,
         auth_type: AuthTypes | None = None,

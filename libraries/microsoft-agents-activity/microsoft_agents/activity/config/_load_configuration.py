@@ -4,9 +4,10 @@
 from typing import Any, Mapping
 
 from ._configure_logging import _configure_logging
+from .configuration import Configuration
 
 
-def load_configuration_from_env(env_vars: Mapping[str, Any]) -> dict:
+def load_configuration_from_env(env_vars: Mapping[str, Any]) -> Configuration:
     """
     Parses environment variables and returns a dictionary with the relevant configuration.
     """
@@ -30,8 +31,8 @@ def load_configuration_from_env(env_vars: Mapping[str, Any]) -> dict:
 
     _configure_logging(result.get("LOGGING", {}))
 
-    return {
-        "AGENTAPPLICATION": result.get("AGENTAPPLICATION", {}),
-        "CONNECTIONS": result.get("CONNECTIONS", {}),
-        "CONNECTIONSMAP": result.get("CONNECTIONSMAP", []),
-    }
+    return Configuration({
+        "AgentApplication": result.get("AGENTAPPLICATION", {}),
+        "Connections": result.get("CONNECTIONS", {}),
+        "ConnectionsMap": result.get("CONNECTIONSMAP", []),
+    })
