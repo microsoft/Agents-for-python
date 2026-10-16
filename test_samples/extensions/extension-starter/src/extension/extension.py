@@ -1,4 +1,5 @@
 import logging
+import re
 from typing import Callable, Generic, TypeVar
 
 from microsoft_agents.activity import Activity, ActivityTypes, InvokeResponse
@@ -35,47 +36,36 @@ class ExtensionAgent(Generic[StateT]):
         """
         self.app = app
 
-    # Allowing event decorators to accept **kwargs and passing
-    # **kwargs to app.add_route is recommended.
+    # Forward route options to the application's decorators.
     def _on_message_has_hello_event(
         self,
         **kwargs,
     ) -> Callable[[CustomRouteHandler[StateT]], RouteHandler[StateT]]:
         """Decorator for message activities that contain the word 'hello'.
 
-        This demonstrates a custom event selector and handler that extracts
-        additional data from the activity and passes it to the handler.
+        This uses the application's regex message selector and wraps the handler
+        to extract additional data from the activity.
 
-        :param kwargs: Additional keyword arguments to pass to app.add_route.
+        :param kwargs: Additional keyword arguments to pass to app.message.
         :return: A decorator that registers the route handler.
 
         Usage:
             @extension_agent.on_message_has_hello_event()
             async def handle_hello_event(context: TurnContext, state: StateT, event_data: CustomEventData):
-                await context.send_activity(f"Hello! You said: {event_data.text}")
+                await context.send_activity(f"Hello! User ID: {event_data.user_id}")
         """
 
-        # the function the AgentApplication uses to determine if this route should be called
-        def route_selector(context: TurnContext) -> bool:
-            return (
-                context.activity.type == ActivityTypes.message
-                and "hello" in context.activity.text.lower()
-            )
-
-        # the function that wraps the user's handler to extract custom data
-        def create_handler(handler: CustomRouteHandler[StateT]) -> RouteHandler[StateT]:
-            async def route_handler(context: TurnContext, state: StateT):
-                custom_event_data = CustomEventData.from_context(context)
-                await handler(context, state, custom_event_data)
-
-            return route_handler
-
-        # the decorator that registers the route handler with the app
         def __call(func: CustomRouteHandler[StateT]) -> RouteHandler[StateT]:
             logger.debug("Registering route for message has hello event")
-            handler = create_handler(func)
-            self.app.add_route(route_selector, handler, **kwargs)
-            return handler
+
+            @self.app.message(
+                re.compile(r".*hello.*", re.IGNORECASE | re.DOTALL), **kwargs
+            )
+            async def route_handler(context: TurnContext, state: StateT):
+                custom_event_data = CustomEventData.from_context(context)
+                await func(context, state, custom_event_data)
+
+            return route_handler
 
         return __call
 
@@ -99,33 +89,27 @@ class ExtensionAgent(Generic[StateT]):
     ) -> Callable[[CustomRouteHandler[StateT]], RouteHandler[StateT]]:
         """Decorator for invoke activities with a specific custom event type.
 
-        This demonstrates a custom event selector and handler that extracts
-        additional data from the activity and passes it to the handler.
+        This uses the application's channel-scoped invoke selector and wraps
+        the handler to extract custom data and send an invoke response.
 
         :param custom_event_type: The custom event type to listen for.
-        :param kwargs: Additional keyword arguments to pass to app.add_route.
+        :param kwargs: Additional keyword arguments to pass to app.invoke.
         :return: A decorator that registers the route handler.
         Usage:
             @extension_agent.on_invoke_custom_event("my_custom_event")
             async def handle_custom_event(context: TurnContext, state: StateT, event_data: CustomEventData):
-                await context.send_activity(f"Received custom event with data: {event_data.data}")
-                return CustomEventResult(success=True)
+                return CustomEventResult(user_id=event_data.user_id, field=event_data.field)
         """
 
-        # the function the AgentApplication uses to determine if this route should be called
-        def route_selector(context: TurnContext) -> bool:
-            return (
-                context.activity.type == ActivityTypes.invoke
-                and context.activity.channel_id == MY_CHANNEL
-                and context.activity.name == f"invoke/{custom_event_type}"
-            )
+        def __call(func: CustomRouteHandler[StateT]) -> RouteHandler[StateT]:
+            logger.debug("Registering route for custom event")
 
-        # the function that wraps the user's handler to extract custom data
-        # it also sends back an invoke response with the handler's result
-        def create_handler(handler: CustomRouteHandler) -> RouteHandler[StateT]:
+            @self.app.invoke(
+                f"invoke/{custom_event_type}", channel_id=MY_CHANNEL, **kwargs
+            )
             async def route_handler(context: TurnContext, state: StateT):
                 custom_event_data = CustomEventData.from_context(context)
-                result = await handler(context, state, custom_event_data)
+                result = await func(context, state, custom_event_data)
                 if not result:
                     result = CustomEventResult()
 
@@ -140,12 +124,5 @@ class ExtensionAgent(Generic[StateT]):
                 await context.send_activity(response)
 
             return route_handler
-
-        # the decorator that registers the route handler with the app
-        def __call(func: CustomRouteHandler[StateT]) -> RouteHandler[StateT]:
-            logger.debug("Registering route for custom event")
-            handler = create_handler(func)
-            self.app.add_route(route_selector, handler, is_invoke=True, **kwargs)
-            return handler
 
         return __call
