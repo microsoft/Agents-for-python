@@ -209,6 +209,28 @@ def create_client():
     return copilot_client
 ```
 
+#### Conversation Endpoint Discovery
+
+For published agents without a `direct_connect_url`, the client first sends an
+authenticated `GET` to
+`https://<environment-host>/copilotstudio/agents/<escaped-schema-name>/conversation-endpoints`.
+The host is selected from the configured environment and cloud. Discovery uses the
+client's bearer token and the configured `client_session_settings`.
+
+The client validates all advertised endpoints before storing them and uses each
+operation URL as returned, preserving its query string and escaping conversation
+IDs when substituting `{conversationId}`. `createConversation`, `executeTurn`, and
+`continueTurn` are required; `subscribe` is optional and subscription fails
+explicitly when the agent does not advertise it. The client has no continue-turn
+operation.
+
+Successful discovery is reused for the lifetime of the client, with concurrent
+calls coordinated to avoid duplicate initialization. Failures and cancellation
+allow a later call to retry. The discovered create URL is written to
+`settings.direct_connect_url`; clearing that value triggers discovery again.
+Assigning a different explicit URL switches back to legacy direct-URL routing.
+Explicit direct URLs and prebuilt agents bypass discovery entirely.
+
 #### DirectConnect URL Mode (Simplified Setup)
 
 For simplified setup, you can use a DirectConnect URL instead of environment-based configuration:
