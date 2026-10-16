@@ -15,32 +15,20 @@ from typing import (
     overload,
 )
 
-class __MISSING:
+class _MISSING_CLS:
     pass
-_MISSING = __MISSING()
+_MISSING = _MISSING_CLS()
 
 T = TypeVar("T")
-_IConfiguration = Callable[[Mapping], T]
+
+class _IConfigurationCls(Protocol, Generic[T]):
+    def __init__(self: T, config: Mapping) -> None:
+        ...
 
 class _IConfigurationFactory(Protocol, Generic[T]):
     def __call__(self, config: Mapping) -> T:
         ...
-
-_KNOWN_CONFIG_PATH_TYPES: dict[str, type] = {}
-
-def _register_known_config_class(cls: type, field_name: str, *, overwrite: bool = False) -> None:
-    """Internal. Register a known configuration class for a specific field name.
-    
-    :param cls: The configuration class to register.
-    :param field_name: The field name for which the class is registered.
-    :param overwrite: Whether to overwrite an existing registration.
-    """
-    if field_name in _KNOWN_CONFIG_PATH_TYPES and not overwrite:
-        raise ValueError(f"Configuration path type for '{field_name}' is already registered.")
-    if ("*." + field_name) in _KNOWN_CONFIG_PATH_TYPES and not overwrite:
-        raise ValueError(f"Configuration path type for '*.{field_name}' is already registered.")
-    _KNOWN_CONFIG_PATH_TYPES[field_name] = cls
-
+        
 # def _missing(val: Any) -> TypeGuard[__MISSING]:
 #     return isinstance(val, __MISSING)
 
@@ -53,7 +41,7 @@ class Configuration(dict):
         :param original: The original mapping to initialize the configuration from.
         :param _base_path: The base path for resolving nested configuration keys.
         """
-        super().__init__(original, **kwargs)
+        self.__dict__ = original.__dict__
         self._base_path = _base_path or ""
 
     def _resolve_path(self, key: str) -> str:
@@ -81,32 +69,13 @@ class Configuration(dict):
                 return new_val
         raise TypeError(f"Value for key {key} is not of type {cls.__name__} and could not be converted.")
 
-    def _get_typed_and_replace(self, key: str, val: Any, *, cls: type[T], factory: Callable[[Any], T] | None = None) -> T:
-        """Apply a function to a value and replace the original value with the result."""
-        new_val = self._get_typed(key, val, cls=cls, factory=factory)
-        self[key] = new_val
-        return new_val
-
-    def _resolve_known_type(self, key: str) -> type | None:
-        """Resolve the known configuration type for a given key.
-
-        :param key: The key for which to resolve the known configuration type.
-        :return: The known configuration type for the given key, or None if not found.
-        """
-        current_path = self._resolve_path(key)
-        if current_path in _KNOWN_CONFIG_PATH_TYPES:
-            return _KNOWN_CONFIG_PATH_TYPES[current_path]
-        if "*." + key in _KNOWN_CONFIG_PATH_TYPES:
-            return _KNOWN_CONFIG_PATH_TYPES["*." + key]
-        return None
-
     @overload
-    def get_section(self, section: str, default: Configuration | __MISSING) -> Configuration:
+    def get_section(self, section: str, default: Configuration | _MISSING_CLS = _MISSING) -> Configuration:
         ...
     @overload
     def get_section(self, section: str, default: None) -> Configuration | None:
         ...
-    def get_section(self, section: str, default: Configuration | None | __MISSING = _MISSING) -> Configuration | None:
+    def get_section(self, section: str, default: Configuration | None | _MISSING_CLS = _MISSING) -> Configuration | None:
         """Retrieve a section of the configuration, returning it as a Configuration object.
         
         :param section: The name of the section to retrieve.
@@ -117,30 +86,31 @@ class Configuration(dict):
         """
         val = self._get(section)
         if val is _MISSING:
-            if isinstance(default, __MISSING):
+            if isinstance(default, _MISSING_CLS):
                 raise KeyError(section)
             return default
 
-        if isinstance(val, Mapping):
-            if not self._resolve_known_type(section):
-                return self._get_typed_and_replace(section, val, cls=Configuration, factory=Configuration)
-            else:
-                return Configuration(val, _base_path=self._resolve_path(section))
+        if isinstance(val, Configuration) and val._base_path == self._resolve_path(section):
+            return val
+        elif isinstance(val, Configuration):
+            return Configuration(val, _base_path=self._resolve_path(section))
+        elif isinstance(val, Mapping):
+            return  Configuration(val, _base_path=self._resolve_path(section))
         raise TypeError(f"Section {section} is not a mapping")
 
     @overload
-    def get_typed(self, _type: type[T], key: str | None = None, *, factory: _IConfigurationFactory, default: __MISSING = _MISSING) -> T:
+    def get_typed(self, _type: type[T], key: str | None = None, *, factory: _IConfigurationFactory, default: _MISSING_CLS = _MISSING) -> T:
         ...
     @overload
-    def get_typed(self, _type: type[T], key: str | None = None, *, factory: _IConfigurationFactory, default: T | None | __MISSING = None) -> T | None:
+    def get_typed(self, _type: type[T], key: str | None = None, *, factory: _IConfigurationFactory, default: T | None) -> T | None:
         ...
     @overload
-    def get_typed(self, _type: type[T], key: str | None = None, *, factory: _IConfigurationFactory | None, default: T | __MISSING) -> T:
+    def get_typed(self, _type: type[T], key: str | None = None, *, factory: _IConfigurationFactory | None, default: T | _MISSING_CLS) -> T:
         ...
     @overload
-    def get_typed(self, _type: type[_IConfigurationFactory], key: str | None = None, *, factory: None = None, default: T | None | __MISSING = _MISSING) -> T | None:
+    def get_typed(self, _type: type[_IConfigurationCls], key: str | None = None, *, factory: None = None, default: T | None | _MISSING_CLS = _MISSING) -> T | None:
         ...
-    def get_typed(self, _type: type[T | _IConfigurationFactory], key: str | None = None, *, factory: _IConfigurationFactory | None = None, default: T | None | __MISSING = _MISSING) -> T | None:
+    def get_typed(self, _type: type[T | _IConfigurationCls], key: str | None = None, *, factory: _IConfigurationFactory | None = None, default: T | None | _MISSING_CLS = _MISSING) -> T | None:
         """Retrieve a typed value from the configuration, converting it to the specified class if necessary.
 
         :param _type: The expected type of the section.
@@ -158,12 +128,12 @@ class Configuration(dict):
 
         key = key or _type.__name__
         val = self._get(key)
-        if isinstance(val, __MISSING):
-            if isinstance(default, __MISSING):
+        if isinstance(val, _MISSING_CLS):
+            if isinstance(default, _MISSING_CLS):
                 raise KeyError(key)
             return default
 
         try:
-            self._get_typed_and_replace(key, val, cls=_type, factory=factory)
+            return self._get_typed(key, val, cls=_type, factory=factory)
         except Exception as e:
             raise TypeError(f"Failed to convert section {key} using factory {factory}: {e}")
