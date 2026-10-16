@@ -22,6 +22,7 @@ from microsoft_agents.hosting.core.app._type_defs import (
     StateT,
     _RouteDecorator,
 )
+from microsoft_agents.hosting.core.app._selector import _invoke_event_selector
 
 from microsoft_agents.hosting.msteams.teams_turn_context import TeamsTurnContext
 
@@ -151,11 +152,7 @@ class MessageExtension(Generic[StateT]):
         :return: The registered handler when provided, otherwise a decorator that registers it.
         """
 
-        def __selector(context: TurnContext) -> bool:
-            return (
-                context.activity.type == ActivityTypes.invoke
-                and context.activity.name == "composeExtension/selectItem"
-            )
+        __selector = _invoke_event_selector("composeExtension/selectItem")
 
         def __call(func: SelectItemHandler[StateT]) -> SelectItemHandler[StateT]:
             async def __handler(context: TurnContext, state: StateT) -> None:
@@ -400,11 +397,7 @@ class MessageExtension(Generic[StateT]):
         :return: The registered handler when provided, otherwise a decorator that registers it.
         """
 
-        def __selector(context: TurnContext) -> bool:
-            return (
-                context.activity.type == ActivityTypes.invoke
-                and context.activity.name == "composeExtension/queryLink"
-            )
+        __selector = _invoke_event_selector("composeExtension/queryLink")
 
         def __call(func: QueryLinkHandler[StateT]) -> QueryLinkHandler[StateT]:
             async def __handler(context: TurnContext, state: StateT) -> None:
@@ -452,11 +445,7 @@ class MessageExtension(Generic[StateT]):
         :return: The registered handler when provided, otherwise a decorator that registers it.
         """
 
-        def __selector(context: TurnContext) -> bool:
-            return (
-                context.activity.type == ActivityTypes.invoke
-                and context.activity.name == "composeExtension/anonymousQueryLink"
-            )
+        __selector = _invoke_event_selector("composeExtension/anonymousQueryLink")
 
         def __call(func: QueryLinkHandler[StateT]) -> QueryLinkHandler[StateT]:
             async def __handler(context: TurnContext, state: StateT) -> None:
@@ -506,11 +495,7 @@ class MessageExtension(Generic[StateT]):
         :return: The registered handler when provided, otherwise a decorator that registers it.
         """
 
-        def __selector(context: TurnContext) -> bool:
-            return (
-                context.activity.type == ActivityTypes.invoke
-                and context.activity.name == "composeExtension/querySettingUrl"
-            )
+        __selector = _invoke_event_selector("composeExtension/querySettingUrl")
 
         def __call(
             func: QueryUrlSettingHandler[StateT],
@@ -560,11 +545,7 @@ class MessageExtension(Generic[StateT]):
         :return: The registered handler when provided, otherwise a decorator that registers it.
         """
 
-        def __selector(context: TurnContext) -> bool:
-            return (
-                context.activity.type == ActivityTypes.invoke
-                and context.activity.name == "composeExtension/setting"
-            )
+        __selector = _invoke_event_selector("composeExtension/setting")
 
         def __call(func: SettingHandler[StateT]) -> SettingHandler[StateT]:
             async def __handler(context: TurnContext, state: StateT) -> None:
@@ -616,11 +597,7 @@ class MessageExtension(Generic[StateT]):
         :return: The registered handler when provided, otherwise a decorator that registers it.
         """
 
-        def __selector(context: TurnContext) -> bool:
-            return (
-                context.activity.type == ActivityTypes.invoke
-                and context.activity.name == "composeExtension/onCardButtonClicked"
-            )
+        __selector = _invoke_event_selector("composeExtension/onCardButtonClicked")
 
         def __call(
             func: CardButtonClickedHandler[StateT],

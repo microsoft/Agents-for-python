@@ -17,6 +17,7 @@ from microsoft_agents.hosting.core.app._type_defs import (
     StateT,
     _RouteDecorator,
 )
+from microsoft_agents.hosting.core.app._selector import _invoke_event_selector
 
 from microsoft_agents.hosting.msteams.route_handlers import (
     TeamsRouteHandler,
@@ -261,12 +262,7 @@ class Message(Generic[StateT]):
         :return: The registered handler, or a decorator when used without a handler.
         """
 
-        def __selector(context: TurnContext) -> bool:
-            """Return True when the activity is an actionable message execute invoke."""
-            return (
-                context.activity.type == ActivityTypes.invoke
-                and context.activity.name == "actionableMessage/executeAction"
-            )
+        __selector = _invoke_event_selector("actionableMessage/executeAction")
 
         def __call(func: ExecuteActionHandler[StateT]) -> ExecuteActionHandler[StateT]:
             """Register the supplied execute action handler."""
