@@ -7,12 +7,14 @@
 
 - **Slack-Aware Turn Context**: Added `SlackTurnContext`, `SlackActivity`, and `SlackRouteHandler` so Slack handlers receive a typed context with direct access to Slack channel data and the per-turn API client.
 - **Route Decorators**: Added typed `SlackAgentExtension.message()` and `.event()` decorators. Deprecated `on_message()` and `on_event()` while retaining them as backward-compatible aliases.
+- **Slack-Scoped Application Route Hooks**: Added `SlackAgentExtension.conversation_update()`, `.members_added()`, `.members_removed()`, and `.installation_update()`, which delegate to the matching `AgentApplication` hooks filtered to the Slack channel.
 - **Typed Model Lookups**: Added a `type_` parameter and typed overloads to `SlackModel.get()` for converting and validating nested values with Pydantic.
 
 ## Major Features & Enhancements
 
 - **Outbound Host Validation Hardening**: Enhanced `OutboundHostValidator` with HTTPS-only URL enforcement, DNS resolution validation for public and optionally private network addresses, and an SSRF-aware `aiohttp` connector that validates resolved IPv4 and IPv6 addresses before connecting.
 - **Channel-Aware Route Selectors**: Added reusable route selectors, optional `channel_id` filtering to `AgentApplication` route hooks, and Teams-channel scoping for direct `TeamsAgentExtension` routes.
+- **New Application Route Hooks**: Added `AgentApplication.event()`, `.invoke()`, `.installation_update()`, `.members_added()`, `.members_removed()`, `.end_of_conversation()`, `.message_reaction_added()`, and `.message_reactions_removed()`; `message()`, `event()`, and `invoke()` accept a string, regex, or list selector, and match everything at `RouteRank.LAST` when the selector is omitted. Added Teams-scoped `TeamsAgentExtension.installation_update()` and `.end_of_conversation()`, plus the Slack-scoped hooks listed above.
 
 ## Deprecation
 

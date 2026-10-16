@@ -14,7 +14,6 @@ from __future__ import annotations
 from typing import (
     Callable,
     Generic,
-    Optional,
     Pattern,
     Protocol,
 )
@@ -34,9 +33,10 @@ from microsoft_agents.hosting.core import (
     TurnContext,
 )
 from microsoft_agents.hosting.core.app._type_defs import (
-    RouteHandler,
     HandoffHandler,
+    RouteHandler,
     StateT,
+    TextSelector,
 )
 
 from .channel import Channel
@@ -204,7 +204,7 @@ class TeamsAgentExtension(Generic[StateT]):
         self,
         activity_type: str | ActivityTypes | list[str | ActivityTypes],
         *,
-        auth_handlers: Optional[list[str]] = None,
+        auth_handlers: list[str] | None = None,
         **kwargs,
     ) -> _AppRouteDecorator[StateT]:
         """Register a handler for one or more activity types.
@@ -226,7 +226,7 @@ class TeamsAgentExtension(Generic[StateT]):
         self,
         select: str | Pattern[str] | list[str | Pattern[str]],
         *,
-        auth_handlers: Optional[list[str]] = None,
+        auth_handlers: list[str] | None = None,
         **kwargs,
     ) -> _AppRouteDecorator[StateT]:
         """Register a handler for message activities matching *select*.
@@ -245,11 +245,34 @@ class TeamsAgentExtension(Generic[StateT]):
             )
         )
 
+    def event(
+        self,
+        select: TextSelector | None = None,
+        *,
+        auth_handlers: list[str] | None = None,
+        **kwargs,
+    ) -> _AppRouteDecorator[StateT]:
+        """Register a handler for event activities matching *select*.
+
+        :param select: A literal string, regex pattern, or list of either to match against
+            the event name.
+        :param auth_handlers: Optional list of auth handler names to run before the route.
+        :return: A decorator that registers the handler and returns it.
+        """
+        return self._wrap_decorator(
+            self._app.event(
+                select,
+                auth_handlers=auth_handlers,
+                channel_id=Channels.msteams,
+                **kwargs,
+            )
+        )
+
     def conversation_update(
         self,
         type: ConversationUpdateTypes,
         *,
-        auth_handlers: Optional[list[str]] = None,
+        auth_handlers: list[str] | None = None,
         **kwargs,
     ) -> _AppRouteDecorator[StateT]:
         """Register a handler for a specific conversation update event type.
@@ -268,7 +291,7 @@ class TeamsAgentExtension(Generic[StateT]):
         self,
         type: MessageReactionTypes,
         *,
-        auth_handlers: Optional[list[str]] = None,
+        auth_handlers: list[str] | None = None,
         **kwargs,
     ) -> _AppRouteDecorator[StateT]:
         """Register a handler for a specific message reaction type.
@@ -287,7 +310,7 @@ class TeamsAgentExtension(Generic[StateT]):
         self,
         type: MessageUpdateTypes,
         *,
-        auth_handlers: Optional[list[str]] = None,
+        auth_handlers: list[str] | None = None,
         **kwargs,
     ) -> _AppRouteDecorator[StateT]:
         """Register a handler for a specific message update event type.
@@ -302,10 +325,44 @@ class TeamsAgentExtension(Generic[StateT]):
             )
         )
 
+    def installation_update(
+        self,
+        *,
+        auth_handlers: list[str] | None = None,
+        **kwargs,
+    ) -> _AppRouteDecorator[StateT]:
+        """Register a handler for installation update activities.
+
+        :param auth_handlers: Optional list of auth handler names to run before the route.
+        :return: A decorator that registers the handler and returns it.
+        """
+        return self._wrap_decorator(
+            self._app.installation_update(
+                auth_handlers=auth_handlers, channel_id=Channels.msteams, **kwargs
+            )
+        )
+
+    def end_of_conversation(
+        self,
+        *,
+        auth_handlers: list[str] | None = None,
+        **kwargs,
+    ) -> _AppRouteDecorator[StateT]:
+        """Register a handler for end of conversation activities.
+
+        :param auth_handlers: Optional list of auth handler names to run before the route.
+        :return: A decorator that registers the handler and returns it.
+        """
+        return self._wrap_decorator(
+            self._app.end_of_conversation(
+                auth_handlers=auth_handlers, channel_id=Channels.msteams, **kwargs
+            )
+        )
+
     def handoff(
         self,
         *,
-        auth_handlers: Optional[list[str]] = None,
+        auth_handlers: list[str] | None = None,
         **kwargs,
     ) -> Callable[[TeamsHandoffHandler[StateT]], HandoffHandler[StateT]]:
         """Register a Teams handoff handler.

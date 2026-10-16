@@ -50,19 +50,21 @@ from .typing_indicator import TypingIndicator
 from .telemetry import spans
 
 from ._type_defs import (
-    RouteHandler,
     HandoffHandler,
-    RouteSelector,
     _RouteDecorator,
+    RouteHandler,
+    RouteSelector,
+    TextSelector,
 )
 from ._routes import _RouteList, _Route, RouteRank, _agentic_selector
 from .proactive import Proactive
 from .adaptive_card import AdaptiveCard
 from ._selector import (
     _SimpleRouteSelector,
-    _invoke_event_selector,
-    _channel_selector,
     _all_selector,
+    _channel_selector,
+    _event_selector,
+    _invoke_event_selector,
 )
 
 logger = logging.getLogger(__name__)
@@ -426,9 +428,113 @@ class AgentApplication(Agent, Generic[StateT]):
 
         return __call
 
+    def installation_update(
+        self,
+        *,
+        channel_id: str | ChannelId | None = None,
+        auth_handlers: list[str] | None = None,
+        **kwargs,
+    ) -> _RouteDecorator[RouteHandler[StateT]]:
+        """
+        Register a handler for installation update activities as either a decorator or a method.
+
+        :param channel_id: Optional channel ID to match the incoming installation update.
+        :type channel_id: str | ChannelId | None
+        :param auth_handlers: Optional list of authorization handler IDs for the route.
+        :type auth_handlers: list[str] | None
+        :param kwargs: Additional route configuration passed to :meth:`microsoft_agents.hosting.core.AgentApplication.add_route`.
+        """
+        return self.activity(
+            ActivityTypes.installation_update,
+            channel_id=channel_id,
+            auth_handlers=auth_handlers,
+            **kwargs,
+        )
+
+    def event(
+        self,
+        select: TextSelector | None = None,
+        *,
+        channel_id: str | ChannelId | None = None,
+        auth_handlers: list[str] | None = None,
+        **kwargs,
+    ) -> _RouteDecorator[RouteHandler[StateT]]:
+        """
+        Register a handler for event activities as either a decorator or a method.
+
+        :param select: Literal text, compiled regex, or list of either used to match the incoming event name. When ``None``, every event matches.
+        :type select: str | re.Pattern[str] | list[str | re.Pattern[str]] | None
+        :param channel_id: Optional channel ID to match the incoming event.
+        :type channel_id: str | ChannelId | None
+        :param auth_handlers: Optional list of authorization handler IDs for the route.
+        :type auth_handlers: list[str] | None
+        :param kwargs: Additional route configuration passed to :meth:`microsoft_agents.hosting.core.AgentApplication.add_route`.
+        """
+
+        if select is None and "rank" not in kwargs:
+            kwargs["rank"] = RouteRank.LAST
+
+        selector = _all_selector(
+            _event_selector(select),
+            _channel_selector(channel_id),
+        )
+
+        def __call(func: RouteHandler[StateT]) -> RouteHandler[StateT]:
+            logger.debug(
+                f"Registering event handler for route handler {func.__name__} with select: {select} with auth handlers: {auth_handlers}"
+            )
+            self.add_route(selector, func, auth_handlers=auth_handlers, **kwargs)
+            return func
+
+        return __call
+
+    def invoke(
+        self,
+        select: TextSelector | None = None,
+        *,
+        channel_id: str | ChannelId | None = None,
+        auth_handlers: list[str] | None = None,
+        **kwargs,
+    ) -> _RouteDecorator[RouteHandler[StateT]]:
+        """
+        Register a handler for invoke activities as either a decorator or a method.
+
+        :param select: Literal text, compiled regex, or list of either used to match the incoming invoke event name. When ``None``, every invoke event matches.
+        :type select: str | re.Pattern[str] | list[str | re.Pattern[str]] | None
+        :param channel_id: Optional channel ID to match the incoming invoke event.
+        :type channel_id: str | ChannelId | None
+        :param auth_handlers: Optional list of authorization handler IDs for the route.
+        :type auth_handlers: list[str] | None
+        :param kwargs: Additional route configuration passed to :meth:`microsoft_agents.hosting.core.AgentApplication.add_route`.
+        """
+
+        if "is_invoke" in kwargs:
+            if kwargs["is_invoke"] is False:
+                raise ValueError("Cannot set is_invoke to False for an invoke handler.")
+            del kwargs["is_invoke"]
+
+        if select is None and "rank" not in kwargs:
+            kwargs["rank"] = RouteRank.LAST
+
+        selector = _all_selector(
+            _invoke_event_selector(select),
+            _channel_selector(channel_id),
+        )
+
+        def __call(func: RouteHandler[StateT]) -> RouteHandler[StateT]:
+            logger.debug(
+                f"Registering invoke handler for route handler {func.__name__} with select: {select} with auth handlers: {auth_handlers}"
+            )
+            self.add_route(
+                selector, func, auth_handlers=auth_handlers, is_invoke=True, **kwargs
+            )
+            return func
+
+        return __call
+
     def message(
         self,
-        select: str | re.Pattern[str] | list[str | re.Pattern[str]],
+        select: TextSelector | None = None,
         *,
         channel_id: str | ChannelId | None = None,
         auth_handlers: list[str] | None = None,
@@ -445,14 +551,17 @@ class AgentApplication(Agent, Generic[StateT]):
                     print("hello!")
                     return True
 
-        :param select: Literal text, compiled regex, or list of either used to match the incoming message.
-        :type select: str | re.Pattern[str] | list[str | re.Pattern[str]]
+        :param select: Literal text, compiled regex, or list of either used to match the incoming message. When ``None``, every message matches.
+        :type select: str | re.Pattern[str] | list[str | re.Pattern[str]] | None
         :param channel_id: Optional channel ID to match the incoming message.
         :type channel_id: str | ChannelId | None
         :param auth_handlers: Optional list of authorization handler IDs for the route.
         :type auth_handlers: list[str] | None
         :param kwargs: Additional route configuration passed to :meth:`microsoft_agents.hosting.core.AgentApplication.add_route`.
         """
+        if select is None and "rank" not in kwargs:
+            kwargs["rank"] = RouteRank.LAST
+
         selector = _SimpleRouteSelector(
             channel_id=channel_id,
             activity_type=ActivityTypes.message,
@@ -532,6 +641,75 @@ class AgentApplication(Agent, Generic[StateT]):
 
         return __call
 
+    def members_added(
+        self,
+        *,
+        channel_id: str | ChannelId | None = None,
+        auth_handlers: list[str] | None = None,
+        **kwargs,
+    ) -> _RouteDecorator[RouteHandler[StateT]]:
+        """
+        Register a handler for members added conversation update activities as either a decorator or a method.
+
+        :param channel_id: Optional channel ID to match the incoming message.
+        :type channel_id: str | ChannelId | None
+        :param auth_handlers: Optional list of authorization handler IDs for the route.
+        :type auth_handlers: list[str] | None
+        :param kwargs: Additional route configuration passed to :meth:`microsoft_agents.hosting.core.AgentApplication.add_route`.
+        """
+        return self.conversation_update(
+            type=ConversationUpdateTypes.MEMBERS_ADDED,
+            channel_id=channel_id,
+            auth_handlers=auth_handlers,
+            **kwargs,
+        )
+
+    def members_removed(
+        self,
+        *,
+        channel_id: str | ChannelId | None = None,
+        auth_handlers: list[str] | None = None,
+        **kwargs,
+    ) -> _RouteDecorator[RouteHandler[StateT]]:
+        """
+        Register a handler for members removed conversation update activities as either a decorator or a method.
+
+        :param channel_id: Optional channel ID to match the incoming message.
+        :type channel_id: str | ChannelId | None
+        :param auth_handlers: Optional list of authorization handler IDs for the route.
+        :type auth_handlers: list[str] | None
+        :param kwargs: Additional route configuration passed to :meth:`microsoft_agents.hosting.core.AgentApplication.add_route`.
+        """
+        return self.conversation_update(
+            type=ConversationUpdateTypes.MEMBERS_REMOVED,
+            channel_id=channel_id,
+            auth_handlers=auth_handlers,
+            **kwargs,
+        )
+
+    def end_of_conversation(
+        self,
+        *,
+        channel_id: str | ChannelId | None = None,
+        auth_handlers: list[str] | None = None,
+        **kwargs,
+    ) -> _RouteDecorator[RouteHandler[StateT]]:
+        """
+        Register a handler for end of conversation activities as either a decorator or a method.
+
+        :param channel_id: Optional channel ID to match the incoming message.
+        :type channel_id: str | ChannelId | None
+        :param auth_handlers: Optional list of authorization handler IDs for the route.
+        :type auth_handlers: list[str] | None
+        :param kwargs: Additional route configuration passed to :meth:`microsoft_agents.hosting.core.AgentApplication.add_route`.
+        """
+        return self.activity(
+            activity_type=ActivityTypes.end_of_conversation,
+            channel_id=channel_id,
+            auth_handlers=auth_handlers,
+            **kwargs,
+        )
+
     def message_reaction(
         self,
         type: MessageReactionTypes | str,
@@ -591,6 +769,50 @@ class AgentApplication(Agent, Generic[StateT]):
             return func
 
         return __call
+
+    def message_reaction_added(
+        self,
+        channel_id: str | ChannelId | None = None,
+        auth_handlers: list[str] | None = None,
+        **kwargs,
+    ) -> _RouteDecorator[RouteHandler[StateT]]:
+        """
+        Register a handler specifically for the "reactionsAdded" message reaction as either a decorator or a method.
+
+        :param channel_id: Optional channel ID to match the incoming message.
+        :type channel_id: str | ChannelId | None
+        :param auth_handlers: Optional list of authorization handler IDs for the route.
+        :type auth_handlers: list[str] | None
+        :param kwargs: Additional route configuration passed to :meth:`microsoft_agents.hosting.core.AgentApplication.add_route`.
+        """
+        return self.message_reaction(
+            "reactionsAdded",
+            channel_id=channel_id,
+            auth_handlers=auth_handlers,
+            **kwargs,
+        )
+
+    def message_reactions_removed(
+        self,
+        channel_id: str | ChannelId | None = None,
+        auth_handlers: list[str] | None = None,
+        **kwargs,
+    ) -> _RouteDecorator[RouteHandler[StateT]]:
+        """
+        Register a handler specifically for the "reactionsRemoved" message reaction as either a decorator or a method.
+
+        :param channel_id: Optional channel ID to match the incoming message.
+        :type channel_id: str | ChannelId | None
+        :param auth_handlers: Optional list of authorization handler IDs for the route.
+        :type auth_handlers: list[str] | None
+        :param kwargs: Additional route configuration passed to :meth:`microsoft_agents.hosting.core.AgentApplication.add_route`.
+        """
+        return self.message_reaction(
+            "reactionsRemoved",
+            channel_id=channel_id,
+            auth_handlers=auth_handlers,
+            **kwargs,
+        )
 
     def message_update(
         self,
@@ -710,6 +932,10 @@ class AgentApplication(Agent, Generic[StateT]):
         :type auth_handlers: list[str] | None
         :param kwargs: Additional route configuration passed to :meth:`microsoft_agents.hosting.core.AgentApplication.add_route`.
         """
+
+        if kwargs.get("is_invoke") is False:
+            raise ValueError("Cannot set is_invoke to False for an invoke handler.")
+        kwargs["is_invoke"] = True
 
         selector = _all_selector(
             _invoke_event_selector("handoff/action"),

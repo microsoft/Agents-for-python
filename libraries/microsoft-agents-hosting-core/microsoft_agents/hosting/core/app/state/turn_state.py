@@ -231,21 +231,6 @@ class TurnState:
         self._scopes[agent_state.__class__.__name__] = agent_state
         return self
 
-    async def load(self, turn_context: TurnContext, force: bool = False) -> None:
-        """
-        Loads all agent state records in parallel.
-
-        Args:
-            turn_context: The turn context.
-            force: Whether data should be forced into cache.
-        """
-        tasks = [
-            bs.load(turn_context, force)
-            for bs in self._scopes.values()
-            if hasattr(bs, "load")
-        ]
-        await asyncio.gather(*tasks)
-
     def clear(self, turn_context: TurnContext, scope: str = None) -> None:
         """
         Clears a state scope.

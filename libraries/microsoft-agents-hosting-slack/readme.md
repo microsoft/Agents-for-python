@@ -56,8 +56,14 @@ async def on_slack_message(context: SlackTurnContext, state: TurnState) -> None:
 ```
 
 Use `@slack.message("hello")` for a specific message or `@slack.event("reaction_added")`
-for a specific event. Both accept compiled regular expressions and match only Slack
-activities. `on_message()` and `on_event()` are deprecated aliases.
+for a specific event. Both accept a string, a compiled regular expression, or a list of
+either, and match only Slack activities. When called without a selector, they match every
+Slack message or event and register at `RouteRank.LAST`, so more specific routes win.
+`on_message()` and `on_event()` are deprecated aliases.
+
+`@slack.conversation_update(...)`, `@slack.members_added()`, `@slack.members_removed()`,
+and `@slack.installation_update()` mirror the corresponding `AgentApplication` route
+hooks, but match only Slack activities and pass a `SlackTurnContext` to the handler.
 
 Handlers receive a `SlackTurnContext` with typed `activity.slack_channel_data` and
 access to the per-turn Slack API client through `context.client`. Envelope, payload,

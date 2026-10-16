@@ -136,3 +136,51 @@ class ChannelId(str):
         channel_id = channel_id.strip()
         parsed = channel_id.split(":", 1)[0].strip() if ":" in channel_id else None
         return parsed or channel_id
+
+    def includes(self, other: str | ChannelId | None) -> bool:
+        """Check whether this channel ID, used as a filter, includes another channel ID.
+
+        The comparison is directional: ``self`` is the filter and ``other`` is the
+        candidate. Matching rules:
+
+        - The channel must be equal, unless this channel is the wildcard ``*``.
+        - A filter without a sub-channel (e.g. ``msteams``) includes the bare channel
+          and every sub-channel of it (e.g. ``msteams:copilot``).
+        - A filter with the wildcard sub-channel (e.g. ``msteams:*``) behaves the same
+          as a filter without a sub-channel.
+        - A filter with a specific sub-channel (e.g. ``msteams:copilot``) includes only
+          that exact sub-channel.
+
+        Comparisons are case-sensitive. ``None`` and invalid candidates are never
+        included.
+
+        Example::
+
+            ChannelId("msteams").includes("msteams:copilot")  # True
+            ChannelId("msteams:copilot").includes("msteams")  # False
+            ChannelId("*").includes("slack")  # True
+
+        :param other: The candidate channel ID to check.
+        :return: True if the candidate is included by this channel ID, False otherwise.
+        """
+
+        if other is None:
+            return False
+
+        candidate: ChannelId
+        try:
+            candidate = ChannelId(other)
+        except Exception:
+            return False
+
+        if self.channel != "*" and self.channel != candidate.channel:
+            return False
+
+        if (
+            self.sub_channel
+            and self.sub_channel != "*"
+            and self.sub_channel != candidate.sub_channel
+        ):
+            return False
+
+        return True
