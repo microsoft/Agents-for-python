@@ -38,9 +38,9 @@ def _make_app() -> AgentApplication[TurnState]:
     )
 
 
-def _make_activity(**kwargs) -> Activity:
+def _make_activity(channel_id: str = "test", **kwargs) -> Activity:
     return Activity(
-        channel_id="test",
+        channel_id=channel_id,
         conversation={"id": "conv1"},
         from_property={"id": "user1"},
         recipient={"id": "bot1"},
@@ -416,3 +416,148 @@ class TestRouteOrdering:
             TurnState(),
         )
         assert self.call_order == ["event", "message"]
+
+
+class TestChannelIdRouteFiltering:
+    def setup_method(self):
+        self.app = _make_app()
+        self.called = False
+
+    @pytest.mark.parametrize(
+        ("incoming_channel_id", "expected"),
+        [("msteams:copilot", True), ("webchat", False)],
+    )
+    @pytest.mark.asyncio
+    async def test_activity_route_filters_by_channel_id(
+        self, incoming_channel_id: str, expected: bool
+    ):
+        @self.app.activity("event", channel_id="msteams")
+        async def handler(context: TurnContext, state: TurnState):
+            self.called = True
+
+        await self.app._on_activity(
+            _make_context(_make_activity(channel_id=incoming_channel_id, type="event")),
+            TurnState(),
+        )
+        assert self.called is expected
+
+    @pytest.mark.parametrize(
+        ("incoming_channel_id", "expected"),
+        [("msteams:copilot", True), ("msteams:meeting", False)],
+    )
+    @pytest.mark.asyncio
+    async def test_message_route_filters_by_exact_subchannel(
+        self, incoming_channel_id: str, expected: bool
+    ):
+        @self.app.message("hello", channel_id="msteams:copilot")
+        async def handler(context: TurnContext, state: TurnState):
+            self.called = True
+
+        await self.app._on_activity(
+            _make_context(
+                _make_activity(
+                    channel_id=incoming_channel_id,
+                    type=ActivityTypes.message,
+                    text="hello",
+                )
+            ),
+            TurnState(),
+        )
+        assert self.called is expected
+
+    @pytest.mark.parametrize(
+        ("incoming_channel_id", "expected"),
+        [("msteams:copilot", True), ("webchat", False)],
+    )
+    @pytest.mark.asyncio
+    async def test_conversation_update_route_filters_by_channel_id(
+        self, incoming_channel_id: str, expected: bool
+    ):
+        @self.app.conversation_update("membersAdded", channel_id="msteams")
+        async def handler(context: TurnContext, state: TurnState):
+            self.called = True
+
+        await self.app._on_activity(
+            _make_context(
+                _make_activity(
+                    channel_id=incoming_channel_id,
+                    type=ActivityTypes.conversation_update,
+                    members_added=[{"id": "new-member"}],
+                )
+            ),
+            TurnState(),
+        )
+        assert self.called is expected
+
+    @pytest.mark.parametrize(
+        ("incoming_channel_id", "expected"),
+        [("msteams:copilot", True), ("msteams:meeting", False)],
+    )
+    @pytest.mark.asyncio
+    async def test_message_reaction_route_filters_by_exact_subchannel(
+        self, incoming_channel_id: str, expected: bool
+    ):
+        @self.app.message_reaction("reactionsAdded", channel_id="msteams:copilot")
+        async def handler(context: TurnContext, state: TurnState):
+            self.called = True
+
+        await self.app._on_activity(
+            _make_context(
+                _make_activity(
+                    channel_id=incoming_channel_id,
+                    type=ActivityTypes.message_reaction,
+                    reactions_added=[{"type": "like"}],
+                )
+            ),
+            TurnState(),
+        )
+        assert self.called is expected
+
+    @pytest.mark.parametrize(
+        ("incoming_channel_id", "expected"),
+        [("msteams:copilot", True), ("webchat", False)],
+    )
+    @pytest.mark.asyncio
+    async def test_message_update_route_filters_by_channel_id(
+        self, incoming_channel_id: str, expected: bool
+    ):
+        @self.app.message_update("editMessage", channel_id="msteams")
+        async def handler(context: TurnContext, state: TurnState):
+            self.called = True
+
+        await self.app._on_activity(
+            _make_context(
+                _make_activity(
+                    channel_id=incoming_channel_id,
+                    type=ActivityTypes.message_update,
+                    channel_data={"event_type": "editMessage"},
+                )
+            ),
+            TurnState(),
+        )
+        assert self.called is expected
+
+    @pytest.mark.parametrize(
+        ("incoming_channel_id", "expected"),
+        [("msteams:copilot", True), ("msteams:meeting", False)],
+    )
+    @pytest.mark.asyncio
+    async def test_handoff_route_filters_by_exact_subchannel(
+        self, incoming_channel_id: str, expected: bool
+    ):
+        @self.app.handoff(channel_id="msteams:copilot")
+        async def handler(context, state, continuation):
+            self.called = True
+
+        await self.app._on_activity(
+            _make_context(
+                _make_activity(
+                    channel_id=incoming_channel_id,
+                    type=ActivityTypes.invoke,
+                    name="handoff/action",
+                    value={"continuation": "cont123"},
+                )
+            ),
+            TurnState(),
+        )
+        assert self.called is expected
