@@ -29,7 +29,6 @@ from microsoft_agents.activity import (
     Activity,
     ActivityTypes,
     ChannelId,
-    ChannelId,
     ConversationUpdateTypes,
     MessageReactionTypes,
     MessageUpdateTypes,
@@ -52,7 +51,6 @@ from .telemetry import spans
 
 from ._type_defs import (
     HandoffHandler,
-    RouteSelector,
     _RouteDecorator,
     RouteHandler,
     RouteSelector,
@@ -114,12 +112,9 @@ class AgentApplication(Agent, Generic[StateT]):
 
         :param options: Configuration options for the application.
         :type options: :class:`microsoft_agents.hosting.core.app.app_options.ApplicationOptions` | None
-        :type options: :class:`microsoft_agents.hosting.core.app.app_options.ApplicationOptions` | None
         :param connection_manager: OAuth connection manager.
         :type connection_manager: :class:`microsoft_agents.hosting.core.authorization.Connections` | None
-        :type connection_manager: :class:`microsoft_agents.hosting.core.authorization.Connections` | None
         :param authorization: Authorization manager for handling authentication flows.
-        :type authorization: :class:`microsoft_agents.hosting.core.app.oauth.Authorization` | None
         :type authorization: :class:`microsoft_agents.hosting.core.app.oauth.Authorization` | None
         :param kwargs: Additional configuration parameters.
         :type kwargs: Any
@@ -360,7 +355,6 @@ class AgentApplication(Agent, Generic[StateT]):
         is_agentic: bool = False,
         rank: RouteRank = RouteRank.DEFAULT,
         auth_handlers: list[str] | None = None,
-        auth_handlers: list[str] | None = None,
     ) -> None:
         """Adds a new route to the application.
 
@@ -378,7 +372,6 @@ class AgentApplication(Agent, Generic[StateT]):
         :param rank: The rank of the route, defaults to RouteRank.DEFAULT
         :type rank: :class:`microsoft_agents.hosting.core.app._routes.route_rank.RouteRank`, Optional
         :param auth_handlers: A list of authentication handler IDs to use for this route, defaults to None
-        :type auth_handlers: list[str] | None, Optional
         :type auth_handlers: list[str] | None, Optional
         :raises ApplicationError: If the selector or handler are not valid.
         """
@@ -402,8 +395,6 @@ class AgentApplication(Agent, Generic[StateT]):
         *,
         channel_id: str | ChannelId | None = None,
         auth_handlers: list[str] | None = None,
-        channel_id: str | ChannelId | None = None,
-        auth_handlers: list[str] | None = None,
         **kwargs,
     ) -> _RouteDecorator[RouteHandler[StateT]]:
         """
@@ -421,13 +412,9 @@ class AgentApplication(Agent, Generic[StateT]):
         :type activity_type: str | microsoft_agents.activity.ActivityTypes | list[str | microsoft_agents.activity.ActivityTypes]
         :param auth_handlers: Optional list of authorization handler IDs for the route.
         :type auth_handlers: list[str] | None
-        :type auth_handlers: list[str] | None
         :param kwargs: Additional route configuration passed to :meth:`microsoft_agents.hosting.core.AgentApplication.add_route`.
         """
 
-        selector = _SimpleRouteSelector(
-            activity_type=activity_type, channel_id=channel_id
-        )
         selector = _SimpleRouteSelector(
             activity_type=activity_type, channel_id=channel_id
         )
@@ -551,8 +538,6 @@ class AgentApplication(Agent, Generic[StateT]):
         *,
         channel_id: str | ChannelId | None = None,
         auth_handlers: list[str] | None = None,
-        channel_id: str | ChannelId | None = None,
-        auth_handlers: list[str] | None = None,
         **kwargs,
     ) -> _RouteDecorator[RouteHandler[StateT]]:
         """
@@ -572,7 +557,6 @@ class AgentApplication(Agent, Generic[StateT]):
         :type channel_id: str | ChannelId | None
         :param auth_handlers: Optional list of authorization handler IDs for the route.
         :type auth_handlers: list[str] | None
-        :type auth_handlers: list[str] | None
         :param kwargs: Additional route configuration passed to :meth:`microsoft_agents.hosting.core.AgentApplication.add_route`.
         """
         if select is None and "rank" not in kwargs:
@@ -589,7 +573,6 @@ class AgentApplication(Agent, Generic[StateT]):
                 f"Registering message handler for route handler {func.__name__} with select: {select} with auth handlers: {auth_handlers}"
             )
             self.add_route(selector, func, auth_handlers=auth_handlers, **kwargs)
-            self.add_route(selector, func, auth_handlers=auth_handlers, **kwargs)
             return func
 
         return __call
@@ -598,8 +581,6 @@ class AgentApplication(Agent, Generic[StateT]):
         self,
         type: ConversationUpdateTypes | str,
         *,
-        channel_id: str | ChannelId | None = None,
-        auth_handlers: list[str] | None = None,
         channel_id: str | ChannelId | None = None,
         auth_handlers: list[str] | None = None,
         **kwargs,
@@ -619,20 +600,12 @@ class AgentApplication(Agent, Generic[StateT]):
         :type type: microsoft_agents.activity.ConversationUpdateTypes | str
         :param channel_id: Optional channel ID to match the incoming message.
         :type channel_id: str | ChannelId | None
-        :param channel_id: Optional channel ID to match the incoming message.
-        :type channel_id: str | ChannelId | None
         :param auth_handlers: Optional list of authorization handler IDs for the route.
-        :type auth_handlers: list[str] | None
         :type auth_handlers: list[str] | None
         :param kwargs: Additional route configuration passed to :meth:`microsoft_agents.hosting.core.AgentApplication.add_route`.
         """
 
         update_type = type.value if isinstance(type, ConversationUpdateTypes) else type
-
-        _simple_selector = _SimpleRouteSelector(
-            activity_type=ActivityTypes.conversation_update,
-            channel_id=channel_id,
-        )
 
         _simple_selector = _SimpleRouteSelector(
             activity_type=ActivityTypes.conversation_update,
@@ -743,8 +716,6 @@ class AgentApplication(Agent, Generic[StateT]):
         *,
         channel_id: str | ChannelId | None = None,
         auth_handlers: list[str] | None = None,
-        channel_id: str | ChannelId | None = None,
-        auth_handlers: list[str] | None = None,
         **kwargs,
     ) -> _RouteDecorator[RouteHandler[StateT]]:
         """
@@ -762,10 +733,7 @@ class AgentApplication(Agent, Generic[StateT]):
         :type type: microsoft_agents.activity.MessageReactionTypes | str
         :param channel_id: Optional channel ID to match the incoming message.
         :type channel_id: str | ChannelId | None
-        :param channel_id: Optional channel ID to match the incoming message.
-        :type channel_id: str | ChannelId | None
         :param auth_handlers: Optional list of authorization handler IDs for the route.
-        :type auth_handlers: list[str] | None
         :type auth_handlers: list[str] | None
         :param kwargs: Additional route configuration passed to :meth:`microsoft_agents.hosting.core.AgentApplication.add_route`.
         """
@@ -777,13 +745,7 @@ class AgentApplication(Agent, Generic[StateT]):
             activity_type=ActivityTypes.message_reaction,
         )
 
-        _simple_selector = _SimpleRouteSelector(
-            channel_id=channel_id,
-            activity_type=ActivityTypes.message_reaction,
-        )
-
         def __selector(context: TurnContext):
-            if not _simple_selector(context):
             if not _simple_selector(context):
                 return False
 
@@ -858,8 +820,6 @@ class AgentApplication(Agent, Generic[StateT]):
         *,
         channel_id: str | ChannelId | None = None,
         auth_handlers: list[str] | None = None,
-        channel_id: str | ChannelId | None = None,
-        auth_handlers: list[str] | None = None,
         **kwargs,
     ) -> _RouteDecorator[RouteHandler[StateT]]:
         """
@@ -877,10 +837,7 @@ class AgentApplication(Agent, Generic[StateT]):
         :type type: microsoft_agents.activity.MessageUpdateTypes | str
         :param channel_id: Optional channel ID to filter the incoming activities.
         :type channel_id: str | ChannelId | None
-        :param channel_id: Optional channel ID to filter the incoming activities.
-        :type channel_id: str | ChannelId | None
         :param auth_handlers: Optional list of authorization handler IDs for the route.
-        :type auth_handlers: list[str] | None
         :type auth_handlers: list[str] | None
         :param kwargs: Additional route configuration passed to :meth:`microsoft_agents.hosting.core.AgentApplication.add_route`.
         """
@@ -889,12 +846,7 @@ class AgentApplication(Agent, Generic[StateT]):
 
         check_channel = _channel_selector(channel_id)
 
-        check_channel = _channel_selector(channel_id)
-
         def __selector(context: TurnContext):
-            if not check_channel(context):
-                return False
-
             if not check_channel(context):
                 return False
 
@@ -942,8 +894,6 @@ class AgentApplication(Agent, Generic[StateT]):
         *,
         channel_id: str | ChannelId | None = None,
         auth_handlers: list[str] | None = None,
-        channel_id: str | ChannelId | None = None,
-        auth_handlers: list[str] | None = None,
         **kwargs,
     ) -> HandoffHandler[StateT]: ...
 
@@ -953,18 +903,13 @@ class AgentApplication(Agent, Generic[StateT]):
         *,
         channel_id: str | ChannelId | None = None,
         auth_handlers: list[str] | None = None,
-        channel_id: str | ChannelId | None = None,
-        auth_handlers: list[str] | None = None,
         **kwargs: Any,
     ) -> _RouteDecorator[HandoffHandler[StateT]]: ...
 
     def handoff(
         self,
         func: HandoffHandler[StateT] | None = None,
-        func: HandoffHandler[StateT] | None = None,
         *,
-        channel_id: str | ChannelId | None = None,
-        auth_handlers: list[str] | None = None,
         channel_id: str | ChannelId | None = None,
         auth_handlers: list[str] | None = None,
         **kwargs,
@@ -983,11 +928,7 @@ class AgentApplication(Agent, Generic[StateT]):
         :type func: HandoffHandler[StateT] | None
         :param channel_id: Optional channel ID to filter the incoming activities.
         :type channel_id: str | ChannelId | None
-        :type func: HandoffHandler[StateT] | None
-        :param channel_id: Optional channel ID to filter the incoming activities.
-        :type channel_id: str | ChannelId | None
         :param auth_handlers: Optional list of authorization handler IDs for the route.
-        :type auth_handlers: list[str] | None
         :type auth_handlers: list[str] | None
         :param kwargs: Additional route configuration passed to :meth:`microsoft_agents.hosting.core.AgentApplication.add_route`.
         """
@@ -1025,7 +966,6 @@ class AgentApplication(Agent, Generic[StateT]):
             )
 
             self.add_route(selector, __handler, auth_handlers=auth_handlers, **kwargs)
-            self.add_route(selector, __handler, auth_handlers=auth_handlers, **kwargs)
             return func
 
         if func is not None:
@@ -1033,8 +973,6 @@ class AgentApplication(Agent, Generic[StateT]):
         return __call
 
     def on_sign_in_success(
-        self, func: Callable[[TurnContext, StateT, str | None], Awaitable[None]]
-    ) -> Callable[[TurnContext, StateT, str | None], Awaitable[None]]:
         self, func: Callable[[TurnContext, StateT, str | None], Awaitable[None]]
     ) -> Callable[[TurnContext, StateT, str | None], Awaitable[None]]:
         """
@@ -1048,7 +986,6 @@ class AgentApplication(Agent, Generic[StateT]):
                     print("sign-in succeeded")
 
         :param func: Callable that handles the sign-in success event.
-        :type func: Callable[[TurnContext, StateT, str | None], Awaitable[None]]
         :type func: Callable[[TurnContext, StateT, str | None], Awaitable[None]]
         :raises ApplicationError: If authorization services are not configured.
         """
@@ -1072,8 +1009,6 @@ class AgentApplication(Agent, Generic[StateT]):
     def on_sign_in_failure(
         self, func: Callable[[TurnContext, StateT, str | None], Awaitable[None]]
     ) -> Callable[[TurnContext, StateT, str | None], Awaitable[None]]:
-        self, func: Callable[[TurnContext, StateT, str | None], Awaitable[None]]
-    ) -> Callable[[TurnContext, StateT, str | None], Awaitable[None]]:
         """
         Register a callback that executes when a user fails to sign in.
 
@@ -1085,7 +1020,6 @@ class AgentApplication(Agent, Generic[StateT]):
                     print("sign-in failed")
 
         :param func: Callable that handles the sign-in failure event.
-        :type func: Callable[[TurnContext, StateT, str | None], Awaitable[None]]
         :type func: Callable[[TurnContext, StateT, str | None], Awaitable[None]]
         :raises ApplicationError: If authorization services are not configured.
         """

@@ -285,9 +285,6 @@ class TeamsAgentExtension(Generic[StateT]):
             self._app.conversation_update(
                 type, auth_handlers=auth_handlers, channel_id=Channels.msteams, **kwargs
             )
-            self._app.conversation_update(
-                type, auth_handlers=auth_handlers, channel_id=Channels.msteams, **kwargs
-            )
         )
 
     def message_reaction(
@@ -304,9 +301,6 @@ class TeamsAgentExtension(Generic[StateT]):
         :return: A decorator that registers the handler and returns it.
         """
         return self._wrap_decorator(
-            self._app.message_reaction(
-                type, auth_handlers=auth_handlers, channel_id=Channels.msteams, **kwargs
-            )
             self._app.message_reaction(
                 type, auth_handlers=auth_handlers, channel_id=Channels.msteams, **kwargs
             )
@@ -378,9 +372,6 @@ class TeamsAgentExtension(Generic[StateT]):
         """
 
         def __call(func: TeamsHandoffHandler[StateT]) -> HandoffHandler[StateT]:
-            return self._app.handoff(
-                auth_handlers=auth_handlers, channel_id=Channels.msteams, **kwargs
-            )(wrap_teams_handoff_handler(func, self._app))
             return self._app.handoff(
                 auth_handlers=auth_handlers, channel_id=Channels.msteams, **kwargs
             )(wrap_teams_handoff_handler(func, self._app))

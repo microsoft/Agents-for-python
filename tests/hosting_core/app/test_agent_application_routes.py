@@ -42,7 +42,6 @@ def _make_app() -> AgentApplication[TurnState]:
 def _make_activity(channel_id: str = "test", **kwargs) -> Activity:
     return Activity(
         channel_id=channel_id,
-        channel_id=channel_id,
         conversation={"id": "conv1"},
         from_property={"id": "user1"},
         recipient={"id": "bot1"},
@@ -379,6 +378,7 @@ class TestHandoffRoute:
 
         result = self.app.handoff()(handler)
         assert result is handler
+        _only_route(self.app)
 
     def test_direct_style_returns_original_handler(self):
         async def handler(context, state, continuation):
@@ -386,6 +386,7 @@ class TestHandoffRoute:
 
         result = self.app.handoff(handler)
         assert result is handler
+        _only_route(self.app)
 
 
 class TestRouteOrdering:
