@@ -23,6 +23,11 @@ class HttpRequestProtocol(Protocol):
         """Request headers."""
         ...
 
+    @property
+    def url(self) -> str:
+        """Request URL as a string."""
+        ...
+
     async def json(self) -> dict[str, Any]:
         """Parse request body as JSON."""
         ...
