@@ -1,29 +1,31 @@
-# Microsoft 365 Agents SDK for Python - Release Notes v1.9.0 (Unreleased)
+# Microsoft 365 Agents SDK for Python - Release Notes v1.9.0
 
-**Release Date:** Unreleased
+**Release Date:** 2026-10-19
 **Previous Version:** 1.8.0 (Released 2026-10-01)
 
 ## Slack
 
-- **Slack-Aware Turn Context**: Added `SlackTurnContext`, `SlackActivity`, and `SlackRouteHandler` so Slack handlers receive a typed context with direct access to Slack channel data and the per-turn API client.
-- **Route Decorators**: Added typed `SlackAgentExtension.message()` and `.event()` decorators. Deprecated `on_message()` and `on_event()` while retaining them as backward-compatible aliases.
-- **Slack-Scoped Application Route Hooks**: Added `SlackAgentExtension.conversation_update()`, `.members_added()`, `.members_removed()`, and `.installation_update()`, which delegate to the matching `AgentApplication` hooks filtered to the Slack channel.
-- **Typed Model Lookups**: Added a `type_` parameter and typed overloads to `SlackModel.get()` for converting and validating nested values with Pydantic.
+- **Slack-Aware Turn Context**: Added `SlackTurnContext`, `SlackActivity`, and `SlackRouteHandler` so Slack handlers receive a typed context with direct access to Slack channel data and the per-turn API client (#624).
+- **Route Decorators**: Added typed `SlackAgentExtension.message()` and `.event()` decorators. Deprecated `on_message()` and `on_event()` while retaining them as backward-compatible aliases (#624, #627).
+- **Slack-Scoped Application Route Hooks**: Added `SlackAgentExtension.conversation_update()`, `.members_added()`, `.members_removed()`, and `.installation_update()`, which delegate to the matching `AgentApplication` hooks filtered to the Slack channel (#627).
+- **Typed Model Lookups**: Added a `type_` parameter and typed overloads to `SlackModel.get()` for converting and validating nested values with Pydantic (#624).
 
 ## Major Features & Enhancements
 
-- **Outbound Host Validation Hardening**: Enhanced `OutboundHostValidator` with HTTPS-only URL enforcement, DNS resolution validation for public and optionally private network addresses, and an SSRF-aware `aiohttp` connector that validates resolved IPv4 and IPv6 addresses before connecting.
-- **Channel-Aware Route Selectors**: Added reusable route selectors, optional `channel_id` filtering to `AgentApplication` route hooks, and Teams-channel scoping for direct `TeamsAgentExtension` routes.
-- **New Application Route Hooks**: Added `AgentApplication.event()`, `.invoke()`, `.installation_update()`, `.members_added()`, `.members_removed()`, `.end_of_conversation()`, `.message_reaction_added()`, and `.message_reactions_removed()`; `message()`, `event()`, and `invoke()` accept a string, regex, or list selector, and match everything at `RouteRank.LAST` when the selector is omitted. Added Teams-scoped `TeamsAgentExtension.installation_update()` and `.end_of_conversation()`, plus the Slack-scoped hooks listed above.
+- **Outbound Host Validation Hardening**: Enhanced `OutboundHostValidator` with HTTPS-only URL enforcement, DNS resolution validation for public and optionally private network addresses, and an SSRF-aware `aiohttp` connector that validates resolved IPv4 and IPv6 addresses before connecting (#621).
+- **Channel-Aware Route Selectors**: Added reusable route selectors, optional `channel_id` filtering to `AgentApplication` route hooks, and Teams-channel scoping for direct `TeamsAgentExtension` routes (#626).
+- **New Application Route Hooks**: Added `AgentApplication.event()`, `.invoke()`, `.installation_update()`, `.members_added()`, `.members_removed()`, `.end_of_conversation()`, `.message_reaction_added()`, and `.message_reactions_removed()`; `message()`, `event()`, and `invoke()` accept a string, regex, or list selector, and match everything at `RouteRank.LAST` when the selector is omitted. Added Teams-scoped `TeamsAgentExtension.installation_update()` and `.end_of_conversation()`, plus the Slack-scoped hooks listed above (#627).
+- **Copilot Studio Endpoint Discovery**: Added automatic discovery, validation, and caching of conversation operation URLs for published agents without a `direct_connect_url`, while retaining legacy routing for prebuilt agents and explicit URL overrides (#630).
 
 ## Deprecation
 
-- **Attachment Downloader HTTP Configuration**: Replaced custom `client_factory` injection with `client_session_kwargs`; the deprecated `client_factory` parameter is ignored. This ensures attachment requests always use the validator-managed middleware and connector, preventing custom client sessions from bypassing hostname allowlists, redirect validation, or resolved-address checks while still allowing supported `aiohttp.ClientSession` options to be configured.
+- **Attachment Downloader HTTP Configuration**: Replaced custom `client_factory` injection with `client_session_kwargs`; the deprecated `client_factory` parameter is ignored. This ensures attachment requests always use the validator-managed middleware and connector, preventing custom client sessions from bypassing hostname allowlists, redirect validation, or resolved-address checks while still allowing supported `aiohttp.ClientSession` options to be configured (#621).
 
 ## Bug Fixes
 
-- **Connector User-Agent Headers**: Added the SDK `User-Agent` header to `MCSConnectorClient` and ensured `ConnectorClient`, `TeamsConnectorClient`, and `UserTokenClient` apply it to caller-provided `ClientSession` instances.
+- **Connector User-Agent Headers**: Added the SDK `User-Agent` header to `MCSConnectorClient` and ensured `ConnectorClient`, `TeamsConnectorClient`, and `UserTokenClient` apply it to caller-provided `ClientSession` instances (#618).
 - **Teams Meeting Event Models**: Fixed meeting start and end routes to use `MeetingStartEventValue` and `MeetingEndEventValue`, respectively, instead of `MeetingDetails`, ensuring handlers receive correctly typed event data (#619).
+- **Streaming Feedback and AI Labels**: Fixed Teams feedback-loop buttons by placing feedback metadata in the final message's `channelData`, and ensured the AI-generated label is emitted even when there are no citations (#592).
 
 ---
 
