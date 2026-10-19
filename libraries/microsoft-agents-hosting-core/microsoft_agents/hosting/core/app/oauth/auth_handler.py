@@ -4,13 +4,14 @@ Licensed under the MIT License.
 """
 
 import logging
+import warnings
 
 logger = logging.getLogger(__name__)
 
 
 # name due to compat.
 # see AuthorizationHandler for a class that does work.
-class AuthHandler:
+class AuthHandlerSettings:
     """
     Interface defining an authorization handler for OAuth flows.
     """
@@ -22,6 +23,7 @@ class AuthHandler:
     obo_connection_name: str
     auth_type: str
     scopes: list[str]
+    kwargs: dict
 
     def __init__(
         self,
@@ -35,7 +37,7 @@ class AuthHandler:
         **kwargs,
     ):
         """
-        Initializes a new instance of AuthHandler.
+        Initializes a new instance of AuthHandlerSettings.
 
         :param name: The name of the handler. This is how it is accessed programatically
             in this library.
@@ -66,8 +68,9 @@ class AuthHandler:
         if scopes:
             self.scopes = list(scopes)
         else:
-            self.scopes = AuthHandler._format_scopes(kwargs.get("SCOPES", ""))
+            self.scopes = AuthHandlerSettings._format_scopes(kwargs.get("SCOPES", ""))
         self._alt_blueprint_name = kwargs.get("ALT_BLUEPRINT_NAME", None)
+        self.kwargs = dict(kwargs)
 
     @staticmethod
     def _format_scopes(scopes: str) -> list[str]:
@@ -77,22 +80,34 @@ class AuthHandler:
     @staticmethod
     def _from_settings(settings: dict):
         """
-        Creates an AuthHandler instance from a settings dictionary.
+        Creates an AuthHandlerSettings instance from a settings dictionary.
 
-        :param settings: The settings dictionary containing configuration for the AuthHandler.
+        :param settings: The settings dictionary containing configuration for the AuthHandlerSettings.
         :type settings: dict
-        :return: An instance of AuthHandler configured with the provided settings.
-        :rtype: AuthHandler
+        :return: An instance of AuthHandlerSettings configured with the provided settings.
+        :rtype: AuthHandlerSettings
         """
         if not settings:
-            raise ValueError("Settings dictionary is required to create AuthHandler")
+            raise ValueError("Settings dictionary is required to create AuthHandlerSettings")
 
-        return AuthHandler(
+        return AuthHandlerSettings(
             name=settings.get("NAME", ""),
             title=settings.get("TITLE", ""),
             text=settings.get("TEXT", ""),
             abs_oauth_connection_name=settings.get("AZUREBOTOAUTHCONNECTIONNAME", ""),
             obo_connection_name=settings.get("OBOCONNECTIONNAME", ""),
             auth_type=settings.get("TYPE", ""),
-            scopes=AuthHandler._format_scopes(settings.get("SCOPES", "")),
+            scopes=AuthHandlerSettings._format_scopes(settings.get("SCOPES", "")),
         )
+
+class AuthHandler(AuthHandlerSettings):
+    """Deprecated. Use AuthHandlerSettings instead."""
+
+    def __init__(self, *args, **kwargs):
+        """Initialize the deprecated AuthHandler class."""
+        warnings.warn(
+            "AuthHandler is deprecated. Please use AuthHandlerSettings instead.",
+            DeprecationWarning,
+            stacklevel=2,
+        )
+        super().__init__(*args, **kwargs)
