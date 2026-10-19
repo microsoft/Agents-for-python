@@ -4,6 +4,8 @@ Licensed under the MIT License.
 """
 
 import logging
+import warnings
+
 from abc import ABC
 
 from microsoft_agents.activity import TokenResponse
@@ -28,9 +30,10 @@ class _AuthorizationHandler(ABC):
         self,
         storage: Storage,
         connection_manager: Connections,
-        auth_handler: AuthHandlerSettings | None = None,
+        settings: dict | AuthHandlerSettings | None = None,
         *,
         auth_handler_id: str | None = None,
+        auth_handler: AuthHandlerSettings | None = None,
         auth_handler_settings: dict | None = None,
         **kwargs,
     ) -> None:
@@ -41,27 +44,48 @@ class _AuthorizationHandler(ABC):
         :type storage: Storage
         :param connection_manager: The connection manager for OAuth providers.
         :type connection_manager: Connections
-        :param auth_handlers: Configuration for OAuth providers.
-        :type auth_handlers: dict[str, AuthHandler] | None
+        :param settings: Optional settings for the auth handler.
+        :type settings: dict | AuthHandlerSettings | None
+        :param auth_handler: (Deprecated) Configuration for OAuth provider.
+        :type auth_handler: AuthHandlerSettings | None
+        :param auth_handler_id: Optional ID of the auth handler.
+        :type auth_handler_id: str | None
+        :param auth_handler_settings: (Deprecated) Optional settings dict for the auth handler.
+        :type auth_handler_settings: dict | None
         :raises ValueError: When storage is None or no auth handlers provided.
         """
         if not storage:
             raise ValueError("Storage is required for Authorization")
-        if not auth_handler and not auth_handler_settings:
+        if not settings and not auth_handler and not auth_handler_settings:
             raise ValueError(
-                "At least one of auth_handler or auth_handler_settings is required."
+                "At least one of settings or auth_handler or auth_handler_settings is required."
+            )
+        if auth_handler or auth_handler_settings:
+            warnings.warn(
+                "auth_handler and auth_handler_settings are deprecated. Please use settings instead.",
+                DeprecationWarning,
+                stacklevel=2,
             )
 
         self._storage = storage
         self._connection_manager = connection_manager
 
-        if auth_handler:
-            self._handler = auth_handler
+        if settings:
+            if isinstance(settings, dict):
+                settings = {**settings, **kwargs}
+                self._handler = AuthHandlerSettings(**settings)
+            else:
+                settings = {**settings._to_dict(), **kwargs}
+                self._handler = AuthHandlerSettings(**settings)
+        elif auth_handler:
+            settings = {**auth_handler._to_dict(), **kwargs}
+            self._handler = AuthHandlerSettings(**settings)
         else:
             if not auth_handler_settings:
                 raise ValueError(
                     "auth_handler_settings must be provided if auth_handler is None."
                 )
+            auth_handler_settings = {**auth_handler_settings, **kwargs}
             self._handler = AuthHandlerSettings._from_settings(auth_handler_settings)
 
         self._id = auth_handler_id or self._handler.name

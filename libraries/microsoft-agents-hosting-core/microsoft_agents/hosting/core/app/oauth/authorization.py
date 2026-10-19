@@ -134,15 +134,15 @@ class Authorization:
         :param auth_handlers: A dictionary of auth handler configurations.
         :type auth_handlers: dict[str, :class:`microsoft_agents.hosting.core.app.oauth.auth_handler.AuthHandlerSettings`]
         """
-        for name, auth_handler in self._handler_settings.items():
-            auth_type = auth_handler.auth_type
+        for name, settings in self._handler_settings.items():
+            auth_type = settings.auth_type
             if auth_type not in AUTHORIZATION_TYPE_MAP:
                 raise ValueError(f"Auth type {auth_type} not recognized.")
 
             self._handlers[name] = AUTHORIZATION_TYPE_MAP[auth_type](
                 storage=self._storage,
                 connection_manager=self._connection_manager,
-                auth_handler=auth_handler,
+                settings=settings,
             )
 
     @property

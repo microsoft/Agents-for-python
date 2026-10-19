@@ -17,6 +17,9 @@ from microsoft_agents.hosting.core import (
 )
 from microsoft_agents.hosting.aiohttp import CloudAdapter
 from microsoft_agents.hosting.core.app.oauth.authorization import Authorization
+from microsoft_agents.hosting.testing.pytest_plugin import adapter
+
+from start_server import start_server
 
 logging.basicConfig(level=logging.INFO)
 load_dotenv(".env")
@@ -78,6 +81,7 @@ if __name__ == "__main__":
     try:
         start_server(
             agent_application=AGENT_APP,
+            adapter=ADAPTER,
             auth_configuration=CONNECTION_MANAGER.get_default_connection_configuration(),
         )
     except Exception as error:

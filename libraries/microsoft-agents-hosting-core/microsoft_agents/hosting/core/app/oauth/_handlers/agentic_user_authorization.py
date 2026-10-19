@@ -26,9 +26,10 @@ class AgenticUserAuthorization(_AuthorizationHandler):
         self,
         storage: Storage,
         connection_manager: Connections,
-        auth_handler: AuthHandlerSettings | None = None,
+        settings: dict | AuthHandlerSettings | None = None,
         *,
         auth_handler_id: str | None = None,
+        auth_handler: AuthHandlerSettings | None = None,
         auth_handler_settings: dict | None = None,
         **kwargs,
     ) -> None:
@@ -39,14 +40,21 @@ class AgenticUserAuthorization(_AuthorizationHandler):
         :type storage: Storage
         :param connection_manager: The connection manager for OAuth providers.
         :type connection_manager: Connections
-        :param auth_handlers: Configuration for OAuth providers.
-        :type auth_handlers: dict[str, AuthHandler] | None
+        :param settings: Optional settings for the auth handler.
+        :type settings: dict | AuthHandlerSettings | None
+        :param auth_handler: (Deprecated) Configuration for OAuth provider.
+        :type auth_handler: AuthHandlerSettings | None
+        :param auth_handler_id: Optional ID of the auth handler.
+        :type auth_handler_id: str | None
+        :param auth_handler_settings: (Deprecated) Optional settings dict for the auth handler.
+        :type auth_handler_settings: dict | None
         :raises ValueError: When storage is None or no auth handlers provided.
         """
         super().__init__(
             storage,
             connection_manager,
-            auth_handler,
+            settings,
+            auth_handler=auth_handler,
             auth_handler_id=auth_handler_id,
             auth_handler_settings=auth_handler_settings,
             **kwargs,

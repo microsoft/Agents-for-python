@@ -53,22 +53,23 @@ class AuthHandlerSettings:
             to accept a class that implements AuthorizationVariant.
         :type auth_type: str
         """
-        self.name = name or kwargs.get("NAME", "")
-        self.title = title or kwargs.get("TITLE", "")
-        self.text = text or kwargs.get("TEXT", "")
+        kwargs = {k.lower(): v for k, v in kwargs.items()}
+        self.name = name or kwargs.get("name", "")
+        self.title = title or kwargs.get("title", "")
+        self.text = text or kwargs.get("text", "")
         self.abs_oauth_connection_name = abs_oauth_connection_name or kwargs.get(
-            "AZUREBOTOAUTHCONNECTIONNAME", ""
+            "azurebotoauthconnectionname", ""
         )
         self.obo_connection_name = obo_connection_name or kwargs.get(
-            "OBOCONNECTIONNAME", ""
+            "oboconnectionname", ""
         )
-        self.auth_type = auth_type or kwargs.get("TYPE", "UserAuthorization")
+        self.auth_type = auth_type or kwargs.get("type", "UserAuthorization")
         self.auth_type = self.auth_type.lower()
         if scopes:
             self.scopes = list(scopes)
         else:
-            self.scopes = AuthHandlerSettings._format_scopes(kwargs.get("SCOPES", ""))
-        self._alt_blueprint_name = kwargs.get("ALT_BLUEPRINT_NAME", None)
+            self.scopes = AuthHandlerSettings._format_scopes(kwargs.get("scopes", ""))
+        self._alt_blueprint_name = kwargs.get("alt_blueprint_name", None)
         self._kwargs = kwargs
 
     @property
@@ -94,16 +95,26 @@ class AuthHandlerSettings:
             raise ValueError(
                 "Settings dictionary is required to create AuthHandlerSettings"
             )
+        return AuthHandlerSettings(**settings)
 
-        return AuthHandlerSettings(
-            name=settings.get("NAME", ""),
-            title=settings.get("TITLE", ""),
-            text=settings.get("TEXT", ""),
-            abs_oauth_connection_name=settings.get("AZUREBOTOAUTHCONNECTIONNAME", ""),
-            obo_connection_name=settings.get("OBOCONNECTIONNAME", ""),
-            auth_type=settings.get("TYPE", ""),
-            scopes=AuthHandlerSettings._format_scopes(settings.get("SCOPES", "")),
-        )
+    def _to_dict(self) -> dict:
+        """
+        Converts the AuthHandlerSettings instance to a dictionary.
+
+        :return: A dictionary representation of the AuthHandlerSettings instance.
+        :rtype: dict
+        """
+        base = {
+            "name": self.name,
+            "title": self.title,
+            "text": self.text,
+            "abs_oauth_connection_name": self.abs_oauth_connection_name,
+            "obo_connection_name": self.obo_connection_name,
+            "type": self.auth_type,
+            "scopes": self.scopes,
+            "alt_blueprint_name": self._alt_blueprint_name,
+        }
+        return {**self._kwargs, **base}
 
 
 class AuthHandler(AuthHandlerSettings):
