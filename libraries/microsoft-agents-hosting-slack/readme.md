@@ -5,6 +5,25 @@
 Build Slack agents with the Microsoft 365 Agents SDK using typed message and event
 handlers, direct Slack Web API calls, and streaming responses.
 
+## Release Notes
+
+<table style="width:100%">
+  <tr>
+    <th style="width:20%">Version</th>
+    <th style="width:20%">Date</th>
+    <th style="width:60%">Release Notes</th>
+  </tr>
+  <tr>
+    <td>1.9.0</td>
+    <td>2026-10-19</td>
+    <td>
+      <a href="https://github.com/microsoft/Agents-for-python/blob/main/changelog.md#microsoft-365-agents-sdk-for-python---release-notes-v190">
+        1.9.0 Release Notes
+      </a>
+    </td>
+  </tr>
+</table>
+
 ## Packages Overview
 
 We offer the following PyPI packages to create conversational experiences based on Agents:
