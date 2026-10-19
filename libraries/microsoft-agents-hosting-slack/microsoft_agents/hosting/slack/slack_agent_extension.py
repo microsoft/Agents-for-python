@@ -5,15 +5,22 @@ Licensed under the MIT License.
 
 from __future__ import annotations
 
-import re
-from typing import Any, Generic, Pattern, TypeVar
+import warnings
 
+from typing import Any, Callable, Generic, TypeVar
 from typing_extensions import deprecated
 
-from microsoft_agents.activity import ActivityTypes, Channels
+from microsoft_agents.activity import (
+    Channels,
+    ConversationUpdateTypes,
+)
 from microsoft_agents.hosting.core import TurnContext
-from microsoft_agents.hosting.core.app import AgentApplication, RouteRank
-from microsoft_agents.hosting.core.app._type_defs import _RouteDecorator
+from microsoft_agents.hosting.core.app import AgentApplication
+from microsoft_agents.hosting.core.app._type_defs import (
+    RouteHandler,
+    _RouteDecorator,
+    TextSelector,
+)
 from microsoft_agents.hosting.core.app.state import TurnState
 
 from .api import (
@@ -26,18 +33,6 @@ from .route_handlers import SlackRouteHandler, wrap_slack_route_handler
 
 StateT = TypeVar("StateT", bound=TurnState)
 
-TextSelector = str | Pattern[str] | None
-
-
-def _matches_text(selector: TextSelector, text: str | None) -> bool:
-    if selector is None:
-        return True
-    if text is None:
-        return False
-    if isinstance(selector, Pattern):
-        return re.fullmatch(selector, text) is not None
-    return text == selector
-
 
 def _is_slack_channel(context: TurnContext) -> bool:
     return context.activity.channel_id == Channels.slack.value
@@ -48,8 +43,11 @@ class SlackAgentExtension(Generic[StateT]):
     Slack-specific route registration and helpers for an
     :class:`~microsoft_agents.hosting.core.app.AgentApplication`.
 
-    Handlers registered with :meth:`message` or :meth:`event` receive a
-    :class:`SlackTurnContext` with a typed :class:`SlackActivity`.
+    Handlers registered with :meth:`message`, :meth:`event`,
+    :meth:`conversation_update`, :meth:`members_added`,
+    :meth:`members_removed`, or :meth:`installation_update` match only Slack
+    activities and receive a :class:`SlackTurnContext` with a typed
+    :class:`SlackActivity`.
     Pass ``slack_api=...`` to configure the extension's default API client.
     Before each Slack turn, this client is registered in turn services only
     if no :class:`SlackApi` is already present. Clients supplied by middleware
@@ -182,116 +180,189 @@ class SlackAgentExtension(Generic[StateT]):
 
     def message(
         self,
-        select: TextSelector = None,
+        select: TextSelector | None = None,
         *,
         auth_handlers: list[str] | None = None,
-        rank: RouteRank = RouteRank.DEFAULT,
+        **kwargs,
     ) -> _RouteDecorator[SlackRouteHandler[StateT]]:
         """Register a handler for Slack message activities.
 
-        When ``select`` is ``None``, every Slack message matches; otherwise the
-        activity's ``text`` must equal ``select`` (case-sensitive string) or
-        fully match it (compiled regex). Non-Slack activities never match.
-        The handler receives a :class:`SlackTurnContext` and the turn state.
-
-        ``rank`` defaults to :attr:`RouteRank.DEFAULT`; when ``select`` is
-        ``None`` the rank is downgraded to :attr:`RouteRank.LAST` so explicit
-        text routes win — matching the C# behavior.
-
-        ``auth_handlers`` selects the authentication handlers for the route.
+        :param select: Optional text selector to match the incoming message text.
+        :type select: TextSelector | None
+        :param auth_handlers: Optional list of authorization handler IDs for the route.
+        :type auth_handlers: list[str] | None
+        :param kwargs: Additional route configuration passed to :meth:`microsoft_agents.hosting.core.AgentApplication.add_route`.
         """
-        effective_rank = (
-            RouteRank.LAST if (select is None and rank == RouteRank.DEFAULT) else rank
-        )
-
-        def __selector(context: TurnContext) -> bool:
-            if context.activity.type != ActivityTypes.message or not _is_slack_channel(
-                context
-            ):
-                return False
-            return _matches_text(select, context.activity.text)
-
-        def __call(
-            func: SlackRouteHandler[StateT],
-        ) -> SlackRouteHandler[StateT]:
-            self._app.add_route(
-                __selector,
-                wrap_slack_route_handler(func, self._app),
-                rank=effective_rank,
-                auth_handlers=auth_handlers,
+        return self._wrap_decorator(
+            self._app.message(
+                select, auth_handlers=auth_handlers, channel_id=Channels.slack, **kwargs
             )
-            return func
-
-        return __call
+        )
 
     @deprecated(
         "SlackAgentExtension.on_message is deprecated; use SlackAgentExtension.message instead."
     )
     def on_message(
         self,
-        select: TextSelector = None,
+        select: TextSelector | None = None,
         *,
         auth_handlers: list[str] | None = None,
-        rank: RouteRank = RouteRank.DEFAULT,
+        **kwargs,
     ) -> _RouteDecorator[SlackRouteHandler[StateT]]:
         """Deprecated alias for :meth:`message`; emits ``DeprecationWarning``."""
-        return self.message(select, auth_handlers=auth_handlers, rank=rank)
+        return self.message(select, auth_handlers=auth_handlers, **kwargs)
 
     # ── event routes ───────────────────────────────────────────────────────
 
     def event(
         self,
-        event_name: TextSelector = None,
+        select: TextSelector | None = None,
         *,
+        event_name: str | None = None,
         auth_handlers: list[str] | None = None,
-        rank: RouteRank = RouteRank.DEFAULT,
+        **kwargs,
     ) -> _RouteDecorator[SlackRouteHandler[StateT]]:
         """Register a handler for Slack event activities.
 
-        When ``event_name`` is ``None``, every Slack event matches; otherwise
-        the activity's ``name`` must equal it (case-sensitive string) or fully
-        match it (compiled regex). Non-Slack activities never match.
-        The handler receives a :class:`SlackTurnContext` and the turn state.
-
-        Omitting ``event_name`` with the default rank uses
-        :attr:`RouteRank.LAST` so specific event routes win. An explicit rank
-        is preserved. ``auth_handlers`` selects authentication handlers.
+        :param select: Optional text selector to match the incoming event name.
+        :type select: TextSelector | None
+        :param event_name: (Deprecated) Optional specific event name to match.
+        :type event_name: str | None
+        :param auth_handlers: Optional list of authorization handler IDs for the route.
+        :type auth_handlers: list[str] | None
+        :param kwargs: Additional route configuration passed to :meth:`microsoft_agents.hosting.core.AgentApplication.add_route`.
         """
-        effective_rank = (
-            RouteRank.LAST
-            if (event_name is None and rank == RouteRank.DEFAULT)
-            else rank
-        )
-
-        def __selector(context: TurnContext) -> bool:
-            if context.activity.type != ActivityTypes.event or not _is_slack_channel(
-                context
-            ):
-                return False
-            return _matches_text(event_name, context.activity.name)
-
-        def __call(
-            func: SlackRouteHandler[StateT],
-        ) -> SlackRouteHandler[StateT]:
-            self._app.add_route(
-                __selector,
-                wrap_slack_route_handler(func, self._app),
-                rank=effective_rank,
-                auth_handlers=auth_handlers,
+        if event_name is not None:
+            warnings.warn(
+                "The `event_name` parameter is deprecated; use `select` instead.",
+                DeprecationWarning,
+                stacklevel=2,
             )
-            return func
-
-        return __call
+        return self._wrap_decorator(
+            self._app.event(
+                select, auth_handlers=auth_handlers, channel_id=Channels.slack, **kwargs
+            )
+        )
 
     @deprecated(
         "SlackAgentExtension.on_event is deprecated; use SlackAgentExtension.event instead."
     )
     def on_event(
         self,
-        event_name: TextSelector = None,
+        event_name: TextSelector | None = None,
         *,
         auth_handlers: list[str] | None = None,
-        rank: RouteRank = RouteRank.DEFAULT,
+        **kwargs,
     ) -> _RouteDecorator[SlackRouteHandler[StateT]]:
         """Deprecated alias for :meth:`event`; emits ``DeprecationWarning``."""
-        return self.event(event_name, auth_handlers=auth_handlers, rank=rank)
+        return self.event(event_name, auth_handlers=auth_handlers, **kwargs)
+
+    # ── AgentApplication route hooks ───────────────────────────────────────
+
+    def _wrap_decorator(
+        self, decorator: Callable[[RouteHandler[StateT]], RouteHandler[StateT]]
+    ) -> _RouteDecorator[SlackRouteHandler[StateT]]:
+        """Wrap a core route decorator so it accepts a :class:`SlackRouteHandler`.
+
+        The handler is converted via :func:`wrap_slack_route_handler` before being
+        passed to *decorator*, and the original handler is returned.
+
+        :param decorator: A core route decorator from :class:`AgentApplication`.
+        :return: A decorator that registers a :class:`SlackRouteHandler`.
+        """
+
+        def __call(func: SlackRouteHandler[StateT]) -> SlackRouteHandler[StateT]:
+            decorator(wrap_slack_route_handler(func, self._app))
+            return func
+
+        return __call
+
+    def conversation_update(
+        self,
+        type: ConversationUpdateTypes | str,
+        *,
+        auth_handlers: list[str] | None = None,
+        **kwargs: Any,
+    ) -> _RouteDecorator[SlackRouteHandler[StateT]]:
+        """Register a handler for a Slack conversation update event type.
+
+        Non-Slack activities never match. The handler receives a
+        :class:`SlackTurnContext` and the turn state.
+
+        :param type: The :class:`ConversationUpdateTypes` value to match (e.g. ``membersAdded``).
+        :param auth_handlers: Optional list of auth handler names to run before the route.
+        :param kwargs: Additional route configuration, such as ``rank``, passed to
+            :meth:`AgentApplication.add_route`.
+        :return: A decorator that registers the handler and returns it.
+        """
+        return self._wrap_decorator(
+            self._app.conversation_update(
+                type, auth_handlers=auth_handlers, channel_id=Channels.slack, **kwargs
+            )
+        )
+
+    def members_added(
+        self,
+        *,
+        auth_handlers: list[str] | None = None,
+        **kwargs: Any,
+    ) -> _RouteDecorator[SlackRouteHandler[StateT]]:
+        """Register a handler for the Slack ``membersAdded`` event.
+
+        Non-Slack activities never match. The handler receives a
+        :class:`SlackTurnContext` and the turn state.
+
+        :param auth_handlers: Optional list of auth handler names to run before the route.
+        :param kwargs: Additional route configuration, such as ``rank``, passed to
+            :meth:`AgentApplication.add_route`.
+        :return: A decorator that registers the handler and returns it.
+        """
+        return self._wrap_decorator(
+            self._app.members_added(
+                auth_handlers=auth_handlers, channel_id=Channels.slack, **kwargs
+            )
+        )
+
+    def members_removed(
+        self,
+        *,
+        auth_handlers: list[str] | None = None,
+        **kwargs: Any,
+    ) -> _RouteDecorator[SlackRouteHandler[StateT]]:
+        """Register a handler for the Slack ``membersRemoved`` event.
+
+        Non-Slack activities never match. The handler receives a
+        :class:`SlackTurnContext` and the turn state.
+
+        :param auth_handlers: Optional list of auth handler names to run before the route.
+        :param kwargs: Additional route configuration, such as ``rank``, passed to
+            :meth:`AgentApplication.add_route`.
+        :return: A decorator that registers the handler and returns it.
+        """
+        return self._wrap_decorator(
+            self._app.members_removed(
+                auth_handlers=auth_handlers, channel_id=Channels.slack, **kwargs
+            )
+        )
+
+    def installation_update(
+        self,
+        *,
+        auth_handlers: list[str] | None = None,
+        **kwargs: Any,
+    ) -> _RouteDecorator[SlackRouteHandler[StateT]]:
+        """Register a handler for the Slack ``installationUpdate`` event.
+
+        Non-Slack activities never match. The handler receives a
+        :class:`SlackTurnContext` and the turn state.
+
+        :param auth_handlers: Optional list of auth handler names to run before the route.
+        :param kwargs: Additional route configuration, such as ``rank``, passed to
+            :meth:`AgentApplication.add_route`.
+        :return: A decorator that registers the handler and returns it.
+        """
+        return self._wrap_decorator(
+            self._app.installation_update(
+                auth_handlers=auth_handlers, channel_id=Channels.slack, **kwargs
+            )
+        )

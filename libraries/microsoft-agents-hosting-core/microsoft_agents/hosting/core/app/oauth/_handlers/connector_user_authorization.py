@@ -14,7 +14,7 @@ from ...._oauth._flow_state import _FlowStateTag
 from ....turn_context import TurnContext
 from ....storage import Storage
 from ....authorization import Connections
-from ..auth_handler import AuthHandler
+from ..auth_handler import AuthHandlerSettings
 from ._authorization_handler import _AuthorizationHandler
 from .._sign_in_response import _SignInResponse
 
@@ -31,9 +31,10 @@ class ConnectorUserAuthorization(_AuthorizationHandler):
         self,
         storage: Storage,
         connection_manager: Connections,
-        auth_handler: AuthHandler | None = None,
+        settings: dict | AuthHandlerSettings | None = None,
         *,
         auth_handler_id: str | None = None,
+        auth_handler: AuthHandlerSettings | None = None,
         auth_handler_settings: dict | None = None,
         **kwargs,
     ) -> None:
@@ -44,17 +45,20 @@ class ConnectorUserAuthorization(_AuthorizationHandler):
         :type storage: Storage
         :param connection_manager: The connection manager for OAuth providers.
         :type connection_manager: Connections
-        :param auth_handler: Configuration for OAuth provider.
-        :type auth_handler: AuthHandler, Optional
+        :param settings: Optional settings for the auth handler.
+        :type settings: dict | AuthHandlerSettings | None
+        :param auth_handler: (Deprecated) Configuration for OAuth provider.
+        :type auth_handler: AuthHandlerSettings | None
         :param auth_handler_id: Optional ID of the auth handler.
-        :type auth_handler_id: str, Optional
-        :param auth_handler_settings: Optional settings dict for the auth handler.
-        :type auth_handler_settings: dict, Optional
+        :type auth_handler_id: str | None
+        :param auth_handler_settings: (Deprecated) Optional settings dict for the auth handler.
+        :type auth_handler_settings: dict | None
         """
         super().__init__(
             storage,
             connection_manager,
-            auth_handler,
+            settings,
+            auth_handler=auth_handler,
             auth_handler_id=auth_handler_id,
             auth_handler_settings=auth_handler_settings,
             **kwargs,
@@ -97,9 +101,9 @@ class ConnectorUserAuthorization(_AuthorizationHandler):
         :param context: The turn context for the current turn of conversation.
         :type context: TurnContext
         :param exchange_connection: Optional name of the connection to use for token exchange.
-        :type exchange_connection: str | None, Optional
+        :type exchange_connection: str | None
         :param exchange_scopes: Optional list of scopes to request during token exchange.
-        :type exchange_scopes: list[str] | None, Optional
+        :type exchange_scopes: list[str] | None
         :return: The token response, potentially after OBO exchange.
         :rtype: TokenResponse
         """

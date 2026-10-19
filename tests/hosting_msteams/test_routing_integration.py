@@ -271,3 +271,81 @@ class TestRouteSelectionOrderingIntegration:
             _make_context(_make_activity(type=ActivityTypes.message, text="hello"))
         )
         assert self.call_order == ["event", "message"]
+
+
+class TestDirectRouteHooksChannelFiltering:
+    """Direct hooks must only route Teams activities at core dispatch."""
+
+    def setup_method(self):
+        self.app = _make_app()
+        self.ext = TeamsAgentExtension(self.app)
+        self.calls: list[str] = []
+
+    @pytest.mark.parametrize(
+        "route_name",
+        [
+            "activity",
+            "message",
+            "conversation_update",
+            "message_reaction",
+            "message_update",
+            "installation_update",
+            "end_of_conversation",
+            "handoff",
+        ],
+    )
+    @pytest.mark.parametrize(
+        ("channel_id", "expected"),
+        [("msteams", True), ("msteams:copilot", True), ("webchat", False)],
+    )
+    @pytest.mark.asyncio
+    async def test_direct_route_only_matches_msteams_channel(
+        self, route_name: str, channel_id: str, expected: bool
+    ):
+        async def handler(context, state, continuation=None):
+            self.calls.append("called")
+
+        if route_name == "activity":
+            self.ext.activity(ActivityTypes.event)(handler)
+            route_values = {"type": ActivityTypes.event}
+        elif route_name == "message":
+            self.ext.message("hello")(handler)
+            route_values = {"type": ActivityTypes.message, "text": "hello"}
+        elif route_name == "conversation_update":
+            self.ext.conversation_update("membersAdded")(handler)
+            route_values = {
+                "type": ActivityTypes.conversation_update,
+                "members_added": [{"id": "new-member"}],
+            }
+        elif route_name == "message_reaction":
+            self.ext.message_reaction("reactionsAdded")(handler)
+            route_values = {
+                "type": ActivityTypes.message_reaction,
+                "reactions_added": [{"type": "like"}],
+            }
+        elif route_name == "message_update":
+            self.ext.message_update("editMessage")(handler)
+            route_values = {
+                "type": ActivityTypes.message_update,
+                "channel_data": {"event_type": "editMessage"},
+            }
+        elif route_name == "installation_update":
+            self.ext.installation_update()(handler)
+            route_values = {"type": ActivityTypes.installation_update}
+        elif route_name == "end_of_conversation":
+            self.ext.end_of_conversation()(handler)
+            route_values = {"type": ActivityTypes.end_of_conversation}
+        else:
+            self.ext.handoff()(handler)
+            route_values = {
+                "type": ActivityTypes.invoke,
+                "name": "handoff/action",
+                "value": {"continuation": "continuation"},
+            }
+
+        await self.app._on_activity(
+            _make_context(_make_activity(channel_id=channel_id, **route_values)),
+            TurnState(),
+        )
+
+        assert self.calls == (["called"] if expected else [])

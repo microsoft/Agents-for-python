@@ -322,6 +322,7 @@ class PowerPlatformEnvironment:
         if cloud == PowerPlatformCloud.OTHER and not cloud_base_address:
             raise ValueError(str(copilot_studio_errors.CloudBaseAddressRequired))
         cloud_base_address = cloud_base_address or "api.unknown.powerplatform.com"
+        cloud_base_address = urlparse(cloud_base_address).netloc or cloud_base_address
         normalized_resource_id = environment_id.lower().replace("-", "")
         id_suffix_length = PowerPlatformEnvironment.get_id_suffix_length(cloud)
         hex_prefix = normalized_resource_id[:-id_suffix_length]

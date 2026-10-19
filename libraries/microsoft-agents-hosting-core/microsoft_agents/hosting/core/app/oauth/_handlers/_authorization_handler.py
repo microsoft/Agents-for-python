@@ -3,15 +3,17 @@ Copyright (c) Microsoft Corporation. All rights reserved.
 Licensed under the MIT License.
 """
 
-from abc import ABC
 import logging
+import warnings
+
+from abc import ABC
 
 from microsoft_agents.activity import TokenResponse
 
 from ....turn_context import TurnContext
 from ....storage import Storage
 from ....authorization import Connections
-from ..auth_handler import AuthHandler
+from ..auth_handler import AuthHandlerSettings
 from .._sign_in_response import _SignInResponse
 
 logger = logging.getLogger(__name__)
@@ -22,15 +24,16 @@ class _AuthorizationHandler(ABC):
 
     _storage: Storage
     _connection_manager: Connections
-    _handler: AuthHandler
+    _handler: AuthHandlerSettings
 
     def __init__(
         self,
         storage: Storage,
         connection_manager: Connections,
-        auth_handler: AuthHandler | None = None,
+        settings: dict | AuthHandlerSettings | None = None,
         *,
         auth_handler_id: str | None = None,
+        auth_handler: AuthHandlerSettings | None = None,
         auth_handler_settings: dict | None = None,
         **kwargs,
     ) -> None:
@@ -41,28 +44,45 @@ class _AuthorizationHandler(ABC):
         :type storage: Storage
         :param connection_manager: The connection manager for OAuth providers.
         :type connection_manager: Connections
-        :param auth_handlers: Configuration for OAuth providers.
-        :type auth_handlers: dict[str, AuthHandler], Optional
+        :param settings: Optional settings for the auth handler.
+        :type settings: dict | AuthHandlerSettings | None
+        :param auth_handler: (Deprecated) Configuration for OAuth provider.
+        :type auth_handler: AuthHandlerSettings | None
+        :param auth_handler_id: Optional ID of the auth handler.
+        :type auth_handler_id: str | None
+        :param auth_handler_settings: (Deprecated) Optional settings dict for the auth handler.
+        :type auth_handler_settings: dict | None
         :raises ValueError: When storage is None or no auth handlers provided.
         """
         if not storage:
             raise ValueError("Storage is required for Authorization")
-        if not auth_handler and not auth_handler_settings:
+        if not settings and not auth_handler and not auth_handler_settings:
             raise ValueError(
-                "At least one of auth_handler or auth_handler_settings is required."
+                "At least one of settings or auth_handler or auth_handler_settings is required."
+            )
+        if auth_handler or auth_handler_settings:
+            warnings.warn(
+                "auth_handler and auth_handler_settings are deprecated. Please use settings instead.",
+                DeprecationWarning,
+                stacklevel=2,
             )
 
         self._storage = storage
         self._connection_manager = connection_manager
 
-        if auth_handler:
+        if settings:
+            if isinstance(settings, dict):
+                self._handler = AuthHandlerSettings(**settings)
+            else:
+                self._handler = settings
+        elif auth_handler:  # deprecated
             self._handler = auth_handler
-        else:
+        else:  # deprecated
             if not auth_handler_settings:
                 raise ValueError(
                     "auth_handler_settings must be provided if auth_handler is None."
                 )
-            self._handler = AuthHandler._from_settings(auth_handler_settings)
+            self._handler = AuthHandlerSettings(**auth_handler_settings)
 
         self._id = auth_handler_id or self._handler.name
         if not self._id:
@@ -78,7 +98,7 @@ class _AuthorizationHandler(ABC):
         :param context: The turn context for the current turn of conversation.
         :type context: TurnContext
         :param scopes: Optional list of scopes to request during sign-in. If None, default scopes will be used.
-        :type scopes: list[str] | None, Optional
+        :type scopes: list[str] | None
         :return: A SignInResponse indicating the result of the sign-in attempt.
         :rtype: SignInResponse
         """
@@ -95,9 +115,9 @@ class _AuthorizationHandler(ABC):
         :param context: The turn context for the current turn of conversation.
         :type context: TurnContext
         :param exchange_connection: Optional name of the connection to use for token exchange. If None, default connection will be used.
-        :type exchange_connection: str | None, Optional
+        :type exchange_connection: str | None
         :param exchange_scopes: Optional list of scopes to request during token exchange. If None, default scopes will be used.
-        :type exchange_scopes: list[str] | None, Optional
+        :type exchange_scopes: list[str] | None
         """
         raise NotImplementedError()
 
@@ -107,6 +127,6 @@ class _AuthorizationHandler(ABC):
         :param context: The turn context for the current turn of conversation.
         :type context: TurnContext
         :param auth_handler_id: The ID of the auth handler to sign out from. If None, sign out from all handlers.
-        :type auth_handler_id: Optional[str]
+        :type auth_handler_id: str | None
         """
         raise NotImplementedError()

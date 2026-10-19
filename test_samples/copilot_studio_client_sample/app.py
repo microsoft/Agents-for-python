@@ -9,9 +9,6 @@ from msal_cache_plugin import get_msal_token_cache
 from chat_console_service import ChatConsoleService
 from config import McsConnectionSettings
 
-load_dotenv(path.join(path.dirname(__file__), ".env"))
-mcs_connection_settings = McsConnectionSettings()
-
 
 def acquire_token(mcs_settings: McsConnectionSettings, cache_path: str) -> str:
     cache = get_msal_token_cache(cache_path)
@@ -21,15 +18,16 @@ def acquire_token(mcs_settings: McsConnectionSettings, cache_path: str) -> str:
         token_cache=cache,
     )
 
-    token_scopes = ["https://api.powerplatform.com/.default"]
+    token_scopes = [CopilotClient.scope_from_settings(mcs_settings)]
 
     accounts = app.get_accounts()
+    result = None
 
     if accounts:
         # If so, you could then somehow display these accounts and let end user choose
         chosen = accounts[0]
         result = app.acquire_token_silent(scopes=token_scopes, account=chosen)
-    else:
+    if not result or "access_token" not in result:
         # At this point, you can save you can update your cache if you are using token caching
         # check result variable, if its None then you should interactively acquire a token
         # So no suitable token exists in cache. Let's get a new one from Microsoft Entra.
@@ -53,10 +51,12 @@ def create_mcs_client(connection_settings: ConnectionSettings) -> CopilotClient:
     return CopilotClient(connection_settings, token)
 
 
-loop = asyncio.get_event_loop()
-try:
-    loop.run_until_complete(
-        ChatConsoleService(create_mcs_client(mcs_connection_settings)).start_service()
-    )
-finally:
-    loop.close()
+def main() -> None:
+    load_dotenv(path.join(path.dirname(__file__), ".env"))
+    connection_settings = McsConnectionSettings()
+    client = create_mcs_client(connection_settings)
+    asyncio.run(ChatConsoleService(client).start_service())
+
+
+if __name__ == "__main__":
+    main()
