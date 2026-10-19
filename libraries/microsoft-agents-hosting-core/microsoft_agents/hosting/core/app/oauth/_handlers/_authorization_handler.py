@@ -3,16 +3,15 @@ Copyright (c) Microsoft Corporation. All rights reserved.
 Licensed under the MIT License.
 """
 
-from abc import ABC
-from typing import Optional
 import logging
+from abc import ABC
 
 from microsoft_agents.activity import TokenResponse
 
 from ....turn_context import TurnContext
 from ....storage import Storage
 from ....authorization import Connections
-from ..auth_handler import AuthHandler
+from ..auth_handler import AuthHandlerSettings
 from .._sign_in_response import _SignInResponse
 
 logger = logging.getLogger(__name__)
@@ -23,16 +22,16 @@ class _AuthorizationHandler(ABC):
 
     _storage: Storage
     _connection_manager: Connections
-    _handler: AuthHandler
+    _handler: AuthHandlerSettings
 
     def __init__(
         self,
         storage: Storage,
         connection_manager: Connections,
-        auth_handler: Optional[AuthHandler] = None,
+        auth_handler: AuthHandlerSettings | None = None,
         *,
-        auth_handler_id: Optional[str] = None,
-        auth_handler_settings: Optional[dict] = None,
+        auth_handler_id: str | None = None,
+        auth_handler_settings: dict | None = None,
         **kwargs,
     ) -> None:
         """
@@ -43,7 +42,7 @@ class _AuthorizationHandler(ABC):
         :param connection_manager: The connection manager for OAuth providers.
         :type connection_manager: Connections
         :param auth_handlers: Configuration for OAuth providers.
-        :type auth_handlers: dict[str, AuthHandler], Optional
+        :type auth_handlers: dict[str, AuthHandler] | None
         :raises ValueError: When storage is None or no auth handlers provided.
         """
         if not storage:
@@ -63,7 +62,7 @@ class _AuthorizationHandler(ABC):
                 raise ValueError(
                     "auth_handler_settings must be provided if auth_handler is None."
                 )
-            self._handler = AuthHandler._from_settings(auth_handler_settings)
+            self._handler = AuthHandlerSettings._from_settings(auth_handler_settings)
 
         self._id = auth_handler_id or self._handler.name
         if not self._id:
@@ -72,14 +71,14 @@ class _AuthorizationHandler(ABC):
             )
 
     async def _sign_in(
-        self, context: TurnContext, scopes: Optional[list[str]] = None
+        self, context: TurnContext, scopes: list[str] | None = None
     ) -> _SignInResponse:
         """Initiate or continue the sign-in process for the user with the given auth handler.
 
         :param context: The turn context for the current turn of conversation.
         :type context: TurnContext
         :param scopes: Optional list of scopes to request during sign-in. If None, default scopes will be used.
-        :type scopes: Optional[list[str]], Optional
+        :type scopes: list[str] | None
         :return: A SignInResponse indicating the result of the sign-in attempt.
         :rtype: SignInResponse
         """
@@ -88,17 +87,17 @@ class _AuthorizationHandler(ABC):
     async def get_refreshed_token(
         self,
         context: TurnContext,
-        exchange_connection: Optional[str] = None,
-        exchange_scopes: Optional[list[str]] = None,
+        exchange_connection: str | None = None,
+        exchange_scopes: list[str] | None = None,
     ) -> TokenResponse:
         """Attempts to get a refreshed token for the user with the given scopes
 
         :param context: The turn context for the current turn of conversation.
         :type context: TurnContext
         :param exchange_connection: Optional name of the connection to use for token exchange. If None, default connection will be used.
-        :type exchange_connection: Optional[str], Optional
+        :type exchange_connection: str | None
         :param exchange_scopes: Optional list of scopes to request during token exchange. If None, default scopes will be used.
-        :type exchange_scopes: Optional[list[str]], Optional
+        :type exchange_scopes: list[str] | None
         """
         raise NotImplementedError()
 
@@ -108,6 +107,6 @@ class _AuthorizationHandler(ABC):
         :param context: The turn context for the current turn of conversation.
         :type context: TurnContext
         :param auth_handler_id: The ID of the auth handler to sign out from. If None, sign out from all handlers.
-        :type auth_handler_id: Optional[str]
+        :type auth_handler_id: str | None
         """
         raise NotImplementedError()

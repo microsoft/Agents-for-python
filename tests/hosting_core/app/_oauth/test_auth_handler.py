@@ -1,6 +1,6 @@
 import pytest
 
-from microsoft_agents.hosting.core import AuthHandler
+from microsoft_agents.hosting.core import AuthHandlerSettings
 
 from tests._common.data import (
     DEFAULT_TEST_VALUES,
@@ -13,7 +13,7 @@ ENV_DICT = NON_AGENTIC_TEST_ENV_DICT()
 AGENTIC_ENV_DICT = AGENTIC_TEST_ENV_DICT()
 
 
-class TestAuthHandler:
+class TestAuthHandlerSettings:
     @pytest.fixture
     def auth_setting(self):
         return ENV_DICT["AGENTAPPLICATION"]["USERAUTHORIZATION"]["HANDLERS"][
@@ -27,7 +27,7 @@ class TestAuthHandler:
         ]["SETTINGS"]
 
     def test_init(self, auth_setting):
-        auth_handler = AuthHandler(DEFAULTS.auth_handler_id, **auth_setting)
+        auth_handler = AuthHandlerSettings(DEFAULTS.auth_handler_id, **auth_setting)
         assert auth_handler.name == DEFAULTS.auth_handler_id
         assert auth_handler.title == DEFAULTS.auth_handler_title
         assert auth_handler.text == DEFAULTS.auth_handler_text
@@ -37,7 +37,7 @@ class TestAuthHandler:
         )
 
     def test_init_agentic(self, agentic_auth_setting):
-        auth_handler = AuthHandler(
+        auth_handler = AuthHandlerSettings(
             DEFAULTS.agentic_auth_handler_id, **agentic_auth_setting
         )
         assert auth_handler.name == DEFAULTS.agentic_auth_handler_id

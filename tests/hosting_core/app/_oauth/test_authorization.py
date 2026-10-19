@@ -22,7 +22,7 @@ from microsoft_agents.hosting.core.app.oauth import (
 from microsoft_agents.hosting.core._oauth import _FlowStateTag
 
 from microsoft_agents.hosting.core import (
-    AuthHandler,
+    AuthHandlerSettings,
     MemoryStorage,
 )
 
@@ -179,7 +179,7 @@ class TestAuthorizationSetup(TestEnv):
         handler_config = AGENTIC_ENV_DICT["AGENTAPPLICATION"]["USERAUTHORIZATION"][
             "HANDLERS"
         ][auth_handler_id]
-        auth._resolve_handler(auth_handler_id) == AuthHandler(
+        auth._resolve_handler(auth_handler_id) == AuthHandlerSettings(
             auth_handler_id, **handler_config
         )
 
