@@ -72,23 +72,17 @@ class _AuthorizationHandler(ABC):
 
         if settings:
             if isinstance(settings, dict):
-                self._handler = AuthHandlerSettings._from_settings(settings, **kwargs)
+                self._handler = AuthHandlerSettings(**settings)
             else:
-                self._handler = AuthHandlerSettings._from_settings(
-                    settings._to_dict(), **kwargs
-                )
-        elif auth_handler:
-            self._handler = AuthHandlerSettings._from_settings(
-                auth_handler._to_dict(), **kwargs
-            )
-        else:
+                self._handler = settings
+        elif auth_handler:  # deprecated
+            self._handler = auth_handler
+        else:  # deprecated
             if not auth_handler_settings:
                 raise ValueError(
                     "auth_handler_settings must be provided if auth_handler is None."
                 )
-            self._handler = AuthHandlerSettings._from_settings(
-                auth_handler_settings, **kwargs
-            )
+            self._handler = AuthHandlerSettings(**auth_handler_settings)
 
         self._id = auth_handler_id or self._handler.name
         if not self._id:

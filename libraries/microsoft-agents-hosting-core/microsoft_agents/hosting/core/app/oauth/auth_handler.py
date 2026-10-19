@@ -63,75 +63,31 @@ class AuthHandlerSettings:
         :param auth_type: The authorization variant used. This is likely to change in the future
             to accept a class that implements AuthorizationVariant.
         :type auth_type: str
+        :param scopes: List of scopes to request during sign-in.
+        :type scopes: list[str] | None
+        :param kwargs: Additional keyword arguments for the OAuth handler.
+            _alt_blueprint_name: Alternative blueprint name for the OAuth handler.
+        :type kwargs: dict
         """
 
-        base, extras = AuthHandlerSettings._resolve(
-            {
-                "name": name,
-                "title": title,
-                "text": text,
-                "azurebotoauthconnectionname": abs_oauth_connection_name,
-                "oboconnectionname": obo_connection_name,
-                "type": auth_type,
-                "scopes": scopes,
-                "alt_blueprint_name": kwargs.get("alt_blueprint_name", None),
-            },
-            kwargs,
+        kwargs = {k.lower(): v for k, v in kwargs.items()}
+
+        self.name = name or kwargs.get("name", "")
+        self.title = title or kwargs.get("title", "")
+        self.text = text or kwargs.get("text", "")
+        self.abs_oauth_connection_name = abs_oauth_connection_name or kwargs.get(
+            "azurebotoauthconnectionname", ""
         )
+        self.obo_connection_name = obo_connection_name or kwargs.get(
+            "oboconnectionname", ""
+        )
+        self.auth_type = (auth_type or kwargs.get("type", "UserAuthorization")).lower()
+        self.scopes = AuthHandlerSettings._format_scopes(
+            scopes or kwargs.get("scopes", "")
+        )
+        self._alt_blueprint_name = kwargs.get("alt_blueprint_name", None)
 
-        self.name = base.get("name", "")
-        self.title = base.get("title", "")
-        self.text = base.get("text", "")
-        self.abs_oauth_connection_name = base.get("azurebotoauthconnectionname", "")
-        self.obo_connection_name = base.get("oboconnectionname", "")
-        self.auth_type = base.get("type", "UserAuthorization").lower()
-        self.scopes = AuthHandlerSettings._format_scopes(base.get("scopes", ""))
-        self._alt_blueprint_name = base.get("alt_blueprint_name", None)
-        self._kwargs = extras
-
-    @staticmethod
-    def _resolve(settings: dict, other: dict) -> tuple[dict, dict]:
-
-        settings = {k.lower(): v for k, v in settings.items()}
-        other = {k.lower(): v for k, v in other.items()}
-
-        if "abs_oauth_connection_name" in settings:
-            settings["azurebotoauthconnectionname"] = settings.pop(
-                "abs_oauth_connection_name"
-            )
-        if "obo_connection_name" in settings:
-            settings["oboconnectionname"] = settings.pop("obo_connection_name")
-        if "auth_type" in settings:
-            settings["type"] = settings.pop("auth_type")
-
-        if "abs_oauth_connection_name" in other:
-            other["azurebotoauthconnectionname"] = other.pop(
-                "abs_oauth_connection_name"
-            )
-        if "obo_connection_name" in other:
-            other["oboconnectionname"] = other.pop("obo_connection_name")
-        if "auth_type" in other:
-            other["type"] = other.pop("auth_type")
-
-        base = {
-            "name": settings.get("name") or other.get("name", ""),
-            "title": settings.get("title") or other.get("title", ""),
-            "text": settings.get("text") or other.get("text", ""),
-            "azurebotoauthconnectionname": settings.get("azurebotoauthconnectionname")
-            or other.get("azurebotoauthconnectionname", ""),
-            "oboconnectionname": settings.get("oboconnectionname")
-            or other.get("oboconnectionname", ""),
-            "type": settings.get("type") or other.get("type", "UserAuthorization"),
-            "scopes": settings.get("scopes") or other.get("scopes", ""),
-            "alt_blueprint_name": settings.get("alt_blueprint_name")
-            or other.get("alt_blueprint_name", None),
-        }
-        base_keys = base.keys()
-
-        extras_base = {k: v for k, v in settings.items() if k not in base_keys}
-        extras_other = {k: v for k, v in other.items() if k not in base_keys}
-        extras = {**extras_other, **extras_base}
-        return base, extras
+        self._kwargs = {k: v for k, v in kwargs.items() if k not in _BASE_KEYS}
 
     @property
     def kwargs(self) -> dict:
@@ -146,25 +102,6 @@ class AuthHandlerSettings:
             return list(scopes)
         else:
             return []
-
-    @staticmethod
-    def _from_settings(settings: dict, **kwargs):
-        """
-        Creates an AuthHandlerSettings instance from a settings dictionary.
-
-        :param settings: The settings dictionary containing configuration for the AuthHandlerSettings.
-        :type settings: dict
-        :return: An instance of AuthHandlerSettings configured with the provided settings.
-        :rtype: AuthHandlerSettings
-        """
-        if not settings:
-            raise ValueError(
-                "Settings dictionary is required to create AuthHandlerSettings"
-            )
-
-        base, extras = AuthHandlerSettings._resolve(settings, kwargs)
-
-        return AuthHandlerSettings(**base, **extras)
 
     def _to_dict(self) -> dict:
         """
