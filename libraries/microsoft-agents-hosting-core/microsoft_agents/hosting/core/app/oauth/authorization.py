@@ -109,7 +109,7 @@ class Authorization:
             auth_handlers = {
                 handler_name: AuthHandlerSettings(
                     name=handler_name,
-                    auth_type=config.get("TYPE", ""),
+                    auth_type=config.get("TYPE", None),
                     **config.get("SETTINGS", {}),
                 )
                 for handler_name, config in handlers_config.items()

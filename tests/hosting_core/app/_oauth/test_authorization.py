@@ -214,7 +214,7 @@ class TestAuthorizationSetup(TestEnv):
         ][auth_handler_id]
         settings = AuthHandlerSettings(
             name=auth_handler_id,
-            auth_type=handler_config.get("TYPE", ""),
+            auth_type=handler_config.get("TYPE"),
             **handler_config["SETTINGS"],
         )
         handler = auth._resolve_handler(auth_handler_id)

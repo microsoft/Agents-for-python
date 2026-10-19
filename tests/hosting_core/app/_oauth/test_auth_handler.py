@@ -1,3 +1,5 @@
+from contextlib import nullcontext
+
 import pytest
 
 from microsoft_agents.hosting.core import (
@@ -23,6 +25,27 @@ AGENTIC_ENV_DICT = AGENTIC_TEST_ENV_DICT()
 
 
 class TestAuthHandlerSettings:
+    def test_default_auth_type(self):
+        assert AuthHandlerSettings().auth_type == "userauthorization"
+
+    def test_configuration_aliases(self):
+        settings = AuthHandlerSettings(
+            NAME="SSO",
+            TYPE="AgenticUserAuthorization",
+            AZUREBOTOAUTHCONNECTIONNAME="sso",
+            OBOCONNECTIONNAME="obo",
+            SCOPES="User.Read Mail.Read",
+        )
+
+        assert settings.name == "SSO"
+        assert settings.auth_type == "agenticuserauthorization"
+        assert settings.abs_oauth_connection_name == "sso"
+        assert settings.obo_connection_name == "obo"
+        assert settings.scopes == ["User.Read", "Mail.Read"]
+
+        copied = AuthHandlerSettings(**settings._to_dict())
+        assert copied._to_dict() == settings._to_dict()
+
     @pytest.fixture
     def auth_setting(self):
         return ENV_DICT["AGENTAPPLICATION"]["USERAUTHORIZATION"]["HANDLERS"][
@@ -137,7 +160,7 @@ class TestAuthorizationHandlerSettings:
             assert handler._alt_blueprint_name == "blueprint"
 
     @pytest.mark.parametrize("settings_kind", ["dictionary", "object"])
-    def test_settings_overrides(
+    def test_settings_take_precedence(
         self, mocker, handler_type, configuration, settings, settings_kind
     ):
         source = configuration if settings_kind == "dictionary" else settings
@@ -147,19 +170,132 @@ class TestAuthorizationHandlerSettings:
             mocker.Mock(),
             settings=source,
             title="New title",
+            text="New text",
             scopes=["Files.Read"],
+            abs_oauth_connection_name="new-sso",
             obo_connection_name="new-obo",
+            auth_type="ConnectorUserAuthorization",
             alt_blueprint_name="new-blueprint",
+            CUSTOM_SETTING="other",
         )
 
-        assert handler._handler.title == "New title"
-        assert handler._handler.scopes == ["Files.Read"]
-        assert handler._handler.obo_connection_name == "new-obo"
-        assert handler._handler._alt_blueprint_name == "new-blueprint"
+        assert handler._handler.title == "Sign in"
+        assert handler._handler.text == "Please sign in"
+        assert handler._handler.scopes == ["User.Read", "Mail.Read"]
+        assert handler._handler.abs_oauth_connection_name == "sso"
+        assert handler._handler.obo_connection_name == "obo"
+        assert handler._handler.auth_type == "agenticuserauthorization"
+        assert handler._handler._alt_blueprint_name == "blueprint"
+        assert handler._handler.kwargs["custom_setting"] == "custom"
         assert settings.title == "Sign in"
         assert settings.scopes == ["User.Read", "Mail.Read"]
         assert configuration["TITLE"] == "Sign in"
         assert configuration["SCOPES"] == "User.Read Mail.Read"
+
+    @pytest.mark.parametrize(
+        "source_kind",
+        ["dictionary", "object", "deprecated_dictionary", "deprecated_object"],
+    )
+    def test_empty_arguments_preserve_settings(
+        self, mocker, handler_type, configuration, settings, source_kind
+    ):
+        source = configuration if "dictionary" in source_kind else settings
+        argument = "settings"
+        if source_kind == "deprecated_dictionary":
+            argument = "auth_handler_settings"
+        elif source_kind == "deprecated_object":
+            argument = "auth_handler"
+
+        warning = (
+            pytest.warns(DeprecationWarning, match="Please use settings instead")
+            if source_kind.startswith("deprecated")
+            else nullcontext()
+        )
+        with warning:
+            handler = handler_type(
+                MemoryStorage(),
+                mocker.Mock(),
+                **{argument: source},
+                title="",
+                text="",
+                abs_oauth_connection_name="",
+                obo_connection_name="",
+                scopes=[],
+            )
+
+        assert handler._handler.title == "Sign in"
+        assert handler._handler.text == "Please sign in"
+        assert handler._handler.abs_oauth_connection_name == "sso"
+        assert handler._handler.obo_connection_name == "obo"
+        assert handler._handler.scopes == ["User.Read", "Mail.Read"]
+        assert settings.obo_connection_name == "obo"
+        assert settings.scopes == ["User.Read", "Mail.Read"]
+        assert configuration["OBOCONNECTIONNAME"] == "obo"
+        assert configuration["SCOPES"] == "User.Read Mail.Read"
+
+    @pytest.mark.parametrize("settings_kind", ["dictionary", "object"])
+    @pytest.mark.parametrize("empty_value", [None, ""])
+    def test_other_arguments_fill_empty_settings(
+        self, mocker, handler_type, configuration, settings_kind, empty_value
+    ):
+        for key in [
+            "TITLE",
+            "TEXT",
+            "AZUREBOTOAUTHCONNECTIONNAME",
+            "OBOCONNECTIONNAME",
+            "ALT_BLUEPRINT_NAME",
+        ]:
+            configuration[key] = empty_value
+        configuration["SCOPES"] = [] if empty_value == "" else None
+        source = (
+            configuration
+            if settings_kind == "dictionary"
+            else AuthHandlerSettings(**configuration)
+        )
+
+        handler = handler_type(
+            MemoryStorage(),
+            mocker.Mock(),
+            settings=source,
+            title="Fallback title",
+            text="Fallback text",
+            abs_oauth_connection_name="fallback-sso",
+            obo_connection_name="fallback-obo",
+            scopes=["Files.Read"],
+            alt_blueprint_name="fallback-blueprint",
+            OTHER_SETTING="other",
+        )
+
+        assert handler._handler.title == "Fallback title"
+        assert handler._handler.text == "Fallback text"
+        assert handler._handler.abs_oauth_connection_name == "fallback-sso"
+        assert handler._handler.obo_connection_name == "fallback-obo"
+        assert handler._handler.scopes == ["Files.Read"]
+        assert handler._handler._alt_blueprint_name == "fallback-blueprint"
+        assert handler._handler.kwargs["custom_setting"] == "custom"
+        assert handler._handler.kwargs["other_setting"] == "other"
+
+    @pytest.mark.parametrize("argument", ["settings", "auth_handler"])
+    def test_cleared_settings_survive_reconstruction(
+        self, mocker, handler_type, settings, argument
+    ):
+        settings.abs_oauth_connection_name = ""
+        settings.obo_connection_name = ""
+        settings.scopes = []
+
+        warning = (
+            pytest.warns(DeprecationWarning, match="Please use settings instead")
+            if argument == "auth_handler"
+            else nullcontext()
+        )
+        with warning:
+            handler = handler_type(
+                MemoryStorage(), mocker.Mock(), **{argument: settings}
+            )
+
+        assert handler._handler.abs_oauth_connection_name == ""
+        assert handler._handler.obo_connection_name == ""
+        assert handler._handler.scopes == []
 
     @pytest.mark.parametrize("argument", ["auth_handler", "auth_handler_settings"])
     def test_legacy_keyword_arguments(
