@@ -13,6 +13,7 @@ from ._constants import _NAME_TO_LEVEL
 
 _K_LOG_LEVEL = "LOGLEVEL"
 
+
 @dataclass(frozen=True)
 class _LogLevelEntry:
     """Represents a logging level entry with a namespace and level."""
@@ -24,17 +25,19 @@ class _LogLevelEntry:
         level_upper = level.upper()
         if level_upper not in _NAME_TO_LEVEL:
             raise ValueError(
-                configuration_errors.InvalidLoggingConfiguration.format(namespace, level)
+                configuration_errors.InvalidLoggingConfiguration.format(
+                    namespace, level
+                )
             )
         object.__setattr__(self, "namespace", namespace.lower())
         object.__setattr__(self, "level", _NAME_TO_LEVEL[level_upper])
+
 
 @dataclass(frozen=True)
 class _LoggingConfiguration(_DictConfigurable):
     """Configuration class for logging levels."""
 
     log_levels: list[_LogLevelEntry]
-
 
     def __init__(self, data: dict) -> None:
         """Initialize the logging configuration from a dictionary."""

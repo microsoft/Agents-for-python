@@ -34,6 +34,7 @@ from microsoft_agents.activity import (
     MessageUpdateTypes,
     InvokeResponse,
 )
+from microsoft_agents.activity.config import Configuration
 
 from microsoft_agents.hosting.core.turn_context import TurnContext
 

@@ -3,6 +3,7 @@
 
 import logging
 
+
 class ColorFormatter(logging.Formatter):
     """Logging formatter that can add ANSI color based on severity."""
 

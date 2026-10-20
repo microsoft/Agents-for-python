@@ -3,10 +3,12 @@
 
 import re
 import logging
+import warnings
 
 from collections.abc import Callable
 
 from microsoft_agents.activity import Activity
+from microsoft_agents.activity.config import Configuration
 
 from .agent_auth_configuration import AgentAuthConfiguration
 from .access_token_provider_base import AccessTokenProviderBase
@@ -38,6 +40,8 @@ class ConnectionManager(Connections):
         provider_factory: Callable[[AgentAuthConfiguration], AccessTokenProviderBase],
         connections_configurations: dict[str, AgentAuthConfiguration] | None = None,
         connections_map: list[dict[str, str]] | None = None,
+        *,
+        config: Configuration | None = None,
         **kwargs,
     ):
         """
@@ -53,35 +57,60 @@ class ConnectionManager(Connections):
         :type connections_map: list[dict[str, str]]
         :raises ValueError: If no service connection configuration is provided.
         """
-
         self._provider_factory = provider_factory
         self._connections = {}
-        # ``load_configuration_from_env`` yields CONNECTIONSMAP as a list when it
-        # is configured (it collapses the parsed name->entry dict to a list) and
-        # as an empty dict ({}) only when unset. Normalize to a list so the guard
-        # also handles a raw dict passed via direct/manual construction and the
-        # empty-unset case, keeping the runtime shape consistent with the
-        # list[dict[str, str]] the class expects everywhere else.
-        raw_connections_map = (
-            connections_map
-            if connections_map is not None
-            else kwargs.get("CONNECTIONSMAP", [])
-        )
 
-        if isinstance(raw_connections_map, dict):
-            raw_connections_map = list(raw_connections_map.values())
-        self._connections_map = raw_connections_map or []
-        self._config_map = {}
+        if connections_configurations or connections_map:
+            warnings.warn(
+                "The fields 'connections_configurations' and 'connections_map' are deprecated and will be removed in a future version. The corresponding positional arguments will remain until the args' removals, and no other positional arguments after will be added until these fields are removed. Please use `config` instead.",
+                DeprecationWarning,
+                stacklevel=2,
+            )
 
-        if connections_configurations:
-            for (
-                connection_name,
-                agent_auth_config,
-            ) in connections_configurations.items():
-                self._connections[connection_name] = provider_factory(agent_auth_config)
-                self._config_map[connection_name] = agent_auth_config
+            if config is not None:
+                raise ValueError("Cannot provide both 'config' and deprecated connection configurations.")
+
+            # ``load_configuration_from_env`` yields CONNECTIONSMAP as a list when it
+            # is configured (it collapses the parsed name->entry dict to a list) and
+            # as an empty dict ({}) only when unset. Normalize to a list so the guard
+            # also handles a raw dict passed via direct/manual construction and the
+            # empty-unset case, keeping the runtime shape consistent with the
+            # list[dict[str, str]] the class expects everywhere else.
+            raw_connections_map = (
+                connections_map
+                if connections_map is not None
+                else kwargs.get("CONNECTIONSMAP", [])
+            )
+
+            if connections_configurations:
+                for (
+                    connection_name,
+                    agent_auth_config,
+                ) in connections_configurations.items():
+                    self._connections[connection_name] = provider_factory(agent_auth_config)
+                    self._config_map[connection_name] = agent_auth_config
+            else:
+                raw_configurations: dict[str, dict] = kwargs.get("CONNECTIONS", {})
+                for connection_name, connection_settings in raw_configurations.items():
+                    parsed_configuration = AgentAuthConfiguration(
+                        **connection_settings.get("SETTINGS", {})
+                    )
+                    self._connections[connection_name] = provider_factory(
+                        parsed_configuration
+                    )
+                    self._config_map[connection_name] = parsed_configuration
+
+            # JWT-patch
+            for connection_name, config in self._config_map.items():
+                config._connections = self._config_map
+
+            if not self._connections.get("SERVICE_CONNECTION", None):
+                raise ValueError("No service connection configuration provided.")
         else:
-            raw_configurations: dict[str, dict] = kwargs.get("CONNECTIONS", {})
+            config = Configuration.fork(config, **kwargs)
+
+            raw_connections_map = config.get("CONNECTIONSMAP", [])
+            raw_configurations = config.get("CONNECTIONS", {})
             for connection_name, connection_settings in raw_configurations.items():
                 parsed_configuration = AgentAuthConfiguration(
                     **connection_settings.get("SETTINGS", {})
@@ -90,13 +119,15 @@ class ConnectionManager(Connections):
                     parsed_configuration
                 )
                 self._config_map[connection_name] = parsed_configuration
+            
 
-        # JWT-patch
-        for connection_name, config in self._config_map.items():
-            config._connections = self._config_map
+            self._provider_factory = provider_factory
+            self._connections = {}
 
-        if not self._connections.get("SERVICE_CONNECTION", None):
-            raise ValueError("No service connection configuration provided.")
+        if isinstance(raw_connections_map, dict):
+            raw_connections_map = list(raw_connections_map.values())
+        self._connections_map = raw_connections_map or []
+        self._config_map = {}
 
         _log_config(logger, self._config_map, self._connections_map)
 

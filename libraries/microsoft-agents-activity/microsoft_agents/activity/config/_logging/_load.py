@@ -10,6 +10,7 @@ from ._logging_configuration import _LoggingConfiguration
 from ._color_formatter import ColorFormatter
 from ._constants import _DEFAULT_NAMESPACE
 
+
 def _configure_logging(settings: Mapping):
     """Configures logging based on the provided logging configuration dictionary.
 

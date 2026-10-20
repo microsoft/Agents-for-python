@@ -8,7 +8,10 @@ from .configuration import Configuration
 from ._logging import _configure_logging
 from . import _utils
 
-def load_configuration_from_env(env_vars: Mapping[str, Any], defaults: Mapping[str, Any] | None = None) -> Configuration:
+
+def load_configuration_from_env(
+    env_vars: Mapping[str, Any], defaults: Mapping[str, Any] | None = None
+) -> Configuration:
     """
     Parses environment variables and returns a Configuration object with the relevant configuration.
 
@@ -27,9 +30,11 @@ def load_configuration_from_env(env_vars: Mapping[str, Any], defaults: Mapping[s
 
     _configure_logging(resolved.get("LOGGING", {}))
 
-    return Configuration({
-        "AgentApplication": resolved.pop("AGENTAPPLICATION", {}),
-        "Connections": resolved.pop("CONNECTIONS", {}),
-        "ConnectionsMap": resolved.pop("CONNECTIONSMAP", []),
-        **resolved
-    })
+    return Configuration(
+        {
+            "AgentApplication": resolved.pop("AGENTAPPLICATION", {}),
+            "Connections": resolved.pop("CONNECTIONS", {}),
+            "ConnectionsMap": resolved.pop("CONNECTIONSMAP", []),
+            **resolved,
+        }
+    )

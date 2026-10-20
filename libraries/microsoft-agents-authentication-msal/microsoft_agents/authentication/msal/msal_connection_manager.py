@@ -1,6 +1,7 @@
 # Copyright (c) Microsoft Corporation. All rights reserved.
 # Licensed under the MIT License.
 
+from microsoft_agents.activity.config import Configuration
 from microsoft_agents.hosting.core import (
     AgentAuthConfiguration,
     ConnectionManager,
@@ -23,6 +24,8 @@ class MsalConnectionManager(ConnectionManager):
         self,
         connections_configurations: dict[str, AgentAuthConfiguration] | None = None,
         connections_map: list[dict[str, str]] | None = None,
+        *,
+        config: Configuration | None = None,
         **kwargs,
     ):
         """
@@ -39,5 +42,6 @@ class MsalConnectionManager(ConnectionManager):
             provider_factory=MsalAuth,
             connections_configurations=connections_configurations,
             connections_map=connections_map,
+            config=config,
             **kwargs,
         )

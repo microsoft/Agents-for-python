@@ -8,17 +8,17 @@ from typing import (
 )
 from typing_extensions import Self
 
+
 @runtime_checkable
 class _ConfigurationProtocol(Protocol):
 
     @classmethod
-    def from_mapping(cls, mapping: Mapping) -> Self:
-        ...
+    def from_mapping(cls, mapping: Mapping) -> Self: ...
+
 
 class _DictConfigurable(_ConfigurationProtocol, Protocol):
 
-    def __init__(self, data: dict, *args, **kwargs) -> None:
-        ...
+    def __init__(self, data: dict, *args, **kwargs) -> None: ...
 
     @classmethod
     def from_mapping(cls, mapping: Mapping) -> Self:
