@@ -3,37 +3,33 @@
 
 from typing import Any, Mapping
 
-from ._configure_logging import _configure_logging
 from .configuration import Configuration
 
+from ._logging import _configure_logging
+from . import _utils
 
-def load_configuration_from_env(env_vars: Mapping[str, Any]) -> Configuration:
+def load_configuration_from_env(env_vars: Mapping[str, Any], defaults: Mapping[str, Any] | None = None) -> Configuration:
     """
     Parses environment variables and returns a Configuration object with the relevant configuration.
+
+    :param env_vars: A mapping of environment variable names to their values.
+    :param defaults: A mapping of default configuration values.
+    :return: A Configuration object containing the resolved configuration.
     """
     local_vars = dict(env_vars)
-    result = {}
-    for key, value in local_vars.items():
-        levels = key.split("__")
-        current_level = result
-        last_level = None
-        for next_level in levels:
-            if next_level not in current_level:
-                current_level[next_level] = {}
-            last_level = current_level
-            current_level = current_level[next_level]
-        last_level[levels[-1]] = value
 
-    if result.get("CONNECTIONSMAP") and isinstance(result["CONNECTIONSMAP"], dict):
-        result["CONNECTIONSMAP"] = [
-            conn for conn in result.get("CONNECTIONSMAP", {}).values()
+    resolved = _utils._resolve(local_vars, defaults or {})
+
+    if resolved.get("CONNECTIONSMAP") and isinstance(resolved["CONNECTIONSMAP"], dict):
+        resolved["CONNECTIONSMAP"] = [
+            conn for conn in resolved.get("CONNECTIONSMAP", {}).values()
         ]
 
-    _configure_logging(result.get("LOGGING", {}))
+    _configure_logging(resolved.get("LOGGING", {}))
 
     return Configuration({
-        "AgentApplication": result.pop("AGENTAPPLICATION", {}),
-        "Connections": result.pop("CONNECTIONS", {}),
-        "ConnectionsMap": result.pop("CONNECTIONSMAP", []),
-        **result
+        "AgentApplication": resolved.pop("AGENTAPPLICATION", {}),
+        "Connections": resolved.pop("CONNECTIONS", {}),
+        "ConnectionsMap": resolved.pop("CONNECTIONSMAP", []),
+        **resolved
     })
