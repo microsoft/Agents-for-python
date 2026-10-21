@@ -3,6 +3,7 @@
 
 from __future__ import annotations
 
+from abc import ABC, abstractmethod
 from typing import (
     Any,
     Callable,
@@ -28,7 +29,6 @@ from ._utils import (
     _is_missing,
     _resolve,
 )
-from . import _coercion as coercion
 
 T = TypeVar("T")
 _ConfigurationProtocolT = TypeVar(
@@ -52,15 +52,18 @@ class Configuration(dict, _ConfigurationProtocol):
         
     @classmethod
     def from_mapping(
-        cls, _mapping: Mapping, _base_path: str | None = None, **kwargs
+        cls, _mapping: Mapping | None = None, _base_path: str | None = None, **kwargs
     ) -> Configuration:
         if isinstance(_mapping, Configuration) and not kwargs:
             return _mapping
         if kwargs:
-            resolved = _resolve(_mapping, kwargs, path_transformer=lambda x: x)
+            if not _mapping:
+                resolved = kwargs
+            else:
+                resolved = _resolve(_mapping, kwargs, path_transformer=lambda x: x)
         else:
             resolved = _mapping
-        return cls(dict(resolved), _base_path=_base_path)
+        return cls(resolved, _base_path=_base_path)
 
     @classmethod
     def from_config(self, base: Configuration | None, **kwargs) -> Configuration:
@@ -74,19 +77,18 @@ class Configuration(dict, _ConfigurationProtocol):
         """Resolve a configuration path by combining the base path and the key."""
         return f"{self._base_path}{_PATH_SEPARATOR}{key}" if self._base_path else key
 
-    def _get(self, key: str, default: Any = _MISSING) -> Any:
+    def _get(self, *keys: str, default: Any = _MISSING, skip_none: bool = False) -> Any:
         """Retrieve a value from the configuration by key, returning _MISSING if not found."""
-        res = _get(self, key, _MISSING)
+        res = _get(self, *keys, default=_MISSING, skip_none=skip_none)
         if _is_missing(res):
             if _is_missing(default):
-                raise KeyError(key)
+                raise KeyError(keys[0])
             return default
         return res
 
     def _get_typed(
         self,
-        key: str,
-        *,
+        *keys: str,
         cls: type[T],
         factory: Callable[[Any], T] | None = None,
         default: T | _MISSING_CLS = _MISSING,
@@ -99,7 +101,7 @@ class Configuration(dict, _ConfigurationProtocol):
         :param default: The default value to return if the key is not found or the value is not of the expected type.
         """
 
-        val = self._get(key)
+        val = self._get(*keys)
 
         if isinstance(val, cls):
             return val
@@ -150,8 +152,8 @@ class Configuration(dict, _ConfigurationProtocol):
         _type: type[T],
         key: str | None = None,
         *,
-        factory: Callable[[Mapping], T],
-        default: _MISSING_CLS = _MISSING,
+        factory: Callable[[Mapping], T] | None = None,
+        default: T | _MISSING_CLS = _MISSING,
     ) -> T: ...
     @overload
     def get_typed(
@@ -160,7 +162,7 @@ class Configuration(dict, _ConfigurationProtocol):
         key: str | None = None,
         *,
         factory: Callable[[Mapping], T],
-        default: T | None,
+        default: None,
     ) -> T | None: ...
     @overload
     def get_typed(
@@ -215,77 +217,113 @@ class Configuration(dict, _ConfigurationProtocol):
         return factory(val)
 
     @overload
-    def get_bool(self, key: str, default: bool | _MISSING_CLS = _MISSING) -> bool:
+    def get_bool(self, *keys: str, default: bool | _MISSING_CLS = _MISSING) -> bool:
         ...
     @overload
-    def get_bool(self, key: str, default: None = None) -> bool | None:
+    def get_bool(self, *keys: str, default: None = None) -> bool | None:
         ...
-    def get_bool(self, key: str, default: bool | None | _MISSING_CLS = _MISSING) -> bool | None:
+    def get_bool(self, *keys: str, default: bool | None | _MISSING_CLS = _MISSING) -> bool | None:
         """Retrieve a boolean value from the configuration.
 
-        :param key: The key of the value to retrieve.
+        :param keys: The keys of the value to retrieve.
         :param default: The default value to return if the key is not found.
         :return: The retrieved boolean value or the default value if not found.
         """
-        val = self._get(key, default)
-        return _handle_bool(val, default, key)
+        val = self._get(*keys, default=default, skip_none=True)
+        return _handle_bool(val, default, keys[0])
+
+    def get_booln(self, *keys: str, default: bool | None = None) -> bool | None:
+        """Retrieve a boolean value from the configuration, allowing None as default.
+
+        :param keys: The keys of the value to retrieve.
+        :param default: The default value to return if the key is not found.
+        :return: The retrieved boolean value or the default value if not found.
+        """
+        return self.get_bool(*keys, default=default)
 
     @overload
-    def get_int(self, key: str, default: None = None) -> int | None:
+    def get_int(self, *keys: str, default: None = None) -> int | None:
         ...
     @overload
-    def get_int(self, key: str, default: int | _MISSING_CLS = _MISSING) -> int:
+    def get_int(self, *keys: str, default: int | _MISSING_CLS = _MISSING) -> int:
         ...
-    def get_int(self, key: str, default: int | None | _MISSING_CLS = _MISSING) -> int | None:
+    def get_int(self, *keys: str, default: int | None | _MISSING_CLS = _MISSING) -> int | None:
         """Retrieve an integer value from the configuration.
 
-        :param key: The key of the value to retrieve.
+        :param keys: The keys of the value to retrieve.
         :param default: The default value to return if the key is not found.
         :return: The retrieved integer value or the default value if not found.
         """
-        val = self._get(key, default)
-        return _handle_int(val, default, key)
+        val = self._get(*keys, default=default, skip_none=True)
+        return _handle_int(val, default, keys[0])
+
+    def get_intn(self, *keys: str, default: int | None = None) -> int | None:
+        """Retrieve an integer value from the configuration, allowing None as default.
+
+        :param keys: The keys of the value to retrieve.
+        :param default: The default value to return if the key is not found.
+        :return: The retrieved integer value or the default value if not found.
+        """
+        return self.get_int(*keys, default=default)
 
     @overload
-    def get_float(self, key: str, default: None | _MISSING_CLS = _MISSING) -> float | None:
+    def get_float(self, *keys: str, default: None = None) -> float | None:
         ...
     @overload
-    def get_float(self, key: str, default: _MISSING_CLS = _MISSING) -> float:
+    def get_float(self, *keys: str, default: float | _MISSING_CLS = _MISSING) -> float:
         ...
-    def get_float(self, key: str, default: float | None | _MISSING_CLS = _MISSING) -> float | None:
+    def get_float(self, *keys: str, default: float | None | _MISSING_CLS = _MISSING) -> float | None:
         """Retrieve a float value from the configuration.
 
-        :param key: The key of the value to retrieve.
+        :param keys: The keys of the value to retrieve.
         :param default: The default value to return if the key is not found.
         :return: The retrieved float value or the default value if not found.
         """
-        val = self._get(key, default)
-        return _handle_float(val, default, key)
+        val = self._get(*keys, default=default, skip_none=True)
+        return _handle_float(val, default, keys[0])
+
+    def get_floatn(self, *keys: str, default: float | None = None) -> float | None:
+        """Retrieve a float value from the configuration, allowing None as default.
+
+        :param keys: The keys of the value to retrieve.
+        :param default: The default value to return if the key is not found.
+        :return: The retrieved float value or the default value if not found.
+        """
+        return self.get_float(*keys, default=default)
 
     @overload
-    def get_str(self, key: str, default: None) -> str | None:
+    def get_str(self, *keys: str, default: None) -> str | None:
         ...
     @overload
-    def get_str(self, key: str, default: str | _MISSING_CLS = _MISSING) -> str:
+    def get_str(self, *keys: str, default: str | _MISSING_CLS = _MISSING) -> str:
         ...
-    def get_str(self, key: str, default: str | None | _MISSING_CLS = _MISSING) -> str | None:
+    def get_str(self, *keys: str, default: str | None | _MISSING_CLS = _MISSING) -> str | None:
         """Retrieve a string value from the configuration.
 
-        :param key: The key of the value to retrieve.
+        :param keys: The keys of the value to retrieve.
         :param default: The default value to return if the key is not found.
         :return: The retrieved string value or the default value if not found.
         """
-        val = self._get(key, default)
-        return _handle_str(val, default, key)
+        val = self._get(*keys, default=default, skip_none=True)
+        return _handle_str(val, default, keys[0])
 
-    def get_scopes(self, key: str) -> list[str]:
+    def get_strn(self, *keys: str, default: str | None = None) -> str | None:
+        """Retrieve a list of strings from the configuration.
+
+        :param keys: The keys of the value to retrieve.
+        :param default: The default value to return if the key is not found.
+        :return: The retrieved list of strings or the default value if not found.
+        """
+        return self.get_str(*keys, default=default)
+
+    def get_scopes(self, *keys: str) -> list[str]:
         """Retrieve a list of scopes from the configuration.
 
-        :param key: The key of the scopes value to retrieve.
+        :param keys: The keys of the scopes value to retrieve.
         :param default: The default value to return if the key is not found.
         :return: The retrieved list of scopes or the default value if not found.
         """
-        val = self._get(key, None)
+        val = self._get(*keys, default=None, skip_none=True)
         if val is None:
             return []
         if isinstance(val, list):
@@ -305,12 +343,13 @@ class Configuration(dict, _ConfigurationProtocol):
         return scopes
         
 
-class _Configurable(_ConfigurationProtocol, Protocol):
+class _Configurable(ABC):
 
     @classmethod
-    def from_mapping(cls, mapping: Mapping) -> Self:
-        return cls.from_mapping(Configuration.from_mapping(mapping))
+    def from_mapping(cls, _mapping: Mapping | None = None, **kwargs) -> Self:
+        return cls.from_configuration(Configuration.from_mapping(_mapping, **kwargs))
 
     @classmethod
+    @abstractmethod
     def from_configuration(cls, config: Configuration) -> Self:
         ...

@@ -8,7 +8,9 @@ import asyncio
 import logging
 import time
 import jwt
-from typing import Optional
+import warnings
+
+from typing import Optional, Mapping
 from urllib.parse import urlparse, ParseResult as URI
 from msal import (
     ConfidentialClientApplication,
@@ -23,6 +25,7 @@ from azure.core.credentials_async import AsyncTokenCredential
 
 from requests import Session
 
+from microsoft_agents.activity.config import Configuration
 from microsoft_agents.activity._utils import _DeferredString
 
 from microsoft_agents.hosting.core import (
@@ -31,7 +34,8 @@ from microsoft_agents.hosting.core import (
     AgentAuthConfiguration,
 )
 from microsoft_agents.hosting.core.authorization.telemetry import spans
-from microsoft_agents.authentication.msal.errors import authentication_errors
+from .connection_settings import MsalConnectionSettings
+from .errors import authentication_errors
 
 logger = logging.getLogger(__name__)
 
@@ -47,13 +51,31 @@ async def _async_acquire_token_for_client(msal_auth_client, *args, **kwargs):
 
 class MsalAuth(AccessTokenProviderBase):
 
-    def __init__(self, msal_configuration: AgentAuthConfiguration):
+    def __init__(self, config: Configuration | MsalConnectionSettings | AgentAuthConfiguration):
         """Initializes the MsalAuth class with the given configuration.
 
-        :param msal_configuration: The MSAL authentication configuration. Assumed to
+        :param config: The MSAL authentication configuration. Assumed to
             not be mutated after being passed in.
-        :type msal_configuration: :class:`microsoft_agents.hosting.core.authorization.agent_auth_configuration.AgentAuthConfiguration`
+        :type config: Mapping | :class:`microsoft_agents.hosting.core.authorization.agent_auth_configuration.AgentAuthConfiguration`
         """
+
+        if isinstance(config, MsalConnectionSettings):
+            self._deprecated_config = AgentAuthConfiguration(
+                **config.__dict__
+            )
+            msal_configuration = config
+        elif isinstance(config, Configuration):
+            self._deprecated_config = AgentAuthConfiguration(**config)
+            msal_configuration = MsalConnectionSettings.from_configuration(config)
+        else:
+            warnings.warn(
+                "AgentAuthConfiguration is deprecated and will be removed in future versions. "
+                "Please pass a config of type Mapping instead.",
+                DeprecationWarning,
+                stacklevel=2
+            )
+            self._deprecated_config = config
+            msal_configuration = MsalConnectionSettings._from_agent_auth_config(config)
 
         self._msal_configuration = msal_configuration
         self._msal_auth_client_map: dict[
@@ -73,7 +95,7 @@ class MsalAuth(AccessTokenProviderBase):
         :return: The MSAL authentication configuration.
         :rtype: :class:`microsoft_agents.hosting.core.authorization.agent_auth_configuration.AgentAuthConfiguration`
         """
-        return self._msal_configuration
+        return self._deprecated_config
 
     async def get_access_token(
         self, resource_url: str, scopes: list[str], force_refresh: bool = False
@@ -112,7 +134,7 @@ class MsalAuth(AccessTokenProviderBase):
         """
         with spans.GetAccessToken(
             scopes,
-            self._msal_configuration.AUTH_TYPE,
+            self._msal_configuration.auth_type,
         ):
             logger.debug(
                 f"Requesting access token for resource: {resource_url}, scopes: {scopes}"
@@ -209,26 +231,26 @@ class MsalAuth(AccessTokenProviderBase):
 
     @staticmethod
     def _resolve_authority(
-        config: AgentAuthConfiguration, tenant_id: str | None = None
+        config: MsalConnectionSettings, tenant_id: str | None = None
     ) -> str:
         tenant_id = MsalAuth._resolve_tenant_id(config, tenant_id)
         if not tenant_id:
             return (
-                config.AUTHORITY
-                or f"https://login.microsoftonline.com/{config.TENANT_ID}"
+                config.authority
+                or f"https://login.microsoftonline.com/{config.tenant_id}"
             )
 
-        if config.AUTHORITY:
+        if config.authority:
             return re.sub(
                 r"/(?:common|[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12})(?=/|$)",
                 f"/{tenant_id}",
-                config.AUTHORITY,
+                config.authority,
             )
 
         return f"https://login.microsoftonline.com/{tenant_id}"
 
     @staticmethod
-    def _resolve_azure_region(config: AgentAuthConfiguration) -> str | None:
+    def _resolve_azure_region(config: MsalConnectionSettings) -> str | None:
         """Resolves the Azure regional token service (ESTS-R) to use, if configured.
 
         :param config: The agent authentication configuration.
@@ -239,19 +261,19 @@ class MsalAuth(AccessTokenProviderBase):
         Returns the configured region only when it is populated and non-whitespace,
         otherwise None so that MSAL falls back to the global token service.
         """
-        azure_region = getattr(config, "AZURE_REGION", None)
+        azure_region = config.azure_region
         if azure_region and azure_region.strip():
             return azure_region
         return None
 
     @staticmethod
-    def _resolve_idpm_resource(config: AgentAuthConfiguration) -> str:
+    def _resolve_idpm_resource(config: MsalConnectionSettings) -> str:
         """Resolves the resource URL for Identity Proxy Manager (IDPM) token acquisition.
 
         When no resource is configured, defaults to the AzureAdTokenExchange resource.
         Otherwise the configured value must be a valid absolute URI.
         """
-        idpm_resource = getattr(config, "IDPM_RESOURCE", None)
+        idpm_resource = config.idpm_resource
         if not idpm_resource:
             return "api://AzureAdTokenExchange/.default"
 
@@ -263,35 +285,35 @@ class MsalAuth(AccessTokenProviderBase):
 
     @staticmethod
     def _resolve_tenant_id(
-        config: AgentAuthConfiguration, tenant_id: str | None = None
+        config: MsalConnectionSettings, tenant_id: str | None = None
     ) -> str:
 
-        if not config.TENANT_ID:
+        if not config.tenant_id:
             if tenant_id:
                 return tenant_id
             raise ValueError("TENANT_ID is not set in the configuration.")
 
-        if tenant_id or config.TENANT_ID.lower() == "common":
+        if tenant_id or config.tenant_id.lower() == "common":
             return tenant_id
 
-        return config.TENANT_ID
+        return config.tenant_id
 
     def _create_client_application(
         self, tenant_id: str | None = None
     ) -> ConfidentialClientApplication | ManagedIdentityClient:
 
-        if self._msal_configuration.AUTH_TYPE in (
+        if self._msal_configuration.auth_type in (
             AuthTypes.user_managed_identity,
             AuthTypes.identity_proxy_manager,
         ):
             return ManagedIdentityClient(
                 UserAssignedManagedIdentity(
-                    client_id=self._msal_configuration.CLIENT_ID
+                    client_id=self._msal_configuration.client_id
                 ),
                 http_client=Session(),
             )
 
-        elif self._msal_configuration.AUTH_TYPE == AuthTypes.system_managed_identity:
+        elif self._msal_configuration.auth_type == AuthTypes.system_managed_identity:
             return ManagedIdentityClient(
                 SystemAssignedManagedIdentity(),
                 http_client=Session(),
@@ -300,18 +322,18 @@ class MsalAuth(AccessTokenProviderBase):
             authority = MsalAuth._resolve_authority(self._msal_configuration, tenant_id)
             client_credential = None
 
-            if self._msal_configuration.AUTH_TYPE == AuthTypes.client_secret:
-                client_credential = self._msal_configuration.CLIENT_SECRET
-            elif self._msal_configuration.AUTH_TYPE == AuthTypes.certificate:
+            if self._msal_configuration.auth_type == AuthTypes.client_secret:
+                client_credential = self._msal_configuration.client_secret
+            elif self._msal_configuration.auth_type == AuthTypes.certificate:
                 client_credential = {
-                    "private_key_pfx_path": self._msal_configuration.CERT_PFX_FILE,
+                    "private_key_pfx_path": self._msal_configuration.cert_pfx_file,
                 }
-                if self._msal_configuration.SEND_X5C:
+                if self._msal_configuration.send_x5c:
                     client_credential["public_certificate"] = True
-            elif self._msal_configuration.AUTH_TYPE == AuthTypes.federated_credentials:
+            elif self._msal_configuration.auth_type == AuthTypes.federated_credentials:
                 mi_client = ManagedIdentityClient(
                     UserAssignedManagedIdentity(
-                        client_id=self._msal_configuration.FEDERATED_CLIENT_ID
+                        client_id=self._msal_configuration.federated_client_id
                     ),
                     http_client=Session(),
                 )
@@ -332,13 +354,13 @@ class MsalAuth(AccessTokenProviderBase):
                     return result["access_token"]
 
                 client_credential = {"client_assertion": get_assertion}
-            elif self._msal_configuration.AUTH_TYPE == AuthTypes.workload_identity:
-                if not self._msal_configuration.FEDERATED_TOKEN_FILE:
+            elif self._msal_configuration.auth_type == AuthTypes.workload_identity:
+                if not self._msal_configuration.federated_token_file:
                     raise ValueError(
                         "FEDERATED_TOKEN_FILE must be set in configuration."
                     )
 
-                federated_token_file = self._msal_configuration.FEDERATED_TOKEN_FILE
+                federated_token_file = self._msal_configuration.federated_token_file
 
                 def get_assertion() -> str:
                     with open(federated_token_file, encoding="utf-8") as f:
@@ -347,14 +369,14 @@ class MsalAuth(AccessTokenProviderBase):
                 client_credential = {"client_assertion": get_assertion}
             else:
                 logger.error(
-                    f"Unsupported authentication type: {self._msal_configuration.AUTH_TYPE}"
+                    f"Unsupported authentication type: {self._msal_configuration.auth_type}"
                 )
                 raise NotImplementedError(
                     str(authentication_errors.AuthenticationTypeNotSupported)
                 )
 
             return ConfidentialClientApplication(
-                client_id=self._msal_configuration.CLIENT_ID,
+                client_id=self._msal_configuration.client_id,
                 authority=authority,
                 client_credential=client_credential,
                 azure_region=MsalAuth._resolve_azure_region(self._msal_configuration),
@@ -365,7 +387,7 @@ class MsalAuth(AccessTokenProviderBase):
     ) -> str:
         # Create a unique representation for the client based on tenant_id and instance_id
         # instance_id None is for when no agentic instance is associated with the request.
-        tenant_id = tenant_id or self._msal_configuration.TENANT_ID
+        tenant_id = tenant_id or self._msal_configuration.tenant_id
         return f"tenant:{tenant_id}.instance:{instance_id}"
 
     def _get_client(
@@ -393,7 +415,7 @@ class MsalAuth(AccessTokenProviderBase):
             return scopes
 
         temp_list: list[str] = []
-        lst = self._msal_configuration.SCOPES or []
+        lst = self._msal_configuration.scopes or []
         for scope in lst:
             scope_placeholder = scope
             if "{instance}" in scope_placeholder.lower():
@@ -443,7 +465,7 @@ class MsalAuth(AccessTokenProviderBase):
             return None
 
         if (
-            self._msal_configuration.AUTH_TYPE == AuthTypes.identity_proxy_manager
+            self._msal_configuration.auth_type == AuthTypes.identity_proxy_manager
             and isinstance(msal_auth_client, ManagedIdentityClient)
         ):
             resource = MsalAuth._resolve_idpm_resource(self._msal_configuration)

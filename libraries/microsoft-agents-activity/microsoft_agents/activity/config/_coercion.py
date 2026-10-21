@@ -195,7 +195,7 @@ def _get_bool(mapping: Mapping, key: str, default: bool | _MISSING_CLS) -> bool:
 def _get_bool(mapping: Mapping, key: str, default: None) -> bool | None:
     ...
 def _get_bool(mapping: Mapping, key: str, default: bool | None | _MISSING_CLS = _MISSING) -> bool | None:
-    val = _get(mapping, key, _MISSING)
+    val = _get(mapping, key, default=_MISSING)
     _check_key_error(val, default, key)
     return _handle_bool(val, default, key)
 
@@ -206,7 +206,7 @@ def _get_int(mapping: Mapping, key: str, default: int | _MISSING_CLS) -> int:
 def _get_int(mapping: Mapping, key: str, default: None) -> int | None:
     ...
 def _get_int(mapping: Mapping, key: str, default: int | None | _MISSING_CLS = _MISSING) -> int | None:
-    val = _get(mapping, key, _MISSING)
+    val = _get(mapping, key, default=_MISSING)
     _check_key_error(val, default, key)
     return _handle_int(val, default, key)
 
@@ -217,7 +217,7 @@ def _get_float(mapping: Mapping, key: str, default: float | _MISSING_CLS) -> flo
 def _get_float(mapping: Mapping, key: str, default: None) -> float | None:
     ...
 def _get_float(mapping: Mapping, key: str, default: float | None | _MISSING_CLS = _MISSING) -> float | None:
-    val = _get(mapping, key, _MISSING)
+    val = _get(mapping, key, default=_MISSING)
     _check_key_error(val, default, key)
     return _handle_float(val, default, key)
 
@@ -228,6 +228,6 @@ def _get_str(mapping: Mapping, key: str, default: str | _MISSING_CLS) -> str:
 def _get_str(mapping: Mapping, key: str, default: None) -> str | None:
     ...
 def _get_str(mapping: Mapping, key: str, default: str | None | _MISSING_CLS = _MISSING) -> str | None:
-    val = _get(mapping, key, _MISSING)
+    val = _get(mapping, key, default=_MISSING)
     _check_key_error(val, default, key)
     return _handle_str(val, default, key)

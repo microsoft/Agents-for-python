@@ -3,9 +3,11 @@
 
 from __future__ import annotations
 
+import warnings
+
 from typing import Any
 
-from microsoft_agents.activity.config._coercion import coerce_bool
+from microsoft_agents.activity.config import coerce_bool, coerce_int, coerce_float, _Configurable, Configuration
 
 from microsoft_agents.hosting.core.authorization.auth_types import AuthTypes
 from microsoft_agents.hosting.core.authorization._entra_issuers import (
@@ -145,6 +147,12 @@ class AgentAuthConfiguration:
         send_x5c: bool | None = None,
         **kwargs: Any,
     ):
+
+        warnings.warn(
+            "AgentAuthConfiguration is deprecated and will be removed in a future version. Please use ConnectionSettings instead.",
+            DeprecationWarning,
+            stacklevel=2,
+        )
 
         self.AUTH_TYPE = auth_type or kwargs.get("AUTHTYPE", AuthTypes.client_secret)
         self.CLIENT_ID = client_id or kwargs.get("CLIENTID", None)

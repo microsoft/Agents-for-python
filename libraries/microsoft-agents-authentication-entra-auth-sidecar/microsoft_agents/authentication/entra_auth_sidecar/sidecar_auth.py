@@ -7,6 +7,9 @@ import logging
 import uuid
 from datetime import datetime, timedelta, timezone
 
+import warnings
+
+from microsoft_agents.activity.config import Configuration
 from microsoft_agents.hosting.core import (
     AccessTokenProviderBase,
     AgentAuthConfiguration,
@@ -52,10 +55,16 @@ class SidecarAuth(AccessTokenProviderBase):
 
     def __init__(
         self,
-        configuration: AgentAuthConfiguration,
+        configuration: AgentAuthConfiguration | ConnectionSettingsBase | ConnectionSettings,
         *,
         sidecar_client: SidecarHttpClient | None = None,
     ):
+
+        if isinstance(configuration, Configuration):
+            self._config = configuration
+        else:
+            self._config = 
+      
         self._configuration = configuration
         self._settings = SidecarConnectionSettings.from_configuration(configuration)
 
@@ -90,6 +99,14 @@ class SidecarAuth(AccessTokenProviderBase):
         such as the alternate-blueprint connection name without depending on a
         specific provider implementation.
         """
+
+        warnings.warn(
+            "AgentAuthCConfiguration is deprecated and will be removed in a future version." \
+            "This field thus is also deprecated.",
+            DeprecationWarning,
+            stacklevel=2
+        )
+
         return self._configuration
 
     @property

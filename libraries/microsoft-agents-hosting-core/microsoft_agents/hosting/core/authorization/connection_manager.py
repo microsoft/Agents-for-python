@@ -10,7 +10,7 @@ from collections.abc import Callable
 from microsoft_agents.activity import Activity
 from microsoft_agents.activity.config import Configuration
 
-from .agent_auth_configuration import AgentAuthConfiguration
+from .config.agent_auth_configuration import AgentAuthConfiguration
 from .access_token_provider_base import AccessTokenProviderBase
 from .claims_identity import ClaimsIdentity
 from .connections import Connections
@@ -20,6 +20,13 @@ from .config import _ConnectionMap
 
 logger = logging.getLogger(__name__)
 
+def _factory(func: Callable[[AgentAuthConfiguration], AccessTokenProviderBase] | Callable[[Configuration], AccessTokenProviderBase]) -> Callable[[Configuration], AccessTokenProviderBase]:
+    def wrapper(config: Configuration) -> AccessTokenProviderBase:
+        try:
+            return func(config)
+        except Exception:
+            return func(AgentAuthConfiguration(**config))
+    return wrapper
 
 class ConnectionManager(Connections):
     """
@@ -38,7 +45,7 @@ class ConnectionManager(Connections):
 
     def __init__(
         self,
-        provider_factory: Callable[[AgentAuthConfiguration], AccessTokenProviderBase],
+        provider_factory: Callable[[AgentAuthConfiguration], AccessTokenProviderBase] | Callable[[Configuration], AccessTokenProviderBase],
         connections_configurations: dict[str, AgentAuthConfiguration] | None = None,
         connections_map: list[dict[str, str]] | None = None,
         *,
@@ -58,8 +65,10 @@ class ConnectionManager(Connections):
         :type connections_map: list[dict[str, str]]
         :raises ValueError: If no service connection configuration is provided.
         """
+
         self._provider_factory = provider_factory
         self._connections = {}
+        self._config_map = {}
 
         if connections_configurations or connections_map:
             warnings.warn(
@@ -92,43 +101,39 @@ class ConnectionManager(Connections):
                     self._config_map[connection_name] = agent_auth_config
             else:
                 raw_configurations: dict[str, dict] = kwargs.get("CONNECTIONS", {})
-                for connection_name, connection_settings in raw_configurations.items():
-                    parsed_configuration = AgentAuthConfiguration(
-                        **connection_settings.get("SETTINGS", {})
-                    )
-                    self._connections[connection_name] = provider_factory(
-                        parsed_configuration
-                    )
-                    self._config_map[connection_name] = parsed_configuration
-
-            # JWT-patch
-            for connection_name, config in self._config_map.items():
-                config._connections = self._config_map
-
-            if not self._connections.get("SERVICE_CONNECTION", None):
-                raise ValueError("No service connection configuration provided.")
+                self._parse_raw_configurations(raw_configurations, provider_factory)
         else:
             config = Configuration.from_config(config, **kwargs)
 
             raw_connections_map = config.get("CONNECTIONSMAP", [])
             raw_configurations = config.get("CONNECTIONS", {})
-            for connection_name, connection_settings in raw_configurations.items():
-                parsed_configuration = AgentAuthConfiguration(
-                    **connection_settings.get("SETTINGS", {})
-                )
-                self._connections[connection_name] = provider_factory(
-                    parsed_configuration
-                )
-                self._config_map[connection_name] = parsed_configuration
-            
+            self._parse_raw_configurations(raw_configurations, provider_factory)
 
             self._provider_factory = provider_factory
             self._connections = {}
 
+
         self._connections_map = _ConnectionMap(raw_connections_map)
-        self._config_map = {}
+
+        # JWT-patch - propagate the connections map to each agent auth configuration
+        for agent_auth_config in self._config_map.values():
+            agent_auth_config._connections = self._config_map
+
+        if not self._connections.get("SERVICE_CONNECTION", None):
+            raise ValueError("No service connection configuration provided.")
+            
 
         _log_config(logger, self._config_map, self._connections_map)
+
+    def _parse_raw_configurations(self, raw_configurations: dict[str, dict], provider_factory: Callable[[AgentAuthConfiguration], AccessTokenProviderBase]) -> None:
+        for connection_name, connection_settings in raw_configurations.items():
+            parsed_configuration = AgentAuthConfiguration(
+                **connection_settings.get("SETTINGS", {})
+            )
+            self._connections[connection_name] = provider_factory(
+                parsed_configuration
+            )
+            self._config_map[connection_name] = parsed_configuration
 
     def get_connection(self, connection_name: str | None) -> AccessTokenProviderBase:
         """

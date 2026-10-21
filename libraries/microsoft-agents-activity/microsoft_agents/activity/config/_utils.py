@@ -1,6 +1,7 @@
 # Copyright (c) Microsoft Corporation. All rights reserved.
 # Licensed under the MIT License.
 
+from ast import Break
 from typing import Any, Callable, Mapping, MutableMapping, TypeIs, TypeVar, overload
 
 from ._constants import _PATH_SEPARATOR
@@ -36,24 +37,45 @@ def _path(*args: str) -> str:
     """
     return _PATH_SEPARATOR.join(args)
 
-
-def _get(mapping: Mapping, key: str, default: Any = None) -> Any:
+def _get(
+        mapping: Mapping,
+        *keys: str,
+        default: Any = None,
+        skip_none: bool = False,
+        none_is_missing: bool = False,
+) -> Any:
     """Retrieve a value from a nested mapping using a colon-separated key path.
 
     :param mapping: The mapping to retrieve the value from.
     :param key: The colon-separated key path.
     :param default: The default value to return if the key path is not found.
+    :param skip_none: Whether to skip None values while traversing the mapping.
     :return: The retrieved value or the default value if not found.
     """
-    path = key.split(":")
-    current = mapping
-    for part in path:
-        if isinstance(current, Mapping) and part in current:
-            current = current[part]
-        else:
-            return default
-    return current
+    none_found: bool = False
+    for key in keys:
+        path = key.split(":")
+        current = mapping
+        break_from_inner: bool = False
+        for part in path:
+            if isinstance(current, Mapping) and part in current:
+                current = current[part]
+            else:
+                break_from_inner = True
+                break
+        if not break_from_inner:
 
+            if current is None:
+                none_found = True
+                if skip_none:
+                    continue
+
+            return current
+
+    if none_found and not none_is_missing:
+        return None
+    return default
+    
 
 def _try_set(
     mapping: MutableMapping, key: str, value: Any, *, overwrite: bool = False
@@ -161,7 +183,7 @@ def _resolve(
     """
 
     if not path_transformer:
-        path_transformer = lambda x: _parse_env_var_name(x).upper()
+        path_transformer = _parse_env_var_name
 
     flat = {}
 
@@ -183,3 +205,94 @@ def _resolve(
             raise ValueError(f"Failed to set path {path_str} in resolved mapping.")
 
     return resolved
+
+def _snake_to_camel(name: str) -> str:
+    """Convert a snake_case name to PascalCase.
+
+    :param name: The snake_case name.
+    :return: The PascalCase name.
+    """
+    camel = ""
+    j = 0
+    for word in name.split("_"):
+        if not word.strip():
+            continue
+
+        if j == 0:
+            camel += word
+        else:
+            camel += word.capitalize()
+
+        j += 1
+
+    return camel
+
+def _name_variants_helper(
+    snake_case_name: str,
+    *,
+    upper_snake: bool = True,
+    lower_snake: bool = False,
+    camel: bool = False,
+    pascal: bool = False,
+    all_caps: bool = True
+) -> list[str]:
+    """Generate a list of name variants for a given snake_case name.
+
+    :param snake_case_name: The snake_case name.
+    :param upper_snake: Include upper snake case variant.
+    :param lower_snake: Include lower snake case variant.
+    :param camel: Include camel case variant.
+    :param pascal: Include pascal case variant.
+    :param all_caps: Include all caps variant.
+    :return: A list of name variants.
+    """
+    variants = []
+
+    if upper_snake:
+        variants.append(snake_case_name.upper())
+    if lower_snake:
+        variants.append(snake_case_name.lower())
+
+    if camel or pascal or all_caps:
+        camel_case = _snake_to_camel(snake_case_name)
+
+        if camel:
+            variants.append(camel_case)
+        if pascal:
+            variants.append(camel_case.capitalize())
+        if all_caps:
+            variants.append(camel_case.upper())
+
+    return variants
+
+def _name_variants(
+    *snake_case_names: str,
+    upper_snake: bool = True,
+    lower_snake: bool = False,
+    camel: bool = False,
+    pascal: bool = False,
+    all_caps: bool = True
+) -> list[str]:
+    """Generate a list of name variants for the given snake_case names.
+
+    :param snake_case_names: The snake_case names.
+    :param upper_snake: Include upper snake case variant.
+    :param lower_snake: Include lower snake case variant.
+    :param camel: Include camel case variant.
+    :param pascal: Include pascal case variant.
+    :param all_caps: Include all caps variant.
+    :return: A list of name variants.
+    """
+    variants = []
+    for name in snake_case_names:
+        variants.extend(
+            _name_variants_helper(
+                name,
+                upper_snake=upper_snake,
+                lower_snake=lower_snake,
+                camel=camel,
+                pascal=pascal,
+                all_caps=all_caps
+            )
+        )
+    return variants

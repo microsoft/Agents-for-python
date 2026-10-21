@@ -9,7 +9,7 @@ from dataclasses import dataclass
 
 from jwt import PyJWKClient, PyJWK, decode, get_unverified_header
 
-from ..agent_auth_configuration import AgentAuthConfiguration
+from ..config.agent_auth_configuration import AgentAuthConfiguration
 from ..authentication_constants import AuthenticationConstants
 from ..claims_identity import ClaimsIdentity
 from .._entra_issuers import (

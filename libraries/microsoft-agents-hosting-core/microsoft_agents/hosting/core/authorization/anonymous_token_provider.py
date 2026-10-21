@@ -7,7 +7,7 @@ from azure.core.credentials import AccessToken
 from azure.core.credentials_async import AsyncTokenCredential
 
 from .access_token_provider_base import AccessTokenProviderBase
-from .agent_auth_configuration import AgentAuthConfiguration
+from .config.agent_auth_configuration import AgentAuthConfiguration
 from ._helpers import _CallableTokenCredential
 
 _ANONYMOUS_TOKEN_EXPIRATION = 2**31 - 1

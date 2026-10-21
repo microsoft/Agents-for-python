@@ -8,6 +8,7 @@ from azure.core.credentials_async import AsyncTokenCredential
 
 from microsoft_agents.hosting.core import AgentAuthConfiguration
 
+from .connection_settings import MsalConnectionSettings
 from .msal_auth import MsalAuth
 
 logger = logging.getLogger(__name__)
@@ -28,14 +29,14 @@ class MsalTokenCredential(AsyncTokenCredential):
 
     def __init__(
         self,
-        config: AgentAuthConfiguration,
+        config: MsalConnectionSettings | AgentAuthConfiguration,
         *,
         provider: MsalAuth | None = None,
     ):
         """Initializes the MsalTokenCredential with the given configuration.
 
-        :param config: The agent authentication configuration.
-        :type config: :class:`microsoft_agents.hosting.core.AgentAuthConfiguration`
+        :param config: The agent authentication configuration, which can be either an MsalConnectionSettings or an AgentAuthConfiguration.
+        :type config: :class:`microsoft_agents.authentication.msal.connection_settings.MsalConnectionSettings` | :class:`microsoft_agents.hosting.core.AgentAuthConfiguration`
         """
         self._config = config
         self._provider: MsalAuth | None = provider

@@ -8,7 +8,7 @@ from urllib.parse import urlparse
 
 from microsoft_agents.activity._model_utils import pick_model_dict, SkipNone
 
-from .agent_auth_configuration import AgentAuthConfiguration
+from .config.agent_auth_configuration import AgentAuthConfiguration
 from .config import _ConnectionMap
 
 _REDACTION_PEEK_LENGTH = 3

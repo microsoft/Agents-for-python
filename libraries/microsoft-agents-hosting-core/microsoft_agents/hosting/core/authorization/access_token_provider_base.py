@@ -6,7 +6,7 @@ from abc import abstractmethod
 
 from azure.core.credentials_async import AsyncTokenCredential
 
-from .agent_auth_configuration import AgentAuthConfiguration
+from .config.agent_auth_configuration import AgentAuthConfiguration
 
 
 class AccessTokenProviderBase(Protocol):

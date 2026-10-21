@@ -7,7 +7,7 @@ from collections.abc import Mapping
 from typing import Any, TYPE_CHECKING
 
 if TYPE_CHECKING:
-    from .agent_auth_configuration import AgentAuthConfiguration
+    from .config.agent_auth_configuration import AgentAuthConfiguration
 
 
 def _read(configuration: Any, *names: str, default: Any = None) -> Any:

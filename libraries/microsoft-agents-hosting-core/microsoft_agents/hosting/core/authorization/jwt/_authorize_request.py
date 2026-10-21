@@ -7,7 +7,7 @@ from jwt import PyJWTError
 
 from microsoft_agents.hosting.core.http import HttpResponse
 
-from ..agent_auth_configuration import AgentAuthConfiguration
+from ..config.agent_auth_configuration import AgentAuthConfiguration
 from ..claims_identity import ClaimsIdentity
 from .jwt_token_validator import JwtTokenValidator
 
