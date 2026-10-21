@@ -30,7 +30,7 @@ _TRUTHY = ("1", "true")
 _FALSY = ("0", "false")
 
 @overload
-def _handle_bool(value: Any, default: bool | None = None, name: str = "value") -> bool | None:
+def _handle_bool(value: Any, default: None = None, name: str = "value") -> bool | None:
     ...
 @overload
 def _handle_bool(value: Any, default: bool | _MISSING_CLS = _MISSING, name: str = "value") -> bool:
@@ -82,7 +82,7 @@ def coerce_bool(value: Any, default: bool | None = None, name: str = "value") ->
 def _handle_int(value: Any, default: int | _MISSING_CLS = _MISSING, name: str = "value") -> int:
     ...
 @overload
-def _handle_int(value: Any, default: int | None = None, name: str = "value") -> int | None:
+def _handle_int(value: Any, default: None = None, name: str = "value") -> int | None:
     ...
 def _handle_int(value: Any, default: int | None | _MISSING_CLS = None, name: str = "value") -> int | None:
     """Coerce a config value (possibly an env string) to an int.
@@ -130,7 +130,7 @@ def coerce_int(value: Any, default: int | None = None, name: str = "value") -> i
 def _handle_float(value: Any, default: float | _MISSING_CLS, name: str = "value") -> float:
     ...
 @overload
-def _handle_float(value: Any, default: float | None = None, name: str = "value") -> float | None:
+def _handle_float(value: Any, default: None = None, name: str = "value") -> float | None:
     ...
 def _handle_float(value: Any, default: float | None | _MISSING_CLS = None, name: str = "value") -> float | None:
     """Coerce a config value (possibly an env string) to a float.
@@ -174,7 +174,7 @@ def _check_key_error(value: Any, default: Any, key: str) -> None:
         raise KeyError(key)
 
 @overload
-def _handle_str(value: Any, default: str | None = None, name: str = "value") -> str | None:
+def _handle_str(value: Any, default: None = None, name: str = "value") -> str | None:
     ...
 @overload
 def _handle_str(value: Any, default: str | _MISSING_CLS = _MISSING, name: str = "value") -> str:
@@ -192,7 +192,7 @@ def _handle_str(value: Any, default: str | None | _MISSING_CLS = None, name: str
 def _get_bool(mapping: Mapping, key: str, default: bool | _MISSING_CLS) -> bool:
     ...
 @overload
-def _get_bool(mapping: Mapping, key: str, default: bool | None) -> bool | None:
+def _get_bool(mapping: Mapping, key: str, default: None) -> bool | None:
     ...
 def _get_bool(mapping: Mapping, key: str, default: bool | None | _MISSING_CLS = _MISSING) -> bool | None:
     val = _get(mapping, key, _MISSING)
@@ -203,7 +203,7 @@ def _get_bool(mapping: Mapping, key: str, default: bool | None | _MISSING_CLS = 
 def _get_int(mapping: Mapping, key: str, default: int | _MISSING_CLS) -> int:
     ...
 @overload
-def _get_int(mapping: Mapping, key: str, default: int | None) -> int | None:
+def _get_int(mapping: Mapping, key: str, default: None) -> int | None:
     ...
 def _get_int(mapping: Mapping, key: str, default: int | None | _MISSING_CLS = _MISSING) -> int | None:
     val = _get(mapping, key, _MISSING)
@@ -214,7 +214,7 @@ def _get_int(mapping: Mapping, key: str, default: int | None | _MISSING_CLS = _M
 def _get_float(mapping: Mapping, key: str, default: float | _MISSING_CLS) -> float:
     ...
 @overload
-def _get_float(mapping: Mapping, key: str, default: float | None) -> float | None:
+def _get_float(mapping: Mapping, key: str, default: None) -> float | None:
     ...
 def _get_float(mapping: Mapping, key: str, default: float | None | _MISSING_CLS = _MISSING) -> float | None:
     val = _get(mapping, key, _MISSING)
@@ -225,7 +225,7 @@ def _get_float(mapping: Mapping, key: str, default: float | None | _MISSING_CLS 
 def _get_str(mapping: Mapping, key: str, default: str | _MISSING_CLS) -> str:
     ...
 @overload
-def _get_str(mapping: Mapping, key: str, default: str | None) -> str | None:
+def _get_str(mapping: Mapping, key: str, default: None) -> str | None:
     ...
 def _get_str(mapping: Mapping, key: str, default: str | None | _MISSING_CLS = _MISSING) -> str | None:
     val = _get(mapping, key, _MISSING)

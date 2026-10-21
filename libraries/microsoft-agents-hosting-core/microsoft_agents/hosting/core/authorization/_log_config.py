@@ -9,6 +9,7 @@ from urllib.parse import urlparse
 from microsoft_agents.activity._model_utils import pick_model_dict, SkipNone
 
 from .agent_auth_configuration import AgentAuthConfiguration
+from .config import _ConnectionMap
 
 _REDACTION_PEEK_LENGTH = 3
 _REDACTION_THRESH = _REDACTION_PEEK_LENGTH + 6
@@ -125,18 +126,18 @@ def _summarize_auth_configs(config_map: dict[str, AgentAuthConfiguration]) -> st
     return json.dumps(summary, indent=2)
 
 
-def _summarize_connections_map(connections_map: list[dict[str, str]]) -> str:
+def _summarize_connections_map(connections_map: _ConnectionMap) -> str:
     connections_map_output = []
     for mapping in connections_map:
         obj = {
-            "CONNECTION": mapping.get("CONNECTION", ""),
+            "CONNECTION": mapping.connection
         }
+        
+        if mapping.audience:
+            obj["AUDIENCE"] = mapping.audience
 
-        if "AUDIENCE" in mapping:
-            obj["AUDIENCE"] = mapping["AUDIENCE"]
-
-        if "SERVICEURL" in mapping:
-            service_url = mapping.get("SERVICEURL", "").strip()
+        if mapping.service_url:
+            service_url = mapping.service_url.strip()
             if service_url != "*":
                 service_url = _redact_url(service_url)
             obj["SERVICEURL"] = service_url
@@ -149,7 +150,7 @@ def _summarize_connections_map(connections_map: list[dict[str, str]]) -> str:
 def _log_config(
     logger: Logger,
     config_map: dict[str, AgentAuthConfiguration],
-    connections_map: list[dict[str, str]],
+    connections_map: _ConnectionMap,
 ) -> None:
     """
     Log the configuration of the MSAL connection manager.

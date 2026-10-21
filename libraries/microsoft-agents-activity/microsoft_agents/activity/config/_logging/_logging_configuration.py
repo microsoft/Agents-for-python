@@ -43,6 +43,12 @@ class _LoggingConfiguration(_DictConfigurable):
         """Initialize the logging configuration from a dictionary."""
 
         raw_log_levels = data.get(_K_LOG_LEVEL, {})
+        if not isinstance(raw_log_levels, dict):
+            raise ValueError(
+                configuration_errors.InvalidLoggingConfiguration.format(
+                    _K_LOG_LEVEL, raw_log_levels
+                )
+            )
         log_levels: list[_LogLevelEntry] = [
             _LogLevelEntry(namespace, level)
             for namespace, level in raw_log_levels.items()

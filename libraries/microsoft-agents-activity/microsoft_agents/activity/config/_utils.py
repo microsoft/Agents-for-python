@@ -183,19 +183,3 @@ def _resolve(
             raise ValueError(f"Failed to set path {path_str} in resolved mapping.")
 
     return resolved
-
-def _is_primitive_cls(t: type) -> bool:
-    """Check if an object is a primitive type (int, float, str, bool, or None)."""
-    return issubclass(t, (int, float, str, bool))
-
-def _is_primitive(obj: object) -> bool:
-    """Check if an object is a primitive type (int, float, str, bool, or None)."""
-    return obj is None or _is_primitive_cls(type(obj))
-
-def _get_primitive(obj: object, _type: Callable[[Any], T]) -> T | _MISSING_CLS:
-    if _is_primitive(obj):
-        try:
-            return _type(obj)
-        except (ValueError, TypeError):
-            pass
-    return _MISSING

@@ -54,7 +54,7 @@ class Configuration(dict, _ConfigurationProtocol):
     def from_mapping(
         cls, _mapping: Mapping, _base_path: str | None = None, **kwargs
     ) -> Configuration:
-        if isinstance(_mapping, Configuration):
+        if isinstance(_mapping, Configuration) and not kwargs:
             return _mapping
         if kwargs:
             resolved = _resolve(_mapping, kwargs, path_transformer=lambda x: x)
@@ -63,7 +63,7 @@ class Configuration(dict, _ConfigurationProtocol):
         return cls(dict(resolved), _base_path=_base_path)
 
     @classmethod
-    def fork(self, base: Configuration | None, **kwargs) -> Configuration:
+    def from_config(self, base: Configuration | None, **kwargs) -> Configuration:
         """Create a new Configuration instance by forking the current configuration with additional key-value pairs."""
         if base is None:
             return Configuration(**kwargs)
@@ -218,7 +218,7 @@ class Configuration(dict, _ConfigurationProtocol):
     def get_bool(self, key: str, default: bool | _MISSING_CLS = _MISSING) -> bool:
         ...
     @overload
-    def get_bool(self, key: str, default: bool | None = None) -> bool | None:
+    def get_bool(self, key: str, default: None = None) -> bool | None:
         ...
     def get_bool(self, key: str, default: bool | None | _MISSING_CLS = _MISSING) -> bool | None:
         """Retrieve a boolean value from the configuration.
@@ -231,7 +231,7 @@ class Configuration(dict, _ConfigurationProtocol):
         return _handle_bool(val, default, key)
 
     @overload
-    def get_int(self, key: str, default: int | None = None) -> int | None:
+    def get_int(self, key: str, default: None = None) -> int | None:
         ...
     @overload
     def get_int(self, key: str, default: int | _MISSING_CLS = _MISSING) -> int:
@@ -247,7 +247,7 @@ class Configuration(dict, _ConfigurationProtocol):
         return _handle_int(val, default, key)
 
     @overload
-    def get_float(self, key: str, default: float | None | _MISSING_CLS = _MISSING) -> float | None:
+    def get_float(self, key: str, default: None | _MISSING_CLS = _MISSING) -> float | None:
         ...
     @overload
     def get_float(self, key: str, default: _MISSING_CLS = _MISSING) -> float:
@@ -263,10 +263,10 @@ class Configuration(dict, _ConfigurationProtocol):
         return _handle_float(val, default, key)
 
     @overload
-    def get_str(self, key: str, default: str | None) -> str | None:
+    def get_str(self, key: str, default: None) -> str | None:
         ...
     @overload
-    def get_str(self, key: str, default: _MISSING_CLS = _MISSING) -> str:
+    def get_str(self, key: str, default: str | _MISSING_CLS = _MISSING) -> str:
         ...
     def get_str(self, key: str, default: str | None | _MISSING_CLS = _MISSING) -> str | None:
         """Retrieve a string value from the configuration.

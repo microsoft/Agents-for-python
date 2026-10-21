@@ -16,6 +16,7 @@ from .claims_identity import ClaimsIdentity
 from .connections import Connections
 
 from ._log_config import _log_config
+from .config import _ConnectionMap
 
 logger = logging.getLogger(__name__)
 
@@ -32,7 +33,7 @@ class ConnectionManager(Connections):
     """
 
     _connections: dict[str, AccessTokenProviderBase]
-    _connections_map: list[dict[str, str]]
+    _connections_map: _ConnectionMap
     _config_map: dict[str, AgentAuthConfiguration]
 
     def __init__(
@@ -107,7 +108,7 @@ class ConnectionManager(Connections):
             if not self._connections.get("SERVICE_CONNECTION", None):
                 raise ValueError("No service connection configuration provided.")
         else:
-            config = Configuration.fork(config, **kwargs)
+            config = Configuration.from_config(config, **kwargs)
 
             raw_connections_map = config.get("CONNECTIONSMAP", [])
             raw_configurations = config.get("CONNECTIONS", {})
@@ -124,9 +125,7 @@ class ConnectionManager(Connections):
             self._provider_factory = provider_factory
             self._connections = {}
 
-        if isinstance(raw_connections_map, dict):
-            raw_connections_map = list(raw_connections_map.values())
-        self._connections_map = raw_connections_map or []
+        self._connections_map = _ConnectionMap(raw_connections_map)
         self._config_map = {}
 
         _log_config(logger, self._config_map, self._connections_map)
@@ -210,14 +209,13 @@ class ConnectionManager(Connections):
         aud = claims_identity.get_app_id() or ""
         for item in self._connections_map:
             audience_match = True
-            item_aud = item.get("AUDIENCE", "")
-            if item_aud:
-                audience_match = item_aud.lower() == aud.lower()
+            if item.audience:
+                audience_match = item.audience.lower() == aud.lower()
 
             if audience_match and self._service_url_matches(
-                item.get("SERVICEURL", ""), service_url
+                item.service_url, service_url
             ):
-                return self.get_connection(item.get("CONNECTION"))
+                return self.get_connection(item.connection)
 
         raise ValueError(
             f"No connection found for audience '{aud}' and serviceUrl '{service_url}'."
