@@ -22,6 +22,10 @@ class _ConnectionSettingsBase(_Configurable):
     scopes: list[str] = field(default_factory=list)
     _extras: Configuration = field(default_factory=Configuration)
 
+    @property
+    def extras(self) -> Configuration:
+        return self._extras
+
     @classmethod
     def _from_agent_auth_config(cls, agent_auth_config: AgentAuthConfiguration) -> Self:
         attrs = {}

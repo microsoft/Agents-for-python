@@ -6,9 +6,9 @@ import json
 from logging import Logger
 from urllib.parse import urlparse
 
+from microsoft_agents.activity.config import Configuration
 from microsoft_agents.activity._model_utils import pick_model_dict, SkipNone
 
-from .config.agent_auth_configuration import AgentAuthConfiguration
 from .config import _ConnectionMap
 
 _REDACTION_PEEK_LENGTH = 3
@@ -91,12 +91,12 @@ def _redact_url_or_none(url: str | None) -> str | None:
     return _redact_url(url)
 
 
-def _summarize_auth_configs(config_map: dict[str, AgentAuthConfiguration]) -> str:
+def _summarize_auth_configs(config_map: dict[str, Configuration]) -> str:
     """
     Summarize the authentication configuration for logging.
 
     :arg config_map: A dictionary of connection configurations.
-    :type config_map: dict[str, :class:`microsoft_agents.hosting.core.AgentAuthConfiguration`]
+    :type config_map: dict[str, :class:`microsoft_agents.activity.config.Configuration`]
     :return: A string summarizing the authentication configuration.
     :rtype: str
     """
@@ -105,22 +105,22 @@ def _summarize_auth_configs(config_map: dict[str, AgentAuthConfiguration]) -> st
         summary.append(
             pick_model_dict(
                 CONNECTION=connection_name,
-                CONNECTION_NAME=SkipNone(config.CONNECTION_NAME),
-                CLIENTID=SkipNone(_redact_str_or_none(config.CLIENT_ID, peek=True)),
-                TENANTID=SkipNone(_redact_str_or_none(config.TENANT_ID, peek=True)),
-                CLIENTSECRET=SkipNone(_redact_str_or_none(config.CLIENT_SECRET)),
-                AUTHORITY=SkipNone(_redact_url_or_none(config.AUTHORITY)),
-                SCOPES=SkipNone(_redact_scopes(config.SCOPES)),
+                CONNECTION_NAME=SkipNone(config.get_strn("CONNECTION_NAME")),
+                CLIENTID=SkipNone(_redact_str_or_none(config.get_strn("CLIENT_ID"), peek=True)),
+                TENANTID=SkipNone(_redact_str_or_none(config.get_strn("TENANT_ID"), peek=True)),
+                CLIENTSECRET=SkipNone(_redact_str_or_none(config.get_strn("CLIENT_SECRET"))),
+                AUTHORITY=SkipNone(_redact_url_or_none(config.get_strn("AUTHORITY"))),
+                SCOPES=SkipNone(_redact_scopes(config.get_scopes("SCOPES"))),
                 FEDERATED_CLIENT_ID=SkipNone(
-                    _redact_str_or_none(config.FEDERATED_CLIENT_ID, peek=True)
+                    _redact_str_or_none(config.get_strn("FEDERATED_CLIENT_ID"), peek=True)
                 ),
-                CERT_PFX_FILE=SkipNone(_redact_str_or_none(config.CERT_PFX_FILE)),
+                CERT_PFX_FILE=SkipNone(_redact_str_or_none(config.get_strn("CERT_PFX_FILE"))),
                 ALT_BLUEPRINT_ID=SkipNone(
-                    _redact_str_or_none(config.ALT_BLUEPRINT_ID, peek=True)
+                    _redact_str_or_none(config.get_strn("ALT_BLUEPRINT_ID"), peek=True)
                 ),
-                IDPM_RESOURCE=SkipNone(_redact_url_or_none(config.IDPM_RESOURCE)),
-                AZURE_REGION=SkipNone(_redact_url_or_none(config.AZURE_REGION)),
-                ANONYMOUS_ALLOWED=str(config.ANONYMOUS_ALLOWED),
+                IDPM_RESOURCE=SkipNone(_redact_url_or_none(config.get_strn("IDPM_RESOURCE"))),
+                AZURE_REGION=SkipNone(_redact_url_or_none(config.get_strn("AZURE_REGION"))),
+                ANONYMOUS_ALLOWED=str(config.get_bool("ANONYMOUS_ALLOWED")),
             )
         )
     return json.dumps(summary, indent=2)
@@ -149,7 +149,7 @@ def _summarize_connections_map(connections_map: _ConnectionMap) -> str:
 
 def _log_config(
     logger: Logger,
-    config_map: dict[str, AgentAuthConfiguration],
+    config_map: dict[str, Configuration],
     connections_map: _ConnectionMap,
 ) -> None:
     """
