@@ -5,6 +5,8 @@ from typing import Any, Callable, Mapping, MutableMapping, TypeIs, TypeVar, over
 
 from ._constants import _PATH_SEPARATOR
 
+from . import _coercion
+
 T = TypeVar("T")
 
 
@@ -25,7 +27,6 @@ def _is_missing(val: Any) -> TypeIs[_MISSING_CLS]:
     :return: True if the value is an instance of _MISSING_CLS, False otherwise.
     """
     return isinstance(val, _MISSING_CLS)
-
 
 def _path(*args: str) -> str:
     """Construct a colon-separated key path from the given arguments.
