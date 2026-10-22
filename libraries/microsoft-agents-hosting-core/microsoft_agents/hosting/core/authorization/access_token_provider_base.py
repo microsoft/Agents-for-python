@@ -6,14 +6,25 @@ from abc import abstractmethod
 
 from azure.core.credentials_async import AsyncTokenCredential
 
+from microsoft_agents.activity.config import Configuration
 from .config.agent_auth_configuration import AgentAuthConfiguration
 
 
 class AccessTokenProviderBase(Protocol):
 
     @property
-    @abstractmethod
     def configuration(self) -> AgentAuthConfiguration:
+        """
+        The configuration for the access token provider.
+
+        :return: The configuration for the access token provider.
+        """
+        # this property is deprecated and will be removed in future versions
+        raise NotImplementedError()
+
+    @property
+    @abstractmethod
+    def config(self) -> Configuration:
         """
         The configuration for the access token provider.
 

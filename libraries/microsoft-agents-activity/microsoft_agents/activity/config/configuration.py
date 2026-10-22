@@ -351,5 +351,13 @@ class _Configurable(ABC):
 
     @classmethod
     @abstractmethod
-    def from_configuration(cls, config: Configuration) -> Self:
-        ...
+    def _from_configuration(cls, config: Configuration) -> Self:...
+
+    @classmethod
+    @abstractmethod
+    def from_configuration(cls, config: Configuration | Self) -> Self:
+        if isinstance(config, cls):
+            return config
+        if isinstance(config, Configuration):
+            return cls._from_configuration(config)
+        raise TypeError(f"Cannot create {cls.__name__} from {type(config).__name__}")

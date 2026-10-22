@@ -4,13 +4,14 @@
 from __future__ import annotations
 
 from dataclasses import dataclass, field, fields
+from typing import TypeVar
 from typing_extensions import Self
 
 from microsoft_agents.activity.config import Configuration, _Configurable, _name_variants
 
 from .agent_auth_configuration import AgentAuthConfiguration
 
-_BASE_KWARGS = ["client_id", "authority", "tenant_id", "alternate_blueprint_connection_name", "scopes"]
+T = TypeVar("T", bound="_ConnectionSettingsBase")
 
 @dataclass(frozen=True)
 class _ConnectionSettingsBase(_Configurable):
@@ -36,11 +37,11 @@ class _ConnectionSettingsBase(_Configurable):
     @classmethod
     def _get_init_kwargs(cls, config: Configuration) -> dict:
         return {
-            "client_id": config.get_strn(*_name_variants("client_id")),
-            "authority": config.get_strn(*_name_variants("authority")),
-            "tenant_id": config.get_strn(*_name_variants("tenant_id")),
-            "scopes": config.get_scopes(*_name_variants("scopes")),
-            "alternate_blueprint_connection_name": config.get_strn("alternate_blueprint_connection_name")
+            "client_id": config.get_strn(*cls._name_variants("client_id")),
+            "authority": config.get_strn(*cls._name_variants("authority")),
+            "tenant_id": config.get_strn(*cls._name_variants("tenant_id")),
+            "scopes": config.get_scopes(*cls._name_variants("scopes")),
+            "alternate_blueprint_connection_name": config.get_strn(*cls._name_variants("alternate_blueprint_connection_name"))
         }
 
     @classmethod
@@ -56,5 +57,9 @@ class _ConnectionSettingsBase(_Configurable):
         return Configuration(base, **base.pop("extras", {}))
 
     @classmethod
-    def from_configuration(cls, config: Configuration) -> Self:
+    def _from_configuration(cls, config: Configuration) -> Self:
         return cls(**cls._get_init_kwargs(config), _extras=cls._get_extras(config))
+
+    @staticmethod
+    def _name_variants(name: str) -> list[str]:
+        return _name_variants(name, lower_snake=True)
