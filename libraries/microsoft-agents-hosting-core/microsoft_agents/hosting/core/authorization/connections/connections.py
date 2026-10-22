@@ -6,9 +6,9 @@ from typing import Protocol
 
 from microsoft_agents.activity import Activity
 
-from .config.agent_auth_configuration import AgentAuthConfiguration
-from .access_token_provider_base import AccessTokenProviderBase
-from .claims_identity import ClaimsIdentity
+from .agent_auth_configuration import AgentAuthConfiguration
+from ..access_token_provider_base import AccessTokenProviderBase
+from ..claims_identity import ClaimsIdentity
 
 
 class Connections(Protocol):

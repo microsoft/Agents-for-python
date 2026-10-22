@@ -269,6 +269,31 @@ class AgentAuthConfiguration:
                 "FEDERATED_TOKEN_FILE is required for workload_identity authentication."
             )
 
+    def _to_dict(self) -> dict[str, Any]:
+        """
+        Converts the agent auth configuration to a dictionary representation.
+
+        :return: A dictionary containing the configuration fields and their values.
+        """
+        return {
+            "tenant_id": self.TENANT_ID,
+            "client_id": self.CLIENT_ID,
+            "authority": self.AUTHORITY,
+            "scopes": self.SCOPES,
+            "auth_type": self.AUTH_TYPE,
+            "cert_pfx_file": self.CERT_PFX_FILE,
+            "federated_client_id": self.FEDERATED_CLIENT_ID,
+            "federated_token_file": self.FEDERATED_TOKEN_FILE,
+            "alt_blueprint_id": self.ALT_BLUEPRINT_ID,
+            "idpm_resource": self.IDPM_RESOURCE,
+            "validate_issuer": self.VALIDATE_ISSUER,
+            "issuers": self._configured_issuers,
+            "anonymous_allowed": self.ANONYMOUS_ALLOWED,
+            "client_secret": self.CLIENT_SECRET,
+            "azure_region": self.AZURE_REGION,
+            **self.provider_settings,
+        }
+
     @property
     def ISSUERS(self) -> list[str]:
         """

@@ -60,12 +60,10 @@ class MsalAuth(AccessTokenProviderBase):
         """
 
         if isinstance(config, MsalConnectionSettings):
-            self._deprecated_config = AgentAuthConfiguration(
-                **config.__dict__
-            )
+            self._deprecated_config = None
             msal_configuration = config
         elif isinstance(config, Configuration):
-            self._deprecated_config = AgentAuthConfiguration(**config)
+            self._deprecated_config = None
             msal_configuration = MsalConnectionSettings.from_configuration(config)
         else:
             warnings.warn(
@@ -95,6 +93,15 @@ class MsalAuth(AccessTokenProviderBase):
         :return: The MSAL authentication configuration.
         :rtype: :class:`microsoft_agents.hosting.core.authorization.agent_auth_configuration.AgentAuthConfiguration`
         """
+        warnings.warn(
+            "Accessing the deprecated configuration. This will be removed in future versions.",
+            DeprecationWarning,
+            stacklevel=2
+        )
+        if self._deprecated_config is None:
+            self._deprecated_config = AgentAuthConfiguration(
+                **self._msal_configuration.__dict__
+            )
         return self._deprecated_config
 
     async def get_access_token(

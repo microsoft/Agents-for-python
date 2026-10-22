@@ -10,7 +10,7 @@ from microsoft_agents.activity.config import (
     _name_variants
 )
 from microsoft_agents.hosting.core.authorization import AuthTypes
-from microsoft_agents.hosting.core.authorization.config import _ConnectionSettingsBase
+from microsoft_agents.hosting.core.authorization.connections import _ConnectionSettingsBase
 
 @dataclass(frozen=True)
 class MsalConnectionSettings(_ConnectionSettingsBase):

@@ -7,7 +7,7 @@ from abc import abstractmethod
 from azure.core.credentials_async import AsyncTokenCredential
 
 from microsoft_agents.activity.config import Configuration
-from .config.agent_auth_configuration import AgentAuthConfiguration
+from .connections import AgentAuthConfiguration, ConnectionSettingsBase
 
 
 class AccessTokenProviderBase(Protocol):
@@ -24,13 +24,13 @@ class AccessTokenProviderBase(Protocol):
 
     @property
     @abstractmethod
-    def config(self) -> Configuration:
+    def config(self) -> ConnectionSettingsBase:
         """
         The configuration for the access token provider.
 
         :return: The configuration for the access token provider.
         """
-        raise NotImplementedError()
+        return ConnectionSettingsBase(**self.configuration._to_dict())
 
     @abstractmethod
     async def get_access_token(

@@ -11,15 +11,15 @@ from microsoft_agents.activity.config import Configuration, _Configurable, _name
 
 from .agent_auth_configuration import AgentAuthConfiguration
 
-T = TypeVar("T", bound="_ConnectionSettingsBase")
+T = TypeVar("T", bound="ConnectionSettingsBase")
 
 @dataclass(frozen=True)
-class _ConnectionSettingsBase(_Configurable):
+class ConnectionSettingsBase(_Configurable):
 
-    client_id: str | None
-    authority: str | None
-    tenant_id: str | None
-    alternate_blueprint_connection_name: str | None
+    client_id: str | None = None
+    authority: str | None = None
+    tenant_id: str | None = None
+    alternate_blueprint_connection_name: str | None = None
     scopes: list[str] = field(default_factory=list)
     _extras: Configuration = field(default_factory=Configuration)
 
@@ -41,7 +41,9 @@ class _ConnectionSettingsBase(_Configurable):
             "authority": config.get_strn(*cls._name_variants("authority")),
             "tenant_id": config.get_strn(*cls._name_variants("tenant_id")),
             "scopes": config.get_scopes(*cls._name_variants("scopes")),
-            "alternate_blueprint_connection_name": config.get_strn(*cls._name_variants("alternate_blueprint_connection_name"))
+            "alternate_blueprint_connection_name": config.get_strn(
+                "alt_blueprint_id", "ALT_BLUEPRINT_ID", *cls._name_variants("alternate_blueprint_connection_name")
+            )
         }
 
     @classmethod

@@ -9,13 +9,15 @@ from ._utils import (
     _MISSING,
     _get,
     _is_missing,
-    _name_variants,
-    _path,
+    _path as path,
+    _xpath as xpath,
+    _xcase as xcase,
     _resolve,
     _set,
     _try_set,
 )
 from ._coercion import coerce_bool, coerce_int, coerce_float
+
 
 __all__ = [
     "load_configuration_from_env",
@@ -25,6 +27,9 @@ __all__ = [
     "_MISSING",
     "_is_missing",
     "_name_variants",
+    "xcase",
+    "xpath",
+    "path",
     "_get",
     "_path",
     "_set",

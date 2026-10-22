@@ -9,7 +9,7 @@ from urllib.parse import urlparse
 from microsoft_agents.activity.config import Configuration
 from microsoft_agents.activity._model_utils import pick_model_dict, SkipNone
 
-from .config import _ConnectionMap
+from .connections import _ConnectionMap
 
 _REDACTION_PEEK_LENGTH = 3
 _REDACTION_THRESH = _REDACTION_PEEK_LENGTH + 6

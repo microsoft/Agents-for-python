@@ -49,8 +49,7 @@ class RestChannelServiceClientFactory(ChannelServiceClientFactoryBase):
             context.identity, service_url
         )
 
-        configuration = connection.configuration
-        alt_blueprint_id = configuration.ALT_BLUEPRINT_ID
+        alt_blueprint_id = connection.configuration.alternate_blueprint_connection_name
 
         if alt_blueprint_id:
             logger.debug(

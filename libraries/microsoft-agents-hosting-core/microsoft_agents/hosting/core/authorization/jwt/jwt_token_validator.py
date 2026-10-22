@@ -9,7 +9,9 @@ from dataclasses import dataclass
 
 from jwt import PyJWKClient, PyJWK, decode, get_unverified_header
 
-from ..config.agent_auth_configuration import AgentAuthConfiguration
+from microsoft_agents.activity import Configuration
+
+from ..connections.agent_auth_configuration import AgentAuthConfiguration
 from ..authentication_constants import AuthenticationConstants
 from ..claims_identity import ClaimsIdentity
 from .._entra_issuers import (
@@ -20,6 +22,7 @@ from .._entra_issuers import (
     jwks_login_host,
     well_known_first_party_issuers,
 )
+from .token_validation_configuration import TokenValidationConfiguration
 
 logger = logging.getLogger(__name__)
 
@@ -69,18 +72,43 @@ class _JwkClientManager:
         key = await asyncio.to_thread(_helper)
         return key
 
+def _jwt_patch_is_valid_aud(config: Configuration, aud: Any) -> bool:
+    """
+    JWT-patch: Checks if the given audience is valid for any of the
+    connections. A non-string ``aud`` (e.g. the JWT-spec-permitted array
+    form, or a malformed numeric/object claim) is never valid: only a
+    single string audience is accepted, so this returns ``False`` rather
+    than raising, letting the caller reject it as an invalid audience.
+    """
+    if not isinstance(aud, str):
+        return False
+    for conn in self._connections.values():
+        if not conn.CLIENT_ID:
+            continue
+        if aud.lower() == conn.CLIENT_ID.lower():
+            return True
+    return False
+
 
 class JwtTokenValidator:
     """Utility class for validating JWT tokens using the PyJWT library and JWKs from a specified URI."""
 
     _jwk_client_manager = _JwkClientManager()
 
-    def __init__(self, configuration: AgentAuthConfiguration):
+    def __init__(self, configuration: AgentAuthConfiguration | Configuration):
         """Initializes the JwtTokenValidator with the given configuration.
 
         :param configuration: An instance of AgentAuthConfiguration containing the necessary settings for token validation.
         """
-        self.configuration = configuration
+        if isinstance(configuration, AgentAuthConfiguration):
+            config = Configuration(configuration._to_dict())
+        else:
+            config = configuration
+        self._configuration = TokenValidationConfiguration.from_configuration(config)
+
+    @property
+    def configuration(self) -> TokenValidationConfiguration:
+        return self._configuration
 
     async def validate_token(self, token: str) -> ClaimsIdentity:
         """Validates a JWT token.
@@ -164,7 +192,7 @@ class JwtTokenValidator:
 
 def _build_jwks_uri(
     iss: Any,
-    root_config: AgentAuthConfiguration,
+    root_config: TokenValidationConfiguration,
     routing_config: AgentAuthConfiguration,
 ) -> str:
     """Builds the JWKS URI for the (unverified, routing-only) issuer and the
@@ -196,7 +224,7 @@ def _build_jwks_uri(
 
     return (
         "https://login.microsoftonline.com/"
-        f"{root_config.TENANT_ID or 'common'}/discovery/v2.0/keys"
+        f"{root_config.tenant_id or 'common'}/discovery/v2.0/keys"
     )
 
 
