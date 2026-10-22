@@ -26,11 +26,11 @@ class JwtConnectionSettings(ConnectionSettingsBase):
     def _get_init_kwargs(cls, config: Configuration) -> dict:
         base = super()._get_init_kwargs(config)        
 
-        issuers = config.get_str_list(xpath("issuer", "ISSUERS"))
+        issuers = config.get_str_list(xpath("issuers"))
         issuers = issuers or default_connection_issuers(base.get("tenant_id"), base.get("authority"))
         base.update({
             "validate_issuer": config.get_bool(xpath("validate_issuer"), default=False),
-            "issuers": config.get_str_list(xpath("issuers")),
+            "issuers": issuers,
             "anonymous_allowed": config.get_bool(xpath("anonymous_allowed"), default=False)
         })
         return base

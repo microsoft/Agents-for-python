@@ -206,7 +206,7 @@ class ConnectionManager(Connections):
                 "Claims identity and Service URL are required to get the token provider."
             )
 
-        if self._connections_map is None:
+        if not self._connections_map:
             return self.get_default_connection()
 
         aud = claims_identity.get_app_id() or ""

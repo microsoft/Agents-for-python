@@ -3,8 +3,8 @@
 
 from .sidecar_auth import SidecarAuth
 from .sidecar_http_client import SidecarHttpClient
+from .connection_settings import SidecarConnectionSettings
 from ._models import (
-    SidecarConnectionSettings,
     SidecarRequestOptions,
     SidecarTokenResult,
 )

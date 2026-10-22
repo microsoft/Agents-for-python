@@ -6,6 +6,7 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 
 from microsoft_agents.activity.config import (
+    Configuration,
     _DictConfigurable,
     _get_str,
     xpath
@@ -37,11 +38,13 @@ class _ConnectionMap(_DictConfigurable):
                     continue
                 if not isinstance(val, dict):
                     raise ValueError(f"Expected dict for key '{key}', got {type(val).__name__}")
+
+                val_config = Configuration(val)
                 
                 final_items.append(_ConnectionMapItem(
-                    service_url=_get_str(val, *xpath("SERVICEURL"), default=""),
-                    audience=_get_str(val, *xpath("AUDIENCE"), default=""),
-                    connection=_get_str(val, *xpath("CONNECTION"), default="")
+                    service_url=val_config.get_str(*xpath("service_url"), default=""),
+                    audience=val_config.get_str(*xpath("audience"), default=""),
+                    connection=val_config.get_str(*xpath("connection"), default="")
                 ))
 
         object.__setattr__(self, "items", final_items)
@@ -54,3 +57,6 @@ class _ConnectionMap(_DictConfigurable):
 
     def __iter__(self):
         return iter(self.items)
+
+    def __bool__(self):
+        return bool(self.items)

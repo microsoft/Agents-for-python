@@ -41,7 +41,7 @@ class _LoggingConfiguration(_Configurable):
     @classmethod
     def _from_configuration(cls, config: Configuration) -> _LoggingConfiguration:
 
-        raw_log_levels = config.get(_xpath("log_levels"), default=[])
+        raw_log_levels = config.get(_xpath("log_level"), default={})
         if not isinstance(raw_log_levels, dict):
             raise ValueError(
                 configuration_errors.InvalidLoggingConfiguration.format(

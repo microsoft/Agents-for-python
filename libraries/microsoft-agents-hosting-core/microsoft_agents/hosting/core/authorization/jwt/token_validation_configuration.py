@@ -23,8 +23,8 @@ class TokenValidationConfiguration(_Configurable):
     def _from_configuration(cls, configuration: Configuration) -> TokenValidationConfiguration:
 
         token_validation = configuration.get_section(xpath("token_validation"), default=Configuration())
-        audiences = token_validation.collect_str("audience::*", "AUDIENCES::*")
-        tenant_id = token_validation.get_str(xpath("tenant_id"))
+        audiences = token_validation.collect_str("audiences::*", "AUDIENCES::*")
+        tenant_id = token_validation.get_strn(xpath("tenant_id"))
         anonymous_allowed = token_validation.get_booln(xpath("anonymous_allowed"))
 
         connections: dict[str, JwtConnectionSettings] = {}
