@@ -7,13 +7,13 @@ from dataclasses import dataclass
 
 from microsoft_agents.activity.config import (
     Configuration,
-    _name_variants
+    xpath,
 )
 from microsoft_agents.hosting.core.authorization import AuthTypes
-from microsoft_agents.hosting.core.authorization.connections import _ConnectionSettingsBase
+from microsoft_agents.hosting.core.authorization.connections import ConnectionSettingsBase
 
 @dataclass(frozen=True)
-class MsalConnectionSettings(_ConnectionSettingsBase):
+class MsalConnectionSettings(ConnectionSettingsBase):
     """
     Connection settings for MSAL authentication.
     """
@@ -35,15 +35,15 @@ class MsalConnectionSettings(_ConnectionSettingsBase):
     def _get_init_kwargs(cls, config: Configuration) -> dict:
         base = super()._get_init_kwargs(config)
         base.update({
-            "auth_type": config.get_strn("auth_type", AuthTypes.client_secret),
-            "client_secret": config.get_strn("client_secret"),
-            "cert_pfx_file": config.get_strn("cert_pfx_file"),
-            "send_x5c": config.get_booln("send_x5c"),
-            "connection_name": config.get_strn("connection_name"),
-            "federated_client_id": config.get_strn("federated_client_id"),
-            "federated_token_file": config.get_strn("federated_token_file"),
-            "idpm_resource": config.get_strn("idpm_resource"),
-            "azure_region": config.get_strn(*_name_variants("azure_region", "regional_authority"))
+            "auth_type": config.get_str(xpath("auth_type"), default=AuthTypes.client_secret),
+            "client_secret": config.get_strn(xpath("client_secret")),
+            "cert_pfx_file": config.get_strn(xpath("cert_pfx_file")),
+            "send_x5c": config.get_booln(xpath("send_x5c")),
+            "connection_name": config.get_strn(xpath("connection_name")),
+            "federated_client_id": config.get_strn(xpath("federated_client_id")),
+            "federated_token_file": config.get_strn(xpath("federated_token_file")),
+            "idpm_resource": config.get_strn(xpath("idpm_resource")),
+            "azure_region": config.get_strn(xpath("azure_region"), xpath("regional_authority"))
         })
         return base
 

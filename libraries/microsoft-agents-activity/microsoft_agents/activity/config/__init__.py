@@ -5,13 +5,12 @@ from ._load_configuration import load_configuration_from_env
 from .configuration import Configuration, _Configurable
 from ._configuration_protocol import _ConfigurationProtocol, _DictConfigurable
 from ._utils import (
-    _MISSING_CLS,
+    _MissingType,
     _MISSING,
     _get,
     _is_missing,
     _path as path,
     _xpath as xpath,
-    _xcase as xcase,
     _resolve,
     _set,
     _try_set,
@@ -23,11 +22,9 @@ __all__ = [
     "load_configuration_from_env",
     "Configuration",
     "_ConfigurationProtocol",
-    "_MISSING_CLS",
+    "_MissingType",
     "_MISSING",
     "_is_missing",
-    "_name_variants",
-    "xcase",
     "xpath",
     "path",
     "_get",

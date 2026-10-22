@@ -22,7 +22,6 @@ classifiers = [
 ]
 dependencies = [
     "pydantic>=2.10.4"
-    "pydantic-settings>=2.10"
 ]
 
 [tool.setuptools.package-data]

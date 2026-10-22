@@ -3,7 +3,8 @@
 
 import functools
 
-from typing import Any, Callable, Mapping, MutableMapping, TypeIs, TypeVar, overload
+from typing import Any, Callable, Mapping, MutableMapping, TypeVar
+from typing_extensions import TypeIs
 
 from ._constants import _PATH_SEPARATOR, _PATH_ANY
 
@@ -110,14 +111,14 @@ def _collect_helper(current: Any, path_left: list[str], collection: dict[str, An
 
         part = path_left[0]
         for key in current:
-            if part == key:
+            if part == _PATH_ANY or part == key:
                 _collect_helper(current[key], path_left[1:], collection, current_path + [key])
             if part != _PATH_ANY:
                 break
     if isinstance(current, list):
         part = path_left[0]
         for idx, item in enumerate(current):
-            if part == str(idx):
+            if part == _PATH_ANY or part == str(idx):
                 _collect_helper(item, path_left[1:], collection, current_path + [str(idx)])
             if part != _PATH_ANY:
                 break

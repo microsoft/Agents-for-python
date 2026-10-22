@@ -72,6 +72,7 @@ class ConnectionManager(Connections):
         self._connections = {}
         self._config_map = {}
         self._provider_factory = provider_factory
+        self._deprecated_config_map = {}
 
         if connections_configurations or connections_map:
             warnings.warn(
@@ -113,9 +114,6 @@ class ConnectionManager(Connections):
             raw_connections_map = config.get("CONNECTIONSMAP", [])
             raw_configurations = config.get("CONNECTIONS", {})
             self._parse_raw_configurations(raw_configurations, self._provider_factory)
-
-            self._connections = {}
-
 
         self._connections_map = _ConnectionMap(raw_connections_map)
 

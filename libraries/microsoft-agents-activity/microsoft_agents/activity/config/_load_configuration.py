@@ -6,7 +6,7 @@ from typing import Any, Mapping
 from .configuration import Configuration
 
 from ._logging import _configure_logging
-from . import _utils
+from ._utils import _xpath, _resolve
 
 
 def load_configuration_from_env(
@@ -21,20 +21,12 @@ def load_configuration_from_env(
     """
     local_vars = dict(env_vars)
 
-    resolved = _utils._resolve(local_vars, defaults or {})
+    resolved = _resolve(local_vars, defaults or {})
+    config = Configuration(resolved)
+    _configure_logging(config.get_section(_xpath("logging"), default=None) or Configuration())
 
-    if resolved.get("CONNECTIONSMAP") and isinstance(resolved["CONNECTIONSMAP"], dict):
-        resolved["CONNECTIONSMAP"] = [
-            conn for conn in resolved.get("CONNECTIONSMAP", {}).values()
-        ]
+    config["AgentApplication"] = config.pop("AgentApplication", {})
+    config["Connections"] = config.pop("Connections", {})
+    config["ConnectionsMap"] = config.pop("ConnectionsMap", [])
 
-    _configure_logging(resolved.get("LOGGING", {}))
-
-    return Configuration(
-        {
-            "AgentApplication": resolved.pop("AGENTAPPLICATION", {}),
-            "Connections": resolved.pop("CONNECTIONS", {}),
-            "ConnectionsMap": resolved.pop("CONNECTIONSMAP", []),
-            **resolved,
-        }
-    )
+    return config

@@ -7,7 +7,8 @@ from collections.abc import Mapping
 from dataclasses import dataclass
 
 from microsoft_agents.activity.config import (
-    Configuration
+    Configuration,
+    xpath,
 )
 from microsoft_agents.hosting.core.authorization.connection_settings_base import (
     _ConnectionSettingsBase,

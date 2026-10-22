@@ -101,12 +101,9 @@ class Configuration(dict, _ConfigurationProtocol):
         val, _ = self._get_with_path(*_keys, default=default, skip_none=skip_none)
         return val
 
-    def __getitem__(self, key: str) -> Any:
-        return self._get(key)
-
-    def get(self, *_keys: str | list[str], default: Any = _MISSING, skip_none: bool = False) -> Any:
+    def get(self, key: str | list[str], default: Any = _MISSING, skip_none: bool = False) -> Any:
         """Retrieve a value from the configuration by key, returning the default if not found."""
-        keys = _resolve_keys_arg(*_keys)
+        keys = _resolve_keys_arg(key)
         try:
             return self._get(*keys, default=default, skip_none=skip_none)
         except KeyError:
@@ -147,6 +144,19 @@ class Configuration(dict, _ConfigurationProtocol):
             f"Value for key {keys[0]} is not of type {cls.__name__} and could not be converted."
         )
 
+    def has(self, *keys: str | list[str]) -> bool:
+        """Check if the configuration contains the specified keys.
+
+        :param keys: The keys to check.
+        :return: True if the keys exist in the configuration, False otherwise.
+        """
+        resolved_keys = _resolve_keys_arg(*keys)
+        try:
+            self._get(*resolved_keys)
+            return True
+        except KeyError:
+            return False
+
     @overload
     def get_section(
         self, *section: str | list[str], default: Configuration | _MissingType = _MISSING
@@ -171,8 +181,10 @@ class Configuration(dict, _ConfigurationProtocol):
             return val
         elif isinstance(val, Mapping):
             return Configuration.from_mapping(
-                val, _base_path=self._resolve_path(keys)
+                val, _base_path=self._resolve_path(keys[0])
             )
+        if val is None and not _is_missing(default):
+            return default
         raise TypeError(f"Section {section} is not a mapping")
 
     def get_sections(self, *section: str) -> list[Configuration]:

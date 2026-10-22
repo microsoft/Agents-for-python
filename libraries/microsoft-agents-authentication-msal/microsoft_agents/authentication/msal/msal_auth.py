@@ -82,9 +82,7 @@ class MsalAuth(AccessTokenProviderBase):
 
         # TokenCache is thread-safe and async-safe per MSAL documentation
         self._token_cache = TokenCache()
-        logger.debug(
-            f"Initializing MsalAuth with configuration: {self._msal_configuration}"
-        )
+        logger.debug("Initializing MsalAuth provider.")
 
     @property
     def configuration(self) -> AgentAuthConfiguration:
@@ -103,6 +101,15 @@ class MsalAuth(AccessTokenProviderBase):
                 **self._msal_configuration.__dict__
             )
         return self._deprecated_config
+
+    @property
+    def config(self) -> MsalConnectionSettings:
+        """Returns the MSAL connection settings.
+
+        :return: The MSAL connection settings.
+        :rtype: MsalConnectionSettings
+        """
+        return self._msal_configuration
 
     async def get_access_token(
         self, resource_url: str, scopes: list[str], force_refresh: bool = False

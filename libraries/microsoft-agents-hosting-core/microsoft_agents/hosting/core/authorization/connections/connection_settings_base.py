@@ -13,6 +13,8 @@ from .agent_auth_configuration import AgentAuthConfiguration
 
 T = TypeVar("T", bound="ConnectionSettingsBase")
 
+_KNOWN_KWARGS_CACHE: dict[str, list[str]] = {}
+
 @dataclass(frozen=True)
 class ConnectionSettingsBase(_Configurable):
 
@@ -48,9 +50,19 @@ class ConnectionSettingsBase(_Configurable):
 
     @classmethod
     def _known_kwargs(cls) -> list[str]:
-        return [
+
+        if cls.__name__ in _KNOWN_KWARGS_CACHE:
+            return _KNOWN_KWARGS_CACHE[cls.__name__]
+
+        base = [
             f.name for f in fields(cls) if f.init and f.name != "_extras"
         ]
+        final = []
+        for n in base:
+            final.extend(xpath(n))
+
+        _KNOWN_KWARGS_CACHE[cls.__name__] = final
+        return final
 
     @classmethod
     def _get_extras(cls, config: Configuration) -> Configuration:
@@ -60,7 +72,10 @@ class ConnectionSettingsBase(_Configurable):
 
     @classmethod
     def _from_configuration(cls, config: Configuration) -> Self:
-        settings = config.get_section(xpath("settings"))
+        try:
+            settings = config.get_section(xpath("settings"))
+        except KeyError:
+            settings = config
         return cls(**cls._get_init_kwargs(settings), _extras=cls._get_extras(settings))
 
     @staticmethod
