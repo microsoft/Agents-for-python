@@ -131,7 +131,7 @@ class ConnectionManager(Connections):
             parsed_config = Configuration(**_get(connection_settings, *xpath("SETTINGS"), default={}))
             self._connections[connection_name] = provider_factory(parsed_config)
             self._config_map[connection_name] = parsed_config
-            self._deprecated_config_map[connection_name] = AgentAuthConfiguration(**connection_settings.get("SETTINGS", {}))
+            self._deprecated_config_map[connection_name] = None
 
     def get_connection(self, connection_name: str | None) -> AccessTokenProviderBase:
         """
@@ -206,7 +206,7 @@ class ConnectionManager(Connections):
                 "Claims identity and Service URL are required to get the token provider."
             )
 
-        if not self._connections_map:
+        if self._connections_map is None:
             return self.get_default_connection()
 
         aud = claims_identity.get_app_id() or ""
@@ -237,8 +237,8 @@ class ConnectionManager(Connections):
         :return: The access token provider for the agent.
         """
         provider = self.get_token_provider(claims_identity, activity.service_url)
-        if activity.is_agentic_request() and provider.configuration.ALT_BLUEPRINT_ID:
-            provider = self.get_connection(provider.configuration.ALT_BLUEPRINT_ID)
+        if activity.is_agentic_request() and provider.config.alt_blueprint_connection_name:
+            provider = self.get_connection(provider.config.alt_blueprint_connection_name)
         return provider
 
     def get_default_connection_configuration(self) -> AgentAuthConfiguration:
@@ -255,6 +255,7 @@ class ConnectionManager(Connections):
             stacklevel=2,
         )
         config = self._deprecated_config_map.get("SERVICE_CONNECTION")
+        AgentAuthConfiguration(**self._config_map["SERVICE_CONNECTION"])
         if not config:
             raise ValueError(
                 "No default service connection configuration found. Expected 'SERVICE_CONNECTION'."

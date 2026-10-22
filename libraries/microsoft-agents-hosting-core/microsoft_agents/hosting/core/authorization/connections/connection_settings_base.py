@@ -46,7 +46,7 @@ class ConnectionSettingsBase(_Configurable):
     def _get_init_kwargs(cls, config: Configuration) -> dict:
         return {
             "client_id": config.get_strn(cls._xpath("client_id")),
-            "authority": config.get_strn(cls._xpath("authority")),
+            "authority": config.get_strn(cls._xpath("authority"), cls._xpath("authorityendpoint")),
             "tenant_id": config.get_strn(cls._xpath("tenant_id")),
             "scopes": config.get_scopes(cls._xpath("scopes")),
             "alternate_blueprint_connection_name": config.get_strn(

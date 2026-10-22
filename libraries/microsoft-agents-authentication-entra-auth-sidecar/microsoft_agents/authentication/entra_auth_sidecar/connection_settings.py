@@ -8,7 +8,7 @@ from dataclasses import dataclass
 
 from microsoft_agents.activity.config import (
     Configuration,
-    pathx,
+    xpath,
 )
 from microsoft_agents.hosting.core.authorization.connections import (
     ConnectionSettingsBase,
@@ -53,31 +53,28 @@ class SidecarConnectionSettings(ConnectionSettingsBase):
         # An explicitly blank or whitespace-only value (e.g. binding yields "" or
         # "   ") must never produce an invalid sidecar endpoint path, so strip and
         # normalize to the defaults here.
-        _service_name = config.get_strn(pathx("service_name"))
+        _service_name = config.get_strn(xpath("service_name"))
         service_name = _or_default(_service_name, DEFAULT_SERVICE_NAME)
 
-        blueprint_service_name = config.get_str(pathx("blueprint_service_name"), default=DEFAULT_BLUEPRINT_SERVICE_NAME)
+        blueprint_service_name = config.get_str(xpath("blueprint_service_name"), default=DEFAULT_BLUEPRINT_SERVICE_NAME)
         blueprint_service_name = _or_default(blueprint_service_name, DEFAULT_BLUEPRINT_SERVICE_NAME)
 
-        sidecar_base_url = config.get_strn(pathx("sidecar_base_url"))
+        sidecar_base_url = config.get_strn(xpath("sidecar_base_url"))
 
         # Config values can arrive as strings from ``load_configuration_from_env``,
         # so coerce explicitly: ``bool("false")`` would otherwise be ``True`` and
         # silently disable the SSRF guard, and ``max(0, "5")`` would raise.
         bypass_local_network_restriction = config.get_bool(
-            pathx("bypass_local_network_restriction"),
+            xpath("bypass_local_network_restriction"),
             default=False,
-            name="BYPASS_LOCAL_NETWORK_RESTRICTION",
         )
         request_timeout = config.get_float(
-            pathx("request_timeout"),
+            xpath("request_timeout"),
             default=DEFAULT_REQUEST_TIMEOUT_SECONDS,
-            name="REQUEST_TIMEOUT",
         )
         retry_count = config.get_int(
-            pathx("retry_count"),
+            xpath("retry_count"),
             default=DEFAULT_RETRY_COUNT,
-            name="RETRY_COUNT",
         )
 
         base.update({
@@ -108,3 +105,4 @@ class SidecarConnectionSettings(ConnectionSettingsBase):
             scopes = scopes.values()
         result = [str(s).strip() for s in scopes if s and str(s).strip()]
         return result or None
+    

@@ -22,14 +22,14 @@ class TokenValidationConfiguration(_Configurable):
     @classmethod
     def _from_configuration(cls, configuration: Configuration) -> TokenValidationConfiguration:
 
-        token_validation = configuration.get_section("token_validation", default=Configuration())
-        audiences = token_validation.collect_str("audience", "AUDIENCES")
+        token_validation = configuration.get_section(xpath("token_validation"), default=Configuration())
+        audiences = token_validation.collect_str("audience::*", "AUDIENCES::*")
         tenant_id = token_validation.get_str(xpath("tenant_id"))
         anonymous_allowed = token_validation.get_booln(xpath("anonymous_allowed"))
 
         connections: dict[str, JwtConnectionSettings] = {}
         for name, conf in configuration.get_items(xpath("connections")):
-            connections[name] = JwtConnectionSettings._from_configuration(conf)
+            connections[name] = JwtConnectionSettings.from_mapping(conf)
 
         update_audiences = not audiences
         update_tenant_id = not tenant_id

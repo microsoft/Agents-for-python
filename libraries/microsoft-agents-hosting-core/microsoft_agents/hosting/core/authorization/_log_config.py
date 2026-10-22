@@ -121,7 +121,7 @@ def _summarize_auth_configs(config_map: dict[str, Configuration]) -> str:
                 ),
                 IDPM_RESOURCE=SkipNone(_redact_url_or_none(get_strn("IDPM_RESOURCE"))),
                 AZURE_REGION=SkipNone(_redact_url_or_none(get_strn("AZURE_REGION"))),
-                ANONYMOUS_ALLOWED=str(config.get_bool(xpath("ANONYMOUS_ALLOWED"))),
+                ANONYMOUS_ALLOWED=str(config.get_booln(xpath("ANONYMOUS_ALLOWED"))),
             )
         )
     return json.dumps(summary, indent=2)

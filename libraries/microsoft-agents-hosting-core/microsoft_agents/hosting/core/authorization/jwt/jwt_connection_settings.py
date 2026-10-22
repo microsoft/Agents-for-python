@@ -6,6 +6,9 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 
 from microsoft_agents.activity.config import Configuration, xpath
+from .._entra_issuers import (
+    default_connection_issuers,
+)
 
 from ..connections import ConnectionSettingsBase
 
@@ -22,6 +25,9 @@ class JwtConnectionSettings(ConnectionSettingsBase):
     @classmethod
     def _get_init_kwargs(cls, config: Configuration) -> dict:
         base = super()._get_init_kwargs(config)        
+
+        issuers = config.get_str_list(xpath("issuer", "ISSUERS"))
+        issuers = issuers or default_connection_issuers(base.get("tenant_id"), base.get("authority"))
         base.update({
             "validate_issuer": config.get_bool(xpath("validate_issuer"), default=False),
             "issuers": config.get_str_list(xpath("issuers")),

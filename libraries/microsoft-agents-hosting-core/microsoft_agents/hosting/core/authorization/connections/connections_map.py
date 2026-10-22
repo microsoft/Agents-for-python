@@ -5,7 +5,11 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 
-from microsoft_agents.activity.config import _DictConfigurable
+from microsoft_agents.activity.config import (
+    _DictConfigurable,
+    _get_str,
+    xpath
+)
 
 @dataclass(frozen=True)
 class _ConnectionMapItem():
@@ -33,7 +37,12 @@ class _ConnectionMap(_DictConfigurable):
                     continue
                 if not isinstance(val, dict):
                     raise ValueError(f"Expected dict for key '{key}', got {type(val).__name__}")
-                final_items.append(_ConnectionMapItem(**val))
+                
+                final_items.append(_ConnectionMapItem(
+                    service_url=_get_str(val, *xpath("SERVICEURL"), default=""),
+                    audience=_get_str(val, *xpath("AUDIENCE"), default=""),
+                    connection=_get_str(val, *xpath("CONNECTION"), default="")
+                ))
 
         object.__setattr__(self, "items", final_items)
 

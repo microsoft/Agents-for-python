@@ -25,16 +25,15 @@ class AccessTokenProviderBase(Protocol):
         raise NotImplementedError()
 
     @property
-    @abstractmethod
     def config(self) -> ConnectionSettingsBase:
         """
         Bound provider-specific settings extending ConnectionSettingsBase.
 
         :return: The provider's typed connection settings.
         """
+        # Convert the deprecated configuration to the new connection settings format.
         from .connections.connection_settings_base import ConnectionSettingsBase
-
-        return ConnectionSettingsBase(**self.configuration._to_dict())
+        return ConnectionSettingsBase.from_mapping(**self.configuration._to_dict())
 
     @abstractmethod
     async def get_access_token(

@@ -358,7 +358,7 @@ def _xcase(
 
 @functools.lru_cache(maxsize=10)
 def _xpath(
-    *snake_case_paths: str,
+    *path_parts: str,
     upper_snake: bool = True,
     lower_snake: bool = True,
     camel: bool = False,
@@ -376,15 +376,18 @@ def _xpath(
     :param all_caps: Include all caps variant.
     :return: A list of name variants.
     """
+
+    path = _path(*path_parts)
     
-    return _xcase(
-        *snake_case_paths,
+    res = _xcase(
+        path,
         upper_snake=upper_snake,
         lower_snake=lower_snake,
         camel=camel,
         pascal=pascal,
         all_caps=all_caps
     )
+    return sorted(res)
 
 def str_in(base: str, *sub: str) -> bool:
     """Check if all substrings are present in the base string.
