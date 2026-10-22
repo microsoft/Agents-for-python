@@ -8,8 +8,10 @@ from types import TracebackType
 from azure.core.credentials import AccessToken
 from azure.core.credentials_async import AsyncTokenCredential
 
+from microsoft_agents.activity.config import Configuration
 from microsoft_agents.hosting.core import AgentAuthConfiguration
 
+from .connection_settings import SidecarConnectionSettings
 from .sidecar_auth import SidecarAuth
 from ._token_expiry import SidecarTokenExpiry
 
@@ -31,7 +33,7 @@ class SidecarTokenCredential(AsyncTokenCredential):
 
     def __init__(
         self,
-        config: AgentAuthConfiguration,
+        config: AgentAuthConfiguration | SidecarConnectionSettings | Configuration,
         *,
         provider: SidecarAuth | None = None,
     ):

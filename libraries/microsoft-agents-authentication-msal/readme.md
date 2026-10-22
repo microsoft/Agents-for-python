@@ -196,18 +196,29 @@ CONNECTIONS__SERVICE_CONNECTION__SETTINGS__TENANTID=tenant-id
 Load the Configuration (Code from [main.py Quickstart Sample](https://github.com/microsoft/Agents/blob/main/samples/python/quickstart/src/main.py))
 
 ```python
+from os import environ
+from microsoft_agents.activity import load_configuration_from_env
+
 from .start_server import start_server
+
+agents_sdk_config = load_configuration_from_env(environ)
 
 start_server(
     agent_application=AGENT_APP,
-    auth_configuration=CONNECTION_MANAGER.get_default_connection_configuration(),
+    auth_configuration=agents_sdk_config,
 )
 ```
+Pass the complete SDK configuration for inbound JWT validation.
+`get_default_connection_config()` returns only one connection's settings, not
+the full application configuration.
+
 Then start the Agent (code snipped from (start_server.py Quickstart Sample](https://github.com/microsoft/Agents/blob/main/samples/python/quickstart/src/start_server.py)):
 
 ```python
+from microsoft_agents.activity.config import Configuration
+
 def start_server(
-    agent_application: AgentApplication, auth_configuration: AgentAuthConfiguration
+    agent_application: AgentApplication, auth_configuration: Configuration
 ):
     async def entry_point(req: Request) -> Response:
         agent: AgentApplication = req.app["agent_app"]
@@ -234,8 +245,20 @@ class AuthTypes(str, Enum):
 ## Key Classes
 
 - **`MsalAuth`** - Core authentication provider using MSAL
+- **`MsalConnectionSettings`** - Typed connection settings bound from `Configuration`
 - **`MsalConnectionManager`** - Manages multiple authentication connections
 - **`MsalTokenCredential`** - Asynchronous Azure Core token credential backed by MSAL
+
+### Configuration and compatibility
+
+`MsalAuth` accepts `Configuration` or `MsalConnectionSettings`. Read the bound
+settings through `provider.config`. `AgentAuthConfiguration`, the
+`provider.configuration` property, and
+`get_default_connection_configuration()` remain deprecated compatibility APIs.
+
+Settings are frozen dataclasses: fields cannot be reassigned, but containers
+such as `scopes` and `extras` are still mutable. Treat them as read-only after
+passing settings to a provider.
 
 ## Features
 

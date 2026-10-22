@@ -5,7 +5,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 
-from microsoft_agents.activity.config import _Confiurableg
+from microsoft_agents.activity.config import _DictConfigurable
 
 @dataclass(frozen=True)
 class _ConnectionMapItem():
@@ -15,7 +15,7 @@ class _ConnectionMapItem():
     connection: str = ""
 
 @dataclass(frozen=True)
-class _ConnectionMap(_Configurable):
+class _ConnectionMap(_DictConfigurable):
     items: list[_ConnectionMapItem] = field(default_factory=list)
 
     def __init__(self, items: list[_ConnectionMapItem] | list[dict] | dict[str, dict] | None = None) -> None:

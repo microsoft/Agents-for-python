@@ -55,9 +55,8 @@ class ConnectionManager(Connections):
         """
         Initialize the connection manager.
 
-        :param provider_factory: Factory that creates an
-            :class:`microsoft_agents.hosting.core.AccessTokenProviderBase` from an
-            :class:`microsoft_agents.hosting.core.AgentAuthConfiguration`.
+        :param provider_factory: Factory creating an AccessTokenProviderBase from
+            Configuration, or AgentAuthConfiguration for legacy connection inputs.
         :type provider_factory: Callable[[AgentAuthConfiguration], AccessTokenProviderBase] | Callable[[Configuration], AccessTokenProviderBase]
             Note: The factory's signature should match the type of configuration it expects. If using deprecated connection configurations, it should accept an :class:`AgentAuthConfiguration`. Otherwise, it should accept a :class:`Configuration`.
         :param connections_configurations: (Deprecated) A dictionary of connection configurations.
@@ -244,8 +243,9 @@ class ConnectionManager(Connections):
 
     def get_default_connection_configuration(self) -> AgentAuthConfiguration:
         """
-        Get the default connection configuration for the agent.
+        Get the deprecated default AgentAuthConfiguration compatibility view.
 
+        Prefer :meth:`get_default_connection_config`.
         :return: The default connection configuration for the agent.
         :rtype: :class:`microsoft_agents.hosting.core.AgentAuthConfiguration`
         """
@@ -260,11 +260,3 @@ class ConnectionManager(Connections):
                 "No default service connection configuration found. Expected 'SERVICE_CONNECTION'."
             )
         return config
-
-    def get_default_connection_config(self) -> Configuration:
-        config = self._config_map.get("SERVICE_CONNECTION")
-        if not config:
-            raise ValueError(
-                "No default service connection configuration found. Expected 'SERVICE_CONNECTION'."
-            )
-        return Configuration(config)

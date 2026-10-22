@@ -43,9 +43,9 @@ def _handle_bool(value: Any, default: bool | None | _MissingType = None, name: s
     are ``0/false`` (case-insensitive).
 
     An empty/whitespace-only string or ``None`` is treated as *unset* (not as an
-    explicit ``false``). For unset and unrecognized values: if ``default`` is
-    provided it is returned, otherwise a ``ValueError`` is raised naming the
-    offending setting -- mirroring :func:`coerce_int` and :func:`coerce_float`.
+    explicit ``false``). Unset values return the default, or raise if no default
+    was supplied. Unrecognized nonempty values always raise ``ValueError``.
+    Errors identify the setting without including its input value.
     """
     if isinstance(value, bool):
         return value
@@ -58,9 +58,9 @@ def _handle_bool(value: Any, default: bool | None | _MissingType = None, name: s
         if text in _FALSY:
             return False
         if text:
-            raise ValueError(f"Invalid boolean for {name}: {value!r}")
+            raise ValueError(f"Invalid boolean for {name}")
     if _is_missing(default):
-        raise ValueError(f"Missing boolean for {name}: {value!r}")
+        raise ValueError(f"Missing boolean for {name}")
     return default
     
 def coerce_bool(value: Any, default: bool | None = None, name: str = "value") -> bool:
@@ -71,12 +71,17 @@ def coerce_bool(value: Any, default: bool | None = None, name: str = "value") ->
     are ``0/false`` (case-insensitive).
 
     An empty/whitespace-only string or ``None`` is treated as *unset* (not as an
-    explicit ``false``). For unset and unrecognized values: if ``default`` is
-    provided it is returned, otherwise a ``ValueError`` is raised naming the
-    offending setting -- mirroring :func:`coerce_int` and :func:`coerce_float`.
+    explicit ``false``). Unset and unrecognized values return the default, or
+    raise ``ValueError`` if no non-None default was supplied.
+    Errors identify the setting without including its input value.
     """
     new_default = default if default is not None else _MISSING
-    return _handle_bool(value, new_default, name)
+    try:
+        return _handle_bool(value, new_default, name)
+    except ValueError:
+        if default is not None:
+            return default
+        raise
 
 @overload
 def _handle_int(value: Any, default: int | _MissingType = _MISSING, name: str = "value") -> int:
@@ -94,26 +99,26 @@ def _handle_int(value: Any, default: int | None | _MissingType = None, name: str
     """
     if value is None or _is_missing(value):
         if _is_missing(default):
-            raise ValueError(f"Missing integer for {name}: {value!r}")
+            raise ValueError(f"Missing integer for {name}")
         return default
     if isinstance(value, bool):
         if _is_missing(default):
-            raise ValueError(f"Missing integer for {name}: {value!r}")
+            raise ValueError(f"Missing integer for {name}")
         return default # TODO -> should this raise?
     if isinstance(value, int):
         return value
     text = str(value).strip()
     if not text:
         if _is_missing(default):
-            raise ValueError(f"Missing integer for {name}: {value!r}")
+            raise ValueError(f"Missing integer for {name}")
         return default
     try:
         return int(text, 10)
     except ValueError:
         try:
             return int(float(text))
-        except ValueError as ex:
-            raise ValueError(f"Invalid integer for {name}: {value!r}") from ex
+        except ValueError:
+            raise ValueError(f"Invalid integer for {name}") from None
 
 def coerce_int(value: Any, default: int | None = None, name: str = "value") -> int:
     """Coerce a config value (possibly an env string) to an int.
@@ -141,23 +146,23 @@ def _handle_float(value: Any, default: float | None | _MissingType = None, name:
     """
     if value is None or _is_missing(value):
         if _is_missing(default):
-            raise ValueError(f"Missing number for {name}: {value!r}")
+            raise ValueError(f"Missing number for {name}")
         return default
     if isinstance(value, bool):
         if _is_missing(default):
-            raise ValueError(f"Missing number for {name}: {value!r}")
+            raise ValueError(f"Missing number for {name}")
         return default # TODO -> should this also raise?
     if isinstance(value, (int, float)):
         return float(value)
     text = str(value).strip()
     if not text:
         if _is_missing(default):
-            raise ValueError(f"Missing number for {name}: {value!r}")
+            raise ValueError(f"Missing number for {name}")
         return default
     try:
         return float(text)
-    except ValueError as ex:
-        raise ValueError(f"Invalid number for {name}: {value!r}") from ex
+    except ValueError:
+        raise ValueError(f"Invalid number for {name}") from None
 
 def coerce_float(value: Any, default: float | None = None, name: str = "value") -> float:
     """Coerce a config value (possibly an env string) to a float.
@@ -182,7 +187,7 @@ def _handle_str(value: Any, default: str | _MissingType = _MISSING, name: str = 
 def _handle_str(value: Any, default: str | None | _MissingType = None, name: str = "value") -> str | None:
     if value is None or _is_missing(value):
         if _is_missing(default):
-            raise ValueError(f"Missing string for {name}: {value!r}")
+            raise ValueError(f"Missing string for {name}")
         return default
     if isinstance(value, str):
         return value

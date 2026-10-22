@@ -154,14 +154,14 @@ def _log_config(
     connections_map: _ConnectionMap,
 ) -> None:
     """
-    Log the configuration of the MSAL connection manager.
+    Log redacted configuration for a provider-independent connection manager.
 
     :arg logger: The logger to use for logging.
     :type logger: :class:`logging.Logger`
     :arg connections_map: A list of connection mappings.
-    :type connections_map: list[dict[str, str]]
+    :type connections_map: _ConnectionMap
     :arg config_map: A dictionary of connection configurations.
-    :type config_map: dict[str, :class:`microsoft_agents.hosting.core.AgentAuthConfiguration`]
+    :type config_map: dict[str, Configuration]
     """
 
     connections_output = _summarize_auth_configs(config_map)

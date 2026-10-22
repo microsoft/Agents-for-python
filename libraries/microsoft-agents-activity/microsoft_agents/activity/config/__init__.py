@@ -15,7 +15,7 @@ from ._utils import (
     _set,
     _try_set,
 )
-from ._coercion import coerce_bool, coerce_int, coerce_float
+from ._coercion import coerce_bool, coerce_int, coerce_float, _get_str
 
 
 __all__ = [
@@ -28,7 +28,6 @@ __all__ = [
     "xpath",
     "path",
     "_get",
-    "_path",
     "_set",
     "_try_set",
     "_resolve",
@@ -37,4 +36,5 @@ __all__ = [
     "coerce_bool",
     "coerce_int",
     "coerce_float",
+    "_get_str"
 ]

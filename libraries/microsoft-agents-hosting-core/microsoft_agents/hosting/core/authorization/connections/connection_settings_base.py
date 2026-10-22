@@ -17,6 +17,11 @@ _KNOWN_KWARGS_CACHE: dict[str, list[str]] = {}
 
 @dataclass(frozen=True)
 class ConnectionSettingsBase(_Configurable):
+    """Provider-independent settings bound from Configuration.
+
+    Frozen fields cannot be reassigned, but scopes and extras remain mutable.
+    Treat those containers as read-only after handing settings to a provider.
+    """
 
     client_id: str | None = None
     authority: str | None = None
@@ -27,6 +32,7 @@ class ConnectionSettingsBase(_Configurable):
 
     @property
     def extras(self) -> Configuration:
+        """Return unrecognized provider settings, not an immutable copy."""
         return self._extras
 
     @classmethod

@@ -69,7 +69,9 @@ class Authorization:
         connection_manager: Connections,
         auth_handlers: dict[str, AuthHandler] | None = None,
         auto_sign_in: bool = False,
+        *,
         use_cache: bool = False,
+        config: Configuration | None = None,
         **kwargs,
     ):
         """
@@ -101,11 +103,11 @@ class Authorization:
 
         self._handlers = {}
 
-        auth_configuration: Configuration = Configuration(kwargs).get_section(xpath("agent_application", "user_authorization"))
+        auth_configuration = Configuration.from_mapping(config, **kwargs).get_section(xpath("agent_application", "user_authorization"))
 
         if not auth_handlers:
             # get from config
-            handlers_config = auth_configuration.get_sections(xpath("handlers"), default={})
+            handlers_config = auth_configuration.get(xpath("handlers"), default={})
             auth_handlers = {
                 handler_name: AuthHandler(
                     name=handler_name,
@@ -116,9 +118,7 @@ class Authorization:
             }
 
         self._handler_settings = auth_handlers
-        self._auto_sign_in = auto_sign_in or bool(
-            auth_configuration.get("AUTO_SIGN_IN", False)
-        )
+        self._auto_sign_in = auto_sign_in or auth_configuration.get_bool(xpath("auto_sign_in"), default=False)
 
         # operations default to the first handler if none specified
         if self._handler_settings:

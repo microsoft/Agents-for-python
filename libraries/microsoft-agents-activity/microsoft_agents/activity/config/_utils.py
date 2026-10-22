@@ -30,10 +30,10 @@ def _is_missing(val: Any) -> TypeIs[_MissingType]:
     return isinstance(val, _MissingType)
 
 def _path(*args: str) -> str:
-    """Construct a colon-separated key path from the given arguments.
+    """Construct a ``::``-separated key path from the given arguments.
 
     :param args: The individual parts of the key path.
-    :return: The colon-separated key path.
+    :return: The ``::``-separated key path.
     """
     return _PATH_SEPARATOR.join(args)
 
@@ -47,6 +47,7 @@ def _get_with_path(
     skip_none: bool = False,
     none_is_missing: bool = False,
 ) -> tuple[Any, list[str]]:
+    """Return the first matched value and its relative source path segments."""
 
     final_path: list[str] = []
     none_found: bool = False
@@ -66,10 +67,10 @@ def _get_with_path(
 
             if current is None:
                 none_found = True
-                if skip_none:
-                    continue
                 if not final_path:
                     final_path = path_candidate
+                if skip_none:
+                    continue
 
             return current, path_candidate
 
@@ -84,7 +85,7 @@ def _get(
     skip_none: bool = False,
     none_is_missing: bool = False,
 ) -> Any:
-    """Retrieve a value from a nested mapping using a colon-separated key path.
+    """Retrieve a value using alternative ``::``-separated key paths.
 
     :param mapping: The mapping to retrieve the value from.
     :param keys: The individual key paths to try.
@@ -135,10 +136,10 @@ def _collect(mapping: Mapping, *keys: str) -> list[Any]:
 def _try_set(
     mapping: MutableMapping, key: str, value: Any, *, overwrite: bool = False
 ) -> bool:
-    """Set a value in a nested mapping using a colon-separated key path.
+    """Set a value in a nested mapping using a ``::``-separated key path.
 
     :param mapping: The mapping to set the value in.
-    :param key: The colon-separated key path.
+    :param key: The ``::``-separated key path.
     :param value: The value to set.
     :param overwrite: Whether to overwrite the existing value if the key already exists.
     """
@@ -166,10 +167,10 @@ def _try_set(
 
 
 def _set(mapping: MutableMapping, key: str, value: Any) -> None:
-    """Set a value in a nested mapping using a colon-separated key path, overwriting any existing value.
+    """Set a value using a ``::``-separated path, overwriting any existing value.
 
     :param mapping: The mapping to set the value in.
-    :param key: The colon-separated key path.
+    :param key: The ``::``-separated key path.
     :param value: The value to set.
     """
     _try_set(mapping, key, value, overwrite=True)
@@ -215,10 +216,10 @@ def _traverse_leaves(
 
 
 def _parse_env_var_name(name: str) -> str:
-    """Parse an environment variable name into a colon-separated key path.
+    """Replace environment-variable ``__`` separators with ``::``.
 
     :param name: The environment variable name.
-    :return: The colon-separated key path.
+    :return: The ``::``-separated key path, preserving case.
     """
     return name.replace("__", _PATH_SEPARATOR)
 
@@ -233,7 +234,8 @@ def _resolve(
 
     :param primary: The primary mapping to resolve.
     :param defaults: The defaults mapping What to merge with.
-    :param path_transformer: A function to transform paths before merging. Defaults to converting environment variable names to uppercase colon-separated paths.
+    :param path_transformer: Transform paths before merging. By default, replace
+        environment-variable ``__`` separators with ``::``, preserving case.
     :return: The resolved mapping.
     """
 
@@ -363,9 +365,10 @@ def _xpath(
     pascal: bool = False,
     all_caps: bool = True
 ) -> list[str]:
-    """Generate a list of name variants for the given snake_case names, suitable for XPath queries.
+    """Generate casing variants of alternative configuration paths.
 
-    :param snake_case_paths: The snake_case paths.
+    :param snake_case_paths: Alternative snake_case paths using ``::`` separators.
+        These are configuration paths, not XPath expressions.
     :param upper_snake: Include upper snake case variant.
     :param lower_snake: Include lower snake case variant.
     :param camel: Include camel case variant.

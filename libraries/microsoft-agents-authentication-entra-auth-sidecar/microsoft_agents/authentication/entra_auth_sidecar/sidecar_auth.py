@@ -17,7 +17,8 @@ from microsoft_agents.hosting.core import (
 
 from azure.core.credentials_async import AsyncTokenCredential
 
-from ._models import SidecarConnectionSettings, SidecarRequestOptions
+from ._models import SidecarRequestOptions
+from .connection_settings import SidecarConnectionSettings
 from ._token_expiry import SidecarTokenExpiry
 from .errors.error_resources import SidecarAuthErrorResources as _Errors
 from .sidecar_http_client import SidecarHttpClient
@@ -55,19 +56,19 @@ class SidecarAuth(AccessTokenProviderBase):
 
     def __init__(
         self,
-        configuration: AgentAuthConfiguration | ConnectionSettingsBase | ConnectionSettings,
+        configuration: AgentAuthConfiguration | SidecarConnectionSettings | Configuration,
         *,
         sidecar_client: SidecarHttpClient | None = None,
     ):
 
-        if isinstance(configuration, Configuration):
-            self._config = configuration
+        if isinstance(configuration, AgentAuthConfiguration):
+            self._configuration = configuration
+            self._settings = SidecarConnectionSettings.from_configuration(SidecarConnectionSettings._from_agent_auth_config(configuration))
         else:
-            self._config = 
+            self._configuration = None
+            self._settings = SidecarConnectionSettings.from_configuration(configuration)
+            
       
-        self._configuration = configuration
-        self._settings = SidecarConnectionSettings.from_configuration(configuration)
-
         if sidecar_client is not None:
             self._sidecar_client = sidecar_client
         else:
@@ -107,7 +108,14 @@ class SidecarAuth(AccessTokenProviderBase):
             stacklevel=2
         )
 
+        if not self._configuration:
+            raise ValueError("No AgentAuthConfiguration available. Use 'config' instead.")
+
         return self._configuration
+
+    @property
+    def config(self) -> SidecarConnectionSettings:
+        return self._settings
 
     @property
     def _service_name(self) -> str:
@@ -138,7 +146,7 @@ class SidecarAuth(AccessTokenProviderBase):
         """
         from .sidecar_token_credential import SidecarTokenCredential
 
-        return SidecarTokenCredential(self._configuration, provider=self)
+        return SidecarTokenCredential(self._settings, provider=self)
 
     async def acquire_token_on_behalf_of(
         self, scopes: list[str], user_assertion: str

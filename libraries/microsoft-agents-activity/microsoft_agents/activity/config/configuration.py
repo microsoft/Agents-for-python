@@ -45,7 +45,12 @@ _ConfigurationProtocolT = TypeVar(
 
 
 class Configuration(dict, _ConfigurationProtocol):
-    """A configuration class that extends the built-in dict with additional functionality for handling nested configurations."""
+    """Dictionary-backed configuration with path lookup and typed conversion.
+
+    Paths use ``::`` separators. Alternative paths are tried in the supplied
+    order. Sections carry the matched source path for diagnostics.
+    Construction makes a shallow copy; nested mutable values can remain shared.
+    """
 
     def __init__(self, _original: Mapping | None = None, _base_path: str | None = None, **kwargs):
         """Initialize a Configuration instance.
@@ -62,7 +67,16 @@ class Configuration(dict, _ConfigurationProtocol):
     def from_mapping(
         cls, _mapping: Mapping | None = None, _base_path: str | None = None, **kwargs
     ) -> Configuration:
-        if isinstance(_mapping, Configuration) and not kwargs:
+        """Create configuration, using keyword arguments as fallback values.
+
+        An existing Configuration is reused unless defaults or a different
+        diagnostic base path are supplied.
+        """
+        if (
+            isinstance(_mapping, Configuration)
+            and not kwargs
+            and (_base_path is None or _base_path == _mapping._base_path)
+        ):
             return _mapping
         if kwargs:
             if not _mapping:
@@ -86,18 +100,18 @@ class Configuration(dict, _ConfigurationProtocol):
         return f"{self._base_path}{_PATH_SEPARATOR}{key}" if self._base_path else key
 
     def _get_with_path(self, *_keys: str | list[str], default: Any = _MISSING, skip_none: bool = False) -> tuple[Any, list[str]]:
-        """Retrieve a value from the configuration by key, returning the value and the resolved path."""
+        """Return a value and its matched path segments, relative to this section."""
         keys = _resolve_keys_arg(*_keys)
         res, path = _get_with_path(self, *keys, default=_MISSING, skip_none=skip_none)
         if _is_missing(res):
             if _is_missing(default):
-                raise KeyError(keys[0])
+                raise KeyError(self._resolve_path(keys[0]))
             return default, path
         return res, path
 
 
     def _get(self, *_keys: str | list[str], default: Any = _MISSING, skip_none: bool = False) -> Any:
-        """Retrieve a value from the configuration by key, returning _MISSING if not found."""
+        """Return the first matched value, raising if absent and no default is given."""
         val, _ = self._get_with_path(*_keys, default=default, skip_none=skip_none)
         return val
 
@@ -126,7 +140,8 @@ class Configuration(dict, _ConfigurationProtocol):
 
         keys = _resolve_keys_arg(*_keys)
 
-        val = self._get(*keys)
+        val, path = self._get_with_path(*keys)
+        name = self._resolve_path(_PATH_SEPARATOR.join(path) or keys[0])
 
         if isinstance(val, cls):
             return val
@@ -136,12 +151,12 @@ class Configuration(dict, _ConfigurationProtocol):
                 return new_val
             else:
                 raise TypeError(
-                    f"Factory for key {keys[0]} did not return an instance of {cls.__name__}."
+                    f"Factory for key {name} did not return an instance of {cls.__name__}."
                 )
         if not _is_missing(default):
             return default
         raise TypeError(
-            f"Value for key {keys[0]} is not of type {cls.__name__} and could not be converted."
+            f"Value for key {name} is not of type {cls.__name__} and could not be converted."
         )
 
     def has(self, *keys: str | list[str]) -> bool:
@@ -168,24 +183,25 @@ class Configuration(dict, _ConfigurationProtocol):
     ) -> Configuration | None:
         """Retrieve a section of the configuration, returning it as a Configuration object.
 
-        :param section: The names of the nested sections to retrieve.
+        :param section: Alternative section paths, tried in order.
         :param default: The default value to return if the section is not found.
         :return: The retrieved section as a Configuration object, or the default value if not found.
         :raises KeyError: If the section is not found and no default is provided.
         :raises TypeError: If the section is found but is not a mapping.
         """
         keys = _resolve_keys_arg(*section)
-        val = self._get(*keys, default=default)
-
-        if isinstance(val, Configuration):
+        val, path = self._get_with_path(*keys, default=default)
+        if not path:
             return val
-        elif isinstance(val, Mapping):
+        base_path = self._resolve_path(_PATH_SEPARATOR.join(path))
+
+        if isinstance(val, Mapping):
             return Configuration.from_mapping(
-                val, _base_path=self._resolve_path(keys[0])
+                val, _base_path=base_path
             )
         if val is None and not _is_missing(default):
             return default
-        raise TypeError(f"Section {section} is not a mapping")
+        raise TypeError(f"Section {base_path} is not a mapping")
 
     def get_sections(self, *section: str) -> list[Configuration]:
         """Retrieve all subsections of the specified section as Configuration objects.
@@ -201,7 +217,9 @@ class Configuration(dict, _ConfigurationProtocol):
 
         for base_path, v in map.items():
             if not isinstance(v, Mapping):
-                raise TypeError(f"Section {section} contains a non-mapping value.")
+                raise TypeError(
+                    f"Section {self._resolve_path(base_path)} is not a mapping"
+                )
 
         return [
             Configuration.from_mapping(v, _base_path=self._resolve_path(base_path))
@@ -287,8 +305,9 @@ class Configuration(dict, _ConfigurationProtocol):
         :return: The retrieved boolean value or the default value if not found.
         """
         keys = _resolve_keys_arg(*_keys)
-        val = self._get(*keys, default=default, skip_none=True)
-        return _handle_bool(val, default, keys[0])
+        val, path = self._get_with_path(*keys, default=default, skip_none=True)
+        name = self._resolve_path(_PATH_SEPARATOR.join(path) or keys[0])
+        return _handle_bool(val, default, name)
 
     def get_booln(self, *_keys: str | list[str], default: bool | None = None) -> bool | None:
         """Retrieve a boolean value from the configuration, allowing None as default.
@@ -313,8 +332,9 @@ class Configuration(dict, _ConfigurationProtocol):
         :return: The retrieved integer value or the default value if not found.
         """
         keys = _resolve_keys_arg(*_keys)
-        val = self._get(*keys, default=default, skip_none=True)
-        return _handle_int(val, default, keys[0])
+        val, path = self._get_with_path(*keys, default=default, skip_none=True)
+        name = self._resolve_path(_PATH_SEPARATOR.join(path) or keys[0])
+        return _handle_int(val, default, name)
 
     def get_intn(self, *_keys: str | list[str], default: int | None = None) -> int | None:
         """Retrieve an integer value from the configuration, allowing None as default.
@@ -339,8 +359,9 @@ class Configuration(dict, _ConfigurationProtocol):
         :return: The retrieved float value or the default value if not found.
         """
         keys = _resolve_keys_arg(*_keys)
-        val = self._get(*keys, default=default, skip_none=True)
-        return _handle_float(val, default, keys[0])
+        val, path = self._get_with_path(*keys, default=default, skip_none=True)
+        name = self._resolve_path(_PATH_SEPARATOR.join(path) or keys[0])
+        return _handle_float(val, default, name)
 
     def get_floatn(self, *_keys: str | list[str], default: float | None = None) -> float | None:
         """Retrieve a float value from the configuration, allowing None as default.
@@ -365,15 +386,16 @@ class Configuration(dict, _ConfigurationProtocol):
         :return: The retrieved string value or the default value if not found.
         """
         keys = _resolve_keys_arg(*_keys)
-        val = self._get(*keys, default=default, skip_none=True)
-        return _handle_str(val, default, keys[0])
+        val, path = self._get_with_path(*keys, default=default, skip_none=True)
+        name = self._resolve_path(_PATH_SEPARATOR.join(path) or keys[0])
+        return _handle_str(val, default, name)
 
     def get_strn(self, *_keys: str | list[str], default: str | None = None):
-        """Retrieve a list of strings from the configuration.
+        """Retrieve a string, allowing None as the default.
 
         :param keys: The keys of the value to retrieve.
         :param default: The default value to return if the key is not found.
-        :return: The retrieved list of strings or the default value if not found.
+        :return: The retrieved string or the default value if not found.
         """
         return self.get_str(*_keys, default=default)
 
@@ -385,12 +407,13 @@ class Configuration(dict, _ConfigurationProtocol):
         :return: The retrieved list of strings or the default value if not found.
         """
         keys = _resolve_keys_arg(*_keys)
-        val = self._get(*keys, default=default, skip_none=True)
+        val, path = self._get_with_path(*keys, default=default, skip_none=True)
         if val is None:
             if default is None:
                 return []
             return default
-        return _handle_str_list(val, default, keys[0])
+        name = self._resolve_path(_PATH_SEPARATOR.join(path) or keys[0])
+        return _handle_str_list(val, default, name)
 
     def get_items(self, *_keys: str | list[str], default: dict | None = None) -> Iterable[tuple[Any, Any]]:
         """Retrieve items from a dictionary in the configuration.
@@ -421,18 +444,18 @@ class Configuration(dict, _ConfigurationProtocol):
         """Retrieve a list of scopes from the configuration.
 
         :param keys: The keys of the scopes value to retrieve.
-        :param default: The default value to return if the key is not found.
-        :return: The retrieved list of scopes or the default value if not found.
+        :return: The scopes as a list, or an empty list if absent.
         """
         keys = _resolve_keys_arg(*_keys)
-        val = self._get(*keys, default=None, skip_none=True)
+        val, path = self._get_with_path(*keys, default=None, skip_none=True)
         if val is None:
             return []
         if isinstance(val, list):
             return val
         if isinstance(val, str):
             return Configuration.format_scopes(val)
-        raise ValueError(f"Invalid scopes value: {val}")
+        name = self._resolve_path(_PATH_SEPARATOR.join(path) or keys[0])
+        raise ValueError(f"Invalid scopes value for {name}")
 
     @staticmethod
     def format_scopes(scopes: str | list[str] | None) -> list[str]:

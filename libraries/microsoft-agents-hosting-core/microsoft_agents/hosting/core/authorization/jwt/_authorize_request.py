@@ -22,7 +22,8 @@ async def _authorize_request(
     Authorizes a request based on the provided JWT token in the Authorization header.
 
     :param authorization_header: The value of the Authorization header from the request.
-    :param auth_config: The AgentAuthConfiguration instance containing authentication settings.
+    :param auth_config: Application Configuration for token validation, or a
+        deprecated AgentAuthConfiguration instance.
     :return: A ClaimsIdentity object if the token is valid, or an HttpResponse with an
         error message and status code if the token is invalid or missing.
     """

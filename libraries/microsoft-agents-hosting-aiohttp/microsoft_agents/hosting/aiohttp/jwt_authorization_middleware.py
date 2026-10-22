@@ -7,7 +7,7 @@ from typing import cast
 
 from aiohttp.web import Request, middleware, json_response
 
-from microsoft_agents.hosting.core.authorization import AgentAuthConfiguration
+from microsoft_agents.activity.config import Configuration, xpath
 from microsoft_agents.hosting.core.authorization.jwt import _authorize_request
 from microsoft_agents.hosting.core.http import HttpResponse
 
@@ -35,9 +35,8 @@ async def _jwt_authorization_middleware(request: Request, handler):
     """
     JWT Authorization Middleware for aiohttp endpoints.
     """
-    auth_config = cast(
-        AgentAuthConfiguration | None, request.app.get("agent_configuration", None)
-    )
+
+    auth_config = Configuration(request.app.get("agent_configuration", None))
 
     auth_header = request.headers.get("Authorization")
     if auth_header is not None:

@@ -54,9 +54,10 @@ class MsalAuth(AccessTokenProviderBase):
     def __init__(self, config: Configuration | MsalConnectionSettings | AgentAuthConfiguration):
         """Initializes the MsalAuth class with the given configuration.
 
-        :param config: The MSAL authentication configuration. Assumed to
-            not be mutated after being passed in.
-        :type config: Mapping | :class:`microsoft_agents.hosting.core.authorization.agent_auth_configuration.AgentAuthConfiguration`
+        :param config: Raw Configuration or bound MsalConnectionSettings.
+            AgentAuthConfiguration remains accepted for deprecated compatibility.
+            Do not mutate settings or their nested values after passing them in.
+        :type config: Configuration | MsalConnectionSettings | AgentAuthConfiguration
         """
 
         if isinstance(config, MsalConnectionSettings):
@@ -86,10 +87,12 @@ class MsalAuth(AccessTokenProviderBase):
 
     @property
     def configuration(self) -> AgentAuthConfiguration:
-        """Returns the MSAL authentication configuration.
+        """Return the deprecated AgentAuthConfiguration compatibility view.
 
-        :return: The MSAL authentication configuration.
-        :rtype: :class:`microsoft_agents.hosting.core.authorization.agent_auth_configuration.AgentAuthConfiguration`
+        Use :attr:`config` for the bound MsalConnectionSettings instead.
+
+        :return: The legacy authentication configuration.
+        :rtype: AgentAuthConfiguration
         """
         warnings.warn(
             "Accessing the deprecated configuration. This will be removed in future versions.",
@@ -104,7 +107,7 @@ class MsalAuth(AccessTokenProviderBase):
 
     @property
     def config(self) -> MsalConnectionSettings:
-        """Returns the MSAL connection settings.
+        """Return the bound MSAL settings; nested mutable values remain mutable.
 
         :return: The MSAL connection settings.
         :rtype: MsalConnectionSettings
@@ -267,8 +270,8 @@ class MsalAuth(AccessTokenProviderBase):
     def _resolve_azure_region(config: MsalConnectionSettings) -> str | None:
         """Resolves the Azure regional token service (ESTS-R) to use, if configured.
 
-        :param config: The agent authentication configuration.
-        :type config: :class:`microsoft_agents.hosting.core.AgentAuthConfiguration`
+        :param config: The bound MSAL connection settings.
+        :type config: :class:`microsoft_agents.authentication.msal.MsalConnectionSettings`
         :return: The resolved Azure region or None if not configured.
         :rtype: str | None
 

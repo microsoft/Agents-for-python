@@ -81,7 +81,9 @@ class JwtTokenValidator:
     def __init__(self, configuration: AgentAuthConfiguration | Configuration):
         """Initializes the JwtTokenValidator with the given configuration.
 
-        :param configuration: An instance of AgentAuthConfiguration containing the necessary settings for token validation.
+        :param configuration: Application Configuration used to bind
+            TokenValidationConfiguration. AgentAuthConfiguration is accepted
+            through a legacy conversion path.
         """
         if isinstance(configuration, AgentAuthConfiguration):
             config = Configuration(configuration._to_dict())
@@ -91,6 +93,7 @@ class JwtTokenValidator:
 
     @property
     def config(self) -> TokenValidationConfiguration:
+        """Return the bound token-validation policy and connection settings."""
         return self._config
 
     async def validate_token(self, token: str) -> ClaimsIdentity:
@@ -150,7 +153,7 @@ class JwtTokenValidator:
             raise ValueError("Invalid audience.")
 
         # Issuer allow-list validation is explicit opt-in
-        # (AgentAuthConfiguration.VALIDATE_ISSUER) to preserve backward
+        # (JwtConnectionSettings.validate_issuer) to preserve backward
         # compatibility for existing deployments. Tid-to-issuer binding,
         # however, is always enforced per issue #626: it only engages when
         # the (verified) issuer is itself a recognized Entra issuer carrying
@@ -215,7 +218,7 @@ def _build_jwks_uri(
 
 def _get_valid_issuers(config: JwtConnectionSettings) -> set[str]:
     """Case-insensitive union of the connection's configured/default issuers
-    (``AgentAuthConfiguration.ISSUERS``) and the always-trusted Microsoft
+    (``JwtConnectionSettings.issuers``) and the always-trusted Microsoft
     first-party issuers for the connection's cloud."""
     combined = list(config.issuers) + well_known_first_party_issuers(config.authority)
     return {issuer.lower() for issuer in combined}

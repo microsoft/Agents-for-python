@@ -1,13 +1,15 @@
 # Copyright (c) Microsoft Corporation. All rights reserved.
 # Licensed under the MIT License.
 
-from typing import Protocol
+from __future__ import annotations
+
+from typing import TYPE_CHECKING, Protocol
 from abc import abstractmethod
 
 from azure.core.credentials_async import AsyncTokenCredential
 
-from microsoft_agents.activity.config import Configuration
-from .connections import AgentAuthConfiguration, ConnectionSettingsBase
+if TYPE_CHECKING:
+    from .connections import AgentAuthConfiguration, ConnectionSettingsBase
 
 
 class AccessTokenProviderBase(Protocol):
@@ -15,9 +17,9 @@ class AccessTokenProviderBase(Protocol):
     @property
     def configuration(self) -> AgentAuthConfiguration:
         """
-        The configuration for the access token provider.
+        Deprecated legacy configuration view. Prefer :attr:`config`.
 
-        :return: The configuration for the access token provider.
+        :return: AgentAuthConfiguration retained for compatibility.
         """
         # this property is deprecated and will be removed in future versions
         raise NotImplementedError()
@@ -26,10 +28,12 @@ class AccessTokenProviderBase(Protocol):
     @abstractmethod
     def config(self) -> ConnectionSettingsBase:
         """
-        The configuration for the access token provider.
+        Bound provider-specific settings extending ConnectionSettingsBase.
 
-        :return: The configuration for the access token provider.
+        :return: The provider's typed connection settings.
         """
+        from .connections.connection_settings_base import ConnectionSettingsBase
+
         return ConnectionSettingsBase(**self.configuration._to_dict())
 
     @abstractmethod

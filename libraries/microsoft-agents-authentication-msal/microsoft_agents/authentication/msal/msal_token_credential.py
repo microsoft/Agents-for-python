@@ -35,8 +35,10 @@ class MsalTokenCredential(AsyncTokenCredential):
     ):
         """Initializes the MsalTokenCredential with the given configuration.
 
-        :param config: The agent authentication configuration, which can be either an MsalConnectionSettings or an AgentAuthConfiguration.
-        :type config: :class:`microsoft_agents.authentication.msal.connection_settings.MsalConnectionSettings` | :class:`microsoft_agents.hosting.core.AgentAuthConfiguration`
+        :param config: Bound MSAL settings. AgentAuthConfiguration remains accepted
+            for deprecated compatibility.
+        :type config: MsalConnectionSettings | AgentAuthConfiguration
+        :param provider: An existing provider to reuse instead of constructing one.
         """
         self._config = config
         self._provider: MsalAuth | None = provider

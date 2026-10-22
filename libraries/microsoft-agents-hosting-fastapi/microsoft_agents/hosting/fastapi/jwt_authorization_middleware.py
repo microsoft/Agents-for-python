@@ -8,7 +8,7 @@ from fastapi import Request
 from fastapi.responses import JSONResponse
 from starlette.types import ASGIApp, Receive, Scope, Send
 
-from microsoft_agents.hosting.core import AgentAuthConfiguration
+from microsoft_agents.activity.config import Configuration
 from microsoft_agents.hosting.core.authorization.jwt import _authorize_request
 from microsoft_agents.hosting.core.http import HttpResponse
 
@@ -33,9 +33,9 @@ class JwtAuthorizationMiddleware:
 
         app = scope.get("app")
         state = getattr(app, "state", None) if app else None
-        auth_config: AgentAuthConfiguration | None = getattr(
+        auth_config: Configuration | None = Configuration(getattr(
             state, "agent_configuration", None
-        )
+        ))
 
         request = Request(scope, receive=receive)
         res = await _authorize_request(
@@ -62,9 +62,9 @@ def jwt_authorization_decorator(func):
         if request is None:
             return JSONResponse({"error": "Request object not found"}, status_code=500)
 
-        auth_config: AgentAuthConfiguration | None = getattr(
+        auth_config: Configuration | None = Configuration(getattr(
             request.app.state, "agent_configuration", None
-        )
+        ))
 
         auth_header = request.headers.get("Authorization")
 

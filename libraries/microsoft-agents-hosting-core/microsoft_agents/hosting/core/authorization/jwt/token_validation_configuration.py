@@ -22,7 +22,7 @@ class TokenValidationConfiguration(_Configurable):
     @classmethod
     def _from_configuration(cls, configuration: Configuration) -> TokenValidationConfiguration:
 
-        token_validation = configuration.get_section("token_validation")
+        token_validation = configuration.get_section("token_validation", default=Configuration())
         audiences = token_validation.collect_str("audience", "AUDIENCES")
         tenant_id = token_validation.get_str(xpath("tenant_id"))
         anonymous_allowed = token_validation.get_booln(xpath("anonymous_allowed"))

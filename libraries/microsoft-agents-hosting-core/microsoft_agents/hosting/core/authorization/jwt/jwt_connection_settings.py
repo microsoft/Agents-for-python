@@ -12,7 +12,7 @@ from ..connections import ConnectionSettingsBase
 @dataclass(frozen=True)
 class JwtConnectionSettings(ConnectionSettingsBase):
     """
-    Connection settings for MSAL authentication.
+    Provider-independent connection settings for inbound JWT validation.
     """
 
     validate_issuer: bool = False
