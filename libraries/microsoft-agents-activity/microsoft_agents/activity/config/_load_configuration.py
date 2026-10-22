@@ -24,9 +24,4 @@ def load_configuration_from_env(
     resolved = _resolve(local_vars, defaults or {})
     config = Configuration(resolved)
     _configure_logging(config.get_section(_xpath("logging"), default=None) or Configuration())
-
-    config["AgentApplication"] = config.pop("AgentApplication", {})
-    config["Connections"] = config.pop("Connections", {})
-    config["ConnectionsMap"] = config.pop("ConnectionsMap", [])
-
     return config

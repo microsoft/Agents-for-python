@@ -8,10 +8,10 @@ from __future__ import annotations
 from dataclasses import dataclass
 
 from microsoft_agents.activity.errors import configuration_errors
-from .._configuration_protocol import _DictConfigurable
-from ._constants import _NAME_TO_LEVEL
 
-_K_LOG_LEVEL = "LOGLEVEL"
+from ..configuration import Configuration, _Configurable
+from .._utils import _xpath
+from ._constants import _NAME_TO_LEVEL
 
 
 @dataclass(frozen=True)
@@ -32,26 +32,24 @@ class _LogLevelEntry:
         object.__setattr__(self, "namespace", namespace.lower())
         object.__setattr__(self, "level", _NAME_TO_LEVEL[level_upper])
 
-
 @dataclass(frozen=True)
-class _LoggingConfiguration(_DictConfigurable):
+class _LoggingConfiguration(_Configurable):
     """Configuration class for logging levels."""
 
     log_levels: list[_LogLevelEntry]
 
-    def __init__(self, data: dict) -> None:
-        """Initialize the logging configuration from a dictionary."""
+    @classmethod
+    def _from_configuration(cls, config: Configuration) -> _LoggingConfiguration:
 
-        raw_log_levels = data.get(_K_LOG_LEVEL, {})
+        raw_log_levels = config.get(_xpath("log_levels"))
         if not isinstance(raw_log_levels, dict):
             raise ValueError(
                 configuration_errors.InvalidLoggingConfiguration.format(
-                    _K_LOG_LEVEL, raw_log_levels
+                    "log_levels", raw_log_levels
                 )
             )
         log_levels: list[_LogLevelEntry] = [
             _LogLevelEntry(namespace, level)
             for namespace, level in raw_log_levels.items()
         ]
-
-        object.__setattr__(self, "log_levels", log_levels)
+        return cls(log_levels)

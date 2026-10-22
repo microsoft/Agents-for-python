@@ -113,15 +113,15 @@ def _collect_helper(current: Any, path_left: list[str], collection: dict[str, An
         for key in current:
             if part == _PATH_ANY or part == key:
                 _collect_helper(current[key], path_left[1:], collection, current_path + [key])
-            if part != _PATH_ANY:
-                break
+                if part != _PATH_ANY:
+                    break
     if isinstance(current, list):
         part = path_left[0]
         for idx, item in enumerate(current):
             if part == _PATH_ANY or part == str(idx):
                 _collect_helper(item, path_left[1:], collection, current_path + [str(idx)])
-            if part != _PATH_ANY:
-                break
+                if part != _PATH_ANY:
+                    break
 
 def _collect_with_paths(mapping: Mapping, *keys: str) -> dict[str, Any]:
     collection: dict[str, Any] = {}
@@ -261,7 +261,7 @@ def _resolve(
 
     return resolved
 
-@functools.lru_cache()
+@functools.lru_cache(maxsize=10)
 def _snake_to_camel(name: str) -> str:
     """Convert a snake_case name to PascalCase.
 
@@ -283,7 +283,7 @@ def _snake_to_camel(name: str) -> str:
 
     return camel
 
-functools.lru_cache()
+@functools.lru_cache(maxsize=10)
 def _xcase_helper(
     snake_case_name: str,
     *,
@@ -354,18 +354,18 @@ def _xcase(
         )
     return list(variants)
 
-@functools.lru_cache()
+@functools.lru_cache(maxsize=10)
 def _xpath(
-    *path: str,
+    *snake_case_paths: str,
     upper_snake: bool = True,
-    lower_snake: bool = False,
+    lower_snake: bool = True,
     camel: bool = False,
     pascal: bool = False,
     all_caps: bool = True
 ) -> list[str]:
     """Generate a list of name variants for the given snake_case names, suitable for XPath queries.
 
-    :param snake_case_names: The snake_case names.
+    :param snake_case_paths: The snake_case paths.
     :param upper_snake: Include upper snake case variant.
     :param lower_snake: Include lower snake case variant.
     :param camel: Include camel case variant.
@@ -375,7 +375,7 @@ def _xpath(
     """
     
     return _xcase(
-        _path(*path),
+        *snake_case_paths,
         upper_snake=upper_snake,
         lower_snake=lower_snake,
         camel=camel,

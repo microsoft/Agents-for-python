@@ -101,7 +101,7 @@ class Configuration(dict, _ConfigurationProtocol):
         val, _ = self._get_with_path(*_keys, default=default, skip_none=skip_none)
         return val
 
-    def get(self, key: str | list[str], default: Any = _MISSING, skip_none: bool = False) -> Any:
+    def get(self, key: str | list[str], default: Any = None, skip_none: bool = False) -> Any:
         """Retrieve a value from the configuration by key, returning the default if not found."""
         keys = _resolve_keys_arg(key)
         try:

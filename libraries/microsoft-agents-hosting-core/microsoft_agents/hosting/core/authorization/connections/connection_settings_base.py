@@ -68,7 +68,7 @@ class ConnectionSettingsBase(_Configurable):
     def _get_extras(cls, config: Configuration) -> Configuration:
         known_kwargs = cls._known_kwargs()
         base = {k: v for k, v in config.items() if k not in known_kwargs}
-        return Configuration(base, **base.pop("extras", {}))
+        return Configuration.from_mapping(base, _base_path=config._base_path, **base.pop("extras", {}))
 
     @classmethod
     def _from_configuration(cls, config: Configuration) -> Self:

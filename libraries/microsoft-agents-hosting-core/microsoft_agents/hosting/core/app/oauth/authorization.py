@@ -17,6 +17,7 @@ from microsoft_agents.activity import (
     TokenResponse,
 )
 from microsoft_agents.activity.activity_types import ActivityTypes
+from microsoft_agents.activity.config import Configuration, xpath, _get, _get_str
 
 from microsoft_agents.hosting.core.authorization._helpers import (
     _CallableTokenCredential,
@@ -100,17 +101,16 @@ class Authorization:
 
         self._handlers = {}
 
-        auth_configuration: dict = kwargs.get("AGENTAPPLICATION", {}).get(
-            "USERAUTHORIZATION", {}
-        )
+        auth_configuration: Configuration = Configuration(kwargs).get_section(xpath("agent_application", "user_authorization"))
+
         if not auth_handlers:
             # get from config
-            handlers_config: dict[str, dict] = auth_configuration.get("HANDLERS") or {}
+            handlers_config = auth_configuration.get_sections(xpath("handlers"), default={})
             auth_handlers = {
                 handler_name: AuthHandler(
                     name=handler_name,
-                    auth_type=config.get("TYPE", ""),
-                    **config.get("SETTINGS", {}),
+                    auth_type=_get_str(config, xpath("type"), default=""),
+                    **_get(config, xpath("settings"), default={})
                 )
                 for handler_name, config in handlers_config.items()
             }

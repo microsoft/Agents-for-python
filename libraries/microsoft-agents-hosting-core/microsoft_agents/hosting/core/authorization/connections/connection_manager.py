@@ -9,7 +9,7 @@ from typing import cast
 from collections.abc import Callable
 
 from microsoft_agents.activity import Activity
-from microsoft_agents.activity.config import Configuration
+from microsoft_agents.activity.config import Configuration, xpath, _get
 
 from .agent_auth_configuration import AgentAuthConfiguration
 from ..access_token_provider_base import AccessTokenProviderBase
@@ -111,8 +111,8 @@ class ConnectionManager(Connections):
             self._provider_factory = cast(Callable[[Configuration], AccessTokenProviderBase], provider_factory)
             config = Configuration.from_config(config, **kwargs)
 
-            raw_connections_map = config.get("CONNECTIONSMAP", [])
-            raw_configurations = config.get("CONNECTIONS", {})
+            raw_connections_map = config.get(xpath("connections_map"), [])
+            raw_configurations = config.get(xpath("connections"), {})
             self._parse_raw_configurations(raw_configurations, self._provider_factory)
 
         self._connections_map = _ConnectionMap(raw_connections_map)
@@ -129,7 +129,7 @@ class ConnectionManager(Connections):
 
     def _parse_raw_configurations(self, raw_configurations: dict[str, dict], provider_factory: Callable[[Configuration], AccessTokenProviderBase] | Callable[[AgentAuthConfiguration], AccessTokenProviderBase]) -> None:
         for connection_name, connection_settings in raw_configurations.items():
-            parsed_config = Configuration(**connection_settings.get("SETTINGS", {}))
+            parsed_config = Configuration(**_get(connection_settings, *xpath("SETTINGS"), default={}))
             self._connections[connection_name] = provider_factory(parsed_config)
             self._config_map[connection_name] = parsed_config
             self._deprecated_config_map[connection_name] = AgentAuthConfiguration(**connection_settings.get("SETTINGS", {}))
