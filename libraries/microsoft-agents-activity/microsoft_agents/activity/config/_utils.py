@@ -1,6 +1,7 @@
 # Copyright (c) Microsoft Corporation. All rights reserved.
 # Licensed under the MIT License.
 
+import functools
 
 from typing import Any, Callable, Mapping, MutableMapping, TypeIs, TypeVar, overload
 
@@ -9,23 +10,23 @@ from ._constants import _PATH_SEPARATOR, _PATH_ANY
 T = TypeVar("T")
 
 
-class _MISSING_CLS:
+class _MissingType:
     """A special class used to represent missing values in the configuration."""
 
     def __bool__(self):
         return False
 
 
-_MISSING = _MISSING_CLS()  # Singleton instance representing a missing value
+_MISSING = _MissingType()  # Singleton instance representing a missing value
 
 
-def _is_missing(val: Any) -> TypeIs[_MISSING_CLS]:
-    """Check if a value is the special _MISSING_CLS instance.
+def _is_missing(val: Any) -> TypeIs[_MissingType]:
+    """Check if a value is the special _MissingType instance.
 
     :param val: The value to check.
-    :return: True if the value is an instance of _MISSING_CLS, False otherwise.
+    :return: True if the value is an instance of _MissingType, False otherwise.
     """
-    return isinstance(val, _MISSING_CLS)
+    return isinstance(val, _MissingType)
 
 def _path(*args: str) -> str:
     """Construct a colon-separated key path from the given arguments.
@@ -259,6 +260,7 @@ def _resolve(
 
     return resolved
 
+@functools.lru_cache()
 def _snake_to_camel(name: str) -> str:
     """Convert a snake_case name to PascalCase.
 
@@ -280,6 +282,7 @@ def _snake_to_camel(name: str) -> str:
 
     return camel
 
+functools.lru_cache()
 def _xcase_helper(
     snake_case_name: str,
     *,
@@ -350,6 +353,7 @@ def _xcase(
         )
     return list(variants)
 
+@functools.lru_cache()
 def _xpath(
     *path: str,
     upper_snake: bool = True,

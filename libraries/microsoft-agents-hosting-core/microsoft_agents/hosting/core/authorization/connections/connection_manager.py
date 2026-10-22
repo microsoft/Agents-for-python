@@ -25,6 +25,7 @@ def _factory(func: Callable[[AgentAuthConfiguration], AccessTokenProviderBase]) 
     def wrapper(config: Configuration) -> AccessTokenProviderBase:
         return func(AgentAuthConfiguration(**config))
     return wrapper
+    
 
 class ConnectionManager(Connections):
     """

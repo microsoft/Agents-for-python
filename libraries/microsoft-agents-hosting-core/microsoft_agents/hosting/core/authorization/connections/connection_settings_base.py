@@ -7,7 +7,7 @@ from dataclasses import dataclass, field, fields
 from typing import TypeVar
 from typing_extensions import Self
 
-from microsoft_agents.activity.config import Configuration, _Configurable, _name_variants
+from microsoft_agents.activity.config import Configuration, _Configurable, xpath
 
 from .agent_auth_configuration import AgentAuthConfiguration
 
@@ -37,12 +37,12 @@ class ConnectionSettingsBase(_Configurable):
     @classmethod
     def _get_init_kwargs(cls, config: Configuration) -> dict:
         return {
-            "client_id": config.get_strn(*cls._name_variants("client_id")),
-            "authority": config.get_strn(*cls._name_variants("authority")),
-            "tenant_id": config.get_strn(*cls._name_variants("tenant_id")),
-            "scopes": config.get_scopes(*cls._name_variants("scopes")),
+            "client_id": config.get_strn(cls._xpath("client_id")),
+            "authority": config.get_strn(cls._xpath("authority")),
+            "tenant_id": config.get_strn(cls._xpath("tenant_id")),
+            "scopes": config.get_scopes(cls._xpath("scopes")),
             "alternate_blueprint_connection_name": config.get_strn(
-                "alt_blueprint_id", "ALT_BLUEPRINT_ID", *cls._name_variants("alternate_blueprint_connection_name")
+                "alt_blueprint_id", "ALT_BLUEPRINT_ID", *cls._xpath("alternate_blueprint_connection_name")
             )
         }
 
@@ -60,8 +60,9 @@ class ConnectionSettingsBase(_Configurable):
 
     @classmethod
     def _from_configuration(cls, config: Configuration) -> Self:
-        return cls(**cls._get_init_kwargs(config), _extras=cls._get_extras(config))
+        settings = config.get_section(xpath("settings"))
+        return cls(**cls._get_init_kwargs(settings), _extras=cls._get_extras(settings))
 
     @staticmethod
-    def _name_variants(name: str) -> list[str]:
-        return _name_variants(name, lower_snake=True)
+    def _xpath(name: str) -> list[str]:
+        return xpath(name, lower_snake=True)

@@ -24,9 +24,10 @@ from ._coercion import (
     _handle_int,
     _handle_float,
     _handle_str,
+    _handle_str_list,
 )
 from ._utils import (
-    _MISSING_CLS,
+    _MissingType,
     _MISSING,
     _get,
     _get_with_path,
@@ -116,7 +117,7 @@ class Configuration(dict, _ConfigurationProtocol):
         *_keys: str | list[str],
         cls: type[T],
         factory: Callable[[Any], T] | None = None,
-        default: T | _MISSING_CLS = _MISSING,
+        default: T | _MissingType = _MISSING,
     ) -> T:
         """Retrieve a value from the configuration by key, ensuring it is of the specified type.
 
@@ -148,12 +149,12 @@ class Configuration(dict, _ConfigurationProtocol):
 
     @overload
     def get_section(
-        self, *section: str | list[str], default: Configuration | _MISSING_CLS = _MISSING
+        self, *section: str | list[str], default: Configuration | _MissingType = _MISSING
     ) -> Configuration: ...
     @overload
     def get_section(self, *section: str | list[str], default: None) -> Configuration | None: ...
     def get_section(
-        self, *section: str | list[str], default: Configuration | None | _MISSING_CLS = _MISSING
+        self, *section: str | list[str], default: Configuration | None | _MissingType = _MISSING
     ) -> Configuration | None:
         """Retrieve a section of the configuration, returning it as a Configuration object.
 
@@ -201,7 +202,7 @@ class Configuration(dict, _ConfigurationProtocol):
     #     _type: type[T],
     #     *_keys: str | list[str],
     #     factory: Callable[[Mapping], T] | None = None,
-    #     default: T | _MISSING_CLS = _MISSING,
+    #     default: T | _MissingType = _MISSING,
     # ) -> T: ...
     # @overload
     # def get_typed(
@@ -217,7 +218,7 @@ class Configuration(dict, _ConfigurationProtocol):
     #     _type: type[_ConfigurationProtocolT],
     #     *_keys: str | list[str],
     #     factory: None = None,
-    #     default: _ConfigurationProtocolT | _MISSING_CLS,
+    #     default: _ConfigurationProtocolT | _MissingType,
     # ) -> _ConfigurationProtocolT: ...
     # @overload
     # def get_typed(
@@ -225,14 +226,14 @@ class Configuration(dict, _ConfigurationProtocol):
     #     _type: type[_ConfigurationProtocolT],
     #     *_keys: str | list[str],
     #     factory: None = None,
-    #     default: _ConfigurationProtocolT | None | _MISSING_CLS = _MISSING,
+    #     default: _ConfigurationProtocolT | None | _MissingType = _MISSING,
     # ) -> _ConfigurationProtocolT | None: ...
     # def get_typed(
     #     self,
     #     _type: type[T],
     #     *_keys: str | list[str],
     #     factory: Callable[[Mapping], T] | None = None,
-    #     default: T | None | _MISSING_CLS = _MISSING,
+    #     default: T | None | _MissingType = _MISSING,
     # ) -> T | None:
     #     """Retrieve a typed value from the configuration, converting it to the specified class if necessary.
 
@@ -261,12 +262,12 @@ class Configuration(dict, _ConfigurationProtocol):
     #     return factory(val)
 
     @overload
-    def get_bool(self, *_keys: str | list[str], default: bool | _MISSING_CLS = _MISSING) -> bool:
+    def get_bool(self, *_keys: str | list[str], default: bool | _MissingType = _MISSING) -> bool:
         ...
     @overload
     def get_bool(self, *_keys: str | list[str], default: None = None) -> bool | None:
         ...
-    def get_bool(self, *_keys: str | list[str], default: bool | None | _MISSING_CLS = _MISSING) -> bool | None:
+    def get_bool(self, *_keys: str | list[str], default: bool | None | _MissingType = _MISSING) -> bool | None:
         """Retrieve a boolean value from the configuration.
 
         :param keys: The keys of the value to retrieve.
@@ -290,9 +291,9 @@ class Configuration(dict, _ConfigurationProtocol):
     def get_int(self, *_keys: str | list[str], default: None = None) -> int | None:
         ...
     @overload
-    def get_int(self, *_keys: str | list[str], default: int | _MISSING_CLS = _MISSING) -> int:
+    def get_int(self, *_keys: str | list[str], default: int | _MissingType = _MISSING) -> int:
         ...
-    def get_int(self, *_keys: str | list[str], default: int | None | _MISSING_CLS = _MISSING) -> int | None:
+    def get_int(self, *_keys: str | list[str], default: int | None | _MissingType = _MISSING) -> int | None:
         """Retrieve an integer value from the configuration.
 
         :param keys: The keys of the value to retrieve.
@@ -316,9 +317,9 @@ class Configuration(dict, _ConfigurationProtocol):
     def get_float(self, *_keys: str | list[str], default: None = None) -> float | None:
         ...
     @overload
-    def get_float(self, *_keys: str | list[str], default: float | _MISSING_CLS = _MISSING) -> float:
+    def get_float(self, *_keys: str | list[str], default: float | _MissingType = _MISSING) -> float:
         ...
-    def get_float(self, *_keys: str | list[str], default: float | None | _MISSING_CLS = _MISSING) -> float | None:
+    def get_float(self, *_keys: str | list[str], default: float | None | _MissingType = _MISSING) -> float | None:
         """Retrieve a float value from the configuration.
 
         :param keys: The keys of the value to retrieve.
@@ -342,9 +343,9 @@ class Configuration(dict, _ConfigurationProtocol):
     def get_str(self, *_keys: str | list[str], default: None) -> str | None:
         ...
     @overload
-    def get_str(self, *_keys: str | list[str], default: str | _MISSING_CLS = _MISSING) -> str:
+    def get_str(self, *_keys: str | list[str], default: str | _MissingType = _MISSING) -> str:
         ...
-    def get_str(self, *_keys: str | list[str], default: str | None | _MISSING_CLS = _MISSING) -> str | None:
+    def get_str(self, *_keys: str | list[str], default: str | None | _MissingType = _MISSING) -> str | None:
         """Retrieve a string value from the configuration.
 
         :param keys: The keys of the value to retrieve.
@@ -363,6 +364,21 @@ class Configuration(dict, _ConfigurationProtocol):
         :return: The retrieved list of strings or the default value if not found.
         """
         return self.get_str(*_keys, default=default)
+
+    def get_str_list(self, *_keys: str | list[str], default: list[str] | None = None) -> list[str]:
+        """Retrieve a list of strings from the configuration.
+
+        :param keys: The keys of the value to retrieve.
+        :param default: The default value to return if the key is not found.
+        :return: The retrieved list of strings or the default value if not found.
+        """
+        keys = _resolve_keys_arg(*_keys)
+        val = self._get(*keys, default=default, skip_none=True)
+        if val is None:
+            if default is None:
+                return []
+            return default
+        return _handle_str_list(val, default, keys[0])
 
     def get_items(self, *_keys: str | list[str], default: dict | None = None) -> Iterable[tuple[Any, Any]]:
         """Retrieve items from a dictionary in the configuration.

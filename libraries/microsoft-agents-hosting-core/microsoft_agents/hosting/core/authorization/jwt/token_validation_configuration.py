@@ -3,85 +3,73 @@
 
 from __future__ import annotations
 
+from dataclasses import dataclass, field
 from typing import Any
 
-from microsoft_agents.activity.config import Configuration, _Configurable, _utils, xpath
-from ..connections import ConnectionSettingsBase
+from microsoft_agents.activity.config import Configuration, _Configurable, xpath
 
+from .jwt_connection_settings import JwtConnectionSettings
+
+@dataclass(frozen=True)
 class TokenValidationConfiguration(_Configurable):
 
-    def __init__(self, configuration: Configuration):
-        self._configuration = configuration
-
-        token_validation = configuration.get_section("token_validation")
-        self._audiences = token_validation.collect_str("audience", "AUDIENCES")
-        self._tenant_id = token_validation.get_str(*xcase("tenant_id"), default="")
-
-        if not self._audiences:
-            
-
-            self._audiences = configuration.collect_str(
-                *xpath("connections", "*", "settings", "client_id")
-            )
-
-            
-        if not self._audiences or not self._tenant_id: # get the default audiences from the connections
-
-            connections = configuration.get_sections(*xpath()
-            for conn_name, conn_obj in connections.items():
-                
-                settings = Configuration.from_mapping(conn_obj.get("settings", {}))
-
-                if conn_name.upper() == "SERVICE_CONNECTION":
-                    tenant_id =settings.get_
-
-            for item in configuration.collect("connections")
-
-            update_audiences = not self._audiences
-            update_tenant_id = not self._tenant_id
-
-            ConnectionSettingsBase.from_configuration(configuration)
-
-            sections = configuration.get_sections(*xpath("connections", "*", "settings"))
-            for sub in sections:
-                if update_audiences:
-                    aud = sub.get_strn(*xpath("client_id"))
-                    if aud:
-                        self._audiences.append(aud)
-
-                if "SERIVCE_CONNECTION" in sub._base_path
-
-
-
-
-            update_audiences = not self._audiences
-            update_tenant_id = not self._tenant_id
-
-            connections = configuration.get("connections", {})
-            for conn_obj in connections.values():
-                aud = _utils._get(
-                    conn_obj, 
-                    *xpath("settings", "client_id"),
-                    default=None
-                )
-                if update_audiences and aud:
-                    self._audiences.append(aud)
-                    if update_tenant_id:
-                        self._tenant_id = aud
-        
-            
-
+    tenant_id: str | None = None
+    audiences: list[str] = field(default_factory=list)
+    anonymous_allowed: bool = False
+    default_jwt_settings: JwtConnectionSettings | None = None
+    connections: dict[str, JwtConnectionSettings] = field(default_factory=dict)
 
     @classmethod
     def _from_configuration(cls, configuration: Configuration) -> TokenValidationConfiguration:
-        return TokenValidationConfiguration(configuration)
 
-    def _is_valid_aud(self, aud: Any) -> bool:
-        if not isinstance(aud, str):
+        token_validation = configuration.get_section("token_validation")
+        audiences = token_validation.collect_str("audience", "AUDIENCES")
+        tenant_id = token_validation.get_str(xpath("tenant_id"))
+        anonymous_allowed = token_validation.get_booln(xpath("anonymous_allowed"))
+
+        connections: dict[str, JwtConnectionSettings] = {}
+        for name, conf in configuration.get_items(xpath("connections")):
+            connections[name] = JwtConnectionSettings._from_configuration(conf)
+
+        update_audiences = not audiences
+        update_tenant_id = not tenant_id
+
+        default_jwt_settings: JwtConnectionSettings | None = None
+        for conn_name, conn in connections.items():
+
+            if conn_name.upper() == "SERVICE_CONNECTION":
+                if update_tenant_id:
+                    tenant_id = conn.tenant_id
+                default_jwt_settings = conn
+
+            if update_audiences:
+                aud = conn.client_id
+                if aud:
+                    audiences.append(aud)
+
+        if default_jwt_settings is not None and anonymous_allowed is None:
+            anonymous_allowed = default_jwt_settings.anonymous_allowed
+
+        return cls(
+            tenant_id=tenant_id,
+            audiences=audiences,
+            connections=connections,
+            default_jwt_settings=default_jwt_settings,
+            anonymous_allowed=anonymous_allowed or False,
+        )
+    
+    def validate_audience(self, aud: Any) -> bool:
+        if not aud or not isinstance(aud, str):
             return False
-        for conn in self._connections.values():
-            if not conn.CLIENT_ID:
-                continue
-            if aud.lower() == conn.CLIENT_ID.lower():
+        for target_audience in self.audiences:
+            if aud.lower() == target_audience.lower():
                 return True
         return False
+
+    def get_connection_settings(self, aud: Any) -> JwtConnectionSettings | None:
+        if not aud or not isinstance(aud, str):
+            return None
+        for conn in self.connections.values():
+            if conn.client_id and conn.client_id.lower() == aud.lower():
+                return conn
+        return self.default_jwt_settings

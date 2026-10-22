@@ -21,7 +21,7 @@ from typing import (
 
 from ._utils import (
     _MISSING,
-    _MISSING_CLS,
+    _MissingType,
     _get,
     _is_missing,
 )
@@ -33,9 +33,9 @@ _FALSY = ("0", "false")
 def _handle_bool(value: Any, default: None = None, name: str = "value") -> bool | None:
     ...
 @overload
-def _handle_bool(value: Any, default: bool | _MISSING_CLS = _MISSING, name: str = "value") -> bool:
+def _handle_bool(value: Any, default: bool | _MissingType = _MISSING, name: str = "value") -> bool:
     ...
-def _handle_bool(value: Any, default: bool | None | _MISSING_CLS = None, name: str = "value") -> bool | None:
+def _handle_bool(value: Any, default: bool | None | _MissingType = None, name: str = "value") -> bool | None:
     """Coerce a config value (possibly an env string) to a bool.
 
     Environment variables always arrive as strings, so ``bool("false")`` would
@@ -79,12 +79,12 @@ def coerce_bool(value: Any, default: bool | None = None, name: str = "value") ->
     return _handle_bool(value, new_default, name)
 
 @overload
-def _handle_int(value: Any, default: int | _MISSING_CLS = _MISSING, name: str = "value") -> int:
+def _handle_int(value: Any, default: int | _MissingType = _MISSING, name: str = "value") -> int:
     ...
 @overload
 def _handle_int(value: Any, default: None = None, name: str = "value") -> int | None:
     ...
-def _handle_int(value: Any, default: int | None | _MISSING_CLS = None, name: str = "value") -> int | None:
+def _handle_int(value: Any, default: int | None | _MissingType = None, name: str = "value") -> int | None:
     """Coerce a config value (possibly an env string) to an int.
 
     Empty/``None`` values fall back to ``default``. Bools are treated as unset
@@ -127,12 +127,12 @@ def coerce_int(value: Any, default: int | None = None, name: str = "value") -> i
     return _handle_int(value, new_default, name)
 
 @overload
-def _handle_float(value: Any, default: float | _MISSING_CLS, name: str = "value") -> float:
+def _handle_float(value: Any, default: float | _MissingType, name: str = "value") -> float:
     ...
 @overload
 def _handle_float(value: Any, default: None = None, name: str = "value") -> float | None:
     ...
-def _handle_float(value: Any, default: float | None | _MISSING_CLS = None, name: str = "value") -> float | None:
+def _handle_float(value: Any, default: float | None | _MissingType = None, name: str = "value") -> float | None:
     """Coerce a config value (possibly an env string) to a float.
 
     Empty/``None`` values fall back to ``default``. Bools are treated as unset.
@@ -177,9 +177,9 @@ def _check_key_error(value: Any, default: Any, key: str) -> None:
 def _handle_str(value: Any, default: None = None, name: str = "value") -> str | None:
     ...
 @overload
-def _handle_str(value: Any, default: str | _MISSING_CLS = _MISSING, name: str = "value") -> str:
+def _handle_str(value: Any, default: str | _MissingType = _MISSING, name: str = "value") -> str:
     ...
-def _handle_str(value: Any, default: str | None | _MISSING_CLS = None, name: str = "value") -> str | None:
+def _handle_str(value: Any, default: str | None | _MissingType = None, name: str = "value") -> str | None:
     if value is None or _is_missing(value):
         if _is_missing(default):
             raise ValueError(f"Missing string for {name}: {value!r}")
@@ -188,46 +188,53 @@ def _handle_str(value: Any, default: str | None | _MISSING_CLS = None, name: str
         return value
     return str(value)
 
+
+def _handle_str_list(value: Any, default: list[str] | None = None, name: str = "value") -> list[str]:
+    if not isinstance(value, list):
+        raise ValueError(f"{name} must be a list.")
+    values = [ _handle_str(val) for val in value]
+    return [val for val in values if val is not None]
+
 @overload
-def _get_bool(mapping: Mapping, key: str, default: bool | _MISSING_CLS) -> bool:
+def _get_bool(mapping: Mapping, key: str, default: bool | _MissingType) -> bool:
     ...
 @overload
 def _get_bool(mapping: Mapping, key: str, default: None) -> bool | None:
     ...
-def _get_bool(mapping: Mapping, key: str, default: bool | None | _MISSING_CLS = _MISSING) -> bool | None:
+def _get_bool(mapping: Mapping, key: str, default: bool | None | _MissingType = _MISSING) -> bool | None:
     val = _get(mapping, key, default=_MISSING)
     _check_key_error(val, default, key)
     return _handle_bool(val, default, key)
 
 @overload
-def _get_int(mapping: Mapping, key: str, default: int | _MISSING_CLS) -> int:
+def _get_int(mapping: Mapping, key: str, default: int | _MissingType) -> int:
     ...
 @overload
 def _get_int(mapping: Mapping, key: str, default: None) -> int | None:
     ...
-def _get_int(mapping: Mapping, key: str, default: int | None | _MISSING_CLS = _MISSING) -> int | None:
+def _get_int(mapping: Mapping, key: str, default: int | None | _MissingType = _MISSING) -> int | None:
     val = _get(mapping, key, default=_MISSING)
     _check_key_error(val, default, key)
     return _handle_int(val, default, key)
 
 @overload
-def _get_float(mapping: Mapping, key: str, default: float | _MISSING_CLS) -> float:
+def _get_float(mapping: Mapping, key: str, default: float | _MissingType) -> float:
     ...
 @overload
 def _get_float(mapping: Mapping, key: str, default: None) -> float | None:
     ...
-def _get_float(mapping: Mapping, key: str, default: float | None | _MISSING_CLS = _MISSING) -> float | None:
+def _get_float(mapping: Mapping, key: str, default: float | None | _MissingType = _MISSING) -> float | None:
     val = _get(mapping, key, default=_MISSING)
     _check_key_error(val, default, key)
     return _handle_float(val, default, key)
 
 @overload
-def _get_str(mapping: Mapping, key: str, default: str | _MISSING_CLS) -> str:
+def _get_str(mapping: Mapping, key: str, default: str | _MissingType) -> str:
     ...
 @overload
 def _get_str(mapping: Mapping, key: str, default: None) -> str | None:
     ...
-def _get_str(mapping: Mapping, key: str, default: str | None | _MISSING_CLS = _MISSING) -> str | None:
+def _get_str(mapping: Mapping, key: str, default: str | None | _MissingType = _MISSING) -> str | None:
     val = _get(mapping, key, default=_MISSING)
     _check_key_error(val, default, key)
     return _handle_str(val, default, key)
