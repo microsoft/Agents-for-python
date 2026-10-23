@@ -13,7 +13,7 @@ from .agent_auth_configuration import AgentAuthConfiguration
 
 T = TypeVar("T", bound="ConnectionSettingsBase")
 
-_KNOWN_KWARGS_CACHE: dict[str, list[str]] = {}
+_KNOWN_KWARGS_CACHE: dict[type[ConnectionSettingsBase], list[str]] = {}
 
 @dataclass(frozen=True)
 class ConnectionSettingsBase(_Configurable):
@@ -39,7 +39,10 @@ class ConnectionSettingsBase(_Configurable):
     def _from_agent_auth_config(cls, agent_auth_config: AgentAuthConfiguration) -> Self:
         attrs = {}
         for attr in agent_auth_config.__dict__:
-            attrs[attr] = getattr(agent_auth_config, attr)
+            if attr == "provider_settings":
+                attrs.update(getattr(agent_auth_config, attr))
+            else:
+                attrs[attr] = getattr(agent_auth_config, attr)
         return cls.from_mapping(attrs)
 
     @classmethod
@@ -57,8 +60,8 @@ class ConnectionSettingsBase(_Configurable):
     @classmethod
     def _known_kwargs(cls) -> list[str]:
 
-        if cls.__name__ in _KNOWN_KWARGS_CACHE:
-            return _KNOWN_KWARGS_CACHE[cls.__name__]
+        if cls in _KNOWN_KWARGS_CACHE:
+            return _KNOWN_KWARGS_CACHE[cls]
 
         base = [
             f.name for f in fields(cls) if f.init and f.name != "_extras"
@@ -67,7 +70,7 @@ class ConnectionSettingsBase(_Configurable):
         for n in base:
             final.extend(xpath(n))
 
-        _KNOWN_KWARGS_CACHE[cls.__name__] = final
+        _KNOWN_KWARGS_CACHE[cls] = final
         return final
 
     @classmethod

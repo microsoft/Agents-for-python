@@ -39,8 +39,8 @@ class SidecarConnectionSettings(ConnectionSettingsBase):
     sidecar owns all credential management.
     """
 
-    service_name: str | None = None
-    blueprint_service_name: str | None = None
+    service_name: str | None = DEFAULT_SERVICE_NAME
+    blueprint_service_name: str | None = DEFAULT_BLUEPRINT_SERVICE_NAME
     sidecar_base_url: str | None = None
     bypass_local_network_restriction: bool = False
     request_timeout: float = DEFAULT_REQUEST_TIMEOUT_SECONDS

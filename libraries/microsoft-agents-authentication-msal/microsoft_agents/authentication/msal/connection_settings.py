@@ -9,6 +9,7 @@ from microsoft_agents.activity.config import (
     Configuration,
     xpath,
 )
+from microsoft_agents.hosting.core import AgentAuthConfiguration
 from microsoft_agents.hosting.core.authorization import AuthTypes
 from microsoft_agents.hosting.core.authorization.connections import ConnectionSettingsBase
 
@@ -38,7 +39,7 @@ class MsalConnectionSettings(ConnectionSettingsBase):
             "auth_type": config.get_str(xpath("auth_type"), default=AuthTypes.client_secret),
             "client_secret": config.get_strn(xpath("client_secret")),
             "cert_pfx_file": config.get_strn(xpath("cert_pfx_file")),
-            "send_x5c": config.get_booln(xpath("send_x5c")),
+            "send_x5c": config.get_bool(xpath("send_x5c"), default=False),
             "connection_name": config.get_strn(xpath("connection_name")),
             "federated_client_id": config.get_strn(xpath("federated_client_id")),
             "federated_token_file": config.get_strn(xpath("federated_token_file")),
@@ -46,6 +47,24 @@ class MsalConnectionSettings(ConnectionSettingsBase):
             "azure_region": config.get_strn(xpath("azure_region"), xpath("regional_authority"))
         })
         return base
+
+    def _to_agent_auth_config(self) -> AgentAuthConfiguration:
+        return AgentAuthConfiguration(
+            auth_type=self.auth_type,
+            client_id=self.client_id,
+            tenant_id=self.tenant_id,
+            authority=self.authority,
+            client_secret=self.client_secret,
+            cert_pfx_file=self.cert_pfx_file,
+            send_x5c=self.send_x5c,
+            connection_name=self.connection_name,
+            federated_client_id=self.federated_client_id,
+            federated_token_file=self.federated_token_file,
+            idpm_resource=self.idpm_resource,
+            azure_region=self.azure_region,
+            anonymous_allowed=self._extras.get("anonymous_allowed", False),
+            scopes=self._extras.get("scopes", [])
+        )
 
     def _validate(self) -> None:
         """

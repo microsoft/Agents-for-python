@@ -4,10 +4,8 @@
 from azure.core.credentials import AccessToken
 from azure.core.credentials_async import AsyncTokenCredential
 
-from microsoft_agents.activity.config import Configuration
-
 from .access_token_provider_base import AccessTokenProviderBase
-from .connections.agent_auth_configuration import AgentAuthConfiguration
+from .connections import AgentAuthConfiguration, ConnectionSettingsBase
 from ._helpers import _CallableTokenCredential
 
 _ANONYMOUS_TOKEN_EXPIRATION = 2**31 - 1
@@ -28,12 +26,12 @@ class AnonymousTokenProvider(AccessTokenProviderBase):
         return AgentAuthConfiguration()
 
     @property
-    def config(self) -> Configuration:
+    def config(self) -> ConnectionSettingsBase:
         """
         The configuration for the access token provider.
         :return: The configuration for the access token provider.
         """
-        return Configuration() 
+        return ConnectionSettingsBase() 
 
     async def get_access_token(
         self, resource_url: str, scopes: list[str], force_refresh: bool = False

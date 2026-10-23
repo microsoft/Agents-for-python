@@ -73,7 +73,7 @@ class ConnectionManager(Connections):
         self._provider_factory = provider_factory
         self._deprecated_config_map = {}
 
-        if connections_configurations or connections_map:
+        if connections_configurations is not None or connections_map is not None:
             warnings.warn(
                 "The fields 'connections_configurations' and 'connections_map' are deprecated and will be removed in a future version. The corresponding positional arguments will remain until the args' removals, and no other positional arguments after will be added until these fields are removed. Please use `config` instead.",
                 DeprecationWarning,
@@ -237,8 +237,8 @@ class ConnectionManager(Connections):
         :return: The access token provider for the agent.
         """
         provider = self.get_token_provider(claims_identity, activity.service_url)
-        if activity.is_agentic_request() and provider.config.alt_blueprint_connection_name:
-            provider = self.get_connection(provider.config.alt_blueprint_connection_name)
+        if activity.is_agentic_request() and provider.config.alternate_blueprint_connection_name:
+            provider = self.get_connection(provider.config.alternate_blueprint_connection_name)
         return provider
 
     def get_default_connection_configuration(self) -> AgentAuthConfiguration:
@@ -250,12 +250,11 @@ class ConnectionManager(Connections):
         :rtype: :class:`microsoft_agents.hosting.core.AgentAuthConfiguration`
         """
         warnings.warn(
-            "This method is deprecated. Use get_default_connection_config instead.",
+            "This method is deprecated and will be removed in a future release.",
             DeprecationWarning,
             stacklevel=2,
         )
         config = self._deprecated_config_map.get("SERVICE_CONNECTION")
-        AgentAuthConfiguration(**self._config_map["SERVICE_CONNECTION"])
         if not config:
             raise ValueError(
                 "No default service connection configuration found. Expected 'SERVICE_CONNECTION'."

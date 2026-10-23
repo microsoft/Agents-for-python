@@ -100,9 +100,7 @@ class MsalAuth(AccessTokenProviderBase):
             stacklevel=2
         )
         if self._deprecated_config is None:
-            self._deprecated_config = AgentAuthConfiguration(
-                **self._msal_configuration.__dict__
-            )
+            self._deprecated_config = self._msal_configuration._to_agent_auth_config()
         return self._deprecated_config
 
     @property

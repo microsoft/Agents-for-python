@@ -103,7 +103,7 @@ class Authorization:
 
         self._handlers = {}
 
-        auth_configuration = Configuration.from_mapping(config, **kwargs).get_section(xpath("agent_application", "user_authorization"))
+        auth_configuration = Configuration.from_mapping(config, **kwargs).get_section(xpath("agent_application", "user_authorization"), default=Configuration())
 
         if not auth_handlers:
             # get from config
@@ -111,8 +111,8 @@ class Authorization:
             auth_handlers = {
                 handler_name: AuthHandler(
                     name=handler_name,
-                    auth_type=_get_str(config, xpath("type"), default=""),
-                    **_get(config, xpath("settings"), default={})
+                    auth_type=_get_str(config, *xpath("type"), default=""),
+                    **_get(config, *xpath("settings"), default={})
                 )
                 for handler_name, config in handlers_config.items()
             }
