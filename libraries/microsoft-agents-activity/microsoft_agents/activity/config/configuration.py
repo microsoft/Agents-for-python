@@ -412,8 +412,17 @@ class Configuration(dict, _ConfigurationProtocol):
             if default is None:
                 return []
             return default
-        name = self._resolve_path(_PATH_SEPARATOR.join(path) or keys[0])
-        return _handle_str_list(val, default, name)
+        if isinstance(val, list):
+            name = self._resolve_path(_PATH_SEPARATOR.join(path) or keys[0])
+            return _handle_str_list(val, default, name)
+        elif not isinstance(val, Mapping):
+            name = self._resolve_path(_PATH_SEPARATOR.join(path) or keys[0])
+            before_split = _handle_str(val, None, name)
+            if before_split is None:
+                return default
+            if "," in before_split:
+                return before_split.strip().split(",")
+            return before_split.strip().split()
 
     def get_items(self, *_keys: str | list[str], default: dict | None = None) -> Iterable[tuple[Any, Any]]:
         """Retrieve items from a dictionary in the configuration.

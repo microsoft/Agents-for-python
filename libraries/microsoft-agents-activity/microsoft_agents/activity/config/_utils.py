@@ -223,6 +223,47 @@ def _parse_env_var_name(name: str) -> str:
     """
     return name.replace("__", _PATH_SEPARATOR)
 
+def _convert_lists_helper(current: Any) -> None:
+
+    if isinstance(current, Mapping):
+        if all(key.isnumeric() for key in current.keys()):
+            keys_to_convert = sorted(list(current.keys()))
+            for key in keys_to_convert:
+                value = current[key]
+
+def _convert_list_helper(base: Any, key: str) -> None:
+
+    current = base[key]
+
+    if isinstance(current, Mapping):
+        if not current:
+            return
+
+        if all(isinstance(key, int) for key in current.keys()):
+            keys_to_convert = sorted(list(current.keys()))
+            base[key] = [ current[key] for key in keys_to_convert ]
+            
+        elif all(isinstance(key, str) and key.isnumeric() for key in current.keys()):
+            keys_to_convert = sorted([int(k) for k in current.keys()])
+            base[key] = [ current[str(key)] for key in keys_to_convert ]
+
+def _convert_lists(base: Any) -> None:
+
+    if isinstance(base, MutableMapping):
+        for current_key, current in base.items():
+            if isinstance(current, Mapping):
+                _convert_list_helper(base, current_key)
+                _convert_lists(base[current_key])
+            elif isinstance(current, list):
+                _convert_lists(current)
+    elif isinstance(base, list):
+        for i, item in enumerate(base):
+            if isinstance(item, Mapping):
+                _convert_list_helper(base, i)
+                _convert_lists(base[i])
+            elif isinstance(item, list):
+                _convert_lists(item)
+
 
 def _resolve(
     primary: Mapping,
@@ -261,6 +302,7 @@ def _resolve(
         if not _try_set(resolved, path_str, value):
             raise ValueError(f"Failed to set path {path_str} in resolved mapping.")
 
+    _convert_lists(resolved)
     return resolved
 
 @functools.lru_cache(maxsize=10)

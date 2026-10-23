@@ -88,7 +88,7 @@ class JwtTokenValidator:
         if isinstance(configuration, AgentAuthConfiguration):
             self._config = TokenValidationConfiguration(
                 tenant_id=configuration.tenant_id,
-                anonymous_allowed=configuration.anonymous_allowed,
+                anonymous_allowed=configuration.ANONYMOUS_ALLOWED,
                 audiences=configuration._get_audiences(),
                 connections={
                     conn_name: JwtConnectionSettings.from_mapping(conn._to_dict())

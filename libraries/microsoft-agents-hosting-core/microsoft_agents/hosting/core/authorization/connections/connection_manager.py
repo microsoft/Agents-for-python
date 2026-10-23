@@ -257,6 +257,8 @@ class ConnectionManager(Connections):
         config = self._deprecated_config_map.get("SERVICE_CONNECTION")
         if not config:
             raise ValueError(
-                "No default service connection configuration found. Expected 'SERVICE_CONNECTION'."
+                "get_default_connection_configuration() is only available for "
+                "managers initialized with legacy AgentAuthConfiguration instances. "
+                "For Configuration-based managers, use get_default_connection().config instead."
             )
         return config

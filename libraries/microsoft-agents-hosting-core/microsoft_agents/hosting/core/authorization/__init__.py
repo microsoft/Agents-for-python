@@ -7,10 +7,9 @@ from .anonymous_token_provider import AnonymousTokenProvider
 from .connections import (
     AgentAuthConfiguration,
     Connections,
+    ConnectionSettingsBase,
     ConnectionManager,
 )
-from .connections.connection_manager import ConnectionManager
-from .connections.agent_auth_configuration import AgentAuthConfiguration
 from .claims_identity import ClaimsIdentity
 from .jwt import JwtTokenValidator
 from .auth_types import AuthTypes
@@ -20,9 +19,10 @@ __all__ = [
     "AuthenticationConstants",
     "AnonymousTokenProvider",
     "Connections",
-    "ConnectionManager",
     "AgentAuthConfiguration",
     "ClaimsIdentity",
     "JwtTokenValidator",
     "AuthTypes",
+    "ConnectionSettingsBase",
+    "ConnectionManager",
 ]

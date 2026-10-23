@@ -49,6 +49,7 @@ class MsalConnectionSettings(ConnectionSettingsBase):
         return base
 
     def _to_agent_auth_config(self) -> AgentAuthConfiguration:
+        self._extras.pop("ALT_BLUEPRINT_NAME", None)
         return AgentAuthConfiguration(
             auth_type=self.auth_type,
             client_id=self.client_id,
@@ -60,7 +61,7 @@ class MsalConnectionSettings(ConnectionSettingsBase):
             connection_name=self.connection_name,
             federated_client_id=self.federated_client_id,
             federated_token_file=self.federated_token_file,
-            alt_blueprint_id=self.alternate_blueprint_connection_name,
+            ALT_BLUEPRINT_NAME=self.alternate_blueprint_connection_name,
             idpm_resource=self.idpm_resource,
             azure_region=self.azure_region,
             scopes=self.scopes,
