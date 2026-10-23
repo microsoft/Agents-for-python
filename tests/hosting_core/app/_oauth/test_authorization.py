@@ -17,12 +17,14 @@ from microsoft_agents.hosting.core.app.oauth import (
     _UserAuthorization,
     Authorization,
     AgenticUserAuthorization,
+    ConnectorUserAuthorization,
 )
 
 from microsoft_agents.hosting.core._oauth import _FlowStateTag
 
 from microsoft_agents.hosting.core import (
     AuthHandler,
+    AuthHandlerSettings,
     MemoryStorage,
 )
 
@@ -151,6 +153,37 @@ class TestEnv(FlowStateFixtures):
 
 
 class TestAuthorizationSetup(TestEnv):
+    @pytest.mark.parametrize(
+        "auth_type, handler_type",
+        [
+            ("UserAuthorization", _UserAuthorization),
+            ("AgenticUserAuthorization", AgenticUserAuthorization),
+            ("ConnectorUserAuthorization", ConnectorUserAuthorization),
+        ],
+    )
+    def test_legacy_auth_handler_configuration(
+        self, connection_manager, storage, auth_type, handler_type
+    ):
+        with pytest.warns(DeprecationWarning, match="AuthHandler is deprecated"):
+            settings = AuthHandler(
+                name="legacy",
+                auth_type=auth_type,
+                abs_oauth_connection_name="sso",
+                obo_connection_name="obo",
+                SCOPES="User.Read Mail.Read",
+            )
+
+        auth = Authorization(
+            storage, connection_manager, auth_handlers={"legacy": settings}
+        )
+        handler = auth._resolve_handler("legacy")
+
+        assert isinstance(handler, handler_type)
+        assert handler._id == "legacy"
+        assert handler._handler.abs_oauth_connection_name == "sso"
+        assert handler._handler.obo_connection_name == "obo"
+        assert handler._handler.scopes == ["User.Read", "Mail.Read"]
+
     def test_init_user_auth(self, connection_manager, storage, env_dict):
         auth = Authorization(storage, connection_manager, **env_dict)
         assert auth._resolve_handler(DEFAULTS.auth_handler_id) is not None
@@ -179,9 +212,15 @@ class TestAuthorizationSetup(TestEnv):
         handler_config = AGENTIC_ENV_DICT["AGENTAPPLICATION"]["USERAUTHORIZATION"][
             "HANDLERS"
         ][auth_handler_id]
-        auth._resolve_handler(auth_handler_id) == AuthHandler(
-            auth_handler_id, **handler_config
+        settings = AuthHandlerSettings(
+            name=auth_handler_id,
+            auth_type=handler_config.get("TYPE"),
+            **handler_config["SETTINGS"],
         )
+        handler = auth._resolve_handler(auth_handler_id)
+        assert handler._id == auth_handler_id
+        assert handler._handler._to_dict() == settings._to_dict()
+        assert handler._handler.scopes == settings.scopes
 
     def test_connection_manager_property(self, connection_manager, storage):
         auth = Authorization(storage, connection_manager, **ENV_DICT)

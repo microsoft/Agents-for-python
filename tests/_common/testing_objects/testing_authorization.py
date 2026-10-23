@@ -2,7 +2,11 @@ from typing import Union
 
 from microsoft_agents.activity import TokenResponse
 
-from microsoft_agents.hosting.core import Authorization, AuthHandler, MemoryStorage
+from microsoft_agents.hosting.core import (
+    Authorization,
+    AuthHandlerSettings,
+    MemoryStorage,
+)
 
 from .testing_connection_manager import TestingConnectionManager
 
@@ -22,7 +26,7 @@ class TestingAuthorization(Authorization):
     def __init__(
         self,
         mocker,
-        auth_handlers: dict[str, AuthHandler],
+        auth_handlers: dict[str, AuthHandlerSettings],
         token: Union[str, None] = "default",
         flow_started=False,
         sign_in_failed=False,
@@ -35,7 +39,7 @@ class TestingAuthorization(Authorization):
         mock OAuth flows.
 
         Args:
-            auth_handlers: Dictionary mapping handler names to AuthHandler instances
+            auth_handlers: Dictionary mapping handler names to AuthHandlerSettings instances
             token: Token value to use in mock responses. "default" uses auto-generated
                    tokens, None simulates no token available, or provide custom jwt token string
             flow_started: Simulate OAuth flows that have already started

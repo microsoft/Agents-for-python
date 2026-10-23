@@ -45,17 +45,17 @@ class TestUtils:
         return MsalConnectionManager(**AGENTIC_ENV_DICT)
 
     @pytest.fixture
-    def auth_handler_settings(self):
+    def settings(self):
         return AGENTIC_ENV_DICT["AGENTAPPLICATION"]["USERAUTHORIZATION"]["HANDLERS"][
             DEFAULTS.agentic_auth_handler_id
         ]["SETTINGS"]
 
     @pytest.fixture
-    def agentic_auth(self, storage, connection_manager, auth_handler_settings):
+    def agentic_auth(self, storage, connection_manager, settings):
         return AgenticUserAuthorization(
             storage,
             connection_manager,
-            auth_handler_settings=auth_handler_settings,
+            settings=settings,
             auth_handler_id=DEFAULTS.agentic_auth_handler_id,
         )
 
@@ -136,7 +136,7 @@ class TestAgenticUserAuthorization(TestUtils):
 
     @pytest.mark.asyncio
     async def test_get_agentic_instance_token_is_agentic(
-        self, mocker, agentic_role, agentic_auth, auth_handler_settings
+        self, mocker, agentic_role, agentic_auth, settings
     ):
         mock_provider = self.mock_provider(mocker, instance_token=DEFAULTS.token)
         connection_manager = mocker.Mock(spec=MsalConnectionManager)
@@ -145,7 +145,7 @@ class TestAgenticUserAuthorization(TestUtils):
         agentic_auth = AgenticUserAuthorization(
             MemoryStorage(),
             connection_manager,
-            auth_handler_settings=auth_handler_settings,
+            settings=settings,
             auth_handler_id=DEFAULTS.agentic_auth_handler_id,
         )
 
@@ -167,7 +167,7 @@ class TestAgenticUserAuthorization(TestUtils):
 
     @pytest.mark.asyncio
     async def test_get_agentic_user_token_is_agentic(
-        self, mocker, agentic_role, agentic_auth, auth_handler_settings
+        self, mocker, agentic_role, agentic_auth, settings
     ):
         mock_provider = self.mock_provider(mocker, user_token=DEFAULTS.token)
 
@@ -177,7 +177,7 @@ class TestAgenticUserAuthorization(TestUtils):
         agentic_auth = AgenticUserAuthorization(
             MemoryStorage(),
             connection_manager,
-            auth_handler_settings=auth_handler_settings,
+            settings=settings,
             auth_handler_id=DEFAULTS.agentic_auth_handler_id,
         )
 
@@ -212,7 +212,7 @@ class TestAgenticUserAuthorization(TestUtils):
         scopes_list,
         agentic_role,
         expected_scopes_list,
-        auth_handler_settings,
+        settings,
     ):
         mock_provider = self.mock_provider(mocker, user_token="my_token")
 
@@ -222,7 +222,7 @@ class TestAgenticUserAuthorization(TestUtils):
         agentic_auth = AgenticUserAuthorization(
             MemoryStorage(),
             connection_manager,
-            auth_handler_settings=auth_handler_settings,
+            settings=settings,
             auth_handler_id=DEFAULTS.agentic_auth_handler_id,
         )
         activity = Activity(
@@ -260,7 +260,7 @@ class TestAgenticUserAuthorization(TestUtils):
         scopes_list,
         agentic_role,
         expected_scopes_list,
-        auth_handler_settings,
+        settings,
     ):
         mock_provider = self.mock_provider(mocker, user_token=None)
 
@@ -270,7 +270,7 @@ class TestAgenticUserAuthorization(TestUtils):
         agentic_auth = AgenticUserAuthorization(
             MemoryStorage(),
             connection_manager,
-            auth_handler_settings=auth_handler_settings,
+            settings=settings,
             auth_handler_id=DEFAULTS.agentic_auth_handler_id,
         )
         activity = Activity(
@@ -308,7 +308,7 @@ class TestAgenticUserAuthorization(TestUtils):
         scopes_list,
         agentic_role,
         expected_scopes_list,
-        auth_handler_settings,
+        settings,
     ):
         mock_provider = self.mock_provider(mocker, user_token="my_token")
 
@@ -318,7 +318,7 @@ class TestAgenticUserAuthorization(TestUtils):
         agentic_auth = AgenticUserAuthorization(
             MemoryStorage(),
             connection_manager,
-            auth_handler_settings=auth_handler_settings,
+            settings=settings,
             auth_handler_id=DEFAULTS.agentic_auth_handler_id,
         )
         activity = Activity(
@@ -357,7 +357,7 @@ class TestAgenticUserAuthorization(TestUtils):
         scopes_list,
         agentic_role,
         expected_scopes_list,
-        auth_handler_settings,
+        settings,
     ):
         mock_provider = self.mock_provider(mocker, user_token=None)
 
@@ -367,7 +367,7 @@ class TestAgenticUserAuthorization(TestUtils):
         agentic_auth = AgenticUserAuthorization(
             MemoryStorage(),
             connection_manager,
-            auth_handler_settings=auth_handler_settings,
+            settings=settings,
             auth_handler_id=DEFAULTS.agentic_auth_handler_id,
         )
         activity = Activity(

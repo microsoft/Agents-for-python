@@ -44,6 +44,7 @@ from .app.oauth import (
     Authorization,
     AuthHandler,
     AgenticUserAuthorization,
+    AuthHandlerSettings,
 )
 
 # App State
@@ -151,6 +152,7 @@ __all__ = [
     "TempState",
     "Authorization",
     "AuthHandler",
+    "AuthHandlerSettings",
     "AccessTokenProviderBase",
     "AuthenticationConstants",
     "AnonymousTokenProvider",

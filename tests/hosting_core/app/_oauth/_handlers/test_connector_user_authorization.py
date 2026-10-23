@@ -97,19 +97,17 @@ class TestEnv(FlowStateFixtures):
         return MsalConnectionManager(**AGENTIC_ENV_DICT)
 
     @pytest.fixture
-    def auth_handler_settings(self):
+    def settings(self):
         return AGENTIC_ENV_DICT["AGENTAPPLICATION"]["USERAUTHORIZATION"]["HANDLERS"][
             DEFAULTS.auth_handler_id
         ]["SETTINGS"]
 
     @pytest.fixture
-    def connector_authorization(
-        self, connection_manager, storage, auth_handler_settings
-    ):
+    def connector_authorization(self, connection_manager, storage, settings):
         return ConnectorUserAuthorization(
             storage,
             connection_manager,
-            auth_handler_settings=auth_handler_settings,
+            settings=settings,
             auth_handler_id=DEFAULTS.auth_handler_id,
         )
 
