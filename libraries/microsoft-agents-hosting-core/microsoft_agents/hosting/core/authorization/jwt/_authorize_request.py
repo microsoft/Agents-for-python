@@ -16,7 +16,10 @@ logger = logging.getLogger(__name__)
 
 
 async def _authorize_request(
-    authorization_header: str | None, auth_config: Configuration | AgentAuthConfiguration | None
+    authorization_header: str | None,
+    auth_config: Configuration | AgentAuthConfiguration | None = None,
+    *,
+    validator: JwtTokenValidator | None = None
 ) -> ClaimsIdentity | HttpResponse:
     """
     Authorizes a request based on the provided JWT token in the Authorization header.
@@ -28,12 +31,13 @@ async def _authorize_request(
         error message and status code if the token is invalid or missing.
     """
 
-    if auth_config is None:
+    if auth_config is None and validator is None:
         return HttpResponse(
             body={"error": "Agent Authentication configuration not found"},
             status_code=500,
         )
-    validator = JwtTokenValidator(auth_config)
+    elif validator is None:
+        validator = JwtTokenValidator(auth_config)
 
     if not authorization_header:
         if validator.config.anonymous_allowed:

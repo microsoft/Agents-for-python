@@ -3,15 +3,28 @@
 
 import functools
 import inspect
-
 from fastapi import Request
 from fastapi.responses import JSONResponse
 from starlette.types import ASGIApp, Receive, Scope, Send
 
 from microsoft_agents.activity.config import Configuration
-from microsoft_agents.hosting.core.authorization.jwt import _authorize_request
+from microsoft_agents.hosting.core.authorization.jwt import _authorize_request, JwtTokenValidator
 from microsoft_agents.hosting.core.http import HttpResponse
 
+def _get_or_create_cached_validator(app) -> JwtTokenValidator:
+    """Gets or creates a cached JwtTokenValidator instance in the FastAPI application.
+
+    :param app: The FastAPI application instance.
+    :param auth_config: The authentication configuration.
+    :return: A JwtTokenValidator instance.
+    """
+    state = getattr(app, "state")
+    if not hasattr(state, "jwt_validator") and state is not None:
+        auth_config: Configuration | None = Configuration(getattr(
+            state, "agent_configuration", None
+        ))
+        app.state.jwt_validator = JwtTokenValidator(auth_config)
+    return app.state.jwt_validator
 
 class JwtAuthorizationMiddleware:
     """Starlette-compatible ASGI middleware for JWT authorization.
@@ -32,14 +45,11 @@ class JwtAuthorizationMiddleware:
             return
 
         app = scope.get("app")
-        state = getattr(app, "state", None) if app else None
-        auth_config: Configuration | None = Configuration(getattr(
-            state, "agent_configuration", None
-        ))
+        validator = _get_or_create_cached_validator(app)
 
         request = Request(scope, receive=receive)
         res = await _authorize_request(
-            request.headers.get("Authorization"), auth_config
+            request.headers.get("Authorization"), validator=validator
         )
 
         if isinstance(res, HttpResponse):
@@ -62,13 +72,10 @@ def jwt_authorization_decorator(func):
         if request is None:
             return JSONResponse({"error": "Request object not found"}, status_code=500)
 
-        auth_config: Configuration | None = Configuration(getattr(
-            request.app.state, "agent_configuration", None
-        ))
-
         auth_header = request.headers.get("Authorization")
+        validator = _get_or_create_cached_validator(request.app)
 
-        res = await _authorize_request(auth_header, auth_config)
+        res = await _authorize_request(auth_header, validator=validator)
         if isinstance(res, HttpResponse):
             return JSONResponse(content=res.body, status_code=res.status_code)
         request.state.claims_identity = res

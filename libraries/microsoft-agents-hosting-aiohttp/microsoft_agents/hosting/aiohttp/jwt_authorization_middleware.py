@@ -4,16 +4,19 @@
 import functools
 import logging
 from typing import cast
+from weakref import WeakKeyDictionary
 
-from aiohttp.web import Request, middleware, json_response
+from aiohttp.web import Request, middleware, json_response, Application
 
 from microsoft_agents.activity.config import Configuration, xpath
-from microsoft_agents.hosting.core.authorization.jwt import _authorize_request
+from microsoft_agents.hosting.core.authorization.jwt import _authorize_request, JwtTokenValidator
 from microsoft_agents.hosting.core.http import HttpResponse
 
 logger = logging.getLogger(__name__)
 
 _GENERIC_AUTH_ERROR = {"error": "Invalid token or authentication failed."}
+
+_TOKEN_VALIDATOR_CACHE: WeakKeyDictionary[Application, JwtTokenValidator] = WeakKeyDictionary()
 
 
 def _extract_bearer_token(auth_header: str) -> str | None:
@@ -30,13 +33,22 @@ def _extract_bearer_token(auth_header: str) -> str | None:
     token = parts[1].strip()
     return token if token and not any(char.isspace() for char in token) else None
 
+def _get_or_create_cached_validator(app: Application) -> JwtTokenValidator:
+    """Gets or creates a cached JwtTokenValidator instance in the aiohttp application.
+
+    :param app: The aiohttp application instance.
+    :param auth_config: The authentication configuration.
+    :return: A JwtTokenValidator instance.
+    """
+    if app not in _TOKEN_VALIDATOR_CACHE:
+        auth_config = Configuration(app.get("agent_configuration", None))
+        _TOKEN_VALIDATOR_CACHE[app] = JwtTokenValidator(auth_config)
+    return _TOKEN_VALIDATOR_CACHE[app]
 
 async def _jwt_authorization_middleware(request: Request, handler):
     """
     JWT Authorization Middleware for aiohttp endpoints.
     """
-
-    auth_config = Configuration(request.app.get("agent_configuration", None))
 
     auth_header = request.headers.get("Authorization")
     if auth_header is not None:
@@ -51,7 +63,8 @@ async def _jwt_authorization_middleware(request: Request, handler):
             return json_response(_GENERIC_AUTH_ERROR, status=401)
         auth_header = f"Bearer {token}"
 
-    res = await _authorize_request(auth_header, auth_config)
+    validator = _get_or_create_cached_validator(request.app)
+    res = await _authorize_request(auth_header, validator=validator)
 
     if isinstance(res, HttpResponse):
         return json_response(res.body, status=res.status_code)
