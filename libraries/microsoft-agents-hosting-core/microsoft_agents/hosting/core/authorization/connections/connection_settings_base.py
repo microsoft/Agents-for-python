@@ -53,7 +53,7 @@ class ConnectionSettingsBase(_Configurable):
             "tenant_id": config.get_strn(cls._xpath("tenant_id")),
             "scopes": config.get_scopes(cls._xpath("scopes")),
             "alternate_blueprint_connection_name": config.get_strn(
-                "alt_blueprint_id", "ALT_BLUEPRINT_ID", *cls._xpath("alternate_blueprint_connection_name")
+                "alt_blueprint_name", "ALT_BLUEPRINT_NAME", *cls._xpath("alternate_blueprint_connection_name")
             )
         }
 
