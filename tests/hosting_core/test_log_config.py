@@ -3,7 +3,10 @@ from unittest.mock import Mock
 
 import pytest
 
-from microsoft_agents.hosting.core import AgentAuthConfiguration
+from microsoft_agents.activity.config import Configuration
+from microsoft_agents.hosting.core.authorization.connections.connections_map import (
+    _ConnectionMap,
+)
 from microsoft_agents.hosting.core.authorization._log_config import (
     _log_config,
     _redact_scopes,
@@ -76,13 +79,14 @@ class TestLogConfig:
     def test_summarize_auth_configs_formats_connections_as_json_array(self):
         summary = _summarize_auth_configs(
             {
-                "SERVICE_CONNECTION": AgentAuthConfiguration(
+                "SERVICE_CONNECTION": Configuration(
                     client_id="client-id-secret",
                     tenant_id="tenant-id-secret",
                     client_secret="client-secret",
                     connection_name="configured-name",
                     authority="https://login.microsoftonline.com/tenant/oauth2/v2.0/token",
                     scopes=["scope1", "scope2"],
+                    anonymous_allowed=False,
                 )
             }
         )
@@ -106,14 +110,16 @@ class TestLogConfig:
 
     def test_summarize_connections_map_redacts_service_urls(self):
         summary = _summarize_connections_map(
-            [
-                {
-                    "CONNECTION": "SERVICE_CONNECTION",
-                    "AUDIENCE": "api://service",
-                    "SERVICEURL": "https://service.example.com/path?secret=value",
-                },
-                {"CONNECTION": "AGENTIC", "SERVICEURL": "*"},
-            ]
+            _ConnectionMap(
+                [
+                    {
+                        "CONNECTION": "SERVICE_CONNECTION",
+                        "AUDIENCE": "api://service",
+                        "SERVICEURL": "https://service.example.com/path?secret=value",
+                    },
+                    {"CONNECTION": "AGENTIC", "SERVICEURL": "*"},
+                ]
+            )
         )
 
         parsed_summary = json.loads(summary)
@@ -130,10 +136,10 @@ class TestLogConfig:
 
     def test_log_config_uses_clean_parameterized_format(self):
         logger = Mock()
-        config_map = {
-            "SERVICE_CONNECTION": AgentAuthConfiguration(client_id="client-id-secret")
-        }
-        connections_map = [{"CONNECTION": "SERVICE_CONNECTION", "SERVICEURL": "*"}]
+        config_map = {"SERVICE_CONNECTION": Configuration(client_id="client-id-secret")}
+        connections_map = _ConnectionMap(
+            [{"CONNECTION": "SERVICE_CONNECTION", "SERVICEURL": "*"}]
+        )
 
         _log_config(logger, config_map, connections_map)
 

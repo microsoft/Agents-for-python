@@ -7,9 +7,9 @@ from types import SimpleNamespace
 
 import pytest
 from fastapi import Depends, Request
+from microsoft_agents.activity.config import Configuration
 
 from microsoft_agents.hosting.core.authorization import (
-    AgentAuthConfiguration,
     ClaimsIdentity,
 )
 from microsoft_agents.hosting.core.http import HttpResponse
@@ -19,7 +19,7 @@ from microsoft_agents.hosting.fastapi.jwt_authorization_middleware import (
 )
 
 
-def _scope(auth_config: AgentAuthConfiguration, authorization: str | None = None):
+def _scope(auth_config: Configuration, authorization: str | None = None):
     headers = []
     if authorization is not None:
         headers.append((b"authorization", authorization.encode()))
@@ -62,7 +62,7 @@ def _status(messages):
 
 @pytest.mark.asyncio
 async def test_fastapi_middleware_stores_claims_and_calls_downstream_app():
-    auth_config = AgentAuthConfiguration()
+    auth_config = Configuration()
     claims = ClaimsIdentity({"aud": "app-id"}, authentication_type="Bearer")
     messages = []
     downstream_called = False
@@ -90,7 +90,7 @@ async def test_fastapi_middleware_stores_claims_and_calls_downstream_app():
 
 @pytest.mark.asyncio
 async def test_fastapi_middleware_converts_http_response_without_calling_downstream_app():
-    auth_config = AgentAuthConfiguration()
+    auth_config = Configuration()
     messages = []
     downstream = AsyncMock()
     middleware = JwtAuthorizationMiddleware(downstream)
@@ -117,7 +117,7 @@ async def test_fastapi_middleware_converts_http_response_without_calling_downstr
 
 @pytest.mark.asyncio
 async def test_fastapi_decorator_stores_claims_and_calls_handler():
-    auth_config = AgentAuthConfiguration()
+    auth_config = Configuration()
     claims = ClaimsIdentity({"aud": "decorator-app"}, authentication_type="Bearer")
 
     @jwt_authorization_decorator
@@ -136,7 +136,7 @@ async def test_fastapi_decorator_stores_claims_and_calls_handler():
 
 @pytest.mark.asyncio
 async def test_fastapi_decorator_converts_http_response():
-    auth_config = AgentAuthConfiguration()
+    auth_config = Configuration()
 
     @jwt_authorization_decorator
     async def route(request: Request):

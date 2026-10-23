@@ -139,7 +139,15 @@ class TestEnv(FlowStateFixtures):
 
     @pytest.fixture
     def authorization(self, connection_manager, storage):
-        return Authorization(storage, connection_manager, **AGENTIC_ENV_DICT)
+        handlers = {
+            name: AuthHandler(name=name, **entry["SETTINGS"])
+            for name, entry in AGENTIC_ENV_DICT.get_section(
+                "AGENTAPPLICATION::USERAUTHORIZATION::HANDLERS"
+            ).items()
+        }
+        return Authorization(
+            storage, connection_manager, auth_handlers=handlers, config=AGENTIC_ENV_DICT
+        )
 
     @pytest.fixture(params=[ENV_DICT, AGENTIC_ENV_DICT])
     def env_dict(self, request):
@@ -151,20 +159,34 @@ class TestEnv(FlowStateFixtures):
 
 
 class TestAuthorizationSetup(TestEnv):
+    def test_explicit_handlers_do_not_require_a_configuration_section(
+        self, connection_manager, storage, auth_handlers
+    ):
+        auth = Authorization(storage, connection_manager, auth_handlers=auth_handlers)
+
+        assert auth._handler_settings is auth_handlers
+
+    def test_legacy_kwargs_configuration_remains_supported(
+        self, connection_manager, storage
+    ):
+        auth = Authorization(storage, connection_manager, **ENV_DICT)
+
+        assert auth._resolve_handler(DEFAULTS.auth_handler_id) is not None
+
     def test_init_user_auth(self, connection_manager, storage, env_dict):
-        auth = Authorization(storage, connection_manager, **env_dict)
+        auth = Authorization(storage, connection_manager, config=env_dict)
         assert auth._resolve_handler(DEFAULTS.auth_handler_id) is not None
         assert isinstance(
             auth._resolve_handler(DEFAULTS.auth_handler_id), _UserAuthorization
         )
 
     def test_init_agentic_auth_not_configured(self, connection_manager, storage):
-        auth = Authorization(storage, connection_manager, **ENV_DICT)
+        auth = Authorization(storage, connection_manager, config=ENV_DICT)
         with pytest.raises(ValueError):
             auth._resolve_handler(DEFAULTS.agentic_auth_handler_id)
 
     def test_init_agentic_auth(self, connection_manager, storage):
-        auth = Authorization(storage, connection_manager, **AGENTIC_ENV_DICT)
+        auth = Authorization(storage, connection_manager, config=AGENTIC_ENV_DICT)
         assert auth._resolve_handler(DEFAULTS.agentic_auth_handler_id) is not None
         assert isinstance(
             auth._resolve_handler(DEFAULTS.agentic_auth_handler_id),
@@ -175,20 +197,20 @@ class TestAuthorizationSetup(TestEnv):
         "auth_handler_id", [DEFAULTS.auth_handler_id, DEFAULTS.agentic_auth_handler_id]
     )
     def test_resolve_handler(self, connection_manager, storage, auth_handler_id):
-        auth = Authorization(storage, connection_manager, **AGENTIC_ENV_DICT)
+        auth = Authorization(storage, connection_manager, config=AGENTIC_ENV_DICT)
         handler_config = AGENTIC_ENV_DICT["AGENTAPPLICATION"]["USERAUTHORIZATION"][
             "HANDLERS"
         ][auth_handler_id]
-        auth._resolve_handler(auth_handler_id) == AuthHandler(
-            auth_handler_id, **handler_config
+        assert auth._handler_settings[auth_handler_id].abs_oauth_connection_name == (
+            handler_config["SETTINGS"]["AZUREBOTOAUTHCONNECTIONNAME"]
         )
 
     def test_connection_manager_property(self, connection_manager, storage):
-        auth = Authorization(storage, connection_manager, **ENV_DICT)
+        auth = Authorization(storage, connection_manager, config=ENV_DICT)
         assert auth.connection_manager is connection_manager
 
     def test_sign_in_state_key(self, mocker, connection_manager, storage):
-        auth = Authorization(storage, connection_manager, **ENV_DICT)
+        auth = Authorization(storage, connection_manager, config=ENV_DICT)
         context = self.TurnContext(mocker)
         key = auth._sign_in_state_key(context)
         assert key == f"auth:_SignInState:{DEFAULTS.channel_id}:{DEFAULTS.user_id}"
@@ -260,7 +282,10 @@ class TestAuthorizationUsage(TestEnv):
 
     @pytest.mark.asyncio
     @pytest.mark.parametrize(
-        "initial_cache, final_cache, auth_handler_id, expected_auth_handler_id, initial_sign_in_state, final_sign_in_state, sign_in_response",
+        (
+            "initial_cache, final_cache, auth_handler_id, expected_auth_handler_id, "
+            "initial_sign_in_state, final_sign_in_state, sign_in_response"
+        ),
         [
             [
                 {DEFAULTS.auth_handler_id: "old_token"},

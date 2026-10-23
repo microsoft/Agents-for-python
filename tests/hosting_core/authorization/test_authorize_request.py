@@ -7,11 +7,11 @@ from unittest.mock import AsyncMock, MagicMock, patch
 import pytest
 
 from microsoft_agents.hosting.core.authorization import (
-    AgentAuthConfiguration,
     ClaimsIdentity,
 )
 from microsoft_agents.hosting.core.authorization.jwt import _authorize_request
 from microsoft_agents.hosting.core.http import HttpResponse
+from tests._common.jwt_test_utils import make_jwt_configuration
 
 _authorize_request_module = importlib.import_module(
     "microsoft_agents.hosting.core.authorization.jwt._authorize_request"
@@ -31,7 +31,7 @@ async def test_authorize_request_returns_500_when_config_is_missing():
 
 @pytest.mark.asyncio
 async def test_authorize_request_returns_401_when_header_is_missing_and_anonymous_disabled():
-    result = await _authorize_request(None, AgentAuthConfiguration())
+    result = await _authorize_request(None, make_jwt_configuration())
 
     assert isinstance(result, HttpResponse)
     assert result.status_code == 401
@@ -40,7 +40,7 @@ async def test_authorize_request_returns_401_when_header_is_missing_and_anonymou
 
 @pytest.mark.asyncio
 async def test_authorize_request_returns_anonymous_claims_when_header_is_missing_and_anonymous_enabled():
-    auth_config = AgentAuthConfiguration(anonymous_allowed=True)
+    auth_config = make_jwt_configuration(anonymous_allowed=True)
     claims = ClaimsIdentity({}, authentication_type="Anonymous")
     validator = MagicMock()
     validator.get_anonymous_claims.return_value = claims
@@ -59,7 +59,7 @@ async def test_authorize_request_returns_anonymous_claims_when_header_is_missing
 
 @pytest.mark.asyncio
 async def test_authorize_request_returns_401_for_invalid_authorization_header_format():
-    result = await _authorize_request("Basic token", AgentAuthConfiguration())
+    result = await _authorize_request("Basic token", make_jwt_configuration())
 
     assert isinstance(result, HttpResponse)
     assert result.status_code == 401
@@ -68,7 +68,7 @@ async def test_authorize_request_returns_401_for_invalid_authorization_header_fo
 
 @pytest.mark.asyncio
 async def test_authorize_request_validates_bearer_token():
-    auth_config = AgentAuthConfiguration()
+    auth_config = make_jwt_configuration()
     claims = ClaimsIdentity({"aud": "app-id"}, authentication_type="Bearer")
     validator = MagicMock()
     validator.validate_token = AsyncMock(return_value=claims)
@@ -96,7 +96,7 @@ async def test_authorize_request_returns_401_when_token_validation_fails():
         return_value=validator,
     ):
         result = await _authorize_request(
-            "Bearer token-value", AgentAuthConfiguration()
+            "Bearer token-value", make_jwt_configuration()
         )
 
     assert isinstance(result, HttpResponse)

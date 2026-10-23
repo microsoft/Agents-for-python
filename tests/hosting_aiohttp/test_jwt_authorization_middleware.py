@@ -7,12 +7,12 @@ from unittest.mock import AsyncMock, patch
 
 import pytest
 from aiohttp import web
+from microsoft_agents.activity.config import Configuration
 
 from microsoft_agents.hosting.aiohttp.jwt_authorization_middleware import (
     jwt_authorization_decorator,
 )
 from microsoft_agents.hosting.core.authorization import (
-    AgentAuthConfiguration,
     ClaimsIdentity,
 )
 from microsoft_agents.hosting.core.http import HttpResponse
@@ -23,9 +23,7 @@ _jwt_middleware_module = importlib.import_module(
 
 
 class _RequestStub:
-    def __init__(
-        self, auth_config: AgentAuthConfiguration, authorization: str | None = None
-    ):
+    def __init__(self, auth_config: Configuration, authorization: str | None = None):
         self.app = {"agent_configuration": auth_config}
         self.headers = {}
         if authorization is not None:
@@ -45,7 +43,7 @@ def _response_json(response):
 
 @pytest.mark.asyncio
 async def test_aiohttp_middleware_stores_claims_and_calls_handler():
-    auth_config = AgentAuthConfiguration()
+    auth_config = Configuration()
     claims = ClaimsIdentity({"aud": "app-id"}, authentication_type="Bearer")
 
     async def handler(request):
@@ -67,7 +65,7 @@ async def test_aiohttp_middleware_stores_claims_and_calls_handler():
 
 @pytest.mark.asyncio
 async def test_aiohttp_middleware_converts_http_response():
-    auth_config = AgentAuthConfiguration()
+    auth_config = Configuration()
     handler = AsyncMock(return_value=web.json_response({"called": True}))
 
     with patch.object(
@@ -94,7 +92,7 @@ async def test_aiohttp_middleware_converts_http_response():
 
 @pytest.mark.asyncio
 async def test_aiohttp_decorator_uses_authorization_helper():
-    auth_config = AgentAuthConfiguration()
+    auth_config = Configuration()
     claims = ClaimsIdentity({"aud": "decorator-app"}, authentication_type="Bearer")
 
     @jwt_authorization_decorator
@@ -115,7 +113,7 @@ async def test_aiohttp_decorator_uses_authorization_helper():
 
 @pytest.mark.asyncio
 async def test_aiohttp_decorator_converts_http_response():
-    auth_config = AgentAuthConfiguration()
+    auth_config = Configuration()
 
     @jwt_authorization_decorator
     async def handler(request):

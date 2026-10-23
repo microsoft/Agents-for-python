@@ -1,6 +1,8 @@
 from microsoft_agents.hosting.core import (
     AccessTokenProviderBase,
-    AgentAuthConfiguration,
+)
+from microsoft_agents.hosting.core.authorization.connections import (
+    ConnectionSettingsBase,
 )
 from azure.core.credentials import AccessToken
 from azure.core.credentials_async import AsyncTokenCredential
@@ -30,11 +32,11 @@ class TestingTokenProvider(AccessTokenProviderBase):
             name: Identifier used to generate predictable token values
         """
         self.name = name
-        self._configuration = AgentAuthConfiguration()
+        self._settings = ConnectionSettingsBase()
 
     @property
-    def configuration(self) -> AgentAuthConfiguration:
-        return self._configuration
+    def config(self) -> ConnectionSettingsBase:
+        return self._settings
 
     async def get_access_token(
         self, resource_url: str, scopes: list[str], force_refresh: bool = False

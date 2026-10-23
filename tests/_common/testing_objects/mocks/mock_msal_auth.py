@@ -1,5 +1,7 @@
 from microsoft_agents.authentication.msal import MsalAuth
-from microsoft_agents.hosting.core.authorization import AgentAuthConfiguration
+from microsoft_agents.authentication.msal.connection_settings import (
+    MsalConnectionSettings,
+)
 
 
 # used by MsalAuth tests
@@ -17,7 +19,7 @@ class MockMsalAuth(MsalAuth):
             "expires_in": 3600,
         },
     ):
-        super().__init__(AgentAuthConfiguration())
+        super().__init__(MsalConnectionSettings())
         mock_client = mocker.Mock(spec=client_type)
 
         mock_client.acquire_token_for_client = mocker.Mock(

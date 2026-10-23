@@ -6,10 +6,15 @@ from microsoft_agents.activity import load_configuration_from_env
 from microsoft_agents.hosting.core import AgentAuthConfiguration, AuthTypes
 
 
-class TestAuthorizationConfiguration:
+class TestLegacyAuthorizationConfiguration:
     """
     Unit tests to validate Authorization Configuration cases
     """
+
+    @pytest.fixture(autouse=True)
+    def deprecated_configuration_warning(self):
+        with pytest.warns(DeprecationWarning, match="AgentAuthConfiguration"):
+            yield
 
     def test_auth_configuration_basic(self):
         # test AgentAuthConfiguration with manual insertion of fields

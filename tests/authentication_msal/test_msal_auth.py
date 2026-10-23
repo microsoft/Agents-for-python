@@ -2,9 +2,10 @@ import pytest
 from msal import ManagedIdentityClient, ConfidentialClientApplication
 
 from microsoft_agents.authentication.msal import MsalAuth
-from microsoft_agents.hosting.core import Connections
+from microsoft_agents.authentication.msal.connection_settings import (
+    MsalConnectionSettings,
+)
 from microsoft_agents.hosting.core.authorization import (
-    AgentAuthConfiguration,
     AuthTypes,
 )
 
@@ -98,42 +99,42 @@ class TestMsalAuthTenantResolution:
 
     def test_resolve_tenant_id_with_override_parameter(self):
         """Test that tenant_id parameter takes precedence when provided"""
-        config = AgentAuthConfiguration(
+        config = MsalConnectionSettings(
             tenant_id="12345678-1234-1234-1234-123456789abc"
         )
         result = MsalAuth._resolve_tenant_id(config, "tenant-override")
         assert result == "tenant-override"
 
     def test_resolve_tenant_id_with_common_and_tenant_parameter(self):
-        """Test that tenant_id parameter is used when config.TENANT_ID is 'common'"""
-        config = AgentAuthConfiguration(tenant_id="common")
+        """Test that tenant_id parameter is used when config.tenant_id is 'common'."""
+        config = MsalConnectionSettings(tenant_id="common")
         result = MsalAuth._resolve_tenant_id(config, "specific-tenant")
         assert result == "specific-tenant"
 
     def test_resolve_tenant_id_with_common_no_tenant_parameter(self):
-        """Test that None is returned when config.TENANT_ID is 'common' and no tenant_id provided"""
-        config = AgentAuthConfiguration(tenant_id="common")
+        """Test that None is returned for 'common' without a tenant override."""
+        config = MsalConnectionSettings(tenant_id="common")
         result = MsalAuth._resolve_tenant_id(config, None)
         assert result is None
 
     def test_resolve_tenant_id_with_specific_tenant(self):
-        """Test that config.TENANT_ID is returned when it's a specific value"""
-        config = AgentAuthConfiguration(
+        """Test that config.tenant_id is returned when it is a specific value."""
+        config = MsalConnectionSettings(
             tenant_id="12345678-1234-1234-1234-123456789abc"
         )
         result = MsalAuth._resolve_tenant_id(config, None)
         assert result == "12345678-1234-1234-1234-123456789abc"
 
     def test_resolve_tenant_id_no_config_tenant_with_parameter(self):
-        """Test that tenant_id parameter is used when config.TENANT_ID is not set.
+        """Test that tenant_id parameter is used when config.tenant_id is not set.
         Note: tenant_id can be any string, not just GUID format."""
-        config = AgentAuthConfiguration()
+        config = MsalConnectionSettings()
         result = MsalAuth._resolve_tenant_id(config, "fallback-tenant")
         assert result == "fallback-tenant"
 
     def test_resolve_tenant_id_no_config_tenant_no_parameter(self):
-        """Test that ValueError is raised when neither config.TENANT_ID nor tenant_id are set"""
-        config = AgentAuthConfiguration()
+        """Test that missing configured and explicit tenant IDs raise ValueError."""
+        config = MsalConnectionSettings()
         with pytest.raises(
             ValueError, match="TENANT_ID is not set in the configuration"
         ):
@@ -141,7 +142,7 @@ class TestMsalAuthTenantResolution:
 
     def test_resolve_authority_with_common_replacement(self):
         """Test that /common is replaced with the resolved tenant_id in authority URL"""
-        config = AgentAuthConfiguration(
+        config = MsalConnectionSettings(
             tenant_id="12345678-1234-1234-1234-123456789abc",
             authority="https://login.microsoftonline.com/common",
         )
@@ -153,7 +154,7 @@ class TestMsalAuthTenantResolution:
 
     def test_resolve_authority_with_tenant_guid_replacement(self):
         """Test that existing tenant GUID is replaced with new tenant_id in authority URL"""
-        config = AgentAuthConfiguration(
+        config = MsalConnectionSettings(
             tenant_id="12345678-1234-1234-1234-123456789abc",
             authority="https://login.microsoftonline.com/aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee",
         )
@@ -167,7 +168,7 @@ class TestMsalAuthTenantResolution:
 
     def test_resolve_authority_with_common_and_tenant_parameter(self):
         """Test that /common is replaced with provided tenant_id parameter"""
-        config = AgentAuthConfiguration(
+        config = MsalConnectionSettings(
             tenant_id="common", authority="https://login.microsoftonline.com/common"
         )
         result = MsalAuth._resolve_authority(
@@ -180,7 +181,7 @@ class TestMsalAuthTenantResolution:
 
     def test_resolve_authority_no_authority_configured(self):
         """Test fallback to default URL when no authority is configured"""
-        config = AgentAuthConfiguration(
+        config = MsalConnectionSettings(
             tenant_id="12345678-1234-1234-1234-123456789abc"
         )
         result = MsalAuth._resolve_authority(config, None)
@@ -191,7 +192,7 @@ class TestMsalAuthTenantResolution:
 
     def test_resolve_authority_no_authority_with_tenant_override(self):
         """Test fallback to default URL with tenant override when no authority is configured"""
-        config = AgentAuthConfiguration(
+        config = MsalConnectionSettings(
             tenant_id="12345678-1234-1234-1234-123456789abc"
         )
         result = MsalAuth._resolve_authority(
@@ -203,8 +204,8 @@ class TestMsalAuthTenantResolution:
         )
 
     def test_resolve_authority_with_common_no_tenant_parameter(self):
-        """Test behavior when config.TENANT_ID is 'common' and no tenant_id parameter"""
-        config = AgentAuthConfiguration(
+        """Test behavior when config.tenant_id is 'common' without an override."""
+        config = MsalConnectionSettings(
             tenant_id="common", authority="https://login.microsoftonline.com/common"
         )
         # When tenant_id is None after resolution, should return original authority
@@ -213,7 +214,7 @@ class TestMsalAuthTenantResolution:
 
     def test_resolve_authority_regex_with_trailing_slash(self):
         """Test that regex correctly handles authority URLs with trailing slashes"""
-        config = AgentAuthConfiguration(
+        config = MsalConnectionSettings(
             tenant_id="12345678-1234-1234-1234-123456789abc",
             authority="https://login.microsoftonline.com/common/",
         )
@@ -225,7 +226,7 @@ class TestMsalAuthTenantResolution:
 
     def test_resolve_authority_regex_preserves_path(self):
         """Test that regex correctly replaces tenant while preserving additional path segments"""
-        config = AgentAuthConfiguration(
+        config = MsalConnectionSettings(
             tenant_id="12345678-1234-1234-1234-123456789abc",
             authority="https://login.microsoftonline.com/common/oauth2/v2.0/authorize",
         )
@@ -242,19 +243,19 @@ class TestMsalAuthAzureRegion:
     """
 
     def test_resolve_azure_region_when_configured(self):
-        config = AgentAuthConfiguration(azure_region="westus")
+        config = MsalConnectionSettings(azure_region="westus")
         assert MsalAuth._resolve_azure_region(config) == "westus"
 
     def test_resolve_azure_region_none_when_unset(self):
-        config = AgentAuthConfiguration()
+        config = MsalConnectionSettings()
         assert MsalAuth._resolve_azure_region(config) is None
 
     def test_resolve_azure_region_none_when_whitespace(self):
-        config = AgentAuthConfiguration(azure_region="   ")
+        config = MsalConnectionSettings(azure_region="   ")
         assert MsalAuth._resolve_azure_region(config) is None
 
     def test_create_client_application_passes_azure_region(self, mocker):
-        config = AgentAuthConfiguration(
+        config = MsalConnectionSettings(
             auth_type=AuthTypes.client_secret,
             tenant_id="12345678-1234-1234-1234-123456789abc",
             client_id="test-client-id",
@@ -269,7 +270,7 @@ class TestMsalAuthAzureRegion:
         assert mock_cca.call_args.kwargs["azure_region"] == "westus"
 
     def test_create_client_application_azure_region_defaults_none(self, mocker):
-        config = AgentAuthConfiguration(
+        config = MsalConnectionSettings(
             auth_type=AuthTypes.client_secret,
             tenant_id="12345678-1234-1234-1234-123456789abc",
             client_id="test-client-id",
@@ -285,7 +286,7 @@ class TestMsalAuthAzureRegion:
 
 class TestMsalAuthSendX5C:
     def test_create_client_application_send_x5c(self, mocker):
-        config = AgentAuthConfiguration(
+        config = MsalConnectionSettings(
             auth_type=AuthTypes.certificate,
             tenant_id="12345678-1234-1234-1234-123456789abc",
             client_id="test-client-id",
@@ -304,7 +305,7 @@ class TestMsalAuthSendX5C:
         }
 
     def test_create_client_application_send_x5c_defaults_false(self, mocker):
-        config = AgentAuthConfiguration(
+        config = MsalConnectionSettings(
             auth_type=AuthTypes.certificate,
             tenant_id="12345678-1234-1234-1234-123456789abc",
             client_id="test-client-id",
@@ -325,7 +326,7 @@ class TestMsalAuthWorkloadIdentity:
     def test_create_client_application_reads_projected_token(self, mocker, tmp_path):
         token_file = tmp_path / "workload-token"
         token_file.write_text("  first-token\r\n", encoding="utf-8")
-        config = AgentAuthConfiguration(
+        config = MsalConnectionSettings(
             auth_type=AuthTypes.workload_identity,
             tenant_id="12345678-1234-1234-1234-123456789abc",
             client_id="test-client-id",
@@ -350,7 +351,7 @@ class TestMsalAuthWorkloadIdentity:
             ValueError,
             match="FEDERATED_TOKEN_FILE is required for workload_identity authentication",
         ):
-            AgentAuthConfiguration(
+            MsalConnectionSettings(
                 auth_type=AuthTypes.workload_identity,
                 tenant_id="12345678-1234-1234-1234-123456789abc",
                 client_id="test-client-id",
@@ -363,7 +364,7 @@ class TestMsalAuthIdentityProxyManager:
     """
 
     def test_resolve_idpm_resource_defaults_when_unset(self):
-        config = AgentAuthConfiguration(
+        config = MsalConnectionSettings(
             auth_type=AuthTypes.identity_proxy_manager,
             client_id="test-client-id",
         )
@@ -373,7 +374,7 @@ class TestMsalAuthIdentityProxyManager:
         )
 
     def test_resolve_idpm_resource_uses_custom_resource(self):
-        config = AgentAuthConfiguration(
+        config = MsalConnectionSettings(
             auth_type=AuthTypes.identity_proxy_manager,
             client_id="test-client-id",
             idpm_resource="https://custom-resource/.default",
@@ -384,7 +385,7 @@ class TestMsalAuthIdentityProxyManager:
         )
 
     def test_resolve_idpm_resource_raises_on_invalid_uri(self):
-        config = AgentAuthConfiguration(
+        config = MsalConnectionSettings(
             auth_type=AuthTypes.identity_proxy_manager,
             client_id="test-client-id",
             idpm_resource="not-a-valid-uri",
@@ -393,7 +394,7 @@ class TestMsalAuthIdentityProxyManager:
             MsalAuth._resolve_idpm_resource(config)
 
     def test_create_client_application_returns_managed_identity_client(self, mocker):
-        config = AgentAuthConfiguration(
+        config = MsalConnectionSettings(
             auth_type=AuthTypes.identity_proxy_manager,
             client_id="test-client-id",
         )
@@ -410,7 +411,7 @@ class TestMsalAuthIdentityProxyManager:
 
     @pytest.mark.asyncio
     async def test_get_agentic_application_token_identity_proxy_manager(self, mocker):
-        config = AgentAuthConfiguration(
+        config = MsalConnectionSettings(
             auth_type=AuthTypes.identity_proxy_manager,
             client_id="test-client-id",
             idpm_resource="https://custom-resource/.default",
@@ -436,7 +437,7 @@ class TestMsalAuthIdentityProxyManager:
     async def test_get_agentic_application_token_unsupported_client_raises(
         self, mocker
     ):
-        config = AgentAuthConfiguration(
+        config = MsalConnectionSettings(
             auth_type=AuthTypes.user_managed_identity,
             client_id="test-client-id",
         )
@@ -465,7 +466,10 @@ class TestMsalAuthIdentityProxyManager:
 #         mocker.patch.object(MsalAuth, "get_agentic_instance_token", return_value=[instance_token, app_token])
 
 #         mock_auth = MockMsalAuth(mocker, ConfidentialClientApplication)
-#         mocker.patch.object(ConfidentialClientApplication, "__new__", return_value=mocker.Mock(spec=ConfidentialClientApplication))
+#         mocker.patch.object(
+#             ConfidentialClientApplication, "__new__",
+#             return_value=mocker.Mock(spec=ConfidentialClientApplication),
+#         )
 
 #         result = await mock_auth.get_agentic_user_token(agent_app_instance_id, upn, scopes)
 #         mock_auth.get_agentic_instance_token.assert_called_once_with(agent_app_instance_id)
@@ -484,7 +488,10 @@ class TestMsalAuthIdentityProxyManager:
 #         mocker.patch.object(MsalAuth, "get_agentic_instance_token", return_value=[instance_token, app_token])
 
 #         mock_auth = MockMsalAuth(mocker, ConfidentialClientApplication, acquire_token_for_client_return=None)
-#         mocker.patch.object(ConfidentialClientApplication, "__new__", return_value=mocker.Mock(spec=ConfidentialClientApplication))
+#         mocker.patch.object(
+#             ConfidentialClientApplication, "__new__",
+#             return_value=mocker.Mock(spec=ConfidentialClientApplication),
+#         )
 
 #         result = await mock_auth.get_agentic_user_token(agent_app_instance_id, upn, scopes)
 

@@ -17,6 +17,8 @@ from microsoft_agents.activity.config._utils import (
     _traverse,
     _traverse_leaves,
     _try_set,
+    _collect,
+    _xpath,
 )
 
 
@@ -27,7 +29,9 @@ def test_is_missing_distinguishes_unset_from_present_values(value):
 
 
 def test_path_joins_segments():
-    assert _path("Connections", "Service", "Settings") == "Connections:Service:Settings"
+    assert (
+        _path("Connections", "Service", "Settings") == "Connections::Service::Settings"
+    )
     assert _path("Connections") == "Connections"
     assert _path() == ""
 
@@ -35,7 +39,7 @@ def test_path_joins_segments():
 def test_parse_env_var_name_preserves_single_underscores_and_case():
     assert (
         _parse_env_var_name("Connections__SERVICE_CONNECTION__CLIENT_ID")
-        == "Connections:SERVICE_CONNECTION:CLIENT_ID"
+        == "Connections::SERVICE_CONNECTION::CLIENT_ID"
     )
 
 
@@ -43,19 +47,19 @@ def test_parse_env_var_name_preserves_single_underscores_and_case():
 def test_get_returns_raw_values(value):
     mapping = MappingProxyType({"A": MappingProxyType({"B": value})})
 
-    assert _get(mapping, "A:B", _MISSING) is value
+    assert _get(mapping, "A::B", default=_MISSING) is value
 
 
-@pytest.mark.parametrize("path", ["Missing", "A:Missing", "A:B:C"])
+@pytest.mark.parametrize("path", ["Missing", "A::Missing", "A::B::C"])
 def test_get_returns_default_for_missing_or_non_mapping_path(path):
-    assert _get({"A": {"B": "scalar"}}, path, _MISSING) is _MISSING
+    assert _get({"A": {"B": "scalar"}}, path, default=_MISSING) is _MISSING
     assert _get({"A": {"B": "scalar"}}, path) is None
 
 
 def test_try_set_creates_nested_mappings():
     mapping = {}
 
-    assert _try_set(mapping, "A:B:C", "value") is True
+    assert _try_set(mapping, "A::B::C", "value") is True
     assert mapping == {"A": {"B": {"C": "value"}}}
 
 
@@ -63,18 +67,18 @@ def test_try_set_creates_nested_mappings():
 def test_try_set_does_not_overwrite_existing_values_by_default(existing):
     mapping = {"A": {"B": existing}}
 
-    assert _try_set(mapping, "A:B", "replacement") is False
+    assert _try_set(mapping, "A::B", "replacement") is False
     assert mapping["A"]["B"] is existing
 
 
 def test_try_set_can_explicitly_overwrite():
     mapping = {"A": {"B": "old"}}
 
-    assert _try_set(mapping, "A:B", "new", overwrite=True) is True
+    assert _try_set(mapping, "A::B", "new", overwrite=True) is True
     assert mapping == {"A": {"B": "new"}}
 
 
-@pytest.mark.parametrize("path", ["A:B", "A:B:C"])
+@pytest.mark.parametrize("path", ["A::B", "A::B::C"])
 def test_try_set_rejects_traversal_through_scalar(path):
     mapping = {"A": "scalar"}
 
@@ -87,8 +91,8 @@ def test_try_set_rejects_traversal_through_scalar(path):
 def test_try_set_rejects_read_only_mapping():
     mapping = {"A": MappingProxyType({"B": "old"})}
 
-    with pytest.raises(TypeError, match="A:B"):
-        _try_set(mapping, "A:B", "new")
+    with pytest.raises(TypeError, match="A::B"):
+        _try_set(mapping, "A::B", "new")
 
     assert mapping["A"]["B"] == "old"
 
@@ -96,7 +100,7 @@ def test_try_set_rejects_read_only_mapping():
 def test_set_overwrites_existing_leaf_and_preserves_siblings():
     mapping = {"A": {"B": "old", "C": "keep"}}
 
-    _set(mapping, "A:B", "new")
+    _set(mapping, "A::B", "new")
 
     assert mapping == {"A": {"B": "new", "C": "keep"}}
 
@@ -157,13 +161,13 @@ def test_traverse_leaves_includes_empty_mappings():
     [
         {"App": {"Enabled": "new"}},
         {"App__Enabled": "new"},
-        {"App:Enabled": "new"},
+        {"App::Enabled": "new"},
     ],
 )
 def test_resolve_merges_equivalent_path_representations(primary):
-    defaults = {"app": {"enabled": "old", "name": "keep"}}
+    defaults = {"App": {"Enabled": "old", "Name": "keep"}}
 
-    assert _resolve(primary, defaults) == {"APP": {"ENABLED": "new", "NAME": "keep"}}
+    assert _resolve(primary, defaults) == {"App": {"Enabled": "new", "Name": "keep"}}
 
 
 @pytest.mark.parametrize("value", [None, False, 0, "", "false", "123", []])
@@ -171,17 +175,20 @@ def test_resolve_preserves_explicit_primary_values_without_coercion(value):
     assert _resolve({"A__B": value}, {"A": {"B": "default"}}) == {"A": {"B": value}}
 
 
-def test_resolve_normalizes_both_sources_before_applying_precedence():
+def test_resolve_preserves_case_in_both_sources():
     assert _resolve(
         {"app__client_id": "primary"}, {"App": {"CLIENT_ID": "default"}}
-    ) == {"APP": {"CLIENT_ID": "primary"}}
+    ) == {
+        "app": {"client_id": "primary"},
+        "App": {"CLIENT_ID": "default"},
+    }
 
 
 def test_resolve_accepts_custom_path_transformer():
     assert _resolve(
         {"App__Name": "new"},
         {"App": {"Name": "old", "Enabled": True}},
-        path_transformer=lambda path: path.replace("__", ":"),
+        path_transformer=lambda path: path.replace("__", "::"),
     ) == {"App": {"Name": "new", "Enabled": True}}
 
 
@@ -315,3 +322,37 @@ def test_resolve_merges_identical_empty_sections():
     assert result == {"A": {}}
     assert result["A"] is not primary["A"]
     assert result["A"] is not defaults["A"]
+
+
+def test_get_tries_alternative_paths_in_order():
+    assert _get({"A": 1, "B": 2}, "Missing", "B", "A") == 2
+
+
+def test_get_can_skip_null_candidates():
+    assert _get({"A": None, "B": False}, "A", "B", skip_none=True) is False
+
+
+@pytest.mark.parametrize(
+    "mapping, path, expected",
+    [
+        ({"First": 1, "Second": 2}, "Second", [2]),
+        ({"Entries": ["first", "second"]}, "Entries::1", ["second"]),
+        ({"Entries": {"A": 1, "B": 2}}, "Entries::*", [1, 2]),
+        ({"Entries": [1, 2]}, "Entries::*", [1, 2]),
+        ({"Entries": [1, 2]}, "Missing::*", []),
+    ],
+)
+def test_collect_selects_named_and_wildcard_paths(mapping, path, expected):
+    assert _collect(mapping, path) == expected
+
+
+def test_xpath_has_stable_alias_precedence():
+    assert _xpath("client_id") == ["CLIENTID", "CLIENT_ID", "client_id"]
+
+
+def test_xpath_joins_path_components():
+    assert _xpath("agent_application", "user_authorization") == [
+        "AGENTAPPLICATION::USERAUTHORIZATION",
+        "AGENT_APPLICATION::USER_AUTHORIZATION",
+        "agent_application::user_authorization",
+    ]

@@ -6,12 +6,12 @@ import uuid
 import jwt as pyjwt
 import pytest
 
-from microsoft_agents.hosting.core import AgentAuthConfiguration
 from microsoft_agents.hosting.core.authorization.jwt.jwt_token_validator import (
     JwtTokenValidator,
 )
 
 from tests._common.jwt_test_utils import (
+    make_jwt_configuration,
     generate_rsa_keypair,
     make_signed_jwt,
     make_signed_jwt_with_raw_claims,
@@ -36,7 +36,7 @@ class TestJwtTokenValidatorAudienceAndSignature:
         self, monkeypatch
     ):
         private_key, public_key = generate_rsa_keypair()
-        config = AgentAuthConfiguration(client_id="client-1", tenant_id="tenant-1")
+        config = make_jwt_configuration(client_id="client-1", tenant_id="tenant-1")
         validator = JwtTokenValidator(config)
         _patch_signing_key(monkeypatch, validator, public_key)
 
@@ -49,7 +49,7 @@ class TestJwtTokenValidatorAudienceAndSignature:
     @pytest.mark.asyncio
     async def test_validate_token_invalid_audience_rejected(self, monkeypatch):
         private_key, public_key = generate_rsa_keypair()
-        config = AgentAuthConfiguration(client_id="client-1", tenant_id="tenant-1")
+        config = make_jwt_configuration(client_id="client-1", tenant_id="tenant-1")
         validator = JwtTokenValidator(config)
         _patch_signing_key(monkeypatch, validator, public_key)
 
@@ -62,7 +62,7 @@ class TestJwtTokenValidatorAudienceAndSignature:
     async def test_validate_token_bad_signature_rejected(self, monkeypatch):
         _, public_key = generate_rsa_keypair()
         wrong_private_key, _ = generate_rsa_keypair()
-        config = AgentAuthConfiguration(client_id="client-1", tenant_id="tenant-1")
+        config = make_jwt_configuration(client_id="client-1", tenant_id="tenant-1")
         validator = JwtTokenValidator(config)
         _patch_signing_key(monkeypatch, validator, public_key)
 
@@ -76,7 +76,7 @@ class TestJwtTokenValidatorAudienceAndSignature:
     @pytest.mark.asyncio
     async def test_validate_token_expired_rejected(self, monkeypatch):
         private_key, public_key = generate_rsa_keypair()
-        config = AgentAuthConfiguration(client_id="client-1", tenant_id="tenant-1")
+        config = make_jwt_configuration(client_id="client-1", tenant_id="tenant-1")
         validator = JwtTokenValidator(config)
         _patch_signing_key(monkeypatch, validator, public_key)
 
@@ -98,7 +98,7 @@ class TestJwtTokenValidatorMalformedClaimTypes:
     @pytest.mark.asyncio
     async def test_array_audience_rejected_as_invalid_audience(self, monkeypatch):
         private_key, public_key = generate_rsa_keypair()
-        config = AgentAuthConfiguration(client_id="client-1", tenant_id="tenant-1")
+        config = make_jwt_configuration(client_id="client-1", tenant_id="tenant-1")
         validator = JwtTokenValidator(config)
         _patch_signing_key(monkeypatch, validator, public_key)
 
@@ -113,7 +113,7 @@ class TestJwtTokenValidatorMalformedClaimTypes:
     @pytest.mark.asyncio
     async def test_numeric_audience_rejected_as_invalid_audience(self, monkeypatch):
         private_key, public_key = generate_rsa_keypair()
-        config = AgentAuthConfiguration(client_id="client-1", tenant_id="tenant-1")
+        config = make_jwt_configuration(client_id="client-1", tenant_id="tenant-1")
         validator = JwtTokenValidator(config)
         _patch_signing_key(monkeypatch, validator, public_key)
 
@@ -131,7 +131,7 @@ class TestJwtTokenValidatorMalformedClaimTypes:
         # With VALIDATE_ISSUER left at its default (False), tenant binding is
         # skipped for a non-string issuer, so the token is otherwise accepted.
         private_key, public_key = generate_rsa_keypair()
-        config = AgentAuthConfiguration(client_id="client-1", tenant_id="tenant-1")
+        config = make_jwt_configuration(client_id="client-1", tenant_id="tenant-1")
         validator = JwtTokenValidator(config)
         captured_uris = []
         _patch_signing_key(monkeypatch, validator, public_key, captured_uris)
@@ -157,7 +157,7 @@ class TestJwtTokenValidatorMalformedClaimTypes:
     ):
         # A dict `iss` is unhashable, same concern as the list case above.
         private_key, public_key = generate_rsa_keypair()
-        config = AgentAuthConfiguration(client_id="client-1", tenant_id="tenant-1")
+        config = make_jwt_configuration(client_id="client-1", tenant_id="tenant-1")
         validator = JwtTokenValidator(config)
         captured_uris = []
         _patch_signing_key(monkeypatch, validator, public_key, captured_uris)
@@ -181,7 +181,7 @@ class TestJwtTokenValidatorMalformedClaimTypes:
         # (string) allow-list or the multi-tenant canonical-issuer check, and
         # must be cleanly rejected rather than crash.
         private_key, public_key = generate_rsa_keypair()
-        config = AgentAuthConfiguration(
+        config = make_jwt_configuration(
             client_id="client-1", tenant_id="tenant-1", validate_issuer=True
         )
         validator = JwtTokenValidator(config)
@@ -199,7 +199,7 @@ class TestJwtTokenValidatorMalformedClaimTypes:
     async def test_non_string_tid_skips_tenant_binding(self, monkeypatch):
         private_key, public_key = generate_rsa_keypair()
         tenant_id = str(uuid.uuid4())
-        config = AgentAuthConfiguration(client_id="client-1", tenant_id=tenant_id)
+        config = make_jwt_configuration(client_id="client-1", tenant_id=tenant_id)
         validator = JwtTokenValidator(config)
         _patch_signing_key(monkeypatch, validator, public_key)
 
@@ -227,9 +227,9 @@ class TestJwtTokenValidatorIssuerOptIn:
         # carries a GUID tenant that does not match its own `tid` must be
         # rejected even with VALIDATE_ISSUER left at its default (False).
         private_key, public_key = generate_rsa_keypair()
-        config = AgentAuthConfiguration(client_id="client-1", tenant_id="tenant-1")
-        assert config.VALIDATE_ISSUER is False
+        config = make_jwt_configuration(client_id="client-1", tenant_id="tenant-1")
         validator = JwtTokenValidator(config)
+        assert validator.config.default_jwt_settings.validate_issuer is False
         _patch_signing_key(monkeypatch, validator, public_key)
 
         other_tenant = str(uuid.uuid4())
@@ -253,9 +253,9 @@ class TestJwtTokenValidatorIssuerOptIn:
         # regardless of VALIDATE_ISSUER.
         private_key, public_key = generate_rsa_keypair()
         other_tenant = str(uuid.uuid4())
-        config = AgentAuthConfiguration(client_id="client-1", tenant_id="tenant-1")
-        assert config.VALIDATE_ISSUER is False
+        config = make_jwt_configuration(client_id="client-1", tenant_id="tenant-1")
         validator = JwtTokenValidator(config)
+        assert validator.config.default_jwt_settings.validate_issuer is False
         _patch_signing_key(monkeypatch, validator, public_key)
 
         token = make_signed_jwt(
@@ -275,7 +275,7 @@ class TestJwtTokenValidatorIssuerOptIn:
         private_key, public_key = generate_rsa_keypair()
         issuer_tenant = str(uuid.uuid4())
         mismatched_tid = str(uuid.uuid4())
-        config = AgentAuthConfiguration(client_id="client-1", tenant_id="tenant-1")
+        config = make_jwt_configuration(client_id="client-1", tenant_id="tenant-1")
         validator = JwtTokenValidator(config)
         _patch_signing_key(monkeypatch, validator, public_key)
 
@@ -299,9 +299,9 @@ class TestJwtTokenValidatorIssuerOptIn:
         # only the issuer allow-list check is opt-in.
         private_key, public_key = generate_rsa_keypair()
         other_tenant = str(uuid.uuid4())
-        config = AgentAuthConfiguration(client_id="client-1", tenant_id="tenant-1")
-        assert config.VALIDATE_ISSUER is False
+        config = make_jwt_configuration(client_id="client-1", tenant_id="tenant-1")
         validator = JwtTokenValidator(config)
+        assert validator.config.default_jwt_settings.validate_issuer is False
         _patch_signing_key(monkeypatch, validator, public_key)
 
         token = make_signed_jwt(
@@ -320,7 +320,7 @@ class TestJwtTokenValidatorIssuerOptIn:
     async def test_validate_issuer_enabled_default_issuer_accepted(self, monkeypatch):
         private_key, public_key = generate_rsa_keypair()
         tenant_id = str(uuid.uuid4())
-        config = AgentAuthConfiguration(
+        config = make_jwt_configuration(
             client_id="client-1", tenant_id=tenant_id, validate_issuer=True
         )
         validator = JwtTokenValidator(config)
@@ -345,7 +345,7 @@ class TestJwtTokenValidatorIssuerOptIn:
         private_key, public_key = generate_rsa_keypair()
         tenant_id = str(uuid.uuid4())
         other_tenant = str(uuid.uuid4())
-        config = AgentAuthConfiguration(
+        config = make_jwt_configuration(
             client_id="client-1", tenant_id=tenant_id, validate_issuer=True
         )
         validator = JwtTokenValidator(config)
@@ -369,7 +369,7 @@ class TestJwtTokenValidatorIssuerOptIn:
     ):
         private_key, public_key = generate_rsa_keypair()
         tenant_id = str(uuid.uuid4())
-        config = AgentAuthConfiguration(
+        config = make_jwt_configuration(
             client_id="client-1", tenant_id=tenant_id, validate_issuer=True
         )
         validator = JwtTokenValidator(config)
@@ -392,7 +392,7 @@ class TestJwtTokenValidatorIssuerOptIn:
         private_key, public_key = generate_rsa_keypair()
         tenant_id = str(uuid.uuid4())
         mismatched_tid = str(uuid.uuid4())
-        config = AgentAuthConfiguration(
+        config = make_jwt_configuration(
             client_id="client-1", tenant_id=tenant_id, validate_issuer=True
         )
         validator = JwtTokenValidator(config)
@@ -417,7 +417,7 @@ class TestJwtTokenValidatorIssuerOptIn:
         # Resolved choice: a missing tid must SKIP binding rather than reject.
         private_key, public_key = generate_rsa_keypair()
         tenant_id = str(uuid.uuid4())
-        config = AgentAuthConfiguration(
+        config = make_jwt_configuration(
             client_id="client-1", tenant_id=tenant_id, validate_issuer=True
         )
         validator = JwtTokenValidator(config)
@@ -440,7 +440,7 @@ class TestJwtTokenValidatorIssuerOptIn:
         self, monkeypatch
     ):
         private_key, public_key = generate_rsa_keypair()
-        config = AgentAuthConfiguration(
+        config = make_jwt_configuration(
             client_id="client-1", tenant_id="tenant-1", validate_issuer=True
         )
         validator = JwtTokenValidator(config)
@@ -468,7 +468,7 @@ class TestJwtTokenValidatorIssuerOptIn:
         # than a GUID) cannot be compared to the GUID `tid` claim, so binding
         # is skipped even though the issuer itself is explicitly allow-listed.
         private_key, public_key = generate_rsa_keypair()
-        config = AgentAuthConfiguration(
+        config = make_jwt_configuration(
             client_id="client-1",
             tenant_id="tenant-1",
             validate_issuer=True,
@@ -497,7 +497,7 @@ class TestJwtTokenValidatorIssuerOptIn:
         # though they are not the connection's own configured tenant.
         private_key, public_key = generate_rsa_keypair()
         well_known_tenant = "d6d49420-f39b-4df7-a1dc-d59a935871db"
-        config = AgentAuthConfiguration(
+        config = make_jwt_configuration(
             client_id="client-1",
             tenant_id=str(uuid.uuid4()),
             validate_issuer=True,
@@ -520,7 +520,7 @@ class TestJwtTokenValidatorIssuerOptIn:
     @pytest.mark.asyncio
     async def test_validate_issuer_enabled_explicit_issuers_used(self, monkeypatch):
         private_key, public_key = generate_rsa_keypair()
-        config = AgentAuthConfiguration(
+        config = make_jwt_configuration(
             client_id="client-1",
             tenant_id="tenant-1",
             validate_issuer=True,
@@ -543,7 +543,7 @@ class TestJwtTokenValidatorIssuerOptIn:
     ):
         private_key, public_key = generate_rsa_keypair()
         caller_tenant = str(uuid.uuid4())
-        config = AgentAuthConfiguration(
+        config = make_jwt_configuration(
             client_id="client-1", tenant_id="common", validate_issuer=True
         )
         validator = JwtTokenValidator(config)
@@ -567,7 +567,7 @@ class TestJwtTokenValidatorIssuerOptIn:
     ):
         private_key, public_key = generate_rsa_keypair()
         caller_tenant = str(uuid.uuid4())
-        config = AgentAuthConfiguration(
+        config = make_jwt_configuration(
             client_id="client-1", tenant_id="organizations", validate_issuer=True
         )
         validator = JwtTokenValidator(config)
@@ -591,7 +591,7 @@ class TestJwtTokenValidatorIssuerOptIn:
     ):
         private_key, public_key = generate_rsa_keypair()
         tenant_id = str(uuid.uuid4())
-        config = AgentAuthConfiguration(
+        config = make_jwt_configuration(
             client_id="client-1",
             tenant_id=tenant_id,
             authority="https://login.microsoftonline.us",
@@ -624,7 +624,7 @@ class TestJwtTokenValidatorIssuerOptIn:
         # tenant GUID happens to match: cloud affinity is enforced too.
         private_key, public_key = generate_rsa_keypair()
         tenant_id = str(uuid.uuid4())
-        config = AgentAuthConfiguration(
+        config = make_jwt_configuration(
             client_id="client-1",
             tenant_id="organizations",
             authority="https://login.microsoftonline.us",
@@ -657,20 +657,17 @@ class TestJwtTokenValidatorMultiConnection:
         private_key, public_key = generate_rsa_keypair()
         tenant_a = str(uuid.uuid4())
         tenant_b = str(uuid.uuid4())
-        config_a = AgentAuthConfiguration(
+        config_a = make_jwt_configuration(
             client_id="client-a",
             tenant_id=tenant_a,
             connection_name="SERVICE_CONNECTION",
         )
-        config_b = AgentAuthConfiguration(
+        config_b = make_jwt_configuration(
             client_id="client-b", tenant_id=tenant_b, connection_name="MCS"
         )
-        shared_connections = {"SERVICE_CONNECTION": config_a, "MCS": config_b}
-        config_a._connections = shared_connections
-        config_b._connections = shared_connections
+        config_a["connections"].update(config_b["connections"])
 
-        # Validator constructed against connection A's config, but the token
-        # is issued for connection B's audience/tenant.
+        # Root configuration defaults to A, but the token targets B.
         validator = JwtTokenValidator(config_a)
         captured_uris = []
         _patch_signing_key(monkeypatch, validator, public_key, captured_uris)
@@ -690,20 +687,18 @@ class TestJwtTokenValidatorMultiConnection:
         private_key, public_key = generate_rsa_keypair()
         public_tenant = str(uuid.uuid4())
         gov_tenant = str(uuid.uuid4())
-        config_a = AgentAuthConfiguration(
+        config_a = make_jwt_configuration(
             client_id="client-a",
             tenant_id=public_tenant,
             connection_name="SERVICE_CONNECTION",
         )
-        config_b = AgentAuthConfiguration(
+        config_b = make_jwt_configuration(
             client_id="client-b",
             tenant_id=gov_tenant,
             authority="https://login.microsoftonline.us",
             connection_name="MCS",
         )
-        shared_connections = {"SERVICE_CONNECTION": config_a, "MCS": config_b}
-        config_a._connections = shared_connections
-        config_b._connections = shared_connections
+        config_a["connections"].update(config_b["connections"])
 
         validator = JwtTokenValidator(config_a)
         captured_uris = []
@@ -724,21 +719,19 @@ class TestJwtTokenValidatorMultiConnection:
         private_key, public_key = generate_rsa_keypair()
         tenant_a = str(uuid.uuid4())
         tenant_b = str(uuid.uuid4())
-        config_a = AgentAuthConfiguration(
+        config_a = make_jwt_configuration(
             client_id="client-a",
             tenant_id=tenant_a,
             connection_name="SERVICE_CONNECTION",
             validate_issuer=True,
         )
-        config_b = AgentAuthConfiguration(
+        config_b = make_jwt_configuration(
             client_id="client-b",
             tenant_id=tenant_b,
             connection_name="MCS",
             validate_issuer=True,
         )
-        shared_connections = {"SERVICE_CONNECTION": config_a, "MCS": config_b}
-        config_a._connections = shared_connections
-        config_b._connections = shared_connections
+        config_a["connections"].update(config_b["connections"])
 
         validator = JwtTokenValidator(config_a)
         _patch_signing_key(monkeypatch, validator, public_key)
@@ -770,7 +763,7 @@ class TestJwtTokenValidatorEffectiveTenant:
         self, monkeypatch
     ):
         private_key, public_key = generate_rsa_keypair()
-        config = AgentAuthConfiguration(client_id="client-1")
+        config = make_jwt_configuration(client_id="client-1")
         validator = JwtTokenValidator(config)
         captured_uris = []
         _patch_signing_key(monkeypatch, validator, public_key, captured_uris)
@@ -797,7 +790,7 @@ class TestJwtTokenValidatorEffectiveTenant:
         # routing preserves the legacy root TENANT_ID endpoint.
         private_key, public_key = generate_rsa_keypair()
         caller_tenant = str(uuid.uuid4())
-        config = AgentAuthConfiguration(
+        config = make_jwt_configuration(
             client_id="client-1",
             tenant_id="concrete-tenant-id",
             authority="https://login.microsoftonline.com/common",
@@ -830,7 +823,7 @@ class TestJwtTokenValidatorEffectiveTenant:
         # routing preserves the legacy root TENANT_ID endpoint.
         private_key, public_key = generate_rsa_keypair()
         concrete_tenant = str(uuid.uuid4())
-        config = AgentAuthConfiguration(
+        config = make_jwt_configuration(
             client_id="client-1",
             tenant_id="common",
             authority=f"https://login.microsoftonline.com/{concrete_tenant}",
@@ -865,7 +858,7 @@ class TestJwtTokenValidatorEffectiveTenant:
         private_key, public_key = generate_rsa_keypair()
         concrete_tenant = str(uuid.uuid4())
         other_tenant = str(uuid.uuid4())
-        config = AgentAuthConfiguration(
+        config = make_jwt_configuration(
             client_id="client-1",
             tenant_id="common",
             authority=f"https://login.microsoftonline.com/{concrete_tenant}",

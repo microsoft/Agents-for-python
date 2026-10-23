@@ -6,7 +6,9 @@ from azure.core.credentials import AccessToken
 
 from microsoft_agents.authentication.msal import MsalTokenCredential
 from microsoft_agents.authentication.msal.msal_token_credential import _get_resource
-from microsoft_agents.hosting.core import AgentAuthConfiguration
+from microsoft_agents.authentication.msal.connection_settings import (
+    MsalConnectionSettings,
+)
 
 _FIRST_SCOPE = "https://api.botframework.com/.default"
 _SECOND_SCOPE = "https://graph.microsoft.com/.default"
@@ -14,8 +16,8 @@ _MSAL_AUTH_PATH = "microsoft_agents.authentication.msal.msal_token_credential.Ms
 
 
 @pytest.fixture
-def auth_config() -> AgentAuthConfiguration:
-    return AgentAuthConfiguration(
+def auth_config() -> MsalConnectionSettings:
+    return MsalConnectionSettings(
         client_id="client-id",
         client_secret="client-secret",
         tenant_id="tenant-id",
@@ -47,7 +49,7 @@ def test_get_resource(scope: str, expected_resource: str):
 @pytest.mark.asyncio
 async def test_get_token_lazily_creates_provider_and_forwards_scope(
     mocker,
-    auth_config: AgentAuthConfiguration,
+    auth_config: MsalConnectionSettings,
 ):
     msal_auth_class = mocker.patch(_MSAL_AUTH_PATH)
     msal_auth = msal_auth_class.return_value
@@ -70,7 +72,7 @@ async def test_get_token_lazily_creates_provider_and_forwards_scope(
 @pytest.mark.asyncio
 async def test_get_token_reuses_provider(
     mocker,
-    auth_config: AgentAuthConfiguration,
+    auth_config: MsalConnectionSettings,
 ):
     msal_auth_class = mocker.patch(_MSAL_AUTH_PATH)
     msal_auth = msal_auth_class.return_value
@@ -92,7 +94,7 @@ async def test_get_token_reuses_provider(
 @pytest.mark.asyncio
 async def test_get_token_requires_at_least_one_scope(
     mocker,
-    auth_config: AgentAuthConfiguration,
+    auth_config: MsalConnectionSettings,
 ):
     msal_auth_class = mocker.patch(_MSAL_AUTH_PATH)
     credential = MsalTokenCredential(auth_config)
@@ -106,7 +108,7 @@ async def test_get_token_requires_at_least_one_scope(
 @pytest.mark.asyncio
 async def test_get_token_propagates_msal_auth_error(
     mocker,
-    auth_config: AgentAuthConfiguration,
+    auth_config: MsalConnectionSettings,
 ):
     msal_auth = mocker.patch(_MSAL_AUTH_PATH).return_value
     msal_auth._get_access_token = mocker.AsyncMock(

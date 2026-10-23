@@ -6,7 +6,7 @@ import pytest
 
 from datetime import datetime, timedelta, timezone
 
-from microsoft_agents.hosting.core import AgentAuthConfiguration
+from microsoft_agents.authentication.entra_auth_sidecar import SidecarConnectionSettings
 from microsoft_agents.authentication.entra_auth_sidecar.sidecar_token_credential import (
     SidecarTokenCredential,
     _get_resource,
@@ -30,9 +30,7 @@ class FakeSidecarProvider:
 
 
 def _make_credential(token="token"):
-    config = AgentAuthConfiguration(
-        auth_type="EntraAuthSideCar", client_id="blueprint-id"
-    )
+    config = SidecarConnectionSettings(client_id="blueprint-id")
     provider = FakeSidecarProvider(token=token)
     return SidecarTokenCredential(config, provider=provider), provider
 
@@ -55,9 +53,7 @@ class TestSidecarTokenCredentialInit:
         assert credential._manage_provider_lifetime is False
 
     def test_manage_provider_lifetime_true_when_provider_not_supplied(self):
-        config = AgentAuthConfiguration(
-            auth_type="EntraAuthSideCar", client_id="blueprint-id"
-        )
+        config = SidecarConnectionSettings(client_id="blueprint-id")
         credential = SidecarTokenCredential(config)
         assert credential._manage_provider_lifetime is True
 
@@ -101,9 +97,7 @@ class TestSidecarTokenCredentialGetToken:
 
     @pytest.mark.asyncio
     async def test_lazily_creates_provider_when_none_supplied(self, monkeypatch):
-        config = AgentAuthConfiguration(
-            auth_type="EntraAuthSideCar", client_id="blueprint-id"
-        )
+        config = SidecarConnectionSettings(client_id="blueprint-id")
         credential = SidecarTokenCredential(config)
         assert credential._provider is None
 
@@ -136,9 +130,7 @@ class TestSidecarTokenCredentialLifecycle:
 
     @pytest.mark.asyncio
     async def test_close_closes_and_clears_lazily_created_provider(self, monkeypatch):
-        config = AgentAuthConfiguration(
-            auth_type="EntraAuthSideCar", client_id="blueprint-id"
-        )
+        config = SidecarConnectionSettings(client_id="blueprint-id")
         credential = SidecarTokenCredential(config)
         fake_provider = FakeSidecarProvider()
 
@@ -153,9 +145,7 @@ class TestSidecarTokenCredentialLifecycle:
 
     @pytest.mark.asyncio
     async def test_close_is_noop_when_no_provider(self):
-        config = AgentAuthConfiguration(
-            auth_type="EntraAuthSideCar", client_id="blueprint-id"
-        )
+        config = SidecarConnectionSettings(client_id="blueprint-id")
         credential = SidecarTokenCredential(config)
         await credential.close()
         assert credential._provider is None
@@ -168,9 +158,7 @@ class TestSidecarTokenCredentialLifecycle:
 
     @pytest.mark.asyncio
     async def test_aexit_closes_lazily_created_provider(self, monkeypatch):
-        config = AgentAuthConfiguration(
-            auth_type="EntraAuthSideCar", client_id="blueprint-id"
-        )
+        config = SidecarConnectionSettings(client_id="blueprint-id")
         credential = SidecarTokenCredential(config)
         fake_provider = FakeSidecarProvider()
 

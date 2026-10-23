@@ -17,6 +17,13 @@ from typing import Any
 import jwt
 from cryptography.hazmat.primitives.asymmetric import rsa
 from cryptography.hazmat.primitives.asymmetric.rsa import RSAPrivateKey, RSAPublicKey
+from microsoft_agents.activity.config import Configuration
+
+
+def make_jwt_configuration(
+    *, connection_name: str = "SERVICE_CONNECTION", **settings: Any
+) -> Configuration:
+    return Configuration({"connections": {connection_name: {"settings": settings}}})
 
 
 def generate_rsa_keypair() -> tuple[RSAPrivateKey, RSAPublicKey]:

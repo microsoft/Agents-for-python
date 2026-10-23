@@ -1,6 +1,7 @@
 from types import MappingProxyType
 
 from microsoft_agents.activity import load_configuration_from_env
+from microsoft_agents.activity.config import Configuration
 
 from tests._common import create_env_var_dict
 from tests._common.data import DEFAULT_TEST_VALUES
@@ -48,10 +49,10 @@ ENV_DICT = {
             }
         },
     },
-    "CONNECTIONSMAP": [
-        {"CONNECTION": "SERVICE_CONNECTION", "SERVICEURL": "*"},
-        {"CONNECTION": "AGENTIC", "SERVICEURL": "agentic"},
-    ],
+    "CONNECTIONSMAP": {
+        "0": {"CONNECTION": "SERVICE_CONNECTION", "SERVICEURL": "*"},
+        "1": {"CONNECTION": "AGENTIC", "SERVICEURL": "agentic"},
+    },
 }
 
 ENV_RAW = """
@@ -102,6 +103,7 @@ CONNECTIONSMAP__1__SERVICEURL=agentic
 def test_load_configuration_from_env():
     input_dict = create_env_var_dict(ENV_RAW)
     config = load_configuration_from_env(input_dict)
+    assert isinstance(config, Configuration)
     assert config == ENV_DICT
 
 
@@ -116,8 +118,29 @@ def test_load_configuration_from_read_only_mapping():
 def test_load_configuration_from_empty_mapping():
     config = load_configuration_from_env({})
 
-    assert config == {
-        "AGENTAPPLICATION": {},
-        "CONNECTIONS": {},
-        "CONNECTIONSMAP": [],
+    assert isinstance(config, Configuration)
+    assert config == {}
+
+
+def test_environment_overrides_defaults_at_the_same_leaf():
+    defaults = {
+        "Connections": {"Service": {"ClientId": "default", "TenantId": "tenant"}}
     }
+
+    config = load_configuration_from_env(
+        {"Connections__Service__ClientId": "environment"}, defaults
+    )
+
+    assert config.get_str("Connections::Service::ClientId") == "environment"
+    assert config.get_str("Connections::Service::TenantId") == "tenant"
+    assert defaults["Connections"]["Service"]["ClientId"] == "default"
+
+
+def test_loader_preserves_application_specific_sections_and_raw_values():
+    config = load_configuration_from_env(
+        {"MyApp__Enabled": "false", "MyApp__Count": "3"}
+    )
+
+    assert config["MyApp"] == {"Enabled": "false", "Count": "3"}
+    assert config.get_bool("MyApp::Enabled") is False
+    assert config.get_int("MyApp::Count") == 3

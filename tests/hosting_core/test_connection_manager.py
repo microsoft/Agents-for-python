@@ -6,6 +6,7 @@ from azure.core.credentials import AccessToken
 from azure.core.credentials_async import AsyncTokenCredential
 
 from microsoft_agents.activity import Activity, ChannelAccount, RoleTypes
+from microsoft_agents.activity.config import Configuration
 from microsoft_agents.hosting.core import (
     AgentAuthConfiguration,
     AccessTokenProviderBase,
@@ -15,6 +16,12 @@ from microsoft_agents.hosting.core import (
 from microsoft_agents.hosting.core.authorization._helpers import (
     _CallableTokenCredential,
 )
+from microsoft_agents.hosting.core.authorization.connections import (
+    ConnectionSettingsBase,
+)
+from microsoft_agents.hosting.core.authorization.connections.connections_map import (
+    _ConnectionMap,
+)
 
 _TEST_TOKEN_EXPIRATION = 2**31 - 1
 
@@ -22,12 +29,13 @@ _TEST_TOKEN_EXPIRATION = 2**31 - 1
 class FakeProvider(AccessTokenProviderBase):
     """Minimal provider that records the configuration it was built from."""
 
-    def __init__(self, configuration: AgentAuthConfiguration):
-        self._configuration = configuration
+    def __init__(self, configuration: Configuration):
+        self.source_configuration = configuration
+        self._settings = ConnectionSettingsBase.from_configuration(configuration)
 
     @property
-    def configuration(self) -> AgentAuthConfiguration:
-        return self._configuration
+    def config(self) -> ConnectionSettingsBase:
+        return self._settings
 
     async def get_access_token(self, resource_url, scopes, force_refresh=False):
         return "fake-token"
@@ -41,7 +49,7 @@ class FakeProvider(AccessTokenProviderBase):
 
 @pytest.mark.asyncio
 async def test_fake_provider_get_token_credential_is_synchronous():
-    provider = FakeProvider(AgentAuthConfiguration())
+    provider = FakeProvider(Configuration())
 
     credential = provider.get_token_credential()
     token = await credential.get_token("scope")
@@ -87,7 +95,9 @@ ALT_BLUEPRINT_CONFIG = {
 
 class TestGenericConnectionManager:
     def _make(self, **kwargs):
-        return ConnectionManager(provider_factory=FakeProvider, **kwargs)
+        return ConnectionManager(
+            provider_factory=FakeProvider, config=Configuration(kwargs)
+        )
 
     def _activity(
         self,
@@ -107,7 +117,8 @@ class TestGenericConnectionManager:
         cm = self._make(**ENV_CONFIG)
         provider = cm.get_default_connection()
         assert isinstance(provider, FakeProvider)
-        assert provider.configuration.CLIENT_ID == "client-service"
+        assert isinstance(provider.source_configuration, Configuration)
+        assert provider.config.client_id == "client-service"
 
     def test_requires_service_connection(self):
         bad = {"CONNECTIONS": {"MISC": {"SETTINGS": {"CLIENTID": "x"}}}}
@@ -247,14 +258,16 @@ class TestGenericConnectionManager:
 
     def test_default_connection_configuration(self):
         cm = self._make(**ENV_CONFIG)
-        config = cm.get_default_connection_configuration()
+        with pytest.warns(DeprecationWarning, match="deprecated"):
+            config = cm.get_default_connection_configuration()
         assert config.CLIENT_ID == "client-service"
 
-    def test_default_connections_map_is_empty_list(self):
+    def test_default_connections_map_is_empty(self):
         config = {k: v for k, v in ENV_CONFIG.items() if k != "CONNECTIONSMAP"}
         cm = self._make(**config)
-        assert cm._connections_map == []
-        assert isinstance(cm._connections_map, list)
+        assert isinstance(cm._connections_map, _ConnectionMap)
+        assert not cm._connections_map
+        assert list(cm._connections_map) == []
 
     def test_explicit_empty_connections_map_overrides_kwargs(self):
         # An explicit empty map must win over a CONNECTIONSMAP kwarg and disable
@@ -264,9 +277,44 @@ class TestGenericConnectionManager:
             connections_map=[],
             **ENV_CONFIG,
         )
-        assert cm._connections_map == []
-        claims = ClaimsIdentity(claims={"aud": "api://service"})
+        claims = ClaimsIdentity(claims={})
         assert (
-            cm.get_token_provider(claims, "https://service.com/api")
+            cm.get_token_provider(claims, "https://host/agentic/path")
             is cm.get_default_connection()
         )
+
+    def test_kwargs_configuration_remains_supported(self):
+        cm = ConnectionManager(provider_factory=FakeProvider, **ENV_CONFIG)
+
+        assert cm.get_default_connection().config.client_id == "client-service"
+        assert cm.get_token_provider(
+            ClaimsIdentity(claims={}), "agentic"
+        ) is cm.get_connection("AGENTIC")
+
+    def test_new_configuration_path_does_not_construct_legacy_configuration(
+        self, mocker
+    ):
+        legacy_class = mocker.patch(
+            "microsoft_agents.hosting.core.authorization.connections.connection_manager."
+            "AgentAuthConfiguration"
+        )
+
+        cm = self._make(**ENV_CONFIG)
+
+        assert cm.get_default_connection().config.client_id == "client-service"
+        legacy_class.assert_not_called()
+
+    def test_legacy_configuration_is_passed_to_legacy_factory(self, mocker):
+        with pytest.warns(DeprecationWarning, match="AgentAuthConfiguration"):
+            legacy = AgentAuthConfiguration(client_id="legacy-client")
+        provider = mocker.Mock(spec=AccessTokenProviderBase)
+        factory = mocker.Mock(return_value=provider)
+
+        with pytest.warns(DeprecationWarning, match="connections_configurations"):
+            cm = ConnectionManager(
+                provider_factory=factory,
+                connections_configurations={"SERVICE_CONNECTION": legacy},
+            )
+
+        factory.assert_called_once_with(legacy)
+        assert cm.get_default_connection() is provider

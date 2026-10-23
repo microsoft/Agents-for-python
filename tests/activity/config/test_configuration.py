@@ -5,7 +5,7 @@ import traceback
 
 import pytest
 
-from microsoft_agents.activity.config import Configuration, path
+from microsoft_agents.activity.config import Configuration, path, xpath
 
 
 def test_section_uses_matched_alias_and_nested_path():
@@ -141,7 +141,9 @@ def test_conversion_preserves_missing_defaults(getter, default):
 @pytest.mark.parametrize("getter", ["get_bool", "get_booln"])
 @pytest.mark.parametrize("default", [True, False, None])
 @pytest.mark.parametrize("value", ["yes", "on", "no", "off", "maybe"])
-def test_boolean_getters_reject_unrecognized_values_with_defaults(getter, default, value):
+def test_boolean_getters_reject_unrecognized_values_with_defaults(
+    getter, default, value
+):
     settings = Configuration({"Enabled": value}, _base_path="Settings")
 
     with pytest.raises(ValueError, match="Invalid boolean for Settings::Enabled"):
@@ -181,3 +183,117 @@ def test_non_mapping_collected_section_reports_full_path():
         config.get_sections(path("Entries", "*"))
 
     assert str(error.value) == "Section Root::Entries::Service is not a mapping"
+
+
+def test_configuration_is_a_dictionary_with_positional_default_lookup():
+    config = Configuration({"Enabled": False, "Optional": None})
+    fallback = object()
+
+    assert isinstance(config, dict)
+    assert config.get("Enabled", fallback) is False
+    assert config.get("Optional", fallback) is None
+    assert config.get("Missing", fallback) is fallback
+    assert config.get(["Missing", "Enabled"], fallback) is False
+
+
+def test_from_mapping_merges_defaults_without_mutating_inputs():
+    primary = {"Settings": {"Enabled": False}}
+    defaults = {"Settings": {"Enabled": True, "Count": 3}}
+
+    config = Configuration.from_mapping(primary, **defaults)
+    config["Settings"]["Count"] = 4
+
+    assert config.get_bool("Settings::Enabled") is False
+    assert primary == {"Settings": {"Enabled": False}}
+    assert defaults == {"Settings": {"Enabled": True, "Count": 3}}
+
+
+def test_from_config_forks_top_level_values_and_preserves_base_path():
+    original = Configuration({"Enabled": False}, _base_path="Service")
+
+    fork = Configuration.from_config(original, Enabled=True, Count=3)
+    fork["Enabled"] = True
+
+    assert fork is not original
+    assert fork._base_path == "Service"
+    assert fork["Count"] == 3
+    assert original["Enabled"] is False
+    assert "Count" not in original
+
+
+def test_from_config_preserves_primary_values_over_fallbacks():
+    original = Configuration({"Enabled": False})
+
+    assert Configuration.from_config(original, Enabled=True)["Enabled"] is False
+
+
+def test_constructor_makes_a_shallow_copy():
+    source = {"Values": ["original"]}
+    config = Configuration(source)
+
+    source["New"] = True
+    source["Values"].append("shared")
+
+    assert "New" not in config
+    assert config["Values"] == ["original", "shared"]
+
+
+@pytest.mark.parametrize(
+    "entries",
+    [
+        [("client_id", "lower"), ("CLIENT_ID", "upper"), ("CLIENTID", "compact")],
+        [("CLIENTID", "compact"), ("CLIENT_ID", "upper"), ("client_id", "lower")],
+    ],
+)
+def test_alias_precedence_does_not_depend_on_insertion_order(entries):
+    assert Configuration(dict(entries)).get_str(xpath("client_id")) == "compact"
+
+
+def test_xpath_components_form_one_nested_path():
+    config = Configuration(
+        {"AGENTAPPLICATION": {"USERAUTHORIZATION": {"Enabled": True}}}
+    )
+
+    section = config.get_section(xpath("agent_application", "user_authorization"))
+
+    assert section.get_bool("Enabled") is True
+    assert section._base_path == "AGENTAPPLICATION::USERAUTHORIZATION"
+
+
+@pytest.mark.parametrize("values", [["first", "second"], {"0": "first", "1": "second"}])
+def test_collect_str_selects_children_of_lists_and_indexed_mappings(values):
+    config = Configuration({"audiences": values})
+
+    assert config.collect_str("audiences::*") == ["first", "second"]
+
+
+def test_collect_does_not_implicitly_flatten_selected_containers():
+    values = ["first", "second"]
+    config = Configuration({"audiences": values})
+
+    assert config.collect("audiences") == [values]
+    assert config.collect_str("audiences") == [str(values)]
+    assert config.collect_str("audiences::*") == values
+
+
+def test_collect_deduplicates_overlapping_paths_not_equal_values():
+    config = Configuration({"Values": ["same", "same"]})
+
+    assert config.collect_str("Values::*", "Values::0") == ["same", "same"]
+
+
+@pytest.mark.parametrize(
+    "value, expected",
+    [
+        (None, []),
+        ("", []),
+        ("  ", []),
+        ([], []),
+        ("read\twrite\n", ["read", "write"]),
+        (["read", "write"], ["read", "write"]),
+    ],
+)
+def test_scopes_bind_supported_list_and_whitespace_formats(value, expected):
+    config = Configuration({"SCOPES": value})
+
+    assert config.get_scopes("SCOPES") == expected

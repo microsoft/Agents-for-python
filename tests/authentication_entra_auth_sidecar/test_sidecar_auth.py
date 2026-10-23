@@ -3,6 +3,7 @@
 
 import jwt
 import pytest
+from microsoft_agents.activity.config import Configuration
 
 from datetime import datetime, timedelta, timezone
 
@@ -41,8 +42,7 @@ class FakeSidecarClient:
 
 
 def _make_auth(token="token", scopes=None, healthy=True, **settings):
-    config = AgentAuthConfiguration(
-        auth_type="EntraAuthSideCar",
+    config = Configuration(
         client_id="blueprint-id",
         scopes=scopes,
         **settings,
@@ -131,13 +131,30 @@ class TestSidecarAuthMapping:
         assert client.closed is True
 
     def test_configuration_property_exposes_source_config(self):
-        # RestChannelServiceClientFactory reads connection settings back off this
-        # property, so it must return the exact configuration it was built from.
-        config = AgentAuthConfiguration(
-            auth_type="EntraAuthSideCar", client_id="blueprint-id"
-        )
+        with pytest.warns(DeprecationWarning, match="AgentAuthConfiguration"):
+            config = AgentAuthConfiguration(
+                auth_type="EntraAuthSideCar", client_id="blueprint-id"
+            )
         auth = SidecarAuth(config, sidecar_client=FakeSidecarClient())
-        assert auth.configuration is config
+        with pytest.warns(DeprecationWarning, match="deprecated"):
+            assert auth.configuration is config
+        assert auth.config.client_id == "blueprint-id"
+
+    def test_config_property_exposes_bound_settings(self):
+        auth, _ = _make_auth(SERVICE_NAME="custom", BLUEPRINT_SERVICE_NAME="blueprint")
+
+        assert auth.config.service_name == "custom"
+        assert auth.config.blueprint_service_name == "blueprint"
+
+    def test_legacy_provider_specific_settings_survive_binding(self):
+        with pytest.warns(DeprecationWarning, match="AgentAuthConfiguration"):
+            config = AgentAuthConfiguration(
+                auth_type="EntraAuthSideCar", SERVICE_NAME="custom"
+            )
+
+        auth = SidecarAuth(config, sidecar_client=FakeSidecarClient())
+
+        assert auth.config.service_name == "custom"
 
     @pytest.mark.asyncio
     async def test_get_token_credential_delegates_to_this_provider(self):
