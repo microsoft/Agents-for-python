@@ -7,6 +7,7 @@ dependencies = [
     "pytest-asyncio",
     "microsoft-agents-authentication-msal",
     "microsoft-agents-hosting-aiohttp",
+    "microsoft-agents-hosting-a2a @ file:///${PROJECT_ROOT}/../../libraries/microsoft-agents-hosting-a2a",
     "microsoft-agents-hosting-dialogs",
     "microsoft-agents-hosting-fastapi",
     "microsoft-agents-hosting-testing @ file:///${PROJECT_ROOT}/../microsoft-agents-hosting-testing",
