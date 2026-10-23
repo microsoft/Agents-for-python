@@ -209,10 +209,21 @@ class TestGenericConnectionManager:
         "recipient_role",
         [RoleTypes.agentic_identity, RoleTypes.agentic_user],
     )
+    @pytest.mark.parametrize(
+        "key",
+        ["ALTERNATEBLUEPRINTCONNECTIONNAME", "ALT_BLUEPRINT_NAME", "ALT_BLUEPRINT_ID"],
+    )
     def test_token_provider_from_activity_agentic_role_uses_alternate_blueprint(
-        self, recipient_role
+        self, recipient_role, key
     ):
-        cm = self._make(**ALT_BLUEPRINT_CONFIG)
+        cm = self._make(
+            CONNECTIONS={
+                "SERVICE_CONNECTION": {
+                    "SETTINGS": {"CLIENTID": "client-service", key: "ALT_BLUEPRINT"}
+                },
+                "ALT_BLUEPRINT": {"SETTINGS": {"CLIENTID": "client-alt-blueprint"}},
+            }
+        )
         claims = ClaimsIdentity(claims={})
         activity = self._activity(recipient_role=recipient_role)
 
@@ -256,11 +267,28 @@ class TestGenericConnectionManager:
         with pytest.raises(ValueError):
             cm.get_token_provider(claims, service_url)
 
-    def test_default_connection_configuration(self):
+    def test_default_connection_configuration_rejects_new_configuration(self):
         cm = self._make(**ENV_CONFIG)
         with pytest.warns(DeprecationWarning, match="deprecated"):
-            config = cm.get_default_connection_configuration()
-        assert config.CLIENT_ID == "client-service"
+            with pytest.raises(ValueError, match=r"get_default_connection\(\)\.config"):
+                cm.get_default_connection_configuration()
+
+        assert cm.get_default_connection().config.client_id == "client-service"
+
+    def test_default_connection_configuration_retains_legacy_instance(self):
+        with pytest.warns(DeprecationWarning, match="AgentAuthConfiguration"):
+            legacy = AgentAuthConfiguration(client_id="client-service")
+
+        def provider_factory(config: AgentAuthConfiguration):
+            return FakeProvider(Configuration(config._to_dict()))
+
+        with pytest.warns(DeprecationWarning, match="connections_configurations"):
+            cm = ConnectionManager(
+                provider_factory=provider_factory,
+                connections_configurations={"SERVICE_CONNECTION": legacy},
+            )
+        with pytest.warns(DeprecationWarning, match="deprecated"):
+            assert cm.get_default_connection_configuration() is legacy
 
     def test_default_connections_map_is_empty(self):
         config = {k: v for k, v in ENV_CONFIG.items() if k != "CONNECTIONSMAP"}
@@ -272,11 +300,12 @@ class TestGenericConnectionManager:
     def test_explicit_empty_connections_map_overrides_kwargs(self):
         # An explicit empty map must win over a CONNECTIONSMAP kwarg and disable
         # URL-based routing (falling back to the default connection).
-        cm = ConnectionManager(
-            provider_factory=FakeProvider,
-            connections_map=[],
-            **ENV_CONFIG,
-        )
+        with pytest.warns(DeprecationWarning, match="connections_map"):
+            cm = ConnectionManager(
+                provider_factory=FakeProvider,
+                connections_map=[],
+                **ENV_CONFIG,
+            )
         claims = ClaimsIdentity(claims={})
         assert (
             cm.get_token_provider(claims, "https://host/agentic/path")

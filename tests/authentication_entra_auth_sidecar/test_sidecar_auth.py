@@ -133,12 +133,15 @@ class TestSidecarAuthMapping:
     def test_configuration_property_exposes_source_config(self):
         with pytest.warns(DeprecationWarning, match="AgentAuthConfiguration"):
             config = AgentAuthConfiguration(
-                auth_type="EntraAuthSideCar", client_id="blueprint-id"
+                auth_type="EntraAuthSideCar",
+                client_id="blueprint-id",
+                ALT_BLUEPRINT_NAME="blueprint",
             )
         auth = SidecarAuth(config, sidecar_client=FakeSidecarClient())
         with pytest.warns(DeprecationWarning, match="deprecated"):
             assert auth.configuration is config
         assert auth.config.client_id == "blueprint-id"
+        assert auth.config.alternate_blueprint_connection_name == "blueprint"
 
     def test_config_property_exposes_bound_settings(self):
         auth, _ = _make_auth(SERVICE_NAME="custom", BLUEPRINT_SERVICE_NAME="blueprint")

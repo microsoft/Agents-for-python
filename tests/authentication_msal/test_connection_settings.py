@@ -81,13 +81,17 @@ def test_regional_authority_remains_an_alias_with_azure_region_precedence():
 def test_legacy_provider_configuration_is_supported_with_explicit_warnings():
     with pytest.warns(DeprecationWarning, match="AgentAuthConfiguration"):
         legacy = AgentAuthConfiguration(
-            client_id="legacy-client", client_secret="secret", tenant_id="tenant"
+            client_id="legacy-client",
+            client_secret="secret",
+            tenant_id="tenant",
+            ALT_BLUEPRINT_NAME="blueprint",
         )
     with pytest.warns(DeprecationWarning, match="AgentAuthConfiguration"):
         auth = MsalAuth(legacy)
 
     assert auth.config.client_id == "legacy-client"
     assert auth.config.client_secret == "secret"
+    assert auth.config.alternate_blueprint_connection_name == "blueprint"
     with pytest.warns(DeprecationWarning, match="deprecated configuration"):
         assert auth.configuration is legacy
 

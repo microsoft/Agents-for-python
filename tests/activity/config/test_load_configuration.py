@@ -49,10 +49,10 @@ ENV_DICT = {
             }
         },
     },
-    "CONNECTIONSMAP": {
-        "0": {"CONNECTION": "SERVICE_CONNECTION", "SERVICEURL": "*"},
-        "1": {"CONNECTION": "AGENTIC", "SERVICEURL": "agentic"},
-    },
+    "CONNECTIONSMAP": [
+        {"CONNECTION": "SERVICE_CONNECTION", "SERVICEURL": "*"},
+        {"CONNECTION": "AGENTIC", "SERVICEURL": "agentic"},
+    ],
 }
 
 ENV_RAW = """
@@ -144,3 +144,49 @@ def test_loader_preserves_application_specific_sections_and_raw_values():
     assert config["MyApp"] == {"Enabled": "false", "Count": "3"}
     assert config.get_bool("MyApp::Enabled") is False
     assert config.get_int("MyApp::Count") == 3
+
+
+def test_indexed_lists_are_sorted_numerically_not_by_insertion_order():
+    config = load_configuration_from_env(
+        {
+            "VALUES__10": "ten",
+            "VALUES__2": "two",
+            "VALUES__0": "zero",
+            "VALUES__1": "one",
+        }
+    )
+
+    assert config["VALUES"] == ["zero", "one", "two", "ten"]
+
+
+def test_indexed_lists_are_normalized_inside_list_entries():
+    config = load_configuration_from_env(
+        {
+            "ENTRIES__1__SCOPES__1": "fourth",
+            "ENTRIES__0__SCOPES__1": "second",
+            "ENTRIES__1__SCOPES__0": "third",
+            "ENTRIES__0__SCOPES__0": "first",
+        }
+    )
+
+    assert config["ENTRIES"] == [
+        {"SCOPES": ["first", "second"]},
+        {"SCOPES": ["third", "fourth"]},
+    ]
+
+
+def test_list_normalization_preserves_empty_and_named_mappings():
+    config = load_configuration_from_env(
+        {},
+        {
+            "SETTINGS": {},
+            "NAMED": {"service": {"SETTINGS": {}}},
+            "ENTRIES": {"0": {"SETTINGS": {}}},
+        },
+    )
+
+    assert config == {
+        "SETTINGS": {},
+        "NAMED": {"service": {"SETTINGS": {}}},
+        "ENTRIES": [{"SETTINGS": {}}],
+    }

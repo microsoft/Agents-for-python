@@ -7,6 +7,9 @@ from microsoft_agents.activity import load_configuration_from_env
 from microsoft_agents.hosting.core.authorization.jwt.jwt_connection_settings import (
     JwtConnectionSettings,
 )
+from microsoft_agents.hosting.core.authorization.jwt.jwt_token_validator import (
+    _validate_issuer,
+)
 
 
 @pytest.mark.parametrize(
@@ -40,6 +43,27 @@ def test_explicit_issuers_override_computed_defaults(key):
     settings = JwtConnectionSettings.from_mapping({key: issuers, "tenant_id": "tenant"})
 
     assert settings.issuers == issuers
+
+
+@pytest.mark.parametrize(
+    "value",
+    [
+        ["https://first.example.com/", "https://second.example.com/"],
+        "https://first.example.com/ https://second.example.com/",
+        "https://first.example.com/, https://second.example.com/",
+    ],
+)
+def test_explicit_issuer_formats_validate_each_configured_issuer(value):
+    settings = JwtConnectionSettings.from_mapping(
+        {"ISSUERS": value, "VALIDATE_ISSUER": True}
+    )
+
+    assert settings.issuers == [
+        "https://first.example.com/",
+        "https://second.example.com/",
+    ]
+    for issuer in settings.issuers:
+        _validate_issuer(issuer, settings)
 
 
 def test_indexed_issuers_from_environment_remain_supported():

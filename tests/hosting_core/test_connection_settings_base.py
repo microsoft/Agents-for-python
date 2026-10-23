@@ -62,6 +62,23 @@ class TestConnectionSettingsBase:
         assert settings.scopes == ["s1"]
         assert settings.alternate_blueprint_connection_name == "bp"
 
+    @pytest.mark.parametrize(
+        "key",
+        [
+            "alt_blueprint_name",
+            "ALT_BLUEPRINT_NAME",
+            "alt_blueprint_id",
+            "ALT_BLUEPRINT_ID",
+            "alternate_blueprint_connection_name",
+            "ALTERNATEBLUEPRINTCONNECTIONNAME",
+            "ALTERNATE_BLUEPRINT_CONNECTION_NAME",
+        ],
+    )
+    def test_alternate_blueprint_aliases(self, key):
+        settings = ConnectionSettingsBase.from_mapping({key: "bp"})
+
+        assert settings.alternate_blueprint_connection_name == "bp"
+
     def test_from_mapping_uses_keyword_arguments_as_defaults(self):
         settings = ConnectionSettingsBase.from_mapping(
             {"client_id": "primary"}, client_id="fallback", tenant_id="tid"

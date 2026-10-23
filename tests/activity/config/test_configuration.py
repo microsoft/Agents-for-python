@@ -84,7 +84,7 @@ def test_non_mapping_section_reports_matched_alias_without_its_value():
         ("get_bool", "synthetic-secret"),
         ("get_int", "synthetic-secret"),
         ("get_float", "synthetic-secret"),
-        ("get_str_list", "synthetic-secret"),
+        ("get_str_list", {"token": "synthetic-secret"}),
         ("get_scopes", {"token": "synthetic-secret"}),
     ],
 )
@@ -136,6 +136,32 @@ def test_conversion_preserves_missing_defaults(getter, default):
     settings = Configuration(_base_path="Settings")
 
     assert getattr(settings, getter)("Missing", default=default) == default
+
+
+@pytest.mark.parametrize(
+    "value, expected",
+    [
+        (["read", "write"], ["read", "write"]),
+        ("read write", ["read", "write"]),
+        (" read\twrite\n", ["read", "write"]),
+        ("read,write", ["read", "write"]),
+        (" read, write ", ["read", "write"]),
+        ("", []),
+        ("  ", []),
+        (None, []),
+    ],
+)
+def test_string_lists_bind_supported_formats(value, expected):
+    config = Configuration({"VALUES": value})
+
+    assert config.get_str_list("VALUES") == expected
+
+
+def test_string_list_rejects_unresolved_indexed_mapping_even_with_default():
+    config = Configuration({"VALUES": {"0": "read"}}, _base_path="Settings")
+
+    with pytest.raises(ValueError, match="Settings::VALUES"):
+        config.get_str_list("VALUES", default=["fallback"])
 
 
 @pytest.mark.parametrize("getter", ["get_bool", "get_booln"])
