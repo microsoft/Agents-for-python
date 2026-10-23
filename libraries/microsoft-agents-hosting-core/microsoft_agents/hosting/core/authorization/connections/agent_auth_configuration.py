@@ -285,6 +285,7 @@ class AgentAuthConfiguration:
             "federated_client_id": self.FEDERATED_CLIENT_ID,
             "federated_token_file": self.FEDERATED_TOKEN_FILE,
             "alt_blueprint_id": self.ALT_BLUEPRINT_ID,
+            "alternate_blueprint_connection_name": self.ALT_BLUEPRINT_ID,
             "idpm_resource": self.IDPM_RESOURCE,
             "validate_issuer": self.VALIDATE_ISSUER,
             "issuers": self._configured_issuers,
@@ -336,6 +337,14 @@ class AgentAuthConfiguration:
     def alternate_blueprint_connection_name(self) -> str | None:
         """Alias for :attr:`ALT_BLUEPRINT_ID` (.NET ``AlternateBlueprintConnectionName``)."""
         return self.ALT_BLUEPRINT_ID
+
+    def _get_audiences(self) -> list[str]:
+        """Returns a list of all audiences (CLIENT_IDs) for the configured connections."""
+        audiences = []
+        for conn in self._connections.values():
+            if conn.CLIENT_ID:
+                audiences.append(conn.CLIENT_ID)
+        return audiences
 
     def _jwt_patch_is_valid_aud(self, aud: Any) -> bool:
         """

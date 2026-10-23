@@ -223,23 +223,27 @@ def _get_int(mapping: Mapping, key: str, default: int | None | _MissingType = _M
     return _handle_int(val, default, key)
 
 @overload
-def _get_float(mapping: Mapping, key: str, default: float | _MissingType) -> float:
+def _get_float(mapping: Mapping, *key: str, default: float | _MissingType) -> float:
     ...
 @overload
-def _get_float(mapping: Mapping, key: str, default: None) -> float | None:
+def _get_float(mapping: Mapping, *key: str, default: None) -> float | None:
     ...
-def _get_float(mapping: Mapping, key: str, default: float | None | _MissingType = _MISSING) -> float | None:
-    val = _get(mapping, key, default=_MISSING)
-    _check_key_error(val, default, key)
-    return _handle_float(val, default, key)
+def _get_float(mapping: Mapping, *key: str, default: float | None | _MissingType = _MISSING) -> float | None:
+    if not key:
+        raise ValueError("At least one key must be provided.")
+    val = _get(mapping, *key, default=_MISSING)
+    _check_key_error(val, default, key[0])
+    return _handle_float(val, default, key[0])
 
 @overload
-def _get_str(mapping: Mapping, key: str, default: str | _MissingType) -> str:
+def _get_str(mapping: Mapping, *key: str, default: str | _MissingType) -> str:
     ...
 @overload
-def _get_str(mapping: Mapping, key: str, default: None) -> str | None:
+def _get_str(mapping: Mapping, *key: str, default: None) -> str | None:
     ...
-def _get_str(mapping: Mapping, key: str, default: str | None | _MissingType = _MISSING) -> str | None:
-    val = _get(mapping, key, default=_MISSING)
-    _check_key_error(val, default, key)
-    return _handle_str(val, default, key)
+def _get_str(mapping: Mapping, *key: str, default: str | None | _MissingType = _MISSING) -> str | None:
+    if not key:
+        raise ValueError("At least one key must be provided.")
+    val = _get(mapping, *key, default=_MISSING)
+    _check_key_error(val, default, key[0])
+    return _handle_str(val, default, key[0])

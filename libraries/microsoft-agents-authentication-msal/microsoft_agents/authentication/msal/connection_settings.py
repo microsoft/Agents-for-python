@@ -60,10 +60,11 @@ class MsalConnectionSettings(ConnectionSettingsBase):
             connection_name=self.connection_name,
             federated_client_id=self.federated_client_id,
             federated_token_file=self.federated_token_file,
+            alt_blueprint_id=self.alternate_blueprint_connection_name,
             idpm_resource=self.idpm_resource,
             azure_region=self.azure_region,
-            anonymous_allowed=self._extras.get("anonymous_allowed", False),
-            scopes=self._extras.get("scopes", [])
+            scopes=self.scopes,
+            **self._extras
         )
 
     def _validate(self) -> None:

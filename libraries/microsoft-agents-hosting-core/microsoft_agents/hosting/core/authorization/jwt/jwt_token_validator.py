@@ -86,10 +86,18 @@ class JwtTokenValidator:
             through a legacy conversion path.
         """
         if isinstance(configuration, AgentAuthConfiguration):
-            config = TokenValidationConfiguration.from_mapping(configuration._to_dict())
+            self._config = TokenValidationConfiguration(
+                tenant_id=configuration.tenant_id,
+                anonymous_allowed=configuration.anonymous_allowed,
+                audiences=configuration._get_audiences(),
+                connections={
+                    conn_name: JwtConnectionSettings.from_mapping(conn._to_dict())
+                    for conn_name, conn in configuration._connections.items()
+                },
+                default_jwt_settings=JwtConnectionSettings.from_mapping(configuration._to_dict())
+            )
         else:
-            config = configuration
-        self._config = TokenValidationConfiguration.from_configuration(config)
+            self._config = TokenValidationConfiguration.from_configuration(configuration)
 
     @property
     def config(self) -> TokenValidationConfiguration:

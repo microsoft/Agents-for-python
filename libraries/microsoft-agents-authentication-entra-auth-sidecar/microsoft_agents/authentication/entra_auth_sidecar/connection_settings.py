@@ -77,6 +77,8 @@ class SidecarConnectionSettings(ConnectionSettingsBase):
             default=DEFAULT_RETRY_COUNT,
         )
 
+        base["scopes"] = cls._normalize_scopes(base.get("scopes", []))
+
         base.update({
             "service_name": service_name,
             "blueprint_service_name": blueprint_service_name,
