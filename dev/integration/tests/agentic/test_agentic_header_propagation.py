@@ -21,12 +21,20 @@ from microsoft_agents.hosting.core import (
     TurnContext,
     TurnState,
 )
-from microsoft_agents.hosting.core.authorization import ClaimsIdentity
+from microsoft_agents.hosting.core.authorization import (
+    ClaimsIdentity,
+    ConnectionSettingsBase,
+)
 
 
 class _FakeTokenProvider:
     def __init__(self):
         self._configuration = AgentAuthConfiguration()
+        self._config = ConnectionSettingsBase()
+
+    @property
+    def config(self) -> ConnectionSettingsBase:
+        return self._config
 
     @property
     def configuration(self) -> AgentAuthConfiguration:

@@ -8,12 +8,11 @@ from dotenv import dotenv_values
 from aiohttp import web
 
 from microsoft_agents.activity import load_configuration_from_env
+from microsoft_agents.activity.config import Configuration
 from microsoft_agents.hosting.aiohttp import (
     jwt_authorization_decorator,
     jwt_authorization_middleware,
 )
-from microsoft_agents.hosting.core.authorization import AgentAuthConfiguration
-from microsoft_agents.hosting.testing.core.utils import sdk_config_connection
 
 from tests.utils.pytest import skip_if_no_var
 from tests.utils.config import REAL_SERVICE_CONNECTION_ENV_VARS
@@ -27,12 +26,12 @@ _requires_real_service_connection = skip_if_no_var(
     *REAL_SERVICE_CONNECTION_ENV_VARS, load_root_env_file=True
 )
 _JWT_VALIDATION_DIR = Path(__file__).parent
-_ANONYMOUS_AUTH_CONFIG = sdk_config_connection(
+_ANONYMOUS_AUTH_CONFIG = Configuration(
     load_configuration_from_env(
         dotenv_values(_JWT_VALIDATION_DIR / "jwt_anonymous.env")
     )
 )
-_REQUIRED_AUTH_CONFIG = sdk_config_connection(
+_REQUIRED_AUTH_CONFIG = Configuration(
     load_configuration_from_env(dotenv_values(_JWT_VALIDATION_DIR / "jwt_required.env"))
 )
 
@@ -47,9 +46,7 @@ async def _claims_handler(request):
     )
 
 
-def _create_app(
-    *, use_global_middleware: bool, auth_config: AgentAuthConfiguration
-):
+def _create_app(*, use_global_middleware: bool, auth_config: Configuration):
     middlewares = [jwt_authorization_middleware] if use_global_middleware else []
     app = web.Application(middlewares=middlewares)
     app["agent_configuration"] = auth_config
@@ -86,9 +83,7 @@ async def test_aiohttp_global_middleware_rejects_invalid_bearer_token(aiohttp_cl
     response = await client.get("/", headers={"Authorization": "Bearer not-a-jwt"})
 
     assert response.status == 401
-    assert await response.json() == {
-        "error": "Invalid token or authentication failed."
-    }
+    assert await response.json() == {"error": "Invalid token or authentication failed."}
 
 
 @_requires_real_service_connection
@@ -122,9 +117,7 @@ async def test_aiohttp_global_middleware_rejects_real_token_with_invalid_audienc
     response = await client.get("/", headers={"Authorization": f"Bearer {token}"})
 
     assert response.status == 401
-    assert await response.json() == {
-        "error": "Invalid token or authentication failed."
-    }
+    assert await response.json() == {"error": "Invalid token or authentication failed."}
 
 
 @pytest.mark.asyncio
@@ -151,6 +144,4 @@ async def test_aiohttp_decorator_rejects_invalid_bearer_token(aiohttp_client):
     response = await client.get("/", headers={"Authorization": "Bearer not-a-jwt"})
 
     assert response.status == 401
-    assert await response.json() == {
-        "error": "Invalid token or authentication failed."
-    }
+    assert await response.json() == {"error": "Invalid token or authentication failed."}

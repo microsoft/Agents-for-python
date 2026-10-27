@@ -9,6 +9,7 @@ from weakref import WeakKeyDictionary
 from aiohttp.web import Request, middleware, json_response, Application
 
 from microsoft_agents.activity.config import Configuration, xpath
+from microsoft_agents.hosting.core import AgentAuthConfiguration
 from microsoft_agents.hosting.core.authorization.jwt import _authorize_request, JwtTokenValidator
 from microsoft_agents.hosting.core.http import HttpResponse
 
@@ -41,8 +42,12 @@ def _get_or_create_cached_validator(app: Application) -> JwtTokenValidator:
     :return: A JwtTokenValidator instance.
     """
     if app not in _TOKEN_VALIDATOR_CACHE:
-        auth_config = Configuration(app.get("agent_configuration", None))
-        _TOKEN_VALIDATOR_CACHE[app] = JwtTokenValidator(auth_config)
+        base_auth_config = app.get("agent_configuration", None)
+        if isinstance(base_auth_config, AgentAuthConfiguration):
+            _TOKEN_VALIDATOR_CACHE[app] = JwtTokenValidator(base_auth_config)
+        else:
+            auth_config = Configuration(base_auth_config)
+            _TOKEN_VALIDATOR_CACHE[app] = JwtTokenValidator(auth_config)
     return _TOKEN_VALIDATOR_CACHE[app]
 
 async def _jwt_authorization_middleware(request: Request, handler):

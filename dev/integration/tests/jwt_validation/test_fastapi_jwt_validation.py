@@ -9,12 +9,11 @@ from fastapi import FastAPI, Request
 from fastapi.testclient import TestClient
 
 from microsoft_agents.activity import load_configuration_from_env
-from microsoft_agents.hosting.core.authorization import AgentAuthConfiguration
+from microsoft_agents.activity.config import Configuration
 from microsoft_agents.hosting.fastapi import (
     JwtAuthorizationMiddleware,
     jwt_authorization_decorator,
 )
-from microsoft_agents.hosting.testing.core.utils import sdk_config_connection
 
 from tests.utils.config import REAL_SERVICE_CONNECTION_ENV_VARS
 from tests.utils.pytest import skip_if_no_var
@@ -28,12 +27,12 @@ _requires_real_service_connection = skip_if_no_var(
     *REAL_SERVICE_CONNECTION_ENV_VARS, load_root_env_file=True
 )
 _JWT_VALIDATION_DIR = Path(__file__).parent
-_ANONYMOUS_AUTH_CONFIG = sdk_config_connection(
+_ANONYMOUS_AUTH_CONFIG = Configuration(
     load_configuration_from_env(
         dotenv_values(_JWT_VALIDATION_DIR / "jwt_anonymous.env")
     )
 )
-_REQUIRED_AUTH_CONFIG = sdk_config_connection(
+_REQUIRED_AUTH_CONFIG = Configuration(
     load_configuration_from_env(dotenv_values(_JWT_VALIDATION_DIR / "jwt_required.env"))
 )
 
@@ -46,9 +45,7 @@ def _claims_payload(request: Request):
     }
 
 
-def _create_app(
-    *, use_global_middleware: bool, auth_config: AgentAuthConfiguration
-):
+def _create_app(*, use_global_middleware: bool, auth_config: Configuration):
     app = FastAPI()
     app.state.agent_configuration = auth_config
 

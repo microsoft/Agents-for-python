@@ -9,7 +9,10 @@ import pytest
 from fastapi import Depends, FastAPI, Request
 from microsoft_agents.activity.config import Configuration
 
-from microsoft_agents.hosting.core.authorization import ClaimsIdentity
+from microsoft_agents.hosting.core.authorization import (
+    AgentAuthConfiguration,
+    ClaimsIdentity,
+)
 from microsoft_agents.hosting.core.http import HttpResponse
 from microsoft_agents.hosting.fastapi.jwt_authorization_middleware import (
     JwtAuthorizationMiddleware,
@@ -22,14 +25,14 @@ _jwt_middleware_module = importlib.import_module(
 _AUTHORIZATION = "Bearer synthetic-token"
 
 
-def _make_app(auth_config: Configuration) -> FastAPI:
+def _make_app(auth_config: Configuration | AgentAuthConfiguration) -> FastAPI:
     app = FastAPI()
     app.state.agent_configuration = auth_config
     return app
 
 
 def _scope(
-    auth_config: Configuration,
+    auth_config: Configuration | AgentAuthConfiguration,
     authorization: str | None = None,
     *,
     app: FastAPI | None = None,
@@ -208,6 +211,54 @@ def test_fastapi_validator_binds_configuration_only_once(validator_factory):
     assert first is second is validator_factory.return_value
     configuration.assert_called_once_with(auth_config)
     validator_factory.assert_called_once_with(auth_config)
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("anonymous_allowed", [True, False])
+async def test_fastapi_legacy_configuration_preserves_policy_and_shared_cache(
+    anonymous_allowed,
+):
+    with pytest.warns(DeprecationWarning, match="AgentAuthConfiguration"):
+        auth_config = AgentAuthConfiguration(
+            client_id="legacy-app",
+            tenant_id="legacy-tenant",
+            anonymous_allowed=anonymous_allowed,
+        )
+    app = _make_app(auth_config)
+    messages = []
+
+    async def downstream(scope, receive, send):
+        assert scope["state"]["claims_identity"].allow_anonymous
+        await _send_ok(send)
+
+    @jwt_authorization_decorator
+    async def route(request: Request):
+        assert request.state.claims_identity.allow_anonymous
+        return {"called": True}
+
+    with patch.object(
+        _jwt_middleware_module,
+        "JwtTokenValidator",
+        wraps=_jwt_middleware_module.JwtTokenValidator,
+    ) as factory:
+        await JwtAuthorizationMiddleware(downstream)(
+            _scope(auth_config, app=app),
+            _receive,
+            lambda message: _record_send(messages, message),
+        )
+        response = await route(Request(_scope(auth_config, app=app)))
+        validator = _jwt_middleware_module._get_or_create_cached_validator(app)
+
+    assert _status(messages) == (200 if anonymous_allowed else 401)
+    if anonymous_allowed:
+        assert response == {"called": True}
+    else:
+        assert response.status_code == 401
+    factory.assert_called_once_with(auth_config)
+    assert factory.call_args.args[0] is auth_config
+    assert validator.config.anonymous_allowed is anonymous_allowed
+    assert validator.config.audiences == ["legacy-app"]
+    assert validator.config.tenant_id == "legacy-tenant"
 
 
 def test_fastapi_validator_cache_is_isolated_per_app(validator_factory):

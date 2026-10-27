@@ -1,12 +1,7 @@
 import pytest
 import asyncio
 
-from microsoft_agents.activity import (
-    Activity,
-    ActivityTypes,
-    Channels,
-    Entity
-)
+from microsoft_agents.activity import Activity, ActivityTypes, Channels, Entity
 
 from microsoft_agents.hosting.core import (
     TurnContext,
@@ -22,6 +17,7 @@ from microsoft_agents.hosting.testing import (
 FULL_TEXT = "This is a streaming response."
 CHUNKS = FULL_TEXT.split()
 
+
 def get_streaminfo(activity: Activity) -> Entity:
     for entity in activity.entities:
         if isinstance(entity, dict) and entity.get("type") == "streaminfo":
@@ -30,13 +26,14 @@ def get_streaminfo(activity: Activity) -> Entity:
             return entity
     raise ValueError("No streaminfo entity found")
 
+
 def init_agent(env: AgentEnvironment):
 
     app = env.agent_application
 
     @app.message("/stream")
     async def stream_handler(context: TurnContext, state: TurnState):
-        
+
         assert context.streaming_response is not None
 
         context.streaming_response.queue_informative_update("Starting stream...")
@@ -49,31 +46,38 @@ def init_agent(env: AgentEnvironment):
         context.streaming_response.queue_text_chunk(CHUNKS[-1])
         await context.streaming_response.end_stream()
 
-_SCENARIO = AiohttpScenario.create(init_agent, use_jwt_middleware=False)
+
+_SCENARIO = AiohttpScenario.create(init_agent, use_jwt_middleware=False, sdk_config={})
+
 
 @pytest.mark.asyncio
 @pytest.mark.agent_test(_SCENARIO)
-async def test_basic_streaming_response_non_streaming_channel(agent_client: AgentClient):
+async def test_basic_streaming_response_non_streaming_channel(
+    agent_client: AgentClient,
+):
 
     expected_len = len(FULL_TEXT.split())
 
-    agent_client.template = agent_client.template.with_updates(channel_id=Channels.emulator)
+    agent_client.template = agent_client.template.with_updates(
+        channel_id=Channels.emulator
+    )
 
     # give enough time for all the activities to send
     await agent_client.send("/stream", wait=expected_len * 2.0)
 
-    stream_activities = agent_client.select().where(
-        entities=lambda x: any(e["type"] == "streaminfo" for e in x)
-    ).get()
+    activities = agent_client.select().where(type=ActivityTypes.message).get()
 
-    assert len(stream_activities) == 1
-
-    final_streaminfo = get_streaminfo(stream_activities[0])
-
-    assert final_streaminfo.stream_sequence == 1
-    assert final_streaminfo.stream_type == "final"
-    assert stream_activities[0].text == FULL_TEXT.replace(" ", "")
-
+    assert len(activities) == 1
+    assert activities[0].type == ActivityTypes.message
+    assert activities[0].text == FULL_TEXT.replace(" ", "")
+    assert not any(
+        (
+            entity.get("type") == "streaminfo"
+            if isinstance(entity, dict)
+            else entity.type == "streaminfo"
+        )
+        for entity in activities[0].entities
+    )
 
 
 @pytest.mark.asyncio
@@ -82,14 +86,18 @@ async def test_basic_streaming_response_streaming_channel(agent_client: AgentCli
 
     expected_len = len(FULL_TEXT.split())
 
-    agent_client.template = agent_client.template.with_updates(channel_id=Channels.webchat)
+    agent_client.template = agent_client.template.with_updates(
+        channel_id=Channels.webchat
+    )
 
     # give enough time for all the activities to send
     await agent_client.send("/stream", wait=expected_len * 2.0)
 
-    stream_activities = agent_client.select().where(
-        entities=lambda x: any(e["type"] == "streaminfo" for e in x)
-    ).get()
+    stream_activities = (
+        agent_client.select()
+        .where(entities=lambda x: any(e["type"] == "streaminfo" for e in x))
+        .get()
+    )
 
     assert len(stream_activities) == len(CHUNKS) + 1
 
@@ -116,6 +124,7 @@ async def test_basic_streaming_response_streaming_channel(agent_client: AgentCli
 
     final_streaminfo = get_streaminfo(stream_activities[-1])
 
-    assert final_streaminfo.stream_sequence == len(stream_activities)
+    assert final_streaminfo.stream_sequence is None
     assert final_streaminfo.stream_type == "final"
+    assert stream_activities[-1].type == ActivityTypes.message
     assert stream_activities[-1].text == FULL_TEXT.replace(" ", "")
