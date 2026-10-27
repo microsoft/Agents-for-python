@@ -129,42 +129,6 @@ class Configuration(dict, _ConfigurationProtocol):
         except KeyError:
             return default
 
-    def _get_typed(
-        self,
-        *_keys: str | list[str],
-        cls: type[T],
-        factory: Callable[[Any], T] | None = None,
-        default: T | _MissingType = _MISSING,
-    ) -> T:
-        """Retrieve a value from the configuration by key, ensuring it is of the specified type.
-
-        :param _keys: The keys to retrieve.
-        :param cls: The expected type of the value.
-        :param factory: An optional factory function to convert the value to the expected type.
-        :param default: The default value to return if the key is not found or the value is not of the expected type.
-        """
-
-        keys = _resolve_keys_arg(*_keys)
-
-        val, path = self._get_with_path(*keys)
-        name = self._resolve_path(_PATH_SEPARATOR.join(path) or keys[0])
-
-        if isinstance(val, cls):
-            return val
-        if factory:
-            new_val = factory(val)
-            if isinstance(new_val, cls):
-                return new_val
-            else:
-                raise TypeError(
-                    f"Factory for key {name} did not return an instance of {cls.__name__}."
-                )
-        if not _is_missing(default):
-            return default
-        raise TypeError(
-            f"Value for key {name} is not of type {cls.__name__} and could not be converted."
-        )
-
     def has(self, *keys: str | list[str]) -> bool:
         """Check if the configuration contains the specified keys.
 

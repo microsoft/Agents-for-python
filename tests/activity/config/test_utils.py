@@ -170,9 +170,35 @@ def test_resolve_merges_equivalent_path_representations(primary):
     assert _resolve(primary, defaults) == {"App": {"Enabled": "new", "Name": "keep"}}
 
 
-@pytest.mark.parametrize("value", [None, False, 0, "", "false", "123", []])
+@pytest.mark.parametrize("value", [None, False, 0, "", "false", "123"])
 def test_resolve_preserves_explicit_primary_values_without_coercion(value):
     assert _resolve({"A__B": value}, {"A": {"B": "default"}}) == {"A": {"B": value}}
+
+
+@pytest.mark.parametrize("source", ["primary", "defaults"])
+def test_resolve_omits_empty_lists_from_either_source(source):
+    mapping = {"Empty": [], "Nested": {"Empty": []}, "Keep": "value"}
+    primary, defaults = (mapping, {}) if source == "primary" else ({}, mapping)
+    original = deepcopy(mapping)
+
+    assert _resolve(primary, defaults) == {"Keep": "value"}
+    assert mapping == original
+
+
+@pytest.mark.parametrize("empty_is_primary", [True, False])
+@pytest.mark.parametrize("value", ["fallback", ["read"], {"Child": {}}])
+def test_resolve_empty_lists_preserve_values_from_the_other_source(
+    empty_is_primary, value
+):
+    empty = {"A": []}
+    populated = {"A": value}
+    primary, defaults = (empty, populated) if empty_is_primary else (populated, empty)
+    original_primary = deepcopy(primary)
+    original_defaults = deepcopy(defaults)
+
+    assert _resolve(primary, defaults) == populated
+    assert primary == original_primary
+    assert defaults == original_defaults
 
 
 def test_resolve_preserves_case_in_both_sources():
@@ -301,7 +327,7 @@ def test_resolve_accepts_empty_parent_and_child_paths_in_either_order(
 
 
 @pytest.mark.parametrize("empty_is_primary", [True, False])
-@pytest.mark.parametrize("scalar", [None, False, 0, "", "scalar", []])
+@pytest.mark.parametrize("scalar", [None, False, 0, "", "scalar"])
 def test_resolve_rejects_non_mapping_parent_of_empty_section(empty_is_primary, scalar):
     empty = {"A": {"B": {}}}
     non_mapping = {"A": scalar}

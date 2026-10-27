@@ -309,6 +309,8 @@ def _resolve(
         path_str = path_transformer(_path(*path))
         if isinstance(val, Mapping) and len(val) == 0:
             flat[path_str] = {}
+        elif isinstance(val, list) and len(val) == 0:
+            pass  # skip empty lists
         else:
             flat[path_str] = val
 
@@ -375,6 +377,9 @@ def _xcase_helper(
     """
     variants = set()
 
+    if not snake_case_name.strip():
+        return variants
+
     if upper_snake:
         variants.add(snake_case_name.upper())
     if lower_snake:
@@ -382,13 +387,13 @@ def _xcase_helper(
 
     if camel or pascal or all_caps:
         camel_case = _snake_to_camel(snake_case_name)
-
-        if camel:
-            variants.add(camel_case)
-        if pascal:
-            variants.add(camel_case.capitalize())
-        if all_caps:
-            variants.add(camel_case.upper())
+        if camel_case: # a little silly, but "_" becomes "" in the above call.
+            if camel:
+                variants.add(camel_case)
+            if pascal:
+                variants.add(camel_case[0].capitalize() + camel_case[1:])
+            if all_caps:
+                variants.add(camel_case.upper())
 
     return variants
 
