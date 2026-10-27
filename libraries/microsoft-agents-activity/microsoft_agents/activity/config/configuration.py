@@ -49,7 +49,9 @@ class Configuration(dict, _ConfigurationProtocol):
     Construction makes a shallow copy; nested mutable values can remain shared.
     """
 
-    def __init__(self, _original: Mapping | None = None, _base_path: str | None = None, **kwargs):
+    def __init__(
+        self, _original: Mapping | None = None, _base_path: str | None = None, **kwargs
+    ):
         """Initialize a Configuration instance.
 
         :param _original: The original mapping to initialize the configuration from.
@@ -59,7 +61,7 @@ class Configuration(dict, _ConfigurationProtocol):
             raise ValueError("Cannot provide both '_original' and keyword arguments.")
         super().__init__(_original or kwargs)
         self._base_path = _base_path or ""
-        
+
     @classmethod
     def from_mapping(
         cls, _mapping: Mapping | None = None, _base_path: str | None = None, **kwargs
@@ -90,13 +92,17 @@ class Configuration(dict, _ConfigurationProtocol):
         if base is None:
             return Configuration(**kwargs)
         new_config = base.copy()
-        return Configuration.from_mapping(new_config, _base_path=base._base_path, **kwargs)
+        return Configuration.from_mapping(
+            new_config, _base_path=base._base_path, **kwargs
+        )
 
     def _resolve_path(self, key: str) -> str:
         """Resolve a configuration path by combining the base path and the key."""
         return f"{self._base_path}{_PATH_SEPARATOR}{key}" if self._base_path else key
 
-    def _get_with_path(self, *_keys: str | list[str], default: Any = _MISSING, skip_none: bool = False) -> tuple[Any, list[str]]:
+    def _get_with_path(
+        self, *_keys: str | list[str], default: Any = _MISSING, skip_none: bool = False
+    ) -> tuple[Any, list[str]]:
         """Return a value and its matched path segments, relative to this section."""
         keys = _resolve_keys_arg(*_keys)
         res, path = _get_with_path(self, *keys, default=_MISSING, skip_none=skip_none)
@@ -106,13 +112,16 @@ class Configuration(dict, _ConfigurationProtocol):
             return default, path
         return res, path
 
-
-    def _get(self, *_keys: str | list[str], default: Any = _MISSING, skip_none: bool = False) -> Any:
+    def _get(
+        self, *_keys: str | list[str], default: Any = _MISSING, skip_none: bool = False
+    ) -> Any:
         """Return the first matched value, raising if absent and no default is given."""
         val, _ = self._get_with_path(*_keys, default=default, skip_none=skip_none)
         return val
 
-    def get(self, key: str | list[str], default: Any = None, skip_none: bool = False) -> Any:
+    def get(
+        self, key: str | list[str], default: Any = None, skip_none: bool = False
+    ) -> Any:
         """Retrieve a value from the configuration by key, returning the default if not found."""
         keys = _resolve_keys_arg(key)
         try:
@@ -171,12 +180,18 @@ class Configuration(dict, _ConfigurationProtocol):
 
     @overload
     def get_section(
-        self, *section: str | list[str], default: Configuration | _MissingType = _MISSING
+        self,
+        *section: str | list[str],
+        default: Configuration | _MissingType = _MISSING,
     ) -> Configuration: ...
     @overload
-    def get_section(self, *section: str | list[str], default: None) -> Configuration | None: ...
     def get_section(
-        self, *section: str | list[str], default: Configuration | None | _MissingType = _MISSING
+        self, *section: str | list[str], default: None
+    ) -> Configuration | None: ...
+    def get_section(
+        self,
+        *section: str | list[str],
+        default: Configuration | None | _MissingType = _MISSING,
     ) -> Configuration | None:
         """Retrieve a section of the configuration, returning it as a Configuration object.
 
@@ -193,9 +208,7 @@ class Configuration(dict, _ConfigurationProtocol):
         base_path = self._resolve_path(_PATH_SEPARATOR.join(path))
 
         if isinstance(val, Mapping):
-            return Configuration.from_mapping(
-                val, _base_path=base_path
-            )
+            return Configuration.from_mapping(val, _base_path=base_path)
         if val is None and not _is_missing(default):
             return default
         raise TypeError(f"Section {base_path} is not a mapping")
@@ -289,12 +302,16 @@ class Configuration(dict, _ConfigurationProtocol):
     #     return factory(val)
 
     @overload
-    def get_bool(self, *_keys: str | list[str], default: bool | _MissingType = _MISSING) -> bool:
-        ...
+    def get_bool(
+        self, *_keys: str | list[str], default: bool | _MissingType = _MISSING
+    ) -> bool: ...
     @overload
-    def get_bool(self, *_keys: str | list[str], default: None = None) -> bool | None:
-        ...
-    def get_bool(self, *_keys: str | list[str], default: bool | None | _MissingType = _MISSING) -> bool | None:
+    def get_bool(
+        self, *_keys: str | list[str], default: None = None
+    ) -> bool | None: ...
+    def get_bool(
+        self, *_keys: str | list[str], default: bool | None | _MissingType = _MISSING
+    ) -> bool | None:
         """Retrieve a boolean value from the configuration.
 
         :param keys: The keys of the value to retrieve.
@@ -306,7 +323,9 @@ class Configuration(dict, _ConfigurationProtocol):
         name = self._resolve_path(_PATH_SEPARATOR.join(path) or keys[0])
         return _handle_bool(val, default, name)
 
-    def get_booln(self, *_keys: str | list[str], default: bool | None = None) -> bool | None:
+    def get_booln(
+        self, *_keys: str | list[str], default: bool | None = None
+    ) -> bool | None:
         """Retrieve a boolean value from the configuration, allowing None as default.
 
         :param keys: The keys of the value to retrieve.
@@ -316,12 +335,14 @@ class Configuration(dict, _ConfigurationProtocol):
         return self.get_bool(*_keys, default=default)
 
     @overload
-    def get_int(self, *_keys: str | list[str], default: None = None) -> int | None:
-        ...
+    def get_int(self, *_keys: str | list[str], default: None = None) -> int | None: ...
     @overload
-    def get_int(self, *_keys: str | list[str], default: int | _MissingType = _MISSING) -> int:
-        ...
-    def get_int(self, *_keys: str | list[str], default: int | None | _MissingType = _MISSING) -> int | None:
+    def get_int(
+        self, *_keys: str | list[str], default: int | _MissingType = _MISSING
+    ) -> int: ...
+    def get_int(
+        self, *_keys: str | list[str], default: int | None | _MissingType = _MISSING
+    ) -> int | None:
         """Retrieve an integer value from the configuration.
 
         :param keys: The keys of the value to retrieve.
@@ -333,7 +354,9 @@ class Configuration(dict, _ConfigurationProtocol):
         name = self._resolve_path(_PATH_SEPARATOR.join(path) or keys[0])
         return _handle_int(val, default, name)
 
-    def get_intn(self, *_keys: str | list[str], default: int | None = None) -> int | None:
+    def get_intn(
+        self, *_keys: str | list[str], default: int | None = None
+    ) -> int | None:
         """Retrieve an integer value from the configuration, allowing None as default.
 
         :param keys: The keys of the value to retrieve.
@@ -343,12 +366,16 @@ class Configuration(dict, _ConfigurationProtocol):
         return self.get_int(*_keys, default=default)
 
     @overload
-    def get_float(self, *_keys: str | list[str], default: None = None) -> float | None:
-        ...
+    def get_float(
+        self, *_keys: str | list[str], default: None = None
+    ) -> float | None: ...
     @overload
-    def get_float(self, *_keys: str | list[str], default: float | _MissingType = _MISSING) -> float:
-        ...
-    def get_float(self, *_keys: str | list[str], default: float | None | _MissingType = _MISSING) -> float | None:
+    def get_float(
+        self, *_keys: str | list[str], default: float | _MissingType = _MISSING
+    ) -> float: ...
+    def get_float(
+        self, *_keys: str | list[str], default: float | None | _MissingType = _MISSING
+    ) -> float | None:
         """Retrieve a float value from the configuration.
 
         :param keys: The keys of the value to retrieve.
@@ -360,7 +387,9 @@ class Configuration(dict, _ConfigurationProtocol):
         name = self._resolve_path(_PATH_SEPARATOR.join(path) or keys[0])
         return _handle_float(val, default, name)
 
-    def get_floatn(self, *_keys: str | list[str], default: float | None = None) -> float | None:
+    def get_floatn(
+        self, *_keys: str | list[str], default: float | None = None
+    ) -> float | None:
         """Retrieve a float value from the configuration, allowing None as default.
 
         :param keys: The keys of the value to retrieve.
@@ -370,12 +399,14 @@ class Configuration(dict, _ConfigurationProtocol):
         return self.get_float(*_keys, default=default)
 
     @overload
-    def get_str(self, *_keys: str | list[str], default: None) -> str | None:
-        ...
+    def get_str(self, *_keys: str | list[str], default: None) -> str | None: ...
     @overload
-    def get_str(self, *_keys: str | list[str], default: str | _MissingType = _MISSING) -> str:
-        ...
-    def get_str(self, *_keys: str | list[str], default: str | None | _MissingType = _MISSING) -> str | None:
+    def get_str(
+        self, *_keys: str | list[str], default: str | _MissingType = _MISSING
+    ) -> str: ...
+    def get_str(
+        self, *_keys: str | list[str], default: str | None | _MissingType = _MISSING
+    ) -> str | None:
         """Retrieve a string value from the configuration.
 
         :param keys: The keys of the value to retrieve.
@@ -396,7 +427,9 @@ class Configuration(dict, _ConfigurationProtocol):
         """
         return self.get_str(*_keys, default=default)
 
-    def get_str_list(self, *_keys: str | list[str], default: list[str] | None = None) -> list[str]:
+    def get_str_list(
+        self, *_keys: str | list[str], default: list[str] | None = None
+    ) -> list[str]:
         """Retrieve a list of strings from the configuration.
 
         :param keys: The keys of the value to retrieve.
@@ -413,7 +446,9 @@ class Configuration(dict, _ConfigurationProtocol):
             name = self._resolve_path(_PATH_SEPARATOR.join(path) or keys[0])
             return _handle_str_list(val, default, name)
         elif isinstance(val, Mapping):
-            raise ValueError(f"Invalid list value for {self._resolve_path(_PATH_SEPARATOR.join(path) or keys[0])}")
+            raise ValueError(
+                f"Invalid list value for {self._resolve_path(_PATH_SEPARATOR.join(path) or keys[0])}"
+            )
         elif not isinstance(val, Mapping):
             name = self._resolve_path(_PATH_SEPARATOR.join(path) or keys[0])
             before_split = _handle_str(val, None, name)
@@ -423,7 +458,9 @@ class Configuration(dict, _ConfigurationProtocol):
                 return [s.strip() for s in before_split.split(",")]
             return [s.strip() for s in before_split.strip().split()]
 
-    def get_items(self, *_keys: str | list[str], default: dict | None = None) -> Iterable[tuple[Any, Any]]:
+    def get_items(
+        self, *_keys: str | list[str], default: dict | None = None
+    ) -> Iterable[tuple[Any, Any]]:
         """Retrieve items from a dictionary in the configuration.
 
         :param keys: The keys of the value to retrieve.
@@ -445,8 +482,8 @@ class Configuration(dict, _ConfigurationProtocol):
     def collect_str(self, *_keys: str | list[str]) -> list[str]:
         keys = _resolve_keys_arg(*_keys)
         vals = _collect(self, *keys)
-        vals = [ _handle_str(v, None, keys[0]) for v in vals if v is not None ]
-        return [ v for v in vals if v is not None ]
+        vals = [_handle_str(v, None, keys[0]) for v in vals if v is not None]
+        return [v for v in vals if v is not None]
 
     def get_scopes(self, *_keys: str | list[str]) -> list[str]:
         """Retrieve a list of scopes from the configuration.
@@ -474,7 +511,7 @@ class Configuration(dict, _ConfigurationProtocol):
             lst = scopes.strip().split()
             return [s for s in lst if s]
         return scopes
-        
+
 
 class _Configurable(ABC):
 
@@ -484,7 +521,7 @@ class _Configurable(ABC):
 
     @classmethod
     @abstractmethod
-    def _from_configuration(cls, config: Configuration) -> Self:...
+    def _from_configuration(cls, config: Configuration) -> Self: ...
 
     @classmethod
     def from_configuration(cls, config: Configuration | Self) -> Self:

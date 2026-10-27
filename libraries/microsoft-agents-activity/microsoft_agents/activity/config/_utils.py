@@ -29,6 +29,7 @@ def _is_missing(val: Any) -> TypeIs[_MissingType]:
     """
     return isinstance(val, _MissingType)
 
+
 def _path(*args: str) -> str:
     """Construct a ``::``-separated key path from the given arguments.
 
@@ -37,8 +38,10 @@ def _path(*args: str) -> str:
     """
     return _PATH_SEPARATOR.join(args)
 
+
 def _split(key: str) -> list[str]:
     return key.split(_PATH_SEPARATOR)
+
 
 def _get_with_path(
     mapping: Mapping,
@@ -78,6 +81,7 @@ def _get_with_path(
         return None, final_path
     return default, final_path
 
+
 def _get(
     mapping: Mapping,
     *keys: str,
@@ -102,7 +106,13 @@ def _get(
     )
     return value
 
-def _collect_helper(current: Any, path_left: list[str], collection: dict[str, Any], current_path: list[str]) -> None:
+
+def _collect_helper(
+    current: Any,
+    path_left: list[str],
+    collection: dict[str, Any],
+    current_path: list[str],
+) -> None:
 
     if not path_left:
         collection[_path(*current_path)] = current
@@ -113,16 +123,21 @@ def _collect_helper(current: Any, path_left: list[str], collection: dict[str, An
         part = path_left[0]
         for key in current:
             if part == _PATH_ANY or part == key:
-                _collect_helper(current[key], path_left[1:], collection, current_path + [key])
+                _collect_helper(
+                    current[key], path_left[1:], collection, current_path + [key]
+                )
                 if part != _PATH_ANY:
                     break
     if isinstance(current, list):
         part = path_left[0]
         for idx, item in enumerate(current):
             if part == _PATH_ANY or part == str(idx):
-                _collect_helper(item, path_left[1:], collection, current_path + [str(idx)])
+                _collect_helper(
+                    item, path_left[1:], collection, current_path + [str(idx)]
+                )
                 if part != _PATH_ANY:
                     break
+
 
 def _collect_with_paths(mapping: Mapping, *keys: str) -> dict[str, Any]:
     collection: dict[str, Any] = {}
@@ -130,8 +145,10 @@ def _collect_with_paths(mapping: Mapping, *keys: str) -> dict[str, Any]:
         _collect_helper(mapping, _split(key), collection, [])
     return collection
 
+
 def _collect(mapping: Mapping, *keys: str) -> list[Any]:
     return list(_collect_with_paths(mapping, *keys).values())
+
 
 def _try_set(
     mapping: MutableMapping, key: str, value: Any, *, overwrite: bool = False
@@ -223,6 +240,7 @@ def _parse_env_var_name(name: str) -> str:
     """
     return name.replace("__", _PATH_SEPARATOR)
 
+
 def _convert_lists_helper(current: Any) -> None:
 
     if isinstance(current, Mapping):
@@ -230,6 +248,7 @@ def _convert_lists_helper(current: Any) -> None:
             keys_to_convert = sorted(list(current.keys()))
             for key in keys_to_convert:
                 value = current[key]
+
 
 def _convert_list_helper(base: Any, key: str) -> None:
 
@@ -241,11 +260,12 @@ def _convert_list_helper(base: Any, key: str) -> None:
 
         if all(isinstance(key, int) for key in current.keys()):
             keys_to_convert = sorted(list(current.keys()))
-            base[key] = [ current[key] for key in keys_to_convert ]
-            
+            base[key] = [current[key] for key in keys_to_convert]
+
         elif all(isinstance(key, str) and key.isnumeric() for key in current.keys()):
             keys_to_convert = sorted([int(k) for k in current.keys()])
-            base[key] = [ current[str(key)] for key in keys_to_convert ]
+            base[key] = [current[str(key)] for key in keys_to_convert]
+
 
 def _convert_lists(base: Any) -> None:
 
@@ -297,13 +317,18 @@ def _resolve(
 
     resolved = {}
     for path_str, value in flat.items():
-        if isinstance(value, Mapping) and len(value) == 0 and isinstance(_get(resolved, path_str), Mapping):
-            continue # avoid overwriting existing mappings with empty leaf mappings
+        if (
+            isinstance(value, Mapping)
+            and len(value) == 0
+            and isinstance(_get(resolved, path_str), Mapping)
+        ):
+            continue  # avoid overwriting existing mappings with empty leaf mappings
         if not _try_set(resolved, path_str, value):
             raise ValueError(f"Failed to set path {path_str} in resolved mapping.")
 
     _convert_lists(resolved)
     return resolved
+
 
 @functools.lru_cache(maxsize=10)
 def _snake_to_camel(name: str) -> str:
@@ -327,6 +352,7 @@ def _snake_to_camel(name: str) -> str:
 
     return camel
 
+
 @functools.lru_cache(maxsize=10)
 def _xcase_helper(
     snake_case_name: str,
@@ -335,7 +361,7 @@ def _xcase_helper(
     lower_snake: bool = False,
     camel: bool = False,
     pascal: bool = False,
-    all_caps: bool = True
+    all_caps: bool = True,
 ) -> set[str]:
     """Generate a list of name variants for a given snake_case name.
 
@@ -366,13 +392,14 @@ def _xcase_helper(
 
     return variants
 
+
 def _xcase(
     *snake_case_names: str,
     upper_snake: bool = True,
     lower_snake: bool = False,
     camel: bool = False,
     pascal: bool = False,
-    all_caps: bool = True
+    all_caps: bool = True,
 ) -> list[str]:
     """Generate a list of name variants for the given snake_case names.
 
@@ -393,10 +420,11 @@ def _xcase(
                 lower_snake=lower_snake,
                 camel=camel,
                 pascal=pascal,
-                all_caps=all_caps
+                all_caps=all_caps,
             )
         )
     return list(variants)
+
 
 @functools.lru_cache(maxsize=10)
 def _xpath(
@@ -405,7 +433,7 @@ def _xpath(
     lower_snake: bool = True,
     camel: bool = False,
     pascal: bool = False,
-    all_caps: bool = True
+    all_caps: bool = True,
 ) -> list[str]:
     """Generate casing variants of alternative configuration paths.
 
@@ -420,16 +448,17 @@ def _xpath(
     """
 
     path = _path(*path_parts)
-    
+
     res = _xcase(
         path,
         upper_snake=upper_snake,
         lower_snake=lower_snake,
         camel=camel,
         pascal=pascal,
-        all_caps=all_caps
+        all_caps=all_caps,
     )
     return sorted(res)
+
 
 def str_in(base: str, *sub: str) -> bool:
     """Check if all substrings are present in the base string.
@@ -439,6 +468,7 @@ def str_in(base: str, *sub: str) -> bool:
     :return: True if all substrings are present in the base string, False otherwise.
     """
     return any(s in base for s in sub)
+
 
 def _resolve_keys_arg(*keys: str | list[str]) -> list[str]:
     resolved_keys = []

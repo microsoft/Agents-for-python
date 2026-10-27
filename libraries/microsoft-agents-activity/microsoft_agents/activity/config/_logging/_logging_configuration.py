@@ -32,6 +32,7 @@ class _LogLevelEntry:
         object.__setattr__(self, "namespace", namespace.lower())
         object.__setattr__(self, "level", _NAME_TO_LEVEL[level_upper])
 
+
 @dataclass(frozen=True)
 class _LoggingConfiguration(_Configurable):
     """Configuration class for logging levels."""

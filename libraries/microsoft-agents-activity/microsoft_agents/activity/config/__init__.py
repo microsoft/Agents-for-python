@@ -17,7 +17,6 @@ from ._utils import (
 )
 from ._coercion import coerce_bool, coerce_int, coerce_float, _get_str
 
-
 __all__ = [
     "load_configuration_from_env",
     "Configuration",
@@ -36,5 +35,5 @@ __all__ = [
     "coerce_bool",
     "coerce_int",
     "coerce_float",
-    "_get_str"
+    "_get_str",
 ]

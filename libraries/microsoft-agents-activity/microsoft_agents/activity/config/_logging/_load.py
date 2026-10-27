@@ -9,15 +9,17 @@ from ._color_formatter import ColorFormatter
 from ._constants import _DEFAULT_NAMESPACE
 
 
-def _configure_logging(config: Configuration | _LoggingConfiguration):
+def _configure_logging(_config: dict | Configuration | _LoggingConfiguration):
     """Configures logging based on the provided logging configuration dictionary.
 
     :param config: A Configuration object or _LoggingConfiguration instance containing logging configuration.
     :raises ValueError: If an invalid log level is provided in the configuration.
     """
 
-
-    config = _LoggingConfiguration.from_configuration(config)
+    if isinstance(_config, dict):
+        config = _LoggingConfiguration.from_mapping(_config)
+    else:
+        config = _LoggingConfiguration.from_configuration(_config)
 
     console_handler = logging.StreamHandler()
     console_handler.setFormatter(

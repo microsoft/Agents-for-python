@@ -16,12 +16,14 @@ class _ConfigurationProtocol(Protocol):
     @classmethod
     def from_mapping(cls, _mapping: Mapping) -> Self: ...
 
+
 class _DictConfigurableProtocol(_ConfigurationProtocol, Protocol):
 
     def __init__(self, data: dict, *args, **kwargs) -> None: ...
 
     @classmethod
     def from_mapping(cls, mapping: Mapping) -> Self: ...
+
 
 class _DictConfigurable(ABC):
 
