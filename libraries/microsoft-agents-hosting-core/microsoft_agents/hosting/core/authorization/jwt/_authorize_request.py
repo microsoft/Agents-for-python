@@ -2,6 +2,9 @@
 # Licensed under the MIT License.
 
 import logging
+from collections.abc import Mapping
+from typing import Any
+from weakref import WeakKeyDictionary
 
 from jwt import PyJWTError
 
@@ -14,12 +17,15 @@ from .jwt_token_validator import JwtTokenValidator
 
 logger = logging.getLogger(__name__)
 
+_TOKEN_VALIDATOR_CACHE: WeakKeyDictionary[Any, JwtTokenValidator] = WeakKeyDictionary()
+
 
 async def _authorize_request(
     authorization_header: str | None,
-    auth_config: Configuration | AgentAuthConfiguration | None = None,
+    auth_config: Mapping[str, Any] | AgentAuthConfiguration | None = None,
     *,
-    validator: JwtTokenValidator | None = None
+    validator: JwtTokenValidator | None = None,
+    cache_key: Any = None,
 ) -> ClaimsIdentity | HttpResponse:
     """
     Authorizes a request based on the provided JWT token in the Authorization header.
@@ -27,17 +33,32 @@ async def _authorize_request(
     :param authorization_header: The value of the Authorization header from the request.
     :param auth_config: Application Configuration for token validation, or a
         deprecated AgentAuthConfiguration instance.
+    :param validator: Explicit validator, taking precedence over the cache.
+    :param cache_key: Weak-referenceable, hashable cache owner. When omitted,
+        validators are constructed per call. Configuration changes require
+        replacing the cache owner or invalidating its cached validator.
     :return: A ClaimsIdentity object if the token is valid, or an HttpResponse with an
         error message and status code if the token is invalid or missing.
+    :raises TypeError: If cache_key is not weak-referenceable or hashable.
     """
 
-    if auth_config is None and validator is None:
-        return HttpResponse(
-            body={"error": "Agent Authentication configuration not found"},
-            status_code=500,
+    if validator is None and cache_key is not None:
+        validator = _TOKEN_VALIDATOR_CACHE.get(cache_key)
+
+    if validator is None:
+        if auth_config is None and cache_key is None:
+            return HttpResponse(
+                body={"error": "Agent Authentication configuration not found"},
+                status_code=500,
+            )
+        config = (
+            auth_config
+            if isinstance(auth_config, AgentAuthConfiguration)
+            else Configuration(auth_config)
         )
-    elif validator is None:
-        validator = JwtTokenValidator(auth_config)
+        validator = JwtTokenValidator(config)
+        if cache_key is not None:
+            _TOKEN_VALIDATOR_CACHE[cache_key] = validator
 
     if not authorization_header:
         if validator.config.anonymous_allowed:

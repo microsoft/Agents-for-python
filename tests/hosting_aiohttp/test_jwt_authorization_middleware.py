@@ -5,7 +5,7 @@ import gc
 import importlib
 import json
 import weakref
-from unittest.mock import AsyncMock, call, patch, sentinel
+from unittest.mock import AsyncMock, call, patch
 
 import pytest
 from aiohttp import web
@@ -23,7 +23,10 @@ from microsoft_agents.hosting.core.http import HttpResponse
 _jwt_middleware_module = importlib.import_module(
     "microsoft_agents.hosting.aiohttp.jwt_authorization_middleware"
 )
-_AUTHORIZATION = "Bearer synthetic-token"
+_authorize_request_module = importlib.import_module(
+    "microsoft_agents.hosting.core.authorization.jwt._authorize_request"
+)
+_AUTHORIZATION = "Bearer test-token"
 
 
 def _make_app(
@@ -56,21 +59,21 @@ class _RequestStub:
         self._items[key] = value
 
 
-def _response_json(response):
-    return json.loads(response.body.decode())
-
-
 @pytest.fixture
 def validator_factory():
     with patch.object(
-        _jwt_middleware_module, "JwtTokenValidator", autospec=True
+        _authorize_request_module, "JwtTokenValidator", autospec=True
     ) as factory:
         yield factory
 
 
 @pytest.mark.asyncio
-async def test_aiohttp_middleware_stores_claims_and_calls_handler(validator_factory):
+@pytest.mark.parametrize("use_decorator", [False, True])
+async def test_aiohttp_forwards_configuration_and_cache_key_and_stores_claims(
+    use_decorator,
+):
     auth_config = Configuration()
+    request = _RequestStub(auth_config, _AUTHORIZATION)
     claims = ClaimsIdentity({"aud": "app-id"}, authentication_type="Bearer")
 
     async def handler(request):
@@ -81,109 +84,69 @@ async def test_aiohttp_middleware_stores_claims_and_calls_handler(validator_fact
         "_authorize_request",
         new=AsyncMock(return_value=claims),
     ) as authorize:
-        response = await _jwt_middleware_module._jwt_authorization_middleware(
-            _RequestStub(auth_config, _AUTHORIZATION), handler
-        )
+        if use_decorator:
+            response = await jwt_authorization_decorator(handler)(request)
+        else:
+            response = await _jwt_middleware_module._jwt_authorization_middleware(
+                request, handler
+            )
 
     assert response.status == 200
-    assert _response_json(response) == {"aud": "app-id"}
+    assert json.loads(response.body.decode()) == {"aud": "app-id"}
     authorize.assert_awaited_once_with(
-        _AUTHORIZATION, validator=validator_factory.return_value
+        _AUTHORIZATION, auth_config, cache_key=request.app
     )
-    validator_factory.assert_called_once_with(auth_config)
+    assert authorize.call_args.args[1] is auth_config
 
 
 @pytest.mark.asyncio
-async def test_aiohttp_middleware_converts_http_response(validator_factory):
+@pytest.mark.parametrize("use_decorator", [False, True])
+async def test_aiohttp_converts_http_response_without_calling_handler(use_decorator):
     auth_config = Configuration()
-    handler = AsyncMock(return_value=web.json_response({"called": True}))
+    request = _RequestStub(auth_config)
+    handler = AsyncMock()
 
     with patch.object(
         _jwt_middleware_module,
         "_authorize_request",
         new=AsyncMock(
             return_value=HttpResponse(
-                body={"error": "Invalid token or authentication failed."},
-                status_code=401,
+                body={"error": "Authorization header not found"}, status_code=401
             )
         ),
     ) as authorize:
-        response = await _jwt_middleware_module._jwt_authorization_middleware(
-            _RequestStub(auth_config, _AUTHORIZATION), handler
-        )
+        if use_decorator:
+            response = await jwt_authorization_decorator(handler)(request)
+        else:
+            response = await _jwt_middleware_module._jwt_authorization_middleware(
+                request, handler
+            )
 
     assert response.status == 401
-    assert _response_json(response) == {
-        "error": "Invalid token or authentication failed."
+    assert json.loads(response.body.decode()) == {
+        "error": "Authorization header not found"
     }
     handler.assert_not_awaited()
-    authorize.assert_awaited_once_with(
-        _AUTHORIZATION, validator=validator_factory.return_value
-    )
+    authorize.assert_awaited_once_with(None, auth_config, cache_key=request.app)
 
 
 @pytest.mark.asyncio
-async def test_aiohttp_decorator_uses_authorization_helper(validator_factory):
-    auth_config = Configuration()
-    claims = ClaimsIdentity({"aud": "decorator-app"}, authentication_type="Bearer")
-
-    @jwt_authorization_decorator
-    async def handler(request):
-        return web.json_response({"aud": request["claims_identity"].claims["aud"]})
-
-    with patch.object(
-        _jwt_middleware_module,
-        "_authorize_request",
-        new=AsyncMock(return_value=claims),
-    ) as authorize:
-        response = await handler(_RequestStub(auth_config, _AUTHORIZATION))
-
-    assert response.status == 200
-    assert _response_json(response) == {"aud": "decorator-app"}
-    authorize.assert_awaited_once_with(
-        _AUTHORIZATION, validator=validator_factory.return_value
-    )
-
-
-@pytest.mark.asyncio
-async def test_aiohttp_decorator_converts_http_response(validator_factory):
-    auth_config = Configuration()
-
-    @jwt_authorization_decorator
-    async def handler(request):
-        return web.json_response({"called": True})
-
-    with patch.object(
-        _jwt_middleware_module,
-        "_authorize_request",
-        new=AsyncMock(
-            return_value=HttpResponse(
-                body={"error": "Authorization header not found"},
-                status_code=401,
-            )
-        ),
-    ) as authorize:
-        response = await handler(_RequestStub(auth_config))
-
-    assert response.status == 401
-    assert _response_json(response) == {"error": "Authorization header not found"}
-    authorize.assert_awaited_once_with(None, validator=validator_factory.return_value)
-
-
-def test_aiohttp_frozen_app_binds_configuration_and_validator_only_once(
+async def test_aiohttp_frozen_app_binds_configuration_and_validator_only_once(
     validator_factory,
 ):
     auth_config = Configuration({"TOKEN_VALIDATION": {"ANONYMOUS_ALLOWED": True}})
     app = _make_app(auth_config)
     app.freeze()
+    handler = AsyncMock(return_value=web.Response(status=200))
 
     with patch.object(
-        _jwt_middleware_module, "Configuration", wraps=Configuration
+        _authorize_request_module, "Configuration", wraps=Configuration
     ) as configuration:
-        first = _jwt_middleware_module._get_or_create_cached_validator(app)
-        second = _jwt_middleware_module._get_or_create_cached_validator(app)
+        for _ in range(2):
+            await _jwt_middleware_module._jwt_authorization_middleware(
+                _RequestStub(auth_config, app=app), handler
+            )
 
-    assert first is second is validator_factory.return_value
     configuration.assert_called_once_with(auth_config)
     validator_factory.assert_called_once_with(auth_config)
 
@@ -207,9 +170,9 @@ async def test_aiohttp_legacy_configuration_preserves_policy_and_shared_cache(
         return web.Response(status=200)
 
     with patch.object(
-        _jwt_middleware_module,
+        _authorize_request_module,
         "JwtTokenValidator",
-        wraps=_jwt_middleware_module.JwtTokenValidator,
+        wraps=_authorize_request_module.JwtTokenValidator,
     ) as factory:
         first = await _jwt_middleware_module._jwt_authorization_middleware(
             _RequestStub(auth_config, app=app), handler
@@ -217,7 +180,7 @@ async def test_aiohttp_legacy_configuration_preserves_policy_and_shared_cache(
         second = await jwt_authorization_decorator(handler)(
             _RequestStub(auth_config, app=app)
         )
-        validator = _jwt_middleware_module._get_or_create_cached_validator(app)
+        validator = _authorize_request_module._TOKEN_VALIDATOR_CACHE[app]
 
     expected_status = 200 if anonymous_allowed else 401
     assert [first.status, second.status] == [expected_status, expected_status]
@@ -228,32 +191,12 @@ async def test_aiohttp_legacy_configuration_preserves_policy_and_shared_cache(
     assert validator.config.tenant_id == "legacy-tenant"
 
 
-def test_aiohttp_validator_cache_is_isolated_per_app(validator_factory):
-    first_app = _make_app(Configuration({"name": "first"}))
-    second_app = _make_app(Configuration({"name": "second"}))
-    validator_factory.side_effect = [
-        sentinel.first_validator,
-        sentinel.second_validator,
-    ]
-
-    assert (
-        _jwt_middleware_module._get_or_create_cached_validator(first_app)
-        is sentinel.first_validator
-    )
-    assert (
-        _jwt_middleware_module._get_or_create_cached_validator(second_app)
-        is sentinel.second_validator
-    )
-    assert (
-        _jwt_middleware_module._get_or_create_cached_validator(first_app)
-        is sentinel.first_validator
-    )
-    assert validator_factory.call_count == 2
-
-
-def test_aiohttp_validator_cache_does_not_retain_applications(validator_factory):
+@pytest.mark.asyncio
+async def test_aiohttp_validator_cache_does_not_retain_applications():
     app = _make_app(Configuration())
-    _jwt_middleware_module._get_or_create_cached_validator(app)
+    await _authorize_request_module._authorize_request(
+        None, Configuration(), cache_key=app
+    )
     reference = weakref.ref(app)
 
     del app
@@ -276,24 +219,17 @@ async def test_aiohttp_middleware_and_decorator_share_cache_not_claims(
     async def handler(request):
         return web.Response(status=200)
 
-    decorated = jwt_authorization_decorator(handler)
-    with patch.object(
-        _jwt_middleware_module,
-        "_authorize_request",
-        new=AsyncMock(side_effect=[first_claims, second_claims]),
-    ) as authorize:
-        await _jwt_middleware_module._jwt_authorization_middleware(first, handler)
-        await decorated(second)
+    validator = validator_factory.return_value
+    validator.validate_token.side_effect = [first_claims, second_claims]
+    await _jwt_middleware_module._jwt_authorization_middleware(first, handler)
+    await jwt_authorization_decorator(handler)(second)
 
     assert first["claims_identity"] is first_claims
     assert second["claims_identity"] is second_claims
-    authorize.assert_has_awaits(
-        [
-            call("Bearer first-token", validator=validator_factory.return_value),
-            call("Bearer second-token", validator=validator_factory.return_value),
-        ]
+    validator.validate_token.assert_has_awaits(
+        [call("first-token"), call("second-token")]
     )
-    assert authorize.await_count == 2
+    assert validator.validate_token.await_count == 2
     validator_factory.assert_called_once_with(auth_config)
 
 
@@ -306,9 +242,9 @@ async def test_aiohttp_cached_validator_still_rejects_malformed_authorization():
         return web.Response(status=200)
 
     with patch.object(
-        _jwt_middleware_module,
+        _authorize_request_module,
         "JwtTokenValidator",
-        wraps=_jwt_middleware_module.JwtTokenValidator,
+        wraps=_authorize_request_module.JwtTokenValidator,
     ) as factory:
         responses = [
             await _jwt_middleware_module._jwt_authorization_middleware(
