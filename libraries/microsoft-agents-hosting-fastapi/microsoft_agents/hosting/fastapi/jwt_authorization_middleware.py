@@ -32,14 +32,12 @@ class JwtAuthorizationMiddleware:
             return
 
         app = scope.get("app")
-        state = getattr(app, "state", None) if app else None
-        auth_config: AgentAuthConfiguration | None = getattr(
-            state, "agent_configuration", None
-        )
 
         request = Request(scope, receive=receive)
         res = await _authorize_request(
-            request.headers.get("Authorization"), auth_config
+            request.headers.get("Authorization"),
+            getattr(app.state, "agent_configuration", None),
+            cache_key=app
         )
 
         if isinstance(res, HttpResponse):
