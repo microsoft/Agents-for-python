@@ -19,7 +19,7 @@ logger = logging.getLogger(__name__)
 _TOKEN_VALIDATION_CACHE: WeakKeyDictionary[Any, JwtTokenValidator] = WeakKeyDictionary()
 
 def _resolve_token_validator(
-    auth_config: Mapping | AgentAuthConfiguration | None,
+    auth_config: Configuration | AgentAuthConfiguration | None,
     cache_key: Any = None,
 ) -> JwtTokenValidator | None:
 
@@ -27,7 +27,7 @@ def _resolve_token_validator(
         return _TOKEN_VALIDATION_CACHE[cache_key]
 
     if auth_config is not None:
-        config: Configuration | AgentAuthConfiguration = auth_config
+        config: AgentAuthConfiguration | Configuration = auth_config
         if not isinstance(auth_config, AgentAuthConfiguration):
             config = Configuration(auth_config)
         validator = JwtTokenValidator(config)
@@ -38,7 +38,7 @@ def _resolve_token_validator(
 
 async def _authorize_request(
     authorization_header: str | None,
-    auth_config: Mapping | AgentAuthConfiguration | None,
+    auth_config: Configuration | AgentAuthConfiguration | None,
     *,
     cache_key: Any = None
 ) -> ClaimsIdentity | HttpResponse:
@@ -62,7 +62,7 @@ async def _authorize_request(
         )
 
     if not authorization_header:
-        if auth_config.config.anonymous_allowed:
+        if validator.config.anonymous_allowed:
             claims_identity = validator.get_anonymous_claims()
             return claims_identity
         return HttpResponse(
